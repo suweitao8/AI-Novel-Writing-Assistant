@@ -389,6 +389,7 @@ export function buildChapterWriteContext(input: {
     ragFacts: [],
     completedMilestones: [],
     recentScenePatterns: [],
+    storySettingsPromptText: input.contextPackage.storySettingsContext ?? null,
   };
 }
 
@@ -550,8 +551,17 @@ export function getAllContextBlocks(contextPackage: GenerationContextPackage): P
       required: true,
       content: renderBookContractText(writeContext.bookContract),
     }),
-    ...buildChapterWriterContextBlocks(writeContext),
   ];
+  if (writeContext.storySettingsPromptText?.trim()) {
+    blocks.push(createContextBlock({
+      id: "story_settings",
+      group: "story_settings",
+      priority: 97,
+      required: true,
+      content: writeContext.storySettingsPromptText,
+    }));
+  }
+  blocks.push(...buildChapterWriterContextBlocks(writeContext));
   if (writeContext.macroConstraints) {
     blocks.push(createContextBlock({
       id: "story_macro",

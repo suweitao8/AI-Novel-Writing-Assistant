@@ -44,6 +44,8 @@ import {
 import { NovelVolumeService } from "../volume/NovelVolumeService";
 import { ChapterPlanJITService } from "../planning/ChapterPlanJITService";
 import { buildDirectorCompletionProfile } from "@ai-novel/shared/types/directorCompletion";
+import { storySettingsService } from "../../../modules/novel/story-settings/application/StorySettingsService";
+import { buildStorySettingsPromptText } from "../../../modules/novel/story-settings/application/storySettingsPromptText";
 import { ChapterRouteWindowService } from "../planning/ChapterRouteWindowService";
 import {
   buildBlockingPendingReviewProposalWhere,
@@ -196,6 +198,7 @@ export class GenerationContextAssembler {
       styleContext,
       payoffLedger,
       characterResourceContext,
+      storySettingsSnapshot,
     ] = await Promise.all([
       this.worldContextGateway.getWorldContextBlock(novelId, { purpose: "chapter" }),
       pendingReviewProposalCountPromise,
@@ -287,6 +290,8 @@ export class GenerationContextAssembler {
         chapterOrder: chapter.order,
         ...(resourceCharacterIds.length > 0 ? { characterIds: resourceCharacterIds } : {}),
       }).catch(() => null),
+      // 设定中心快照：读取失败不得阻断章节生成。
+      storySettingsService.getPromptSnapshot(novelId).catch(() => null),
     ]);
 
     const resolvedStateDrivenContext = await contextAssemblyService.build({
@@ -561,6 +566,7 @@ export class GenerationContextAssembler {
       // Phase 2 缺陷5：timelineContext 停止构建，写作路径已不消费
       timelineContext: null,
       characterResourceContext,
+      storySettingsContext: buildStorySettingsPromptText(storySettingsSnapshot),
       contextGatingDecisions: [] as GenerationContextPackage["contextGatingDecisions"],
       chapterChangeFlags: {
         introducedPayoff: false,

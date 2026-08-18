@@ -3,6 +3,7 @@ export type NovelWorkflowLane = "manual_create" | "auto_director" | "creation_st
 export type NovelWorkflowStage =
   | "project_setup"
   | "creation_intent"
+  | "short_story_settings"
   | "short_story_plan"
   | "short_story_draft"
   | "short_story_review"
@@ -19,6 +20,7 @@ export type NovelWorkflowCheckpoint =
   | "candidate_selection_required"
   | "book_contract_ready"
   | "character_setup_required"
+  | "settings_ready"
   | "volume_strategy_ready"
   | "production_experience_required"
   | "chapter_batch_ready"

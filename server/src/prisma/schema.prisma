@@ -436,6 +436,9 @@ model Novel {
   intentVersions     NovelIntentVersion[]
   shortStoryPlan     ShortStoryPlan?
   shortStorySegments ShortStorySegment[]
+  settingsWorld      NovelSettingsWorld?
+  storyScenes        NovelScene[]
+  storyProps         NovelProp[]
   creationStudioConfirmations CreationStudioConfirmation[]
   createdAt          DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
@@ -540,10 +543,60 @@ model ShortStorySegment {
   @@index([status, updatedAt])
 }
 
+// 设定中心：地点场景与关键道具（短篇/简易通道的角色与世界观复用 Character/NovelWorld）
+model NovelScene {
+  id           String   @id @default(cuid())
+  novelId      String
+  name         String
+  summary      String?
+  significance String?
+  mapNodeId    String?
+  sortOrder    Int      @default(0)
+  source       String   @default("ai")
+  novel        Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([novelId, sortOrder])
+}
+
+model NovelProp {
+  id               String   @id @default(cuid())
+  novelId          String
+  name             String
+  description      String?
+  plotFunction     String?
+  ownerCharacterId String?
+  importance       String   @default("major")
+  firstAppearHint  String?
+  sortOrder        Int      @default(0)
+  source           String   @default("ai")
+  novel            Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([novelId, sortOrder])
+}
+
+// 设定中心：本书世界观摘要（前提/时代/基调/关键设定/地图节点）。
+// 独立于 NovelWorld 生成管线：已有导演世界观的小说由 AI 蒸馏为设定摘要，短篇直接生成。
+model NovelSettingsWorld {
+  id              String   @id @default(cuid())
+  novelId         String   @unique
+  premise         String
+  era             String?
+  toneRulesJson   String?
+  keySettingsJson String?
+  mapJson         String?
+  source          String   @default("ai")
+  novel           Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
 model PromptAddendum {
   id        String   @id @default(cuid())
-  scope     String
-  novelId   String?
+  scope     String  novelId   String?
   promptId  String
   title     String
   content   String

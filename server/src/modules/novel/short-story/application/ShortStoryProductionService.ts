@@ -13,6 +13,7 @@ import {
   shortStorySegmentWritePrompt,
 } from "../../../../prompting/prompts/shortStory/shortStory.prompts";
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
+import { storySettingsService } from "../../story-settings/application/StorySettingsService";
 import {
   buildShortStoryWriterContextBlocks,
   parseWritingPlatformSnapshot,
@@ -72,6 +73,12 @@ export class ShortStoryProductionService {
     this.running.add(taskId);
     try {
       const context = await this.loadContext(taskId);
+      await this.assertRunnable(context.task.id);
+      // 设定门槛：动笔前先立好角色/场景/道具/世界观，等待用户确认后再继续。
+      const gate = await this.runSettingsGate(context);
+      if (gate.awaitingConfirmation) {
+        return;
+      }
       const plan = await this.ensurePlan(context);
       const completedSegments = await this.writePendingSegments(context, plan);
       await this.auditAndRepair(context, plan, completedSegments);
@@ -88,6 +95,23 @@ export class ShortStoryProductionService {
     } finally {
       this.running.delete(taskId);
     }
+  }
+
+  private async runSettingsGate(
+    context: Awaited<ReturnType<ShortStoryProductionService["loadContext"]>>,
+  ): Promise<{ awaitingConfirmation: boolean }> {
+    const overview = await storySettingsService.prepareShortStorySettingsGate(context.novel.id);
+    if (!overview.awaitingConfirmation) {
+      return overview;
+    }
+    await this.workflowService.recordCheckpoint(context.task.id, {
+      stage: "short_story_settings",
+      checkpointType: "settings_ready",
+      checkpointSummary: "角色、场景、道具与世界观已生成，确认后开始写作。",
+      itemLabel: "设定已就绪，等待确认",
+      progress: 0.12,
+    });
+    return overview;
   }
 
   private async loadContext(taskId: string) {
@@ -218,6 +242,7 @@ export class ShortStoryProductionService {
     });
     let previousContinuity = "";
     let previousContentTail = "";
+    const settingsSnapshot = await storySettingsService.getPromptSnapshot(context.novel.id);
     const rows = await prisma.shortStorySegment.findMany({
       where: { planId: plan.row.id },
       orderBy: { order: "asc" },
@@ -267,7 +292,7 @@ export class ShortStoryProductionService {
         const generated = await runStructuredPrompt({
           asset: shortStorySegmentWritePrompt,
           promptInput: writerInput,
-          contextBlocks: buildShortStoryWriterContextBlocks({ ...writerInput, platform: context.platform }),
+          contextBlocks: buildShortStoryWriterContextBlocks({ ...writerInput, platform: context.platform, settingsSnapshot }),
           options: {
             taskId: context.task.id,
             novelId: context.novel.id,

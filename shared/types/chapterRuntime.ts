@@ -513,6 +513,7 @@ export const chapterWriteContextSchema = z.object({
   ragFacts: z.array(z.string()).default([]),
   completedMilestones: z.array(z.string()).default([]),
   recentScenePatterns: z.array(z.string()).default([]),
+  storySettingsPromptText: z.string().nullable().optional(),
 });
 
 export const chapterReviewContextSchema = chapterWriteContextSchema.extend({
@@ -571,6 +572,7 @@ export const generationContextPackageSchema = z.object({
   ledgerSummary: runtimePayoffLedgerSummarySchema.nullable().optional(),
   timelineContext: timelineContextForChapterSchema.nullable().optional(),
   characterResourceContext: characterResourceContextSchema.nullable().optional(),
+  storySettingsContext: z.string().nullable().optional(),
   ragContext: z.string().default(""),
   chapterMission: chapterMissionContextSchema.nullable().optional(),
   chapterWriteContext: chapterWriteContextSchema.nullable().optional(),
