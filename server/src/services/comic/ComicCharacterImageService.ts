@@ -7,6 +7,7 @@
  * 图片存储：generated-images/comic-characters/{charId}/character-sheet.{ext}
  * HTTP 端点：/api/comic/character-images/:charId/sheet
  */
+import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
@@ -73,7 +74,7 @@ export interface CharacterExpressionData {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const COMIC_CHARS_DIR = "comic-characters";
-const DEFAULT_PROVIDER: LLMProvider = "openai";
+const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 const IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],

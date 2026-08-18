@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../db/prisma";
 import {
@@ -360,7 +361,7 @@ export class NovelCorePipelineService {
         matchedChapters: chapters.length,
         availableRange: `${chapterStats._min.order ?? 1}-${chapterStats._max.order ?? 1}`,
         maxRetries,
-        provider: options.provider ?? "deepseek",
+        provider: options.provider ?? getTextModelProvider(),
         model: options.model ?? "",
       });
 
@@ -381,7 +382,7 @@ export class NovelCorePipelineService {
           maxRetries,
           currentStage: "queued",
           payload: this.stringifyPipelinePayload({
-            provider: options.provider ?? "deepseek",
+            provider: options.provider ?? getTextModelProvider(),
             model: options.model ?? "",
             temperature: options.temperature ?? 0.8,
             controlPolicy: options.controlPolicy,

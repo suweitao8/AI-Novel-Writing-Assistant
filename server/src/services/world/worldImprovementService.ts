@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { WorldConsistencyReport, WorldLayerKey } from "@ai-novel/shared/types/world";
 import { prisma } from "../../db/prisma";
@@ -70,7 +71,7 @@ export async function createWorldDeepeningQuestions(
       ragContext,
     },
     options: {
-      provider: options.provider ?? "deepseek",
+      provider: options.provider ?? getTextModelProvider(),
       model: options.model,
       temperature: 0.6,
     },
@@ -341,7 +342,7 @@ export async function checkWorldConsistency(
         ragContext,
       },
       options: {
-        provider: options.provider ?? "deepseek",
+        provider: options.provider ?? getTextModelProvider(),
         model: options.model,
         temperature: 0.2,
       },

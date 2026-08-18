@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import type { BookAnalysisSectionKey } from "@ai-novel/shared/types/bookAnalysis";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../../db/prisma";
@@ -44,7 +45,7 @@ export async function optimizeSectionPreview(
   if (section.frozen) {
     throw new AppError("Frozen sections cannot be optimized until unfrozen.", 400);
   }
-  const provider = (section.analysis.provider as LLMProvider | null) ?? "deepseek";
+  const provider = (section.analysis.provider as LLMProvider | null) ?? getTextModelProvider();
   const model = section.analysis.model ?? undefined;
   const temperature = normalizeTemperature(section.analysis.temperature);
   const maxTokens = normalizeMaxTokens(section.analysis.maxTokens);

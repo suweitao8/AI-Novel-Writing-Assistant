@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { runTextPrompt } from "../../prompting/core/promptRunner";
 import { styleRewritePrompt } from "../../prompting/prompts/style/style.prompts";
@@ -52,7 +53,7 @@ export class StyleRewriteService {
         issuesBlock,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.5,
       },

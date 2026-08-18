@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import type {
   BookAnalysisCharacterAppearanceMergeResult,
   BookAnalysisCharacterAppearanceTerm,
@@ -270,7 +271,7 @@ export class BookAnalysisCharacterAppearanceTermService {
       throw new AppError("Book analysis not found.", 404);
     }
     return {
-      provider: (analysis.provider as LLMProvider | null) ?? "deepseek",
+      provider: (analysis.provider as LLMProvider | null) ?? getTextModelProvider(),
       model: analysis.model ?? undefined,
       temperature: normalizeTemperature(analysis.temperature),
       maxTokens: normalizeMaxTokens(analysis.maxTokens),

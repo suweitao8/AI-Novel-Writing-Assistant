@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
   WorldGenerationBlueprint,
@@ -44,7 +45,7 @@ export async function generateWorldSkeleton(
       options,
     },
     options: {
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model,
       temperature: 0.7,
       maxTokens: WORLD_SKELETON_GENERATION_MAX_TOKENS,

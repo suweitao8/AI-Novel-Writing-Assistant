@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { CompiledStylePromptBlocks } from "@ai-novel/shared/types/styleEngine";
 import { runTextPrompt } from "../../prompting/core/promptRunner";
@@ -50,7 +51,7 @@ ${input.topic ?? ""}`;
         targetLength,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.7,
       },

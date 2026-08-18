@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../../llm/modelCategories";
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
@@ -821,7 +822,7 @@ router.get(
   async (req, res, next) => {
     try {
       const { episodeId } = req.params as z.infer<typeof episodeIdParams>;
-      const provider = typeof req.query.provider === "string" ? req.query.provider : "openai";
+      const provider = typeof req.query.provider === "string" ? req.query.provider : getImageModelProvider();
       const data = await comicBatchOrchestrator.estimateCost(episodeId, provider);
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (err) { next(err); }

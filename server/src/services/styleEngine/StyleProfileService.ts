@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
   StyleExtractionDraft,
@@ -516,7 +517,7 @@ export class StyleProfileService {
       asset: styleProfileFromBookAnalysisPrompt,
       promptInput,
       options: {
-        provider: llmInput.provider ?? "deepseek",
+        provider: llmInput.provider ?? getTextModelProvider(),
         model: llmInput.model,
         temperature: llmInput.temperature ?? 0.5,
         timeoutMs: llmInput.timeoutMs,
@@ -538,7 +539,7 @@ export class StyleProfileService {
       asset: styleProfileFromBriefPrompt,
       promptInput,
       options: {
-        provider: llmInput.provider ?? "deepseek",
+        provider: llmInput.provider ?? getTextModelProvider(),
         model: llmInput.model,
         temperature: llmInput.temperature ?? 0.6,
         timeoutMs: llmInput.timeoutMs,
@@ -559,7 +560,7 @@ export class StyleProfileService {
     logStyleExtractionRuntimeEvent("extract_start", {
       name: input.name,
       category: input.category ?? null,
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model ?? null,
       temperature: input.temperature ?? 0.5,
       maxTokens: STYLE_EXTRACTION_MAX_TOKENS,
@@ -575,7 +576,7 @@ export class StyleProfileService {
         sourceText: input.sourceText,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.5,
         maxTokens: STYLE_EXTRACTION_MAX_TOKENS,
@@ -609,7 +610,7 @@ export class StyleProfileService {
         retryForFeatures: true,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.5,
         maxTokens: STYLE_EXTRACTION_MAX_TOKENS,
@@ -777,7 +778,7 @@ export class StyleProfileService {
         styleDigest: buildStyleMetadataDigest(input.coreDraft),
       },
       options: {
-        provider: input.llmInput.provider ?? "deepseek",
+        provider: input.llmInput.provider ?? getTextModelProvider(),
         model: input.llmInput.model,
         temperature: 0.2,
         maxTokens: STYLE_METADATA_MAX_TOKENS,
@@ -810,7 +811,7 @@ export class StyleProfileService {
         maxRuleCount: 4,
       },
       options: {
-        provider: input.llmInput.provider ?? "deepseek",
+        provider: input.llmInput.provider ?? getTextModelProvider(),
         model: input.llmInput.model,
         temperature: 0.2,
         maxTokens: STYLE_ANTI_AI_SELECTION_MAX_TOKENS,

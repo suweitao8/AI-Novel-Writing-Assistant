@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { BaseMessageChunk } from "@langchain/core/messages";
 import { featureFlags } from "../../config/featureFlags";
@@ -115,7 +116,7 @@ export async function createWorldDraftGenerateStream(
   callbacks: WorldDraftCallbacks,
 ) {
   if (featureFlags.worldGraphEnabled) {
-    const llm = await getLLM(input.provider ?? "deepseek", {
+    const llm = await getLLM(input.provider ?? getTextModelProvider(), {
       model: input.model,
       temperature: 0.7,
     });
@@ -166,7 +167,7 @@ export async function createWorldDraftGenerateStream(
       dimensions: input.dimensions,
     },
     options: {
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model,
       temperature: 0.7,
     },
@@ -194,7 +195,7 @@ export async function createWorldDraftRefineStream(
   const mode: RefineMode = input.mode ?? "replace";
   const count = Math.min(Math.max(input.alternativesCount ?? 3, 2), 3);
   const options = {
-    provider: input.provider ?? "deepseek",
+    provider: input.provider ?? getTextModelProvider(),
     model: input.model,
     temperature: input.refinementLevel === "deep" ? 0.8 : 0.5,
   };

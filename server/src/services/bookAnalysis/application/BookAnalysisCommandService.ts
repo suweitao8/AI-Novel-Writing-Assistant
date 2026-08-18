@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import type {
   BookAnalysisDetail,
   BookAnalysisSectionKey,
@@ -189,7 +190,7 @@ export class BookAnalysisCommandService {
           documentVersionId: version.id,
           title: sourceRange ? `${document.title} v${version.versionNumber}（${sourceRange.label}）` : `${document.title} v${version.versionNumber}`,
           status: "queued",
-          provider: input.provider ?? "deepseek",
+          provider: input.provider ?? getTextModelProvider(),
           model: input.model?.trim() || null,
           temperature,
           maxTokens: maxTokens ?? null,

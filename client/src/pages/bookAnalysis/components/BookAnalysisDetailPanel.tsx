@@ -338,7 +338,7 @@ export default function BookAnalysisDetailPanel(props: BookAnalysisDetailPanelPr
                 <div className="rounded-xl bg-muted/20 p-4 text-sm">
                   <div className="font-medium">运行元信息</div>
                   <div className="mt-2 space-y-1 text-muted-foreground">
-                    <div>提供商：{selectedAnalysis.provider ?? "deepseek"}</div>
+                    <div>提供商：{selectedAnalysis.provider ?? "默认文本模型"}</div>
                     <div>模型：{selectedAnalysis.model || "默认"}</div>
                     <div>温度：{selectedAnalysis.temperature ?? "默认"}</div>
                     <div>最大 Tokens：{selectedAnalysis.maxTokens ?? "默认"}</div>

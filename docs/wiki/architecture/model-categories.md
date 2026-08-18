@@ -16,6 +16,8 @@
 - `resolveModel(taskType)`：provider 固定为文本槽；model 来自 `resolveTextModelId()`（已保存配置 > 环境变量 > 注册表默认值）；温度优先取 `modelRouteConfig` 行，缺省用 `TASK_ROUTE_DEFAULTS` 的任务级默认温度。
 - `factory.resolveLLMClientOptions` 在未显式指定 provider 时回退文本槽，禁止回退任何固定厂商。
 - 运行时全部调用点同样禁止固定厂商默认值（如 `?? "deepseek"`、`fallbackProvider: "deepseek"`）：未显式指定供应商时一律回退 `getTextModelProvider()`。新增代码遵循同一规则，否则会出现“未配置 DeepSeek 的 API Key”一类错误。
+- 图片生成类调用点（封面、角色立绘、漫画分格/场景、剧照等）同理回退图片槽 `getImageModelProvider()`；文本类与图片类默认值不可混用。
+- 知识库向量（RAG embedding）是独立通道，有专属设置面与默认供应商，不属于文本/图片槽管辖。
 - `/api/settings/model-categories` 返回三槽状态；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
 - 音频槽的合成入口统一走 `server/src/services/audio/speechProvider.ts`（`synthesizeAudioSpeech`），配置解析顺序与文本/图片槽一致（已保存配置 > 环境变量 > 注册表默认值）；短剧配音链通过 `services/drama/audio/VoxCPM2TTSProvider.ts` 适配为 TTS provider。协议契约见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 - 音频槽的连通测试走 `POST /api/settings/model-categories/audio/test`：合成一句固定短语验证地址、密钥与模型整体可用，不复用文本模型的对话探测。

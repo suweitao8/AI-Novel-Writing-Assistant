@@ -1,4 +1,4 @@
-import { getTextModelProvider } from "./modelCategories";
+import { getTextModelProvider } from "../llm/modelCategories";
 import type { ZodType } from "zod";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";

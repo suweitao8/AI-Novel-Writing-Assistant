@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 
 import { prisma } from "../../../db/prisma";
@@ -83,7 +84,7 @@ type BatchProcessResult = {
 };
 
 const DEFAULT_VIDEO_PROVIDER = "mock";
-const DEFAULT_IMAGE_PROVIDER = "openai";
+const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
 const DEFAULT_TTS_PROVIDER = "mock";
 
 function normalizeDurationSec(value: number | null | undefined, fallback = 5): number {

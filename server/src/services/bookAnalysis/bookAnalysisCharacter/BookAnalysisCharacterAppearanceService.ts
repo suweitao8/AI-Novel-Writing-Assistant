@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import { randomUUID } from "node:crypto";
 import type {
   BookAnalysisCharacterAppearance,
@@ -521,7 +522,7 @@ export class BookAnalysisCharacterAppearanceService {
     if (analysis.status === "archived") {
       throw new AppError("Archived book analysis cannot scan character appearance.", 400);
     }
-    const provider = (analysis.provider as LLMProvider | null) ?? "deepseek";
+    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);

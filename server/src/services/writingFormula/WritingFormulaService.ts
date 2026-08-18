@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { BaseMessageChunk } from "@langchain/core/messages";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
@@ -65,7 +66,7 @@ export class WritingFormulaService {
         sourceText: input.sourceText,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: 0.6,
       },
@@ -101,7 +102,7 @@ export class WritingFormulaService {
     }
 
     const baseOptions = {
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model,
       temperature: input.mode === "rewrite" ? 0.7 : 0.7,
     };

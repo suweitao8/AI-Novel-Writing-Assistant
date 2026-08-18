@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "../../../db/prisma";
 import { novelEventBus } from "../../../events";
@@ -229,7 +230,7 @@ export class NovelPipelineExecutor {
     });
     const persistedPayload = this.parsePipelinePayload(existingJob?.payload);
     const runtimePayload: PipelinePayload = {
-      provider: persistedPayload.provider ?? options.provider ?? "deepseek",
+      provider: persistedPayload.provider ?? options.provider ?? getTextModelProvider(),
       model: persistedPayload.model ?? options.model ?? "",
       temperature: persistedPayload.temperature ?? options.temperature ?? 0.8,
       controlPolicy: persistedPayload.controlPolicy ?? options.controlPolicy,

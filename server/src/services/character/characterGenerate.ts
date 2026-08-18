@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { z } from "zod";
 import { prisma } from "../../db/prisma";
@@ -352,7 +353,7 @@ export async function generateBaseCharacterFromAI(input: CharacterGenerateInput)
     bookAnalysisIds: input.bookAnalysisIds,
   });
 
-  const provider = input.provider ?? "deepseek";
+  const provider = input.provider ?? getTextModelProvider();
   const model = input.model;
   const temperature = 0.6;
 

@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
@@ -57,7 +58,7 @@ interface ShotKeyframeSource {
 }
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
-const DEFAULT_PROVIDER: LLMProvider = "openai";
+const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 const KEYFRAME_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],

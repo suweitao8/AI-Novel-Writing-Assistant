@@ -16,7 +16,7 @@ import {
   type StructuredOutputStrategy,
 } from "./structuredOutput";
 import { attachLLMUsageTracking } from "./usageTracking";
-import { getTextModelProvider } from "./modelCategories";
+import { getTextModelProvider } from "../llm/modelCategories";
 import { resolveModel, toStructuredOutputStrategy, type TaskType } from "./modelRouter";
 import {
   getProviderEnvApiKey,

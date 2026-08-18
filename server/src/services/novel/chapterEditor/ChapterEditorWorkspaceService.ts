@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import { randomUUID } from "node:crypto";
 import type {
   AuditIssue,
@@ -339,7 +340,7 @@ export class ChapterEditorWorkspaceService {
           })),
         } satisfies ChapterEditorWorkspaceDiagnosisPromptInput,
         options: {
-          provider: "deepseek",
+          provider: getTextModelProvider(),
           temperature: 0.4,
         },
       });

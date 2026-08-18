@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import {
   createEmptyWorldReferenceSeedBundle,
@@ -283,7 +284,7 @@ async function translateConceptCardToChinese(
         conceptCardJson: JSON.stringify(conceptCard),
       },
       options: {
-        provider: options.provider ?? "deepseek",
+        provider: options.provider ?? getTextModelProvider(),
         model: options.model,
         temperature: 0.2,
       },
@@ -404,7 +405,7 @@ export async function analyzeWorldInspiration(
         templateKeysText: WORLD_TEMPLATES.map((item) => item.key).join("|"),
       },
       options: {
-        provider: nextInput.provider ?? "deepseek",
+        provider: nextInput.provider ?? getTextModelProvider(),
         model: nextInput.model,
         temperature: 0.7,
       },

@@ -7,6 +7,7 @@
  * 图片存储：generated-images/comic-character-assets/{assetId}/asset.{ext}
  * HTTP 端点：/api/comic/character-assets/:assetId/image
  */
+import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
@@ -323,7 +324,7 @@ export class ComicCharacterAssetService {
       title: ctx.title,
       prompt: ctx.prompt,
       referenceImages: ctx.referenceImages,
-      provider: provider ?? "openai",
+      provider: provider ?? getImageModelProvider(),
       size: ctx.size,
     };
   }

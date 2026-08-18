@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
@@ -42,7 +43,7 @@ export class ComicBatchOrchestrator {
     episodeId: string,
     opts: StartBatchOptions = {},
   ): Promise<{ jobId: string }> {
-    const { provider = "openai", concurrency = 3, skipDone = true } = opts;
+    const { provider = getImageModelProvider(), concurrency = 3, skipDone = true } = opts;
 
     const episode = await prisma.comicEpisode.findUnique({
       where: { id: episodeId },
@@ -166,7 +167,7 @@ export class ComicBatchOrchestrator {
       throw new AppError("没有失败的格子需要重试。", 400);
     }
 
-    const provider = opts.provider ?? "openai";
+    const provider = opts.provider ?? getImageModelProvider();
     const newProgress: BatchProgress = {
       total: prev.failedPanelIds.length,
       done: 0,
@@ -187,7 +188,7 @@ export class ComicBatchOrchestrator {
   /**
    * 估算批量生成费用（粗略）。
    */
-  async estimateCost(episodeId: string, provider: string = "openai"): Promise<{
+  async estimateCost(episodeId: string, provider: string = getImageModelProvider()): Promise<{
     totalPanels: number;
     pendingPanels: number;
     estimatedCentsCost: number;

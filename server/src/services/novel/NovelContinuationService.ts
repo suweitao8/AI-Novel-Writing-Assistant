@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { BookAnalysisSectionKey } from "@ai-novel/shared/types/bookAnalysis";
 import { BOOK_ANALYSIS_STRUCTURED_FIELD_LABELS } from "@ai-novel/shared/types/bookAnalysis";
@@ -648,7 +649,7 @@ ${summaryBlock || "暂无"}`;
           targetText,
         },
         options: {
-          provider: input.provider ?? "deepseek",
+          provider: input.provider ?? getTextModelProvider(),
           model: input.model,
           temperature: input.temperature ?? 0.7,
         },

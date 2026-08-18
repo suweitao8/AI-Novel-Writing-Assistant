@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
@@ -151,7 +152,7 @@ export class NovelProductionService {
           : "暂无已绑定世界观",
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.6,
       },

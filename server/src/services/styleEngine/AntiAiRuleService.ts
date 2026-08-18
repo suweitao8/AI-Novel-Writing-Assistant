@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
   AntiAiRule,
@@ -148,7 +149,7 @@ export class AntiAiRuleService {
         currentRuleText: input.currentRule ? formatCurrentRuleForPrompt(input.currentRule) : undefined,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? (input.mode === "create" ? 0.5 : 0.35),
         maxTokens: 900,

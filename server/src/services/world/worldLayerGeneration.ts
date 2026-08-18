@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { World as PrismaWorld } from "@prisma/client";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { WorldLayerKey } from "@ai-novel/shared/types/world";
@@ -128,7 +129,7 @@ async function localizeLayerGenerationToChineseIfNeeded(
         sourcePayloadJson: JSON.stringify(sourcePayload),
       },
       options: {
-        provider: options.provider ?? "deepseek",
+        provider: options.provider ?? getTextModelProvider(),
         model: options.model,
         temperature: 0.2,
       },
@@ -198,7 +199,7 @@ export async function buildWorldLayerGeneration(
       ragContext: layerRagContext || "none",
     },
     options: {
-      provider: options.provider ?? "deepseek",
+      provider: options.provider ?? getTextModelProvider(),
       model: options.model,
       temperature: options.temperature ?? 0.7,
     },
