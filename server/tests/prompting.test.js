@@ -50,7 +50,7 @@ const {
 } = require("../dist/prompting/prompts/style/style.prompts.js");
 const {
   chapterWriterPrompt,
-} = require("../dist/prompting/prompts/novel/chapterWriter.prompts.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterWriter.prompts.js");
 const {
   compilePromptTemplate,
 } = require("../dist/prompting/templates/templateCompiler.js");
@@ -60,28 +60,28 @@ const {
 const {
   chapterArtifactDeltaPrompt,
   chapterArtifactDeltaOutputSchema,
-} = require("../dist/prompting/prompts/novel/chapterArtifactDelta.prompts.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterArtifactDelta.prompts.js");
 const {
   characterMindSnapshotPrompt,
   buildCharacterMindContextBlocks,
-} = require("../dist/prompting/prompts/novel/characterMind.prompts.js");
+} = require("../dist/prompting/prompts/novel/character/characterMind.prompts.js");
 const {
   characterMindSnapshotResponseSchema,
-} = require("../dist/prompting/prompts/novel/characterMind.promptSchemas.js");
+} = require("../dist/prompting/prompts/novel/character/characterMind.promptSchemas.js");
 const {
   characterInfluenceOptionsPrompt,
   buildCharacterInfluenceContextBlocks,
-} = require("../dist/prompting/prompts/novel/characterInfluence.prompts.js");
+} = require("../dist/prompting/prompts/novel/character/characterInfluence.prompts.js");
 const {
   characterInfluenceOptionsResponseSchema,
-} = require("../dist/prompting/prompts/novel/characterInfluence.promptSchemas.js");
+} = require("../dist/prompting/prompts/novel/character/characterInfluence.promptSchemas.js");
 const {
   characterDialogueTurnPrompt,
   buildCharacterDialogueContextBlocks,
-} = require("../dist/prompting/prompts/novel/characterDialogue.prompts.js");
+} = require("../dist/prompting/prompts/novel/character/characterDialogue.prompts.js");
 const {
   characterDialogueTurnResponseSchema,
-} = require("../dist/prompting/prompts/novel/characterDialogue.promptSchemas.js");
+} = require("../dist/prompting/prompts/novel/character/characterDialogue.promptSchemas.js");
 const {
   worldDraftGenerationPrompt,
   worldDraftRefineAlternativesPrompt,
@@ -104,11 +104,11 @@ const {
 } = require("../dist/prompting/prompts/bookAnalysis/bookAnalysis.prompts.js");
 const {
   sanitizeWriterContextBlocks,
-} = require("../dist/prompting/prompts/novel/chapterLayeredContext.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterLayeredContext.js");
 const {
   renderBookContractText,
   summarizeStateSnapshot,
-} = require("../dist/prompting/prompts/novel/chapterLayeredContextShared.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterLayeredContextShared.js");
 const {
   buildWriterStyleContractText,
 } = require("../dist/services/styleEngine/styleContractText.js");

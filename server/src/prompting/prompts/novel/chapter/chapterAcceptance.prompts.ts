@@ -1,8 +1,8 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { PromptAsset } from "../../core/promptTypes";
-import { renderSelectedContextBlocks } from "../../core/renderContextBlocks";
-import { NOVEL_PROMPT_BUDGETS } from "./promptBudgetProfiles";
+import type { PromptAsset } from "../../../core/promptTypes";
+import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
+import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";
 
 export const chapterAcceptanceIssueCategorySchema = z.enum([
   "continuity",

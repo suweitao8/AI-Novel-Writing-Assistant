@@ -2,7 +2,7 @@ import type { StateChangeProposal } from "@ai-novel/shared/types/canonicalState"
 import { createHash } from "crypto";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { characterResourceExtractionPrompt } from "../../../prompting/prompts/novel/characterResource.prompts";
+import { characterResourceExtractionPrompt } from "../../../prompting/prompts/novel/character/characterResource.prompts";
 import { compactText, normalizeResourceKey } from "./characterResourceShared";
 import { characterResourceLedgerService } from "./CharacterResourceLedgerService";
 

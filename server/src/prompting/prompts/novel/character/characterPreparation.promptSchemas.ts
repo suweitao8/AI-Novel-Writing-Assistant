@@ -4,7 +4,7 @@ import type {
   CharacterGender,
   SupplementalCharacterGenerationMode,
 } from "@ai-novel/shared/types/novel";
-import { llmProviderSchema } from "../../../llm/providerSchema";
+import { llmProviderSchema } from "../../../../llm/providerSchema";
 
 const nonEmptyString = z.string().trim().min(1);
 

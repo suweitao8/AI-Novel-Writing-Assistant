@@ -1,10 +1,10 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { PromptAsset } from "../../core/promptTypes";
+import type { PromptAsset } from "../../../core/promptTypes";
 import {
   characterEvolutionOutputSchema,
   characterWorldCheckOutputSchema,
-} from "../../../services/novel/novelCoreSchemas";
+} from "../../../../services/novel/novelCoreSchemas";
 
 export interface CharacterEvolutionPromptInput {
   novelTitle: string;

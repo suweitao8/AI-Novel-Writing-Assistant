@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import type { PromptAsset } from "../../core/promptTypes";
-import { renderSelectedContextBlocks } from "../../core/renderContextBlocks";
-import { NOVEL_PROMPT_BUDGETS } from "./promptBudgetProfiles";
+import type { PromptAsset } from "../../../core/promptTypes";
+import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
+import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";
 
 export interface ChapterWriterPromptInput {
   novelTitle: string;

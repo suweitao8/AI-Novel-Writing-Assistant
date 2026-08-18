@@ -11,7 +11,7 @@ const {
   buildChapterWriterContextBlocks,
   buildChapterReviewContextBlocks,
   buildChapterRepairContextBlocks,
-} = require("../dist/prompting/prompts/novel/chapterLayeredContext.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterLayeredContext.js");
 
 test("chapter layered context keeps full book promise and volume reader rewards", () => {
   const book = buildBookContractContext({

@@ -7,8 +7,8 @@ import type {
   RuntimeAuditReport,
 } from "@ai-novel/shared/types/chapterRuntime";
 import type { TimelineCheckResult, TimelineContextForChapter, TimelineIssue } from "@ai-novel/shared/types/timeline";
-import type { ChapterAcceptanceAssessmentOutput } from "../../../prompting/prompts/novel/chapterAcceptance.prompts";
-import { withChapterRepairContext } from "../../../prompting/prompts/novel/chapterLayeredContext";
+import type { ChapterAcceptanceAssessmentOutput } from "../../../prompting/prompts/novel/chapter/chapterAcceptance.prompts";
+import { withChapterRepairContext } from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { buildSyntheticPayoffIssues } from "../../payoff/payoffLedgerShared";
 import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
 import type { StyleReviewResult } from "./PostGenerationStyleReviewRunner";

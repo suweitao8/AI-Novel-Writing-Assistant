@@ -33,7 +33,7 @@ test("candidate workflow persists the resolved production foundation for recover
 
 test("idea inspiration prompt treats readable creation foundations as fixed constraints", () => {
   const service = read("src/services/novel/director/NovelDirectorIdeaInspirationService.ts");
-  const prompt = read("src/prompting/prompts/novel/ideaInspiration.prompts.ts");
+  const prompt = read("src/prompting/prompts/novel/director/ideaInspiration.prompts.ts");
   const route = read("src/services/novel/director/http/novelDirector.ts");
 
   assert.match(service, /line\("主推进模式", input\.primaryStoryModeLabel/);
@@ -45,8 +45,8 @@ test("idea inspiration prompt treats readable creation foundations as fixed cons
 
 test("idea inspirations bound creative sampling and retry with the original context", () => {
   const service = read("src/services/novel/director/NovelDirectorIdeaInspirationService.ts");
-  const prompt = read("src/prompting/prompts/novel/ideaInspiration.prompts.ts");
-  const schema = read("src/prompting/prompts/novel/ideaInspiration.promptSchemas.ts");
+  const prompt = read("src/prompting/prompts/novel/director/ideaInspiration.prompts.ts");
+  const schema = read("src/prompting/prompts/novel/director/ideaInspiration.promptSchemas.ts");
   const loaders = read("src/prompting/registry/promptAssetLoaderEntries.ts");
 
   assert.match(service, /Math\.min\(0\.8, Math\.max\(0\.55/);

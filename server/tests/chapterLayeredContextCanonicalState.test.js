@@ -5,7 +5,7 @@ const {
   summarizeOpenConflicts,
   summarizeStateSnapshot,
   summarizeWorldRules,
-} = require("../dist/prompting/prompts/novel/chapterLayeredContextShared.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterLayeredContextShared.js");
 
 function createContextPackage() {
   return {

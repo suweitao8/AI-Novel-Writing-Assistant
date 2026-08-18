@@ -7,7 +7,7 @@ import type { NovelApplicationServices } from "../../../../services/novel/applic
 import {
   supplementalCharacterCandidateSchema,
   supplementalCharacterGenerationInputSchema,
-} from "../../../../prompting/prompts/novel/characterPreparation.promptSchemas";
+} from "../../../../prompting/prompts/novel/character/characterPreparation.promptSchemas";
 
 const optionParamsSchema = z.object({
   id: z.string().trim().min(1),

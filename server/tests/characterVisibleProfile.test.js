@@ -10,7 +10,7 @@ const {
 } = require("../dist/services/novel/runtime/runtimeContextBlocks");
 const {
   characterVisibleProfileCompletionPrompt,
-} = require("../dist/prompting/prompts/novel/characterVisibleProfile.prompts");
+} = require("../dist/prompting/prompts/novel/character/characterVisibleProfile.prompts");
 
 test("visible profile field selection preserves existing clear profile", () => {
   const result = pickApplicableVisibleProfileFields({

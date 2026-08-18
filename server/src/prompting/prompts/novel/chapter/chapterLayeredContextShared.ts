@@ -5,7 +5,7 @@ import type {
   MacroConstraintContext,
 } from "@ai-novel/shared/types/chapterRuntime";
 import { resolveLengthBudgetContract } from "@ai-novel/shared/types/chapterLengthControl";
-import { buildPlannerStyleContractSummaryText } from "../../../services/styleEngine/styleContractText";
+import { buildPlannerStyleContractSummaryText } from "../../../../services/styleEngine/styleContractText";
 
 export function compactText(value: string | null | undefined, fallback = ""): string {
   return value?.replace(/\s+/g, " ").trim() || fallback;

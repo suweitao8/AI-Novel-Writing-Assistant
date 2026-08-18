@@ -22,7 +22,7 @@ import {
   buildDirectorCandidateContextBlocks,
   directorCandidatePatchPrompt,
   directorCandidatePrompt,
-} from "../../../../prompting/prompts/novel/directorPlanning.prompts";
+} from "../../../../prompting/prompts/novel/director/directorPlanning.prompts";
 import { titleGenerationService } from "../../../title/TitleGenerationService";
 import { isNearDuplicateTitle } from "../../../title/titleGeneration.shared";
 import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";

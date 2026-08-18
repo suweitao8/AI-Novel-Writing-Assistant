@@ -3,7 +3,7 @@ import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   characterEvolutionPrompt,
   characterWorldCheckPrompt,
-} from "../../../prompting/prompts/novel/coreCharacter.prompts";
+} from "../../../prompting/prompts/novel/character/coreCharacter.prompts";
 import { ragServices } from "../../rag";
 import { queueRagDelete, queueRagUpsert } from "./novelCoreSupport";
 import { WorldContextGateway } from "../worldContext/WorldContextGateway";

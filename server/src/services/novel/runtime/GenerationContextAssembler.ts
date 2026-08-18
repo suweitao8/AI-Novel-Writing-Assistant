@@ -34,7 +34,7 @@ import {
   buildVolumeWindowContext,
   getAllContextBlocks,
   getRuntimePromptBudgetProfiles,
-} from "../../../prompting/prompts/novel/chapterLayeredContext";
+} from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { novelFactService } from "../fact/NovelFactService";
 import { batchContextCache } from "./BatchContextCache";
 import {

@@ -4,8 +4,8 @@ import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   buildCharacterMindContextBlocks,
   characterMindSnapshotPrompt,
-} from "../../../prompting/prompts/novel/characterMind.prompts";
-import type { CharacterMindDelta, CharacterMindSnapshotItem } from "../../../prompting/prompts/novel/characterMind.promptSchemas";
+} from "../../../prompting/prompts/novel/character/characterMind.prompts";
+import type { CharacterMindDelta, CharacterMindSnapshotItem } from "../../../prompting/prompts/novel/character/characterMind.promptSchemas";
 
 type MindGenerationOptions = {
   provider?: any;

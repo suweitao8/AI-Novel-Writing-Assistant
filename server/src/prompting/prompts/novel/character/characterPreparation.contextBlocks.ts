@@ -1,4 +1,4 @@
-import type { PromptContextBlock } from "../../core/promptTypes";
+import type { PromptContextBlock } from "../../../core/promptTypes";
 
 function toOptionalText(value: string | null | undefined): string | null {
   const normalized = value?.trim() ?? "";

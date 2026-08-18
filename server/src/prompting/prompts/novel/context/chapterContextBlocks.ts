@@ -16,7 +16,7 @@ import {
   resolveTargetWordRange,
   takeUnique,
   toListBlock,
-} from "../chapterLayeredContextShared";
+} from "../chapter/chapterLayeredContextShared";
 import { normalizeChapterWriteContext } from "./chapterContextPolicies";
 
 export const WRITER_FORBIDDEN_GROUPS = [

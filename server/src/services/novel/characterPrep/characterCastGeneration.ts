@@ -3,11 +3,11 @@ import type { CharacterWorldFocusHints } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../db/prisma";
 import { StructuredOutputError } from "../../../llm/structuredOutput";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { buildCharacterCastContextBlocks } from "../../../prompting/prompts/novel/characterPreparation.contextBlocks";
+import { buildCharacterCastContextBlocks } from "../../../prompting/prompts/novel/character/characterPreparation.contextBlocks";
 import {
   characterCastAutoMembersPrompt,
   characterCastAutoRelationsPrompt,
-} from "../../../prompting/prompts/novel/characterPreparation.autoFallback.prompts";
+} from "../../../prompting/prompts/novel/character/characterPreparation.autoFallback.prompts";
 import {
   characterCastAutoNormalizePrompt,
   characterCastAutoPrompt,
@@ -15,12 +15,12 @@ import {
   characterCastOptionNormalizePrompt,
   characterCastOptionPrompt,
   characterCastOptionRepairPrompt,
-} from "../../../prompting/prompts/novel/characterPreparation.prompts";
+} from "../../../prompting/prompts/novel/character/characterPreparation.prompts";
 import type {
   CharacterCastAutoMembersResponseParsed,
   CharacterCastAutoResponseParsed,
   CharacterCastOptionResponseParsed,
-} from "../../../prompting/prompts/novel/characterPreparation.promptSchemas";
+} from "../../../prompting/prompts/novel/character/characterPreparation.promptSchemas";
 import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../storyMode/storyModeProfile";
 import { serializeCharacterProhibitions } from "../characters/characterHardFacts";
 import {

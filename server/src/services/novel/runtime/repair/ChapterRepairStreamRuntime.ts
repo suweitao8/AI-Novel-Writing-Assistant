@@ -3,7 +3,7 @@ import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
 import type { StreamDoneHelpers } from "../../../../llm/streaming";
 import { prisma } from "../../../../db/prisma";
 import { streamTextPrompt } from "../../../../prompting/core/promptRunner";
-import { withChapterRepairContext } from "../../../../prompting/prompts/novel/chapterLayeredContext";
+import { withChapterRepairContext } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { auditService } from "../../../audit/AuditService";
 import { ChapterPatchRepairFailedError } from "../../chapterPatchRepairService";
 import {

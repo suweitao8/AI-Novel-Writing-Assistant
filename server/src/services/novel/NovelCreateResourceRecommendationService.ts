@@ -9,7 +9,7 @@ import type {
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { NovelCreateResourceRecommendation } from "@ai-novel/shared/types/novelResourceRecommendation";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
-import { novelCreateResourceRecommendationPrompt } from "../../prompting/prompts/novel/resourceRecommendation.prompts";
+import { novelCreateResourceRecommendationPrompt } from "../../prompting/prompts/novel/character/resourceRecommendation.prompts";
 import { ensureSystemResourceStarterData } from "../bootstrap/SystemResourceBootstrapService";
 import { GenreService, type GenreTreeNode } from "../genre/GenreService";
 import { StoryModeService, type StoryModeTreeNode } from "../storyMode/StoryModeService";

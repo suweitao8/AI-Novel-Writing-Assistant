@@ -8,7 +8,7 @@ import type {
 } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { characterVisibleProfileCompletionPrompt } from "../../../prompting/prompts/novel/characterVisibleProfile.prompts";
+import { characterVisibleProfileCompletionPrompt } from "../../../prompting/prompts/novel/character/characterVisibleProfile.prompts";
 import { normalizeStoryModeOutput, buildStoryModePromptBlock } from "../../storyMode/storyModeProfile";
 import type { LLMGenerateOptions } from "../novelCoreShared";
 import { WorldContextGateway } from "../worldContext/WorldContextGateway";

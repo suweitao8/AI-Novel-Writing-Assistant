@@ -4,13 +4,13 @@ const assert = require("node:assert/strict");
 const {
   chapterAcceptanceAssessmentSchema,
   chapterAcceptanceAssessmentPrompt,
-} = require("../dist/prompting/prompts/novel/chapterAcceptance.prompts.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterAcceptance.prompts.js");
 const {
   chapterArtifactDeltaOutputSchema,
-} = require("../dist/prompting/prompts/novel/chapterArtifactDelta.prompts.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterArtifactDelta.prompts.js");
 const {
   characterResourceExtractionOutputSchema,
-} = require("../dist/prompting/prompts/novel/characterResource.promptSchemas.js");
+} = require("../dist/prompting/prompts/novel/character/characterResource.promptSchemas.js");
 const {
   timelineExtractorOutputSchema,
 } = require("../dist/prompting/prompts/novel/timelineExtractor.prompts.js");

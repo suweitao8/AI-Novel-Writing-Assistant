@@ -15,13 +15,13 @@ import type {
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { buildCharacterCastContextBlocks } from "../../../prompting/prompts/novel/characterPreparation.contextBlocks";
+import { buildCharacterCastContextBlocks } from "../../../prompting/prompts/novel/character/characterPreparation.contextBlocks";
 import {
   characterCastOptionNormalizePrompt,
   characterCastOptionPrompt,
   characterCastOptionRepairPrompt,
-} from "../../../prompting/prompts/novel/characterPreparation.prompts";
-import type { CharacterCastOptionResponseParsed } from "../../../prompting/prompts/novel/characterPreparation.promptSchemas";
+} from "../../../prompting/prompts/novel/character/characterPreparation.prompts";
+import type { CharacterCastOptionResponseParsed } from "../../../prompting/prompts/novel/character/characterPreparation.promptSchemas";
 import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../storyMode/storyModeProfile";
 import { NovelContextService } from "../NovelContextService";
 import {

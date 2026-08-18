@@ -8,7 +8,7 @@ import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   chapterArtifactDeltaPrompt,
   type ChapterArtifactDeltaOutput,
-} from "../../../prompting/prompts/novel/chapterArtifactDelta.prompts";
+} from "../../../prompting/prompts/novel/chapter/chapterArtifactDelta.prompts";
 import { ragServices } from "../../rag";
 import type { RagOwnerType } from "../../rag/types";
 import type { SnapshotExtractionOutput } from "../../state/stateSnapshotExtraction";

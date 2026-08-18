@@ -7,8 +7,8 @@ import type {
 import {
   DIRECTOR_ARTIFACT_TYPES,
 } from "@ai-novel/shared/types/directorRuntime";
-import type { PromptAsset } from "../../core/promptTypes";
-import { renderSelectedContextBlocks } from "../../core/renderContextBlocks";
+import type { PromptAsset } from "../../../core/promptTypes";
+import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
 
 export interface DirectorWorkspaceAnalysisPromptInput {
   inventory: DirectorWorkspaceInventory;

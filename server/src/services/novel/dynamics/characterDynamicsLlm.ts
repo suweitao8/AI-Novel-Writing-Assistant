@@ -2,7 +2,7 @@ import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   chapterDynamicsExtractionPrompt,
   volumeDynamicsProjectionPrompt,
-} from "../../../prompting/prompts/novel/characterDynamics.prompts";
+} from "../../../prompting/prompts/novel/character/characterDynamics.prompts";
 import type { VolumeDynamicsProjection } from "./characterDynamicsSchemas";
 
 const MAX_VOLUMES_PER_PROJECTION_BATCH = 2;

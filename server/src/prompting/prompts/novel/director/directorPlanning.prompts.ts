@@ -7,21 +7,21 @@ import {
   type DirectorProjectContextInput,
 } from "@ai-novel/shared/types/novelDirector";
 import type { StoryMacroPlan } from "@ai-novel/shared/types/storyMacro";
-import type { PromptAsset } from "../../core/promptTypes";
-import { renderSelectedContextBlocks } from "../../core/renderContextBlocks";
+import type { PromptAsset } from "../../../core/promptTypes";
+import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
 import {
   buildDirectorBookContractContextBlocks,
   buildDirectorBlueprintContextBlocks,
   buildDirectorCandidateContextBlocks,
   formatProjectContext,
-} from "./planningContextBlocks";
+} from "../planningContextBlocks";
 import {
   directorBookContractSchema,
   directorCandidateSchema,
   directorCandidateResponseSchema,
   directorPlanBlueprintSchema,
-} from "../../../services/novel/director/runtime/novelDirectorSchemas";
-import { NOVEL_PROMPT_BUDGETS } from "./promptBudgetProfiles";
+} from "../../../../services/novel/director/runtime/novelDirectorSchemas";
+import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";
 
 export interface DirectorCandidatePromptInput {
   idea: string;

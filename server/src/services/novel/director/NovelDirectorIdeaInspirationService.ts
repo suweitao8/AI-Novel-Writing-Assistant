@@ -4,7 +4,7 @@ import type {
 } from "@ai-novel/shared/types/novelDirector";
 import { StructuredOutputError } from "../../../llm/structuredOutput";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { directorIdeaInspirationPrompt } from "../../../prompting/prompts/novel/ideaInspiration.prompts";
+import { directorIdeaInspirationPrompt } from "../../../prompting/prompts/novel/director/ideaInspiration.prompts";
 import { buildBookFramingSummary } from "../bookFraming";
 
 const IDEA_INSPIRATION_MAX_TOKENS = 1_800;

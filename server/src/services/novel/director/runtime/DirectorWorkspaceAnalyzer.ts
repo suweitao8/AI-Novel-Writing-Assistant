@@ -14,11 +14,11 @@ import { resolvePromptContextBlocksForAsset } from "../../../../prompting/contex
 import {
   buildDirectorWorkspaceAnalysisContextBlocks,
   directorWorkspaceAnalysisPrompt,
-} from "../../../../prompting/prompts/novel/directorWorkspaceAnalysis.prompts";
+} from "../../../../prompting/prompts/novel/director/directorWorkspaceAnalysis.prompts";
 import {
   buildDirectorManualEditImpactContextBlocks,
   directorManualEditImpactPrompt,
-} from "../../../../prompting/prompts/novel/directorManualEditImpact.prompts";
+} from "../../../../prompting/prompts/novel/director/directorManualEditImpact.prompts";
 import { normalizeDirectorArtifactRef } from "./DirectorArtifactLedger";
 import { DirectorRuntimeStore } from "./DirectorRuntimeStore";
 import {

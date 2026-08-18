@@ -2,7 +2,7 @@ import type { ChapterRepairContext, ChapterRuntimePackage } from "@ai-novel/shar
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { ReviewIssue } from "@ai-novel/shared/types/novel";
 import { runTextPrompt } from "../../../../prompting/core/promptRunner";
-import { buildChapterRepairContextBlocks } from "../../../../prompting/prompts/novel/chapterLayeredContext";
+import { buildChapterRepairContextBlocks } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { chapterRepairPrompt } from "../../../../prompting/prompts/novel/review.prompts";
 import {
   ChapterPatchRepairFailedError,

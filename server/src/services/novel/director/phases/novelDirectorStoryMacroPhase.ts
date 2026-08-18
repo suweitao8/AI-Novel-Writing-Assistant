@@ -5,7 +5,7 @@ import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import {
   buildDirectorBookContractContextBlocks,
   directorBookContractPrompt,
-} from "../../../../prompting/prompts/novel/directorPlanning.prompts";
+} from "../../../../prompting/prompts/novel/director/directorPlanning.prompts";
 import { BookContractService } from "../../BookContractService";
 import { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import {

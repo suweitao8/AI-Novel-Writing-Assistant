@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
-import type { PromptAsset, PromptContextBlock } from "../../core/promptTypes";
-import { renderSelectedContextBlocks } from "../../core/renderContextBlocks";
+import type { PromptAsset, PromptContextBlock } from "../../../core/promptTypes";
+import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
 import {
   characterInfluenceOptionsResponseSchema,
   type CharacterInfluenceOptionsResponse,

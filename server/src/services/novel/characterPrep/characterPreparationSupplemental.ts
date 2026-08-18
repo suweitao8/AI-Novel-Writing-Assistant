@@ -9,16 +9,16 @@ import type {
 } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { buildSupplementalCharacterContextBlocks } from "../../../prompting/prompts/novel/characterPreparation.contextBlocks";
+import { buildSupplementalCharacterContextBlocks } from "../../../prompting/prompts/novel/character/characterPreparation.contextBlocks";
 import {
   supplementalCharacterPrompt,
-} from "../../../prompting/prompts/novel/characterPreparation.prompts";
+} from "../../../prompting/prompts/novel/character/characterPreparation.prompts";
 import { NovelContextService } from "../NovelContextService";
 import { CharacterDynamicsService } from "../dynamics/CharacterDynamicsService";
 import {
   supplementalCharacterCandidateSchema,
   type SupplementalCharacterGenerationResponseParsed,
-} from "../../../prompting/prompts/novel/characterPreparation.promptSchemas";
+} from "../../../prompting/prompts/novel/character/characterPreparation.promptSchemas";
 import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../storyMode/storyModeProfile";
 import { parseCharacterProhibitionsJson } from "../characters/characterHardFacts";
 import { WorldContextGateway } from "../worldContext/WorldContextGateway";

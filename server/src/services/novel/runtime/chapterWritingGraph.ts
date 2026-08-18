@@ -12,8 +12,8 @@ import {
   buildChapterWriterContextBlocks,
   resolveTargetWordRange,
   sanitizeWriterContextBlocks,
-} from "../../../prompting/prompts/novel/chapterLayeredContext";
-import { chapterWriterPrompt } from "../../../prompting/prompts/novel/chapterWriter.prompts";
+} from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
+import { chapterWriterPrompt } from "../../../prompting/prompts/novel/chapter/chapterWriter.prompts";
 import { NovelContinuationService } from "../NovelContinuationService";
 import { assertChapterContentNotEmpty } from "../runtime/chapterEmptyContentError";
 import { prisma } from "../../../db/prisma";

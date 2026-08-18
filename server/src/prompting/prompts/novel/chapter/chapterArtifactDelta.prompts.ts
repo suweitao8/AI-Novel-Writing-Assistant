@@ -1,12 +1,12 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { PromptAsset } from "../../core/promptTypes";
-import { characterMindDeltaSchema } from "./characterMind.promptSchemas";
+import type { PromptAsset } from "../../../core/promptTypes";
+import { characterMindDeltaSchema } from "../character/characterMind.promptSchemas";
 import { characterDialogueInfluenceResolutionSchema } from "@ai-novel/shared/types/characterDialogue";
-import { chapterConcreteFactSchema } from "../../../services/novel/chapterSummarySchemas";
-import { characterResourceExtractionUpdateSchema } from "./characterResource.promptSchemas";
-import { NOVEL_PROMPT_BUDGETS } from "./promptBudgetProfiles";
-import { payoffLedgerSyncItemSchema } from "../payoff/payoffLedgerSync.promptSchemas";
+import { chapterConcreteFactSchema } from "../../../../services/novel/chapterSummarySchemas";
+import { characterResourceExtractionUpdateSchema } from "../character/characterResource.promptSchemas";
+import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";
+import { payoffLedgerSyncItemSchema } from "../../payoff/payoffLedgerSync.promptSchemas";
 
 const nullableText = z.string().trim().optional().nullable();
 const confidenceSchema = z.number().min(0).max(1).optional().nullable();

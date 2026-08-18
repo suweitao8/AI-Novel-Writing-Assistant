@@ -4,7 +4,7 @@ import { resolvePromptContextBlocksForAsset } from "../../prompting/context/prom
 import {
   type AuditChapterPromptInput,
 } from "../../prompting/prompts/audit/audit.prompts";
-import { buildChapterReviewContextBlocks } from "../../prompting/prompts/novel/chapterLayeredContext";
+import { buildChapterReviewContextBlocks } from "../../prompting/prompts/novel/chapter/chapterLayeredContext";
 
 export async function resolveAuditChapterContextBlocks<O, R = O>(input: {
   asset: PromptAsset<AuditChapterPromptInput, O, R>;

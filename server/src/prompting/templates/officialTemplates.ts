@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chapterWriterPrompt } from "../prompts/novel/chapterWriter.prompts";
+import { chapterWriterPrompt } from "../prompts/novel/chapter/chapterWriter.prompts";
 import { shortStorySegmentWritePrompt } from "../prompts/shortStory/shortStory.prompts";
 import type {
   PromptTemplateContextRefs,

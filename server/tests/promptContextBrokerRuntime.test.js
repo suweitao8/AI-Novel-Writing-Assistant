@@ -6,10 +6,10 @@ const {
 } = require("../dist/prompting/context/promptContextResolution.js");
 const {
   chapterWriterPrompt,
-} = require("../dist/prompting/prompts/novel/chapterWriter.prompts.js");
+} = require("../dist/prompting/prompts/novel/chapter/chapterWriter.prompts.js");
 const {
   directorWorkspaceAnalysisPrompt,
-} = require("../dist/prompting/prompts/novel/directorWorkspaceAnalysis.prompts.js");
+} = require("../dist/prompting/prompts/novel/director/directorWorkspaceAnalysis.prompts.js");
 
 function buildChapterWriteContext() {
   return {

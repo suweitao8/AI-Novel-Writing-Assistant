@@ -7,7 +7,7 @@ import type {
 import { prisma } from "../../../../db/prisma";
 import { withSqliteRetry } from "../../../../db/sqliteRetry";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
-import { directorStateProposalResolutionPrompt } from "../../../../prompting/prompts/novel/directorStateProposalResolution.prompts";
+import { directorStateProposalResolutionPrompt } from "../../../../prompting/prompts/novel/director/directorStateProposalResolution.prompts";
 import { canonicalStateService } from "../../state/CanonicalStateService";
 import { stateCommitService } from "../../state/StateCommitService";
 import { directorAutomationLedgerEventService } from "./DirectorAutomationLedgerEventService";

@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { DirectorStateProposalResolution } from "@ai-novel/shared/types/stateProposalResolution";
 import { directorStateProposalResolutionSchema } from "@ai-novel/shared/types/stateProposalResolution";
-import type { PromptAsset } from "../../core/promptTypes";
+import type { PromptAsset } from "../../../core/promptTypes";
 
 export interface DirectorStateProposalResolutionPromptInput {
   runMode: string;

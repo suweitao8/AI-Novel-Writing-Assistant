@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const {
   buildCharacterCastContextBlocks,
   buildSupplementalCharacterContextBlocks,
-} = require("../dist/prompting/prompts/novel/characterPreparation.contextBlocks.js");
+} = require("../dist/prompting/prompts/novel/character/characterPreparation.contextBlocks.js");
 
 test("character cast context includes world focus hints", () => {
   const blocks = buildCharacterCastContextBlocks({

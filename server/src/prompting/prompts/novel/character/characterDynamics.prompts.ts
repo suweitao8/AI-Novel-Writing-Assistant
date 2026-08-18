@@ -1,10 +1,10 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { PromptAsset } from "../../core/promptTypes";
+import type { PromptAsset } from "../../../core/promptTypes";
 import {
   chapterDynamicExtractionSchema,
   volumeDynamicsProjectionSchema,
-} from "../../../services/novel/dynamics/characterDynamicsSchemas";
+} from "../../../../services/novel/dynamics/characterDynamicsSchemas";
 
 const VOLUME_DYNAMICS_PROJECTION_TEMPLATE = `{
   "assignments": [

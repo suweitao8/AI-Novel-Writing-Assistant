@@ -5,7 +5,7 @@ import type {
 import {
   buildBookContractContext,
   buildChapterWriteContext,
-} from "../prompts/novel/chapterLayeredContext";
+} from "../prompts/novel/chapter/chapterLayeredContext";
 import {
   compactPreviewText,
   parseSceneCards,

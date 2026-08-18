@@ -7,8 +7,8 @@ import {
   type ChapterPatchRepairPlan,
 } from "@ai-novel/shared/types/chapterPatchRepair";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
-import { buildChapterRepairContextBlocks } from "../../../../prompting/prompts/novel/chapterLayeredContext";
-import { chapterPatchRepairPrompt } from "../../../../prompting/prompts/novel/chapterPatchRepair.prompts";
+import { buildChapterRepairContextBlocks } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
+import { chapterPatchRepairPrompt } from "../../../../prompting/prompts/novel/chapter/chapterPatchRepair.prompts";
 
 export type PatchRepairMode =
   | "detect_only"

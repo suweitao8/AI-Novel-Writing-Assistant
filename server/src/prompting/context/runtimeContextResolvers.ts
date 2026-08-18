@@ -15,13 +15,13 @@ import {
   buildChapterReviewContextBlocks,
   buildChapterWriterContextBlocks,
   type ChapterWriterBlockMode,
-} from "../prompts/novel/chapterLayeredContext";
+} from "../prompts/novel/chapter/chapterLayeredContext";
 import {
   renderBookContractText,
   renderStoryMacroText,
-} from "../prompts/novel/chapterLayeredContextShared";
-import { buildDirectorManualEditImpactContextBlocks } from "../prompts/novel/directorManualEditImpact.prompts";
-import { buildDirectorWorkspaceAnalysisContextBlocks } from "../prompts/novel/directorWorkspaceAnalysis.prompts";
+} from "../prompts/novel/chapter/chapterLayeredContextShared";
+import { buildDirectorManualEditImpactContextBlocks } from "../prompts/novel/director/directorManualEditImpact.prompts";
+import { buildDirectorWorkspaceAnalysisContextBlocks } from "../prompts/novel/director/directorWorkspaceAnalysis.prompts";
 import type { PromptContextResolver, PromptExecutionContext } from "./types";
 
 const CHAPTER_CONTEXT_GROUPS = [

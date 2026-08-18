@@ -5,8 +5,8 @@ import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   buildCharacterInfluenceContextBlocks,
   characterInfluenceOptionsPrompt,
-} from "../../../prompting/prompts/novel/characterInfluence.prompts";
-import type { CharacterInfluenceOption } from "../../../prompting/prompts/novel/characterInfluence.promptSchemas";
+} from "../../../prompting/prompts/novel/character/characterInfluence.prompts";
+import type { CharacterInfluenceOption } from "../../../prompting/prompts/novel/character/characterInfluence.promptSchemas";
 
 type InfluenceGenerationOptions = {
   provider?: any;

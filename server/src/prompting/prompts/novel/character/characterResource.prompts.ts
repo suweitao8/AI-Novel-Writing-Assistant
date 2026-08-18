@@ -1,6 +1,6 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import type { PromptAsset } from "../../core/promptTypes";
+import type { PromptAsset } from "../../../core/promptTypes";
 import { characterResourceExtractionOutputSchema } from "./characterResource.promptSchemas";
 
 export interface CharacterResourceExtractionPromptInput {

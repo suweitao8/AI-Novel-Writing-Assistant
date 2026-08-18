@@ -21,8 +21,8 @@ import {
   normalizeReaderExperienceContract,
   type ReaderExperienceContract,
 } from "@ai-novel/shared/types/novel/readerExperience";
-import { createContextBlock } from "../../core/contextBudget";
-import type { PromptContextBlock } from "../../core/promptTypes";
+import { createContextBlock } from "../../../core/contextBudget";
+import type { PromptContextBlock } from "../../../core/promptTypes";
 import { buildDynamicCharacterGuidance, buildParticipants } from "./chapterLayeredContextCharacters";
 import {
   buildCharacterGuidanceText,
@@ -44,12 +44,12 @@ import {
   takeUnique,
   toListBlock,
 } from "./chapterLayeredContextShared";
-import { RUNTIME_PROMPT_BUDGET_PROFILES } from "./promptBudgetProfiles";
-import { buildChapterWriterContextBlocks } from "./context/chapterContextBlocks";
+import { RUNTIME_PROMPT_BUDGET_PROFILES } from "../promptBudgetProfiles";
+import { buildChapterWriterContextBlocks } from "../context/chapterContextBlocks";
 import {
   normalizeChapterWriteContext,
   selectCharacterHardFactsForWriter,
-} from "./context/chapterContextPolicies";
+} from "../context/chapterContextPolicies";
 
 export {
   WRITER_FORBIDDEN_GROUPS,
@@ -57,8 +57,8 @@ export {
   buildChapterReviewContextBlocks,
   buildChapterWriterContextBlocks,
   sanitizeWriterContextBlocks,
-} from "./context/chapterContextBlocks";
-export type { ChapterWriterBlockMode } from "./context/chapterContextBlocks";
+} from "../context/chapterContextBlocks";
+export type { ChapterWriterBlockMode } from "../context/chapterContextBlocks";
 
 export { resolveTargetWordRange } from "./chapterLayeredContextShared";
 
