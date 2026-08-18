@@ -12,6 +12,7 @@ export const LLM_PROVIDERS = [
   "ollama",
   "opencode",
   "codex",
+  "voxcpm2",
 ] as const;
 
 export type BuiltinLLMProvider = typeof LLM_PROVIDERS[number];

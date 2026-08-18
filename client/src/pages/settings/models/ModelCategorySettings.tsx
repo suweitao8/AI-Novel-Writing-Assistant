@@ -2,8 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, Image as ImageIcon, PenLine } from "lucide-react";
 import { getModelCategories } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import ModelCategoryCard from "./ModelCategoryCard";
 
 export default function ModelCategorySettings() {
@@ -39,16 +37,14 @@ export default function ModelCategorySettings() {
         isImageCategory
         onSaved={invalidateAfterSave}
       />
-      <Card className="min-w-0 opacity-80">
-        <CardHeader>
-          <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-            <AudioLines className="h-4 w-4" />
-            音频模型
-            <Badge variant="outline">准备中</Badge>
-          </CardTitle>
-          <CardDescription>用于角色配音与有声朗读，功能开放后会在这里配置。</CardDescription>
-        </CardHeader>
-      </Card>
+      <ModelCategoryCard
+        icon={<AudioLines className="h-4 w-4" />}
+        title="音频模型"
+        description="用于角色配音与朗读；默认连接本机 VoxCPM2 语音服务，本地生成不消耗云端额度。"
+        status={categories?.audio}
+        isAudioCategory
+        onSaved={invalidateAfterSave}
+      />
     </div>
   );
 }

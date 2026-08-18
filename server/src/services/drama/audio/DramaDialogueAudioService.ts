@@ -146,6 +146,7 @@ export class DramaDialogueAudioService {
           voiceId: voice?.voiceId,
           speed: voice?.speed,
           emotion: voice?.emotion,
+          speaker: line.speaker,
         });
         items.push({
           lineIndex: line.lineIndex,
