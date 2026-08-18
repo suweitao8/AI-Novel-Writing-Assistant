@@ -22,7 +22,7 @@
 剩余方向：
 
 - `routes/` 已完成三批共 22 个文件的收敛（cbea50e7/ca8e7232/bdb7ce5d）：genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula/task/settings 系(含子路由与 settingsAutoDirector)/storyMode/character/rag/promptWorkbench/health/agentCatalog/agentRuns/astrology/autoDirector 系。归属规则：产品能力进 `modules/<域>/http/`，llm/health 等基础设施进 `platform/**/http/`，promptWorkbench 归 `prompting/http/`，autoDirector 系归 director 自有 `http/`。仅剩 4 个（bookAnalysis/chat/creativeHub/images），均属并行会话活跃域，待其落定后收尾。
-- `prompting/prompts/novel`（42 文件）与 `client/src/pages/novels/components`（64 文件）的目录密度收敛。
+- ~~`prompting/prompts/novel`（42 文件）~~ 已收敛（f34bbbd7）：31 个文件按家族进 chapter/character/director 子目录，根层 44→13；registry loader、29 个服务引用方、9 个测试 require 同步改路径，无兼容壳。剩余：`client/src/pages/novels/components`（64 文件）密度收敛。
 - 根层兼容壳在新代码不再引用后可分批退役。
 
 ## 测试环境与验证结论（2026-08-19）
@@ -31,6 +31,7 @@
 - 兼容壳（`export *` 再导出）的命名空间是只读的：测试对模块导出做 monkey-patch 时必须 require 真实模块路径，不能经过壳。
 - 删除 facade 前的引用检索必须覆盖 `require("…dist/….js")` 形式的测试路径，仅查 TS import 会漏。
 - 失败归属方法：在改动前的基线提交建 worktree 跑同一套测试做差集；本轮 46 个失败经比对全部归属并行会话在途工作或既有问题，结构迁移零残留。
+- 批量改写相对导入的教训：Windows 下 Python `glob` 返回反斜杠路径，`path.split("/")` 会静默失效，必须用 `os.sep`；批量替换脚本禁用「占位标签再回填」模式（正则 `.TAG.` 会误伤正常代码中的同名子串，如 `NOVEL_PROMPT_BUDGETS`）。安全模式：以 HEAD 原文为基准做逐行 diff，非 import-spec 行的任何差异一律从 HEAD 恢复后再单独处理路径。
 
 ## Failure Modes
 
