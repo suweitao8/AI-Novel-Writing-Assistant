@@ -306,6 +306,20 @@ export class BookAnalysisCommandService {
     return this.queueRebuildAnalysis(analysisId, { resetUsedTokens: true });
   }
 
+  async deleteAnalysis(analysisId: string): Promise<void> {
+    const analysis = await prisma.bookAnalysis.findUnique({
+      where: { id: analysisId },
+      select: { id: true },
+    });
+    if (!analysis) {
+      throw new AppError("Book analysis not found.", 404);
+    }
+    // 章节小节与角色档案按外键级联删除；关联小说的引用为 SetNull，来源文档不受影响。
+    await prisma.bookAnalysis.delete({
+      where: { id: analysisId },
+    });
+  }
+
   private async queueRebuildAnalysis(
     analysisId: string,
     options: { resetUsedTokens: boolean; budgetTokens?: number | null },
@@ -329,6 +343,8 @@ export class BookAnalysisCommandService {
           status: "queued",
           pendingManualRecovery: false,
           progress: 0,
+          // 重新入队时把模型槽落回当前文本模型，清理历史遗留的旧供应商值。
+          provider: getTextModelProvider(),
           ...(options.resetUsedTokens ? { usedTokens: 0 } : {}),
           ...(options.budgetTokens !== undefined ? { budgetTokens: options.budgetTokens } : {}),
           lastError: null,

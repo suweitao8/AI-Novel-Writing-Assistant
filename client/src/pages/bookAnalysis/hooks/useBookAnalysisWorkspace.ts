@@ -11,6 +11,7 @@ import {
   archiveBookAnalysis,
   copyBookAnalysis,
   createBookAnalysis,
+  deleteBookAnalysis,
   downloadBookAnalysisExport,
   getBookAnalysis,
   listBookAnalyses,
@@ -338,6 +339,21 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: deleteBookAnalysis,
+    onSuccess: async () => {
+      setSelectedAnalysisId("");
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("analysisId");
+        return next;
+      });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.bookAnalysis.list(listKey) });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.knowledge.documents("book-analysis-source") });
+      toast.success("拆书记录已删除，来源文档保持不变。");
+    },
+  });
+
   const regenerateMutation = useMutation({
     mutationFn: (payload: { id: string; sectionKey: BookAnalysisSectionKey; focusInstruction?: string | null }) =>
       regenerateBookAnalysisSection(payload.id, payload.sectionKey, { focusInstruction: payload.focusInstruction }),
@@ -495,6 +511,10 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     archiveMutation.mutate(analysisId);
   };
 
+  const deleteAnalysis = (analysisId: string) => {
+    deleteMutation.mutate(analysisId);
+  };
+
   const regenerateSection = (sectionKey: BookAnalysisSectionKey) => {
     if (!selectedAnalysis) {
       return;
@@ -559,6 +579,7 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
       copy: copyMutation.isPending,
       rebuild: rebuildMutation.isPending,
       archive: archiveMutation.isPending,
+      delete: deleteMutation.isPending,
       regenerate: regenerateMutation.isPending,
       optimizePreview: sectionDraftsState.pending.optimizePreview,
       saveSection: sectionDraftsState.pending.saveSection,
@@ -619,6 +640,7 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     copySelectedAnalysis,
     rebuildAnalysis,
     archiveAnalysis,
+    deleteAnalysis,
     regenerateSection,
     optimizeSectionPreview: sectionDraftsState.optimizeSectionPreview,
     applySectionOptimizePreview: sectionDraftsState.applySectionOptimizePreview,

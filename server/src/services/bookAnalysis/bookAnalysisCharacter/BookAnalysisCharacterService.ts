@@ -321,7 +321,7 @@ export class BookAnalysisCharacterService {
     if (analysis.status === "archived") {
       throw new AppError("Archived book analysis cannot generate character profiles.", 400);
     }
-    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
+    const provider = getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);

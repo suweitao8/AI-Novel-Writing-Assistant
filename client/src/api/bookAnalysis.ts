@@ -141,6 +141,11 @@ export async function archiveBookAnalysis(id: string) {
   return data;
 }
 
+export async function deleteBookAnalysis(id: string) {
+  const { data } = await apiClient.delete<ApiResponse<null>>(`/book-analysis/${id}`);
+  return data;
+}
+
 export async function listBookAnalysisCharacters(id: string) {
   const { data } = await apiClient.get<ApiResponse<BookAnalysisCharacter[]>>(`/book-analysis/${id}/characters`);
   return data;

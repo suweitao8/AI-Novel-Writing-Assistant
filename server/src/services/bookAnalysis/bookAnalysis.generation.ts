@@ -105,7 +105,8 @@ export class BookAnalysisGenerationService {
       return;
     }
 
-    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
+    // 拆书文字任务统一走文本槽；不再读取记录里历史遗留的 provider，避免旧值指向未配置厂商。
+    const provider = getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);
@@ -370,7 +371,8 @@ export class BookAnalysisGenerationService {
       return;
     }
 
-    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
+    // 拆书文字任务统一走文本槽；不再读取记录里历史遗留的 provider，避免旧值指向未配置厂商。
+    const provider = getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);

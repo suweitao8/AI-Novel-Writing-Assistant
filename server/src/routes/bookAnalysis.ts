@@ -169,6 +169,20 @@ router.post("/:id/rebuild", validate({ params: analysisParamsSchema }), async (r
   }
 });
 
+router.delete("/:id", validate({ params: analysisParamsSchema }), async (req, res, next) => {
+  try {
+    const { id } = req.params as z.infer<typeof analysisParamsSchema>;
+    await bookAnalysisService.deleteAnalysis(id);
+    res.status(200).json({
+      success: true,
+      data: null,
+      message: "拆书记录已删除，来源文档保持不变。",
+    } satisfies ApiResponse<null>);
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.patch("/:id/budget", validate({ params: analysisParamsSchema, body: budgetUpdateSchema }), async (req, res, next) => {
   try {
     const { id } = req.params as z.infer<typeof analysisParamsSchema>;

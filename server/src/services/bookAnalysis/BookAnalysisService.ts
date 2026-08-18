@@ -69,6 +69,10 @@ class BookAnalysisServiceFacade {
     return this.commandService.rebuildAnalysis(analysisId);
   }
 
+  deleteAnalysis(analysisId: string): Promise<void> {
+    return this.commandService.deleteAnalysis(analysisId);
+  }
+
   updateBudget(analysisId: string, budgetTokens: number | null): Promise<BookAnalysisDetail> {
     return this.commandService.updateBudget(analysisId, budgetTokens);
   }
