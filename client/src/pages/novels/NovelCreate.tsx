@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BOOK_ANALYSIS_SECTIONS } from "@ai-novel/shared/types/bookAnalysis";
 import { flattenGenreTreeOptions, getGenreTree } from "@/api/genre";
@@ -8,7 +8,6 @@ import { createNovel } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/storyMode";
 import { getWorldList } from "@/api/world";
-import { Button } from "@/components/ui/button";
 import NovelBasicInfoForm from "./components/NovelBasicInfoForm";
 import NovelCreateResourceRecommendationCard from "./components/NovelCreateResourceRecommendationCard";
 import { BookFramingQuickFillButton } from "./components/basicInfoForm/BookFramingQuickFillButton";
@@ -171,19 +170,16 @@ export default function NovelCreate() {
         <div className="max-w-3xl">
           <h1 className="text-3xl font-semibold tracking-normal text-foreground">创建小说项目</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            推荐先让 AI 自动导演从一句灵感整理方向、世界、角色和章节准备。需要完全手动填写时，也可以继续使用下方表单。
+            填写书名和基础信息完成创建，创建后可以在工作台继续完善方向、角色、世界观和章节准备。
           </p>
         </div>
-        <Button type="button" asChild className="shrink-0">
-          <Link to="/novels/auto-director">AI 自动导演开书</Link>
-        </Button>
       </section>
 
       <section className="space-y-4">
         <div>
-          <div className="text-lg font-semibold leading-7 text-foreground">手动创建</div>
+          <div className="text-lg font-semibold leading-7 text-foreground">小说基础信息</div>
           <div className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-            手动路径适合你已经清楚题材、卖点和前期承诺的项目；创建后仍可在工作台继续调整。
+            书名、题材、卖点和前期承诺这些信息会作为后续 AI 规划和写作的依据，先填一个大概也没关系。
           </div>
         </div>
         <NovelBasicInfoForm
