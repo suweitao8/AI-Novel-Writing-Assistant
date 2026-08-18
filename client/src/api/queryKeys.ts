@@ -38,6 +38,11 @@ export const queryKeys = {
     novelWorld: (id: string) => ["novels", "novel-world", id] as const,
     novelWorldSyncDiff: (id: string) => ["novels", "novel-world", id, "sync-diff"] as const,
     worldSlice: (id: string) => ["novels", "world-slice", id] as const,
+    storySettingsOverview: (id: string) => ["novels", "story-settings", id, "overview"] as const,
+    storySettingsScenes: (id: string) => ["novels", "story-settings", id, "scenes"] as const,
+    storySettingsProps: (id: string) => ["novels", "story-settings", id, "props"] as const,
+    storySettingsCharacters: (id: string) => ["novels", "story-settings", id, "characters"] as const,
+    storySettingsWorld: (id: string) => ["novels", "story-settings", id, "world"] as const,
     snapshots: (id: string) => ["novels", "snapshots", id] as const,
   },
   worlds: {

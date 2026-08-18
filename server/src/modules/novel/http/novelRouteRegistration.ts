@@ -26,6 +26,7 @@ import novelDecisionsRouter from "../state/http/novelDecisions";
 import type { NovelHttpServices } from "./novelHttpServices";
 import { guardSimpleCreationUserWrites } from "./simpleCreationWriteGuard";
 import { registerShortStoryRoutes } from "../short-story/http/shortStoryRoutes";
+import { registerStorySettingsRoutes } from "../story-settings/http/storySettingsRoutes";
 import { registerWritingPlatformRoutes } from "../writing-platform/http/writingPlatformRoutes";
 import { registerDirectorIssuePolicyRoutes } from "../../../services/novel/director/issues/directorIssuePolicyRoutes";
 import { registerNovelDirectorRiskPolicyRoutes } from "../../../services/novel/director/http/novelDirectorRiskPolicy";
@@ -91,6 +92,7 @@ export function registerNovelHttpRoutes(router: Router, services: NovelHttpServi
   });
 
   registerShortStoryRoutes(router);
+  registerStorySettingsRoutes(router);
   registerWritingPlatformRoutes(router);
   registerDirectorIssuePolicyRoutes(router);
   registerNovelDirectorRiskPolicyRoutes(router);

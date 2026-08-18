@@ -23,6 +23,11 @@ import {
   updateShortStorySegment,
 } from "@/api/creationStudio";
 import { downloadNovelExport } from "@/api/novel";
+import { getStorySettingsOverview } from "@/api/storySettings";
+import { queryKeys } from "@/api/queryKeys";
+import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
+import StorySettingsConfirmCard from "@/pages/novels/components/storySettings/StorySettingsConfirmCard";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
@@ -47,6 +52,14 @@ export default function ShortStoryStudioPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [revisionInstruction, setRevisionInstruction] = useState("");
   const [revisionImpact, setRevisionImpact] = useState<ShortStoryRevisionImpact | null>(null);
+  const [view, setView] = useState("content");
+
+  const settingsOverviewQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsOverview(novelId),
+    queryFn: () => getStorySettingsOverview(novelId),
+    enabled: Boolean(novelId),
+  });
+  const awaitingSettingsConfirmation = settingsOverviewQuery.data?.data?.awaitingConfirmation === true;
 
   const storyQuery = useQuery({
     queryKey: ["short-story", novelId],
@@ -186,8 +199,30 @@ export default function ShortStoryStudioPage() {
         </div>
       </header>
 
+      <Tabs value={view} onValueChange={setView}>
+        <TabsList>
+          <TabsTrigger value="content">正文</TabsTrigger>
+          <TabsTrigger value="settings">设定</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {view === "settings" ? (
+        <section className="min-w-0 overflow-hidden rounded-xl border bg-background p-4 shadow-sm sm:p-5">
+          <StorySettingsTabs novelId={novelId} />
+        </section>
+      ) : (
       <div className="grid min-w-0 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
         <main className="min-w-0 space-y-4">
+          {awaitingSettingsConfirmation ? (
+            <StorySettingsConfirmCard
+              novelId={novelId}
+              onConfirmed={async () => {
+                await queryClient.invalidateQueries({ queryKey: ["short-story", novelId] });
+              }}
+              onViewSettings={() => setView("settings")}
+            />
+          ) : null}
+
           {isProducing ? (
             <Card className="border-primary/20 bg-primary/[0.03] shadow-none">
               <CardContent className="p-4">
@@ -353,6 +388,7 @@ export default function ShortStoryStudioPage() {
           </details>
         </aside>
       </div>
+      )}
     </div>
   );
 }

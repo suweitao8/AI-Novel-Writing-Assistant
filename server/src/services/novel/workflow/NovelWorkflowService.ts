@@ -111,6 +111,10 @@ export class NovelWorkflowService extends NovelWorkflowStoreService {
     return this.applicationService.recordCheckpoint(...args);
   }
 
+  clearCheckpointAndRequeue(...args: Parameters<NovelWorkflowApplicationService["clearCheckpointAndRequeue"]>) {
+    return this.applicationService.clearCheckpointAndRequeue(...args);
+  }
+
   syncStageByNovelId(...args: Parameters<NovelWorkflowApplicationService["syncStageByNovelId"]>) {
     return this.applicationService.syncStageByNovelId(...args);
   }

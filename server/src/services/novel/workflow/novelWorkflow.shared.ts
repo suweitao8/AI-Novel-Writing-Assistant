@@ -11,6 +11,7 @@ import { getNovelWorkflowLaneDescriptor } from "@ai-novel/shared/types/novelWork
 export const NOVEL_WORKFLOW_STAGE_LABELS: Record<NovelWorkflowStage, string> = {
   project_setup: "项目设定",
   creation_intent: "理解创作想法",
+  short_story_settings: "生成设定",
   short_story_plan: "规划短篇",
   short_story_draft: "生成完整作品",
   short_story_review: "全篇审校",
@@ -27,6 +28,7 @@ export const NOVEL_WORKFLOW_STAGE_LABELS: Record<NovelWorkflowStage, string> = {
 export const NOVEL_WORKFLOW_STAGE_PROGRESS: Record<NovelWorkflowStage, number> = {
   project_setup: 0.08,
   creation_intent: 0.08,
+  short_story_settings: 0.12,
   short_story_plan: 0.2,
   short_story_draft: 0.35,
   short_story_review: 0.9,
@@ -43,6 +45,7 @@ export const NOVEL_WORKFLOW_STAGE_PROGRESS: Record<NovelWorkflowStage, number> =
 export const NOVEL_WORKFLOW_STAGE_STEPS = [
   { key: "project_setup", label: "项目设定" },
   { key: "creation_intent", label: "理解创作想法" },
+  { key: "short_story_settings", label: "生成设定" },
   { key: "short_story_plan", label: "规划短篇" },
   { key: "short_story_draft", label: "生成完整作品" },
   { key: "short_story_review", label: "全篇审校" },

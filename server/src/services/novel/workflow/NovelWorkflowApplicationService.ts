@@ -357,6 +357,31 @@ export class NovelWorkflowApplicationService {
     });
   }
 
+  // 清除检查点并重新排队：用于用户已确认的软门槛（如短篇设定确认）放行后台任务。
+  async clearCheckpointAndRequeue(taskId: string, input: { summary: string }) {
+    const existing = await this.workflow.getTaskById(taskId);
+    if (!existing) {
+      throw new AppError("Task not found.", 404);
+    }
+    if (isTaskCancellationRequested(existing)) {
+      throw new AppError("WORKFLOW_TASK_CANCELLED", 409);
+    }
+    return this.workflow.updateWorkflowTaskWithNotifications({
+      before: existing,
+      data: {
+        status: "queued",
+        checkpointType: null,
+        checkpointSummary: input.summary.trim() || null,
+        pendingManualRecovery: false,
+        attemptCount: existing.attemptCount + 1,
+        lastError: null,
+        finishedAt: null,
+        cancelRequestedAt: null,
+        heartbeatAt: new Date(),
+      },
+    });
+  }
+
   async restoreTaskToCheckpoint(
     taskId: string,
     row = null as Awaited<ReturnType<typeof prisma.novelWorkflowTask.findUnique>> | null,

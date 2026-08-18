@@ -23,6 +23,9 @@ import {
   setNovelCreationExperience,
 } from "@/api/novel";
 import { continueNovelWorkflow } from "@/api/novelWorkflow";
+import { ensureStorySettings } from "@/api/storySettings";
+import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
@@ -68,6 +71,7 @@ export default function SimpleNovelShelfPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedChapterId, setSelectedChapterId] = useState("");
+  const [view, setView] = useState("creation");
 
   const shelfQuery = useQuery({
     queryKey: ["novels", id, "simple-shelf"],
@@ -116,6 +120,15 @@ export default function SimpleNovelShelfPage() {
       }
       // 书架已投影出本书最近的自动导演任务。重规划检查点会将任务标记为
       // failed，因此不能再用“仅运行中任务”的查询覆盖这个恢复锚点。
+      // 继续写作前先补全缺失的场景/道具设定，让后续章节有据可依；
+      // 补全失败不阻断续写，仅提示。
+      try {
+        await ensureStorySettings(id);
+      } catch (settingsError) {
+        toast("设定补全暂时失败，本次续写暂不携带新设定。", {
+          description: settingsError instanceof Error ? settingsError.message : undefined,
+        });
+      }
       return continueNovelWorkflow(directorTaskId, { continuationMode: "auto_execute_range" });
     },
     onSuccess: async () => {
@@ -222,6 +235,19 @@ export default function SimpleNovelShelfPage() {
           next="选择左侧章节即可阅读当前版本。"
         />
 
+        <Tabs value={view} onValueChange={setView}>
+          <TabsList>
+            <TabsTrigger value="creation">创作</TabsTrigger>
+            <TabsTrigger value="settings">设定</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        {view === "settings" ? (
+          <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+            <StorySettingsTabs novelId={id} />
+          </section>
+        ) : (
+        <>
         <SimpleCreationIssueGovernancePanel
           novelId={id}
           directorTaskId={shelf.progress.directorTaskId}
@@ -329,6 +355,8 @@ export default function SimpleNovelShelfPage() {
             </main>
           </div>
         </section>
+        </>
+        )}
 
       </div>
     </div>

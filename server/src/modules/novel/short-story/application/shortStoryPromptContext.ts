@@ -2,6 +2,10 @@ import type { PromptContextBlock } from "../../../../prompting/core/promptTypes"
 import type { WritingPlatformSnapshot } from "@ai-novel/shared/types/writingPlatform";
 import type { CreationDirection, ShortStoryPlanContract, ShortStoryPlanSegment } from "@ai-novel/shared/types/creationStudio";
 import { buildStoryModePromptBlock, parseStoryModeProfileJson } from "../../../../services/storyMode/storyModeProfile";
+import {
+  buildStorySettingsPromptText,
+  type StorySettingsPromptSnapshot,
+} from "../../story-settings/application/storySettingsPromptText";
 
 interface ShortStoryFoundationNovel {
   genre?: { name: string; description?: string | null; template?: string | null } | null;
@@ -40,6 +44,25 @@ export function shortStoryPlatformText(snapshot: WritingPlatformSnapshot | null,
   return `${snapshot.label}（配置版本 ${snapshot.profileVersion}）：${snapshot.guidance[stage]}`;
 }
 
+export type ShortStorySettingsSnapshot = StorySettingsPromptSnapshot;
+
+export function buildShortStorySettingsContextBlock(
+  snapshot: ShortStorySettingsSnapshot | null | undefined,
+): PromptContextBlock | null {
+  const promptText = buildStorySettingsPromptText(snapshot);
+  if (!promptText) {
+    return null;
+  }
+  return {
+    id: "short-story:story-settings",
+    group: "story_settings",
+    content: promptText,
+    priority: 97,
+    required: true,
+    estimatedTokens: Math.max(1, Math.ceil(promptText.length / 2)),
+  };
+}
+
 export function buildShortStoryWriterContextBlocks(input: {
   originalIdea: string;
   understanding: string;
@@ -51,6 +74,7 @@ export function buildShortStoryWriterContextBlocks(input: {
   platform: WritingPlatformSnapshot | null;
   bookStyle?: string | null;
   productionFoundation: string;
+  settingsSnapshot?: ShortStorySettingsSnapshot | null;
 }): PromptContextBlock[] {
   const block = (id: string, group: string, content: string, priority: number): PromptContextBlock => ({
     id, group, content, priority, required: true, estimatedTokens: Math.max(1, Math.ceil(content.length / 2)),
@@ -62,5 +86,6 @@ export function buildShortStoryWriterContextBlocks(input: {
     block("short-story:platform", "writing_platform", shortStoryPlatformText(input.platform, "drafting"), 104),
     block("short-story:production-foundation", "production_foundation", input.productionFoundation, 103),
     block("short-story:book-style", "book_style", input.bookStyle?.trim() || input.direction.styleKeywords.join("、"), 80),
+    ...(buildShortStorySettingsContextBlock(input.settingsSnapshot) ? [buildShortStorySettingsContextBlock(input.settingsSnapshot)!] : []),
   ];
 }
