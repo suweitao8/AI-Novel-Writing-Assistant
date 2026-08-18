@@ -59,8 +59,6 @@ const navGroups: NavGroup[] = [
   {
     title: "资产",
     items: [
-      { to: "/genres", label: "题材基底库", icon: Tags },
-      { to: "/story-modes", label: "推进模式库", icon: Workflow },
       { to: "/titles", label: "标题工坊", icon: SquarePen },
       { to: "/knowledge", label: "知识库", icon: Database },
       { to: "/worlds", label: "世界样本库", icon: Globe2 },
@@ -75,6 +73,8 @@ const navGroups: NavGroup[] = [
       { to: "/tasks", label: "运行记录", icon: ListTodo },
       { to: "/auto-director/follow-ups", label: "导演跟进", icon: Workflow },
       { to: "/prompt-workbench", label: "提示词管理", icon: Braces },
+      { to: "/genres", label: "题材基底库", icon: Tags },
+      { to: "/story-modes", label: "推进模式库", icon: Workflow },
       { to: "/settings", label: "系统设置", icon: Settings2 },
     ],
   },
