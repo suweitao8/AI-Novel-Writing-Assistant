@@ -27,6 +27,7 @@ import { getStorySettingsOverview } from "@/api/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import StorySettingsConfirmCard from "@/pages/novels/components/storySettings/StorySettingsConfirmCard";
+import StoryBodyEditor from "@/pages/shortStory/components/storyBodyEditor/StoryBodyEditor";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -306,18 +307,11 @@ export default function ShortStoryStudioPage() {
                   {isProducing ? "第一段正文完成后会显示在这里。" : "暂时还没有正文。"}
                 </div>
               ) : editing ? (
-                <div className="overflow-hidden rounded-lg border border-input bg-background focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10">
-                  {story.segments.map((segment) => (
-                    <textarea
-                      key={segment.id}
-                      aria-label="作品正文"
-                      value={drafts[segment.id] ?? segment.content}
-                      onChange={(event) => setDrafts((current) => ({ ...current, [segment.id]: event.target.value }))}
-                      className="block w-full resize-none border-0 bg-transparent px-5 py-3 text-[16px] leading-8 outline-none first:pt-6 last:pb-6"
-                      style={{ minHeight: `${Math.max(180, Math.ceil((drafts[segment.id] ?? segment.content).length / 42) * 32)}px` }}
-                    />
-                  ))}
-                </div>
+                <StoryBodyEditor
+                  segments={story.segments}
+                  drafts={drafts}
+                  onDraftChange={(segmentId, next) => setDrafts((current) => ({ ...current, [segmentId]: next }))}
+                />
               ) : (
                 <div className="whitespace-pre-wrap text-[16px] leading-8 text-foreground selection:bg-primary/15">
                   {story.continuousContent || "正文仍在生成中。"}
