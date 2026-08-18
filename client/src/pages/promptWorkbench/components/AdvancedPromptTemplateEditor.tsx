@@ -40,16 +40,16 @@ function VersionRow(props: {
 }) {
   const active = props.activeVersionId === props.version.id;
   return (
-    <div className="grid gap-3 rounded-md border border-[#d7e4e0] bg-white px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+    <div className="grid gap-3 rounded-md border border-border bg-card px-3 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-semibold text-[#25443f]">v{props.version.versionNo}</span>
-          {active ? <Badge className="bg-[#0f766e] text-white hover:bg-[#0f766e]">启用中</Badge> : null}
+          <span className="font-semibold text-foreground">v{props.version.versionNo}</span>
+          {active ? <Badge className="bg-primary text-primary-foreground hover:bg-primary">启用中</Badge> : null}
           <span className="font-mono text-[11px] text-muted-foreground">{props.version.compiledHash}</span>
         </div>
         <div className="mt-1 text-xs text-muted-foreground">{formatDate(props.version.createdAt)}</div>
         {props.version.notes ? (
-          <div className="mt-2 text-sm text-[#52606d]">{props.version.notes}</div>
+          <div className="mt-2 text-sm text-muted-foreground">{props.version.notes}</div>
         ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
@@ -62,7 +62,7 @@ function VersionRow(props: {
           size="sm"
           onClick={() => props.onActivate(props.version.id)}
           disabled={props.disabled || active}
-          className="border-[#b8d9d0] text-[#0f5f59]"
+          className="border-primary/30 text-primary"
         >
           回滚
         </Button>
@@ -107,7 +107,7 @@ export function AdvancedPromptTemplateEditor(props: {
 
   if (!templateState.enabled) {
     return (
-      <div className="rounded-md border border-dashed border-[#cbdad6] bg-white/75 p-5 text-sm text-muted-foreground">
+      <div className="rounded-md border border-dashed border-border bg-card/75 p-5 text-sm text-muted-foreground">
         选择正文写作提示词、本书范围和具体小说后可编辑高级模板。
       </div>
     );
@@ -115,22 +115,23 @@ export function AdvancedPromptTemplateEditor(props: {
 
   return (
     <div className="space-y-4">
-      <div className="rounded-md border border-[#d7e4e0] bg-[#fbfdfb] p-4">
+      <div className="rounded-md border border-border bg-muted/40 p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge className={cn(
-                view?.mode === "custom" ? "bg-[#0f766e]" : "bg-[#52606d]",
-                "text-white hover:bg-[#0f766e]",
+                view?.mode === "custom"
+                  ? "bg-primary text-primary-foreground hover:bg-primary"
+                  : "bg-muted text-muted-foreground hover:bg-muted",
               )}>
                 {modeLabel}
               </Badge>
               {view?.activeVersion ? (
-                <span className="rounded-md bg-[#eef6f4] px-2 py-1 text-xs text-[#0f5f59]">
+                <span className="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">
                   v{view.activeVersion.versionNo}
                 </span>
               ) : null}
-              <span className="rounded-md bg-[#eef3fb] px-2 py-1 text-xs text-[#385273]">
+              <span className="rounded-md bg-info/10 px-2 py-1 text-xs text-info">
                 {view?.basePromptVersion ?? "v5"}
               </span>
             </div>
@@ -144,7 +145,7 @@ export function AdvancedPromptTemplateEditor(props: {
               variant="outline"
               onClick={() => templateState.restoreMutation.mutate()}
               disabled={disabled || isBusy || view?.mode !== "custom"}
-              className="border-[#b8d9d0] text-[#0f5f59]"
+              className="border-primary/30 text-primary"
             >
               <ShieldCheck className="mr-2 h-4 w-4" />
               恢复官方模板
@@ -153,7 +154,7 @@ export function AdvancedPromptTemplateEditor(props: {
               type="button"
               onClick={() => templateState.saveMutation.mutate()}
               disabled={disabled || isBusy || !templateState.isDirty}
-              className="bg-[#0f766e] text-white hover:bg-[#0b5f59]"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               <Save className="mr-2 h-4 w-4" />
               保存为新版本
@@ -198,8 +199,8 @@ export function AdvancedPromptTemplateEditor(props: {
         onChange={templateState.setHumanContent}
       />
 
-      <div className="rounded-md border border-[#d7e4e0] bg-white p-4">
-        <label className="text-sm font-semibold text-[#25443f]" htmlFor="prompt-template-notes">
+      <div className="rounded-md border border-border bg-card p-4">
+        <label className="text-sm font-semibold text-foreground" htmlFor="prompt-template-notes">
           版本说明
         </label>
         <Input
@@ -207,18 +208,18 @@ export function AdvancedPromptTemplateEditor(props: {
           value={templateState.notes}
           onChange={(event) => templateState.setNotes(event.target.value)}
           placeholder="说明本次模板调整目标"
-          className="mt-2 border-[#cbdad6]"
+          className="mt-2"
           disabled={disabled || isBusy}
         />
       </div>
 
       {templateDiagnostics ? (
-        <div className="rounded-md border border-[#c8d8f0] bg-[#f5f8ff] p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#344d7a]">
+        <div className="rounded-md border border-info/30 bg-info/10 p-4">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-info">
             <GitBranch className="h-4 w-4" />
             预览注入结果
           </div>
-          <div className="grid gap-2 text-sm text-[#52606d] md:grid-cols-2">
+          <div className="grid gap-2 text-sm text-muted-foreground md:grid-cols-2">
             <div>显式上下文：{formatDiagnosticKeys(templateDiagnostics.referencedContextGroups, "context")}</div>
             <div>保底追加：{formatDiagnosticKeys(templateDiagnostics.fallbackRequiredGroups, "context")}</div>
             <div>运行变量：{formatDiagnosticKeys(templateDiagnostics.referencedInputFields, "input")}</div>
@@ -234,15 +235,15 @@ export function AdvancedPromptTemplateEditor(props: {
       />
 
       {previewMessages.length > 0 ? (
-        <div className="rounded-md border border-[#d7e4e0] bg-white">
-          <div className="border-b border-[#e1ebe8] px-4 py-3 text-sm font-semibold text-[#25443f]">
+        <div className="rounded-md border border-border bg-card">
+          <div className="border-b border-border px-4 py-3 text-sm font-semibold text-foreground">
             最终 Messages
           </div>
           <div className="space-y-3 p-4">
             {previewMessages.map((message, index) => (
-              <div key={`${message.role}:${index}`} className="rounded-md bg-[#f7faf9] p-3">
-                <div className="mb-2 font-mono text-[11px] uppercase text-[#0f766e]">{message.role}</div>
-                <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-[#1f2937]">
+              <div key={`${message.role}:${index}`} className="rounded-md bg-muted/40 p-3">
+                <div className="mb-2 font-mono text-[11px] uppercase text-primary">{message.role}</div>
+                <pre className="max-h-72 overflow-auto whitespace-pre-wrap text-xs leading-relaxed text-foreground">
                   {message.content}
                 </pre>
               </div>
@@ -251,8 +252,8 @@ export function AdvancedPromptTemplateEditor(props: {
         </div>
       ) : null}
 
-      <div className="rounded-md border border-[#d7e4e0] bg-[#fbfdfb] p-4">
-        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-[#25443f]">
+      <div className="rounded-md border border-border bg-muted/40 p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
           <History className="h-4 w-4" />
           版本历史
         </div>
@@ -270,7 +271,7 @@ export function AdvancedPromptTemplateEditor(props: {
             ))}
           </div>
         ) : (
-          <div className="rounded-md border border-dashed border-[#cbdad6] bg-white/75 p-4 text-sm text-muted-foreground">
+          <div className="rounded-md border border-dashed border-border bg-card/75 p-4 text-sm text-muted-foreground">
             保存自定义模板后会生成版本历史。
           </div>
         )}
@@ -282,7 +283,7 @@ export function AdvancedPromptTemplateEditor(props: {
           variant="ghost"
           onClick={templateState.resetDraft}
           disabled={!templateState.isDirty || isBusy}
-          className="text-[#52606d] hover:bg-[#eef4ff] hover:text-[#344d7a]"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         >
           <RotateCcw className="mr-2 h-4 w-4" />
           放弃未保存修改
