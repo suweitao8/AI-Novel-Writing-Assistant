@@ -12,26 +12,15 @@ const palettes = [
 ] as const;
 
 export default function AppearanceSettingsPage() {
-  const { mode, palette, density, setMode, setPalette, setDensity, reset } = useTheme();
+  const { palette, density, setPalette, setDensity, reset } = useTheme();
   return (
-    <SettingsShell title="外观与主题" description="选择适合长时间创作的界面颜色和显示密度。">
+    <SettingsShell title="外观与主题" description="选择适合长时间创作的主题风格和显示密度。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base"><Palette className="h-4 w-4" />界面外观</CardTitle>
           <CardDescription>主题只保存在当前设备，不会影响小说内容和任务状态。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <label className="block space-y-2 text-sm font-medium">
-            <span>显示模式</span>
-            <Select value={mode} onValueChange={(value) => setMode(value as typeof mode)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="system">跟随系统</SelectItem>
-                <SelectItem value="light">浅色</SelectItem>
-                <SelectItem value="dark">深色</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
           <label className="block space-y-2 text-sm font-medium">
             <span>主题风格</span>
             <Select value={palette} onValueChange={(value) => setPalette(value as typeof palette)}>

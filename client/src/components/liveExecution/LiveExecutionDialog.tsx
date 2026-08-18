@@ -183,7 +183,10 @@ export default function LiveExecutionDialog(props: LiveExecutionDialogProps) {
         <DialogPrimitive.Portal>
           <DialogPrimitive.Content
             className={cn(
-              "fixed right-4 top-20 z-[70] flex w-[min(42rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-xl border border-emerald-400/45 bg-[#080d0c] text-emerald-50 shadow-2xl shadow-emerald-950/40 outline-none transition-[height] duration-200 ease-out",
+              "fixed z-[70] flex flex-col overflow-hidden rounded-xl border border-emerald-400/45 bg-[#080d0c] text-emerald-50 shadow-2xl shadow-emerald-950/40 outline-none transition-[height] duration-200 ease-out",
+              props.compact
+                ? "right-4 top-4 w-[min(42rem,calc(100vw-1.5rem))]"
+                : "bottom-4 left-4 w-[min(42rem,calc(100vw-2rem))]",
               briefMode
                 ? "h-[13rem] max-h-[calc(100dvh-6rem)]"
                 : "h-[min(42rem,calc(100dvh-6rem))]",

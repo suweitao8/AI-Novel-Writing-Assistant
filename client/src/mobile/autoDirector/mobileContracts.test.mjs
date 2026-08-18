@@ -81,24 +81,6 @@ test("auto-director follow-up center uses mobile contracts for single-column non
     "auto-director mobile app main sizing should be route-scoped instead of changing every page shell",
   );
 
-  const navbar = readSource("components/layout/Navbar.tsx");
-  assertImportsMobileContracts(navbar, "navbar should import mobile shell contracts for auto-director target routes");
-  assertContains(
-    navbar,
-    "shouldUseAutoDirectorMobileFullWidthContent",
-    "navbar mobile shell changes should be scoped by the auto-director route opt-in",
-  );
-  assertContains(
-    navbar,
-    "AUTO_DIRECTOR_MOBILE_CLASSES.navbarModelSelector",
-    "the global model selector should not force auto-director target pages wider than a phone viewport",
-  );
-  assertContains(
-    navbar,
-    "AUTO_DIRECTOR_MOBILE_CLASSES.navbarWorkspaceToggle",
-    "workspace navigation toggle should not compete with mobile page actions at phone width",
-  );
-
   assertImportsMobileContracts(page, "follow-up page should use the mobile directory as the layout contract source");
   assertContains(
     page,

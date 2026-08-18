@@ -2,7 +2,6 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { matchPath, Outlet, useLocation } from "react-router-dom";
 import AppRouteFallback from "./AppRouteFallback";
 import LLMSelectionBootstrap from "./LLMSelectionBootstrap";
-import Navbar from "./Navbar";
 import NovelWorkspaceRail from "./NovelWorkspaceRail";
 import Sidebar from "./Sidebar";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
@@ -17,13 +16,11 @@ import {
 } from "@/mobile/autoDirector";
 import { CreationSetupProvider } from "@/components/onboarding/CreationSetupContext";
 
-const SIDEBAR_COLLAPSED_STORAGE_KEY = "ai-novel.sidebar.collapsed";
 const WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY = "ai-novel.workspace-rail.collapsed";
-const DEFAULT_APP_MAIN_CLASS_NAME = "h-[calc(100dvh-4rem)] min-w-0 flex-1 overflow-y-auto p-6";
+const DEFAULT_APP_MAIN_CLASS_NAME = "min-h-0 min-w-0 flex-1 overflow-y-auto p-6";
 
 export default function AppLayout() {
   const location = useLocation();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isWorkspaceRailCollapsed, setIsWorkspaceRailCollapsed] = useState(false);
   const [workspaceNavMode, setWorkspaceNavMode] = useState<"workspace" | "project">("project");
   const isMobileViewport = useIsMobileViewport();
@@ -56,15 +53,9 @@ export default function AppLayout() {
   );
 
   useEffect(() => {
-    const storedValue = window.localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY);
-    setIsSidebarCollapsed(storedValue === "true");
     const workspaceRailValue = window.localStorage.getItem(WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY);
     setIsWorkspaceRailCollapsed(workspaceRailValue === "true");
   }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, String(isSidebarCollapsed));
-  }, [isSidebarCollapsed]);
 
   useEffect(() => {
     window.localStorage.setItem(WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY, String(isWorkspaceRailCollapsed));
@@ -132,11 +123,7 @@ export default function AppLayout() {
       <div className="h-[100dvh] overflow-hidden bg-background">
         <AutoDirectorPauseNotificationWatcher />
         <LLMSelectionBootstrap />
-        <Navbar
-          workspaceNavMode={isNovelWorkspace ? workspaceNavMode : undefined}
-          onWorkspaceNavModeChange={isNovelWorkspace ? setWorkspaceNavMode : undefined}
-        />
-        <div className="flex h-[calc(100dvh-4rem)] min-h-0">
+        <div className="flex h-full min-h-0">
           <div className={useMobileFullWidthContent ? "hidden md:block" : "shrink-0"}>
             {isNovelWorkspace && workspaceNavMode === "workspace" && workspaceRoute ? (
               <NovelWorkspaceRail
@@ -148,8 +135,7 @@ export default function AppLayout() {
               />
             ) : (
               <Sidebar
-                collapsed={isSidebarCollapsed}
-                onToggle={() => setIsSidebarCollapsed((current) => !current)}
+                onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
               />
             )}
           </div>
