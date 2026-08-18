@@ -156,6 +156,7 @@
 - OpenCode Go 本地文本通道与 Codex 本地图片通道：使用本机已登录的订阅，不需要额外 API Key；执行 `pnpm opencode:bridge` / `pnpm codex:image` 即可启动本地通道，已在运行的服务会自动复用。
 - 漫画工作台支持删除项目：项目卡片提供删除入口，确认弹窗会标明将一并删除的分集、角色、分格与已生成图片。
 - 书架与首页的作品封面改为程序化生成：未生成封面的作品按书名自动配色，直接把书名渲染成封面，不再显示通用占位图。
+- 漫画的角色设计稿与格子图生成直接使用模型设置中配置的图片模型，配置 gpt-image-2（OpenAI 或本机 Codex 订阅通道）即可直接生成。
 
 完整历史更新见 [docs/releases/release-notes.md](./docs/releases/release-notes.md)。
 

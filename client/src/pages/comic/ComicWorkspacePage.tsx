@@ -28,7 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ComicImageGenerationNotice } from "@/pages/comic/ComicImageGenerationNotice";
 import { getNovelList } from "@/api/novel/core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -574,8 +573,6 @@ export default function ComicWorkspacePage() {
           新建项目
         </Button>
       </div>
-
-      <ComicImageGenerationNotice />
 
       {showWizard && (
         <CreateWizard
