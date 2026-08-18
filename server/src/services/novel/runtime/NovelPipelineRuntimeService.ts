@@ -19,7 +19,7 @@ interface PipelineResumePort {
 }
 
 function createPipelineService(): PipelineRecoveryPort & PipelineResumePort {
-  const { NovelCorePipelineService } = require("./novelCorePipelineService") as typeof import("../novelCorePipelineService");
+  const { NovelCorePipelineService } = require("../novelCorePipelineService") as typeof import("../novelCorePipelineService");
   return new NovelCorePipelineService();
 }
 
