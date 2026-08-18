@@ -203,6 +203,13 @@ This project is a pure web product: all development targets the website (`client
 - For changes with user-visible impact, update release notes in the same step (see Release Notes Workflow); if the diff is purely internal, state explicitly that release notes were intentionally skipped.
 - Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed. Never delete the active workspace or anyone's unmerged, unfinished changes.
 
+### Development Ports
+
+- Development ports are fixed: API server on `3100` (single source of truth: `server/.env` `PORT=3100`), web client on `5173` (`client/vite.config.ts` sets `port: 5173, strictPort: true`). The client dev proxy reads the server port from `server/.env` automatically; do not hardcode a different port anywhere else.
+- Never switch to another port when a dev port is occupied, and never change `PORT` values as a conflict workaround — silent port drift is what breaks the client `/api` proxy and running sessions.
+- If a port is occupied, stop the occupying process and restart on the same port. The server dev script already kills this repo's stale dev processes before starting (`server/scripts/stop-stale-dev-server.cjs`); for other occupants run `netstat -ano | findstr :3100` (or `:5173`), confirm it is a disposable stale dev process, then `taskkill /PID <pid> /F` and start again on the same port.
+- If the port is held by an unrelated long-lived service rather than a stale dev process, report it to the user instead of killing blindly or switching ports.
+
 ## Prompt Governance
 
 - `server/src/prompting/` is the only allowed entrypoint for adding new product-level prompts.

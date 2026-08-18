@@ -38,9 +38,28 @@ function clearStaleOptimizeCache(rootDir: string): void {
   console.info("[vite] Cleared stale optimize cache because cached dependency sources no longer exist.");
 }
 
+// 开发端口固定：服务端端口以 server/.env 的 PORT 为唯一来源（当前 3100），
+// 避免代理目标和服务端实际端口漂移导致 ECONNREFUSED。
+function resolveDevServerPort(): number {
+  const envPort = Number(process.env.PORT);
+  if (Number.isInteger(envPort) && envPort > 0) {
+    return envPort;
+  }
+  try {
+    const serverEnv = fs.readFileSync(path.resolve(__dirname, "../server/.env"), "utf8");
+    const match = /^\s*PORT=(\d+)\s*$/m.exec(serverEnv);
+    if (match) {
+      return Number(match[1]);
+    }
+  } catch {
+    // server/.env 缺失时使用固定默认端口。
+  }
+  return 3100;
+}
+
 function resolveDevProxyTarget(): string {
   const configuredHost = process.env.HOST?.trim();
-  const port = Number(process.env.PORT ?? 3000);
+  const port = resolveDevServerPort();
   const targetHost = configuredHost && !["0.0.0.0", "::"].includes(configuredHost)
     ? configuredHost
     : "127.0.0.1";
@@ -95,6 +114,10 @@ export default defineConfig({
   },
   server: {
     host: true,
+    // 前端开发端口固定 5173：被占用时报错退出而不是自动切到 5174，
+    // 先结束占用进程再重启（见 AGENTS.md Development Ports）。
+    port: 5173,
+    strictPort: true,
     proxy: {
       "/api": {
         target: resolveDevProxyTarget(),
