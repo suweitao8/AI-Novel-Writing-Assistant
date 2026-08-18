@@ -10,7 +10,6 @@ import {
   Images,
   LayoutDashboard,
   ListTodo,
-  MonitorPlay,
   SquareStack,
   ScanSearch,
   Settings2,
@@ -56,7 +55,6 @@ const navGroups: NavGroup[] = [
       { to: "/", label: "首页", icon: House },
       { to: "/help", label: "创作向导", icon: CircleHelp },
       { to: "/novels", label: "小说列表", icon: BookOpenText },
-      { to: "/drama", label: "短剧工作台", icon: MonitorPlay, disabled: true },
       { to: "/comic", label: "漫画工作台", icon: SquareStack },
       { to: "/creative-hub", label: "创作中枢", icon: LayoutDashboard },
       { to: "/book-analysis", label: "拆书", icon: ScanSearch },
@@ -134,18 +132,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
   const failedIndexCount = knowledgeDocuments.filter((item) => item.latestIndexStatus === "failed").length;
 
   const renderBadge = (to: string) => {
-    if (to === "/comic") {
-      return (
-        <Badge
-          variant="outline"
-          className="ml-auto h-5 border-amber-300 bg-amber-50 px-1.5 text-[10px] font-medium text-amber-700"
-          title="漫画工作台仍在 Beta 阶段"
-        >
-          Beta
-        </Badge>
-      );
-    }
-
     if (to === "/tasks") {
       if (failedTaskCount <= 0) {
         return null;
