@@ -1,8 +1,12 @@
+import { synthesizeAudioSpeech } from "../../audio/speechProvider";
+import { VoxCPM2TTSProvider } from "./VoxCPM2TTSProvider";
+
 export interface TTSGenerationRequest {
   text: string;
   voiceId?: string | null;
   speed?: number | null;
   emotion?: string | null;
+  speaker?: string | null;
 }
 
 export interface TTSGenerationResult {
@@ -181,3 +185,5 @@ if (httpSynthesizeUrl) {
     currency: process.env.DRAMA_TTS_HTTP_COST_CURRENCY?.trim() || readCostCurrency(),
   }));
 }
+
+ttsProviderRegistry.register(new VoxCPM2TTSProvider());

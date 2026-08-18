@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { BadgeCheck, KeyRound, Loader2, PlugZap, Save } from "lucide-react";
 import type { ModelCategoryStatus } from "@/api/settings";
-import { refreshProviderModelList, saveAPIKeySetting, testLLMConnection } from "@/api/settings";
+import { refreshProviderModelList, saveAPIKeySetting, testAudioSpeechConnection, testLLMConnection } from "@/api/settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -32,6 +32,7 @@ interface ModelCategoryCardProps {
   description: string;
   status: ModelCategoryStatus | undefined;
   isImageCategory?: boolean;
+  isAudioCategory?: boolean;
   onSaved?: () => void | Promise<void>;
 }
 
@@ -42,7 +43,7 @@ interface CategoryFormState {
 }
 
 export default function ModelCategoryCard(props: ModelCategoryCardProps) {
-  const { icon, title, description, status, isImageCategory = false, onSaved } = props;
+  const { icon, title, description, status, isImageCategory = false, isAudioCategory = false, onSaved } = props;
   const [form, setForm] = useState<CategoryFormState>({ apiKey: "", model: "", baseURL: "" });
   const [hydratedFor, setHydratedFor] = useState("");
   const [testResult, setTestResult] = useState("");
@@ -88,6 +89,17 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
         const response = await refreshProviderModelList(status!.provider);
         const models = response.data?.models ?? [];
         return `图片通道连接正常${models.length ? `，可用模型：${models.join("、")}` : ""}。`;
+      }
+      if (isAudioCategory) {
+        // 音频通道没有对话接口：测试 = 合成一句固定短语，验证地址、密钥与模型整体可用。
+        const response = await testAudioSpeechConnection({
+          provider: status!.provider,
+          apiKey: form.apiKey.trim() || undefined,
+          model: form.model.trim() || undefined,
+          baseURL: form.baseURL.trim() || undefined,
+        });
+        const probe = response.data;
+        return `音频通道连接正常，测试语音已生成（${probe?.byteLength ?? 0} 字节，耗时 ${probe?.latencyMs ?? 0}ms）。`;
       }
       const response = await testLLMConnection({
         provider: status!.provider,
@@ -181,7 +193,9 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
           </div>
         ) : null}
         <label className="block space-y-1.5">
-          <span className="text-sm font-medium">{isImageCategory ? "图片模型" : "文本模型"}</span>
+          <span className="text-sm font-medium">
+            {isImageCategory ? "图片模型" : isAudioCategory ? "音频模型" : "文本模型"}
+          </span>
           <Input
             value={form.model}
             placeholder="选择上方模型，或直接填写模型名称"

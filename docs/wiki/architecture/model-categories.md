@@ -6,8 +6,8 @@
 
 ## 决策
 
-- 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型（预留）。
-- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=opencode`（OpenCode Go 本地桥）、`image=codex`（Codex 本地桥）。
+- 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型。
+- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=opencode`（OpenCode Go 本地桥）、`image=codex`（Codex 本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音桥）。
 - 槽位的服务地址、API Key、模型均可编辑；更换供应商时修改槽位配置即可，产品不再提供按厂商维度逐个配置的界面。
 - 所有任务路由统一解析到文本槽：`resolveModel` 的 provider/model 一律来自文本槽当前配置，路由行仅保留温度与结构化协议偏好，避免历史路由把任务钉在已不再使用的供应商上。
 
@@ -15,19 +15,21 @@
 
 - `resolveModel(taskType)`：provider 固定为文本槽；model 来自 `resolveTextModelId()`（已保存配置 > 环境变量 > 注册表默认值）；温度优先取 `modelRouteConfig` 行，缺省用 `TASK_ROUTE_DEFAULTS` 的任务级默认温度。
 - `factory.resolveLLMClientOptions` 在未显式指定 provider 时回退文本槽，禁止回退任何固定厂商。
-- `/api/settings/model-categories` 返回三槽状态（audio 为占位）；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
+- `/api/settings/model-categories` 返回三槽状态；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
+- 音频槽的合成入口统一走 `server/src/services/audio/speechProvider.ts`（`synthesizeAudioSpeech`），配置解析顺序与文本/图片槽一致（已保存配置 > 环境变量 > 注册表默认值）；短剧配音链通过 `services/drama/audio/VoxCPM2TTSProvider.ts` 适配为 TTS provider。协议契约见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
+- 音频槽的连通测试走 `POST /api/settings/model-categories/audio/test`：合成一句固定短语验证地址、密钥与模型整体可用，不复用文本模型的对话探测。
 - `LLMSelector` 只展示文本槽的模型列表；`llm-selection` 保存的历史选择只有落在文本槽供应商上时才沿用其模型，否则回落文本槽当前模型（`client/src/lib/llmSelection.ts` 的 `resolvePreferredLLMSelection`）。
 - 新手引导（QuickSetup）只配置文本槽：检测通过后写入全部任务路由的温度与协议偏好，并保存全局选择。
 - 订阅通道判定：槽位供应商为本机桥（opencode/codex）且服务地址仍指向本机地址时，`/model-categories` 返回 `usesLocalSubscription=true`，设置页显示“已连接本机订阅通道”说明而不是密钥输入框；服务地址改为外部供应商后自动恢复密钥填写方式。状态中的 `hasApiKey` 表示已保存或环境变量提供的密钥是否生效（界面不回显密钥内容）。
 - 结构化备用模型（structured-fallback）机制保留在服务端，无设置入口；存量启用配置继续生效。
 - 存量数据兼容：`APIKey` 表与 `modelRouteConfig` 表结构不变；旧路由行的 provider/model 字段被忽略，只读温度与协议。
-- 新增音频能力时：在 `modelCategories.ts` 增加槽位，扩展 `/model-categories` 返回值与设置页音频卡片。
+- 新增其他能力类别时：在 `modelCategories.ts` 增加槽位，扩展 `/model-categories` 返回值与设置页卡片，能力入口收敛到一个服务模块（参照 `services/audio/` 的做法）。
 
 ## 故障模式
 
 - 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
 - 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
-- 本地桥接服务未启动（18762 文本 / 18766 图片）时连通测试失败，执行 `pnpm opencode:bridge` / `pnpm codex:image` 启动后恢复。
+- 本地桥接服务未启动（18762 文本 / 18766 图片 / 18761 音频）时连通测试失败，文本/图片执行 `pnpm opencode:bridge` / `pnpm codex:image` 启动，音频桥见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 
 ## 相关模块
 
@@ -38,4 +40,5 @@
 - `server/src/modules/setup/onboarding/application/QuickSetupService.ts`：新手引导。
 - `client/src/pages/settings/models/`：设置页三卡片。
 - `client/src/components/common/LLMSelector.tsx`、`client/src/components/layout/LLMSelectionBootstrap.tsx`、`client/src/lib/llmSelection.ts`。
-- 相关文档：`docs/wiki/architecture/opencode-go-provider.md`、`docs/wiki/architecture/codex-image-provider.md`。
+- `server/src/services/audio/speechProvider.ts`：音频槽语音合成入口；`server/src/services/drama/audio/VoxCPM2TTSProvider.ts`：配音链适配器。
+- 相关文档：`docs/wiki/architecture/opencode-go-provider.md`、`docs/wiki/architecture/codex-image-provider.md`、`docs/wiki/architecture/voxcpm2-audio-provider.md`。

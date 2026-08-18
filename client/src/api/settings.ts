@@ -31,15 +31,7 @@ export interface APIKeyStatus {
   supportsImageGeneration: boolean;
 }
 
-export interface ModelCategoryAudioStatus {
-  provider: null;
-  available: false;
-  currentModel: null;
-  currentBaseURL: null;
-  isConfigured: false;
-}
-
-// 模型按能力类别暴露：文本 / 图片 / 音频（预留）。
+// 模型按能力类别暴露：文本 / 图片 / 音频。
 export type ModelCategoryStatus = APIKeyStatus & {
   usesLocalSubscription: boolean;
 };
@@ -47,7 +39,7 @@ export type ModelCategoryStatus = APIKeyStatus & {
 export interface ModelCategoriesStatus {
   text: ModelCategoryStatus;
   image: ModelCategoryStatus;
-  audio: ModelCategoryAudioStatus;
+  audio: ModelCategoryStatus;
 }
 
 export interface RagProviderStatus {
@@ -140,6 +132,22 @@ export async function getAPIKeySettings() {
 
 export async function getModelCategories() {
   const { data } = await apiClient.get<ApiResponse<ModelCategoriesStatus>>("/settings/model-categories");
+  return data;
+}
+
+export async function testAudioSpeechConnection(payload: {
+  provider: LLMProvider;
+  apiKey?: string;
+  model?: string;
+  baseURL?: string;
+}) {
+  const { data } = await apiClient.post<
+    ApiResponse<{
+      latencyMs: number;
+      byteLength: number;
+      contentType: string;
+    }>
+  >("/settings/model-categories/audio/test", payload);
   return data;
 }
 

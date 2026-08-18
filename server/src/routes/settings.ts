@@ -5,7 +5,7 @@ import { z } from "zod";
 import { setProviderSecretCache } from "../llm/factory";
 import { evictSharedLimiters } from "../llm/requestLimiter";
 import { refreshProviderModels } from "../llm/modelCatalog";
-import { getImageModelProvider, getTextModelProvider, isLocalBridgeBaseURL, isLocalSubscriptionProvider } from "../llm/modelCategories";
+import { getAudioModelProvider, getImageModelProvider, getTextModelProvider, isLocalBridgeBaseURL, isLocalSubscriptionProvider } from "../llm/modelCategories";
 import { llmProviderSchema } from "../llm/providerSchema";
 import {
   getProviderEnvApiKey,
@@ -46,6 +46,7 @@ import {
 } from "../services/settings/StyleEngineRuntimeSettingsService";
 import { registerCustomProviderRoutes } from "./settings/customProviderRoutes";
 import { registerLLMSelectionRoutes } from "./settings/llmSelectionRoutes";
+import { probeAudioSpeechChannel } from "../services/audio/speechProvider";
 
 const router = Router();
 const MAX_PROVIDER_CONCURRENCY_LIMIT = 100;
@@ -65,6 +66,12 @@ const upsertApiKeySchema = z.object({
   reasoningEnabled: z.boolean().optional(),
   concurrencyLimit: z.coerce.number().int().min(0).max(MAX_PROVIDER_CONCURRENCY_LIMIT).optional(),
   requestIntervalMs: z.coerce.number().int().min(0).max(MAX_PROVIDER_REQUEST_INTERVAL_MS).optional(),
+});
+
+const audioSpeechTestSchema = z.object({
+  baseURL: z.union([z.string().trim().url("API URL 格式不正确。"), z.literal("")]).optional(),
+  apiKey: z.string().trim().optional(),
+  model: z.string().trim().optional(),
 });
 
 const ragEmbeddingProviderSchema = z.object({
@@ -455,15 +462,16 @@ router.get("/api-keys", async (_req, res, next) => {
   }
 });
 
-// 模型按能力类别暴露：文本 / 图片 / 音频（预留）。前端设置页只渲染这三个槽位，
+// 模型按能力类别暴露：文本 / 图片 / 音频。前端设置页只渲染这三个槽位，
 // 不再展示按厂商维度的配置列表。
 router.get("/model-categories", async (_req, res, next) => {
   try {
     const textProvider = getTextModelProvider();
     const imageProvider = getImageModelProvider();
+    const audioProvider = getAudioModelProvider();
     const keys = await secretStore.listProviders();
     const keyMap = new Map(keys.map((item) => [item.provider, item]));
-    const imageModelMap = await getProviderImageModelMap([textProvider, imageProvider]);
+    const imageModelMap = await getProviderImageModelMap([textProvider, imageProvider, audioProvider]);
     const buildStatus = (provider: BuiltinLLMProvider) => {
       const status = buildBuiltInProviderStatus(provider, keyMap.get(provider), imageModelMap.get(provider));
       // 订阅通道判定：槽位绑定本地桥供应商，且服务地址仍指向本机桥接服务。
@@ -476,13 +484,7 @@ router.get("/model-categories", async (_req, res, next) => {
     const data = {
       text: buildStatus(textProvider),
       image: buildStatus(imageProvider),
-      audio: {
-        provider: null,
-        available: false,
-        currentModel: null,
-        currentBaseURL: null,
-        isConfigured: false,
-      },
+      audio: buildStatus(audioProvider),
     };
     res.status(200).json({
       success: true,
@@ -493,6 +495,30 @@ router.get("/model-categories", async (_req, res, next) => {
     next(error);
   }
 });
+
+// 音频通道连接测试：合成一句固定短语，验证服务地址、密钥与模型整体可用。
+// 表单里未保存的值优先于已保存配置，方便保存前先验证。
+router.post(
+  "/model-categories/audio/test",
+  validate({ body: audioSpeechTestSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof audioSpeechTestSchema>;
+      const data = await probeAudioSpeechChannel({
+        baseURL: body.baseURL?.trim() || undefined,
+        apiKey: body.apiKey?.trim() || undefined,
+        model: body.model?.trim() || undefined,
+      });
+      res.status(200).json({
+        success: true,
+        data,
+        message: "音频通道连接正常。",
+      } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.get("/api-keys/balances", async (_req, res, next) => {
   try {

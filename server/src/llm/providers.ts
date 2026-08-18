@@ -15,6 +15,9 @@ export interface ProviderConfig {
   envModelKey?: string;
   maxTokens?: number;
   requiresApiKey?: boolean;
+  // 部分本地桥接服务（如 VoxCPM2 语音桥）不提供 /models 列表接口；
+  // 标记为 false 后模型列表固定使用注册表里的 models。
+  supportsModelList?: boolean;
 }
 
 export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
@@ -157,6 +160,17 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     envKey: "CODEX_API_KEY",
     envBaseURLKey: "CODEX_BASE_URL",
     envModelKey: "CODEX_MODEL",
+  },
+  voxcpm2: {
+    name: "VoxCPM2 语音",
+    baseURL: "http://127.0.0.1:18761/v1",
+    defaultModel: "voxcpm2",
+    models: ["voxcpm2"],
+    envKey: "VOXCPM2_API_KEY",
+    envBaseURLKey: "VOXCPM2_BASE_URL",
+    envModelKey: "VOXCPM2_MODEL",
+    requiresApiKey: false,
+    supportsModelList: false,
   },
 };
 

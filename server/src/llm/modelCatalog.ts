@@ -184,11 +184,18 @@ async function fetchProviderModels(
   return models;
 }
 
+function providerSupportsModelList(provider: LLMProvider): boolean {
+  return !(isBuiltInProvider(provider) && PROVIDERS[provider].supportsModelList === false);
+}
+
 export async function getProviderModels(
   provider: LLMProvider,
   options: GetProviderModelsOptions = {},
 ): Promise<string[]> {
   const fallback = getFallbackModels(provider, options);
+  if (!providerSupportsModelList(provider)) {
+    return fallback;
+  }
   if (!options.forceRefresh) {
     const cached = getCachedModels(provider, options.baseURL);
     if (cached && cached.length > 0) {
@@ -220,6 +227,10 @@ export async function refreshProviderModels(
   apiKey?: string,
   baseURL?: string,
 ): Promise<string[]> {
+  if (!providerSupportsModelList(provider)) {
+    // 本地桥接服务没有 /models 接口：直接返回注册表模型，避免误导性的刷新失败提示。
+    return getFallbackModels(provider);
+  }
   const models = await fetchProviderModels(provider, apiKey?.trim(), baseURL);
   return setCachedModels(provider, models, baseURL);
 }
