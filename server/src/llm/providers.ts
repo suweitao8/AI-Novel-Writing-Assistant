@@ -140,6 +140,24 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     envModelKey: "OLLAMA_MODEL",
     requiresApiKey: false,
   },
+  opencode: {
+    name: "OpenCode Go",
+    baseURL: "http://127.0.0.1:18762/v1",
+    defaultModel: "opencode-go/mimo-v2.5",
+    models: ["opencode-go/mimo-v2.5"],
+    envKey: "OPENCODE_API_KEY",
+    envBaseURLKey: "OPENCODE_BASE_URL",
+    envModelKey: "OPENCODE_MODEL",
+  },
+  codex: {
+    name: "Codex 图片",
+    baseURL: "http://127.0.0.1:18766/v1",
+    defaultModel: "gpt-image-2",
+    models: ["gpt-image-2"],
+    envKey: "CODEX_API_KEY",
+    envBaseURLKey: "CODEX_BASE_URL",
+    envModelKey: "CODEX_MODEL",
+  },
 };
 
 export const SUPPORTED_PROVIDERS: BuiltinLLMProvider[] = [...LLM_PROVIDERS];

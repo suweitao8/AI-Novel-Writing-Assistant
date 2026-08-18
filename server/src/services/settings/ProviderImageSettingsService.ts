@@ -1,7 +1,7 @@
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
 
-export type ImageModelProvider = "openai" | "siliconflow" | "grok";
+export type ImageModelProvider = "openai" | "siliconflow" | "grok" | "codex";
 
 const IMAGE_MODEL_SETTING_PREFIX = "provider.imageModel";
 
@@ -9,6 +9,7 @@ const IMAGE_MODEL_OPTIONS: Record<ImageModelProvider, string[]> = {
   openai: ["gpt-image-2"],
   siliconflow: ["black-forest-labs/FLUX.1-schnell"],
   grok: ["grok-imagine-image"],
+  codex: ["gpt-image-2"],
 };
 
 function isMissingTableError(error: unknown): boolean {
@@ -33,7 +34,7 @@ export function supportsImageModelSettings(provider: LLMProvider): boolean {
 }
 
 function isKnownImageModelProvider(provider: LLMProvider): provider is ImageModelProvider {
-  return provider === "openai" || provider === "siliconflow" || provider === "grok";
+  return provider === "openai" || provider === "siliconflow" || provider === "grok" || provider === "codex";
 }
 
 export function getImageModelSettingKey(provider: LLMProvider): string | null {
@@ -62,6 +63,8 @@ export function getProviderEnvImageModel(provider: LLMProvider): string | undefi
       return normalizeOptionalText(process.env.SILICONFLOW_IMAGE_MODEL);
     case "grok":
       return normalizeOptionalText(process.env.XAI_IMAGE_MODEL);
+    case "codex":
+      return normalizeOptionalText(process.env.CODEX_IMAGE_MODEL);
     default:
       return undefined;
   }

@@ -160,6 +160,16 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonObject: false,
       supportsJsonSchema: false,
     },
+    opencode: {
+      // 本地桥接会把 response_format 翻译成文本输出协议，两种 JSON 约束都可用。
+      supportsJsonObject: true,
+      supportsJsonSchema: true,
+    },
+    codex: {
+      // codex 是图片专用本地通道，不支持文本结构化输出。
+      supportsJsonObject: false,
+      supportsJsonSchema: false,
+    },
   };
 
   const cap = isBuiltinLLMProvider(provider) ? jsonCapabilities[provider] : undefined;
