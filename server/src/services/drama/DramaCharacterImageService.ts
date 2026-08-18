@@ -8,6 +8,7 @@
  * - 图片存储于 drama-characters/{charId}/ 独立目录，通过专用端点服务。
  * - characterSheetData 存角色设计稿（主）；portraitData/threeViewData 保留后备兼容。
  */
+import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
@@ -69,7 +70,7 @@ export interface ThreeViewItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DRAMA_IMAGES_DIR = "drama-characters";
-const DEFAULT_PROVIDER = "openai" as const;
+const DEFAULT_PROVIDER = getImageModelProvider();
 const IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],

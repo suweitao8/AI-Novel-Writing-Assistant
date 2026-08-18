@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { PipelineJobStatus } from "@ai-novel/shared/types/novel";
 import type {
   PipelineBackgroundSyncActivity,
@@ -259,7 +260,7 @@ export function stringifyPipelinePayload(input: PipelinePayload): string {
   const recoverableRepairDetails = normalizeStringList(input.recoverableRepairDetails) ?? [];
   const backgroundSync = normalizePipelineBackgroundSync(input.backgroundSync);
   return JSON.stringify({
-    provider: input.provider ?? "deepseek",
+    provider: input.provider ?? getTextModelProvider(),
     model: input.model ?? "",
     temperature: input.temperature ?? 0.8,
     ...(input.workflowTaskId?.trim() ? { workflowTaskId: input.workflowTaskId.trim() } : {}),

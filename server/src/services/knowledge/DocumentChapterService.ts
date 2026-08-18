@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { BookAnalysisEvidenceItem } from "@ai-novel/shared/types/bookAnalysis";
 import type { DocumentChapter, DocumentChapterSplitResult } from "@ai-novel/shared/types/knowledge";
 import { prisma } from "../../db/prisma";
@@ -310,7 +311,7 @@ export class DocumentChapterService {
           content: normalizeContent(content).slice(0, 24_000),
         },
         options: {
-          provider: "deepseek",
+          provider: getTextModelProvider(),
           temperature: 0.1,
           maxTokens: 1600,
         },

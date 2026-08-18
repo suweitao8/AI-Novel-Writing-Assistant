@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../llm/modelCategories";
 import {
   DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT,
   DEFAULT_NOVEL_COVER_STYLE_PRESET,
@@ -162,7 +163,7 @@ export class ImageGenerationService {
   private processing = false;
 
   async createCharacterTask(input: CharacterImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? "openai";
+    const provider: LLMProvider = input.provider ?? getImageModelProvider();
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }
@@ -205,7 +206,7 @@ export class ImageGenerationService {
   }
 
   async createBookAnalysisCharacterTask(input: BookAnalysisCharacterImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? "openai";
+    const provider: LLMProvider = input.provider ?? getImageModelProvider();
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }
@@ -252,7 +253,7 @@ export class ImageGenerationService {
   }
 
   async createNovelCoverTask(input: NovelCoverImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? "openai";
+    const provider: LLMProvider = input.provider ?? getImageModelProvider();
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }

@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { WorldLayerKey } from "@ai-novel/shared/types/world";
 import type {
@@ -216,7 +217,7 @@ export async function generateWorldPropertyOptions(
         forbiddenElements: input.forbiddenElements,
       },
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: retryStrict ? 0.25 : 0.4,
       },

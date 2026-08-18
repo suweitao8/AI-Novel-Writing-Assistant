@@ -7,6 +7,7 @@
  * 图片存储：generated-images/comic-scenes/{sceneId}/scene-sheet.{ext}
  * HTTP 端点：/api/comic/scenes/:sceneId/image
  */
+import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
@@ -58,7 +59,7 @@ export interface UpdateSceneInput {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const SCENES_DIR = "comic-scenes";
-const DEFAULT_PROVIDER: LLMProvider = "openai";
+const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 const IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],
@@ -251,7 +252,7 @@ export class ComicSceneService {
       title: ctx.title,
       prompt: ctx.prompt,
       referenceImages: [],
-      provider: provider ?? "openai",
+      provider: provider ?? getImageModelProvider(),
       size: ctx.size,
     };
   }

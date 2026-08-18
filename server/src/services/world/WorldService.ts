@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { Prisma } from "@prisma/client";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
@@ -357,7 +358,7 @@ export class WorldService {
         blueprintPromptBlock,
       },
       options: {
-        provider: options.provider ?? "deepseek",
+        provider: options.provider ?? getTextModelProvider(),
         model: options.model,
         temperature: 0.5,
       },
@@ -448,7 +449,7 @@ export class WorldService {
     }
 
     const generated = await buildWorldLayerGeneration({
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model,
       temperature: input.temperature ?? 0.7,
     }, world, layerKey);
@@ -525,7 +526,7 @@ export class WorldService {
     let workingWorld = world;
     for (const layerKey of WORLD_LAYER_ORDER) {
       const generatedLayer = await buildWorldLayerGeneration({
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.7,
       }, workingWorld, layerKey);

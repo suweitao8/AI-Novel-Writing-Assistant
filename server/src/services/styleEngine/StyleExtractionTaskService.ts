@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { Prisma } from "@prisma/client";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
@@ -193,7 +194,7 @@ export class StyleExtractionTaskService {
         sourceInputText: sourceInput.sourceInputText,
         sourceInputCharLimit: sourceInput.sourceInputCharLimit,
         sourceInputCharCount: sourceInput.sourceInputCharCount,
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model?.trim() || null,
         temperature: input.temperature ?? 0.5,
         presetKey: input.presetKey ?? "balanced",

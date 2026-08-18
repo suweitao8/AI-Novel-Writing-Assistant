@@ -1,4 +1,5 @@
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
+import { getTextModelProvider, resolveTextModelId } from "./modelCategories";
 import { prisma } from "../db/prisma";
 
 const STRUCTURED_FALLBACK_ENABLED_KEY = "structuredFallback.enabled";
@@ -95,10 +96,19 @@ export async function getStructuredFallbackSettings(forceRefresh = false): Promi
     });
     const valueMap = new Map(rows.map((item) => [item.key, item.value]));
     cachedSettings = buildSettingsFromEntries(valueMap);
+    if (!valueMap.has(STRUCTURED_FALLBACK_PROVIDER_KEY)) {
+      // 未显式设置备用模型时跟随文本槽，避免回落到未配置的固定厂商。
+      cachedSettings.provider = getTextModelProvider();
+      cachedSettings.model = await resolveTextModelId();
+    }
     return cachedSettings;
   } catch (error) {
     if (isMissingTableError(error)) {
-      cachedSettings = { ...DEFAULT_STRUCTURED_FALLBACK_SETTINGS };
+      cachedSettings = {
+        ...DEFAULT_STRUCTURED_FALLBACK_SETTINGS,
+        provider: getTextModelProvider(),
+        model: await resolveTextModelId(),
+      };
       return cachedSettings;
     }
     throw error;

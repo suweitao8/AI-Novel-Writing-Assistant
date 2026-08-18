@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { WorldVisualizationPayload } from "@ai-novel/shared/types/world";
 import { prisma } from "../../db/prisma";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
@@ -209,7 +210,7 @@ export async function generateWorldStructure(
       currentBindingSupport,
     },
     options: {
-      provider: input.provider ?? "deepseek",
+      provider: input.provider ?? getTextModelProvider(),
       model: input.model,
       temperature: 0.4,
     },

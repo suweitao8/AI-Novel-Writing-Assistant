@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { resolveLLMClientOptions } from "../../llm/factory";
 import { selectStructuredOutputStrategy } from "../../llm/structuredOutput";
@@ -19,7 +20,7 @@ export interface GenerateGenreTreeInput {
 }
 
 async function shouldForceGenreJsonOutput(input: GenerateGenreTreeInput): Promise<boolean> {
-  const resolved = await resolveLLMClientOptions(input.provider ?? "deepseek", {
+  const resolved = await resolveLLMClientOptions(input.provider ?? getTextModelProvider(), {
     model: input.model,
     temperature: input.temperature ?? 0.6,
     maxTokens: input.maxTokens,

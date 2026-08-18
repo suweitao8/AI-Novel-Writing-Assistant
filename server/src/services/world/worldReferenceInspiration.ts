@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { worldReferenceInspirationPrompt } from "../../prompting/prompts/world/world.prompts";
@@ -210,7 +211,7 @@ export async function generateReferenceInspirationAnalysis(
           isRetry: prompt === retryPrompt,
         },
         options: {
-          provider: input.provider ?? "deepseek",
+          provider: input.provider ?? getTextModelProvider(),
           model: input.model,
           temperature: 0.2,
         },

@@ -1,3 +1,4 @@
+import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
@@ -51,7 +52,7 @@ export interface PanelImageData {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const COMIC_IMAGES_DIR = "comic-panels";
-const DEFAULT_PROVIDER: LLMProvider = "openai";
+const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 
 function comicPanelDir(panelId: string): string {
   return path.join(resolveGeneratedImagesRoot(), COMIC_IMAGES_DIR, panelId);

@@ -8,6 +8,7 @@
  * 持久化模型不动：状态仍嵌业务表 JSON 字段（sheetData/imageData/portraitData/keyframeData）。
  * 不替代 ImageGenerationService（小说封面 + 老 character image 走两表模型，范式不同）。
  */
+import { getImageModelProvider } from "../../../llm/modelCategories";
 import type { ImageSize } from "../types";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 
@@ -103,7 +104,7 @@ export interface RunImageGenerationOptions {
   sceneType?: "character" | "novel_cover" | "chapter_illustration";
 }
 
-export const DEFAULT_RUNTIME_PROVIDER: LLMProvider = "openai";
+export const DEFAULT_RUNTIME_PROVIDER: LLMProvider = getImageModelProvider();
 export const DEFAULT_RUNTIME_SIZE: ImageSize = "1024x1536";
 
 // ─── 生图前预览数据（确认弹窗用） ────────────────────────────────────────────

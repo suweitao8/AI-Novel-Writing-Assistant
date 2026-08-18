@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../../llm/modelCategories";
 import { randomUUID } from "node:crypto";
 import type {
   ChapterEditorAiRevisionIntent,
@@ -158,7 +159,7 @@ export class NovelChapterEditorService {
         constraintsText: buildConstraintsText(input.constraints),
       } satisfies ChapterEditorRewriteCandidatesPromptInput,
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: input.temperature ?? 0.45,
       },
@@ -247,7 +248,7 @@ export class NovelChapterEditorService {
         mustKeepConstraints: macroContext.mustKeepConstraints,
       } satisfies ChapterEditorUserIntentPromptInput,
       options: {
-        provider: input.provider ?? "deepseek",
+        provider: input.provider ?? getTextModelProvider(),
         model: input.model,
         temperature: 0.2,
       },

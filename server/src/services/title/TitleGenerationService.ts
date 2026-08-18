@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { TitleFactorySuggestion } from "@ai-novel/shared/types/title";
 import { prisma } from "../../db/prisma";
@@ -36,7 +37,7 @@ export interface GenerateNovelTitlesInput extends TitleGenerationLLMOptions {
 }
 
 async function shouldForceTitleJsonOutput(input: TitleGenerationLLMOptions): Promise<boolean> {
-  const resolved = await resolveLLMClientOptions(input.provider ?? "deepseek", {
+  const resolved = await resolveLLMClientOptions(input.provider ?? getTextModelProvider(), {
     model: input.model,
     temperature: input.temperature ?? 0.85,
     maxTokens: input.maxTokens,
@@ -193,7 +194,7 @@ export class TitleGenerationService {
     llmOptions: TitleGenerationLLMOptions,
     blockedTitles: string[] = [],
   ): Promise<{ titles: TitleFactorySuggestion[] }> {
-    const provider = llmOptions.provider ?? "deepseek";
+    const provider = llmOptions.provider ?? getTextModelProvider();
     const forceJson = await shouldForceTitleJsonOutput(llmOptions);
     const count = normalizeRequestedCount(promptContext.count, DEFAULT_TITLE_COUNT);
 
