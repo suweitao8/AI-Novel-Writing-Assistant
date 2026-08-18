@@ -182,18 +182,19 @@ These areas have the highest priority for wiki accumulation:
 - For UI-facing project modifications, do not run browser, screenshot, Playwright, visual, or manual interaction verification by default; the user will perform UI acceptance testing. Use code-level checks such as typecheck or focused tests when they fit the change, and clearly state that UI verification is left to the user.
 - If a recent build, typecheck, packaging check, or test run already covers the same code paths after the relevant files last changed, do not repeat the same expensive verification by default.
 - Before reusing recent verification, confirm the evidence is recent, tied to the same branch or commit range, and not invalidated by subsequent changes.
-- Build commands can take significant time. Avoid repeated `pnpm build`, `pnpm typecheck`, desktop packaging, or full test-suite runs when the current diff is documentation-only or already covered by a recent successful run.
+- Build commands can take significant time. Avoid repeated `pnpm build`, `pnpm typecheck`, or full test-suite runs when the current diff is documentation-only or already covered by a recent successful run.
 - If verification is reused instead of rerun, state exactly what prior check is being trusted and why it still applies.
 - If no suitable recent verification exists, or the change touches runtime contracts, prompt schemas, task recovery, database behavior, packaging, or cross-module product flow, run the narrowest sufficient check and document any skipped broader checks.
 
 ## Development Workflow
 
+This project is a pure web product: all development targets the website (`client/` + `server/`). Desktop application development, desktop packaging, and desktop release upload are out of scope — do not start desktop work or modify `desktop/` unless the user explicitly reopens desktop as an active development phase.
+
 ### Branching
 
 - The default working lane is `main`: most changes (features, fixes, copy, UI polish, docs) are developed, verified with targeted checks, and committed directly on `main`.
-- Use a dedicated feature branch only for changes that would put a major production link at risk while in progress, such as auto-director runtime/recovery, the chapter execution chain, shared runtime/prompting contracts, data migrations, or desktop packaging/startup. Merge the feature branch into `main` once its focused verification passes, then delete it.
-- `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration, regression, or packaging verification before release; the path is feature branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
-- Public desktop packaging and release upload is performed from `main` or a release tag cut from `main`, never from a feature branch; tag/version alignment follows Desktop Packaging Upload Rules.
+- Use a dedicated feature branch only for changes that would put a major production link at risk while in progress, such as auto-director runtime/recovery, the chapter execution chain, shared runtime/prompting contracts, or data migrations. Merge the feature branch into `main` once its focused verification passes, then delete it.
+- `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is feature branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
 
 ### Commits
 
@@ -201,18 +202,6 @@ These areas have the highest priority for wiki accumulation:
 - Before committing, exclude secrets, credentials, local-only configuration, generated artifacts, and test output from the staged scope. If a credentials or secrets file is already tracked, switch it to local-only ignore and keep the local copy on this machine; never commit credential content or credential updates.
 - For changes with user-visible impact, update release notes in the same step (see Release Notes Workflow); if the diff is purely internal, state explicitly that release notes were intentionally skipped.
 - Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed. Never delete the active workspace or anyone's unmerged, unfinished changes.
-
-## Desktop Packaging Upload Rules
-
-- Public desktop package upload to GitHub Releases is allowed only when the release version is driven by `desktop/package.json` and the Git tag is exactly `vX.Y.Z`.
-- Before any public desktop upload, verify that `desktop/package.json` `version` is a stable semver like `0.2.3`, with no `desktop-` prefix, no `-r1` style suffix, and no branch-only naming mixed into the version field.
-- The pushed release tag must match `desktop/package.json` exactly after adding the `v` prefix. Example: `desktop/package.json` is `0.2.3`, then the only allowed public release tag is `v0.2.3`.
-- Do not use `desktop-vX.Y.Z-rN`, `desktop-v*`, branch names, workflow dispatch on `main`, or any other non-matching ref as the identifier for a public desktop GitHub Release upload.
-- If a build is triggered manually or from a non-matching tag, treat it as verification or packaging only. It must not be treated as a valid public release upload.
-- If the required `vX.Y.Z` tag and `desktop/package.json` version are not aligned, stop before upload, fix the version/tag pair first, and then rerun the release flow.
-- When packaging is requested and there is no explicit, current, repo-specific knowledge that local packaging is required, prefer triggering the GitHub-side packaging workflow rather than inventing local packaging steps.
-- Do not run local desktop packaging just to guess the release process. Local packaging is appropriate only when the user explicitly asks for local artifacts, the task is packaging verification, or the relevant docs/scripts clearly require local staging.
-- GitHub-side packaging still must obey the version/tag rules above. If the correct workflow, tag, branch, or version is unclear, stop and verify the release identifier before triggering packaging.
 
 ## Prompt Governance
 
