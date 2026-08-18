@@ -28,18 +28,19 @@ test("novel routes depend on application capabilities instead of NovelService", 
   assert.deepEqual(offenders.map((file) => path.relative(repoRoot, file)), []);
 });
 
-test("NovelService compatibility facade does not inherit the legacy service chain", () => {
-  const novelServiceSource = readSource("services", "novel", "NovelService.ts");
-  assert.equal(/class\s+NovelService\s+extends/.test(novelServiceSource), false);
-
+test("deprecated novel compatibility facades stay deleted", () => {
+  // 这批零引用 facade 已在架构收敛中删除（行为覆盖由 tests/helpers/legacyNovelFacadeFixtures.js 承接）。
+  // 这里锁定它们不被重新引入；新的入口能力应从 application 层注入。
   for (const fileName of [
+    "NovelService.ts",
     "NovelArtifactService.ts",
     "NovelGenerationService.ts",
     "NovelReviewService.ts",
     "NovelPipelineService.ts",
+    "NovelExportService.ts",
   ]) {
-    const source = readSource("services", "novel", fileName);
-    assert.equal(source.includes("extends Novel"), false, `${fileName} must not extend another Novel service`);
+    const fullPath = path.join(repoRoot, "src", "services", "novel", fileName);
+    assert.equal(fs.existsSync(fullPath), false, `${fileName} should stay deleted`);
   }
 });
 
@@ -108,7 +109,7 @@ test("event handlers do not import heavy side-effect executors directly", () => 
 
 test("only explicit global-book replan decisions may stop the production chain", () => {
   const plannerSource = readSource("services", "planner", "PlannerService.ts");
-  const reviewSource = readSource("services", "novel", "novelCoreReviewService.ts");
+  const reviewSource = readSource("services", "novel", "novelCore", "novelCoreReviewService.ts");
   const pipelineSource = readSource("services", "novel", "production", "NovelPipelineExecutor.ts");
 
   assert.equal(plannerSource.includes('scope: input.scope'), true);
@@ -125,7 +126,7 @@ test("RAG keeps its dedicated persisted index queue", () => {
 });
 
 test("core chapter generation delegates to production capabilities instead of runtime coordinator", () => {
-  const source = readSource("services", "novel", "novelCoreGenerationService.ts");
+  const source = readSource("services", "novel", "novelCore", "novelCoreGenerationService.ts");
 
   assert.equal(source.includes("ChapterRuntimeCoordinator"), false);
   assert.equal(source.includes("chapterRuntimeCoordinator"), false);

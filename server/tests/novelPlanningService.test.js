@@ -15,8 +15,8 @@ eventsStub.exports = {
 require.cache[eventsEntry] = eventsStub;
 
 const {
-  NovelService,
-} = require("../dist/services/novel/NovelService.js");
+  LegacyNovelService: NovelService,
+} = require("./helpers/legacyNovelFacadeFixtures.js");
 
 test("generateChapterPlan routes chapter preparation through the unified orchestrator", async () => {
   const calls = [];

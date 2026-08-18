@@ -7,7 +7,7 @@ const { auditService } = require("../dist/services/audit/AuditService.js");
 const { plannerService } = require("../dist/services/planner/PlannerService.js");
 const { GenerationContextAssembler } = require("../dist/services/novel/runtime/GenerationContextAssembler.js");
 const { NovelCoreReviewService } = require("../dist/services/novel/novelCoreReviewService.js");
-const novelCoreShared = require("../dist/services/novel/novelCoreShared.js");
+const novelCoreShared = require("../dist/services/novel/novelCore/novelCoreShared.js");
 const { ragServices } = require("../dist/services/rag/index.js");
 
 function createAssembledContextPackage() {

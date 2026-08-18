@@ -18,8 +18,8 @@ eventsStub.exports = {
 require.cache[eventsEntry] = eventsStub;
 
 const {
-  NovelPipelineService,
-} = require("../dist/services/novel/NovelPipelineService.js");
+  LegacyNovelPipelineService: NovelPipelineService,
+} = require("./helpers/legacyNovelFacadeFixtures.js");
 
 test("startPipelineJob resumes an existing active range job before reusing it", async () => {
   const calls = [];

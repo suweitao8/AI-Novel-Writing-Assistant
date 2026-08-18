@@ -15,8 +15,8 @@ eventsStub.exports = {
 require.cache[eventsEntry] = eventsStub;
 
 const {
-  NovelGenerationService,
-} = require("../dist/services/novel/NovelGenerationService.js");
+  LegacyNovelGenerationService: NovelGenerationService,
+} = require("./helpers/legacyNovelFacadeFixtures.js");
 const { NovelCoreService } = require("../dist/services/novel/NovelCoreService.js");
 const {
   getSharedNovelServices,

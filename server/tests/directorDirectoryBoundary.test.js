@@ -19,9 +19,11 @@ test("director root stays limited to compatibility facades", () => {
     .sort();
 
   assert.deepEqual(rootTsFiles, [
+    "BookContractService.ts",
     "DirectorStateCommitter.ts",
     "DirectorStateReader.ts",
     "DirectorStateStore.ts",
+    "NovelDirectorIdeaInspirationService.ts",
     "NovelDirectorService.ts",
     "novelDirectorConfirmNodeAdapters.ts",
     "novelDirectorPipelineRuntime.ts",
