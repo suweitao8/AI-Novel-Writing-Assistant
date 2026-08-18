@@ -334,6 +334,7 @@ model Novel {
   writingMode       String      @default("original")
   projectMode       ProjectMode?
   creationExperience CreationExperience @default(professional)
+  productionKind    String    @default("novel")
   narrativeForm     NarrativeForm @default(long_novel)
   targetWordCount   Int?
   derivedFromNovelId String?

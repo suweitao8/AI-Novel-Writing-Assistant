@@ -35,7 +35,7 @@ export class NovelCoreCrudService {
     }
   }
 
-  async listNovels({ page, limit, search, status, narrativeForm, writingMode, sort = "updated" }: PaginationInput) {
+  async listNovels({ page, limit, search, status, narrativeForm, writingMode, productionKind, sort = "updated" }: PaginationInput) {
     const normalizedSearch = search?.trim();
     const orderBy = sort === "created" ? { createdAt: "desc" as const } : { updatedAt: "desc" as const };
     const [items, total] = await Promise.all([
@@ -47,6 +47,7 @@ export class NovelCoreCrudService {
           ...(status ? { status } : {}),
           ...(narrativeForm ? { narrativeForm } : {}),
           ...(writingMode ? { writingMode } : {}),
+          productionKind: productionKind ?? "novel",
           ...(normalizedSearch ? {
             OR: [
               { title: { contains: normalizedSearch } },
@@ -67,6 +68,7 @@ export class NovelCoreCrudService {
           writingMode: true,
           projectMode: true,
           creationExperience: true,
+          productionKind: true,
           narrativeForm: true,
           targetWordCount: true,
           derivedFromNovelId: true,
@@ -111,6 +113,7 @@ export class NovelCoreCrudService {
           ...(status ? { status } : {}),
           ...(narrativeForm ? { narrativeForm } : {}),
           ...(writingMode ? { writingMode } : {}),
+          productionKind: productionKind ?? "novel",
           ...(normalizedSearch ? {
             OR: [
               { title: { contains: normalizedSearch } },
@@ -361,6 +364,7 @@ export class NovelCoreCrudService {
         writingMode,
         projectMode: input.projectMode,
         creationExperience: input.creationExperience ?? "professional",
+        productionKind: input.productionKind ?? "novel",
         narrativeForm: input.narrativeForm ?? "long_novel",
         targetWordCount: input.targetWordCount,
         derivedFromNovelId: input.derivedFromNovelId,

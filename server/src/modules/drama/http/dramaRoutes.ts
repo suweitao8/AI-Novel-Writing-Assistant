@@ -16,6 +16,7 @@ import { dramaQualityGate } from "../../../services/drama/DramaQualityGate";
 import { dramaRepairService } from "../../../services/drama/DramaRepairService";
 import { dramaScriptService } from "../../../services/drama/DramaScriptService";
 import { dramaStoryboardService } from "../../../services/drama/DramaStoryboardService";
+import { comicDramaStudioService } from "../../../services/drama/studio/ComicDramaStudioService";
 import { dramaStrategyService } from "../../../services/drama/DramaStrategyService";
 import { dramaVideoPromptService } from "../../../services/drama/DramaVideoPromptService";
 import { ttsProviderRegistry } from "../../../services/drama/audio/TTSProviderPort";
@@ -157,6 +158,35 @@ const sourceSupplementSchema = z
     temperature: z.number().min(0).max(2).optional(),
   })
   .optional();
+
+// 漫剧 studio：小说阶段 + drama 分镜管线的阶段投影（编排层，只读）。
+const studioLinksQuerySchema = z.object({
+  novelIds: z.string().trim().min(1).max(4000),
+});
+const studioOverviewParamsSchema = z.object({ novelId: z.string().trim().min(1) });
+
+router.get("/studio/links", validate({ query: studioLinksQuerySchema }), async (req, res, next) => {
+  try {
+    const novelIds = String(req.query.novelIds ?? "")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .slice(0, 50);
+    const data = await comicDramaStudioService.getLinks(novelIds);
+    res.status(200).json({ success: true, data, message: "Comic drama links loaded." } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/studio/:novelId/overview", validate({ params: studioOverviewParamsSchema }), async (req, res, next) => {
+  try {
+    const data = await comicDramaStudioService.getOverview(String(req.params.novelId));
+    res.status(200).json({ success: true, data, message: "Comic drama studio overview loaded." } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.get("/projects", async (_req, res, next) => {
   try {

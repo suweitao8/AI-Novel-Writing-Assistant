@@ -25,6 +25,7 @@ const paginationSchema = z.object({
   search: z.string().trim().max(120).optional(),
   status: z.enum(["draft", "published"]).optional(),
   narrativeForm: z.enum(["short_story", "long_novel"]).optional(),
+  productionKind: z.enum(["novel", "comic_drama"]).optional(),
   writingMode: z.enum(["original", "continuation"]).optional(),
   sort: z.enum(["updated", "created", "progress"]).default("updated"),
 });
@@ -78,6 +79,7 @@ const createNovelSchema = z.object({
   continuationBookAnalysisSections: z.array(bookAnalysisSectionKeySchema).min(1).max(8).optional(),
   projectMode: z.enum(["ai_led", "co_pilot", "draft_mode", "auto_pipeline"]).optional(),
   creationExperience: z.enum(["simple", "professional"]).optional(),
+  productionKind: z.enum(["novel", "comic_drama"]).optional(),
   narrativePov: z.enum(["first_person", "third_person", "mixed"]).optional(),
   pacePreference: z.enum(["slow", "balanced", "fast"]).optional(),
   styleTone: z.string().trim().optional(),

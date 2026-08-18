@@ -11,6 +11,7 @@ export interface PaginationInput {
   status?: "draft" | "published";
   narrativeForm?: "short_story" | "long_novel";
   writingMode?: "original" | "continuation";
+  productionKind?: "novel" | "comic_drama";
   sort?: "updated" | "created" | "progress";
 }
 
@@ -29,6 +30,7 @@ export interface CreateNovelInput {
   writingMode?: "original" | "continuation";
   projectMode?: "ai_led" | "co_pilot" | "draft_mode" | "auto_pipeline";
   creationExperience?: "simple" | "professional";
+  productionKind?: "novel" | "comic_drama";
   narrativeForm?: "short_story" | "long_novel";
   targetWordCount?: number | null;
   derivedFromNovelId?: string | null;

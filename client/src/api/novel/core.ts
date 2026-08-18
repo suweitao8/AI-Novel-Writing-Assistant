@@ -35,6 +35,7 @@ export async function getNovelList(params?: {
   status?: "all" | "draft" | "published";
   narrativeForm?: "all" | "short_story" | "long_novel";
   writingMode?: "all" | "original" | "continuation";
+  productionKind?: "novel" | "comic_drama";
   sort?: "updated" | "created" | "progress";
 }) {
   const { data } = await apiClient.get<ApiResponse<NovelListResponse>>("/novels", {
@@ -45,6 +46,7 @@ export async function getNovelList(params?: {
       status: params?.status && params.status !== "all" ? params.status : undefined,
       narrativeForm: params?.narrativeForm && params.narrativeForm !== "all" ? params.narrativeForm : undefined,
       writingMode: params?.writingMode && params.writingMode !== "all" ? params.writingMode : undefined,
+      productionKind: params?.productionKind || undefined,
       sort: params?.sort ?? "updated",
     },
   });
@@ -71,6 +73,7 @@ export async function createNovel(payload: {
   writingMode?: "original" | "continuation";
   projectMode?: ProjectMode;
   creationExperience?: CreationExperience;
+  productionKind?: "novel" | "comic_drama";
   narrativePov?: NarrativePov;
   pacePreference?: PacePreference;
   styleTone?: string;

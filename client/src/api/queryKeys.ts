@@ -1,4 +1,8 @@
 export const queryKeys = {
+  comicDrama: {
+    links: (novelIds: string[]) => ["comic-drama", "links", ...novelIds] as const,
+    overview: (novelId: string) => ["comic-drama", "overview", novelId] as const,
+  },
   novels: {
     all: ["novels"] as const,
     list: (page: number, limit: number) => ["novels", "list", page, limit] as const,
