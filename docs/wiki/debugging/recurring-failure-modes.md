@@ -15,6 +15,7 @@
 - Prompt 输出问题先查 PromptAsset、schema、repair、semantic retry 和 provider capability。
 - 章节产出慢先查热路径是否重新串入多次 LLM 后处理。
 - RAG 不命中先查显式文档、绑定文档、全局启用文档和 context resolver。
+- 运行时报 `The column main.X does not exist` 先查 Prisma schema 与 dev.db 是否脱节（并会话提交 schema 后数据库未同步），不要从 schema 撤字段来消错。
 - 数据破坏风险操作必须先备份、验证备份，再取得明确批准。
 
 ## 示例
@@ -28,6 +29,7 @@
 - 长弧伏笔被当成当前章阻断：检查时间线钩子的 `resolveMode` 和 `blocking` 是否被误标成 `immediate + blocking`，以及检测器是否把 `short_arc` / `long_arc` 升级成硬失败。
 - 重新生成候选没有进入新一轮：检查 batch reuse、command idempotency 和候选阶段运行态。
 - 生成没有使用知识库资料：检查 `knowledgeDocumentIds`、小说/世界绑定、启用状态和 prompt context requirement。
+- 接口报 `The column main.Character.xxx does not exist`（已出现两次：`LlmUsageRecord` 建表、设定中心 `ageGroup/facePrompt` 加列）：Prisma Client 已按新 schema 生成，但共享 `server/dev.db` 落后于已提交的 schema——`ensure-dev-prisma.cjs` 只在服务启动时按 schema mtime 触发，跨会话提交 schema 后未重启就会出现。处理路径：确认 schema 已含该列/表 → 备份 `dev.db`（含 -wal/-shm，放入已被 ignore 的 `server/tmp/db-backups/`，注意 `dev.backup-*.db` 默认不被 gitignore 覆盖）→ 在 `server/` 执行不带 `--accept-data-loss` 的 `npx prisma db push --schema src/prisma/schema.sqlite.prisma`（只做增量，遇到删除性变更会自动拒绝）→ 用 node:sqlite `PRAGMA table_info` 验证列存在、核对行数 → 实测原报错接口。SQLite 加列对运行中的服务即时生效，无需重启。
 
 ## 失败模式
 
