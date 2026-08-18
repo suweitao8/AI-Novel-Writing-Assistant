@@ -19,6 +19,7 @@ interface ToolbarPendingState {
   copy: boolean;
   rebuild: boolean;
   archive: boolean;
+  delete: boolean;
   publish: boolean;
   createStyleProfile: boolean;
   updateBudget: boolean;
@@ -34,6 +35,7 @@ interface BookAnalysisWorkspaceToolbarProps {
   onCopy: () => void;
   onRebuild: (analysisId: string) => void;
   onArchive: (analysisId: string) => void;
+  onDelete: (analysisId: string) => void;
   onPublish: () => void;
   onCreateStyleProfile: () => void;
   onDownload: (format: ExportFormat) => void;
@@ -52,6 +54,7 @@ export default function BookAnalysisWorkspaceToolbar(props: BookAnalysisWorkspac
     onCopy,
     onRebuild,
     onArchive,
+    onDelete,
     onPublish,
     onCreateStyleProfile,
     onDownload,
@@ -174,6 +177,19 @@ export default function BookAnalysisWorkspaceToolbar(props: BookAnalysisWorkspac
             disabled={pending.archive || selectedAnalysis.status === "archived"}
           >
             归档
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={() => {
+              if (window.confirm(`确认删除“${selectedAnalysis.title}”吗？拆书结果会一并删除，来源文档保持不变，随时可以重新拆书。`)) {
+                onDelete(selectedAnalysis.id);
+              }
+            }}
+            disabled={pending.delete || pending.archive}
+          >
+            {pending.delete ? "删除中..." : "删除"}
           </Button>
         </div>
       </details>

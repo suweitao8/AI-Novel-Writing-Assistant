@@ -278,6 +278,7 @@ export default function BookAnalysisPage() {
                   copy: workspace.pending.copy,
                   rebuild: workspace.pending.rebuild,
                   archive: workspace.pending.archive,
+                  delete: workspace.pending.delete,
                   publish: workspace.pending.publish,
                   createStyleProfile: workspace.pending.createStyleProfile,
                   updateBudget: workspace.pending.updateBudget,
@@ -286,6 +287,7 @@ export default function BookAnalysisPage() {
                 onCopy={() => void workspace.copySelectedAnalysis()}
                 onRebuild={workspace.rebuildAnalysis}
                 onArchive={workspace.archiveAnalysis}
+                onDelete={workspace.deleteAnalysis}
                 onPublish={() => void workspace.publishSelectedAnalysis()}
                 onCreateStyleProfile={() => void workspace.createStyleProfileFromAnalysis()}
                 onDownload={(format) => void workspace.downloadSelectedAnalysis(format)}

@@ -30,6 +30,7 @@ export interface PendingState {
   copy: boolean;
   rebuild: boolean;
   archive: boolean;
+  delete: boolean;
   regenerate: boolean;
   optimizePreview: boolean;
   saveSection: boolean;
@@ -119,6 +120,7 @@ export interface BookAnalysisWorkspace {
   copySelectedAnalysis: () => Promise<void>;
   rebuildAnalysis: (analysisId: string) => void;
   archiveAnalysis: (analysisId: string) => void;
+  deleteAnalysis: (analysisId: string) => void;
   regenerateSection: (sectionKey: BookAnalysisSectionKey) => void;
   optimizeSectionPreview: (section: BookAnalysisSection) => Promise<void>;
   applySectionOptimizePreview: (section: BookAnalysisSection) => void;

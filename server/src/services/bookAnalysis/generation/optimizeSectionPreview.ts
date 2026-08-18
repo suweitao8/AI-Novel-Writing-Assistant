@@ -45,7 +45,7 @@ export async function optimizeSectionPreview(
   if (section.frozen) {
     throw new AppError("Frozen sections cannot be optimized until unfrozen.", 400);
   }
-  const provider = (section.analysis.provider as LLMProvider | null) ?? getTextModelProvider();
+  const provider = getTextModelProvider();
   const model = section.analysis.model ?? undefined;
   const temperature = normalizeTemperature(section.analysis.temperature);
   const maxTokens = normalizeMaxTokens(section.analysis.maxTokens);

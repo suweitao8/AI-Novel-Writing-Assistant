@@ -271,7 +271,7 @@ export class BookAnalysisCharacterAppearanceTermService {
       throw new AppError("Book analysis not found.", 404);
     }
     return {
-      provider: (analysis.provider as LLMProvider | null) ?? getTextModelProvider(),
+      provider: getTextModelProvider(),
       model: analysis.model ?? undefined,
       temperature: normalizeTemperature(analysis.temperature),
       maxTokens: normalizeMaxTokens(analysis.maxTokens),
