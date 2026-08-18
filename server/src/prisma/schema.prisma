@@ -545,10 +545,12 @@ model ShortStorySegment {
 
 // 设定中心：地点场景与关键道具（短篇/简易通道的角色与世界观复用 Character/NovelWorld）
 model NovelScene {
-  id           String   @id @default(cuid())
-  novelId      String
-  name         String
-  summary      String?
+  id              String   @id @default(cuid())
+  novelId         String
+  name            String
+  sceneType       String?
+  summary         String?
+  environmentPrompt String?
   significance String?
   mapNodeId    String?
   sortOrder    Int      @default(0)
@@ -564,8 +566,10 @@ model NovelProp {
   id               String   @id @default(cuid())
   novelId          String
   name             String
+  propType         String   @default("object")
   description      String?
   plotFunction     String?
+  visualPrompt     String?
   ownerCharacterId String?
   importance       String   @default("major")
   firstAppearHint  String?
@@ -818,6 +822,8 @@ model Character {
   firstImpression String?
   appearance      String?
   physique        String?
+  ageGroup        String?
+  facePrompt      String?
   attireStyle     String?
   signatureDetail String?
   voiceTexture    String?
