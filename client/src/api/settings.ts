@@ -22,6 +22,7 @@ export interface APIKeyStatus {
   defaultImageModel: string | null;
   defaultBaseURL: string;
   requiresApiKey: boolean;
+  hasApiKey: boolean;
   isConfigured: boolean;
   isActive: boolean;
   reasoningEnabled: boolean;
@@ -39,9 +40,13 @@ export interface ModelCategoryAudioStatus {
 }
 
 // 模型按能力类别暴露：文本 / 图片 / 音频（预留）。
+export type ModelCategoryStatus = APIKeyStatus & {
+  usesLocalSubscription: boolean;
+};
+
 export interface ModelCategoriesStatus {
-  text: APIKeyStatus;
-  image: APIKeyStatus;
+  text: ModelCategoryStatus;
+  image: ModelCategoryStatus;
   audio: ModelCategoryAudioStatus;
 }
 
