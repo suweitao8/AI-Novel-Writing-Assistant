@@ -11,9 +11,19 @@
 
 ## Current Rule
 
-- 已完成：6 个零引用 deprecated facade 已删除（NovelService/Generation/Pipeline/Review/Artifact/Export）；NovelEdit 拆为 9 个领域模块（边界见 `client/src/pages/novels/edit/README.md`）。
-- novelCore* 家族（10 文件约 3400 行）收敛到 `novelCore/` 子目录、NovelCoreService.ts 留根层作 facade，是下一个优先阶段；随后是 pipeline/、章节生命周期归位 runtime/production、外围 Service 按消费方下沉。
+已完成的收敛阶段（2026-08-19，commit 574c1ed1…100dbffa）：
+
+- 6 个零引用 deprecated facade 删除；novelPromptTraceReport（零引用）删除。
+- novelCore* 10 文件 → `novelCore/`；chapterLifecycleState/chapterWritingGraph/NovelPipelineRuntimeService → `runtime/`，chapterPatchRepairService → `runtime/repair/`；外围 8 文件按消费方下沉（tokenUsageSummary/chapterArtifacts/biblePersistence→novelCore，productionHelpers→production，BookContract→director，DraftOptimize→quality，highMemoryReservation→runtime，structuredOutline→volume）。
+- pipelineJobState/pipelineJobDedup 消费方横跨 5+ 目录，确认为根层共享内核；bookFraming（跨 styleEngine）、chapterSummarySchemas（prompting 引用）同样保留根层。
+- 根层移动一律留 `export *` 兼容壳，消费方零改动；根层真实实现从 46 降至 17 个（facade 与共享内核）。
+- NovelEdit.tsx 2865→1280 拆 9 模块（见 `client/src/pages/novels/edit/README.md`）；worldStructure/CharactersPanel/world.prompts 均降至阈值内；全库已无超过 1300 行的源文件。
+
+剩余方向：
+
 - `routes/` 目录 24 个文件中，genre/knowledge/llm/styleEngine/titleLibrary/writingFormula 等仍直连 services，可按 comic/drama 模式建 `modules/<域>/http/`。
+- `prompting/prompts/novel`（42 文件）与 `client/src/pages/novels/components`（64 文件）的目录密度收敛。
+- 根层兼容壳在新代码不再引用后可分批退役。
 
 ## Failure Modes
 
