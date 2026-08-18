@@ -170,7 +170,7 @@ These areas have the highest priority for wiki accumulation:
 
 ## Autonomous Execution Rules
 
-- Once a design document is committed and pushed, treat it as implementation authorization: proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Branch Workflow.
+- Once a design document is committed and pushed, treat it as implementation authorization: proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Workflow.
 - Do not ask the user to review a design document, confirm whether implementation should start, or re-ask the same decision in different wording.
 - Rules in this file take precedence over generic skills, external process templates, and model default behavior when they conflict. If an external workflow requires waiting for user design review after the design is committed, skip that step.
 - After a design document is committed, the fixed next step is: create the implementation plan, execute it, verify, then commit and push.
@@ -186,48 +186,21 @@ These areas have the highest priority for wiki accumulation:
 - If verification is reused instead of rerun, state exactly what prior check is being trusted and why it still applies.
 - If no suitable recent verification exists, or the change touches runtime contracts, prompt schemas, task recovery, database behavior, packaging, or cross-module product flow, run the narrowest sufficient check and document any skipped broader checks.
 
-## Development Branch Workflow
+## Development Workflow
 
-- When developing a new feature that may affect the end-to-end product flow, default workflow, shared contracts, or other major system links, do not develop directly on `main`.
-- In these cases, first create or switch to a dedicated feature development branch, complete implementation and functional verification there, then merge into the pre-release `beta` branch for integration verification. Merge back to `main` only after `beta` has been tested and stable enough for release.
-- For phased development, making an intentional commit after each completed development phase is mandatory. A phase is complete when its scope is coherent, the relevant verification has passed or the remaining verification gap is explicitly documented, and the working tree contains only that phase's intended changes.
-- This phase-completion commit rule also applies to small isolated fixes, documentation-only updates, workflow-rule updates, and low-risk UI polish unless the user explicitly says not to commit yet.
-- Before each phase commit, inspect the Git scope and follow the README Release Notes Workflow when the phase has user-facing impact. If the diff is purely internal, document that release notes were intentionally skipped.
-- After the feature branch has been successfully merged into `beta` and no longer needs follow-up work, clean up that development branch so old feature branches do not accumulate indefinitely.
-- This rule applies in particular to changes that touch cross-stage workflows, shared runtime/prompting/context contracts, automatic director chains, chapter execution chains, data migration behavior, or other changes that can impact the overall chain.
-- Small isolated fixes, copy changes, low-risk UI polish, or documentation-only updates can still be handled without requiring a separate feature development branch unless the user explicitly asks otherwise. If the change is release-facing, still prefer passing through `beta` before `main`.
+### Branching
 
-### Commit Hygiene and Session Wrap-Up
+- The default working lane is `main`: most changes (features, fixes, copy, UI polish, docs) are developed, verified with targeted checks, and committed directly on `main`.
+- Use a dedicated feature branch only for changes that would put a major production link at risk while in progress, such as auto-director runtime/recovery, the chapter execution chain, shared runtime/prompting contracts, data migrations, or desktop packaging/startup. Merge the feature branch into `main` once its focused verification passes, then delete it.
+- `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration, regression, or packaging verification before release; the path is feature branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
+- Public desktop packaging and release upload is performed from `main` or a release tag cut from `main`, never from a feature branch; tag/version alignment follows Desktop Packaging Upload Rules.
 
-- Before committing, exclude secrets, credentials, local-only configuration, generated artifacts, and test output from the staged scope; stage only files that belong to the current phase.
-- If a credentials or secrets file is found already tracked, switch it to local-only ignore and keep the local copy on this machine; never commit credential content or credential updates.
-- Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed.
-- Never delete the active workspace or anyone's unmerged, unfinished changes during cleanup.
+### Commits
 
-### Pre-release Beta Branch Workflow
-
-- Use `beta` as the stable pre-release integration branch between feature development branches and `main`.
-- The normal release path is: feature branch -> self-test / targeted verification -> merge into `beta` -> integration testing / regression checks / packaging verification -> merge into `main` -> public release or packaging upload.
-- `main` is the stable release branch. Do not merge a feature branch directly into `main` when the change affects product flow, shared contracts, runtime behavior, data migration, desktop packaging, or other end-to-end links.
-- `beta` should represent the next candidate release. Keep it buildable, runnable, and suitable for acceptance testing; do not use it as a dumping ground for unfinished experiments.
-- If multiple feature branches are merged into `beta`, test the combined behavior on `beta` before promoting the batch to `main`, especially around automatic director flow, chapter execution, prompt/runtime contracts, migrations, and desktop startup or packaging.
-- If `beta` validation fails, fix the issue on the original feature branch when the fault is isolated, or on a short-lived `beta-fix` branch when the failure is caused by integration between multiple features. Merge the fix back into `beta` and rerun the failed checks before promoting.
-- Only promote `beta` to `main` when the release candidate has passed the required functional checks, build checks, and any packaging verification relevant to the release. After promotion, keep `beta` aligned with `main` so the next pre-release cycle starts from the released state.
-- For urgent production hotfixes, it is acceptable to branch from `main`, verify narrowly, merge back to `main`, and then immediately merge or cherry-pick the hotfix into `beta` so the pre-release branch does not lose the production fix.
-- Public desktop packaging and release upload should be performed from `main` or from a release tag created after `beta` has been promoted to `main`, not directly from a feature branch or an unverified `beta` state.
-- The branch name is `beta`. Do not create a separate `bate` branch; if such a typo branch appears, migrate any useful work to `beta` and remove the typo branch after confirming nothing is lost.
-
-### Desktop Branch Completion Workflow
-
-- Desktop feature development on `desktop-dev` is considered complete. Do not start new desktop feature work directly on `desktop-dev` unless the user explicitly reopens desktopization as an active development phase.
-- Treat `desktop-dev` as a completion candidate that must move through stabilization, pre-release verification, and branch retirement.
-- Before promoting desktop work, sync any required stable changes from `main` into `desktop-dev` when they affect shared contracts, runtime/state logic, build/dependency setup, desktop startup, packaging, or release verification.
-- Run desktop-focused verification on `desktop-dev` first, including development startup, first-run configuration, core web flow compatibility, build checks, and packaging checks relevant to the target release.
-- After `desktop-dev` passes its focused verification, merge it into `beta` for combined pre-release testing with the rest of the next release candidate.
-- Do not promote desktop work from `desktop-dev` directly to `main`. `beta` must pass integration testing and release packaging verification before the desktop work reaches `main`.
-- If `beta` exposes desktop integration failures, fix them on a short-lived desktop stabilization branch or directly on `desktop-dev` if the desktop branch has not yet been retired, then merge the fix back into `beta` and rerun the failed checks.
-- Once `beta` has been promoted to `main` and the released `main` contains the completed desktop work, retire `desktop-dev` so future desktop changes follow the normal feature branch -> `beta` -> `main` workflow.
-- After retirement, `desktop-dev` should not be reused as a long-lived integration branch. Create short-lived feature branches for future desktop fixes or improvements, and promote them through `beta`.
+- Commit after each coherent, completed unit of work. Before committing, confirm the working tree contains only that unit's intended changes and that verification matching the change scope has passed, or document the remaining verification gap explicitly.
+- Before committing, exclude secrets, credentials, local-only configuration, generated artifacts, and test output from the staged scope. If a credentials or secrets file is already tracked, switch it to local-only ignore and keep the local copy on this machine; never commit credential content or credential updates.
+- For changes with user-visible impact, update release notes in the same step (see Release Notes Workflow); if the diff is purely internal, state explicitly that release notes were intentionally skipped.
+- Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed. Never delete the active workspace or anyone's unmerged, unfinished changes.
 
 ## Desktop Packaging Upload Rules
 
@@ -255,34 +228,14 @@ These areas have the highest priority for wiki accumulation:
   - phase-two flow adapters in `graphs/*`, `routes/chat.ts`, `services/novel/runtime/*`, and other stream bridge code explicitly kept outside the registry for now
 - For naming and registration workflow, follow `server/src/prompting/README.md`.
 
-## README Release Notes Workflow
+## Release Notes Workflow
 
-- Before any commit, push, or PR step in this repository, use the `readme-release-updater` skill from `${CODEX_HOME:-~/.codex}/skills/readme-release-updater` to inspect the Git scope, summarize the user-visible changes, update `docs/releases/release-notes.md`, and refresh `README.md` `## 最新更新` when applicable.
-- If the `readme-release-updater` skill does not exist in the expected Codex skills directory, create it first before any commit, push, or PR step instead of skipping the workflow.
-- When creating that skill, place it under `${CODEX_HOME:-~/.codex}/skills/readme-release-updater/` with a `SKILL.md` that explicitly instructs the agent to:
-  - inspect the pending Git scope for the intended commit, push, or PR, including enough status/diff context to understand the user-visible change;
-  - decide whether the diff has clear user-facing impact or is purely internal;
-  - update `docs/releases/release-notes.md` as the canonical full history, preserving older entries and merging multiple updates for the same date under one date heading;
-  - refresh `README.md` `## 最新更新` so it shows only the newest merged date block plus a link to `docs/releases/release-notes.md`, instead of accumulating historical sections;
-  - write release summaries from the user's perspective, focusing on visible capabilities, workflow improvements, and product behavior rather than file paths, refactors, or test-only details;
-  - skip noisy release-note edits when the current diff is purely internal and clearly say that no user-facing release note update is needed.
-- The `readme-release-updater` skill should also tell the agent to keep the repository's date-based release format, for example `### 2026-04-07`, and not introduce semantic versions unless the user explicitly requests a versioning transition.
-- If the skill is newly created in another terminal, verify that its `SKILL.md` contains the workflow above before continuing with the Git write step.
-- When the user asks to commit or push code, inspect the Git scope for that push and update `docs/releases/release-notes.md` first, then sync `README.md` before the Git write step if the change set has clear user-facing impact.
-- `docs/releases/release-notes.md` is the complete user-facing update history and should preserve older entries.
-- `README.md` is only the latest update surface and must keep a link to `docs/releases/release-notes.md`; do not let `README.md` accumulate multiple historical date blocks.
-- When a new update is recorded, keep full history in `docs/releases/release-notes.md` and make `README.md` show only the newest merged date block plus the history link.
-- If multiple user-visible updates are recorded on the same date, merge them under the same date heading in `docs/releases/release-notes.md`; `README.md` should keep only that date's latest merged summary.
-- If the current diff is purely internal and has no clear user-facing impact, state that explicitly and skip both release-note updates instead of forcing a noisy entry.
-- Write both release-note surfaces from the user's perspective: describe capabilities, workflow improvements, and visible product behavior instead of file names, route names, service names, tests, or refactor details.
-- Release notes and README latest updates must read like normal user-facing product notes, not developer acceptance notes. Avoid raw implementation vocabulary such as internal prompt ids, schema names, JSON repair terms, enum aliases, database/API details, test names, or "we changed this" process narration unless the user must see that exact UI label to use the product. Translate technical work into the user outcome, for example "章节规划失败后会给 AI 更明确的重试方向" instead of "补齐 JSON skeleton 和 schema preprocess".
-
-## Release Identification Rules
-
-- For now, this project continues to use `date-based` release/update identification. Do not introduce formal semantic version numbers unless the user explicitly decides to switch.
-- `docs/releases/release-notes.md`, `README.md` `## 最新更新`, release summaries, and other user-facing update records should continue to use the existing date-first format, for example: `### 2026-04-07`.
-- Keep the date as the primary update identifier until the product workflow, information architecture, and release cadence are stable enough to justify a formal versioning system.
-- If multiple user-visible updates are recorded on the same date, keep them under the same date heading in `docs/releases/release-notes.md` and distinguish them by clear summary text instead of inventing temporary version numbers.
+- Before a commit, push, or PR with user-visible impact, use the `readme-release-updater` skill from `${CODEX_HOME:-~/.codex}/skills/readme-release-updater` to inspect the Git scope and summarize the user-visible changes.
+- Record user-visible updates in `docs/releases/release-notes.md`, the complete user-facing history: preserve older entries and merge multiple updates from the same date under one date heading, for example `### 2026-04-07`.
+- `README.md` `## 最新更新` shows only the newest date block plus a link to `docs/releases/release-notes.md`; do not accumulate historical date blocks.
+- Write both surfaces as user-facing product notes: describe capabilities, workflow improvements, and visible behavior, not file paths, internal prompt/schema ids, database/API details, test names, or "we changed this" process narration.
+- Update records stay date-based; do not introduce semantic version numbers into release notes or README unless the user explicitly decides to switch.
+- If the diff is purely internal with no user-visible impact, skip release-note updates and state that explicitly instead of forcing a noisy entry.
 
 ## Current Product Priorities
 
