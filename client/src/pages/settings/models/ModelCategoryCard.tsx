@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { KeyRound, Loader2, PlugZap, Save } from "lucide-react";
-import type { APIKeyStatus } from "@/api/settings";
+import { BadgeCheck, KeyRound, Loader2, PlugZap, Save } from "lucide-react";
+import type { ModelCategoryStatus } from "@/api/settings";
 import { saveAPIKeySetting, testLLMConnection } from "@/api/settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,7 @@ interface ModelCategoryCardProps {
   icon: React.ReactNode;
   title: string;
   description: string;
-  status: APIKeyStatus | undefined;
+  status: ModelCategoryStatus | undefined;
   isImageCategory?: boolean;
   onSaved?: () => void | Promise<void>;
 }
@@ -98,12 +98,14 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
   });
 
   const requiresApiKey = status?.requiresApiKey !== false;
-  const hasSavedKey = status?.isConfigured === true;
+  const hasSavedKey = status?.hasApiKey === true;
+  // 订阅通道（本机桥 + 已有生效密钥）：不展示密钥输入框，直接说明使用订阅额度。
+  const usesLocalSubscription = status?.usesLocalSubscription === true && hasSavedKey;
   const canSubmit = Boolean(
     status
     && form.model.trim()
     && form.baseURL.trim()
-    && (!requiresApiKey || form.apiKey.trim() || hasSavedKey),
+    && (usesLocalSubscription || !requiresApiKey || form.apiKey.trim() || hasSavedKey),
   );
 
   return (
@@ -121,20 +123,29 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="flex items-center gap-2 text-sm font-medium">
-            <KeyRound className="h-4 w-4" />
-            API Key
-            {requiresApiKey ? "" : "（可选）"}
-          </span>
-          <Input
-            type="password"
-            autoComplete="off"
-            value={form.apiKey}
-            placeholder={hasSavedKey ? "留空则继续使用已保存的 Key" : requiresApiKey ? "输入 API Key" : "本地接口可以留空"}
-            onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))}
-          />
-        </label>
+        {usesLocalSubscription ? (
+          <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3 text-sm leading-6 text-emerald-800">
+            <BadgeCheck className="mt-1 h-4 w-4 shrink-0" />
+            <div>
+              已连接本机订阅通道：直接使用已登录订阅的额度进行生成，不需要填写 API Key。
+            </div>
+          </div>
+        ) : (
+          <label className="block space-y-1.5">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <KeyRound className="h-4 w-4" />
+              API Key
+              {requiresApiKey ? "" : "（可选）"}
+            </span>
+            <Input
+              type="password"
+              autoComplete="off"
+              value={form.apiKey}
+              placeholder={hasSavedKey ? "留空则继续使用已保存的 Key" : requiresApiKey ? "输入 API Key" : "本地接口可以留空"}
+              onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))}
+            />
+          </label>
+        )}
         <label className="block space-y-1.5">
           <span className="text-sm font-medium">服务地址</span>
           <Input

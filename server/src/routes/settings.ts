@@ -5,7 +5,7 @@ import { z } from "zod";
 import { setProviderSecretCache } from "../llm/factory";
 import { evictSharedLimiters } from "../llm/requestLimiter";
 import { refreshProviderModels } from "../llm/modelCatalog";
-import { getImageModelProvider, getTextModelProvider } from "../llm/modelCategories";
+import { getImageModelProvider, getTextModelProvider, isLocalBridgeBaseURL, isLocalSubscriptionProvider } from "../llm/modelCategories";
 import { llmProviderSchema } from "../llm/providerSchema";
 import {
   getProviderEnvApiKey,
@@ -135,6 +135,7 @@ type BuiltInProviderStatus = {
   defaultImageModel: string | null;
   defaultBaseURL: string;
   requiresApiKey: boolean;
+  hasApiKey: boolean;
   isConfigured: boolean;
   isActive: boolean;
   reasoningEnabled: boolean;
@@ -157,6 +158,7 @@ type CustomProviderStatus = {
   defaultImageModel: null;
   defaultBaseURL: string;
   requiresApiKey: boolean;
+  hasApiKey: boolean;
   isConfigured: boolean;
   isActive: boolean;
   reasoningEnabled: boolean;
@@ -227,6 +229,7 @@ function buildBuiltInProviderStatus(
     defaultImageModel: getDefaultImageModel(provider) ?? null,
     defaultBaseURL: PROVIDERS[provider].baseURL,
     requiresApiKey,
+    hasApiKey: Boolean(effectiveKey),
     isConfigured,
     isActive: item?.isActive ?? isConfigured,
     reasoningEnabled: item?.reasoningEnabled ?? true,
@@ -264,6 +267,7 @@ function buildCustomProviderStatus(item: {
     defaultImageModel: null,
     defaultBaseURL: currentBaseURL,
     requiresApiKey: false,
+    hasApiKey: Boolean(normalizeOptionalText(item.key)),
     isConfigured: Boolean(currentModel && currentBaseURL),
     isActive: item.isActive,
     reasoningEnabled: item.reasoningEnabled ?? true,
@@ -460,9 +464,18 @@ router.get("/model-categories", async (_req, res, next) => {
     const keys = await secretStore.listProviders();
     const keyMap = new Map(keys.map((item) => [item.provider, item]));
     const imageModelMap = await getProviderImageModelMap([textProvider, imageProvider]);
+    const buildStatus = (provider: BuiltinLLMProvider) => {
+      const status = buildBuiltInProviderStatus(provider, keyMap.get(provider), imageModelMap.get(provider));
+      // 订阅通道判定：槽位绑定本地桥供应商，且服务地址仍指向本机桥接服务。
+      // 用户把服务地址改到外部供应商后，恢复常规的 API Key 填写方式。
+      return {
+        ...status,
+        usesLocalSubscription: isLocalSubscriptionProvider(provider) && isLocalBridgeBaseURL(status.currentBaseURL),
+      };
+    };
     const data = {
-      text: buildBuiltInProviderStatus(textProvider, keyMap.get(textProvider), imageModelMap.get(textProvider)),
-      image: buildBuiltInProviderStatus(imageProvider, keyMap.get(imageProvider), imageModelMap.get(imageProvider)),
+      text: buildStatus(textProvider),
+      image: buildStatus(imageProvider),
       audio: {
         provider: null,
         available: false,

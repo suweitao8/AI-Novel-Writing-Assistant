@@ -18,6 +18,7 @@
 - `/api/settings/model-categories` 返回三槽状态（audio 为占位）；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
 - `LLMSelector` 只展示文本槽的模型列表；`llm-selection` 保存的历史选择只有落在文本槽供应商上时才沿用其模型，否则回落文本槽当前模型（`client/src/lib/llmSelection.ts` 的 `resolvePreferredLLMSelection`）。
 - 新手引导（QuickSetup）只配置文本槽：检测通过后写入全部任务路由的温度与协议偏好，并保存全局选择。
+- 订阅通道判定：槽位供应商为本机桥（opencode/codex）且服务地址仍指向本机地址时，`/model-categories` 返回 `usesLocalSubscription=true`，设置页显示“已连接本机订阅通道”说明而不是密钥输入框；服务地址改为外部供应商后自动恢复密钥填写方式。状态中的 `hasApiKey` 表示已保存或环境变量提供的密钥是否生效（界面不回显密钥内容）。
 - 结构化备用模型（structured-fallback）机制保留在服务端，无设置入口；存量启用配置继续生效。
 - 存量数据兼容：`APIKey` 表与 `modelRouteConfig` 表结构不变；旧路由行的 provider/model 字段被忽略，只读温度与协议。
 - 新增音频能力时：在 `modelCategories.ts` 增加槽位，扩展 `/model-categories` 返回值与设置页音频卡片。

@@ -23,6 +23,21 @@ export function getImageModelProvider(): BuiltinLLMProvider {
   return MODEL_CATEGORY_PROVIDERS.image;
 }
 
+// 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（OpenCode / Codex），
+// 用户不需要填写 API Key，计费走订阅而非 API 账户。
+const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["opencode", "codex"]);
+
+export function isLocalSubscriptionProvider(provider: BuiltinLLMProvider): boolean {
+  return LOCAL_SUBSCRIPTION_PROVIDERS.has(provider);
+}
+
+export function isLocalBridgeBaseURL(baseURL: string | null | undefined): boolean {
+  if (typeof baseURL !== "string" || !baseURL.trim()) {
+    return false;
+  }
+  return /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?(\/|$)/.test(baseURL.trim());
+}
+
 // 文本槽当前生效模型：已保存配置 > 环境变量 > 注册表默认值。
 // 全部任务路由（规划、正文、审校、修复等）统一使用这里的模型。
 export async function resolveTextModelId(): Promise<string> {
