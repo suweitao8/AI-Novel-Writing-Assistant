@@ -1,0 +1,45 @@
+# 漫剧工作流（Comic Drama）
+
+漫剧 = 从写小说到动态漫视频的完整流水线：写小说 → 影视分镜 → 配音 → 视频合成。本文记录该工作流的模块边界、数据契约与编排决策。设计文档见 `docs/superpowers/specs/2026-08-19-comic-drama-studio-design.md` 与 `2026-08-19-blank-novel-creation-design.md`。
+
+## 背景 / 决策
+
+- 用户需要第四种创作形态：漫剧不是"写小说的另一种模式"，而是一条以小说为起点、以视频为终点的生产流水线。漫剧项目必须与普通小说隔离管理（只出现在漫剧列表）。
+- 分镜采用**影视分镜镜头**（drama shots：首帧图 + 台词 + 时长/运镜）而不是漫画分格：只有镜头形态能直接衔接配音与动态视频生成，这是产出"动态漫视频"的最短路径。
+- 生产节奏是**边写边做**：小说有成稿即可开始分镜/配音/视频，后续章节通过来源重新装配同步。
+- 实现策略是**编排复用而不是重写**：小说阶段复用空白小说工作台（设定中心 + 大纲细纲 + 自动导演链），分镜之后复用 drama bounded context 的既有管线。studio 层只做投影与链接，不复制业务逻辑。
+
+## 当前规则
+
+### 数据与隔离
+
+- `Novel.productionKind`（`novel` | `comic_drama`，默认 `novel`）标记漫剧项目；创建漫剧时同时置 `creationExperience=simple`。
+- 小说列表（`GET /novels`）与首页最近作品**默认只返回 `productionKind=novel`**（`productionKind: productionKind ?? "novel"`）；漫剧列表用 `?productionKind=comic_drama` 查询。新增任何消费小说列表的界面都要意识到这个默认过滤。
+- DramaProject 完全复用：`source="novel_import"` + `sourceRef=novelId`（软链，不建外键）。分镜项目在用户首次进入分镜阶段时**懒创建**（避免空来源快照）；"同步最新章节"走既有 `source-bundle` 重新装配。
+
+### 阶段编排（studio 层）
+
+- 服务端投影：`server/src/services/drama/studio/ComicDramaStudioService.ts` + `/api/drama/studio/links`（批量阶段统计，供列表卡片）与 `/api/drama/studio/:novelId/overview`（单项目完整阶段视图）。前端只消费这一层，不自行拼装 Novel 与 DramaProject。
+- 前端：`client/src/pages/drama/comicDrama/`——`ComicDramaListPage`（/drama，横版卡片 + 四阶段徽章）、`ComicDramaStudioPage`（/drama/studio/:novelId，四阶段工作流页）、`ComicDramaCreateDialog`（书名 + 可选想法 → 创建后直达工作室）。
+- 小说阶段无导演任务时复用 `BlankStartPanel`（创作/设定两个子 tab）；有任务后显示进度 + 阅读台深链。分镜/配音/视频阶段展示阶段统计并深链到 `DramaProjectPage`（成熟工作台不内嵌，v1 保持摘要 + 入口）。
+
+### 小说阶段的大纲契约（空白小说工作台）
+
+- `Novel.outline` 存用户手写简略大纲；`Novel.userChapterOutlineJson` 存确认后的分章细纲（schemaVersion=1）。
+- Prompt 资产 `novel.outline.expand@v1`：输入大纲 + 设定中心快照，输出分章细纲**草稿（不落库）**；postValidate 强制章序连续、章数等于期望值、出场角色必须在设定中心名单内。
+- 确认细纲后同步 `estimatedChapterCount`，让导演链按用户章数规划规模。
+- 剧情契约注入点：接管 idea 携带用户大纲（`novelDirectorTakeover.ts` 的 `buildTakeoverIdea`）；卷战略/卷骨架/节奏板/章节列表/章节细化上下文注入 `user_outline_contract` 块（`prompting/prompts/novel/volume/contextBlocks.ts`，priority=99）——章节划分、事件顺序与结果不得推翻，允许补节奏与衔接。
+- 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。修改守卫白名单时必须同步更新 `simpleCreationMode.test.js`。
+
+## 失败模式 / 注意事项
+
+- 视频通道是可插拔 port（`VideoProviderPort`），默认 mock **不会生成真实视频**：studio 视频阶段必须保留"未配置真实通道"的提示，不能让用户误以为出片失败是 bug。
+- `ComicDramaStudioService` 的 links 查询按项目做聚合并发查询（列表 ≤50 本）；若未来漫剧项目规模显著变大，需要改为 groupBy 一次聚合。
+- 漫剧小说仍可经 `/novels/:id/simple` 深链访问（书架行为一致）；不要在书架路径上做漫剧特判。
+- 与 drama 模块的边界：studio 只读投影；任何对 drama 管线行为的修改仍应发生在 `services/drama/` 原有服务里，不要把管线逻辑写进 studio 层。
+
+## 相关模块
+
+- `server/src/services/drama/`（分镜/配音/视频管线）、`server/src/services/drama/studio/`（漫剧投影）
+- `server/src/modules/novel/planning/`（大纲工作台服务与路由）、`server/src/prompting/prompts/novel/outlineExpand.prompts.ts`
+- `client/src/pages/drama/comicDrama/`、`client/src/pages/novels/simpleCreation/BlankStartPanel.tsx`、`client/src/pages/novels/components/storySettings/`
