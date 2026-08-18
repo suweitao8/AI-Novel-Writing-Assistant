@@ -10,7 +10,6 @@ import { SECTION_PROMPTS } from "../shared/bookAnalysis.constants";
 import type { BookAnalysisOverviewContext, SectionGenerationResult, SourceNote } from "../shared/bookAnalysis.types";
 import {
   getSectionTitle,
-  normalizeBookAnalysisStructuredData,
   normalizeBookAnalysisEvidence,
   normalizeBookAnalysisStructuredDataWithWarnings,
   normalizeMaxTokens,
@@ -40,56 +39,47 @@ export class BookAnalysisSectionWriter {
     const overviewContextText = sectionKey === "overview" || !options.overviewContext
       ? ""
       : renderOverviewContextForPrompt(options.overviewContext);
-    try {
-      const result = await runStructuredPrompt({
-        asset: bookAnalysisSectionPrompt,
-        promptInput: {
-          sectionKey,
-          sectionTitle: getSectionTitle(sectionKey),
-          promptFocus: prompt,
-          overviewContextText,
-          userFocusInstructionText: normalizeInstructionForPrompt(options.userFocusInstruction),
-          sectionFocusInstructionText: normalizeInstructionForPrompt(options.sectionFocusInstruction),
-          notesText,
-        },
-        options: {
-          provider,
-          model,
-          temperature: normalizeTemperature(temperature),
-          maxTokens: normalizeMaxTokens(maxTokens),
-        },
-      });
-      const parsed = result.output;
-
-      const markdown =
-        typeof (parsed as any).markdown === "string" && (parsed as any).markdown.trim()
-          ? (parsed as any).markdown.trim()
-          : JSON.stringify(parsed);
-      const normalizedStructuredData =
-        (parsed as any).structuredData && typeof (parsed as any).structuredData === "object"
-          ? normalizeBookAnalysisStructuredDataWithWarnings(sectionKey, (parsed as any).structuredData as Record<string, unknown>)
-          : normalizeBookAnalysisStructuredDataWithWarnings(sectionKey, null);
-      const evidence = normalizeBookAnalysisEvidence(
+    // LLM 调用失败时直接抛出，由执行管线把该 section 标记为失败并记录原因；禁止吞错返回空结果。
+    const result = await runStructuredPrompt({
+      asset: bookAnalysisSectionPrompt,
+      promptInput: {
         sectionKey,
-        (parsed as any).evidence,
-        normalizedStructuredData.structuredData,
-      );
-      return {
-        markdown,
-        structuredData: normalizedStructuredData.structuredData,
-        normalizationWarnings: normalizedStructuredData.normalizationWarnings,
-        evidence,
-        tokenUsage: buildSectionTokenUsage(result.meta.tokenUsage, result.context.estimatedInputTokens, markdown),
-      };
-    } catch {
-      return {
-        markdown: "",
-        structuredData: normalizeBookAnalysisStructuredData(sectionKey, null),
-        normalizationWarnings: [],
-        evidence: [],
-        tokenUsage: null,
-      };
-    }
+        sectionTitle: getSectionTitle(sectionKey),
+        promptFocus: prompt,
+        overviewContextText,
+        userFocusInstructionText: normalizeInstructionForPrompt(options.userFocusInstruction),
+        sectionFocusInstructionText: normalizeInstructionForPrompt(options.sectionFocusInstruction),
+        notesText,
+      },
+      options: {
+        provider,
+        model,
+        temperature: normalizeTemperature(temperature),
+        maxTokens: normalizeMaxTokens(maxTokens),
+      },
+    });
+    const parsed = result.output;
+
+    const markdown =
+      typeof (parsed as any).markdown === "string" && (parsed as any).markdown.trim()
+        ? (parsed as any).markdown.trim()
+        : JSON.stringify(parsed);
+    const normalizedStructuredData =
+      (parsed as any).structuredData && typeof (parsed as any).structuredData === "object"
+        ? normalizeBookAnalysisStructuredDataWithWarnings(sectionKey, (parsed as any).structuredData as Record<string, unknown>)
+        : normalizeBookAnalysisStructuredDataWithWarnings(sectionKey, null);
+    const evidence = normalizeBookAnalysisEvidence(
+      sectionKey,
+      (parsed as any).evidence,
+      normalizedStructuredData.structuredData,
+    );
+    return {
+      markdown,
+      structuredData: normalizedStructuredData.structuredData,
+      normalizationWarnings: normalizedStructuredData.normalizationWarnings,
+      evidence,
+      tokenUsage: buildSectionTokenUsage(result.meta.tokenUsage, result.context.estimatedInputTokens, markdown),
+    };
   }
 
   async generateOptimizedDraft(input: {
@@ -106,33 +96,30 @@ export class BookAnalysisSectionWriter {
       selectNotesForBookAnalysisSection(input.sectionKey, input.notes),
       input.sectionKey,
     );
-    try {
-      const result = await runStructuredPrompt({
-        asset: bookAnalysisOptimizedDraftPrompt,
-        promptInput: {
-          sectionKey: input.sectionKey,
-          sectionTitle: getSectionTitle(input.sectionKey),
-          instruction: input.instruction,
-          currentDraft: input.currentDraft,
-          notesText,
-        },
-        options: {
-          provider: input.provider,
-          model: input.model,
-          temperature: normalizeTemperature(input.temperature),
-          maxTokens: normalizeMaxTokens(input.maxTokens),
-        },
-      });
-      const parsed = result.output;
+    // 失败直接抛出，让调用方拿到具体错误，而不是静默返回原文草稿。
+    const result = await runStructuredPrompt({
+      asset: bookAnalysisOptimizedDraftPrompt,
+      promptInput: {
+        sectionKey: input.sectionKey,
+        sectionTitle: getSectionTitle(input.sectionKey),
+        instruction: input.instruction,
+        currentDraft: input.currentDraft,
+        notesText,
+      },
+      options: {
+        provider: input.provider,
+        model: input.model,
+        temperature: normalizeTemperature(input.temperature),
+        maxTokens: normalizeMaxTokens(input.maxTokens),
+      },
+    });
+    const parsed = result.output;
 
-      if (typeof (parsed as any).optimizedDraft === "string" && (parsed as any).optimizedDraft.trim()) {
-        return (parsed as any).optimizedDraft.trim();
-      }
-
-      return JSON.stringify(parsed);
-    } catch {
-      return "";
+    if (typeof (parsed as any).optimizedDraft === "string" && (parsed as any).optimizedDraft.trim()) {
+      return (parsed as any).optimizedDraft.trim();
     }
+
+    return JSON.stringify(parsed);
   }
 }
 

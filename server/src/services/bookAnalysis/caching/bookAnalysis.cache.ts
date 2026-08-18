@@ -192,53 +192,37 @@ export class BookAnalysisSourceCacheService {
     maxTokens?: number;
     segment: { label: string; content: string };
   }): Promise<SourceNote> {
-    try {
-      const result = await runStructuredPrompt({
-        asset: bookAnalysisSourceNotePrompt,
-        promptInput: {
-          segmentLabel: input.segment.label,
-          segmentContent: input.segment.content,
-        },
-        options: {
-          provider: input.provider,
-          model: input.model,
-          temperature: input.temperature,
-          maxTokens: input.maxTokens,
-        },
-      });
-      const parsed = result.output;
+    // LLM 调用失败时直接抛出，由 runFullAnalysis 把任务标记为失败并记录原因；禁止降级为空笔记掩盖问题。
+    const result = await runStructuredPrompt({
+      asset: bookAnalysisSourceNotePrompt,
+      promptInput: {
+        segmentLabel: input.segment.label,
+        segmentContent: input.segment.content,
+      },
+      options: {
+        provider: input.provider,
+        model: input.model,
+        temperature: input.temperature,
+        maxTokens: input.maxTokens,
+      },
+    });
+    const parsed = result.output;
 
-      const record = parsed as any as Record<string, unknown>;
-      return {
-        sourceLabel: input.segment.label,
-        summary:
-          (typeof record.summary === "string" && record.summary.trim()) || compactExcerpt(input.segment.content, 120),
-        plotPoints: toStringList(record.plotPoints),
-        timelineEvents: toStringList(record.timelineEvents),
-        characters: toStringList(record.characters),
-        worldbuilding: toStringList(record.worldbuilding),
-        themes: toStringList(record.themes),
-        styleTechniques: toStringList(record.styleTechniques),
-        marketHighlights: toStringList(record.marketHighlights),
-        readerSignals: toStringList(record.readerSignals),
-        weaknessSignals: toStringList(record.weaknessSignals),
-        evidence: toEvidenceList(record.evidence, input.segment.label),
-      };
-    } catch {
-      return {
-        sourceLabel: input.segment.label,
-        summary: compactExcerpt(input.segment.content, 120),
-        plotPoints: [],
-        timelineEvents: [],
-        characters: [],
-        worldbuilding: [],
-        themes: [],
-        styleTechniques: [],
-        marketHighlights: [],
-        readerSignals: [],
-        weaknessSignals: [],
-        evidence: [],
-      };
-    }
+    const record = parsed as any as Record<string, unknown>;
+    return {
+      sourceLabel: input.segment.label,
+      summary:
+        (typeof record.summary === "string" && record.summary.trim()) || compactExcerpt(input.segment.content, 120),
+      plotPoints: toStringList(record.plotPoints),
+      timelineEvents: toStringList(record.timelineEvents),
+      characters: toStringList(record.characters),
+      worldbuilding: toStringList(record.worldbuilding),
+      themes: toStringList(record.themes),
+      styleTechniques: toStringList(record.styleTechniques),
+      marketHighlights: toStringList(record.marketHighlights),
+      readerSignals: toStringList(record.readerSignals),
+      weaknessSignals: toStringList(record.weaknessSignals),
+      evidence: toEvidenceList(record.evidence, input.segment.label),
+    };
   }
 }
