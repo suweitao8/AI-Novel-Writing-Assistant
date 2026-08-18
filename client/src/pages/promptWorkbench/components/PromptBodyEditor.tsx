@@ -123,12 +123,12 @@ function PromptSlotTextEditor(props: {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border bg-white shadow-[0_10px_28px_rgba(15,55,48,0.08)]",
-        immersive ? "border-[#a9cfc4]" : "border-[#cbdad6]",
+        "overflow-hidden rounded-md border bg-card shadow-sm",
+        immersive ? "border-primary/30" : "border-border",
       )}
     >
       <div className="flex min-h-0">
-        <div className="w-12 shrink-0 select-none border-r border-[#dce8e4] bg-[#eef7f3] py-3 pr-2 text-right font-mono text-[11px] leading-6 text-[#6f8d86]">
+        <div className="w-12 shrink-0 select-none border-r border-border bg-muted/50 py-3 pr-2 text-right font-mono text-[11px] leading-6 text-muted-foreground">
           {Array.from({ length: lineCount }).map((_, index) => (
             <div key={index}>{index + 1}</div>
           ))}
@@ -151,7 +151,7 @@ function PromptSlotTextEditor(props: {
         </div>
       </div>
       {remaining !== null ? (
-        <div className="border-t border-[#dce8e4] bg-[#fbfdfb] px-3 py-1.5 text-right text-xs text-[#6f7f78]">
+        <div className="border-t border-border bg-muted/40 px-3 py-1.5 text-right text-xs text-muted-foreground">
           {remaining < 0 ? <span className="text-destructive">{remaining}</span> : remaining} 字剩余
         </div>
       ) : null}
@@ -162,21 +162,21 @@ function PromptSlotTextEditor(props: {
 function SlotBadges({ section }: { section: PromptEditorSection }) {
   return (
     <div className="flex flex-wrap gap-2">
-      <Badge variant="outline" className="border-[#cbdad6] bg-[#f7fbf9] text-[#315f58]">
+      <Badge variant="outline" className="border-border bg-muted/50 text-muted-foreground">
         {SLOT_KIND_LABELS[section.kind] ?? section.kind}
       </Badge>
       <Badge
         variant={section.source === "official" ? "outline" : "secondary"}
         className={cn(
-          section.source === "novel_official_default" && "border-[#a7d7ca] bg-[#eaf7f2] text-[#0f766e]",
-          section.source === "global" && "border-[#c9d7ff] bg-[#eef3ff] text-[#344d7a]",
-          section.source === "novel" && "border-[#e7c78f] bg-[#fff7e8] text-[#7a5620]",
+          section.source === "novel_official_default" && "border-primary/30 bg-primary/10 text-primary",
+          section.source === "global" && "border-info/30 bg-info/10 text-info",
+          section.source === "novel" && "border-warning/40 bg-warning/10 text-warning",
         )}
       >
         {section.sourceLabel}
       </Badge>
       {section.isDirty ? (
-        <Badge variant="secondary" className="border-[#b8d9d0] bg-[#eaf7f2] text-[#0f766e]">未保存</Badge>
+        <Badge variant="secondary" className="border-primary/30 bg-primary/10 text-primary">未保存</Badge>
       ) : null}
     </div>
   );
@@ -192,7 +192,7 @@ function ReconcileMiniBadge({ item }: { item?: PromptSlotReconcileItem }) {
       ? "新增槽位"
       : "槽位已移除";
   return (
-    <Badge variant="secondary" className="border-amber-200 bg-amber-50 text-amber-800">
+    <Badge variant="secondary" className="border-warning/40 bg-warning/10 text-warning">
       {label}
     </Badge>
   );
@@ -212,12 +212,12 @@ function PromptSlotSection(props: {
 
   return (
     <section className={cn(
-      "overflow-hidden rounded-md border border-[#d8e2de] bg-white shadow-[0_8px_24px_rgba(20,54,48,0.06)]",
-      immersive && "border-[#b8d9d0] shadow-[0_14px_36px_rgba(15,55,48,0.10)]",
-      reconcileItem?.state === "drifted" && "border-amber-300 bg-amber-50/[0.25]",
-      reconcileItem?.state === "orphaned" && "border-red-200 bg-red-50/30 opacity-80",
+      "overflow-hidden rounded-md border border-border bg-card shadow-sm",
+      immersive && "border-primary/30 shadow-md",
+      reconcileItem?.state === "drifted" && "border-warning/50 bg-warning/10",
+      reconcileItem?.state === "orphaned" && "border-destructive/40 bg-destructive/10 opacity-80",
     )}>
-      <div className="flex flex-col gap-3 border-b border-[#dce8e4] bg-[#fbfdfb] px-4 py-3 md:flex-row md:items-start md:justify-between">
+      <div className="flex flex-col gap-3 border-b border-border bg-muted/40 px-4 py-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-sm font-semibold text-foreground">{section.label}</h4>
@@ -322,14 +322,14 @@ function PromptOfficialVersionPanel(props: {
     .map((item) => item.key);
 
   return (
-    <section className="rounded-md border border-[#b8d9d0] bg-[#f7fbf9] px-4 py-4 shadow-[0_8px_24px_rgba(20,54,48,0.06)]">
+    <section className="rounded-md border border-primary/30 bg-card px-4 py-4 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#25443f]">
-            <ShieldCheck className="h-4 w-4 text-[#0f766e]" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <ShieldCheck className="h-4 w-4 text-primary" />
             官方版本对齐
           </div>
-          <p className="mt-1 text-xs leading-relaxed text-[#52606d]">
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
             对照当前官方槽位，恢复可靠默认值，或保留你的设置并消除版本提醒。
           </p>
         </div>
@@ -340,7 +340,7 @@ function PromptOfficialVersionPanel(props: {
             variant="outline"
             disabled={pending || restoreKeys.length === 0}
             onClick={() => onApplyOfficial(restoreKeys)}
-            className="border-[#b8d9d0] bg-white text-[#0f5f59] hover:bg-[#eaf7f2]"
+            className="border-primary/30 bg-card text-primary hover:bg-primary/10"
           >
             恢复官方当前版
           </Button>
@@ -350,7 +350,7 @@ function PromptOfficialVersionPanel(props: {
             variant="ghost"
             disabled={pending || keepKeys.length === 0}
             onClick={() => onKeepMine(keepKeys)}
-            className="text-[#52606d] hover:bg-white"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             保留我的设置
           </Button>
@@ -358,26 +358,26 @@ function PromptOfficialVersionPanel(props: {
       </div>
 
       {isLoading ? (
-        <div className="mt-4 rounded-md border border-dashed border-[#cbdad6] bg-white px-3 py-3 text-sm text-muted-foreground">
+        <div className="mt-4 rounded-md border border-dashed border-border bg-card px-3 py-3 text-sm text-muted-foreground">
           正在读取官方版本...
         </div>
       ) : actionableItems.length === 0 ? (
-        <div className="mt-4 rounded-md border border-[#d8e2de] bg-white px-3 py-3 text-sm text-[#315f58]">
+        <div className="mt-4 rounded-md border border-border bg-card px-3 py-3 text-sm text-primary">
           当前槽位与官方当前版一致。
         </div>
       ) : (
         <div className="mt-4 space-y-2">
           {actionableItems.map((item) => (
-            <div key={item.key} className="rounded-md border border-[#d8e2de] bg-white px-3 py-3">
+            <div key={item.key} className="rounded-md border border-border bg-card px-3 py-3">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0 space-y-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">{item.label}</span>
-                    <Badge variant="secondary" className="border-amber-200 bg-amber-50 text-amber-800">
+                    <Badge variant="secondary" className="border-warning/40 bg-warning/10 text-warning">
                       {reconcileStateLabel(item)}
                     </Badge>
                     {item.overrideMode === "official_default" ? (
-                      <Badge variant="outline" className="border-[#a7d7ca] bg-[#eaf7f2] text-[#0f766e]">
+                      <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
                         本书使用官方默认
                       </Badge>
                     ) : null}
@@ -385,13 +385,13 @@ function PromptOfficialVersionPanel(props: {
                   {item.changelog ? (
                     <p className="text-xs text-muted-foreground">{item.changelog}</p>
                   ) : null}
-                  <div className="grid gap-2 text-xs text-[#52606d] md:grid-cols-2">
-                    <div className="rounded-md bg-[#f7fbf9] px-2 py-2">
-                      <div className="mb-1 font-medium text-[#25443f]">官方当前版</div>
+                  <div className="grid gap-2 text-xs text-muted-foreground md:grid-cols-2">
+                    <div className="rounded-md bg-muted/40 px-2 py-2">
+                      <div className="mb-1 font-medium text-foreground">官方当前版</div>
                       <div className="whitespace-pre-wrap break-words">{displaySlotValue(item.defaultCurrent)}</div>
                     </div>
-                    <div className="rounded-md bg-[#fffaf0] px-2 py-2">
-                      <div className="mb-1 font-medium text-[#7a5620]">我的设置</div>
+                    <div className="rounded-md bg-warning/10 px-2 py-2">
+                      <div className="mb-1 font-medium text-warning">我的设置</div>
                       <div className="whitespace-pre-wrap break-words">{displaySlotValue(item.overrideValue)}</div>
                     </div>
                   </div>
@@ -403,7 +403,7 @@ function PromptOfficialVersionPanel(props: {
                     variant="outline"
                     disabled={pending}
                     onClick={() => onApplyOfficial([item.key])}
-                    className="border-[#b8d9d0] bg-white text-[#0f5f59] hover:bg-[#eaf7f2]"
+                    className="border-primary/30 bg-card text-primary hover:bg-primary/10"
                   >
                     恢复官方当前版
                   </Button>
@@ -413,7 +413,7 @@ function PromptOfficialVersionPanel(props: {
                     variant="ghost"
                     disabled={pending || item.state === "new"}
                     onClick={() => onKeepMine([item.key])}
-                    className="text-[#52606d] hover:bg-[#f4faf7]"
+                    className="text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   >
                     保留我的设置
                   </Button>
@@ -445,8 +445,8 @@ function ChoiceSlotControl(props: {
           className={cn(
             "rounded-md border px-3 py-2.5 text-left text-sm transition-colors",
             section.value === option.value
-              ? "border-[#0f766e] bg-[#eaf7f2] text-foreground"
-              : "border-[#d7e2df] bg-white hover:bg-[#f4faf7]",
+              ? "border-primary bg-primary/10 text-foreground"
+              : "border-border bg-card hover:bg-muted/50",
             disabled && "cursor-not-allowed opacity-50",
           )}
         >
@@ -473,7 +473,7 @@ function ToggleSlotControl(props: {
         <span className="text-sm font-medium text-foreground">{checked ? "已启用" : "已关闭"}</span>
       </div>
       {checked ? (
-        <div className="rounded-md bg-[#eef7f3] px-3 py-2 text-xs leading-relaxed text-[#52746d]">
+        <div className="rounded-md bg-muted/60 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
           启用后追加：{slot.copy}
         </div>
       ) : null}
@@ -525,9 +525,9 @@ function ContextReferenceChips(props: {
   }
 
   return (
-    <section className="rounded-md border border-[#d8e2de] bg-[#f8fbfa] px-4 py-3">
-      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-[#25443f]">
-        <MapPin className="h-4 w-4 text-[#0f766e]" />
+    <section className="rounded-md border border-border bg-muted/30 px-4 py-3">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
+        <MapPin className="h-4 w-4 text-primary" />
         上下文引用
       </div>
       <div className="flex flex-wrap gap-1.5">
@@ -543,7 +543,7 @@ function ContextReferenceChips(props: {
               className={cn(
                 "inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors",
                 blockId
-                  ? "border-[#cbdad6] bg-white text-[#52606d] hover:border-[#0f766e] hover:bg-[#eaf7f2] hover:text-[#0f5f59]"
+                  ? "border-border bg-card text-muted-foreground hover:border-primary hover:bg-primary/10 hover:text-primary"
                   : "cursor-not-allowed border-transparent bg-muted/30 text-muted-foreground/70",
               )}
               title={requirement.group}

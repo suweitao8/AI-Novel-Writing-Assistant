@@ -192,8 +192,8 @@ export default function PromptWorkbenchPage() {
   return (
     <div
       className={cn(
-        "flex h-full min-h-0 overflow-hidden bg-[#f5f7fb]",
-        immersiveMode && "fixed inset-0 z-50 h-screen bg-[#f3f7f5]",
+        "flex h-full min-h-0 overflow-hidden bg-background",
+        immersiveMode && "fixed inset-0 z-50 h-screen bg-background",
       )}
     >
       {!immersiveMode ? (
@@ -235,9 +235,9 @@ export default function PromptWorkbenchPage() {
             }))}
             bodyPanel={
               <div className="space-y-4">
-                <div className="flex flex-col gap-3 rounded-md border border-[#d7e4e0] bg-white/80 p-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-col gap-3 rounded-md border border-border bg-card/80 p-3 lg:flex-row lg:items-center lg:justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-[#25443f]">编辑模式</div>
+                    <div className="text-sm font-semibold text-foreground">编辑模式</div>
                     <div className="text-xs text-muted-foreground">
                       安全槽位适合稳定调整，高级模板适合本书正文写作自定义。
                     </div>

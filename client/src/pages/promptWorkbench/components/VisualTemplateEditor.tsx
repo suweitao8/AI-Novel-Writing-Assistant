@@ -62,13 +62,13 @@ function TokenMenu(props: {
 }) {
   const grouped = groupReferences(props.items, props.query);
   return (
-    <div className="rounded-md border border-[#cbdad6] bg-white shadow-[0_18px_40px_rgba(20,54,48,0.16)]">
-      <div className="border-b border-[#dce8e4] p-2">
+    <div className="rounded-md border border-border bg-popover shadow-lg">
+      <div className="border-b border-border p-2">
         <Input
           value={props.query}
           onChange={(event) => props.onQueryChange(event.target.value)}
           placeholder="搜索上下文、变量或槽位"
-          className="h-8 border-[#cbdad6]"
+          className="h-8"
         />
       </div>
       <div className="max-h-80 overflow-auto p-2">
@@ -76,7 +76,7 @@ function TokenMenu(props: {
           <div className="px-2 py-3 text-sm text-muted-foreground">没有可插入的引用。</div>
         ) : grouped.map((section) => (
           <div key={section.group} className="mb-2 last:mb-0">
-            <div className="px-2 pb-1 text-[11px] font-semibold text-[#52606d]">
+            <div className="px-2 pb-1 text-[11px] font-semibold text-muted-foreground">
               {REFERENCE_GROUP_LABELS[section.group]}
             </div>
             <div className="space-y-1">
@@ -87,12 +87,12 @@ function TokenMenu(props: {
                     key={`${section.group}:${item.key}`}
                     type="button"
                     onClick={() => props.onInsert(item)}
-                    className="w-full rounded-md px-2 py-2 text-left hover:bg-[#eef7f4]"
+                    className="w-full rounded-md px-2 py-2 text-left hover:bg-accent hover:text-accent-foreground"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-[#25443f]">{displayLabel}</span>
+                      <span className="text-sm font-medium text-foreground">{displayLabel}</span>
                       {item.required ? (
-                        <span className="rounded-md bg-[#eaf7f2] px-1.5 py-0.5 text-[11px] text-[#0f766e]">
+                        <span className="rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] text-primary">
                           必需
                         </span>
                       ) : null}
@@ -105,7 +105,7 @@ function TokenMenu(props: {
           </div>
         ))}
       </div>
-      <div className="border-t border-[#dce8e4] p-2 text-right">
+      <div className="border-t border-border p-2 text-right">
         <Button type="button" variant="ghost" size="sm" onClick={props.onClose}>
           关闭
         </Button>
@@ -116,18 +116,18 @@ function TokenMenu(props: {
 
 function tokenToneClassName(node: PromptTemplateTokenNode) {
   if (node.unknown) {
-    return "border-[#ef9a9a] bg-[#fff5f5] text-[#9f1239]";
+    return "border-destructive/50 bg-destructive/10 text-destructive";
   }
   if (node.kind === "input") {
-    return "border-[#bfd5f6] bg-[#edf5ff] text-[#24518f]";
+    return "border-info/40 bg-info/10 text-info";
   }
   if (node.kind === "slot") {
-    return "border-[#ead49c] bg-[#fff8df] text-[#7a5413]";
+    return "border-warning/40 bg-warning/10 text-warning";
   }
   if (node.required && node.hasPreviewBlock === false) {
-    return "border-[#e5b65c] bg-[#fff8e7] text-[#77510f]";
+    return "border-warning/60 bg-warning/15 text-warning";
   }
-  return "border-[#acd7ca] bg-[#eaf7f2] text-[#0f5f59]";
+  return "border-primary/30 bg-primary/10 text-primary";
 }
 
 function PromptTokenElement(props: {
@@ -151,7 +151,7 @@ function PromptTokenElement(props: {
       contentEditable={false}
       title={title}
       className={cn(
-        "mx-0.5 inline-flex max-w-full select-none items-center gap-1 rounded-md border px-1.5 py-0.5 align-baseline text-xs font-semibold leading-5 shadow-[0_1px_0_rgba(15,55,48,0.05)]",
+        "mx-0.5 inline-flex max-w-full select-none items-center gap-1 rounded-md border px-1.5 py-0.5 align-baseline text-xs font-semibold leading-5",
         tokenToneClassName(element),
       )}
       data-prompt-token={element.token}
@@ -214,17 +214,17 @@ function TemplateSourceTextarea(props: {
   }
 
   return (
-    <div className="relative rounded-md border border-[#d7e4e0] bg-white">
-      <div className="flex items-center justify-between gap-3 border-b border-[#e1ebe8] px-3 py-2">
+    <div className="relative rounded-md border border-border bg-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
         <div>
-          <div className="text-sm font-semibold text-[#25443f]">{props.label}</div>
+          <div className="text-sm font-semibold text-foreground">{props.label}</div>
           <div className="text-[11px] text-muted-foreground">源码调试视图会显示原始模板 token</div>
         </div>
         <Button
           type="button"
           variant="outline"
           size="sm"
-          className="border-[#b8d9d0] text-[#0f5f59]"
+          className="border-primary/30 text-primary"
           onClick={() => props.onOpenTokenMenu(props.role)}
           disabled={props.disabled}
         >
@@ -241,7 +241,7 @@ function TemplateSourceTextarea(props: {
         disabled={props.disabled}
         spellCheck={false}
         className={cn(
-          "min-h-[280px] w-full resize-y bg-white px-3 py-3 font-mono text-sm leading-6 outline-none",
+          "min-h-[280px] w-full resize-y bg-background px-3 py-3 font-mono text-sm leading-6 outline-none",
           props.disabled && "cursor-not-allowed opacity-60",
         )}
       />
@@ -394,7 +394,7 @@ export function VisualTemplateEditor(props: {
             variant="ghost"
             size="sm"
             onClick={() => setSourceMode(false)}
-            className="text-[#0f5f59] hover:bg-[#eef7f4] hover:text-[#0f5f59]"
+            className="text-primary hover:bg-primary/10 hover:text-primary"
           >
             <Tags className="mr-1.5 h-3.5 w-3.5" />
             返回可视化编辑
@@ -405,10 +405,10 @@ export function VisualTemplateEditor(props: {
   }
 
   return (
-    <div ref={rootRef} className="relative rounded-md border border-[#d7e4e0] bg-white">
-      <div className="flex items-center justify-between gap-3 border-b border-[#e1ebe8] px-3 py-2">
+    <div ref={rootRef} className="relative rounded-md border border-border bg-card">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-3 py-2">
         <div>
-          <div className="text-sm font-semibold text-[#25443f]">{props.label}</div>
+          <div className="text-sm font-semibold text-foreground">{props.label}</div>
           <div className="text-[11px] text-muted-foreground">输入 @ 可插入上下文、变量或槽位标签</div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -416,7 +416,7 @@ export function VisualTemplateEditor(props: {
             type="button"
             variant="outline"
             size="sm"
-            className="border-[#cbdad6] text-[#52606d]"
+            className="text-muted-foreground"
             onClick={() => setSourceMode(true)}
             disabled={props.disabled}
           >
@@ -427,7 +427,7 @@ export function VisualTemplateEditor(props: {
             type="button"
             variant="outline"
             size="sm"
-            className="border-[#b8d9d0] text-[#0f5f59]"
+            className="border-primary/30 text-primary"
             onClick={() => {
               setMenuStyle(undefined);
               props.onOpenTokenMenu(props.role);
@@ -440,7 +440,7 @@ export function VisualTemplateEditor(props: {
         </div>
       </div>
       <div className="flex min-h-0">
-        <div className="w-12 shrink-0 select-none border-r border-[#dce8e4] bg-[#eef7f3] py-3 pr-2 text-right font-mono text-[11px] leading-7 text-[#6f8d86]">
+        <div className="w-12 shrink-0 select-none border-r border-border bg-muted/50 py-3 pr-2 text-right font-mono text-[11px] leading-7 text-muted-foreground">
           {Array.from({ length: lineCount }).map((_, index) => (
             <div key={index}>{index + 1}</div>
           ))}
