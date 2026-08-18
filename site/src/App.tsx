@@ -3,7 +3,6 @@ import {
   Boxes,
   BrainCircuit,
   CheckCircle2,
-  Download,
   FileText,
   Github,
   PenLine,
@@ -21,7 +20,6 @@ import creativeHubImage from "./assets/creative-hub.png";
 import directorChoiceImage from "./assets/director-choice.png";
 
 const repoUrl = "https://github.com/ExplosiveCoderflome/AI-Novel-Writing-Assistant";
-const releaseUrl = `${repoUrl}/releases/latest`;
 const docsIntroBannerImage = `${import.meta.env.BASE_URL}assets/docs-intro-banner.png`;
 
 const proofItems = [
@@ -173,9 +171,7 @@ function SiteNav({ page }: { page: "home" | "docs" }) {
             <a href="#console">控制台</a>
             <a href="#audience">适合谁</a>
           </>
-        ) : (
-          <a href={releaseUrl}>下载桌面版</a>
-        )}
+        ) : null}
         <a className="nav-github" href={repoUrl} aria-label={stars !== null ? `GitHub · ${stars} stars` : "GitHub"}>
           <Github size={15} />
           <span>GitHub</span>
@@ -210,11 +206,7 @@ function HomePage() {
             自动导演、世界观、角色、拆章、章节执行和质量修复串成一条长篇生产链，帮助新手把想法推进到可持续写作。
           </p>
           <div className="hero-actions">
-            <a className="button primary" href={releaseUrl}>
-              <Download size={18} />
-              下载桌面版
-            </a>
-            <a className="button ghost" href={repoUrl}>
+            <a className="button primary" href={repoUrl}>
               <Github size={18} />
               查看 GitHub
             </a>
@@ -328,18 +320,18 @@ function HomePage() {
           </div>
         </div>
         <aside className="download-panel">
-          <p className="panel-label">Windows desktop</p>
-          <h3>先下载桌面版，跑通一条完整创作链</h3>
+          <p className="panel-label">Run in browser</p>
+          <h3>从源码启动网页版，跑通一条完整创作链</h3>
           <p>
-            默认 SQLite 可以本地运行；需要知识库检索时再接入 Qdrant。开发者可以从源码继续研究前后端和 Agent 工作流。
+            克隆仓库并按文档启动，默认 SQLite 可以本地运行；需要知识库检索时再接入 Qdrant。开发者可以继续研究前后端和 Agent 工作流。
           </p>
           <div className="panel-actions">
-            <a className="button primary dark" href={releaseUrl}>
-              <Download size={18} />
-              最新版本
-            </a>
-            <a className="text-link" href={repoUrl}>
+            <a className="button primary dark" href={repoUrl}>
+              <Github size={18} />
               打开仓库
+            </a>
+            <a className="text-link" href={docsPath()}>
+              快速上手文档
               <ArrowRight size={17} />
             </a>
           </div>
@@ -362,13 +354,13 @@ function HomePage() {
         <p className="eyebrow">Open source</p>
         <h2>把长篇小说创作做成可以运行、可以恢复、可以继续改进的生产系统。</h2>
         <div className="cta-actions">
-          <a className="button primary" href={releaseUrl}>
-            <Download size={18} />
-            下载桌面版
-          </a>
-          <a className="button ghost" href={repoUrl}>
+          <a className="button primary" href={repoUrl}>
             <Github size={18} />
             查看源码
+          </a>
+          <a className="button ghost" href={docsPath()}>
+            <FileText size={18} />
+            阅读文档
           </a>
         </div>
       </section>

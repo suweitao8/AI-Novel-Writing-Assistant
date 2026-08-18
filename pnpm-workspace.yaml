@@ -1,6 +1,5 @@
 packages:
   - client
-  - desktop
   - server
   - site
   - shared

@@ -83,13 +83,13 @@ AI 小说创作工作台是一套帮助你把灵感推进成长篇小说的创�
 
 写法引擎适合保存“这本书应该怎么写”的语言和叙事偏好。你可以从样本文本中提取写法特征，也可以手动调整规则，再把它用于试写、章节生成和后续修正。
 
-## 下载入口
+## 运行方式
 
-普通用户优先使用 Windows 桌面版：
+本项目以纯网页形式运行，从源码启动：
 
-- 最新版本页：[GitHub Releases](https://github.com/ExplosiveCoderflome/AI-Novel-Writing-Assistant/releases/latest)
-- 建议优先下载安装版。
-- 不想安装时，可以选择 portable 版本直接运行。
+- 安装 Node.js 与 pnpm 后执行 `pnpm install`。
+- 使用 `pnpm dev` 启动，浏览器打开客户端地址即可使用。
+- 启动细节见《安装与准备》。
 
 源码和项目仓库：
 

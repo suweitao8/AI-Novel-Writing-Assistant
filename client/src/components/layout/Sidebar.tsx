@@ -31,7 +31,6 @@ import { Button } from "@/components/ui/button";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import AppVersionBadge from "@/components/layout/AppVersionBadge";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
-import DesktopReleaseNotesDialog from "@/components/layout/DesktopReleaseNotesDialog";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -160,7 +159,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
           <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
           <AppVersionBadge />
         </div>
-        <DesktopReleaseNotesDialog />
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">

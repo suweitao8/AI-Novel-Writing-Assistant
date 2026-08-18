@@ -35,7 +35,6 @@ const SettingsOverviewPage = lazy(() => import("@/pages/settings/views/SettingsO
 const ModelsSettingsPage = lazy(() => import("@/pages/settings/views/ModelsSettingsPage"));
 const DirectorSettingsPage = lazy(() => import("@/pages/settings/views/DirectorSettingsPage"));
 const KnowledgeSettingsPage = lazy(() => import("@/pages/settings/views/KnowledgeSettingsPage"));
-const MaintenanceSettingsPage = lazy(() => import("@/pages/settings/views/MaintenanceSettingsPage"));
 const AppearanceSettingsPage = lazy(() => import("@/pages/settings/views/AppearanceSettingsPage"));
 const WorldList = lazy(() => import("@/pages/worlds/WorldList"));
 const WorldGenerator = lazy(() => import("@/pages/worlds/WorldGenerator"));
@@ -82,7 +81,6 @@ const routes: RouteObject[] = [
       { path: "settings/models", element: <ModelsSettingsPage /> },
       { path: "settings/director", element: <DirectorSettingsPage /> },
       { path: "settings/knowledge", element: <KnowledgeSettingsPage /> },
-      { path: "settings/maintenance", element: <MaintenanceSettingsPage /> },
       { path: "settings/appearance", element: <AppearanceSettingsPage /> },
       { path: "settings", element: <SettingsOverviewPage /> },
       { path: "worlds", element: <WorldList /> },
