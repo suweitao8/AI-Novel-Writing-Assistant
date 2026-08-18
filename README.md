@@ -152,6 +152,7 @@
 - 新增 OpenCode Go 本地模型供应商：在模型设置里可以直接配置，并在任务模型路由中把它分配给规划、正文生成、审校等任务。
 - 该通道使用本机已登录的 OpenCode 订阅，不需要额外 API Key；执行 `pnpm opencode:bridge` 即可启动本地模型服务，已经在运行的服务会自动复用。
 - 本地通道同时支持普通调用和结构化输出调用，JSON 类任务会自动附带输出协议约束；长篇章节生成的等待上限放宽到 15 分钟。
+- 新增 Codex 图片本地模型：小说封面、角色立绘等图片生成可以直接选用 Codex 订阅的内置图片能力，不需要额外 API Key；执行 `pnpm codex:image` 即可启动本地图片通道，封面竖版尺寸、参考图融合等常用能力均可直接使用。
 
 完整历史更新见 [docs/releases/release-notes.md](./docs/releases/release-notes.md)。
 

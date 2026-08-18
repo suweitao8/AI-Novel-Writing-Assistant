@@ -165,6 +165,11 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonObject: true,
       supportsJsonSchema: true,
     },
+    codex: {
+      // codex 是图片专用本地通道，不支持文本结构化输出。
+      supportsJsonObject: false,
+      supportsJsonSchema: false,
+    },
   };
 
   const cap = isBuiltinLLMProvider(provider) ? jsonCapabilities[provider] : undefined;
