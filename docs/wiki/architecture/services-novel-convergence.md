@@ -21,7 +21,7 @@
 
 剩余方向：
 
-- `routes/` 已完成 genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula 七个域的收敛（llm 归 platform/llm/http/，其余归 modules/<域>/http/，commit cbea50e7）；剩余 17 个（agentCatalog/agentRuns/tasks/settings 系/chat/creativeHub/bookAnalysis/character/images/rag/storyMode/astrology/health/promptWorkbench/autoDirector 系）待后续批次。
+- `routes/` 已完成三批共 22 个文件的收敛（cbea50e7/ca8e7232/bdb7ce5d）：genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula/task/settings 系(含子路由与 settingsAutoDirector)/storyMode/character/rag/promptWorkbench/health/agentCatalog/agentRuns/astrology/autoDirector 系。归属规则：产品能力进 `modules/<域>/http/`，llm/health 等基础设施进 `platform/**/http/`，promptWorkbench 归 `prompting/http/`，autoDirector 系归 director 自有 `http/`。仅剩 4 个（bookAnalysis/chat/creativeHub/images），均属并行会话活跃域，待其落定后收尾。
 - `prompting/prompts/novel`（42 文件）与 `client/src/pages/novels/components`（64 文件）的目录密度收敛。
 - 根层兼容壳在新代码不再引用后可分批退役。
 
