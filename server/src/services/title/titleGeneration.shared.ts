@@ -74,9 +74,16 @@ const CONTRAST_THEN_SELF_PATTERN =
   /^(别人|全网|所有人|世人|诸天|满朝|全校|全班|全服).+[，,](我|我的|我能|我有|我靠|我开局|我却|我直接)/u;
 const SETTING_THEN_SELF_PATTERN = /^在.+[，,](我|我的|我能|我有|我靠|我开局|我却|我直接)/u;
 
-export const DEFAULT_TITLE_COUNT = 12;
+export const DEFAULT_TITLE_COUNT = 5;
 export const MIN_TITLE_COUNT = 3;
 export const MAX_TITLE_COUNT = 24;
+
+// 一次让模型多产出几个候选，本地再做去重与多样性挑选，避免质检不过就整批重新生成。
+export const TITLE_OVERPRODUCE_BUFFER = 4;
+
+export function resolveOverproducedRequestCount(count: number): number {
+  return Math.min(MAX_TITLE_COUNT, count + TITLE_OVERPRODUCE_BUFFER);
+}
 
 function sliceText(value: string, maxLength: number): string {
   return Array.from(value).slice(0, maxLength).join("");
@@ -336,15 +343,13 @@ export function minimumStructuralVariety(count: number): number {
   return 2;
 }
 
-export function collectUniqueSuggestions(
+export function selectDiverseSuggestions(
   values: unknown[],
   count: number,
   blockedTitles: string[] = [],
 ): TitleFactorySuggestion[] {
   const blocked = blockedTitles.map((item) => normalizeTitle(item)).filter(Boolean);
-  const suggestions: NormalizedTitleSuggestion[] = [];
-  const frameCounts = new Map<TitleSurfaceFrame, number>();
-  const maxPerFrame = maximumFrameClusterSize(count);
+  const pool: NormalizedTitleSuggestion[] = [];
 
   for (const item of values) {
     const normalized = sanitizeSuggestion(item);
@@ -354,24 +359,63 @@ export function collectUniqueSuggestions(
     if (blocked.some((blockedTitle) => isNearDuplicateTitle(blockedTitle, normalized.title))) {
       continue;
     }
-    if (suggestions.some((existing) => isNearDuplicateTitle(existing.title, normalized.title))) {
+    if (pool.some((existing) => isNearDuplicateTitle(existing.title, normalized.title))) {
       continue;
     }
+    pool.push(normalized);
+  }
 
-    const currentFrameCount = frameCounts.get(normalized.surfaceFrame) ?? 0;
+  const candidates = pool.sort((left, right) => right.clickRate - left.clickRate);
+  const maxPerFrame = maximumFrameClusterSize(count);
+  const minStyles = minimumStyleVariety(count);
+  const picked: NormalizedTitleSuggestion[] = [];
+  const frameCounts = new Map<TitleSurfaceFrame, number>();
+  const stylesSeen = new Set<TitleSuggestionStyle>();
+
+  const tryPick = (item: NormalizedTitleSuggestion): boolean => {
+    const currentFrameCount = frameCounts.get(item.surfaceFrame) ?? 0;
     if (currentFrameCount >= maxPerFrame) {
-      continue;
+      return false;
     }
+    picked.push(item);
+    frameCounts.set(item.surfaceFrame, currentFrameCount + 1);
+    stylesSeen.add(item.style);
+    return true;
+  };
 
-    suggestions.push(normalized);
-    frameCounts.set(normalized.surfaceFrame, currentFrameCount + 1);
-
-    if (suggestions.length >= count) {
+  // 先按句式框架铺开：每种框架先取点击分最高的一条。
+  for (const item of candidates) {
+    if (picked.length >= count) {
       break;
+    }
+    if ((frameCounts.get(item.surfaceFrame) ?? 0) === 0) {
+      tryPick(item);
     }
   }
 
-  return suggestions
+  // 再补风格覆盖：优先取能带来新风格的候选。
+  if (stylesSeen.size < minStyles) {
+    for (const item of candidates) {
+      if (picked.length >= count || stylesSeen.size >= minStyles) {
+        break;
+      }
+      if (!picked.includes(item) && !stylesSeen.has(item.style)) {
+        tryPick(item);
+      }
+    }
+  }
+
+  // 最后用剩余高分候选填满数量，仍受同框架配额约束。
+  for (const item of candidates) {
+    if (picked.length >= count) {
+      break;
+    }
+    if (!picked.includes(item)) {
+      tryPick(item);
+    }
+  }
+
+  return picked
     .sort((left, right) => right.clickRate - left.clickRate)
     .map(({ surfaceFrame, ...suggestion }) => suggestion);
 }

@@ -18,7 +18,7 @@ interface NovelTitleWorkshopProps {
   genreId?: string;
   onApplyTitle: (title: string) => void;
 }
-const DEFAULT_NOVEL_TITLE_COUNT = 12;
+const DEFAULT_NOVEL_TITLE_COUNT = 5;
 
 export default function NovelTitleWorkshop({
   novelId,

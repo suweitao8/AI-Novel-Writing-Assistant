@@ -134,7 +134,7 @@ export const titleGenerationPrompt: PromptAsset<
   typeof titleGenerationRawOutputSchema._output
 > = {
   id: "title.generation",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "structured",
   language: "zh",

@@ -7,12 +7,13 @@ import { selectStructuredOutputStrategy } from "../../llm/structuredOutput";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { titleGenerationPrompt } from "../../prompting/prompts/helper/titleGeneration.prompt";
 import {
-  collectUniqueSuggestions,
   DEFAULT_TITLE_COUNT,
   detectTitleSurfaceFrame,
   hasEnoughStructuralVariety,
   hasEnoughStyleVariety,
   normalizeRequestedCount,
+  resolveOverproducedRequestCount,
+  selectDiverseSuggestions,
   toTrimmedString,
   type TitlePromptContext,
 } from "./titleGeneration.shared";
@@ -197,19 +198,21 @@ export class TitleGenerationService {
     const provider = llmOptions.provider ?? getTextModelProvider();
     const forceJson = await shouldForceTitleJsonOutput(llmOptions);
     const count = normalizeRequestedCount(promptContext.count, DEFAULT_TITLE_COUNT);
+    // 让模型一次多产出几个候选，本地挑选后仍返回 count 个，避免整批重新生成。
+    const requestCount = resolveOverproducedRequestCount(count);
 
     let lastError: unknown;
     let bestEffortTitles: TitleFactorySuggestion[] = [];
     let retryReason: string | null = null;
 
-    for (let attempt = 0; attempt < 3; attempt += 1) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
         const payload = await runStructuredPrompt({
           asset: titleGenerationPrompt,
           promptInput: {
             context: {
               ...promptContext,
-              count,
+              count: requestCount,
             },
             forceJson,
             retryReason,
@@ -223,7 +226,7 @@ export class TitleGenerationService {
         });
 
         const rawTitles = extractRawTitlesFromPayload(payload.output);
-        const titles = collectUniqueSuggestions(rawTitles, count, blockedTitles);
+        const titles = selectDiverseSuggestions(rawTitles, count, blockedTitles);
 
         if (isBetterBatch(bestEffortTitles, titles)) {
           bestEffortTitles = titles;

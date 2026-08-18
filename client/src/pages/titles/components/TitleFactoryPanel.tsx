@@ -55,7 +55,7 @@ export default function TitleFactoryPanel({ genreTree, novels }: TitleFactoryPan
   const [brief, setBrief] = useState("");
   const [referenceTitle, setReferenceTitle] = useState("");
   const [genreId, setGenreId] = useState("");
-  const [count, setCount] = useState(10);
+  const [count, setCount] = useState(5);
   const [selectedTitle, setSelectedTitle] = useState("");
   const [suggestions, setSuggestions] = useState<TitleFactorySuggestion[]>([]);
   const [showModelSettings, setShowModelSettings] = useState(false);
@@ -282,7 +282,7 @@ export default function TitleFactoryPanel({ genreTree, novels }: TitleFactoryPan
                   max={24}
                   step={1}
                   value={count}
-                  onChange={(event) => setCount(Number(event.target.value) || 10)}
+                  onChange={(event) => setCount(Number(event.target.value) || 5)}
                   className={`${inputClassName} w-20`}
                 />
               </label>
