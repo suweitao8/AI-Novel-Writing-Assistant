@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../llm/modelCategories";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../db/prisma";
@@ -717,7 +718,7 @@ export class PromptWorkbenchService {
     }
 
     const llm = await getLLM(llmOptions.provider, {
-      fallbackProvider: "deepseek",
+      fallbackProvider: getTextModelProvider(),
       model: llmOptions.model,
       temperature: llmOptions.temperature,
       maxTokens: llmOptions.maxTokens,

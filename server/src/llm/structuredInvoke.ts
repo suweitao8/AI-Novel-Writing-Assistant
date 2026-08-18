@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "./modelCategories";
 import type { ZodType } from "zod";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";
@@ -128,7 +129,7 @@ async function resolveAttemptTarget(input: {
   );
   const route = shouldResolveRoutePreference ? await resolveModel(input.taskType!) : null;
   const resolved = await resolveLLMClientOptions(input.provider, {
-    fallbackProvider: "deepseek",
+    fallbackProvider: getTextModelProvider(),
     apiKey: input.apiKey,
     baseURL: input.baseURL,
     model: input.model,
@@ -173,7 +174,7 @@ async function invokeStructuredAttempt<T>(input: {
 }): Promise<StructuredInvokeResult<T>> {
   const attemptTemperature = computeAttemptTemperature(input.target.temperature, input.strategyIndex);
   const resolved = await resolveLLMClientOptions(input.target.provider, {
-    fallbackProvider: "deepseek",
+    fallbackProvider: getTextModelProvider(),
     apiKey: input.target.apiKey,
     baseURL: input.target.baseURL,
     model: input.target.model,

@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { getLLM } from "../../llm/factory";
 import { preparePromptExecution, runTextPrompt } from "../../prompting/core/promptRunner";
 import { runtimeSetupGuidancePrompt } from "../../prompting/prompts/agent/runtime.prompts";
@@ -107,7 +108,7 @@ async function composeWarmGuidance(input: {
           knownFacts: input.facts,
         },
         options: {
-          provider: input.context.provider ?? "deepseek",
+          provider: input.context.provider ?? getTextModelProvider(),
           model: input.context.model,
           temperature: Math.max(input.context.temperature ?? 0.7, 0.7),
           maxTokens: resolvedMaxTokens,
@@ -125,7 +126,7 @@ async function composeWarmGuidance(input: {
         knownFacts: input.facts,
       },
     });
-    const llm = await guidanceLLMFactory(input.context.provider ?? "deepseek", {
+    const llm = await guidanceLLMFactory(input.context.provider ?? getTextModelProvider(), {
       model: input.context.model,
       temperature: Math.max(input.context.temperature ?? 0.7, 0.7),
       maxTokens: resolvedMaxTokens,

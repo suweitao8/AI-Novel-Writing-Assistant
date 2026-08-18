@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import type { BookAnalysisSectionKey } from "@ai-novel/shared/types/bookAnalysis";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
@@ -104,7 +105,7 @@ export class BookAnalysisGenerationService {
       return;
     }
 
-    const provider = (analysis.provider as LLMProvider | null) ?? "deepseek";
+    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);
@@ -369,7 +370,7 @@ export class BookAnalysisGenerationService {
       return;
     }
 
-    const provider = (analysis.provider as LLMProvider | null) ?? "deepseek";
+    const provider = (analysis.provider as LLMProvider | null) ?? getTextModelProvider();
     const model = analysis.model ?? undefined;
     const temperature = normalizeTemperature(analysis.temperature);
     const maxTokens = normalizeMaxTokens(analysis.maxTokens);

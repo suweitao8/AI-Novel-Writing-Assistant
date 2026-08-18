@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { HumanMessage, type BaseMessage, type BaseMessageChunk } from "@langchain/core/messages";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { getLLM, getResolvedLLMClientOptionsFromInstance } from "../../llm/factory";
@@ -875,7 +876,7 @@ export async function runTextPrompt<I>(input: {
   });
   try {
     const llm = await promptRunnerLLMFactory(input.options?.provider, {
-      fallbackProvider: "deepseek",
+      fallbackProvider: getTextModelProvider(),
       model: input.options?.model,
       temperature: input.options?.temperature,
       maxTokens: input.options?.maxTokens,
@@ -975,7 +976,7 @@ export async function streamTextPrompt<I>(input: {
   let captured: ReturnType<typeof captureStreamOutput>;
   try {
     const llm = await promptRunnerLLMFactory(input.options?.provider, {
-      fallbackProvider: "deepseek",
+      fallbackProvider: getTextModelProvider(),
       model: input.options?.model,
       temperature: input.options?.temperature,
       maxTokens: input.options?.maxTokens,
@@ -1086,7 +1087,7 @@ export async function streamStructuredPrompt<I, O, R = O>(input: {
   let profile!: ReturnType<typeof resolveStructuredOutputProfile>;
   try {
     const llm = await promptRunnerLLMFactory(input.options?.provider, {
-      fallbackProvider: "deepseek",
+      fallbackProvider: getTextModelProvider(),
       model: input.options?.model,
       temperature: input.options?.temperature,
       maxTokens: input.options?.maxTokens,
@@ -1097,7 +1098,7 @@ export async function streamStructuredPrompt<I, O, R = O>(input: {
     });
     const resolvedLLM = getResolvedLLMClientOptionsFromInstance(llm);
     profile = resolvedLLM?.structuredProfile ?? resolveStructuredOutputProfile({
-      provider: resolvedLLM?.provider ?? input.options?.provider ?? "deepseek",
+      provider: resolvedLLM?.provider ?? input.options?.provider ?? getTextModelProvider(),
       model: resolvedLLM?.model ?? input.options?.model,
       baseURL: resolvedLLM?.baseURL,
       requestProtocol: resolvedLLM?.requestProtocol,

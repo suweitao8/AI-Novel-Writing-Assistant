@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { getLLM } from "../../llm/factory";
 import { preparePromptExecution, runTextPrompt } from "../../prompting/core/promptRunner";
 import { runtimeSetupIdeationPrompt } from "../../prompting/prompts/agent/runtime.prompts";
@@ -160,7 +161,7 @@ export async function composeNovelSetupIdeationAnswer(
           facts,
         },
         options: {
-          provider: context.provider ?? "deepseek",
+          provider: context.provider ?? getTextModelProvider(),
           model: context.model,
           temperature: Math.max(context.temperature ?? 0.75, 0.75),
           maxTokens: resolvedMaxTokens,
@@ -177,7 +178,7 @@ export async function composeNovelSetupIdeationAnswer(
         facts,
       },
     });
-    const llm = await ideationLLMFactory(context.provider ?? "deepseek", {
+    const llm = await ideationLLMFactory(context.provider ?? getTextModelProvider(), {
       model: context.model,
       temperature: Math.max(context.temperature ?? 0.75, 0.75),
       maxTokens: resolvedMaxTokens,

@@ -38,12 +38,13 @@ apiClient.interceptors.response.use(
       title = "网络连接失败，请检查网络后重试。";
       description = undefined;
     } else if (status >= 500) {
-      title = backendError ?? "服务器错误，请稍后重试。";
+      // 带上状态码，便于区分后端异常、代理断连与重启窗口。
+      title = backendError ?? `服务器错误（${status}），请稍后重试。`;
       description = backendMessage && backendMessage !== title ? backendMessage : undefined;
     }
 
     if (!status || !silentErrorStatuses.includes(status)) {
-      const isGenericServerErrorToast = title === "服务器错误，请稍后重试。";
+      const isGenericServerErrorToast = /^服务器错误（\d+），请稍后重试。$/.test(title);
 
       if (description) {
         toast.error(
