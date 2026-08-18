@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { runTextPrompt } from "../../prompting/core/promptRunner";
 import { runtimeFallbackAnswerPrompt } from "../../prompting/prompts/agent/runtime.prompts";
 import { listAgentToolDefinitions } from "../toolRegistry";
@@ -578,7 +579,7 @@ async function composeFallbackAnswer(
         groundingFacts: buildGroundingFacts(results),
       },
       options: {
-        provider: context.provider ?? "deepseek",
+        provider: context.provider ?? getTextModelProvider(),
         model: context.model,
         temperature: 0.2,
         maxTokens: context.maxTokens,

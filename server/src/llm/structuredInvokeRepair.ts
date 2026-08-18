@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "./modelCategories";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { toJSONSchema, type ZodError, type ZodType } from "zod";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
@@ -165,7 +166,7 @@ export async function repairWithLlm<T>(
     strategy: "prompt_json",
   });
   const llm = await getLLM(input.provider, {
-    fallbackProvider: "deepseek",
+    fallbackProvider: getTextModelProvider(),
     apiKey: input.apiKey,
     baseURL: input.baseURL,
     model: input.model,

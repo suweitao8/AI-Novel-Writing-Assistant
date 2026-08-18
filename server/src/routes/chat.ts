@@ -1,3 +1,4 @@
+import { getTextModelProvider } from "../llm/modelCategories";
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
@@ -157,7 +158,7 @@ router.post("/", validate({ body: chatSchema }), async (req, res, next) => {
       return;
     }
 
-    const resolvedLLM = await resolveLLMClientOptions(body.provider ?? "deepseek", {
+    const resolvedLLM = await resolveLLMClientOptions(body.provider ?? getTextModelProvider(), {
       model: body.model,
       temperature: body.temperature ?? 0.7,
       maxTokens: body.maxTokens,
