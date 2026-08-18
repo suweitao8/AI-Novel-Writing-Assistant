@@ -20,6 +20,7 @@ import {
 import { Link } from "react-router-dom";
 import TaskCenterManualEditImpactCard from "@/pages/tasks/components/TaskCenterManualEditImpactCard";
 import TaskCenterRuntimePolicyCard from "@/pages/tasks/components/TaskCenterRuntimePolicyCard";
+import TaskLlmUsageSection from "./TaskLlmUsageSection";
 import type { NovelTaskDrawerState } from "./NovelEditView.types";
 
 type DrawerTask = NonNullable<NovelTaskDrawerState["task"]>;
@@ -440,6 +441,8 @@ export default function NovelTaskDrawer({
                   </div>
                 ) : null}
               </section>
+
+              {task.id ? <TaskLlmUsageSection taskId={task.id} /> : null}
 
               {canShowFollowUp && followUp ? (
                 <section className="space-y-3 rounded-2xl border border-primary/20 bg-primary/5 p-4">

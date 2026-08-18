@@ -100,6 +100,7 @@ export const queryKeys = {
   },
   llm: {
     providers: ["llm", "providers"] as const,
+    usageRecords: (taskId: string) => ["llm", "usage-records", taskId] as const,
   },
   images: {
     task: (taskId: string) => ["images", "task", taskId] as const,

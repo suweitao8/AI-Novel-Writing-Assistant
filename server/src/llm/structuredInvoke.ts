@@ -27,6 +27,7 @@ import { getStructuredFallbackSettings } from "./structuredFallbackSettings";
 import { extractLlmTokenUsage, mergeStreamTokenUsage } from "./usageTracking";
 import { runWithEnforcedTimeout } from "./invokeTimeout";
 import { beginLlmLiveSession } from "../platform/llm/live/llmLiveSession";
+import { recordLlmUsage } from "../platform/llm/usage/llmUsageRecorder";
 import {
   buildStructuredError,
   logStructuredInvokeEvent,
@@ -288,12 +289,42 @@ async function invokeStructuredAttempt<T>(input: {
       reasoningForcedOff: resolved.reasoningForcedOff,
     });
     liveSession.complete();
+    recordLlmUsage({
+      label: input.baseInput.label,
+      provider: resolved.provider,
+      model: resolved.model,
+      status: "succeeded",
+      durationMs: Date.now() - startedAt,
+      strategy: input.strategy,
+      taskType: input.baseInput.taskType ?? null,
+      tokenUsage: parsed.tokenUsage,
+      rawChars: rawContent.length,
+      repairAttempts: parsed.repairAttempts,
+      attemptIndex: input.strategyIndex,
+      fallbackUsed: input.fallbackUsed,
+      reasoningForcedOff: resolved.reasoningForcedOff,
+      promptMeta: input.baseInput.promptMeta,
+    });
     return parsed;
   } catch (error) {
     liveSession.fail(error);
     const category = error instanceof StructuredOutputError
       ? error.category
       : classifyStructuredOutputFailure({ error });
+    recordLlmUsage({
+      label: input.baseInput.label,
+      provider: resolved.provider,
+      model: resolved.model,
+      status: "failed",
+      durationMs: Date.now() - startedAt,
+      strategy: input.strategy,
+      taskType: input.baseInput.taskType ?? null,
+      attemptIndex: input.strategyIndex,
+      fallbackUsed: input.fallbackUsed,
+      reasoningForcedOff: resolved.reasoningForcedOff,
+      errorCategory: category,
+      promptMeta: input.baseInput.promptMeta,
+    });
     logStructuredInvokeEvent({
       event: "invoke_error",
       label: input.baseInput.label,

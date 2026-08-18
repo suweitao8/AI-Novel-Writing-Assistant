@@ -10,34 +10,34 @@ import type { PromptAsset } from "../../core/promptTypes";
 
 const planSegmentSchema = z.object({
   order: z.number().int().min(1).max(8),
-  purpose: z.string().min(4).max(500),
+  purpose: z.string().min(4).max(240),
   targetWordCount: z.number().int().min(300).max(15000),
-  openingState: z.string().min(2).max(500),
-  openingHook: z.string().min(4).max(500),
-  immediateGoal: z.string().min(4).max(500),
-  progressionBeats: z.array(z.string().min(4).max(500)).min(2).max(6),
-  turningPoint: z.string().min(2).max(500),
-  payoff: z.string().min(4).max(500),
-  closingPull: z.string().min(4).max(500),
-  closingState: z.string().min(2).max(500),
+  openingState: z.string().min(2).max(200),
+  openingHook: z.string().min(4).max(240),
+  immediateGoal: z.string().min(4).max(240),
+  progressionBeats: z.array(z.string().min(4).max(200)).min(2).max(4),
+  turningPoint: z.string().min(2).max(240),
+  payoff: z.string().min(4).max(240),
+  closingPull: z.string().min(4).max(240),
+  closingState: z.string().min(2).max(200),
 }).strict();
 
 const planSchema = z.object({
   title: z.string().min(1).max(100),
   targetWordCount: z.number().int().min(3000).max(30000),
-  endingPromise: z.string().min(4).max(500),
+  endingPromise: z.string().min(4).max(300),
   segments: z.array(planSegmentSchema).min(2).max(8),
   causalContract: z.object({
-    protagonistGoal: z.string().min(4).max(500),
-    centralQuestion: z.string().min(4).max(500),
-    fixedFacts: z.array(z.string().min(4).max(500)).min(3).max(12),
-    causeEffectChain: z.array(z.string().min(8).max(700)).min(3).max(8),
+    protagonistGoal: z.string().min(4).max(300),
+    centralQuestion: z.string().min(4).max(300),
+    fixedFacts: z.array(z.string().min(4).max(200)).min(3).max(8),
+    causeEffectChain: z.array(z.string().min(8).max(300)).min(3).max(6),
     setupPayoffs: z.array(z.object({
-      setup: z.string().min(4).max(500),
+      setup: z.string().min(4).max(200),
       setupSegmentOrder: z.number().int().min(1).max(8),
-      payoff: z.string().min(4).max(500),
+      payoff: z.string().min(4).max(200),
       payoffSegmentOrder: z.number().int().min(1).max(8),
-    }).strict()).min(2).max(8),
+    }).strict()).min(2).max(4),
   }).strict(),
 }).strict();
 
@@ -136,7 +136,7 @@ export const shortStoryPlanPrompt: PromptAsset<
   ShortStoryPlanContract
 > = {
   id: "novel.short_story.plan",
-  version: "v2",
+  version: "v3",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -162,6 +162,7 @@ export const shortStoryPlanPrompt: PromptAsset<
       "如果提供 requiredSegmentCount，必须保持该片段数量，以便安全更新已存在的作品。",
       "所有片段的目标字数之和必须接近总目标，顺序必须从 1 连续递增。",
       "最后一个片段必须完整兑现 endingPromise，不得以长篇式悬置代替结局。",
+      "输出保持极度紧凑：每个字段用一句中文直接给结论，不写排比、铺垫、解释或重复表述；不要复述 causalContract 已经写明的内容；整份 JSON 只保留写作必需的信息。",
       "只输出严格 JSON。",
     ].join("\n")),
     new HumanMessage(JSON.stringify(input, null, 2)),
