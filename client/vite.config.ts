@@ -114,9 +114,9 @@ export default defineConfig({
   },
   server: {
     host: true,
-    // 前端开发端口固定 5173：被占用时报错退出而不是自动切到 5174，
-    // 先结束占用进程再重启（见 AGENTS.md Development Ports）。
-    port: 5173,
+    // 前端开发端口固定 5174：5173 被本机其他长驻服务（Docker 容器）长期占用，
+    // 本项目固定使用 5174；被占用时报错退出而不是自动漂移（见 AGENTS.md Development Ports）。
+    port: 5174,
     strictPort: true,
     proxy: {
       "/api": {

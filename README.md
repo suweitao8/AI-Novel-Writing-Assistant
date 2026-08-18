@@ -413,7 +413,7 @@ http(s)://当前页面 hostname:3000/api
 ```
 
 这也包括“同一台机器启动服务，然后用局域网 IP 在别的设备上访问”的场景。
-例如页面开在 `http://192.168.0.37:5173`，前端默认会自动把 API 指到：
+例如页面开在 `http://192.168.0.37:5174`，前端默认会自动把 API 指到：
 
 ```text
 http://192.168.0.37:3000/api
@@ -471,7 +471,7 @@ pnpm dev
 
 默认情况下：
 
-- 前端：`http://localhost:5173`
+- 前端：`http://localhost:5174`
 - 后端：`http://localhost:3000`
 - API：`http://localhost:3000/api`
 
@@ -480,9 +480,9 @@ pnpm dev
 
 建议第一次启动后先做这几步：
 
-1. 打开 `http://localhost:5173/settings`，至少配置一组可用的模型供应商 API Key
-2. 打开 `http://localhost:5173/settings/model-routes`，检查各任务实际使用的模型路由
-3. 如果要启用知识库，打开 `http://localhost:5173/knowledge?tab=settings`，保存 Embedding / Collection 设置
+1. 打开 `http://localhost:5174/settings`，至少配置一组可用的模型供应商 API Key
+2. 打开 `http://localhost:5174/settings/model-routes`，检查各任务实际使用的模型路由
+3. 如果要启用知识库，打开 `http://localhost:5174/knowledge?tab=settings`，保存 Embedding / Collection 设置
 
 ### 4. 如果你使用 Qdrant Cloud
 

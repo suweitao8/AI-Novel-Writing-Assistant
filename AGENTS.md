@@ -214,7 +214,7 @@ This project is a pure web product: all development targets the website (`client
 
 ### Development Ports
 
-- Development ports are fixed: API server on `3100` (single source of truth: `server/.env` `PORT=3100`), web client on `5173` (`client/vite.config.ts` sets `port: 5173, strictPort: true`). The client dev proxy reads the server port from `server/.env` automatically; do not hardcode a different port anywhere else.
+- Development ports are fixed: API server on `3100` (single source of truth: `server/.env` `PORT=3100`), web client on `5174` (`client/vite.config.ts` sets `port: 5174, strictPort: true`; 5173 is permanently occupied on this machine by another long-lived Docker service, so the client uses 5174 by design). The client dev proxy reads the server port from `server/.env` automatically; do not hardcode a different port anywhere else.
 - Never switch to another port when a dev port is occupied, and never change `PORT` values as a conflict workaround — silent port drift is what breaks the client `/api` proxy and running sessions.
 - If a port is occupied, stop the occupying process and restart on the same port. The server dev script already kills this repo's stale dev processes before starting (`server/scripts/stop-stale-dev-server.cjs`); for other occupants run `netstat -ano | findstr :3100` (or `:5173`), confirm it is a disposable stale dev process, then `taskkill /PID <pid> /F` and start again on the same port.
 - If the port is held by an unrelated long-lived service rather than a stale dev process, report it to the user instead of killing blindly or switching ports.
