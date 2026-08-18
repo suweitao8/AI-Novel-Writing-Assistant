@@ -140,6 +140,15 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     envModelKey: "OLLAMA_MODEL",
     requiresApiKey: false,
   },
+  opencode: {
+    name: "OpenCode Go",
+    baseURL: "http://127.0.0.1:18762/v1",
+    defaultModel: "opencode-go/mimo-v2.5",
+    models: ["opencode-go/mimo-v2.5"],
+    envKey: "OPENCODE_API_KEY",
+    envBaseURLKey: "OPENCODE_BASE_URL",
+    envModelKey: "OPENCODE_MODEL",
+  },
 };
 
 export const SUPPORTED_PROVIDERS: BuiltinLLMProvider[] = [...LLM_PROVIDERS];

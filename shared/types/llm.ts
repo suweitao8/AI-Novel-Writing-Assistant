@@ -10,6 +10,7 @@ export const LLM_PROVIDERS = [
   "qwen",
   "gemini",
   "ollama",
+  "opencode",
 ] as const;
 
 export type BuiltinLLMProvider = typeof LLM_PROVIDERS[number];

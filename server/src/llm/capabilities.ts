@@ -160,6 +160,11 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonObject: false,
       supportsJsonSchema: false,
     },
+    opencode: {
+      // 本地桥接会把 response_format 翻译成文本输出协议，两种 JSON 约束都可用。
+      supportsJsonObject: true,
+      supportsJsonSchema: true,
+    },
   };
 
   const cap = isBuiltinLLMProvider(provider) ? jsonCapabilities[provider] : undefined;
