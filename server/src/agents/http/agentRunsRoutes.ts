@@ -3,10 +3,10 @@ import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { AgentRunDetail, ReplayRequest } from "@ai-novel/shared/types/agent";
 import type { TaskStatus } from "@ai-novel/shared/types/task";
 import { z } from "zod";
-import { agentRuntime } from "../agents";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { buildTaskRecoveryHint, normalizeFailureSummary } from "../services/task/taskSupport";
+import { agentRuntime } from "../../agents";
+import { authMiddleware } from "../../middleware/auth";
+import { validate } from "../../middleware/validate";
+import { buildTaskRecoveryHint, normalizeFailureSummary } from "../../services/task/taskSupport";
 
 const router = Router();
 

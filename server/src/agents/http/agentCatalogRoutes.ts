@@ -1,7 +1,7 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
-import { buildAgentCatalog } from "../agents/catalog";
-import { authMiddleware } from "../middleware/auth";
+import { buildAgentCatalog } from "../../agents/catalog";
+import { authMiddleware } from "../../middleware/auth";
 
 const router = Router();
 

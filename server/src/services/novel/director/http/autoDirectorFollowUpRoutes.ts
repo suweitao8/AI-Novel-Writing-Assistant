@@ -4,10 +4,10 @@ import { z } from "zod";
 import {
   AUTO_DIRECTOR_FOLLOW_UP_REASONS,
 } from "@ai-novel/shared/types/autoDirectorFollowUp";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { AutoDirectorFollowUpActionExecutor } from "../services/task/autoDirectorFollowUps/AutoDirectorFollowUpActionExecutor";
-import { AutoDirectorFollowUpService } from "../services/task/autoDirectorFollowUps/AutoDirectorFollowUpService";
+import { authMiddleware } from "../../../../middleware/auth";
+import { validate } from "../../../../middleware/validate";
+import { AutoDirectorFollowUpActionExecutor } from "../../../../services/task/autoDirectorFollowUps/AutoDirectorFollowUpActionExecutor";
+import { AutoDirectorFollowUpService } from "../../../../services/task/autoDirectorFollowUps/AutoDirectorFollowUpService";
 
 const router = Router();
 const followUpService = new AutoDirectorFollowUpService();

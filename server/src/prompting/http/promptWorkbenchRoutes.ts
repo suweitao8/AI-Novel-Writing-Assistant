@@ -1,23 +1,23 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
+import { authMiddleware } from "../../middleware/auth";
+import { validate } from "../../middleware/validate";
 import {
   promptWorkbenchService,
   type PromptCatalogFilter,
   type PromptPreviewInput,
   type PromptTestRunInput,
-} from "../prompting/PromptWorkbenchService";
+} from "../../prompting/PromptWorkbenchService";
 import {
   exportNovelPromptMaterials,
   type NovelMaterialExportInput,
-} from "../prompting/materials";
-import { promptSlotOverrideService } from "../prompting/slots/PromptSlotOverrideService";
-import { getOfficialPromptSlotLibrary } from "../prompting/slots/officialSlotLibrary";
-import { reconcileSlots, adoptSlots, applyOfficialSlots, keepMineSlots } from "../prompting/slots/slotReconcile";
-import { promptTemplateOverrideService } from "../prompting/templates/PromptTemplateOverrideService";
-import { writingPlatformProfileService } from "../modules/novel/writing-platform";
+} from "../../prompting/materials";
+import { promptSlotOverrideService } from "../../prompting/slots/PromptSlotOverrideService";
+import { getOfficialPromptSlotLibrary } from "../../prompting/slots/officialSlotLibrary";
+import { reconcileSlots, adoptSlots, applyOfficialSlots, keepMineSlots } from "../../prompting/slots/slotReconcile";
+import { promptTemplateOverrideService } from "../../prompting/templates/PromptTemplateOverrideService";
+import { writingPlatformProfileService } from "../../modules/novel/writing-platform";
 
 const router = Router();
 

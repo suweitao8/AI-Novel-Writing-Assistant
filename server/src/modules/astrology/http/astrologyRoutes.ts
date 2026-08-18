@@ -1,6 +1,6 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
-import { authMiddleware } from "../middleware/auth";
+import { authMiddleware } from "../../../middleware/auth";
 
 const router = Router();
 

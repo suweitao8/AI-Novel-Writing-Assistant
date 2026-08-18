@@ -1,12 +1,12 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { authMiddleware } from "../middleware/auth";
-import { AppError } from "../middleware/errorHandler";
-import { validate } from "../middleware/validate";
-import { AutoDirectorFollowUpActionExecutor } from "../services/task/autoDirectorFollowUps/AutoDirectorFollowUpActionExecutor";
-import { getAutoDirectorChannelSettings } from "../services/settings/AutoDirectorChannelSettingsService";
-import { signWeComMarkdownCallback } from "../services/task/autoDirectorFollowUps/wecomMarkdownCallback";
+import { authMiddleware } from "../../../../middleware/auth";
+import { AppError } from "../../../../middleware/errorHandler";
+import { validate } from "../../../../middleware/validate";
+import { AutoDirectorFollowUpActionExecutor } from "../../../../services/task/autoDirectorFollowUps/AutoDirectorFollowUpActionExecutor";
+import { getAutoDirectorChannelSettings } from "../../../../services/settings/AutoDirectorChannelSettingsService";
+import { signWeComMarkdownCallback } from "../../../../services/task/autoDirectorFollowUps/wecomMarkdownCallback";
 
 const router = Router();
 const actionExecutor = new AutoDirectorFollowUpActionExecutor();
