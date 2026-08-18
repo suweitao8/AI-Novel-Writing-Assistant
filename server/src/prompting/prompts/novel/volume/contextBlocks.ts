@@ -1,5 +1,6 @@
 import { createContextBlock } from "../../../core/contextBudget";
 import type { PromptContextBlock } from "../../../core/promptTypes";
+import type { VolumeGenerationNovel } from "../../../../services/novel/volume/volumeModels";
 import {
   buildBeatCard,
   buildBeatChapterRangeContext,
@@ -15,6 +16,7 @@ import {
   buildVolumeCountGuidanceContext,
   buildSoftFutureVolumeSummary,
   buildStoryMacroContext,
+  buildUserChapterOutlineContractText,
   buildStrategyContext,
   buildWindowedVolumeContext,
   type VolumeBeatSheetPromptInput,
@@ -38,6 +40,28 @@ function guidanceBlock(guidance?: string): PromptContextBlock | null {
   });
 }
 
+// 空白小说：确认后的分章细纲作为剧情契约块注入卷规划/节奏板/章节列表/章节细化。
+// 契约存在时优先级仅次于 book_contract；contextPolicy 预算不足时优先保留。
+function userOutlineContractBlocks(novel: VolumeGenerationNovel): PromptContextBlock[] {
+  const contractText = buildUserChapterOutlineContractText(novel);
+  if (!contractText) {
+    return [];
+  }
+  return [
+    createContextBlock({
+      id: "user_outline_contract",
+      group: "user_outline_contract",
+      priority: 99,
+      required: true,
+      content: [
+        "User-confirmed chapter outline contract (MUST follow: chapter split, event order and outcomes are fixed;",
+        "you may add pacing and transitions, but never contradict, drop or reorder these chapters):",
+        contractText,
+      ].join("\n"),
+    }),
+  ];
+}
+
 export function buildVolumeStrategyContextBlocks(input: VolumeStrategyPromptInput): PromptContextBlock[] {
   return [
     createContextBlock({
@@ -47,6 +71,7 @@ export function buildVolumeStrategyContextBlocks(input: VolumeStrategyPromptInpu
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -79,6 +104,7 @@ export function buildVolumeStrategyCritiqueContextBlocks(input: VolumeStrategyCr
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -111,6 +137,7 @@ export function buildVolumeSkeletonContextBlocks(input: VolumeSkeletonPromptInpu
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -157,6 +184,7 @@ export function buildVolumeBeatSheetContextBlocks(input: VolumeBeatSheetPromptIn
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -208,6 +236,7 @@ export function buildVolumeChapterListContextBlocks(input: VolumeChapterListProm
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -284,6 +313,7 @@ export function buildVolumeChapterDetailContextBlocks(input: VolumeChapterDetail
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",
@@ -349,6 +379,7 @@ export function buildVolumeRebalanceContextBlocks(input: VolumeRebalancePromptIn
       required: true,
       content: `Novel contract:\n${buildCommonNovelContext(input.novel)}`,
     }),
+    ...userOutlineContractBlocks(input.novel),
     createContextBlock({
       id: "macro_constraints",
       group: "macro_constraints",

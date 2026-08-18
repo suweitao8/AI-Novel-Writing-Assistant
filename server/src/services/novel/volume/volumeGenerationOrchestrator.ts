@@ -110,6 +110,8 @@ async function loadGenerationContext(params: {
         competingFeel: true,
         first30ChapterPromise: true,
         commercialTagsJson: true,
+        outline: true,
+        userChapterOutlineJson: true,
         estimatedChapterCount: true,
         narrativePov: true,
         pacePreference: true,

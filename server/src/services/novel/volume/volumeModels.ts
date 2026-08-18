@@ -53,6 +53,9 @@ export interface VolumeWorkspace {
 export interface VolumeGenerationNovel {
   title: string;
   description: string | null;
+  // 空白小说：用户简略大纲与确认后的分章细纲（剧情契约 JSON 原文，由 prompt 层渲染）。
+  outline?: string | null;
+  userChapterOutlineJson?: string | null;
   targetAudience: string | null;
   bookSellingPoint: string | null;
   competingFeel: string | null;

@@ -119,6 +119,68 @@ function summarizeCharacters(novel: VolumeGenerationNovel): string {
     .join("\n");
 }
 
+// 空白小说：把确认后的分章细纲渲染成紧凑的「剧情契约」文本。
+// 契约语义：章节划分、事件顺序与结果不得推翻；允许补节奏与衔接，补充需体现在说明里。
+const USER_OUTLINE_CONTRACT_CHAPTER_LIMIT = 120;
+
+export function buildUserChapterOutlineContractText(novel: VolumeGenerationNovel): string {
+  const rawDocument = novel.userChapterOutlineJson?.trim();
+  if (!rawDocument) {
+    return "";
+  }
+  let parsed: {
+    schemaVersion?: number;
+    premise?: unknown;
+    chapters?: unknown;
+  };
+  try {
+    parsed = JSON.parse(rawDocument);
+  } catch {
+    return "";
+  }
+  if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.chapters) || parsed.chapters.length === 0) {
+    return "";
+  }
+  const premise = typeof parsed.premise === "string"
+    ? parsed.premise.replace(/\s+/g, " ").trim().slice(0, 300)
+    : "";
+  const chapterLines = (parsed.chapters as Array<Record<string, unknown>>)
+    .slice(0, USER_OUTLINE_CONTRACT_CHAPTER_LIMIT)
+    .map((chapter, index) => {
+      const order = Number.isFinite(Number(chapter.order)) ? Number(chapter.order) : index + 1;
+      const title = String(chapter.title ?? "").replace(/\s+/g, " ").trim().slice(0, 60);
+      const synopsis = String(chapter.synopsis ?? "").replace(/\s+/g, " ").trim().slice(0, 200);
+      const keyEvents = Array.isArray(chapter.keyEvents)
+        ? (chapter.keyEvents as unknown[])
+          .map((event) => String(event ?? "").replace(/\s+/g, " ").trim())
+          .filter(Boolean)
+          .slice(0, 3)
+        : [];
+      const characterNames = Array.isArray(chapter.characterNames)
+        ? (chapter.characterNames as unknown[])
+          .map((name) => String(name ?? "").trim())
+          .filter(Boolean)
+          .slice(0, 6)
+        : [];
+      return [
+        `chapter ${order} "${title}": ${synopsis}`,
+        keyEvents.length > 0 ? `events: ${keyEvents.join("; ")}` : "",
+        characterNames.length > 0 ? `characters: ${characterNames.join(", ")}` : "",
+      ].filter(Boolean).join(" | ");
+    });
+  const totalChapters = parsed.chapters.length;
+  const trailingNote = totalChapters > USER_OUTLINE_CONTRACT_CHAPTER_LIMIT
+    ? `\n... (${totalChapters - USER_OUTLINE_CONTRACT_CHAPTER_LIMIT} more chapters follow the same contract)`
+    : "";
+  const outlineHint = novel.outline?.trim()
+    ? `\nuser outline note: ${novel.outline.replace(/\s+/g, " ").trim().slice(0, 600)}`
+    : "";
+  return [
+    premise ? `book premise: ${premise}` : "",
+    ...chapterLines,
+  ].filter(Boolean).join("\n") + trailingNote + outlineHint;
+}
+
 export function buildCommonNovelContext(novel: VolumeGenerationNovel): string {
   const commercialTags = parseCommercialTags(novel.commercialTagsJson);
   const completion = novel.completionProfile;

@@ -3,6 +3,7 @@ export const queryKeys = {
     all: ["novels"] as const,
     list: (page: number, limit: number) => ["novels", "list", page, limit] as const,
     detail: (id: string) => ["novels", "detail", id] as const,
+    outline: (id: string) => ["novels", "outline", id] as const,
     chapters: (id: string) => ["novels", "chapters", id] as const,
     characters: (id: string) => ["novels", "characters", id] as const,
     characterResources: (id: string) => ["novels", "character-resources", id] as const,

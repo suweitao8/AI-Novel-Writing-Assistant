@@ -14,6 +14,7 @@ import { registerNovelCharacterSyncRoutes } from "../characters/http/novelCharac
 import { registerNovelCharacterVisibleProfileRoutes } from "../characters/http/novelCharacterVisibleProfileRoutes";
 import { registerNovelFramingRoutes } from "../setup/http/novelFramingRoutes";
 import { registerNovelPlanningRoutes } from "../planning/http/novelPlanningRoutes";
+import { registerNovelOutlineRoutes } from "../planning/http/novelOutlineRoutes";
 import { registerNovelProductionRoutes } from "../production/http/novelProductionRoutes";
 import { registerNovelReviewRoutes } from "../production/http/novelReviewRoutes";
 import { registerNovelSnapshotCharacterRoutes } from "../characters/http/novelSnapshotCharacterRoutes";
@@ -93,6 +94,7 @@ export function registerNovelHttpRoutes(router: Router, services: NovelHttpServi
 
   registerShortStoryRoutes(router);
   registerStorySettingsRoutes(router);
+  registerNovelOutlineRoutes(router);
   registerWritingPlatformRoutes(router);
   registerDirectorIssuePolicyRoutes(router);
   registerNovelDirectorRiskPolicyRoutes(router);

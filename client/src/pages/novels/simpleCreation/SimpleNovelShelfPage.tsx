@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
 import SimpleCreationMaterialsPanel from "./SimpleCreationMaterialsPanel";
+import BlankStartPanel from "./BlankStartPanel";
 import OnboardingTip from "@/components/onboarding/OnboardingTip";
 import SimpleCreationIssueGovernancePanel from "./SimpleCreationIssueGovernancePanel";
 
@@ -246,6 +247,14 @@ export default function SimpleNovelShelfPage() {
           <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
             <StorySettingsTabs novelId={id} />
           </section>
+        ) : !shelf.progress.directorTaskId ? (
+          // 还没有 AI 任务（例如空白小说刚创建）：先进入从零开始工作台，
+          // 设定 + 大纲 + 细纲确认后再启动自动导演，之后回到书架的正常阅读台。
+          <BlankStartPanel
+            novelId={id}
+            novelTitle={shelf.novel.title}
+            onGoToSettings={() => setView("settings")}
+          />
         ) : (
         <>
         <SimpleCreationIssueGovernancePanel

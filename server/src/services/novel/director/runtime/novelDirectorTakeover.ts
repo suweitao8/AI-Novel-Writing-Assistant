@@ -25,6 +25,9 @@ export interface DirectorTakeoverNovelContext extends Omit<DirectorProjectContex
   title: string;
   description?: string | null;
   commercialTags: string[];
+  // 空白小说：用户手写简略大纲与确认后的分章细纲（剧情契约 JSON）。
+  outline?: string | null;
+  userChapterOutlineJson?: string | null;
 }
 
 export interface DirectorTakeoverAssetSnapshot {
@@ -190,6 +193,7 @@ function buildTakeoverIdea(novel: DirectorTakeoverNovelContext): string {
   const lines = [
     novel.description?.trim() ? `故事概述：${novel.description.trim()}` : "",
     novel.title.trim() ? `项目标题：《${novel.title.trim()}》` : "",
+    novel.outline?.trim() ? `用户简略大纲（剧情契约，规划必须遵循）：${novel.outline.trim().slice(0, 1200)}` : "",
     novel.targetAudience?.trim() ? `目标读者：${novel.targetAudience.trim()}` : "",
     novel.bookSellingPoint?.trim() ? `书级卖点：${novel.bookSellingPoint.trim()}` : "",
     novel.competingFeel?.trim() ? `对标气质：${novel.competingFeel.trim()}` : "",

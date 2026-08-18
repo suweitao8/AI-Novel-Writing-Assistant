@@ -7,8 +7,14 @@ export function isSimpleCreationWriteAllowed(method: string, path: string): bool
     return true;
   }
   const normalizedPath = path.toLowerCase();
+  // 简易模式整体只读，但三类工作台端点例外：
+  // - creation-experience / export：模式切换与导出；
+  // - settings：设定中心（角色/场景/道具/世界观）是简易书架的正式编辑入口；
+  // - outline：空白小说的大纲工作台（简略大纲与分章细纲在导演启动前属于用户输入区）。
   return /\/creation-experience\/(simple|professional)$/.test(normalizedPath)
-    || normalizedPath.includes("/export");
+    || normalizedPath.includes("/export")
+    || normalizedPath.includes("/settings")
+    || normalizedPath.includes("/outline");
 }
 
 export async function guardSimpleCreationUserWrites(

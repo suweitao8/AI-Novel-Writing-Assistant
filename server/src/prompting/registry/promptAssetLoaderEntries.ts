@@ -30,6 +30,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/storySettings.prompts").storyEntityGeneratePrompt as UnknownPromptAsset,
   },
   {
+    key: "novel.outline.expand@v1",
+    load: () => require("../prompts/novel/outlineExpand.prompts").novelOutlineExpandPrompt as UnknownPromptAsset,
+  },
+  {
     key: "creation.intent.interpret@v2",
     load: () => require("../prompts/creation/creationIntent.prompts").creationIntentInterpretPrompt as UnknownPromptAsset,
   },

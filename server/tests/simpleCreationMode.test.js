@@ -163,12 +163,19 @@ test("director candidate contract requires exactly two directions", () => {
   }).success, false);
 });
 
-test("simple creation write boundary allows reads, exports and experience switching only", () => {
+test("simple creation write boundary allows reads, exports, settings and outline workbenches", () => {
   assert.equal(isSimpleCreationWriteAllowed("GET", "/book/simple-shelf"), true);
   assert.equal(isSimpleCreationWriteAllowed("GET", "/book/export"), true);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/export-as-document"), true);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/creation-experience/professional"), true);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/creation-experience/simple"), true);
+  // 设定中心与空白小说大纲工作台是简易模式的正式编辑入口。
+  assert.equal(isSimpleCreationWriteAllowed("PUT", "/book/settings/scenes/scene-1"), true);
+  assert.equal(isSimpleCreationWriteAllowed("POST", "/book/settings/ensure"), true);
+  assert.equal(isSimpleCreationWriteAllowed("PUT", "/book/outline"), true);
+  assert.equal(isSimpleCreationWriteAllowed("POST", "/book/outline/expand"), true);
+  assert.equal(isSimpleCreationWriteAllowed("PUT", "/book/outline/chapters"), true);
+  // 其余正文与章节写入仍然只读。
   assert.equal(isSimpleCreationWriteAllowed("PUT", "/book"), false);
   assert.equal(isSimpleCreationWriteAllowed("DELETE", "/book/chapters/chapter-1"), false);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/chapters/chapter-1/generate"), false);

@@ -398,6 +398,8 @@ export async function loadDirectorTakeoverState(input: {
         competingFeel: true,
         first30ChapterPromise: true,
         commercialTagsJson: true,
+        outline: true,
+        userChapterOutlineJson: true,
         genreId: true,
         primaryStoryModeId: true,
         secondaryStoryModeId: true,

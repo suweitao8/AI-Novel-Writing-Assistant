@@ -361,6 +361,7 @@ model Novel {
   continuationBookAnalysisSections String?
   outline           String?
   structuredOutline String?
+  userChapterOutlineJson String?
   storyWorldSliceJson String?
   storyWorldSliceOverridesJson String?
   storyWorldSliceSchemaVersion Int @default(1)
