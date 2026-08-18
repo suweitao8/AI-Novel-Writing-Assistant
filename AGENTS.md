@@ -197,6 +197,14 @@ This project is a pure web product: all development targets the website (`client
 - Once the work passes its focused verification, merge the branch back into `main`, push to the remote, then remove the worktree and delete its branch in the same step. Never delete a worktree or branch that still holds unmerged, unfinished changes.
 - `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is worktree branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
 
+### Remote And Multi-Session Discipline
+
+- The remote only ever carries `main` (plus `beta` while a release candidate is being integrated). Never push a session/worktree branch to the remote: once such a branch is merged, it is spent and must be deleted locally, not published.
+- Always push an explicit ref from the main workspace: `git push origin main`. Never run bare `git push`, `git push --all`, `--mirror`, or any form that pushes the current branch implicitly — in a shared workspace the current branch is not guaranteed to be `main`, and this is exactly how stray feature branches ended up on the remote.
+- The main workspace is shared by multiple concurrent AI sessions. Never change global state that other sessions depend on: the checked-out branch, dev ports, running dev processes, or shared config files. If the working tree contains uncommitted changes from another session, leave them untouched and scope your own commits with explicit `git add <paths>`.
+- If a feature branch appears on the remote by accident, verify it is fully merged (`git cherry main <branch>` prints no `+` lines) and delete it with `git push origin --delete <branch>`.
+- Before any branch, worktree, merge, or push operation, re-read this workflow section: the rules may have been updated by another session since this conversation started.
+
 ### Commits
 
 - Commit after each coherent, completed unit of work. Before committing, confirm the working tree contains only that unit's intended changes and that verification matching the change scope has passed, or document the remaining verification gap explicitly.
