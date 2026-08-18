@@ -21,9 +21,16 @@
 
 剩余方向：
 
-- `routes/` 目录 24 个文件中，genre/knowledge/llm/styleEngine/titleLibrary/writingFormula 等仍直连 services，可按 comic/drama 模式建 `modules/<域>/http/`。
+- `routes/` 已完成 genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula 七个域的收敛（llm 归 platform/llm/http/，其余归 modules/<域>/http/，commit cbea50e7）；剩余 17 个（agentCatalog/agentRuns/tasks/settings 系/chat/creativeHub/bookAnalysis/character/images/rag/storyMode/astrology/health/promptWorkbench/autoDirector 系）待后续批次。
 - `prompting/prompts/novel`（42 文件）与 `client/src/pages/novels/components`（64 文件）的目录密度收敛。
 - 根层兼容壳在新代码不再引用后可分批退役。
+
+## 测试环境与验证结论（2026-08-19）
+
+- 服务端测试必须运行在与 better-sqlite3 原生绑定匹配的 Node 上：本机用 WinGet 的 Node v22.22.2（ABI 127）。默认 PATH 的 Node v26 会导致 `ERR_DLOPEN_FAILED`；不要为迁就单一会话随手 rebuild 原生模块，先确认共享 dev 进程的 Node 版本。
+- 兼容壳（`export *` 再导出）的命名空间是只读的：测试对模块导出做 monkey-patch 时必须 require 真实模块路径，不能经过壳。
+- 删除 facade 前的引用检索必须覆盖 `require("…dist/….js")` 形式的测试路径，仅查 TS import 会漏。
+- 失败归属方法：在改动前的基线提交建 worktree 跑同一套测试做差集；本轮 46 个失败经比对全部归属并行会话在途工作或既有问题，结构迁移零残留。
 
 ## Failure Modes
 
