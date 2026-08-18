@@ -4057,3 +4057,39 @@ model ComicBatchJob {
   @@index([episodeId, status])
   @@index([type, status])
 }
+
+// 全局结构化 LLM 调用台账：记录每次调用的用途、模型与耗时，用于诊断“慢在哪一步”。
+// 自动导演通道另有 DirectorLlmUsageRecord 做归因细分，本表是跨通道的统一底账。
+model LlmUsageRecord {
+  id                 String    @id @default(cuid())
+  label              String
+  promptId           String?
+  promptVersion      String?
+  taskType           String?
+  stage              String?
+  itemKey            String?
+  taskId             String?
+  novelId            String?
+  chapterId          String?
+  entrypoint         String?
+  provider           String
+  model              String
+  strategy           String?
+  // succeeded / failed
+  status             String    @default("succeeded")
+  durationMs         Int       @default(0)
+  promptTokens       Int       @default(0)
+  completionTokens   Int       @default(0)
+  totalTokens        Int       @default(0)
+  rawChars           Int?
+  repairAttempts     Int       @default(0)
+  attemptIndex       Int       @default(0)
+  fallbackUsed       Boolean   @default(false)
+  reasoningForcedOff Boolean?
+  errorCategory      String?
+  recordedAt         DateTime  @default(now())
+
+  @@index([taskId, recordedAt])
+  @@index([novelId, recordedAt])
+  @@index([recordedAt])
+}

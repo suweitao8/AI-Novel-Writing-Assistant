@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 
 export function formatConnectionTestResult(response: Awaited<ReturnType<typeof testLLMConnection>>): string {
@@ -40,11 +41,12 @@ interface CategoryFormState {
   apiKey: string;
   model: string;
   baseURL: string;
+  reasoningEnabled: boolean;
 }
 
 export default function ModelCategoryCard(props: ModelCategoryCardProps) {
   const { icon, title, description, status, isImageCategory = false, isAudioCategory = false, onSaved } = props;
-  const [form, setForm] = useState<CategoryFormState>({ apiKey: "", model: "", baseURL: "" });
+  const [form, setForm] = useState<CategoryFormState>({ apiKey: "", model: "", baseURL: "", reasoningEnabled: true });
   const [hydratedFor, setHydratedFor] = useState("");
   const [testResult, setTestResult] = useState("");
   const [saveMessage, setSaveMessage] = useState("");
@@ -58,6 +60,7 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
       apiKey: "",
       model: status.currentModel || status.defaultModel,
       baseURL: status.currentBaseURL || status.defaultBaseURL,
+      reasoningEnabled: status.reasoningEnabled ?? true,
     });
     setTestResult("");
     setSaveMessage("");
@@ -65,12 +68,14 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
 
   const modelOptions = (status?.models ?? []).filter((model) => model && model !== form.model);
 
+  const isTextCategory = !isImageCategory && !isAudioCategory;
   const saveMutation = useMutation({
     mutationFn: () => saveAPIKeySetting(status!.provider, {
       key: form.apiKey.trim() || undefined,
       model: form.model.trim(),
       baseURL: form.baseURL.trim(),
       ...(isImageCategory ? { imageModel: form.model.trim() } : {}),
+      ...(isTextCategory ? { reasoningEnabled: form.reasoningEnabled } : {}),
     }),
     onSuccess: async (response) => {
       setSaveMessage(response.message ?? "保存成功。");
@@ -202,6 +207,20 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
             onChange={(event) => setForm((prev) => ({ ...prev, model: event.target.value }))}
           />
         </label>
+        {isTextCategory ? (
+          <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+            <div className="min-w-0 space-y-1">
+              <div className="text-sm font-medium">思考模式</div>
+              <div className="text-xs leading-5 text-muted-foreground">
+                开启后模型会先推理再输出，结构更稳但耗时更长；追求生成速度可以关闭。部分模型和本机订阅通道不提供思考模式，关闭后不会影响这些通道。
+              </div>
+            </div>
+            <Switch
+              checked={form.reasoningEnabled}
+              onCheckedChange={(checked) => setForm((prev) => ({ ...prev, reasoningEnabled: checked }))}
+            />
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
             {saveMessage ? <div>{saveMessage}</div> : null}

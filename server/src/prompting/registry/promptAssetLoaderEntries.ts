@@ -26,7 +26,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/creation/creationIntent.prompts").creationIntentInterpretPrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.short_story.plan@v2",
+    key: "novel.short_story.plan@v3",
     load: () => require("../prompts/shortStory/shortStory.prompts").shortStoryPlanPrompt as UnknownPromptAsset,
   },
   {

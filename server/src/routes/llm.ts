@@ -30,6 +30,12 @@ const structuredFallbackSchema = z.object({
   maxTokens: z.union([z.number().int().min(64).max(32768), z.null()]).optional(),
 });
 
+const usageRecordsQuerySchema = z.object({
+  taskId: z.string().trim().min(1).optional(),
+  novelId: z.string().trim().min(1).optional(),
+  limit: z.coerce.number().int().min(1).max(200).optional(),
+});
+
 router.use(authMiddleware);
 
 router.get("/providers", async (_req, res, next) => {
@@ -114,6 +120,52 @@ router.post("/model-routes/connectivity", async (_req, res, next) => {
       data,
       message: "模型路由连通性检测完成。",
     } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/usage-records", validate({ query: usageRecordsQuerySchema }), async (req, res, next) => {
+  try {
+    const { taskId, novelId, limit = 50 } = req.query as {
+      taskId?: string;
+      novelId?: string;
+      limit?: number;
+    };
+    const records = await prisma.llmUsageRecord.findMany({
+      where: {
+        ...(taskId ? { taskId } : {}),
+        ...(novelId ? { novelId } : {}),
+      },
+      orderBy: { recordedAt: "desc" },
+      take: limit,
+      select: {
+        id: true,
+        label: true,
+        promptId: true,
+        promptVersion: true,
+        taskType: true,
+        stage: true,
+        itemKey: true,
+        provider: true,
+        model: true,
+        strategy: true,
+        status: true,
+        durationMs: true,
+        promptTokens: true,
+        completionTokens: true,
+        totalTokens: true,
+        repairAttempts: true,
+        fallbackUsed: true,
+        errorCategory: true,
+        recordedAt: true,
+      },
+    });
+    res.status(200).json({
+      success: true,
+      data: records,
+      message: "模型调用记录已加载。",
+    } satisfies ApiResponse<typeof records>);
   } catch (error) {
     next(error);
   }
