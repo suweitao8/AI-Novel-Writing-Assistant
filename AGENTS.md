@@ -168,6 +168,14 @@ These areas have the highest priority for wiki accumulation:
 - Do not delegate destructive operations, database resets, migrations with data-loss risk, public release uploads, or branch promotion decisions.
 - Integrate subagent output through normal review: inspect the diff, confirm it matches the current product and architecture rules, run or reuse appropriate verification, and document residual risk.
 
+## Autonomous Execution Rules
+
+- Once a design document is committed and pushed, treat it as implementation authorization: proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Branch Workflow.
+- Do not ask the user to review a design document, confirm whether implementation should start, or re-ask the same decision in different wording.
+- Rules in this file take precedence over generic skills, external process templates, and model default behavior when they conflict. If an external workflow requires waiting for user design review after the design is committed, skip that step.
+- After a design document is committed, the fixed next step is: create the implementation plan, execute it, verify, then commit and push.
+- Only ask a blocking question when a necessary fact cannot be determined from code, configuration, documentation, or existing artifacts. Execution-method choices, whether to continue, and whether to adopt the current plan are not askable items.
+
 ## Verification Reuse Rules
 
 - Prefer targeted verification that matches the actual change scope.
@@ -188,6 +196,13 @@ These areas have the highest priority for wiki accumulation:
 - After the feature branch has been successfully merged into `beta` and no longer needs follow-up work, clean up that development branch so old feature branches do not accumulate indefinitely.
 - This rule applies in particular to changes that touch cross-stage workflows, shared runtime/prompting/context contracts, automatic director chains, chapter execution chains, data migration behavior, or other changes that can impact the overall chain.
 - Small isolated fixes, copy changes, low-risk UI polish, or documentation-only updates can still be handled without requiring a separate feature development branch unless the user explicitly asks otherwise. If the change is release-facing, still prefer passing through `beta` before `main`.
+
+### Commit Hygiene and Session Wrap-Up
+
+- Before committing, exclude secrets, credentials, local-only configuration, generated artifacts, and test output from the staged scope; stage only files that belong to the current phase.
+- If a credentials or secrets file is found already tracked, switch it to local-only ignore and keep the local copy on this machine; never commit credential content or credential updates.
+- Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed.
+- Never delete the active workspace or anyone's unmerged, unfinished changes during cleanup.
 
 ### Pre-release Beta Branch Workflow
 
