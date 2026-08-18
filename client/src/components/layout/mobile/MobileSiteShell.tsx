@@ -4,7 +4,6 @@ import {
   BookOpenText,
   ChevronRight,
   Home,
-  Images,
   LayoutGrid,
   ListTodo,
   Menu,
@@ -18,7 +17,6 @@ import DesktopBrandMark from "../DesktopBrandMark";
 import ProjectGithubLink from "../ProjectGithubLink";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import { Button } from "@/components/ui/button";
-import { VisualAssetLibraryDialog } from "@/components/visualAssets";
 import { cn } from "@/lib/utils";
 import {
   getMobileMoreNavGroups,
@@ -45,7 +43,6 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [moreOpen, setMoreOpen] = useState(false);
-  const [visualAssetLibraryOpen, setVisualAssetLibraryOpen] = useState(false);
   const activeGroup = getMobileNavGroupForPath(location.pathname);
   const pageTitle = getMobilePageTitle(location.pathname);
   const primaryNavItems = getMobilePrimaryNavItems();
@@ -94,17 +91,6 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
               aria-label={moreOpen ? "关闭更多入口" : "打开更多入口"}
             >
               {moreOpen ? <X className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setVisualAssetLibraryOpen(true)}
-              aria-label="打开视觉资源库"
-              title="视觉资源库"
-            >
-              <Images className="h-4 w-4" />
             </Button>
           </div>
         </div>
@@ -177,7 +163,6 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
           })}
         </div>
       </nav>
-      <VisualAssetLibraryDialog open={visualAssetLibraryOpen} onOpenChange={setVisualAssetLibraryOpen} />
     </div>
   );
 }

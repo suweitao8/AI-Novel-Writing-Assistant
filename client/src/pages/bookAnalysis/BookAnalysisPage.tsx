@@ -372,9 +372,7 @@ export default function BookAnalysisPage() {
         selectedDiagnosisNovelId={workspace.selectedDiagnosisNovelId}
         userFocusInstruction={workspace.userFocusInstruction}
         selectedSourceRange={workspace.selectedSourceRange}
-        budgetTokens={workspace.budgetTokens}
         analysisPreset={workspace.analysisPreset}
-        llmConfig={workspace.llmConfig}
         documentOptions={workspace.documentOptions}
         versionOptions={workspace.versionOptions}
         sourceDocument={workspace.sourceDocument}
@@ -383,6 +381,8 @@ export default function BookAnalysisPage() {
         sourceChaptersLoading={workspace.sourceChaptersLoading}
         sourceChaptersError={workspace.sourceChaptersError}
         novelOptions={workspace.novelOptions}
+        importDocumentStatus={workspace.importDocumentStatus}
+        importDocumentFile={workspace.importDocumentFile}
         createPending={workspace.pending.create}
         createDiagnosisPending={workspace.pending.createDiagnosis}
         onModeChange={workspace.setAnalysisMode}
@@ -391,10 +391,9 @@ export default function BookAnalysisPage() {
         onSelectDiagnosisNovel={workspace.setSelectedDiagnosisNovelId}
         onUserFocusInstructionChange={workspace.setUserFocusInstruction}
         onSourceRangeChange={workspace.setSelectedSourceRange}
-        onBudgetTokensChange={workspace.setBudgetTokens}
+        onImportDocument={workspace.importDocument}
         onRequestSourceChapters={workspace.requestSourceChapters}
         onAnalysisPresetChange={workspace.setAnalysisPreset}
-        onLlmConfigChange={workspace.setLlmConfig}
         onCreate={handleCreate}
         onCreateDiagnosis={handleCreateDiagnosis}
       />

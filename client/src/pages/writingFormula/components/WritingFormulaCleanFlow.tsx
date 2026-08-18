@@ -41,7 +41,7 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
   } = props;
 
   return (
-    <Card className="border-slate-200/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+    <Card className="border-border/80 bg-background/90 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <CardHeader>
         <CardTitle>给这段稿子去 AI 味</CardTitle>
         <div className="text-sm leading-7 text-muted-foreground">
@@ -50,11 +50,11 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
       </CardHeader>
       <CardContent className="space-y-5">
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1.08fr)_minmax(300px,0.92fr)]">
-          <div className="space-y-3 rounded-2xl border bg-slate-50/70 p-4">
+          <div className="space-y-3 rounded-2xl border bg-muted/40 p-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-medium text-slate-900">原稿输入</div>
+              <div className="text-sm font-medium text-foreground">原稿输入</div>
               <SelectControl
-                className="rounded-md border bg-white px-3 py-2 text-sm"
+                className="rounded-md border bg-background px-3 py-2 text-sm"
                 value={selectedProfileId}
                 onChange={(event) => onProfileChange(event.target.value)}
               >
@@ -64,7 +64,7 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
               </SelectControl>
             </div>
             <textarea
-              className="min-h-[280px] w-full rounded-xl border bg-white p-3 text-sm leading-7"
+              className="min-h-[280px] w-full rounded-xl border bg-background p-3 text-sm leading-7"
               placeholder="粘贴你想先去 AI 味的一段正文。"
               value={detectInput}
               onChange={(event) => onInputChange(event.target.value)}
@@ -79,24 +79,24 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
             </div>
           </div>
 
-          <div className="space-y-3 rounded-2xl border bg-white p-4">
-            <div className="text-sm font-medium text-slate-900">问题卡与风险分</div>
+          <div className="space-y-3 rounded-2xl border bg-background p-4">
+            <div className="text-sm font-medium text-foreground">问题卡与风险分</div>
             {detectionReport ? (
               <>
-                <div className="rounded-2xl border bg-slate-950 p-4 text-white">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-300">风险分</div>
+                <div className="rounded-2xl border bg-muted/50 p-4 text-foreground">
+                  <div className="text-xs uppercase tracking-[0.18em] text-muted-foreground">风险分</div>
                   <div className="mt-2 text-3xl font-semibold">{detectionReport.riskScore}</div>
-                  <div className="mt-2 text-sm leading-7 text-slate-200">{detectionReport.summary}</div>
+                  <div className="mt-2 text-sm leading-7 text-muted-foreground">{detectionReport.summary}</div>
                 </div>
                 <div className="space-y-2">
                   {detectionReport.violations.map((violation, index) => (
-                    <div key={`${violation.ruleId}-${index}`} className="rounded-xl border bg-slate-50/70 p-3">
+                    <div key={`${violation.ruleId}-${index}`} className="rounded-xl border bg-muted/40 p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="font-medium text-slate-900">{violation.ruleName}</div>
+                        <div className="font-medium text-foreground">{violation.ruleName}</div>
                         <Badge variant="outline">{violation.severity}</Badge>
                       </div>
-                      <div className="mt-2 text-xs leading-6 text-slate-600">{violation.reason}</div>
-                      <div className="mt-2 whitespace-pre-wrap rounded-lg border bg-white px-3 py-2 text-xs leading-6 text-slate-800">
+                      <div className="mt-2 text-xs leading-6 text-muted-foreground">{violation.reason}</div>
+                      <div className="mt-2 whitespace-pre-wrap rounded-lg border bg-background px-3 py-2 text-xs leading-6 text-foreground">
                         {violation.excerpt}
                       </div>
                     </div>
@@ -111,24 +111,24 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
           </div>
         </section>
 
-        <section className="rounded-2xl border bg-white p-4">
-          <div className="text-sm font-medium text-slate-900">修订前后 diff</div>
+        <section className="rounded-2xl border bg-background p-4">
+          <div className="text-sm font-medium text-foreground">修订前后 diff</div>
           <div className="mt-1 text-xs leading-6 text-muted-foreground">
             这里按段落行做轻量对比，方便你快速判断这次修正是在压模板感，还是把原有语气也一起削掉了。
           </div>
           {rewritePreview ? (
             <div className="mt-4 grid gap-3">
               {diffRows.map((row, index) => (
-                <div key={row.id} className={`grid gap-3 rounded-2xl border p-3 xl:grid-cols-2 ${row.changed ? "border-sky-200 bg-sky-50/40" : "bg-slate-50/40"}`}>
+                <div key={row.id} className={`grid gap-3 rounded-2xl border p-3 xl:grid-cols-2 ${row.changed ? "border-primary/30 bg-primary/10" : "bg-muted/40"}`}>
                   <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">原稿 {index + 1}</div>
-                    <div className="min-h-[72px] rounded-xl border bg-white px-3 py-2 text-sm leading-7 text-slate-700">
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">原稿 {index + 1}</div>
+                    <div className="min-h-[72px] rounded-xl border bg-background px-3 py-2 text-sm leading-7 text-foreground">
                       {row.before || " "}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">修订稿 {index + 1}</div>
-                    <div className="min-h-[72px] rounded-xl border bg-white px-3 py-2 text-sm leading-7 text-slate-900">
+                    <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">修订稿 {index + 1}</div>
+                    <div className="min-h-[72px] rounded-xl border bg-background px-3 py-2 text-sm leading-7 text-foreground">
                       {row.after || " "}
                     </div>
                   </div>
@@ -142,10 +142,10 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
           )}
         </section>
 
-        <section className="rounded-2xl border bg-slate-50/60 p-4">
+        <section className="rounded-2xl border bg-muted/40 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="text-sm font-medium text-slate-900">可沉淀成规则的重复问题</div>
+                <div className="text-sm font-medium text-foreground">可沉淀成规则的重复问题</div>
                 <div className="mt-1 text-xs leading-6 text-muted-foreground">
                   这一版不会强行替你落库，但会先把重复问题整理成建议，方便你带回当前写法编辑决定是否固化。
                 </div>
@@ -157,7 +157,7 @@ export default function WritingFormulaCleanFlow(props: WritingFormulaCleanFlowPr
           {suggestionDrafts.length > 0 ? (
             <div className="mt-4 grid gap-2">
               {suggestionDrafts.map((item) => (
-                <div key={item} className="rounded-xl border bg-white px-3 py-3 text-sm leading-7 text-slate-700">
+                <div key={item} className="rounded-xl border bg-background px-3 py-3 text-sm leading-7 text-foreground">
                   {item}
                 </div>
               ))}

@@ -62,30 +62,30 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
   };
 
   return (
-    <Card className="border-slate-200/80 bg-white shadow-none">
-      <CardHeader className="border-b border-slate-100 pb-5">
+    <Card className="border-border/80 bg-background shadow-none">
+      <CardHeader className="border-b border-border pb-5">
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-2xl bg-slate-950 text-white">
+          <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
             <FlaskConical className="size-5" />
           </div>
           <div>
             <CardTitle>把写法放进故事里验证</CardTitle>
-            <div className="mt-1 text-sm text-slate-500">先试读感，再决定让它在哪个创作环节生效。</div>
+            <div className="mt-1 text-sm text-muted-foreground">先试读感，再决定让它在哪个创作环节生效。</div>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
-        <div className="flex gap-3 rounded-2xl border border-sky-100 bg-sky-50/70 px-4 py-3 text-sm leading-7 text-slate-700">
-          <Sparkles className="mt-1 size-4 shrink-0 text-sky-700" />
+        <div className="flex gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 text-foreground">
+          <Sparkles className="mt-1 size-4 shrink-0 text-primary" />
           <span>这里负责绑定与试写。想修正已有正文时，请从“去 AI 味”进入，避免把写法设定和正文处理混在一起。</span>
         </div>
 
-        <div className="space-y-5 rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,rgba(248,250,252,0.96),rgba(255,255,255,0.96))] p-4 md:p-5">
+        <div className="space-y-5 rounded-3xl border border-border bg-muted/30 p-4 md:p-5">
           <div className="flex gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white text-slate-800 shadow-sm ring-1 ring-slate-200"><Link2 className="size-4" /></div>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-background text-foreground shadow-sm ring-1 ring-border"><Link2 className="size-4" /></div>
             <div className="space-y-1">
-              <div className="text-base font-semibold text-slate-950">绑定到目标</div>
-            <div className="text-sm leading-6 text-slate-500">
+              <div className="text-base font-semibold text-foreground">绑定到目标</div>
+            <div className="text-sm leading-6 text-muted-foreground">
               绑定后，这套写法会在对应小说、章节或任务里参与生成。优先级越高，影响越靠前；权重越高，参与程度越强。
             </div>
             </div>
@@ -93,7 +93,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">绑定层级</div>
+              <div className="text-sm font-medium text-foreground">绑定层级</div>
               <SelectControl
                 className="w-full rounded-md border p-2 text-sm"
                 value={bindingForm.targetType}
@@ -106,7 +106,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
             </label>
 
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">所属小说</div>
+              <div className="text-sm font-medium text-foreground">所属小说</div>
               <SelectControl
                 className="w-full rounded-md border p-2 text-sm"
                 value={bindingForm.novelId}
@@ -118,7 +118,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
 
             {bindingForm.targetType === "chapter" ? (
               <label className="space-y-2">
-                <div className="text-sm font-medium text-slate-900">选择章节</div>
+                <div className="text-sm font-medium text-foreground">选择章节</div>
                 <SelectControl
                   className="w-full rounded-md border p-2 text-sm"
                   value={bindingForm.chapterId}
@@ -136,7 +136,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
 
             {bindingForm.targetType === "task" ? (
               <label className="space-y-2">
-                <div className="text-sm font-medium text-slate-900">任务标识</div>
+                <div className="text-sm font-medium text-foreground">任务标识</div>
                 <input
                   className="w-full rounded-md border p-2 text-sm"
                   placeholder="例如：chapter-draft-001"
@@ -147,7 +147,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
             ) : null}
 
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">优先级</div>
+              <div className="text-sm font-medium text-foreground">优先级</div>
               <input
                 className="w-full rounded-md border p-2 text-sm"
                 type="number"
@@ -159,7 +159,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
             </label>
 
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">权重</div>
+              <div className="text-sm font-medium text-foreground">权重</div>
               <input
                 className="w-full rounded-md border p-2 text-sm"
                 type="number"
@@ -180,35 +180,35 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
           <div className="space-y-2">
             {bindings.length > 0 ? (
               bindings.map((binding) => (
-                <div key={binding.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm">
+                <div key={binding.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-3 text-sm">
                   <div className="min-w-0">
-                    <div className="font-medium text-slate-900">{bindingTargetLabel[binding.targetType]}</div>
-                    <div className="mt-1 truncate text-xs text-slate-500">目标 {binding.targetId} · 优先级 {binding.priority} · 影响 {binding.weight}</div>
+                    <div className="font-medium text-foreground">{bindingTargetLabel[binding.targetType]}</div>
+                    <div className="mt-1 truncate text-xs text-muted-foreground">目标 {binding.targetId} · 优先级 {binding.priority} · 影响 {binding.weight}</div>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => onDeleteBinding(binding.id)}>删除</Button>
                 </div>
               ))
             ) : (
-              <div className="rounded-xl border border-dashed px-3 py-3 text-sm leading-6 text-slate-500">
+              <div className="rounded-xl border border-dashed px-3 py-3 text-sm leading-6 text-muted-foreground">
                 这套写法还没有绑定到任何目标。先绑定到小说或章节，后面的生成链路才会自动带上它。
               </div>
             )}
           </div>
         </div>
 
-        <div className="space-y-5 rounded-3xl border border-slate-200 p-4 md:p-5">
+        <div className="space-y-5 rounded-3xl border border-border p-4 md:p-5">
           <div className="flex gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-800 ring-1 ring-amber-100"><BookOpenText className="size-4" /></div>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-800 dark:text-amber-200 ring-1 ring-amber-500/20"><BookOpenText className="size-4" /></div>
             <div className="space-y-1">
-              <div className="text-base font-semibold text-slate-950">先试写一段</div>
-            <div className="text-sm leading-6 text-slate-500">
+              <div className="text-base font-semibold text-foreground">先试写一段</div>
+            <div className="text-sm leading-6 text-muted-foreground">
               不确定这套写法到底有没有落地成功时，先生成一段或改写一段，是最直观的验证方式。
             </div>
             </div>
           </div>
 
           <label className="space-y-2">
-            <div className="text-sm font-medium text-slate-900">试写方式</div>
+            <div className="text-sm font-medium text-foreground">试写方式</div>
             <SelectControl
               className="w-full rounded-md border p-2 text-sm"
               value={testWriteForm.mode}
@@ -221,7 +221,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
 
           {testWriteForm.mode === "generate" ? (
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">试写主题</div>
+              <div className="text-sm font-medium text-foreground">试写主题</div>
               <input
                 className="w-full rounded-md border p-2 text-sm"
                 placeholder="例如：主角第一次公开翻盘"
@@ -231,7 +231,7 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
             </label>
           ) : (
             <label className="space-y-2">
-              <div className="text-sm font-medium text-slate-900">待改写文本</div>
+              <div className="text-sm font-medium text-foreground">待改写文本</div>
               <textarea
                 className="min-h-[140px] w-full rounded-md border p-2 text-sm"
                 placeholder="粘贴你想用这套写法改写的正文"
@@ -247,11 +247,11 @@ export default function WritingFormulaWorkbenchPanel(props: WritingFormulaWorkbe
           </Button>
 
           {testWriteOutput ? (
-            <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-2xl border border-slate-800 bg-slate-950 p-4 text-sm leading-7 text-slate-100">
+            <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-2xl border border-border bg-muted/50 p-4 text-sm leading-7 text-foreground">
               {testWriteOutput}
             </pre>
           ) : (
-            <div className="rounded-xl border border-dashed px-3 py-3 text-sm leading-6 text-slate-500">
+            <div className="rounded-xl border border-dashed px-3 py-3 text-sm leading-6 text-muted-foreground">
               这里会显示试写结果。你可以用它判断这套写法的推进感、对白质感和整体语气是否已经到位。
             </div>
           )}

@@ -7,7 +7,6 @@ import {
   Database,
   Globe2,
   House,
-  Images,
   LayoutDashboard,
   ListTodo,
   SquareStack,
@@ -32,15 +31,12 @@ import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog"
 import AppVersionBadge from "@/components/layout/AppVersionBadge";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
 import DesktopReleaseNotesDialog from "@/components/layout/DesktopReleaseNotesDialog";
-import { VisualAssetLibraryDialog } from "@/components/visualAssets";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   to: string;
   label: string;
   icon: LucideIcon;
-  action?: "visual_asset_library";
-  disabled?: boolean;
 }
 
 interface NavGroup {
@@ -71,7 +67,6 @@ const navGroups: NavGroup[] = [
       { to: "/style-engine", label: "写法引擎", icon: WandSparkles },
       { to: "/anti-ai-rules", label: "反 AI 规则", icon: ShieldCheck },
       { to: "/base-characters", label: "基础角色库", icon: UsersRound },
-      { to: "#visual-assets", label: "视觉资源库", icon: Images, action: "visual_asset_library" },
     ],
   },
   {
@@ -91,7 +86,6 @@ interface SidebarProps {
 
 export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
   const [badgeQueriesEnabled, setBadgeQueriesEnabled] = useState(false);
-  const [visualAssetLibraryOpen, setVisualAssetLibraryOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setBadgeQueriesEnabled(true), 500);
@@ -178,34 +172,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
               const Icon = item.icon;
               const isNovelEntry = item.to === "/novels";
 
-              if (item.action === "visual_asset_library") {
-                return (
-                  <button
-                    key={item.to}
-                    type="button"
-                    className="relative flex w-full items-center rounded-md py-2 pl-4 pr-2 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-                    onClick={() => setVisualAssetLibraryOpen(true)}
-                  >
-                    <Icon className="h-[18px] w-[18px] shrink-0 mr-3" />
-                    <span className="truncate">{item.label}</span>
-                  </button>
-                );
-              }
-
-              if (item.disabled) {
-                return (
-                  <div
-                    key={item.to}
-                    title="即将推出"
-                    className="relative flex cursor-not-allowed items-center rounded-md py-2 pl-4 pr-2 text-sm opacity-40"
-                  >
-                    <Icon className="h-[18px] w-[18px] shrink-0 mr-3" />
-                    <span className="truncate">{item.label}</span>
-                    <span className="ml-auto text-[10px] text-muted-foreground/60">即将推出</span>
-                  </div>
-                );
-              }
-
               return (
                 <NavLink key={item.to} to={item.to}>
                   {({ isActive }) => (
@@ -257,7 +223,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
         ) : null}
         <LiveExecutionDialog className="w-full justify-start" />
       </div>
-      <VisualAssetLibraryDialog open={visualAssetLibraryOpen} onOpenChange={setVisualAssetLibraryOpen} />
     </aside>
   );
 }

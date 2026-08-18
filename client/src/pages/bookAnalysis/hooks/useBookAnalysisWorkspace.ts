@@ -17,7 +17,8 @@ import {
   rebuildBookAnalysis,
   regenerateBookAnalysisSection,
 } from "@/api/bookAnalysis";
-import { getKnowledgeDocument, getKnowledgeDocumentVersionChapters, listKnowledgeDocuments } from "@/api/knowledge";
+import { getKnowledgeDocument, getKnowledgeDocumentVersionChapters, createKnowledgeDocument, listKnowledgeDocuments } from "@/api/knowledge";
+import { isTxtFile, readTextFile } from "@/lib/textFile";
 import { exportNovelAsKnowledgeDocument, getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { toast } from "@/components/ui/toast";
@@ -60,10 +61,9 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
   const [selectedDiagnosisNovelId, setSelectedDiagnosisNovelId] = useState("");
   const [userFocusInstruction, setUserFocusInstruction] = useState("");
   const [selectedSourceRange, setSelectedSourceRange] = useState<BookAnalysisSourceRangeDraft>(null);
-  const [budgetTokens, setBudgetTokens] = useState<number | null>(null);
   const [sourceChaptersRequested, setSourceChaptersRequested] = useState(false);
   const [analysisPreset, setAnalysisPreset] = useState<BookAnalysisPreset>("standard");
-  const [llmConfig, setLlmConfig] = useState<LLMConfigState>({
+  const [llmConfig] = useState<LLMConfigState>({
     provider: llmStore.provider,
     model: llmStore.model,
     temperature: llmStore.temperature,
@@ -274,11 +274,6 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
       const analysisResponse = await createBookAnalysis({
         documentId: document.id,
         versionId: document.activeVersionId || undefined,
-        provider: llmConfig.provider,
-        model: llmConfig.model || undefined,
-        temperature: llmConfig.temperature,
-        maxTokens: llmConfig.maxTokens,
-        budgetTokens: budgetTokens ?? undefined,
         userFocusInstruction: userFocusInstruction.trim() || DIAGNOSIS_FOCUS_INSTRUCTION,
         includeTimeline,
         enabledSectionKeys: selectedPreset.sectionKeys,
@@ -459,6 +454,37 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     setSourceChaptersRequested(false);
   };
 
+  const importDocumentMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!isTxtFile(file)) {
+        throw new Error("仅支持 .txt 文本文件。");
+      }
+      const content = await readTextFile(file);
+      if (!content) {
+        throw new Error("文件内容为空，或编码格式暂不支持。");
+      }
+      return createKnowledgeDocument({
+        title: file.name.replace(/\.[^.]+$/, "") || file.name,
+        fileName: file.name,
+        content,
+      });
+    },
+    onSuccess: async (response) => {
+      await queryClient.invalidateQueries({ queryKey: ["knowledge", "documents"] });
+      if (!response.data) {
+        return;
+      }
+      toast.success(`《${response.data.title}》导入完成，已选为当前拆书文档。`);
+      selectDocument(response.data.id);
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error && error.message ? error.message : "导入文档失败。",
+        { description: "请确认文件是 txt 文本格式，然后重试。" },
+      );
+    },
+  });
+
   const requestSourceChapters = () => setSourceChaptersRequested(true);
 
   const createAnalysis = async () => {
@@ -468,11 +494,6 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     await createMutation.mutateAsync({
       documentId: selectedDocumentId,
       versionId: selectedVersionId || undefined,
-      provider: llmConfig.provider,
-      model: llmConfig.model || undefined,
-      temperature: llmConfig.temperature,
-      maxTokens: llmConfig.maxTokens,
-      budgetTokens: budgetTokens ?? undefined,
       userFocusInstruction: userFocusInstruction.trim() || undefined,
       sourceRange: selectedSourceRange ?? undefined,
       includeTimeline,
@@ -531,10 +552,10 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     selectedDiagnosisNovelId,
     userFocusInstruction,
     selectedSourceRange,
-    budgetTokens,
     includeTimeline,
     analysisPreset,
-    llmConfig,
+    importDocumentStatus: importDocumentMutation.status,
+    importDocumentFile: importDocumentMutation.variables ?? null,
     sectionDrafts: sectionDraftsState.sectionDrafts,
     publishFeedback: publishingState.publishFeedback,
     styleProfileFeedback: publishingState.styleProfileFeedback,
@@ -594,7 +615,9 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     setSelectedDiagnosisNovelId,
     setUserFocusInstruction,
     setSelectedSourceRange,
-    setBudgetTokens,
+    importDocument: (file: File) => {
+      importDocumentMutation.mutate(file);
+    },
     requestSourceChapters,
     retryAnalyses: () => {
       void analysesQuery.refetch();
@@ -610,7 +633,6 @@ export function useBookAnalysisWorkspace(): BookAnalysisWorkspace {
     },
     setIncludeTimeline,
     setAnalysisPreset,
-    setLlmConfig,
     selectDocument,
     selectVersion,
     openAnalysis,

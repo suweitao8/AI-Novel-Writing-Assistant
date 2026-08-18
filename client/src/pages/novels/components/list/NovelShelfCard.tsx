@@ -1,10 +1,7 @@
-import { BookOpen, Clock3, Download, ImagePlus, Trash2 } from "lucide-react";
+import { BookOpen, Clock3, Download, Gauge, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import type { ImageTaskStatus } from "@ai-novel/shared/types/image";
-import NovelProgrammaticCover from "@/components/common/NovelProgrammaticCover";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { resolveImageAssetUrl } from "@/api/images";
 import { getNovelWorkspaceHref, type NovelListItem } from "./novelListViewModel";
 
 function formatDate(value: string): string {
@@ -44,62 +41,20 @@ function getPrimaryAction(novel: NovelListItem): { label: string; href: string }
   return { label: task ? "继续创作" : "编辑作品", href: workspaceHref };
 }
 
-function getPreviewHref(novel: NovelListItem): string {
-  return novel.narrativeForm === "short_story"
-    ? `/novels/${novel.id}/story`
-    : `/novels/${novel.id}/preview`;
-}
-
-function coverStatusLabel(status?: ImageTaskStatus | null): string {
-  if (status === "queued" || status === "running") return "封面生成中";
-  if (status === "failed" || status === "cancelled") return "重新生成封面";
-  return "生成封面";
-}
-
 export function NovelShelfCard(props: {
   novel: NovelListItem;
-  onManageCover: (novelId: string) => void;
+  onOpenCockpit: (novelId: string) => void;
   onDownload: (input: { novelId: string; novelTitle: string }) => void;
   onDelete: (novelId: string, title: string) => void;
 }) {
   const { novel } = props;
   const action = getPrimaryAction(novel);
   const progress = getProgress(novel);
-  const coverStatus = novel.coverGeneration?.status && novel.coverGeneration.status !== "succeeded"
-    ? novel.coverGeneration.status
-    : null;
-  const generatedCoverUrl = novel.primaryCover?.url
-    ? resolveImageAssetUrl(novel.primaryCover.url)
-    : null;
 
   return (
     <Card className="group overflow-hidden rounded-lg border-border/70 bg-background transition hover:border-primary/35 hover:shadow-sm">
-      <CardContent className="flex h-full flex-col p-3">
-        <Link to={getPreviewHref(novel)} className="block" aria-label={`预览《${novel.title}》`}>
-          <div className="relative aspect-[2/3] overflow-hidden rounded-md bg-muted/50">
-            {generatedCoverUrl ? (
-              <img
-                src={generatedCoverUrl}
-                alt={`${novel.title}封面`}
-                className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
-                loading="lazy"
-              />
-            ) : (
-              <NovelProgrammaticCover
-                title={novel.title}
-                label={getFormLabel(novel)}
-                className="transition duration-200 group-hover:scale-[1.02]"
-              />
-            )}
-            {coverStatus ? (
-              <span className="absolute left-2 top-2 rounded bg-black/65 px-2 py-1 text-[11px] text-white">
-                {coverStatusLabel(coverStatus)}
-              </span>
-            ) : null}
-          </div>
-        </Link>
-
-        <div className="flex min-h-0 flex-1 flex-col pt-3">
+      <CardContent className="flex h-full items-center gap-3 p-3">
+        <div className="flex min-w-0 flex-1 flex-col">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <Link to={action.href} className="line-clamp-1 text-base font-semibold hover:text-primary">
@@ -113,7 +68,7 @@ export function NovelShelfCard(props: {
             </div>
           </div>
 
-          <div className="mt-4 space-y-2">
+          <div className="mt-2.5 space-y-2">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{progress > 0 ? `创作进度 ${progress}%` : "尚未开始正文"}</span>
               <span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" aria-hidden="true" />{formatDate(novel.updatedAt)}</span>
@@ -123,20 +78,22 @@ export function NovelShelfCard(props: {
             </div>
           </div>
 
-          <div className="mt-auto flex flex-wrap items-center gap-2 pt-4">
+          <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
             <Button asChild size="sm" className="flex-1">
               <Link to={action.href}><BookOpen className="mr-1.5 h-4 w-4" aria-hidden="true" />{action.label}</Link>
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              title={coverStatusLabel(coverStatus)}
-              aria-label={coverStatusLabel(coverStatus)}
-              onClick={() => props.onManageCover(novel.id)}
-            >
-              <ImagePlus className="h-4 w-4" aria-hidden="true" />
-            </Button>
+            {novel.narrativeForm !== "short_story" ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                title="打开 AI 驾驶舱"
+                aria-label="打开 AI 驾驶舱"
+                onClick={() => props.onOpenCockpit(novel.id)}
+              >
+                <Gauge className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            ) : null}
             <Button
               type="button"
               size="sm"
@@ -167,25 +124,14 @@ export function NovelShelfCard(props: {
 
 export function NovelContinueCard(props: {
   novel: NovelListItem;
-  onManageCover: (novelId: string) => void;
 }) {
   const { novel } = props;
   const action = getPrimaryAction(novel);
   const progress = getProgress(novel);
-  const generatedCoverUrl = novel.primaryCover?.url
-    ? resolveImageAssetUrl(novel.primaryCover.url)
-    : null;
 
   return (
     <Card className="rounded-lg border-border/70 bg-background">
-      <CardContent className="flex min-h-[132px] items-center gap-3 p-3">
-        <Link to={getPreviewHref(novel)} className="relative h-[108px] w-[72px] shrink-0 overflow-hidden rounded bg-muted" aria-label={`预览《${novel.title}》`}>
-          {generatedCoverUrl ? (
-            <img src={generatedCoverUrl} alt={`${novel.title}封面`} className="h-full w-full object-cover" loading="lazy" />
-          ) : (
-            <NovelProgrammaticCover title={novel.title} />
-          )}
-        </Link>
+      <CardContent className="flex min-h-[110px] items-center p-3">
         <div className="min-w-0 flex-1">
           <Link to={action.href} className="line-clamp-1 text-sm font-semibold hover:text-primary">{novel.title}</Link>
           <div className="mt-1 text-xs text-muted-foreground">{getFormLabel(novel)} · {progress}%</div>
@@ -195,9 +141,6 @@ export function NovelContinueCard(props: {
           <div className="mt-3 flex items-center gap-2">
             <Button asChild size="sm" className="h-8 flex-1 px-2 text-xs">
               <Link to={action.href}>{action.label}</Link>
-            </Button>
-            <Button type="button" size="sm" variant="outline" className="h-8 w-8 p-0" title="管理封面" aria-label="管理封面" onClick={() => props.onManageCover(novel.id)}>
-              <ImagePlus className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>

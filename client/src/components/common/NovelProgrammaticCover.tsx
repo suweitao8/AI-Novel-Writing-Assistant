@@ -73,6 +73,8 @@ interface NovelProgrammaticCoverProps {
   title: string;
   /** 封面底部的小字说明，例如“短篇 / 长篇原创”。 */
   label?: string;
+  /** 纵版用于独立封面场景，横版用于列表缩略图等紧凑场景。 */
+  orientation?: "portrait" | "landscape";
   className?: string;
 }
 
@@ -80,15 +82,20 @@ export default function NovelProgrammaticCover(props: NovelProgrammaticCoverProp
   const gradientId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const title = props.title.trim() || "未命名作品";
   const palette = pickPalette(title);
-  const lines = wrapTitleLines(title, 7, 4);
+  const isLandscape = props.orientation === "landscape";
+  const lines = wrapTitleLines(title, isLandscape ? 12 : 7, isLandscape ? 2 : 4);
   const maxLineUnits = Math.max(...lines.map((line) => Array.from(line).reduce((sum, ch) => sum + charUnits(ch), 0)));
-  const fontSize = maxLineUnits <= 3 ? 30 : maxLineUnits <= 5 ? 26 : 22;
+  const fontSize = isLandscape
+    ? (maxLineUnits <= 5 ? 30 : maxLineUnits <= 8 ? 26 : 22)
+    : (maxLineUnits <= 3 ? 30 : maxLineUnits <= 5 ? 26 : 22);
   const lineHeight = fontSize * 1.4;
-  const firstLineY = 150 - ((lines.length - 1) * lineHeight) / 2 + fontSize * 0.35;
+  const centerY = isLandscape ? 100 : 150;
+  const firstLineY = centerY - ((lines.length - 1) * lineHeight) / 2 + fontSize * 0.35;
+  const textX = isLandscape ? 20 : 22;
 
   return (
     <svg
-      viewBox="0 0 200 300"
+      viewBox={isLandscape ? "0 0 300 200" : "0 0 200 300"}
       role="img"
       aria-label={`《${title}》封面`}
       preserveAspectRatio="xMidYMid slice"
@@ -100,14 +107,14 @@ export default function NovelProgrammaticCover(props: NovelProgrammaticCoverProp
           <stop offset="100%" stopColor={palette.to} />
         </linearGradient>
       </defs>
-      <rect width="200" height="300" fill={`url(#npc-${gradientId})`} />
-      <circle cx="168" cy="52" r="86" fill="#ffffff" opacity="0.05" />
-      <circle cx="30" cy="262" r="104" fill="#000000" opacity="0.10" />
-      <rect x="22" y="38" width="30" height="3.5" rx="1.75" fill={palette.accent} />
+      <rect width={isLandscape ? 300 : 200} height={isLandscape ? 200 : 300} fill={`url(#npc-${gradientId})`} />
+      <circle cx={isLandscape ? 252 : 168} cy={isLandscape ? 38 : 52} r={86} fill="#ffffff" opacity="0.05" />
+      <circle cx={isLandscape ? 46 : 30} cy={isLandscape ? 174 : 262} r={104} fill="#000000" opacity="0.10" />
+      <rect x={textX} y={isLandscape ? 26 : 38} width={isLandscape ? 36 : 30} height={3.5} rx={1.75} fill={palette.accent} />
       {lines.map((line, index) => (
         <text
           key={index}
-          x="22"
+          x={textX}
           y={firstLineY + index * lineHeight}
           fontSize={fontSize}
           fontWeight={700}
@@ -119,7 +126,7 @@ export default function NovelProgrammaticCover(props: NovelProgrammaticCoverProp
         </text>
       ))}
       {props.label ? (
-        <text x="22" y="274" fontSize="11" fill="#ffffff" opacity="0.72" letterSpacing="3">
+        <text x={textX} y={isLandscape ? 176 : 274} fontSize="11" fill="#ffffff" opacity="0.72" letterSpacing="3">
           {props.label}
         </text>
       ) : null}

@@ -14,7 +14,7 @@ import type {
 } from "@ai-novel/shared/types/bookAnalysisCharacter";
 import type { CharacterProfile } from "@ai-novel/shared/types/characterProfile";
 import type { DocumentChapter, KnowledgeDocumentDetail, KnowledgeDocumentSummary } from "@ai-novel/shared/types/knowledge";
-import type { AggregatedEvidenceItem, LLMConfigState, SectionDraft } from "../bookAnalysis.types";
+import type { AggregatedEvidenceItem, SectionDraft } from "../bookAnalysis.types";
 
 export type ExportFormat = "markdown" | "json";
 export type BookAnalysisMode = "reference" | "diagnosis";
@@ -71,10 +71,10 @@ export interface BookAnalysisWorkspace {
   selectedDiagnosisNovelId: string;
   userFocusInstruction: string;
   selectedSourceRange: BookAnalysisSourceRangeDraft;
-  budgetTokens: number | null;
   includeTimeline: boolean;
   analysisPreset: BookAnalysisPreset;
-  llmConfig: LLMConfigState;
+  importDocumentStatus: "idle" | "pending" | "success" | "error";
+  importDocumentFile: File | null;
   sectionDrafts: Record<string, SectionDraft>;
   publishFeedback: string;
   styleProfileFeedback: string;
@@ -103,7 +103,7 @@ export interface BookAnalysisWorkspace {
   setSelectedDiagnosisNovelId: (novelId: string) => void;
   setUserFocusInstruction: (instruction: string) => void;
   setSelectedSourceRange: (range: BookAnalysisSourceRangeDraft) => void;
-  setBudgetTokens: (budgetTokens: number | null) => void;
+  importDocument: (file: File) => void;
   requestSourceChapters: () => void;
   retryAnalyses: () => void;
   retryDetail: () => void;
@@ -111,7 +111,6 @@ export interface BookAnalysisWorkspace {
   retryChapters: () => void;
   setIncludeTimeline: (include: boolean) => void;
   setAnalysisPreset: (preset: BookAnalysisPreset) => void;
-  setLlmConfig: (config: LLMConfigState) => void;
   selectDocument: (documentId: string) => void;
   selectVersion: (versionId: string) => void;
   openAnalysis: (analysisId: string, documentId: string) => void;

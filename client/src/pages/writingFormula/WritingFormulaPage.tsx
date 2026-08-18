@@ -47,13 +47,23 @@ import { normalizeWritingFormulaMode } from "./writingFormulaV2.shared";
 
 type WorkspaceDialog = null | "editor" | "workbench" | "clean";
 
+const SELECTED_PROFILE_STORAGE_KEY = "ai-novel.style-engine.selected-profile";
+
+function readStoredSelectedProfileId(): string {
+  try {
+    return window.localStorage.getItem(SELECTED_PROFILE_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 export default function WritingFormulaPage() {
   const llm = useLLMStore();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const editorDialogRef = useRef<HTMLDivElement | null>(null);
-  const [selectedProfileId, setSelectedProfileId] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState(readStoredSelectedProfileId);
   const [message, setMessage] = useState("");
   const [activeWorkspaceDialog, setActiveWorkspaceDialog] = useState<WorkspaceDialog>(
     searchParams.get("profileId") ? "editor" : null,
@@ -172,10 +182,25 @@ export default function WritingFormulaPage() {
   };
 
   useEffect(() => {
-    if (!selectedProfileId && profiles.length > 0) {
-      setSelectedProfileId(profiles[0].id);
+    if (profiles.length === 0) {
+      return;
     }
+    if (profiles.some((item) => item.id === selectedProfileId)) {
+      return;
+    }
+    setSelectedProfileId(profiles[0].id);
   }, [profiles, selectedProfileId]);
+
+  useEffect(() => {
+    if (!selectedProfileId) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(SELECTED_PROFILE_STORAGE_KEY, selectedProfileId);
+    } catch {
+      // 本地存储不可用时仅保留内存中的选择。
+    }
+  }, [selectedProfileId]);
 
   useEffect(() => {
     if (!bindingForm.novelId && novelOptions.length > 0) {
@@ -503,8 +528,8 @@ export default function WritingFormulaPage() {
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-1">
-          <div className="text-sm font-medium uppercase tracking-[0.18em] text-slate-500">Style Engine V2</div>
-          <div className="text-2xl font-semibold tracking-tight text-slate-950">写法引擎</div>
+          <div className="text-sm font-medium uppercase tracking-[0.18em] text-muted-foreground">Style Engine V2</div>
+          <div className="text-2xl font-semibold tracking-tight text-foreground">写法引擎</div>
         </div>
         <OpenInCreativeHubButton bindings={{ styleProfileId: selectedProfileId || null }} label="把这套写法带去创作中枢" />
       </div>

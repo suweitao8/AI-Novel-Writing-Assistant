@@ -203,9 +203,9 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[min(780px,92vh)] max-w-5xl flex-col overflow-hidden p-0">
-        <DialogHeader className="shrink-0 border-b border-slate-100 bg-[linear-gradient(135deg,rgba(248,250,252,0.95),rgba(255,255,255,0.98))] px-6 py-5 pr-14">
+        <DialogHeader className="shrink-0 border-b border-border bg-muted/30 px-6 py-5 pr-14">
           <div className="flex items-start gap-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white"><WandSparkles className="size-5" /></div>
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground"><WandSparkles className="size-5" /></div>
             <div>
               <DialogTitle>从一种读感开始</DialogTitle>
           <DialogDescription>
@@ -216,19 +216,19 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as typeof activeTab)} className="flex min-h-0 flex-1 flex-col space-y-4 px-6 pb-6 pt-4">
-          <TabsList className="grid h-auto w-full shrink-0 grid-cols-3 rounded-2xl bg-slate-100/80 p-1">
+          <TabsList className="grid h-auto w-full shrink-0 grid-cols-3 rounded-2xl bg-muted/80 p-1">
             <TabsTrigger value="quick_start" className="gap-1.5 rounded-xl py-2.5"><BookOpenText className="size-4" />用模板开始</TabsTrigger>
             <TabsTrigger value="blank" className="gap-1.5 rounded-xl py-2.5"><MessageCircleMore className="size-4" />说一句想法</TabsTrigger>
             <TabsTrigger value="extract" className="gap-1.5 rounded-xl py-2.5"><Sparkles className="size-4" />从素材学习</TabsTrigger>
           </TabsList>
 
           <TabsContent value="quick_start" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-sm leading-6 text-slate-700">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-foreground">
               不确定从哪里开始时，先选一套接近的写法。创建后可以继续换题材、调节奏，再用试写确认读感。
             </div>
             <div className="grid gap-3 pr-1 md:grid-cols-2">
               {templates.map((template) => (
-                <div key={template.id} className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-slate-400 hover:shadow-sm">
+                <div key={template.id} className="rounded-2xl border border-border bg-background p-4 transition hover:border-border hover:shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="text-base font-semibold text-foreground">{template.name}</div>
@@ -263,11 +263,11 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
           </TabsContent>
 
           <TabsContent value="blank" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-            <div className="rounded-2xl border border-sky-100 bg-sky-50/60 p-4 text-sm leading-6 text-slate-700">
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm leading-6 text-foreground">
               只要说清楚你希望读者读到什么感觉，AI 会先搭出可试写的第一版；熟悉规则时，也可以从空白开始维护。
             </div>
             <div className="grid gap-4 lg:grid-cols-2">
-              <div className="order-2 rounded-2xl border border-slate-200 bg-white p-4 lg:order-1">
+              <div className="order-2 rounded-2xl border border-border bg-background p-4 lg:order-1">
                 <div className="mb-3">
                   <div className="text-sm font-medium text-foreground">自己从空白开始</div>
                   <div className="mt-1 text-xs leading-5 text-muted-foreground">
@@ -291,9 +291,9 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                 </div>
               </div>
 
-              <div className="order-1 rounded-2xl border border-slate-950 bg-[linear-gradient(135deg,rgba(15,23,42,0.04),rgba(240,249,255,0.86))] p-4 lg:order-2">
+              <div className="order-1 rounded-2xl border border-primary/20 bg-primary/5 p-4 lg:order-2">
                 <div className="mb-3">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Sparkles className="size-4 text-sky-700" />AI 帮我先搭一套</div>
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground"><Sparkles className="size-4 text-primary" />AI 帮我先搭一套</div>
                   <div className="mt-1 text-xs leading-5 text-muted-foreground">
                     适合你只知道想写成什么感觉，还不想先手填规则字段。
                   </div>
@@ -361,13 +361,13 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                         type="button"
                         className={`rounded-2xl border px-3 py-3 text-left transition ${
                           active
-                            ? "border-slate-950 bg-slate-950 text-white shadow"
-                            : "border-slate-200 bg-white hover:border-slate-400"
+                            ? "border-primary bg-primary text-primary-foreground shadow"
+                            : "border-border bg-background hover:border-border"
                         }`}
                         onClick={() => onFormChange({ materialSource: option.key })}
                       >
                         <div className="text-sm font-semibold">{option.label}</div>
-                        <div className={`mt-1 text-xs leading-5 ${active ? "text-slate-200" : "text-slate-500"}`}>
+                        <div className={`mt-1 text-xs leading-5 ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                           {option.summary}
                         </div>
                       </button>
@@ -410,7 +410,7 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                             key={document.id}
                             type="button"
                             className={`rounded-xl border px-3 py-3 text-left transition ${
-                              selected ? "border-slate-950 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"
+                              selected ? "border-primary bg-primary/10" : "border-border bg-background hover:border-border"
                             }`}
                             disabled={document.status === "archived"}
                             onClick={() => onFormChange({
@@ -421,25 +421,25 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="text-sm font-medium text-slate-950">{document.title}</div>
-                                <div className="mt-1 text-xs leading-5 text-slate-500">{document.fileName}</div>
+                                <div className="text-sm font-medium text-foreground">{document.title}</div>
+                                <div className="mt-1 text-xs leading-5 text-muted-foreground">{document.fileName}</div>
                               </div>
                               <Badge variant={selected ? "default" : "outline"}>
                                 {selected ? "已选择" : formatKnowledgeStatus(document.status)}
                               </Badge>
                             </div>
-                            <div className="mt-2 text-xs leading-5 text-slate-500">
+                            <div className="mt-2 text-xs leading-5 text-muted-foreground">
                               活动版本 v{document.activeVersionNumber} · {document.versionCount} 个版本 · {document.bookAnalysisCount} 个拆书结果
                             </div>
                           </button>
                         );
                       })}
                     </div>
-                    <div className="space-y-2 rounded-xl border bg-white p-3">
+                    <div className="space-y-2 rounded-xl border bg-background p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-sm font-medium text-slate-950">原文处理方式</div>
+                        <div className="text-sm font-medium text-foreground">原文处理方式</div>
                         {activeKnowledgeVersion ? (
-                          <div className="text-xs text-slate-500">
+                          <div className="text-xs text-muted-foreground">
                             来源快照 {formatCharCount(activeKnowledgeVersion.charCount)}
                           </div>
                         ) : null}
@@ -453,8 +453,8 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                               type="button"
                               className={`rounded-xl border px-3 py-3 text-left transition ${
                                 active
-                                  ? "border-slate-950 bg-slate-950 text-white"
-                                  : "border-slate-200 bg-white hover:border-slate-400"
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-border bg-background hover:border-border"
                               }`}
                               onClick={() => onFormChange({ knowledgeSourceProcessingMode: option.key })}
                             >
@@ -464,7 +464,7 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                                   <Badge variant={active ? "secondary" : "outline"}>{option.badge}</Badge>
                                 ) : null}
                               </div>
-                              <div className={`mt-1 text-xs leading-5 ${active ? "text-slate-200" : "text-slate-500"}`}>
+                              <div className={`mt-1 text-xs leading-5 ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                                 {option.summary}
                               </div>
                             </button>
@@ -472,30 +472,30 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                         })}
                       </div>
                       {form.knowledgeSourceProcessingMode === "representative_sample" ? (
-                        <div className="text-xs leading-5 text-slate-500">
+                        <div className="text-xs leading-5 text-muted-foreground">
                           写法资产会继续保留完整来源预览；模型只读取代表性样本，避免长篇全文一次性超出模型承载能力。
                         </div>
                       ) : (
-                        <div className="text-xs leading-5 text-amber-700">
+                        <div className="text-xs leading-5 text-amber-700 dark:text-amber-300">
                           全文提取会把活动版本全文交给模型。长篇原文建议先使用智能抽样。
                         </div>
                       )}
                     </div>
-                    <div className="rounded-xl border bg-slate-50/80 p-3 text-sm leading-6 text-slate-700">
+                    <div className="rounded-xl border bg-muted/40 p-3 text-sm leading-6 text-foreground">
                       {selectedKnowledgeDocumentLoading ? (
                         "读取所选文档的活动版本..."
                       ) : selectedKnowledgeDocument ? (
                         <>
-                          <div className="font-medium text-slate-950">{selectedKnowledgeDocument.title}</div>
+                          <div className="font-medium text-foreground">{selectedKnowledgeDocument.title}</div>
                           {activeKnowledgeVersion ? (
-                            <div className="mt-1 text-xs text-slate-500">
+                            <div className="mt-1 text-xs text-muted-foreground">
                               活动版本 v{activeKnowledgeVersion.versionNumber} · {formatCharCount(activeKnowledgeVersion.charCount)}
                             </div>
                           ) : (
-                            <div className="mt-1 text-xs text-amber-700">所选文档缺少活动版本，不能提交。</div>
+                            <div className="mt-1 text-xs text-amber-700 dark:text-amber-300">所选文档缺少活动版本，不能提交。</div>
                           )}
                           {activeKnowledgeVersion && !activeKnowledgeVersion.content.trim() ? (
-                            <div className="mt-1 text-xs text-amber-700">活动版本正文为空，不能提交。</div>
+                            <div className="mt-1 text-xs text-amber-700 dark:text-amber-300">活动版本正文为空，不能提交。</div>
                           ) : null}
                         </>
                       ) : (
@@ -531,7 +531,7 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                             key={analysis.id}
                             type="button"
                             className={`rounded-xl border px-3 py-3 text-left transition ${
-                              selected ? "border-slate-950 bg-slate-50" : "border-slate-200 bg-white hover:border-slate-400"
+                              selected ? "border-primary bg-primary/10" : "border-border bg-background hover:border-border"
                             }`}
                             onClick={() => onFormChange({
                               bookAnalysisId: analysis.id,
@@ -541,14 +541,14 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div>
-                                <div className="text-sm font-medium text-slate-950">{analysis.title}</div>
-                                <div className="mt-1 text-xs leading-5 text-slate-500">{analysis.documentTitle}</div>
+                                <div className="text-sm font-medium text-foreground">{analysis.title}</div>
+                                <div className="mt-1 text-xs leading-5 text-muted-foreground">{analysis.documentTitle}</div>
                               </div>
                               <Badge variant={selected ? "default" : "outline"}>
                                 {selected ? "已选择" : "可生成"}
                               </Badge>
                             </div>
-                            <div className="mt-2 text-xs leading-5 text-slate-500">
+                            <div className="mt-2 text-xs leading-5 text-muted-foreground">
                               来源版本 v{analysis.documentVersionNumber} · {analysis.summary || "拆书结果可用于生成写法"}
                             </div>
                           </button>
@@ -558,7 +558,7 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                   </div>
                 ) : null}
 
-                <div className="sticky bottom-0 -mx-4 border-t bg-white/95 px-4 py-3 backdrop-blur">
+                <div className="sticky bottom-0 -mx-4 border-t bg-background/95 px-4 py-3 backdrop-blur">
                   <Button
                     className="w-full"
                     onClick={onSubmitExtractionTask}
@@ -582,15 +582,15 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                         这一路会直接读取拆书里的文风与技法小节，生成后立即打开写法编辑。
                       </div>
                     </div>
-                    <div className="rounded-xl border bg-slate-50/80 p-4 text-sm leading-6 text-slate-700">
+                    <div className="rounded-xl border bg-muted/40 p-4 text-sm leading-6 text-foreground">
                       {selectedBookAnalysis ? (
                         <>
-                          <div className="font-medium text-slate-950">{selectedBookAnalysis.title}</div>
-                          <div className="mt-1 text-xs text-slate-500">
+                          <div className="font-medium text-foreground">{selectedBookAnalysis.title}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">
                             来源文档：{selectedBookAnalysis.documentTitle} · v{selectedBookAnalysis.documentVersionNumber}
                           </div>
                           {selectedBookAnalysis.summary ? (
-                            <div className="mt-3 text-xs leading-6 text-slate-600">{selectedBookAnalysis.summary}</div>
+                            <div className="mt-3 text-xs leading-6 text-muted-foreground">{selectedBookAnalysis.summary}</div>
                           ) : null}
                         </>
                       ) : (
@@ -615,34 +615,34 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                             type="button"
                             className={`rounded-2xl border px-4 py-4 text-left transition ${
                               active
-                                ? "border-slate-950 bg-slate-950 text-white shadow-lg"
-                                : "border-slate-200 bg-white hover:border-slate-400"
+                                ? "border-primary bg-primary text-primary-foreground shadow-lg"
+                                : "border-border bg-background hover:border-border"
                             }`}
                             onClick={() => onPresetChange(preset.key)}
                           >
                             <div className="flex items-center justify-between gap-3">
                               <div className="text-base font-semibold">{preset.label}</div>
-                              {active ? <Badge variant="secondary" className="bg-white/10 text-white">当前方案</Badge> : null}
+                              {active ? <Badge variant="secondary" className="bg-background/10 text-white">当前方案</Badge> : null}
                             </div>
-                            <div className={`mt-2 text-sm leading-6 ${active ? "text-slate-200" : "text-slate-600"}`}>
+                            <div className={`mt-2 text-sm leading-6 ${active ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
                               {preset.summary}
                             </div>
                           </button>
                         );
                       })}
                     </div>
-                    <div className="rounded-xl border bg-amber-50/80 p-3 text-xs leading-6 text-amber-900">
+                    <div className="rounded-xl border bg-amber-500/10 p-3 text-xs leading-6 text-amber-800 dark:text-amber-200">
                       会按“{selectedPreset.label}”提交后台任务。任务完成后系统会自动保存，不需要再手动点一次保存成写法。
                     </div>
                     {activeExtractionTask ? (
-                      <div className="rounded-xl border bg-slate-50/80 p-4 text-sm text-slate-700">
+                      <div className="rounded-xl border bg-muted/40 p-4 text-sm text-foreground">
                         <div className="flex items-center justify-between gap-3">
-                          <div className="font-medium text-slate-900">后台任务</div>
+                          <div className="font-medium text-foreground">后台任务</div>
                           <Badge variant={extractionTaskIsActive ? "secondary" : "outline"}>
                             {formatTaskStatus(activeExtractionTask)}
                           </Badge>
                         </div>
-                        <div className="mt-3 space-y-2 text-xs leading-5 text-slate-600">
+                        <div className="mt-3 space-y-2 text-xs leading-5 text-muted-foreground">
                           <div>任务标题：{activeExtractionTask.title}</div>
                           <div>执行阶段：{activeExtractionTask.currentStage ?? "等待调度"}</div>
                           <div>任务进度：{Math.round(activeExtractionTask.progress * 100)}%</div>

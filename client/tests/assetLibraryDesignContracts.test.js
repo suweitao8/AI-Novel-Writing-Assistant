@@ -130,7 +130,9 @@ test("world workspace keeps handbook reading primary and AI maintenance guided",
   assert.match(worldDeepening, /补齐关键设定/);
   assert.match(worldConsistency, /检查世界一致性/);
   assert.match(worldAssets, /rounded-full px-4 py-2/);
-  assert.match(worldAssets, /地图与图谱/);
+  assert.doesNotMatch(worldAssets, /地图与图谱/);
+  assert.doesNotMatch(worldAssets, /预留能力/);
+  assert.match(worldAssets, /参考资料/);
   assert.match(worldAssets, /版本快照/);
   assert.match(worldAssets, /导出备份/);
   assert.match(worldAssets, /导入文本/);
@@ -198,9 +200,12 @@ test("story mode library reuses the tree navigator and keeps mode contracts in t
   assert.doesNotMatch(storyModeTreeBrowser, /shadow-(?:sm|md|lg|xl|2xl)/);
 });
 
-test("writing formula keeps a compact asset list and reveals the selected profile in place", () => {
+test("writing formula pins the active profile on top and keeps idle profiles uniform", () => {
   assert.match(writingFormulaLanding, /先选一套写法，再决定要编辑、应用还是去 AI 味/);
-  assert.match(writingFormulaLanding, /isSelected \? \(/);
+  assert.match(writingFormulaLanding, /当前使用的写法/);
+  assert.match(writingFormulaLanding, /activeProfile/);
+  assert.match(writingFormulaLanding, /其他写法/);
+  assert.doesNotMatch(writingFormulaLanding, /isSelected \? \(/);
   assert.match(writingFormulaLanding, /读感与定位/);
   assert.match(writingFormulaLanding, /规则摘要/);
   assert.match(writingFormulaLanding, /资产概览/);

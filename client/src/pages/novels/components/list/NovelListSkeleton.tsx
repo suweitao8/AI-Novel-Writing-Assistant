@@ -1,25 +1,13 @@
 export function NovelListSkeleton() {
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {Array.from({ length: 4 }).map((_, index) => (
-        <div key={`loading-${index}`} className="space-y-4 rounded-xl border bg-background/90 p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-2">
-              <div className="h-6 w-48 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-64 animate-pulse rounded bg-muted" />
-            </div>
-            <div className="h-7 w-20 animate-pulse rounded bg-muted" />
-          </div>
-          <div className="h-16 animate-pulse rounded bg-muted" />
-          <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-border/55 py-3 sm:grid-cols-4">
-            {Array.from({ length: 4 }).map((__, metricIndex) => (
-              <div key={`metric-${index}-${metricIndex}`} className="h-9 animate-pulse rounded bg-muted" />
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <div className="h-9 w-28 animate-pulse rounded bg-muted" />
-            <div className="h-9 w-20 animate-pulse rounded bg-muted" />
-            <div className="h-9 w-20 animate-pulse rounded bg-muted" />
+    <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-4 xl:grid-cols-6">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div key={`loading-${index}`} className="flex items-center gap-3 rounded-xl border bg-background/90 p-3">
+          <div className="min-w-0 flex-1 space-y-2.5 py-1">
+            <div className="h-5 w-3/5 animate-pulse rounded bg-muted" />
+            <div className="h-3.5 w-2/5 animate-pulse rounded bg-muted" />
+            <div className="h-1.5 animate-pulse rounded-full bg-muted" />
+            <div className="h-8 animate-pulse rounded-md bg-muted" />
           </div>
         </div>
       ))}

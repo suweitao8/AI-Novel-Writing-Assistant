@@ -1,16 +1,15 @@
+import { useRef } from "react";
+import { Check, FileText, Loader2, Upload } from "lucide-react";
 import {
   BOOK_ANALYSIS_PRESETS,
   BOOK_ANALYSIS_SECTIONS,
-  DEFAULT_BOOK_ANALYSIS_BUDGET_TOKENS,
   type BookAnalysisPreset,
 } from "@ai-novel/shared/types/bookAnalysis";
 import type { DocumentChapter, KnowledgeDocumentDetail, KnowledgeDocumentSummary } from "@ai-novel/shared/types/knowledge";
-import LLMSelector from "@/components/common/LLMSelector";
 import BookAnalysisSourceRangePicker from "./BookAnalysisSourceRangePicker";
 import { Button } from "@/components/ui/button";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import type { LLMConfigState } from "../bookAnalysis.types";
+import { cn } from "@/lib/utils";
 import type { BookAnalysisMode, BookAnalysisSourceRangeDraft, NovelOption } from "../hooks/bookAnalysisWorkspace.types";
 import SelectControl from "@/components/common/SelectControl";
 
@@ -23,9 +22,7 @@ interface BookAnalysisCreateDialogProps {
   selectedDiagnosisNovelId: string;
   userFocusInstruction: string;
   selectedSourceRange: BookAnalysisSourceRangeDraft;
-  budgetTokens: number | null;
   analysisPreset: BookAnalysisPreset;
-  llmConfig: LLMConfigState;
   documentOptions: KnowledgeDocumentSummary[];
   versionOptions: KnowledgeDocumentDetail["versions"];
   sourceDocument?: KnowledgeDocumentDetail;
@@ -34,6 +31,8 @@ interface BookAnalysisCreateDialogProps {
   sourceChaptersLoading: boolean;
   sourceChaptersError: string;
   novelOptions: NovelOption[];
+  importDocumentStatus: "idle" | "pending" | "success" | "error";
+  importDocumentFile: File | null;
   createPending: boolean;
   createDiagnosisPending: boolean;
   onModeChange: (mode: BookAnalysisMode) => void;
@@ -42,10 +41,9 @@ interface BookAnalysisCreateDialogProps {
   onSelectDiagnosisNovel: (novelId: string) => void;
   onUserFocusInstructionChange: (instruction: string) => void;
   onSourceRangeChange: (range: BookAnalysisSourceRangeDraft) => void;
-  onBudgetTokensChange: (budgetTokens: number | null) => void;
+  onImportDocument: (file: File) => void;
   onRequestSourceChapters: () => void;
   onAnalysisPresetChange: (preset: BookAnalysisPreset) => void;
-  onLlmConfigChange: (config: LLMConfigState) => void;
   onCreate: () => void;
   onCreateDiagnosis: () => void;
 }
@@ -84,9 +82,7 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
     selectedDiagnosisNovelId,
     userFocusInstruction,
     selectedSourceRange,
-    budgetTokens,
     analysisPreset,
-    llmConfig,
     documentOptions,
     versionOptions,
     sourceDocument,
@@ -95,6 +91,8 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
     sourceChaptersLoading,
     sourceChaptersError,
     novelOptions,
+    importDocumentStatus,
+    importDocumentFile,
     createPending,
     createDiagnosisPending,
     onModeChange,
@@ -103,13 +101,13 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
     onSelectDiagnosisNovel,
     onUserFocusInstructionChange,
     onSourceRangeChange,
-    onBudgetTokensChange,
+    onImportDocument,
     onRequestSourceChapters,
     onAnalysisPresetChange,
-    onLlmConfigChange,
     onCreate,
     onCreateDiagnosis,
   } = props;
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isDiagnosisMode = analysisMode === "diagnosis";
   const selectedSourceVersion = sourceDocument?.versions.find((version) => version.id === selectedVersionId)
@@ -215,7 +213,7 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
                     value={selectedDocumentId}
                     onChange={(event) => onSelectDocument(event.target.value)}
                   >
-                    <option value="">选择文档</option>
+                    <option value="">{documentOptions.length > 0 ? "选择文档" : "还没有文档，先在下方导入"}</option>
                     {documentOptions.map((document) => (
                       <option key={document.id} value={document.id}>
                         {document.title}
@@ -240,6 +238,70 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
                   </SelectControl>
                 </div>
               </div>
+                <div className="rounded-md border border-dashed border-border bg-muted/20 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">导入外部小说</div>
+                      <div className="mt-1 text-xs leading-5 text-muted-foreground">
+                        选择一个 txt 文本文件，导入后会自动出现在上方文档列表并选中，即可开始拆解。
+                      </div>
+                    </div>
+                    <input
+                      ref={importFileInputRef}
+                      type="file"
+                      accept=".txt,text/plain"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        if (file) {
+                          onImportDocument(file);
+                        }
+                        event.target.value = "";
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={importDocumentStatus === "pending"}
+                      onClick={() => importFileInputRef.current?.click()}
+                    >
+                      {importDocumentStatus === "pending" ? (
+                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Upload className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      )}
+                      {importDocumentStatus === "pending" ? "正在导入..." : "选择文件"}
+                    </Button>
+                  </div>
+                  {importDocumentFile ? (
+                    <div
+                      className={cn(
+                        "mt-3 flex items-center gap-2 rounded-md border px-3 py-2 text-xs",
+                        importDocumentStatus === "pending" && "border-primary/30 bg-primary/5 text-foreground",
+                        importDocumentStatus === "success" && "border-primary/30 bg-primary/5 text-foreground",
+                        importDocumentStatus === "error" && "border-destructive/40 bg-destructive/10 text-destructive",
+                      )}
+                    >
+                      {importDocumentStatus === "pending" ? (
+                        <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden="true" />
+                      ) : importDocumentStatus === "success" ? (
+                        <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                      ) : (
+                        <FileText className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      )}
+                      <span className="min-w-0 truncate font-medium">{importDocumentFile.name}</span>
+                      <span className="shrink-0 opacity-70">{(importDocumentFile.size / 1024).toFixed(1)} KB</span>
+                      <span className="ml-auto shrink-0">
+                        {importDocumentStatus === "pending"
+                          ? "正在导入，请稍候..."
+                          : importDocumentStatus === "success"
+                            ? "已导入，可在上方文档列表中确认"
+                            : "导入失败，请重新选择文件"}
+                      </span>
+                    </div>
+                  ) : null}
+                </div>
                 <BookAnalysisSourceRangePicker
                   selectedRange={selectedSourceRange}
                   sourceChapters={sourceChapters}
@@ -253,50 +315,6 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
                 />
               </>
             )}
-
-            <div className="space-y-2">
-              <div className="text-sm font-medium">模型</div>
-              <LLMSelector
-                value={llmConfig}
-                onChange={(next) =>
-                  onLlmConfigChange({
-                    provider: next.provider,
-                    model: next.model,
-                    temperature: next.temperature ?? llmConfig.temperature,
-                    maxTokens: next.maxTokens ?? llmConfig.maxTokens,
-                  })
-                }
-                showParameters
-              />
-              <div className="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-center">
-                <div>
-                  <div className="text-sm font-medium">预算上限</div>
-                  <div className="mt-1 text-xs leading-5 text-muted-foreground">
-                    留空使用服务端默认值。累计用量达到上限后停止任务，已完成的小节会保留。
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={1000}
-                    max={10000000}
-                    step={1000}
-                    placeholder={DEFAULT_BOOK_ANALYSIS_BUDGET_TOKENS.toLocaleString("zh-CN")}
-                    value={budgetTokens ?? ""}
-                    onChange={(event) => {
-                      if (!event.target.value) {
-                        onBudgetTokensChange(null);
-                        return;
-                      }
-                      const next = Number(event.target.value);
-                      onBudgetTokensChange(Number.isFinite(next) ? Math.max(1000, Math.min(10000000, Math.floor(next))) : null);
-                    }}
-                    className="text-right font-mono tabular-nums"
-                  />
-                  <span className="shrink-0 text-xs text-muted-foreground">tokens</span>
-                </div>
-              </div>
-            </div>
 
             <div className="space-y-2">
               <div className="text-sm font-medium">分析维度</div>
@@ -344,6 +362,10 @@ export default function BookAnalysisCreateDialog(props: BookAnalysisCreateDialog
               {isDiagnosisMode
                 ? "诊断会根据小说正文长度消耗模型 token。章节越多，分析时间和 token 用量通常越高；建议先选择适合本次检查的拆书范围。"
                 : "拆书会根据书籍内容长度消耗模型 token。书籍越长，分析时间和 token 用量通常越高；建议先确认文档范围，再开始分析。"}
+            </div>
+
+            <div className="rounded-md border bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
+              分析使用系统设置中的默认文本模型。用量达到安全上限时任务会自动暂停，已完成的章节会保留，可随时继续。
             </div>
 
             {!isDiagnosisMode && selectedSourceVersion ? (
