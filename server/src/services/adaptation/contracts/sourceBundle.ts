@@ -38,10 +38,14 @@ export interface SourceCharacter {
   name: string;
   /** 角色性别（生图链路 GENDER LOCK 用）：male | female | other | unknown */
   gender?: "male" | "female" | "other" | "unknown";
+  /** 年龄段（child | youth | middle | elder），生图与选角用 */
+  ageGroup?: "child" | "youth" | "middle" | "elder";
   persona?: string;
   relations?: string;
   /** 视觉提示（外形/气质），后续可升级为视觉锚点 */
   visualHint?: string;
+  /** 纯面部锚点（发型发色/眼睛/肤色/脸型，不含服装），角色设定图的面部一致性基准 */
+  facePrompt?: string;
   /** 软引用：源角色标识（novel_import 时为 characterId） */
   sourceCharacterRef?: string;
 }
