@@ -37,14 +37,25 @@ function compactVisualAnchor(text: string, maxChars = 40): string {
     .slice(0, maxChars);
 }
 
-function buildComicVisualAnchor(character: SourceBundle["characters"][number]): string | null {
+const AGE_GROUP_ANCHOR_LABELS: Record<string, string> = {
+  child: "少年/儿童",
+  youth: "青年",
+  middle: "中年",
+  elder: "老年",
+};
+
+export function buildComicVisualAnchor(character: SourceBundle["characters"][number]): string | null {
+  const facePrompt = character.facePrompt?.trim() ?? "";
   const visualHint = character.visualHint?.trim() ?? "";
   const persona = character.persona?.trim() ?? "";
-  const description = compactVisualAnchor(visualHint || persona);
+  const ageLabel = character.ageGroup ? AGE_GROUP_ANCHOR_LABELS[character.ageGroup] : "";
+  // 面部锚点优先：设定图的面部一致性以 facePrompt 为基准；没有锚点时退回整体视觉提示。
+  const appearance = [facePrompt, visualHint].filter(Boolean).join("；") || visualHint;
+  const description = compactVisualAnchor([ageLabel, visualHint || persona].filter(Boolean).join("，"));
   if (!description) return null;
   const data: ComicVisualAnchorData = {
     description,
-    visualSpec: visualHint ? { appearance: visualHint, signatureFeatures: description } : undefined,
+    visualSpec: appearance ? { appearance, signatureFeatures: compactVisualAnchor(appearance) } : undefined,
     defaultCostume: visualHint ? { id: "default", description: visualHint } : undefined,
     behaviorSignature: persona ? { persona } : undefined,
   };

@@ -56,6 +56,8 @@ export class NovelSourceAdapter implements SourceContentPort {
           id: true,
           name: true,
           gender: true,
+          ageGroup: true,
+          facePrompt: true,
           role: true,
           personality: true,
           background: true,
@@ -83,17 +85,28 @@ export class NovelSourceAdapter implements SourceContentPort {
       };
     });
 
+    const normalizeAgeGroup = (value: string | null): SourceCharacter["ageGroup"] => {
+      if (value === "child" || value === "youth" || value === "middle" || value === "elder") {
+        return value;
+      }
+      return undefined;
+    };
     const bundleCharacters: SourceCharacter[] = characters.map((character) => ({
       name: character.name,
       gender: character.gender as "male" | "female" | "other" | "unknown" | undefined,
+      ageGroup: normalizeAgeGroup(character.ageGroup),
       persona: [character.role, character.personality].filter(Boolean).join("｜") || undefined,
       relations: character.background ?? undefined,
+      // 面部锚点放在视觉提示最前：角色设定图以面部一致性为第一优先级，
+      // 后接整体外貌、体型、着装与标志细节（对齐旧项目 face→appearance 的拼装顺序）。
       visualHint: [
+        character.facePrompt,
         character.appearance,
         character.physique,
         character.attireStyle,
         character.signatureDetail,
       ].filter(Boolean).join("，") || undefined,
+      facePrompt: character.facePrompt?.trim() || undefined,
       sourceCharacterRef: character.id,
     }));
 

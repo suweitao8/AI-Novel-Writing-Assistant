@@ -76,3 +76,11 @@
 - 图片提示词字段：角色 `facePrompt`（纯面部锚点，模板 `[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]`，禁止服装——与 mydrama 立绘生成共用同一约束思想）；场景 `environmentPrompt`（方位/光源/材质的空间描述，不含人物）；道具 `visualPrompt`（材质/工艺/尺寸/色泽/纹饰的固有外观）。这些字段是为后续「一键生成角色立绘/场景图/道具图」预留的锚点，正文生成不消费它们。
 - 草稿不落库：generate 端点只返回草稿，前端填充表单供用户预览修改，保存走各实体 create 端点，避免产生垃圾行。
 - 一致性上下文：生成时携带书名/题材/世界观摘要/已有实体名单，保证新实体融入本书而非凭空发明。
+
+
+## 小说 → 漫画/短剧的基础角色库桥（v1.2 追加）
+
+- 产品定位：设定中心的表面属性（性别/年龄段/体型/外貌/着装/面部锚点/性格）就是漫画与短剧改编的基础角色库；弧光等小说设计深字段只存在于专业工作台角色工作区，不进入改编链路，简易/短篇用户的正常流程也不会看到它们（simple 模式会被重定向到书架页）。
+- 桥的落点：`SourceCharacter` 契约（`services/adaptation/contracts/sourceBundle.ts`）扩展 `ageGroup` 与 `facePrompt`；`NovelSourceAdapter` 从 Character 映射这两个字段，并让 `visualHint` 以 facePrompt 打头（对齐旧项目 mydrama 的 face→appearance 拼装顺序——面部一致性优先于整体外貌）。
+- 漫画侧：`ComicProjectService.buildComicVisualAnchor`（已导出供测试）把 facePrompt 写入 `visualSpec.appearance` 的最前段，年龄段以中文标签进入锚点 description；短剧侧经同一 visualHint 自动受益。
+- 改编仍是「一次性快照导入 + sourceCharacterRef 软引用」：导入后漫画角色与小说角色解耦（可拆分保证），小说侧后续修改不会自动同步——这是既有架构决策，如需再同步应走显式的重新导入。
