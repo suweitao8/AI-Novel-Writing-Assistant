@@ -15,38 +15,6 @@ const characterParams = z.object({ id: z.string().trim().min(1), characterId: z.
 
 const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 
-const sceneCreateSchema = z.object({
-  name: z.string().trim().min(1).max(60),
-  summary: z.string().trim().max(600).optional(),
-  significance: z.string().trim().max(600).optional(),
-  mapNodeId: z.string().trim().max(60).optional(),
-});
-
-const sceneUpdateSchema = z.object({
-  name: z.string().trim().min(1).max(60).optional(),
-  summary: z.string().trim().max(600).nullable().optional(),
-  significance: z.string().trim().max(600).nullable().optional(),
-  mapNodeId: z.string().trim().max(60).nullable().optional(),
-});
-
-const propCreateSchema = z.object({
-  name: z.string().trim().min(1).max(60),
-  description: z.string().trim().max(800).optional(),
-  plotFunction: z.string().trim().max(800).optional(),
-  ownerCharacterId: z.string().trim().max(60).optional(),
-  importance: z.enum(["core", "major", "minor"]).optional(),
-  firstAppearHint: z.string().trim().max(300).optional(),
-});
-
-const propUpdateSchema = z.object({
-  name: z.string().trim().min(1).max(60).optional(),
-  description: z.string().trim().max(800).nullable().optional(),
-  plotFunction: z.string().trim().max(800).nullable().optional(),
-  ownerCharacterId: z.string().trim().max(60).nullable().optional(),
-  importance: z.enum(["core", "major", "minor"]).optional(),
-  firstAppearHint: z.string().trim().max(300).nullable().optional(),
-});
-
 const characterUpdateSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   role: z.string().trim().min(1).max(80).optional(),
@@ -63,6 +31,63 @@ const worldUpdateSchema = z.object({
     title: z.string().trim().min(1).max(60),
     content: z.string().trim().min(1).max(1000),
   }).strict()).max(12).optional(),
+});
+
+const characterCreateSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  role: z.string().trim().min(1).max(80),
+  gender: z.enum(["male", "female", "other", "unknown"]).optional(),
+  ageGroup: z.enum(["child", "youth", "middle", "elder"]).optional(),
+  physique: z.string().trim().max(200).optional(),
+  attireStyle: z.string().trim().max(400).optional(),
+  facePrompt: z.string().trim().max(600).optional(),
+  personality: z.string().trim().max(1200).optional(),
+  appearance: z.string().trim().max(1200).optional(),
+  background: z.string().trim().max(2000).optional(),
+});
+
+const sceneCreateSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  sceneType: z.enum(["interior", "exterior", "nature"]).optional(),
+  summary: z.string().trim().max(600).optional(),
+  environmentPrompt: z.string().trim().max(1200).optional(),
+  significance: z.string().trim().max(600).optional(),
+  mapNodeId: z.string().trim().max(60).optional(),
+});
+
+const sceneUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  sceneType: z.enum(["interior", "exterior", "nature"]).nullable().optional(),
+  summary: z.string().trim().max(600).nullable().optional(),
+  environmentPrompt: z.string().trim().max(1200).nullable().optional(),
+  significance: z.string().trim().max(600).nullable().optional(),
+  mapNodeId: z.string().trim().max(60).nullable().optional(),
+});
+
+const propCreateSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  propType: z.enum(["weapon", "accessory", "artifact", "document", "furniture", "object"]).optional(),
+  description: z.string().trim().max(800).optional(),
+  plotFunction: z.string().trim().max(800).optional(),
+  visualPrompt: z.string().trim().max(600).optional(),
+  ownerCharacterId: z.string().trim().max(60).optional(),
+  importance: z.enum(["core", "major", "minor"]).optional(),
+  firstAppearHint: z.string().trim().max(300).optional(),
+});
+
+const propUpdateSchema = z.object({
+  name: z.string().trim().min(1).max(60).optional(),
+  propType: z.enum(["weapon", "accessory", "artifact", "document", "furniture", "object"]).nullable().optional(),
+  description: z.string().trim().max(800).nullable().optional(),
+  plotFunction: z.string().trim().max(800).nullable().optional(),
+  visualPrompt: z.string().trim().max(600).nullable().optional(),
+  ownerCharacterId: z.string().trim().max(60).nullable().optional(),
+  importance: z.enum(["core", "major", "minor"]).optional(),
+  firstAppearHint: z.string().trim().max(300).nullable().optional(),
+});
+
+const entityGenerateSchema = z.object({
+  hint: z.string().trim().max(300).optional(),
 });
 
 const ensureSchema = z.object({
@@ -222,6 +247,45 @@ export function registerStorySettingsRoutes(router: Router): void {
       const category = (req.body as z.infer<typeof regenerateSchema>).category as StorySettingsCategory;
       await storySettingsService.regenerate(String(req.params.id), category);
       res.json({ success: true, data: null } satisfies ApiResponse<null>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:id/settings/characters", validate({ params: novelParams, body: characterCreateSchema }), async (req, res, next) => {
+    try {
+      const data = await storySettingsService.createCharacter(String(req.params.id), req.body);
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:id/settings/characters/generate", validate({ params: novelParams, body: entityGenerateSchema }), async (req, res, next) => {
+    try {
+      const hint = (req.body as z.infer<typeof entityGenerateSchema>).hint;
+      const data = await storySettingsService.generateEntityDraft(String(req.params.id), "character", hint);
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:id/settings/scenes/generate", validate({ params: novelParams, body: entityGenerateSchema }), async (req, res, next) => {
+    try {
+      const hint = (req.body as z.infer<typeof entityGenerateSchema>).hint;
+      const data = await storySettingsService.generateEntityDraft(String(req.params.id), "scene", hint);
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.post("/:id/settings/props/generate", validate({ params: novelParams, body: entityGenerateSchema }), async (req, res, next) => {
+    try {
+      const hint = (req.body as z.infer<typeof entityGenerateSchema>).hint;
+      const data = await storySettingsService.generateEntityDraft(String(req.params.id), "prop", hint);
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);
     }

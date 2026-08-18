@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Package, Pencil, Plus, Trash2 } from "lucide-react";
+import { Loader2, Package, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/storySettings";
 import {
   createStorySettingsProp,
   deleteStorySettingsProp,
+  generateStoryEntityDraft,
   getStorySettingsCharacters,
   getStorySettingsProps,
   regenerateStorySettings,
@@ -28,8 +29,10 @@ interface SettingsPropsTabProps {
 
 interface PropFormState {
   name: string;
+  propType: string;
   description: string;
   plotFunction: string;
+  visualPrompt: string;
   ownerCharacterId: string;
   importance: string;
   firstAppearHint: string;
@@ -37,8 +40,10 @@ interface PropFormState {
 
 const EMPTY_FORM: PropFormState = {
   name: "",
+  propType: "object",
   description: "",
   plotFunction: "",
+  visualPrompt: "",
   ownerCharacterId: "",
   importance: "major",
   firstAppearHint: "",
@@ -50,11 +55,21 @@ const IMPORTANCE_LABELS: Record<string, string> = {
   minor: "次要",
 };
 
+const PROP_TYPE_LABELS: Record<string, string> = {
+  weapon: "兵器",
+  accessory: "饰品",
+  artifact: "法器/神器",
+  document: "文书",
+  furniture: "家具",
+  object: "其他",
+};
+
 export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<PropFormState>(EMPTY_FORM);
+  const [hint, setHint] = useState("");
 
   const propsQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsProps(novelId),
@@ -79,8 +94,10 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     mutationFn: () => {
       const payload = {
         name: form.name.trim(),
+        propType: form.propType || "object",
         description: form.description.trim() || null,
         plotFunction: form.plotFunction.trim() || null,
+        visualPrompt: form.visualPrompt.trim() || null,
         ownerCharacterId: form.ownerCharacterId || null,
         importance: form.importance,
         firstAppearHint: form.firstAppearHint.trim() || null,
@@ -91,6 +108,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
           ...payload,
           description: payload.description ?? undefined,
           plotFunction: payload.plotFunction ?? undefined,
+          visualPrompt: payload.visualPrompt ?? undefined,
           ownerCharacterId: payload.ownerCharacterId ?? undefined,
           firstAppearHint: payload.firstAppearHint ?? undefined,
         });
@@ -127,19 +145,48 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     },
   });
 
+  const generateMutation = useMutation({
+    mutationFn: () => generateStoryEntityDraft(novelId, "prop", hint),
+    onSuccess: (response) => {
+      const draft = response.data?.prop;
+      if (!draft) {
+        toast.error("AI 没有生成道具草稿，请重试。");
+        return;
+      }
+      setForm({
+        name: draft.name,
+        propType: draft.propType || "object",
+        description: draft.description ?? "",
+        plotFunction: draft.plotFunction ?? "",
+        visualPrompt: draft.visualPrompt ?? "",
+        ownerCharacterId: "",
+        importance: draft.importance || "major",
+        firstAppearHint: draft.firstAppearHint ?? "",
+      });
+      toast.success("草稿已生成，可以直接修改后保存。");
+    },
+    onError: (error) => {
+      toast.error("道具生成失败。", { description: error instanceof Error ? error.message : undefined });
+    },
+  });
+
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_FORM);
+    setHint("");
   };
 
   const openEdit = (prop: StorySettingsProp) => {
     setCreating(false);
     setEditing(prop);
+    setHint("");
     setForm({
       name: prop.name,
+      propType: prop.propType || "object",
       description: prop.description ?? "",
       plotFunction: prop.plotFunction ?? "",
+      visualPrompt: prop.visualPrompt ?? "",
       ownerCharacterId: prop.ownerCharacterId ?? "",
       importance: prop.importance,
       firstAppearHint: prop.firstAppearHint ?? "",
@@ -190,6 +237,9 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                   <div className="flex min-w-0 items-center gap-2">
                     <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate font-medium text-foreground">{prop.name}</span>
+                    <Badge variant="secondary" className="shrink-0">
+                      {PROP_TYPE_LABELS[prop.propType] ?? prop.propType}
+                    </Badge>
                     <Badge
                       variant="outline"
                       className={cn(
@@ -220,6 +270,9 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                 {prop.plotFunction ? (
                   <p className="text-xs leading-5 text-muted-foreground">剧情功能：{prop.plotFunction}</p>
                 ) : null}
+                {prop.visualPrompt ? (
+                  <p className="text-xs leading-5 text-muted-foreground">视觉：{prop.visualPrompt}</p>
+                ) : null}
                 {prop.ownerCharacterName ? (
                   <p className="text-xs leading-5 text-muted-foreground">持有者：{prop.ownerCharacterName}</p>
                 ) : null}
@@ -232,7 +285,9 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
           title={editing ? "编辑道具" : "添加道具"}
-          description="写清道具的来历和它在剧情里的作用，避免正文里凭空冒出万能道具。"
+          description={editing
+            ? "写清道具的来历和它在剧情里的作用，避免正文里凭空冒出万能道具。"
+            : "写一句提示（也可以留空），让 AI 生成完整道具草稿；生成后可以随意修改再保存。"}
           footer={
             <>
               <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
@@ -243,6 +298,28 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
           }
         >
           <div className="space-y-3">
+            {creating ? (
+              <div className="space-y-2 rounded-lg border border-dashed border-border bg-muted/30 p-3">
+                <label className="block space-y-1">
+                  <span className="text-sm font-medium">AI 生成提示</span>
+                  <Input
+                    value={hint}
+                    placeholder="例如：外婆留下的怀表 / 一封烧掉一半的信"
+                    onChange={(event) => setHint(event.target.value)}
+                    disabled={generateMutation.isPending}
+                  />
+                </label>
+                <AiButton
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => generateMutation.mutate()}
+                  disabled={generateMutation.isPending}
+                >
+                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {generateMutation.isPending ? "正在生成草稿..." : "AI 生成道具草稿"}
+                </AiButton>
+              </div>
+            ) : null}
             <label className="block space-y-1">
               <span className="text-sm font-medium">道具名</span>
               <Input
@@ -265,6 +342,29 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                 placeholder="用于什么转折、伏笔或兑现"
                 onChange={(event) => setForm((prev) => ({ ...prev, plotFunction: event.target.value }))}
               />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">视觉提示词（生成道具图时使用）</span>
+              <Input
+                value={form.visualPrompt}
+                placeholder="材质、工艺、尺寸、色泽、纹饰"
+                onChange={(event) => setForm((prev) => ({ ...prev, visualPrompt: event.target.value }))}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium">道具类型</span>
+              <SelectControl
+                className="h-9 rounded-md border bg-background px-2 text-sm"
+                value={form.propType}
+                onChange={(event) => setForm((prev) => ({ ...prev, propType: event.target.value }))}
+              >
+                <option value="weapon">兵器</option>
+                <option value="accessory">饰品</option>
+                <option value="artifact">法器/神器</option>
+                <option value="document">文书</option>
+                <option value="furniture">家具</option>
+                <option value="object">其他</option>
+              </SelectControl>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block space-y-1">

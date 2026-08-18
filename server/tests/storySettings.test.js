@@ -110,3 +110,48 @@ test("workflow stage and checkpoint maps cover settings gate", () => {
   assert.equal(NOVEL_WORKFLOW_STAGE_LABELS.short_story_settings, "生成设定");
   assert.equal(typeof NOVEL_WORKFLOW_STAGE_PROGRESS.short_story_settings, "number");
 });
+
+test("story entity generate prompt asset is registered", () => {
+  const { hasRegisteredPromptAsset } = require("../dist/prompting/registry.js");
+  assert.equal(hasRegisteredPromptAsset("novel.story_settings.entity.generate", "v1"), true);
+});
+
+test("entity generate validation rejects drafts that fill more than the requested type", () => {
+  const { storyEntityGeneratePrompt } = require("../dist/prompting/prompts/novel/storySettings.prompts.js");
+  const draft = {
+    character: {
+      name: "陈默",
+      role: "主角",
+      gender: "male",
+      ageGroup: "youth",
+      physique: "高瘦",
+      personality: "话少但可靠",
+      appearance: "戴黑框眼镜",
+      attireStyle: "洗旧的连帽衫",
+      facePrompt: "男性，二十多岁，黑色短发，单眼皮，浅麦肤色，长脸",
+      background: "男大学生，物理系",
+    },
+    scene: null,
+    prop: null,
+  };
+  const input = { novelTitle: "测试", entityType: "scene", hint: "便利店" };
+  const validated = storyEntityGeneratePrompt.outputSchema.parse(draft);
+  assert.throws(
+    () => storyEntityGeneratePrompt.postValidate(validated, input, {}),
+    /请求的是场景，但草稿里没有场景/,
+  );
+
+  const characterInput = { novelTitle: "测试", entityType: "character", hint: "男大学生" };
+  assert.equal(storyEntityGeneratePrompt.postValidate(validated, characterInput, {}).character.name, "陈默");
+
+  const duplicateInput = {
+    novelTitle: "测试",
+    entityType: "character",
+    hint: "男大学生",
+    existingCharacters: ["陈默（主角）"],
+  };
+  assert.throws(
+    () => storyEntityGeneratePrompt.postValidate(validated, duplicateInput, {}),
+    /与已有角色重复/,
+  );
+});

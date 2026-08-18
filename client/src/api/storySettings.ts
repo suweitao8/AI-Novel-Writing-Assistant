@@ -14,7 +14,9 @@ export interface StorySettingsOverview {
 export interface StorySettingsScene {
   id: string;
   name: string;
+  sceneType: string | null;
   summary: string | null;
+  environmentPrompt: string | null;
   significance: string | null;
   mapNodeId: string | null;
   sortOrder: number;
@@ -25,8 +27,10 @@ export interface StorySettingsScene {
 export interface StorySettingsProp {
   id: string;
   name: string;
+  propType: string;
   description: string | null;
   plotFunction: string | null;
+  visualPrompt: string | null;
   ownerCharacterId: string | null;
   ownerCharacterName: string | null;
   importance: string;
@@ -40,6 +44,11 @@ export interface StorySettingsCharacter {
   id: string;
   name: string;
   role: string;
+  gender: string | null;
+  ageGroup: string | null;
+  physique: string | null;
+  attireStyle: string | null;
+  facePrompt: string | null;
   personality: string | null;
   appearance: string | null;
   background: string | null;
@@ -75,7 +84,14 @@ export async function getStorySettingsScenes(novelId: string) {
 
 export async function createStorySettingsScene(
   novelId: string,
-  payload: { name: string; summary?: string; significance?: string; mapNodeId?: string },
+  payload: {
+    name: string;
+    sceneType?: string;
+    summary?: string;
+    environmentPrompt?: string;
+    significance?: string;
+    mapNodeId?: string;
+  },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsScene>>(
     `/novels/${encodeURIComponent(novelId)}/settings/scenes`,
@@ -87,7 +103,14 @@ export async function createStorySettingsScene(
 export async function updateStorySettingsScene(
   novelId: string,
   sceneId: string,
-  payload: { name?: string; summary?: string | null; significance?: string | null; mapNodeId?: string | null },
+  payload: {
+    name?: string;
+    sceneType?: string | null;
+    summary?: string | null;
+    environmentPrompt?: string | null;
+    significance?: string | null;
+    mapNodeId?: string | null;
+  },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsScene>>(
     `/novels/${encodeURIComponent(novelId)}/settings/scenes/${encodeURIComponent(sceneId)}`,
@@ -114,8 +137,10 @@ export async function createStorySettingsProp(
   novelId: string,
   payload: {
     name: string;
+    propType?: string;
     description?: string;
     plotFunction?: string;
+    visualPrompt?: string;
     ownerCharacterId?: string;
     importance?: string;
     firstAppearHint?: string;
@@ -133,8 +158,10 @@ export async function updateStorySettingsProp(
   propId: string,
   payload: {
     name?: string;
+    propType?: string | null;
     description?: string | null;
     plotFunction?: string | null;
+    visualPrompt?: string | null;
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
@@ -221,6 +248,71 @@ export async function regenerateStorySettings(novelId: string, category: StorySe
 export async function confirmStorySettings(novelId: string) {
   const { data } = await apiClient.post<ApiResponse<{ taskId: string | null }>>(
     `/novels/${encodeURIComponent(novelId)}/settings/confirm`,
+  );
+  return data;
+}
+
+export interface StoryEntityDraft {
+  character: {
+    name: string;
+    role: string;
+    gender: string;
+    ageGroup: string;
+    physique: string;
+    personality: string;
+    appearance: string;
+    attireStyle: string;
+    facePrompt: string;
+    background: string;
+  } | null;
+  scene: {
+    name: string;
+    sceneType: string;
+    summary: string;
+    significance: string;
+    environmentPrompt: string;
+  } | null;
+  prop: {
+    name: string;
+    propType: string;
+    description: string;
+    plotFunction: string;
+    visualPrompt: string;
+    importance: string;
+    firstAppearHint?: string;
+  } | null;
+}
+
+export async function generateStoryEntityDraft(
+  novelId: string,
+  entityType: "character" | "scene" | "prop",
+  hint?: string,
+) {
+  const { data } = await apiClient.post<ApiResponse<StoryEntityDraft>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/${entityType === "character" ? "characters" : entityType === "scene" ? "scenes" : "props"}/generate`,
+    hint?.trim() ? { hint: hint.trim() } : {},
+  );
+  return data;
+}
+
+export async function createStorySettingsCharacter(
+  novelId: string,
+  payload: {
+    name: string;
+    role: string;
+    gender?: string;
+    ageGroup?: string;
+    physique?: string;
+    attireStyle?: string;
+    facePrompt?: string;
+    personality?: string;
+    appearance?: string;
+    background?: string;
+  },
+) {
+  const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/characters`,
+    payload,
   );
   return data;
 }

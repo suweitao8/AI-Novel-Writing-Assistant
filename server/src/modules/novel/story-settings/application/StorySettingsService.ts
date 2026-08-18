@@ -8,13 +8,21 @@ import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import {
+  storyEntityGeneratePrompt,
   storySettingsBundlePrompt,
+  type StoryEntityGenerateOutput,
   type StorySettingsBundleOutput,
 } from "../../../../prompting/prompts/novel/storySettings.prompts";
 import { WorldContextGateway } from "../../../../services/novel/worldContext/WorldContextGateway";
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
+
+export interface StoryEntityDraft {
+  character: StoryEntityGenerateOutput["character"];
+  scene: StoryEntityGenerateOutput["scene"];
+  prop: StoryEntityGenerateOutput["prop"];
+}
 
 export interface StorySettingsOverview {
   novelId: string;
@@ -27,7 +35,9 @@ export interface StorySettingsOverview {
 export interface StorySettingsScene {
   id: string;
   name: string;
+  sceneType: string | null;
   summary: string | null;
+  environmentPrompt: string | null;
   significance: string | null;
   mapNodeId: string | null;
   sortOrder: number;
@@ -38,8 +48,10 @@ export interface StorySettingsScene {
 export interface StorySettingsProp {
   id: string;
   name: string;
+  propType: string;
   description: string | null;
   plotFunction: string | null;
+  visualPrompt: string | null;
   ownerCharacterId: string | null;
   ownerCharacterName: string | null;
   importance: string;
@@ -53,6 +65,11 @@ export interface StorySettingsCharacter {
   id: string;
   name: string;
   role: string;
+  gender: string | null;
+  ageGroup: string | null;
+  physique: string | null;
+  attireStyle: string | null;
+  facePrompt: string | null;
   personality: string | null;
   appearance: string | null;
   background: string | null;
@@ -188,9 +205,83 @@ async function loadActiveIntent(novelId: string): Promise<{
   };
 }
 
+const CHARACTER_GENDER_VALUES = ["male", "female", "other", "unknown"] as const;
+const CHARACTER_AGE_GROUP_VALUES = ["child", "youth", "middle", "elder"] as const;
+
+function normalizeCharacterGender(value: string | null | undefined): "male" | "female" | "other" | "unknown" {
+  const normalized = value?.trim().toLowerCase();
+  return (CHARACTER_GENDER_VALUES as readonly string[]).includes(normalized ?? "")
+    ? normalized as "male" | "female" | "other" | "unknown"
+    : "unknown";
+}
+
+function normalizeCharacterAgeGroup(value: string | null | undefined): string | null {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized && (CHARACTER_AGE_GROUP_VALUES as readonly string[]).includes(normalized)) {
+    return normalized;
+  }
+  return null;
+}
+
 export class StorySettingsService {
   private readonly worldContextGateway = new WorldContextGateway();
   private readonly workflowService = new NovelWorkflowService();
+
+  // ---- 实体级 AI 生成 ----
+
+  // 按用户提示生成单个实体草稿（不落库），返回给前端预览编辑后保存。
+  async generateEntityDraft(
+    novelId: string,
+    entityType: "character" | "scene" | "prop",
+    hint?: string,
+  ): Promise<StoryEntityDraft> {
+    const novel = await requireNovel(novelId);
+    const [worldRow, characters, scenes, props] = await Promise.all([
+      prisma.novelSettingsWorld.findUnique({ where: { novelId } }),
+      prisma.character.findMany({
+        where: { novelId },
+        select: { name: true, role: true },
+        orderBy: { createdAt: "asc" },
+        take: 20,
+      }),
+      prisma.novelScene.findMany({
+        where: { novelId },
+        select: { name: true },
+        orderBy: [{ sortOrder: "asc" }],
+        take: 20,
+      }),
+      prisma.novelProp.findMany({
+        where: { novelId },
+        select: { name: true },
+        orderBy: [{ sortOrder: "asc" }],
+        take: 20,
+      }),
+    ]);
+    const generated = await runStructuredPrompt({
+      asset: storyEntityGeneratePrompt,
+      promptInput: {
+        novelTitle: novel.title,
+        genreName: novel.genre?.name ?? undefined,
+        entityType,
+        hint: hint?.trim() || undefined,
+        worldPremise: worldRow?.premise?.trim() || undefined,
+        existingCharacters: characters.map((character) => `${character.name}（${character.role}）`),
+        existingScenes: scenes.map((scene) => scene.name),
+        existingProps: props.map((prop) => prop.name),
+      },
+      options: {
+        novelId,
+        stage: "short_story_settings",
+        entrypoint: "story_settings",
+        temperature: 0.9,
+      },
+    });
+    return {
+      character: generated.output.character ?? null,
+      scene: generated.output.scene ?? null,
+      prop: generated.output.prop ?? null,
+    };
+  }
 
   // ---- 写作上下文快照 ----
 
@@ -293,7 +384,9 @@ export class StorySettingsService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      sceneType: row.sceneType,
       summary: row.summary,
+      environmentPrompt: row.environmentPrompt,
       significance: row.significance,
       mapNodeId: row.mapNodeId,
       sortOrder: row.sortOrder,
@@ -304,7 +397,9 @@ export class StorySettingsService {
 
   async createScene(novelId: string, input: {
     name: string;
+    sceneType?: string | null;
     summary?: string | null;
+    environmentPrompt?: string | null;
     significance?: string | null;
     mapNodeId?: string | null;
   }): Promise<StorySettingsScene> {
@@ -318,7 +413,9 @@ export class StorySettingsService {
       data: {
         novelId,
         name: input.name,
+        sceneType: input.sceneType ?? null,
         summary: input.summary ?? null,
+        environmentPrompt: input.environmentPrompt ?? null,
         significance: input.significance ?? null,
         mapNodeId: input.mapNodeId ?? null,
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
@@ -330,7 +427,9 @@ export class StorySettingsService {
 
   async updateScene(novelId: string, sceneId: string, input: {
     name?: string;
+    sceneType?: string | null;
     summary?: string | null;
+    environmentPrompt?: string | null;
     significance?: string | null;
     mapNodeId?: string | null;
   }): Promise<StorySettingsScene> {
@@ -342,7 +441,9 @@ export class StorySettingsService {
       where: { id: row.id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.sceneType !== undefined ? { sceneType: input.sceneType } : {}),
         ...(input.summary !== undefined ? { summary: input.summary } : {}),
+        ...(input.environmentPrompt !== undefined ? { environmentPrompt: input.environmentPrompt } : {}),
         ...(input.significance !== undefined ? { significance: input.significance } : {}),
         ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
       },
@@ -376,8 +477,10 @@ export class StorySettingsService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      propType: row.propType,
       description: row.description,
       plotFunction: row.plotFunction,
+      visualPrompt: row.visualPrompt,
       ownerCharacterId: row.ownerCharacterId,
       ownerCharacterName: row.ownerCharacterId
         ? characterNames.get(row.ownerCharacterId) ?? null
@@ -392,8 +495,10 @@ export class StorySettingsService {
 
   async createProp(novelId: string, input: {
     name: string;
+    propType?: string | null;
     description?: string | null;
     plotFunction?: string | null;
+    visualPrompt?: string | null;
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
@@ -408,8 +513,10 @@ export class StorySettingsService {
       data: {
         novelId,
         name: input.name,
+        propType: input.propType ?? "object",
         description: input.description ?? null,
         plotFunction: input.plotFunction ?? null,
+        visualPrompt: input.visualPrompt ?? null,
         ownerCharacterId: input.ownerCharacterId ?? null,
         importance: input.importance ?? "major",
         firstAppearHint: input.firstAppearHint ?? null,
@@ -428,8 +535,10 @@ export class StorySettingsService {
 
   async updateProp(novelId: string, propId: string, input: {
     name?: string;
+    propType?: string | null;
     description?: string | null;
     plotFunction?: string | null;
+    visualPrompt?: string | null;
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
@@ -442,8 +551,10 @@ export class StorySettingsService {
       where: { id: row.id },
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.propType !== undefined ? { propType: input.propType ?? "object" } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
         ...(input.plotFunction !== undefined ? { plotFunction: input.plotFunction } : {}),
+        ...(input.visualPrompt !== undefined ? { visualPrompt: input.visualPrompt } : {}),
         ...(input.ownerCharacterId !== undefined ? { ownerCharacterId: input.ownerCharacterId } : {}),
         ...(input.importance !== undefined ? { importance: input.importance } : {}),
         ...(input.firstAppearHint !== undefined ? { firstAppearHint: input.firstAppearHint } : {}),
@@ -477,6 +588,11 @@ export class StorySettingsService {
         id: true,
         name: true,
         role: true,
+        gender: true,
+        ageGroup: true,
+        physique: true,
+        attireStyle: true,
+        facePrompt: true,
         personality: true,
         appearance: true,
         background: true,
@@ -486,9 +602,45 @@ export class StorySettingsService {
     return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
   }
 
+  async createCharacter(novelId: string, input: {
+    name: string;
+    role: string;
+    gender?: string | null;
+    ageGroup?: string | null;
+    physique?: string | null;
+    attireStyle?: string | null;
+    facePrompt?: string | null;
+    personality?: string | null;
+    appearance?: string | null;
+    background?: string | null;
+  }): Promise<StorySettingsCharacter> {
+    await requireNovel(novelId);
+    const row = await prisma.character.create({
+      data: {
+        novelId,
+        name: input.name,
+        role: input.role,
+        gender: normalizeCharacterGender(input.gender),
+        ageGroup: normalizeCharacterAgeGroup(input.ageGroup),
+        physique: input.physique ?? null,
+        attireStyle: input.attireStyle ?? null,
+        facePrompt: input.facePrompt ?? null,
+        personality: input.personality ?? null,
+        appearance: input.appearance ?? null,
+        background: input.background ?? null,
+      },
+    });
+    return this.projectCharacter(row);
+  }
+
   async updateCharacter(novelId: string, characterId: string, input: {
     name?: string;
     role?: string;
+    gender?: string | null;
+    ageGroup?: string | null;
+    physique?: string | null;
+    attireStyle?: string | null;
+    facePrompt?: string | null;
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
@@ -502,20 +654,17 @@ export class StorySettingsService {
       data: {
         ...(input.name !== undefined ? { name: input.name } : {}),
         ...(input.role !== undefined ? { role: input.role } : {}),
+        ...(input.gender !== undefined ? { gender: normalizeCharacterGender(input.gender) } : {}),
+        ...(input.ageGroup !== undefined ? { ageGroup: normalizeCharacterAgeGroup(input.ageGroup) } : {}),
+        ...(input.physique !== undefined ? { physique: input.physique } : {}),
+        ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
+        ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
         ...(input.personality !== undefined ? { personality: input.personality } : {}),
         ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
         ...(input.background !== undefined ? { background: input.background } : {}),
       },
     });
-    return {
-      id: updated.id,
-      name: updated.name,
-      role: updated.role,
-      personality: updated.personality,
-      appearance: updated.appearance,
-      background: updated.background,
-      updatedAt: updated.updatedAt.toISOString(),
-    };
+    return this.projectCharacter(updated);
   }
 
   // ---- 世界观 ----
@@ -727,6 +876,11 @@ export class StorySettingsService {
             novelId,
             name: character.name,
             role: character.role,
+            gender: character.gender ?? "unknown",
+            ageGroup: character.ageGroup ?? null,
+            physique: character.physique ?? null,
+            attireStyle: character.attireStyle ?? null,
+            facePrompt: character.facePrompt ?? null,
             personality: character.personality,
             appearance: character.appearance ?? null,
             background: character.background ?? null,
@@ -743,7 +897,9 @@ export class StorySettingsService {
         data: bundle.scenes.map((scene, index) => ({
           novelId,
           name: scene.name,
+          sceneType: scene.sceneType ?? null,
           summary: scene.summary,
+          environmentPrompt: scene.environmentPrompt ?? null,
           significance: scene.significance,
           mapNodeId: locationIdByName.get(scene.mapLocationName) ?? null,
           sortOrder: index + 1,
@@ -766,8 +922,10 @@ export class StorySettingsService {
         data: bundle.props.map((prop, index) => ({
           novelId,
           name: prop.name,
+          propType: prop.propType ?? "object",
           description: prop.description,
           plotFunction: prop.plotFunction,
+          visualPrompt: prop.visualPrompt ?? null,
           ownerCharacterId: prop.ownerCharacterName
             ? characterIdByName.get(prop.ownerCharacterName) ?? null
             : null,
@@ -780,10 +938,42 @@ export class StorySettingsService {
     }
   }
 
+  private projectCharacter(row: {
+    id: string;
+    name: string;
+    role: string;
+    gender: string | null;
+    ageGroup: string | null;
+    physique: string | null;
+    attireStyle: string | null;
+    facePrompt: string | null;
+    personality: string | null;
+    appearance: string | null;
+    background: string | null;
+    updatedAt: Date;
+  }): StorySettingsCharacter {
+    return {
+      id: row.id,
+      name: row.name,
+      role: row.role,
+      gender: row.gender,
+      ageGroup: row.ageGroup,
+      physique: row.physique,
+      attireStyle: row.attireStyle,
+      facePrompt: row.facePrompt,
+      personality: row.personality,
+      appearance: row.appearance,
+      background: row.background,
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  }
+
   private projectScene(row: {
     id: string;
     name: string;
+    sceneType: string | null;
     summary: string | null;
+    environmentPrompt: string | null;
     significance: string | null;
     mapNodeId: string | null;
     sortOrder: number;
@@ -793,7 +983,9 @@ export class StorySettingsService {
     return {
       id: row.id,
       name: row.name,
+      sceneType: row.sceneType,
       summary: row.summary,
+      environmentPrompt: row.environmentPrompt,
       significance: row.significance,
       mapNodeId: row.mapNodeId,
       sortOrder: row.sortOrder,
@@ -806,8 +998,10 @@ export class StorySettingsService {
     row: {
       id: string;
       name: string;
+      propType: string;
       description: string | null;
       plotFunction: string | null;
+      visualPrompt: string | null;
       ownerCharacterId: string | null;
       importance: string;
       firstAppearHint: string | null;
@@ -820,8 +1014,10 @@ export class StorySettingsService {
     return {
       id: row.id,
       name: row.name,
+      propType: row.propType,
       description: row.description,
       plotFunction: row.plotFunction,
+      visualPrompt: row.visualPrompt,
       ownerCharacterId: row.ownerCharacterId,
       ownerCharacterName,
       importance: row.importance,
