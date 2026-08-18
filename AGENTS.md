@@ -192,9 +192,10 @@ This project is a pure web product: all development targets the website (`client
 
 ### Branching
 
-- The default working lane is `main`: most changes (features, fixes, copy, UI polish, docs) are developed, verified with targeted checks, and committed directly on `main`.
-- Use a dedicated feature branch only for changes that would put a major production link at risk while in progress, such as auto-director runtime/recovery, the chapter execution chain, shared runtime/prompting contracts, or data migrations. Merge the feature branch into `main` once its focused verification passes, then delete it.
-- `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is feature branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
+- The main workspace always stays on `main`: never switch its branch and never create branches inside it. The only writes allowed in the main workspace are merging verified branches, pushing to the remote, and documentation/rule-file-only commits.
+- Session development happens in an isolated worktree with its own dedicated branch: create the worktree as a sibling directory of the repo via `git worktree add` — never inside the repo, because workspace globs and tooling scans would pick it up — and do all implementation, verification, and commits inside that worktree.
+- Once the work passes its focused verification, merge the branch back into `main`, push to the remote, then remove the worktree and delete its branch in the same step. Never delete a worktree or branch that still holds unmerged, unfinished changes.
+- `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is worktree branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
 
 ### Commits
 
