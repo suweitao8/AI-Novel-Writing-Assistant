@@ -1,16 +1,16 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { StoryModeService } from "../services/storyMode/StoryModeService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { StoryModeService } from "../../../services/storyMode/StoryModeService";
 import {
   generateStoryModeChildDrafts,
   generateStoryModeExpansionDrafts,
   generateStoryModeTreeDraft,
-} from "../services/storyMode/storyModeGenerate";
-import { storyModeProfileSchema } from "../services/storyMode/storyModeProfile";
+} from "../../../services/storyMode/storyModeGenerate";
+import { storyModeProfileSchema } from "../../../services/storyMode/storyModeProfile";
 
 const router = Router();
 const storyModeService = new StoryModeService();

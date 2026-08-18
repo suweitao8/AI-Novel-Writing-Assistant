@@ -1,13 +1,13 @@
 import type { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../../llm/providerSchema";
-import { validate } from "../../middleware/validate";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { validate } from "../../../middleware/validate";
 import {
   getLLMSelectionSettings,
   saveLLMSelectionSettings,
   type LLMSelectionSettings,
-} from "../../services/settings/LLMSelectionSettingsService";
+} from "../../../services/settings/LLMSelectionSettingsService";
 
 const llmSelectionSchema = z.object({
   provider: llmProviderSchema,

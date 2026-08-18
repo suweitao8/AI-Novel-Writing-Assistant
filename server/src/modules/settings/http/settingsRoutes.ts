@@ -2,11 +2,11 @@ import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { BuiltinLLMProvider, LLMProvider } from "@ai-novel/shared/types/llm";
 import { z } from "zod";
-import { setProviderSecretCache } from "../llm/factory";
-import { evictSharedLimiters } from "../llm/requestLimiter";
-import { refreshProviderModels } from "../llm/modelCatalog";
-import { getAudioModelProvider, getImageModelProvider, getTextModelProvider, isLocalBridgeBaseURL, isLocalSubscriptionProvider } from "../llm/modelCategories";
-import { llmProviderSchema } from "../llm/providerSchema";
+import { setProviderSecretCache } from "../../../llm/factory";
+import { evictSharedLimiters } from "../../../llm/requestLimiter";
+import { refreshProviderModels } from "../../../llm/modelCatalog";
+import { getAudioModelProvider, getImageModelProvider, getTextModelProvider, isLocalBridgeBaseURL, isLocalSubscriptionProvider } from "../../../llm/modelCategories";
+import { llmProviderSchema } from "../../../llm/providerSchema";
 import {
   getProviderEnvApiKey,
   getProviderEnvBaseUrl,
@@ -15,38 +15,38 @@ import {
   providerRequiresApiKey,
   PROVIDERS,
   SUPPORTED_PROVIDERS,
-} from "../llm/providers";
-import { authMiddleware } from "../middleware/auth";
-import { AppError } from "../middleware/errorHandler";
-import { validate } from "../middleware/validate";
-import { ragServices } from "../services/rag";
-import { providerBalanceService } from "../services/settings/ProviderBalanceService";
-import { secretStore } from "../services/settings/secretStore";
+} from "../../../llm/providers";
+import { authMiddleware } from "../../../middleware/auth";
+import { AppError } from "../../../middleware/errorHandler";
+import { validate } from "../../../middleware/validate";
+import { ragServices } from "../../../services/rag";
+import { providerBalanceService } from "../../../services/settings/ProviderBalanceService";
+import { secretStore } from "../../../services/settings/secretStore";
 import {
   getDefaultImageModel,
   getImageModelOptions,
   getProviderImageModelMap,
   saveProviderImageModel,
-} from "../services/settings/ProviderImageSettingsService";
-import { getRagEmbeddingModelOptions } from "../services/settings/RagEmbeddingModelService";
+} from "../../../services/settings/ProviderImageSettingsService";
+import { getRagEmbeddingModelOptions } from "../../../services/settings/RagEmbeddingModelService";
 import {
   getRagEmbeddingProviders,
   getRagEmbeddingSettings,
   saveRagEmbeddingSettings,
-} from "../services/settings/RagSettingsService";
+} from "../../../services/settings/RagSettingsService";
 import {
   getRagRuntimeSettings,
   saveRagRuntimeSettings,
-} from "../services/settings/RagRuntimeSettingsService";
+} from "../../../services/settings/RagRuntimeSettingsService";
 import {
   getStyleEngineRuntimeSettings,
   MAX_STYLE_EXTRACTION_TIMEOUT_MS,
   MIN_STYLE_EXTRACTION_TIMEOUT_MS,
   saveStyleEngineRuntimeSettings,
-} from "../services/settings/StyleEngineRuntimeSettingsService";
-import { registerCustomProviderRoutes } from "./settings/customProviderRoutes";
-import { registerLLMSelectionRoutes } from "./settings/llmSelectionRoutes";
-import { probeAudioSpeechChannel } from "../services/audio/speechProvider";
+} from "../../../services/settings/StyleEngineRuntimeSettingsService";
+import { registerCustomProviderRoutes } from "./customProviderRoutes";
+import { registerLLMSelectionRoutes } from "./llmSelectionRoutes";
+import { probeAudioSpeechChannel } from "../../../services/audio/speechProvider";
 
 const router = Router();
 const MAX_PROVIDER_CONCURRENCY_LIMIT = 100;

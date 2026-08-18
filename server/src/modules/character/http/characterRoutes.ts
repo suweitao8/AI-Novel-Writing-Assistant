@@ -1,12 +1,12 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { characterLibrarySyncService } from "../services/character/CharacterLibrarySyncService";
-import { characterGenerateConstraintsSchema, generateBaseCharacterFromAI } from "../services/character/characterGenerate";
+import { prisma } from "../../../db/prisma";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { characterLibrarySyncService } from "../../../services/character/CharacterLibrarySyncService";
+import { characterGenerateConstraintsSchema, generateBaseCharacterFromAI } from "../../../services/character/characterGenerate";
 
 const router = Router();
 

@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { authMiddleware } from "../middleware/auth";
-import { AppError } from "../middleware/errorHandler";
-import { validate } from "../middleware/validate";
-import { ragServices } from "../services/rag";
-import { ragConfig } from "../config/rag";
+import { authMiddleware } from "../../../middleware/auth";
+import { AppError } from "../../../middleware/errorHandler";
+import { validate } from "../../../middleware/validate";
+import { ragServices } from "../../../services/rag";
+import { ragConfig } from "../../../config/rag";
 
 const router = Router();
 
