@@ -9,15 +9,25 @@ import {
   Plus,
   Sparkles,
   SquareStack,
+  Trash2,
 } from "lucide-react";
 import {
   createComicProject,
+  deleteComicProject,
   importComicSourceBundle,
   listComicProjects,
   type ComicProject,
   type ComicSourceType,
   type CreateComicProjectPayload,
 } from "@/api/comic";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ComicImageGenerationNotice } from "@/pages/comic/ComicImageGenerationNotice";
 import { getNovelList } from "@/api/novel/core";
 import { Badge } from "@/components/ui/badge";
@@ -230,10 +240,12 @@ function ProjectCard({
   project,
   busyId,
   onImport,
+  onDelete,
 }: {
   project: ComicProject;
   busyId: string;
   onImport: (p: ComicProject) => void;
+  onDelete: (p: ComicProject) => void;
 }) {
   const busy = busyId === project.id;
   return (
@@ -270,6 +282,16 @@ function ProjectCard({
             导入内容源
           </Button>
         )}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="text-destructive hover:bg-destructive/10"
+          onClick={() => onDelete(project)}
+        >
+          <Trash2 className="h-4 w-4" />
+          删除
+        </Button>
       </CardContent>
     </Card>
   );
@@ -508,6 +530,7 @@ export default function ComicWorkspacePage() {
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [busyId, setBusyId] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<ComicProject | null>(null);
 
   const { data: projects = [], isLoading } = useQuery({
     queryKey: ["comic", "projects"],
@@ -522,6 +545,16 @@ export default function ComicWorkspacePage() {
       toast.success("内容源导入完成");
     },
     onSettled: () => setBusyId(""),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (projectId: string) => deleteComicProject(projectId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comic", "projects"] });
+      toast.success("漫画项目已删除");
+      setDeleteTarget(null);
+    },
+    onError: (e) => toast.error("漫画项目删除失败", { description: String(e) }),
   });
 
   return (
@@ -578,9 +611,50 @@ export default function ComicWorkspacePage() {
             project={proj}
             busyId={busyId}
             onImport={(p) => importMut.mutate(p.id)}
+            onDelete={(p) => setDeleteTarget(p)}
           />
         ))}
       </div>
+
+      <Dialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除漫画项目</DialogTitle>
+            <DialogDescription>
+              确认删除《{deleteTarget?.title ?? ""}》吗？该项目的分集、角色、分格与已生成图片会一并删除，删除后无法恢复。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleteMut.isPending}
+              onClick={() => setDeleteTarget(null)}
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteMut.isPending}
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMut.mutate(deleteTarget.id);
+                }
+              }}
+            >
+              {deleteMut.isPending ? "删除中…" : "确认删除"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
