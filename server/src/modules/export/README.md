@@ -16,4 +16,4 @@
 
 导出模块只能读取已有生产数据并生成文件内容，不直接修改小说、章节、角色、时间线、质量报告或流水线状态。新增导出范围时，先扩展导出 section 类型和 mapper，再由 service 组装；不要在路由层或前端临时拼接后端内部数据结构。
 
-`server/src/services/novel/NovelExportService.ts` 只保留兼容再导出，旧路径不再承载实现。
+导出实现只存在于本模块（`server/src/modules/export`），外部代码统一从模块门面 `index.ts` 引入导出能力。
