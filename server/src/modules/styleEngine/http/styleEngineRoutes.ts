@@ -1,17 +1,17 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { AntiAiPolicyResolver } from "../services/styleEngine/AntiAiPolicyResolver";
-import { AntiAiRuleService } from "../services/styleEngine/AntiAiRuleService";
-import { StyleBindingService } from "../services/styleEngine/StyleBindingService";
-import { StyleDetectionService } from "../services/styleEngine/StyleDetectionService";
-import { StyleGenerationService } from "../services/styleEngine/StyleGenerationService";
-import { StyleProfileService } from "../services/styleEngine/StyleProfileService";
-import { styleRecommendationService } from "../services/styleEngine/StyleRecommendationService";
-import { StyleRewriteService } from "../services/styleEngine/StyleRewriteService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { AntiAiPolicyResolver } from "../../../services/styleEngine/AntiAiPolicyResolver";
+import { AntiAiRuleService } from "../../../services/styleEngine/AntiAiRuleService";
+import { StyleBindingService } from "../../../services/styleEngine/StyleBindingService";
+import { StyleDetectionService } from "../../../services/styleEngine/StyleDetectionService";
+import { StyleGenerationService } from "../../../services/styleEngine/StyleGenerationService";
+import { StyleProfileService } from "../../../services/styleEngine/StyleProfileService";
+import { styleRecommendationService } from "../../../services/styleEngine/StyleRecommendationService";
+import { StyleRewriteService } from "../../../services/styleEngine/StyleRewriteService";
 
 const router = Router();
 const styleProfileService = new StyleProfileService();

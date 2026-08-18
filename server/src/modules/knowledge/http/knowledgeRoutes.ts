@@ -1,10 +1,10 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { DocumentChapterService } from "../services/knowledge/DocumentChapterService";
-import { KnowledgeService } from "../services/knowledge/KnowledgeService";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { DocumentChapterService } from "../../../services/knowledge/DocumentChapterService";
+import { KnowledgeService } from "../../../services/knowledge/KnowledgeService";
 
 const router = Router();
 const knowledgeService = new KnowledgeService();

@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { streamToSSE } from "../llm/streaming";
-import { WritingFormulaService } from "../services/writingFormula/WritingFormulaService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { streamToSSE } from "../../../llm/streaming";
+import { WritingFormulaService } from "../../../services/writingFormula/WritingFormulaService";
 
 const router = Router();
 const writingFormulaService = new WritingFormulaService();

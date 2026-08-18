@@ -1,11 +1,11 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { generateTitleIdeas } from "../services/title/titleGenerate";
-import { TitleLibraryService } from "../services/title/TitleLibraryService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { generateTitleIdeas } from "../../../services/title/titleGenerate";
+import { TitleLibraryService } from "../../../services/title/TitleLibraryService";
 
 const router = Router();
 const titleLibraryService = new TitleLibraryService();

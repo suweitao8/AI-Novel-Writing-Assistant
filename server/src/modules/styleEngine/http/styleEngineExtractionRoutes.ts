@@ -1,14 +1,14 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { AppError } from "../middleware/errorHandler";
-import { validate } from "../middleware/validate";
-import { KnowledgeService } from "../services/knowledge/KnowledgeService";
-import { StyleProfileService } from "../services/styleEngine/StyleProfileService";
-import { styleExtractionTaskService } from "../services/styleEngine/StyleExtractionTaskService";
-import { taskCenterService } from "../services/task/TaskCenterService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { AppError } from "../../../middleware/errorHandler";
+import { validate } from "../../../middleware/validate";
+import { KnowledgeService } from "../../../services/knowledge/KnowledgeService";
+import { StyleProfileService } from "../../../services/styleEngine/StyleProfileService";
+import { styleExtractionTaskService } from "../../../services/styleEngine/StyleExtractionTaskService";
+import { taskCenterService } from "../../../services/task/TaskCenterService";
 
 const router = Router();
 const styleProfileService = new StyleProfileService();

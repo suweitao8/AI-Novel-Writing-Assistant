@@ -1,16 +1,16 @@
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
-import { prisma } from "../db/prisma";
-import { llmConnectivityService } from "../llm/connectivity";
-import { getStructuredFallbackSettings, saveStructuredFallbackSettings } from "../llm/structuredFallbackSettings";
-import { getProviderModels } from "../llm/modelCatalog";
-import { listModelRouteConfigs, MODEL_ROUTE_TASK_TYPES, upsertModelRouteConfig } from "../llm/modelRouter";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { getProviderEnvApiKey, getProviderEnvModel, isBuiltInProvider, PROVIDERS } from "../llm/providers";
-import { authMiddleware } from "../middleware/auth";
-import { AppError } from "../middleware/errorHandler";
-import { validate } from "../middleware/validate";
+import { prisma } from "../../../db/prisma";
+import { llmConnectivityService } from "../../../llm/connectivity";
+import { getStructuredFallbackSettings, saveStructuredFallbackSettings } from "../../../llm/structuredFallbackSettings";
+import { getProviderModels } from "../../../llm/modelCatalog";
+import { listModelRouteConfigs, MODEL_ROUTE_TASK_TYPES, upsertModelRouteConfig } from "../../../llm/modelRouter";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { getProviderEnvApiKey, getProviderEnvModel, isBuiltInProvider, PROVIDERS } from "../../../llm/providers";
+import { authMiddleware } from "../../../middleware/auth";
+import { AppError } from "../../../middleware/errorHandler";
+import { validate } from "../../../middleware/validate";
 
 const router = Router();
 
