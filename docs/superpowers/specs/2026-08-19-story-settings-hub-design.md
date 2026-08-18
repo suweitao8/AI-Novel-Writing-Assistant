@@ -132,3 +132,26 @@ model NovelProp {
 - 导演链规划序列内的场景/道具生成步骤（替代前端补全）。
 - 场景/道具与章节的关联追踪（某章发生在哪些场景）。
 - 专业工作台复用设定中心组件统一体验。
+
+## 追加：实体级 AI 生成（用户提示词驱动）
+
+日期：2026-08-19（v1.1）
+状态：已确认（用户要求参考旧项目 mydrama 的角色属性结构与图片提示词逻辑，方向从"解析已有小说"反转为"按用户提示现场生成"）
+
+### 需求
+
+用户在设定中心手动添加实体时，可以只给一句提示（如「男大学生」），AI 生成完整属性草稿（随机姓名、性别/年龄段推断、性格、外貌、面部锚点等），用户预览微调后保存。三类实体（角色/场景/道具）都支持。
+
+### 属性结构（参考 mydrama 解析模型，映射到本项目）
+
+- 角色：name、gender（CharacterGender 枚举）、ageGroup（child/youth/middle/elder 新列）、role、physique（既有列=体型）、personality、appearance、attireStyle（既有列=默认着装）、facePrompt（新列，纯面部特征锚点，模板 `[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型/骨骼]`，禁止服装）、background。
+- 场景：name、sceneType（interior/exterior/nature 新列）、summary、significance、environmentPrompt（新列，360° 空间环境描述：方位/光源/材质风格，约 220-320 字，不含人物）。
+- 道具：name、propType（weapon/accessory/artifact/document/furniture/object 新列）、description、plotFunction、importance、visualPrompt（新列，视觉提示词：材质/工艺/尺寸/色泽/纹饰，80-120 字，描述固有外观）。
+
+### 方案
+
+- 新 Prompt 资产 `novel.story_settings.entity.generate@v1`：输入 entityType + hint（可空=完全随机）+ 一致性上下文（书名/题材/世界观摘要/已有实体名单）；输出三类草稿之一，postValidate 强制只含请求类型且姓名不与已有实体重复。
+- 设定 bundle（`novel.story_settings.bundle`）同步扩展输出上述新字段，保证初次生成的设定同样完整。
+- API：`POST /settings/{characters,scenes,props}/generate`（返回草稿不落库）+ `POST /settings/characters`（角色创建，此前只有编辑）。
+- UI：三个 tab 的「AI 生成」改为提示词对话框（输入提示 → 生成草稿填充表单 → 可编辑 → 保存）；表单与卡片展示新字段。
+- 草稿不直接落库，先预览再保存，避免产生垃圾行。
