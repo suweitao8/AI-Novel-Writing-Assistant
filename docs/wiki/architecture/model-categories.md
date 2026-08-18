@@ -1,0 +1,40 @@
+# 模型能力类别（文本 / 图片 / 音频）
+
+## 背景
+
+产品早期把“模型厂商”作为一等配置面：内置十余家厂商加自定义厂商，每个厂商单独配置 Key、模型、地址，另设 11 类任务模型路由与结构化备用模型。对目标用户（写作新手）来说认知负担过重：用户实际通常只有一个可用供应商，却被要求理解厂商、任务路由、请求协议等概念；未配置路由时系统会回退到固定厂商（DeepSeek），并抛出“未配置 DeepSeek 的 API Key”。
+
+## 决策
+
+- 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型（预留）。
+- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=opencode`（OpenCode Go 本地桥）、`image=codex`（Codex 本地桥）。
+- 槽位的服务地址、API Key、模型均可编辑；更换供应商时修改槽位配置即可，产品不再提供按厂商维度逐个配置的界面。
+- 所有任务路由统一解析到文本槽：`resolveModel` 的 provider/model 一律来自文本槽当前配置，路由行仅保留温度与结构化协议偏好，避免历史路由把任务钉在已不再使用的供应商上。
+
+## 当前规则
+
+- `resolveModel(taskType)`：provider 固定为文本槽；model 来自 `resolveTextModelId()`（已保存配置 > 环境变量 > 注册表默认值）；温度优先取 `modelRouteConfig` 行，缺省用 `TASK_ROUTE_DEFAULTS` 的任务级默认温度。
+- `factory.resolveLLMClientOptions` 在未显式指定 provider 时回退文本槽，禁止回退任何固定厂商。
+- `/api/settings/model-categories` 返回三槽状态（audio 为占位）；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
+- `LLMSelector` 只展示文本槽的模型列表；`llm-selection` 保存的历史选择只有落在文本槽供应商上时才沿用其模型，否则回落文本槽当前模型（`client/src/lib/llmSelection.ts` 的 `resolvePreferredLLMSelection`）。
+- 新手引导（QuickSetup）只配置文本槽：检测通过后写入全部任务路由的温度与协议偏好，并保存全局选择。
+- 结构化备用模型（structured-fallback）机制保留在服务端，无设置入口；存量启用配置继续生效。
+- 存量数据兼容：`APIKey` 表与 `modelRouteConfig` 表结构不变；旧路由行的 provider/model 字段被忽略，只读温度与协议。
+- 新增音频能力时：在 `modelCategories.ts` 增加槽位，扩展 `/model-categories` 返回值与设置页音频卡片。
+
+## 故障模式
+
+- 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
+- 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
+- 本地桥接服务未启动（18762 文本 / 18766 图片）时连通测试失败，执行 `pnpm opencode:bridge` / `pnpm codex:image` 启动后恢复。
+
+## 相关模块
+
+- `server/src/llm/modelCategories.ts`：槽位定义与文本模型解析。
+- `server/src/llm/modelRouter.ts`：任务路由解析（统一走文本槽）。
+- `server/src/llm/factory.ts`：LLM 客户端构建与密钥/地址解析。
+- `server/src/routes/settings.ts`：`/api/settings/model-categories`。
+- `server/src/modules/setup/onboarding/application/QuickSetupService.ts`：新手引导。
+- `client/src/pages/settings/models/`：设置页三卡片。
+- `client/src/components/common/LLMSelector.tsx`、`client/src/components/layout/LLMSelectionBootstrap.tsx`、`client/src/lib/llmSelection.ts`。
+- 相关文档：`docs/wiki/architecture/opencode-go-provider.md`、`docs/wiki/architecture/codex-image-provider.md`。

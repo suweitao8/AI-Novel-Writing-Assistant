@@ -206,7 +206,7 @@ export function CharacterImageDialog({
         throw new Error("请先选择角色。");
       }
       if (!imageForm.provider) {
-        throw new Error("请先在系统设置中为一个厂商填写图像模型。");
+        throw new Error("请先在模型设置中配置图片模型。");
       }
       return generateCharacterImages({
         sceneType: "character",
@@ -351,7 +351,7 @@ export function CharacterImageDialog({
             />
 
             <label className="space-y-1 text-sm">
-              <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">模型厂商</div>
+              <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">图片模型</div>
               <SelectControl
                 className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
                 value={imageForm.provider}
@@ -363,7 +363,7 @@ export function CharacterImageDialog({
                   }))}
               >
                 {imageProviderOptions.length === 0 ? (
-                  <option value="">请先在系统设置中填写图像模型</option>
+                  <option value="">请先在模型设置中配置图片模型</option>
                 ) : null}
                 {imageProviderOptions.map((item) => (
                   <option key={item.provider} value={item.provider}>

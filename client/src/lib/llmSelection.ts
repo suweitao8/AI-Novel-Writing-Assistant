@@ -41,18 +41,42 @@ export function resolvePreferredLLMSelection(
   preferred: LLMSelectionSettings | LLMSelectionValue | null | undefined,
   providerConfigs: APIKeyStatus[],
   fallback?: Pick<LLMSelectionValue, "temperature" | "maxTokens">,
+  preferredProvider?: LLMProvider,
 ): LLMSelectionSettings | null {
   const runnableProviders = providerConfigs.filter(isRunnableProviderConfig);
   if (runnableProviders.length === 0) {
     return null;
   }
 
-  const preferredProvider = preferred?.provider;
-  const matchedConfig = preferredProvider
+  // 模型统一走文本槽：保存过的选择只有落在文本槽供应商上时才沿用其模型，
+  // 否则回退到文本槽当前模型。
+  const categoryConfig = preferredProvider
     ? runnableProviders.find((item) => item.provider === preferredProvider)
     : undefined;
-  const selectedConfig = matchedConfig ?? runnableProviders[0];
-  const selectedModel = matchedConfig ? preferred?.model ?? "" : "";
+  if (categoryConfig) {
+    const model = preferred?.provider === categoryConfig.provider
+      ? resolveModel(preferred.model ?? "", getProviderSelectionModels(categoryConfig))
+      : resolveModel("", getProviderSelectionModels(categoryConfig));
+    if (!model) {
+      return null;
+    }
+    return {
+      provider: categoryConfig.provider,
+      model,
+      temperature: preferred?.temperature ?? fallback?.temperature ?? 0.7,
+      ...(preferred?.maxTokens !== undefined
+        ? { maxTokens: preferred.maxTokens }
+        : fallback?.maxTokens !== undefined
+          ? { maxTokens: fallback.maxTokens }
+          : {}),
+    };
+  }
+
+  const preferredProviderConfig = preferred?.provider
+    ? runnableProviders.find((item) => item.provider === preferred.provider)
+    : undefined;
+  const selectedConfig = preferredProviderConfig ?? runnableProviders[0];
+  const selectedModel = preferredProviderConfig ? preferred?.model ?? "" : "";
   const model = resolveModel(selectedModel, getProviderSelectionModels(selectedConfig));
   if (!model) {
     return null;

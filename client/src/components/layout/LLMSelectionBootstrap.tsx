@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAPIKeySettings, getLLMSelectionSetting, saveLLMSelectionSetting } from "@/api/settings";
+import { getAPIKeySettings, getLLMSelectionSetting, getModelCategories, saveLLMSelectionSetting } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
 import { resolvePreferredLLMSelection } from "@/lib/llmSelection";
 import { useLLMStore } from "@/store/llmStore";
@@ -24,6 +24,12 @@ export default function LLMSelectionBootstrap() {
     queryKey: queryKeys.settings.apiKeys,
     queryFn: getAPIKeySettings,
     enabled: apiKeyQueryEnabled,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const modelCategoriesQuery = useQuery({
+    queryKey: queryKeys.settings.modelCategories,
+    queryFn: getModelCategories,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -55,11 +61,13 @@ export default function LLMSelectionBootstrap() {
         temperature: store.temperature,
         maxTokens: store.maxTokens,
       },
+      modelCategoriesQuery.data?.data?.text?.provider,
     );
   }, [
     apiKeySettingsQuery.data?.data,
     apiKeySettingsQuery.isError,
     apiKeySettingsQuery.isSuccess,
+    modelCategoriesQuery.data?.data?.text?.provider,
     selectionQuery.data?.data,
     selectionQuery.isError,
     selectionQuery.isSuccess,
