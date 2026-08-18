@@ -4,12 +4,6 @@ import type {
 } from "@ai-novel/shared/types/autoDirectorApproval";
 import type { DirectorIssuePolicy } from "@ai-novel/shared/types/directorIssue";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import type {
-  ModelRouteConfig,
-  ModelRouteRequestProtocol,
-  ModelRouteStructuredResponseFormat,
-  ModelRouteTaskType,
-} from "@ai-novel/shared/types/novel";
 import { apiClient } from "./client";
 
 export type EmbeddingProvider = LLMProvider;
@@ -36,25 +30,19 @@ export interface APIKeyStatus {
   supportsImageGeneration: boolean;
 }
 
-export type ProviderBalanceStatusKind = "available" | "missing_api_key" | "unsupported" | "error";
+export interface ModelCategoryAudioStatus {
+  provider: null;
+  available: false;
+  currentModel: null;
+  currentBaseURL: null;
+  isConfigured: false;
+}
 
-export interface ProviderBalanceStatus {
-  provider: LLMProvider;
-  status: ProviderBalanceStatusKind;
-  supported: boolean;
-  canRefresh: boolean;
-  source: "provider_api" | "aliyun_account" | "none";
-  currency: string | null;
-  availableBalance: number | null;
-  totalBalance: number | null;
-  cashBalance: number | null;
-  voucherBalance: number | null;
-  chargeBalance: number | null;
-  toppedUpBalance: number | null;
-  grantedBalance: number | null;
-  fetchedAt: string;
-  message: string;
-  error: string | null;
+// 模型按能力类别暴露：文本 / 图片 / 音频（预留）。
+export interface ModelCategoriesStatus {
+  text: APIKeyStatus;
+  image: APIKeyStatus;
+  audio: ModelCategoryAudioStatus;
 }
 
 export interface RagProviderStatus {
@@ -121,62 +109,6 @@ export interface LLMSelectionSettings {
   maxTokens?: number;
 }
 
-export interface ModelRoutesResponse {
-  taskTypes: ModelRouteTaskType[];
-  routes: Array<{
-    taskType: string;
-    provider: string;
-    model: string;
-    temperature: number;
-    maxTokens: number | null;
-    requestProtocol: ModelRouteRequestProtocol;
-    structuredResponseFormat: ModelRouteStructuredResponseFormat;
-  }>;
-}
-
-export interface ModelRouteConnectivityStatus {
-  taskType: ModelRouteTaskType;
-  provider: string;
-  model: string;
-  ok: boolean;
-  latency: number | null;
-  error: string | null;
-  requestProtocol: ModelRouteRequestProtocol | null;
-  plain: {
-    ok: boolean;
-    latency: number | null;
-    error: string | null;
-    requestProtocol: ModelRouteRequestProtocol | null;
-  } | null;
-  structured: {
-    ok: boolean;
-    latency: number | null;
-    error: string | null;
-    requestProtocol: ModelRouteRequestProtocol | null;
-    strategy: string | null;
-    reasoningForcedOff: boolean;
-    fallbackAvailable: boolean;
-    fallbackUsed: boolean;
-    errorCategory: string | null;
-    nativeJsonObject: boolean;
-    nativeJsonSchema: boolean;
-    profileFamily: string | null;
-  } | null;
-}
-
-export interface ModelRouteConnectivityResponse {
-  testedAt: string;
-  statuses: ModelRouteConnectivityStatus[];
-}
-
-export interface StructuredFallbackSettings {
-  enabled: boolean;
-  provider: LLMProvider;
-  model: string;
-  temperature: number;
-  maxTokens: number | null;
-}
-
 export interface AutoDirectorChannelConfig {
   webhookUrl: string;
   callbackToken: string;
@@ -201,13 +133,8 @@ export async function getAPIKeySettings() {
   return data;
 }
 
-export async function getProviderBalances() {
-  const { data } = await apiClient.get<ApiResponse<ProviderBalanceStatus[]>>("/settings/api-keys/balances");
-  return data;
-}
-
-export async function refreshProviderBalance(provider: LLMProvider) {
-  const { data } = await apiClient.post<ApiResponse<ProviderBalanceStatus>>(`/settings/api-keys/${provider}/refresh-balance`);
+export async function getModelCategories() {
+  const { data } = await apiClient.get<ApiResponse<ModelCategoriesStatus>>("/settings/model-categories");
   return data;
 }
 
@@ -349,54 +276,6 @@ export async function saveAPIKeySetting(
   return data;
 }
 
-export async function createCustomProvider(payload: {
-  name: string;
-  key?: string;
-  model?: string;
-  imageModel?: string;
-  baseURL: string;
-  isActive?: boolean;
-  reasoningEnabled?: boolean;
-  concurrencyLimit?: number;
-  requestIntervalMs?: number;
-}) {
-  const { data } = await apiClient.post<
-    ApiResponse<{
-      provider: string;
-      displayName: string | null;
-      model: string | null;
-      imageModel: string | null;
-      baseURL: string | null;
-      isActive: boolean;
-      reasoningEnabled: boolean;
-      concurrencyLimit: number;
-      requestIntervalMs: number;
-      models: string[];
-      imageModels: string[];
-      supportsImageGeneration: boolean;
-    }>
-  >("/settings/custom-providers", payload);
-  return data;
-}
-
-export async function previewCustomProviderModels(payload: {
-  key?: string;
-  baseURL: string;
-}) {
-  const { data } = await apiClient.post<
-    ApiResponse<{
-      models: string[];
-      defaultModel: string;
-    }>
-  >("/settings/custom-providers/models", payload);
-  return data;
-}
-
-export async function deleteCustomProvider(provider: LLMProvider) {
-  const { data } = await apiClient.delete<ApiResponse<null>>(`/settings/custom-providers/${provider}`);
-  return data;
-}
-
 export async function refreshProviderModelList(provider: LLMProvider) {
   const { data } = await apiClient.post<
     ApiResponse<{
@@ -410,31 +289,6 @@ export async function refreshProviderModelList(provider: LLMProvider) {
 
 export async function getLLMProviders() {
   const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>("/llm/providers");
-  return data;
-}
-
-export async function getModelRoutes() {
-  const { data } = await apiClient.get<ApiResponse<ModelRoutesResponse>>("/llm/model-routes");
-  return data;
-}
-
-export async function testModelRouteConnectivity() {
-  const { data } = await apiClient.post<ApiResponse<ModelRouteConnectivityResponse>>("/llm/model-routes/connectivity");
-  return data;
-}
-
-export async function saveModelRoute(payload: ModelRouteConfig) {
-  const { data } = await apiClient.put<ApiResponse<null>>("/llm/model-routes", payload);
-  return data;
-}
-
-export async function getStructuredFallbackConfig() {
-  const { data } = await apiClient.get<ApiResponse<StructuredFallbackSettings>>("/llm/structured-fallback");
-  return data;
-}
-
-export async function saveStructuredFallbackConfig(payload: Partial<StructuredFallbackSettings>) {
-  const { data } = await apiClient.put<ApiResponse<StructuredFallbackSettings>>("/llm/structured-fallback", payload);
   return data;
 }
 

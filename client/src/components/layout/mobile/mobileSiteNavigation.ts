@@ -38,7 +38,7 @@ export const MOBILE_ROUTE_PATTERNS: MobileRoutePattern[] = [
   { key: "story-modes", pattern: /^\/story-modes\/?$/, title: "推进模式", group: "more" },
   { key: "titles", pattern: /^\/titles\/?$/, title: "标题工坊", group: "more" },
   { key: "prompt-workbench", pattern: /^\/prompt-workbench\/?$/, title: "提示词管理", group: "more" },
-  { key: "settings-models", pattern: /^\/settings\/models\/?$/, title: "模型与厂商", group: "more" },
+  { key: "settings-models", pattern: /^\/settings\/models\/?$/, title: "模型设置", group: "more" },
   { key: "settings-director", pattern: /^\/settings\/director\/?$/, title: "自动导演设置", group: "more" },
   { key: "settings-knowledge", pattern: /^\/settings\/knowledge\/?$/, title: "知识库与写法", group: "more" },
   { key: "settings-maintenance", pattern: /^\/settings\/maintenance\/?$/, title: "桌面与维护", group: "more" },

@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, CircleAlert, CircleDashed, Loader2 } from "lucide-react";
 import type {
-  APIKeyStatus,
-  ModelRouteConnectivityResponse,
-  ModelRoutesResponse,
+  ModelCategoriesStatus,
   RagSettingsStatus,
   StyleEngineRuntimeSettingsStatus,
 } from "@/api/settings";
@@ -13,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AUTO_DIRECTOR_MOBILE_CLASSES } from "@/mobile/autoDirector";
 
 export type SettingsReadinessItem = {
-  key: "model" | "routes" | "rag" | "style";
+  key: "text" | "image" | "rag" | "style";
   title: string;
   description: string;
   state: "ready" | "warning" | "optional" | "checking";
@@ -46,30 +44,15 @@ function getReadinessBadge(state: SettingsReadinessItem["state"]) {
 }
 
 export function buildSettingsReadinessItems(input: {
-  providers: APIKeyStatus[];
+  categories?: ModelCategoriesStatus | null;
   ragSettings?: RagSettingsStatus | null;
   styleSettings?: StyleEngineRuntimeSettingsStatus | null;
-  modelRoutes?: ModelRoutesResponse | null;
-  modelRouteConnectivity?: ModelRouteConnectivityResponse | null;
-  isModelRoutesChecking: boolean;
   isStyleSettingsLoaded: boolean;
 }): SettingsReadinessItem[] {
-  const {
-    providers,
-    ragSettings,
-    styleSettings,
-    modelRoutes,
-    modelRouteConnectivity,
-    isModelRoutesChecking,
-    isStyleSettingsLoaded,
-  } = input;
-  const runnableProviders = providers.filter((item) => item.isConfigured && item.isActive && item.currentModel);
+  const { categories, ragSettings, styleSettings, isStyleSettingsLoaded } = input;
+  const textReady = Boolean(categories?.text?.isConfigured && categories.text.currentModel);
+  const imageReady = Boolean(categories?.image?.isConfigured && categories.image.currentModel);
   const currentRagProvider = ragSettings?.providers.find((item) => item.provider === ragSettings.embeddingProvider);
-  const routeStatuses = modelRouteConnectivity?.statuses ?? [];
-  const failedRouteCount = routeStatuses.filter(
-    (item) => (item.plain && !item.plain.ok) || (item.structured && !item.structured.ok),
-  ).length;
-  const hasRoutes = (modelRoutes?.routes ?? []).length > 0;
   const styleTimeout = styleSettings?.styleExtractionTimeoutMs;
   const styleReady = Boolean(styleSettings)
     && typeof styleTimeout === "number"
@@ -78,22 +61,20 @@ export function buildSettingsReadinessItems(input: {
 
   return [
     {
-      key: "model",
-      title: "正文模型",
-      state: runnableProviders.length > 0 ? "ready" : "warning",
-      description: runnableProviders.length > 0
-        ? `已可使用 ${runnableProviders[0].name} 进行正文与规划生成。`
-        : "先配置一个可用模型，就可以开始开书和生成章节。",
+      key: "text",
+      title: "文本模型",
+      state: textReady ? "ready" : "warning",
+      description: textReady
+        ? `文本模型已就绪（${categories!.text.currentModel}），大纲、正文、审校等任务都可以使用。`
+        : "先在模型设置中配置文本模型，就可以开始开书和生成章节。",
     },
     {
-      key: "routes",
-      title: "模型路由",
-      state: isModelRoutesChecking ? "checking" : hasRoutes && failedRouteCount === 0 ? "ready" : "warning",
-      description: isModelRoutesChecking
-        ? "正在检查开书、拆章、正文生成和审核任务的模型兼容性。"
-        : hasRoutes && failedRouteCount === 0
-          ? "创作任务已有可用路由，后续流程会按任务选择模型。"
-          : "部分创作任务还需要补齐或修复模型路由。",
+      key: "image",
+      title: "图片模型",
+      state: imageReady ? "ready" : "optional",
+      description: imageReady
+        ? `图片模型已就绪（${categories!.image.currentModel}），可以生成封面和插图。`
+        : "暂未配置图片模型；需要生成封面或插图时再配置即可。",
     },
     {
       key: "rag",
@@ -118,17 +99,13 @@ export default function SettingsReadinessCard(props: {
   items: SettingsReadinessItem[];
 }) {
   const { items } = props;
-  const modelItem = items.find((item) => item.key === "model");
-  const routesItem = items.find((item) => item.key === "routes");
-  const hasModel = modelItem?.state === "ready";
-  const hasHealthyRoutes = routesItem?.state === "ready";
-  const blockingCount = items.filter((item) => item.key !== "rag" && item.state === "warning").length;
-  const canStart = hasModel && hasHealthyRoutes && blockingCount === 0;
-  const primaryAction = !hasModel
-    ? { label: "配置正文模型", to: "/settings/models" }
-    : !hasHealthyRoutes
-      ? { label: "检查模型路由", to: "/settings/models" }
-      : { label: "开始创建小说", to: "/novels/create" };
+  const textItem = items.find((item) => item.key === "text");
+  const hasTextModel = textItem?.state === "ready";
+  const blockingCount = items.filter((item) => item.key !== "rag" && item.key !== "image" && item.state === "warning").length;
+  const canStart = hasTextModel && blockingCount === 0;
+  const primaryAction = !hasTextModel
+    ? { label: "配置文本模型", to: "/settings/models" }
+    : { label: "开始创建小说", to: "/novels/create" };
 
   return (
     <Card className="min-w-0 overflow-hidden border-primary/20 bg-primary/5">
@@ -136,7 +113,7 @@ export default function SettingsReadinessCard(props: {
         <div className="min-w-0 space-y-1">
           <CardTitle>创作可用性检查</CardTitle>
           <CardDescription className={AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}>
-            先确认开始写小说必需的模型和路由是否可用；知识库属于增强项，可以稍后再补。
+            先确认开始写小说必需的文本模型是否可用；图片和知识库属于增强项，可以稍后再补。
           </CardDescription>
         </div>
         <Button asChild className={AUTO_DIRECTOR_MOBILE_CLASSES.fullWidthAction}>

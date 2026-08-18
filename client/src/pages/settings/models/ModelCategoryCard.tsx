@@ -1,0 +1,199 @@
+import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { KeyRound, Loader2, PlugZap, Save } from "lucide-react";
+import type { APIKeyStatus } from "@/api/settings";
+import { saveAPIKeySetting, testLLMConnection } from "@/api/settings";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
+
+export function formatConnectionTestResult(response: Awaited<ReturnType<typeof testLLMConnection>>): string {
+  const latency = response.data?.latency ?? 0;
+  const plain = response.data?.plain;
+  const structured = response.data?.structured;
+  const plainText = plain
+    ? plain.ok
+      ? `普通文本连通正常${plain.latency != null ? ` (${plain.latency}ms)` : ""}`
+      : `普通文本连通失败${plain.error ? `：${plain.error}` : ""}`
+    : "普通文本连通未检测";
+  const structuredText = structured
+    ? structured.ok
+      ? `结构化输出正常${structured.strategy ? `，策略 ${structured.strategy}` : ""}`
+      : `结构化输出失败${structured.errorCategory ? `，分类 ${structured.errorCategory}` : ""}${structured.error ? `：${structured.error}` : ""}`
+    : "结构化输出未检测";
+  return `连接成功，总耗时 ${latency}ms · ${plainText} · ${structuredText}`;
+}
+
+interface ModelCategoryCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  status: APIKeyStatus | undefined;
+  isImageCategory?: boolean;
+  onSaved?: () => void | Promise<void>;
+}
+
+interface CategoryFormState {
+  apiKey: string;
+  model: string;
+  baseURL: string;
+}
+
+export default function ModelCategoryCard(props: ModelCategoryCardProps) {
+  const { icon, title, description, status, isImageCategory = false, onSaved } = props;
+  const [form, setForm] = useState<CategoryFormState>({ apiKey: "", model: "", baseURL: "" });
+  const [hydratedFor, setHydratedFor] = useState("");
+  const [testResult, setTestResult] = useState("");
+  const [saveMessage, setSaveMessage] = useState("");
+
+  useEffect(() => {
+    if (!status || hydratedFor === status.provider) {
+      return;
+    }
+    setHydratedFor(status.provider);
+    setForm({
+      apiKey: "",
+      model: status.currentModel || status.defaultModel,
+      baseURL: status.currentBaseURL || status.defaultBaseURL,
+    });
+    setTestResult("");
+    setSaveMessage("");
+  }, [hydratedFor, status]);
+
+  const modelOptions = (status?.models ?? []).filter((model) => model && model !== form.model);
+
+  const saveMutation = useMutation({
+    mutationFn: () => saveAPIKeySetting(status!.provider, {
+      key: form.apiKey.trim() || undefined,
+      model: form.model.trim(),
+      baseURL: form.baseURL.trim(),
+      ...(isImageCategory ? { imageModel: form.model.trim() } : {}),
+    }),
+    onSuccess: async (response) => {
+      setSaveMessage(response.message ?? "保存成功。");
+      setForm((prev) => ({ ...prev, apiKey: "" }));
+      await onSaved?.();
+    },
+    onError: (error) => {
+      setSaveMessage(error instanceof Error ? error.message : "保存失败。");
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: () => testLLMConnection({
+      provider: status!.provider,
+      apiKey: form.apiKey.trim() || undefined,
+      model: form.model.trim() || undefined,
+      baseURL: form.baseURL.trim() || undefined,
+      probeMode: "both",
+    }),
+    onSuccess: (response) => {
+      setTestResult(formatConnectionTestResult(response));
+    },
+    onError: (error) => {
+      setTestResult(error instanceof Error ? error.message : "连接测试失败。");
+    },
+  });
+
+  const requiresApiKey = status?.requiresApiKey !== false;
+  const hasSavedKey = status?.isConfigured === true;
+  const canSubmit = Boolean(
+    status
+    && form.model.trim()
+    && form.baseURL.trim()
+    && (!requiresApiKey || form.apiKey.trim() || hasSavedKey),
+  );
+
+  return (
+    <Card className="min-w-0">
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2 text-base">
+          {icon}
+          {title}
+          {status ? (
+            <Badge variant={status.isConfigured ? "default" : "outline"}>
+              {status.isConfigured ? `当前模型 ${status.currentModel || "未选择"}` : "未配置"}
+            </Badge>
+          ) : null}
+        </CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <label className="block space-y-1.5">
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <KeyRound className="h-4 w-4" />
+            API Key
+            {requiresApiKey ? "" : "（可选）"}
+          </span>
+          <Input
+            type="password"
+            autoComplete="off"
+            value={form.apiKey}
+            placeholder={hasSavedKey ? "留空则继续使用已保存的 Key" : requiresApiKey ? "输入 API Key" : "本地接口可以留空"}
+            onChange={(event) => setForm((prev) => ({ ...prev, apiKey: event.target.value }))}
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">服务地址</span>
+          <Input
+            value={form.baseURL}
+            placeholder="例如 http://127.0.0.1:18762/v1"
+            onChange={(event) => setForm((prev) => ({ ...prev, baseURL: event.target.value }))}
+          />
+        </label>
+        {modelOptions.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {[form.model, ...modelOptions].filter(Boolean).map((model) => (
+              <button
+                key={model}
+                type="button"
+                className={cn(
+                  "rounded-full border px-3 py-1.5 text-xs",
+                  form.model === model && "border-primary bg-primary/10 text-primary",
+                )}
+                onClick={() => setForm((prev) => ({ ...prev, model }))}
+              >
+                {model}
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <label className="block space-y-1.5">
+          <span className="text-sm font-medium">{isImageCategory ? "图片模型" : "文本模型"}</span>
+          <Input
+            value={form.model}
+            placeholder="选择上方模型，或直接填写模型名称"
+            onChange={(event) => setForm((prev) => ({ ...prev, model: event.target.value }))}
+          />
+        </label>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0 space-y-1 text-xs text-muted-foreground">
+            {saveMessage ? <div>{saveMessage}</div> : null}
+            {testResult ? <div>{testResult}</div> : null}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => testMutation.mutate()}
+              disabled={testMutation.isPending || !status || !form.model.trim() || !form.baseURL.trim()}
+            >
+              {testMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlugZap className="h-4 w-4" />}
+              {testMutation.isPending ? "测试中..." : "测试连接"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending || !canSubmit}
+            >
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saveMutation.isPending ? "保存中..." : "保存"}
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

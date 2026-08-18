@@ -16,6 +16,7 @@ import {
   type StructuredOutputStrategy,
 } from "./structuredOutput";
 import { attachLLMUsageTracking } from "./usageTracking";
+import { getTextModelProvider } from "./modelCategories";
 import { resolveModel, toStructuredOutputStrategy, type TaskType } from "./modelRouter";
 import {
   getProviderEnvApiKey,
@@ -199,7 +200,8 @@ export async function resolveLLMClientOptions(
   rawOptions: LLMOptions = {},
 ): Promise<ResolvedLLMClientOptions> {
   const options: LLMOptions = { ...rawOptions };
-  let resolvedProvider = provider ?? options.fallbackProvider ?? "deepseek";
+  // 未显式指定供应商时统一落到文本模型槽，不再回退到固定厂商。
+  let resolvedProvider = provider ?? options.fallbackProvider ?? getTextModelProvider();
   let resolvedModel = normalizeOptionalText(options.model);
   let resolvedTemperature: number | undefined = options.temperature;
   let resolvedMaxTokens: number | undefined = options.maxTokens;

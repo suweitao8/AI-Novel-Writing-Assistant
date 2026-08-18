@@ -1,17 +1,14 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ApiResponse } from "@ai-novel/shared/types/api";
 import {
-  type APIKeyStatus,
   getAPIKeySettings,
-  refreshProviderModelList,
+  getModelCategories,
   saveLLMSelectionSetting,
 } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import {
   getProviderSelectionModels,
@@ -20,8 +17,6 @@ import {
 } from "@/lib/llmSelection";
 import { useLLMStore } from "@/store/llmStore";
 import SearchableSelect from "./SearchableSelect";
-
-const NO_PROVIDER_VALUE = "__no_runnable_provider__";
 
 export interface LLMSelectorValue {
   provider: LLMProvider;
@@ -50,6 +45,7 @@ function clampMaxTokens(value: number): number {
   return Math.min(32768, Math.max(256, Math.floor(value)));
 }
 
+// 模型选择器只暴露文本模型槽的模型列表；供应商是内部实现，不再让用户挑选。
 export default function LLMSelector({
   value,
   onChange,
@@ -63,7 +59,6 @@ export default function LLMSelector({
 }: LLMSelectorProps) {
   const store = useLLMStore();
   const queryClient = useQueryClient();
-  const latestProviderRefreshRef = useRef<LLMProvider | null>(null);
   const currentValue = value ?? {
     provider: store.provider,
     model: store.model,
@@ -80,6 +75,12 @@ export default function LLMSelector({
     staleTime: 5 * 60 * 1000,
   });
 
+  const modelCategoriesQuery = useQuery({
+    queryKey: queryKeys.settings.modelCategories,
+    queryFn: getModelCategories,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const saveSelectionMutation = useMutation({
     mutationFn: saveLLMSelectionSetting,
     onSuccess: (response) => {
@@ -87,89 +88,31 @@ export default function LLMSelector({
     },
   });
 
-  const refreshProviderModelsMutation = useMutation({
-    mutationFn: refreshProviderModelList,
-    onSuccess: (response) => {
-      const refreshed = response.data;
-      if (!refreshed) {
-        return;
-      }
-      queryClient.setQueryData<ApiResponse<APIKeyStatus[]>>(
-        queryKeys.settings.apiKeys,
-        (previous) => {
-          if (!previous?.data) {
-            return previous;
-          }
-          return {
-            ...previous,
-            data: previous.data.map((item) => {
-              if (item.provider !== refreshed.provider) {
-                return item;
-              }
-              return {
-                ...item,
-                currentModel: refreshed.currentModel,
-                models: Array.from(new Set([
-                  refreshed.currentModel,
-                  ...refreshed.models,
-                ].filter(Boolean))),
-              };
-            }),
-          };
-        },
-      );
-    },
-  });
+  const textProvider = modelCategoriesQuery.data?.data?.text?.provider;
 
-  const providerConfigs = useMemo(
-    () => (apiKeySettingsQuery.data?.data ?? []).filter(isRunnableProviderConfig),
-    [apiKeySettingsQuery.data?.data],
-  );
-
-  const providerOptions = useMemo(
-    () => providerConfigs.map((item) => item.provider),
-    [providerConfigs],
-  );
-
-  const providerNameMap = useMemo(
-    () => new Map(providerConfigs.map((item) => [item.provider, item.displayName ?? item.name])),
-    [providerConfigs],
-  );
-
-  const providerModelsMap = useMemo(() => {
-    const entries = providerConfigs.map((config) => (
-      [config.provider, getProviderSelectionModels(config)] as const
-    ));
-    return Object.fromEntries(entries) as Record<string, string[]>;
-  }, [providerConfigs]);
-
-  const hasRunnableProviders = providerOptions.length > 0;
-
-  const effectiveProvider = useMemo(() => {
-    if (providerOptions.includes(currentValue.provider)) {
-      return currentValue.provider;
-    }
-    return providerOptions[0] ?? currentValue.provider;
-  }, [currentValue.provider, providerOptions]);
+  const categoryConfig = useMemo(() => {
+    const runnableConfigs = (apiKeySettingsQuery.data?.data ?? []).filter(isRunnableProviderConfig);
+    return runnableConfigs.find((item) => item.provider === textProvider) ?? runnableConfigs[0];
+  }, [apiKeySettingsQuery.data?.data, textProvider]);
 
   const models = useMemo(() => {
-    const providerModels = providerModelsMap[effectiveProvider] ?? [];
+    const providerModels = categoryConfig ? getProviderSelectionModels(categoryConfig) : [];
     const currentModel = currentValue.model.trim();
     if (!currentModel || providerModels.includes(currentModel)) {
       return providerModels;
     }
     return [currentModel, ...providerModels];
-  }, [currentValue.model, effectiveProvider, providerModelsMap]);
+  }, [categoryConfig, currentValue.model]);
 
   const resolvedModel = useMemo(
     () => resolveModel(currentValue.model, models),
     [currentValue.model, models],
   );
-  const providerSelectValue = hasRunnableProviders ? effectiveProvider : NO_PROVIDER_VALUE;
+  const hasModel = Boolean(categoryConfig && models.length > 0);
   const shouldWaitForGlobalHydration = !value && !onChange && !store.hasHydratedSelection;
 
   const updateValue = useCallback((next: LLMSelectorValue) => {
-    const normalizedModel = resolveModel(next.model, providerModelsMap[next.provider] ?? []);
+    const normalizedModel = resolveModel(next.model, models);
     const normalizedTemperature = next.temperature !== undefined
       ? clampTemperature(next.temperature)
       : undefined;
@@ -198,29 +141,28 @@ export default function LLMSelector({
       temperature: normalizedNext.temperature ?? store.temperature,
       ...(normalizedNext.maxTokens !== undefined ? { maxTokens: normalizedNext.maxTokens } : {}),
     });
-  }, [onChange, providerModelsMap, saveSelectionMutation, store]);
+  }, [models, onChange, saveSelectionMutation, store]);
 
   useEffect(() => {
     if (shouldWaitForGlobalHydration) {
       return;
     }
-    if (!hasRunnableProviders) {
+    if (!categoryConfig) {
       return;
     }
-    if (effectiveProvider === currentValue.provider && resolvedModel === currentValue.model) {
+    if (currentValue.provider === categoryConfig.provider && resolvedModel === currentValue.model) {
       return;
     }
     updateValue({
-      provider: effectiveProvider,
+      provider: categoryConfig.provider,
       model: resolvedModel,
       temperature: resolvedTemperature,
       maxTokens: resolvedMaxTokens,
     });
   }, [
+    categoryConfig,
     currentValue.model,
     currentValue.provider,
-    effectiveProvider,
-    hasRunnableProviders,
     resolvedMaxTokens,
     resolvedModel,
     resolvedTemperature,
@@ -228,164 +170,96 @@ export default function LLMSelector({
     updateValue,
   ]);
 
-  const onProviderChange = (provider: string) => {
-    if (provider === NO_PROVIDER_VALUE) {
+  const onModelChange = (model: string) => {
+    if (!categoryConfig) {
       return;
     }
-    const typedProvider = provider as LLMProvider;
-    const nextModel = resolveModel("", providerModelsMap[typedProvider] ?? []);
     updateValue({
-      provider: typedProvider,
-      model: nextModel,
-      temperature: resolvedTemperature,
-      maxTokens: resolvedMaxTokens,
-    });
-    latestProviderRefreshRef.current = typedProvider;
-    void refreshProviderModelsMutation.mutateAsync(typedProvider).then((response) => {
-      if (latestProviderRefreshRef.current !== typedProvider) {
-        return;
-      }
-      const refreshed = response.data;
-      if (!refreshed?.models.length && !refreshed?.currentModel) {
-        return;
-      }
-      updateValue({
-        provider: typedProvider,
-        model: resolveModel(refreshed.currentModel, refreshed.models),
-        temperature: resolvedTemperature,
-        maxTokens: resolvedMaxTokens,
-      });
-    }).catch(() => undefined);
-  };
-
-  const onModelChange = (model: string) => {
-    updateValue({
-      provider: effectiveProvider,
+      provider: categoryConfig.provider,
       model,
       temperature: resolvedTemperature,
       maxTokens: resolvedMaxTokens,
     });
   };
 
+  const renderTemperatureInput = (inputClassName?: string, inputWrapperClassName?: string) => (
+    <label
+      className={cn(
+        "flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground shadow-sm",
+        inputWrapperClassName,
+      )}
+      title="温度越高越发散；结构规划建议使用 0.3～0.7"
+    >
+      <span>温度</span>
+      <Input
+        aria-label="模型温度"
+        type="number"
+        step="0.1"
+        min={0}
+        max={2}
+        value={resolvedTemperature}
+        className={cn("h-7 w-14 border-0 bg-transparent px-1 text-center text-xs text-foreground shadow-none focus-visible:ring-1", inputClassName)}
+        onChange={(event) => {
+          const parsed = Number(event.target.value);
+          if (!Number.isFinite(parsed)) {
+            return;
+          }
+          if (!categoryConfig) {
+            return;
+          }
+          updateValue({
+            provider: categoryConfig.provider,
+            model: resolvedModel,
+            temperature: parsed,
+            maxTokens: resolvedMaxTokens,
+          });
+        }}
+        onBlur={() => {
+          if (!categoryConfig) {
+            return;
+          }
+          updateValue({
+            provider: categoryConfig.provider,
+            model: resolvedModel,
+            temperature: clampTemperature(resolvedTemperature),
+            maxTokens: resolvedMaxTokens,
+          });
+        }}
+        disabled={!hasModel}
+      />
+    </label>
+  );
+
   return (
     <div className={cn("space-y-2", compact && "space-y-1", className)}>
       <div className={cn("flex min-w-0 items-center gap-2", compact ? "flex-nowrap gap-1.5" : "flex-wrap")}>
         {showBadge ? <Badge variant="secondary">模型</Badge> : null}
-        <Select
-          value={providerSelectValue}
-          onValueChange={onProviderChange}
-          disabled={!hasRunnableProviders}
-        >
-          <SelectTrigger className={cn(compact ? "h-9 w-[148px] lg:w-[164px]" : "w-full sm:w-[180px]")}>
-            <SelectValue placeholder={hasRunnableProviders ? "选择厂商" : "请先配置可用厂商"} />
-          </SelectTrigger>
-          <SelectContent>
-            {!hasRunnableProviders ? (
-              <SelectItem value={NO_PROVIDER_VALUE} disabled>
-                请先配置可用厂商
-              </SelectItem>
-            ) : null}
-            {providerOptions.map((provider) => (
-              <SelectItem key={provider} value={provider}>
-                {providerNameMap.get(provider) ?? provider}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
         {showModel ? (
           <SearchableSelect
             value={resolvedModel}
             onValueChange={onModelChange}
             options={models.map((model) => ({ value: model }))}
-            placeholder={hasRunnableProviders ? "选择模型" : "暂无可用模型"}
+            placeholder={hasModel ? "选择文本模型" : "暂无可用模型"}
             searchPlaceholder="搜索模型"
             emptyText="没有可用模型"
-            className={cn(compact ? "w-[184px] lg:w-[220px]" : "w-full sm:w-[240px]")}
+            className={cn(compact ? "w-[240px] lg:w-[280px]" : "w-full sm:max-w-[320px]")}
             triggerClassName={compact ? "h-9 px-2.5" : undefined}
-            disabled={!hasRunnableProviders}
+            disabled={!hasModel}
           />
         ) : null}
 
-        {showCompactTemperature ? (
-          <label
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-input bg-background px-2 text-xs text-muted-foreground shadow-sm"
-            title="温度越高越发散；结构规划建议使用 0.3～0.7"
-          >
-            <span>温度</span>
-            <Input
-              aria-label="模型温度"
-              type="number"
-              step="0.1"
-              min={0}
-              max={2}
-              value={resolvedTemperature}
-              className="h-7 w-14 border-0 bg-transparent px-1 text-center text-xs text-foreground shadow-none focus-visible:ring-1"
-              onChange={(event) => {
-                const parsed = Number(event.target.value);
-                if (!Number.isFinite(parsed)) {
-                  return;
-                }
-                updateValue({
-                  provider: effectiveProvider,
-                  model: resolvedModel,
-                  temperature: parsed,
-                  maxTokens: resolvedMaxTokens,
-                });
-              }}
-              onBlur={() => {
-                updateValue({
-                  provider: effectiveProvider,
-                  model: resolvedModel,
-                  temperature: clampTemperature(resolvedTemperature),
-                  maxTokens: resolvedMaxTokens,
-                });
-              }}
-              disabled={!hasRunnableProviders}
-            />
-          </label>
-        ) : null}
+        {showCompactTemperature ? renderTemperatureInput() : null}
       </div>
 
-      {showHelperText && !hasRunnableProviders && !apiKeySettingsQuery.isLoading ? (
+      {showHelperText && !hasModel && !apiKeySettingsQuery.isLoading ? (
         <div className="text-xs text-muted-foreground">
-          当前没有已配置且启用的模型厂商，请先到系统设置里完成 API Key 和模型配置。
+          还没有可用的文本模型，请先到系统设置的模型设置里完成配置。
         </div>
       ) : null}
 
       {showParameters ? (
         <div className="grid gap-2 md:grid-cols-2">
-          <label className="space-y-1 text-sm">
-            <span className="text-muted-foreground">温度 (0~2)</span>
-            <Input
-              type="number"
-              step="0.1"
-              min={0}
-              max={2}
-              value={resolvedTemperature}
-              onChange={(event) => {
-                const parsed = Number(event.target.value);
-                if (!Number.isFinite(parsed)) {
-                  return;
-                }
-                updateValue({
-                  provider: effectiveProvider,
-                  model: resolvedModel,
-                  temperature: parsed,
-                  maxTokens: resolvedMaxTokens,
-                });
-              }}
-              onBlur={() => {
-                updateValue({
-                  provider: effectiveProvider,
-                  model: resolvedModel,
-                  temperature: clampTemperature(resolvedTemperature),
-                  maxTokens: resolvedMaxTokens,
-                });
-              }}
-              disabled={!hasRunnableProviders}
-            />
-          </label>
+          {renderTemperatureInput("h-8 w-full md:w-24", "w-full justify-between md:w-auto md:justify-start px-3")}
 
           <label className="space-y-1 text-sm">
             <span className="text-muted-foreground">最大 Tokens (留空 = 不限制)</span>
@@ -395,32 +269,40 @@ export default function LLMSelector({
               min={256}
               max={32768}
               value={resolvedMaxTokens ?? ""}
-              disabled={!hasRunnableProviders}
+              disabled={!hasModel}
               onChange={(event) => {
                 if (!event.target.value.trim()) {
-                  updateValue({
-                    provider: effectiveProvider,
-                    model: resolvedModel,
-                    temperature: resolvedTemperature,
-                    maxTokens: undefined,
-                  });
+                  if (categoryConfig) {
+                    updateValue({
+                      provider: categoryConfig.provider,
+                      model: resolvedModel,
+                      temperature: resolvedTemperature,
+                      maxTokens: undefined,
+                    });
+                  }
                   return;
                 }
                 const parsed = Number(event.target.value);
                 if (!Number.isFinite(parsed)) {
                   return;
                 }
+                if (!categoryConfig) {
+                  return;
+                }
                 updateValue({
-                  provider: effectiveProvider,
+                  provider: categoryConfig.provider,
                   model: resolvedModel,
                   temperature: resolvedTemperature,
                   maxTokens: parsed,
                 });
               }}
               onBlur={() => {
+                if (!categoryConfig) {
+                  return;
+                }
                 if (resolvedMaxTokens === undefined) {
                   updateValue({
-                    provider: effectiveProvider,
+                    provider: categoryConfig.provider,
                     model: resolvedModel,
                     temperature: resolvedTemperature,
                     maxTokens: undefined,
@@ -428,7 +310,7 @@ export default function LLMSelector({
                   return;
                 }
                 updateValue({
-                  provider: effectiveProvider,
+                  provider: categoryConfig.provider,
                   model: resolvedModel,
                   temperature: resolvedTemperature,
                   maxTokens: clampMaxTokens(resolvedMaxTokens),

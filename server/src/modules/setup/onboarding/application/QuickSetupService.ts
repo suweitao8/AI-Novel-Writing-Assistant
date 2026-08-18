@@ -4,10 +4,10 @@ import type {
   QuickSetupProviderOption,
   QuickSetupStatus,
 } from "@ai-novel/shared/types/onboarding";
-import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { ModelRouteTaskType } from "@ai-novel/shared/types/novel";
 import { setProviderSecretCache } from "../../../../llm/factory";
 import { llmConnectivityService } from "../../../../llm/connectivity";
+import { getTextModelProvider } from "../../../../llm/modelCategories";
 import {
   MODEL_ROUTE_TASK_TYPES,
   resolveModel,
@@ -18,10 +18,8 @@ import {
   getProviderEnvApiKey,
   getProviderEnvBaseUrl,
   getProviderEnvModel,
-  isBuiltInProvider,
   providerRequiresApiKey,
   PROVIDERS,
-  SUPPORTED_PROVIDERS,
 } from "../../../../llm/providers";
 import { AppError } from "../../../../middleware/errorHandler";
 import {
@@ -49,63 +47,32 @@ function normalizeOptionalText(value: string | null | undefined): string | undef
   return normalized || undefined;
 }
 
-function buildCustomProviderId(name: string): LLMProvider {
-  const normalized = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "");
-  return `custom_${normalized || "provider"}`;
-}
-
+// 新手引导只配置文本模型槽：全部创作任务都从这里取模型。
 async function listProviderOptions(): Promise<QuickSetupProviderOption[]> {
-  const records = await secretStore.listProviders();
-  const recordByProvider = new Map(records.map((record) => [record.provider, record]));
-  const builtins: QuickSetupProviderOption[] = SUPPORTED_PROVIDERS.map((provider) => {
-    const config = PROVIDERS[provider];
-    const record = recordByProvider.get(provider);
-    const currentModel = normalizeOptionalText(record?.model)
-      ?? getProviderEnvModel(provider)
-      ?? config.defaultModel;
-    const currentBaseURL = normalizeOptionalText(record?.baseURL)
-      ?? getProviderEnvBaseUrl(provider)
-      ?? config.baseURL;
-    const hasRequiredKey = !providerRequiresApiKey(provider)
-      || Boolean(normalizeOptionalText(record?.key) ?? getProviderEnvApiKey(provider));
-    return {
-      id: provider,
-      kind: "builtin",
-      name: config.name,
-      requiresApiKey: providerRequiresApiKey(provider),
-      configured: (record?.isActive ?? true) && hasRequiredKey && Boolean(currentModel),
-      active: record?.isActive ?? true,
-      currentModel,
-      defaultModel: config.defaultModel,
-      currentBaseURL,
-      defaultBaseURL: config.baseURL,
-      models: Array.from(new Set([...(config.models ?? []), currentModel].filter(Boolean))),
-    };
-  });
-  const customs: QuickSetupProviderOption[] = records
-    .filter((record) => !isBuiltInProvider(record.provider))
-    .map((record) => {
-      const currentModel = normalizeOptionalText(record.model) ?? "";
-      const currentBaseURL = normalizeOptionalText(record.baseURL) ?? "";
-      return {
-        id: record.provider,
-        kind: "custom",
-        name: normalizeOptionalText(record.displayName) ?? record.provider,
-        requiresApiKey: false,
-        configured: record.isActive && Boolean(currentModel && currentBaseURL),
-        active: record.isActive,
-        currentModel,
-        defaultModel: currentModel,
-        currentBaseURL,
-        defaultBaseURL: currentBaseURL,
-        models: currentModel ? [currentModel] : [],
-      };
-    });
-  return [...builtins, ...customs];
+  const provider = getTextModelProvider();
+  const config = PROVIDERS[provider];
+  const record = await secretStore.getProvider(provider);
+  const currentModel = normalizeOptionalText(record?.model)
+    ?? getProviderEnvModel(provider)
+    ?? config.defaultModel;
+  const currentBaseURL = normalizeOptionalText(record?.baseURL)
+    ?? getProviderEnvBaseUrl(provider)
+    ?? config.baseURL;
+  const hasRequiredKey = !providerRequiresApiKey(provider)
+    || Boolean(normalizeOptionalText(record?.key) ?? getProviderEnvApiKey(provider));
+  return [{
+    id: provider,
+    kind: "builtin",
+    name: "文本模型",
+    requiresApiKey: providerRequiresApiKey(provider),
+    configured: (record?.isActive ?? true) && hasRequiredKey && Boolean(currentModel),
+    active: record?.isActive ?? true,
+    currentModel,
+    defaultModel: config.defaultModel,
+    currentBaseURL,
+    defaultBaseURL: config.baseURL,
+    models: Array.from(new Set([...(config.models ?? []), currentModel].filter(Boolean))),
+  }];
 }
 
 export async function getQuickSetupStatus(): Promise<QuickSetupStatus> {
@@ -166,53 +133,24 @@ export async function getQuickSetupStatus(): Promise<QuickSetupStatus> {
   };
 }
 
-async function resolveProviderInput(input: CompleteQuickSetupRequest): Promise<{
-  provider: LLMProvider;
-  displayName?: string;
-  existingKey?: string;
-  existingBaseURL?: string;
-}> {
-  if (input.providerKind === "builtin") {
-    if (!input.provider || !isBuiltInProvider(input.provider)) {
-      throw new AppError("请选择一个可用的内置模型厂商。", 400);
-    }
-    const existing = await secretStore.getProvider(input.provider);
-    return {
-      provider: input.provider,
-      existingKey: normalizeOptionalText(existing?.key) ?? getProviderEnvApiKey(input.provider),
-      existingBaseURL: normalizeOptionalText(existing?.baseURL) ?? getProviderEnvBaseUrl(input.provider),
-    };
-  }
-  const displayName = normalizeOptionalText(input.customProviderName);
-  if (!displayName) {
-    throw new AppError("请填写自定义厂商名称。", 400);
-  }
-  const provider = input.provider && !isBuiltInProvider(input.provider)
-    ? input.provider
-    : buildCustomProviderId(displayName);
-  const existing = await secretStore.getProvider(provider);
-  return {
-    provider,
-    displayName,
-    existingKey: normalizeOptionalText(existing?.key),
-    existingBaseURL: normalizeOptionalText(existing?.baseURL),
-  };
-}
-
 export async function completeQuickSetup(
   input: CompleteQuickSetupRequest,
 ): Promise<CompleteQuickSetupResult> {
-  const resolvedInput = await resolveProviderInput(input);
-  const provider = resolvedInput.provider;
+  // 文本模型槽固定承载全部文字任务；请求中的厂商选择字段仅做兼容保留。
+  const provider = getTextModelProvider();
   const model = input.model.trim();
-  const apiKey = normalizeOptionalText(input.apiKey) ?? resolvedInput.existingKey;
+  const existing = await secretStore.getProvider(provider);
+  const apiKey = normalizeOptionalText(input.apiKey)
+    ?? normalizeOptionalText(existing?.key)
+    ?? getProviderEnvApiKey(provider);
   const baseURL = normalizeOptionalText(input.baseURL)
-    ?? resolvedInput.existingBaseURL
-    ?? (isBuiltInProvider(provider) ? PROVIDERS[provider].baseURL : undefined);
+    ?? normalizeOptionalText(existing?.baseURL)
+    ?? getProviderEnvBaseUrl(provider)
+    ?? PROVIDERS[provider].baseURL;
   if (!model) {
     throw new AppError("请选择或填写一个文本模型。", 400);
   }
-  if (isBuiltInProvider(provider) && providerRequiresApiKey(provider) && !apiKey) {
+  if (providerRequiresApiKey(provider) && !apiKey) {
     throw new AppError("请填写 API Key。", 400);
   }
   if (!baseURL) {
@@ -237,7 +175,6 @@ export async function completeQuickSetup(
   }
 
   const record = await secretStore.upsertProvider(provider, {
-    ...(resolvedInput.displayName ? { displayName: resolvedInput.displayName } : {}),
     key: apiKey ?? null,
     model,
     baseURL,

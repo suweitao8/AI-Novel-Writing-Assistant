@@ -5,6 +5,7 @@ import { z } from "zod";
 import { setProviderSecretCache } from "../llm/factory";
 import { evictSharedLimiters } from "../llm/requestLimiter";
 import { refreshProviderModels } from "../llm/modelCatalog";
+import { getImageModelProvider, getTextModelProvider } from "../llm/modelCategories";
 import { llmProviderSchema } from "../llm/providerSchema";
 import {
   getProviderEnvApiKey,
@@ -444,6 +445,36 @@ router.get("/api-keys", async (_req, res, next) => {
       success: true,
       data,
       message: "厂商配置已加载。",
+    } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 模型按能力类别暴露：文本 / 图片 / 音频（预留）。前端设置页只渲染这三个槽位，
+// 不再展示按厂商维度的配置列表。
+router.get("/model-categories", async (_req, res, next) => {
+  try {
+    const textProvider = getTextModelProvider();
+    const imageProvider = getImageModelProvider();
+    const keys = await secretStore.listProviders();
+    const keyMap = new Map(keys.map((item) => [item.provider, item]));
+    const imageModelMap = await getProviderImageModelMap([textProvider, imageProvider]);
+    const data = {
+      text: buildBuiltInProviderStatus(textProvider, keyMap.get(textProvider), imageModelMap.get(textProvider)),
+      image: buildBuiltInProviderStatus(imageProvider, keyMap.get(imageProvider), imageModelMap.get(imageProvider)),
+      audio: {
+        provider: null,
+        available: false,
+        currentModel: null,
+        currentBaseURL: null,
+        isConfigured: false,
+      },
+    };
+    res.status(200).json({
+      success: true,
+      data,
+      message: "模型类别配置已加载。",
     } satisfies ApiResponse<typeof data>);
   } catch (error) {
     next(error);

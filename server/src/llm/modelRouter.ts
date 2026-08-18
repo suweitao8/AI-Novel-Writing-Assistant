@@ -5,6 +5,7 @@ import type {
   ModelRouteTaskType,
 } from "@ai-novel/shared/types/novel";
 import { prisma } from "../db/prisma";
+import { getTextModelProvider, resolveTextModelId } from "./modelCategories";
 import { isBuiltInProvider, PROVIDERS } from "./providers";
 import type { StructuredOutputStrategy } from "./structuredOutput";
 
@@ -52,105 +53,33 @@ export interface ResolvedModel {
   routeDegraded: boolean;
 }
 
-const STRICT_ROUTE_TASK_TYPES = new Set<ModelRouteTaskType>([
-  "critical_review",
-  "replan",
-  "state_resolution",
-]);
-
-const DEFAULT_ROUTES: Record<ModelRouteTaskType | "default", Omit<ResolvedModel, "routeKey" | "routeDegraded">> = {
-  planner: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.3,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  writer: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.8,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  review: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.2,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  light_review: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.2,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  critical_review: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.1,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  repair: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.4,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  replan: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.2,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  state_resolution: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.1,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  summary: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.2,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  fact_extraction: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.2,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  chat: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.7,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
-  default: {
-    provider: "deepseek",
-    model: PROVIDERS.deepseek.defaultModel,
-    temperature: 0.7,
-    requestProtocol: "auto",
-    structuredResponseFormat: "auto",
-  },
+// 任务级默认参数：温度按任务特性区分；provider 与 model 统一来自文本模型槽，
+// 用户不再按任务挑选厂商或模型。
+const TASK_ROUTE_DEFAULTS: Record<ModelRouteTaskType | "default", {
+  temperature: number;
+  requestProtocol: ModelRouteRequestProtocol;
+  structuredResponseFormat: ModelRouteStructuredResponseFormat;
+}> = {
+  planner: { temperature: 0.3, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  writer: { temperature: 0.8, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  review: { temperature: 0.2, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  light_review: { temperature: 0.2, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  critical_review: { temperature: 0.1, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  repair: { temperature: 0.4, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  replan: { temperature: 0.2, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  state_resolution: { temperature: 0.1, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  summary: { temperature: 0.2, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  fact_extraction: { temperature: 0.2, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  chat: { temperature: 0.7, requestProtocol: "auto", structuredResponseFormat: "auto" },
+  default: { temperature: 0.7, requestProtocol: "auto", structuredResponseFormat: "auto" },
 };
 
 function normalizeProviderId(value: string | null | undefined): LLMProvider {
   if (typeof value !== "string") {
-    return "deepseek";
+    return getTextModelProvider();
   }
   const trimmed = value.trim();
-  return trimmed || "deepseek";
+  return trimmed || getTextModelProvider();
 }
 
 function normalizeMaxTokens(provider: LLMProvider, maxTokens?: number): number | undefined {
@@ -270,38 +199,44 @@ export async function resolveModel(
   },
 ): Promise<ResolvedModel> {
   const normalizedTaskType = normalizeTaskType(taskType);
-  const base = DEFAULT_ROUTES[normalizedTaskType] ?? DEFAULT_ROUTES.default;
+  const defaults = TASK_ROUTE_DEFAULTS[normalizedTaskType] ?? TASK_ROUTE_DEFAULTS.default;
+  // 槽位化后所有任务的 provider/model 一律来自文本槽，避免历史路由把任务
+  // 钉在已不再使用的供应商上（例如回退到未配置的 DeepSeek）。
+  const provider = getTextModelProvider();
+  const model = await resolveTextModelId();
+
+  let temperature = defaults.temperature;
+  let maxTokens: number | undefined;
+  let routePreferences = {
+    requestProtocol: defaults.requestProtocol,
+    structuredResponseFormat: defaults.structuredResponseFormat,
+  };
 
   try {
     const row = await prisma.modelRouteConfig.findUnique({
       where: { taskType: normalizedTaskType },
     });
     if (row) {
-      const provider = normalizeProviderId(row.provider);
-      const routePreferences = normalizeRoutePreferences({
+      // 路由行只保留温度与结构化协议偏好，provider/model 不再从路由行读取。
+      temperature = row.temperature;
+      maxTokens = normalizeMaxTokens(provider, row.maxTokens ?? undefined);
+      routePreferences = normalizeRoutePreferences({
         requestProtocol: "requestProtocol" in row ? row.requestProtocol : null,
         structuredResponseFormat: "structuredResponseFormat" in row ? row.structuredResponseFormat : null,
       });
-      const resolved: ResolvedModel = {
-        provider,
-        model: row.model,
-        temperature: row.temperature,
-        maxTokens: normalizeMaxTokens(provider, row.maxTokens ?? undefined),
-        ...routePreferences,
-        routeKey: normalizedTaskType,
-        routeDegraded: false,
-      };
-      return applyOverrides(resolved, userOverride);
     }
   } catch {
     // table may not exist yet
   }
 
   return applyOverrides({
-    ...base,
+    provider,
+    model,
+    temperature,
+    maxTokens,
+    ...routePreferences,
     routeKey: normalizedTaskType,
-    routeDegraded: normalizedTaskType !== "default"
-      && STRICT_ROUTE_TASK_TYPES.has(normalizedTaskType),
+    routeDegraded: false,
   }, userOverride);
 }
 
@@ -315,24 +250,19 @@ export async function listModelRouteConfigs(): Promise<Array<{
   structuredResponseFormat: ModelRouteStructuredResponseFormat;
 }>> {
   try {
-    const rows = await prisma.modelRouteConfig.findMany({
-      orderBy: { taskType: "asc" },
-    });
-    return rows.map((r) => {
-      const provider = normalizeProviderId(r.provider);
-      const routePreferences = normalizeRoutePreferences({
-        requestProtocol: "requestProtocol" in r ? r.requestProtocol : null,
-        structuredResponseFormat: "structuredResponseFormat" in r ? r.structuredResponseFormat : null,
-      });
+    // 返回各任务当前生效的解析结果（统一指向文本槽），而不是原始路由行。
+    return await Promise.all(MODEL_ROUTE_TASK_TYPES.map(async (taskType) => {
+      const resolved = await resolveModel(taskType);
       return {
-        provider,
-        taskType: r.taskType,
-        model: r.model,
-        temperature: r.temperature,
-        maxTokens: normalizeMaxTokens(provider, r.maxTokens ?? undefined) ?? null,
-        ...routePreferences,
+        taskType,
+        provider: resolved.provider,
+        model: resolved.model,
+        temperature: resolved.temperature,
+        maxTokens: resolved.maxTokens ?? null,
+        requestProtocol: resolved.requestProtocol,
+        structuredResponseFormat: resolved.structuredResponseFormat,
       };
-    });
+    }));
   } catch {
     return [];
   }
