@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { BadgeCheck, KeyRound, Loader2, PlugZap, Save } from "lucide-react";
 import type { ModelCategoryStatus } from "@/api/settings";
-import { saveAPIKeySetting, testLLMConnection } from "@/api/settings";
+import { refreshProviderModelList, saveAPIKeySetting, testLLMConnection } from "@/api/settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -82,15 +82,24 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
   });
 
   const testMutation = useMutation({
-    mutationFn: () => testLLMConnection({
-      provider: status!.provider,
-      apiKey: form.apiKey.trim() || undefined,
-      model: form.model.trim() || undefined,
-      baseURL: form.baseURL.trim() || undefined,
-      probeMode: "both",
-    }),
-    onSuccess: (response) => {
-      setTestResult(formatConnectionTestResult(response));
+    mutationFn: async (): Promise<string> => {
+      if (isImageCategory) {
+        // 图片通道没有对话接口：测试 = 检查通道可达并拉取可用模型列表。
+        const response = await refreshProviderModelList(status!.provider);
+        const models = response.data?.models ?? [];
+        return `图片通道连接正常${models.length ? `，可用模型：${models.join("、")}` : ""}。`;
+      }
+      const response = await testLLMConnection({
+        provider: status!.provider,
+        apiKey: form.apiKey.trim() || undefined,
+        model: form.model.trim() || undefined,
+        baseURL: form.baseURL.trim() || undefined,
+        probeMode: "both",
+      });
+      return formatConnectionTestResult(response);
+    },
+    onSuccess: (message) => {
+      setTestResult(message);
     },
     onError: (error) => {
       setTestResult(error instanceof Error ? error.message : "连接测试失败。");
