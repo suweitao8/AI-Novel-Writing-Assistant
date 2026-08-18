@@ -31,6 +31,32 @@ function sessionId(session: LlmLiveSessionSnapshot): string {
   return session.context.interactionId;
 }
 
+function formatClock(iso: string | null): string {
+  if (!iso) {
+    return "";
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toLocaleTimeString("zh-CN", { hour12: false });
+}
+
+function formatDuration(startedAt: string | null | undefined, completedAt: string | null | undefined): string | null {
+  if (!startedAt || !completedAt) {
+    return null;
+  }
+  const ms = Date.parse(completedAt) - Date.parse(startedAt);
+  if (!Number.isFinite(ms) || ms < 0) {
+    return null;
+  }
+  return ms >= 1000 ? `${(ms / 1000).toFixed(1)} 秒` : `${ms} 毫秒`;
+}
+
+function sessionTitle(session: LlmLiveSessionSnapshot): string {
+  return session.context.purpose || session.context.label;
+}
+
 interface LiveExecutionDialogProps {
   compact?: boolean;
   className?: string;
@@ -300,7 +326,8 @@ export default function LiveExecutionDialog(props: LiveExecutionDialogProps) {
                 <section ref={latestSessionRef} className="min-h-full">
                   <div className="mb-1.5 flex items-center gap-2 text-[11px]">
                     <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", isActive(latestSession.phase) ? "animate-pulse bg-emerald-300" : "bg-emerald-500/60")} />
-                    <span className="min-w-0 flex-1 truncate font-semibold text-emerald-50">{latestSession.context.label}</span>
+                    <span className="shrink-0 font-mono text-[10px] text-emerald-300/70">{formatClock(latestSession.startedAt)}</span>
+                    <span className="min-w-0 flex-1 truncate font-semibold text-emerald-50">{sessionTitle(latestSession)}</span>
                     <span className="shrink-0 text-emerald-100/55">{phaseLabel(latestSession.phase)}</span>
                   </div>
                   <div className="mb-1 truncate text-[11px] text-emerald-100/45">{latestSession.phaseMessage}</div>
@@ -312,6 +339,7 @@ export default function LiveExecutionDialog(props: LiveExecutionDialogProps) {
                     const interactionId = sessionId(session);
                     const collapsed = collapsedSessionIds.has(interactionId);
                     const active = isActive(session.phase);
+                    const duration = formatDuration(session.startedAt, session.completedAt);
                     return (
                       <section
                         key={interactionId}
@@ -328,14 +356,22 @@ export default function LiveExecutionDialog(props: LiveExecutionDialogProps) {
                           aria-expanded={!collapsed}
                         >
                           {collapsed ? <ChevronRight className="h-4 w-4 shrink-0 text-emerald-300" /> : <ChevronDown className="h-4 w-4 shrink-0 text-emerald-300" />}
-                          <span className="min-w-0 flex-1 truncate font-semibold text-emerald-50">{session.context.label}</span>
+                          <span className="shrink-0 font-mono text-[10px] text-emerald-300/70">{formatClock(session.startedAt)}</span>
+                          <span className="min-w-0 flex-1 truncate font-semibold text-emerald-50" title={session.context.label}>{sessionTitle(session)}</span>
                           <span className="shrink-0 text-[11px] text-emerald-100/55">{session.totalChars.toLocaleString()} 字符</span>
+                          {duration ? (
+                            <span className="shrink-0 text-[10px] text-emerald-100/45">耗时 {duration}</span>
+                          ) : null}
                           <span className={cn("shrink-0 rounded border px-1.5 py-0.5 text-[10px]", active ? "border-emerald-400/45 text-emerald-200" : "border-emerald-400/20 text-emerald-100/65")}>
                             {phaseLabel(session.phase)}
                           </span>
                         </button>
                         {!collapsed ? (
                           <div className="border-t border-emerald-400/15 px-3 py-2">
+                            <div className="mb-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-emerald-100/45">
+                              <span className="truncate">标识：{session.context.label}</span>
+                              {session.context.model ? <span className="truncate">模型：{session.context.model}</span> : null}
+                            </div>
                             <div className="mb-2 text-[11px] text-emerald-100/60">{session.phaseMessage}</div>
                             <pre className="m-0 whitespace-pre-wrap break-words text-emerald-100">{session.preview || "等待模型开始返回内容…"}</pre>
                           </div>

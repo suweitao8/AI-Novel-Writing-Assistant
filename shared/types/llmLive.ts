@@ -18,6 +18,8 @@ export interface LlmLiveContext {
   promptId?: string | null;
   promptVersion?: string | null;
   label: string;
+  // 用户视角的调用用途说明（如“正文写作”“测试连接”）；为空时前端回退展示原始 label。
+  purpose?: string | null;
   mode: "text" | "structured";
   taskId?: string | null;
   novelId?: string | null;
