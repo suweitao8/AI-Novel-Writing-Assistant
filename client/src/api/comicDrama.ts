@@ -26,3 +26,11 @@ export async function getComicDramaStudioOverview(novelId: string) {
   );
   return data;
 }
+
+// 删除漫剧项目：服务端会同时清理小说本体与分镜、配音、视频等漫剧数据。
+export async function deleteComicDramaByNovel(novelId: string) {
+  const { data } = await apiClient.delete<ApiResponse<null>>(
+    `/drama/projects/by-novel/${encodeURIComponent(novelId)}`,
+  );
+  return data;
+}

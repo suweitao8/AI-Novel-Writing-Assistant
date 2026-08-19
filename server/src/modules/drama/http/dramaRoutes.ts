@@ -13,6 +13,7 @@ import { dramaEpisodeOutlineService } from "../../../services/drama/DramaEpisode
 import { dramaExportService } from "../../../services/drama/DramaExportService";
 import { dramaGuidanceService } from "../../../services/drama/guidance/DramaGuidanceService";
 import { dramaProjectService } from "../../../services/drama/DramaProjectService";
+import { getSharedNovelServices } from "../../../services/novel/application/sharedNovelServices";
 import { dramaQualityGate } from "../../../services/drama/DramaQualityGate";
 import { dramaRepairService } from "../../../services/drama/DramaRepairService";
 import { dramaScriptService } from "../../../services/drama/DramaScriptService";
@@ -282,6 +283,20 @@ router.post("/projects/:id/source-bundle", validate({ params: idParamsSchema }),
     const { id } = req.params as z.infer<typeof idParamsSchema>;
     const data = await dramaProjectService.assembleSourceBundle(id);
     res.status(200).json({ success: true, data, message: "Drama source bundle assembled." } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 漫剧项目删除：DramaProject 对小说是软引用（sourceRef，无外键级联），
+// 必须先显式清理 drama 侧（分镜/配音/视频随项目级联），再删除小说本体（含 RAG 清理）。
+// 两个 bounded context 的删除在 HTTP 叶子层编排，服务层保持互不依赖。
+router.delete("/projects/by-novel/:novelId", validate({ params: idParamsSchema }), async (req, res, next) => {
+  try {
+    const { id: novelId } = req.params as z.infer<typeof idParamsSchema>;
+    await dramaProjectService.deleteProjectsByNovelRef(novelId);
+    await getSharedNovelServices().deleteNovel(novelId);
+    res.status(200).json({ success: true, message: "漫剧项目已删除。" } satisfies ApiResponse<null>);
   } catch (error) {
     next(error);
   }
