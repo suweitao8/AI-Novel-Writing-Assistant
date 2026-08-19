@@ -16,7 +16,7 @@ const {
 } = require("../dist/prompting/prompts/novel/timelineExtractor.prompts.js");
 const {
   createChapterExecutionContractSchema,
-} = require("../dist/services/novel/volume/volumeGenerationSchemas.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationSchemas.js");
 
 test("chapter execution contract requires reader experience and scene experience fields", () => {
   const schema = createChapterExecutionContractSchema();

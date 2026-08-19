@@ -6,7 +6,7 @@ import { NovelVolumeService } from "../volume/NovelVolumeService";
 import {
   getBeatExpectedChapterCount,
   resolveVolumeChapterBeatKey,
-} from "../volume/volumeGenerationHelpers";
+} from "../volume/generation/volumeGenerationHelpers";
 
 export interface ChapterRouteWindowOptions {
   min?: number;

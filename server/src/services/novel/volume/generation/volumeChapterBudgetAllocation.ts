@@ -3,7 +3,7 @@ import type {
   VolumeGenerateOptions,
   VolumeGenerationNovel,
   VolumeWorkspace,
-} from "./volumeModels";
+} from "../volumeModels";
 
 export function deriveChapterBudget(params: {
   novel: VolumeGenerationNovel;

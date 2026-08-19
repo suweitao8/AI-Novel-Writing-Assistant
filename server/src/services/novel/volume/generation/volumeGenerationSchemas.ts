@@ -682,4 +682,4 @@ export {
   createChapterExecutionContractSchema,
   createChapterPurposeSchema,
   createChapterTaskSheetSchema,
-} from "./chapterDetail/chapterDetailSchemas";
+} from "../chapterDetail/chapterDetailSchemas";

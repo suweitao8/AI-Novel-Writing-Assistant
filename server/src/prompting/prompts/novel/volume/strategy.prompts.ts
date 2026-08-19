@@ -6,7 +6,7 @@ import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
 import {
   createVolumeStrategyCritiqueSchema,
   createVolumeStrategySchema,
-} from "../../../../services/novel/volume/volumeGenerationSchemas";
+} from "../../../../services/novel/volume/generation/volumeGenerationSchemas";
 import {
   type VolumeStrategyCritiquePromptInput,
   type VolumeStrategyPromptInput,

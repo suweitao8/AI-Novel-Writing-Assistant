@@ -14,7 +14,7 @@ const {
 } = require("../dist/services/novel/director/projections/directorProgressTracker.js");
 const {
   buildVolumeWorkspaceDocument,
-} = require("../dist/services/novel/volume/volumeWorkspaceDocument.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspaceDocument.js");
 const { prisma } = require("../dist/db/prisma.js");
 
 function buildDirectorInput(overrides = {}) {

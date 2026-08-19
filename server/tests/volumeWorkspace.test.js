@@ -5,11 +5,11 @@ const {
   mergeVolumeWorkspaceInput,
   normalizeVolumeWorkspaceDocument,
   serializeVolumeWorkspaceDocument,
-} = require("../dist/services/novel/volume/volumeWorkspaceDocument.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspaceDocument.js");
 const {
   assertScopeReadiness,
   mergeStrategyPlan,
-} = require("../dist/services/novel/volume/volumeGenerationHelpers.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationHelpers.js");
 
 function createBaseVolume() {
   return {

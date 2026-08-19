@@ -26,9 +26,9 @@ import {
   buildVolumeDiffSummary,
   buildVolumeImpactResult,
 } from "./volumePlanUtils";
-import { generateVolumePlanDocument } from "./volumeGenerationOrchestrator";
+import { generateVolumePlanDocument } from "./generation/volumeGenerationOrchestrator";
 import { VolumeChapterSyncService } from "./VolumeChapterSyncService";
-import { getLegacyVolumeSource } from "./legacyVolumeSource";
+import { getLegacyVolumeSource } from "./workspace/legacyVolumeSource";
 import {
   type VolumeDraftInput,
   type VolumeGenerateOptions,
@@ -44,26 +44,26 @@ import {
   freezeStorylineVersionCompat,
   getStorylineDiffCompat,
   listStorylineVersionsCompat,
-} from "./volumeStorylineCompat";
+} from "./workspace/volumeStorylineCompat";
 import {
   buildVolumeWorkspaceDocument,
   mergeVolumeWorkspaceInput,
   normalizeVolumeWorkspaceDocument,
   serializeVolumeWorkspaceDocument,
-} from "./volumeWorkspaceDocument";
+} from "./workspace/volumeWorkspaceDocument";
 import {
   ensureVolumeWorkspaceDocument,
   getActiveVersionRow,
   getLatestVersionRow,
   persistActiveVolumeWorkspace,
   runVolumeWorkspaceTransaction,
-} from "./volumeWorkspacePersistence";
+} from "./workspace/volumeWorkspacePersistence";
 import {
   resolveVolumeGenerationTelemetryItemKey,
   resolveVolumeGenerationTelemetryStage,
   type VolumeMemoryTelemetry,
   withHighMemoryVolumeGenerationGuard,
-} from "./volumeGenerationTelemetry";
+} from "./generation/volumeGenerationTelemetry";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

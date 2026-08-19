@@ -1,4 +1,4 @@
-import type { VolumeGenerateOptions } from "./volumeModels";
+import type { VolumeGenerateOptions } from "../volumeModels";
 import { normalizeScope } from "./volumeGenerationHelpers";
 
 const HIGH_MEMORY_VOLUME_SCOPES = new Set([

@@ -1,7 +1,7 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { PromptAsset } from "../../../core/promptTypes";
 import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
-import { createVolumeRebalanceSchema } from "../../../../services/novel/volume/volumeGenerationSchemas";
+import { createVolumeRebalanceSchema } from "../../../../services/novel/volume/generation/volumeGenerationSchemas";
 import { type VolumeRebalancePromptInput } from "./shared";
 import { buildVolumeRebalanceContextBlocks } from "./contextBlocks";
 import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";

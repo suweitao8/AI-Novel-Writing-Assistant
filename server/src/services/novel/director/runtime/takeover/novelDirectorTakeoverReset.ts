@@ -1,7 +1,7 @@
 import type { VolumeBeat, VolumeBeatSheet, VolumePlanDocument } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../../../db/prisma";
 import type { DirectorAutoExecutionPlan } from "@ai-novel/shared/types/novelDirector";
-import { parseBeatSheetChapterSpan } from "../../../volume/volumeBeatSheetChapterBudget";
+import { parseBeatSheetChapterSpan } from "../../../volume/generation/volumeBeatSheetChapterBudget";
 import {
   normalizeDirectorAutoExecutionPlan,
   resolveDirectorAutoExecutionPlanChapterRange,

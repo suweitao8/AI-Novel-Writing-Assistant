@@ -20,7 +20,7 @@ import {
   parseStrictStructuredOutline,
   stringifyStructuredOutline,
   toOutlineChapterRows,
-} from "../volume/structuredOutline";
+} from "../volume/workspace/structuredOutline";
 import { titleGenerationService } from "../../title/TitleGenerationService";
 import { WorldContextGateway, type WorldContextPurpose } from "../worldContext/WorldContextGateway";
 import { normalizeNovelBiblePayload } from "./novelBiblePersistence";

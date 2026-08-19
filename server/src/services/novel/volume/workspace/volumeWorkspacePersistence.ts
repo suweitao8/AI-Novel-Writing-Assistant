@@ -1,12 +1,12 @@
 import type { VolumeChapterPlan, VolumePlan, VolumePlanDocument } from "@ai-novel/shared/types/novel";
 import type { Prisma } from "@prisma/client";
-import { prisma } from "../../../db/prisma";
-import { withSqliteRetry } from "../../../db/sqliteRetry";
+import { prisma } from "../../../../db/prisma";
+import { withSqliteRetry } from "../../../../db/sqliteRetry";
 import {
   buildFallbackVolumesFromLegacy,
   type LegacyVolumeSource,
-} from "./volumePlanUtils";
-import { type DbClient, mapVolumeRow } from "./volumeModels";
+} from "../volumePlanUtils";
+import { type DbClient, mapVolumeRow } from "../volumeModels";
 import {
   buildVolumeWorkspaceDocument,
   normalizeVolumeWorkspaceDocument,

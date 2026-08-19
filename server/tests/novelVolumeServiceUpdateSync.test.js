@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { NovelVolumeService } = require("../dist/services/novel/volume/NovelVolumeService.js");
 const {
   buildVolumeWorkspaceDocument,
-} = require("../dist/services/novel/volume/volumeWorkspaceDocument.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspaceDocument.js");
 
 function createChapter(id, chapterOrder) {
   return {

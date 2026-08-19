@@ -4,7 +4,7 @@ const { prisma } = require("../dist/db/prisma.js");
 const {
   VOLUME_WORKSPACE_TRANSACTION_TIMEOUT_MS,
   runVolumeWorkspaceTransaction,
-} = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
 
 test("runVolumeWorkspaceTransaction uses an explicit timeout for large volume writes", async () => {
   const originalTransaction = prisma.$transaction;
@@ -51,7 +51,7 @@ test("runVolumeWorkspaceTransaction retries transient sqlite locks", async () =>
 test("persistActiveVolumeWorkspace updates existing planning rows instead of recreating the whole workspace", async () => {
   const {
     persistActiveVolumeWorkspace,
-  } = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+  } = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
   const calls = [];
   const tx = {
     volumePlan: {
@@ -349,7 +349,7 @@ function createExistingVolumeChapter(overrides = {}) {
 test("persistActiveVolumeWorkspace keeps existing conflict level when the draft omits the field", async () => {
   const {
     persistActiveVolumeWorkspace,
-  } = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+  } = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
   const calls = [];
   const tx = createVolumeWorkspaceTx(createExistingVolumeChapter(), calls);
 
@@ -364,7 +364,7 @@ test("persistActiveVolumeWorkspace keeps existing conflict level when the draft 
 test("persistActiveVolumeWorkspace does not let AI conflict levels overwrite user anchors", async () => {
   const {
     persistActiveVolumeWorkspace,
-  } = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+  } = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
   const calls = [];
   const tx = createVolumeWorkspaceTx(createExistingVolumeChapter(), calls);
 
@@ -382,7 +382,7 @@ test("persistActiveVolumeWorkspace does not let AI conflict levels overwrite use
 test("persistActiveVolumeWorkspace releases a user anchor only with an explicit same-value AI handoff", async () => {
   const {
     persistActiveVolumeWorkspace,
-  } = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+  } = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
   const calls = [];
   const tx = createVolumeWorkspaceTx(createExistingVolumeChapter({
     conflictLevel: 72,
@@ -403,7 +403,7 @@ test("persistActiveVolumeWorkspace releases a user anchor only with an explicit 
 test("persistActiveVolumeWorkspace writes explicit user conflict anchors", async () => {
   const {
     persistActiveVolumeWorkspace,
-  } = require("../dist/services/novel/volume/volumeWorkspacePersistence.js");
+  } = require("../dist/services/novel/volume/workspace/volumeWorkspacePersistence.js");
   const calls = [];
   const tx = createVolumeWorkspaceTx(createExistingVolumeChapter({
     conflictLevel: 40,

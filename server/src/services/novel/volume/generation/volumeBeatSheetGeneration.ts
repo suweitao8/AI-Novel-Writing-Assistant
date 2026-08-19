@@ -1,8 +1,8 @@
 import type { VolumePlanDocument } from "@ai-novel/shared/types/novel";
-import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { volumeBeatSheetPrompt } from "../../../prompting/prompts/novel/volume/beatSheet.prompts";
-import { buildVolumeBeatSheetContextBlocks } from "../../../prompting/prompts/novel/volume/contextBlocks";
-import type { StoryMacroPlanService } from "../storyMacro/StoryMacroPlanService";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
+import { volumeBeatSheetPrompt } from "../../../../prompting/prompts/novel/volume/beatSheet.prompts";
+import { buildVolumeBeatSheetContextBlocks } from "../../../../prompting/prompts/novel/volume/contextBlocks";
+import type { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import {
   allocateChapterBudgets,
   deriveChapterBudget,
@@ -16,7 +16,7 @@ import type {
   VolumeGenerationPhase,
   VolumeGenerationNovel,
   VolumeWorkspace,
-} from "./volumeModels";
+} from "../volumeModels";
 
 type StoryMacroPlanResult = Awaited<ReturnType<StoryMacroPlanService["getPlan"]>> | null;
 

@@ -19,7 +19,7 @@ import {
   buildDerivedOutlineFromVolumes,
   buildDerivedStructuredOutlineFromVolumes,
   normalizeVolumeDraftInput,
-} from "./volumePlanUtils";
+} from "../volumePlanUtils";
 
 type JsonRecord = Record<string, unknown>;
 

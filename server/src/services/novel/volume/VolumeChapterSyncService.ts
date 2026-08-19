@@ -19,11 +19,11 @@ import type { VolumeSyncInput } from "./volumeModels";
 import {
   mergeVolumeWorkspaceInput,
   serializeVolumeWorkspaceDocument,
-} from "./volumeWorkspaceDocument";
+} from "./workspace/volumeWorkspaceDocument";
 import {
   persistActiveVolumeWorkspace,
   runVolumeWorkspaceTransaction,
-} from "./volumeWorkspacePersistence";
+} from "./workspace/volumeWorkspacePersistence";
 
 export interface VolumeChapterSyncServiceDeps {
   ensureVolumeWorkspace: (novelId: string) => Promise<VolumePlanDocument>;
