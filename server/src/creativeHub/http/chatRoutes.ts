@@ -1,24 +1,24 @@
-import { getTextModelProvider } from "../llm/modelCategories";
+import { getTextModelProvider } from "../../llm/modelCategories";
 import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { AIMessage, HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { BaseMessageChunk } from "@langchain/core/messages";
 import { z } from "zod";
-import { agentRuntime } from "../agents";
-import { createLLMFromResolvedOptions, resolveLLMClientOptions } from "../llm/factory";
-import { llmProviderSchema } from "../llm/providerSchema";
+import { agentRuntime } from "../../agents";
+import { createLLMFromResolvedOptions, resolveLLMClientOptions } from "../../llm/factory";
+import { llmProviderSchema } from "../../llm/providerSchema";
 import {
   ThinkTagStreamFilter,
   diffAccumulatedText,
   extractMiniMaxRawStreamData,
   extractReasoningTextFromChunk,
   isMiniMaxCompatibleProvider,
-} from "../llm/reasoning";
-import { initSSE, writeSSEFrame } from "../llm/streaming";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { ragServices } from "../services/rag";
-import type { RagOwnerType } from "../services/rag/types";
+} from "../../llm/reasoning";
+import { initSSE, writeSSEFrame } from "../../llm/streaming";
+import { authMiddleware } from "../../middleware/auth";
+import { validate } from "../../middleware/validate";
+import { ragServices } from "../../services/rag";
+import type { RagOwnerType } from "../../services/rag/types";
 
 const router = Router();
 

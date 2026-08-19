@@ -2,15 +2,15 @@ import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { ImageAsset, ImageGenerationTask } from "@ai-novel/shared/types/image";
 import { z } from "zod";
-import { llmProviderSchema } from "../llm/providerSchema";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { imageGenerationService } from "../services/image/ImageGenerationService";
-import { imagePromptOptimizationService } from "../services/image/ImagePromptOptimizationService";
+import { llmProviderSchema } from "../../../llm/providerSchema";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { imageGenerationService } from "../../../services/image/ImageGenerationService";
+import { imagePromptOptimizationService } from "../../../services/image/ImagePromptOptimizationService";
 import {
   IMAGE_PROMPT_OUTPUT_LANGUAGES,
   IMAGE_SIZES,
-} from "../services/image/types";
+} from "../../../services/image/types";
 
 const router = Router();
 

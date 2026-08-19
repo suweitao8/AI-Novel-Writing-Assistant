@@ -21,9 +21,27 @@ function walkTsFiles(dir) {
   });
 }
 
+function walkHttpEntryFiles(root) {
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return fullPath.split(path.sep).includes("http")
+        ? walkTsFiles(fullPath)
+        : walkHttpEntryFiles(fullPath);
+    }
+    return [];
+  });
+}
+
 test("novel routes depend on application capabilities instead of NovelService", () => {
-  const routeFiles = walkTsFiles(path.join(repoRoot, "src", "routes"));
-  const offenders = routeFiles.filter((file) => readSource(path.relative(path.join(repoRoot, "src"), file)).includes("NovelService"));
+  // routes/ 已收敛为各模块自有的 **/http/** 入口；本契约改为扫描全部路由入口文件。
+  const routeFiles = walkHttpEntryFiles(path.join(repoRoot, "src"));
+  // 精确匹配：禁止实例化或引用已删除的 NovelService facade；getSharedNovelServices 是推荐入口不算违规。
+  const offenders = routeFiles.filter((file) => {
+    const source = readSource(path.relative(path.join(repoRoot, "src"), file));
+    return source.includes("new NovelService(") || source.includes("services/novel/NovelService");
+  });
 
   assert.deepEqual(offenders.map((file) => path.relative(repoRoot, file)), []);
 });

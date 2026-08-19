@@ -21,6 +21,20 @@ function walkTsFiles(dir) {
   });
 }
 
+// routes/ 已收敛为各模块自有的 **/http/** 入口；本契约改为扫描全部路由入口文件。
+function walkHttpEntryFiles(root) {
+  const entries = fs.readdirSync(root, { withFileTypes: true });
+  return entries.flatMap((entry) => {
+    const fullPath = path.join(root, entry.name);
+    if (entry.isDirectory()) {
+      return fullPath.split(path.sep).includes("http")
+        ? walkTsFiles(fullPath)
+        : walkHttpEntryFiles(fullPath);
+    }
+    return [];
+  });
+}
+
 test("ChapterRuntimeCoordinator remains a thin facade without dynamic require", () => {
   const source = readSource("services", "novel", "runtime", "ChapterRuntimeCoordinator.ts");
   const lineCount = source.split(/\r?\n/).length;
@@ -46,7 +60,7 @@ test("chapter runtime package builders stay free of IO and service singletons", 
 });
 
 test("routes depend on the coordinator facade instead of runtime internals", () => {
-  const routeFiles = walkTsFiles(path.join(srcRoot, "routes"));
+  const routeFiles = walkHttpEntryFiles(srcRoot);
   const forbiddenRuntimeInternals = [
     "ChapterContentFinalizationService",
     "ChapterQualityGateService",

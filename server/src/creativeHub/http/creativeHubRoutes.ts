@@ -6,15 +6,15 @@ import type {
   CreativeHubMessage,
   CreativeHubThreadState,
 } from "@ai-novel/shared/types/creativeHub";
-import { creativeHubLangGraph } from "../creativeHub/CreativeHubLangGraph";
-import { creativeHubInterruptLangGraph } from "../creativeHub/CreativeHubInterruptLangGraph";
-import { llmProviderSchema } from "../llm/providerSchema";
+import { creativeHubLangGraph } from "../../creativeHub/CreativeHubLangGraph";
+import { creativeHubInterruptLangGraph } from "../../creativeHub/CreativeHubInterruptLangGraph";
+import { llmProviderSchema } from "../../llm/providerSchema";
 import {
   toBindings,
-} from "../creativeHub/creativeHubRuntimeHelpers";
-import { authMiddleware } from "../middleware/auth";
-import { validate } from "../middleware/validate";
-import { creativeHubService } from "../creativeHub/CreativeHubService";
+} from "../../creativeHub/creativeHubRuntimeHelpers";
+import { authMiddleware } from "../../middleware/auth";
+import { validate } from "../../middleware/validate";
+import { creativeHubService } from "../../creativeHub/CreativeHubService";
 
 const router = Router();
 
