@@ -1,15 +1,13 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpenText,
   Boxes,
-  Clapperboard,
   Film,
   Loader2,
   Plus,
-  RefreshCw,
   Settings,
   Sparkles,
   Wand2,
@@ -35,6 +33,7 @@ import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterMana
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
+import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具世界观）/设定（项目配置）。
@@ -88,6 +87,20 @@ export default function ComicDramaStudioPage() {
   const directorTask = overview?.novel.directorTask ?? null;
   const directorActive = directorTask?.status === "running" || directorTask?.status === "queued";
 
+  // 分镜自动同步：切换章节或进入「分镜」页签时，静默把小说最新内容打包进分镜项目
+  // （幂等：upsert 内容包、重建角色与初始事实），不再依赖手动「同步最新章节」按钮。
+  const dramaProjectId = overview?.drama?.projectId ?? null;
+  const currentChapterId = chapterWorkspace.currentChapter?.id ?? null;
+  const lastSyncKeyRef = useRef("");
+  useEffect(() => {
+    const syncKey = `${dramaProjectId ?? ""}|${currentChapterId ?? ""}|${currentTab === "storyboard" ? "sb" : "-"}`;
+    if (!dramaProjectId || syncKey === lastSyncKeyRef.current || storyboard.syncMutation.isPending) {
+      return;
+    }
+    lastSyncKeyRef.current = syncKey;
+    storyboard.syncMutation.mutate();
+  }, [dramaProjectId, currentChapterId, currentTab, storyboard.syncMutation]);
+
   if (overviewQuery.isPending) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center text-muted-foreground">
@@ -127,39 +140,6 @@ export default function ComicDramaStudioPage() {
           <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
             AI 写作中<span className="font-semibold tabular-nums text-foreground">{directorTask.progress}%</span>
           </span>
-        ) : null}
-        {currentTab === "storyboard" && overview.drama ? (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => storyboard.syncMutation.mutate()}
-              disabled={storyboard.syncMutation.isPending}
-            >
-              {storyboard.syncMutation.isPending
-                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                : <RefreshCw className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-              同步最新章节
-            </Button>
-            <Button size="sm" asChild>
-              <Link to={`/drama/projects/${overview.drama.projectId}`}>
-                <Clapperboard className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开分镜工作台
-              </Link>
-            </Button>
-          </>
-        ) : null}
-        {currentTab === "storyboard" && !overview.drama ? (
-          <Button
-            size="sm"
-            onClick={() => storyboard.createMutation.mutate()}
-            disabled={storyboard.createMutation.isPending || overview.novel.chapterCount < 1}
-            title={overview.novel.chapterCount < 1 ? "先让 AI 写出至少一章成稿，再生成分镜。" : undefined}
-          >
-            {storyboard.createMutation.isPending
-              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-              : <Wand2 className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />}
-            从成稿生成分镜
-          </Button>
         ) : null}
         {currentTab === "video" && overview.drama ? (
           <Button size="sm" asChild>
@@ -253,7 +233,15 @@ export default function ComicDramaStudioPage() {
           ) : currentTab === "text" ? (
             <NovelChapterOutlineTab workspace={chapterWorkspace} onGoOutline={() => setCurrentTab("draft")} />
           ) : currentTab === "storyboard" ? (
-            <StoryboardSection drama={overview.drama} chapterCount={overview.novel.chapterCount} />
+            overview.drama ? (
+              <StoryboardStagePanel projectId={overview.drama.projectId} />
+            ) : (
+              <StoryboardBootstrapCard
+                chapterCount={overview.novel.chapterCount}
+                createPending={storyboard.createMutation.isPending}
+                onCreate={() => storyboard.createMutation.mutate()}
+              />
+            )
           ) : currentTab === "voice" ? (
             <VoiceSection novelId={novelId} drama={overview.drama} />
           ) : (
@@ -300,7 +288,7 @@ export default function ComicDramaStudioPage() {
   );
 }
 
-// 分镜管线共享状态：画面风格选择（「设定」页签用）、创建分镜项目、同步最新章节。
+// 分镜管线共享状态：画面风格选择（「设定」页签用）、创建分镜项目、章节自动同步。
 // 顶栏按钮与内容区共用同一份 mutation，避免两处状态漂移。
 function useStoryboardStage(input: {
   novelId: string;
@@ -366,9 +354,8 @@ function useStoryboardStage(input: {
     },
     onSuccess: async () => {
       await invalidate();
-      toast.success("已从小说最新成稿同步来源内容。");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "同步失败，请重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "同步小说内容到分镜失败，请重试。"),
   });
 
   return { styleOptions, effectiveStyleId, selectedStyle, setSelectedStyle, styleMutation, createMutation, syncMutation };
@@ -427,32 +414,34 @@ function ProjectSettingsSection(props: {
   );
 }
 
-function StoryboardSection(props: {
-  drama: ComicDramaLinkStats | null;
+// 「分镜」页签还没有分镜项目时的引导卡：从小说成稿一键创建分镜项目，
+// 创建后分镜板直接在本页签内展示与操作。
+function StoryboardBootstrapCard(props: {
   chapterCount: number;
+  createPending: boolean;
+  onCreate: () => void;
 }) {
-  const { drama } = props;
-  if (!drama) {
-    return (
-      <Card className="rounded-3xl">
-        <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
-          还没有分镜项目。当前小说已有 {props.chapterCount} 章成稿——满足一集以上的量就可以开始，之后随时同步新章节。
-        </CardContent>
-      </Card>
-    );
-  }
   return (
     <Card className="rounded-3xl">
-      <CardContent className="space-y-4 p-6">
-        <div className="grid gap-2 sm:grid-cols-4">
-          <StageMetric label="分集" value={`${drama.episodeCount} 集`} hint={`已写台本 ${drama.scriptedEpisodeCount} 集`} />
-          <StageMetric label="分镜" value={`${drama.storyboardCount} 组`} hint={`共 ${drama.shotCount} 镜`} />
-          <StageMetric label="首帧图" value={`${drama.keyframeReadyCount} / ${drama.shotCount}`} hint="镜头画面已生成" />
-          <StageMetric label="项目状态" value={drama.status} hint="分镜管线状态" />
+      <CardContent className="p-6">
+        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
+          <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
+            还没有分镜项目。当前小说已有 {props.chapterCount} 章成稿——满足一集以上的量就可以开始，
+            之后每次切换章节都会自动把最新内容带进分镜。
+          </p>
+          <Button
+            className="mt-4"
+            size="sm"
+            onClick={props.onCreate}
+            disabled={props.createPending || props.chapterCount < 1}
+            title={props.chapterCount < 1 ? "先让 AI 写出至少一章成稿，再生成分镜。" : undefined}
+          >
+            {props.createPending
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+              : <Wand2 className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+            从成稿生成分镜
+          </Button>
         </div>
-        <p className="text-xs leading-5 text-muted-foreground">
-          小说每写完新的章节，点「同步最新章节」，分镜就能覆盖到最新剧情。
-        </p>
       </CardContent>
     </Card>
   );
