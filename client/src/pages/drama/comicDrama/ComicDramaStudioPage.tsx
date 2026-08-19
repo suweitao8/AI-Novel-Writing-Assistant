@@ -21,13 +21,17 @@ import {
   setDramaVisualStyle,
   type DramaVisualStyle,
 } from "@/api/media/drama";
+import { getStorySettingsOverview } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
-import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
+import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
+import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
+import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
+import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
 import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
@@ -36,10 +40,14 @@ import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab
 import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具世界观）/设定（项目配置）。
+// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：初稿→正文→分镜→配音→视频。
 type CurrentTab = "draft" | "text" | "storyboard" | "voice" | "video";
+// 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
+type AssetTab = "characters" | "scenes" | "props";
+// 「设定」的子页签：世界观 / 项目（画面风格与分镜项目状态）。
+type SettingsTab = "world" | "project";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
   current: "当前",
@@ -55,7 +63,19 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   video: "视频",
 };
 
-// 漫剧工作室：顶栏为返回按钮 + 项目名、居中的项目级页签（当前/资产/设定）。
+const ASSET_TAB_LABELS: Record<AssetTab, string> = {
+  characters: "角色",
+  scenes: "场景",
+  props: "道具",
+};
+
+const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
+  world: "世界观",
+  project: "项目",
+};
+
+// 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
+// 每个页签下方都有自己的居中子页签条、操作按钮靠右。
 // 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（初稿/正文/分镜/配音/视频）
 // 全部随当前章更新；「解析」按本章初稿生成本章节拍。
 export default function ComicDramaStudioPage() {
@@ -63,6 +83,8 @@ export default function ComicDramaStudioPage() {
   const queryClient = useQueryClient();
   const [stage, setStage] = useState<StudioStage>("current");
   const [currentTab, setCurrentTab] = useState<CurrentTab>("draft");
+  const [assetTab, setAssetTab] = useState<AssetTab>("characters");
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [createChapterOpen, setCreateChapterOpen] = useState(false);
 
@@ -76,6 +98,21 @@ export default function ComicDramaStudioPage() {
     },
   });
   const overview = overviewQuery.data?.data ?? null;
+  const settingsOverviewQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsOverview(novelId),
+    queryFn: () => getStorySettingsOverview(novelId),
+    enabled: Boolean(novelId),
+  });
+  const settingsOverview = settingsOverviewQuery.data?.data ?? null;
+  const invalidateStorySettings = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(novelId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsCharacters(novelId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsProps(novelId) }),
+      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsWorld(novelId) }),
+    ]);
+  };
   const chapterWorkspace = useNovelChapterWorkspace(novelId);
   const storyboard = useStoryboardStage({
     novelId,
@@ -173,11 +210,10 @@ export default function ComicDramaStudioPage() {
           <div className="flex flex-col gap-2.5 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5">
             <Link
               to="/drama"
-              title="返回漫剧列表"
               aria-label="返回漫剧列表"
-              className="-ml-2 flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex min-w-0 items-center gap-1.5"
             >
-              <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <span className="min-w-0 truncate text-lg font-semibold tracking-tight text-foreground">{overview.novel.title}</span>
             </Link>
             <TabsList className="sm:justify-self-center">
@@ -188,7 +224,7 @@ export default function ComicDramaStudioPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">{headerActions}</div>
           </div>
           {stage === "current" ? (
-            <div className="flex flex-col items-center gap-2 border-t border-border bg-muted/[0.28] px-4 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4">
+            <SubTabRow>
               <span className="hidden sm:block" aria-hidden="true" />
               <Tabs
                 value={currentTab}
@@ -219,8 +255,45 @@ export default function ComicDramaStudioPage() {
                   解析
                 </Button>
               </div>
-            </div>
-          ) : null}
+            </SubTabRow>
+          ) : stage === "assets" ? (
+            <SubTabRow>
+              <span className="hidden sm:block" aria-hidden="true" />
+              <Tabs
+                value={assetTab}
+                onValueChange={(value) => setAssetTab(value as AssetTab)}
+                className="sm:justify-self-center"
+              >
+                <TabsList>
+                  <TabsTrigger value="characters">
+                    {ASSET_TAB_LABELS.characters}{settingsOverview ? ` ${settingsOverview.counts.characters}` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="scenes">
+                    {ASSET_TAB_LABELS.scenes}{settingsOverview ? ` ${settingsOverview.counts.scenes}` : ""}
+                  </TabsTrigger>
+                  <TabsTrigger value="props">
+                    {ASSET_TAB_LABELS.props}{settingsOverview ? ` ${settingsOverview.counts.props}` : ""}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <span className="hidden sm:block" aria-hidden="true" />
+            </SubTabRow>
+          ) : (
+            <SubTabRow>
+              <span className="hidden sm:block" aria-hidden="true" />
+              <Tabs
+                value={settingsTab}
+                onValueChange={(value) => setSettingsTab(value as SettingsTab)}
+                className="sm:justify-self-center"
+              >
+                <TabsList>
+                  <TabsTrigger value="world">{SETTINGS_TAB_LABELS.world}</TabsTrigger>
+                  <TabsTrigger value="project">{SETTINGS_TAB_LABELS.project}</TabsTrigger>
+                </TabsList>
+              </Tabs>
+              <span className="hidden sm:block" aria-hidden="true" />
+            </SubTabRow>
+          )}
         </header>
 
         <TabsContent value="current" className="space-y-4">
@@ -251,12 +324,24 @@ export default function ComicDramaStudioPage() {
 
         <TabsContent value="assets" className="space-y-4">
           <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-            <StorySettingsTabs novelId={novelId} />
+            {assetTab === "characters" ? (
+              <SettingsCharactersTab novelId={novelId} onChanged={invalidateStorySettings} />
+            ) : assetTab === "scenes" ? (
+              <SettingsScenesTab novelId={novelId} onChanged={invalidateStorySettings} />
+            ) : (
+              <SettingsPropsTab novelId={novelId} onChanged={invalidateStorySettings} />
+            )}
           </section>
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
-          <ProjectSettingsSection drama={overview.drama} storyboard={storyboard} />
+          {settingsTab === "world" ? (
+            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+              <SettingsWorldTab novelId={novelId} onChanged={invalidateStorySettings} />
+            </section>
+          ) : (
+            <ProjectSettingsSection drama={overview.drama} storyboard={storyboard} />
+          )}
         </TabsContent>
       </Tabs>
 
@@ -284,6 +369,15 @@ export default function ComicDramaStudioPage() {
           await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
         }}
       />
+    </div>
+  );
+}
+
+// 三个项目级页签共用的子页签条：子页签居中，右侧留给该阶段的操作按钮（如「当前」的解析）。
+function SubTabRow(props: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center gap-2 border-t border-border bg-muted/[0.28] px-4 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4">
+      {props.children}
     </div>
   );
 }
