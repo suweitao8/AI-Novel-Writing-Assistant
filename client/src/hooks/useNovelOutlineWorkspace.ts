@@ -60,10 +60,13 @@ export function useNovelOutlineWorkspace(novelId: string) {
   const outlineDirty = outlineText.trim() !== (outlineState?.outline ?? "").trim();
 
   const saveOutlineMutation = useMutation({
-    mutationFn: () => saveNovelOutline(novelId, outlineText),
-    onSuccess: async () => {
+    // silent 供自动保存场景使用：落库成功不弹 toast，失败仍然提示。
+    mutationFn: (options?: { silent?: boolean }) => saveNovelOutline(novelId, outlineText),
+    onSuccess: async (_data, options) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.novels.outline(novelId) });
-      toast.success("简略大纲已保存。");
+      if (!options?.silent) {
+        toast.success("简略大纲已保存。");
+      }
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "保存大纲失败，请重试。"),
   });

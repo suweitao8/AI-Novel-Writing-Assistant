@@ -100,7 +100,7 @@ export default function BlankStartPanel(props: BlankStartPanelProps) {
                   size="sm"
                   variant="outline"
                   disabled={!outlineDirty || saveOutlineMutation.isPending}
-                  onClick={() => saveOutlineMutation.mutate()}
+                  onClick={() => saveOutlineMutation.mutate(undefined)}
                 >
                   {saveOutlineMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true"  /> : null}
                   保存大纲
