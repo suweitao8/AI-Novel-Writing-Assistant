@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Pencil, Sparkles, UserRound } from "lucide-react";
-import type { StorySettingsCharacter } from "@/api/storySettings";
+import type { StorySettingsCharacter } from "@/api/story/storySettings";
 import {
   createStorySettingsCharacter,
   generateStoryEntityDraft,
   getStorySettingsCharacters,
   regenerateStorySettings,
   updateStorySettingsCharacter,
-} from "@/api/storySettings";
+} from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";

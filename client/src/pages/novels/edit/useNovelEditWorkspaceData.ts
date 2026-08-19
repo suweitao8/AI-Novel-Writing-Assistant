@@ -15,9 +15,9 @@ import {
   getNovelPipelineJob,
   getNovelQualityReport,
 } from "@/api/novel";
-import { getActiveAutoDirectorTask } from "@/api/novelWorkflow";
-import { getDirectorBookAutomationProjection, getDirectorTaskSnapshot } from "@/api/novelDirector";
-import { getAutoDirectorFollowUpDetail } from "@/api/autoDirectorFollowUps";
+import { getActiveAutoDirectorTask } from "@/api/novel/novelWorkflow";
+import { getDirectorBookAutomationProjection, getDirectorTaskSnapshot } from "@/api/novel/novelDirector";
+import { getAutoDirectorFollowUpDetail } from "@/api/director/autoDirectorFollowUps";
 import { getTaskDetail } from "@/api/tasks";
 import { queryKeys } from "@/api/queryKeys";
 import { useDirectorRealtimeStore } from "@/store/directorRealtimeStore";

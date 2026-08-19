@@ -21,12 +21,12 @@ import type {
 import NovelEditView from "./components/NovelEditView";
 import NovelProductionExperienceHandoff from "./components/NovelProductionExperienceHandoff";
 import type { LLMSelectorValue } from "@/components/common/LLMSelector";
-import { getBaseCharacterList } from "@/api/character";
-import { flattenGenreTreeOptions, getGenreTree } from "@/api/genre";
-import { acceptManualChangesAndContinueDirector, calibrateDirectorStep, getDirectorBookAutomationProjection, getDirectorTaskSnapshot } from "@/api/novelDirector";
-import { continueNovelWorkflow, getActiveAutoDirectorTask } from "@/api/novelWorkflow";
+import { getBaseCharacterList } from "@/api/characters/character";
+import { flattenGenreTreeOptions, getGenreTree } from "@/api/story/genre";
+import { acceptManualChangesAndContinueDirector, calibrateDirectorStep, getDirectorBookAutomationProjection, getDirectorTaskSnapshot } from "@/api/novel/novelDirector";
+import { continueNovelWorkflow, getActiveAutoDirectorTask } from "@/api/novel/novelWorkflow";
 import { archiveTask, cancelTask, getTaskDetail, retryTask } from "@/api/tasks";
-import { executeAutoDirectorFollowUpAction, getAutoDirectorFollowUpDetail } from "@/api/autoDirectorFollowUps";
+import { executeAutoDirectorFollowUpAction, getAutoDirectorFollowUpDetail } from "@/api/director/autoDirectorFollowUps";
 import {
   auditNovelChapter,
   backfillNovelCharacterResources,
@@ -50,7 +50,7 @@ import {
   getNovelQualityReport,
   replanNovel,
 } from "@/api/novel";
-import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/storyMode";
+import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/story/storyMode";
 import { getWorldList } from "@/api/world";
 import { queryKeys } from "@/api/queryKeys";
 import { toast } from "@/components/ui/toast";

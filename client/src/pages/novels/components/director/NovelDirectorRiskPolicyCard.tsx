@@ -6,7 +6,7 @@ import {
   isDirectorRiskPolicyEndpointUnavailable,
   saveNovelDirectorRiskPolicy,
   type DirectorRiskPolicy,
-} from "@/api/directorRiskPolicy";
+} from "@/api/director/directorRiskPolicy";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2 } from "lucide-react";
-import type { GenreTreeNode } from "@/api/genre";
+import type { GenreTreeNode } from "@/api/story/genre";
 import { AssetTreeNavigator } from "@/components/assetLibrary";
 import { Button } from "@/components/ui/button";
 import { countGenreNovelBindingsInSubtree, findGenreNode } from "../genreManagement.shared";

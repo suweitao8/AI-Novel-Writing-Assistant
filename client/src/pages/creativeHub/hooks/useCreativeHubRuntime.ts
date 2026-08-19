@@ -21,7 +21,7 @@ import type {
 } from "@ai-novel/shared/types/creativeHub";
 import type { CreativeHubStreamFrame } from "@ai-novel/shared/types/api";
 import { toast } from "@/components/ui/toast";
-import { streamCreativeHubRun } from "@/api/creativeHub";
+import { streamCreativeHubRun } from "@/api/creative/creativeHub";
 import {
   buildInlineStateMessages,
   buildRunArtifactMessages,

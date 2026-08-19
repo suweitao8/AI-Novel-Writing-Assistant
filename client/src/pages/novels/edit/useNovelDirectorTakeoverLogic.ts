@@ -11,12 +11,12 @@ import {
   calibrateDirectorStep,
   getDirectorBookAutomationProjection,
   getDirectorTaskSnapshot,
-} from "@/api/novelDirector";
-import { continueNovelWorkflow, getActiveAutoDirectorTask } from "@/api/novelWorkflow";
+} from "@/api/novel/novelDirector";
+import { continueNovelWorkflow, getActiveAutoDirectorTask } from "@/api/novel/novelWorkflow";
 import { getChapterAuditReports } from "@/api/novel";
-import { getAutoDirectorFollowUpDetail } from "@/api/autoDirectorFollowUps";
+import { getAutoDirectorFollowUpDetail } from "@/api/director/autoDirectorFollowUps";
 import { archiveTask, cancelTask, retryTask } from "@/api/tasks";
-import { executeAutoDirectorFollowUpAction } from "@/api/autoDirectorFollowUps";
+import { executeAutoDirectorFollowUpAction } from "@/api/director/autoDirectorFollowUps";
 import type { LLMSelectorValue } from "@/components/common/LLMSelector";
 import { toast } from "@/components/ui/toast";
 import { useDirectorChapterTitleRepair } from "@/hooks/useDirectorChapterTitleRepair";

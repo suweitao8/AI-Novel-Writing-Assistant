@@ -11,7 +11,7 @@ import {
   type ComicEpisode,
   type ComicProject,
   type GenerateScriptPayload,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -22,7 +22,7 @@ import {
   type SceneBible,
   type SceneSheetData,
   type SceneType,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";
 import { Button } from "@/components/ui/button";

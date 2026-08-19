@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { BadgeCheck, BookOpenCheck, Loader2 } from "lucide-react";
-import { confirmStorySettings } from "@/api/storySettings";
+import { confirmStorySettings } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";

@@ -13,7 +13,7 @@ import {
   updateStoryMode,
   type StoryModeTreeDraft,
   type StoryModeTreeNode,
-} from "@/api/storyMode";
+} from "@/api/story/storyMode";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { NovelGenre } from "@ai-novel/shared/types/novel";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export interface GenreTreeNode extends NovelGenre {
   childCount: number;

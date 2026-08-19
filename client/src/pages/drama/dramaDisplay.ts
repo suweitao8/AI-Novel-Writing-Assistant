@@ -1,4 +1,4 @@
-import type { DramaSourceType } from "@/api/drama";
+import type { DramaSourceType } from "@/api/media/drama";
 
 export const DRAMA_TRACK_OPTIONS = [
   { value: "counterattack", label: "逆袭" },

@@ -14,7 +14,7 @@ import {
   getCharacterCastOptions,
   getCharacterRelations,
 } from "@/api/novel";
-import { getNovelWorldSlice } from "@/api/novelWorldSlice";
+import { getNovelWorldSlice } from "@/api/novel/novelWorldSlice";
 import { queryKeys } from "@/api/queryKeys";
 import SelectControl from "@/components/common/SelectControl";
 

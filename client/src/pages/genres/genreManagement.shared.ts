@@ -1,4 +1,4 @@
-import type { GenreTreeDraft, GenreTreeNode } from "@/api/genre";
+import type { GenreTreeDraft, GenreTreeNode } from "@/api/story/genre";
 
 export function createEmptyGenreDraft(): GenreTreeDraft {
   return {

@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { AgentRun, AgentRunDetail } from "@ai-novel/shared/types/agent";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function listAgentRuns(params?: {
   status?: AgentRun["status"];

@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { NovelStoryMode, StoryModeProfile } from "@ai-novel/shared/types/storyMode";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export interface StoryModeTreeNode extends NovelStoryMode {
   childCount: number;

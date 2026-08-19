@@ -21,9 +21,9 @@ import {
   previewShortStoryRevision,
   retryShortStoryProduction,
   updateShortStorySegment,
-} from "@/api/creationStudio";
+} from "@/api/creative/creationStudio";
 import { downloadNovelExport } from "@/api/novel";
-import { getStorySettingsOverview } from "@/api/storySettings";
+import { getStorySettingsOverview } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import StorySettingsConfirmCard from "@/pages/novels/components/storySettings/StorySettingsConfirmCard";

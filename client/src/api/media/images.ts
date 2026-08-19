@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { ImageAsset, ImageGenerationTask, ImageSceneType } from "@ai-novel/shared/types/image";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 import { API_BASE_URL } from "@/lib/constants";
 
 export type CharacterImagePromptMode = "character_chain" | "direct";

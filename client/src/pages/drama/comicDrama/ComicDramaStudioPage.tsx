@@ -13,14 +13,14 @@ import {
   RefreshCw,
   Wand2,
 } from "lucide-react";
-import { getComicDramaStudioOverview } from "@/api/comicDrama";
+import { getComicDramaStudioOverview } from "@/api/media/comicDrama";
 import {
   assembleDramaSourceBundle,
   createDramaProject,
   getDramaVisualStyles,
   setDramaVisualStyle,
   type DramaVisualStyle,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import BlankStartPanel from "@/pages/novels/simpleCreation/BlankStartPanel";

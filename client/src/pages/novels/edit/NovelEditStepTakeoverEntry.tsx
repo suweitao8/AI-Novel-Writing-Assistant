@@ -1,5 +1,5 @@
-import type { getActiveAutoDirectorTask } from "@/api/novelWorkflow";
-import type { getDirectorBookAutomationProjection } from "@/api/novelDirector";
+import type { getActiveAutoDirectorTask } from "@/api/novel/novelWorkflow";
+import type { getDirectorBookAutomationProjection } from "@/api/novel/novelDirector";
 import NovelExistingProjectTakeoverDialog from "../components/takeover/NovelExistingProjectTakeoverDialog";
 import { resolveTakeoverDialogContextTaskId } from "../novelEditAutomationStatus";
 

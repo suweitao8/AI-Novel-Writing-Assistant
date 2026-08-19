@@ -12,7 +12,7 @@ import {
   getActiveCharacterConversationSession,
   getCharacterConversationContext,
   sendCharacterConversationTurn,
-} from "@/api/characterConversation";
+} from "@/api/characters/characterConversation";
 import FullscreenView from "@/components/common/FullscreenView";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

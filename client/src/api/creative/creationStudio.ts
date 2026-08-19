@@ -10,7 +10,7 @@ import type {
   ShortStoryRevisionPreviewRequest,
   ShortStorySegmentUpdateRequest,
 } from "@ai-novel/shared/types/creationStudio";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function interpretCreationIdea(payload: CreationStudioInterpretRequest) {
   const { data } = await apiClient.post<ApiResponse<CreationStudioTaskProjection>>(

@@ -4,7 +4,7 @@ import type {
   ComicDramaLinksResponse,
   ComicDramaStudioOverview,
 } from "@ai-novel/shared/types/comicDrama";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export type { ComicDramaLinkStats, ComicDramaStudioOverview };
 

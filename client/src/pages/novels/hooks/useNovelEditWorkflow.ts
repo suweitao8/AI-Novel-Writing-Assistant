@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { bootstrapNovelWorkflow } from "@/api/novelWorkflow";
+import { bootstrapNovelWorkflow } from "@/api/novel/novelWorkflow";
 import { normalizeNovelWorkspaceTab } from "../novelWorkspaceNavigation";
 import {
   readNovelEditWorkflowTaskIds,

@@ -15,8 +15,8 @@ import {
   type DirectorRunMode,
   type DirectorWorldSetupMode,
 } from "@ai-novel/shared/types/novelDirector";
-import { bootstrapNovelWorkflow, continueNovelWorkflow } from "@/api/novelWorkflow";
-import { confirmDirectorCandidate, generateDirectorIdeaInspirations } from "@/api/novelDirector";
+import { bootstrapNovelWorkflow, continueNovelWorkflow } from "@/api/novel/novelWorkflow";
+import { confirmDirectorCandidate, generateDirectorIdeaInspirations } from "@/api/novel/novelDirector";
 import { queryKeys } from "@/api/queryKeys";
 import { getStyleProfiles } from "@/api/styleEngine";
 import { getTaskDetail } from "@/api/tasks";

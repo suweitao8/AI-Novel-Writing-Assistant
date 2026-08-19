@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Users, MapPin, Package, Globe2 } from "lucide-react";
 import { queryKeys } from "@/api/queryKeys";
-import { getStorySettingsOverview } from "@/api/storySettings";
+import { getStorySettingsOverview } from "@/api/story/storySettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SettingsCharactersTab from "./SettingsCharactersTab";
 import SettingsScenesTab from "./SettingsScenesTab";

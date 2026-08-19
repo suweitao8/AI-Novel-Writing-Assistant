@@ -16,8 +16,8 @@ import {
   regenerateDramaShotAudio,
   updateDramaNarratorVoice,
   type DramaAudioSegment,
-} from "@/api/comicDrama";
-import { createDramaEpisodeBatchJob, getDramaProject, listDramaTTSProviders } from "@/api/drama";
+} from "@/api/media/comicDrama";
+import { createDramaEpisodeBatchJob, getDramaProject, listDramaTTSProviders } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import SelectControl from "@/components/common/SelectControl";

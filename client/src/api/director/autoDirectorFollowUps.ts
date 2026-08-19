@@ -8,8 +8,8 @@ import type {
   AutoDirectorFollowUpOverview,
   AutoDirectorMutationActionCode,
 } from "@ai-novel/shared/types/autoDirectorFollowUp";
-import type { ApiHttpError } from "./client";
-import { apiClient } from "./client";
+import type { ApiHttpError } from "../client";
+import { apiClient } from "../client";
 
 export async function getAutoDirectorFollowUpOverview() {
   const { data } = await apiClient.get<ApiResponse<AutoDirectorFollowUpOverview>>("/auto-director/follow-ups/overview");

@@ -8,7 +8,7 @@ import type {
   NovelWorkflowStage,
 } from "@ai-novel/shared/types/novelWorkflow";
 import type { TaskStatus, UnifiedTaskDetail } from "@ai-novel/shared/types/task";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function bootstrapNovelWorkflow(payload: {
   workflowTaskId?: string;

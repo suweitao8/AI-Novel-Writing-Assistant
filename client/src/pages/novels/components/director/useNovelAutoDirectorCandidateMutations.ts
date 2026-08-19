@@ -12,7 +12,7 @@ import {
   patchDirectorCandidate,
   refineDirectorCandidateTitles,
   refineDirectorCandidates,
-} from "@/api/novelDirector";
+} from "@/api/novel/novelDirector";
 import { toast } from "@/components/ui/toast";
 import type { buildAutoDirectorRequestPayload } from "./NovelAutoDirectorDialog.shared";
 import type { DirectorExecutionViewMode } from "./NovelAutoDirector.types";

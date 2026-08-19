@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Package, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
-import type { StorySettingsProp } from "@/api/storySettings";
+import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
   createStorySettingsProp,
   deleteStorySettingsProp,
@@ -10,7 +10,7 @@ import {
   getStorySettingsProps,
   regenerateStorySettings,
   updateStorySettingsProp,
-} from "@/api/storySettings";
+} from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";

@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function generateNovelChapterSummary(
   id: string,

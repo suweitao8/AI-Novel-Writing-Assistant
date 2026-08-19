@@ -2,7 +2,7 @@ import type { MouseEvent } from "react";
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { continueNovelWorkflow } from "@/api/novelWorkflow";
+import { continueNovelWorkflow } from "@/api/novel/novelWorkflow";
 import { getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { getTaskOverview } from "@/api/tasks";

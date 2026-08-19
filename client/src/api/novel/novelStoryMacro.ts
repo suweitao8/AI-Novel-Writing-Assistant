@@ -8,7 +8,7 @@ import type {
   StoryMacroPlan,
   StoryMacroState,
 } from "@ai-novel/shared/types/storyMacro";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 interface LLMPayload {
   provider?: LLMProvider;

@@ -6,7 +6,7 @@ import type {
   TitleLibraryEntry,
   TitleLibraryListResult,
 } from "@ai-novel/shared/types/title";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export interface TitleLibraryListParams {
   page?: number;

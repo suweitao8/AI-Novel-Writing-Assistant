@@ -13,7 +13,7 @@ import {
   listCreativeHubThreads,
   resolveCreativeHubInterrupt,
   updateCreativeHubThread,
-} from "@/api/creativeHub";
+} from "@/api/creative/creativeHub";
 import { getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import {

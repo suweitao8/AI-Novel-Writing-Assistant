@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 

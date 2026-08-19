@@ -6,7 +6,7 @@ import type {
   CharacterSubjectRef,
 } from "@ai-novel/shared/types/characterConversation";
 import type { CharacterDialogueInfluence } from "@ai-novel/shared/types/characterDialogue";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export type CharacterConversationSessionView = CharacterConversationSession & {
   latestInfluence?: CharacterDialogueInfluence | null;

@@ -7,7 +7,7 @@ import {
   type DirectorIssueCode,
   type DirectorIssuePolicyOverride,
 } from "@ai-novel/shared/types/directorIssue";
-import { getNovelDirectorIssuePolicy, saveNovelDirectorIssuePolicy } from "@/api/novelDirector";
+import { getNovelDirectorIssuePolicy, saveNovelDirectorIssuePolicy } from "@/api/novel/novelDirector";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

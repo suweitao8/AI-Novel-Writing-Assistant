@@ -13,7 +13,7 @@ import {
   mergeCharacterCandidate,
   rebuildCharacterDynamics,
   updateCharacterDynamicState,
-} from "@/api/novelCharacterDynamics";
+} from "@/api/novel/novelCharacterDynamics";
 import { queryKeys } from "@/api/queryKeys";
 
 type DynamicsView = "overview" | "candidates" | "relations" | "duties";

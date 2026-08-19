@@ -21,7 +21,7 @@ import {
   saveNovelWorldToLibrary,
   syncNovelWorldWithLibrary,
   updateNovelWorldSliceOverrides,
-} from "@/api/novelWorldSlice";
+} from "@/api/novel/novelWorldSlice";
 
 interface UseNovelWorldSliceOptions {
   novelId: string;

@@ -1,5 +1,5 @@
 import { Check, Layers3, RotateCcw, Sparkles } from "lucide-react";
-import type { StoryModeTreeDraft } from "@/api/storyMode";
+import type { StoryModeTreeDraft } from "@/api/story/storyMode";
 import LLMSelector from "@/components/common/LLMSelector";
 import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";

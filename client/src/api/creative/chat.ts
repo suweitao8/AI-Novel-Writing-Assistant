@@ -1,5 +1,5 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export interface ChatMessageInput {
   role: "user" | "assistant" | "system";

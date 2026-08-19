@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { DirectorRiskPolicy } from "@/api/directorRiskPolicy";
+import type { DirectorRiskPolicy } from "@/api/director/directorRiskPolicy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

@@ -14,7 +14,7 @@ import type {
   StoryWorldSliceOverrides,
   StoryWorldSliceView,
 } from "@ai-novel/shared/types/storyWorldSlice";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function getNovelWorld(id: string) {
   const { data } = await apiClient.get<ApiResponse<NovelWorldView>>(`/novels/${id}/novel-world`);

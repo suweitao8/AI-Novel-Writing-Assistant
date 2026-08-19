@@ -1,6 +1,6 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { WritingFormula } from "@ai-novel/shared/types/writingFormula";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function getWritingFormulas() {
   const { data } = await apiClient.get<ApiResponse<WritingFormula[]>>("/writing-formula");

@@ -22,14 +22,14 @@ import {
   updateComicPreset,
   type ComicEpisode,
   type ComicProject,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import { COMIC_FORMATS } from "@/pages/comic/ComicWorkspacePage";
 import { CharactersPanel } from "@/pages/comic/project/CharactersPanel";
 import { ScenesPanel } from "@/pages/comic/project/ScenesPanel";
 import { EpisodeListPanel } from "@/pages/comic/project/EpisodeListPanel";
 import { PanelsGridPanel } from "@/pages/comic/project/PanelsGridPanel";
 import { getAPIKeySettings } from "@/api/settings";
-import { listVisualStyles } from "@/api/visualStyles";
+import { listVisualStyles } from "@/api/media/visualStyles";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

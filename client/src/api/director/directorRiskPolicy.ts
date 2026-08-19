@@ -8,7 +8,7 @@ import {
   type DirectorRiskPolicy as SharedDirectorRiskPolicy,
 } from "@ai-novel/shared/types/directorRisk";
 import { isAxiosError } from "axios";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export type DirectorRiskPolicy = SharedDirectorRiskPolicy;
 

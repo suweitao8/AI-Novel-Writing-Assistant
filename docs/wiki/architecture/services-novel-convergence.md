@@ -25,6 +25,7 @@
 - ~~`prompting/prompts/novel`（42 文件）~~ 已收敛（f34bbbd7）：31 个文件按家族进 chapter/character/director 子目录，根层 44→13；registry loader、29 个服务引用方、9 个测试 require 同步改路径，无兼容壳。~~`client/src/pages/novels/components`~~ 已收敛（f8ed87e5）：54 文件入 chapter/character/director/structured/takeover/cards/tabs 七个子目录，根层 65→14。
 - ~~根层兼容壳退役~~ 已完成（e53600f1）：22 个 export * 壳全部删除，59 处引用（39 源文件 + 10 测试）由位置感知解析器重定向至真实模块；根层定格 17 个文件（facade 与共享内核）。
 - ~~`director/runtime`（38 文件）~~ 已收敛（2026-08-19 第二轮）：根层只留 `directorSubsystem.ts` 门面，37 个实现文件进入 7 个子模块——`takeover/`（接管链 6，消除 novelDirectorTakeover* 同前缀超标）、`flows/`（候选/确认/继续流程与共享 helpers/errors/schemas/persistence/framing/orchestrator 9）、`execution/`（运行时编排、节点契约、策略引擎、工作区分析、进度检查、质量环预算 6）、`store/`（runtime store、快照合并、状态提案决议、默认值 5）、`artifacts/`（产物台账 5）、`events/`（事件与遥测投影 3）、`resilience/`（熔断、内存安全、校验 3）。依赖方向与变更守则固化在 `director/runtime/README.md`，目录契约由 `directorDirectoryBoundary.test.js` 固化（runtime 根仅允许 directorSubsystem.ts）。迁移验证：1278 项测试失败集与基线完全一致。
+- ~~`client/src/api`（38 文件平铺）~~ 已收敛（2026-08-19 第二轮）：8 个 `novel*` 同前缀文件并入既有 `novel/` 目录（`novel.ts` 原本就是 `export * from "./novel/*"` 的纯门面，移为 `novel/index.ts` 后 `@/api/novel` 引用零改写），另有 19 个文件进入 `media/`（comic/comicDrama/drama/images/visualStyles/title）、`story/`（genre/storyMode/storySettings/writingFormula）、`characters/`、`creative/`（chat/creativeHub/creationStudio）、`agents/`、`director/`（autoDirectorFollowUps/directorRiskPolicy）六个领域目录；根层 38→11（client/queryKeys 共享内核 + 单文件领域）。client 导入全部为 `@/api/*` 别名，改写仅在导入上下文内进行，`pnpm --filter @ai-novel/client typecheck` 零错误。
 
 ## 测试环境与验证结论（2026-08-19）
 

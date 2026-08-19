@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateGenre, type GenreOption, type GenreTreeNode } from "@/api/genre";
+import { updateGenre, type GenreOption, type GenreTreeNode } from "@/api/story/genre";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

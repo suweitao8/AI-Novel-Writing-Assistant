@@ -12,7 +12,7 @@ import {
   getCreationStudioTask,
   interpretCreationIdea,
   regenerateCreationDirections,
-} from "@/api/creationStudio";
+} from "@/api/creative/creationStudio";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { BaseCharacter } from "@ai-novel/shared/types/novel";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export interface CharacterGenerateConstraints {
   storyFunction?: "主角" | "反派" | "导师" | "对照组" | "配角";

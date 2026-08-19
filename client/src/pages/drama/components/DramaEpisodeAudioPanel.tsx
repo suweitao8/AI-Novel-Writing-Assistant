@@ -9,7 +9,7 @@ import {
   type DramaDialogueAudioData,
   type DramaEpisode,
   type DramaTTSProvider,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import SelectControl from "@/components/common/SelectControl";

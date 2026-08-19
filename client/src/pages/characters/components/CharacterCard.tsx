@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from "react";
 import type { ImageAsset } from "@ai-novel/shared/types/image";
-import { resolveImageAssetUrl } from "@/api/images";
+import { resolveImageAssetUrl } from "@/api/media/images";
 import type { BaseCharacter } from "@ai-novel/shared/types/novel";
 import { MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";

@@ -4,7 +4,7 @@ import {
   analyzeDramaSourceSupplement,
   type DramaProjectDetail,
   type DramaSourceSupplementGuidance,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

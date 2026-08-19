@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { Character } from "@ai-novel/shared/types/novel";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { getCharacterRelations } from "@/api/novel";
-import { getCharacterDynamicsOverview } from "@/api/novelCharacterDynamics";
+import { getCharacterDynamicsOverview } from "@/api/novel/novelCharacterDynamics";
 import { queryKeys } from "@/api/queryKeys";
 import CharacterDiagnosticsSection from "../character/CharacterDiagnosticsSection";
 import CharacterRelationshipGraphPanel from "./CharacterRelationshipGraphPanel";

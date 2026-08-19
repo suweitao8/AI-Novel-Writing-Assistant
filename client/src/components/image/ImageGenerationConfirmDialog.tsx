@@ -12,8 +12,8 @@ import { Image as ImageIcon, Info, Loader2, Sparkles, Wand2, X } from "lucide-re
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { getAPIKeySettings } from "@/api/settings";
-import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/comic";
-import { assistImageGenerationPrompt, resolveImageAssetUrl, type ImagePromptAssistResult } from "@/api/images";
+import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/comic";
+import { assistImageGenerationPrompt, resolveImageAssetUrl, type ImagePromptAssistResult } from "@/api/media/images";
 import { toast } from "@/components/ui/toast";
 import SelectControl from "@/components/common/SelectControl";
 

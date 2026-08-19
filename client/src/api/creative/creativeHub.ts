@@ -7,7 +7,7 @@ import type {
   CreativeHubThreadState,
 } from "@ai-novel/shared/types/creativeHub";
 import { API_BASE_URL } from "@/lib/constants";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 function ensureThreadId(threadId: string): string {
   const normalized = threadId.trim();

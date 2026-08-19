@@ -10,7 +10,7 @@ import type {
   CharacterDialogueSession,
   CharacterDialogueTurnResult,
 } from "@ai-novel/shared/types/characterDialogue";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export async function getCharacterDynamicsOverview(id: string, chapterOrder?: number) {
   const { data } = await apiClient.get<ApiResponse<DynamicCharacterOverview>>(`/novels/${id}/character-dynamics/overview`, {

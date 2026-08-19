@@ -17,7 +17,7 @@ import {
   regenerateNovelStoryMacroField,
   updateNovelStoryMacroPlan,
   updateNovelStoryMacroState,
-} from "@/api/novelStoryMacro";
+} from "@/api/novel/novelStoryMacro";
 import { queryKeys } from "@/api/queryKeys";
 import type { StoryMacroTabProps } from "../components/NovelEditView.types";
 import { syncNovelWorkflowStageSilently } from "../novelWorkflow.client";

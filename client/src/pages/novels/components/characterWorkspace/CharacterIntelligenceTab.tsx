@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Character } from "@ai-novel/shared/types/novel";
 import { Brain, RefreshCw } from "lucide-react";
-import { getCharacterMindState, refreshCharacterMindState } from "@/api/novelCharacterDynamics";
+import { getCharacterMindState, refreshCharacterMindState } from "@/api/novel/novelCharacterDynamics";
 import { queryKeys } from "@/api/queryKeys";
 import CharacterConversationWorkbench from "@/components/characterConversation/CharacterConversationWorkbench";
 import AiButton from "@/components/common/AiButton";

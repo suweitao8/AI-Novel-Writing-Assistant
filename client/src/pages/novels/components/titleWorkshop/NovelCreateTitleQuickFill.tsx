@@ -14,7 +14,7 @@ import {
   createTitleLibraryEntry,
   generateTitleIdeas,
   listTitleLibrary,
-} from "@/api/title";
+} from "@/api/media/title";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import LLMSelector from "@/components/common/LLMSelector";

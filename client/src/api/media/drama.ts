@@ -1,7 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/comic";
-import { apiClient } from "./client";
+import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/comic";
+import { apiClient } from "../client";
 
 export type DramaSourceType = "novel_import" | "original" | "text_import";
 

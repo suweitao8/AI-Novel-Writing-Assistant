@@ -6,7 +6,7 @@ import type {
   VisualStyleFamily,
   VisualStyleSummary,
 } from "@ai-novel/shared/types/visualStyle";
-import { apiClient } from "./client";
+import { apiClient } from "../client";
 
 export type {
   VisualStyleAnalysisDraft,

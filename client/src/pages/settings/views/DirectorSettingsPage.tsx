@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDirectorRiskPolicy, saveDirectorRiskPolicy } from "@/api/directorRiskPolicy";
+import { getDirectorRiskPolicy, saveDirectorRiskPolicy } from "@/api/director/directorRiskPolicy";
 import { queryKeys } from "@/api/queryKeys";
 import AutoDirectorSettingsSection from "../AutoDirectorSettingsSection";
 import { AutoDirectorRiskPolicyCard } from "../AutoDirectorRiskPolicyCard";
