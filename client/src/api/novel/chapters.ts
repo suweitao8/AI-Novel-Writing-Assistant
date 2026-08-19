@@ -1,5 +1,10 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type {
+  ChapterDetailOutlineBeat,
+  ChapterDetailOutlineDocument,
+  ChapterDetailOutlinePayload,
+} from "@ai-novel/shared/types/novelChapterDetailOutline";
+import type {
   TimelineCheckReport,
   TimelineContextForChapter,
 } from "@ai-novel/shared/types/timeline";
@@ -134,6 +139,26 @@ export async function generateChapterExecutionContract(
 ) {
   const { data } = await apiClient.post<ApiResponse<Chapter>>(
     `/novels/${novelId}/chapters/${chapterId}/execution-contract`,
+    payload,
+  );
+  return data;
+}
+
+// AI 推理单章细纲草稿（不落库，前端预览编辑后另行保存）
+export async function previewChapterDetailOutline(novelId: string, chapterId: string) {
+  const { data } = await apiClient.post<ApiResponse<{ beats: ChapterDetailOutlineBeat[]; notes: string | null }>>(
+    `/novels/${novelId}/chapters/${chapterId}/detail-outline/preview`,
+  );
+  return data;
+}
+
+export async function saveChapterDetailOutline(
+  novelId: string,
+  chapterId: string,
+  payload: ChapterDetailOutlinePayload,
+) {
+  const { data } = await apiClient.put<ApiResponse<ChapterDetailOutlineDocument>>(
+    `/novels/${novelId}/chapters/${chapterId}/detail-outline`,
     payload,
   );
   return data;

@@ -21,7 +21,7 @@
 
 - 服务端投影：`server/src/services/drama/studio/ComicDramaStudioService.ts` + `/api/drama/studio/links`（批量阶段统计，供列表卡片）与 `/api/drama/studio/:novelId/overview`（单项目完整阶段视图）。前端只消费这一层，不自行拼装 Novel 与 DramaProject。
 - 前端：`client/src/pages/drama/comicDrama/`——`ComicDramaListPage`（/drama，横版卡片 + 四阶段徽章）、`ComicDramaStudioPage`（/drama/studio/:novelId，四阶段工作流页）、`ComicDramaCreateDialog`（书名 + 可选想法 → 创建后直达工作室）。
-- 小说阶段无导演任务时复用 `BlankStartPanel`（创作/设定两个子 tab）；有任务后显示进度 + 阅读台深链。分镜/配音/视频阶段展示阶段统计并深链到 `DramaProjectPage`（成熟工作台不内嵌，v1 保持摘要 + 入口）。
+- 小说阶段常驻创作/章节/设定三个子 tab：「创作」无导演任务时复用 `BlankStartPanel`，有任务时显示进度 + 阅读台深链；「章节」即章节管理面板（见下节）。分镜/配音/视频阶段展示阶段统计并深链到 `DramaProjectPage`（成熟工作台不内嵌，v1 保持摘要 + 入口）。
 
 ### 小说阶段的大纲契约（空白小说工作台）
 
@@ -30,6 +30,13 @@
 - 确认细纲后同步 `estimatedChapterCount`，让导演链按用户章数规划规模。
 - 剧情契约注入点：接管 idea 携带用户大纲（`novelDirectorTakeover.ts` 的 `buildTakeoverIdea`）；卷战略/卷骨架/节奏板/章节列表/章节细化上下文注入 `user_outline_contract` 块（`prompting/prompts/novel/volume/contextBlocks.ts`，priority=99）——章节划分、事件顺序与结果不得推翻，允许补节奏与衔接。
 - 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。修改守卫白名单时必须同步更新 `simpleCreationMode.test.js`。
+
+### 小说阶段的章节管理与单章细纲
+
+- 工作室小说阶段常驻三个子 tab（创作/章节/设定）；「章节」子 tab（`ChapterManagePanel`）提供章节卡片列表、按序号/标题搜索、手动新建章节与单章详情。
+- 单章细纲是**人工创作辅助**：`Chapter.expectation` 存本章大纲，`Chapter.detailOutlineJson` 存确认后的节拍（schemaVersion=1，beats 3～10 拍）。Prompt 资产 `novel.chapter.detail_outline@v1`（`chapterDetailOutline.prompts.ts`）：输入本章大纲 + 前后章梗概 + 设定快照，输出节拍草稿**不落库**（preview-then-save，同设定中心模式）；端点挂在章节路由 `POST/PUT /novels/:id/chapters/:chapterId/detail-outline*`。
+- **V1 边界：细纲不注入自动导演写作上下文**——它是用户对着写正文的依据，不进入 `user_outline_contract` 或章节生成上下文；要注入必须另立设计并更新本页。
+- 自动导演任务运行中：章节浏览/搜索/细纲可用，手动新建章节禁用（导演链按 order 顺序写作，手动插章会打乱规划）；该约束由前端禁用态表达，服务端不强制。
 
 ## 失败模式 / 注意事项
 

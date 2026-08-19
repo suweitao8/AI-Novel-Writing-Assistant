@@ -236,6 +236,14 @@ export const updateChapterSchema = z.object({
   riskFlags: z.string().nullable().optional(),
 });
 
+export const chapterDetailOutlineSaveSchema = z.object({
+  beats: z.array(z.object({
+    summary: z.string().trim().min(4).max(200),
+    keyEvent: z.string().trim().max(120).nullable().default(null),
+  })).min(3).max(10),
+  notes: z.string().trim().max(300).nullable().default(null),
+});
+
 export const characterSchema = z.object({
   name: z.string().trim().min(1, "角色名称不能为空。"),
   role: z.string().trim().min(1, "角色定位不能为空。"),

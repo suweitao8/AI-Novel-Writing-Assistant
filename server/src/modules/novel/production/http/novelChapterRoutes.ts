@@ -3,6 +3,7 @@ import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
 import { agentRuntime } from "../../../../agents";
 import { validate } from "../../../../middleware/validate";
+import { chapterDetailOutlineService } from "../../planning/application/ChapterDetailOutlineService";
 import type { NovelApplicationServices } from "../../../../services/novel/application/NovelApplicationContracts";
 
 interface RegisterNovelChapterRoutesInput {
@@ -19,6 +20,7 @@ interface RegisterNovelChapterRoutesInput {
   chapterSchema: z.ZodTypeAny;
   updateChapterSchema: z.ZodTypeAny;
   chapterExecutionContractSchema: z.ZodTypeAny;
+  chapterDetailOutlineSaveSchema: z.ZodTypeAny;
 }
 
 export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInput): void {
@@ -30,6 +32,7 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
     chapterSchema,
     updateChapterSchema,
     chapterExecutionContractSchema,
+    chapterDetailOutlineSaveSchema,
   } = input;
 
   router.get("/:id/chapters", validate({ params: idParamsSchema }), async (req, res, next) => {
@@ -128,6 +131,44 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
           success: true,
           data,
           message: "Chapter execution contract generated.",
+        } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // 单章细纲：AI 推理草稿（不落库，前端预览编辑）
+  router.post(
+    "/:id/chapters/:chapterId/detail-outline/preview",
+    validate({ params: chapterParamsSchema }),
+    async (req, res, next) => {
+      try {
+        const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
+        const data = await chapterDetailOutlineService.previewDetailOutline(id, chapterId);
+        res.status(200).json({
+          success: true,
+          data,
+          message: "Chapter detail outline draft generated.",
+        } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // 单章细纲：保存用户编辑后的节拍
+  router.put(
+    "/:id/chapters/:chapterId/detail-outline",
+    validate({ params: chapterParamsSchema, body: chapterDetailOutlineSaveSchema }),
+    async (req, res, next) => {
+      try {
+        const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
+        const data = await chapterDetailOutlineService.saveDetailOutline(id, chapterId, req.body as any);
+        res.status(200).json({
+          success: true,
+          data,
+          message: "Chapter detail outline saved.",
         } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
