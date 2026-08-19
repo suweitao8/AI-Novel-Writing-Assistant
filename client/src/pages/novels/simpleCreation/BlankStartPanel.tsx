@@ -1,37 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 import {
   ArrowDown,
   ArrowUp,
-  BookText,
   CheckCircle2,
   Loader2,
   NotebookPen,
   Plus,
-  Sparkles,
   Trash2,
 } from "lucide-react";
-import {
-  expandNovelOutline,
-  getNovelOutlineState,
-  saveNovelChapterOutline,
-  saveNovelOutline,
-} from "@/api/novel/outline";
-import { startDirectorTakeover } from "@/api/novel/novelDirector";
-import { ensureStorySettings } from "@/api/story/storySettings";
-import { queryKeys } from "@/api/queryKeys";
+import AiButton from "@/components/common/AiButton";
+import { useNovelOutlineWorkspace } from "@/hooks/useNovelOutlineWorkspace";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/toast";
-
-interface DraftChapter {
-  title: string;
-  synopsis: string;
-  keyEvents: string[];
-  characterNames: string[];
-  sceneNames: string[];
-}
 
 interface BlankStartPanelProps {
   novelId: string;
@@ -43,143 +24,28 @@ interface BlankStartPanelProps {
 // 面板只在书架没有 AI 任务时出现；启动后回到书架的正常阅读台体验。
 export default function BlankStartPanel(props: BlankStartPanelProps) {
   const { novelId, onGoToSettings } = props;
-  const queryClient = useQueryClient();
-  const [outlineText, setOutlineText] = useState("");
-  const [targetChapterCount, setTargetChapterCount] = useState("");
-  const [draftPremise, setDraftPremise] = useState("");
-  const [draftChapters, setDraftChapters] = useState<DraftChapter[] | null>(null);
-  const outlineQuery = useQuery({
-    queryKey: queryKeys.novels.outline(novelId),
-    queryFn: () => getNovelOutlineState(novelId),
-    enabled: Boolean(novelId),
-  });
-  const outlineState = outlineQuery.data?.data ?? null;
-  const loadedOutlineRef = useRef("");
-
-  useEffect(() => {
-    const serverOutline = outlineState?.outline ?? "";
-    if (serverOutline !== loadedOutlineRef.current) {
-      loadedOutlineRef.current = serverOutline;
-      setOutlineText(serverOutline);
-      if (draftChapters === null && outlineState?.chapters) {
-        setDraftPremise(outlineState.premise ?? "");
-        setDraftChapters(outlineState.chapters.map((chapter) => ({
-          title: chapter.title,
-          synopsis: chapter.synopsis,
-          keyEvents: chapter.keyEvents,
-          characterNames: chapter.characterNames,
-          sceneNames: chapter.sceneNames,
-        })));
-      }
-    }
-  }, [outlineState, draftChapters]);
-
-  const confirmedChapterCount = outlineState?.chapters?.length ?? 0;
-  const outlineDirty = outlineText.trim() !== (outlineState?.outline ?? "").trim();
-
-  const saveOutlineMutation = useMutation({
-    mutationFn: () => saveNovelOutline(novelId, outlineText),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.novels.outline(novelId) });
-      toast.success("简略大纲已保存。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存大纲失败，请重试。"),
-  });
-
-  const expandMutation = useMutation({
-    mutationFn: () => expandNovelOutline(novelId, {
-      targetChapterCount: targetChapterCount.trim() ? Number(targetChapterCount.trim()) : undefined,
-    }),
-    onSuccess: (response) => {
-      const draft = response.data;
-      if (!draft) {
-        toast.error("AI 没有返回细纲草稿，请重试。");
-        return;
-      }
-      setDraftPremise(draft.premise);
-      setDraftChapters(draft.chapters.map((chapter) => ({
-        title: chapter.title,
-        synopsis: chapter.synopsis,
-        keyEvents: chapter.keyEvents,
-        characterNames: chapter.characterNames,
-        sceneNames: chapter.sceneNames,
-      })));
-      toast.success(`AI 已推理出 ${draft.chapters.length} 章细纲草稿，确认前可以逐章修改。`);
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "细纲推理失败，请稍后重试。"),
-  });
-
-  const saveChaptersMutation = useMutation({
-    mutationFn: () => {
-      if (!draftChapters || draftChapters.length < 3) {
-        throw new Error("分章细纲至少需要 3 章。");
-      }
-      return saveNovelChapterOutline(novelId, {
-        premise: draftPremise.trim(),
-        chapters: draftChapters,
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: queryKeys.novels.outline(novelId) });
-      toast.success("分章细纲已确认。AI 后续的卷规划与章节写作会遵循这份细纲。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存细纲失败，请重试。"),
-  });
-
-  const startMutation = useMutation({
-    mutationFn: async () => {
-      // 继续写作前先补全缺失的场景/道具设定，让章节有据可依；补全失败不阻断启动。
-      try {
-        await ensureStorySettings(novelId);
-      } catch {
-        toast("设定补全暂时失败，本次启动暂不携带新设定。");
-      }
-      return startDirectorTakeover({
-        novelId,
-        strategy: "continue_existing",
-        runMode: "auto_to_ready",
-      });
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["novels", novelId, "simple-shelf"] });
-      await queryClient.invalidateQueries({ queryKey: queryKeys.novels.autoDirectorTask(novelId) });
-      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success("自动导演已启动。AI 会先完成书级规划，你可以在书架随时查看进度。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "启动失败，请稍后重试。"),
-  });
-
-  const canExpand = !expandMutation.isPending
-    && (outlineText.trim().length > 0 || Boolean(outlineState?.outline?.trim()));
-  const canConfirmChapters = Boolean(draftChapters && draftChapters.length >= 3 && draftPremise.trim());
-
-  const updateChapter = (index: number, patch: Partial<DraftChapter>) => {
-    setDraftChapters((current) => {
-      if (!current) return current;
-      const next = [...current];
-      next[index] = { ...next[index], ...patch };
-      return next;
-    });
-  };
-  const removeChapter = (index: number) => {
-    setDraftChapters((current) => (current ? current.filter((_item, position) => position !== index) : current));
-  };
-  const moveChapter = (index: number, direction: -1 | 1) => {
-    setDraftChapters((current) => {
-      if (!current) return current;
-      const target = index + direction;
-      if (target < 0 || target >= current.length) return current;
-      const next = [...current];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-  };
-  const appendChapter = () => {
-    setDraftChapters((current) => [
-      ...(current ?? []),
-      { title: "", synopsis: "", keyEvents: [], characterNames: [], sceneNames: [] },
-    ]);
-  };
+  const workspace = useNovelOutlineWorkspace(novelId);
+  const {
+    outlineText,
+    setOutlineText,
+    targetChapterCount,
+    setTargetChapterCount,
+    draftPremise,
+    setDraftPremise,
+    draftChapters,
+    confirmedChapterCount,
+    outlineDirty,
+    canExpand,
+    canConfirmChapters,
+    saveOutlineMutation,
+    expandMutation,
+    saveChaptersMutation,
+    startMutation,
+    updateChapter,
+    removeChapter,
+    moveChapter,
+    appendChapter,
+  } = workspace;
 
   const expandHint = useMemo(() => {
     if (confirmedChapterCount > 0) {
@@ -268,16 +134,15 @@ export default function BlankStartPanel(props: BlankStartPanelProps) {
                   onChange={(event) => setTargetChapterCount(event.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
                  />
               </div>
-              <Button
-                type="button"
+              <AiButton
                 disabled={!canExpand || expandMutation.isPending}
                 onClick={() => expandMutation.mutate()}
               >
                 {expandMutation.isPending
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true"  />
-                  : <Sparkles className="mr-2 h-4 w-4" aria-hidden="true"  />}
+                  : null}
                 {draftChapters ? "重新推理细纲" : "AI 推理细纲"}
-              </Button>
+              </AiButton>
               <p className="text-xs leading-5 text-muted-foreground">推理不落库；确认保存后才会成为这本书的剧情契约。</p>
             </div>
 
@@ -323,7 +188,7 @@ export default function BlankStartPanel(props: BlankStartPanelProps) {
                         rows={3}
                         maxLength={600}
                         placeholder="本章梗概：发生了什么、推进了什么、结尾钩子是什么"
-                        className="mt-2"
+                        className="mt-2 w-full rounded-md border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         onChange={(event) => updateChapter(index, { synopsis: event.target.value })}
                        />
                     </li>
@@ -358,12 +223,12 @@ export default function BlankStartPanel(props: BlankStartPanelProps) {
               AI 只做扩写与节奏补充，不会推翻你的走向；没有细纲也可以直接开始，AI 会依据设定和大纲自由规划。
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <Button type="button" size="lg" disabled={startMutation.isPending} onClick={() => startMutation.mutate()}>
+              <AiButton size="lg" disabled={startMutation.isPending} onClick={() => startMutation.mutate()}>
                 {startMutation.isPending
                   ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true"  />
-                  : <BookText className="mr-2 h-4 w-4" aria-hidden="true"  />}
+                  : null}
                 让 AI 开始创作
-              </Button>
+              </AiButton>
               {confirmedChapterCount > 0 ? (
                 <span className="text-xs text-muted-foreground">将按已确认的 {confirmedChapterCount} 章细纲推进。</span>
               ) : (
