@@ -20,9 +20,9 @@ interface NovelOutlineTabProps {
   onOpenChapterManage: () => void;
 }
 
-// 漫剧工作室「小说 · 大纲」页签：当前章的故事大纲（代码编辑器式、默认 50 行编号空行、
-// 修改后自动静默保存），右侧是设定资产面板（快速查找与创建，名字在本章大纲里高亮）。
-// 「解析」按钮在上方子页签行右侧，按本章大纲生成本章细纲。
+// 漫剧工作室「当前 · 初稿」页签：当前章的故事初稿（代码编辑器式、默认 20 行编号空行、
+// 修改后自动静默保存），右侧是设定资产面板（快速查找与创建，名字在本章初稿里高亮）。
+// 「解析」按钮在上方子页签行右侧，按本章初稿生成本章节拍。
 export default function NovelOutlineTab(props: NovelOutlineTabProps) {
   const { novelId, workspace } = props;
   const savePending = workspace.savePending;
@@ -95,9 +95,9 @@ export default function NovelOutlineTab(props: NovelOutlineTabProps) {
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <LineNumberedTextarea
         id="drama-outline-textarea"
-        ariaLabel="本章大纲"
+        ariaLabel="本章初稿"
         value={workspace.expectationText}
-        minRows={50}
+        minRows={20}
         maxLength={20000}
         placeholder="写下这一章的故事走向"
         highlight={highlight}
