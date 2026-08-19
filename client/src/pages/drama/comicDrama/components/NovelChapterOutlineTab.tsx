@@ -1,130 +1,126 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  CheckCircle2,
-  Loader2,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { NovelOutlineWorkspace } from "@/hooks/useNovelOutlineWorkspace";
+import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
 interface NovelChapterOutlineTabProps {
-  workspace: NovelOutlineWorkspace;
+  workspace: NovelChapterWorkspace;
   onGoOutline: () => void;
 }
 
-// 漫剧工作室「小说 · 细纲」页签：手动整理分章剧情走向（可增删调序），
-// 确认保存后成为 AI 写作遵循的剧情契约；写到某一章时，逐章的深化在顶栏「章节管理」里做。
+// 漫剧工作室「小说 · 细纲」页签：当前章的 AI 细纲节拍（由「解析」按本章大纲生成），
+// 逐拍可改可增删，3～10 拍确认保存后常驻本章；没有节拍时引导去写大纲或点「解析」。
 export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProps) {
-  const { workspace, onGoOutline } = props;
-  const draftChapters = workspace.draftChapters;
+  const { workspace } = props;
+  const chapter = workspace.currentChapter;
+  const beats = workspace.beats;
 
-  if (!draftChapters || draftChapters.length === 0) {
+  if (workspace.chaptersQuery.isPending) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" /> 正在加载章节
+      </div>
+    );
+  }
+
+  if (!chapter) {
+    return (
+      <Card className="rounded-3xl">
+        <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
+          还没有章节，先去顶栏「章节管理」新建第一章。
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!beats || beats.length === 0) {
     return (
       <Card className="rounded-3xl">
         <CardContent className="p-6">
           <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-12 text-center">
             <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
-              还没有分章细纲。想先规划全书的，可以在这里逐章写下剧情走向；
-              想直接开写的，去顶栏「章节管理」写下当前章的大概故事，让 AI 展开成这一章的细纲。
+              第 {chapter.order} 章还没有细纲。点上方「解析」按本章大纲生成节拍；还没写大纲的，先去「大纲」页签写下这一章的故事。
             </p>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <Button size="sm" variant="outline" onClick={onGoOutline}>
-                去写大纲
-              </Button>
-              <Button size="sm" onClick={workspace.appendChapter}>
-                <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />加一章
-              </Button>
-            </div>
+            <Button className="mt-4" size="sm" variant="outline" onClick={props.onGoOutline}>
+              去写大纲
+            </Button>
           </div>
         </CardContent>
       </Card>
     );
   }
 
+  const beatCount = beats.length;
+  const canSave = beatCount >= 3 && beatCount <= 10;
+
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-4 p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm font-semibold text-foreground">分章细纲</span>
-          {workspace.confirmedChapterCount > 0 ? (
-            <Badge variant="outline" className="gap-1">
-              <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
-              已确认 {workspace.confirmedChapterCount} 章
-            </Badge>
-          ) : null}
-          <span className="text-xs text-muted-foreground">共 {draftChapters.length} 章，标题与梗概可以直接修改。</span>
+          <span className="text-sm font-semibold text-foreground">第 {chapter.order} 章 · {chapter.title}</span>
+          <Badge variant="outline" className="gap-1">
+            <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
+            {beatCount} 拍
+          </Badge>
+          <span className="text-xs text-muted-foreground">逐拍可改可增删，3～10 拍可保存。</span>
         </div>
 
-        <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 p-4">
-          <label htmlFor="drama-draft-premise" className="text-sm font-medium text-foreground">全书梗概</label>
-          <textarea
-            className="min-h-[72px] w-full rounded-md border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            id="drama-draft-premise"
-            value={workspace.draftPremise}
-            rows={2}
-            maxLength={600}
-            onChange={(event) => workspace.setDraftPremise(event.target.value)}
-           />
-        </div>
-
-        <ol className="space-y-3">
-          {draftChapters.map((chapter, index) => (
-            <li key={`drama-draft-chapter-${index}`} className="rounded-2xl border border-border/70 bg-background p-4 shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted text-xs font-semibold text-foreground">{index + 1}</span>
+        <ol className="space-y-2">
+          {beats.map((beat, index) => (
+            <li key={`beat-${index}`} className="flex items-start gap-2 rounded-xl border border-border/70 bg-background p-2.5">
+              <span className="mt-1.5 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">{index + 1}</span>
+              <div className="min-w-0 flex-1 space-y-1.5">
                 <Input
-                  value={chapter.title}
+                  value={beat.summary}
+                  maxLength={120}
+                  placeholder="这一拍发生了什么"
+                  className="h-8 text-sm"
+                  onChange={(event) => workspace.updateBeat(index, { summary: event.target.value })}
+                />
+                <Input
+                  value={beat.keyEvent ?? ""}
                   maxLength={60}
-                  placeholder="本章标题"
-                  className="h-9 flex-1"
-                  onChange={(event) => workspace.updateChapter(index, { title: event.target.value })}
-                 />
-                <div className="flex items-center gap-1">
-                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" title="上移" aria-label="上移本章" disabled={index === 0} onClick={() => workspace.moveChapter(index, -1)}>
-                    <ArrowUp className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8" title="下移" aria-label="下移本章" disabled={index === draftChapters.length - 1} onClick={() => workspace.moveChapter(index, 1)}>
-                    <ArrowDown className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8 text-muted-foreground hover:text-destructive" title="删除本章" aria-label="删除本章" onClick={() => workspace.removeChapter(index)}>
-                    <Trash2 className="h-4 w-4" aria-hidden="true" />
-                  </Button>
-                </div>
+                  placeholder="关键事件（可选）"
+                  className="h-8 text-xs text-muted-foreground"
+                  onChange={(event) => workspace.updateBeat(index, { keyEvent: event.target.value })}
+                />
               </div>
-              <textarea
-                value={chapter.synopsis}
-                rows={3}
-                maxLength={600}
-                placeholder="本章梗概：发生了什么、推进了什么、结尾钩子是什么"
-                className="mt-2 w-full rounded-md border border-border bg-background p-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                onChange={(event) => workspace.updateChapter(index, { synopsis: event.target.value })}
-               />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                aria-label={`删除第 ${index + 1} 拍`}
+                onClick={() => workspace.removeBeat(index)}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+              </Button>
             </li>
           ))}
         </ol>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={workspace.appendChapter}>
-            <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />加一章
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Button type="button" size="sm" variant="ghost" onClick={workspace.addBeat}>
+            <Plus className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />添加一拍
           </Button>
-          <div className="flex-1" />
           <Button
             type="button"
-            disabled={!workspace.canConfirmChapters || workspace.saveChaptersMutation.isPending}
-            title={!workspace.canConfirmChapters ? "细纲至少 3 章，并且需要填写全书梗概。" : undefined}
-            onClick={() => workspace.saveChaptersMutation.mutate()}
+            disabled={!canSave || workspace.saveBeatsMutation.isPending}
+            title={!canSave ? "细纲需要 3～10 拍。" : undefined}
+            onClick={() => workspace.saveBeatsMutation.mutate()}
           >
-            {workspace.saveChaptersMutation.isPending
+            {workspace.saveBeatsMutation.isPending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               : <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />}
-            确认并保存细纲
+            保存细纲
           </Button>
         </div>
+
+        {workspace.notes.trim() ? (
+          <p className="rounded-lg bg-muted/30 px-3 py-2 text-xs leading-5 text-muted-foreground">AI 补充说明：{workspace.notes}</p>
+        ) : null}
       </CardContent>
     </Card>
   );

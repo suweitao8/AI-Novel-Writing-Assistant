@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { BookOpenText, Loader2 } from "lucide-react";
 import {
   getStorySettingsCharacters,
   getStorySettingsProps,
@@ -8,57 +9,43 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import LineNumberedTextarea, { type OutlineEntityHighlight } from "@/pages/drama/comicDrama/components/LineNumberedTextarea";
 import OutlineSettingsAside from "@/pages/drama/comicDrama/components/OutlineSettingsAside";
-import type { NovelOutlineWorkspace } from "@/hooks/useNovelOutlineWorkspace";
+import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { Button } from "@/components/ui/button";
 
 const AUTOSAVE_DELAY_MS = 1200;
-const DEFAULT_LINE_COUNT = 50;
 
 interface NovelOutlineTabProps {
   novelId: string;
-  workspace: NovelOutlineWorkspace;
+  workspace: NovelChapterWorkspace;
+  onOpenChapterManage: () => void;
 }
 
-// 漫剧工作室「小说 · 大纲」页签：左边是代码编辑器式的大纲编辑区（默认铺满 50 行
-// 编号空行、回车加行、修改后自动静默保存），右边是设定速建面板——创建的角色/
-// 场景/道具名会实时高亮在大纲正文里。「解析」按钮在上方子页签行右侧，
-// 逐章细化在顶栏「章节管理」里。
+// 漫剧工作室「小说 · 大纲」页签：当前章的故事大纲（代码编辑器式、默认 50 行编号空行、
+// 修改后自动静默保存），右侧是设定资产面板（快速查找与创建，名字在本章大纲里高亮）。
+// 「解析」按钮在上方子页签行右侧，按本章大纲生成本章细纲。
 export default function NovelOutlineTab(props: NovelOutlineTabProps) {
   const { novelId, workspace } = props;
-  const savePending = workspace.saveOutlineMutation.isPending;
+  const savePending = workspace.savePending;
+  const dirty = workspace.expectationDirty;
 
-  const mutateRef = useRef(workspace.saveOutlineMutation.mutate);
-  mutateRef.current = workspace.saveOutlineMutation.mutate;
-  const latestRef = useRef({ dirty: workspace.outlineDirty, pending: savePending });
-  latestRef.current = { dirty: workspace.outlineDirty, pending: savePending };
+  const autosaveRef = useRef({ dirty, pending: savePending, flush: workspace.flushExpectationSave });
+  autosaveRef.current = { dirty, pending: savePending, flush: workspace.flushExpectationSave };
 
   useEffect(() => {
-    if (!workspace.outlineDirty || savePending) {
+    if (!dirty || savePending) {
       return;
     }
-    const timer = setTimeout(() => mutateRef.current({ silent: true }), AUTOSAVE_DELAY_MS);
+    const timer = setTimeout(() => autosaveRef.current.flush(), AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [workspace.outlineText, workspace.outlineDirty, savePending]);
+  }, [workspace.expectationText, dirty, savePending]);
 
   // 切走页签时把还没到自动保存间隔的修改立即落库，避免丢稿。
   useEffect(() => () => {
-    const { dirty, pending } = latestRef.current;
-    if (dirty && !pending) {
-      mutateRef.current({ silent: true });
+    const { dirty: wasDirty, pending, flush } = autosaveRef.current;
+    if (wasDirty && !pending) {
+      flush();
     }
   }, []);
-
-  // 大纲为空白时默认铺满 50 行编号空行（一次性；trim 后判空，纯换行不会触发自动保存）。
-  const seededRef = useRef(false);
-  useEffect(() => {
-    if (seededRef.current || workspace.outlineQuery.isPending) {
-      return;
-    }
-    seededRef.current = true;
-    const hasOutline = Boolean((workspace.outlineState?.outline ?? "").trim()) || workspace.outlineText.trim().length > 0;
-    if (!hasOutline) {
-      workspace.setOutlineText("\n".repeat(DEFAULT_LINE_COUNT - 1));
-    }
-  }, [workspace.outlineQuery.isPending, workspace.outlineState, workspace.outlineText]);
 
   const charactersQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsCharacters(novelId),
@@ -85,22 +72,37 @@ export default function NovelOutlineTab(props: NovelOutlineTabProps) {
     [charactersQuery.data, scenesQuery.data, propsQuery.data],
   );
 
+  if (workspace.chaptersQuery.isPending) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" /> 正在加载章节
+      </div>
+    );
+  }
+
+  if (!workspace.currentChapter) {
+    return (
+      <div className="rounded-3xl border border-dashed border-border bg-background/60 px-6 py-16 text-center">
+        <p className="text-sm text-muted-foreground">还没有章节。</p>
+        <Button className="mt-4" size="sm" onClick={props.onOpenChapterManage}>
+          <BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />打开章节管理新建第一章
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <LineNumberedTextarea
         id="drama-outline-textarea"
-        ariaLabel="大纲"
-        value={workspace.outlineText}
-        minRows={DEFAULT_LINE_COUNT}
+        ariaLabel="本章大纲"
+        value={workspace.expectationText}
+        minRows={50}
         maxLength={20000}
-        placeholder="写下这本书的走向"
+        placeholder="写下这一章的故事走向"
         highlight={highlight}
-        onChange={workspace.setOutlineText}
-        onBlur={() => {
-          if (workspace.outlineDirty && !savePending) {
-            mutateRef.current({ silent: true });
-          }
-        }}
+        onChange={workspace.setExpectationText}
+        onBlur={workspace.flushExpectationSave}
       />
       <OutlineSettingsAside
         novelId={novelId}
