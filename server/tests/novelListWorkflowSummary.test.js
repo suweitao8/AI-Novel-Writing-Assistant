@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { NovelCoreCrudService } = require("../dist/services/novel/novelCoreCrudService.js");
+const { NovelCoreCrudService } = require("../dist/services/novel/novelCore/novelCoreCrudService.js");
 const { prisma } = require("../dist/db/prisma.js");
 
 test("listNovels attaches latest visible auto director summary, skips archived tasks, and exposes deduplicated token usage", async () => {

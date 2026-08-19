@@ -21,7 +21,7 @@ import {
 } from "./novelCoreShared";
 import { GenerationContextAssembler } from "../runtime/GenerationContextAssembler";
 import { chapterQualityLoopService } from "../quality/ChapterQualityLoopService";
-import { chapterStatePairAfterManualQualityReview } from "../chapterLifecycleState";
+import { chapterStatePairAfterManualQualityReview } from "../runtime/chapterLifecycleState";
 import { directorAutomationLedgerEventService } from "../director/runtime/DirectorAutomationLedgerEventService";
 import { ChapterRuntimeCoordinator } from "../runtime/ChapterRuntimeCoordinator";
 import {

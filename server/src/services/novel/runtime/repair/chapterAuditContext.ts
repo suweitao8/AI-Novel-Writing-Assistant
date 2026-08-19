@@ -1,6 +1,6 @@
 import type { GenerationContextPackage } from "@ai-novel/shared/types/chapterRuntime";
-import type { ReviewOptions } from "../../novelCoreShared";
-import { logPipelineError } from "../../novelCoreShared";
+import type { ReviewOptions } from "../../novelCore/novelCoreShared";
+import { logPipelineError } from "../../novelCore/novelCoreShared";
 import { GenerationContextAssembler } from "../GenerationContextAssembler";
 
 export type AuditContextOperation = "review" | "audit" | "repair";

@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildPipelineStageProgress,
   buildPipelineCurrentItemLabel,
-} = require("../dist/services/novel/novelCorePipelineService.js");
+} = require("../dist/services/novel/novelCore/novelCorePipelineService.js");
 
 test("pipeline stage progress exposes non-zero chapter-in-flight progress", () => {
   const generating = buildPipelineStageProgress({

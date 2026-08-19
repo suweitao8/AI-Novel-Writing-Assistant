@@ -7,11 +7,11 @@ import type {
 import { isFullBookAutopilotRunMode } from "@ai-novel/shared/types/novelDirector";
 import type { DirectorTakeoverNovelContext, DirectorTakeoverAssetSnapshot } from "./novelDirectorTakeover";
 import type { StoryMacroPlan } from "@ai-novel/shared/types/storyMacro";
-import type { BookContractService } from "../../BookContractService";
+import type { BookContractService } from "../BookContractService";
 import type { DirectorWorkflowSeedPayload } from "./novelDirectorHelpers";
 import type { VolumePlanDocument } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../../db/prisma";
-import { normalizeNovelOutput } from "../../novelCoreShared";
+import { normalizeNovelOutput } from "../../novelCore/novelCoreShared";
 import { DIRECTOR_PROGRESS } from "../projections/novelDirectorProgress";
 import { parseSeedPayload } from "../../workflow/novelWorkflow.shared";
 import {

@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { normalizeNovelBiblePayload } = require("../dist/services/novel/novelBiblePersistence.js");
+const { normalizeNovelBiblePayload } = require("../dist/services/novel/novelCore/novelBiblePersistence.js");
 
 test("normalizeNovelBiblePayload flattens object bible fields into strings", () => {
   const payload = normalizeNovelBiblePayload({

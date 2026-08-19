@@ -4,7 +4,7 @@ import { logMemoryUsage } from "../../../runtime/memoryTelemetry";
 import {
   acquireScopedHighMemoryReservation,
   startHighMemoryReservationRenewal,
-} from "../highMemoryReservation";
+} from "../runtime/highMemoryReservation";
 import type { VolumeGenerateOptions } from "./volumeModels";
 import { resolveHighMemoryVolumeGenerationKey } from "./volumeGenerationMemorySafety";
 

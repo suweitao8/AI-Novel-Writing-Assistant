@@ -8,8 +8,8 @@ import { NovelWorkflowService } from "../workflow/NovelWorkflowService";
 import { NovelContinuationService } from "../NovelContinuationService";
 import { NovelVolumeService } from "../volume/NovelVolumeService";
 import { STORY_WORLD_SLICE_SCHEMA_VERSION } from "../storyWorldSlice/storyWorldSlicePersistence";
-import { syncChapterArtifacts } from "../novelChapterArtifacts";
-import { listNovelTokenUsageByNovelIds } from "../novelTokenUsageSummary";
+import { syncChapterArtifacts } from "./novelChapterArtifacts";
+import { listNovelTokenUsageByNovelIds } from "./novelTokenUsageSummary";
 import { toImageAsset } from "../../image/imageGenerationMappers";
 import {
   ChapterInput,

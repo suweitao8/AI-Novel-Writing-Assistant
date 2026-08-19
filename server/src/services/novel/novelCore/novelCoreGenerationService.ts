@@ -20,10 +20,10 @@ import {
   parseStrictStructuredOutline,
   stringifyStructuredOutline,
   toOutlineChapterRows,
-} from "../structuredOutline";
+} from "../volume/structuredOutline";
 import { titleGenerationService } from "../../title/TitleGenerationService";
 import { WorldContextGateway, type WorldContextPurpose } from "../worldContext/WorldContextGateway";
-import { normalizeNovelBiblePayload } from "../novelBiblePersistence";
+import { normalizeNovelBiblePayload } from "./novelBiblePersistence";
 import {
   ChapterGenerateOptions,
   DEFAULT_ESTIMATED_CHAPTER_COUNT,

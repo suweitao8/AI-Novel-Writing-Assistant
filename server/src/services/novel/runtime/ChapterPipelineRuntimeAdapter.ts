@@ -1,5 +1,5 @@
 import { prisma } from "../../../db/prisma";
-import { mergeChapterPatchForGenerationStateBump } from "../chapterLifecycleState";
+import { mergeChapterPatchForGenerationStateBump } from "./chapterLifecycleState";
 import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";
 import {
   runPipelineChapterWithRuntime,

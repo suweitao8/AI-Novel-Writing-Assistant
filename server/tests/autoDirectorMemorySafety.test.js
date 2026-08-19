@@ -19,7 +19,7 @@ const {
 } = require("../dist/services/novel/volume/volumeGenerationTelemetry.js");
 const {
   acquireScopedHighMemoryReservation,
-} = require("../dist/services/novel/highMemoryReservation.js");
+} = require("../dist/services/novel/runtime/highMemoryReservation.js");
 const { prisma } = require("../dist/db/prisma.js");
 
 function installFuturePersistentLockMock(ownerId = "other-process") {

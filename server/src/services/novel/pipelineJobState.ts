@@ -5,7 +5,7 @@ import type {
   PipelineBackgroundSyncKind,
   PipelineBackgroundSyncState,
   PipelinePayload,
-} from "./novelCoreShared";
+} from "./novelCore/novelCoreShared";
 import type { NovelControlPolicy } from "@ai-novel/shared/types/canonicalState";
 
 const PIPELINE_ACTIVE_STAGES = ["queued", "generating_chapters", "reviewing", "repairing", "finalizing"] as const;

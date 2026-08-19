@@ -1,5 +1,5 @@
 import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
-import type { ReviewOptions } from "../novelCoreShared";
+import type { ReviewOptions } from "../novelCore/novelCoreShared";
 
 export interface ChapterRuntimeAgentPort {
   createChapterGenRun: (novelId: string, chapterId: string, chapterOrder: number) => Promise<string>;
@@ -23,7 +23,7 @@ export function createDefaultReviewChapterAfterRepair(): (
   options: ReviewOptions,
 ) => Promise<{ score: QualityScore; issues: ReviewIssue[] }> {
   return async (novelId, chapterId, options) => {
-    const { NovelCoreReviewService } = await import("../novelCoreReviewService");
+    const { NovelCoreReviewService } = await import("../novelCore/novelCoreReviewService");
     return new NovelCoreReviewService().reviewChapter(novelId, chapterId, options);
   };
 }

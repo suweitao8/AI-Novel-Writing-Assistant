@@ -7,7 +7,7 @@ const {
 const {
   ChapterPatchRepairFailedError,
   ChapterPatchRepairService,
-} = require("../dist/services/novel/chapterPatchRepairService.js");
+} = require("../dist/services/novel/runtime/repair/chapterPatchRepairService.js");
 const promptRunner = require("../dist/prompting/core/promptRunner.js");
 
 test("applyChapterPatchRepairPlan applies exact single-location patches", () => {

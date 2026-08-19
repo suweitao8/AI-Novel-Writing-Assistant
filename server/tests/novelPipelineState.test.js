@@ -3,8 +3,8 @@ const assert = require("node:assert/strict");
 
 const { prisma } = require("../dist/db/prisma.js");
 const { novelEventBus } = require("../dist/events/index.js");
-const reviewService = require("../dist/services/novel/novelCoreReviewService.js");
-const { NovelCorePipelineService } = require("../dist/services/novel/novelCorePipelineService.js");
+const reviewService = require("../dist/services/novel/novelCore/novelCoreReviewService.js");
+const { NovelCorePipelineService } = require("../dist/services/novel/novelCore/novelCorePipelineService.js");
 const { ChapterEmptyContentError } = require("../dist/services/novel/runtime/chapterEmptyContentError.js");
 const { decoratePipelineJob } = require("../dist/services/novel/pipelineJobState.js");
 

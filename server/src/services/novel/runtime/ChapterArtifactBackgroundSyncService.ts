@@ -9,7 +9,7 @@ import type {
   PipelineBackgroundSyncActivity,
   PipelineBackgroundSyncKind,
   PipelinePayload,
-} from "../novelCoreShared";
+} from "../novelCore/novelCoreShared";
 import type { ContentProvenance } from "@ai-novel/shared/types/canonicalState";
 import { buildContentHash, ChapterArtifactDeltaService } from "./ChapterArtifactDeltaService";
 

@@ -1,6 +1,6 @@
 import type { DirectorIssueCode, DirectorIssueDecision } from "@ai-novel/shared/types/directorIssue";
-import type { PipelinePayload } from "../../novelCoreShared";
-import { logPipelineWarn } from "../../novelCoreShared";
+import type { PipelinePayload } from "../../novelCore/novelCoreShared";
+import { logPipelineWarn } from "../../novelCore/novelCoreShared";
 import { prisma } from "../../../../db/prisma";
 import {
   directorIssueService,

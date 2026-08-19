@@ -1,7 +1,7 @@
 import type { NovelControlPolicy } from "@ai-novel/shared/types/canonicalState";
 import type { ChapterRuntimeRequestInput } from "../runtime/chapterRuntimeSchema";
 import { ChapterRuntimeCoordinator } from "../runtime/ChapterRuntimeCoordinator";
-import type { PipelineRunOptions } from "../novelCoreShared";
+import type { PipelineRunOptions } from "../novelCore/novelCoreShared";
 import type { NovelCoreService } from "../NovelCoreService";
 import {
   novelProductionOrchestrator,

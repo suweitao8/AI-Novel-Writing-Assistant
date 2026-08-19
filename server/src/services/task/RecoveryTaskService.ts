@@ -7,7 +7,7 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { bookAnalysisService } from "../bookAnalysis/BookAnalysisService";
 import { imageGenerationService } from "../image/ImageGenerationService";
-import { NovelPipelineRuntimeService } from "../novel/NovelPipelineRuntimeService";
+import { NovelPipelineRuntimeService } from "../novel/runtime/NovelPipelineRuntimeService";
 import type { NovelApplicationServices } from "../novel/application/NovelApplicationContracts";
 import { getSharedNovelServices } from "../novel/application/sharedNovelServices";
 import { DirectorCommandService } from "../novel/director/commands/DirectorCommandService";

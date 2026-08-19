@@ -8,7 +8,7 @@ import {
   ChapterPatchRepairFailedError,
   ChapterPatchRepairService,
   type PatchRepairMode,
-} from "../../chapterPatchRepairService";
+} from "./chapterPatchRepairService";
 
 export interface ChapterRepairExecutionOptions {
   provider?: LLMProvider;

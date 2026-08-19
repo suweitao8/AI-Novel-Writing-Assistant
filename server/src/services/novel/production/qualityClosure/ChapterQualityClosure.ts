@@ -1,6 +1,6 @@
-import type { PipelinePayload } from "../../novelCoreShared";
-import { logPipelineError, logPipelineWarn } from "../../novelCoreShared";
-import { createQualityReport } from "../../novelCoreReviewService";
+import type { PipelinePayload } from "../../novelCore/novelCoreShared";
+import { logPipelineError, logPipelineWarn } from "../../novelCore/novelCoreShared";
+import { createQualityReport } from "../../novelCore/novelCoreReviewService";
 import { chapterQualityLoopService } from "../../quality/ChapterQualityLoopService";
 import type { ChapterRuntimeCoordinator } from "../../runtime/ChapterRuntimeCoordinator";
 import type { DirectorIssueTaskContext } from "../../director/issues";

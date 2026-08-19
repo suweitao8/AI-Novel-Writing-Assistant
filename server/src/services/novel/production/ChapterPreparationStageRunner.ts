@@ -1,4 +1,4 @@
-import type { LLMGenerateOptions } from "../novelCoreShared";
+import type { LLMGenerateOptions } from "../novelCore/novelCoreShared";
 import type { NovelCoreService } from "../NovelCoreService";
 import {
   novelProductionOrchestrator,

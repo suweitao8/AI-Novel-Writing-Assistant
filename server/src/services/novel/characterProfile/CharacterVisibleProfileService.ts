@@ -10,7 +10,7 @@ import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import { characterVisibleProfileCompletionPrompt } from "../../../prompting/prompts/novel/character/characterVisibleProfile.prompts";
 import { normalizeStoryModeOutput, buildStoryModePromptBlock } from "../../storyMode/storyModeProfile";
-import type { LLMGenerateOptions } from "../novelCoreShared";
+import type { LLMGenerateOptions } from "../novelCore/novelCoreShared";
 import { WorldContextGateway } from "../worldContext/WorldContextGateway";
 
 export interface CharacterVisibleProfileGenerateOptions extends LLMGenerateOptions {

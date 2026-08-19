@@ -5,7 +5,7 @@ import { ragServices } from "../../rag";
 import { briefSummary, extractFacts } from "../novelP0Utils";
 import { chapterArtifactBackgroundSyncService } from "./ChapterArtifactBackgroundSyncService";
 import { assertChapterContentNotEmpty } from "./chapterEmptyContentError";
-import type { ArtifactSyncMode } from "../novelCoreShared";
+import type { ArtifactSyncMode } from "../novelCore/novelCoreShared";
 import type { ContentProvenance } from "@ai-novel/shared/types/canonicalState";
 
 export interface ChapterArtifactSyncOptions {

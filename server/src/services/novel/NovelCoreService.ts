@@ -17,14 +17,14 @@ import {
   StructuredOutlineGenerateOptions,
   TitleGenerateOptions,
   UpdateNovelInput,
-} from "./novelCoreShared";
-import { NovelCoreCharacterService } from "./novelCoreCharacterService";
-import { NovelCoreCrudService } from "./novelCoreCrudService";
-import { NovelCoreGenerationService } from "./novelCoreGenerationService";
-import { NovelCorePipelineService } from "./novelCorePipelineService";
-import { NovelCoreReviewService } from "./novelCoreReviewService";
-import { NovelCoreSnapshotService } from "./novelCoreSnapshotService";
-import { NovelCoreStorylineService } from "./novelCoreStorylineService";
+} from "./novelCore/novelCoreShared";
+import { NovelCoreCharacterService } from "./novelCore/novelCoreCharacterService";
+import { NovelCoreCrudService } from "./novelCore/novelCoreCrudService";
+import { NovelCoreGenerationService } from "./novelCore/novelCoreGenerationService";
+import { NovelCorePipelineService } from "./novelCore/novelCorePipelineService";
+import { NovelCoreReviewService } from "./novelCore/novelCoreReviewService";
+import { NovelCoreSnapshotService } from "./novelCore/novelCoreSnapshotService";
+import { NovelCoreStorylineService } from "./novelCore/novelCoreStorylineService";
 
 export class NovelCoreService {
   private readonly crudService = new NovelCoreCrudService();

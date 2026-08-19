@@ -1,4 +1,4 @@
-import type { LLMGenerateOptions, RepairOptions } from "../novelCoreShared";
+import type { LLMGenerateOptions, RepairOptions } from "../novelCore/novelCoreShared";
 import type { NovelCoreService } from "../NovelCoreService";
 import type { ChapterRuntimeCoordinator } from "../runtime/ChapterRuntimeCoordinator";
 import {

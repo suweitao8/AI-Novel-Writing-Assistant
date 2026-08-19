@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   NovelPipelineRuntimeService,
-} = require("../dist/services/novel/NovelPipelineRuntimeService.js");
+} = require("../dist/services/novel/runtime/NovelPipelineRuntimeService.js");
 
 test("resumePendingPipelineJobs resumes queued and running pipeline jobs after restart", async () => {
   const calls = [];

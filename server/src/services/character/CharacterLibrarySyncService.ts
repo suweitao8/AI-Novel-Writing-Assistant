@@ -19,7 +19,7 @@ import {
 import { prisma } from "../../db/prisma";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { characterSyncClassificationPrompt } from "../../prompting/prompts/character/characterSync.prompts";
-import { queueRagUpsert } from "../novel/novelCoreSupport";
+import { queueRagUpsert } from "../novel/novelCore/novelCoreSupport";
 
 const APPLY_TO_NOVEL_FIELDS = ["name", "role", "personality", "background", "development"] as const;
 

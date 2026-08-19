@@ -46,7 +46,7 @@ import {
   DIRECTOR_EXECUTION_STEP_IDS,
 } from "./directorWorkflowStepIds";
 import type { ChapterRuntimeRequestInput } from "../../runtime/chapterRuntimeSchema";
-import type { RepairOptions } from "../../novelCoreShared";
+import type { RepairOptions } from "../../novelCore/novelCoreShared";
 import type { DirectorCoreStepModuleRuntime } from "./DirectorCoreStepModuleRuntime";
 
 type ChapterDraftStepInput =

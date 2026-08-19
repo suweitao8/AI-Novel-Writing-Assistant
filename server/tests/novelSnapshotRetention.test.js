@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const {
   resolveNovelSnapshotRetentionCount,
   selectPrunableAutoSnapshotIds,
-} = require("../dist/services/novel/novelCoreSnapshotService.js");
+} = require("../dist/services/novel/novelCore/novelCoreSnapshotService.js");
 
 test("resolveNovelSnapshotRetentionCount uses a positive integer env value", () => {
   assert.equal(resolveNovelSnapshotRetentionCount({ NOVEL_SNAPSHOT_RETENTION_COUNT: "3" }), 3);

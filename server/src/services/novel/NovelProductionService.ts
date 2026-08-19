@@ -5,7 +5,7 @@ import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { novelProductionCharactersPrompt } from "../../prompting/prompts/novel/production.prompts";
 import { WorldService } from "../world/WorldService";
 import { getSharedNovelServices } from "./application/sharedNovelServices";
-import { collectStream, extractJsonArray, parseStructuredOutline } from "./novelProductionHelpers";
+import { collectStream, extractJsonArray, parseStructuredOutline } from "./production/novelProductionHelpers";
 import { novelProductionStatusService, type ProductionStatusResult } from "./NovelProductionStatusService";
 
 interface NovelLlmOptions {

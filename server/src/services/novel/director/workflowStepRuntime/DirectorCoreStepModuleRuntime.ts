@@ -5,13 +5,13 @@ import {
   type DirectorConfirmRequest,
 } from "@ai-novel/shared/types/novelDirector";
 import type { VolumePlanDocument } from "@ai-novel/shared/types/novel";
-import { BookContractService } from "../../BookContractService";
+import { BookContractService } from "../BookContractService";
 import { CharacterPreparationService } from "../../characterPrep/CharacterPreparationService";
 import { CharacterDynamicsService } from "../../dynamics/CharacterDynamicsService";
 import { NovelContextService } from "../../NovelContextService";
 import type { NovelApplicationServices } from "../../application/NovelApplicationContracts";
 import { getSharedNovelServices } from "../../application/sharedNovelServices";
-import type { RepairOptions } from "../../novelCoreShared";
+import type { RepairOptions } from "../../novelCore/novelCoreShared";
 import type { ChapterRuntimeRequestInput } from "../../runtime/chapterRuntimeSchema";
 import { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import { NovelVolumeService } from "../../volume/NovelVolumeService";

@@ -4,7 +4,7 @@ import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../db/prisma";
 import { auditService } from "../../audit/AuditService";
 import { plannerService } from "../../planner/PlannerService";
-import { ChapterWritingGraph } from "../chapterWritingGraph";
+import { ChapterWritingGraph } from "./chapterWritingGraph";
 import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";
 import { GenerationContextAssembler } from "./GenerationContextAssembler";
 import { ChapterAcceptanceAssessmentService } from "./ChapterAcceptanceAssessmentService";
@@ -15,7 +15,7 @@ import type {
   PipelineRuntimeInput,
   PipelineRuntimeResult,
 } from "./chapterRuntimePipeline";
-import type { RepairOptions, ReviewOptions } from "../novelCoreShared";
+import type { RepairOptions, ReviewOptions } from "../novelCore/novelCoreShared";
 import { ChapterRepairStreamRuntime } from "./repair/ChapterRepairStreamRuntime";
 import { ChapterQualityGateService } from "./ChapterQualityGateService";
 import { ChapterContentFinalizationService } from "./ChapterContentFinalizationService";

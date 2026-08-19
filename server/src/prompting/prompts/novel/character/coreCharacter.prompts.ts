@@ -4,7 +4,7 @@ import type { PromptAsset } from "../../../core/promptTypes";
 import {
   characterEvolutionOutputSchema,
   characterWorldCheckOutputSchema,
-} from "../../../../services/novel/novelCoreSchemas";
+} from "../../../../services/novel/novelCore/novelCoreSchemas";
 
 export interface CharacterEvolutionPromptInput {
   novelTitle: string;

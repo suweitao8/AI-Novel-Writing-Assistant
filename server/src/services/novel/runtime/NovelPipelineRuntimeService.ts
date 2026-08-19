@@ -1,4 +1,4 @@
-import type { NovelCorePipelineService } from "../novelCorePipelineService";
+import type { NovelCorePipelineService } from "../novelCore/novelCorePipelineService";
 
 const SERVER_RESTART_RECOVERY_MESSAGE = "章节流水线任务因服务重启中断，正在尝试恢复。";
 const STALE_PIPELINE_RECOVERY_MESSAGE = "章节流水线任务心跳超时，正在尝试恢复。";
@@ -19,7 +19,7 @@ interface PipelineResumePort {
 }
 
 function createPipelineService(): PipelineRecoveryPort & PipelineResumePort {
-  const { NovelCorePipelineService } = require("../novelCorePipelineService") as typeof import("../novelCorePipelineService");
+  const { NovelCorePipelineService } = require("../novelCore/novelCorePipelineService") as typeof import("../novelCore/novelCorePipelineService");
   return new NovelCorePipelineService();
 }
 

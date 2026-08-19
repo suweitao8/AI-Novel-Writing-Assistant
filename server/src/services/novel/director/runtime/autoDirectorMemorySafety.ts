@@ -4,7 +4,7 @@ import {
   acquireScopedHighMemoryReservation,
   startHighMemoryReservationRenewal,
   type HighMemoryReservationHandle,
-} from "../../highMemoryReservation";
+} from "../../runtime/highMemoryReservation";
 import { parseResumeTarget } from "../../workflow/novelWorkflow.shared";
 import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
 

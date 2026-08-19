@@ -15,7 +15,7 @@ import {
   logPipelineWarn,
   type PipelinePayload,
   type PipelineRunOptions,
-} from "../novelCoreShared";
+} from "../novelCore/novelCoreShared";
 import { plannerService } from "../../planner/PlannerService";
 import { applyChapterQualityClosure } from "./qualityClosure/ChapterQualityClosure";
 import {

@@ -31,7 +31,7 @@ import type {
   DirectorStepCalibrationRequest,
 } from "@ai-novel/shared/types/novelDirector";
 import { isFullBookAutopilotRunMode } from "@ai-novel/shared/types/novelDirector";
-import { BookContractService } from "../BookContractService";
+import { BookContractService } from "./BookContractService";
 import { CharacterPreparationService } from "../characterPrep/CharacterPreparationService";
 import { CharacterDynamicsService } from "../dynamics/CharacterDynamicsService";
 import { NovelContextService } from "../NovelContextService";

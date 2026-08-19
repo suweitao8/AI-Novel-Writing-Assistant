@@ -12,7 +12,7 @@ import {
   shouldAutoApproveDirectorCheckpoint,
   type DirectorAutoApprovalPointCode,
 } from "@ai-novel/shared/types/autoDirectorApproval";
-import type { BookContractService } from "../BookContractService";
+import type { BookContractService } from "./BookContractService";
 import type { CharacterPreparationService } from "../characterPrep/CharacterPreparationService";
 import { generateAutoCharacterCastDraft, persistCharacterCastOptionsDraft } from "../characterPrep/characterCastGeneration";
 import type { CharacterDynamicsService } from "../dynamics/CharacterDynamicsService";

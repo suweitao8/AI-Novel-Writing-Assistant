@@ -5,13 +5,13 @@ import { prisma } from "../../../../db/prisma";
 import { streamTextPrompt } from "../../../../prompting/core/promptRunner";
 import { withChapterRepairContext } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { auditService } from "../../../audit/AuditService";
-import { ChapterPatchRepairFailedError } from "../../chapterPatchRepairService";
+import { ChapterPatchRepairFailedError } from "./chapterPatchRepairService";
 import {
   isPass,
   logPipelineError,
   type RepairOptions,
   type ReviewOptions,
-} from "../../novelCoreShared";
+} from "../../novelCore/novelCoreShared";
 import type { ChapterArtifactSyncService } from "../ChapterArtifactSyncService";
 import type { GenerationContextAssembler } from "../GenerationContextAssembler";
 import {

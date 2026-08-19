@@ -6,7 +6,7 @@ import {
   buildDirectorBookContractContextBlocks,
   directorBookContractPrompt,
 } from "../../../../prompting/prompts/novel/director/directorPlanning.prompts";
-import { BookContractService } from "../../BookContractService";
+import { BookContractService } from "../BookContractService";
 import { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import {
   buildStoryInput,
