@@ -82,6 +82,8 @@ export interface DramaEpisode {
   durationSec?: number | null;
   status: string;
   qualityFlags?: string | null;
+  /** 整集合成结果 JSON（DramaAssembledVideoData） */
+  assembledVideoData?: string | null;
   storyboards?: DramaStoryboard[];
   videoPrompts?: DramaVideoPrompt[];
 }
@@ -244,7 +246,8 @@ export interface DramaTTSProvider {
   currency?: string;
 }
 
-export type DramaBatchJobType = "keyframes" | "videos" | "tts";
+export type DramaShotBatchJobType = "keyframes" | "videos" | "tts";
+export type DramaBatchJobType = DramaShotBatchJobType | "full_episode";
 
 export interface DramaBatchProgress {
   total: number;
@@ -258,6 +261,12 @@ export interface DramaBatchProgress {
   errors?: Array<{ shotId: string; message: string }>;
   useCharacterRefImages?: boolean;
   cost?: DramaBatchCostBreakdown;
+  /** full_episode 整集合成任务专用：阶段与产物 */
+  phase?: "prepare" | "clips" | "concat" | "subtitles" | "done";
+  videoUrl?: string;
+  srtUrl?: string;
+  durationSec?: number;
+  error?: string;
 }
 
 export interface DramaBatchCostUnits {
@@ -543,7 +552,7 @@ export async function refreshDramaVideoProviderTask(videoPromptId: string) {
 }
 
 export async function createDramaEpisodeBatchJob(id: string, order: number, payload: {
-  type: DramaBatchJobType;
+  type: DramaShotBatchJobType;
   provider?: string;
   shotIds?: string[];
   failedShotIds?: string[];
@@ -559,7 +568,7 @@ export async function createDramaEpisodeBatchJob(id: string, order: number, payl
 }
 
 export async function estimateDramaEpisodeBatchJob(id: string, order: number, payload: {
-  type: DramaBatchJobType;
+  type: DramaShotBatchJobType;
   provider?: string;
   shotIds?: string[];
   failedShotIds?: string[];
@@ -567,6 +576,52 @@ export async function estimateDramaEpisodeBatchJob(id: string, order: number, pa
 }) {
   const { data } = await apiClient.post<ApiResponse<DramaBatchEstimate>>(
     `/drama/projects/${id}/episodes/${order}/batch-jobs/estimate`,
+    payload,
+  );
+  return data;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 整集合成（full_episode）
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DramaAssembledVideoData {
+  status: "assembling" | "done" | "error";
+  videoUrl?: string;
+  srtUrl?: string;
+  durationSec?: number;
+  shotCount?: number;
+  burnedSubtitles?: boolean;
+  generatedAt?: string;
+  error?: string;
+  warnings?: string[];
+}
+
+export interface DramaEpisodeAssemblyStatus {
+  episodeId: string;
+  order: number;
+  shotCount: number;
+  clips: { withVideoClip: number; withKeyframeOnly: number; withoutVisual: number };
+  withoutAudioShotCount: number;
+  canAssemble: boolean;
+  assembled: DramaAssembledVideoData | null;
+  activeJob: DramaBatchJob | null;
+}
+
+export async function getDramaEpisodeAssembly(id: string, order: number) {
+  const { data } = await apiClient.get<ApiResponse<DramaEpisodeAssemblyStatus>>(
+    `/drama/projects/${id}/episodes/${order}/assembly`,
+  );
+  return data;
+}
+
+export async function startDramaEpisodeAssembly(
+  id: string,
+  order: number,
+  payload: { burnSubtitles?: boolean; includeTitleCard?: boolean; includeEndCard?: boolean } = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<DramaBatchJob>>(
+    `/drama/projects/${id}/episodes/${order}/assembly`,
     payload,
   );
   return data;

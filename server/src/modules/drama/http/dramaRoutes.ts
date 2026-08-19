@@ -30,6 +30,7 @@ import { dramaBatchOrchestrator } from "../../../services/drama/production/Drama
 import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaShotKeyframeService";
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../services/drama/visual/dramaVisualStyles";
 import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVideoProvider";
+import { dramaEpisodeAssemblyService } from "../../../services/drama/video/DramaEpisodeAssemblyService";
 import { videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
 
 const router = Router();
@@ -251,7 +252,7 @@ const videoFileParamsSchema = z.object({ fileId: z.string().trim().regex(/^[a-zA
 /** GET /api/drama/video-files/:fileId — 本地合成视频产物 */
 router.get("/video-files/:fileId", validate({ params: videoFileParamsSchema }), async (req, res, next) => {
   try {
-    const { fileId } = req.params as z.infer<typeof videoFileParamsSchema>;
+    const { fileId } = req.params as unknown as z.infer<typeof videoFileParamsSchema>;
     const filePath = dramaVideoFilePath(fileId);
     if (!fs.existsSync(filePath)) {
       res.status(404).json({ success: false, message: "视频尚未生成完成。" });
@@ -260,6 +261,23 @@ router.get("/video-files/:fileId", validate({ params: videoFileParamsSchema }), 
     res.setHeader("Content-Type", "video/mp4");
     res.setHeader("Cache-Control", "public, max-age=3600");
     fs.createReadStream(filePath).pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** GET /api/drama/subtitle-files/:fileId — 整集合成字幕（.srt）产物 */
+router.get("/subtitle-files/:fileId", validate({ params: videoFileParamsSchema }), async (req, res, next) => {
+  try {
+    const { fileId } = req.params as unknown as z.infer<typeof videoFileParamsSchema>;
+    const filePath = dramaVideoFilePath(fileId).replace(/\.mp4$/, ".srt");
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ success: false, message: "字幕文件不存在。" });
+      return;
+    }
+    res.setHeader("Content-Type", "application/x-subrip; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileId}.srt"`);
+    fs.createReadStream(filePath, "utf8").pipe(res);
   } catch (error) {
     next(error);
   }
@@ -642,6 +660,36 @@ router.post("/projects/:id/episodes/:order/batch-jobs/estimate", validate({ para
     const body = req.body as z.infer<typeof batchJobBodySchema>;
     const data = await dramaBatchOrchestrator.estimateEpisodeBatchJob(id, order, body);
     res.status(200).json({ success: true, data, message: "Drama batch job cost estimate loaded." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const assemblyBodySchema = z.object({
+  /** 是否把字幕直接烧录进成片（默认 true，导出的 mp4 即可直接发布） */
+  burnSubtitles: z.boolean().optional(),
+  includeTitleCard: z.boolean().optional(),
+  includeEndCard: z.boolean().optional(),
+});
+
+/** GET /api/drama/projects/:id/episodes/:order/assembly — 整集合成状态与素材就绪度 */
+router.get("/projects/:id/episodes/:order/assembly", validate({ params: episodeParamsSchema }), async (req, res, next) => {
+  try {
+    const { id, order } = req.params as unknown as z.infer<typeof episodeParamsSchema>;
+    const data = await dramaEpisodeAssemblyService.getAssemblyStatus(id, order);
+    res.status(200).json({ success: true, data, message: "Drama episode assembly status loaded." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** POST /api/drama/projects/:id/episodes/:order/assembly — 启动整集合成（full_episode 任务） */
+router.post("/projects/:id/episodes/:order/assembly", validate({ params: episodeParamsSchema, body: assemblyBodySchema }), async (req, res, next) => {
+  try {
+    const { id, order } = req.params as unknown as z.infer<typeof episodeParamsSchema>;
+    const body = (req.body ?? {}) as z.infer<typeof assemblyBodySchema>;
+    const data = await dramaEpisodeAssemblyService.startAssembly(id, order, body);
+    res.status(201).json({ success: true, data, message: "整集合成已开始。" });
   } catch (error) {
     next(error);
   }

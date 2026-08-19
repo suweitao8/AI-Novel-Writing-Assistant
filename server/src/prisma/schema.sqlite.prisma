@@ -3717,6 +3717,8 @@ model DramaEpisode {
   durationSec  Int?
   status       String   @default("planned")
   qualityFlags String?
+  // 整集合成结果 JSON：{status, videoUrl, srtUrl, durationSec, shotCount, burnedSubtitles, generatedAt, warnings}
+  assembledVideoData String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
