@@ -1,6 +1,6 @@
 /**
  * DramaCharacterImageService
- * 为短剧角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背四视图。
+ * 为短剧角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背三视图，四个视图合称四视图（沿用旧项目约定）。
  * 对齐行业标准角色参考图规范，一次生成、全视角一致、作为视频生成的视觉锚点。
  *
  * 设计原则：
@@ -12,6 +12,7 @@ import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
+import { IMAGE_SPECS } from "../image/imageSpecs";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
@@ -148,7 +149,7 @@ function extractVisualDesc(visualAnchor: string | null | undefined): string {
 
 /**
  * 构建「角色设计稿」提示词：
- * 单张横版图 = 左侧面部特写（1/4） + 右侧全身四视图正/45°/侧/背（3/4）
+ * 单张横版图 = 左侧面部特写（1/3） + 右侧全身正/侧/背三视图（2/3），四个视图合称四视图（沿用旧项目约定）
  */
 function buildCharacterSheetPrompt(character: {
   name: string;
@@ -160,9 +161,9 @@ function buildCharacterSheetPrompt(character: {
 
   const lines: string[] = [
     "professional character design reference sheet, single image",
-    "LEFT QUARTER: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT THREE-QUARTERS: full-body character turnaround showing FOUR views side by side — front view, 45-degree front-side view, 90-degree side view (profile), back view",
-    "all four turnaround views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
+    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
+    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
+    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
     "white background, clean studio lighting, no text or watermarks",
     ...styleLines,
   ];
@@ -215,7 +216,7 @@ export class DramaCharacterImageService {
       adapter,
       prompt,
       referenceImages: [] as import("../image/runtime").GeneratedReferenceImageMeta[],
-      size: "1536x1024" as const,
+      size: IMAGE_SPECS.characterSheet,
       title: `生成短剧角色设计稿：${character.name}`,
     };
   }

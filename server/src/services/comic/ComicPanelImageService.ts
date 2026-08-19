@@ -2,6 +2,7 @@ import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
+import { IMAGE_SPECS } from "../image/imageSpecs";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
@@ -426,10 +427,10 @@ export class ComicPanelImageService {
 
     const dialogues = safeJsonParse<DialogueEntry[]>(panel.dialogues, []);
     const prompt = buildPanelPrompt(panel.visualPrompt, dialogues, presetData, characterVisualDescs, sceneDesc, hasSceneRefImage);
-    const rawSize = presetData.imageSize ?? "1024x1536";
+    const rawSize = presetData.imageSize ?? IMAGE_SPECS.comicPanelFallback;
     const imageSize: ImageSize = (IMAGE_SIZES as readonly string[]).includes(rawSize)
       ? rawSize as ImageSize
-      : "1024x1536";
+      : IMAGE_SPECS.comicPanelFallback;
     const uniqueRefImagePaths = Array.from(new Set(finalRefImagePaths)).slice(0, 4);
 
     const adapter: ImageTargetAdapter<PanelImageData> = {

@@ -593,7 +593,7 @@ function CharacterDetail({
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium">四视图主设计稿</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">正面、45°、侧面、背面四视图和面部特写用于锁定角色外观。</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">面部特写和正面、侧面、背面视图共同锁定角色外观。</p>
               </div>
               {hasSheet && (
                 <Button

@@ -40,8 +40,8 @@
 
 业务约定，各生图链路统一执行：
 
-- 角色设计稿：面部特写（左 1/4）+ 全身四视图 正面/45°/正侧/背面（右 3/4），漫画与短剧同规范。
+- 角色设计稿：面部特写（左 1/3）+ 全身正/侧/背三视图（右 2/3），四个视图合称「四视图」，漫画与短剧同规范（沿用旧项目约定）。
 - 场景参考图：360° 全景（等距柱状提示词），横版 1536x1024，一张覆盖整个空间。
 - 道具/武器等角色资产：单张 3/4 透视图；服装类资产保留正面/侧面/背面多视图。
 
-提示词实现在各自 service 的 prompt builder（`ComicCharacterImageService` / `DramaCharacterImageService` / `ComicSceneService` / `ComicCharacterAssetService`）；尺寸上限受 gpt-image 约束（最宽 1536x1024），全景用 3:2 横版承载。
+提示词实现在各自 service 的 prompt builder（`ComicCharacterImageService` / `DramaCharacterImageService` / `ComicSceneService` / `ComicCharacterAssetService`）；尺寸一律取 `server/src/services/image/imageSpecs.ts` 的 `IMAGE_SPECS`（见《生图规格规范》页），全景用 3:2 横版承载（gpt-image 最宽 1536x1024）。

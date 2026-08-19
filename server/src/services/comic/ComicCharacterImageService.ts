@@ -1,6 +1,6 @@
 /**
  * ComicCharacterImageService
- * 为漫画角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正面/45°/侧面/背面四视图。
+ * 为漫画角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背三视图，四个视图合称四视图（沿用旧项目约定）。
  * 对齐 DramaCharacterImageService 的能力和存储规范。
  *
  * sheetData 结构：{ status, version, url, prompt, provider, generatedAt, error, history[] }
@@ -8,6 +8,7 @@
  * HTTP 端点：/api/comic/character-images/:charId/sheet
  */
 import { getImageModelProvider } from "../../llm/modelCategories";
+import { IMAGE_SPECS } from "../image/imageSpecs";
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
@@ -171,9 +172,9 @@ function buildSheetPrompt(character: {
   if (genderLock) lines.push(genderLock);
   lines.push(
     "professional character design reference sheet, single image",
-    "LEFT QUARTER: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT THREE-QUARTERS: full-body character turnaround showing FOUR views side by side — front view, 45-degree front-side view, 90-degree side view (profile), back view",
-    "all four turnaround views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
+    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
+    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
+    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
   );
   if (visualDesc) {
     lines.push(
@@ -379,7 +380,7 @@ export class ComicCharacterImageService {
       prompt,
       refImagePaths: currentReference ? [currentReference.filePath] : undefined,
       referenceImages,
-      size: "1536x1024" as const,
+      size: IMAGE_SPECS.characterSheet,
       title: `${options.prompt?.trim() ? "微调" : "生成"}四视图：${character.name}`,
     };
   }
@@ -477,7 +478,7 @@ export class ComicCharacterImageService {
       prompt,
       refImagePaths: sheetReference ? [sheetReference.filePath] : undefined,
       referenceImages,
-      size: "1536x1024" as const,
+      size: IMAGE_SPECS.characterSheet,
       title: `生成表情稿：${character.name}`,
     };
   }

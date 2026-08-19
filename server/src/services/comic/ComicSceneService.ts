@@ -11,6 +11,7 @@ import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
+import { IMAGE_SPECS } from "../image/imageSpecs";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
@@ -236,7 +237,7 @@ export class ComicSceneService {
     return {
       adapter,
       prompt,
-      size: "1536x1024" as const,
+      size: IMAGE_SPECS.scenePanorama,
       title: `生成场景 360° 全景图：${scene.name}`,
     };
   }
