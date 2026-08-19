@@ -38,6 +38,18 @@
 - **V1 边界：细纲不注入自动导演写作上下文**——它是用户对着写正文的依据，不进入 `user_outline_contract` 或章节生成上下文；要注入必须另立设计并更新本页。
 - 自动导演任务运行中：章节浏览/搜索/细纲可用，手动新建章节禁用（导演链按 order 顺序写作，手动插章会打乱规划）；该约束由前端禁用态表达，服务端不强制。
 
+## 本地生产通道（2026-08-19 E2E 验证结论）
+
+漫剧已在真实环境完成全链路验证（现成小说《黑暗文明》10 章 → 2 集 → 台本 → 38+ 镜 → 首帧图 → VoxCPM2 逐镜配音 → ffmpeg 本地视频合成 → 整集 35 秒竖屏成片）。沉淀的运行知识：
+
+- **文本通道**：本地 OpenCode 桥接（18762），配置在模型设置的文本模型槽位。
+- **图片通道**：本地 Codex 图片通道（18766）；注意部分血腥/敏感画面描述会被图片侧拒答（codex_generation_failed），这类镜头换提示词重试，不是链路故障。
+- **语音通道**：VoxCPM2 桥接服务 `D:\Github\VoxCPM\openai_speech_server.py`（FastAPI，OpenAI /v1/audio/speech 兼容，默认 18761）。启动：`cd D:\Github\VoxCPM && .venv/Scripts/python.exe openai_speech_server.py`。CPU 上约 0.8s/字，先知预热情境下可用；项目 venv 无 CUDA torch，装 CUDA 版可提速。
+- **视频通道**：`LocalFfmpegVideoProvider`（provider id `local_ffmpeg`）——首帧图+台词配音 → Ken Burns 竖屏 mp4，产物在 `server/storage/generated-videos/{taskId}.mp4`，经 `GET /api/drama/video-files/:taskId` 提供。ffmpeg 需在 PATH（本机 C:fmpegin）。
+- **ffmpeg 拼接两个坑**：concat demuxer 列表必须 `-f concat -safe 0` 显式声明且列表内用正斜杠（Windows 反斜杠被当转义符）；多段配音文件扩展名按 dataUrl mime 定（wav 别存成 .mp3）。
+- **批量任务与进程重启**：drama 批量任务跑在服务进程内（`void runBatchJob()`），ts-node-dev 重启会杀掉进行中的批量——恢复方式是重建同类型批量（已完成镜头自动跳过）；视频 providerTask 卡 running 时把 DramaVideoPrompt 置 failed 并清 providerTaskId 后重新派发。
+- **画面风格**：`services/drama/visual/dramaVisualStyles.ts`（6 预设，移植自旧项目 mydrama/supertale 的 styles/presets）。注入点：首帧图提示词与角色设计稿提示词；风格只约束渲染媒介，`style_instructions` 中明确不得覆盖角色外貌/服装/场景描述。与 styleEngine 的通用画面风格体系是两套来源（drama 侧为项目级预设），后续可考虑收敛。
+
 ## 失败模式 / 注意事项
 
 - 视频通道是可插拔 port（`VideoProviderPort`），默认 mock **不会生成真实视频**：studio 视频阶段必须保留"未配置真实通道"的提示，不能让用户误以为出片失败是 bug。
