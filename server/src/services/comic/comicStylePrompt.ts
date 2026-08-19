@@ -4,9 +4,16 @@
  * 所有漫画相关图像生成（角色三视图、表情稿、角色资产、场景设定图、格子图）
  * 都应通过此函数注入项目画风，保证整本风格统一。
  *
- * 画风来自 ComicProject.stylePreset(JSON).style（webtoon_color / ink_traditional 等）；
+ * 画风来自 ComicProject.stylePreset(JSON)：
+ * - visualStyleKey/styleText：画面风格注册表（visual-style 模块）解析后的快照，优先级最高；
+ * - style：传统画风关键词（webtoon_color / ink_traditional 等）。
  * 注意 stylePreset.promptKeywords 是「漫画形态」（竖条漫/四格）关键词，不是画风。
  */
+
+import {
+  buildVisualStylePromptText,
+  getBuiltinVisualStyle,
+} from "@ai-novel/shared/types/visualStyle";
 
 interface StyleEntry {
   zh: string;
@@ -28,7 +35,21 @@ const DEFAULT_STYLE: StyleEntry = STYLE_KEYWORDS.webtoon_color;
 function resolveStyleEntry(stylePresetRaw: string | null | undefined): StyleEntry {
   if (!stylePresetRaw) return DEFAULT_STYLE;
   try {
-    const parsed = JSON.parse(stylePresetRaw) as { style?: string };
+    const parsed = JSON.parse(stylePresetRaw) as {
+      style?: string;
+      visualStyleKey?: string | null;
+      styleText?: string | null;
+      styleLabel?: string | null;
+    };
+    // 画面风格注册表：优先使用服务端写入的快照全文（自定义风格只有快照可用）
+    if (parsed.styleText?.trim()) {
+      return { zh: parsed.styleLabel?.trim() || "", en: parsed.styleText.trim() };
+    }
+    // 快照缺失时，内置预设可直接同步还原（自定义风格走不到这里）
+    const builtin = getBuiltinVisualStyle(parsed.visualStyleKey);
+    if (builtin) {
+      return { zh: builtin.label, en: buildVisualStylePromptText(builtin) };
+    }
     if (parsed.style && STYLE_KEYWORDS[parsed.style]) return STYLE_KEYWORDS[parsed.style];
   } catch { /* ignore */ }
   return DEFAULT_STYLE;

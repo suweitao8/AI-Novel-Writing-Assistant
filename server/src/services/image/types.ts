@@ -21,6 +21,8 @@ interface BaseImageGenerationRequest {
   prompt: string;
   negativePrompt?: string;
   stylePreset?: string;
+  /** 画面风格注册表标识（visual-style 模块）；提供时优先于 stylePreset 自由文本 */
+  styleKey?: string;
   provider?: LLMProvider;
   model?: string;
   size?: ImageSize;

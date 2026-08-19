@@ -229,7 +229,15 @@ export class ComicProjectService {
 
   async updateProjectPreset(
     projectId: string,
-    patch: { format?: string; style?: string; promptKeywords?: string; imageSize?: string },
+    patch: {
+      format?: string;
+      style?: string;
+      visualStyleKey?: string | null;
+      styleText?: string | null;
+      styleLabel?: string | null;
+      promptKeywords?: string;
+      imageSize?: string;
+    },
   ) {
     const project = await prisma.comicProject.findUnique({ where: { id: projectId }, select: { stylePreset: true } });
     if (!project) throw new Error(`漫画项目不存在：${projectId}`);

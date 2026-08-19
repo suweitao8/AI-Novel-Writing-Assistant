@@ -128,6 +128,7 @@ const characterImageGenerateSchema = z.object({
   provider: providerSchema.optional(),
   count: z.number().int().min(1).max(4).optional(),
   stylePreset: z.string().trim().max(120).optional(),
+  styleKey: z.string().trim().max(60).optional(),
   promptOverride: z.string().trim().max(30000).optional(),
   negativePromptOverride: z.string().trim().max(8000).optional(),
   providerOverride: providerSchema.optional(),
@@ -334,6 +335,7 @@ router.post(
         provider: body.provider,
         count: body.count,
         stylePreset: body.stylePreset,
+        styleKey: body.styleKey,
         overrides: {
           promptOverride: body.promptOverride,
           negativePromptOverride: body.negativePromptOverride,

@@ -13,6 +13,7 @@ import {
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
+import { visualStyleService } from "../visualStyle/VisualStyleService";
 import {
   buildNovelCoverTaskPrompt,
   loadNovelCoverNovel,
@@ -176,9 +177,11 @@ export class ImageGenerationService {
     }
 
     const model = await resolveImageModel(provider, input.model);
+    const stylePromptText = await visualStyleService.resolveStylePromptText(input.styleKey);
+    const effectiveStylePreset = stylePromptText ?? input.stylePreset;
     const prompt = input.promptMode === "direct"
       ? input.prompt.trim()
-      : buildCharacterPrompt(input.prompt, input.stylePreset, character);
+      : buildCharacterPrompt(input.prompt, effectiveStylePreset, character);
     const task = await prisma.imageGenerationTask.create({
       data: {
         sceneType: "character",
@@ -188,7 +191,7 @@ export class ImageGenerationService {
         model,
         prompt,
         negativePrompt: input.negativePrompt?.trim() || null,
-        stylePreset: input.stylePreset?.trim() || null,
+        stylePreset: effectiveStylePreset?.trim() || null,
         referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
         size: input.size ?? "1024x1024",
         imageCount: input.count ?? 1,
@@ -222,9 +225,11 @@ export class ImageGenerationService {
     }
 
     const model = await resolveImageModel(provider, input.model);
+    const stylePromptText = await visualStyleService.resolveStylePromptText(input.styleKey);
+    const effectiveStylePreset = stylePromptText ?? input.stylePreset;
     const prompt = input.promptMode === "direct"
       ? input.prompt.trim()
-      : buildBookAnalysisCharacterPrompt(input.prompt, input.stylePreset, character);
+      : buildBookAnalysisCharacterPrompt(input.prompt, effectiveStylePreset, character);
     const task = await prisma.imageGenerationTask.create({
       data: {
         sceneType: "book_analysis_character",
@@ -235,7 +240,7 @@ export class ImageGenerationService {
         model,
         prompt,
         negativePrompt: input.negativePrompt?.trim() || null,
-        stylePreset: input.stylePreset?.trim() || null,
+        stylePreset: effectiveStylePreset?.trim() || null,
         referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
         size: input.size ?? "1024x1024",
         imageCount: input.count ?? 1,
@@ -260,12 +265,14 @@ export class ImageGenerationService {
 
     const novel = await loadNovelCoverNovel(input.novelId);
     const model = await resolveImageModel(provider, input.model);
+    const stylePromptText = await visualStyleService.resolveStylePromptText(input.styleKey);
+    const effectiveStylePreset = stylePromptText ?? (input.stylePreset?.trim() || DEFAULT_NOVEL_COVER_STYLE_PRESET);
     const prompt = input.promptMode === "direct"
       ? `${input.prompt.trim()}\n${buildNovelCoverTitleInstruction(novel.title)}`
       : await buildNovelCoverTaskPrompt({
         novelId: novel.id,
         sourcePrompt: input.prompt,
-        stylePreset: input.stylePreset?.trim() || DEFAULT_NOVEL_COVER_STYLE_PRESET,
+        stylePreset: effectiveStylePreset,
       });
     const task = await prisma.imageGenerationTask.create({
       data: {
@@ -276,7 +283,7 @@ export class ImageGenerationService {
         model,
         prompt,
         negativePrompt: mergeNovelCoverNegativePrompt(input.negativePrompt),
-        stylePreset: input.stylePreset?.trim() || DEFAULT_NOVEL_COVER_STYLE_PRESET,
+        stylePreset: effectiveStylePreset,
         referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
         size: input.size ?? DEFAULT_NOVEL_COVER_IMAGE_SIZE,
         imageCount: input.count ?? DEFAULT_NOVEL_COVER_IMAGE_COUNT,

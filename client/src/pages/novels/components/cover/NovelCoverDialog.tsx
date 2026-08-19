@@ -32,6 +32,7 @@ import {
   type BuildNovelCoverDraftInput,
 } from "./novelCoverDraft";
 import SelectControl from "@/components/common/SelectControl";
+import VisualStylePicker from "@/components/visual/VisualStylePicker";
 
 const IMAGE_STATUS_TEXT: Record<string, string> = {
   queued: "排队中",
@@ -85,6 +86,7 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
   const [directPrompt, setDirectPrompt] = useState("");
   const [directPromptSource, setDirectPromptSource] = useState<DirectPromptSource | null>(null);
   const [optimizedPromptLanguage, setOptimizedPromptLanguage] = useState<ImagePromptOutputLanguage>("zh");
+  const [styleKey, setStyleKey] = useState("");
   const [imageForm, setImageForm] = useState({
     stylePreset: DEFAULT_NOVEL_COVER_STYLE_PRESET,
     negativePrompt: DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT,
@@ -221,6 +223,13 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
     }
   };
 
+  const updateStyleKey = (nextKey: string) => {
+    setStyleKey(nextKey);
+    if (directPromptSource === "optimized") {
+      restoreOriginalChainPrompt();
+    }
+  };
+
   const activeTaskQuery = useQuery({
     queryKey: queryKeys.images.task(activeTaskId ?? "none"),
     queryFn: () => getImageTask(activeTaskId as string),
@@ -272,6 +281,7 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
         prompt: promptMode === "direct" ? directPrompt.trim() : sourcePrompt,
         promptMode,
         stylePreset: imageForm.stylePreset,
+        styleKey: styleKey || undefined,
         negativePrompt: imageForm.negativePrompt,
         provider: imageForm.provider,
         size: imageForm.size,
@@ -438,9 +448,19 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
           </section>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <label className="space-y-1 text-sm md:col-span-2 xl:col-span-4">
+              <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">画面风格</div>
+              <VisualStylePicker
+                className="h-11 w-full rounded-xl shadow-sm"
+                value={styleKey}
+                onChange={updateStyleKey}
+                emptyLabel="不使用预设（用下方风格描述）"
+              />
+            </label>
             <input
-              className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 xl:col-span-2"
-              placeholder="风格预设，例如：电影感插画，高辨识度"
+              className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:opacity-50 xl:col-span-2"
+              placeholder={styleKey ? "已使用画面风格预设" : "风格预设，例如：电影感插画，高辨识度"}
+              disabled={Boolean(styleKey)}
               value={imageForm.stylePreset}
               onChange={(event) => updateStylePreset(event.target.value)}
             />

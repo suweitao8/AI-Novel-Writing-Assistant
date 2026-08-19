@@ -233,6 +233,8 @@ export class BookAnalysisCharacterMediaService {
       provider?: LLMProvider;
       count?: number;
       stylePreset?: string;
+      /** 画面风格注册表标识；提供时优先于 stylePreset */
+      styleKey?: string;
       overrides?: BookAnalysisCharacterImageOverrides;
     },
   ): Promise<ImageGenerationTask> {
@@ -246,6 +248,7 @@ export class BookAnalysisCharacterMediaService {
       promptMode: input.overrides?.promptOverride?.trim() ? "direct" : "character_chain",
       negativePrompt: input.overrides?.negativePromptOverride?.trim() || DEFAULT_NEGATIVE_PROMPT,
       stylePreset: input.stylePreset?.trim() || "写实角色设定图",
+      styleKey: input.styleKey,
       provider: (input.overrides?.providerOverride as LLMProvider | undefined) ?? input.provider,
       size: input.overrides?.sizeOverride ?? "1024x1024",
       count: input.count ?? 1,

@@ -150,6 +150,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/image/image.prompts").imageNovelCoverPromptOptimizePrompt as UnknownPromptAsset,
   },
   {
+    key: "visual_style.analyze@v1",
+    load: () => require("../prompts/visualStyle/visualStyle.prompts").visualStyleAnalyzePrompt as UnknownPromptAsset,
+  },
+  {
     key: "genre.tree.generate@v1",
     load: () => require("../prompts/genre/genre.prompts").genreTreePrompt as UnknownPromptAsset,
   },

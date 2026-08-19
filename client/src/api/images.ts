@@ -15,6 +15,8 @@ export interface GenerateCharacterImagePayload {
   promptMode?: CharacterImagePromptMode;
   negativePrompt?: string;
   stylePreset?: string;
+  /** 画面风格注册表标识（visual-style 模块）；提供时优先于 stylePreset */
+  styleKey?: string;
   provider?: LLMProvider;
   model?: string;
   size?: "512x512" | "768x768" | "1024x1024" | "1024x1536" | "1536x1024";
@@ -30,6 +32,8 @@ export interface GenerateNovelCoverPayload {
   promptMode?: NovelCoverPromptMode;
   negativePrompt?: string;
   stylePreset?: string;
+  /** 画面风格注册表标识（visual-style 模块）；提供时优先于 stylePreset */
+  styleKey?: string;
   provider?: LLMProvider;
   model?: string;
   size?: "512x512" | "768x768" | "1024x1024" | "1024x1536" | "1536x1024";
@@ -61,6 +65,8 @@ export interface GenerateBookAnalysisCharacterImagePayload {
   promptMode?: CharacterImagePromptMode;
   negativePrompt?: string;
   stylePreset?: string;
+  /** 画面风格注册表标识（visual-style 模块）；提供时优先于 stylePreset */
+  styleKey?: string;
   provider?: LLMProvider;
   model?: string;
   size?: "512x512" | "768x768" | "1024x1024" | "1024x1536" | "1536x1024";

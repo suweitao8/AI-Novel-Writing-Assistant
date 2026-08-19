@@ -17,6 +17,7 @@ import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import SelectControl from "@/components/common/SelectControl";
+import VisualStylePicker from "@/components/visual/VisualStylePicker";
 
 const IMAGE_STATUS_TEXT: Record<string, string> = {
   queued: "排队中",
@@ -48,6 +49,7 @@ export function CharacterImageDialog({
   const [directPrompt, setDirectPrompt] = useState("");
   const [directPromptSource, setDirectPromptSource] = useState<DirectPromptSource | null>(null);
   const [optimizedPromptLanguage, setOptimizedPromptLanguage] = useState<ImagePromptOutputLanguage>("zh");
+  const [styleKey, setStyleKey] = useState("");
   const [imageForm, setImageForm] = useState({
     stylePreset: "写实人像",
     negativePrompt: "低清晰度，畸形，多余肢体，文字水印",
@@ -155,6 +157,13 @@ export function CharacterImageDialog({
     }
   };
 
+  const updateStyleKey = (nextKey: string) => {
+    setStyleKey(nextKey);
+    if (directPromptSource === "optimized") {
+      restoreOriginalChainPrompt();
+    }
+  };
+
   const activeTaskQuery = useQuery({
     queryKey: queryKeys.images.task(activeTaskId ?? "none"),
     queryFn: () => getImageTask(activeTaskId as string),
@@ -214,6 +223,7 @@ export function CharacterImageDialog({
         prompt: promptMode === "direct" ? directPrompt.trim() : sourcePrompt,
         promptMode,
         stylePreset: imageForm.stylePreset,
+        styleKey: styleKey || undefined,
         negativePrompt: imageForm.negativePrompt,
         provider: imageForm.provider,
         size: imageForm.size,
@@ -337,9 +347,22 @@ export function CharacterImageDialog({
           </section>
 
           <div className="grid gap-2 md:grid-cols-2">
+            <label className="space-y-1 text-sm md:col-span-2">
+              <div className="text-xs font-medium uppercase tracking-[0.14em] text-slate-400">画面风格</div>
+              <VisualStylePicker
+                className="h-11 w-full rounded-xl shadow-sm"
+                value={styleKey}
+                onChange={updateStyleKey}
+                emptyLabel="不使用预设（用下方风格描述）"
+              />
+              <div className="text-xs text-slate-400">
+                {styleKey ? "已选用画面风格，整组图片会保持同一质感。" : "可选：从内置或自定义画面风格中选择，统一多张图的画面质感。"}
+              </div>
+            </label>
             <input
-              className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200"
-              placeholder="风格预设，例如：电影感写实"
+              className="rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-sm outline-none transition focus:border-slate-400 focus:ring-2 focus:ring-slate-200 disabled:opacity-50"
+              placeholder={styleKey ? "已使用画面风格预设" : "风格预设，例如：电影感写实"}
+              disabled={Boolean(styleKey)}
               value={imageForm.stylePreset}
               onChange={(event) => updateStylePreset(event.target.value)}
             />

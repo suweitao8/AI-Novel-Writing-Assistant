@@ -15,6 +15,7 @@ import { comicBatchOrchestrator } from "../../../services/comic/ComicBatchOrches
 import { comicFactService } from "../../../services/comic/ComicFactService";
 import { comicCharacterAssetService } from "../../../services/comic/ComicCharacterAssetService";
 import { comicSceneService } from "../../../services/comic/ComicSceneService";
+import { visualStyleService } from "../../../services/visualStyle/VisualStyleService";
 
 const comicProjectService = new ComicProjectService();
 const comicEpisodePlanService = new ComicEpisodePlanService();
@@ -52,6 +53,8 @@ const styleUpdateSchema = z.object({
 const presetUpdateSchema = z.object({
   format: z.string().trim().min(1).max(60).optional(),
   style: z.string().trim().max(120).optional(),
+  /** 画面风格注册表标识（visual-style 模块）；设置后服务端解析并快照风格全文，供同步画风注入使用 */
+  visualStyleKey: z.string().trim().min(1).max(60).nullable().optional(),
   promptKeywords: z.string().trim().max(400).optional(),
   imageSize: z.string().trim().max(20).optional(),
 });
@@ -169,7 +172,35 @@ router.patch(
     try {
       const { id } = req.params as z.infer<typeof idParams>;
       const patch = req.body as z.infer<typeof presetUpdateSchema>;
-      const data = await comicProjectService.updateProjectPreset(id, patch);
+      let visualStylePatch: {
+        visualStyleKey?: string | null;
+        styleText?: string | null;
+        styleLabel?: string | null;
+      } = {};
+      if (patch.visualStyleKey !== undefined) {
+        if (patch.visualStyleKey === null) {
+          // 切回传统画风关键词：清空画面风格快照
+          visualStylePatch = { visualStyleKey: null, styleText: null, styleLabel: null };
+        } else {
+          const style = await visualStyleService.resolveStyle(patch.visualStyleKey);
+          if (!style) {
+            res.status(400).json({
+              success: false,
+              error: `画面风格不存在：${patch.visualStyleKey}`,
+            } satisfies ApiResponse<null>);
+            return;
+          }
+          visualStylePatch = {
+            visualStyleKey: style.key,
+            styleText: await visualStyleService.resolveStylePromptText(style.key),
+            styleLabel: style.label,
+          };
+        }
+      }
+      const data = await comicProjectService.updateProjectPreset(id, {
+        ...patch,
+        ...visualStylePatch,
+      });
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (err) { next(err); }
   },

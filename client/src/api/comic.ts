@@ -195,6 +195,8 @@ export async function updateComicStyle(projectId: string, style: string): Promis
 export interface UpdateComicPresetPayload {
   format?: string;
   style?: string;
+  /** 画面风格注册表标识；null 表示切回传统画风关键词 */
+  visualStyleKey?: string | null;
   promptKeywords?: string;
   imageSize?: string;
 }

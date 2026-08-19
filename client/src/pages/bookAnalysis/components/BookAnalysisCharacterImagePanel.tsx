@@ -17,6 +17,7 @@ import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlo
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
+import VisualStylePicker from "@/components/visual/VisualStylePicker";
 import { toast } from "@/components/ui/toast";
 
 const IMAGE_STATUS_TEXT: Record<string, string> = {
@@ -43,6 +44,7 @@ export default function BookAnalysisCharacterImagePanel({
   const [activeTaskId, setActiveTaskId] = useState("");
   const [promoteOpen, setPromoteOpen] = useState(false);
   const [includePrimaryImage, setIncludePrimaryImage] = useState(true);
+  const [styleKey, setStyleKey] = useState("");
 
   const assetsQuery = useQuery({
     queryKey: queryKeys.images.assets("book_analysis_character", character.id),
@@ -103,6 +105,7 @@ export default function BookAnalysisCharacterImagePanel({
         const response = await generateBookAnalysisCharacterImage(analysisId, character.id, {
           count: 2,
           stylePreset: "写实角色设定图",
+          styleKey: styleKey || undefined,
           overrides,
         });
         if (response.data?.id) {
@@ -132,6 +135,17 @@ export default function BookAnalysisCharacterImagePanel({
             加入角色库
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-xs text-muted-foreground">画面风格</span>
+        <VisualStylePicker
+          className="h-8 max-w-[240px] rounded-full text-xs"
+          value={styleKey}
+          onChange={setStyleKey}
+          emptyLabel="默认（写实角色设定图）"
+          disabled={disabled}
+        />
       </div>
 
       {activeTask ? (

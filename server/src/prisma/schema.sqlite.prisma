@@ -1353,6 +1353,24 @@ model CharacterSyncProposal {
   @@index([baseRevisionId])
 }
 
+// 画面风格：自定义风格（内置预设定义在 shared/types/visualStyle.ts，只读不入库）。
+// key 与内置预设同名时自定义风格覆盖预设（与 mydrama 的 custom-shadows-preset 语义一致）。
+model VisualStyle {
+  id                String   @id @default(cuid())
+  key               String   @unique
+  label             String
+  name              String?
+  styleInstructions String
+  avoidInstructions String
+  styleTag          String
+  styleFamily       String   @default("live_action")
+  animationSubtype  String?
+  origin            String   @default("manual")
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
 model ImageGenerationTask {
   id              String            @id @default(cuid())
   sceneType       ImageSceneType    @default(character)

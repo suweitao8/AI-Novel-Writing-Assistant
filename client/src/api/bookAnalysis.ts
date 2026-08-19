@@ -255,6 +255,8 @@ export async function generateBookAnalysisCharacterImage(
     provider?: LLMProvider;
     count?: number;
     stylePreset?: string;
+    /** 画面风格注册表标识；提供时优先于 stylePreset */
+    styleKey?: string;
     overrides?: ImageGenerationOverrides;
   } = {},
 ) {
@@ -264,6 +266,7 @@ export async function generateBookAnalysisCharacterImage(
       provider: payload.provider,
       count: payload.count,
       stylePreset: payload.stylePreset,
+      styleKey: payload.styleKey,
       promptOverride: payload.overrides?.promptOverride,
       negativePromptOverride: payload.overrides?.negativePromptOverride,
       providerOverride: payload.overrides?.providerOverride,

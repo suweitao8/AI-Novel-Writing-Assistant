@@ -29,6 +29,8 @@ import { ScenesPanel } from "@/pages/comic/project/ScenesPanel";
 import { EpisodeListPanel } from "@/pages/comic/project/EpisodeListPanel";
 import { PanelsGridPanel } from "@/pages/comic/project/PanelsGridPanel";
 import { getAPIKeySettings } from "@/api/settings";
+import { listVisualStyles } from "@/api/visualStyles";
+import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -37,7 +39,13 @@ import SelectControl from "@/components/common/SelectControl";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function safeJsonParseProject(raw: string | null | undefined): { style?: string; format?: string; imageSize?: string } {
+function safeJsonParseProject(raw: string | null | undefined): {
+  style?: string;
+  format?: string;
+  imageSize?: string;
+  visualStyleKey?: string | null;
+  styleLabel?: string | null;
+} {
   if (!raw) return {};
   try { return JSON.parse(raw); } catch { return {}; }
 }
@@ -126,6 +134,11 @@ export default function ComicProjectPage() {
     queryKey: ["comic", "episodes", id],
     queryFn: () => listComicEpisodes(id!),
     enabled: Boolean(id),
+  });
+
+  const { data: visualStyles = [] } = useQuery({
+    queryKey: queryKeys.visualStyles.all,
+    queryFn: listVisualStyles,
   });
 
   const { data: providerOptions = [] } = useQuery({
@@ -290,7 +303,11 @@ export default function ComicProjectPage() {
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[11px] text-muted-foreground">画风</p>
                 <p className="text-sm font-semibold leading-tight truncate">
-                  {styleDef?.label ?? preset.style ?? "默认"}
+                  {preset.visualStyleKey
+                    ? (preset.styleLabel
+                      ?? visualStyles.find((s) => s.key === preset.visualStyleKey)?.label
+                      ?? preset.visualStyleKey)
+                    : (styleDef?.label ?? preset.style ?? "默认")}
                 </p>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-muted-foreground/60 flex-shrink-0" />
@@ -299,20 +316,41 @@ export default function ComicProjectPage() {
             {showStylePicker && (
               <div className="absolute right-0 top-full mt-2 z-50 w-64 rounded-xl border bg-popover shadow-xl p-3">
                 <p className="text-xs font-medium text-muted-foreground mb-2">选择画风</p>
-                <div className="space-y-1">
+                <div className="space-y-1 max-h-[46vh] overflow-y-auto">
+                  {visualStyles.length > 0 && (
+                    <>
+                      <p className="px-3 pt-1 pb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground/70">画面风格</p>
+                      {visualStyles.map((opt) => (
+                        <button
+                          key={opt.id ?? opt.key}
+                          type="button"
+                          disabled={presetMut.isPending}
+                          onClick={() => presetMut.mutate({ visualStyleKey: opt.key })}
+                          className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-accent transition-colors ${opt.key === preset.visualStyleKey ? "bg-primary/5 text-primary font-medium" : ""}`}
+                        >
+                          <div className="min-w-0">
+                            <span className="font-medium">{opt.label}</span>
+                            <span className="ml-2 text-xs text-muted-foreground">{opt.isPreset ? "内置" : "自定义"}</span>
+                          </div>
+                          {opt.key === preset.visualStyleKey && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                        </button>
+                      ))}
+                      <p className="px-3 pt-2 pb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground/70">经典画风</p>
+                    </>
+                  )}
                   {STYLE_OPTIONS.map((opt) => (
                     <button
                       key={opt.value}
                       type="button"
                       disabled={presetMut.isPending}
-                      onClick={() => presetMut.mutate({ style: opt.value })}
-                      className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-accent transition-colors ${opt.value === preset.style ? "bg-primary/5 text-primary font-medium" : ""}`}
+                      onClick={() => presetMut.mutate({ style: opt.value, visualStyleKey: null })}
+                      className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm hover:bg-accent transition-colors ${!preset.visualStyleKey && opt.value === preset.style ? "bg-primary/5 text-primary font-medium" : ""}`}
                     >
                       <div>
                         <span className="font-medium">{opt.label}</span>
                         <span className="ml-2 text-xs text-muted-foreground">{opt.desc}</span>
                       </div>
-                      {opt.value === preset.style && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
+                      {!preset.visualStyleKey && opt.value === preset.style && <Check className="h-3.5 w-3.5 flex-shrink-0" />}
                     </button>
                   ))}
                 </div>

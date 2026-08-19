@@ -116,6 +116,9 @@ export const queryKeys = {
     task: (taskId: string) => ["images", "task", taskId] as const,
     assets: (sceneType: "character" | "novel_cover" | "book_analysis_character", sceneId: string) => ["images", "assets", sceneType, sceneId] as const,
   },
+  visualStyles: {
+    all: ["visual-styles"] as const,
+  },
   tasks: {
     overview: ["tasks", "overview"] as const,
     list: (params: string) => ["tasks", "list", params] as const,
