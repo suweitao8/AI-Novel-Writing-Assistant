@@ -545,6 +545,7 @@ export async function refreshDramaVideoProviderTask(videoPromptId: string) {
 export async function createDramaEpisodeBatchJob(id: string, order: number, payload: {
   type: DramaBatchJobType;
   provider?: string;
+  shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
 }) {
@@ -558,6 +559,7 @@ export async function createDramaEpisodeBatchJob(id: string, order: number, payl
 export async function estimateDramaEpisodeBatchJob(id: string, order: number, payload: {
   type: DramaBatchJobType;
   provider?: string;
+  shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
 }) {

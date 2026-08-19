@@ -49,6 +49,7 @@ export interface DramaBatchCostBreakdown {
 export interface CreateEpisodeBatchJobInput {
   type: DramaBatchJobType;
   provider?: string;
+  shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
 }
@@ -424,8 +425,9 @@ export class DramaBatchOrchestrator {
       throw new AppError(`第 ${order} 集还没有分镜，不能创建批量任务。`, 400);
     }
     const allowedShotIds = new Set(shots.map((shot) => shot.id));
-    const targetShots = (input.failedShotIds?.length
-      ? shots.filter((shot) => input.failedShotIds?.includes(shot.id))
+    const selectedShotIds = input.shotIds?.length ? input.shotIds : input.failedShotIds;
+    const targetShots = (selectedShotIds?.length
+      ? shots.filter((shot) => selectedShotIds?.includes(shot.id))
       : shots)
       .filter((shot) => allowedShotIds.has(shot.id));
     if (!targetShots.length) {

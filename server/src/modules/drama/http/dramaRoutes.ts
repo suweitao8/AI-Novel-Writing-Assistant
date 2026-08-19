@@ -54,6 +54,7 @@ const imageProviderBodySchema = z
 const batchJobBodySchema = z.object({
   type: z.enum(["keyframes", "videos", "tts"]),
   provider: z.string().trim().optional(),
+  shotIds: z.array(z.string().trim().min(1)).optional(),
   failedShotIds: z.array(z.string().trim().min(1)).optional(),
   useCharacterRefImages: z.boolean().optional(),
 });

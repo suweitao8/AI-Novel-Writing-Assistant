@@ -412,6 +412,31 @@ function EpisodesPanel(props: {
   );
 }
 
+// 首帧生成中 / 批量任务进行中 / 视频任务排队或运行中时，项目页保持轮询刷新。
+function hasActiveDramaVisualWork(project: DramaProjectDetail | undefined): boolean {
+  if (!project) {
+    return false;
+  }
+  if ((project.batchJobs ?? []).some((job) => job.status === "pending" || job.status === "running")) {
+    return true;
+  }
+  if ((project.videoPrompts ?? []).some((prompt) => prompt.status === "queued" || prompt.status === "running")) {
+    return true;
+  }
+  return (project.episodes ?? []).some((episode) =>
+    (episode.storyboards ?? []).some((board) =>
+      (board.shots ?? []).some((shot) => {
+        try {
+          const keyframe = shot.keyframeData ? (JSON.parse(shot.keyframeData) as { status?: string }) : null;
+          return keyframe?.status === "generating";
+        } catch {
+          return false;
+        }
+      }),
+    ),
+  );
+}
+
 export default function DramaProjectPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
@@ -423,6 +448,7 @@ export default function DramaProjectPage() {
     queryKey: queryKeys.drama.project(id ?? "none"),
     queryFn: () => getDramaProject(id!),
     enabled: Boolean(id),
+    refetchInterval: (query) => (hasActiveDramaVisualWork(query.state.data?.data) ? 4000 : false),
   });
   const characterLibraryQuery = useQuery({
     queryKey: queryKeys.drama.characterLibrary(id),

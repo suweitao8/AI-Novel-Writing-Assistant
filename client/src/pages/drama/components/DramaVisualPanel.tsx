@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, Film, ImageIcon, RefreshCw, Sparkles, Video } from "lucide-react";
+import { ExternalLink, Film, ImageIcon, RefreshCw, Sparkles } from "lucide-react";
 import {
   estimateDramaEpisodeBatchJob,
   prepareDramaShotKeyframe,
@@ -11,7 +11,6 @@ import {
   type DramaEpisode,
   type DramaProjectDetail,
   type DramaShot,
-  type DramaShotKeyframeData,
   type DramaStoryboard,
   type DramaVideoPrompt,
   type DramaVideoProvider,
@@ -24,13 +23,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SelectControl from "@/components/common/SelectControl";
+import { DramaStoryboardBoard } from "./DramaStoryboardBoard";
 
 export function DramaVisualPanel(props: {
   project: DramaProjectDetail;
   selectedOrder: number | null;
   onSelectOrder: (order: number) => void;
   onStoryboard: (order: number) => void;
-  onBatchJob: (order: number, input: { type: DramaBatchJobType; provider?: string; failedShotIds?: string[]; useCharacterRefImages?: boolean }) => void;
+  onBatchJob: (order: number, input: { type: DramaBatchJobType; provider?: string; shotIds?: string[]; failedShotIds?: string[]; useCharacterRefImages?: boolean }) => void;
   onKeyframe: (shot: DramaShot, provider?: string, useCharacterRefImages?: boolean, overrides?: ImageGenerationOverrides) => Promise<unknown>;
   onVideoPrompt: (shot: DramaShot) => void;
   videoProviders: DramaVideoProvider[];
@@ -296,60 +296,24 @@ export function DramaVisualPanel(props: {
             <CardTitle className="text-lg">分镜</CardTitle>
             <CardDescription>{storyboard.summary || "已生成镜头序列。"}</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {(storyboard.shots ?? []).map((shot) => {
-              const prompt = promptsByShot.get(shot.id);
-              const keyframe = parseKeyframe(shot.keyframeData);
-              return (
-                <div key={shot.id} className="rounded-lg border p-3">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <div className="font-medium">镜头 {shot.order} · {shot.shotSize || "景别待定"}</div>
-                      <div className="text-sm text-muted-foreground">{shot.action}</div>
-                      <div className="flex flex-wrap gap-2">
-                        {keyframe.status === "done" ? <Badge variant="outline">首帧 v{keyframe.version ?? 1}</Badge> : null}
-                        {keyframe.history?.length ? <Badge variant="secondary">{keyframe.history.length} 个首帧历史</Badge> : null}
-                        {prompt ? <Badge variant="outline">提示词 v{prompt.version ?? 1}</Badge> : null}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        type="button"
-                        variant={keyframe.status === "done" ? "outline" : "default"}
-                        disabled={props.busy || keyframeFlow.dialogProps.loading || keyframeFlow.dialogProps.submitting || imageProviders.length === 0 || keyframe.status === "generating"}
-                        onClick={() => startKeyframeGeneration(shot)}
-                      >
-                        <ImageIcon className="h-4 w-4" />
-                        {keyframe.status === "done" ? "重生成首帧" : "生成首帧"}
-                      </Button>
-                      <Button size="sm" type="button" variant="outline" disabled={props.busy} onClick={() => props.onVideoPrompt(shot)}>
-                        <Video className="h-4 w-4" />
-                        视频提示词
-                      </Button>
-                      {prompt ? (
-                        <>
-                          <Button size="sm" type="button" disabled={props.busy || Boolean(prompt.providerTaskId)} onClick={() => props.onProviderTask(prompt, props.selectedProvider)}>
-                            <Sparkles className="h-4 w-4" />
-                            {prompt.providerTaskId ? "任务已创建" : "创建视频任务"}
-                          </Button>
-                          {prompt.providerTaskId ? (
-                            <Button size="sm" type="button" variant="outline" disabled={props.busy} onClick={() => props.onRefreshProviderTask(prompt)}>
-                              <RefreshCw className="h-4 w-4" />
-                              刷新状态
-                            </Button>
-                          ) : null}
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                  <KeyframePreview shot={shot} keyframe={keyframe} />
-                  {prompt ? (
-                    <VideoPromptDetails prompt={prompt} />
-                  ) : null}
-                </div>
-              );
-            })}
+          <CardContent>
+            <DramaStoryboardBoard
+              storyboard={storyboard}
+              orientation={props.project.orientation}
+              busy={props.busy}
+              keyframePending={keyframeFlow.dialogProps.loading || keyframeFlow.dialogProps.submitting}
+              imageProviderReady={imageProviders.length > 0}
+              batchActive={keyframeBatchActive}
+              promptsByShot={promptsByShot}
+              onGenerateKeyframe={startKeyframeGeneration}
+              onVideoPrompt={props.onVideoPrompt}
+              onBatchKeyframes={(shotIds) => props.onBatchJob(selectedEpisode.order, {
+                type: "keyframes",
+                provider: activeImageProvider || undefined,
+                shotIds,
+                useCharacterRefImages,
+              })}
+            />
           </CardContent>
         </Card>
       )}
@@ -407,10 +371,6 @@ function safeJson<T>(input: string | null | undefined, fallback: T): T {
   } catch {
     return fallback;
   }
-}
-
-function parseKeyframe(raw: string | null | undefined): DramaShotKeyframeData {
-  return safeJson<DramaShotKeyframeData>(raw, { status: "idle" });
 }
 
 function parseBatchProgress(raw: string | null | undefined): DramaBatchProgress {
@@ -496,83 +456,6 @@ function BatchJobStatus(props: {
           </Button>
         </div>
       ) : null}
-    </div>
-  );
-}
-
-function KeyframePreview({ shot, keyframe }: { shot: DramaShot; keyframe: DramaShotKeyframeData }) {
-  const hasImage = keyframe.status === "done" && keyframe.url;
-  return (
-    <div className="mt-3 space-y-3">
-      <div className="grid gap-3 md:grid-cols-[160px_1fr]">
-        {hasImage ? (
-          <a href={keyframe.url} target="_blank" rel="noreferrer" className="block">
-            <img
-              src={keyframe.url}
-              alt={`镜头 ${shot.order} 首帧图`}
-              className="h-56 w-full rounded-md border object-cover md:h-40"
-            />
-          </a>
-        ) : (
-          <div className="flex h-40 w-full items-center justify-center rounded-md border border-dashed bg-muted text-xs text-muted-foreground">
-            {keyframe.status === "generating" ? "首帧图生成中" : keyframe.status === "error" ? "首帧图生成失败" : "尚未生成首帧"}
-          </div>
-        )}
-        <div className="rounded-md border bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
-          <div className="mb-1 flex flex-wrap items-center gap-2 font-medium text-foreground">
-            <span>镜头画面</span>
-            {keyframe.status === "done" ? <Badge variant="outline">v{keyframe.version ?? 1}</Badge> : null}
-          </div>
-          <div>{shot.visualPrompt || shot.action}</div>
-          {shot.location ? <div className="mt-1">地点：{shot.location}</div> : null}
-          {keyframe.provider ? <div className="mt-1">首帧通道：{keyframe.provider}</div> : null}
-          {keyframe.status === "error" && keyframe.error ? (
-            <div className="mt-2 text-destructive">{keyframe.error}</div>
-          ) : null}
-        </div>
-      </div>
-      <KeyframeHistory history={keyframe.history ?? []} />
-    </div>
-  );
-}
-
-function formatLocalTime(value: string | undefined): string {
-  if (!value) {
-    return "";
-  }
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toLocaleString();
-}
-
-function KeyframeHistory({ history }: { history: NonNullable<DramaShotKeyframeData["history"]> }) {
-  if (!history.length) {
-    return null;
-  }
-  const items = [...history].sort((left, right) => right.version - left.version);
-  return (
-    <div className="rounded-md border border-dashed p-3 text-xs">
-      <div className="mb-2 font-medium">首帧历史版本</div>
-      <div className="flex flex-wrap gap-2">
-        {items.map((item) => {
-          const label = `v${item.version}${item.provider ? ` · ${item.provider}` : ""}`;
-          return item.url ? (
-            <a
-              key={`${item.version}-${item.url}`}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-md border px-2 py-1 text-primary underline-offset-4 hover:underline"
-              title={formatLocalTime(item.generatedAt)}
-            >
-              {label}
-            </a>
-          ) : (
-            <span key={item.version} className="rounded-md border px-2 py-1 text-muted-foreground" title={formatLocalTime(item.generatedAt)}>
-              {label}
-            </span>
-          );
-        })}
-      </div>
     </div>
   );
 }
