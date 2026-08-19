@@ -29,9 +29,9 @@ export type PanelImageStatus = "idle" | "generating" | "done" | "error";
 
 /** 生图实际使用的参考素材元数据（写入 imageData.referenceImages，供前端弹窗溯源展示） */
 export interface PanelReferenceImageMeta {
-  /** character_sheet=三视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景设定图 */
+  /** character_sheet=四视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景360全景 */
   kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene";
-  /** 展示用的人类可读标签，如 "白千羽 · 三视图" / "服装:战斗套装" / "场景:宗门大殿" */
+  /** 展示用的人类可读标签，如 "白千羽 · 四视图" / "服装:战斗套装" / "场景:宗门大殿" */
   label: string;
   /** 可访问的 HTTP URL（前端可直接当 img src） */
   url: string;
@@ -326,7 +326,7 @@ export class ComicPanelImageService {
           .filter((a) => a.characterId === character.id && a.assetType !== "costume" && propNames.has(a.name))
           .map((a) => ({ id: a.id, name: a.name, assetType: a.assetType as import("./ComicCharacterAssetService").CharacterAssetType }));
 
-        // 有三视图或任意资产图才合成雪碧图
+        // 有四视图或任意资产图才合成雪碧图
         const hasAnyAssetImage = costumeAssets.length > 0 || propAssets.length > 0;
 
         if (sheetRef || hasAnyAssetImage) {
@@ -344,7 +344,7 @@ export class ComicPanelImageService {
             finalRefImagePaths.push(spriteResult.filePath);
             spriteCleanups.push(spriteResult.cleanup);
           } else if (sheetRef) {
-            // 降级：只有三视图时直接用原图
+            // 降级：只有四视图时直接用原图
             finalRefImagePaths.push(sheetRef.filePath);
           }
 
@@ -352,7 +352,7 @@ export class ComicPanelImageService {
           if (sheetRef) {
             referenceMetas.push({
               kind: "character_sheet",
-              label: `${character.name} · 三视图`,
+              label: `${character.name} · 四视图`,
               url: `/api/comic/character-images/${character.id}/sheet`,
             });
           }

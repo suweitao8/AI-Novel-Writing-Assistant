@@ -73,7 +73,7 @@ export interface GeneratedImageCardProps {
  * 通用生图卡片
  *
  * 设计目标：覆盖角色资产、场景设定图、表情稿等"业务表 JSON 状态机生图"场景的展示与基础操作。
- * 不覆盖：三视图主设计稿（有特殊微调流程）、格子图（有重抽/导出/弹窗等复杂交互）—— 这些保留独立实现。
+ * 不覆盖：四视图主设计稿（有特殊微调流程）、格子图（有重抽/导出/弹窗等复杂交互）—— 这些保留独立实现。
  */
 export function GeneratedImageCard({
   status,

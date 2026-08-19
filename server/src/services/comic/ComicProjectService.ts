@@ -168,7 +168,7 @@ export class ComicProjectService {
   }
 
   /**
-   * 更新角色性别。生图全链路（三视图/表情稿/资产/格子图）会按此值注入 GENDER LOCK，
+   * 更新角色性别。生图全链路（四视图/表情稿/资产/格子图）会按此值注入 GENDER LOCK，
    * 避免外貌描述歧义时模型把男画成女、或反之。
    */
   async updateCharacterGender(charId: string, gender: "male" | "female" | "other" | "unknown") {

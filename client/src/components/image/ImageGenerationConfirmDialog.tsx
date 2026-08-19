@@ -1,7 +1,7 @@
 /**
  * 生图前统一确认弹窗
  *
- * 用于所有生图入口（角色三视图/表情稿/资产/场景设定图/格子图/Drama 角色/Drama 关键帧）
+ * 用于所有生图入口（角色四视图/表情稿/资产/场景 360° 全景/格子图/Drama 角色/Drama 关键帧）
  * 在真正消耗 token 前展示：即将发送的 prompt + 参考图素材 + 模型/尺寸；
  * 用户可临时修改 prompt / provider / size，确认后才发起生图。
  */
@@ -20,16 +20,16 @@ import SelectControl from "@/components/common/SelectControl";
 const SIZE_OPTIONS = [
   { value: "1024x1024", label: "1024×1024（方形 1:1）" },
   { value: "1024x1536", label: "1024×1536（竖版 2:3，漫画/角色）" },
-  { value: "1536x1024", label: "1536×1024（横版 3:2，三视图/表情稿）" },
+  { value: "1536x1024", label: "1536×1024（横版 3:2，四视图/表情稿/场景全景）" },
 ];
 
 const REF_KIND_LABEL: Record<string, string> = {
-  character_sheet: "三视图",
+  character_sheet: "四视图",
   character_expression: "表情稿",
   character_face: "面部裁剪",
   book_analysis_character_base: "基础形象",
   asset: "资产",
-  scene: "场景",
+  scene: "场景全景",
 };
 
 const REF_KIND_COLOR: Record<string, string> = {

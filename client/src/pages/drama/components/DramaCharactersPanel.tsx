@@ -172,7 +172,7 @@ function CharacterImagesBlock(props: {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-medium">角色设计稿</p>
-          <p className="text-xs text-muted-foreground">面部特写 + 全身正/侧/背三视图 — 生成后锁定跨集视觉一致性</p>
+          <p className="text-xs text-muted-foreground">面部特写 + 全身正/侧/背四视图 — 生成后锁定跨集视觉一致性</p>
         </div>
         {imageProviders.length > 0 ? (
           <SelectControl

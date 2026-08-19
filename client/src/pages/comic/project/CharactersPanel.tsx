@@ -104,7 +104,7 @@ function CharacterStatusBadges({
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Badge variant={sheetData.status === "done" ? "default" : "secondary"} className="text-[11px]">
-        三视图{sheetData.status === "done" ? ` v${sheetData.version ?? 1}` : "待生成"}
+        四视图{sheetData.status === "done" ? ` v${sheetData.version ?? 1}` : "待生成"}
       </Badge>
       <Badge variant={expressionData.status === "done" ? "default" : "secondary"} className="text-[11px]">
         表情稿{expressionData.status === "done" ? ` v${expressionData.version ?? 1}` : "待生成"}
@@ -180,7 +180,7 @@ function CharacterList({
                       </p>
                     )}
                     <div className="mt-2 flex items-center gap-2 text-[10px] text-muted-foreground">
-                      <span className={hasSheet ? "text-primary" : ""}>三视图</span>
+                      <span className={hasSheet ? "text-primary" : ""}>四视图</span>
                       <span className="text-border">/</span>
                       <span className={expressionData.status === "done" ? "text-primary" : ""}>表情稿</span>
                     </div>
@@ -196,7 +196,7 @@ function CharacterList({
 }
 
 // ─── Gender Selector ──────────────────────────────────────────────────────────
-// 角色性别是所有生图链路（三视图/表情稿/资产/格子图）的 GENDER LOCK 来源。
+// 角色性别是所有生图链路（四视图/表情稿/资产/格子图）的 GENDER LOCK 来源。
 // 古风/韩漫语境里"鹅蛋脸/桃花眼"等描述男女通用，必须显式声明性别，否则模型偏向韩漫美男。
 
 const GENDER_LABELS: Record<ComicCharacterGender, string> = {
@@ -244,7 +244,7 @@ function GenderSelector({ character }: { character: ComicCharacter }) {
 }
 
 // ─── Visual Anchor Editor ──────────────────────────────────────────────────────
-// 一次编辑，所有生图（三视图/表情稿/资产/格子图）后续生成都会读新版
+// 一次编辑，所有生图（四视图/表情稿/资产/格子图）后续生成都会读新版
 
 const FACE_PRESETS: Array<{ key: string; label: string; snippet: string }> = [
   { key: "round", label: "圆脸", snippet: "脸型圆润饱满，下巴线条柔和不尖锐，round soft face, gentle rounded jawline" },
@@ -354,7 +354,7 @@ function VisualAnchorEditor({ character }: { character: ComicCharacter }) {
         )}
       </div>
       <p className="mt-1 text-[11px] text-muted-foreground">
-        所有生图的源头：三视图、表情稿、资产、格子图都读这里。改一次，后续生成全部跟上。
+        所有生图的源头：四视图、表情稿、资产、格子图都读这里。改一次，后续生成全部跟上。
       </p>
 
       {editing ? (
@@ -592,8 +592,8 @@ function CharacterDetail({
           <div className="border-b px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">三视图主设计稿</p>
-                <p className="mt-0.5 text-xs text-muted-foreground">正面、侧面、背面和面部特写用于锁定角色外观。</p>
+                <p className="text-sm font-medium">四视图主设计稿</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">正面、45°、侧面、背面四视图和面部特写用于锁定角色外观。</p>
               </div>
               {hasSheet && (
                 <Button
@@ -604,7 +604,7 @@ function CharacterDetail({
                   onClick={openSheetTuning}
                 >
                   <Wand2 className="h-4 w-4" />
-                  调整三视图
+                  调整四视图
                 </Button>
               )}
             </div>
@@ -620,18 +620,18 @@ function CharacterDetail({
             ) : isGenerating ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-8 w-8 animate-spin" />
-                <span className="text-sm">三视图生成中</span>
+                <span className="text-sm">四视图生成中</span>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-3 text-muted-foreground">
                 <ImageIcon className="h-10 w-10 opacity-40" />
                 <div className="text-center">
-                  <p className="text-sm font-medium text-foreground">还没有三视图</p>
+                  <p className="text-sm font-medium text-foreground">还没有四视图</p>
                   <p className="mt-1 text-xs">先生成主设计稿，再继续制作表情稿和格子图参考。</p>
                 </div>
                 <Button type="button" size="sm" disabled={isGenerating} onClick={() => startSheetGeneration(undefined)}>
                   <Sparkles className="h-4 w-4" />
-                  生成三视图
+                  生成四视图
                 </Button>
               </div>
             )}
@@ -685,7 +685,7 @@ function CharacterDetail({
               <div className="flex min-h-24 items-center justify-center rounded-md border border-dashed bg-muted/30 px-3 py-4 text-center text-xs text-muted-foreground">
                 {expressionData.status === "error"
                   ? expressionData.error ?? "表情稿生成失败"
-                  : "生成三视图后，可继续生成 6 个核心表情。"}
+                  : "生成四视图后，可继续生成 6 个核心表情。"}
               </div>
             )}
           </div>
@@ -696,7 +696,7 @@ function CharacterDetail({
 
 
           <div className="border-b px-4 py-3">
-            <p className="text-sm font-medium">三视图提示词</p>
+            <p className="text-sm font-medium">四视图提示词</p>
             <div className="mt-2 max-h-48 overflow-y-auto rounded-md border bg-muted/20 px-3 py-2 text-xs leading-relaxed text-muted-foreground">
               {sheetData.prompt || recommendedSheetPrompt}
             </div>
@@ -705,7 +705,7 @@ function CharacterDetail({
           <div className="px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium">三视图微调</p>
+                <p className="text-sm font-medium">四视图微调</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">编辑提示词后重新生成，成功后替换当前主设计稿。</p>
               </div>
             </div>
@@ -734,7 +734,7 @@ function CharacterDetail({
                   <textarea
                     className="min-h-[180px] w-full resize-y rounded-md border bg-background px-3 py-2 text-xs leading-relaxed"
                     value={draftPrompt}
-                    placeholder="输入本次三视图生成提示词"
+                    placeholder="输入本次四视图生成提示词"
                     disabled={isGenerating}
                     onChange={(event) => setDraftPrompt(event.target.value)}
                   />
@@ -750,7 +750,7 @@ function CharacterDetail({
                         disabled={isGenerating}
                         onChange={(event) => setUseCurrentImageAsReference(event.target.checked)}
                       />
-                      <span>使用这张三视图作为参考图</span>
+                      <span>使用这张四视图作为参考图</span>
                     </label>
                     <label className="flex items-start gap-2 text-xs text-muted-foreground">
                       <input
@@ -828,7 +828,7 @@ function CharacterDetail({
               )
             ) : (
               <div className="mt-3 rounded-md border border-dashed bg-muted/30 px-3 py-4 text-xs leading-relaxed text-muted-foreground">
-                先生成三视图，系统会保存本次提示词，并允许基于当前图继续微调。
+                先生成四视图，系统会保存本次提示词，并允许基于当前图继续微调。
               </div>
             )}
           </div>

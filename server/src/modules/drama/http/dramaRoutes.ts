@@ -744,7 +744,7 @@ router.post("/video-prompts/:videoPromptId/provider-task/refresh", validate({ pa
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 角色图片生成（形象图 + 三视图）
+// 角色图片生成（形象图 + 四视图）
 // ─────────────────────────────────────────────────────────────────────────────
 
 const charImageParamsSchema = z.object({
@@ -771,7 +771,7 @@ router.get(
 );
 
 /** POST /api/drama/projects/:id/characters/:characterId/generate-character-sheet
- *  生成角色设计稿（面部特写 + 三视图合图，一次完成）。
+ *  生成角色设计稿（面部特写 + 四视图合图，一次完成）。
  */
 router.post(
   "/projects/:id/characters/:characterId/prepare-character-sheet",
@@ -993,7 +993,7 @@ router.get(
         `three-view-${view}`,
       );
       if (!resolved) {
-        res.status(404).json({ success: false, message: `${view} 三视图尚未生成。` });
+        res.status(404).json({ success: false, message: `${view} 四视图尚未生成。` });
         return;
       }
       res.setHeader("Content-Type", resolved.mimeType);

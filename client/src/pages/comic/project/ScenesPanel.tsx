@@ -230,7 +230,7 @@ function SceneDetail({
         {/* 设定图 */}
         <aside className="min-w-0 p-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium">场景设定图</p>
+            <p className="text-sm font-medium">场景 360° 全景图</p>
             {sheet.origin && hasSheet && (
               <span className="text-[10px] text-muted-foreground">
                 {sheet.origin === "uploaded" ? "已上传" : "AI 生成"}
@@ -248,12 +248,12 @@ function SceneDetail({
             ) : generatingBusy ? (
               <div className="flex flex-col items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-7 w-7 animate-spin" />
-                <span className="text-xs">设定图生成中</span>
+                <span className="text-xs">全景图生成中</span>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
                 <ImageIcon className="h-8 w-8 opacity-30" />
-                <span className="text-xs">还没有设定图</span>
+                <span className="text-xs">还没有全景图</span>
               </div>
             )}
           </div>
@@ -341,7 +341,7 @@ export function ScenesPanel({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          场景在生成分格脚本时自动识别，可在此编辑场景圣经并生成设定图，用于锁定跨格/跨话的空间一致性。
+          场景在生成分格脚本时自动识别，可在此编辑场景圣经并生成 360° 全景图，用于锁定跨格/跨话的空间一致性。
         </p>
         <Button type="button" size="sm" variant="outline" onClick={() => setShowAdd((v) => !v)}>
           <Plus className="h-4 w-4" />

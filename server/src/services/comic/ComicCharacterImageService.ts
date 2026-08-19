@@ -1,6 +1,6 @@
 /**
  * ComicCharacterImageService
- * 为漫画角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背三视图。
+ * 为漫画角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正面/45°/侧面/背面四视图。
  * 对齐 DramaCharacterImageService 的能力和存储规范。
  *
  * sheetData 结构：{ status, version, url, prompt, provider, generatedAt, error, history[] }
@@ -136,7 +136,7 @@ function extractFaceShapeOverride(visualAnchor: string | null | undefined): stri
  * 优先级：visualSpec.appearance（完整版，含脸型/体格/服饰/标志细节）
  *       > description（40 字精简版）
  *       > hint
- * 三视图/表情稿/资产图都该用完整版，把"外貌锁定"做实而不是只放氛围词。
+ * 四视图/表情稿/资产图都该用完整版，把"外貌锁定"做实而不是只放氛围词。
  */
 function extractVisualDesc(visualAnchor: string | null | undefined): string {
   if (!visualAnchor?.trim()) return "";
@@ -171,9 +171,9 @@ function buildSheetPrompt(character: {
   if (genderLock) lines.push(genderLock);
   lines.push(
     "professional character design reference sheet, single image",
-    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
-    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
+    "LEFT QUARTER: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
+    "RIGHT THREE-QUARTERS: full-body character turnaround showing FOUR views side by side — front view, 45-degree front-side view, 90-degree side view (profile), back view",
+    "all four turnaround views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
   );
   if (visualDesc) {
     lines.push(
@@ -371,7 +371,7 @@ export class ComicCharacterImageService {
     };
 
     const referenceImages: import("../image/runtime").GeneratedReferenceImageMeta[] = currentReference
-      ? [{ kind: "character_sheet", label: `${character.name} · 当前三视图`, url: sheetUrl(charId) }]
+      ? [{ kind: "character_sheet", label: `${character.name} · 当前四视图`, url: sheetUrl(charId) }]
       : [];
 
     return {
@@ -380,7 +380,7 @@ export class ComicCharacterImageService {
       refImagePaths: currentReference ? [currentReference.filePath] : undefined,
       referenceImages,
       size: "1536x1024" as const,
-      title: `${options.prompt?.trim() ? "微调" : "生成"}三视图：${character.name}`,
+      title: `${options.prompt?.trim() ? "微调" : "生成"}四视图：${character.name}`,
     };
   }
 
@@ -445,7 +445,7 @@ export class ComicCharacterImageService {
     const prompt = buildExpressionPrompt(character, styleKeywords);
     const sheetReference = await this.resolveSheetFile(charId);
     const referenceImages: import("../image/runtime").GeneratedReferenceImageMeta[] = sheetReference
-      ? [{ kind: "character_sheet", label: `${character.name} · 三视图`, url: sheetUrl(charId) }]
+      ? [{ kind: "character_sheet", label: `${character.name} · 四视图`, url: sheetUrl(charId) }]
       : [];
 
     // Expression 状态嵌在 sheetData.assets.expression；adapter 负责读写嵌套位置。
@@ -457,7 +457,7 @@ export class ComicCharacterImageService {
         return sheet.assets?.expression ?? { status: "idle" };
       },
       saveState: async (next) => {
-        // 每次写入都重新读最新 sheetData 再合并，避免覆盖三视图状态
+        // 每次写入都重新读最新 sheetData 再合并，避免覆盖四视图状态
         const latest = await prisma.comicCharacter.findUnique({ where: { id: charId }, select: { sheetData: true } });
         const sheet = safeJsonParse<CharacterSheetData>(latest?.sheetData, { status: "idle" });
         const merged: CharacterSheetData = {

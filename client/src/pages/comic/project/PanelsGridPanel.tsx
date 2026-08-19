@@ -56,7 +56,7 @@ function parseImageData(
 }
 
 const REF_KIND_LABEL: Record<string, string> = {
-  character_sheet: "三视图",
+  character_sheet: "四视图",
   character_expression: "表情稿",
   character_face: "面部裁剪",
   asset: "资产",

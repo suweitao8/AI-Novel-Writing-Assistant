@@ -102,18 +102,14 @@ function buildSceneSheetPrompt(params: {
   stylePrefix?: string;
 }): string {
   const { name, sceneType, bible, stylePrefix } = params;
-  // 十字分割的 2x2 四宫格场景参考图：一张图同时给出四个视角，作参考时信息量最大
+  // 场景参考图用 360° 全景：一张横版全景覆盖整个空间，作参考时空间信息最全
   const lines: string[] = [
     stylePrefix ?? "webtoon style, vibrant colors, clean lines",
-    `location reference sheet of a ${sceneType} scene: ${name}`,
-    "ONE single square image divided by a cross into a 2x2 grid of four quadrants",
-    "top-left: wide establishing shot of the whole space",
-    "top-right: an alternate angle / reverse view of the same space",
-    "bottom-left: medium shot of the core area with the key landmarks and furniture",
-    "bottom-right: close-up of materials, color swatches and lighting mood",
-    "all four quadrants depict the SAME location with IDENTICAL palette, materials, architecture and lighting",
+    `360-degree panorama of a ${sceneType} scene: ${name}`,
+    "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
+    "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
+    "consistent palette, materials, architecture and lighting across the entire panorama",
     "environment concept art, NO characters or only tiny background figures",
-    "thin clean divider lines between quadrants, so it can be reused as a location reference",
   ];
   if (bible.palette) lines.push(`color palette: ${bible.palette}`);
   if (bible.keyElements) lines.push(`key elements: ${bible.keyElements}`);
@@ -240,8 +236,8 @@ export class ComicSceneService {
     return {
       adapter,
       prompt,
-      size: "1024x1024" as const,
-      title: `生成场景设定图：${scene.name}`,
+      size: "1536x1024" as const,
+      title: `生成场景 360° 全景图：${scene.name}`,
     };
   }
 

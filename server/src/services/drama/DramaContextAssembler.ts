@@ -47,7 +47,7 @@ export class DramaContextAssembler {
         beatSheet: safeJsonParse(episode.beatSheet, {}),
       }, null, 2),
       charactersDigest: project.characters.map((character) => {
-        // 提取角色参考图 URL（形象图 + 三视图）
+        // 提取角色参考图 URL（形象图 + 四视图）
         const refImageUrls: string[] = [];
         if (character.portraitData) {
           try {

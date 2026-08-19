@@ -265,7 +265,7 @@ function CharacterReadinessWarning({ characters }: { characters: ComicCharacter[
       <div>
         <span className="font-semibold">建议先完善角色设计稿</span>
         <span className="ml-1">
-          {withoutSheet.map((c) => c.name).join("、")} 尚未生成三视图。
+          {withoutSheet.map((c) => c.name).join("、")} 尚未生成四视图。
           生成分格脚本时会注入角色视觉锚点，有设计稿才能保证各格角色外貌一致。
         </span>
       </div>

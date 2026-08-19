@@ -669,7 +669,7 @@ export async function rewriteCharacterVisualAnchor(
 
 /**
  * 更新角色"外貌锚点"（生图源头）。
- * 改一次，三视图/表情稿/资产/格子图后续生成都会读新版（已有图不会自动重绘）。
+ * 改一次，四视图/表情稿/资产/格子图后续生成都会读新版（已有图不会自动重绘）。
  */
 export async function updateCharacterVisualAnchor(
   charId: string,

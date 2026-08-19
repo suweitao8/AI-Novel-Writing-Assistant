@@ -1,10 +1,10 @@
 /**
  * ComicSpriteSheetService
- * 在格子图生图前，把角色三视图 + 服装资产 + 道具资产横向拼合成一张雪碧图，
+ * 在格子图生图前，把角色四视图 + 服装资产 + 道具资产横向拼合成一张雪碧图，
  * 作为单一参考图传给图像模型，保证角色外形一致性。
  *
  * 布局（从左到右）：
- *   [三视图] | [服装（costume）] | [武器/道具/其他资产...]
+ *   [四视图] | [服装（costume）] | [武器/道具/其他资产...]
  *
  * 每列等高（TARGET_HEIGHT），宽度按原图比例缩放。
  * 每列底部附 SVG 标签（角色名或资产名）。
@@ -33,7 +33,7 @@ const MAX_ASSET_COLS = 5; // 最多额外资产列，避免图片过宽
 export interface SpriteSheetInput {
   characterId: string;
   characterName: string;
-  /** 已解析的三视图磁盘路径，可以为空（无三视图时跳过） */
+  /** 已解析的四视图磁盘路径，可以为空（无四视图时跳过） */
   sheetFilePath?: string;
   /** 服装资产（最多取第一个已完成的） */
   costumeAssets: Array<{ id: string; name: string }>;
@@ -110,19 +110,19 @@ function buildPlaceholderColumn(label: string, width = 256): { buf: Buffer; widt
 
 export class ComicSpriteSheetService {
   /**
-   * 根据输入构建雪碧图：三视图列 + 服装列 + 道具列...
-   * 若所有列都没有可用图片则返回 null（调用方直接用原三视图或不用参考图）。
+   * 根据输入构建雪碧图：四视图列 + 服装列 + 道具列...
+   * 若所有列都没有可用图片则返回 null（调用方直接用原四视图或不用参考图）。
    */
   async buildSpriteSheet(input: SpriteSheetInput): Promise<SpriteSheetResult | null> {
     const columns: Array<{ buf: Buffer; width: number }> = [];
 
-    // 列 1：三视图
+    // 列 1：四视图
     if (input.sheetFilePath) {
       try {
-        const col = await buildColumn(input.sheetFilePath, `${truncLabel(input.characterName, 8)}·三视图`);
+        const col = await buildColumn(input.sheetFilePath, `${truncLabel(input.characterName, 8)}·四视图`);
         columns.push(col);
       } catch (err) {
-        console.warn(`[sprite] 三视图加载失败：${err instanceof Error ? err.message : err}`);
+        console.warn(`[sprite] 四视图加载失败：${err instanceof Error ? err.message : err}`);
       }
     }
 

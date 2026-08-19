@@ -1,6 +1,6 @@
 /**
  * DramaCharacterImageService
- * 为短剧角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背三视图。
+ * 为短剧角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背四视图。
  * 对齐行业标准角色参考图规范，一次生成、全视角一致、作为视频生成的视觉锚点。
  *
  * 设计原则：
@@ -38,7 +38,7 @@ export interface CharacterImageHistoryItem {
 export interface CharacterSheetData {
   status: CharacterImageStatus;
   version?: number;
-  /** 角色设计稿公开 URL（面部特写 + 三视图合图） */
+  /** 角色设计稿公开 URL（面部特写 + 四视图合图） */
   url?: string;
   prompt?: string;
   provider?: string;
@@ -148,7 +148,7 @@ function extractVisualDesc(visualAnchor: string | null | undefined): string {
 
 /**
  * 构建「角色设计稿」提示词：
- * 单张横版图 = 左侧面部特写（1/3） + 右侧全身三视图正/侧/背（2/3）
+ * 单张横版图 = 左侧面部特写（1/4） + 右侧全身四视图正/45°/侧/背（3/4）
  */
 function buildCharacterSheetPrompt(character: {
   name: string;
@@ -160,9 +160,9 @@ function buildCharacterSheetPrompt(character: {
 
   const lines: string[] = [
     "professional character design reference sheet, single image",
-    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
-    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
+    "LEFT QUARTER: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
+    "RIGHT THREE-QUARTERS: full-body character turnaround showing FOUR views side by side — front view, 45-degree front-side view, 90-degree side view (profile), back view",
+    "all four turnaround views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
     "white background, clean studio lighting, no text or watermarks",
     ...styleLines,
   ];
@@ -237,7 +237,7 @@ export class DramaCharacterImageService {
 
   /**
    * 生成角色设计稿（主方法）：
-   * 一张横版图 = 左侧面部特写 + 右侧全身正/侧/背三视图。
+   * 一张横版图 = 左侧面部特写 + 右侧全身正/侧/背四视图。
    * 回填到 portraitData（兼容旧字段，视频生成读这个字段取参考图 URL）。
    */
   async generateCharacterSheet(
@@ -295,13 +295,13 @@ export class DramaCharacterImageService {
 
   /**
    * @deprecated 使用 generateCharacterSheet() 替代。
-   * 三视图已合并进角色设计稿，此方法返回空数组作为兼容占位。
+   * 四视图已合并进角色设计稿，此方法返回空数组作为兼容占位。
    */
   async generateThreeView(
     characterId: string,
     provider = DEFAULT_PROVIDER,
   ): Promise<ThreeViewItem[]> {
-    // 三视图现在在设计稿里，直接生成设计稿并返回占位
+    // 四视图现在在设计稿里，直接生成设计稿并返回占位
     await this.generateCharacterSheet(characterId, provider);
     return [];
   }

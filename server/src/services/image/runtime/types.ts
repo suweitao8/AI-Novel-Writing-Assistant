@@ -26,7 +26,7 @@ export interface GeneratedImageHistoryItem {
 
 /** 生成的参考素材元数据（成功生图后写入，供前端弹窗溯源） */
 export interface GeneratedReferenceImageMeta {
-  /** character_sheet=三视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景设定图 */
+  /** character_sheet=四视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景360全景 */
   kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene";
   /** 人类可读标签 */
   label: string;
@@ -52,7 +52,7 @@ export interface GeneratedImageState {
 // ─── Adapter 接口 ────────────────────────────────────────────────────────────
 
 /**
- * 适配业务表的状态字段读写。每个生图入口（角色三视图/表情稿/资产/场景/格子图/Drama 角色/Drama 关键帧）
+ * 适配业务表的状态字段读写。每个生图入口（角色四视图/表情稿/资产/场景/格子图/Drama 角色/Drama 关键帧）
  * 实现一个 Adapter，把"如何从业务表读出当前状态、如何把新状态写回去、如何计算磁盘路径与 HTTP URL"封装在内。
  *
  * `TState` 允许扩展自 GeneratedImageState 以保留入口特定字段（如表情稿的嵌套位置、Drama 的 portraitData 兼容字段）。

@@ -18,7 +18,7 @@
 - 模块边界：业务在 `server/src/services/visualStyle/VisualStyleService.ts`，路由入口在 `server/src/modules/visual-style/http/visualStyleRoutes.ts`（`/api/visual-styles`：GET 列表 / GET :key 详情 / POST 创建 / PATCH :id / DELETE :id / POST analyze）。外部消费走 facade `modules/visual-style/index.ts` 或直接引服务；`modules/*/http` 只放路由的既有约定不变。
 - 参考图分析 `visual_style.analyze@v1` 是 PromptAsset（`prompting/prompts/visualStyle/`，已注册 loader entries）。它向文本模型发送多模态消息（text + image_url data URL）：**当前文本通道若不支持视觉输入会显式失败**，这是预期行为——配置了视觉能力模型后即可用，不做静默降级。
 - 通用图片管线（`ImageGenerationService` 三个 create*Task）：请求带 `styleKey` 时优先解析注册表并替换 `stylePreset` 自由文本；解析结果会写入任务行的 stylePreset 字段，任务记录自解释。
-- 漫画：`ComicProject.stylePreset` JSON 新增 `visualStyleKey/styleText/styleLabel` 字段。PATCH `/comic/projects/:id/preset` 带 `visualStyleKey` 时服务端解析并把**风格全文快照**写入 JSON；`comicStylePrompt.resolveStyleEntry` 同步读快照（内置预设可无快照直接还原），旧 `style` 关键词继续兼容。漫画各生图链路（三视图/表情稿/资产/场景/格子图）经 `resolveComicStyleKeywords` 自动获得注入，无逐点改造。
+- 漫画：`ComicProject.stylePreset` JSON 新增 `visualStyleKey/styleText/styleLabel` 字段。PATCH `/comic/projects/:id/preset` 带 `visualStyleKey` 时服务端解析并把**风格全文快照**写入 JSON；`comicStylePrompt.resolveStyleEntry` 同步读快照（内置预设可无快照直接还原），旧 `style` 关键词继续兼容。漫画各生图链路（四视图/表情稿/资产/场景/格子图）经 `resolveComicStyleKeywords` 自动获得注入，无逐点改造。
 - 客户端：`client/src/components/visual/VisualStylePicker`（选择器+管理弹窗，react-query key `visualStyles.all`）。已接入：封面（NovelCoverDialog）、立绘（CharacterImageDialog）、拆书人设（BookAnalysisCharacterImagePanel）、漫画画风卡片（ComicProjectPage，与经典画风并列分组）。选中预设时禁用原自由文本字段，避免两套描述打架。
 
 ## 失败模式
@@ -35,3 +35,13 @@
 ## 来源
 
 - mydrama `src/novelvideo/styles/presets/STYLE_DESIGN.md`（设计红线原文）、`services/style_service.py`（custom-shadows-preset、family/subtype 分组）、`generators/style_analyzer.py`（参考图分析提示词语义）。
+
+## 漫画/短剧图像资产视角规范（2026-08-19 起）
+
+业务约定，各生图链路统一执行：
+
+- 角色设计稿：面部特写（左 1/4）+ 全身四视图 正面/45°/正侧/背面（右 3/4），漫画与短剧同规范。
+- 场景参考图：360° 全景（等距柱状提示词），横版 1536x1024，一张覆盖整个空间。
+- 道具/武器等角色资产：单张 3/4 透视图；服装类资产保留正面/侧面/背面多视图。
+
+提示词实现在各自 service 的 prompt builder（`ComicCharacterImageService` / `DramaCharacterImageService` / `ComicSceneService` / `ComicCharacterAssetService`）；尺寸上限受 gpt-image 约束（最宽 1536x1024），全景用 3:2 横版承载。

@@ -601,7 +601,7 @@ export async function getDramaCharacterImageStatus(id: string, characterId: stri
   return data;
 }
 
-/** 生成角色设计稿（面部特写 + 三视图合图，推荐使用） */
+/** 生成角色设计稿（面部特写 + 四视图合图，推荐使用） */
 export async function prepareDramaCharacterSheet(
   id: string,
   characterId: string,

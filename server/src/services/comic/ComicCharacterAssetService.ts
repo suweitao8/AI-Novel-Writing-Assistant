@@ -78,7 +78,7 @@ export async function resolveAssetFile(assetId: string): Promise<{ filePath: str
   return null;
 }
 
-/** 从三视图 sheetData 构建参考图路径列表 */
+/** 从四视图 sheetData 构建参考图路径列表 */
 async function resolveSheetRefPaths(characterId: string): Promise<string[]> {
   const char = await prisma.comicCharacter.findUnique({
     where: { id: characterId },
@@ -141,13 +141,13 @@ function buildAssetPrompt(params: {
     );
   } else if (assetType === "weapon") {
     lines.push(
-      "show the weapon from multiple angles: front, side, detail close-up",
+      "single three-quarter perspective view of the weapon",
       "precise proportions, material texture visible",
       "white background, clean studio lighting",
     );
   } else {
     lines.push(
-      "show the asset from front and at least one additional angle",
+      "single three-quarter perspective view of the asset",
       "white background, clean studio lighting",
     );
   }
@@ -290,7 +290,7 @@ export class ComicCharacterAssetService {
     if (sheetState.status === "done") {
       referenceImages.push({
         kind: "character_sheet",
-        label: `${asset.character.name} · 三视图`,
+        label: `${asset.character.name} · 四视图`,
         url: `/api/comic/character-images/${asset.character.id}/sheet`,
       });
     }
