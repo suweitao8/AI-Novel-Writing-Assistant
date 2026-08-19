@@ -26,6 +26,7 @@ import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
 import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
@@ -40,6 +41,7 @@ import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab
 import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
 import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
 type StudioStage = "current" | "assets" | "settings";
@@ -85,7 +87,6 @@ export default function ComicDramaStudioPage() {
   const queryClient = useQueryClient();
   const [stage, setStage] = useState<StudioStage>("current");
   const [currentTab, setCurrentTab] = useState<CurrentTab>("draft");
-  const [referenceText, setReferenceText] = useState("");
   const [assetTab, setAssetTab] = useState<AssetTab>("characters");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
@@ -117,6 +118,11 @@ export default function ComicDramaStudioPage() {
     ]);
   };
   const chapterWorkspace = useNovelChapterWorkspace(novelId);
+  const referenceStage = useReferenceDraftStage({
+    novelId,
+    workspace: chapterWorkspace,
+    onApplied: () => setCurrentTab("draft"),
+  });
   const storyboard = useStoryboardStage({
     novelId,
     novelTitle: overview?.novel.title ?? "",
@@ -181,13 +187,6 @@ export default function ComicDramaStudioPage() {
             AI 写作中<span className="font-semibold tabular-nums text-foreground">{directorTask.progress}%</span>
           </span>
         ) : null}
-        {currentTab === "video" && overview.drama ? (
-          <Button size="sm" asChild>
-            <Link to={`/drama/projects/${overview.drama.projectId}`}>
-              <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开视频工作台
-            </Link>
-          </Button>
-        ) : null}
         <Button variant="outline" size="sm" className="max-w-[240px]" onClick={() => setChapterManageOpen(true)}>
           <span className="truncate">{chapter ? `${chapter.order} · ${chapter.title}` : "章节管理"}</span>
         </Button>
@@ -244,20 +243,42 @@ export default function ComicDramaStudioPage() {
                 </TabsList>
               </Tabs>
               <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
-                {chapterWorkspace.savePending ? (
-                  <span className="text-xs text-muted-foreground">自动保存中…</span>
+                {currentTab === "reference" ? (
+                  <Button
+                    size="sm"
+                    onClick={() => referenceStage.parseMutation.mutate()}
+                    disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
+                    title={referenceStage.parseDisabledReason ?? "按参考文本生成本章初稿"}
+                  >
+                    {referenceStage.parseMutation.isPending
+                      ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                      : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+                    解析
+                  </Button>
+                ) : currentTab === "draft" ? (
+                  <>
+                    {chapterWorkspace.savePending ? (
+                      <span className="text-xs text-muted-foreground">自动保存中…</span>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      onClick={parseChapterOutline}
+                      disabled={chapterWorkspace.previewMutation.isPending || parseDisabledReason !== null}
+                      title={parseDisabledReason ?? "按本章初稿生成本章节拍"}
+                    >
+                      {chapterWorkspace.previewMutation.isPending
+                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                        : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+                      解析
+                    </Button>
+                  </>
+                ) : currentTab === "video" && overview.drama ? (
+                  <Button size="sm" asChild>
+                    <Link to={`/drama/projects/${overview.drama.projectId}`}>
+                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开视频工作台
+                    </Link>
+                  </Button>
                 ) : null}
-                <Button
-                  size="sm"
-                  onClick={parseChapterOutline}
-                  disabled={chapterWorkspace.previewMutation.isPending || parseDisabledReason !== null}
-                  title={parseDisabledReason ?? "按本章初稿生成本章节拍"}
-                >
-                  {chapterWorkspace.previewMutation.isPending
-                    ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                    : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                  解析
-                </Button>
               </div>
             </SubTabRow>
           ) : stage === "assets" ? (
@@ -303,11 +324,8 @@ export default function ComicDramaStudioPage() {
         <TabsContent value="current" className="space-y-4">
           {currentTab === "reference" ? (
             <ReferenceTab
-              novelId={novelId}
-              workspace={chapterWorkspace}
-              value={referenceText}
-              onChange={setReferenceText}
-              onApplied={() => setCurrentTab("draft")}
+              value={referenceStage.referenceText}
+              onChange={referenceStage.setReferenceText}
             />
           ) : currentTab === "draft" ? (
             <NovelOutlineTab
@@ -381,11 +399,41 @@ export default function ComicDramaStudioPage() {
           await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
         }}
       />
+
+      <Dialog
+        open={referenceStage.pendingDraft !== null}
+        onOpenChange={(open) => { if (!open) referenceStage.setPendingDraft(null); }}
+      >
+        <AppDialogContent
+          title="替换本章初稿"
+          description="本章初稿已有内容。"
+          footer={
+            <>
+              <Button variant="outline" onClick={() => referenceStage.setPendingDraft(null)}>取消</Button>
+              <Button
+                onClick={() => {
+                  const draft = referenceStage.pendingDraft;
+                  if (draft !== null) {
+                    referenceStage.applyDraft(draft, draft.split("\n").length);
+                    referenceStage.setPendingDraft(null);
+                  }
+                }}
+              >
+                替换
+              </Button>
+            </>
+          }
+        >
+          <div className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-border/70 bg-muted/10 px-4 py-3 text-sm leading-7 text-foreground">
+            {referenceStage.pendingDraft}
+          </div>
+        </AppDialogContent>
+      </Dialog>
     </div>
   );
 }
 
-// 三个项目级页签共用的子页签条：子页签居中，右侧留给该阶段的操作按钮（如「当前」的解析）。
+// 三个项目级页签共用的子页签条：子页签居中，右侧放当前子页签自己的工具按钮。
 function SubTabRow(props: { children: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-2 border-t border-border bg-muted/[0.28] px-4 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4">
