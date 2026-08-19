@@ -21,13 +21,15 @@ export function isSimpleCreationWriteAllowed(method: string, path: string): bool
 // （ComicDramaCreateDialog），工作室的「本章大纲自动保存 / 解析与保存细纲 / 手动建章」
 // 就是这本小说的正式编辑入口，地位等价于空白小说的 /outline 工作台。
 // 只放行非破坏性写入：章节删除、正文生成等其余章节端点仍然只读。
+// 注意：本守卫挂在 router.use("/:id")，执行期间 req.path 已剥掉 /:id 前缀，
+// 这里匹配的是 /chapters/... 形状，不带 novelId 段。
 export function isDramaStudioChapterWorkspaceWrite(method: string, path: string): boolean {
   const normalizedMethod = method.toUpperCase();
   const normalizedPath = path.toLowerCase();
-  const putChapter = normalizedMethod === "PUT" && /^\/[^/]+\/chapters\/[^/]+$/.test(normalizedPath);
-  const postChapter = normalizedMethod === "POST" && /^\/[^/]+\/chapters$/.test(normalizedPath);
+  const putChapter = normalizedMethod === "PUT" && /^\/chapters\/[^/]+$/.test(normalizedPath);
+  const postChapter = normalizedMethod === "POST" && /^\/chapters$/.test(normalizedPath);
   const detailOutline = (normalizedMethod === "PUT" || normalizedMethod === "POST")
-    && /^\/[^/]+\/chapters\/[^/]+\/detail-outline(\/preview)?$/.test(normalizedPath);
+    && /^\/chapters\/[^/]+\/detail-outline(\/preview)?$/.test(normalizedPath);
   return putChapter || postChapter || detailOutline;
 }
 
