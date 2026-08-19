@@ -93,7 +93,7 @@ export default function ChapterManagePanel(props: ChapterManagePanelProps) {
 
       {chapters.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
-          <p className="text-sm text-muted-foreground">还没有章节。点「新建章节」写下第一章的标题和这一章要发生什么。</p>
+          <p className="text-sm text-muted-foreground">还没有章节。</p>
           <Button className="mt-4" size="sm" onClick={() => setCreateOpen(true)} disabled={directorTaskActive}>
             <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />新建第一章
           </Button>

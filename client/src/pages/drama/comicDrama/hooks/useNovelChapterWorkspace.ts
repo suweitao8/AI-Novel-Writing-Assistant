@@ -127,10 +127,10 @@ export function useNovelChapterWorkspace(novelId: string) {
   const previewMutation = useMutation({
     mutationFn: async () => {
       if (!currentChapter) {
-        throw new Error("还没有章节。先打开「章节管理」新建第一章。");
+        throw new Error("还没有章节。");
       }
       if (!expectationText.trim()) {
-        throw new Error("先在「初稿」页签写下本章的故事，AI 才能解析。");
+        throw new Error("本章还没有初稿。");
       }
       return previewChapterDetailOutline(novelId, currentChapter.id);
     },

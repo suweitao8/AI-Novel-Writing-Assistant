@@ -142,7 +142,7 @@ export function DramaQualityPanel(props: {
   if ((props.project.episodes?.length ?? 0) === 0) {
     return (
       <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">
-        还没有分集大纲。生成分集和台本后，这里会汇总每集质量检查结果。
+        还没有分集大纲。
       </div>
     );
   }

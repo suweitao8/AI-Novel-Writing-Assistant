@@ -42,7 +42,6 @@ export default function CreateChapterDialog(props: CreateChapterDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <AppDialogContent
         title={`新建第 ${nextOrder} 章`}
-        description="写下这一章的标题和大纲：大纲会被 AI 展开成节拍，也是写作时的依据。"
         footer={
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>

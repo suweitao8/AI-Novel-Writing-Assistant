@@ -133,7 +133,7 @@ export default function StoryboardStagePanel(props: { projectId: string }) {
         busy={actionMutation.isPending}
         onSetTab={() => undefined}
         onSelectEpisode={setSelectedOrder}
-        onAssembleSource={() => runAction(async () => undefined, "来源素材已在每次切换章节时自动同步。")}
+        onAssembleSource={() => runAction(async () => undefined, "来源素材已是最新。")}
         onGenerateStrategy={() => runAction(() => generateDramaStrategy(project.id), "短剧策略已生成。")}
         onGenerateOutline={() => runAction(() => generateDramaOutline(project.id), "分集大纲已生成。")}
         onGenerateScript={(order) => runAction(() => generateDramaEpisodeScript(project.id, order), `第 ${order} 集台本已生成。`)}
@@ -163,7 +163,7 @@ export default function StoryboardStagePanel(props: { projectId: string }) {
         />
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-8 text-center text-sm leading-6 text-muted-foreground">
-          还没有分集。按上面的「下一步」生成策略与分集后，这里会出现每一集的分镜板。
+          还没有分集。
           <div className="mt-3">
             <Button
               size="sm"
