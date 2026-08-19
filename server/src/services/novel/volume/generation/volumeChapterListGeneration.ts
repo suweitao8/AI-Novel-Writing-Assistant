@@ -5,10 +5,10 @@ import type {
   VolumePlanDocument,
 } from "@ai-novel/shared/types/novel";
 import type { StoryMacroPlan } from "@ai-novel/shared/types/storyMacro";
-import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { logMemoryUsage } from "../../../runtime/memoryTelemetry";
-import { createVolumeChapterListPrompt } from "../../../prompting/prompts/novel/volume/chapterList.prompts";
-import { buildVolumeChapterListContextBlocks } from "../../../prompting/prompts/novel/volume/contextBlocks";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
+import { logMemoryUsage } from "../../../../runtime/memoryTelemetry";
+import { createVolumeChapterListPrompt } from "../../../../prompting/prompts/novel/volume/chapterList.prompts";
+import { buildVolumeChapterListContextBlocks } from "../../../../prompting/prompts/novel/volume/contextBlocks";
 import {
   inferRequiredChapterCountFromBeatSheet,
   resolveTargetChapterCount,
@@ -26,13 +26,13 @@ import {
   resolveVolumeChapterBeatKey,
   setVolumeChapterListPartialStatus,
 } from "./volumeGenerationHelpers";
-import { assertChapterTitleDiversity } from "./chapterTitleDiversity";
+import { assertChapterTitleDiversity } from "../chapterTitleDiversity";
 import type {
   VolumeGenerateOptions,
   VolumeGenerationNovel,
   VolumeIntermediateDocumentEvent,
   VolumeWorkspace,
-} from "./volumeModels";
+} from "../volumeModels";
 
 type StoryMacroPlanResult = StoryMacroPlan | null;
 

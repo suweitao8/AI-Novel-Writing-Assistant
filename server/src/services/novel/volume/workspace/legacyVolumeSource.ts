@@ -1,5 +1,5 @@
-import { prisma } from "../../../db/prisma";
-import type { LegacyVolumeSource } from "./volumePlanUtils";
+import { prisma } from "../../../../db/prisma";
+import type { LegacyVolumeSource } from "../volumePlanUtils";
 
 export async function getLegacyVolumeSource(novelId: string): Promise<LegacyVolumeSource> {
   const [novel, arcPlans] = await Promise.all([

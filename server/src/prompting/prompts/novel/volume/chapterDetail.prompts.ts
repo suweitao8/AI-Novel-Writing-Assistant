@@ -6,7 +6,7 @@ import {
   createChapterExecutionContractSchema,
   createChapterPurposeSchema,
   createChapterTaskSheetSchema,
-} from "../../../../services/novel/volume/volumeGenerationSchemas";
+} from "../../../../services/novel/volume/generation/volumeGenerationSchemas";
 import { type VolumeChapterDetailPromptInput } from "./shared";
 import { buildVolumeChapterDetailContextBlocks } from "./contextBlocks";
 import { NOVEL_PROMPT_BUDGETS } from "../promptBudgetProfiles";

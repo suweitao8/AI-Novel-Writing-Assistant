@@ -4,10 +4,10 @@ const assert = require("node:assert/strict");
 const {
   resolveFixedRecommendedVolumeCount,
   resolveBeatSheetTargetChapterCount,
-} = require("../dist/services/novel/volume/volumeGenerationOrchestrator.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationOrchestrator.js");
 const {
   allocateChapterBudgets,
-} = require("../dist/services/novel/volume/volumeGenerationHelpers.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationHelpers.js");
 
 function createVolume(id, chapterCount) {
   return {

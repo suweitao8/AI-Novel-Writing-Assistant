@@ -1,7 +1,7 @@
 import type { DirectorConfirmRequest } from "@ai-novel/shared/types/novelDirector";
 import { buildNovelEditResumeTarget } from "../../workflow/novelWorkflow.shared";
 import { getChapterTitleDiversityIssue } from "../../volume/chapterTitleDiversity";
-import { resolveVolumeChapterBeatKey } from "../../volume/volumeGenerationHelpers";
+import { resolveVolumeChapterBeatKey } from "../../volume/generation/volumeGenerationHelpers";
 import type { NovelVolumeService } from "../../volume/NovelVolumeService";
 import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
 import { buildDirectorSessionState } from "../runtime/flows/novelDirectorHelpers";

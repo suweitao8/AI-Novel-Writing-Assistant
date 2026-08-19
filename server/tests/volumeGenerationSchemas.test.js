@@ -7,10 +7,10 @@ const {
   createVolumeChapterBeatBlockSchema,
   createVolumeRebalanceSchema,
   createVolumeStrategySchema,
-} = require("../dist/services/novel/volume/volumeGenerationSchemas.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationSchemas.js");
 const {
   buildVolumeWorkspaceDocument,
-} = require("../dist/services/novel/volume/volumeWorkspaceDocument.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspaceDocument.js");
 const {
   volumeBeatSheetPrompt,
 } = require("../dist/prompting/prompts/novel/volume/beatSheet.prompts.js");

@@ -10,12 +10,12 @@ import type { StyleBindingService } from "../../styleEngine/StyleBindingService"
 import { buildWriterStyleContractText } from "../../styleEngine/styleContractText";
 import type { StoryMacroPlanService } from "../storyMacro/StoryMacroPlanService";
 import type { VolumeGenerateOptions } from "./volumeModels";
-import { generateVolumePlanDocument } from "./volumeGenerationOrchestrator";
+import { generateVolumePlanDocument } from "./generation/volumeGenerationOrchestrator";
 import {
   persistActiveVolumeWorkspace,
   runVolumeWorkspaceTransaction,
-} from "./volumeWorkspacePersistence";
-import { serializeVolumeWorkspaceDocument } from "./volumeWorkspaceDocument";
+} from "./workspace/volumeWorkspacePersistence";
+import { serializeVolumeWorkspaceDocument } from "./workspace/volumeWorkspaceDocument";
 
 export interface ChapterExecutionContractServiceDeps {
   storyMacroPlanService: Pick<StoryMacroPlanService, "getPlan">;

@@ -17,7 +17,7 @@ import {
   getBeatExpectedChapterCount,
   getBeatSheet,
   resolveVolumeChapterBeatKey,
-} from "../../volume/volumeGenerationHelpers";
+} from "../../volume/generation/volumeGenerationHelpers";
 
 export type StructuredOutlineDetailMode = (typeof DIRECTOR_CHAPTER_DETAIL_MODES)[number];
 export type StructuredOutlineRecoveryStep =

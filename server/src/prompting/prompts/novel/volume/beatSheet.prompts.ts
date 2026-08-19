@@ -1,8 +1,8 @@
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import type { PromptAsset } from "../../../core/promptTypes";
 import { renderSelectedContextBlocks } from "../../../core/renderContextBlocks";
-import { createVolumeBeatSheetSchema } from "../../../../services/novel/volume/volumeGenerationSchemas";
-import { validateBeatSheetChapterCoverage } from "../../../../services/novel/volume/volumeBeatSheetChapterBudget";
+import { createVolumeBeatSheetSchema } from "../../../../services/novel/volume/generation/volumeGenerationSchemas";
+import { validateBeatSheetChapterCoverage } from "../../../../services/novel/volume/generation/volumeBeatSheetChapterBudget";
 import {
   VOLUME_BEAT_OPTIONAL_SLOT_KEYS,
   VOLUME_BEAT_REQUIRED_SLOT_KEYS,

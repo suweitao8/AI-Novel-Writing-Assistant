@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { AppError } from "../../../middleware/errorHandler";
-import { logMemoryUsage } from "../../../runtime/memoryTelemetry";
+import { AppError } from "../../../../middleware/errorHandler";
+import { logMemoryUsage } from "../../../../runtime/memoryTelemetry";
 import {
   acquireScopedHighMemoryReservation,
   startHighMemoryReservationRenewal,
-} from "../runtime/highMemoryReservation";
-import type { VolumeGenerateOptions } from "./volumeModels";
+} from "../../runtime/highMemoryReservation";
+import type { VolumeGenerateOptions } from "../volumeModels";
 import { resolveHighMemoryVolumeGenerationKey } from "./volumeGenerationMemorySafety";
 
 const HIGH_MEMORY_VOLUME_RESERVATION_TTL_MS = 10 * 60 * 1000;

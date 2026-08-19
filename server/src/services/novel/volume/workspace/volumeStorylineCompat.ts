@@ -10,7 +10,7 @@ import {
   buildDerivedOutlineFromVolumes,
   buildFallbackVolumesFromLegacy,
   type LegacyVolumeSource,
-} from "./volumePlanUtils";
+} from "../volumePlanUtils";
 
 interface StorylineCompatDependencies {
   novelId: string;

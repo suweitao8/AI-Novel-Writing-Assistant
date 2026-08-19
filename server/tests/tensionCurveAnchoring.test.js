@@ -13,7 +13,7 @@ const {
 const {
   mergeChapterDetail,
   mergeChapterList,
-} = require("../dist/services/novel/volume/volumeGenerationHelpers.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationHelpers.js");
 
 const now = new Date(0).toISOString();
 

@@ -5,7 +5,7 @@ const {
   inferRequiredChapterCountFromBeatSheet,
   validateBeatSheetChapterCoverage,
   resolveTargetChapterCount,
-} = require("../dist/services/novel/volume/volumeBeatSheetChapterBudget.js");
+} = require("../dist/services/novel/volume/generation/volumeBeatSheetChapterBudget.js");
 
 test("getBeatSheetChapterSpanUpperBound returns the upper bound for chapter ranges", () => {
   assert.equal(getBeatSheetChapterSpanUpperBound("20-25章"), 25);

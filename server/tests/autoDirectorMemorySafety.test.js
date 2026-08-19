@@ -13,10 +13,10 @@ const {
 const {
   isHighMemoryVolumeGeneration,
   resolveHighMemoryVolumeGenerationKey,
-} = require("../dist/services/novel/volume/volumeGenerationMemorySafety.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationMemorySafety.js");
 const {
   withHighMemoryVolumeGenerationGuard,
-} = require("../dist/services/novel/volume/volumeGenerationTelemetry.js");
+} = require("../dist/services/novel/volume/generation/volumeGenerationTelemetry.js");
 const {
   acquireScopedHighMemoryReservation,
 } = require("../dist/services/novel/runtime/highMemoryReservation.js");

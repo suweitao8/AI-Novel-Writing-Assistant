@@ -3,33 +3,33 @@ import type {
   VolumeGenerationScope,
   VolumePlanDocument,
 } from "@ai-novel/shared/types/novel";
-import { prisma } from "../../../db/prisma";
-import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
+import { prisma } from "../../../../db/prisma";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import {
   volumeChapterBoundaryPrompt,
   volumeChapterPurposePrompt,
-} from "../../../prompting/prompts/novel/volume/chapterDetail.prompts";
+} from "../../../../prompting/prompts/novel/volume/chapterDetail.prompts";
 import {
   buildVolumeChapterDetailContextBlocks,
   buildVolumeRebalanceContextBlocks,
   buildVolumeSkeletonContextBlocks,
   buildVolumeStrategyContextBlocks,
   buildVolumeStrategyCritiqueContextBlocks,
-} from "../../../prompting/prompts/novel/volume/contextBlocks";
-import { volumeRebalancePrompt } from "../../../prompting/prompts/novel/volume/rebalance.prompts";
-import { createVolumeSkeletonPrompt } from "../../../prompting/prompts/novel/volume/skeleton.prompts";
+} from "../../../../prompting/prompts/novel/volume/contextBlocks";
+import { volumeRebalancePrompt } from "../../../../prompting/prompts/novel/volume/rebalance.prompts";
+import { createVolumeSkeletonPrompt } from "../../../../prompting/prompts/novel/volume/skeleton.prompts";
 import {
   createVolumeStrategyPrompt,
   volumeStrategyCritiquePrompt,
-} from "../../../prompting/prompts/novel/volume/strategy.prompts";
-import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../storyMode/storyModeProfile";
-import type { StoryMacroPlanService } from "../storyMacro/StoryMacroPlanService";
+} from "../../../../prompting/prompts/novel/volume/strategy.prompts";
+import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../../storyMode/storyModeProfile";
+import type { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import {
   inferRequiredChapterCountFromBeatSheet,
   resolveTargetChapterCount,
 } from "./volumeBeatSheetChapterBudget";
 import { generateBeatChunkedChapterList } from "./volumeChapterListGeneration";
-import { normalizeVolumeDraftContextInput } from "./volumeDraftContext";
+import { normalizeVolumeDraftContextInput } from "../volumeDraftContext";
 import {
   allocateChapterBudgets,
   assertScopeReadiness,
@@ -50,9 +50,9 @@ import type {
   VolumeGenerationPhase,
   VolumeGenerationNovel,
   VolumeWorkspace,
-} from "./volumeModels";
-import { buildVolumeWorkspaceDocument } from "./volumeWorkspaceDocument";
-import { formatChapterDetailModeLabel } from "./chapterDetailModeLabel";
+} from "../volumeModels";
+import { buildVolumeWorkspaceDocument } from "../workspace/volumeWorkspaceDocument";
+import { formatChapterDetailModeLabel } from "../chapterDetailModeLabel";
 import {
   generateBeatSheet,
   resolveBeatSheetTargetChapterCount,

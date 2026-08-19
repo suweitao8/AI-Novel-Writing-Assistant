@@ -10,16 +10,16 @@ import type {
   VolumeRebalanceDecision,
   VolumeStrategyPlan,
 } from "@ai-novel/shared/types/novel";
-import { buildVolumeWorkspaceDocument } from "./volumeWorkspaceDocument";
+import { buildVolumeWorkspaceDocument } from "../workspace/volumeWorkspaceDocument";
 import type {
   ChapterDetailMode,
-} from "./volumeModels";
+} from "../volumeModels";
 export {
   allocateChapterBudgets,
   deriveChapterBudget,
 } from "./volumeChapterBudgetAllocation";
 
-export { generateChapterTaskSheetDetail } from "./chapterDetail";
+export { generateChapterTaskSheetDetail } from "../chapterDetail";
 
 export interface GeneratedVolumeChapterBlock {
   beatKey: string;

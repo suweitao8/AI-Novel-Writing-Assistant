@@ -6,7 +6,7 @@ const {
 } = require("../dist/services/novel/director/recovery/novelDirectorStructuredOutlineRecovery.js");
 const {
   buildVolumeWorkspaceDocument,
-} = require("../dist/services/novel/volume/volumeWorkspaceDocument.js");
+} = require("../dist/services/novel/volume/workspace/volumeWorkspaceDocument.js");
 
 function createSceneCards(chapterOrder) {
   return JSON.stringify({
