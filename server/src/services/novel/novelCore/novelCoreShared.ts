@@ -48,6 +48,7 @@ export interface CreateNovelInput {
   resourceReadyScore?: number;
   sourceNovelId?: string | null;
   sourceKnowledgeDocumentId?: string | null;
+  referenceKnowledgeDocumentId?: string | null;
   continuationBookAnalysisId?: string | null;
   continuationBookAnalysisSections?: BookAnalysisSectionKey[] | null;
 }
@@ -79,6 +80,7 @@ export interface UpdateNovelInput {
   resourceReadyScore?: number | null;
   sourceNovelId?: string | null;
   sourceKnowledgeDocumentId?: string | null;
+  referenceKnowledgeDocumentId?: string | null;
   continuationBookAnalysisId?: string | null;
   continuationBookAnalysisSections?: BookAnalysisSectionKey[] | null;
   genreId?: string | null;

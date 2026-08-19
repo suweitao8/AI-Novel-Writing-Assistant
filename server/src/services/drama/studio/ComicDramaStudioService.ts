@@ -137,6 +137,34 @@ function toVideoProviders() {
   }));
 }
 
+// 参考小说投影：仅摘要信息（标题/文件名/字数），内容留在知识库文档里按需读取。
+async function loadReferenceDocumentByNovelId(novelId: string): Promise<ComicDramaNovelSummary["referenceDocument"]> {
+  const novel = await prisma.novel.findUnique({
+    where: { id: novelId },
+    select: {
+      referenceKnowledgeDocumentId: true,
+      referenceKnowledgeDocument: {
+        select: {
+          id: true,
+          title: true,
+          fileName: true,
+          activeVersion: { select: { charCount: true } },
+        },
+      },
+    },
+  });
+  const document = novel?.referenceKnowledgeDocument;
+  if (!document) {
+    return null;
+  }
+  return {
+    id: document.id,
+    title: document.title,
+    fileName: document.fileName,
+    charCount: document.activeVersion?.charCount ?? 0,
+  };
+}
+
 export class ComicDramaStudioService {
   async getLinks(novelIds: string[]): Promise<ComicDramaLinksResponse> {
     const stats = await loadDramaStatsByNovelIds(novelIds);
@@ -169,9 +197,10 @@ export class ComicDramaStudioService {
     if (!novel) {
       throw new AppError("没有找到这个漫剧项目。", 404);
     }
-    const [directorTaskMap, dramaStats] = await Promise.all([
+    const [directorTaskMap, dramaStats, referenceDocument] = await Promise.all([
       loadLatestDirectorTasksByNovelIds([novelId]),
       loadDramaStatsByNovelIds([novelId]),
+      loadReferenceDocumentByNovelId(novelId),
     ]);
     const novelSummary: ComicDramaNovelSummary = {
       id: novel.id,
@@ -182,6 +211,7 @@ export class ComicDramaStudioService {
       createdAt: novel.createdAt.toISOString(),
       updatedAt: novel.updatedAt.toISOString(),
       chapterCount: chapterAggregate,
+      referenceDocument,
       directorTask: directorTaskMap.get(novelId) ?? null,
     };
     return {

@@ -33,6 +33,12 @@ export interface ComicDramaNovelSummary {
   createdAt: string;
   updatedAt: string;
   chapterCount: number;
+  referenceDocument: {
+    id: string;
+    title: string;
+    fileName: string | null;
+    charCount: number;
+  } | null;
   directorTask: {
     id: string;
     status: string;

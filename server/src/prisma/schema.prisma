@@ -358,6 +358,7 @@ model Novel {
   resourceReadyScore Int?
   sourceNovelId     String?
   sourceKnowledgeDocumentId String?
+  referenceKnowledgeDocumentId String?
   continuationBookAnalysisId String?
   continuationBookAnalysisSections String?
   outline           String?
@@ -379,6 +380,7 @@ model Novel {
   derivedFromNovel  Novel?      @relation("NovelDerivation", fields: [derivedFromNovelId], references: [id], onDelete: SetNull)
   derivedNovels     Novel[]     @relation("NovelDerivation")
   sourceKnowledgeDocument KnowledgeDocument? @relation("NovelKnowledgeContinuation", fields: [sourceKnowledgeDocumentId], references: [id], onDelete: SetNull)
+  referenceKnowledgeDocument  KnowledgeDocument? @relation("NovelKnowledgeReference", fields: [referenceKnowledgeDocumentId], references: [id], onDelete: SetNull)
   continuationBookAnalysis BookAnalysis? @relation("NovelContinuationBookAnalysis", fields: [continuationBookAnalysisId], references: [id], onDelete: SetNull)
   chapters          Chapter[]
   characters        Character[]
@@ -3107,6 +3109,7 @@ model KnowledgeDocument {
   bookAnalyses           BookAnalysis[]
   publishedFromAnalyses  BookAnalysis[]           @relation("BookAnalysisPublishedDocument")
   continuationNovels     Novel[]                  @relation("NovelKnowledgeContinuation")
+  referenceNovels        Novel[]                  @relation("NovelKnowledgeReference")
   createdAt              DateTime                 @default(now())
   updatedAt              DateTime                 @updatedAt
 
