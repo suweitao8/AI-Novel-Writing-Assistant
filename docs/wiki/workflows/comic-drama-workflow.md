@@ -30,6 +30,7 @@
 - 确认细纲后同步 `estimatedChapterCount`，让导演链按用户章数规划规模。
 - 剧情契约注入点：接管 idea 携带用户大纲（`novelDirectorTakeover.ts` 的 `buildTakeoverIdea`）；卷战略/卷骨架/节奏板/章节列表/章节细化上下文注入 `user_outline_contract` 块（`prompting/prompts/novel/volume/contextBlocks.ts`，priority=99）——章节划分、事件顺序与结果不得推翻，允许补节奏与衔接。
 - 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。**漫剧项目例外**：漫剧创建的小说固定简易模式（`ComicDramaCreateDialog` 传 `creationExperience: "simple"`），工作室的单章工作台端点——`PUT /chapters/:chapterId`（本章大纲保存）、`POST /chapters`（手动建章）、`POST|PUT /chapters/:chapterId/detail-outline(/preview)`（细纲推理与保存）——对已关联 DramaProject（`source=novel_import, sourceRef=novelId`，与工作室 overview 反查同款约定）的简易小说放行；章节删除、正文生成等其余端点、以及未关联漫剧项目的普通简易小说仍然只读。修改守卫白名单时必须同步更新 `simpleCreationMode.test.js`（纯函数 + 守卫异步行为两组断言）。
+- **守卫内 req.path 是剥掉 `/:id` 前缀的形状**：守卫挂在 `router.use("/:id", ...)`（novel 路由 `app.use("/api/novels", ...)` 内），Express 在中间件执行期间会把已匹配的 `/:id` 从 `req.url` 剥掉，所以守卫看到的 path 是 `/chapters/xxx` 而不是 `/{novelId}/chapters/xxx`；小说 id 要从 `req.params.id` 取。给守卫写锚定正则（`^/chapters/...`）时必须用剥前缀后的形状，用完整路径形状写的正则会静默不匹配（放行失效、回落 409）。旧白名单用 `includes()` 所以两种形状都能过，这曾掩盖过该差异。
 
 ### 小说阶段的章节管理与单章细纲
 
