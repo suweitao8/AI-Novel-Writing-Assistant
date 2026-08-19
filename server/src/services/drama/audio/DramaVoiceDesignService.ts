@@ -1,0 +1,115 @@
+import { prisma } from "../../../db/prisma";
+import { AppError } from "../../../middleware/errorHandler";
+import { synthesizeAudioSpeech } from "../../audio/speechProvider";
+import { readCharacterVoice, readNarratorVoiceData } from "./DramaDialogueAudioService";
+
+/** 音色试听固定样句（搬自 mydrama design 模式：用固定样句 + 描述控制生成参考音） */
+export const DRAMA_VOICE_SAMPLE_TEXT = "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。";
+
+export interface CharacterVoiceDesignResult {
+  characterId: string;
+  prompt: string;
+  sampleAudioUrl: string;
+}
+
+export interface NarratorVoiceState {
+  description: string;
+  sampleAudioUrl?: string;
+  updatedAt?: string;
+}
+
+/**
+ * 音色设计（搬自 mydrama 的 voice design 模式）：
+ * 用文字描述（年龄/性别/语气/节奏）作为情绪控制提示，让本机语音服务
+ * 用固定样句合成一段参考音频；角色与项目旁白共用同一套描述→试听流程。
+ */
+export class DramaVoiceDesignService {
+  async designCharacterVoice(characterId: string, prompt: string): Promise<CharacterVoiceDesignResult> {
+    const character = await prisma.dramaCharacter.findUnique({ where: { id: characterId } });
+    if (!character) {
+      throw new AppError(`未找到角色：${characterId}`, 404);
+    }
+    const trimmedPrompt = prompt.trim();
+    if (trimmedPrompt.length < 4) {
+      throw new AppError("音色描述太短了：写清年龄、性别、语气或节奏（例如「青年男声，低沉平静，说话慢」）。", 400);
+    }
+    const result = await synthesizeAudioSpeech({
+      text: DRAMA_VOICE_SAMPLE_TEXT,
+      audioType: "dialogue",
+      speaker: character.name,
+      emotion: trimmedPrompt,
+    });
+    const voice = readCharacterVoice(character);
+    const mergedProfile = {
+      ...voice,
+      name: character.name,
+      voicePrompt: trimmedPrompt,
+      sampleAudioUrl: result.dataUrl,
+      sampleUpdatedAt: new Date().toISOString(),
+    };
+    await prisma.dramaCharacter.update({
+      where: { id: characterId },
+      data: { voiceProfile: JSON.stringify(mergedProfile) },
+    });
+    return {
+      characterId,
+      prompt: trimmedPrompt,
+      sampleAudioUrl: result.dataUrl,
+    };
+  }
+
+  async getNarratorVoice(projectId: string): Promise<NarratorVoiceState> {
+    const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
+    if (!project) {
+      throw new AppError(`未找到项目：${projectId}`, 404);
+    }
+    const data = readNarratorVoiceData(project.narratorVoiceData);
+    return {
+      description: data.description ?? "",
+      sampleAudioUrl: data.sampleAudioUrl,
+      updatedAt: data.updatedAt,
+    };
+  }
+
+  async updateNarratorVoiceDescription(projectId: string, description: string): Promise<NarratorVoiceState> {
+    const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
+    if (!project) {
+      throw new AppError(`未找到项目：${projectId}`, 404);
+    }
+    const current = readNarratorVoiceData(project.narratorVoiceData);
+    const next: NarratorVoiceState = {
+      ...current,
+      description: description.trim(),
+      updatedAt: new Date().toISOString(),
+    };
+    await prisma.dramaProject.update({
+      where: { id: projectId },
+      data: { narratorVoiceData: JSON.stringify(next) },
+    });
+    return next;
+  }
+
+  async designNarratorVoice(projectId: string, description: string): Promise<NarratorVoiceState> {
+    const trimmed = description.trim();
+    if (trimmed.length < 4) {
+      throw new AppError("旁白音色描述太短了：写清年龄、性别与叙述风格（例如「成年男声旁白，普通话自然，平直叙述」）。", 400);
+    }
+    const result = await synthesizeAudioSpeech({
+      text: DRAMA_VOICE_SAMPLE_TEXT,
+      audioType: "narration",
+      emotion: trimmed,
+    });
+    const next: NarratorVoiceState = {
+      description: trimmed,
+      sampleAudioUrl: result.dataUrl,
+      updatedAt: new Date().toISOString(),
+    };
+    await prisma.dramaProject.update({
+      where: { id: projectId },
+      data: { narratorVoiceData: JSON.stringify(next) },
+    });
+    return next;
+  }
+}
+
+export const dramaVoiceDesignService = new DramaVoiceDesignService();

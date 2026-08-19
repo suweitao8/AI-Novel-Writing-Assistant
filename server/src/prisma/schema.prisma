@@ -3656,6 +3656,8 @@ model DramaProject {
   status         String   @default("draft")
   // 画面风格预设 id（见 services/drama/visual/dramaVisualStyles.ts），空=默认写实微短剧
   visualStyle    String?
+  // 旁白音色（JSON：{description, sampleAudioUrl, updatedAt}），分镜台词里无说话人的行使用旁白合成
+  narratorVoiceData String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

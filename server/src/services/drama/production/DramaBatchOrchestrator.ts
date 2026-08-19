@@ -24,6 +24,8 @@ export interface DramaBatchProgress {
   currentShotId?: string;
   errors?: Array<{ shotId: string; message: string }>;
   useCharacterRefImages?: boolean;
+  /** tts 重配模式：true=忽略已有配音全部重合成；false=只补缺失 */
+  force?: boolean;
   cost?: DramaBatchCostBreakdown;
 }
 
@@ -52,6 +54,8 @@ export interface CreateEpisodeBatchJobInput {
   shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
+  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  force?: boolean;
 }
 
 interface CreateEpisodeBatchJobOptions {
@@ -179,6 +183,7 @@ function normalizeProgress(input: Partial<DramaBatchProgress>): DramaBatchProgre
     currentShotId: input.currentShotId,
     errors: input.errors ?? [],
     useCharacterRefImages: input.useCharacterRefImages,
+    force: input.force,
     cost: normalizeCostBreakdown(input.cost),
   };
 }
@@ -213,6 +218,7 @@ export class DramaBatchOrchestrator {
       targetShotIds: prepared.targetShotIds,
       errors: [],
       useCharacterRefImages: input.useCharacterRefImages ?? false,
+      force: input.force ?? false,
       cost: prepared.cost,
     });
     const job = await prisma.dramaBatchJob.create({
@@ -292,7 +298,7 @@ export class DramaBatchOrchestrator {
         nextProgress.currentShotId = shot.id;
         await this.updateJob(jobId, "running", nextProgress);
         try {
-          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, episode.id, shot, nextProgress.provider, nextProgress.useCharacterRefImages ?? false);
+          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, episode.id, shot, nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
           if (result.status === "skipped") {
             nextProgress.skipped += 1;
           }
@@ -326,11 +332,11 @@ export class DramaBatchOrchestrator {
     return "processed";
   }
 
-  private async processTtsShot(shot: BatchShot, provider?: string): Promise<BatchProcessResult> {
-    if (hasDoneDialogueAudio(shot.dialogueAudioData)) {
+  private async processTtsShot(shot: BatchShot, provider?: string, force = false): Promise<BatchProcessResult> {
+    if (!force && hasDoneDialogueAudio(shot.dialogueAudioData)) {
       return { status: "skipped" };
     }
-    const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, provider || DEFAULT_TTS_PROVIDER);
+    const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, provider || DEFAULT_TTS_PROVIDER, { force });
     const seconds = (data.items ?? []).reduce((sum, item) => {
       return sum + normalizeDurationSec(item.durationSec, Math.max(1, Math.ceil(item.text.length / 5)));
     }, 0);
@@ -371,6 +377,7 @@ export class DramaBatchOrchestrator {
     shot: BatchShot,
     provider?: string,
     useCharacterRefImages = false,
+    force = false,
   ): Promise<BatchProcessResult> {
     if (type === "keyframes") {
       const status = await this.processKeyframeShot(shot, provider, useCharacterRefImages);
@@ -379,7 +386,7 @@ export class DramaBatchOrchestrator {
         : { status };
     }
     if (type === "tts") {
-      return this.processTtsShot(shot, provider);
+      return this.processTtsShot(shot, provider, force);
     }
     const status = await this.processVideoShot(projectId, episodeId, shot.id, provider);
     return status === "processed"
@@ -439,7 +446,7 @@ export class DramaBatchOrchestrator {
       episode,
       provider,
       targetShotIds: targetShots.map((shot) => shot.id),
-      cost: this.estimateCost(input.type, provider, targetShots, episode.videoPrompts ?? []),
+      cost: this.estimateCost(input.type, provider, targetShots, episode.videoPrompts ?? [], input.force ?? false),
     };
   }
 
@@ -448,6 +455,7 @@ export class DramaBatchOrchestrator {
     provider: string,
     shots: BatchShot[],
     videoPrompts: BatchVideoPrompt[],
+    force = false,
   ): DramaBatchCostBreakdown {
     const unit = this.resolveCostUnit(type, provider);
     const latestPromptByShot = new Map<string, BatchVideoPrompt>();
@@ -471,7 +479,9 @@ export class DramaBatchOrchestrator {
         shots: billableShots.length,
       };
     } else {
-      const billableShots = shots.filter((shot) => !hasDoneDialogueAudio(shot.dialogueAudioData));
+      const billableShots = force
+        ? shots
+        : shots.filter((shot) => !hasDoneDialogueAudio(shot.dialogueAudioData));
       estimatedUnits = {
         seconds: billableShots.reduce((sum, shot) => sum + normalizeDurationSec(shot.durationSec), 0),
         shots: billableShots.length,

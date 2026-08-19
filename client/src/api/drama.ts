@@ -548,6 +548,8 @@ export async function createDramaEpisodeBatchJob(id: string, order: number, payl
   shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
+  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  force?: boolean;
 }) {
   const { data } = await apiClient.post<ApiResponse<DramaBatchJob>>(
     `/drama/projects/${id}/episodes/${order}/batch-jobs`,

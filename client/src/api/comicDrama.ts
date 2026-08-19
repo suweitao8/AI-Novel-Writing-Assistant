@@ -34,3 +34,86 @@ export async function deleteComicDramaByNovel(novelId: string) {
   );
   return data;
 }
+
+// ─── 配音（漫剧工作台配音阶段） ────────────────────────────────────────────────
+
+export type DramaAudioSegmentType = "dialogue" | "narration";
+export type DramaAudioSegmentStatus = "ready" | "stale" | "missing";
+
+export interface DramaAudioSegment {
+  shotId: string;
+  shotOrder: number;
+  lineIndex: number;
+  type: DramaAudioSegmentType;
+  speaker?: string;
+  text: string;
+  audioUrl?: string;
+  durationSec?: number;
+  status: DramaAudioSegmentStatus;
+}
+
+export interface DramaNarratorVoiceState {
+  description: string;
+  sampleAudioUrl?: string;
+  updatedAt?: string;
+}
+
+export interface DramaCharacterVoiceDesignResult {
+  characterId: string;
+  prompt: string;
+  sampleAudioUrl: string;
+}
+
+export async function listDramaAudioSegments(projectId: string, order: number): Promise<DramaAudioSegment[]> {
+  const { data } = await apiClient.get<ApiResponse<DramaAudioSegment[]>>(
+    `/drama/projects/${projectId}/episodes/${order}/audio-segments`,
+  );
+  return data.data ?? [];
+}
+
+export async function regenerateDramaShotAudio(
+  projectId: string,
+  shotId: string,
+  payload: { provider?: string; force?: boolean } = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<unknown>>(
+    `/drama/projects/${projectId}/shots/${shotId}/audio`,
+    payload,
+  );
+  return data;
+}
+
+export async function getDramaNarratorVoice(projectId: string): Promise<DramaNarratorVoiceState> {
+  const { data } = await apiClient.get<ApiResponse<DramaNarratorVoiceState>>(
+    `/drama/projects/${projectId}/narrator-voice`,
+  );
+  return data.data ?? { description: "" };
+}
+
+export async function updateDramaNarratorVoice(projectId: string, description: string): Promise<DramaNarratorVoiceState> {
+  const { data } = await apiClient.patch<ApiResponse<DramaNarratorVoiceState>>(
+    `/drama/projects/${projectId}/narrator-voice`,
+    { description },
+  );
+  return data.data!;
+}
+
+export async function designDramaNarratorVoice(projectId: string, description: string): Promise<DramaNarratorVoiceState> {
+  const { data } = await apiClient.post<ApiResponse<DramaNarratorVoiceState>>(
+    `/drama/projects/${projectId}/narrator-voice/design`,
+    { description },
+  );
+  return data.data!;
+}
+
+export async function designDramaCharacterVoice(
+  projectId: string,
+  characterId: string,
+  prompt: string,
+): Promise<DramaCharacterVoiceDesignResult> {
+  const { data } = await apiClient.post<ApiResponse<DramaCharacterVoiceDesignResult>>(
+    `/drama/projects/${projectId}/characters/${characterId}/voice-design`,
+    { prompt },
+  );
+  return data.data!;
+}

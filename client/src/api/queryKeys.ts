@@ -2,6 +2,8 @@ export const queryKeys = {
   comicDrama: {
     links: (novelIds: string[]) => ["comic-drama", "links", ...novelIds] as const,
     overview: (novelId: string) => ["comic-drama", "overview", novelId] as const,
+    audioSegments: (projectId: string, order: number) => ["comic-drama", "audio-segments", projectId, order] as const,
+    narratorVoice: (projectId: string) => ["comic-drama", "narrator-voice", projectId] as const,
   },
   novels: {
     all: ["novels"] as const,

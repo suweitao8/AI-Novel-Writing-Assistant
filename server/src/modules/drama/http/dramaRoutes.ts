@@ -22,6 +22,9 @@ import { comicDramaStudioService } from "../../../services/drama/studio/ComicDra
 import { dramaStrategyService } from "../../../services/drama/DramaStrategyService";
 import { dramaVideoPromptService } from "../../../services/drama/DramaVideoPromptService";
 import { ttsProviderRegistry } from "../../../services/drama/audio/TTSProviderPort";
+import { dramaAudioSegmentsService } from "../../../services/drama/audio/DramaAudioSegmentsService";
+import { dramaDialogueAudioService } from "../../../services/drama/audio/DramaDialogueAudioService";
+import { dramaVoiceDesignService } from "../../../services/drama/audio/DramaVoiceDesignService";
 import { rhythmEngine } from "../../../services/drama/engine/rhythmEngine";
 import { dramaBatchOrchestrator } from "../../../services/drama/production/DramaBatchOrchestrator";
 import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaShotKeyframeService";
@@ -57,6 +60,21 @@ const batchJobBodySchema = z.object({
   shotIds: z.array(z.string().trim().min(1)).optional(),
   failedShotIds: z.array(z.string().trim().min(1)).optional(),
   useCharacterRefImages: z.boolean().optional(),
+  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  force: z.boolean().optional(),
+});
+
+const shotAudioRegenerateSchema = z.object({
+  provider: z.string().trim().optional(),
+  force: z.boolean().optional(),
+});
+
+const narratorVoiceUpdateSchema = z.object({
+  description: z.string().trim().min(4).max(1000),
+});
+
+const characterVoiceDesignSchema = z.object({
+  prompt: z.string().trim().min(4).max(1000),
 });
 
 const outlineRequestSchema = z
@@ -334,6 +352,94 @@ router.get("/tts-providers", (_req, res) => {
   const data = ttsProviderRegistry.listProviders();
   res.status(200).json({ success: true, data, message: "Drama TTS providers loaded." });
 });
+
+// ─── 配音（漫剧工作台配音阶段；分段显示模型沿自 mydrama voice-stage） ────────
+
+router.get(
+  "/projects/:id/episodes/:order/audio-segments",
+  validate({ params: episodeParamsSchema }),
+  async (req, res, next) => {
+    try {
+      const { id, order } = req.params as unknown as z.infer<typeof episodeParamsSchema>;
+      const data = await dramaAudioSegmentsService.listEpisodeAudioSegments(id, order);
+      res.status(200).json({ success: true, data, message: "Drama audio segments loaded." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/projects/:id/shots/:shotId/audio",
+  validate({ params: shotParamsSchema, body: shotAudioRegenerateSchema }),
+  async (req, res, next) => {
+    try {
+      const { shotId } = req.params as z.infer<typeof shotParamsSchema>;
+      const body = req.body as z.infer<typeof shotAudioRegenerateSchema>;
+      const data = await dramaDialogueAudioService.synthesizeShotDialogue(shotId, body.provider || "voxcpm2", {
+        force: body.force ?? false,
+      });
+      res.status(200).json({ success: true, data, message: "Drama shot dialogue audio generated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get("/projects/:id/narrator-voice", validate({ params: idParamsSchema }), async (req, res, next) => {
+  try {
+    const { id } = req.params as z.infer<typeof idParamsSchema>;
+    const data = await dramaVoiceDesignService.getNarratorVoice(id);
+    res.status(200).json({ success: true, data, message: "Drama narrator voice loaded." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch(
+  "/projects/:id/narrator-voice",
+  validate({ params: idParamsSchema, body: narratorVoiceUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params as z.infer<typeof idParamsSchema>;
+      const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
+      const data = await dramaVoiceDesignService.updateNarratorVoiceDescription(id, body.description);
+      res.status(200).json({ success: true, data, message: "Drama narrator voice updated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/projects/:id/narrator-voice/design",
+  validate({ params: idParamsSchema, body: narratorVoiceUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params as z.infer<typeof idParamsSchema>;
+      const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
+      const data = await dramaVoiceDesignService.designNarratorVoice(id, body.description);
+      res.status(200).json({ success: true, data, message: "Drama narrator voice sample generated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/projects/:id/characters/:characterId/voice-design",
+  validate({ params: characterParamsSchema, body: characterVoiceDesignSchema }),
+  async (req, res, next) => {
+    try {
+      const { characterId } = req.params as z.infer<typeof characterParamsSchema>;
+      const body = req.body as z.infer<typeof characterVoiceDesignSchema>;
+      const data = await dramaVoiceDesignService.designCharacterVoice(characterId, body.prompt);
+      res.status(200).json({ success: true, data, message: "Drama character voice sample generated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.post("/track-recommendation", validate({ body: trackRecommendationSchema }), async (req, res, next) => {
   try {

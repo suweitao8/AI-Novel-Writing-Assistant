@@ -24,6 +24,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import BlankStartPanel from "@/pages/novels/simpleCreation/BlankStartPanel";
+import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -143,7 +144,7 @@ export default function ComicDramaStudioPage() {
       {stage === "storyboard" ? (
         <StoryboardSection novelId={novelId} novelTitle={overview.novel.title} drama={overview.drama} chapterCount={overview.novel.chapterCount} />
       ) : null}
-      {stage === "voice" ? <VoiceSection drama={overview.drama} /> : null}
+      {stage === "voice" ? <VoiceSection novelId={novelId} drama={overview.drama} /> : null}
       {stage === "video" ? <VideoSection drama={overview.drama} videoProviders={overview.videoProviders} /> : null}
     </div>
   );
@@ -328,7 +329,10 @@ function StoryboardSection(props: {
   );
 }
 
-function VoiceSection(props: { drama: { projectId: string; shotCount: number; audioReadyCount: number } | null }) {
+function VoiceSection(props: {
+  novelId: string;
+  drama: { projectId: string; shotCount: number; audioReadyCount: number } | null;
+}) {
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-4 p-6">
@@ -337,19 +341,12 @@ function VoiceSection(props: { drama: { projectId: string; shotCount: number; au
           <div>
             <h2 className="font-semibold text-foreground">第三阶段 · 合成配音</h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              按分镜里的台词逐镜合成角色配音，使用系统设置里的音频模型（默认本机语音服务）。
+              按分镜台词逐行配音：先给角色和旁白定音色，再一键合成；改了台词或音色的行会标成「已过期」，补配即可。
             </p>
           </div>
         </div>
         {props.drama ? (
-          <>
-            <StageMetric label="已配音镜头" value={`${props.drama.audioReadyCount} / ${props.drama.shotCount}`} hint="台词语音已合成" />
-            <Button asChild>
-              <Link to={`/drama/projects/${props.drama.projectId}`}>
-                <AudioLines className="mr-2 h-4 w-4" aria-hidden="true" />打开配音工作台
-              </Link>
-            </Button>
-          </>
+          <VoiceStagePanel novelId={props.novelId} projectId={props.drama.projectId} />
         ) : (
           <p className="text-sm leading-6 text-muted-foreground">先在「分镜」阶段创建分镜项目，配音会在这里就绪。</p>
         )}
