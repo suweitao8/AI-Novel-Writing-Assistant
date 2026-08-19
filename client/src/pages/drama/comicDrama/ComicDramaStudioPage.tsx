@@ -184,15 +184,20 @@ export default function ComicDramaStudioPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">{headerActions}</div>
           </div>
           {stage === "novel" ? (
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/[0.28] px-4 py-2">
-              <Tabs value={novelTab} onValueChange={(value) => setNovelTab(value as NovelTab)}>
+            <div className="flex flex-col items-center gap-2 border-t border-border bg-muted/[0.28] px-4 py-2 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4">
+              <span className="hidden sm:block" aria-hidden="true" />
+              <Tabs
+                value={novelTab}
+                onValueChange={(value) => setNovelTab(value as NovelTab)}
+                className="sm:justify-self-center"
+              >
                 <TabsList>
                   <TabsTrigger value="outline">大纲</TabsTrigger>
                   <TabsTrigger value="chapterOutline">细纲</TabsTrigger>
                   <TabsTrigger value="settings">设定</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex items-center gap-2">
+              <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
                 {workspace.saveOutlineMutation.isPending ? (
                   <span className="text-xs text-muted-foreground">自动保存中…</span>
                 ) : null}
