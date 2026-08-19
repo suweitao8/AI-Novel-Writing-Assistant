@@ -21,12 +21,12 @@
 
 - 服务端投影：`server/src/services/drama/studio/ComicDramaStudioService.ts` + `/api/drama/studio/links`（批量阶段统计，供列表卡片）与 `/api/drama/studio/:novelId/overview`（单项目完整阶段视图）。前端只消费这一层，不自行拼装 Novel 与 DramaProject。
 - 前端：`client/src/pages/drama/comicDrama/`——`ComicDramaListPage`（/drama，横版卡片 + 四阶段徽章）、`ComicDramaStudioPage`（/drama/studio/:novelId，四阶段工作流页）、`ComicDramaCreateDialog`（书名 + 可选想法 → 创建后直达工作室）。
-- 工作室顶栏统一承载：返回漫剧列表、作品名、居中的四阶段主 tab（小说/分镜/配音/视频）与小说阶段子 tab（大纲/细纲/设定），右侧放当前阶段的操作按钮（小说=章节管理/开始(继续)创作/阅读台深链，分镜=同步最新章节/打开分镜工作台，视频=打开视频工作台）。
+- 工作室顶栏统一承载：返回漫剧列表、作品名、居中的四阶段主 tab（小说/分镜/配音/视频）与小说阶段子 tab（大纲/细纲/设定），右侧放当前阶段的操作按钮（小说=章节管理+AI 写作进度，分镜=同步最新章节/打开分镜工作台，视频=打开视频工作台）。开始/继续创作（自动导演接管）入口在「大纲」页签内容底部，不在顶栏。
 
 ### 小说阶段的大纲契约（空白小说工作台）
 
 - `Novel.outline` 存用户手写简略大纲；`Novel.userChapterOutlineJson` 存确认后的分章细纲（schemaVersion=1）。
-- Prompt 资产 `novel.outline.expand@v1`：输入大纲 + 设定中心快照，输出分章细纲**草稿（不落库）**；postValidate 强制章序连续、章数等于期望值、出场角色必须在设定中心名单内。
+- Prompt 资产 `novel.outline.expand@v1`：输入大纲 + 设定中心快照，输出分章细纲**草稿（不落库）**；postValidate 强制章序连续、章数等于期望值、出场角色必须在设定中心名单内。该入口只服务空白小说书架的三步流；漫剧工作室不暴露全书级细纲推理与期望章数——漫剧按逐章推进（章节管理里写本章大纲→AI 节拍），分章细纲页签只做手动整理与确认。
 - 确认细纲后同步 `estimatedChapterCount`，让导演链按用户章数规划规模。
 - 剧情契约注入点：接管 idea 携带用户大纲（`novelDirectorTakeover.ts` 的 `buildTakeoverIdea`）；卷战略/卷骨架/节奏板/章节列表/章节细化上下文注入 `user_outline_contract` 块（`prompting/prompts/novel/volume/contextBlocks.ts`，priority=99）——章节划分、事件顺序与结果不得推翻，允许补节奏与衔接。
 - 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。修改守卫白名单时必须同步更新 `simpleCreationMode.test.js`。

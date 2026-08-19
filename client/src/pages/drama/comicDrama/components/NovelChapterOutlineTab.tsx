@@ -17,8 +17,8 @@ interface NovelChapterOutlineTabProps {
   onGoOutline: () => void;
 }
 
-// 漫剧工作室「小说 · 细纲」页签：展示 AI 推理出的分章细纲草稿（或已确认细纲），
-// 全书梗概与逐章标题/梗概可直接修改，确认保存后才成为 AI 写作遵循的剧情契约。
+// 漫剧工作室「小说 · 细纲」页签：手动整理分章剧情走向（可增删调序），
+// 确认保存后成为 AI 写作遵循的剧情契约；写到某一章时，逐章的深化在顶栏「章节管理」里做。
 export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProps) {
   const { workspace, onGoOutline } = props;
   const draftChapters = workspace.draftChapters;
@@ -28,10 +28,18 @@ export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProp
       <Card className="rounded-3xl">
         <CardContent className="p-6">
           <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-12 text-center">
-            <p className="text-sm text-muted-foreground">还没有细纲。先在「大纲」页签写下故事走向，再让 AI 推理分章细纲。</p>
-            <Button className="mt-4" size="sm" variant="outline" onClick={onGoOutline}>
-              去写大纲
-            </Button>
+            <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
+              还没有分章细纲。想先规划全书的，可以在这里逐章写下剧情走向；
+              想直接开写的，去顶栏「章节管理」写下当前章的大概故事，让 AI 展开成这一章的细纲。
+            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <Button size="sm" variant="outline" onClick={onGoOutline}>
+                去写大纲
+              </Button>
+              <Button size="sm" onClick={workspace.appendChapter}>
+                <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />加一章
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

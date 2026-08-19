@@ -6,7 +6,6 @@ import {
   AudioLines,
   BookOpenText,
   Clapperboard,
-  ExternalLink,
   Film,
   Images,
   Loader2,
@@ -23,7 +22,6 @@ import {
   type DramaVisualStyle,
 } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
-import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -107,33 +105,14 @@ export default function ComicDramaStudioPage() {
   if (stage === "novel") {
     headerActions = (
       <>
+        {directorActive && directorTask ? (
+          <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
+            AI 写作中<span className="font-semibold tabular-nums text-foreground">{directorTask.progress}%</span>
+          </span>
+        ) : null}
         <Button variant="outline" size="sm" onClick={() => setChapterManageOpen(true)}>
           <BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />章节管理
         </Button>
-        {directorActive && directorTask ? (
-          <>
-            <span className="hidden items-center gap-1.5 text-xs text-muted-foreground sm:inline-flex">
-              AI 写作中<span className="font-semibold tabular-nums text-foreground">{directorTask.progress}%</span>
-            </span>
-            <Button variant="outline" size="sm" asChild>
-              <Link to={`/novels/${novelId}/simple`}><ExternalLink className="mr-1.5 h-4 w-4" aria-hidden="true" />阅读台</Link>
-            </Button>
-          </>
-        ) : (
-          <>
-            {overview.novel.chapterCount > 0 ? (
-              <Button variant="ghost" size="sm" asChild className="text-muted-foreground hover:text-foreground">
-                <Link to={`/novels/${novelId}/simple`}><ExternalLink className="mr-1.5 h-4 w-4" aria-hidden="true" />阅读台</Link>
-              </Button>
-            ) : null}
-            <AiButton size="sm" onClick={startTakeover} disabled={workspace.startMutation.isPending}>
-              {workspace.startMutation.isPending
-                ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                : null}
-              {overview.novel.chapterCount > 0 ? "继续创作" : "开始创作"}
-            </AiButton>
-          </>
-        )}
       </>
     );
   } else if (stage === "storyboard") {
@@ -222,7 +201,12 @@ export default function ComicDramaStudioPage() {
               <StorySettingsTabs novelId={novelId} />
             </section>
           ) : novelTab === "outline" ? (
-            <NovelOutlineTab workspace={workspace} onExpanded={() => setNovelTab("chapterOutline")} />
+            <NovelOutlineTab
+              workspace={workspace}
+              onStart={startTakeover}
+              directorActive={directorActive}
+              hasChapters={overview.novel.chapterCount > 0}
+            />
           ) : (
             <NovelChapterOutlineTab workspace={workspace} onGoOutline={() => setNovelTab("outline")} />
           )}
