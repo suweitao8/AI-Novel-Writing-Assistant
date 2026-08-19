@@ -37,13 +37,14 @@ import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterMana
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
+import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
 import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
 type StudioStage = "current" | "assets" | "settings";
-// 「当前」的子页签全部作用于当前章：初稿→正文→分镜→配音→视频。
-type CurrentTab = "draft" | "text" | "storyboard" | "voice" | "video";
+// 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
+type CurrentTab = "reference" | "draft" | "text" | "storyboard" | "voice" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观 / 项目（画面风格与分镜项目状态）。
@@ -56,6 +57,7 @@ const STAGE_LABELS: Record<StudioStage, string> = {
 };
 
 const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
+  reference: "参考",
   draft: "初稿",
   text: "正文",
   storyboard: "分镜",
@@ -83,6 +85,7 @@ export default function ComicDramaStudioPage() {
   const queryClient = useQueryClient();
   const [stage, setStage] = useState<StudioStage>("current");
   const [currentTab, setCurrentTab] = useState<CurrentTab>("draft");
+  const [referenceText, setReferenceText] = useState("");
   const [assetTab, setAssetTab] = useState<AssetTab>("characters");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
@@ -232,6 +235,7 @@ export default function ComicDramaStudioPage() {
                 className="sm:justify-self-center"
               >
                 <TabsList>
+                  <TabsTrigger value="reference">{CURRENT_TAB_LABELS.reference}</TabsTrigger>
                   <TabsTrigger value="draft">{CURRENT_TAB_LABELS.draft}</TabsTrigger>
                   <TabsTrigger value="text">{CURRENT_TAB_LABELS.text}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
@@ -297,7 +301,15 @@ export default function ComicDramaStudioPage() {
         </header>
 
         <TabsContent value="current" className="space-y-4">
-          {currentTab === "draft" ? (
+          {currentTab === "reference" ? (
+            <ReferenceTab
+              novelId={novelId}
+              workspace={chapterWorkspace}
+              value={referenceText}
+              onChange={setReferenceText}
+              onApplied={() => setCurrentTab("draft")}
+            />
+          ) : currentTab === "draft" ? (
             <NovelOutlineTab
               novelId={novelId}
               workspace={chapterWorkspace}

@@ -4,6 +4,7 @@ import type {
   ChapterDetailOutlineDocument,
   ChapterDetailOutlinePayload,
 } from "@ai-novel/shared/types/novelChapterDetailOutline";
+import type { ChapterReferenceDraftPayload } from "@ai-novel/shared/types/novelChapterReferenceDraft";
 import type {
   TimelineCheckReport,
   TimelineContextForChapter,
@@ -140,6 +141,19 @@ export async function generateChapterExecutionContract(
   const { data } = await apiClient.post<ApiResponse<Chapter>>(
     `/novels/${novelId}/chapters/${chapterId}/execution-contract`,
     payload,
+  );
+  return data;
+}
+
+// AI 压缩参考小说原文为本章初稿草稿（不落库，前端确认后写入初稿）
+export async function previewChapterReferenceDraft(
+  novelId: string,
+  chapterId: string,
+  referenceText: string,
+) {
+  const { data } = await apiClient.post<ApiResponse<ChapterReferenceDraftPayload>>(
+    `/novels/${novelId}/chapters/${chapterId}/reference-draft/preview`,
+    { referenceText },
   );
   return data;
 }

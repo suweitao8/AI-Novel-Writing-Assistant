@@ -95,6 +95,16 @@ export function useNovelChapterWorkspace(novelId: string) {
     }
   };
 
+  // 「参考」页签解析结果写入初稿：替换编辑器文本并立即静默落库，
+  // 不依赖初稿页签挂载后的防抖自动保存（切页签前就持久化）。
+  const applyExpectationText = (text: string) => {
+    if (!currentChapter) {
+      return;
+    }
+    setExpectationText(text);
+    saveExpectationMutation.mutate({ chapterId: currentChapter.id, text, silent: true });
+  };
+
   const switchChapter = (chapter: Chapter) => {
     if (currentChapter && currentChapter.id !== chapter.id && expectationDirty && !savePending) {
       saveExpectationMutation.mutate({
@@ -189,6 +199,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     switchChapter,
     expectationText,
     setExpectationText,
+    applyExpectationText,
     expectationDirty,
     savePending,
     flushExpectationSave,

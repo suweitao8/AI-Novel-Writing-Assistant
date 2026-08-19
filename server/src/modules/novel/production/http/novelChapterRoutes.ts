@@ -4,6 +4,7 @@ import { z } from "zod";
 import { agentRuntime } from "../../../../agents";
 import { validate } from "../../../../middleware/validate";
 import { chapterDetailOutlineService } from "../../planning/application/ChapterDetailOutlineService";
+import { chapterReferenceDraftService } from "../../planning/application/ChapterReferenceDraftService";
 import type { NovelApplicationServices } from "../../../../services/novel/application/NovelApplicationContracts";
 
 interface RegisterNovelChapterRoutesInput {
@@ -21,6 +22,7 @@ interface RegisterNovelChapterRoutesInput {
   updateChapterSchema: z.ZodTypeAny;
   chapterExecutionContractSchema: z.ZodTypeAny;
   chapterDetailOutlineSaveSchema: z.ZodTypeAny;
+  chapterReferenceDraftPreviewSchema: z.ZodTypeAny;
 }
 
 export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInput): void {
@@ -33,6 +35,7 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
     updateChapterSchema,
     chapterExecutionContractSchema,
     chapterDetailOutlineSaveSchema,
+    chapterReferenceDraftPreviewSchema,
   } = input;
 
   router.get("/:id/chapters", validate({ params: idParamsSchema }), async (req, res, next) => {
@@ -131,6 +134,29 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
           success: true,
           data,
           message: "Chapter execution contract generated.",
+        } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // 参考文本 → 初稿：AI 压缩粘贴的参考小说原文（不落库，前端确认后写入初稿）
+  router.post(
+    "/:id/chapters/:chapterId/reference-draft/preview",
+    validate({ params: chapterParamsSchema, body: chapterReferenceDraftPreviewSchema }),
+    async (req, res, next) => {
+      try {
+        const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
+        const data = await chapterReferenceDraftService.previewReferenceDraft(
+          id,
+          chapterId,
+          (req.body as { referenceText: string }).referenceText,
+        );
+        res.status(200).json({
+          success: true,
+          data,
+          message: "Chapter reference draft generated.",
         } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
