@@ -7,6 +7,7 @@ import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { filterImageGenerationReferences, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
+import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import {
   buildKeyframeStylePromptLines,
@@ -282,7 +283,7 @@ export class DramaShotKeyframeService {
       prompt,
       refImages,
       referenceImages,
-      size: "1024x1536" as const,
+      size: IMAGE_SPECS.dramaKeyframe,
       negativePrompt,
       title: `生成镜头 ${shot.order} 首帧图`,
     };

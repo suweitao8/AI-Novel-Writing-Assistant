@@ -15,6 +15,7 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { filterImageGenerationReferences, runImageGeneration, safeJsonParse } from "../image/runtime";
+import { IMAGE_SPECS } from "../image/imageSpecs";
 import { buildGenderLockPrompt, resolveComicStyleKeywords } from "./comicStylePrompt";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -135,19 +136,19 @@ function buildAssetPrompt(params: {
 
   if (assetType === "costume") {
     lines.push(
-      "show full-body front view, side view, and back view of the costume",
+      "show full-body front view, side view, and back view of the costume, arranged horizontally in one landscape sheet",
       "consistent fabric details, color palette swatch in corner",
       "white background, clean studio lighting",
     );
   } else if (assetType === "weapon") {
     lines.push(
-      "show the weapon from multiple angles: front, side, detail close-up",
+      "single three-quarter perspective view of the weapon, landscape-oriented sheet layout",
       "precise proportions, material texture visible",
       "white background, clean studio lighting",
     );
   } else {
     lines.push(
-      "show the asset from front and at least one additional angle",
+      "single three-quarter perspective view of the asset, landscape-oriented sheet layout",
       "white background, clean studio lighting",
     );
   }
@@ -311,7 +312,7 @@ export class ComicCharacterAssetService {
       prompt,
       refImagePaths,
       referenceImages,
-      size: "1024x1024" as const,
+      size: IMAGE_SPECS.characterAsset,
       title: `生成${asset.assetType === "costume" ? "服装" : asset.assetType === "weapon" ? "武器" : "资产"}：${asset.name}`,
     };
   }
