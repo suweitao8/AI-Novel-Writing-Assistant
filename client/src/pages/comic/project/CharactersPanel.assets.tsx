@@ -105,6 +105,7 @@ function AssetCard({
         title={asset.name}
         subtitle={asset.description ?? undefined}
         typeBadge={{ label: ASSET_TYPE_LABELS[asset.assetType as CharacterAssetType] ?? asset.assetType, className: accent.chip }}
+        aspectRatio="landscape"
         onGenerate={triggerGen}
         onUpload={(file) => uploadMut.mutate(file)}
         onDelete={() => deleteMut.mutate()}
