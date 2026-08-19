@@ -22,6 +22,7 @@ import {
   type DramaVisualStyle,
 } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
+import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -183,7 +184,7 @@ export default function ComicDramaStudioPage() {
             <div className="flex flex-wrap items-center justify-end gap-2">{headerActions}</div>
           </div>
           {stage === "novel" ? (
-            <div className="flex justify-center border-t border-border bg-muted/[0.28] px-4 py-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-muted/[0.28] px-4 py-2">
               <Tabs value={novelTab} onValueChange={(value) => setNovelTab(value as NovelTab)}>
                 <TabsList>
                   <TabsTrigger value="outline">大纲</TabsTrigger>
@@ -191,6 +192,26 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="settings">设定</TabsTrigger>
                 </TabsList>
               </Tabs>
+              <div className="flex items-center gap-2">
+                {workspace.saveOutlineMutation.isPending ? (
+                  <span className="text-xs text-muted-foreground">自动保存中…</span>
+                ) : null}
+                <AiButton
+                  size="sm"
+                  onClick={startTakeover}
+                  disabled={directorActive || workspace.startMutation.isPending}
+                  title={directorActive
+                    ? "AI 正在写作中，等这一轮写完可以继续。"
+                    : overview.novel.chapterCount > 0
+                      ? "AI 解析大纲后，接着已有章节继续写。"
+                      : "AI 解析大纲与设定后开始逐章创作。"}
+                >
+                  {workspace.startMutation.isPending
+                    ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                    : null}
+                  解析
+                </AiButton>
+              </div>
             </div>
           ) : null}
         </header>
@@ -201,12 +222,7 @@ export default function ComicDramaStudioPage() {
               <StorySettingsTabs novelId={novelId} />
             </section>
           ) : novelTab === "outline" ? (
-            <NovelOutlineTab
-              workspace={workspace}
-              onStart={startTakeover}
-              directorActive={directorActive}
-              hasChapters={overview.novel.chapterCount > 0}
-            />
+            <NovelOutlineTab workspace={workspace} />
           ) : (
             <NovelChapterOutlineTab workspace={workspace} onGoOutline={() => setNovelTab("outline")} />
           )}
