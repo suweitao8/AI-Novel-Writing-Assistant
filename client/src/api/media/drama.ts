@@ -503,6 +503,23 @@ export async function generateDramaVideoPrompt(id: string, shotId: string, paylo
   return data;
 }
 
+// 手动编辑镜头（台词/动作/景别/运镜/时长/场景）；台词改动后配音段自动标记过期需重配
+export async function updateDramaShot(
+  id: string,
+  shotId: string,
+  payload: Partial<{
+    action: string;
+    dialogue: string;
+    shotSize: string;
+    cameraMove: string;
+    location: string;
+    durationSec: number;
+  }>,
+) {
+  const { data } = await apiClient.put<ApiResponse<DramaShot>>(`/drama/projects/${id}/shots/${shotId}`, payload);
+  return data;
+}
+
 export async function generateDramaShotKeyframe(
   id: string,
   shotId: string,

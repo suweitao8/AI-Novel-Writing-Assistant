@@ -1,5 +1,6 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Image as ImageIcon, Loader2, Sparkles, Trash2, Upload } from "lucide-react";
+import { LightboxOverlay } from "@/components/common/LightboxImage";
 
 export type GeneratedImageCardStatus = "idle" | "generating" | "done" | "error";
 
@@ -97,6 +98,7 @@ export function GeneratedImageCard({
 
   const isGenerating = busy || status === "generating";
   const hasDoneImage = status === "done" && Boolean(imageUrl);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   const imageWrapperClass = aspectRatio ? ASPECT_STYLE[aspectRatio] : SIZE_STYLE[size];
 
@@ -126,12 +128,19 @@ export function GeneratedImageCard({
       {/* 图片区 */}
       <div className={`relative flex items-center justify-center bg-gradient-to-br from-muted/30 to-muted/60 ${imageWrapperClass}`}>
         {hasDoneImage ? (
-          <img
-            src={imageUrl}
-            alt={title}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
+          <button
+            type="button"
+            title="点击查看大图"
+            className="h-full w-full cursor-zoom-in p-0"
+            onClick={() => setLightboxOpen(true)}
+          >
+            <img
+              src={imageUrl}
+              alt={title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </button>
         ) : isGenerating ? (
           <div className="flex flex-col items-center gap-1.5 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin" />
@@ -212,6 +221,9 @@ export function GeneratedImageCard({
           />
         )}
       </div>
+      {hasDoneImage ? (
+        <LightboxOverlay open={lightboxOpen} src={imageUrl!} alt={title} onClose={() => setLightboxOpen(false)} />
+      ) : null}
     </div>
   );
 }

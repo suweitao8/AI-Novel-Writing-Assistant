@@ -36,6 +36,7 @@ import { ImageGenerationConfirmDialog } from "@/components/image/ImageGeneration
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
+import { LightboxImage } from "@/components/common/LightboxImage";
 
 function parseImageData(
   raw: string | null | undefined,
@@ -415,10 +416,11 @@ function PanelDetailDialog({
           <div className="border-b bg-muted/30 p-4 lg:w-56 lg:border-b-0 lg:border-r">
             {imageData.status === "done" ? (
               <div className="relative">
-                <img
+                <LightboxImage
                   src={panelImageUrl(panel.id)}
                   alt={`第 ${panel.order} 格`}
-                  className="mx-auto max-h-72 w-full rounded-md object-contain lg:max-h-none"
+                  className="mx-auto h-72 w-full lg:h-auto lg:min-h-[16rem]"
+                  fit="contain"
                 />
                 {imageStale && (
                   <span className="absolute left-2 top-2 rounded border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">

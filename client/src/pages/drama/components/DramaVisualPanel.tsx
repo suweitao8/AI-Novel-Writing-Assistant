@@ -298,6 +298,7 @@ export function DramaVisualPanel(props: {
           </CardHeader>
           <CardContent>
             <DramaStoryboardBoard
+              projectId={props.project.id}
               storyboard={storyboard}
               orientation={props.project.orientation}
               busy={props.busy}
