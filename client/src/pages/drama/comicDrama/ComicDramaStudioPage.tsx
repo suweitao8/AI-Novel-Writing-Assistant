@@ -163,9 +163,9 @@ export default function ComicDramaStudioPage() {
   };
 
   const parseDisabledReason = !chapterWorkspace.currentChapter
-    ? "还没有章节，先打开「章节管理」新建第一章。"
+    ? "还没有章节。"
     : !chapterWorkspace.expectationText.trim()
-      ? "先在「初稿」页签写下本章的故事，AI 才能解析。"
+      ? "本章还没有初稿。"
       : null;
 
   let headerActions: ReactNode = null;
@@ -304,7 +304,7 @@ export default function ComicDramaStudioPage() {
               onOpenChapterManage={() => setChapterManageOpen(true)}
             />
           ) : currentTab === "text" ? (
-            <NovelChapterOutlineTab workspace={chapterWorkspace} onGoOutline={() => setCurrentTab("draft")} />
+            <NovelChapterOutlineTab workspace={chapterWorkspace} />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (
               <StoryboardStagePanel projectId={overview.drama.projectId} />
@@ -406,7 +406,7 @@ function useStoryboardStage(input: {
   const createMutation = useMutation({
     mutationFn: async () => {
       if (input.chapterCount < 1) {
-        throw new Error("小说还没有成稿章节。先让 AI 写出至少一章，再生成分镜。");
+        throw new Error("小说还没有成稿章节。");
       }
       return createDramaProject({
         title: input.novelTitle,
@@ -470,7 +470,6 @@ function ProjectSettingsSection(props: {
         <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm font-medium text-foreground">画面风格</span>
-            <span className="text-xs text-muted-foreground">影响首帧图与角色形象的整体渲染风格，随时可切换。</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {storyboard.styleOptions.map((style: DramaVisualStyle) => (
@@ -491,16 +490,13 @@ function ProjectSettingsSection(props: {
               </Button>
             ))}
           </div>
-          {!drama ? (
-            <p className="text-xs leading-5 text-muted-foreground">还没有分镜项目；这里选的风格会在生成分镜时使用。</p>
-          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>分镜项目状态</span>
           {drama ? (
             <Badge variant="outline">{drama.status}</Badge>
           ) : (
-            <span>还没有分镜项目，先在「当前 · 分镜」从成稿生成。</span>
+            <span>还没有分镜项目。</span>
           )}
         </div>
       </CardContent>
@@ -520,15 +516,14 @@ function StoryboardBootstrapCard(props: {
       <CardContent className="p-6">
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
           <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
-            还没有分镜项目。当前小说已有 {props.chapterCount} 章成稿——满足一集以上的量就可以开始，
-            之后每次切换章节都会自动把最新内容带进分镜。
+            还没有分镜项目。
           </p>
           <Button
             className="mt-4"
             size="sm"
             onClick={props.onCreate}
             disabled={props.createPending || props.chapterCount < 1}
-            title={props.chapterCount < 1 ? "先让 AI 写出至少一章成稿，再生成分镜。" : undefined}
+            title={props.chapterCount < 1 ? "还没有成稿章节。" : undefined}
           >
             {props.createPending
               ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
@@ -549,7 +544,7 @@ function VoiceSection(props: {
     return (
       <Card className="rounded-3xl">
         <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
-          先创建分镜项目，配音会在这里就绪。
+          还没有分镜项目。
         </CardContent>
       </Card>
     );
@@ -580,12 +575,12 @@ function VideoSection(props: {
             />
             {!hasRealProvider ? (
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-amber-700 dark:text-amber-400">
-                当前只有占位视频通道，不会生成真实视频。可以先完成首帧图与配音并导出素材；接入外部视频服务地址后即可一键出片。
+                当前只有占位视频通道，不会生成真实视频。
               </div>
             ) : null}
           </>
         ) : (
-          <p className="text-sm leading-6 text-muted-foreground">先创建分镜项目，视频能力会在这里就绪。</p>
+          <p className="text-sm leading-6 text-muted-foreground">还没有分镜项目。</p>
         )}
       </CardContent>
     </Card>

@@ -94,7 +94,7 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
     return {
       kind: "source",
       title: "下一步：整理来源素材",
-      description: "先把小说、灵感或导入文本整理成短剧可用的梗概、节拍、角色和硬事实。",
+      description: "把小说、灵感或导入文本整理成短剧可用的梗概、节拍、角色和硬事实。",
       button: "整理素材",
       tab: "source",
       icon: "source",
@@ -114,7 +114,7 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
     return {
       kind: "outline",
       title: "下一步：生成前 12 集分集",
-      description: "先生成一段可检查的分集大纲，确认钩子、冲突和付费卡点方向。",
+      description: "生成一段可检查的分集大纲，确认钩子、冲突和付费卡点方向。",
       button: "生成前 12 集",
       tab: "episodes",
       icon: "outline",
@@ -135,7 +135,7 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
     return {
       kind: "repair",
       title: `下一步：修复第 ${repairable.order} 集质量问题`,
-      description: "这集已有质量建议，先按建议修复，避免问题进入分镜和视频提示词。",
+      description: "按已有质量建议修复，避免问题进入分镜和视频提示词。",
       button: "修复台本",
       tab: "episodes",
       icon: "repair",

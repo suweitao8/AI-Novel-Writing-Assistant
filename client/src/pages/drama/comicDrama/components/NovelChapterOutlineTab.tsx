@@ -7,7 +7,6 @@ import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNo
 
 interface NovelChapterOutlineTabProps {
   workspace: NovelChapterWorkspace;
-  onGoOutline: () => void;
 }
 
 function proseWordCount(content?: string | null): number {
@@ -34,7 +33,7 @@ export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProp
     return (
       <Card className="rounded-3xl">
         <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
-          还没有章节，先去顶栏「章节管理」新建第一章。
+          还没有章节。
         </CardContent>
       </Card>
     );
@@ -44,15 +43,8 @@ export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProp
     <div className="space-y-4">
       {!beats || beats.length === 0 ? (
         <Card className="rounded-3xl">
-          <CardContent className="p-6">
-            <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
-              <p className="mx-auto max-w-md text-sm leading-6 text-muted-foreground">
-                第 {chapter.order} 章还没有节拍。点上方「解析」按本章初稿生成；还没写初稿的，先去「初稿」页签写下这一章的故事。
-              </p>
-              <Button className="mt-4" size="sm" variant="outline" onClick={props.onGoOutline}>
-                去写初稿
-              </Button>
-            </div>
+          <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
+            第 {chapter.order} 章还没有节拍。
           </CardContent>
         </Card>
       ) : (
@@ -64,7 +56,6 @@ export default function NovelChapterOutlineTab(props: NovelChapterOutlineTabProp
                 <CheckCircle2 className="h-3 w-3" aria-hidden="true" />
                 {beats.length} 拍
               </Badge>
-              <span className="text-xs text-muted-foreground">逐拍可改可增删，3～10 拍可保存。</span>
             </div>
 
             <ol className="space-y-2">

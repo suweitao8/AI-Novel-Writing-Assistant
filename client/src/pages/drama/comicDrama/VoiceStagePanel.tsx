@@ -431,7 +431,7 @@ export default function VoiceStagePanel({ novelId, projectId }: VoiceStagePanelP
         ) : null}
         {!segmentsQuery.isLoading && summary.total === 0 ? (
           <div className="rounded-xl border border-dashed border-border bg-muted/20 px-4 py-6 text-center text-sm text-muted-foreground">
-            这一集还没有台词分镜。先在「分镜」阶段生成或同步分镜，台词会出现在这里。
+            这一集还没有台词分镜。
           </div>
         ) : null}
         <div className="space-y-2">
@@ -450,12 +450,9 @@ export default function VoiceStagePanel({ novelId, projectId }: VoiceStagePanelP
         <NarratorVoiceCard projectId={projectId} />
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">角色音色</p>
-          <p className="text-xs leading-5 text-muted-foreground">
-            每个角色用一句话描述声音（年龄、性别、语气、节奏），生成试听后该角色的所有台词都会用这个声音。
-          </p>
           {characters.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border bg-muted/20 px-3 py-4 text-xs text-muted-foreground">
-              还没有角色。分镜生成后角色会出现在这里。
+              还没有角色。
             </p>
           ) : (
             characters.map((character) => (
