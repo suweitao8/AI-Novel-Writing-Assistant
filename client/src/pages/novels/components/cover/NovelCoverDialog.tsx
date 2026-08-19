@@ -19,7 +19,7 @@ import {
   type GenerateNovelCoverPayload,
   type ImagePromptOutputLanguage,
   type NovelCoverPromptMode,
-} from "@/api/images";
+} from "@/api/media/images";
 import { queryKeys } from "@/api/queryKeys";
 import { getAPIKeySettings } from "@/api/settings";
 import { Button } from "@/components/ui/button";

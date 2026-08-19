@@ -10,7 +10,7 @@ import { parseSeedPayload } from "../../workflow/novelWorkflow.shared";
 import {
   applyDirectorRunModeContract,
   type DirectorWorkflowSeedPayload,
-} from "../runtime/novelDirectorHelpers";
+} from "../runtime/flows/novelDirectorHelpers";
 import { DirectorCommandService } from "./DirectorCommandService";
 
 export function parseSelectedExperience(seed: DirectorWorkflowSeedPayload): NovelProductionExperience | null {

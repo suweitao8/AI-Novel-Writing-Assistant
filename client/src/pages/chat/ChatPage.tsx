@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SSEFrame } from "@ai-novel/shared/types/api";
 import type { AgentStep } from "@ai-novel/shared/types/agent";
 import { useSearchParams } from "react-router-dom";
-import { getAgentRunDetail, replayAgentRunFromStep } from "@/api/agentRuns";
+import { getAgentRunDetail, replayAgentRunFromStep } from "@/api/agents/agentRuns";
 import { getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";

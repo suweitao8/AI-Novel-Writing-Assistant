@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { BookOpen, CircleGauge, Pencil, Plus, Trash2, Workflow } from "lucide-react";
-import type { StoryModeTreeNode } from "@/api/storyMode";
+import type { StoryModeTreeNode } from "@/api/story/storyMode";
 import { AssetTreeNavigator } from "@/components/assetLibrary";
 import { Button } from "@/components/ui/button";
 

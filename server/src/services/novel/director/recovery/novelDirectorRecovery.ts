@@ -2,7 +2,7 @@ import {
   isDirectorAutoExecutionRunMode,
   type DirectorRunMode,
 } from "@ai-novel/shared/types/novelDirector";
-import { normalizeDirectorRunMode } from "../runtime/novelDirectorHelpers";
+import { normalizeDirectorRunMode } from "../runtime/flows/novelDirectorHelpers";
 import type { StructuredOutlineRecoveryStep } from "./novelDirectorStructuredOutlineRecovery";
 
 export type DirectorPipelinePhase =

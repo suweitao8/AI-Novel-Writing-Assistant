@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import type { Chapter, ReviewIssue } from "@ai-novel/shared/types/novel";
 import { updateNovelChapter } from "@/api/novel";
 import { generateChapterExecutionContract } from "@/api/novel/chapters";
-import { generateNovelChapterSummary } from "@/api/novelChapterSummary";
+import { generateNovelChapterSummary } from "@/api/novel/novelChapterSummary";
 import {
   buildRepairIssue,
   resolveTargetWordCount,

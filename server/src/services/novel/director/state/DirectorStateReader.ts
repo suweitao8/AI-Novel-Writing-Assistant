@@ -1,7 +1,7 @@
 import { prisma } from "../../../../db/prisma";
 import { parseSeedPayload } from "../../workflow/novelWorkflow.shared";
-import type { DirectorWorkflowSeedPayload } from "../runtime/novelDirectorHelpers";
-import { ChapterExecutionProgressInspector, type ChapterExecutionProgressSummary } from "../runtime/ChapterExecutionProgressInspector";
+import type { DirectorWorkflowSeedPayload } from "../runtime/flows/novelDirectorHelpers";
+import { ChapterExecutionProgressInspector, type ChapterExecutionProgressSummary } from "../runtime/execution/ChapterExecutionProgressInspector";
 
 export interface DirectorCanonicalState {
   task: {

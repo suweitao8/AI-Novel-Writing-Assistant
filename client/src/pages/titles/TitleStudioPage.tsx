@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { NOVEL_LIST_PAGE_LIMIT_MAX } from "@ai-novel/shared/types/pagination";
 import { useQuery } from "@tanstack/react-query";
-import { flattenGenreTreeOptions, getGenreTree } from "@/api/genre";
+import { flattenGenreTreeOptions, getGenreTree } from "@/api/story/genre";
 import { getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

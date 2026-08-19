@@ -16,15 +16,15 @@ import type { ChapterRuntimeRequestInput } from "../../runtime/chapterRuntimeSch
 import { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import { NovelVolumeService } from "../../volume/NovelVolumeService";
 import { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
-import { buildDirectorWorkflowSeedPayload } from "../runtime/novelDirectorHelpers";
+import { buildDirectorWorkflowSeedPayload } from "../runtime/flows/novelDirectorHelpers";
 import { NovelDirectorAutoExecutionRuntime } from "../automation/novelDirectorAutoExecutionRuntime";
 import { NovelDirectorPipelineRuntime } from "../novelDirectorPipelineRuntime";
-import { NovelDirectorRuntimeOrchestrator } from "../runtime/novelDirectorRuntimeOrchestrator";
-import { DirectorRuntimeService } from "../runtime/DirectorRuntimeService";
-import { ChapterExecutionProgressInspector } from "../runtime/ChapterExecutionProgressInspector";
+import { NovelDirectorRuntimeOrchestrator } from "../runtime/flows/novelDirectorRuntimeOrchestrator";
+import { DirectorRuntimeService } from "../runtime/execution/DirectorRuntimeService";
+import { ChapterExecutionProgressInspector } from "../runtime/execution/ChapterExecutionProgressInspector";
 import type { DirectorCharacterSetupPhaseResult } from "../phases/novelDirectorPipelinePhases";
 import { normalizeDirectorAutoExecutionPlan } from "../automation/novelDirectorAutoExecution";
-import { assertHighMemoryDirectorStartAllowed } from "../runtime/autoDirectorMemorySafety";
+import { assertHighMemoryDirectorStartAllowed } from "../runtime/resilience/autoDirectorMemorySafety";
 import { qualityDebtSettingsService } from "../../../settings/QualityDebtSettingsService";
 import { pendingReviewAutoPromotionService } from "../../state/PendingReviewAutoPromotionService";
 import {

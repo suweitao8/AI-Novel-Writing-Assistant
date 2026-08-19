@@ -14,8 +14,8 @@ import {
   type DramaStoryboard,
   type DramaVideoPrompt,
   type DramaVideoProvider,
-} from "@/api/drama";
-import type { ImageGenerationOverrides } from "@/api/comic";
+} from "@/api/media/drama";
+import type { ImageGenerationOverrides } from "@/api/media/comic";
 import { getAPIKeySettings } from "@/api/settings";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";

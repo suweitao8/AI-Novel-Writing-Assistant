@@ -19,7 +19,7 @@ import {
   type ComicProject,
   type ComicSourceType,
   type CreateComicProjectPayload,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import {
   Dialog,
   DialogContent,

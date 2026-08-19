@@ -4,7 +4,7 @@ import { getChapterTitleDiversityIssue } from "../../volume/chapterTitleDiversit
 import { resolveVolumeChapterBeatKey } from "../../volume/volumeGenerationHelpers";
 import type { NovelVolumeService } from "../../volume/NovelVolumeService";
 import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
-import { buildDirectorSessionState } from "../runtime/novelDirectorHelpers";
+import { buildDirectorSessionState } from "../runtime/flows/novelDirectorHelpers";
 import { DIRECTOR_PROGRESS } from "../projections/novelDirectorProgress";
 import { buildChapterTitleDiversityTaskNotice } from "../projections/novelDirectorTaskNotice";
 

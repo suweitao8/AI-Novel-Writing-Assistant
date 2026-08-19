@@ -16,7 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import {
   getDirectorTaskSnapshot,
-} from "@/api/novelDirector";
+} from "@/api/novel/novelDirector";
 import { queryKeys } from "@/api/queryKeys";
 import DirectorRuntimeProjectionCard from "@/components/autoDirector/DirectorRuntimeProjectionCard";
 import { Badge } from "@/components/ui/badge";

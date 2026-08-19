@@ -11,7 +11,7 @@ import {
   getImageTask,
   optimizeCharacterImagePrompt,
   type ImagePromptOutputLanguage,
-} from "@/api/images";
+} from "@/api/media/images";
 import { getAPIKeySettings } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";

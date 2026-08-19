@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { GenreTreeDraft } from "@/api/genre";
+import type { GenreTreeDraft } from "@/api/story/genre";
 import { createEmptyGenreDraft } from "../genreManagement.shared";
 
 interface GenreTreeEditorProps {

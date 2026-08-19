@@ -4,7 +4,7 @@ import { z } from "zod";
 import { llmProviderSchema } from "../../../../llm/providerSchema";
 import { validate } from "../../../../middleware/validate";
 import { StoryMacroPlanService } from "../../../../services/novel/storyMacro/StoryMacroPlanService";
-import { ArtifactWriter } from "../../../../services/novel/director/runtime/DirectorArtifactGateway";
+import { ArtifactWriter } from "../../../../services/novel/director/runtime/artifacts/DirectorArtifactGateway";
 
 const llmGenerateSchema = z.object({
   provider: llmProviderSchema.optional(),

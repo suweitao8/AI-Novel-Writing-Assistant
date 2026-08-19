@@ -7,7 +7,7 @@ import {
   PlusCircle,
   Trash2,
 } from "lucide-react";
-import { deleteComicDramaByNovel, getComicDramaLinks } from "@/api/comicDrama";
+import { deleteComicDramaByNovel, getComicDramaLinks } from "@/api/media/comicDrama";
 import { getNovelList } from "@/api/novel/core";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";

@@ -4,8 +4,8 @@ import type { DirectorContinuationMode } from "@ai-novel/shared/types/novelDirec
 import type { TaskKind, TaskStatus, UnifiedTaskStep } from "@ai-novel/shared/types/task";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import type { NovelWorkflowMilestone } from "@ai-novel/shared/types/novelWorkflow";
-import { getDirectorTaskSnapshot } from "@/api/novelDirector";
-import { continueNovelWorkflow } from "@/api/novelWorkflow";
+import { getDirectorTaskSnapshot } from "@/api/novel/novelDirector";
+import { continueNovelWorkflow } from "@/api/novel/novelWorkflow";
 import {
   archiveTask,
   cancelTask,

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ArrowRight, BookOpenText, Check, Circle, Loader2, PlusCircle, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
-import { resolveImageAssetUrl } from "@/api/images";
+import { resolveImageAssetUrl } from "@/api/media/images";
 import NovelProgrammaticCover from "@/components/common/NovelProgrammaticCover";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

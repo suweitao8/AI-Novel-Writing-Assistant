@@ -7,11 +7,11 @@ import type {
   DirectorRuntimeSnapshot,
 } from "@ai-novel/shared/types/directorRuntime";
 import { prisma } from "../../../../db/prisma";
-import { buildDefaultDirectorPolicy } from "../runtime/directorRuntimeDefaults";
-import { DirectorEventProjectionService, parseDirectorIssueEventMetadata } from "../runtime/DirectorEventProjectionService";
-import { directorUsageTelemetryQueryService } from "../runtime/DirectorUsageTelemetryQueryService";
-import { ChapterExecutionProgressInspector } from "../runtime/ChapterExecutionProgressInspector";
-import type { DirectorWorkflowSeedPayload } from "../runtime/novelDirectorHelpers";
+import { buildDefaultDirectorPolicy } from "../runtime/store/directorRuntimeDefaults";
+import { DirectorEventProjectionService, parseDirectorIssueEventMetadata } from "../runtime/events/DirectorEventProjectionService";
+import { directorUsageTelemetryQueryService } from "../runtime/events/DirectorUsageTelemetryQueryService";
+import { ChapterExecutionProgressInspector } from "../runtime/execution/ChapterExecutionProgressInspector";
+import type { DirectorWorkflowSeedPayload } from "../runtime/flows/novelDirectorHelpers";
 import {
   parsePersistedDirectorRiskAssessment,
   parsePersistedDirectorRiskPolicy,

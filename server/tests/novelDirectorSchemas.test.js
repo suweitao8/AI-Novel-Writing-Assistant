@@ -5,13 +5,13 @@ const {
   directorPersistedCandidateSchema,
   directorBookContractSchema,
   normalizeDirectorTitleSuggestionStyle,
-} = require("../dist/services/novel/director/runtime/novelDirectorSchemas.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorSchemas.js");
 const {
   normalizeCandidate,
   normalizeBookContract,
   selectDistinctCandidateTitle,
   toBookSpec,
-} = require("../dist/services/novel/director/runtime/novelDirectorHelpers.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorHelpers.js");
 
 test("director persisted candidates preserve the AI-resolved production foundation", () => {
   const parsed = directorPersistedCandidateSchema.parse({

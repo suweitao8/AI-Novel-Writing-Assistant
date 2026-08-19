@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { formatCommercialTagsInput, type NovelBasicFormState } from "../../novelBasicInfo.shared";
-import { suggestBookFraming } from "@/api/novelFraming";
+import { suggestBookFraming } from "@/api/novel/novelFraming";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import { useLLMStore } from "@/store/llmStore";

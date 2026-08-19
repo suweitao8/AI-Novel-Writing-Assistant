@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { listImageAssets, resolveImageAssetUrl } from "@/api/images";
+import { listImageAssets, resolveImageAssetUrl } from "@/api/media/images";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import type { NovelBasicFormState } from "../../novelBasicInfo.shared";

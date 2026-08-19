@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 require("../dist/app.js");
 const { NovelDirectorService } = require("../dist/services/novel/director/NovelDirectorService.js");
-const { NovelDirectorConfirmRuntime } = require("../dist/services/novel/director/runtime/novelDirectorConfirmRuntime.js");
+const { NovelDirectorConfirmRuntime } = require("../dist/services/novel/director/runtime/flows/novelDirectorConfirmRuntime.js");
 const { prisma } = require("../dist/db/prisma.js");
 
 function buildDirectorInput(overrides = {}) {

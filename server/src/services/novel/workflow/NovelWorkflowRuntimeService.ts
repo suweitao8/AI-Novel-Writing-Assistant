@@ -1,4 +1,4 @@
-import { isDirectorRecoveryNotNeededError } from "../director/runtime/novelDirectorErrors";
+import { isDirectorRecoveryNotNeededError } from "../director/runtime/flows/novelDirectorErrors";
 import { DirectorCommandService } from "../director/commands/DirectorCommandService";
 import { NovelWorkflowService } from "./NovelWorkflowService";
 

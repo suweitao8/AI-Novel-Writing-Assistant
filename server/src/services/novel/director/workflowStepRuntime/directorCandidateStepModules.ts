@@ -3,7 +3,7 @@ import {
   type DirectorCandidateStageNode,
 } from "../phases/novelDirectorCandidateNodeAdapters";
 import { getDirectorConfirmNovelCreateNodeAdapter } from "../novelDirectorConfirmNodeAdapters";
-import { getDirectorTakeoverNodeAdapter } from "../runtime/novelDirectorTakeoverNodeAdapters";
+import { getDirectorTakeoverNodeAdapter } from "../runtime/takeover/novelDirectorTakeoverNodeAdapters";
 import {
   createWorkflowStepDescriptorFromDirectorAdapter,
   createWorkflowStepModule,

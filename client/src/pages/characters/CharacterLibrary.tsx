@@ -3,8 +3,8 @@ import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/rea
 import type { ImageAsset } from "@ai-novel/shared/types/image";
 import type { BaseCharacter } from "@ai-novel/shared/types/novel";
 import { CircleAlert, ImageIcon, LibraryBig, Sparkles, UsersRound } from "lucide-react";
-import { deleteBaseCharacter, getBaseCharacterList, updateBaseCharacter } from "@/api/character";
-import { deleteImageAsset, listImageAssets, setPrimaryImageAsset } from "@/api/images";
+import { deleteBaseCharacter, getBaseCharacterList, updateBaseCharacter } from "@/api/characters/character";
+import { deleteImageAsset, listImageAssets, setPrimaryImageAsset } from "@/api/media/images";
 import { queryKeys } from "@/api/queryKeys";
 import OpenInCreativeHubButton from "@/components/creativeHub/OpenInCreativeHubButton";
 import CharacterConversationWorkbench from "@/components/characterConversation/CharacterConversationWorkbench";

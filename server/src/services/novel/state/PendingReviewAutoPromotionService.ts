@@ -1,7 +1,7 @@
 import type { StateChangeProposal, StateCommitResult } from "@ai-novel/shared/types/canonicalState";
 import { prisma } from "../../../db/prisma";
 import { withSqliteRetry } from "../../../db/sqliteRetry";
-import { directorAutomationLedgerEventService } from "../director/runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";
 import { stateCommitService, type CommitExistingProposalsInput, type StateCommitService } from "./StateCommitService";
 import {
   PENDING_REVIEW_AUTO_PROMOTION_ELIGIBLE_AFTER_DAYS,

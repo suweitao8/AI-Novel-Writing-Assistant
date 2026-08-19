@@ -22,8 +22,8 @@ import {
   getSimpleCreationShelf,
   setNovelCreationExperience,
 } from "@/api/novel";
-import { continueNovelWorkflow } from "@/api/novelWorkflow";
-import { ensureStorySettings } from "@/api/storySettings";
+import { continueNovelWorkflow } from "@/api/novel/novelWorkflow";
+import { ensureStorySettings } from "@/api/story/storySettings";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";

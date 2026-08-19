@@ -6,11 +6,11 @@ import type {
   DramaCharacterLibraryItem,
   DramaCharacterPortraitData,
   DramaProjectDetail,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import {
   generateDramaCharacterPortrait,
   prepareDramaCharacterSheet,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import { getAPIKeySettings } from "@/api/settings";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";

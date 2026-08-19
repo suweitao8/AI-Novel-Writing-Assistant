@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Save } from "lucide-react";
-import { getStorySettingsWorld, regenerateStorySettings, updateStorySettingsWorld } from "@/api/storySettings";
+import { getStorySettingsWorld, regenerateStorySettings, updateStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";

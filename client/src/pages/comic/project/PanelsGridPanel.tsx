@@ -30,7 +30,7 @@ import {
   type ComicBatchJob,
   type ComicDialogue,
   type ComicPanel,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";

@@ -5,7 +5,7 @@ import type {
   DirectorChapterExecutionProgressSummary,
 } from "@ai-novel/shared/types/directorRuntime";
 import type { DirectorCandidateStageNode } from "../phases/novelDirectorCandidateNodeAdapters";
-import { getDirectorInputFromSeedPayload } from "../runtime/novelDirectorHelpers";
+import { getDirectorInputFromSeedPayload } from "../runtime/flows/novelDirectorHelpers";
 import {
   resolveDirectorAutoExecutionPlanChapterRange,
   resolveDirectorAutoExecutionRangeFromState,
@@ -13,7 +13,7 @@ import {
 import { DirectorStateReader, type DirectorCanonicalState } from "../DirectorStateReader";
 import { DirectorStateCommitter } from "../DirectorStateCommitter";
 import { DirectorFactSummaryService } from "../projections/DirectorFactSummaryService";
-import { CHAPTER_EXECUTION_PROGRESS_STAGES } from "../runtime/ChapterExecutionProgressInspector";
+import { CHAPTER_EXECUTION_PROGRESS_STAGES } from "../runtime/execution/ChapterExecutionProgressInspector";
 import { DirectorCoreStepModuleRuntime } from "./DirectorCoreStepModuleRuntime";
 import type {
   WorkflowStepExecutionContext,

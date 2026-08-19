@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
-import type { GenreTreeNode } from "@/api/genre";
+import type { GenreTreeNode } from "@/api/story/genre";
 import { Button } from "@/components/ui/button";
 import { countGenreNovelBindingsInSubtree } from "../genreManagement.shared";
 

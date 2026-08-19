@@ -10,7 +10,7 @@ import {
   promoteBookAnalysisCharacter,
   setPrimaryBookAnalysisCharacterImage,
 } from "@/api/bookAnalysis";
-import { getImageTask, resolveImageAssetUrl } from "@/api/images";
+import { getImageTask, resolveImageAssetUrl } from "@/api/media/images";
 import { queryKeys } from "@/api/queryKeys";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";

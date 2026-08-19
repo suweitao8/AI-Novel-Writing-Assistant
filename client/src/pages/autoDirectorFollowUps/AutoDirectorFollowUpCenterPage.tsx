@@ -24,7 +24,7 @@ import {
   getAutoDirectorFollowUpOverview,
   listAutoDirectorFollowUps,
   revalidateAutoDirectorFollowUpDetail,
-} from "@/api/autoDirectorFollowUps";
+} from "@/api/director/autoDirectorFollowUps";
 import { queryKeys } from "@/api/queryKeys";
 import { AutoDirectorFollowUpBatchBar } from "./components/AutoDirectorFollowUpBatchBar";
 import { AutoDirectorFollowUpDetailPanel } from "./components/AutoDirectorFollowUpDetail";

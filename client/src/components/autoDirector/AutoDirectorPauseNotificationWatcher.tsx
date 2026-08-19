@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { listAutoDirectorFollowUps } from "@/api/autoDirectorFollowUps";
+import { listAutoDirectorFollowUps } from "@/api/director/autoDirectorFollowUps";
 import {
   AUTO_DIRECTOR_PAUSE_NOTIFICATION_SETTINGS_EVENT,
   getBrowserNotificationPermission,

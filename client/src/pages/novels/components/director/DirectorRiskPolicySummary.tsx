@@ -1,4 +1,4 @@
-import type { DirectorRiskPolicy } from "@/api/directorRiskPolicy";
+import type { DirectorRiskPolicy } from "@/api/director/directorRiskPolicy";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

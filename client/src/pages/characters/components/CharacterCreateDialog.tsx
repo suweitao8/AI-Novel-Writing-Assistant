@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listBookAnalyses } from "@/api/bookAnalysis";
-import type { CharacterGenerateConstraints } from "@/api/character";
-import { createBaseCharacter, generateBaseCharacter } from "@/api/character";
+import type { CharacterGenerateConstraints } from "@/api/characters/character";
+import { createBaseCharacter, generateBaseCharacter } from "@/api/characters/character";
 import { listKnowledgeDocuments } from "@/api/knowledge";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";

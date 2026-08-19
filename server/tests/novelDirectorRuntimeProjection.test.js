@@ -7,7 +7,7 @@ const {
 } = require("../dist/services/novel/director/projections/novelDirectorRuntimeProjection.js");
 const {
   directorUsageTelemetryQueryService,
-} = require("../dist/services/novel/director/runtime/DirectorUsageTelemetryQueryService.js");
+} = require("../dist/services/novel/director/runtime/events/DirectorUsageTelemetryQueryService.js");
 
 function buildRun() {
   return {

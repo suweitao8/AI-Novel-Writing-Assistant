@@ -3,8 +3,8 @@ import type { DirectorIdeaInspiration } from "@ai-novel/shared/types/novelDirect
 import type { NovelResourceRecommendationSource } from "@ai-novel/shared/types/novelResourceRecommendation";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Layers3, Route, Sparkles, X } from "lucide-react";
-import type { GenreTreeNode } from "@/api/genre";
-import type { StoryModeTreeNode } from "@/api/storyMode";
+import type { GenreTreeNode } from "@/api/story/genre";
+import type { StoryModeTreeNode } from "@/api/story/storyMode";
 import { Button } from "@/components/ui/button";
 import NovelAutoDirectorIdeaInspirationPanel from "../components/director/NovelAutoDirectorIdeaInspirationPanel";
 import OnboardingTip from "@/components/onboarding/OnboardingTip";

@@ -40,7 +40,7 @@ import { DirectorCommandService } from "../commands/DirectorCommandService";
 import { DirectorTaskSnapshotService } from "../projections/DirectorTaskSnapshotService";
 import { NovelDirectorService } from "../NovelDirectorService";
 import { novelDirectorIdeaInspirationService } from "../NovelDirectorIdeaInspirationService";
-import { directorPersistedCandidateSchema } from "../runtime/novelDirectorSchemas";
+import { directorPersistedCandidateSchema } from "../runtime/flows/novelDirectorSchemas";
 
 const router = Router();
 const commandService = new DirectorCommandService();

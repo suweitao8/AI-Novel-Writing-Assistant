@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { TitleFactorySuggestion } from "@ai-novel/shared/types/title";
 import { generateNovelTitles } from "@/api/novel";
-import { createTitleLibraryEntry } from "@/api/title";
+import { createTitleLibraryEntry } from "@/api/media/title";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import LLMSelector from "@/components/common/LLMSelector";

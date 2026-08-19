@@ -6,8 +6,8 @@ import type {
 } from "@ai-novel/shared/types/directorRuntime";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDirectorBookAutomationProjection } from "@/api/novelDirector";
-import { continueNovelWorkflow } from "@/api/novelWorkflow";
+import { getDirectorBookAutomationProjection } from "@/api/novel/novelDirector";
+import { continueNovelWorkflow } from "@/api/novel/novelWorkflow";
 import { deleteNovel, downloadNovelExport, getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import AICockpit from "@/components/autoDirector/AICockpit";

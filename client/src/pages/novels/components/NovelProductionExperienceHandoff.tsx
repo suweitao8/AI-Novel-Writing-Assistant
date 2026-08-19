@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Check, Loader2, Settings2, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { selectNovelProductionExperience } from "@/api/novelWorkflow";
+import { selectNovelProductionExperience } from "@/api/novel/novelWorkflow";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import OnboardingTip from "@/components/onboarding/OnboardingTip";

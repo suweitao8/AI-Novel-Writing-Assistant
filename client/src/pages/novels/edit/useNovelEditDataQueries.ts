@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getBaseCharacterList } from "@/api/character";
-import { flattenGenreTreeOptions, getGenreTree } from "@/api/genre";
-import { getActiveAutoDirectorTask } from "@/api/novelWorkflow";
-import { getDirectorBookAutomationProjection } from "@/api/novelDirector";
+import { getBaseCharacterList } from "@/api/characters/character";
+import { flattenGenreTreeOptions, getGenreTree } from "@/api/story/genre";
+import { getActiveAutoDirectorTask } from "@/api/novel/novelWorkflow";
+import { getDirectorBookAutomationProjection } from "@/api/novel/novelDirector";
 import {
   getChapterAuditReports,
   getChapterPlan,
@@ -17,7 +17,7 @@ import {
   getNovelQualityReport,
   getNovelVolumeWorkspace,
 } from "@/api/novel";
-import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/storyMode";
+import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/story/storyMode";
 import { getWorldList } from "@/api/world";
 import { queryKeys } from "@/api/queryKeys";
 

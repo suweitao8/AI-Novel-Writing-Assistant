@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { StorySettingsWorld } from "@/api/storySettings";
+import type { StorySettingsWorld } from "@/api/story/storySettings";
 
 // 世界观地图：地点按环形布局，连线表示地点间的通路与关系。
 // 只用语义 token 与 currentColor，自动适配明暗主题。

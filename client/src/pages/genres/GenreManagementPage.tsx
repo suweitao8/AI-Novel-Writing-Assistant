@@ -10,7 +10,7 @@ import {
   Sparkles,
   Tags,
 } from "lucide-react";
-import { deleteGenre, flattenGenreTreeOptions, getGenreTree, type GenreTreeNode } from "@/api/genre";
+import { deleteGenre, flattenGenreTreeOptions, getGenreTree, type GenreTreeNode } from "@/api/story/genre";
 import { queryKeys } from "@/api/queryKeys";
 import {
   AssetLibraryEmptyState,

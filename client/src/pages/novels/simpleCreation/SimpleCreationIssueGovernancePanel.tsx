@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ShieldAlert, SlidersHorizontal } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { DirectorIssueAction } from "@ai-novel/shared/types/directorIssue";
-import { getDirectorTaskSnapshot, getNovelDirectorIssuePolicy } from "@/api/novelDirector";
+import { getDirectorTaskSnapshot, getNovelDirectorIssuePolicy } from "@/api/novel/novelDirector";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

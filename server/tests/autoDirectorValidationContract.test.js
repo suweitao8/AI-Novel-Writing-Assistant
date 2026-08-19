@@ -5,7 +5,7 @@ const {
   validateAutoDirectorAction,
   validateAutoDirectorTakeoverRequest,
   resolveAutoDirectorFollowUpSection,
-} = require("../dist/services/novel/director/runtime/autoDirectorValidationService.js");
+} = require("../dist/services/novel/director/runtime/resilience/autoDirectorValidationService.js");
 
 test("validateAutoDirectorTakeoverRequest lets continue recovery backfill structured outline before chapter execution", () => {
   const result = validateAutoDirectorTakeoverRequest({

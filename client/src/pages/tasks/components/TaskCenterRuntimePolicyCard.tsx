@@ -4,7 +4,7 @@ import type {
   DirectorPolicyMode,
   DirectorRuntimeSnapshot,
 } from "@ai-novel/shared/types/directorRuntime";
-import { updateDirectorRuntimePolicy } from "@/api/novelDirector";
+import { updateDirectorRuntimePolicy } from "@/api/novel/novelDirector";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

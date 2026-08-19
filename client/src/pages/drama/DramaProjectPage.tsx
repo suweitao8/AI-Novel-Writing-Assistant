@@ -37,7 +37,7 @@ import {
   type DramaProjectDetail,
   updateDramaCharacter,
   updateDramaEpisode,
-} from "@/api/drama";
+} from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import { DramaCharactersPanel } from "@/pages/drama/components/DramaCharactersPanel";
 import { DramaEpisodeAudioPanel } from "@/pages/drama/components/DramaEpisodeAudioPanel";

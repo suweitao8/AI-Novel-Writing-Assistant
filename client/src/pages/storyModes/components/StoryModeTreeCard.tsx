@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
-import type { StoryModeTreeNode } from "@/api/storyMode";
+import type { StoryModeTreeNode } from "@/api/story/storyMode";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 

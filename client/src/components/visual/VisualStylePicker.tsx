@@ -20,7 +20,7 @@ import {
   updateVisualStyle,
   type VisualStyleSummary,
   type VisualStyleUpsertPayload,
-} from "@/api/visualStyles";
+} from "@/api/media/visualStyles";
 import {
   formatVisualStyleFamilyLabel,
   type VisualStyleAnimationSubtype,

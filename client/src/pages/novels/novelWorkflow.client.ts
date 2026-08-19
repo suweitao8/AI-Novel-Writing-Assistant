@@ -3,7 +3,7 @@ import type {
   NovelWorkflowStage,
 } from "@ai-novel/shared/types/novelWorkflow";
 import type { TaskStatus } from "@ai-novel/shared/types/task";
-import { syncNovelWorkflowStage } from "@/api/novelWorkflow";
+import { syncNovelWorkflowStage } from "@/api/novel/novelWorkflow";
 
 export function workflowStageFromTab(tab: string): NovelWorkflowStage {
   if (tab === "story_macro") {

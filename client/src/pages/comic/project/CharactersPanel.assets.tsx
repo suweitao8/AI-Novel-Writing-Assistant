@@ -13,7 +13,7 @@ import {
   type CharacterAssetType,
   type ComicCharacterAsset,
   type ComicCharacter,
-} from "@/api/comic";
+} from "@/api/media/comic";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";
 import { GeneratedImageCard } from "@/components/comic/GeneratedImageCard";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";

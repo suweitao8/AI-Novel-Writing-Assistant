@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createGenreTree, generateGenreTree, type GenreOption, type GenreTreeDraft } from "@/api/genre";
+import { createGenreTree, generateGenreTree, type GenreOption, type GenreTreeDraft } from "@/api/story/genre";
 import { queryKeys } from "@/api/queryKeys";
 import LLMSelector from "@/components/common/LLMSelector";
 import { Button } from "@/components/ui/button";

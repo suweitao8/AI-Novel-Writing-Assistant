@@ -8,7 +8,7 @@ import {
   Video,
   Wand2,
 } from "lucide-react";
-import type { DramaEpisode, DramaProjectDetail, DramaShot, DramaVideoPrompt } from "@/api/drama";
+import type { DramaEpisode, DramaProjectDetail, DramaShot, DramaVideoPrompt } from "@/api/media/drama";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { ImageIcon, LayoutGrid, Loader2, Maximize2, Video } from "lucide-react";
-import type { DramaShot, DramaShotKeyframeData, DramaStoryboard, DramaVideoPrompt } from "@/api/drama";
+import type { DramaShot, DramaShotKeyframeData, DramaStoryboard, DramaVideoPrompt } from "@/api/media/drama";
 import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

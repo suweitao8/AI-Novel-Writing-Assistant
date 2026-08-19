@@ -22,7 +22,7 @@ import {
 import { GenerationContextAssembler } from "../runtime/GenerationContextAssembler";
 import { chapterQualityLoopService } from "../quality/ChapterQualityLoopService";
 import { chapterStatePairAfterManualQualityReview } from "../runtime/chapterLifecycleState";
-import { directorAutomationLedgerEventService } from "../director/runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";
 import { ChapterRuntimeCoordinator } from "../runtime/ChapterRuntimeCoordinator";
 import {
   ChapterContextAssemblyError,

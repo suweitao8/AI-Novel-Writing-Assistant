@@ -15,8 +15,8 @@ import type {
   PromptAsset,
   PromptContextRequirement,
 } from "../../../../prompting/core/promptTypes";
-import type { DirectorPolicyRequest } from "../runtime/DirectorPolicyEngine";
-import type { DirectorNodeContract } from "../runtime/DirectorNodeRunner";
+import type { DirectorPolicyRequest } from "../runtime/execution/DirectorPolicyEngine";
+import type { DirectorNodeContract } from "../runtime/execution/DirectorNodeRunner";
 
 export type WorkflowStepApprovalRequirement = "never" | "risky" | "always";
 

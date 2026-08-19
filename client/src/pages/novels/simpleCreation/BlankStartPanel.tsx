@@ -17,8 +17,8 @@ import {
   saveNovelChapterOutline,
   saveNovelOutline,
 } from "@/api/novel/outline";
-import { startDirectorTakeover } from "@/api/novelDirector";
-import { ensureStorySettings } from "@/api/storySettings";
+import { startDirectorTakeover } from "@/api/novel/novelDirector";
+import { ensureStorySettings } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

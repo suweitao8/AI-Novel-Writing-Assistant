@@ -10,8 +10,8 @@ import type {
   DirectorTakeoverStrategy,
 } from "@ai-novel/shared/types/novelDirector";
 import { buildFullBookAutopilotExecutionPlan } from "@ai-novel/shared/types/novelDirector";
-import { getDirectorTaskSnapshot, getDirectorTakeoverReadiness, startDirectorTakeover } from "@/api/novelDirector";
-import { DEFAULT_DIRECTOR_RISK_POLICY, getNovelDirectorRiskPolicy } from "@/api/directorRiskPolicy";
+import { getDirectorTaskSnapshot, getDirectorTakeoverReadiness, startDirectorTakeover } from "@/api/novel/novelDirector";
+import { DEFAULT_DIRECTOR_RISK_POLICY, getNovelDirectorRiskPolicy } from "@/api/director/directorRiskPolicy";
 import { queryKeys } from "@/api/queryKeys";
 import { getStyleBindings, getStyleProfiles } from "@/api/styleEngine";
 import LLMSelector from "@/components/common/LLMSelector";

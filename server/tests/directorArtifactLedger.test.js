@@ -8,10 +8,10 @@ const {
   reconcileDirectorArtifactLedger,
   stableDirectorContentHash,
   summarizeDirectorArtifactLedger,
-} = require("../dist/services/novel/director/runtime/DirectorArtifactLedger.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorArtifactLedger.js");
 const {
   buildDirectorArtifactBookSummary,
-} = require("../dist/services/novel/director/runtime/DirectorArtifactLedgerQueryService.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorArtifactLedgerQueryService.js");
 
 function chapterDraft(hash, version = 1) {
   return {
