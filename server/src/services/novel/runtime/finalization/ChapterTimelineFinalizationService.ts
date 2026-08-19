@@ -7,14 +7,14 @@ import type {
   TimelineHookDraft,
 } from "@ai-novel/shared/types/timeline";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import { prisma } from "../../../db/prisma";
+import { prisma } from "../../../../db/prisma";
 import {
   storyTimelineService,
   timelineCheckerService,
   timelineContextService,
   timelineExtractorService,
   timelineRepository,
-} from "../../../modules/timeline";
+} from "../../../../modules/timeline";
 
 export type ChapterTimelineFinalizationMode = "stable" | "degraded";
 type TimelineFinalizationClaimStatus = "claimed" | "already_done" | "running";

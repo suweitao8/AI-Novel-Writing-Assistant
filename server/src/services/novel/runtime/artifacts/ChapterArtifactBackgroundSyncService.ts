@@ -1,15 +1,15 @@
-import { prisma } from "../../../db/prisma";
-import { payoffLedgerSyncService } from "../../payoff/PayoffLedgerSyncService";
+import { prisma } from "../../../../db/prisma";
+import { payoffLedgerSyncService } from "../../../payoff/PayoffLedgerSyncService";
 import {
   parsePipelinePayload,
   stringifyPipelinePayload,
-} from "../pipelineJobState";
+} from "../../pipelineJobState";
 import type {
   ArtifactSyncMode,
   PipelineBackgroundSyncActivity,
   PipelineBackgroundSyncKind,
   PipelinePayload,
-} from "../novelCore/novelCoreShared";
+} from "../../novelCore/novelCoreShared";
 import type { ContentProvenance } from "@ai-novel/shared/types/canonicalState";
 import { buildContentHash, ChapterArtifactDeltaService } from "./ChapterArtifactDeltaService";
 

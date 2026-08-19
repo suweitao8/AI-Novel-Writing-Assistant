@@ -1,22 +1,22 @@
 import type { GenerationContextPackage } from "@ai-novel/shared/types/chapterRuntime";
 import type { TimelineCheckResult, TimelineHookDraft } from "@ai-novel/shared/types/timeline";
-import { prisma } from "../../../db/prisma";
+import { prisma } from "../../../../db/prisma";
 import {
   storyTimelineService,
   timelineCheckerService,
   timelineExtractorService,
-} from "../../../modules/timeline";
+} from "../../../../modules/timeline";
 import {
   ChapterAcceptanceAssessmentService,
   type ChapterAcceptanceAssessmentResult,
 } from "./ChapterAcceptanceAssessmentService";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
 import {
   hashContent,
   normalizeTimelineGateResult,
   rememberCacheValue,
   type TimelineGateResult,
-} from "./chapterRuntimePackageBuilders";
+} from "../chapterRuntimePackageBuilders";
 
 export interface ChapterQualityGateAgentRuntime {
   createChapterGenRun: (novelId: string, chapterId: string, chapterOrder: number) => Promise<string>;

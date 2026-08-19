@@ -2,14 +2,14 @@ import type { ChapterRuntimePackage, GenerationContextPackage } from "@ai-novel/
 import type { ContentProvenance } from "@ai-novel/shared/types/canonicalState";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
-import { detectForbiddenStyleEntities } from "../../styleEngine/styleGenerationSanitizer";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
+import { detectForbiddenStyleEntities } from "../../../styleEngine/styleGenerationSanitizer";
 import {
   assertChapterContentNotEmpty,
   isChapterEmptyContentError,
   type ChapterEmptyContentError,
-} from "./chapterEmptyContentError";
-import { runChapterRepairText } from "./repair/chapterRepairRuntime";
+} from "../chapterEmptyContentError";
+import { runChapterRepairText } from "../repair/chapterRepairRuntime";
 
 export interface PipelineRuntimeHooks {
   onCheckCancelled?: () => Promise<void>;

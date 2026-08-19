@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   normalizeAssessment,
-} = require("../dist/services/novel/runtime/ChapterAcceptanceAssessmentService.js");
+} = require("../dist/services/novel/runtime/qualityGate/ChapterAcceptanceAssessmentService.js");
 
 function createAssessment(overrides = {}) {
   return {

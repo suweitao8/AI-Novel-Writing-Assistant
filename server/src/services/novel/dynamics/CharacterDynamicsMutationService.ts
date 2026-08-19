@@ -21,7 +21,7 @@ import {
   PROJECTION_SOURCE_TYPES,
 } from "./characterDynamicsShared";
 import { buildVolumeWindows, dedupeStrings, mergeProjectionAssignments, resolveCurrentVolume, toCharacterRelationStage } from "./characterDynamicsUtils";
-import { buildContentHash } from "../runtime/ChapterArtifactDeltaService";
+import { buildContentHash } from "../runtime/artifacts/ChapterArtifactDeltaService";
 
 type NovelContextCharacterPort = Pick<NovelContextService, "createCharacter">;
 type NovelContextServiceFactory = () => NovelContextCharacterPort;

@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { prisma } = require("../dist/db/prisma.js");
-const { ChapterArtifactDeltaService } = require("../dist/services/novel/runtime/ChapterArtifactDeltaService.js");
+const { ChapterArtifactDeltaService } = require("../dist/services/novel/runtime/artifacts/ChapterArtifactDeltaService.js");
 
 test("artifact delta only applies active dialogue influences that are valid in this chapter", async () => {
   const service = new ChapterArtifactDeltaService();

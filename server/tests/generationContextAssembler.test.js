@@ -5,7 +5,7 @@ const {
   GenerationContextAssembler,
   buildBlockingPendingReviewProposalWhere,
   resolveChapterResourceCharacterIds,
-} = require("../dist/services/novel/runtime/GenerationContextAssembler.js");
+} = require("../dist/services/novel/runtime/context/GenerationContextAssembler.js");
 const { prisma } = require("../dist/db/prisma.js");
 const { plannerService } = require("../dist/services/planner/PlannerService.js");
 const { contextAssemblyService } = require("../dist/services/novel/production/ContextAssemblyService.js");

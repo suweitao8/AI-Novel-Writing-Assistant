@@ -2,9 +2,9 @@ import type {
   GenerationContextPackage,
   RuntimeStyleDetectionReport,
 } from "@ai-novel/shared/types/chapterRuntime";
-import { StyleDetectionService } from "../../styleEngine/StyleDetectionService";
-import { StyleRewriteService } from "../../styleEngine/StyleRewriteService";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
+import { StyleDetectionService } from "../../../styleEngine/StyleDetectionService";
+import { StyleRewriteService } from "../../../styleEngine/StyleRewriteService";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
 import { PostGenerationStyleReviewPolicyResolver } from "./PostGenerationStyleReviewPolicyResolver";
 
 export interface StyleReviewResult {

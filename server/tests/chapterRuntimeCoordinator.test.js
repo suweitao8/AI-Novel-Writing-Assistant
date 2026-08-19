@@ -3,9 +3,9 @@ const test = require("node:test");
 const promptRunner = require("../dist/prompting/core/promptRunner.js");
 const { prisma } = require("../dist/db/prisma.js");
 const { ChapterRuntimeCoordinator } = require("../dist/services/novel/runtime/ChapterRuntimeCoordinator.js");
-const { mergeKnowledgeBoundaryState } = require("../dist/services/novel/runtime/ChapterArtifactDeltaService.js");
+const { mergeKnowledgeBoundaryState } = require("../dist/services/novel/runtime/artifacts/ChapterArtifactDeltaService.js");
 const { directorAutomationLedgerEventService } = require("../dist/services/novel/director/runtime/events/DirectorAutomationLedgerEventService.js");
-const { PostGenerationStyleReviewRunner } = require("../dist/services/novel/runtime/PostGenerationStyleReviewRunner.js");
+const { PostGenerationStyleReviewRunner } = require("../dist/services/novel/runtime/proseQuality/PostGenerationStyleReviewRunner.js");
 const { openConflictService } = require("../dist/services/state/OpenConflictService.js");
 
 function createEmptyStream() {

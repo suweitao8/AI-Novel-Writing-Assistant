@@ -43,6 +43,42 @@ test("ChapterRuntimeCoordinator remains a thin facade without dynamic require", 
   assert.equal(source.includes("require("), false);
 });
 
+test("chapter runtime stays grouped into owned submodules", () => {
+  const runtimeRoot = path.join(srcRoot, "services", "novel", "runtime");
+  const rootTsFiles = fs
+    .readdirSync(runtimeRoot, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => entry.name)
+    .sort();
+
+  assert.deepEqual(rootTsFiles, [
+    "ChapterPipelineRuntimeAdapter.ts",
+    "ChapterRuntimeCoordinator.ts",
+    "ChapterRuntimeDefaultDeps.ts",
+    "ChapterRuntimeReadinessService.ts",
+    "NovelPipelineRuntimeService.ts",
+    "chapterEmptyContentError.ts",
+    "chapterLifecycleState.ts",
+    "chapterRuntimePackageBuilders.ts",
+    "chapterRuntimeSchema.ts",
+    "highMemoryReservation.ts",
+    "runtimeContextBlocks.ts",
+  ]);
+
+  for (const dirname of [
+    "artifacts",
+    "context",
+    "finalization",
+    "generation",
+    "proseQuality",
+    "qualityGate",
+    "repair",
+  ]) {
+    const fullPath = path.join(runtimeRoot, dirname);
+    assert.equal(fs.statSync(fullPath).isDirectory(), true, `runtime/${dirname} must be a directory`);
+  }
+});
+
 test("chapter runtime package builders stay free of IO and service singletons", () => {
   const source = readSource("services", "novel", "runtime", "chapterRuntimePackageBuilders.ts");
 

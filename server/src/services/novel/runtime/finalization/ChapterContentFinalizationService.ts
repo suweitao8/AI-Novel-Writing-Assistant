@@ -1,23 +1,23 @@
 import { createHash } from "node:crypto";
 import type { ChapterRuntimePackage, GenerationContextPackage } from "@ai-novel/shared/types/chapterRuntime";
-import { prisma } from "../../../db/prisma";
-import { novelEventBus } from "../../../events";
-import { openConflictService } from "../../state/OpenConflictService";
-import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";
-import { filterAcceptedFactItems, type FactLedgerExcludedItem } from "../fact/factLedgerFilter";
-import { novelFactService } from "../fact/NovelFactService";
-import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
-import type { StyleReviewResult } from "./PostGenerationStyleReviewRunner";
-import { ChapterQualityGateService } from "./ChapterQualityGateService";
+import { prisma } from "../../../../db/prisma";
+import { novelEventBus } from "../../../../events";
+import { openConflictService } from "../../../state/OpenConflictService";
+import { directorAutomationLedgerEventService } from "../../director/runtime/events/DirectorAutomationLedgerEventService";
+import { filterAcceptedFactItems, type FactLedgerExcludedItem } from "../../fact/factLedgerFilter";
+import { novelFactService } from "../../fact/NovelFactService";
+import { ChapterArtifactSyncService } from "../artifacts/ChapterArtifactSyncService";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
+import type { StyleReviewResult } from "../proseQuality/PostGenerationStyleReviewRunner";
+import { ChapterQualityGateService } from "../qualityGate/ChapterQualityGateService";
 import {
   buildRuntimePackage,
   type ChapterRuntimePlannerPort,
-} from "./chapterRuntimePackageBuilders";
+} from "../chapterRuntimePackageBuilders";
 import {
   buildProseQualityAuditReport,
   detectProseQuality,
-} from "./proseQuality/ProseQualityDetector";
+} from "../proseQuality/ProseQualityDetector";
 
 export interface ChapterContentFinalizationAgentRuntime {
   finishChapterGenRun: (runId: string, summary: string, durationMs: number) => Promise<void>;
