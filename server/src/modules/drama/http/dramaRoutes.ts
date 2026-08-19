@@ -89,6 +89,8 @@ const outlineRequestSchema = z
   .optional();
 
 const idParamsSchema = z.object({ id: z.string().trim().min(1) });
+// 按小说删除漫剧项目的路由参数是 :novelId，与通用的 :id schema 不同名，必须单独校验。
+const novelRefParamsSchema = z.object({ novelId: z.string().trim().min(1) });
 const episodeParamsSchema = z.object({
   id: z.string().trim().min(1),
   order: z.coerce.number().int().min(1),
@@ -336,9 +338,9 @@ router.post("/projects/:id/source-bundle", validate({ params: idParamsSchema }),
 // 漫剧项目删除：DramaProject 对小说是软引用（sourceRef，无外键级联），
 // 必须先显式清理 drama 侧（分镜/配音/视频随项目级联），再删除小说本体（含 RAG 清理）。
 // 两个 bounded context 的删除在 HTTP 叶子层编排，服务层保持互不依赖。
-router.delete("/projects/by-novel/:novelId", validate({ params: idParamsSchema }), async (req, res, next) => {
+router.delete("/projects/by-novel/:novelId", validate({ params: novelRefParamsSchema }), async (req, res, next) => {
   try {
-    const { id: novelId } = req.params as z.infer<typeof idParamsSchema>;
+    const { novelId } = req.params as z.infer<typeof novelRefParamsSchema>;
     await dramaProjectService.deleteProjectsByNovelRef(novelId);
     await getSharedNovelServices().deleteNovel(novelId);
     res.status(200).json({ success: true, message: "漫剧项目已删除。" } satisfies ApiResponse<null>);
