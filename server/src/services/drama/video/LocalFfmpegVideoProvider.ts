@@ -141,7 +141,12 @@ function buildFfmpegArgs(input: {
     );
   }
   if (input.audioPath) {
-    args.push("-i", input.audioPath);
+    if (input.audioPath.endsWith(".txt")) {
+      // 多段配音走 concat demuxer：必须显式 -f concat（.txt 扩展名无法自动推断格式）。
+      args.push("-f", "concat", "-safe", "0", "-i", input.audioPath);
+    } else {
+      args.push("-i", input.audioPath);
+    }
   } else {
     args.push("-f", "lavfi", "-i", `anullsrc=channel_layout=stereo:sample_rate=44100`);
   }
