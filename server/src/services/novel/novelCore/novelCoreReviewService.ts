@@ -19,7 +19,7 @@ import {
   ReviewOptions,
   ruleScore,
 } from "./novelCoreShared";
-import { GenerationContextAssembler } from "../runtime/GenerationContextAssembler";
+import { GenerationContextAssembler } from "../runtime/context/GenerationContextAssembler";
 import { chapterQualityLoopService } from "../quality/ChapterQualityLoopService";
 import { chapterStatePairAfterManualQualityReview } from "../runtime/chapterLifecycleState";
 import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";

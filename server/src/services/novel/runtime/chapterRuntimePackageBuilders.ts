@@ -11,8 +11,8 @@ import type { ChapterAcceptanceAssessmentOutput } from "../../../prompting/promp
 import { withChapterRepairContext } from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
 import { buildSyntheticPayoffIssues } from "../../payoff/payoffLedgerShared";
 import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
-import type { StyleReviewResult } from "./PostGenerationStyleReviewRunner";
-import type { ChapterTimelineGateResult } from "./ChapterTimelineFinalizationService";
+import type { StyleReviewResult } from "./proseQuality/PostGenerationStyleReviewRunner";
+import type { ChapterTimelineGateResult } from "./finalization/ChapterTimelineFinalizationService";
 
 export type TimelineGateResult = ChapterTimelineGateResult;
 

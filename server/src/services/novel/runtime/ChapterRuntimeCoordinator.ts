@@ -4,22 +4,22 @@ import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
 import { prisma } from "../../../db/prisma";
 import { auditService } from "../../audit/AuditService";
 import { plannerService } from "../../planner/PlannerService";
-import { ChapterWritingGraph } from "./chapterWritingGraph";
-import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";
-import { GenerationContextAssembler } from "./GenerationContextAssembler";
-import { ChapterAcceptanceAssessmentService } from "./ChapterAcceptanceAssessmentService";
+import { ChapterWritingGraph } from "./generation/chapterWritingGraph";
+import { ChapterArtifactSyncService } from "./artifacts/ChapterArtifactSyncService";
+import { GenerationContextAssembler } from "./context/GenerationContextAssembler";
+import { ChapterAcceptanceAssessmentService } from "./qualityGate/ChapterAcceptanceAssessmentService";
 import { ChapterRuntimeReadinessService } from "./ChapterRuntimeReadinessService";
 import { chapterRuntimeRequestSchema, type ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
 import type {
   PipelineRuntimeHooks,
   PipelineRuntimeInput,
   PipelineRuntimeResult,
-} from "./chapterRuntimePipeline";
+} from "./generation/chapterRuntimePipeline";
 import type { RepairOptions, ReviewOptions } from "../novelCore/novelCoreShared";
 import { ChapterRepairStreamRuntime } from "./repair/ChapterRepairStreamRuntime";
-import { ChapterQualityGateService } from "./ChapterQualityGateService";
-import { ChapterContentFinalizationService } from "./ChapterContentFinalizationService";
-import { ChapterStreamGenerationOrchestrator } from "./ChapterStreamGenerationOrchestrator";
+import { ChapterQualityGateService } from "./qualityGate/ChapterQualityGateService";
+import { ChapterContentFinalizationService } from "./finalization/ChapterContentFinalizationService";
+import { ChapterStreamGenerationOrchestrator } from "./generation/ChapterStreamGenerationOrchestrator";
 import { ChapterPipelineRuntimeAdapter } from "./ChapterPipelineRuntimeAdapter";
 import {
   createDefaultReviewChapterAfterRepair,

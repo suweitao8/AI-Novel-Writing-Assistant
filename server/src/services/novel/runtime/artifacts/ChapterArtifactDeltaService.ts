@@ -3,38 +3,38 @@ import type {
   StateChangeProposal,
 } from "@ai-novel/shared/types/canonicalState";
 import { createHash } from "node:crypto";
-import { prisma } from "../../../db/prisma";
-import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
+import { prisma } from "../../../../db/prisma";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import {
   chapterArtifactDeltaPrompt,
   type ChapterArtifactDeltaOutput,
-} from "../../../prompting/prompts/novel/chapter/chapterArtifactDelta.prompts";
-import { ragServices } from "../../rag";
-import type { RagOwnerType } from "../../rag/types";
-import type { SnapshotExtractionOutput } from "../../state/stateSnapshotExtraction";
+} from "../../../../prompting/prompts/novel/chapter/chapterArtifactDelta.prompts";
+import { ragServices } from "../../../rag";
+import type { RagOwnerType } from "../../../rag/types";
+import type { SnapshotExtractionOutput } from "../../../state/stateSnapshotExtraction";
 import {
   resolveSnapshotChapterReference,
   stateService,
-} from "../../state/StateService";
+} from "../../../state/StateService";
 import {
   clearStaleRiskSignal,
   dedupeRiskSignals,
   serializeLedgerJson,
-} from "../../payoff/payoffLedgerShared";
-import { characterResourceLedgerService } from "../characterResource/CharacterResourceLedgerService";
-import { characterMindService } from "../characterMind/CharacterMindService";
-import { characterResourceStaleScanService } from "../characterResource/CharacterResourceStaleScanService";
+} from "../../../payoff/payoffLedgerShared";
+import { characterResourceLedgerService } from "../../characterResource/CharacterResourceLedgerService";
+import { characterMindService } from "../../characterMind/CharacterMindService";
+import { characterResourceStaleScanService } from "../../characterResource/CharacterResourceStaleScanService";
 import {
   compactText,
   normalizeResourceKey,
-} from "../characterResource/characterResourceShared";
-import { novelFactService, type NovelFactWriteItem } from "../fact/NovelFactService";
-import { extractFacts } from "../novelP0Utils";
-import { stateCommitService } from "../state/StateCommitService";
+} from "../../characterResource/characterResourceShared";
+import { novelFactService, type NovelFactWriteItem } from "../../fact/NovelFactService";
+import { extractFacts } from "../../novelP0Utils";
+import { stateCommitService } from "../../state/StateCommitService";
 import {
   attachProposalSourceQuality,
   normalizeContentProvenance,
-} from "../state/stateProposalSourceQuality";
+} from "../../state/stateProposalSourceQuality";
 
 const ARTIFACT_DELTA_SOURCE_TYPE = "chapter_artifact_delta";
 const ARTIFACT_DELTA_SOURCE_STAGE = "chapter_execution";

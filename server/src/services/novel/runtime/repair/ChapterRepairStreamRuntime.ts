@@ -12,8 +12,8 @@ import {
   type RepairOptions,
   type ReviewOptions,
 } from "../../novelCore/novelCoreShared";
-import type { ChapterArtifactSyncService } from "../ChapterArtifactSyncService";
-import type { GenerationContextAssembler } from "../GenerationContextAssembler";
+import type { ChapterArtifactSyncService } from "../artifacts/ChapterArtifactSyncService";
+import type { GenerationContextAssembler } from "../context/GenerationContextAssembler";
 import {
   ChapterContextAssemblyError,
   assembleChapterAuditContextPackage,

@@ -2,7 +2,7 @@ import { prisma } from "../../../db/prisma";
 import { withSqliteRetry } from "../../../db/sqliteRetry";
 import { briefSummary, extractCharacterEventLines, extractFacts } from "./novelCoreShared";
 import { queueRagUpsert } from "./novelCoreSupport";
-import { chapterArtifactBackgroundSyncService } from "../runtime/ChapterArtifactBackgroundSyncService";
+import { chapterArtifactBackgroundSyncService } from "../runtime/artifacts/ChapterArtifactBackgroundSyncService";
 
 export async function syncCharacterTimelineForChapter(novelId: string, chapterId: string, content: string) {
   const [chapter, characters] = await Promise.all([

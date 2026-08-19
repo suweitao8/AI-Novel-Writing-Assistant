@@ -1,22 +1,22 @@
 import type { BaseMessageChunk } from "@langchain/core/messages";
-import type { StreamDoneHelpers, StreamDonePayload, WritableSSEFrame } from "../../../llm/streaming";
+import type { StreamDoneHelpers, StreamDonePayload, WritableSSEFrame } from "../../../../llm/streaming";
 import type { ChapterRuntimePackage, GenerationContextPackage } from "@ai-novel/shared/types/chapterRuntime";
-import { prisma } from "../../../db/prisma";
+import { prisma } from "../../../../db/prisma";
 import { ChapterWritingGraph } from "./chapterWritingGraph";
-import { toText } from "../novelP0Utils";
-import { GenerationContextAssembler } from "./GenerationContextAssembler";
-import { ChapterRuntimeReadinessService } from "./ChapterRuntimeReadinessService";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
+import { toText } from "../../novelP0Utils";
+import { GenerationContextAssembler } from "../context/GenerationContextAssembler";
+import { ChapterRuntimeReadinessService } from "../ChapterRuntimeReadinessService";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
 import type { AssembledRuntimeChapter } from "./chapterRuntimePipeline";
 import {
   assertChapterContentNotEmpty,
   isChapterEmptyContentError,
   type ChapterEmptyContentError,
-} from "./chapterEmptyContentError";
+} from "../chapterEmptyContentError";
 import {
   ChapterContentFinalizationService,
   type FinalizeChapterContentResult,
-} from "./ChapterContentFinalizationService";
+} from "../finalization/ChapterContentFinalizationService";
 
 export interface ChapterStreamGenerationAgentRuntime {
   createChapterGenRun: (novelId: string, chapterId: string, chapterOrder: number) => Promise<string>;

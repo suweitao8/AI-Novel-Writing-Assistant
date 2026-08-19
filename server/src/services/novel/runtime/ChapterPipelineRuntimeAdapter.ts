@@ -1,17 +1,17 @@
 import { prisma } from "../../../db/prisma";
 import { mergeChapterPatchForGenerationStateBump } from "./chapterLifecycleState";
-import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";
+import { ChapterArtifactSyncService } from "./artifacts/ChapterArtifactSyncService";
 import {
   runPipelineChapterWithRuntime,
   type PipelineRuntimeHooks,
   type PipelineRuntimeInput,
   type PipelineRuntimeResult,
-} from "./chapterRuntimePipeline";
+} from "./generation/chapterRuntimePipeline";
 import {
   isChapterEmptyContentError,
 } from "./chapterEmptyContentError";
-import type { ChapterContentFinalizationService } from "./ChapterContentFinalizationService";
-import type { ChapterStreamGenerationOrchestrator } from "./ChapterStreamGenerationOrchestrator";
+import type { ChapterContentFinalizationService } from "./finalization/ChapterContentFinalizationService";
+import type { ChapterStreamGenerationOrchestrator } from "./generation/ChapterStreamGenerationOrchestrator";
 
 export interface ChapterPipelineRuntimeAdapterDeps {
   streamOrchestrator: Pick<

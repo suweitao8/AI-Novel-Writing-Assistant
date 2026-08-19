@@ -7,7 +7,7 @@ import {
 } from "@ai-novel/shared/types/chapterQualityLoop";
 import { prisma } from "../../../db/prisma";
 import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";
-import type { QualityDebtAttribution } from "../runtime/chapterRuntimePipeline";
+import type { QualityDebtAttribution } from "../runtime/generation/chapterRuntimePipeline";
 
 interface RecordChapterQualityLoopInput {
   novelId: string;

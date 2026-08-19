@@ -1,29 +1,29 @@
 import type { GenerationContextPackage } from "@ai-novel/shared/types/chapterRuntime";
-import { buildCompressionLog } from "../../../prompting/core/contextBudget";
-import { prisma } from "../../../db/prisma";
-import { ragServices } from "../../rag";
-import { plannerService } from "../../planner/PlannerService";
-import { buildChapterRagQuery } from "../NovelReferenceService";
-import { NovelContinuationService } from "../NovelContinuationService";
-import { parseJsonStringArray } from "../novelP0Utils";
-import { StyleBindingService } from "../../styleEngine/StyleBindingService";
-import { WorldContextGateway } from "../worldContext/WorldContextGateway";
-import { characterDynamicsQueryService } from "../dynamics/CharacterDynamicsQueryService";
-import { characterResourceLedgerService } from "../characterResource/CharacterResourceLedgerService";
-import { payoffLedgerSyncService } from "../../payoff/PayoffLedgerSyncService";
-import { buildSyntheticPayoffIssues } from "../../payoff/payoffLedgerShared";
+import { buildCompressionLog } from "../../../../prompting/core/contextBudget";
+import { prisma } from "../../../../db/prisma";
+import { ragServices } from "../../../rag";
+import { plannerService } from "../../../planner/PlannerService";
+import { buildChapterRagQuery } from "../../NovelReferenceService";
+import { NovelContinuationService } from "../../NovelContinuationService";
+import { parseJsonStringArray } from "../../novelP0Utils";
+import { StyleBindingService } from "../../../styleEngine/StyleBindingService";
+import { WorldContextGateway } from "../../worldContext/WorldContextGateway";
+import { characterDynamicsQueryService } from "../../dynamics/CharacterDynamicsQueryService";
+import { characterResourceLedgerService } from "../../characterResource/CharacterResourceLedgerService";
+import { payoffLedgerSyncService } from "../../../payoff/PayoffLedgerSyncService";
+import { buildSyntheticPayoffIssues } from "../../../payoff/payoffLedgerShared";
 import {
   buildRuntimeLedgerFromCanonical,
   buildRuntimeOpenConflictsFromCanonical,
   buildRuntimeStateSnapshotFromCanonical,
-} from "../state/CanonicalStateService";
-import { contextAssemblyService } from "../production/ContextAssemblyService";
-import type { ChapterRuntimeRequestInput } from "./chapterRuntimeSchema";
+} from "../../state/CanonicalStateService";
+import { contextAssemblyService } from "../../production/ContextAssemblyService";
+import type { ChapterRuntimeRequestInput } from "../chapterRuntimeSchema";
 import {
   buildPreviousChaptersSummary,
-} from "./runtimeContextBlocks";
-import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../storyMode/storyModeProfile";
-import { mapRowToPlan } from "../storyMacro/storyMacroPlanPersistence";
+} from "../runtimeContextBlocks";
+import { buildStoryModePromptBlock, normalizeStoryModeOutput } from "../../../storyMode/storyModeProfile";
+import { mapRowToPlan } from "../../storyMacro/storyMacroPlanPersistence";
 import {
   buildBookContractContext,
   buildNarrativeProgressHint,
@@ -34,37 +34,37 @@ import {
   buildVolumeWindowContext,
   getAllContextBlocks,
   getRuntimePromptBudgetProfiles,
-} from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
-import { novelFactService } from "../fact/NovelFactService";
-import { batchContextCache } from "./BatchContextCache";
+} from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
+import { novelFactService } from "../../fact/NovelFactService";
+import { batchContextCache } from "../generation/BatchContextCache";
 import {
   buildRuntimeCharacterHardFactsList,
   parseCharacterProhibitionsJson,
-} from "../characters/characterHardFacts";
-import { NovelVolumeService } from "../volume/NovelVolumeService";
-import { ChapterPlanJITService } from "../planning/ChapterPlanJITService";
+} from "../../characters/characterHardFacts";
+import { NovelVolumeService } from "../../volume/NovelVolumeService";
+import { ChapterPlanJITService } from "../../planning/ChapterPlanJITService";
 import { buildDirectorCompletionProfile } from "@ai-novel/shared/types/directorCompletion";
-import { storySettingsService } from "../../../modules/novel/story-settings/application/StorySettingsService";
-import { buildStorySettingsPromptText } from "../../../modules/novel/story-settings/application/storySettingsPromptText";
-import { ChapterRouteWindowService } from "../planning/ChapterRouteWindowService";
+import { storySettingsService } from "../../../../modules/novel/story-settings/application/StorySettingsService";
+import { buildStorySettingsPromptText } from "../../../../modules/novel/story-settings/application/storySettingsPromptText";
+import { ChapterRouteWindowService } from "../../planning/ChapterRouteWindowService";
 import {
   buildBlockingPendingReviewProposalWhere,
   loadPendingCharacterHardFactReviews,
-} from "./context/pendingReviewContext";
-import { buildSyntheticCharacterResourceIssues } from "./context/syntheticCharacterResourceIssues";
+} from "./pendingReviewContext";
+import { buildSyntheticCharacterResourceIssues } from "./syntheticCharacterResourceIssues";
 import {
   buildRuntimeVolumeWindowSeed,
   resolveActiveMilestonePayoffs,
-} from "./context/bookAndVolumeRewardContext";
+} from "./bookAndVolumeRewardContext";
 import {
   extractChapterOpening,
   extractChapterTail,
   runtimeChapterSelect,
-} from "./context/chapterSourceText";
-import { resolveChapterResourceCharacterIds } from "./context/chapterParticipantSelection";
+} from "./chapterSourceText";
+import { resolveChapterResourceCharacterIds } from "./chapterParticipantSelection";
 
-export { buildBlockingPendingReviewProposalWhere } from "./context/pendingReviewContext";
-export { resolveChapterResourceCharacterIds } from "./context/chapterParticipantSelection";
+export { buildBlockingPendingReviewProposalWhere } from "./pendingReviewContext";
+export { resolveChapterResourceCharacterIds } from "./chapterParticipantSelection";
 
 const OPENING_COMPARE_LIMIT = 3;
 const OPENING_SLICE_LENGTH = 220;

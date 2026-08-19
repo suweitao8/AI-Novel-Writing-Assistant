@@ -4,17 +4,17 @@ import type {
   GenerationContextPackage,
 } from "@ai-novel/shared/types/chapterRuntime";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import { prisma } from "../../../db/prisma";
-import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import { resolvePromptContextBlocksForAsset } from "../../../prompting/context/promptContextResolution";
-import { buildChapterReviewContextBlocks } from "../../../prompting/prompts/novel/chapter/chapterLayeredContext";
-import { resolveTargetWordRange } from "../../../prompting/prompts/novel/chapter/chapterLayeredContextShared";
+import { prisma } from "../../../../db/prisma";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
+import { resolvePromptContextBlocksForAsset } from "../../../../prompting/context/promptContextResolution";
+import { buildChapterReviewContextBlocks } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContext";
+import { resolveTargetWordRange } from "../../../../prompting/prompts/novel/chapter/chapterLayeredContextShared";
 import {
   chapterAcceptanceAssessmentPrompt,
   type ChapterAcceptanceAssessmentOutput,
-} from "../../../prompting/prompts/novel/chapter/chapterAcceptance.prompts";
-import { openConflictService } from "../../state/OpenConflictService";
-import { normalizeScore, ruleScore } from "../novelP0Utils";
+} from "../../../../prompting/prompts/novel/chapter/chapterAcceptance.prompts";
+import { openConflictService } from "../../../state/OpenConflictService";
+import { normalizeScore, ruleScore } from "../../novelP0Utils";
 
 export interface ChapterAcceptanceAssessmentInput {
   novelId: string;

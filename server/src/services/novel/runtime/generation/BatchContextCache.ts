@@ -1,6 +1,6 @@
-import { prisma } from "../../../db/prisma";
-import { novelEventBus } from "../../../events";
-import type { NovelEvent } from "../../../events/types";
+import { prisma } from "../../../../db/prisma";
+import { novelEventBus } from "../../../../events";
+import type { NovelEvent } from "../../../../events/types";
 
 /**
  * 批次上下文稳定层缓存（Phase 2）
