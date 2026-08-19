@@ -108,7 +108,7 @@ export default function ChapterManagePanel(props: { novelId: string; directorTas
         </div>
       ) : chapters.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">还没有章节。可以先写本章大纲并让 AI 展开细纲，也可以去「创作」页签写全书大纲交给 AI。</p>
+          <p className="text-sm text-muted-foreground">还没有章节。可以先写本章大纲并让 AI 展开细纲，也可以去「大纲」页签写全书大纲交给 AI。</p>
           <Button className="mt-4" size="sm" onClick={() => setCreateOpen(true)} disabled={directorTaskActive}>
             <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />新建第一章
           </Button>
