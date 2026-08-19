@@ -10,7 +10,11 @@ const {
   parseSelectedExperience,
 } = require("../dist/services/novel/director/commands/DirectorProductionExperienceService.js");
 const { prisma } = require("../dist/db/prisma.js");
-const { isSimpleCreationWriteAllowed } = require("../dist/modules/novel/http/simpleCreationWriteGuard.js");
+const {
+  guardSimpleCreationUserWrites,
+  isDramaStudioChapterWorkspaceWrite,
+  isSimpleCreationWriteAllowed,
+} = require("../dist/modules/novel/http/simpleCreationWriteGuard.js");
 
 const confirmRuntimeSource = fs.readFileSync(
   path.resolve(__dirname, "../src/services/novel/director/runtime/flows/novelDirectorConfirmRuntime.ts"),
@@ -179,4 +183,63 @@ test("simple creation write boundary allows reads, exports, settings and outline
   assert.equal(isSimpleCreationWriteAllowed("PUT", "/book"), false);
   assert.equal(isSimpleCreationWriteAllowed("DELETE", "/book/chapters/chapter-1"), false);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/chapters/chapter-1/generate"), false);
+});
+
+test("drama studio chapter workspace writes only cover outline-level endpoints", () => {
+  // 漫剧工作室的单章工作台：本章大纲保存、手动建章、单章细纲推理与保存。
+  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/book/chapters/chapter-1"), true);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/book/chapters"), true);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/book/chapters/chapter-1/detail-outline/preview"), true);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/book/chapters/chapter-1/detail-outline"), true);
+  // 删除与生成等其余章节端点不属于工作台，仍然只读。
+  assert.equal(isDramaStudioChapterWorkspaceWrite("DELETE", "/book/chapters/chapter-1"), false);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/book/chapters/chapter-1/generate"), false);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/book"), false);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/book/chapters/chapter-1/execution-contract"), false);
+});
+
+test("simple creation guard allows chapter workspace only for drama-linked novels", async () => {
+  const originals = {
+    novelFindUnique: prisma.novel.findUnique,
+    dramaFindFirst: prisma.dramaProject.findFirst,
+  };
+  const requests = {};
+  prisma.novel.findUnique = async () => ({ creationExperience: "simple" });
+
+  function fakeRequest(method, path) {
+    return { method, path, params: { id: "book-1" } };
+  }
+  function captureNext(key) {
+    return (error) => {
+      requests[key] = error ?? null;
+    };
+  }
+
+  try {
+    // 关联漫剧项目的简易小说：单章工作台写入放行。
+    prisma.dramaProject.findFirst = async () => ({ id: "drama-1" });
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/book-1/chapters/chapter-1"), {}, captureNext("linkedPutChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/book-1/chapters"), {}, captureNext("linkedPostChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/book-1/chapters/chapter-1/detail-outline/preview"), {}, captureNext("linkedPreview"));
+    assert.equal(requests.linkedPutChapter, null);
+    assert.equal(requests.linkedPostChapter, null);
+    assert.equal(requests.linkedPreview, null);
+
+    // 关联漫剧项目也不能绕过破坏性写入与正文生成。
+    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/book-1/chapters/chapter-1"), {}, captureNext("linkedDelete"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/book-1/chapters/chapter-1/generate"), {}, captureNext("linkedGenerate"));
+    assert.ok(requests.linkedDelete instanceof Error);
+    assert.equal(requests.linkedDelete.statusCode, 409);
+    assert.ok(requests.linkedGenerate instanceof Error);
+    assert.equal(requests.linkedGenerate.statusCode, 409);
+
+    // 未关联漫剧项目的普通简易小说：单章工作台同样只读。
+    prisma.dramaProject.findFirst = async () => null;
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/book-1/chapters/chapter-1"), {}, captureNext("plainPutChapter"));
+    assert.ok(requests.plainPutChapter instanceof Error);
+    assert.equal(requests.plainPutChapter.statusCode, 409);
+  } finally {
+    prisma.novel.findUnique = originals.novelFindUnique;
+    prisma.dramaProject.findFirst = originals.dramaFindFirst;
+  }
 });
