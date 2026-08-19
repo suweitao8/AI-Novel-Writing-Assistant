@@ -15,7 +15,7 @@ import { toast } from "@/components/ui/toast";
 
 export const DRAMA_CHAPTERS_QUERY_KEY = "drama-studio-chapters";
 
-const DEFAULT_LINE_COUNT = 50;
+const DEFAULT_LINE_COUNT = 20;
 
 export interface ChapterBeatDraft {
   summary: string;
@@ -35,8 +35,8 @@ function parseDetailOutline(chapter: Chapter): { beats: ChapterDetailOutlineBeat
 }
 
 // 漫剧工作室小说阶段的「按章创作」工作区：当前章（顶栏章节管理显示与切换）+
-// 本章大纲（expectation，静默自动保存）+ 本章细纲（AI 解析节拍草稿，确认才落库）。
-// 大纲/细纲两个子页签共享这一份状态，切页签不丢稿；切章时先落库上一章再重置。
+// 本章初稿（expectation，静默自动保存）+ 本章节拍（AI 解析草稿，确认才落库）。
+// 初稿/正文两个子页签共享这一份状态，切页签不丢稿；切章时先落库上一章再重置。
 export function useNovelChapterWorkspace(novelId: string) {
   const queryClient = useQueryClient();
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
@@ -75,10 +75,10 @@ export function useNovelChapterWorkspace(novelId: string) {
     onSuccess: async (_data, input) => {
       await invalidateChapters();
       if (!input.silent) {
-        toast.success("本章大纲已保存。");
+        toast.success("本章初稿已保存。");
       }
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存大纲失败，请重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "保存初稿失败，请重试。"),
   });
 
   const expectationDirty = Boolean(currentChapter)
@@ -106,7 +106,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     setCurrentChapterId(chapter.id);
   };
 
-  // 章节加载/切换时重置编辑态；空白大纲铺满 50 行编号空行（trim 判空，不触发自动保存）。
+  // 章节加载/切换时重置编辑态；空白初稿铺满 20 行编号空行（trim 判空，不触发自动保存）。
   const loadedChapterRef = useRef<string | null>(null);
   useEffect(() => {
     if (!currentChapter || loadedChapterRef.current === currentChapter.id) {
@@ -130,7 +130,7 @@ export function useNovelChapterWorkspace(novelId: string) {
         throw new Error("还没有章节。先打开「章节管理」新建第一章。");
       }
       if (!expectationText.trim()) {
-        throw new Error("先在「大纲」页签写下本章的故事，AI 才能解析细纲。");
+        throw new Error("先在「初稿」页签写下本章的故事，AI 才能解析。");
       }
       return previewChapterDetailOutline(novelId, currentChapter.id);
     },
@@ -141,9 +141,9 @@ export function useNovelChapterWorkspace(novelId: string) {
       }));
       setBeats(draft);
       setNotes(response.data?.notes ?? "");
-      toast.success(`AI 已解析出 ${draft.length} 拍细纲草稿，确认前可逐拍修改。`);
+      toast.success(`AI 已解析出 ${draft.length} 拍草稿，确认前可逐拍修改。`);
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "细纲解析失败，请稍后重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请稍后重试。"),
   });
 
   const saveBeatsMutation = useMutation({
@@ -153,7 +153,7 @@ export function useNovelChapterWorkspace(novelId: string) {
       }
       const count = beats?.length ?? 0;
       if (count < 3 || count > 10) {
-        throw new Error("细纲需要 3～10 拍。");
+        throw new Error("节拍需要 3～10 拍。");
       }
       return saveChapterDetailOutline(novelId, currentChapter.id, {
         beats: (beats ?? []).map((beat) => ({ summary: beat.summary, keyEvent: beat.keyEvent })),
@@ -162,9 +162,9 @@ export function useNovelChapterWorkspace(novelId: string) {
     },
     onSuccess: async () => {
       await invalidateChapters();
-      toast.success("本章细纲已保存。");
+      toast.success("本章节拍已保存。");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存细纲失败，请重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "保存节拍失败，请重试。"),
   });
 
   const updateBeat = (index: number, patch: Partial<ChapterBeatDraft>) => {

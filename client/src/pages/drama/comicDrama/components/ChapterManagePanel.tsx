@@ -4,7 +4,6 @@ import { Loader2, Plus, Search } from "lucide-react";
 import type { Chapter } from "@ai-novel/shared/types/novel";
 import { createNovelChapter } from "@/api/novel/chapters";
 import { DRAMA_CHAPTERS_QUERY_KEY } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
@@ -16,12 +15,6 @@ function chapterWordCount(content?: string | null): number {
   return (content ?? "").replace(/\s+/g, "").length;
 }
 
-function chapterStatusMeta(chapter: Chapter): { label: string; tone: string } {
-  if (chapterWordCount(chapter.content) > 0) return { label: "有正文", tone: "border-emerald-500/40 text-emerald-600 dark:text-emerald-400" };
-  if ((chapter.expectation ?? "").trim()) return { label: "有大纲", tone: "border-primary/40 bg-primary/10 text-primary" };
-  return { label: "空白章", tone: "text-muted-foreground" };
-}
-
 interface ChapterManagePanelProps {
   novelId: string;
   chapters: Chapter[];
@@ -30,19 +23,20 @@ interface ChapterManagePanelProps {
   onSelectChapter: (chapter: Chapter) => void;
 }
 
-// 章节管理面板：章节卡片列表（点卡片切换为当前章，「大纲 / 细纲」页签随之更新），
-// 支持按序号/标题搜索与手动新建章节；本章大纲与细纲的编辑在主界面两个页签里做。
+// 章节管理面板：工具栏（新建 / 搜索框 / 搜索按钮）+ 简化卡片（第几章、章节名、字数）。
+// 点卡片把该章切为当前章，「初稿 / 正文」等子页签随之更新。
 export default function ChapterManagePanel(props: ChapterManagePanelProps) {
   const { novelId, directorTaskActive } = props;
   const queryClient = useQueryClient();
   const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
 
   const chapters = useMemo(
     () => [...props.chapters].sort((left, right) => left.order - right.order),
     [props.chapters],
   );
-  const normalizedKeyword = keyword.trim().toLowerCase();
+  const normalizedKeyword = appliedKeyword.trim().toLowerCase();
   const filteredChapters = normalizedKeyword
     ? chapters.filter(
         (chapter) =>
@@ -55,48 +49,64 @@ export default function ChapterManagePanel(props: ChapterManagePanelProps) {
     await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
   };
 
+  const applySearch = () => {
+    setAppliedKeyword(keyword);
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1 sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            value={keyword}
-            onChange={(event) => setKeyword(event.target.value)}
-            placeholder="按章节序号或标题搜索"
-            className="pl-9"
-          />
-        </div>
-        <span className="text-xs tabular-nums text-muted-foreground">
-          {normalizedKeyword ? `${filteredChapters.length}/${chapters.length} 章` : `${chapters.length} 章`}
-        </span>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
         <Button
-          className="ml-auto"
-          size="sm"
+          type="button"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label="新建章节"
+          title="新建章节"
           onClick={() => setCreateOpen(true)}
           disabled={directorTaskActive}
-          title={directorTaskActive ? "AI 正在写作，暂停后再手动添加章节。" : undefined}
         >
-          <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />新建章节
+          <Plus className="h-4 w-4" aria-hidden="true" />
+        </Button>
+        <Input
+          value={keyword}
+          aria-label="搜索章节"
+          placeholder="按章节序号或标题搜索"
+          maxLength={40}
+          className="h-8 min-w-0 flex-1"
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              applySearch();
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0"
+          aria-label="搜索"
+          onClick={applySearch}
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
         </Button>
       </div>
 
       {chapters.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-12 text-center">
+        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
           <p className="text-sm text-muted-foreground">还没有章节。点「新建章节」写下第一章的标题和这一章要发生什么。</p>
           <Button className="mt-4" size="sm" onClick={() => setCreateOpen(true)} disabled={directorTaskActive}>
             <Plus className="mr-1.5 h-4 w-4" aria-hidden="true" />新建第一章
           </Button>
         </div>
       ) : filteredChapters.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-12 text-center text-sm text-muted-foreground">
-          没有匹配「{keyword.trim()}」的章节。
+        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center text-sm text-muted-foreground">
+          没有「{appliedKeyword.trim()}」的章节。
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {filteredChapters.map((chapter) => {
-            const status = chapterStatusMeta(chapter);
-            const summary = (chapter.expectation ?? "").trim() || (chapter.content ?? "").replace(/\s+/g, " ").trim();
             const isCurrent = chapter.id === props.currentChapterId;
             return (
               <button
@@ -106,21 +116,20 @@ export default function ChapterManagePanel(props: ChapterManagePanelProps) {
                 className="group text-left"
               >
                 <Card className={cn(
-                  "h-full rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm",
+                  "rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm",
                   isCurrent && "border-primary/50 ring-1 ring-primary/30",
                 )}>
-                  <CardContent className="flex h-full min-h-[132px] flex-col gap-2 p-3">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="shrink-0 tabular-nums">第 {chapter.order} 章</Badge>
-                      <span className="min-w-0 truncate text-sm font-semibold text-foreground group-hover:text-primary">{chapter.title}</span>
+                  <CardContent className="flex items-center justify-between gap-3 p-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+                        第 {chapter.order} 章
+                      </span>
+                      <span className="min-w-0 truncate text-sm font-semibold text-foreground group-hover:text-primary">
+                        {chapter.title}
+                      </span>
                     </div>
-                    <Badge variant="outline" className={cn("w-fit", status.tone)}>{status.label}</Badge>
-                    <span className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                      {summary ? summary.slice(0, 120) : "还没有大纲，点开写下这一章要发生什么。"}
-                    </span>
-                    <span className="mt-auto pt-1 text-xs tabular-nums text-muted-foreground">
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {chapterWordCount(chapter.content).toLocaleString()} 字
-                      {chapter.detailOutlineJson?.trim() ? " · 已有细纲" : ""}
                     </span>
                   </CardContent>
                 </Card>
@@ -161,7 +170,7 @@ function CreateChapterDialog(props: {
       }),
     onSuccess: async () => {
       await onCreated();
-      toast.success(`第 ${nextOrder} 章已创建，可以继续写本章大纲。`);
+      toast.success(`第 ${nextOrder} 章已创建，可以继续写本章初稿。`);
       setTitle("");
       setSynopsis("");
       onOpenChange(false);
@@ -173,7 +182,7 @@ function CreateChapterDialog(props: {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <AppDialogContent
         title={`新建第 ${nextOrder} 章`}
-        description="写下这一章的标题和大纲：大纲会被 AI 展开成细纲节拍，也是写作时的依据。"
+        description="写下这一章的标题和大纲：大纲会被 AI 展开成节拍，也是写作时的依据。"
         footer={
           <>
             <Button variant="outline" onClick={() => onOpenChange(false)}>取消</Button>

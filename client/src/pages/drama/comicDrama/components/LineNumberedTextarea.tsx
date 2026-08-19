@@ -65,7 +65,7 @@ function buildEntityHighlight(names: string[] | undefined, className: string) {
 // 颜色全部走项目语义 token（CSS 变量），明暗主题自适应；场景/道具用组件内色调映射的
 // 调色板原色（emerald/amber），与 WorkflowProgressBar 的做法一致。
 export default function LineNumberedTextarea(props: LineNumberedTextareaProps) {
-  const minRows = props.minRows ?? 50;
+  const minRows = props.minRows ?? 20;
   const { characters, scenes, props: propNames } = props.highlight ?? {};
   const extensions = useMemo(
     () =>
