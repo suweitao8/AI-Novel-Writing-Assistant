@@ -37,6 +37,7 @@ import {
   auditIssueParamsSchema,
   beatGenerateSchema,
   chapterExecutionContractSchema,
+  chapterDetailOutlineSaveSchema,
   chapterParamsSchema,
   chapterSchema,
   characterParamsSchema,
@@ -111,6 +112,7 @@ export function registerNovelHttpRoutes(router: Router, services: NovelHttpServi
     chapterSchema,
     updateChapterSchema,
     chapterExecutionContractSchema,
+    chapterDetailOutlineSaveSchema,
   });
 
   registerNovelChapterEditorRoutes({

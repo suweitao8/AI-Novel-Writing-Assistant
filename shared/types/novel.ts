@@ -293,6 +293,8 @@ export interface Chapter {
   riskFlags?: string | null;
   hook?: string | null;
   expectation?: string | null;
+  /** 单章细纲（ChapterDetailOutlineDocument 的 JSON 序列化，见 novelChapterDetailOutline.ts） */
+  detailOutlineJson?: string | null;
   novelId: string;
   createdAt: string;
   updatedAt: string;

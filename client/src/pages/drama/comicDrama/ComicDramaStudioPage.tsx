@@ -24,6 +24,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import BlankStartPanel from "@/pages/novels/simpleCreation/BlankStartPanel";
+import ChapterManagePanel from "@/pages/drama/comicDrama/components/ChapterManagePanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -44,7 +45,7 @@ const STAGE_LABELS: Record<StudioStage, string> = {
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
   const [stage, setStage] = useState<StudioStage>("novel");
-  const [novelSubView, setNovelSubView] = useState<"creation" | "settings">("creation");
+  const [novelSubView, setNovelSubView] = useState<"creation" | "chapters" | "settings">("creation");
   const overviewQuery = useQuery({
     queryKey: queryKeys.comicDrama.overview(novelId),
     queryFn: () => getComicDramaStudioOverview(novelId),
@@ -119,25 +120,28 @@ export default function ComicDramaStudioPage() {
       </Tabs>
 
       {stage === "novel" ? (
-        overview.novel.directorTask ? (
-          <NovelRunningSection novelId={novelId} chapterCount={overview.novel.chapterCount} />
-        ) : (
-          <>
-            <Tabs value={novelSubView} onValueChange={(value) => setNovelSubView(value as "creation" | "settings")}>
-              <TabsList>
-                <TabsTrigger value="creation">创作</TabsTrigger>
-                <TabsTrigger value="settings">设定</TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {novelSubView === "settings" ? (
-              <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-                <StorySettingsTabs novelId={novelId} />
-              </section>
-            ) : (
-              <BlankStartPanel novelId={novelId} novelTitle={overview.novel.title} onGoToSettings={() => setNovelSubView("settings")} />
-            )}
-          </>
-        )
+        <>
+          <Tabs value={novelSubView} onValueChange={(value) => setNovelSubView(value as "creation" | "chapters" | "settings")}>
+            <TabsList>
+              <TabsTrigger value="creation">创作</TabsTrigger>
+              <TabsTrigger value="chapters">章节</TabsTrigger>
+              <TabsTrigger value="settings">设定</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          {novelSubView === "settings" ? (
+            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+              <StorySettingsTabs novelId={novelId} />
+            </section>
+          ) : novelSubView === "chapters" ? (
+            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+              <ChapterManagePanel novelId={novelId} directorTaskActive={Boolean(overview.novel.directorTask)} />
+            </section>
+          ) : overview.novel.directorTask ? (
+            <NovelRunningSection novelId={novelId} chapterCount={overview.novel.chapterCount} />
+          ) : (
+            <BlankStartPanel novelId={novelId} novelTitle={overview.novel.title} onGoToSettings={() => setNovelSubView("settings")} />
+          )}
+        </>
       ) : null}
 
       {stage === "storyboard" ? (
