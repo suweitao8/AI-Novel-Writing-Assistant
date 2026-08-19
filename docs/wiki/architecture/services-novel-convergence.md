@@ -23,7 +23,7 @@
 
 - `routes/` 已完成三批共 22 个文件的收敛（cbea50e7/ca8e7232/bdb7ce5d）：genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula/task/settings 系(含子路由与 settingsAutoDirector)/storyMode/character/rag/promptWorkbench/health/agentCatalog/agentRuns/astrology/autoDirector 系。归属规则：产品能力进 `modules/<域>/http/`，llm/health 等基础设施进 `platform/**/http/`，promptWorkbench 归 `prompting/http/`，autoDirector 系归 director 自有 `http/`。仅剩 4 个（bookAnalysis/chat/creativeHub/images），均属并行会话活跃域，待其落定后收尾。
 - ~~`prompting/prompts/novel`（42 文件）~~ 已收敛（f34bbbd7）：31 个文件按家族进 chapter/character/director 子目录，根层 44→13；registry loader、29 个服务引用方、9 个测试 require 同步改路径，无兼容壳。~~`client/src/pages/novels/components`~~ 已收敛（f8ed87e5）：54 文件入 chapter/character/director/structured/takeover/cards/tabs 七个子目录，根层 65→14。
-- 根层兼容壳在新代码不再引用后可分批退役。
+- ~~根层兼容壳退役~~ 已完成（e53600f1）：22 个 export * 壳全部删除，59 处引用（39 源文件 + 10 测试）由位置感知解析器重定向至真实模块；根层定格 17 个文件（facade 与共享内核）。
 
 ## 测试环境与验证结论（2026-08-19）
 
