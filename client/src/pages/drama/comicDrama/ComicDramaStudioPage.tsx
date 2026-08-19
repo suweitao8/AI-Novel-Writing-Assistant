@@ -227,7 +227,7 @@ export default function ComicDramaStudioPage() {
               <StorySettingsTabs novelId={novelId} />
             </section>
           ) : novelTab === "outline" ? (
-            <NovelOutlineTab workspace={workspace} />
+            <NovelOutlineTab novelId={novelId} workspace={workspace} />
           ) : (
             <NovelChapterOutlineTab workspace={workspace} onGoOutline={() => setNovelTab("outline")} />
           )}
