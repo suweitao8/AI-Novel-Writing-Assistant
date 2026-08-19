@@ -4,7 +4,7 @@ import { buildChapterDetailBundleLabel, buildChapterDetailBundleProgress, DIRECT
 import {
   normalizeDirectorRunMode,
   type DirectorWorkflowSeedPayload,
-} from "../director/runtime/novelDirectorHelpers";
+} from "../director/runtime/flows/novelDirectorHelpers";
 import {
   buildDirectorAutoExecutionScopeLabel,
   normalizeDirectorAutoExecutionPlan,

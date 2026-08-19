@@ -4,7 +4,7 @@ require("../dist/app.js");
 const {
   applyDirectorLlmOverride,
   getDirectorLlmOptionsFromSeedPayload,
-} = require("../dist/services/novel/director/runtime/novelDirectorHelpers.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorHelpers.js");
 const { NovelDirectorService } = require("../dist/services/novel/director/NovelDirectorService.js");
 const {
   runDirectorStructuredOutlinePhase,

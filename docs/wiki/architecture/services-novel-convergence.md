@@ -24,6 +24,7 @@
 - `routes/` 已完成三批共 22 个文件的收敛（cbea50e7/ca8e7232/bdb7ce5d）：genre/knowledge/llm/styleEngine(+extraction)/titleLibrary/writingFormula/task/settings 系(含子路由与 settingsAutoDirector)/storyMode/character/rag/promptWorkbench/health/agentCatalog/agentRuns/astrology/autoDirector 系。归属规则：产品能力进 `modules/<域>/http/`，llm/health 等基础设施进 `platform/**/http/`，promptWorkbench 归 `prompting/http/`，autoDirector 系归 director 自有 `http/`。已全部完成（038d3458）：bookAnalysis→modules/bookAnalysis/http/、chat+creativeHub→creativeHub/http/（顶层领域包）、images→modules/image/http/；src/routes/ 目录删除，路由层契约测试改为扫描 **/http/** 全部入口。
 - ~~`prompting/prompts/novel`（42 文件）~~ 已收敛（f34bbbd7）：31 个文件按家族进 chapter/character/director 子目录，根层 44→13；registry loader、29 个服务引用方、9 个测试 require 同步改路径，无兼容壳。~~`client/src/pages/novels/components`~~ 已收敛（f8ed87e5）：54 文件入 chapter/character/director/structured/takeover/cards/tabs 七个子目录，根层 65→14。
 - ~~根层兼容壳退役~~ 已完成（e53600f1）：22 个 export * 壳全部删除，59 处引用（39 源文件 + 10 测试）由位置感知解析器重定向至真实模块；根层定格 17 个文件（facade 与共享内核）。
+- ~~`director/runtime`（38 文件）~~ 已收敛（2026-08-19 第二轮）：根层只留 `directorSubsystem.ts` 门面，37 个实现文件进入 7 个子模块——`takeover/`（接管链 6，消除 novelDirectorTakeover* 同前缀超标）、`flows/`（候选/确认/继续流程与共享 helpers/errors/schemas/persistence/framing/orchestrator 9）、`execution/`（运行时编排、节点契约、策略引擎、工作区分析、进度检查、质量环预算 6）、`store/`（runtime store、快照合并、状态提案决议、默认值 5）、`artifacts/`（产物台账 5）、`events/`（事件与遥测投影 3）、`resilience/`（熔断、内存安全、校验 3）。依赖方向与变更守则固化在 `director/runtime/README.md`，目录契约由 `directorDirectoryBoundary.test.js` 固化（runtime 根仅允许 directorSubsystem.ts）。迁移验证：1278 项测试失败集与基线完全一致。
 
 ## 测试环境与验证结论（2026-08-19）
 
@@ -32,6 +33,7 @@
 - 删除 facade 前的引用检索必须覆盖 `require("…dist/….js")` 形式的测试路径，仅查 TS import 会漏。
 - 失败归属方法：在改动前的基线提交建 worktree 跑同一套测试做差集；本轮 46 个失败经比对全部归属并行会话在途工作或既有问题，结构迁移零残留。
 - 批量改写相对导入的教训：Windows 下 Python `glob` 返回反斜杠路径，`path.split("/")` 会静默失效，必须用 `os.sep`；批量替换脚本禁用「占位标签再回填」模式（正则 `.TAG.` 会误伤正常代码中的同名子串，如 `NOVEL_PROMPT_BUDGETS`）。安全模式：以 HEAD 原文为基准做逐行 diff，非 import-spec 行的任何差异一律从 HEAD 恢复后再单独处理路径。更优解（components 批次验证）：完全不用规则正则——移动文件从 HEAD 原文重生成，import spec 用文件系统 `os.path.relpath` 直接算出（需对目标也做家族重定向 + 扩展名归一：引用不带 .tsx 而映射表带）。另：共享工作区禁止 `git stash` 做基线对照（会短暂清空他人可能正在读的工作树），改用基线 worktree。
+- 引用检索的完整覆盖面（runtime 子模块批次补充）：除 TS import 与 `require("…dist/….js")` 外，测试还存在直接 `readFileSync("…src/….ts")` 的源码路径字符串，三类都要扫；相对导入解析用的「移动前快照」必须包含「目录 + index.ts」形态的目标（如 `modules/novel/writing-platform` 这类目录导入），否则文件移入子目录加深层级时会漏改。迁移后用「全库相对导入逐条按当前位置解析」的校验器兜底，可把漏改定位到唯一行。
 
 ## Failure Modes
 

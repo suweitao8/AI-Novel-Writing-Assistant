@@ -3,7 +3,7 @@ import type { ChapterRuntimePackage, GenerationContextPackage } from "@ai-novel/
 import { prisma } from "../../../db/prisma";
 import { novelEventBus } from "../../../events";
 import { openConflictService } from "../../state/OpenConflictService";
-import { directorAutomationLedgerEventService } from "../director/runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../director/runtime/events/DirectorAutomationLedgerEventService";
 import { filterAcceptedFactItems, type FactLedgerExcludedItem } from "../fact/factLedgerFilter";
 import { novelFactService } from "../fact/NovelFactService";
 import { ChapterArtifactSyncService } from "./ChapterArtifactSyncService";

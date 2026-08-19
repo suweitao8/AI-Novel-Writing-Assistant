@@ -10,10 +10,10 @@ import type {
   DirectorStepRun,
   DirectorWorkspaceAnalysis,
 } from "@ai-novel/shared/types/directorRuntime";
-import { prisma } from "../../../../db/prisma";
-import { parseSeedPayload } from "../../workflow/novelWorkflow.shared";
-import type { DirectorWorkflowSeedPayload } from "./novelDirectorHelpers";
-import { normalizeDirectorArtifactRef, reconcileDirectorArtifactLedger } from "./DirectorArtifactLedger";
+import { prisma } from "../../../../../db/prisma";
+import { parseSeedPayload } from "../../../workflow/novelWorkflow.shared";
+import type { DirectorWorkflowSeedPayload } from "../flows/novelDirectorHelpers";
+import { normalizeDirectorArtifactRef, reconcileDirectorArtifactLedger } from "../artifacts/DirectorArtifactLedger";
 import { buildDefaultDirectorPolicy, buildEmptyDirectorRuntimeSnapshot } from "./directorRuntimeDefaults";
 import {
   buildArtifactIndexedEvents,

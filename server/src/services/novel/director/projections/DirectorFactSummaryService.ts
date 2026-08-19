@@ -9,7 +9,7 @@ import {
   getWorkflowStepProjectionHints,
   type WorkflowStepExecutionContext,
 } from "../workflowStepRuntime/WorkflowStepModule";
-import { getDirectorInputFromSeedPayload } from "../runtime/novelDirectorHelpers";
+import { getDirectorInputFromSeedPayload } from "../runtime/flows/novelDirectorHelpers";
 import { DirectorStateReader, type DirectorCanonicalState } from "../DirectorStateReader";
 import { DirectorCoreStepModuleRuntime } from "../workflowStepRuntime/DirectorCoreStepModuleRuntime";
 

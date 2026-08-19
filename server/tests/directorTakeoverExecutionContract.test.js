@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   resolveTakeoverExecutionDirectorInput,
-} = require("../dist/services/novel/director/runtime/novelDirectorTakeoverExecution.js");
+} = require("../dist/services/novel/director/runtime/takeover/novelDirectorTakeoverExecution.js");
 
 test("existing-project takeover preserves the requested chapter range for execution", () => {
   const result = resolveTakeoverExecutionDirectorInput({

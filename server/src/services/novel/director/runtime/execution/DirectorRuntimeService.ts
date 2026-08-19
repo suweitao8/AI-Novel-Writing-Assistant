@@ -10,15 +10,15 @@ import type {
 import type { DirectorLLMOptions } from "@ai-novel/shared/types/novelDirector";
 import { DirectorNodeRunner, type DirectorNodeContract, type DirectorNodeRunResult } from "./DirectorNodeRunner";
 import { DirectorPolicyEngine, type DirectorPolicyRequest } from "./DirectorPolicyEngine";
-import { DirectorRuntimeStore } from "./DirectorRuntimeStore";
+import { DirectorRuntimeStore } from "../store/DirectorRuntimeStore";
 import { DirectorWorkspaceAnalyzer } from "./DirectorWorkspaceAnalyzer";
 import {
   DirectorLangGraphPilot,
   type DirectorLangGraphPilotCheckpoint,
   type DirectorLangGraphPilotInput,
   type DirectorLangGraphPilotResult,
-} from "../langgraphPilot/DirectorLangGraphPilot";
-import type { WorkflowPlan, WorkflowPlanStep } from "../workflowStepRuntime/WorkflowStepModule";
+} from "../../langgraphPilot/DirectorLangGraphPilot";
+import type { WorkflowPlan, WorkflowPlanStep } from "../../workflowStepRuntime/WorkflowStepModule";
 
 export interface DirectorRuntimeInitializeInput {
   taskId: string;

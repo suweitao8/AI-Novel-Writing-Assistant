@@ -7,8 +7,8 @@ import {
   parseSeedPayload,
   parseResumeTarget,
 } from "../../workflow/novelWorkflow.shared";
-import { getDirectorInputFromSeedPayload, getDirectorLlmOptionsFromSeedPayload, type DirectorWorkflowSeedPayload } from "../runtime/novelDirectorHelpers";
-import { buildDirectorSessionState } from "../runtime/novelDirectorHelpers";
+import { getDirectorInputFromSeedPayload, getDirectorLlmOptionsFromSeedPayload, type DirectorWorkflowSeedPayload } from "../runtime/flows/novelDirectorHelpers";
+import { buildDirectorSessionState } from "../runtime/flows/novelDirectorHelpers";
 import { repairDirectorChapterTitles } from "./novelDirectorChapterTitleRepair";
 import { DIRECTOR_PROGRESS } from "../projections/novelDirectorProgress";
 

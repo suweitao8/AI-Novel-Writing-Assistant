@@ -1,5 +1,5 @@
 import type { DirectorRuntimeSnapshot } from "@ai-novel/shared/types/directorRuntime";
-import { normalizeDirectorArtifactRef } from "./DirectorArtifactLedger";
+import { normalizeDirectorArtifactRef } from "../artifacts/DirectorArtifactLedger";
 
 export function hasLegacyRuntimeArtifacts(snapshot: DirectorRuntimeSnapshot): boolean {
   return snapshot.artifacts.length > 0;

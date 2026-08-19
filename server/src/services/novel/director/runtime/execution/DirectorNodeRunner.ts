@@ -3,9 +3,9 @@ import type {
   DirectorRuntimeSnapshot,
   DirectorStepRun,
 } from "@ai-novel/shared/types/directorRuntime";
-import { runWithLlmUsageTracking } from "../../../../llm/usageTracking";
+import { runWithLlmUsageTracking } from "../../../../../llm/usageTracking";
 import { DirectorPolicyEngine, type DirectorPolicyRequest } from "./DirectorPolicyEngine";
-import { DirectorRuntimeStore } from "./DirectorRuntimeStore";
+import { DirectorRuntimeStore } from "../store/DirectorRuntimeStore";
 
 function buildNodeIdempotencyKey(input: {
   taskId: string;

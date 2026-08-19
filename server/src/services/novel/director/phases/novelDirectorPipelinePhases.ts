@@ -8,7 +8,7 @@ import {
   buildStoryInput,
   normalizeDirectorRunMode,
   toBookSpec,
-} from "../runtime/novelDirectorHelpers";
+} from "../runtime/flows/novelDirectorHelpers";
 import {
   DIRECTOR_PROGRESS,
   type DirectorProgressItemKey,

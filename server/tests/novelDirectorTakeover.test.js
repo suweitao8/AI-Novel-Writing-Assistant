@@ -7,10 +7,10 @@ const {
   isTakeoverStructuredOutlineReadyForValidation,
   phaseToEntryStep,
   resolveDirectorTakeoverPlan,
-} = require("../dist/services/novel/director/runtime/novelDirectorTakeover.js");
+} = require("../dist/services/novel/director/runtime/takeover/novelDirectorTakeover.js");
 const {
   loadDirectorTakeoverState,
-} = require("../dist/services/novel/director/runtime/novelDirectorTakeoverRuntime.js");
+} = require("../dist/services/novel/director/runtime/takeover/novelDirectorTakeoverRuntime.js");
 const { prisma } = require("../dist/db/prisma.js");
 const {
   DIRECTOR_TAKEOVER_ENTRY_STEPS,

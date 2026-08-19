@@ -12,7 +12,7 @@ import {
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import { directorIssueAssessmentPrompt } from "../../../../prompting/prompts/director/directorIssueAssessment.prompts";
-import { directorAutomationLedgerEventService } from "../runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../runtime/events/DirectorAutomationLedgerEventService";
 
 const FORCED_SCORE_CODES = new Set<DirectorIssueCode>([
   "quality.replan_required",

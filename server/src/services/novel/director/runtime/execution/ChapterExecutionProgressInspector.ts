@@ -1,10 +1,10 @@
-import { prisma } from "../../../../db/prisma";
+import { prisma } from "../../../../../db/prisma";
 import {
   hasDirectorAutoExecutionChapterContract,
   hasDirectorSyncedChapterExecutionContext,
   type DirectorAutoExecutionChapterRef,
-} from "../automation/novelDirectorAutoExecution";
-import { hasContinuableQualityLoopRiskFlags } from "./DirectorWorkspaceArtifactInventory";
+} from "../../automation/novelDirectorAutoExecution";
+import { hasContinuableQualityLoopRiskFlags } from "../artifacts/DirectorWorkspaceArtifactInventory";
 
 export const CHAPTER_EXECUTION_PROGRESS_STAGES = [
   "execution_contract_ready",

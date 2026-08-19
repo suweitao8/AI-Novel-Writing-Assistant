@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const { prisma } = require("../dist/db/prisma.js");
 const {
   ChapterExecutionProgressInspector,
-} = require("../dist/services/novel/director/runtime/ChapterExecutionProgressInspector.js");
+} = require("../dist/services/novel/director/runtime/execution/ChapterExecutionProgressInspector.js");
 
 test("chapter execution progress treats needs_repair as a local recoverable state", async (t) => {
   const originalFindMany = prisma.chapter.findMany;

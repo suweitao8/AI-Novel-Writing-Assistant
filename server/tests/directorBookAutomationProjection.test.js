@@ -7,10 +7,10 @@ const {
 } = require("../dist/services/novel/director/projections/DirectorBookAutomationProjectionService.js");
 const {
   directorArtifactLedgerQueryService,
-} = require("../dist/services/novel/director/runtime/DirectorArtifactLedgerQueryService.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorArtifactLedgerQueryService.js");
 const {
   directorUsageTelemetryQueryService,
-} = require("../dist/services/novel/director/runtime/DirectorUsageTelemetryQueryService.js");
+} = require("../dist/services/novel/director/runtime/events/DirectorUsageTelemetryQueryService.js");
 
 function createHarness(overrides = {}) {
   const latestTask = {

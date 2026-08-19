@@ -41,53 +41,53 @@ import { StoryMacroPlanService } from "../storyMacro/StoryMacroPlanService";
 import { NovelVolumeService } from "../volume/NovelVolumeService";
 import { NovelWorkflowService } from "../workflow/NovelWorkflowService";
 import { NovelDirectorCandidateStageService } from "./phases/novelDirectorCandidateStage";
-import { resolveDirectorBookFraming } from "./runtime/novelDirectorFraming";
+import { resolveDirectorBookFraming } from "./runtime/flows/novelDirectorFraming";
 import {
   applyDirectorRunModeContract,
   buildDirectorWorkflowSeedPayload,
-} from "./runtime/novelDirectorHelpers";
+} from "./runtime/flows/novelDirectorHelpers";
 import {
   buildDirectorTakeoverInput,
   buildDirectorTakeoverReadiness,
   isTakeoverStructuredOutlineReadyForValidation,
-} from "./runtime/novelDirectorTakeover";
+} from "./runtime/takeover/novelDirectorTakeover";
 import { NovelDirectorAutoExecutionRuntime } from "./automation/novelDirectorAutoExecutionRuntime";
 import {
   loadDirectorTakeoverState,
-} from "./runtime/novelDirectorTakeoverRuntime";
-import { startDirectorTakeoverExecution } from "./runtime/novelDirectorTakeoverExecution";
+} from "./runtime/takeover/novelDirectorTakeoverRuntime";
+import { startDirectorTakeoverExecution } from "./runtime/takeover/novelDirectorTakeoverExecution";
 import {
   resetDirectorTakeoverCurrentStep,
   resetDirectorTakeoverDownstreamState,
-} from "./runtime/novelDirectorTakeoverReset";
-import { cancelContinueExistingReplacedRuns } from "./runtime/novelDirectorTakeoverContinue";
+} from "./runtime/takeover/novelDirectorTakeoverReset";
+import { cancelContinueExistingReplacedRuns } from "./runtime/takeover/novelDirectorTakeoverContinue";
 import { StyleBindingService } from "../../styleEngine/StyleBindingService";
 import { StyleProfileService } from "../../styleEngine/StyleProfileService";
 import {
   assertHighMemoryDirectorStartAllowed,
   releaseHighMemoryDirectorReservations,
-} from "./runtime/autoDirectorMemorySafety";
+} from "./runtime/resilience/autoDirectorMemorySafety";
 import {
   validateAutoDirectorTakeoverRequest,
-} from "./runtime/autoDirectorValidationService";
+} from "./runtime/resilience/autoDirectorValidationService";
 import {
   normalizeDirectorAutoApprovalConfig,
   shouldAutoApproveDirectorApprovalPoint,
 } from "@ai-novel/shared/types/autoDirectorApproval";
 import { recordAutoDirectorAutoApprovalFromTask } from "../../task/autoDirectorFollowUps/autoDirectorAutoApprovalAudit";
 import { flattenPreparedOutlineChapters } from "./recovery/novelDirectorStructuredOutlineRecovery";
-import { DirectorRuntimeService } from "./runtime/DirectorRuntimeService";
-import { DirectorEventProjectionService } from "./runtime/DirectorEventProjectionService";
-import { directorStateProposalResolutionService } from "./runtime/DirectorStateProposalResolutionService";
+import { DirectorRuntimeService } from "./runtime/execution/DirectorRuntimeService";
+import { DirectorEventProjectionService } from "./runtime/events/DirectorEventProjectionService";
+import { directorStateProposalResolutionService } from "./runtime/store/DirectorStateProposalResolutionService";
 import {
   isDirectorRuntimeGateError,
   NovelDirectorRuntimeOrchestrator,
-} from "./runtime/novelDirectorRuntimeOrchestrator";
-import { NovelDirectorCandidateRuntime } from "./runtime/novelDirectorCandidateRuntime";
+} from "./runtime/flows/novelDirectorRuntimeOrchestrator";
+import { NovelDirectorCandidateRuntime } from "./runtime/flows/novelDirectorCandidateRuntime";
 import { NovelDirectorPipelineRuntime } from "./novelDirectorPipelineRuntime";
-import { NovelDirectorConfirmRuntime } from "./runtime/novelDirectorConfirmRuntime";
+import { NovelDirectorConfirmRuntime } from "./runtime/flows/novelDirectorConfirmRuntime";
 import { NovelDirectorChapterTitleRepairRuntime } from "./phases/novelDirectorChapterTitleRepairRuntime";
-import { NovelDirectorContinueRuntime } from "./runtime/novelDirectorContinueRuntime";
+import { NovelDirectorContinueRuntime } from "./runtime/flows/novelDirectorContinueRuntime";
 import { prisma } from "../../../db/prisma";
 import { loadPersistentDirectorRuntimeProjection } from "./projections/novelDirectorRuntimeProjection";
 import { qualityDebtSettingsService } from "../../settings/QualityDebtSettingsService";
@@ -95,7 +95,7 @@ import { directorRiskPolicySettingsService } from "../../settings/DirectorRiskPo
 import { directorRiskPolicyOverrideService } from "./settings/DirectorRiskPolicyOverrideService";
 import { pendingReviewAutoPromotionService } from "../state/PendingReviewAutoPromotionService";
 import { parseSeedPayload } from "../workflow/novelWorkflow.shared";
-import { getDirectorInputFromSeedPayload } from "./runtime/novelDirectorHelpers";
+import { getDirectorInputFromSeedPayload } from "./runtime/flows/novelDirectorHelpers";
 import {
   directorWorkflowStepModuleRegistry,
 } from "./workflowStepRuntime/directorWorkflowStepModules";
@@ -103,7 +103,7 @@ import {
   inspectWorkflowStepFacts,
   isExecutableWorkflowStepModule,
 } from "./workflowStepRuntime/WorkflowStepModule";
-import type { DirectorWorkflowSeedPayload } from "./runtime/novelDirectorHelpers";
+import type { DirectorWorkflowSeedPayload } from "./runtime/flows/novelDirectorHelpers";
 import { DIRECTOR_ISSUE_GOVERNANCE_VERSION } from "@ai-novel/shared/types/directorIssue";
 import { directorIssuePolicyService } from "./issues";
 

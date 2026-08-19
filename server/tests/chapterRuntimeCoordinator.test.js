@@ -4,7 +4,7 @@ const promptRunner = require("../dist/prompting/core/promptRunner.js");
 const { prisma } = require("../dist/db/prisma.js");
 const { ChapterRuntimeCoordinator } = require("../dist/services/novel/runtime/ChapterRuntimeCoordinator.js");
 const { mergeKnowledgeBoundaryState } = require("../dist/services/novel/runtime/ChapterArtifactDeltaService.js");
-const { directorAutomationLedgerEventService } = require("../dist/services/novel/director/runtime/DirectorAutomationLedgerEventService.js");
+const { directorAutomationLedgerEventService } = require("../dist/services/novel/director/runtime/events/DirectorAutomationLedgerEventService.js");
 const { PostGenerationStyleReviewRunner } = require("../dist/services/novel/runtime/PostGenerationStyleReviewRunner.js");
 const { openConflictService } = require("../dist/services/state/OpenConflictService.js");
 

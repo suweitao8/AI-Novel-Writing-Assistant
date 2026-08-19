@@ -2,9 +2,9 @@ import type { DirectorStepCalibrationRequest } from "@ai-novel/shared/types/nove
 import { AppError } from "../../../../middleware/errorHandler";
 import type { getSharedNovelServices } from "../../application/sharedNovelServices";
 import { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
-import { buildDirectorWorkflowSeedPayload, getDirectorInputFromSeedPayload } from "../runtime/novelDirectorHelpers";
-import type { DirectorWorkflowSeedPayload } from "../runtime/novelDirectorHelpers";
-import type { NovelDirectorRuntimeOrchestrator } from "../runtime/novelDirectorRuntimeOrchestrator";
+import { buildDirectorWorkflowSeedPayload, getDirectorInputFromSeedPayload } from "../runtime/flows/novelDirectorHelpers";
+import type { DirectorWorkflowSeedPayload } from "../runtime/flows/novelDirectorHelpers";
+import type { NovelDirectorRuntimeOrchestrator } from "../runtime/flows/novelDirectorRuntimeOrchestrator";
 import { parseSeedPayload } from "../../workflow/novelWorkflow.shared";
 import { directorWorkflowStepModuleRegistry } from "./directorWorkflowStepModules";
 import { inspectWorkflowStepFacts, isExecutableWorkflowStepModule } from "./WorkflowStepModule";

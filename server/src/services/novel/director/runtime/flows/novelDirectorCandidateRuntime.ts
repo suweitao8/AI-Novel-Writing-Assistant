@@ -3,21 +3,21 @@ import {
   type DirectorCandidateBatch,
   type DirectorCandidatesRequest,
 } from "@ai-novel/shared/types/novelDirector";
-import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
+import type { NovelWorkflowService } from "../../../workflow/NovelWorkflowService";
 import {
   getDirectorLlmOptionsFromSeedPayload,
   type DirectorWorkflowSeedPayload,
 } from "./novelDirectorHelpers";
-import type { NovelDirectorCandidateStageService } from "../phases/novelDirectorCandidateStage";
-import type { DirectorRuntimeService } from "./DirectorRuntimeService";
+import type { NovelDirectorCandidateStageService } from "../../phases/novelDirectorCandidateStage";
+import type { DirectorRuntimeService } from "../execution/DirectorRuntimeService";
 import {
   type DirectorCandidateStageNode,
-} from "../phases/novelDirectorCandidateNodeAdapters";
+} from "../../phases/novelDirectorCandidateNodeAdapters";
 import {
   isDirectorRuntimeGateError,
   type NovelDirectorRuntimeOrchestrator,
 } from "./novelDirectorRuntimeOrchestrator";
-import { getDirectorCandidateStepModule } from "../workflowStepRuntime/directorWorkflowStepModules";
+import { getDirectorCandidateStepModule } from "../../workflowStepRuntime/directorWorkflowStepModules";
 
 type WorkflowTaskFailurePort = Pick<NovelWorkflowService, "markTaskFailed">;
 

@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildDirectorArtifactBookSummary,
-} = require("../dist/services/novel/director/runtime/DirectorArtifactLedgerQueryService.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorArtifactLedgerQueryService.js");
 
 function row(overrides) {
   return {

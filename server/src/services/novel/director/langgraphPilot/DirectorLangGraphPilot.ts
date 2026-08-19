@@ -1,6 +1,6 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import type { DirectorWorkspaceAnalysis } from "@ai-novel/shared/types/directorRuntime";
-import type { DirectorRuntimeService } from "../runtime/DirectorRuntimeService";
+import type { DirectorRuntimeService } from "../runtime/execution/DirectorRuntimeService";
 import type { WorkflowPlan, WorkflowPlanStep } from "../workflowStepRuntime/WorkflowStepModule";
 
 export type DirectorLangGraphPilotStatus = "completed" | "interrupted" | "failed";

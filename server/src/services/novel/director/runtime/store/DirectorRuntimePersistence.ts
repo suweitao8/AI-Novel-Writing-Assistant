@@ -4,9 +4,9 @@ import type {
   DirectorEvent,
   DirectorRuntimeSnapshot,
 } from "@ai-novel/shared/types/directorRuntime";
-import { prisma } from "../../../../db/prisma";
-import { withSqliteRetry } from "../../../../db/sqliteRetry";
-import { normalizeDirectorArtifactRef } from "./DirectorArtifactLedger";
+import { prisma } from "../../../../../db/prisma";
+import { withSqliteRetry } from "../../../../../db/sqliteRetry";
+import { normalizeDirectorArtifactRef } from "../artifacts/DirectorArtifactLedger";
 
 export interface DirectorRuntimePersistenceDelta {
   steps: DirectorRuntimeSnapshot["steps"];

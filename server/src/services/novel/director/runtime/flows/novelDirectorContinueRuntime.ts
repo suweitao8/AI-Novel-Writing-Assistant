@@ -6,16 +6,16 @@ import {
   type DirectorConfirmRequest,
   type DirectorContinuationMode,
 } from "@ai-novel/shared/types/novelDirector";
-import type { NovelContextService } from "../../NovelContextService";
-import type { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
-import type { NovelVolumeService } from "../../volume/NovelVolumeService";
-import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
+import type { NovelContextService } from "../../../NovelContextService";
+import type { StoryMacroPlanService } from "../../../storyMacro/StoryMacroPlanService";
+import type { NovelVolumeService } from "../../../volume/NovelVolumeService";
+import type { NovelWorkflowService } from "../../../workflow/NovelWorkflowService";
 import {
   buildNovelEditResumeTarget,
   parseResumeTarget,
   parseSeedPayload,
-} from "../../workflow/novelWorkflow.shared";
-import { normalizeDirectorMemoryScope } from "./autoDirectorMemorySafety";
+} from "../../../workflow/novelWorkflow.shared";
+import { normalizeDirectorMemoryScope } from "../resilience/autoDirectorMemorySafety";
 import { DirectorRecoveryNotNeededError } from "./novelDirectorErrors";
 import {
   applyDirectorRunModeContract,
@@ -24,21 +24,21 @@ import {
   normalizeDirectorRunMode,
   type DirectorWorkflowSeedPayload,
 } from "./novelDirectorHelpers";
-import { resolveAssetFirstRecoveryFromSnapshot } from "../recovery/novelDirectorRecovery";
+import { resolveAssetFirstRecoveryFromSnapshot } from "../../recovery/novelDirectorRecovery";
 import {
   loadDirectorTakeoverState,
   resolveDirectorRunningStateForPhase,
-} from "./novelDirectorTakeoverRuntime";
-import { getDirectorExecutionNodeAdapter } from "../phases/novelDirectorExecutionNodeAdapters";
+} from "../takeover/novelDirectorTakeoverRuntime";
+import { getDirectorExecutionNodeAdapter } from "../../phases/novelDirectorExecutionNodeAdapters";
 import type { NovelDirectorCandidateRuntime } from "./novelDirectorCandidateRuntime";
-import type { NovelDirectorAutoExecutionRuntime } from "../automation/novelDirectorAutoExecutionRuntime";
-import type { NovelDirectorAutoExecutionRuntimeDeps } from "../automation/novelDirectorAutoExecutionRuntimePorts";
-import type { DirectorPipelineRunInput, NovelDirectorPipelineRuntime } from "../novelDirectorPipelineRuntime";
+import type { NovelDirectorAutoExecutionRuntime } from "../../automation/novelDirectorAutoExecutionRuntime";
+import type { NovelDirectorAutoExecutionRuntimeDeps } from "../../automation/novelDirectorAutoExecutionRuntimePorts";
+import type { DirectorPipelineRunInput, NovelDirectorPipelineRuntime } from "../../novelDirectorPipelineRuntime";
 import type { NovelDirectorRuntimeOrchestrator } from "./novelDirectorRuntimeOrchestrator";
-import type { DirectorRuntimeService } from "./DirectorRuntimeService";
-import { buildDefaultDirectorPolicy } from "./directorRuntimeDefaults";
+import type { DirectorRuntimeService } from "../execution/DirectorRuntimeService";
+import { buildDefaultDirectorPolicy } from "../store/directorRuntimeDefaults";
 import type { DirectorRiskPolicy } from "@ai-novel/shared/types/directorRisk";
-import { prisma } from "../../../../db/prisma";
+import { prisma } from "../../../../../db/prisma";
 
 export type DirectorAssetFirstRecovery =
   | {

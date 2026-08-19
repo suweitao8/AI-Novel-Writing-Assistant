@@ -12,7 +12,7 @@ import {
   buildStoryInput,
   normalizeBookContract,
   toBookSpec,
-} from "../runtime/novelDirectorHelpers";
+} from "../runtime/flows/novelDirectorHelpers";
 import { runDirectorTrackedStep } from "../projections/directorProgressTracker";
 import {
   DIRECTOR_PROGRESS,

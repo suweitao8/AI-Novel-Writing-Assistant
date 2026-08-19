@@ -46,7 +46,7 @@ import {
 - `projections/`：运行时投影、任务快照、进度和展示状态。
 - `recovery/`：恢复、回填、下游重置和结构化大纲恢复游标。
 - `phases/`：自动导演阶段、阶段节点适配和阶段级质量策略。
-- `runtime/`：接管、确认、候选、继续执行、运行时编排和内存/校验策略。
+- `runtime/`：接管、确认、候选、继续执行、运行时编排和内存/校验策略；内部分为 `takeover/`、`flows/`、`execution/`、`store/`、`artifacts/`、`events/`、`resilience/` 子模块，根目录仅保留 `directorSubsystem.ts` 门面（边界详见 `runtime/README.md`）。
 - `issues/`：问题目录、策略事实源、任务策略快照读取与 detected / decided / applied 事件合同。
 - `http/`：Express 路由映射。
 

@@ -32,8 +32,8 @@ import {
 } from "@ai-novel/shared/types/autoDirectorApproval";
 import type { BookContractDraft } from "@ai-novel/shared/types/novelWorkflow";
 import type { TitleFactorySuggestion } from "@ai-novel/shared/types/title";
-import { titleGenerationService } from "../../../title/TitleGenerationService";
-import { isNearDuplicateTitle } from "../../../title/titleGeneration.shared";
+import { titleGenerationService } from "../../../../title/TitleGenerationService";
+import { isNearDuplicateTitle } from "../../../../title/titleGeneration.shared";
 import type { NovelWorkflowResumeTarget } from "@ai-novel/shared/types/novelWorkflow";
 import type { DirectorBookContractParsed } from "./novelDirectorSchemas";
 import type { DirectorCompletionProfile } from "@ai-novel/shared/types/directorCompletion";

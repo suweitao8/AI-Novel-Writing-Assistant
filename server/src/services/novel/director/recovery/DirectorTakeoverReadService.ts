@@ -4,8 +4,8 @@ import { NovelContextService } from "../../NovelContextService";
 import { StoryMacroPlanService } from "../../storyMacro/StoryMacroPlanService";
 import { NovelVolumeService } from "../../volume/NovelVolumeService";
 import { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
-import { buildDirectorTakeoverReadiness } from "../runtime/novelDirectorTakeover";
-import { loadDirectorTakeoverState } from "../runtime/novelDirectorTakeoverRuntime";
+import { buildDirectorTakeoverReadiness } from "../runtime/takeover/novelDirectorTakeover";
+import { loadDirectorTakeoverState } from "../runtime/takeover/novelDirectorTakeoverRuntime";
 import { flattenPreparedOutlineChapters } from "./novelDirectorStructuredOutlineRecovery";
 
 export class DirectorTakeoverReadService {

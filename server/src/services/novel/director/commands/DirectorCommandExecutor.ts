@@ -10,7 +10,7 @@ import { NovelDirectorService } from "../NovelDirectorService";
 import {
   getDirectorInputFromSeedPayload,
   type DirectorWorkflowSeedPayload,
-} from "../runtime/novelDirectorHelpers";
+} from "../runtime/flows/novelDirectorHelpers";
 import type { DirectorTakeoverRequest } from "@ai-novel/shared/types/novelDirector";
 
 export type DirectorCommandExecutionOutcome = "completed" | "cancelled";

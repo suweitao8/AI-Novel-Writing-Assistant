@@ -12,7 +12,7 @@ import type {
 import type { DirectorQualityRepairRisk } from "@ai-novel/shared/types/novelDirector";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import { directorRiskAssessmentPrompt } from "../../../../prompting/prompts/director/directorRiskAssessment.prompts";
-import { directorAutomationLedgerEventService } from "../runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../runtime/events/DirectorAutomationLedgerEventService";
 import { AutoDirectorFollowUpNotificationService } from "../../../task/autoDirectorFollowUps/AutoDirectorFollowUpNotificationService";
 
 export interface DirectorRiskAssessmentInput {

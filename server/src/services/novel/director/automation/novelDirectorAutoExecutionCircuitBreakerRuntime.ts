@@ -25,16 +25,16 @@ import {
   recordReplanLoopSignal,
   recordUsageAnomalySignal,
   withCircuitBreakerState,
-} from "../runtime/DirectorCircuitBreakerService";
+} from "../runtime/resilience/DirectorCircuitBreakerService";
 import {
   buildDirectorQualityLoopBudgetWindow,
   buildDirectorQualityLoopIssueSignature,
   findDirectorQualityLoopBudgetEntry,
   recordDirectorQualityLoopBudgetAttempt,
   resolveDirectorQualityLoopBudgetNextAction,
-} from "../runtime/DirectorQualityLoopBudgetLedgerService";
-import { directorAutomationLedgerEventService } from "../runtime/DirectorAutomationLedgerEventService";
-import { directorUsageTelemetryQueryService } from "../runtime/DirectorUsageTelemetryQueryService";
+} from "../runtime/execution/DirectorQualityLoopBudgetLedgerService";
+import { directorAutomationLedgerEventService } from "../runtime/events/DirectorAutomationLedgerEventService";
+import { directorUsageTelemetryQueryService } from "../runtime/events/DirectorUsageTelemetryQueryService";
 import { directorIssueService } from "../issues";
 import type { DirectorIssueCode } from "@ai-novel/shared/types/directorIssue";
 

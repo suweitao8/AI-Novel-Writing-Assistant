@@ -2,8 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
-const { buildWorkflowSeedPayload } = require("../dist/services/novel/director/runtime/novelDirectorHelpers.js");
-const { directorCandidateResponseSchema } = require("../dist/services/novel/director/runtime/novelDirectorSchemas.js");
+const { buildWorkflowSeedPayload } = require("../dist/services/novel/director/runtime/flows/novelDirectorHelpers.js");
+const { directorCandidateResponseSchema } = require("../dist/services/novel/director/runtime/flows/novelDirectorSchemas.js");
 const {
   DirectorProductionExperienceService,
   buildProductionExperienceSeed,
@@ -13,7 +13,7 @@ const { prisma } = require("../dist/db/prisma.js");
 const { isSimpleCreationWriteAllowed } = require("../dist/modules/novel/http/simpleCreationWriteGuard.js");
 
 const confirmRuntimeSource = fs.readFileSync(
-  path.resolve(__dirname, "../src/services/novel/director/runtime/novelDirectorConfirmRuntime.ts"),
+  path.resolve(__dirname, "../src/services/novel/director/runtime/flows/novelDirectorConfirmRuntime.ts"),
   "utf8",
 );
 const outlinePhaseSource = fs.readFileSync(

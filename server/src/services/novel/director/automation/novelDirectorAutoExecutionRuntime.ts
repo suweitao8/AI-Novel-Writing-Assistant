@@ -38,7 +38,7 @@ import {
 } from "./novelDirectorAutoExecutionRuntimeUtils";
 import { prepareRequestedAutoExecution as prepareRequestedAutoExecutionState, resolveAutoExecutionRuntimeRangeAndState, shouldStopAutoExecution } from "./novelDirectorAutoExecutionRuntimePreparation";
 import type { NovelDirectorAutoExecutionRuntimeDeps, PipelineJobSnapshot } from "./novelDirectorAutoExecutionRuntimePorts";
-import { directorAutomationLedgerEventService } from "../runtime/DirectorAutomationLedgerEventService";
+import { directorAutomationLedgerEventService } from "../runtime/events/DirectorAutomationLedgerEventService";
 import { prisma } from "../../../../db/prisma";
 import {
   buildDirectorQualityLoopBudgetWindow,
@@ -46,7 +46,7 @@ import {
   findDirectorQualityLoopBudgetEntry,
   recordDirectorQualityLoopBudgetAttempt,
   resolveDirectorQualityLoopBudgetNextAction,
-} from "../runtime/DirectorQualityLoopBudgetLedgerService";
+} from "../runtime/execution/DirectorQualityLoopBudgetLedgerService";
 
 export class NovelDirectorAutoExecutionRuntime {
   constructor(private readonly deps: NovelDirectorAutoExecutionRuntimeDeps) {}

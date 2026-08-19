@@ -6,9 +6,9 @@ import type {
   DirectorTakeoverResponse,
 } from "@ai-novel/shared/types/novelDirector";
 import { isFullBookAutopilotRunMode } from "@ai-novel/shared/types/novelDirector";
-import { buildNovelEditResumeTarget } from "../../workflow/novelWorkflow.shared";
+import { buildNovelEditResumeTarget } from "../../../workflow/novelWorkflow.shared";
 import type { DirectorConfirmRequest } from "@ai-novel/shared/types/novelDirector";
-import { buildDirectorSessionState } from "./novelDirectorHelpers";
+import { buildDirectorSessionState } from "../flows/novelDirectorHelpers";
 import {
   resolveDirectorTakeoverPlan,
   type DirectorTakeoverResolvedPlan,

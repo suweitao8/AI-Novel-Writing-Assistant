@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   DirectorPolicyEngine,
-} = require("../dist/services/novel/director/runtime/DirectorPolicyEngine.js");
+} = require("../dist/services/novel/director/runtime/execution/DirectorPolicyEngine.js");
 
 function buildArtifact(patch = {}) {
   return {

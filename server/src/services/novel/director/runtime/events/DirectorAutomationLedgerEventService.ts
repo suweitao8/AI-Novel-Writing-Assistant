@@ -6,8 +6,8 @@ import type {
 } from "@ai-novel/shared/types/directorRuntime";
 import type { ChapterQualityLoopAssessment } from "@ai-novel/shared/types/chapterQualityLoop";
 import type { DirectorCircuitBreakerState } from "@ai-novel/shared/types/novelDirector";
-import { prisma } from "../../../../db/prisma";
-import { withSqliteRetry } from "../../../../db/sqliteRetry";
+import { prisma } from "../../../../../db/prisma";
+import { withSqliteRetry } from "../../../../../db/sqliteRetry";
 
 export interface DirectorLedgerEventInput {
   eventId?: string;

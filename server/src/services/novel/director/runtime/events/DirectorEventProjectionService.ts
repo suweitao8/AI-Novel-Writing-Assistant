@@ -18,7 +18,7 @@ import type {
   DirectorQualityLoopBudgetNextAction,
 } from "@ai-novel/shared/types/novelDirector";
 import { classifyChapterQualityLoopRisk } from "@ai-novel/shared/types/chapterQualityLoop";
-import { resolveDirectorQualityLoopBudgetNextAction } from "./DirectorQualityLoopBudgetLedgerService";
+import { resolveDirectorQualityLoopBudgetNextAction } from "../execution/DirectorQualityLoopBudgetLedgerService";
 import {
   directorIssueOccurrenceSchema,
   directorIssueDecisionSchema,

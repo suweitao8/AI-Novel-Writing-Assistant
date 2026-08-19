@@ -1,15 +1,15 @@
 import type { VolumeBeat, VolumeBeatSheet, VolumePlanDocument } from "@ai-novel/shared/types/novel";
-import { prisma } from "../../../../db/prisma";
+import { prisma } from "../../../../../db/prisma";
 import type { DirectorAutoExecutionPlan } from "@ai-novel/shared/types/novelDirector";
-import { parseBeatSheetChapterSpan } from "../../volume/volumeBeatSheetChapterBudget";
+import { parseBeatSheetChapterSpan } from "../../../volume/volumeBeatSheetChapterBudget";
 import {
   normalizeDirectorAutoExecutionPlan,
   resolveDirectorAutoExecutionPlanChapterRange,
   resolveDirectorAutoExecutionRangeFromState,
-} from "../automation/novelDirectorAutoExecution";
+} from "../../automation/novelDirectorAutoExecution";
 import type { DirectorTakeoverResolvedPlan } from "./novelDirectorTakeover";
 import type { DirectorTakeoverLoadedState } from "./novelDirectorTakeoverRuntime";
-import { resetDirectorDownstreamChapterState } from "../recovery/novelDirectorDownstreamReset";
+import { resetDirectorDownstreamChapterState } from "../../recovery/novelDirectorDownstreamReset";
 
 interface DirectorTakeoverResetDeps {
   getVolumeWorkspace: (novelId: string) => Promise<VolumePlanDocument>;

@@ -6,7 +6,7 @@ import {
 import {
   ChapterExecutionProgressInspector,
   type ChapterExecutionProgressSummary,
-} from "./director/runtime/ChapterExecutionProgressInspector";
+} from "./director/runtime/execution/ChapterExecutionProgressInspector";
 import { parseStructuredOutline } from "./production/novelProductionHelpers";
 
 export interface ProductionStatusStage {

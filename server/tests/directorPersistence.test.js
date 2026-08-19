@@ -4,7 +4,7 @@ const { prisma } = require("../dist/db/prisma.js");
 const {
   DIRECTOR_BLUEPRINT_TRANSACTION_TIMEOUT_MS,
   persistDirectorBlueprint,
-} = require("../dist/services/novel/director/runtime/novelDirectorPersistence.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorPersistence.js");
 
 test("persistDirectorBlueprint uses an explicit timeout for bulk story plan writes", async () => {
   const originalTransaction = prisma.$transaction;

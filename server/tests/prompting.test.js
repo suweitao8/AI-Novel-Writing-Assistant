@@ -114,7 +114,7 @@ const {
 } = require("../dist/services/styleEngine/styleContractText.js");
 const {
   directorPlanBlueprintSchema,
-} = require("../dist/services/novel/director/runtime/novelDirectorSchemas.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorSchemas.js");
 
 const promptKey = (asset) => `${asset.id}@${asset.version}`;
 

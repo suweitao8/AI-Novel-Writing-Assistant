@@ -6,8 +6,8 @@ import type {
   DirectorQualityRepairRisk,
 } from "@ai-novel/shared/types/novelDirector";
 import type { NovelWorkflowCheckpoint } from "@ai-novel/shared/types/novelWorkflow";
-import type { DirectorStateProposalResolutionRunResult } from "../runtime/DirectorStateProposalResolutionService";
-import { directorAutomationLedgerEventService } from "../runtime/DirectorAutomationLedgerEventService";
+import type { DirectorStateProposalResolutionRunResult } from "../runtime/store/DirectorStateProposalResolutionService";
+import { directorAutomationLedgerEventService } from "../runtime/events/DirectorAutomationLedgerEventService";
 import type { DirectorAutoExecutionChapterRef } from "./novelDirectorAutoExecution";
 
 export type AutomationLedgerEventPort = Pick<

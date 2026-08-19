@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   NovelDirectorRuntimeOrchestrator,
-} = require("../dist/services/novel/director/runtime/novelDirectorRuntimeOrchestrator.js");
+} = require("../dist/services/novel/director/runtime/flows/novelDirectorRuntimeOrchestrator.js");
 const {
   createWorkflowStepModule,
 } = require("../dist/services/novel/director/workflowStepRuntime/WorkflowStepModule.js");
@@ -13,7 +13,7 @@ const {
 } = require("../dist/services/novel/director/workflowStepRuntime/directorWorkflowStepModules.js");
 const {
   DIRECTOR_INITIALIZATION_PLACEHOLDER_VOLUME_STRATEGY_HASH,
-} = require("../dist/services/novel/director/runtime/DirectorWorkspaceArtifactInventory.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorWorkspaceArtifactInventory.js");
 
 function buildArtifact(type, patch = {}) {
   return {

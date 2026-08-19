@@ -7,24 +7,24 @@ import type {
   DirectorConfirmRequest,
 } from "@ai-novel/shared/types/novelDirector";
 import type { NovelWorkflowStage } from "@ai-novel/shared/types/novelWorkflow";
-import { AppError } from "../../../../middleware/errorHandler";
-import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
-import type { DirectorPolicyRequest } from "./DirectorPolicyEngine";
-import type { DirectorRuntimeService } from "./DirectorRuntimeService";
-import { buildDefaultDirectorPolicy } from "./directorRuntimeDefaults";
-import type { NovelDirectorAutoExecutionRuntime } from "../automation/novelDirectorAutoExecutionRuntime";
-import type { DirectorProgressItemKey } from "../projections/novelDirectorProgress";
+import { AppError } from "../../../../../middleware/errorHandler";
+import type { NovelWorkflowService } from "../../../workflow/NovelWorkflowService";
+import type { DirectorPolicyRequest } from "../execution/DirectorPolicyEngine";
+import type { DirectorRuntimeService } from "../execution/DirectorRuntimeService";
+import { buildDefaultDirectorPolicy } from "../store/directorRuntimeDefaults";
+import type { NovelDirectorAutoExecutionRuntime } from "../../automation/novelDirectorAutoExecutionRuntime";
+import type { DirectorProgressItemKey } from "../../projections/novelDirectorProgress";
 import {
   isExecutableWorkflowStepModule,
   type WorkflowStepExecutionContext,
   type WorkflowStepModule,
   type WorkflowStepModuleDescriptor,
-} from "../workflowStepRuntime/WorkflowStepModule";
-import { buildChapterPipelineWorkflowTemplate } from "../workflowStepRuntime/directorWorkflowPlans";
-import { directorWorkflowStepModuleRegistry } from "../workflowStepRuntime/directorWorkflowStepModules";
-import { DIRECTOR_EXECUTION_STEP_IDS } from "../workflowStepRuntime/directorWorkflowStepIds";
-import { isInitializationPlaceholderVolumeStrategyArtifact } from "./DirectorWorkspaceArtifactInventory";
-import { DirectorStateCommitter } from "../DirectorStateCommitter";
+} from "../../workflowStepRuntime/WorkflowStepModule";
+import { buildChapterPipelineWorkflowTemplate } from "../../workflowStepRuntime/directorWorkflowPlans";
+import { directorWorkflowStepModuleRegistry } from "../../workflowStepRuntime/directorWorkflowStepModules";
+import { DIRECTOR_EXECUTION_STEP_IDS } from "../../workflowStepRuntime/directorWorkflowStepIds";
+import { isInitializationPlaceholderVolumeStrategyArtifact } from "../artifacts/DirectorWorkspaceArtifactInventory";
+import { DirectorStateCommitter } from "../../DirectorStateCommitter";
 
 const BACKGROUND_ARTIFACT_PROJECTION_STEP_IDS = new Set([
   DIRECTOR_EXECUTION_STEP_IDS.chapter_state_commit,

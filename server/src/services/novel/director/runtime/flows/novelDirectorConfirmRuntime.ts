@@ -9,14 +9,14 @@ import type {
 } from "@ai-novel/shared/types/novelDirector";
 import type { DirectorRiskPolicy } from "@ai-novel/shared/types/directorRisk";
 import { buildDirectorCompletionProfile } from "@ai-novel/shared/types/directorCompletion";
-import type { NovelContextService } from "../../NovelContextService";
-import type { NovelWorkflowService } from "../../workflow/NovelWorkflowService";
+import type { NovelContextService } from "../../../NovelContextService";
+import type { NovelWorkflowService } from "../../../workflow/NovelWorkflowService";
 import {
   buildNovelEditResumeTarget,
   parseSeedPayload,
   parseResumeTarget,
-} from "../../workflow/novelWorkflow.shared";
-import { novelFramingSuggestionService } from "../../NovelFramingSuggestionService";
+} from "../../../workflow/novelWorkflow.shared";
+import { novelFramingSuggestionService } from "../../../NovelFramingSuggestionService";
 import { resolveDirectorBookFraming } from "./novelDirectorFraming";
 import {
   applyDirectorRunModeContract,
@@ -25,16 +25,16 @@ import {
   toBookSpec,
   type DirectorWorkflowSeedPayload,
 } from "./novelDirectorHelpers";
-import { DIRECTOR_PROGRESS } from "../projections/novelDirectorProgress";
-import type { DirectorRuntimeService } from "./DirectorRuntimeService";
+import { DIRECTOR_PROGRESS } from "../../projections/novelDirectorProgress";
+import type { DirectorRuntimeService } from "../execution/DirectorRuntimeService";
 import type { NovelDirectorRuntimeOrchestrator } from "./novelDirectorRuntimeOrchestrator";
-import type { NovelDirectorPipelineRuntime } from "../novelDirectorPipelineRuntime";
-import { getDirectorConfirmNovelCreateStepModule } from "../workflowStepRuntime/directorWorkflowStepModules";
-import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
-import { writingPlatformRecommendationPrompt } from "../../../../prompting/prompts/novel/writingPlatformRecommendation.prompts";
-import { writingPlatformProfileService } from "../../../../modules/novel/writing-platform";
-import { prisma } from "../../../../db/prisma";
-import { novelCreateResourceRecommendationService } from "../../NovelCreateResourceRecommendationService";
+import type { NovelDirectorPipelineRuntime } from "../../novelDirectorPipelineRuntime";
+import { getDirectorConfirmNovelCreateStepModule } from "../../workflowStepRuntime/directorWorkflowStepModules";
+import { runStructuredPrompt } from "../../../../../prompting/core/promptRunner";
+import { writingPlatformRecommendationPrompt } from "../../../../../prompting/prompts/novel/writingPlatformRecommendation.prompts";
+import { writingPlatformProfileService } from "../../../../../modules/novel/writing-platform";
+import { prisma } from "../../../../../db/prisma";
+import { novelCreateResourceRecommendationService } from "../../../NovelCreateResourceRecommendationService";
 
 type WorkflowTaskSnapshot = Awaited<ReturnType<NovelWorkflowService["getTaskByIdWithoutHealing"]>>;
 

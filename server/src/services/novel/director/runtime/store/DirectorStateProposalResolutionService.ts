@@ -4,13 +4,13 @@ import type {
   DirectorStateProposalResolution,
   DirectorStateProposalResolutionDecision,
 } from "@ai-novel/shared/types/stateProposalResolution";
-import { prisma } from "../../../../db/prisma";
-import { withSqliteRetry } from "../../../../db/sqliteRetry";
-import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
-import { directorStateProposalResolutionPrompt } from "../../../../prompting/prompts/novel/director/directorStateProposalResolution.prompts";
-import { canonicalStateService } from "../../state/CanonicalStateService";
-import { stateCommitService } from "../../state/StateCommitService";
-import { directorAutomationLedgerEventService } from "./DirectorAutomationLedgerEventService";
+import { prisma } from "../../../../../db/prisma";
+import { withSqliteRetry } from "../../../../../db/sqliteRetry";
+import { runStructuredPrompt } from "../../../../../prompting/core/promptRunner";
+import { directorStateProposalResolutionPrompt } from "../../../../../prompting/prompts/novel/director/directorStateProposalResolution.prompts";
+import { canonicalStateService } from "../../../state/CanonicalStateService";
+import { stateCommitService } from "../../../state/StateCommitService";
+import { directorAutomationLedgerEventService } from "../events/DirectorAutomationLedgerEventService";
 
 const AUTO_RESOLUTION_TYPES = [
   "information_disclosure",

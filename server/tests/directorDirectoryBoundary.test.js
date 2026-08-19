@@ -45,6 +45,30 @@ test("director responsibility directories exist", () => {
   }
 });
 
+test("director runtime stays grouped into owned submodules", () => {
+  const runtimeRoot = path.join(directorRoot, "runtime");
+  const rootTsFiles = fs
+    .readdirSync(runtimeRoot, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && entry.name.endsWith(".ts"))
+    .map((entry) => entry.name)
+    .sort();
+
+  assert.deepEqual(rootTsFiles, ["directorSubsystem.ts"]);
+
+  for (const dirname of [
+    "artifacts",
+    "events",
+    "execution",
+    "flows",
+    "resilience",
+    "store",
+    "takeover",
+  ]) {
+    const fullPath = path.join(runtimeRoot, dirname);
+    assert.equal(fs.statSync(fullPath).isDirectory(), true, `runtime/${dirname} must be a directory`);
+  }
+});
+
 test("app.ts mounts director router directly from director http module", () => {
   const appSource = fs.readFileSync(path.join(repoRoot, "src", "app.ts"), "utf8");
 

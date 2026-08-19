@@ -4,7 +4,7 @@ const assert = require("node:assert/strict");
 const {
   buildDirectorWorkspaceArtifactInventory,
   hasContinuableQualityLoopRiskFlags,
-} = require("../dist/services/novel/director/runtime/DirectorWorkspaceArtifactInventory.js");
+} = require("../dist/services/novel/director/runtime/artifacts/DirectorWorkspaceArtifactInventory.js");
 
 function row(id) {
   return { id, updatedAt: "2026-04-28T01:00:00.000Z" };

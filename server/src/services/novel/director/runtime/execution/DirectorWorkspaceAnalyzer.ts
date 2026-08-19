@@ -8,23 +8,23 @@ import type {
   DirectorWorkspaceInventory,
 } from "@ai-novel/shared/types/directorRuntime";
 import type { DirectorLLMOptions } from "@ai-novel/shared/types/novelDirector";
-import { prisma } from "../../../../db/prisma";
-import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
-import { resolvePromptContextBlocksForAsset } from "../../../../prompting/context/promptContextResolution";
+import { prisma } from "../../../../../db/prisma";
+import { runStructuredPrompt } from "../../../../../prompting/core/promptRunner";
+import { resolvePromptContextBlocksForAsset } from "../../../../../prompting/context/promptContextResolution";
 import {
   buildDirectorWorkspaceAnalysisContextBlocks,
   directorWorkspaceAnalysisPrompt,
-} from "../../../../prompting/prompts/novel/director/directorWorkspaceAnalysis.prompts";
+} from "../../../../../prompting/prompts/novel/director/directorWorkspaceAnalysis.prompts";
 import {
   buildDirectorManualEditImpactContextBlocks,
   directorManualEditImpactPrompt,
-} from "../../../../prompting/prompts/novel/director/directorManualEditImpact.prompts";
-import { normalizeDirectorArtifactRef } from "./DirectorArtifactLedger";
-import { DirectorRuntimeStore } from "./DirectorRuntimeStore";
+} from "../../../../../prompting/prompts/novel/director/directorManualEditImpact.prompts";
+import { normalizeDirectorArtifactRef } from "../artifacts/DirectorArtifactLedger";
+import { DirectorRuntimeStore } from "../store/DirectorRuntimeStore";
 import {
   buildDirectorWorkspaceArtifactInventory,
   hasContinuableQualityLoopRiskFlags,
-} from "./DirectorWorkspaceArtifactInventory";
+} from "../artifacts/DirectorWorkspaceArtifactInventory";
 
 function timestampOf(value?: string | null): number {
   if (!value) {

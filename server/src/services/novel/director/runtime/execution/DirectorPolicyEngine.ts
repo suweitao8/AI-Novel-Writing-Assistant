@@ -5,7 +5,7 @@ import type {
   DirectorRuntimePolicySnapshot,
   DirectorQualityGateResult,
 } from "@ai-novel/shared/types/directorRuntime";
-import { buildDefaultDirectorPolicy } from "./directorRuntimeDefaults";
+import { buildDefaultDirectorPolicy } from "../store/directorRuntimeDefaults";
 
 type DirectorPolicyRiskTag = DirectorPolicyDecision["riskTags"][number];
 

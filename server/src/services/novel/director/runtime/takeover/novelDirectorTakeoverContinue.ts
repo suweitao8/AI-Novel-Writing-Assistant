@@ -9,14 +9,14 @@ import {
 import {
   DIRECTOR_TAKEOVER_ENTRY_STEPS,
 } from "@ai-novel/shared/types/novelDirector";
-import { prisma } from "../../../../db/prisma";
+import { prisma } from "../../../../../db/prisma";
 import {
   normalizeDirectorAutoExecutionPlan,
   resolveDirectorAutoExecutionRangeFromState,
-} from "../automation/novelDirectorAutoExecution";
+} from "../../automation/novelDirectorAutoExecution";
 import type { DirectorTakeoverResolvedPlan } from "./novelDirectorTakeover";
-import { parseSeedPayload, mergeSeedPayload } from "../../workflow/novelWorkflow.shared";
-import type { DirectorWorkflowSeedPayload } from "./novelDirectorHelpers";
+import { parseSeedPayload, mergeSeedPayload } from "../../../workflow/novelWorkflow.shared";
+import type { DirectorWorkflowSeedPayload } from "../flows/novelDirectorHelpers";
 
 export const CONTINUE_EXISTING_REPLACEMENT_REASON = "由本任务替代";
 

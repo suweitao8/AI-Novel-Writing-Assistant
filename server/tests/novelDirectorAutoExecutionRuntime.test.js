@@ -17,7 +17,7 @@ const {
   buildDirectorQualityLoopBudgetWindow,
   buildDirectorQualityLoopIssueSignature,
   recordDirectorQualityLoopBudgetAttempt,
-} = require("../dist/services/novel/director/runtime/DirectorQualityLoopBudgetLedgerService.js");
+} = require("../dist/services/novel/director/runtime/execution/DirectorQualityLoopBudgetLedgerService.js");
 
 function buildRequest(overrides = {}) {
   return {
