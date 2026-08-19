@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DetailDisclosure } from "./workspaceShell";
+import { DetailDisclosure } from "../workspaceShell";
 
 export interface NovelWorldUsageCardProps {
   view?: StoryWorldSliceView | null;

@@ -2,12 +2,12 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildReplanRecommendationFromAuditReports } from "../chapterPlanning.shared";
-import type { ChapterTabViewProps } from "./NovelEditView.types";
-import WorldInjectionHint from "./WorldInjectionHint";
+import { buildReplanRecommendationFromAuditReports } from "../../chapterPlanning.shared";
+import type { ChapterTabViewProps } from "../NovelEditView.types";
+import WorldInjectionHint from "../WorldInjectionHint";
 import ChapterExecutionActionPanel from "./ChapterExecutionActionPanel";
-import ChapterExecutionInsightsSidebar from "./chapterInsights";
-import ChapterExecutionReferencePanel from "./chapterInsights/ChapterExecutionReferencePanel";
+import ChapterExecutionInsightsSidebar from "../chapterInsights";
+import ChapterExecutionReferencePanel from "../chapterInsights/ChapterExecutionReferencePanel";
 import ChapterExecutionQueueCard from "./ChapterExecutionQueueCard";
 import ChapterExecutionResultPanel from "./ChapterExecutionResultPanel";
 import {
@@ -15,7 +15,7 @@ import {
   type AssetTabKey,
   type QueueFilterKey,
 } from "./chapterExecution.shared";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
+import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
 
 export default function ChapterManagementTab(props: ChapterTabViewProps) {
   const {

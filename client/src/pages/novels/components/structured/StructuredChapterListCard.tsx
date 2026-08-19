@@ -7,13 +7,13 @@ import { Trash2 } from "lucide-react";
 import {
   getChapterExecutionDetailStatus,
   hasChapterExecutionDetail,
-} from "../chapterDetailPlanning.shared";
+} from "../../chapterDetailPlanning.shared";
 import {
   chapterMatchesBeat,
   formatBeatDisplayLabel,
   getBeatExpectedChapterCount,
 } from "./structuredOutlineWorkspace.shared";
-import type { StructuredTabViewProps } from "./NovelEditView.types";
+import type { StructuredTabViewProps } from "../NovelEditView.types";
 
 type StructuredVolume = StructuredTabViewProps["volumes"][number];
 type StructuredChapter = StructuredVolume["chapters"][number];

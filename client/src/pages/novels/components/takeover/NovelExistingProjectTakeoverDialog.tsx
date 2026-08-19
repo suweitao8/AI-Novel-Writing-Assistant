@@ -28,14 +28,14 @@ import { toast } from "@/components/ui/toast";
 import AutoDirectorApprovalStrategyPanel from "@/components/autoDirector/AutoDirectorApprovalStrategyPanel";
 import { useLLMStore } from "@/store/llmStore";
 import { Switch } from "@/components/ui/switch";
-import type { NovelBasicFormState } from "../novelBasicInfo.shared";
+import type { NovelBasicFormState } from "../../novelBasicInfo.shared";
 import {
   buildTakeoverAutoExecutionDraftFromExecutableRange,
   DirectorAutoExecutionPlanFields,
   buildDirectorAutoExecutionPlanFromDraft,
   buildDirectorAutoExecutionPlanLabel,
   createDefaultDirectorAutoExecutionDraftState,
-} from "./directorAutoExecutionPlan.shared";
+} from "../director/directorAutoExecutionPlan.shared";
 import {
   buildTakeoverChapterTarget,
   buildTakeoverProgressInspection,
@@ -45,12 +45,12 @@ import {
   isTakeoverEntryStepAllowedForScope,
   resolveRecommendedTakeoverEntryStep,
 } from "./novelExistingProjectTakeoverViewModel";
-import TakeoverContextSummaryPanel from "./takeover/TakeoverContextSummaryPanel";
-import TakeoverDiagnosisPanel from "./takeover/TakeoverDiagnosisPanel";
-import { useDirectorAutoApprovalDraft } from "./useDirectorAutoApprovalDraft";
+import TakeoverContextSummaryPanel from "./TakeoverContextSummaryPanel";
+import TakeoverDiagnosisPanel from "./TakeoverDiagnosisPanel";
+import { useDirectorAutoApprovalDraft } from "../director/useDirectorAutoApprovalDraft";
 import { AUTO_DIRECTOR_MOBILE_CLASSES } from "@/mobile/autoDirector";
 import SelectControl from "@/components/common/SelectControl";
-import { DirectorRiskPolicySummary } from "./DirectorRiskPolicySummary";
+import { DirectorRiskPolicySummary } from "../director/DirectorRiskPolicySummary";
 
 interface NovelExistingProjectTakeoverDialogProps {
   novelId: string;

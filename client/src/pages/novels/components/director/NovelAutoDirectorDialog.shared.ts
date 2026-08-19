@@ -1,7 +1,7 @@
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { normalizeCommercialTags } from "@ai-novel/shared/types/novelFraming";
 import type { DirectorRunMode, DirectorWorldSetupMode } from "@ai-novel/shared/types/novelDirector";
-import type { NovelBasicFormState } from "../novelBasicInfo.shared";
+import type { NovelBasicFormState } from "../../novelBasicInfo.shared";
 
 export interface DirectorRunModeOption {
   value: DirectorRunMode;

@@ -8,15 +8,15 @@ import CharacterAssetSidebar from "./CharacterAssetSidebar";
 import CharacterDynamicsSection from "./CharacterDynamicsSection";
 import CharacterFocusSummary from "./CharacterFocusSummary";
 import { isProtagonistCharacter } from "./characterAssetWorkspace.helpers";
-import { getLastAppearanceChapter } from "./characterPanel.utils";
-import CharacterIntelligenceTab from "./characterWorkspace/CharacterIntelligenceTab";
-import CharacterOverviewTab from "./characterWorkspace/CharacterOverviewTab";
-import CharacterProfileTab from "./characterWorkspace/CharacterProfileTab";
-import CharacterRelationsTab from "./characterWorkspace/CharacterRelationsTab";
-import CharacterResourceTab from "./characterWorkspace/CharacterResourceTab";
-import CharacterTimelineTab from "./characterWorkspace/CharacterTimelineTab";
-import CharacterVisibleProfileTab from "./characterWorkspace/CharacterVisibleProfileTab";
-import type { CharacterAssetWorkspaceProps } from "./characterWorkspace/characterWorkspace.types";
+import { getLastAppearanceChapter } from "../characterPanel.utils";
+import CharacterIntelligenceTab from "../characterWorkspace/CharacterIntelligenceTab";
+import CharacterOverviewTab from "../characterWorkspace/CharacterOverviewTab";
+import CharacterProfileTab from "../characterWorkspace/CharacterProfileTab";
+import CharacterRelationsTab from "../characterWorkspace/CharacterRelationsTab";
+import CharacterResourceTab from "../characterWorkspace/CharacterResourceTab";
+import CharacterTimelineTab from "../characterWorkspace/CharacterTimelineTab";
+import CharacterVisibleProfileTab from "../characterWorkspace/CharacterVisibleProfileTab";
+import type { CharacterAssetWorkspaceProps } from "../characterWorkspace/characterWorkspace.types";
 
 const WORKSPACE_TABS: Array<{ value: string; label: string; icon: LucideIcon }> = [
   { value: "overview", label: "总览", icon: ScrollText },

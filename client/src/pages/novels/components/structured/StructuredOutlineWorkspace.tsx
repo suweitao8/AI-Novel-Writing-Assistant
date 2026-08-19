@@ -9,20 +9,20 @@ import { cn } from "@/lib/utils";
 import {
   getStructuredOutlineWorkspaceDefaults,
   useStructuredOutlineWorkspaceStore,
-} from "../stores/useStructuredOutlineWorkspaceStore";
-import { hasChapterExecutionDetail } from "../chapterDetailPlanning.shared";
-import { findBeatSheet } from "../volumePlan.utils";
+} from "../../stores/useStructuredOutlineWorkspaceStore";
+import { hasChapterExecutionDetail } from "../../chapterDetailPlanning.shared";
+import { findBeatSheet } from "../../volumePlan.utils";
 import StructuredBeatSheetCard from "./StructuredBeatSheetCard";
 import StructuredChapterListCard from "./StructuredChapterListCard";
 import StructuredChapterDetailCard from "./StructuredChapterDetailCard";
-import WorldInjectionHint from "./WorldInjectionHint";
+import WorldInjectionHint from "../WorldInjectionHint";
 import {
   chapterMatchesBeat,
   findChapterBeat,
   formatBeatDisplayLabel,
   getBeatSheetRequiredChapterCount,
 } from "./structuredOutlineWorkspace.shared";
-import type { StructuredTabViewProps } from "./NovelEditView.types";
+import type { StructuredTabViewProps } from "../NovelEditView.types";
 
 type StructuredVolume = StructuredTabViewProps["volumes"][number];
 type StructuredChapter = StructuredVolume["chapters"][number];

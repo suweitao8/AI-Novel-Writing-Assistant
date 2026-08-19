@@ -6,7 +6,7 @@ import type {
   PayoffLedgerResponse,
   StoryStateSnapshot,
 } from "@ai-novel/shared/types/novel";
-import CollapsibleSummary from "./CollapsibleSummary";
+import CollapsibleSummary from "../CollapsibleSummary";
 
 interface BookPayoffLedgerCardProps {
   latestStateSnapshot?: StoryStateSnapshot | null;

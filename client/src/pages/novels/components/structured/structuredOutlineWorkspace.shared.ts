@@ -1,5 +1,5 @@
 import { formatVolumeBeatDisplayLabel } from "@ai-novel/shared/types/volumeBeatSlots";
-import type { StructuredTabViewProps } from "./NovelEditView.types";
+import type { StructuredTabViewProps } from "../NovelEditView.types";
 
 type StructuredVolume = StructuredTabViewProps["volumes"][number];
 type StructuredChapter = StructuredVolume["chapters"][number];

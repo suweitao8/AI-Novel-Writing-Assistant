@@ -12,13 +12,13 @@ import type {
 } from "@ai-novel/shared/types/novel";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { CharacterResourceLedgerItem } from "@ai-novel/shared/types/characterResource";
-import CharacterAssetWorkspace from "./CharacterAssetWorkspace";
+import CharacterAssetWorkspace from "./character/CharacterAssetWorkspace";
 import type { QuickCharacterCreatePayload } from "./characterPanel.utils";
 import CharacterCreateDialog from "./characterPanel/CharacterCreateDialog";
 import CharacterPreparationHero from "./characterPanel/CharacterPreparationHero";
 import SupplementalCharacterDialog from "./characterPanel/SupplementalCharacterDialog";
 import type { CharacterFormState, QuickCharacterFormState } from "./characterPanel/characterPanel.types";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
+import DirectorTakeoverEntryPanel from "./director/DirectorTakeoverEntryPanel";
 
 interface NovelCharacterPanelProps {
   novelId: string;

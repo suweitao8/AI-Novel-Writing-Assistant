@@ -17,7 +17,7 @@ import {
   NovelWorldUsageDetails,
   type NovelWorldUsageCardProps,
   type NovelWorldUsageDraftState,
-} from "../NovelWorldUsageCard";
+} from "../cards/NovelWorldUsageCard";
 import NovelWorldSourcePanel, { type WorldOption } from "./NovelWorldSourcePanel";
 
 export type NovelWorldDialogTab = "overview" | "rules" | "guidance" | "usage" | "sync";

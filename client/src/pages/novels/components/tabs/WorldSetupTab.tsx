@@ -1,7 +1,7 @@
-import type { BasicTabProps } from "./NovelEditView.types";
-import NovelWorldManagerCard from "./NovelWorldManagerCard";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
-import { SectionBlock } from "./workspaceShell";
+import type { BasicTabProps } from "../NovelEditView.types";
+import NovelWorldManagerCard from "../cards/NovelWorldManagerCard";
+import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
+import { SectionBlock } from "../workspaceShell";
 
 export default function WorldSetupTab(props: BasicTabProps) {
   return (

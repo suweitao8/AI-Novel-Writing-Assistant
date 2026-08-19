@@ -2,16 +2,16 @@ import type { StoryConflictLayers } from "@ai-novel/shared/types/storyMacro";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { StoryMacroTabProps } from "./NovelEditView.types";
+import type { StoryMacroTabProps } from "../NovelEditView.types";
 import {
   ENGINE_TEXT_FIELDS,
   FieldActions,
   listToText,
   textareaClassName,
 } from "./StoryMacroPlanTab.shared";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
-import { DetailDisclosure } from "./workspaceShell";
-import StoryEngineStudio from "./storyMacroPlan/StoryEngineStudio";
+import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
+import { DetailDisclosure } from "../workspaceShell";
+import StoryEngineStudio from "../storyMacroPlan/StoryEngineStudio";
 
 const EMPTY_CONFLICT_LAYERS: StoryConflictLayers = {
   external: "",

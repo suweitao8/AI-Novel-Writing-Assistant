@@ -61,7 +61,7 @@ import type {
   DirectorRuntimeSnapshot,
   DirectorTaskSnapshot,
 } from "@ai-novel/shared/types/directorRuntime";
-import type { ChapterExecutionBackgroundActivity } from "./chapterExecution.shared";
+import type { ChapterExecutionBackgroundActivity } from "./chapter/chapterExecution.shared";
 import type { QuickCharacterCreatePayload } from "./characterPanel.utils";
 import type { ChapterReviewResult } from "../chapterPlanning.shared";
 import type { ChapterDetailBundleRequest } from "../chapterDetailPlanning.shared";

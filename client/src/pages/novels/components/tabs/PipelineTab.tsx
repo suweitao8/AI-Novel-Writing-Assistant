@@ -7,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import LLMSelector from "@/components/common/LLMSelector";
 import StreamOutput from "@/components/common/StreamOutput";
-import CollapsibleSummary from "./CollapsibleSummary";
-import WorldInjectionHint from "./WorldInjectionHint";
-import { getLowScoreChapterRange, getPipelineStageState, PIPELINE_STAGE_ITEMS } from "./pipelineTab.utils";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
+import CollapsibleSummary from "../CollapsibleSummary";
+import WorldInjectionHint from "../WorldInjectionHint";
+import { getLowScoreChapterRange, getPipelineStageState, PIPELINE_STAGE_ITEMS } from "../pipelineTab.utils";
+import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
 import SelectControl from "@/components/common/SelectControl";
-import NovelDirectorIssuePolicyCard from "./NovelDirectorIssuePolicyCard";
+import NovelDirectorIssuePolicyCard from "../director/NovelDirectorIssuePolicyCard";
 
 interface PipelineTabProps {
   novelId: string;

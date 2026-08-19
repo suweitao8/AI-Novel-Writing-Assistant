@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { StructuredTabViewProps } from "./NovelEditView.types";
+import type { StructuredTabViewProps } from "../NovelEditView.types";
 import { formatBeatDisplayLabel } from "./structuredOutlineWorkspace.shared";
 
 type StructuredVolume = StructuredTabViewProps["volumes"][number];

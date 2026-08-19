@@ -9,7 +9,7 @@ import { queryKeys } from "@/api/queryKeys";
 import { flattenStoryModeTreeOptions, getStoryModeTree } from "@/api/storyMode";
 import { getWorldList } from "@/api/world";
 import NovelBasicInfoForm from "./components/NovelBasicInfoForm";
-import NovelCreateResourceRecommendationCard from "./components/NovelCreateResourceRecommendationCard";
+import NovelCreateResourceRecommendationCard from "./components/cards/NovelCreateResourceRecommendationCard";
 import { BookFramingQuickFillButton } from "./components/basicInfoForm/BookFramingQuickFillButton";
 import NovelCreateTitleQuickFill from "./components/titleWorkshop/NovelCreateTitleQuickFill";
 import { useNovelContinuationSources } from "./hooks/useNovelContinuationSources";

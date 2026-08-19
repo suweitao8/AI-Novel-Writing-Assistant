@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import TensionCurvePanel, { type TensionCurveSeries } from "@/components/tensionCurve/TensionCurvePanel";
-import VolumePayoffOverviewCard from "../VolumePayoffOverviewCard";
+import VolumePayoffOverviewCard from "../cards/VolumePayoffOverviewCard";
 import type { OutlineTabViewProps } from "../NovelEditView.types";
 
 type OutlineVolume = OutlineTabViewProps["volumes"][number];

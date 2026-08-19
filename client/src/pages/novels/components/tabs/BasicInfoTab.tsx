@@ -1,12 +1,12 @@
-import type { BasicTabProps } from "./NovelEditView.types";
-import NovelBasicInfoForm from "./NovelBasicInfoForm";
-import NovelStyleRecommendationCard from "./NovelStyleRecommendationCard";
-import { BookFramingQuickFillButton } from "./basicInfoForm/BookFramingQuickFillButton";
-import NovelCreateTitleQuickFill from "./titleWorkshop/NovelCreateTitleQuickFill";
-import DirectorTakeoverEntryPanel from "./DirectorTakeoverEntryPanel";
-import { NovelCoverCard } from "./cover/NovelCoverCard";
-import { DetailDisclosure, SectionBlock } from "./workspaceShell";
-import { NovelDirectorRiskPolicyCard } from "./NovelDirectorRiskPolicyCard";
+import type { BasicTabProps } from "../NovelEditView.types";
+import NovelBasicInfoForm from "../NovelBasicInfoForm";
+import NovelStyleRecommendationCard from "../cards/NovelStyleRecommendationCard";
+import { BookFramingQuickFillButton } from "../basicInfoForm/BookFramingQuickFillButton";
+import NovelCreateTitleQuickFill from "../titleWorkshop/NovelCreateTitleQuickFill";
+import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
+import { NovelCoverCard } from "../cover/NovelCoverCard";
+import { DetailDisclosure, SectionBlock } from "../workspaceShell";
+import { NovelDirectorRiskPolicyCard } from "../director/NovelDirectorRiskPolicyCard";
 
 export default function BasicInfoTab(props: BasicTabProps) {
   return (

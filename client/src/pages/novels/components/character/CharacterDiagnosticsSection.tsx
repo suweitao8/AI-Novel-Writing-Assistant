@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { Character } from "@ai-novel/shared/types/novel";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import CharacterCastOptionsSection from "./CharacterCastOptionsSection";
-import CollapsibleSummary from "./CollapsibleSummary";
+import CollapsibleSummary from "../CollapsibleSummary";
 
 interface CharacterDiagnosticsSectionProps {
   novelId: string;

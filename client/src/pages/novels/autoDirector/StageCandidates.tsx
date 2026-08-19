@@ -1,5 +1,5 @@
-import NovelAutoDirectorCandidateBatches from "../components/NovelAutoDirectorCandidateBatches";
-import NovelAutoDirectorProgressPanel from "../components/NovelAutoDirectorProgressPanel";
+import NovelAutoDirectorCandidateBatches from "../components/director/NovelAutoDirectorCandidateBatches";
+import NovelAutoDirectorProgressPanel from "../components/director/NovelAutoDirectorProgressPanel";
 import { Button } from "@/components/ui/button";
 import type { useAutoDirectorCreateController } from "./useAutoDirectorCreateController";
 import NovelProductionExperienceHandoff from "../components/NovelProductionExperienceHandoff";

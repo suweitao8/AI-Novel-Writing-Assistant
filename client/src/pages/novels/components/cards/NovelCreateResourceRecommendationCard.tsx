@@ -5,7 +5,7 @@ import { recommendNovelCreateResources } from "@/api/novel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLLMStore } from "@/store/llmStore";
-import type { NovelBasicFormState } from "../novelBasicInfo.shared";
+import type { NovelBasicFormState } from "../../novelBasicInfo.shared";
 
 interface NovelCreateResourceRecommendationCardProps {
   basicForm: NovelBasicFormState;

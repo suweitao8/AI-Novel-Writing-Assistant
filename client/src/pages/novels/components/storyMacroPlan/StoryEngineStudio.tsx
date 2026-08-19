@@ -11,7 +11,7 @@ import {
   SUMMARY_FIELDS,
   listToText,
   textareaClassName,
-} from "../StoryMacroPlanTab.shared";
+} from "../tabs/StoryMacroPlanTab.shared";
 
 interface StoryEngineStudioProps {
   tab: StoryMacroTabProps;

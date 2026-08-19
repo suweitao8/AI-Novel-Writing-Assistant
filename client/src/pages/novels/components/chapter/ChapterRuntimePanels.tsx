@@ -3,7 +3,7 @@ import type { AuditReport, ReplanRecommendation, ReplanResult, StoryPlan, StoryS
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { buildReplanRecommendationFromAuditReports } from "../chapterPlanning.shared";
+import { buildReplanRecommendationFromAuditReports } from "../../chapterPlanning.shared";
 
 function parseStringArray(value: string | null | undefined): string[] {
   if (!value?.trim()) {

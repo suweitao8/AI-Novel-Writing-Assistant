@@ -1,6 +1,6 @@
 import type { Character, CharacterVisibleProfileField } from "@ai-novel/shared/types/novel";
 import type { CharacterResourceLedgerItem } from "@ai-novel/shared/types/characterResource";
-import { isProtagonistCharacter } from "../characterAssetWorkspace.helpers";
+import { isProtagonistCharacter } from "../character/characterAssetWorkspace.helpers";
 
 export const VISIBLE_PROFILE_FIELDS: Array<{
   key: CharacterVisibleProfileField;

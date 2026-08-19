@@ -7,17 +7,17 @@ import type {
 } from "@ai-novel/shared/types/novelWorld";
 import type { StoryWorldSliceOverrides, StoryWorldSliceView } from "@ai-novel/shared/types/storyWorldSlice";
 import { Button } from "@/components/ui/button";
-import NovelWorldSourcePanel, { type WorldOption } from "./novelWorld/NovelWorldSourcePanel";
+import NovelWorldSourcePanel, { type WorldOption } from "../novelWorld/NovelWorldSourcePanel";
 import {
   NovelWorldHandbookDialog,
   type NovelWorldDialogTab,
-} from "./novelWorld/NovelWorldHandbookDialog";
+} from "../novelWorld/NovelWorldHandbookDialog";
 import {
   NovelWorldUsageSummary,
   useNovelWorldUsageDraft,
   type NovelWorldUsageCardProps,
 } from "./NovelWorldUsageCard";
-import { DetailDisclosure } from "./workspaceShell";
+import { DetailDisclosure } from "../workspaceShell";
 
 interface NovelWorldManagerCardProps {
   view?: NovelWorldView | null;

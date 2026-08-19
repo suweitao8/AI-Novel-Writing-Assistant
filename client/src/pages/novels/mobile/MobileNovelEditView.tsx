@@ -10,16 +10,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import BasicInfoTab from "../components/BasicInfoTab";
-import WorldSetupTab from "../components/WorldSetupTab";
-import ChapterManagementTab from "../components/ChapterManagementTab";
+import BasicInfoTab from "../components/tabs/BasicInfoTab";
+import WorldSetupTab from "../components/tabs/WorldSetupTab";
+import ChapterManagementTab from "../components/chapter/ChapterManagementTab";
 import NovelCharacterPanel from "../components/NovelCharacterPanel";
 import NovelTaskDrawer from "../components/NovelTaskDrawer";
-import OutlineTab from "../components/OutlineTab";
-import PipelineTab from "../components/PipelineTab";
-import StoryMacroPlanTab from "../components/StoryMacroPlanTab";
-import StructuredOutlineTab from "../components/StructuredOutlineTab";
-import VersionHistoryTab from "../components/VersionHistoryTab";
+import OutlineTab from "../components/tabs/OutlineTab";
+import PipelineTab from "../components/tabs/PipelineTab";
+import StoryMacroPlanTab from "../components/tabs/StoryMacroPlanTab";
+import StructuredOutlineTab from "../components/structured/StructuredOutlineTab";
+import VersionHistoryTab from "../components/tabs/VersionHistoryTab";
 import type { NovelEditViewProps } from "../components/NovelEditView.types";
 import {
   getNovelWorkspaceTabLabel,
