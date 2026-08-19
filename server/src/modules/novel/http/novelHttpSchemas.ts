@@ -236,6 +236,10 @@ export const updateChapterSchema = z.object({
   riskFlags: z.string().nullable().optional(),
 });
 
+export const chapterReferenceDraftPreviewSchema = z.object({
+  referenceText: z.string().trim().min(1).max(20000),
+});
+
 export const chapterDetailOutlineSaveSchema = z.object({
   beats: z.array(z.object({
     summary: z.string().trim().min(4).max(200),
