@@ -8,6 +8,7 @@ import {
   Clapperboard,
   Film,
   Loader2,
+  Plus,
   RefreshCw,
   Settings,
   Sparkles,
@@ -31,9 +32,10 @@ import { toast } from "@/components/ui/toast";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
+import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
-import { useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具世界观）/设定（项目配置）。
 type StudioStage = "current" | "assets" | "settings";
@@ -63,6 +65,7 @@ export default function ComicDramaStudioPage() {
   const [stage, setStage] = useState<StudioStage>("current");
   const [currentTab, setCurrentTab] = useState<CurrentTab>("draft");
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
+  const [createChapterOpen, setCreateChapterOpen] = useState(false);
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.comicDrama.overview(novelId),
@@ -166,8 +169,18 @@ export default function ComicDramaStudioPage() {
           </Button>
         ) : null}
         <Button variant="outline" size="sm" className="max-w-[240px]" onClick={() => setChapterManageOpen(true)}>
-          <BookOpenText className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{chapter ? `${chapter.order} · ${chapter.title}` : "章节管理"}</span>
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label="新增章节"
+          title={directorActive ? "AI 正在写作，暂停后再手动添加章节。" : "新增下一章"}
+          disabled={directorActive}
+          onClick={() => setCreateChapterOpen(true)}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
       </>
     );
@@ -178,20 +191,15 @@ export default function ComicDramaStudioPage() {
       <Tabs value={stage} onValueChange={(value) => setStage(value as StudioStage)}>
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-2.5 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5">
-            <div className="flex min-w-0 items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                asChild
-                className="-ml-2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
-                title="返回漫剧列表"
-              >
-                <Link to="/drama" aria-label="返回漫剧列表">
-                  <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight text-foreground">{overview.novel.title}</h1>
-            </div>
+            <Link
+              to="/drama"
+              title="返回漫剧列表"
+              aria-label="返回漫剧列表"
+              className="-ml-2 flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="min-w-0 truncate text-lg font-semibold tracking-tight text-foreground">{overview.novel.title}</span>
+            </Link>
             <TabsList className="sm:justify-self-center">
               <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
               <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
@@ -274,6 +282,18 @@ export default function ComicDramaStudioPage() {
         onSelectChapter={(chapter) => {
           chapterWorkspace.switchChapter(chapter);
           setChapterManageOpen(false);
+        }}
+      />
+
+      <CreateChapterDialog
+        novelId={novelId}
+        open={createChapterOpen}
+        onOpenChange={setCreateChapterOpen}
+        nextOrder={chapterWorkspace.chapters.length > 0
+          ? Math.max(...chapterWorkspace.chapters.map((chapter) => chapter.order)) + 1
+          : 1}
+        onCreated={async () => {
+          await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
         }}
       />
     </div>
