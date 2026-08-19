@@ -5,11 +5,13 @@ import {
   ArrowLeft,
   AudioLines,
   BookOpenText,
+  Boxes,
   Clapperboard,
   Film,
   Images,
   Loader2,
   RefreshCw,
+  Sparkles,
   Wand2,
 } from "lucide-react";
 import type { ComicDramaLinkStats } from "@ai-novel/shared/types/comicDrama";
@@ -22,8 +24,6 @@ import {
   type DramaVisualStyle,
 } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
-import AiButton from "@/components/common/AiButton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,19 +34,22 @@ import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
+import { useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
-type StudioStage = "novel" | "storyboard" | "voice" | "video";
-type NovelTab = "outline" | "chapterOutline" | "settings";
+type StudioStage = "novel" | "assets" | "storyboard" | "voice" | "video";
+type NovelTab = "outline" | "chapterOutline";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
   novel: "小说",
+  assets: "资产",
   storyboard: "分镜",
   voice: "配音",
   video: "视频",
 };
 
-// 漫剧工作室：统一顶栏承载返回入口、项目名、居中的阶段页签（小说/分镜/配音/视频）
-// 与小说阶段的子页签（大纲/细纲/设定），右侧放当前阶段的操作按钮。
+// 漫剧工作室：顶栏为返回按钮 + 项目名、居中的阶段页签（小说/资产/分镜/配音/视频）
+// 与小说阶段的子页签（大纲/细纲）。小说阶段按「当前章」创作：顶栏章节管理显示
+// 当前章并负责切换，大纲/细纲页签随之更新；「解析」按本章大纲生成本章细纲。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
   const queryClient = useQueryClient();
@@ -64,7 +67,8 @@ export default function ComicDramaStudioPage() {
     },
   });
   const overview = overviewQuery.data?.data ?? null;
-  const workspace = useNovelOutlineWorkspace(novelId);
+  const outlineWorkspace = useNovelOutlineWorkspace(novelId);
+  const chapterWorkspace = useNovelChapterWorkspace(novelId);
   const storyboard = useStoryboardStage({
     novelId,
     novelTitle: overview?.novel.title ?? "",
@@ -99,11 +103,29 @@ export default function ComicDramaStudioPage() {
   };
 
   const startTakeover = () => {
-    workspace.startMutation.mutate(undefined, { onSuccess: invalidateOverview });
+    outlineWorkspace.startMutation.mutate(undefined, {
+      onSuccess: async () => {
+        await invalidateOverview();
+        setChapterManageOpen(false);
+      },
+    });
   };
+
+  const parseChapterOutline = () => {
+    chapterWorkspace.previewMutation.mutate(undefined, {
+      onSuccess: () => setNovelTab("chapterOutline"),
+    });
+  };
+
+  const parseDisabledReason = !chapterWorkspace.currentChapter
+    ? "还没有章节，先打开「章节管理」新建第一章。"
+    : !chapterWorkspace.expectationText.trim()
+      ? "先在「大纲」页签写下本章的故事，AI 才能解析。"
+      : null;
 
   let headerActions: ReactNode = null;
   if (stage === "novel") {
+    const chapter = chapterWorkspace.currentChapter;
     headerActions = (
       <>
         {directorActive && directorTask ? (
@@ -111,8 +133,9 @@ export default function ComicDramaStudioPage() {
             AI 写作中<span className="font-semibold tabular-nums text-foreground">{directorTask.progress}%</span>
           </span>
         ) : null}
-        <Button variant="outline" size="sm" onClick={() => setChapterManageOpen(true)}>
-          <BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />章节管理
+        <Button variant="outline" size="sm" className="max-w-[240px]" onClick={() => setChapterManageOpen(true)}>
+          <BookOpenText className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">{chapter ? `${chapter.order} · ${chapter.title}` : "章节管理"}</span>
         </Button>
       </>
     );
@@ -165,18 +188,22 @@ export default function ComicDramaStudioPage() {
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-2.5 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5">
             <div className="flex min-w-0 items-center gap-2">
-              <Button variant="ghost" size="sm" asChild className="-ml-2 shrink-0 px-2 text-muted-foreground hover:text-foreground">
-                <Link to="/drama">
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                className="-ml-2 h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                title="返回漫剧列表"
+              >
+                <Link to="/drama" aria-label="返回漫剧列表">
                   <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">返回漫剧列表</span>
                 </Link>
               </Button>
-              <span className="hidden h-4 w-px shrink-0 bg-border sm:block" />
               <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight text-foreground">{overview.novel.title}</h1>
-              <Badge variant="outline" className="shrink-0">漫剧项目</Badge>
             </div>
             <TabsList className="sm:justify-self-center">
               <TabsTrigger value="novel"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.novel}</TabsTrigger>
+              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
               <TabsTrigger value="storyboard"><Images className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.storyboard}</TabsTrigger>
               <TabsTrigger value="voice"><AudioLines className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.voice}</TabsTrigger>
               <TabsTrigger value="video"><Film className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.video}</TabsTrigger>
@@ -194,43 +221,44 @@ export default function ComicDramaStudioPage() {
                 <TabsList>
                   <TabsTrigger value="outline">大纲</TabsTrigger>
                   <TabsTrigger value="chapterOutline">细纲</TabsTrigger>
-                  <TabsTrigger value="settings">设定</TabsTrigger>
                 </TabsList>
               </Tabs>
               <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
-                {workspace.saveOutlineMutation.isPending ? (
+                {chapterWorkspace.savePending ? (
                   <span className="text-xs text-muted-foreground">自动保存中…</span>
                 ) : null}
-                <AiButton
+                <Button
                   size="sm"
-                  onClick={startTakeover}
-                  disabled={directorActive || workspace.startMutation.isPending}
-                  title={directorActive
-                    ? "AI 正在写作中，等这一轮写完可以继续。"
-                    : overview.novel.chapterCount > 0
-                      ? "AI 解析大纲后，接着已有章节继续写。"
-                      : "AI 解析大纲与设定后开始逐章创作。"}
+                  onClick={parseChapterOutline}
+                  disabled={chapterWorkspace.previewMutation.isPending || parseDisabledReason !== null}
+                  title={parseDisabledReason ?? "按本章大纲生成本章细纲"}
                 >
-                  {workspace.startMutation.isPending
+                  {chapterWorkspace.previewMutation.isPending
                     ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                    : null}
+                    : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
                   解析
-                </AiButton>
+                </Button>
               </div>
             </div>
           ) : null}
         </header>
 
         <TabsContent value="novel" className="space-y-4">
-          {novelTab === "settings" ? (
-            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-              <StorySettingsTabs novelId={novelId} />
-            </section>
-          ) : novelTab === "outline" ? (
-            <NovelOutlineTab novelId={novelId} workspace={workspace} />
+          {novelTab === "outline" ? (
+            <NovelOutlineTab
+              novelId={novelId}
+              workspace={chapterWorkspace}
+              onOpenChapterManage={() => setChapterManageOpen(true)}
+            />
           ) : (
-            <NovelChapterOutlineTab workspace={workspace} onGoOutline={() => setNovelTab("outline")} />
+            <NovelChapterOutlineTab workspace={chapterWorkspace} onGoOutline={() => setNovelTab("outline")} />
           )}
+        </TabsContent>
+
+        <TabsContent value="assets" className="space-y-4">
+          <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+            <StorySettingsTabs novelId={novelId} />
+          </section>
         </TabsContent>
 
         <TabsContent value="storyboard" className="space-y-4">
@@ -248,7 +276,16 @@ export default function ComicDramaStudioPage() {
         novelId={novelId}
         open={chapterManageOpen}
         onOpenChange={setChapterManageOpen}
+        chapters={chapterWorkspace.chapters}
+        currentChapterId={chapterWorkspace.currentChapter?.id ?? null}
         directorTaskActive={directorActive}
+        onSelectChapter={(chapter) => {
+          chapterWorkspace.switchChapter(chapter);
+          setChapterManageOpen(false);
+        }}
+        onStartTakeover={startTakeover}
+        takeoverPending={outlineWorkspace.startMutation.isPending}
+        hasChapters={overview.novel.chapterCount > 0}
       />
     </div>
   );

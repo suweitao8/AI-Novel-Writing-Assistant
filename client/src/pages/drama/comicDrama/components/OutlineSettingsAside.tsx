@@ -144,14 +144,17 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
 
   return (
     <aside className="flex max-h-[60vh] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-sm lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)]">
-      <div className="space-y-2.5 border-b border-border p-4">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-sm font-semibold text-foreground">设定</h3>
-          <span className="text-xs text-muted-foreground">名字在大纲里高亮</span>
-        </div>
+      <div className="border-b border-border p-4">
         <div className="flex items-center gap-2">
-          <Button type="button" size="sm" className="h-8 shrink-0 px-2.5" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" aria-hidden="true" />新增
+          <Button
+            type="button"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            aria-label="新增设定"
+            title="新增设定"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
           </Button>
           <Input
             value={keyword}
@@ -182,11 +185,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
         {filtered.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-sm leading-6 text-muted-foreground">
-            {normalized
-              ? `没有匹配「${appliedKeyword.trim()}」的设定。`
-              : "还没有角色、场景或道具，点「新增」创建。"}
-          </div>
+          <div className="flex h-full min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
         ) : (
           <ul className="space-y-2">
             {filtered.map((asset) => (
@@ -217,7 +216,6 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <AppDialogContent
           title="新增设定"
-          description="创建后名字会自动在大纲正文里高亮。"
           footer={
             <>
               <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
