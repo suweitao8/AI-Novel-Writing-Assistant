@@ -87,11 +87,15 @@ async function writeAudioInputs(
   const dataUrls = (audioDataUrls ?? []).slice(0, MAX_AUDIO_ITEMS);
   const audioPaths: string[] = [];
   for (let index = 0; index < dataUrls.length; index += 1) {
-    const buffer = dataUrlToBuffer(dataUrls[index]);
+    const dataUrl = dataUrls[index].trim();
+    const buffer = dataUrlToBuffer(dataUrl);
     if (!buffer || buffer.length === 0) {
       continue;
     }
-    const tempPath = path.join(os.tmpdir(), `cd-audio-${taskId}-${index}.mp3`);
+    // 扩展名按 dataUrl 的 mime 推断（VoxCPM 桥接返回 audio/wav），给 ffmpeg 正确的探测提示。
+    const mimeMatch = /^data:([^;]+);/.exec(dataUrl);
+    const ext = mimeMatch?.[1].includes("wav") ? "wav" : mimeMatch?.[1].includes("mpeg") ? "mp3" : "bin";
+    const tempPath = path.join(os.tmpdir(), `cd-audio-${taskId}-${index}.${ext}`);
     await fs.writeFile(tempPath, buffer);
     audioPaths.push(tempPath);
   }
@@ -102,7 +106,10 @@ async function writeAudioInputs(
     return { concatListPath: audioPaths[0], audioPaths };
   }
   const concatListPath = path.join(os.tmpdir(), `cd-audio-${taskId}-list.txt`);
-  const listContent = audioPaths.map((audioPath) => `file '${audioPath.replace(/'/g, "'\\''")}'`).join("\n");
+  // concat demuxer 列表内必须用正斜杠：Windows 反斜杠会被当作转义符导致 "Invalid data found"。
+  const listContent = audioPaths
+    .map((audioPath) => `file '${audioPath.replace(/\\/g, "/").replace(/'/g, "'\\''")}'`)
+    .join("\n");
   await fs.writeFile(concatListPath, listContent, "utf8");
   return { concatListPath, audioPaths };
 }
