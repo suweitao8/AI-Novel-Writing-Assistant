@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import {
   BookOpenText,
   Braces,
-  CircleHelp,
   Clapperboard,
   Database,
   Globe2,
@@ -49,7 +48,6 @@ const navGroups: NavGroup[] = [
     title: "创作",
     items: [
       { to: "/", label: "首页", icon: House },
-      { to: "/help", label: "创作向导", icon: CircleHelp },
       { to: "/novels", label: "小说列表", icon: BookOpenText },
       { to: "/drama", label: "漫剧列表", icon: Clapperboard },
       { to: "/comic", label: "漫画工作台", icon: SquareStack },
