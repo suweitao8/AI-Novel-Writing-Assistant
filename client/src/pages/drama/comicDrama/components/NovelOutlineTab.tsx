@@ -2,17 +2,19 @@ import { Loader2 } from "lucide-react";
 import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import type { NovelOutlineWorkspace } from "@/hooks/useNovelOutlineWorkspace";
 
 interface NovelOutlineTabProps {
   workspace: NovelOutlineWorkspace;
-  onExpanded: () => void;
+  onStart: () => void;
+  directorActive: boolean;
+  hasChapters: boolean;
 }
 
-// 漫剧工作室「小说 · 大纲」页签：写简略大纲并保存，让 AI 推理分章细纲后切到「细纲」页签确认。
+// 漫剧工作室「小说 · 大纲」页签：写全书简略大纲并保存，需要时从这里让 AI 接手逐章写作。
+// 逐章细化不在这里做：当前章写个大概故事、让 AI 展开细纲的流程在顶栏「章节管理」里。
 export default function NovelOutlineTab(props: NovelOutlineTabProps) {
-  const { workspace, onExpanded } = props;
+  const { workspace } = props;
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-5 p-6">
@@ -44,29 +46,24 @@ export default function NovelOutlineTab(props: NovelOutlineTabProps) {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3 border-t border-border pt-5">
-          <div className="space-y-1.5">
-            <label htmlFor="drama-target-chapter-count" className="text-xs text-muted-foreground">期望章数（可选）</label>
-            <Input
-              id="drama-target-chapter-count"
-              value={workspace.targetChapterCount}
-              inputMode="numeric"
-              className="w-28"
-              placeholder="AI 决定"
-              onChange={(event) => workspace.setTargetChapterCount(event.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-             />
-          </div>
+        <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
           <AiButton
-            disabled={!workspace.canExpand || workspace.expandMutation.isPending}
-            title={!workspace.canExpand ? "先写下几行故事走向，或让 AI 依据书名自由发挥。" : undefined}
-            onClick={() => workspace.expandMutation.mutate(undefined, { onSuccess: onExpanded })}
+            onClick={props.onStart}
+            disabled={props.directorActive || workspace.startMutation.isPending}
+            title={props.directorActive ? "AI 正在写作中，等这一轮写完可以继续。" : undefined}
           >
-            {workspace.expandMutation.isPending
+            {workspace.startMutation.isPending
               ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
               : null}
-            {workspace.draftChapters ? "重新推理细纲" : "AI 推理细纲"}
+            {props.hasChapters ? "让 AI 继续创作" : "让 AI 开始创作"}
           </AiButton>
-          <p className="text-xs leading-5 text-muted-foreground">推理结果不落库，到「细纲」页签确认保存后才会成为剧情契约。</p>
+          <p className="text-xs leading-5 text-muted-foreground">
+            {props.directorActive
+              ? "AI 正在逐章写作，写好的章节在顶栏「章节管理」里查看。"
+              : props.hasChapters
+                ? "AI 会接着已有章节继续往下写。"
+                : "AI 会按这份大纲与「设定」逐章写作与审校。"}
+          </p>
         </div>
       </CardContent>
     </Card>
