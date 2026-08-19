@@ -21,7 +21,7 @@
 
 - 服务端投影：`server/src/services/drama/studio/ComicDramaStudioService.ts` + `/api/drama/studio/links`（批量阶段统计，供列表卡片）与 `/api/drama/studio/:novelId/overview`（单项目完整阶段视图）。前端只消费这一层，不自行拼装 Novel 与 DramaProject。
 - 前端：`client/src/pages/drama/comicDrama/`——`ComicDramaListPage`（/drama，横版卡片 + 四阶段徽章）、`ComicDramaStudioPage`（/drama/studio/:novelId，四阶段工作流页）、`ComicDramaCreateDialog`（书名 + 可选想法 → 创建后直达工作室）。
-- 工作室顶栏统一承载：返回漫剧列表、作品名、居中的四阶段主 tab（小说/分镜/配音/视频）与小说阶段子 tab（大纲/细纲/设定），右侧放当前阶段的操作按钮（小说=章节管理+AI 写作进度，分镜=同步最新章节/打开分镜工作台，视频=打开视频工作台）。针对大纲的「解析」按钮（触发自动导演接管开始/继续写作）位于小说阶段子页签行右侧，与大纲/细纲/设定同一行。大纲编辑区是 `LineNumberedTextarea`（行号镜像实测对齐、默认 50 行起、回车加行），修改走静默自动保存（`saveOutlineMutation` 的 `silent` 参数，1.2s 防抖、失焦与切页签即冲保存，成功不弹 toast、失败仍报错）。
+- 工作室顶栏统一承载：返回漫剧列表、作品名、居中的四阶段主 tab（小说/分镜/配音/视频）与小说阶段子 tab（大纲/细纲/设定），右侧放当前阶段的操作按钮（小说=章节管理+AI 写作进度，分镜=同步最新章节/打开分镜工作台，视频=打开视频工作台）。针对大纲的「解析」按钮（触发自动导演接管开始/继续写作）位于小说阶段子页签行右侧，与大纲/细纲/设定同一行。大纲编辑区是 `LineNumberedTextarea`（行号镜像实测对齐、默认 50 行起、回车加行；行号列只读，点击行号选中整行，光标所在行号高亮），修改走静默自动保存（`saveOutlineMutation` 的 `silent` 参数，1.2s 防抖、失焦与切页签即冲保存，成功不弹 toast、失败仍报错）。
 
 ### 小说阶段的大纲契约（空白小说工作台）
 
