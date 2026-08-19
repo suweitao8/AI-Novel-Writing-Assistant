@@ -88,6 +88,7 @@ export async function createNovel(payload: {
   resourceReadyScore?: number;
   sourceNovelId?: string;
   sourceKnowledgeDocumentId?: string;
+  referenceKnowledgeDocumentId?: string;
   continuationBookAnalysisId?: string;
   continuationBookAnalysisSections?: BookAnalysisSectionKey[];
 }) {
@@ -163,6 +164,7 @@ export async function updateNovel(
     resourceReadyScore: number | null;
     sourceNovelId: string | null;
     sourceKnowledgeDocumentId: string | null;
+    referenceKnowledgeDocumentId: string | null;
     continuationBookAnalysisId: string | null;
     continuationBookAnalysisSections: BookAnalysisSectionKey[] | null;
     genreId: string | null;

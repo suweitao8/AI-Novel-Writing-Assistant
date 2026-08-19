@@ -254,6 +254,8 @@ export interface Novel {
   resourceReadyScore?: number | null;
   sourceNovelId?: string | null;
   sourceKnowledgeDocumentId?: string | null;
+  /** 参考小说（知识库文档）：仅存储备用，不进入写作上下文；漫剧项目设定里展示与管理 */
+  referenceKnowledgeDocumentId?: string | null;
   continuationBookAnalysisId?: string | null;
   continuationBookAnalysisSections?: BookAnalysisSectionKey[] | null;
   outline?: string | null;

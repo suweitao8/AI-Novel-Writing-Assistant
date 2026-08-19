@@ -33,6 +33,7 @@ import SettingsCharactersTab from "@/pages/novels/components/storySettings/Setti
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
+import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
@@ -365,6 +366,7 @@ export default function ComicDramaStudioPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
+          <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
           {settingsTab === "world" ? (
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
               <SettingsWorldTab novelId={novelId} onChanged={invalidateStorySettings} />

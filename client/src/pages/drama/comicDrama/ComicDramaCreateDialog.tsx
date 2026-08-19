@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Clapperboard, FilePlus2, Loader2 } from "lucide-react";
+import { BookOpenText, Clapperboard, FilePlus2, FileText, Loader2, X } from "lucide-react";
+import { createKnowledgeDocument } from "@/api/knowledge";
 import { createNovel } from "@/api/novel/core";
 import { queryKeys } from "@/api/queryKeys";
+import { isTxtFile, readTextFile } from "@/lib/textFile";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,23 +16,46 @@ interface ComicDramaCreateDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-// 创建漫剧：只需要一个书名。漫剧从写小说开始——先建设定、写大纲，
-// AI 写完小说后接着做分镜、配音，最终合成动态漫视频。
+// 创建漫剧：一个书名（可选一句想法与一本参考小说）。漫剧从写小说开始——
+// 先建设定、写大纲，AI 写完小说后接着做分镜、配音，最终合成动态漫视频。
+// 参考小说在提交时才上传入知识库（取消创建不会留下孤儿文档），只存储备用不进入写作。
 export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProps) {
   const { open, onOpenChange } = props;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [referenceFile, setReferenceFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      let referenceKnowledgeDocumentId: string | undefined;
+      if (referenceFile) {
+        if (!isTxtFile(referenceFile)) {
+          throw new Error("参考小说目前支持 txt 文本文件。");
+        }
+        const content = await readTextFile(referenceFile);
+        if (!content.trim()) {
+          throw new Error("参考小说文件是空的，换一个试试。");
+        }
+        const document = await createKnowledgeDocument({
+          title: referenceFile.name.replace(/\.txt$/i, "").slice(0, 80) || referenceFile.name,
+          fileName: referenceFile.name,
+          content,
+        });
+        referenceKnowledgeDocumentId = document.data?.id;
+        if (!referenceKnowledgeDocumentId) {
+          throw new Error("参考小说保存失败，请重试。");
+        }
+      }
       const response = await createNovel({
         title: title.trim(),
         description: description.trim() || undefined,
         creationExperience: "simple",
         writingMode: "original",
         productionKind: "comic_drama",
+        referenceKnowledgeDocumentId,
       });
       const novelId = response.data?.id;
       if (!novelId) {
@@ -43,6 +68,7 @@ export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProp
       onOpenChange(false);
       setTitle("");
       setDescription("");
+      setReferenceFile(null);
       toast.success("漫剧项目已创建。先写小说，AI 写完可以接着做分镜、配音和视频。");
       navigate(`/drama/studio/${novelId}`);
     },
@@ -93,6 +119,59 @@ export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProp
               onChange={(event) => setDescription(event.target.value)}
             />
             <p className="text-xs text-muted-foreground">它会作为 AI 理解这个故事的起点；也可以留空，进去之后再慢慢补充。</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">参考小说（可选）</label>
+            {referenceFile ? (
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2.5">
+                <FileText className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-foreground">{referenceFile.name}</p>
+                  <p className="text-xs text-muted-foreground">创建时会存入项目设定，之后可以在设定里替换或移除。</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label="移除参考小说"
+                  disabled={createMutation.isPending}
+                  onClick={() => setReferenceFile(null)}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={createMutation.isPending}
+                className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-border bg-background/60 px-3.5 py-3 text-left transition-colors hover:border-primary/40 hover:bg-muted/20 disabled:opacity-50"
+              >
+                <BookOpenText className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <span className="min-w-0">
+                  <span className="block text-sm text-foreground">上传一本现成小说（txt）</span>
+                  <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                    作为参考资料存进项目设定，写作时不会被当成正文；需要的时候去设定里查看。
+                  </span>
+                </span>
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".txt"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                if (file && !isTxtFile(file)) {
+                  toast.error("参考小说目前支持 txt 文本文件。");
+                } else {
+                  setReferenceFile(file);
+                }
+                event.target.value = "";
+              }}
+            />
           </div>
           <div className="flex items-start gap-2.5 rounded-xl bg-muted/40 px-3.5 py-3 text-xs leading-5 text-muted-foreground">
             <Clapperboard className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />

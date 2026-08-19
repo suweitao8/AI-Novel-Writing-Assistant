@@ -32,6 +32,13 @@
 - 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。**漫剧项目例外**：漫剧创建的小说固定简易模式（`ComicDramaCreateDialog` 传 `creationExperience: "simple"`），工作室的单章工作台端点——`PUT /chapters/:chapterId`（本章初稿保存）、`POST /chapters`（手动建章）、`POST|PUT /chapters/:chapterId/detail-outline(/preview)`（节拍推理与保存）——对已关联 DramaProject（`source=novel_import, sourceRef=novelId`，与工作室 overview 反查同款约定）的简易小说放行；章节删除、正文生成等其余端点、以及未关联漫剧项目的普通简易小说仍然只读。修改守卫白名单时必须同步更新 `simpleCreationMode.test.js`（纯函数 + 守卫异步行为两组断言）。
 - **守卫内 req.path 是剥掉 `/:id` 前缀的形状**：守卫挂在 `router.use("/:id", ...)`（novel 路由 `app.use("/api/novels", ...)` 内），Express 在中间件执行期间会把已匹配的 `/:id` 从 `req.url` 剥掉，所以守卫看到的 path 是 `/chapters/xxx` 而不是 `/{novelId}/chapters/xxx`；小说 id 要从 `req.params.id` 取。给守卫写锚定正则（`^/chapters/...`）时必须用剥前缀后的形状，用完整路径形状写的正则会静默不匹配（放行失效、回落 409）。旧白名单用 `includes()` 所以两种形状都能过，这曾掩盖过该差异。
 
+### 项目级参考小说（referenceKnowledgeDocumentId）
+
+- `Novel.referenceKnowledgeDocumentId` 指向知识库文档（外键 onDelete: SetNull），漫剧创建弹窗与设定页「参考小说」卡片管理：上传 txt（复用 `readTextFile` 编码识别）→ `createKnowledgeDocument` → 关联；创建弹窗在**提交时才上传**（取消创建不留孤儿文档）。
+- **与续写源解耦**：`sourceKnowledgeDocumentId` 仅 continuation 模式可设且会被 `NovelContinuationService` 读进写作上下文；参考小说不受 writingMode 门控、任何模式可挂，**不进入任何写作上下文**，仅存储备用（studio overview 投影 `novel.referenceDocument` 摘要：标题/文件名/字数）。
+- 有效性校验（`resolveReferenceDocumentId`，创建与更新共用）：文档存在、未 archived、有 activeVersion，否则 400。契约锁定在 `tests/comicDramaReferenceNovel.test.js`。
+- 章节级的「参考初稿解析」（`novel.chapter.reference_draft@v1`，粘贴原文解析初稿）与本字段是两回事：前者是章节工作台的即时解析输入，后者是项目级参考资料库。
+
 ### 「当前」阶段的章节管理与单章节拍
 
 - 「参考」子页签：粘贴参考小说原文（50 行 `LineNumberedTextarea`，无 placeholder 等附加文案；参考文本按「小说+章」键存浏览器 localStorage、粘贴即写穿自动保存、切章载入对应章文本，刷新不丢——不落服务端，正式产物是初稿），「解析」按钮在该子页签行右侧（与初稿的解析同位；mutation 与参考文本状态收敛在 `useReferenceDraftStage`，替换确认弹窗挂页级、切页签不丢），走 `POST /novels/:id/chapters/:chapterId/reference-draft/preview`（Prompt 资产 `novel.chapter.reference_draft@v1`：15～25 行、目标 20 行，每行 `speaker/kind/text`——旁白行 speaker 固定「旁白」，台词行保留原文角色名；postValidate 强制行去重与说话人规则），服务端只做纯预览不落库。前端拿到 `draftText` 后经 `useNovelChapterWorkspace.applyExpectationText` 替换初稿并**立即静默落库**（不等初稿页签的 1.2s 防抖）；初稿已有内容时先弹「替换本章初稿」确认框（弹窗内可预览全文）。该端点已加入简易模式写守卫的漫剧工作台白名单（仅 POST preview 形状）。

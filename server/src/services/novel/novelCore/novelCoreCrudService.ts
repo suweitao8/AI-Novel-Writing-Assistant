@@ -89,6 +89,7 @@ export class NovelCoreCrudService {
           resourceReadyScore: true,
           sourceNovelId: true,
           sourceKnowledgeDocumentId: true,
+          referenceKnowledgeDocumentId: true,
           continuationBookAnalysisId: true,
           continuationBookAnalysisSections: true,
           genreId: true,
@@ -385,6 +386,7 @@ export class NovelCoreCrudService {
         resourceReadyScore: input.resourceReadyScore,
         sourceNovelId: writingMode === "continuation" ? sourceNovelId : null,
         sourceKnowledgeDocumentId: writingMode === "continuation" ? sourceKnowledgeDocumentId : null,
+        referenceKnowledgeDocumentId: await this.resolveReferenceDocumentId(input.referenceKnowledgeDocumentId),
         continuationBookAnalysisId: normalizedContinuationBookAnalysisId,
         continuationBookAnalysisSections:
           writingMode === "continuation"
@@ -465,6 +467,10 @@ export class NovelCoreCrudService {
         : null;
     this.validateStoryModeSelection(nextPrimaryStoryModeId, nextSecondaryStoryModeId);
 
+    if (input.referenceKnowledgeDocumentId !== undefined) {
+      await this.resolveReferenceDocumentId(input.referenceKnowledgeDocumentId);
+    }
+
     await this.novelContinuationService.validateWritingModeConfig({
       novelId: id,
       writingMode: nextWritingMode,
@@ -529,6 +535,25 @@ export class NovelCoreCrudService {
       queueRagUpsert("world", updated.worldId);
     }
     return normalizeNovelOutput(updated);
+  }
+
+  /**
+   * 参考小说（漫剧等项目挂的知识库文档）解析：null 直接放行（清除），
+   * 非空时校验文档存在、未归档且有激活版本，返回原值供 prisma 使用。
+   * 与续写源（sourceKnowledgeDocumentId）完全解耦：参考文档不进入任何写作上下文，仅存储备用。
+   */
+  private async resolveReferenceDocumentId(referenceKnowledgeDocumentId: string | null | undefined): Promise<string | null> {
+    if (!referenceKnowledgeDocumentId) {
+      return null;
+    }
+    const document = await prisma.knowledgeDocument.findUnique({
+      where: { id: referenceKnowledgeDocumentId },
+      select: { id: true, status: true, activeVersionId: true },
+    });
+    if (!document || document.status === "archived" || !document.activeVersionId) {
+      throw new AppError("参考小说文档不存在或还没有可用内容。", 400);
+    }
+    return referenceKnowledgeDocumentId;
   }
 
   async deleteNovel(id: string) {
