@@ -3654,6 +3654,8 @@ model DramaProject {
   strategy       String?
   // 状态：draft/strategized/outlined/scripting/completed
   status         String   @default("draft")
+  // 画面风格预设 id（见 services/drama/visual/dramaVisualStyles.ts），空=默认写实微短剧
+  visualStyle    String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -8,6 +8,10 @@ import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { filterImageGenerationReferences, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
 import { safeJsonParse } from "../utils/json";
+import {
+  buildKeyframeStylePromptLines,
+  resolveDramaVisualStyle,
+} from "./dramaVisualStyles";
 
 export type ShotKeyframeStatus = "idle" | "generating" | "done" | "error";
 
@@ -53,6 +57,7 @@ interface ShotKeyframeSource {
     project: {
       id: string;
       characters: CharacterLite[];
+      visualStyle?: string | null;
     };
   };
 }
@@ -195,12 +200,12 @@ function buildCharacterPromptLine(character: CharacterLite): string {
   ].filter(Boolean).join("; ");
 }
 
-function buildShotKeyframePrompt(shot: ShotKeyframeSource): string {
+function buildShotKeyframePrompt(shot: ShotKeyframeSource, styleLines: string[]): string {
   const characters = selectReferencedCharacters(shot).map(buildCharacterPromptLine);
   const lines = [
-    "vertical 9:16 short drama keyframe, photorealistic cinematic still frame",
+    ...styleLines,
     "single decisive first frame for image-to-video generation",
-    "clean composition, strong subject focus, commercial Chinese vertical micro-drama style",
+    "clean composition, strong subject focus",
     shot.location ? `location: ${shot.location}` : "",
     shot.shotSize ? `shot size: ${shot.shotSize}` : "",
     shot.cameraMove ? `camera movement intention: ${shot.cameraMove}` : "",
@@ -233,7 +238,12 @@ export class DramaShotKeyframeService {
       throw new AppError(`未找到短剧镜头：${shotId}`, 404);
     }
 
-    const prompt = buildShotKeyframePrompt(shot);
+    const visualStyle = resolveDramaVisualStyle(shot.storyboard.project.visualStyle);
+    const prompt = buildShotKeyframePrompt(shot, buildKeyframeStylePromptLines(visualStyle));
+    const negativePrompt = [
+      "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
+      visualStyle?.avoidInstructions ?? "",
+    ].filter(Boolean).join(", ");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];
     if (useCharacterRefImages) {
@@ -273,7 +283,7 @@ export class DramaShotKeyframeService {
       refImages,
       referenceImages,
       size: "1024x1536" as const,
-      negativePrompt: "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
+      negativePrompt,
       title: `生成镜头 ${shot.order} 首帧图`,
     };
   }

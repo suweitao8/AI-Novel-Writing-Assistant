@@ -26,6 +26,8 @@ export interface CreateDramaProjectInput {
   track?: string;
   theme?: string;
   targetEpisodes?: number;
+  /** 画面风格预设 id（见 dramaVisualStyles） */
+  visualStyle?: string;
   /** original / text_import 的原始输入（透传给 adapter） */
   inspiration?: string;
   rawText?: string;
@@ -42,6 +44,7 @@ export class DramaProjectService {
         track: input.track ?? null,
         theme: input.theme ?? null,
         targetEpisodes: input.targetEpisodes ?? 80,
+        visualStyle: input.visualStyle ?? null,
         status: "draft",
       },
     });

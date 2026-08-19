@@ -45,6 +45,7 @@ export interface CreateDramaProjectPayload {
   track?: string;
   theme?: string;
   targetEpisodes?: number;
+  visualStyle?: string;
   inspiration?: string;
   rawText?: string;
 }
@@ -329,6 +330,26 @@ export type DramaProjectDetail = DramaProject & {
 
 export async function listDramaProjects() {
   const { data } = await apiClient.get<ApiResponse<DramaProject[]>>("/drama/projects");
+  return data;
+}
+
+export interface DramaVisualStyle {
+  id: string;
+  label: string;
+  styleTag: string;
+  styleFamily: "animation" | "live_action";
+}
+
+export async function getDramaVisualStyles() {
+  const { data } = await apiClient.get<ApiResponse<DramaVisualStyle[]>>("/drama/visual-styles");
+  return data;
+}
+
+export async function setDramaVisualStyle(projectId: string, styleId: string | null) {
+  const { data } = await apiClient.post<ApiResponse<{ id: string; visualStyle: string | null }>>(
+    `/drama/projects/${encodeURIComponent(projectId)}/visual-style`,
+    { styleId },
+  );
   return data;
 }
 

@@ -4,6 +4,7 @@ import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
 import { validate } from "../../../middleware/validate";
+import { prisma } from "../../../db/prisma";
 import { dramaCharacterImageService } from "../../../services/drama/DramaCharacterImageService";
 import { dramaCharacterService } from "../../../services/drama/DramaCharacterService";
 import { dramaComplianceService } from "../../../services/drama/DramaComplianceService";
@@ -23,6 +24,8 @@ import { ttsProviderRegistry } from "../../../services/drama/audio/TTSProviderPo
 import { rhythmEngine } from "../../../services/drama/engine/rhythmEngine";
 import { dramaBatchOrchestrator } from "../../../services/drama/production/DramaBatchOrchestrator";
 import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaShotKeyframeService";
+import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../services/drama/visual/dramaVisualStyles";
+import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVideoProvider";
 import { videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
 
 const router = Router();
@@ -92,6 +95,7 @@ const createProjectSchema = z.object({
   track: z.string().trim().max(40).optional(),
   theme: z.string().trim().max(120).optional(),
   targetEpisodes: z.number().int().min(1).max(500).optional(),
+  visualStyle: z.string().trim().max(60).optional(),
   inspiration: z.string().trim().max(4000).optional(),
   rawText: z.string().trim().max(200000).optional(),
 });
@@ -183,6 +187,59 @@ router.get("/studio/:novelId/overview", validate({ params: studioOverviewParamsS
   try {
     const data = await comicDramaStudioService.getOverview(String(req.params.novelId));
     res.status(200).json({ success: true, data, message: "Comic drama studio overview loaded." } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** GET /api/drama/visual-styles — 画面风格预设列表 */
+router.get("/visual-styles", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: DRAMA_VISUAL_STYLE_PRESETS,
+    message: "Visual styles loaded.",
+  } satisfies ApiResponse<typeof DRAMA_VISUAL_STYLE_PRESETS>);
+});
+
+const visualStyleUpdateSchema = z.object({
+  styleId: z.string().trim().max(60).nullable(),
+});
+
+/** POST /api/drama/projects/:id/visual-style — 设置/更新项目画面风格 */
+router.post("/projects/:id/visual-style", validate({ params: idParamsSchema, body: visualStyleUpdateSchema }), async (req, res, next) => {
+  try {
+    const { id } = req.params as z.infer<typeof idParamsSchema>;
+    const { styleId } = req.body as z.infer<typeof visualStyleUpdateSchema>;
+    const normalized = styleId?.trim() || null;
+    if (normalized && !DRAMA_VISUAL_STYLE_PRESETS.some((preset) => preset.id === normalized)) {
+      res.status(400).json({ success: false, message: "未知的画面风格。" });
+      return;
+    }
+    const project = await prisma.dramaProject.update({
+      where: { id },
+      data: { visualStyle: normalized },
+      select: { id: true, visualStyle: true },
+    });
+    res.status(200).json({ success: true, data: project, message: "画面风格已更新。" } satisfies ApiResponse<typeof project>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const videoFileParamsSchema = z.object({ fileId: z.string().trim().regex(/^[a-zA-Z0-9_-]+$/) });
+
+/** GET /api/drama/video-files/:fileId — 本地合成视频产物 */
+router.get("/video-files/:fileId", validate({ params: videoFileParamsSchema }), async (req, res, next) => {
+  try {
+    const { fileId } = req.params as z.infer<typeof videoFileParamsSchema>;
+    const filePath = dramaVideoFilePath(fileId);
+    if (!fs.existsSync(filePath)) {
+      res.status(404).json({ success: false, message: "视频尚未生成完成。" });
+      return;
+    }
+    res.setHeader("Content-Type", "video/mp4");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    fs.createReadStream(filePath).pipe(res);
   } catch (error) {
     next(error);
   }

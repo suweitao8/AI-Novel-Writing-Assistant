@@ -4,6 +4,10 @@ export interface VideoGenerationRequest {
   aspectRatio: string;
   durationSec?: number | null;
   refImages?: string[];
+  // 本地合成通道使用的私有输入：台词配音（dataUrl）与首帧图本地路径。
+  // HTTP 通道转发前会剥离这些字段。
+  audioDataUrls?: string[];
+  localImagePaths?: string[];
 }
 
 export interface VideoGenerationResult {
@@ -24,6 +28,8 @@ export interface VideoProviderPort {
   createTask(input: VideoGenerationRequest): Promise<VideoGenerationResult>;
   getTask(providerTaskId: string): Promise<VideoGenerationResult>;
 }
+
+import { LocalFfmpegVideoProvider } from "./LocalFfmpegVideoProvider";
 
 export class MockVideoProvider implements VideoProviderPort {
   readonly provider = "mock";
@@ -98,11 +104,12 @@ function buildProviderCreateBody(
   input: VideoGenerationRequest,
   supportsRefImages: boolean,
 ): VideoGenerationRequest {
+  const { audioDataUrls: _audioDataUrls, localImagePaths: _localImagePaths, ...rest } = input;
   if (supportsRefImages) {
-    return input;
+    return rest;
   }
-  const { refImages: _refImages, ...rest } = input;
-  return rest;
+  const { refImages: _refImages, ...remote } = rest;
+  return remote;
 }
 
 function normalizeProviderPayload(payload: Record<string, unknown>, fallbackTaskId: string): VideoGenerationResult {
@@ -249,6 +256,7 @@ class VideoProviderRegistry {
 
 export const videoProviderRegistry = new VideoProviderRegistry();
 videoProviderRegistry.register(new MockVideoProvider());
+videoProviderRegistry.register(new LocalFfmpegVideoProvider());
 
 const httpCreateUrl = process.env.DRAMA_VIDEO_HTTP_CREATE_URL?.trim();
 if (httpCreateUrl) {

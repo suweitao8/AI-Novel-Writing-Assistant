@@ -16,6 +16,10 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
+import {
+  buildCharacterStylePromptLines,
+  resolveDramaVisualStyle,
+} from "./visual/dramaVisualStyles";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -151,7 +155,7 @@ function buildCharacterSheetPrompt(character: {
   archetype?: string | null;
   persona?: string | null;
   visualAnchor?: string | null;
-}): string {
+}, styleLines: string[]): string {
   const visualDesc = extractVisualDesc(character.visualAnchor);
 
   const lines: string[] = [
@@ -160,14 +164,14 @@ function buildCharacterSheetPrompt(character: {
     "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
     "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
     "white background, clean studio lighting, no text or watermarks",
-    "cinematic quality, photorealistic, 8K detail",
+    ...styleLines,
   ];
 
   if (character.archetype) lines.push(`character archetype: ${character.archetype}`);
   if (character.persona) lines.push(`character trait: ${character.persona}`);
   if (visualDesc) lines.push(`appearance: ${visualDesc}`);
 
-  lines.push("Asian face, vertical short drama style, professional costume design");
+  lines.push("professional costume design");
 
   return lines.join(", ");
 }
@@ -182,12 +186,14 @@ export class DramaCharacterImageService {
   ) {
     const character = await prisma.dramaCharacter.findUnique({
       where: { id: characterId },
+      include: { project: { select: { visualStyle: true } } },
     });
     if (!character) {
       throw new AppError(`未找到短剧角色：${characterId}`, 404);
     }
 
-    const prompt = buildCharacterSheetPrompt(character);
+    const visualStyle = resolveDramaVisualStyle(character.project?.visualStyle);
+    const prompt = buildCharacterSheetPrompt(character, buildCharacterStylePromptLines(visualStyle));
 
     const adapter: ImageTargetAdapter<CharacterSheetData> = {
       kind: `drama.character.sheet:${characterId}`,

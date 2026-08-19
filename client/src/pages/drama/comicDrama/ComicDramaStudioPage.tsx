@@ -14,7 +14,13 @@ import {
   Wand2,
 } from "lucide-react";
 import { getComicDramaStudioOverview } from "@/api/comicDrama";
-import { assembleDramaSourceBundle, createDramaProject } from "@/api/drama";
+import {
+  assembleDramaSourceBundle,
+  createDramaProject,
+  getDramaVisualStyles,
+  setDramaVisualStyle,
+  type DramaVisualStyle,
+} from "@/api/drama";
 import { queryKeys } from "@/api/queryKeys";
 import StorySettingsTabs from "@/pages/novels/components/storySettings/StorySettingsTabs";
 import BlankStartPanel from "@/pages/novels/simpleCreation/BlankStartPanel";
@@ -177,10 +183,18 @@ function StoryboardSection(props: {
     storyboardCount: number;
     shotCount: number;
     keyframeReadyCount: number;
+    visualStyle?: string | null;
   } | null;
   chapterCount: number;
 }) {
   const queryClient = useQueryClient();
+  const [selectedStyle, setSelectedStyle] = useState<string>("");
+  const stylesQuery = useQuery({
+    queryKey: ["drama", "visual-styles"],
+    queryFn: () => getDramaVisualStyles(),
+  });
+  const styleOptions = stylesQuery.data?.data ?? [];
+  const effectiveStyleId = selectedStyle || props.drama?.visualStyle || "post_apocalyptic";
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.overview(props.novelId) });
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.links([props.novelId]) });
@@ -195,6 +209,7 @@ function StoryboardSection(props: {
         title: props.novelTitle,
         source: "novel_import",
         sourceRef: props.novelId,
+        visualStyle: effectiveStyleId,
       });
     },
     onSuccess: async (response) => {
@@ -205,6 +220,20 @@ function StoryboardSection(props: {
         : "分镜项目已创建。");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "创建分镜项目失败，请重试。"),
+  });
+
+  const styleMutation = useMutation({
+    mutationFn: async (styleId: string) => {
+      if (!props.drama) {
+        throw new Error("还没有分镜项目。");
+      }
+      return setDramaVisualStyle(props.drama.projectId, styleId);
+    },
+    onSuccess: async () => {
+      await invalidate();
+      toast.success("画面风格已更新，之后生成的首帧图与角色图会使用新风格。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "更新风格失败，请重试。"),
   });
 
   const syncMutation = useMutation({
@@ -231,6 +260,32 @@ function StoryboardSection(props: {
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               AI 会把小说成稿拆成分集台本和影视分镜：每个镜头有画面描述、台词、时长和运镜，并生成首帧图。
             </p>
+          </div>
+        </div>
+
+        <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-medium text-foreground">画面风格</span>
+            <span className="text-xs text-muted-foreground">影响首帧图与角色形象的整体渲染风格，随时可切换。</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {styleOptions.map((style: DramaVisualStyle) => (
+              <Button
+                key={style.id}
+                type="button"
+                size="sm"
+                variant={effectiveStyleId === style.id ? "default" : "outline"}
+                disabled={styleMutation.isPending}
+                onClick={() => {
+                  setSelectedStyle(style.id);
+                  if (props.drama) {
+                    styleMutation.mutate(style.id);
+                  }
+                }}
+              >
+                {style.label}
+              </Button>
+            ))}
           </div>
         </div>
 

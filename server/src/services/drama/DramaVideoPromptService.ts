@@ -4,6 +4,7 @@ import { dramaVideoPromptPrompt } from "../../prompting/prompts/drama/drama.prom
 import { dramaContextAssembler } from "./DramaContextAssembler";
 import { safeJsonParse } from "./utils/json";
 import { videoProviderRegistry } from "./video/VideoProviderPort";
+import { dramaShotKeyframeService } from "./visual/DramaShotKeyframeService";
 import type { DramaLLMOptions } from "./DramaStrategyService";
 import type { VideoGenerationRequest } from "./video/VideoProviderPort";
 
@@ -183,6 +184,24 @@ export class DramaVideoPromptService {
     };
     if (refImages.length) {
       request.refImages = refImages;
+    }
+    if (videoPrompt.shotId) {
+      // 本地合成通道：直接给首帧图本地路径与台词配音，避免绕 HTTP 下载自己。
+      const shot = await prisma.dramaShot.findUnique({
+        where: { id: videoPrompt.shotId },
+        select: { keyframeData: true, dialogueAudioData: true },
+      });
+      const keyframePath = await dramaShotKeyframeService.resolveExistingKeyframePath(videoPrompt.shotId);
+      if (keyframePath) {
+        request.localImagePaths = [keyframePath.filePath];
+      }
+      const audioItems = safeJsonParse<{ items?: Array<{ audioUrl?: unknown }> } | null>(shot?.dialogueAudioData, null);
+      const audioDataUrls = (audioItems?.items ?? [])
+        .map((item) => (typeof item.audioUrl === "string" && item.audioUrl.startsWith("data:") ? item.audioUrl : ""))
+        .filter(Boolean);
+      if (audioDataUrls.length > 0) {
+        request.audioDataUrls = audioDataUrls;
+      }
     }
     const result = await adapter.createTask(request);
     return prisma.dramaVideoPrompt.update({

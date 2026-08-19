@@ -73,7 +73,7 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
   }
   const projects = await prisma.dramaProject.findMany({
     where: { source: "novel_import", sourceRef: { in: uniqueNovelIds } },
-    select: { id: true, title: true, sourceRef: true, status: true, updatedAt: true },
+    select: { id: true, title: true, sourceRef: true, status: true, visualStyle: true, updatedAt: true },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
   const seenNovelIds = new Set<string>();
@@ -114,6 +114,7 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
       projectId: project.id,
       projectTitle: project.title,
       status: project.status,
+      visualStyle: project.visualStyle ?? null,
       updatedAt: project.updatedAt.toISOString(),
       episodeCount: episodeAggregate._count._all,
       scriptedEpisodeCount: scriptedEpisodeAggregate._count._all,

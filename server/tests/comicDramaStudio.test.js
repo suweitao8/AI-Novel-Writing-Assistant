@@ -26,7 +26,7 @@ test("novel list excludes comic drama projects by default and supports explicit 
 
 test("create novel accepts productionKind and persists the comic drama marker", () => {
   const createSchemaSource = readSource("src/modules/novel/setup/http/novelBaseRoutes.ts");
-  assert.match(createSchemaSource, /productionKind: z\.enum\(\["novel", "comic_drama"\]\)\.optional\(\),\n  narrativePov/);
+  assert.match(createSchemaSource, /productionKind: z\.enum\(\["novel", "comic_drama"\]\)\.optional\(\)/);
   const crudSource = readSource("src/services/novel/novelCore/novelCoreCrudService.ts");
   assert.match(crudSource, /productionKind: input\.productionKind \?\? "novel"/);
 });

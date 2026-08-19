@@ -8,6 +8,7 @@ export interface ComicDramaLinkStats {
   projectId: string;
   projectTitle: string;
   status: string;
+  visualStyle: string | null;
   updatedAt: string;
   episodeCount: number;
   scriptedEpisodeCount: number;
