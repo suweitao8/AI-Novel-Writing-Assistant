@@ -2,22 +2,16 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
-  AudioLines,
-  BookOpenText,
   Clapperboard,
-  Film,
-  Images,
   Loader2,
   PlusCircle,
 } from "lucide-react";
 import { getComicDramaLinks } from "@/api/comicDrama";
 import { getNovelList } from "@/api/novel/core";
 import { queryKeys } from "@/api/queryKeys";
-import NovelProgrammaticCover from "@/components/common/NovelProgrammaticCover";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { resolveImageAssetUrl } from "@/api/images";
 import { cn } from "@/lib/utils";
 import ComicDramaCreateDialog from "./ComicDramaCreateDialog";
 
@@ -105,7 +99,6 @@ interface ComicDramaCardNovel {
   title: string;
   description?: string | null;
   updatedAt: string;
-  primaryCover?: { url?: string | null } | null;
   latestAutoDirectorTask?: { status: string; progress?: number } | null;
   _count?: { chapters?: number };
 }
@@ -132,27 +125,17 @@ function ComicDramaCard(props: { novel: ComicDramaCardNovel; link: { status: str
   const storyboardStage: StageState = !link ? "pending" : link.shotCount > 0 ? "done" : "active";
   const voiceStage: StageState = !link ? "pending" : link.audioReadyCount > 0 ? "done" : link.shotCount > 0 ? "active" : "pending";
   const videoStage: StageState = !link ? "pending" : link.videoReadyCount > 0 ? "done" : link.audioReadyCount > 0 ? "active" : "pending";
-  const generatedCoverUrl = novel.primaryCover?.url ? resolveImageAssetUrl(novel.primaryCover.url) : null;
 
   return (
-    <Card className="group overflow-hidden rounded-lg border-border/70 bg-background transition hover:border-primary/35 hover:shadow-sm">
-      <CardContent className="flex h-full items-center gap-3 p-3">
-        <Link
-          to={`/drama/studio/${novel.id}`}
-          className="relative aspect-[3/2] w-24 shrink-0 overflow-hidden rounded-md bg-muted/50 sm:w-32"
-          aria-label={`打开《${novel.title}》漫剧工作室`}
-        >
-          {generatedCoverUrl ? (
-            <img src={generatedCoverUrl} alt={`${novel.title}封面`} className="h-full w-full object-cover" />
-          ) : (
-            <NovelProgrammaticCover title={novel.title} orientation="landscape" className="h-full w-full" />
-          )}
-        </Link>
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
+    <Link
+      to={`/drama/studio/${novel.id}`}
+      aria-label={`打开《${novel.title}》漫剧工作室`}
+      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    >
+      <Card className="h-full overflow-hidden rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm">
+        <CardContent className="flex h-full min-h-[104px] flex-col gap-2 p-3">
           <div className="flex items-start justify-between gap-2">
-            <Link to={`/drama/studio/${novel.id}`} className="min-w-0">
-              <h3 className="truncate font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
-            </Link>
+            <h3 className="min-w-0 truncate font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
             <span className="shrink-0 text-xs text-muted-foreground">{novel._count?.chapters ?? 0} 章</span>
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -161,21 +144,13 @@ function ComicDramaCard(props: { novel: ComicDramaCardNovel; link: { status: str
             <StageBadge label="配音" state={voiceStage} />
             <StageBadge label="视频" state={videoStage} />
           </div>
-          <div className="mt-auto flex items-center justify-between gap-2 pt-1">
-            <span className="truncate text-xs text-muted-foreground">
-              {link
-                ? `分镜 ${link.shotCount} 镜 · 首帧 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 视频 ${link.videoReadyCount}`
-                : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
-            </span>
-            <Button asChild size="sm" variant="outline">
-              <Link to={`/drama/studio/${novel.id}`}>
-                <Clapperboard className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                工作室
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+          <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">
+            {link
+              ? `分镜 ${link.shotCount} 镜 · 首帧 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 视频 ${link.videoReadyCount}`
+              : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
+          </span>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
