@@ -18,9 +18,9 @@ import {
   type NovelDetailResponse,
 } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
-import { syncNovelWorkflowStageSilently } from "../novelWorkflow.client";
-import { normalizeVolumeDraft } from "../volumePlan.utils";
-import { detailModeLabel } from "../chapterDetailPlanning.shared";
+import { syncNovelWorkflowStageSilently } from "../../novelWorkflow.client";
+import { normalizeVolumeDraft } from "../../planning/volumePlan.utils";
+import { detailModeLabel } from "../../planning/chapterDetailPlanning.shared";
 import {
   buildChapterListSuccessMessage,
   type VolumeGenerationPayload,

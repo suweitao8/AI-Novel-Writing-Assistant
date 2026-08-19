@@ -5,7 +5,7 @@ import {
   hasChapterDetailDraft,
   type ChapterDetailBundleRequest,
   type ChapterDetailMode,
-} from "../chapterDetailPlanning.shared";
+} from "../../planning/chapterDetailPlanning.shared";
 
 interface ChapterDetailTarget {
   chapterId: string;

@@ -1,6 +1,6 @@
 ﻿import type { UnifiedTaskDetail } from "@ai-novel/shared/types/task";
 import type { DirectorLockScope } from "@ai-novel/shared/types/novelDirector";
-import type { NovelEditTakeoverState } from "./components/NovelEditView.types";
+import type { NovelEditTakeoverState } from "../components/NovelEditView.types";
 
 export function resolveAutoExecutionScopeLabel(task: UnifiedTaskDetail | null): string {
   const seedPayload = (task?.meta.seedPayload ?? null) as {

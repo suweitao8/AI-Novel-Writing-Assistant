@@ -7,7 +7,7 @@ import type {
   VolumeRebalanceDecision,
   VolumeStrategyPlan,
 } from "@ai-novel/shared/types/novel";
-import { normalizeVolumeDraft } from "../volumePlan.utils";
+import { normalizeVolumeDraft } from "../../planning/volumePlan.utils";
 
 export function serializeVolumeDraftSnapshot(volumes: VolumePlan[]): string {
   return JSON.stringify(normalizeVolumeDraft(volumes).map((volume) => ({

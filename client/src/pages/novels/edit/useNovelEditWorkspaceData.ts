@@ -27,8 +27,8 @@ import {
   buildDisplayAutoDirectorTask,
   shouldAutofocusProjectedDirectorTask,
   shouldPreserveRequestedDirectorTaskId,
-} from "../novelEditAutomationStatus";
-import { buildWorldInjectionSummary } from "../novelEdit.utils";
+} from "./novelEditAutomationStatus";
+import { buildWorldInjectionSummary } from "./novelEdit.utils";
 import { parsePipelineBackgroundActivities, resolveActiveStructuredOutlineChapterId } from "./novelEditPage.utils";
 
 interface QueryLike<T> {

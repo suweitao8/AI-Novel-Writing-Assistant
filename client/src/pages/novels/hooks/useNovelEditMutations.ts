@@ -17,8 +17,8 @@ import {
 } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { buildNovelUpdatePayload, type NovelBasicFormState } from "../novelBasicInfo.shared";
-import type { ChapterReviewResult } from "../chapterPlanning.shared";
-import type { StructuredSyncOptions } from "../novelEdit.utils";
+import type { ChapterReviewResult } from "../planning/chapterPlanning.shared";
+import type { StructuredSyncOptions } from "../edit/novelEdit.utils";
 import { syncNovelWorkflowStageSilently } from "../novelWorkflow.client";
 
 interface LlmSettings {

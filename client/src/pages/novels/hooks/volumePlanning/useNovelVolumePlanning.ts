@@ -16,13 +16,13 @@ import {
   buildVolumePlanningReadiness,
   findBeatSheet,
   normalizeVolumeDraft,
-} from "../volumePlan.utils";
+} from "../../planning/volumePlan.utils";
 import {
   detailModeLabel,
   hasChapterDetailDraft,
   type ChapterDetailBundleRequest,
   type ChapterDetailMode,
-} from "../chapterDetailPlanning.shared";
+} from "../../planning/chapterDetailPlanning.shared";
 import {
   buildChapterDetailBatchConfirmationMessage,
   resolveChapterDetailBatch,

@@ -58,10 +58,10 @@ import { useSSE } from "@/hooks/useSSE";
 import { useDirectorChapterTitleRepair } from "@/hooks/useDirectorChapterTitleRepair";
 import { useLLMStore } from "@/store/llmStore";
 import { useDirectorRealtimeStore } from "@/store/directorRealtimeStore";
-import { buildWorldInjectionSummary } from "./novelEdit.utils";
+import { buildWorldInjectionSummary } from "./edit/novelEdit.utils";
 import type { QuickCharacterCreatePayload } from "./components/characterPanel.utils";
 import type { ChapterExecutionBackgroundActivity } from "./components/chapter/chapterExecution.shared";
-import type { ChapterExecutionStrategy } from "./chapterExecution.utils";
+import type { ChapterExecutionStrategy } from "./planning/chapterExecution.utils";
 import { useNovelCharacterMutations } from "./hooks/useNovelCharacterMutations";
 import { useChapterExecutionActions } from "./hooks/useChapterExecutionActions";
 import { useNovelContinuationSources } from "./hooks/useNovelContinuationSources";
@@ -70,11 +70,11 @@ import { useNovelEditMutations } from "./hooks/useNovelEditMutations";
 import { useNovelEditInitialization } from "./hooks/useNovelEditInitialization";
 import { useNovelWorldSlice } from "./hooks/useNovelWorldSlice";
 import { useNovelStoryMacro } from "./hooks/useNovelStoryMacro";
-import { useNovelVolumePlanning } from "./hooks/useNovelVolumePlanning";
+import { useNovelVolumePlanning } from "./hooks/volumePlanning/useNovelVolumePlanning";
 import { useVolumeVersionControl } from "./hooks/useVolumeVersionControl";
 import { useNovelEditWorkflow } from "./hooks/useNovelEditWorkflow";
-import { buildNovelEditPlanningTabs } from "./novelEditPlanningTabs";
-import type { ChapterReviewResult } from "./chapterPlanning.shared";
+import { buildNovelEditPlanningTabs } from "./edit/novelEditPlanningTabs";
+import type { ChapterReviewResult } from "./planning/chapterPlanning.shared";
 import type { NovelEditTakeoverState, NovelTaskDrawerState } from "./components/NovelEditView.types";
 import NovelExistingProjectTakeoverDialog from "./components/takeover/NovelExistingProjectTakeoverDialog";
 import { syncNovelWorkflowStageSilently, workflowStageFromTab } from "./novelWorkflow.client";
@@ -96,7 +96,7 @@ import {
   buildTakeoverTitle,
   formatTakeoverCheckpoint,
   resolveAutoExecutionScopeLabel,
-} from "./novelEditTakeover.shared";
+} from "./edit/novelEditTakeover.shared";
 import {
   buildDisplayAutoDirectorTask,
   canArchiveCompletedAutoDirectorTask,
@@ -105,7 +105,7 @@ import {
   resolveTakeoverModeFromAutomation,
   shouldPreserveRequestedDirectorTaskId,
   shouldAutofocusProjectedDirectorTask,
-} from "./novelEditAutomationStatus";
+} from "./edit/novelEditAutomationStatus";
 import {
   createDownload,
   parsePipelineBackgroundActivities,
@@ -132,7 +132,7 @@ import {
   buildVolumeSyncPreview,
   type ExistingOutlineChapter,
   type VolumeSyncOptions,
-} from "./volumePlan.utils";
+} from "./planning/volumePlan.utils";
 
 export default function NovelEdit() {
   const { id = "" } = useParams();

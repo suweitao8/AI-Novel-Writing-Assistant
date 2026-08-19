@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import {
   getChapterExecutionDetailStatus,
   type ChapterDetailBatchSelection,
-} from "../../chapterDetailPlanning.shared";
+} from "../../planning/chapterDetailPlanning.shared";
 import type { StructuredTabViewProps } from "../NovelEditView.types";
 import SelectControl from "@/components/common/SelectControl";
 

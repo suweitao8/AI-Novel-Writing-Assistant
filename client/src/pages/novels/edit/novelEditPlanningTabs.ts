@@ -2,9 +2,9 @@ import type {
   BasicTabProps,
   OutlineTabViewProps,
   StructuredTabViewProps,
-} from "./components/NovelEditView.types";
-import type { NovelBasicFormState } from "./novelBasicInfo.shared";
-import type { VolumeSyncOptions } from "./volumePlan.utils";
+} from "../components/NovelEditView.types";
+import type { NovelBasicFormState } from "../novelBasicInfo.shared";
+import type { VolumeSyncOptions } from "../planning/volumePlan.utils";
 import type {
   VolumeBeatSheet,
   VolumeCountGuidance,
@@ -29,7 +29,7 @@ import type {
   NovelWorldView,
 } from "@ai-novel/shared/types/novelWorld";
 import type { BookAnalysisSectionKey } from "@ai-novel/shared/types/bookAnalysis";
-import type { ExistingOutlineChapter } from "./volumePlan.utils";
+import type { ExistingOutlineChapter } from "../planning/volumePlan.utils";
 
 interface BuildNovelEditPlanningTabsInput {
   id: string;

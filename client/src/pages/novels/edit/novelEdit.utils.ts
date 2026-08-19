@@ -1,6 +1,6 @@
-export * from "./structuredOutline.utils";
-export * from "./structuredOutlineSync.utils";
-export * from "./novelBasicInfo.shared";
+export * from "../planning/structuredOutline.utils";
+export * from "../planning/structuredOutlineSync.utils";
+export * from "../novelBasicInfo.shared";
 
 interface WorldContextSummaryInput {
   name: string;

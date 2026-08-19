@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildReplanRecommendationFromAuditReports } from "../../chapterPlanning.shared";
+import { buildReplanRecommendationFromAuditReports } from "../../planning/chapterPlanning.shared";
 import type { ChapterTabViewProps } from "../NovelEditView.types";
 import WorldInjectionHint from "../WorldInjectionHint";
 import ChapterExecutionActionPanel from "./ChapterExecutionActionPanel";

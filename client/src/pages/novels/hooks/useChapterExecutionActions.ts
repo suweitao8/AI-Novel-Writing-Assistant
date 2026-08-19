@@ -8,7 +8,7 @@ import {
   buildRepairIssue,
   resolveTargetWordCount,
   type ChapterExecutionStrategy,
-} from "../chapterExecution.utils";
+} from "../planning/chapterExecution.utils";
 import { syncNovelWorkflowStageSilently } from "../novelWorkflow.client";
 
 interface UseChapterExecutionActionsArgs {

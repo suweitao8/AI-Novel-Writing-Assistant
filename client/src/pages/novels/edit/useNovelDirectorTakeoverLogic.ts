@@ -48,13 +48,13 @@ import {
   buildTakeoverTitle,
   formatTakeoverCheckpoint,
   resolveAutoExecutionScopeLabel,
-} from "../novelEditTakeover.shared";
+} from "./novelEditTakeover.shared";
 import {
   buildDisplayAutoDirectorTask,
   canArchiveCompletedAutoDirectorTask,
   resolveAutomationActionText,
   resolveTakeoverModeFromAutomation,
-} from "../novelEditAutomationStatus";
+} from "./novelEditAutomationStatus";
 import {
   mapDashboardModeToTakeoverMode,
   resolveDirectorConsistencyIssue,

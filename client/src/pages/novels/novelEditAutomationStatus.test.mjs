@@ -9,7 +9,7 @@ import {
   shouldPreserveRequestedDirectorTaskId,
   shouldAutofocusProjectedDirectorTask,
   shouldShowPinnedBookAutomationProjection,
-} from "./novelEditAutomationStatus.ts";
+} from "./edit/novelEditAutomationStatus";
 
 function buildTask(overrides = {}) {
   return {

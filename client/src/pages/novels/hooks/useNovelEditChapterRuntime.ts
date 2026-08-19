@@ -4,8 +4,8 @@ import type { ReviewIssue, Chapter, StoryStateSnapshot, StoryPlan } from "@ai-no
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { auditNovelChapter, generateChapterPlan, replanNovel } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
-import type { ChapterExecutionStrategy } from "../chapterExecution.utils";
-import type { ChapterReviewResult } from "../chapterPlanning.shared";
+import type { ChapterExecutionStrategy } from "../planning/chapterExecution.utils";
+import type { ChapterReviewResult } from "../planning/chapterPlanning.shared";
 import { useChapterExecutionActions } from "./useChapterExecutionActions";
 
 interface StreamHandle {

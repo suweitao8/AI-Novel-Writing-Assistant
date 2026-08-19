@@ -5,8 +5,8 @@ import type {
   VolumePlan,
   VolumePlanDocument,
 } from "@ai-novel/shared/types/novel";
-import { findBeatSheet } from "../volumePlan.utils";
-import type { ChapterDetailMode } from "../chapterDetailPlanning.shared";
+import { findBeatSheet } from "../../planning/volumePlan.utils";
+import type { ChapterDetailMode } from "../../planning/chapterDetailPlanning.shared";
 
 export interface ChapterListGenerationRequest {
   generationMode?: VolumeChapterListGenerationMode;

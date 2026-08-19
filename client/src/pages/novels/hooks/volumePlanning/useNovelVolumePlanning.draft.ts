@@ -2,7 +2,7 @@ import type { VolumePlan } from "@ai-novel/shared/types/novel";
 import {
   createEmptyChapter,
   createEmptyVolume,
-} from "../volumePlan.utils";
+} from "../../planning/volumePlan.utils";
 
 export function updateVolumeFieldDraft(
   volumes: VolumePlan[],

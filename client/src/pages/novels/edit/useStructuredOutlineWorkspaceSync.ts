@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useStructuredOutlineWorkspaceStore } from "../stores/useStructuredOutlineWorkspaceStore";
 import { useNovelEditWorkflow } from "../hooks/useNovelEditWorkflow";
-import { useNovelVolumePlanning } from "../hooks/useNovelVolumePlanning";
+import { useNovelVolumePlanning } from "../hooks/volumePlanning/useNovelVolumePlanning";
 
 interface StructuredOutlineWorkspaceSyncInput {
   id: string;

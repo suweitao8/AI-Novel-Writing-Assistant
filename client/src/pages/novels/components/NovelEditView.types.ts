@@ -63,11 +63,11 @@ import type {
 } from "@ai-novel/shared/types/directorRuntime";
 import type { ChapterExecutionBackgroundActivity } from "./chapter/chapterExecution.shared";
 import type { QuickCharacterCreatePayload } from "./characterPanel.utils";
-import type { ChapterReviewResult } from "../chapterPlanning.shared";
-import type { ChapterDetailBundleRequest } from "../chapterDetailPlanning.shared";
-import type { StructuredSyncOptions } from "../novelEdit.utils";
+import type { ChapterReviewResult } from "../planning/chapterPlanning.shared";
+import type { ChapterDetailBundleRequest } from "../planning/chapterDetailPlanning.shared";
+import type { StructuredSyncOptions } from "../edit/novelEdit.utils";
 import type { NovelBasicFormState } from "../novelBasicInfo.shared";
-import type { ExistingOutlineChapter } from "../volumePlan.utils";
+import type { ExistingOutlineChapter } from "../planning/volumePlan.utils";
 import type { AITakeoverAction } from "@/components/workflow/AITakeoverContainer";
 import type { LLMSelectorValue } from "@/components/common/LLMSelector";
 import type { SSEFrame } from "@ai-novel/shared/types/api";

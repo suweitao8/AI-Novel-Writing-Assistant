@@ -10,8 +10,8 @@ import {
   getStructuredOutlineWorkspaceDefaults,
   useStructuredOutlineWorkspaceStore,
 } from "../../stores/useStructuredOutlineWorkspaceStore";
-import { hasChapterExecutionDetail } from "../../chapterDetailPlanning.shared";
-import { findBeatSheet } from "../../volumePlan.utils";
+import { hasChapterExecutionDetail } from "../../planning/chapterDetailPlanning.shared";
+import { findBeatSheet } from "../../planning/volumePlan.utils";
 import StructuredBeatSheetCard from "./StructuredBeatSheetCard";
 import StructuredChapterListCard from "./StructuredChapterListCard";
 import StructuredChapterDetailCard from "./StructuredChapterDetailCard";

@@ -7,7 +7,7 @@ import { Trash2 } from "lucide-react";
 import {
   getChapterExecutionDetailStatus,
   hasChapterExecutionDetail,
-} from "../../chapterDetailPlanning.shared";
+} from "../../planning/chapterDetailPlanning.shared";
 import {
   chapterMatchesBeat,
   formatBeatDisplayLabel,
