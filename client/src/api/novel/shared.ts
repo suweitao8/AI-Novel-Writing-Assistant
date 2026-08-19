@@ -54,6 +54,8 @@ export type NovelListItem = Pick<
   | "createdAt"
   | "updatedAt"
 > & {
+  // 全文实写字数（各章正文去空白字符数求和），0 表示尚未有正文
+  totalWordCount?: number | null;
   primaryCover?: ImageAsset | null;
   coverGeneration?: {
     taskId: string;

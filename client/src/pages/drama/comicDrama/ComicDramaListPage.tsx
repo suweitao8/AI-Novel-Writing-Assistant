@@ -1,17 +1,19 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clapperboard,
   Loader2,
   PlusCircle,
+  Trash2,
 } from "lucide-react";
-import { getComicDramaLinks } from "@/api/comicDrama";
+import { deleteComicDramaByNovel, getComicDramaLinks } from "@/api/comicDrama";
 import { getNovelList } from "@/api/novel/core";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import ComicDramaCreateDialog from "./ComicDramaCreateDialog";
 
@@ -28,6 +30,7 @@ function novelStageState(task: { status: string } | null | undefined): StageStat
 
 export default function ComicDramaListPage() {
   const [createOpen, setCreateOpen] = useState(false);
+  const queryClient = useQueryClient();
   const listQuery = useQuery({
     queryKey: ["comic-drama", "list", COMIC_DRAMA_PAGE_SIZE],
     queryFn: () => getNovelList({ page: 1, limit: COMIC_DRAMA_PAGE_SIZE, productionKind: "comic_drama" }),
@@ -40,6 +43,21 @@ export default function ComicDramaListPage() {
     enabled: novelIds.length > 0,
   });
   const links = linksQuery.data?.data?.links ?? {};
+
+  const deleteMutation = useMutation({
+    mutationFn: (novelId: string) => deleteComicDramaByNovel(novelId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["comic-drama"] });
+      toast.success("漫剧项目已删除。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "删除失败，请稍后重试。"),
+  });
+
+  const handleDelete = (novelId: string, title: string) => {
+    if (window.confirm(`确认删除《${title}》吗？小说正文与已生成的分镜、配音、视频数据会一并删除。`)) {
+      deleteMutation.mutate(novelId);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -78,12 +96,13 @@ export default function ComicDramaListPage() {
           </div>
         </section>
       ) : (
-        <section className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <section className="grid grid-cols-1 gap-3 sm:grid-cols-4 xl:grid-cols-6">
           {novels.map((novel) => (
             <ComicDramaCard
               key={novel.id}
               novel={novel}
               link={links[novel.id] ?? null}
+              onDelete={() => handleDelete(novel.id, novel.title)}
             />
           ))}
         </section>
@@ -99,6 +118,7 @@ interface ComicDramaCardNovel {
   title: string;
   description?: string | null;
   updatedAt: string;
+  totalWordCount?: number | null;
   latestAutoDirectorTask?: { status: string; progress?: number } | null;
   _count?: { chapters?: number };
 }
@@ -119,38 +139,62 @@ function StageBadge(props: { label: string; state: StageState }) {
   );
 }
 
-function ComicDramaCard(props: { novel: ComicDramaCardNovel; link: { status: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number; videoReadyCount: number } | null }) {
-  const { novel, link } = props;
+function ComicDramaCard(props: {
+  novel: ComicDramaCardNovel;
+  link: { status: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number; videoReadyCount: number } | null;
+  onDelete: () => void;
+}) {
+  const { novel, link, onDelete } = props;
   const novelStage = novelStageState(novel.latestAutoDirectorTask);
   const storyboardStage: StageState = !link ? "pending" : link.shotCount > 0 ? "done" : "active";
   const voiceStage: StageState = !link ? "pending" : link.audioReadyCount > 0 ? "done" : link.shotCount > 0 ? "active" : "pending";
   const videoStage: StageState = !link ? "pending" : link.videoReadyCount > 0 ? "done" : link.audioReadyCount > 0 ? "active" : "pending";
+  const chapterCount = novel._count?.chapters ?? 0;
+  const wordCount = novel.totalWordCount ?? 0;
 
   return (
-    <Link
-      to={`/drama/studio/${novel.id}`}
-      aria-label={`打开《${novel.title}》漫剧工作室`}
-      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-    >
-      <Card className="h-full overflow-hidden rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm">
-        <CardContent className="flex h-full min-h-[104px] flex-col gap-2 p-3">
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="min-w-0 truncate font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
-            <span className="shrink-0 text-xs text-muted-foreground">{novel._count?.chapters ?? 0} 章</span>
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            <StageBadge label="小说" state={novelStage} />
-            <StageBadge label="分镜" state={storyboardStage} />
-            <StageBadge label="配音" state={voiceStage} />
-            <StageBadge label="视频" state={videoStage} />
-          </div>
-          <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">
-            {link
-              ? `分镜 ${link.shotCount} 镜 · 首帧 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 视频 ${link.videoReadyCount}`
-              : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
-          </span>
-        </CardContent>
-      </Card>
-    </Link>
+    <div className="group relative h-full">
+      <Link
+        to={`/drama/studio/${novel.id}`}
+        aria-label={`打开《${novel.title}》漫剧工作室`}
+        className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      >
+        <Card className="h-full overflow-hidden rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm">
+          <CardContent className="flex h-full min-h-[148px] flex-col gap-2 p-3">
+            <h3 className="truncate pr-7 font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
+            <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+              <span>{chapterCount} 章</span>
+              <span aria-hidden="true" className="text-border">·</span>
+              <span>{wordCount.toLocaleString()} 字</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <StageBadge label="小说" state={novelStage} />
+              <StageBadge label="分镜" state={storyboardStage} />
+              <StageBadge label="配音" state={voiceStage} />
+              <StageBadge label="视频" state={videoStage} />
+            </div>
+            <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">
+              {link
+                ? `分镜 ${link.shotCount} · 首帧 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 视频 ${link.videoReadyCount}`
+                : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
+            </span>
+          </CardContent>
+        </Card>
+      </Link>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-destructive"
+        title="删除漫剧项目"
+        aria-label={`删除《${novel.title}》漫剧项目`}
+        onClick={(event) => {
+          event.preventDefault();
+          onDelete();
+        }}
+      >
+        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+      </Button>
+    </div>
   );
 }

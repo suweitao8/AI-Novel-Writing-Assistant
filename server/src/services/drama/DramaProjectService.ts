@@ -157,6 +157,18 @@ export class DramaProjectService {
 
     return bundle;
   }
+
+  /**
+   * 删除以某本小说为内容源的漫剧项目数据（分镜、配音、视频产物随 DramaProject 级联清理）。
+   * 只清 drama 侧；小说本体与 RAG 由调用方（novel 删除服务/HTTP 组合层）负责。
+   * DramaProject.sourceRef 是软引用（不建外键），删小说前必须先调这里，否则会留下孤儿分镜数据。
+   */
+  async deleteProjectsByNovelRef(novelId: string): Promise<number> {
+    const deleted = await prisma.dramaProject.deleteMany({
+      where: { source: "novel_import", sourceRef: novelId },
+    });
+    return deleted.count;
+  }
 }
 
 export const dramaProjectService = new DramaProjectService();

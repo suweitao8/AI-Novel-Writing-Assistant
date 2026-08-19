@@ -10,6 +10,7 @@ import { NovelVolumeService } from "../volume/NovelVolumeService";
 import { STORY_WORLD_SLICE_SCHEMA_VERSION } from "../storyWorldSlice/storyWorldSlicePersistence";
 import { syncChapterArtifacts } from "./novelChapterArtifacts";
 import { listNovelTokenUsageByNovelIds } from "./novelTokenUsageSummary";
+import { listNovelWordCountByNovelIds } from "./novelCoreWordCountSummary";
 import { toImageAsset } from "../../image/imageGenerationMappers";
 import {
   ChapterInput,
@@ -131,6 +132,7 @@ export class NovelCoreCrudService {
       items.map((item) => item.id),
     );
     const tokenUsageByNovelId = await listNovelTokenUsageByNovelIds(items.map((item) => item.id));
+    const wordCountByNovelId = await listNovelWordCountByNovelIds(items.map((item) => item.id));
     const novelIds = items.map((item) => item.id);
     const [coverAssets, coverTasks] = await Promise.all([
       prisma.imageAsset.findMany({
@@ -172,6 +174,7 @@ export class NovelCoreCrudService {
         latestAutoDirectorTask: latestAutoDirectorTaskByNovelId.get(item.id) ?? null,
         latestCreationStudioTask: latestCreationStudioTaskByNovelId.get(item.id) ?? null,
         tokenUsage: tokenUsageByNovelId.get(item.id) ?? null,
+        totalWordCount: wordCountByNovelId.get(item.id) ?? 0,
         primaryCover: primaryCoverByNovelId.get(item.id) ?? null,
         coverGeneration: coverTaskByNovelId.has(item.id)
           ? { taskId: coverTaskByNovelId.get(item.id)!.id, status: coverTaskByNovelId.get(item.id)!.status }
