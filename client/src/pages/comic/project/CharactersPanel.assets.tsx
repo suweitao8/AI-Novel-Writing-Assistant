@@ -17,6 +17,8 @@ import {
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";
 import { GeneratedImageCard } from "@/components/comic/GeneratedImageCard";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
+import SelectControl from "@/components/common/SelectControl";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
 const ASSET_TYPE_LABELS: Record<CharacterAssetType, string> = {
@@ -251,6 +253,9 @@ export function AssetSection({
 }) {
   const queryClient = useQueryClient();
   const [activeAddType, setActiveAddType] = useState<CharacterAssetType | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [typeFilter, setTypeFilter] = useState<"all" | CharacterAssetType>("all");
+  const [sortMode, setSortMode] = useState<"updated" | "name">("updated");
 
   const assetsKey = ["comic", "character-assets", character.id];
 
@@ -261,11 +266,27 @@ export function AssetSection({
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: assetsKey });
 
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const visibleAssets = assets.filter((asset) => {
+    if (typeFilter !== "all" && asset.assetType !== typeFilter) return false;
+    if (!normalizedKeyword) return true;
+    return asset.name.toLowerCase().includes(normalizedKeyword)
+      || (asset.description ?? "").toLowerCase().includes(normalizedKeyword);
+  });
+  const sortItems = (items: ComicCharacterAsset[]) =>
+    sortMode === "name"
+      ? [...items].sort((left, right) => left.name.localeCompare(right.name, "zh-Hans-CN"))
+      : [...items].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+
   const grouped = ASSET_TYPE_ORDER
-    .map((type) => ({ type, items: assets.filter((a) => a.assetType === type) }))
+    .map((type) => ({
+      type,
+      items: sortItems(visibleAssets.filter((a) => a.assetType === type)),
+    }))
     .filter((g) => g.items.length > 0);
 
   const isEmpty = !isLoading && assets.length === 0;
+  const showToolbar = assets.length >= 5;
 
   return (
     <div className="border-t bg-muted/10 px-4 py-4">
@@ -303,6 +324,42 @@ export function AssetSection({
         />
       )}
 
+      {showToolbar && (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="搜索资产名称或描述"
+            className="h-7 w-44 text-xs"
+          />
+          <SelectControl
+            className="h-7 rounded-md border bg-background px-2 text-xs"
+            value={typeFilter}
+            onChange={(event) => setTypeFilter(event.target.value as "all" | CharacterAssetType)}
+            aria-label="按类型筛选资产"
+          >
+            <option value="all">全部类型</option>
+            {ASSET_TYPE_ORDER.map((type) => (
+              <option key={type} value={type}>{ASSET_TYPE_LABELS[type]}</option>
+            ))}
+          </SelectControl>
+          <SelectControl
+            className="h-7 rounded-md border bg-background px-2 text-xs"
+            value={sortMode}
+            onChange={(event) => setSortMode(event.target.value as "updated" | "name")}
+            aria-label="资产排序方式"
+          >
+            <option value="updated">最近更新</option>
+            <option value="name">名称</option>
+          </SelectControl>
+          {normalizedKeyword || typeFilter !== "all" ? (
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {visibleAssets.length}/{assets.length} 个
+            </span>
+          ) : null}
+        </div>
+      )}
+
       {isLoading && (
         <div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -323,7 +380,7 @@ export function AssetSection({
         </div>
       )}
 
-      {grouped.length > 0 && (
+      {grouped.length > 0 ? (
         <div className="space-y-4">
           {grouped.map(({ type, items }) => {
             const accent = ASSET_TYPE_ACCENT[type];
@@ -351,7 +408,11 @@ export function AssetSection({
             );
           })}
         </div>
-      )}
+      ) : !isEmpty && (normalizedKeyword || typeFilter !== "all") ? (
+        <div className="rounded-lg border border-dashed bg-background/50 px-4 py-8 text-center text-xs text-muted-foreground">
+          没有匹配当前搜索或筛选的资产。
+        </div>
+      ) : null}
     </div>
   );
 }

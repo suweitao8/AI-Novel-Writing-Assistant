@@ -102,6 +102,14 @@ const shotParamsSchema = z.object({
   id: z.string().trim().min(1),
   shotId: z.string().trim().min(1),
 });
+const shotUpdateSchema = z.object({
+  action: z.string().trim().max(1000).optional(),
+  dialogue: z.string().trim().max(500).optional(),
+  shotSize: z.string().trim().max(40).optional(),
+  cameraMove: z.string().trim().max(40).optional(),
+  location: z.string().trim().max(40).optional(),
+  durationSec: z.number().int().min(1).max(60).optional(),
+});
 const videoPromptParamsSchema = z.object({ videoPromptId: z.string().trim().min(1) });
 const shotImageParamsSchema = z.object({ shotId: z.string().trim().min(1) });
 const shotImageVersionParamsSchema = z.object({
@@ -720,6 +728,17 @@ router.post("/projects/:id/shots/:shotId/video-prompt", validate({ params: shotP
     const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
     const data = await dramaVideoPromptService.generateVideoPromptForShot(id, shotId, (req.body ?? {}) as never);
     res.status(200).json({ success: true, data, message: "Drama video prompt generated." });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 手动编辑镜头（台词/动作/景别/运镜/时长/场景）；台词改动后配音段按指纹自动标记过期
+router.put("/projects/:id/shots/:shotId", validate({ params: shotParamsSchema, body: shotUpdateSchema }), async (req, res, next) => {
+  try {
+    const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+    const data = await dramaStoryboardService.updateShot(id, shotId, req.body as never);
+    res.status(200).json({ success: true, data, message: "镜头已更新。" });
   } catch (error) {
     next(error);
   }

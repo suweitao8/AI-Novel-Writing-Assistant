@@ -1,8 +1,26 @@
 import { prisma } from "../../db/prisma";
+import { AppError } from "../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { dramaStoryboardPrompt } from "../../prompting/prompts/drama/drama.prompts";
 import { dramaContextAssembler } from "./DramaContextAssembler";
 import type { DramaLLMOptions } from "./DramaStrategyService";
+
+export interface DramaShotUpdateInput {
+  action?: string;
+  dialogue?: string;
+  shotSize?: string;
+  cameraMove?: string;
+  location?: string;
+  durationSec?: number;
+}
+
+const SHOT_TEXT_LIMITS = {
+  action: 1000,
+  dialogue: 500,
+  shotSize: 40,
+  cameraMove: 40,
+  location: 40,
+} as const;
 
 export class DramaStoryboardService {
   async generateStoryboard(projectId: string, episodeOrder: number, options: DramaLLMOptions = {}) {
@@ -59,6 +77,60 @@ export class DramaStoryboardService {
       where: { id: storyboardId },
       include: { shots: { orderBy: { order: "asc" } } },
     });
+  }
+
+  /**
+   * 手动编辑单个镜头（台词/动作/景别/运镜/时长/场景）。
+   * 台词改动不需要动配音数据：配音段的过期判定基于生成时的台词指纹比对，
+   * 改完台词该段会在配音工作台自动标记"已过期，需重配"。首帧同理不动（重生成即可）。
+   */
+  async updateShot(projectId: string, shotId: string, input: DramaShotUpdateInput) {
+    const shot = await prisma.dramaShot.findFirst({
+      where: { id: shotId, storyboard: { projectId } },
+      select: { id: true },
+    });
+    if (!shot) {
+      throw new AppError("没有找到这个镜头。", 404);
+    }
+
+    const data: Record<string, string | number | null> = {};
+    if (input.action !== undefined) {
+      const value = input.action.trim();
+      if (!value || value.length > SHOT_TEXT_LIMITS.action) {
+        throw new AppError(`镜头动作需要 1～${SHOT_TEXT_LIMITS.action} 字。`, 400);
+      }
+      data.action = value;
+    }
+    if (input.dialogue !== undefined) {
+      const value = input.dialogue.trim();
+      if (value.length > SHOT_TEXT_LIMITS.dialogue) {
+        throw new AppError(`台词不能超过 ${SHOT_TEXT_LIMITS.dialogue} 字。`, 400);
+      }
+      data.dialogue = value || null;
+    }
+    for (const key of ["shotSize", "cameraMove", "location"] as const) {
+      const raw = input[key];
+      if (raw === undefined) {
+        continue;
+      }
+      const value = raw.trim();
+      if (value.length > SHOT_TEXT_LIMITS[key]) {
+        throw new AppError(`${key} 不能超过 ${SHOT_TEXT_LIMITS[key]} 字。`, 400);
+      }
+      data[key] = value || null;
+    }
+    if (input.durationSec !== undefined) {
+      const value = Math.round(input.durationSec);
+      if (!Number.isFinite(value) || value < 1 || value > 60) {
+        throw new AppError("镜头时长需要 1～60 秒。", 400);
+      }
+      data.durationSec = value;
+    }
+    if (Object.keys(data).length === 0) {
+      throw new AppError("没有要更新的内容。", 400);
+    }
+
+    return prisma.dramaShot.update({ where: { id: shotId }, data });
   }
 }
 
