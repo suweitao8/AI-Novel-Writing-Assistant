@@ -128,6 +128,13 @@ export default function ComicProjectPage() {
     queryKey: ["comic", "project", id],
     queryFn: () => getComicProject(id!),
     enabled: Boolean(id),
+    // 有图片生成任务进行中时轮询，生成完成或被中断后界面能自动恢复。
+    refetchInterval: (query) => {
+      const characters = query.state.data?.characters ?? [];
+      return characters.some((character) => character.sheetData?.includes('"status":"generating"'))
+        ? 5000
+        : false;
+    },
   });
 
   const { data: episodes = [] } = useQuery({

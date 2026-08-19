@@ -7,6 +7,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { ensureRuntimeDatabaseReady } from "./db/runtimeMigrations";
+import { healInterruptedImageGenerationStates } from "./services/image/runtime/interruptedStateHealer";
 import { errorHandler } from "./middleware/errorHandler";
 import { loadProviderApiKeys } from "./llm/factory";
 import astrologyRouter from "./modules/astrology/http/astrologyRoutes";
@@ -309,6 +310,9 @@ function initializeBackgroundServices(): BackgroundServicesHandle {
 export async function startServer(options?: ServerStartOptions): Promise<StartedServer> {
   scheduleLogRetentionCleanup();
   await ensureRuntimeDatabaseReady();
+  void healInterruptedImageGenerationStates().catch((error) => {
+    console.warn("[server] failed to heal interrupted image generation states.", error);
+  });
 
   const ragCompatibilityReport = await initializeRagSettingsCompatibility();
   if (
