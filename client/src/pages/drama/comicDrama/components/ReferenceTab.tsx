@@ -18,7 +18,6 @@ export default function ReferenceTab(props: ReferenceTabProps) {
           value={props.value}
           minRows={50}
           maxLength={20000}
-          placeholder="粘贴参考小说文本"
           onChange={props.onChange}
         />
       </CardContent>
