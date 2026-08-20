@@ -11,8 +11,9 @@ import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import {
   buildKeyframeStylePromptLines,
-  resolveDramaVisualStyle,
+  combineStyleAvoidInstructions,
 } from "./dramaVisualStyles";
+import { resolveDramaArtStyleContext } from "./dramaArtStyleResolver";
 
 export type ShotKeyframeStatus = "idle" | "generating" | "done" | "error";
 
@@ -239,11 +240,17 @@ export class DramaShotKeyframeService {
       throw new AppError(`未找到短剧镜头：${shotId}`, 404);
     }
 
-    const visualStyle = resolveDramaVisualStyle(shot.storyboard.project.visualStyle);
-    const prompt = buildShotKeyframePrompt(shot, buildKeyframeStylePromptLines(visualStyle));
+    const styleContext = await resolveDramaArtStyleContext({
+      visualStyle: shot.storyboard.project.visualStyle,
+      sourceRef: shot.storyboard.project.sourceRef,
+    });
+    const prompt = buildShotKeyframePrompt(
+      shot,
+      buildKeyframeStylePromptLines(styleContext.universal, styleContext.specific),
+    );
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
-      visualStyle?.avoidInstructions ?? "",
+      combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
     ].filter(Boolean).join(", ");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];

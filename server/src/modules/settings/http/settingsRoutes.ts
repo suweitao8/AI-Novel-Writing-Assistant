@@ -44,6 +44,11 @@ import {
   MIN_STYLE_EXTRACTION_TIMEOUT_MS,
   saveStyleEngineRuntimeSettings,
 } from "../../../services/settings/StyleEngineRuntimeSettingsService";
+import {
+  getGlobalArtStyleSettings,
+  saveGlobalArtStyleSettings,
+} from "../../../services/settings/GlobalArtStyleSettingsService";
+import { DEFAULT_UNIVERSAL_ART_STYLE } from "../../../services/drama/visual/dramaVisualStyles";
 import { registerCustomProviderRoutes } from "./customProviderRoutes";
 import { registerLLMSelectionRoutes } from "./llmSelectionRoutes";
 import { probeAudioSpeechChannel } from "../../../services/audio/speechProvider";
@@ -311,6 +316,44 @@ router.put(
         success: true,
         data,
         message: "写法引擎运行设置保存成功。",
+      } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/** 通用美术风格：所有漫剧画面共用的渲染质感基线（具体题材风格在小说级美术风格里选）。 */
+router.get("/universal-art-style", async (_req, res, next) => {
+  try {
+    const settings = await getGlobalArtStyleSettings();
+    const data = { ...settings, defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions };
+    res.status(200).json({
+      success: true,
+      data,
+      message: "通用美术风格读取成功。",
+    } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const universalArtStyleUpdateSchema = z.object({
+  prompt: z.string().max(2000).optional(),
+});
+
+router.put(
+  "/universal-art-style",
+  validate({ body: universalArtStyleUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof universalArtStyleUpdateSchema>;
+      const settings = await saveGlobalArtStyleSettings(body);
+      const data = { ...settings, defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions };
+      res.status(200).json({
+        success: true,
+        data,
+        message: settings.prompt ? "通用美术风格已保存。" : "通用美术风格已恢复默认。",
       } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);

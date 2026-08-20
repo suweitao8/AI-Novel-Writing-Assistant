@@ -400,3 +400,20 @@ export async function testLLMConnection(payload: {
   >("/llm/test", payload);
   return data;
 }
+
+export interface UniversalArtStyleSettings {
+  /** 自定义通用风格提示词；空串表示使用内置默认。 */
+  prompt: string;
+  /** 内置默认提示词（供预览与恢复默认）。 */
+  defaultPrompt: string;
+}
+
+export async function getUniversalArtStyle() {
+  const { data } = await apiClient.get<ApiResponse<UniversalArtStyleSettings>>("/settings/universal-art-style");
+  return data;
+}
+
+export async function updateUniversalArtStyle(payload: { prompt: string }) {
+  const { data } = await apiClient.put<ApiResponse<UniversalArtStyleSettings>>("/settings/universal-art-style", payload);
+  return data;
+}

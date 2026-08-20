@@ -395,7 +395,8 @@ export default function ComicDramaStudioPage() {
                 novelId={novelId}
                 styleOptions={storyboard.styleOptions}
                 onApplyProjectStyle={(styleId) => {
-                  // 已有分镜项目时默认风格同步生效；自定义风格名不是预设 id，不推送（首帧图按预设解析）。
+                  // 已有分镜项目时默认具体风格同步生效；只推送内置预设 id——自定义风格名不推送，
+                  // 生成侧（dramaArtStyleResolver）会回落到小说默认风格解析自定义提示词。
                   if (overview?.drama && storyboard.styleOptions.some((style) => style.id === styleId)) {
                     storyboard.styleMutation.mutate(styleId);
                   }
