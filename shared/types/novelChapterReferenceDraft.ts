@@ -1,16 +1,21 @@
 // 参考文本 → 本章初稿契约：漫剧工作室「参考」页签把粘贴的小说原文
-// AI 压缩成逐行标注旁白/角色的初稿草稿（不落库，写入 Chapter.expectation 前由用户确认）。
+// AI 改编成分镜式初稿草稿（不落库，写入 Chapter.expectation 前由用户确认）。
+// 每个分镜单元两行：分镜画面 + 旁白/角色台词，单元之间空行分隔。
 
 export interface ChapterReferenceDraftSegment {
+  /** 这一格分镜的画面描述（镜头拍什么） */
+  storyboard: string;
   /** 旁白行固定为「旁白」；台词行为原文中说话角色的名字 */
   speaker: string;
   kind: "narration" | "dialogue";
-  /** 一行一句的精简内容 */
+  /** 台词行的表情神态（旁白行为空串） */
+  mood: string;
+  /** 这一格的旁白内容或台词 */
   text: string;
 }
 
 export interface ChapterReferenceDraftPayload {
   segments: ChapterReferenceDraftSegment[];
-  /** 按行拼接好的初稿文本（speaker：text），直接可写入初稿编辑器 */
+  /** 按分镜单元拼好的初稿文本（分镜：…\n说话人（神态）：内容，单元间空行），直接可写入初稿编辑器 */
   draftText: string;
 }

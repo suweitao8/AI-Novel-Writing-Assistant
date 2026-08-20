@@ -434,7 +434,7 @@ export default function ComicDramaStudioPage() {
                 onClick={() => {
                   const draft = referenceStage.pendingDraft;
                   if (draft !== null) {
-                    referenceStage.applyDraft(draft, draft.split("\n").length);
+                    referenceStage.applyDraft(draft);
                     referenceStage.setPendingDraft(null);
                   }
                 }}

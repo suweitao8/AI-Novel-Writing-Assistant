@@ -38,11 +38,11 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterDetailOutline.prompts").chapterDetailOutlinePrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_draft@v2",
+    key: "novel.chapter.reference_draft@v3",
     load: () => require("../prompts/novel/chapterReferenceDraft.prompts").chapterReferenceDraftPrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_extract@v1",
+    key: "novel.chapter.reference_extract@v2",
     load: () => require("../prompts/novel/chapterReferenceExtract.prompts").chapterReferenceExtractPrompt as UnknownPromptAsset,
   },
   {
