@@ -13,7 +13,9 @@ import {
   type OnNodeDrag,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import type { CSSProperties } from "react";
 import type { WorldMapData, WorldMapTerrain } from "@/api/story/storySettings";
+import { cn } from "@/lib/utils";
 import { edgeDistanceKm } from "./mapData";
 import {
   MapCardNode,
@@ -55,6 +57,9 @@ interface MapFlowCanvasProps {
   childLevelLabel: string | null;
   selectedNodeId: string | null;
   levelScaleKm: number | null;
+  // 当前级搜索：非空时名字不匹配的卡片淡出。
+  filterQuery?: string;
+  className?: string;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeSelect: (nodeId: string) => void;
   onTerrainSelect: (terrainId: string) => void;
@@ -73,6 +78,8 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
 
   const hasTerrain = (map.terrain ?? []).length > 0;
+  const query = (props.filterQuery ?? "").trim().toLowerCase();
+  const matches = (name: string) => query === "" || name.toLowerCase().includes(query);
 
   const nodes = useMemo<Node[]>(() => {
     const list: Node[] = [];
@@ -92,6 +99,7 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
       const angle = (2 * Math.PI * index) / Math.max(map.nodes.length, 1) - Math.PI / 2;
       const x = node.x ?? 50 + 36 * Math.cos(angle);
       const y = node.y ?? 50 + 36 * Math.sin(angle);
+      const dimmed = !matches(node.name);
       list.push({
         id: node.id,
         type: "mapCard",
@@ -106,10 +114,12 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
         },
         selected: props.selectedNodeId === node.id,
         zIndex: 1,
+        style: dimmed ? { opacity: 0.15 } : undefined,
       });
     });
     return list;
-  }, [map, hasTerrain, props.childLevelLabel, props.selectedNodeId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, hasTerrain, props.childLevelLabel, props.selectedNodeId, query]);
 
   const edges = useMemo<Edge[]>(() => {
     const nodeById = new Map((map.nodes ?? []).map((node) => [node.id, node]));
@@ -128,7 +138,11 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
         target: edge.toId,
         label,
         type: "default",
-        style: { stroke: "hsl(var(--muted-foreground) / 0.45)", strokeWidth: 1.5 },
+        style: {
+          stroke: "hsl(var(--muted-foreground) / 0.45)",
+          strokeWidth: 1.5,
+          ...((from && !matches(from.name)) || (to && !matches(to.name)) ? { opacity: 0.12 } : {}),
+        },
         labelStyle: { fill: "hsl(var(--muted-foreground))", fontSize: 11 },
         labelBgStyle: { fill: "hsl(var(--card))", fillOpacity: 0.85 },
         labelBgPadding: [4, 2] as [number, number],
@@ -136,7 +150,8 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
         interactionWidth: 0,
       };
     });
-  }, [map.edges, map.nodes, levelScaleKm]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map.edges, map.nodes, levelScaleKm, query]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>((_event, node) => {
     if (node.id === "__terrain__") return;
@@ -148,7 +163,7 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
     props.onNodeMove(node.id, percentFromPx(node.position.x), percentFromPx(node.position.y));
   }, [props]);
 
-  // 地形层 pointer-events 关闭，点击落到 pane：换算成画布坐标后做射线命中，点中地形即选中它。
+// 地形层 pointer-events 关闭，点击落到 pane：换算成画布坐标后做射线命中，点中地形即选中它。
   const handlePaneClick = useCallback((event: ReactMouseEvent) => {
     if (!hasTerrain) return;
     const flow = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -162,8 +177,55 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
     }
   }, [map.terrain, hasTerrain, props, screenToFlowPosition]);
 
+  // 小地图节点带地名：闭包持有 id→名字映射（依赖变化时重建组件引用）。
+  const nameById = useMemo(() => new Map((map.nodes ?? []).map((node) => [node.id, node.name])), [map.nodes]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const miniMapNodeComponent = useMemo(() => {
+    const MiniMapLabelNode = (node: {
+      id: string;
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+      color?: string;
+      borderRadius?: number;
+      strokeWidth?: number;
+      className?: string;
+      style?: CSSProperties;
+      shapeRendering?: string;
+      selected?: boolean;
+    }) => {
+      const label = nameById.get(node.id);
+      return (
+        <g>
+          <rect
+            x={node.x}
+            y={node.y}
+            width={node.width}
+            height={node.height}
+            fill={node.color ?? "rgba(120,120,120,0.8)"}
+            rx={node.borderRadius ?? 3}
+          />
+          {label ? (
+            <text
+              x={node.x + node.width / 2}
+              y={node.y + node.height + 44}
+              textAnchor="middle"
+              fontSize={40}
+              fill="hsl(var(--foreground) / 0.8)"
+              stroke="none"
+            >
+              {label}
+            </text>
+          ) : null}
+        </g>
+      );
+    };
+    return MiniMapLabelNode;
+  }, [nameById]);
+
   return (
-    <div className="h-[560px] w-full overflow-hidden rounded-xl border border-border bg-background">
+    <div className={cn("h-[560px] min-h-[420px] w-full overflow-hidden rounded-xl border border-border bg-background", props.className)}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -191,6 +253,7 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
             ? "transparent"
             : MINIMAP_NODE_COLORS[String((node.data as { kind?: string }).kind ?? "other")] ?? MINIMAP_NODE_COLORS.other)}
           nodeStrokeWidth={0}
+          nodeComponent={miniMapNodeComponent}
         />
       </ReactFlow>
     </div>

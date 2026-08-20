@@ -11,7 +11,7 @@ import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import MapFlowCanvas from "./worldMap/MapFlowCanvas";
@@ -27,11 +27,9 @@ import {
 
 // 漫剧「设定 · 地图」画布工作面：国家/城市两级切换 + 点击下钻（塞尔达式大地图）。
 // 画布是 React Flow（@xyflow/react，沿用旧项目 mydrama 画布的体验）：点阵背景、滚轮缩放、拖拽平移、
-// 右下小地图、卡片式节点；坐标数据仍是 0-100 百分比，由 MapFlowCanvas 换算像素。
-// 顶部切换「国家级别」（世界画布=各国相对位置）与「城市级别」（选定国家的城市分布），
-// 点城市再进一层看城内地点（场景）。点选节点/地形后编辑卡出现在画布下方，未选中不占位。
-// 「AI 生成地图」：空地图时依据书名/世界观生成基础的国家+城市结构；有未标注场景时把场景放置到地图上
-//（可新建国家/城市；无法定位的标记后跳过）。连线公里数按各层内置尺度估算；改动自动保存。
+// 右下小地图（带地名）、卡片式节点；画布铺满剩余高度，当前级内容可搜索（不匹配的卡片淡出）。
+// 「生成地图」：空地图时依据书名/世界观生成基础的国家+城市+地形分区（平原/山地/海洋）；
+// 有未标注场景时把场景放置到地图上（无法定位的标记后跳过）。改动自动保存。
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -48,6 +46,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
   const [savedSnapshot, setSavedSnapshot] = useState("");
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const worldQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsWorld(novelId),
@@ -255,8 +254,8 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
   }
 
   return (
-    <div className="space-y-4">
-      {/* 层级切换条：国家级别 / 城市级别；城市级别时旁边选国家 */}
+    <div className="flex h-full min-h-0 flex-col gap-3">
+      {/* 层级切换条：国家 / 城市；城市时旁边选国家 + 当前级搜索 */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="inline-flex rounded-lg border border-border bg-muted/40 p-0.5">
           <button
@@ -267,7 +266,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
             )}
             onClick={() => switchTab("country")}
           >
-            国家级别
+            国家
           </button>
           <button
             type="button"
@@ -278,30 +277,38 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
             disabled={activeTab === "country" && countries.length === 0}
             onClick={() => switchTab("city")}
           >
-            城市级别
+            城市
           </button>
         </div>
-        {activeTab === "city" && countries.length > 0 ? (
-          <SelectControl
-            className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
-            value={activeCountryId ?? ""}
-            onChange={(event) => switchCountry(event.target.value)}
+        <div className="flex flex-wrap items-center gap-2">
+          {activeTab === "city" && countries.length > 0 ? (
+            <SelectControl
+              className="h-9 rounded-md border border-border bg-background px-2 text-sm text-foreground"
+              value={activeCountryId ?? ""}
+              onChange={(event) => switchCountry(event.target.value)}
+            >
+              {countries.map((country) => (
+                <option key={country.id} value={country.id}>{country.name || "未命名国家"}</option>
+              ))}
+            </SelectControl>
+          ) : null}
+          <Input
+            className="h-9 w-44 rounded-md border border-border bg-background px-3 text-sm"
+            placeholder={`搜索${level.levelLabel}`}
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+          />
+          <AiButton
+            variant="outline"
+            size="sm"
+            onClick={() => generateMutation.mutate()}
+            disabled={generateMutation.isPending}
+            title="还没有地图时依据书名与世界观生成基础地图；有未标注的场景时把它们放置到地图上"
           >
-            {countries.map((country) => (
-              <option key={country.id} value={country.id}>{country.name || "未命名国家"}</option>
-            ))}
-          </SelectControl>
-        ) : null}
-        <AiButton
-          variant="outline"
-          size="sm"
-          onClick={() => generateMutation.mutate()}
-          disabled={generateMutation.isPending}
-          title="还没有地图时依据书名与世界观生成基础地图；有未标注的场景时把它们放置到地图上"
-        >
-          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {generateMutation.isPending ? "生成中..." : "AI 生成地图"}
-        </AiButton>
+            {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {generateMutation.isPending ? "生成中..." : "生成地图"}
+          </AiButton>
+        </div>
       </div>
 
       {/* 城市下钻的回退面包屑：国家 › 城市 */}
@@ -321,49 +328,40 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
         </div>
       ) : null}
 
-      {/* 画布占满整行；点选的编辑卡收在画布下方，未选中时不占位 */}
-      <Card className="min-w-0 border-border/70">
-        <CardContent className="p-3 sm:p-4">
-          {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
-            <div className="flex aspect-square max-h-[560px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border text-center">
-              <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
-              <p className="text-sm text-muted-foreground">
-                {activeTab === "country"
-                  ? "还没有国家。"
-                  : activePath.length === 1
-                    ? "这个国家还没有城市。"
-                    : "这座城市还没有地点。"}
-              </p>
-              {activeTab === "country" ? (
-                <Button size="sm" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
-                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generateMutation.isPending ? "生成中..." : "AI 生成地图"}
-                </Button>
-              ) : null}
-            </div>
-          ) : (
-            <MapFlowCanvas
-              map={currentMap}
-              childLevelLabel={level.childLevelLabel}
-              selectedNodeId={selectedNodeId}
-              levelScaleKm={levelScaleKm}
-              onNodeMove={moveNode}
-              onNodeSelect={handleNodeClick}
-              onTerrainSelect={(terrainId) => {
-                setSelectedTerrainId(terrainId);
-                setSelectedNodeId(null);
-              }}
-            />
-          )}
-          {currentMap.nodes.length > 0 ? (
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              {level.childLevelLabel
-                ? `点${level.levelLabel}进入${level.childLevelLabel}分布，拖动调整位置，滚轮缩放；距离按${activeTab === "country" ? "中国量级" : "现实城际尺度"}估算。`
-                : "点地点查看编辑，拖动调整位置，滚轮缩放。"}
-            </p>
+      {/* 画布铺满剩余高度；点选的编辑卡收在画布下方，未选中时不占位 */}
+      {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
+        <div className="flex min-h-[420px] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border text-center">
+          <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
+          <p className="text-sm text-muted-foreground">
+            {activeTab === "country"
+              ? "还没有国家。"
+              : activePath.length === 1
+                ? "这个国家还没有城市。"
+                : "这座城市还没有地点。"}
+          </p>
+          {activeTab === "country" ? (
+            <Button size="sm" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
+              {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generateMutation.isPending ? "生成中..." : "生成地图"}
+            </Button>
           ) : null}
-        </CardContent>
-      </Card>
+        </div>
+      ) : (
+        <MapFlowCanvas
+          map={currentMap}
+          childLevelLabel={level.childLevelLabel}
+          selectedNodeId={selectedNodeId}
+          levelScaleKm={levelScaleKm}
+          filterQuery={searchQuery.trim()}
+          className="min-h-[420px] flex-1"
+          onNodeMove={moveNode}
+          onNodeSelect={handleNodeClick}
+          onTerrainSelect={(terrainId) => {
+            setSelectedTerrainId(terrainId);
+            setSelectedNodeId(null);
+          }}
+        />
+      )}
 
       {selectedNode ? (
         <NodeEditorCard
