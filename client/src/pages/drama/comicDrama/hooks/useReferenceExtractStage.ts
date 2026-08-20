@@ -55,21 +55,24 @@ export function normalizeExtraction(raw: unknown): ReferenceExtractionPayload {
           && typeof candidate?.description === "string";
       })
       : [];
+  // 角色没有 description 字段（v3 起用 appearance/personality），过滤条件只看 name；
+  // 场景/道具/世界观仍要求 name+description。
+  const characters = (Array.isArray(source.characters) ? source.characters : [])
+    .filter((item): item is ReferenceExtractCharacter =>
+      typeof (item as ReferenceExtractCharacter)?.name === "string" && item.name.trim().length > 0)
+    .map((character) => ({
+      ...character,
+      role: String(character.role || "配角"),
+      appearance: typeof character.appearance === "string" ? character.appearance : "",
+      personality: typeof character.personality === "string" ? character.personality : "",
+      imagePrompt: typeof character.imagePrompt === "string" ? character.imagePrompt : "",
+      voicePrompt: typeof character.voicePrompt === "string" ? character.voicePrompt : "",
+      stateLabel: typeof character.stateLabel === "string" ? character.stateLabel : "",
+      stateNote: typeof character.stateNote === "string" ? character.stateNote : "",
+      description: typeof character.description === "string" ? character.description : "",
+    }));
   return {
-    characters: items(source.characters).map((item) => {
-      const character = item as ReferenceExtractCharacter;
-      return {
-        ...character,
-        role: String(character.role || "配角"),
-        appearance: typeof character.appearance === "string" ? character.appearance : "",
-        personality: typeof character.personality === "string" ? character.personality : "",
-        imagePrompt: typeof character.imagePrompt === "string" ? character.imagePrompt : "",
-        voicePrompt: typeof character.voicePrompt === "string" ? character.voicePrompt : "",
-        stateLabel: typeof character.stateLabel === "string" ? character.stateLabel : "",
-        stateNote: typeof character.stateNote === "string" ? character.stateNote : "",
-        description: typeof character.description === "string" ? character.description : "",
-      };
-    }),
+    characters,
     scenes: items(source.scenes),
     props: items(source.props),
     worldview: items(source.worldview).map((item) => ({ name: item.name, description: item.description })),
