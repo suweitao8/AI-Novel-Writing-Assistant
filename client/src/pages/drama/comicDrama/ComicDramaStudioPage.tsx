@@ -45,14 +45,14 @@ import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/dram
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·世界地图·美术风格·通用）。
+// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·美术风格·通用）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→视频（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
 type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
-// 「设定」的子页签：世界观（条目式关键设定）/ 世界地图 / 美术风格 / 通用（参考小说与项目配置）。
+// 「设定」的子页签：世界观（条目式关键设定）/ 地图 / 美术风格 / 通用（参考小说与项目配置）。
 type SettingsTab = "world" | "map" | "style" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
@@ -77,7 +77,7 @@ const ASSET_TAB_LABELS: Record<AssetTab, string> = {
 
 const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   world: "世界观",
-  map: "世界地图",
+  map: "地图",
   style: "美术风格",
   general: "通用",
 };

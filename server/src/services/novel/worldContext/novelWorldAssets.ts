@@ -19,7 +19,7 @@ const WORLD_ASSET_BLUEPRINTS: Array<{
 }> = [
   {
     assetType: "map",
-    title: "世界地图",
+    title: "地图",
     description: "整理区域、路线、势力控制区和故事发生地。",
   },
   {

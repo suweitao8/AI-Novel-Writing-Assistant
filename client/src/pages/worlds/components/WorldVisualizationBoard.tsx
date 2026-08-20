@@ -162,7 +162,7 @@ export default function WorldVisualizationBoard({ payload }: WorldVisualizationB
 
       {mode === "geography" ? (
         <WorldGraphCanvas
-          title={`世界地图 · ${geographyNodes.length} 个地点 · ${geographyEdges.length} 条路线`}
+          title={`地图 · ${geographyNodes.length} 个地点 · ${geographyEdges.length} 条路线`}
           nodes={geographyNodes}
           edges={geographyEdges}
           layout="map"
