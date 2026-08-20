@@ -423,6 +423,9 @@ function ShotVoiceRow(props: {
                 <SegmentStatusDot status={segment.status} />
                 <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
                   {segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}
+                  {segment.type === "dialogue" && segment.emotion ? (
+                    <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
+                  ) : null}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={segment.text}>
                   {segment.text}

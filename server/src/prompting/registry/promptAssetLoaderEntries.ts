@@ -38,7 +38,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterDetailOutline.prompts").chapterDetailOutlinePrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_draft@v4",
+    key: "novel.chapter.reference_draft@v5",
     load: () => require("../prompts/novel/chapterReferenceDraft.prompts").chapterReferenceDraftPrompt as UnknownPromptAsset,
   },
   {
@@ -214,7 +214,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/drama.prompts").dramaRepairPrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.storyboard@v1",
+    key: "drama.storyboard@v2",
     load: () => require("../prompts/drama/drama.prompts").dramaStoryboardPrompt as UnknownPromptAsset,
   },
   {

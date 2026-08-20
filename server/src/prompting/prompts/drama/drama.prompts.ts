@@ -579,7 +579,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
   charactersDigest: string;
 }, DramaStoryboardOutput> = {
   id: "drama.storyboard",
-  version: "v1",
+  version: "v2",
   taskType: "outline_planning",
   mode: "structured",
   language: "zh",
@@ -589,6 +589,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
     new SystemMessage([
       "你是竖屏短剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
       "每个镜头必须能服务冲突推进，避免空镜和环境铺陈。",
+      "dialogue 逐行写这一镜的台词，对白行用「角色名（语气）：台词」：语气按台本上下文写这一句说话的情绪与口吻（如 冷声质问、压抑怒气、惊喜、沙哑低语、自嘲笑意），2～10 字——它会直接作为配音的情绪提示，只写听得出的语气，不写纯视觉描写；旁白行写「旁白：内容」。",
       "只输出符合 schema 的 JSON。",
     ].join("\n")),
     new HumanMessage([

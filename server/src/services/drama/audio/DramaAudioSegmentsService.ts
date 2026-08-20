@@ -21,6 +21,8 @@ export interface DramaAudioSegment {
   type: DialogueLineType;
   speaker?: string;
   text: string;
+  /** 台词行的语气（「角色（语气）：台词」），供配音与前端展示 */
+  emotion?: string;
   audioUrl?: string;
   durationSec?: number;
   status: DramaAudioSegmentStatus;
@@ -72,6 +74,7 @@ export class DramaAudioSegmentsService {
           type: line.type,
           voice,
           narratorDescription: narratorVoice.description,
+          lineEmotion: line.emotion,
         });
         let status: DramaAudioSegmentStatus = "missing";
         if (item?.audioUrl?.startsWith("data:")) {
@@ -84,6 +87,7 @@ export class DramaAudioSegmentsService {
           type: line.type,
           speaker: line.speaker,
           text: line.text,
+          emotion: line.emotion,
           audioUrl: status === "ready" ? item?.audioUrl : undefined,
           durationSec: status === "ready" ? item?.durationSec : undefined,
           status,
