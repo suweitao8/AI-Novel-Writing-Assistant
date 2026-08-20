@@ -34,14 +34,13 @@ import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPr
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
-import VoiceStagePanel from "@/pages/drama/comicDrama/VoiceStagePanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
 import ReferenceExtractTab from "@/pages/drama/comicDrama/components/ReferenceExtractTab";
 import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
-import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
+import ShotVoiceListPanel from "@/pages/drama/comicDrama/ShotVoiceListPanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
@@ -49,7 +48,7 @@ import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useRefe
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
-type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "voice" | "video";
+type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观 / 项目（画面风格与分镜项目状态）。
@@ -66,8 +65,7 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   extract: "提取",
   draft: "初稿",
   text: "正文",
-  storyboard: "分镜",
-  voice: "配音",
+  storyboard: "分镜配音",
   video: "视频",
 };
 
@@ -248,7 +246,6 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="draft">{CURRENT_TAB_LABELS.draft}</TabsTrigger>
                   <TabsTrigger value="text">{CURRENT_TAB_LABELS.text}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
-                  <TabsTrigger value="voice">{CURRENT_TAB_LABELS.voice}</TabsTrigger>
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -361,7 +358,7 @@ export default function ComicDramaStudioPage() {
             <NovelChapterOutlineTab workspace={chapterWorkspace} />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (
-              <StoryboardStagePanel projectId={overview.drama.projectId} />
+              <ShotVoiceListPanel novelId={novelId} projectId={overview.drama.projectId} />
             ) : (
               <StoryboardBootstrapCard
                 chapterCount={overview.novel.chapterCount}
@@ -369,8 +366,6 @@ export default function ComicDramaStudioPage() {
                 onCreate={() => storyboard.createMutation.mutate()}
               />
             )
-          ) : currentTab === "voice" ? (
-            <VoiceSection novelId={novelId} drama={overview.drama} />
           ) : (
             <VideoSection drama={overview.drama} videoProviders={overview.videoProviders} />
           )}
@@ -621,27 +616,6 @@ function StoryboardBootstrapCard(props: {
   );
 }
 
-function VoiceSection(props: {
-  novelId: string;
-  drama: { projectId: string; shotCount: number; audioReadyCount: number } | null;
-}) {
-  if (!props.drama) {
-    return (
-      <Card className="rounded-3xl">
-        <CardContent className="p-6 text-sm leading-6 text-muted-foreground">
-          还没有分镜项目。
-        </CardContent>
-      </Card>
-    );
-  }
-  return (
-    <Card className="rounded-3xl">
-      <CardContent className="p-4 sm:p-6">
-        <VoiceStagePanel novelId={props.novelId} projectId={props.drama.projectId} />
-      </CardContent>
-    </Card>
-  );
-}
 
 function VideoSection(props: {
   drama: { projectId: string; videoPromptCount: number; videoReadyCount: number } | null;
