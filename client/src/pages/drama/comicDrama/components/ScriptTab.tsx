@@ -156,20 +156,6 @@ export default function ScriptTab(props: ScriptTabProps) {
     props: propList.map((prop) => prop.name),
   };
 
-  // 台词行是否缩进：它上面最近的非台词条目是分镜时，它属于这个分镜。
-  const lineIndented: boolean[] = [];
-  let insideShot = false;
-  for (const item of items) {
-    if (item.kind === "shot") {
-      insideShot = true;
-    } else if (item.kind === "line") {
-      // 保持当前归属
-    } else {
-      insideShot = false;
-    }
-    lineIndented.push(item.kind === "line" ? insideShot : false);
-  }
-
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Card className="rounded-3xl">
@@ -223,7 +209,6 @@ export default function ScriptTab(props: ScriptTabProps) {
                       item={item}
                       index={index}
                       total={items.length}
-                      indented={lineIndented[index]}
                       editing={editing}
                       onEdit={setEditing}
                       onUpdate={updateItem}
@@ -554,7 +539,6 @@ function ShotRow(props: RowBaseProps & {
 
 function LineRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "line" }>;
-  indented: boolean;
   entityNames: { characters: string[]; scenes: string[]; props: string[] };
   onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
 }) {
@@ -563,7 +547,7 @@ function LineRow(props: RowBaseProps & {
   const textActive = props.editing?.index === props.index && props.editing?.field === "text";
   const isNarrator = props.item.speaker === "旁白";
   return (
-    <div className={`group flex flex-wrap items-center gap-2 rounded-xl px-3 py-1.5 ${props.indented ? "ml-4 sm:ml-8" : ""} ${isNarrator ? "" : "bg-blue-400/[0.08]"}`}>
+    <div className={`group flex flex-wrap items-center gap-2 rounded-xl px-3 py-1.5 ${isNarrator ? "" : "bg-blue-400/[0.08]"}`}>
       <EditableValue
         active={speakerActive}
         value={props.item.speaker}
