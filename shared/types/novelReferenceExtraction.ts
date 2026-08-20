@@ -17,6 +17,12 @@ export interface StoryAssetState {
   voicePrompt?: string;
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
+  /**
+   * 生成该状态图片时用哪个状态的图当参考（同一资产内的状态 id）：
+   * 典型用法是新状态参考上一状态（保持长相一致只换装/加伤），也可参考任意别的
+   * 状态；不填＝不用参考图，直接生成全新形象（2026-08-20 用户要求的灵活配置）。
+   */
+  referenceStateId?: string | null;
 }
 
 export interface ReferenceExtractItem {
@@ -38,13 +44,13 @@ export interface ReferenceExtractCharacter {
   gender?: "male" | "female" | "other" | "unknown";
   /** 年龄段（child=少年/儿童、youth=青年、middle=中年、elder=老年；null=原文推不出） */
   ageGroup?: "child" | "youth" | "middle" | "elder" | null;
-  /** 体型短词，如 高瘦/娇小/壮实（推不出为空串） */
+  /** 体型短词（v2 起不再生成：体型并入 appearance；仅为已持久化的旧结果保留） */
   physique?: string;
-  /** 一句话概述（角色以 appearance/personality 为主，description 仅兜底） */
+  /** 一句话概述（角色以 appearance 为主，description 仅兜底） */
   description?: string;
-  /** 外貌一句话（发型发色、五官、穿着、标志性特征；性别/年龄/体型走结构化字段不在此重复） */
+  /** 外貌体型一句话（v2 起含体型：发型发色、五官、穿着、标志性特征；性别/年龄段走结构化字段不在此重复） */
   appearance?: string;
-  /** 性格一句话 */
+  /** 性格一句话（v2 起不再生成，仅为旧结果保留；视频创作只关注画面/音色提示词） */
   personality?: string;
   /** 角色画面提示词（生图用） */
   imagePrompt?: string;
