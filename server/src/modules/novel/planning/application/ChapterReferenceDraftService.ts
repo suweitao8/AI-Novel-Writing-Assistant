@@ -62,7 +62,11 @@ export class ChapterReferenceDraftService {
       },
     });
     const segments = generated.output.segments;
-    const draftText = segments.map((segment) => `${segment.speaker}：${segment.text}`).join("\n");
+    // 分镜式初稿：每个单元两行（分镜画面 + 旁白/台词，台词带（神态）），单元之间空行。
+    const draftText = segments.map((segment) => {
+      const mood = segment.kind === "dialogue" && segment.mood ? `（${segment.mood}）` : "";
+      return `分镜：${segment.storyboard}\n${segment.speaker}${mood}：${segment.text}`;
+    }).join("\n\n");
     return { segments, draftText };
   }
 

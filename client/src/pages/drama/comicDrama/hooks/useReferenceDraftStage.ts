@@ -143,9 +143,10 @@ export function useReferenceDraftStage(input: {
     }
   };
 
-  const applyDraft = (draftText: string, lineCount: number) => {
+  const applyDraft = (draftText: string) => {
     workspace.applyExpectationText(draftText);
-    toast.success(`已写入初稿，共 ${lineCount} 行。`);
+    const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ \t]*分镜[：:]/.test(line)).length;
+    toast.success(shotCount > 0 ? `已写入初稿，共 ${shotCount} 个分镜。` : "已写入初稿。");
     input.onApplied();
   };
 
@@ -158,7 +159,6 @@ export function useReferenceDraftStage(input: {
     },
     onSuccess: (response) => {
       const draftText = response.data?.draftText ?? "";
-      const lineCount = response.data?.segments.length ?? draftText.split("\n").length;
       if (!draftText.trim()) {
         toast.error("AI 没有生成初稿，请重试。");
         return;
@@ -167,7 +167,7 @@ export function useReferenceDraftStage(input: {
         setPendingDraft(draftText);
         return;
       }
-      applyDraft(draftText, lineCount);
+      applyDraft(draftText);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请重试。"),
   });
