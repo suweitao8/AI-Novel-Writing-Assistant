@@ -1,17 +1,27 @@
 import { useMemo } from "react";
 import type { StorySettingsWorld } from "@/api/story/storySettings";
 
-// 世界观地图：地点按环形布局，连线表示地点间的通路与关系。
-// 只用语义 token 与 currentColor，自动适配明暗主题。
+// 世界观地图：多数地点有保存坐标（0-100）时按坐标换算到画布，其余（旧数据）回落环形布局；
+// 连线表示地点间的通路与关系。只用语义 token 与 currentColor，自动适配明暗主题。
 export default function SettingsWorldMapView({ map }: { map: StorySettingsWorld["map"] }) {
   const layout = useMemo(() => {
-    const nodes = map.nodes.map((node, index, list) => {
-      const angle = (2 * Math.PI * index) / Math.max(list.length, 1) - Math.PI / 2;
-      return {
-        ...node,
-        x: 160 + 130 * Math.cos(angle),
-        y: 120 + 95 * Math.sin(angle),
-      };
+    const positionedCount = map.nodes.filter((node) => node.x !== null && node.y !== null).length;
+    const useStored = positionedCount >= Math.max(2, Math.ceil(map.nodes.length / 2));
+    const unpositioned = map.nodes.filter((node) => node.x === null || node.y === null);
+    const ringAt = (index: number, total: number) => {
+      const angle = (2 * Math.PI * index) / Math.max(total, 1) - Math.PI / 2;
+      return { x: 160 + 130 * Math.cos(angle), y: 120 + 95 * Math.sin(angle) };
+    };
+    const nodes = map.nodes.map((node) => {
+      if (!useStored) {
+        const fallback = ringAt(map.nodes.indexOf(node), map.nodes.length);
+        return { ...node, x: fallback.x, y: fallback.y };
+      }
+      if (node.x !== null && node.y !== null) {
+        return { ...node, x: node.x * 3.2, y: node.y * 2.4 };
+      }
+      const fallback = ringAt(unpositioned.indexOf(node), unpositioned.length);
+      return { ...node, x: fallback.x, y: fallback.y };
     });
     const nodeById = new Map(nodes.map((node) => [node.id, node]));
     const edges = map.edges
@@ -29,7 +39,7 @@ export default function SettingsWorldMapView({ map }: { map: StorySettingsWorld[
   }, [map]);
 
   if (map.nodes.length === 0) {
-    return <div className="text-sm text-muted-foreground">还没有地图地点，可以点上面的「AI 生成设定」来创建。</div>;
+    return <div className="text-sm text-muted-foreground">还没有地图地点，可以点上面的「AI 生成世界观」来创建。</div>;
   }
 
   return (

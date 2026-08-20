@@ -6,6 +6,7 @@ import {
   storySettingsService,
   type StorySettingsCategory,
 } from "../application/StorySettingsService";
+import { worldMapService } from "../application/WorldMapService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 
 const novelParams = z.object({ id: z.string().trim().min(1) });
@@ -23,6 +24,28 @@ const characterUpdateSchema = z.object({
   background: z.string().trim().max(2000).nullable().optional(),
 });
 
+const worldMapKindSchema = z.enum(["city", "region", "building", "wild", "other"]);
+const worldMapTierSchema = z.enum(["capital", "city", "town", "landmark"]);
+
+// 地图保存载荷：坐标是 0-100 平面百分比；旧地图无坐标节点允许 x/y 为空。
+const worldMapUpdateSchema = z.object({
+  overview: z.string().trim().max(600).optional(),
+  nodes: z.array(z.object({
+    id: z.string().trim().min(1).max(60),
+    name: z.string().trim().min(1).max(40),
+    kind: worldMapKindSchema,
+    summary: z.string().trim().max(200).optional(),
+    x: z.number().min(0).max(100).nullable().optional(),
+    y: z.number().min(0).max(100).nullable().optional(),
+    tier: worldMapTierSchema.nullable().optional(),
+  }).strict()).max(24).optional(),
+  edges: z.array(z.object({
+    fromId: z.string().trim().min(1).max(60),
+    toId: z.string().trim().min(1).max(60),
+    label: z.string().trim().max(40).optional(),
+  }).strict()).max(32).optional(),
+}).strict();
+
 const worldUpdateSchema = z.object({
   premise: z.string().trim().min(1).max(1200).optional(),
   era: z.string().trim().max(200).nullable().optional(),
@@ -31,6 +54,7 @@ const worldUpdateSchema = z.object({
     title: z.string().trim().min(1).max(60),
     content: z.string().trim().min(1).max(1000),
   }).strict()).max(12).optional(),
+  map: worldMapUpdateSchema.optional(),
 });
 
 const characterCreateSchema = z.object({
@@ -224,7 +248,26 @@ export function registerStorySettingsRoutes(router: Router): void {
 
   router.put("/:id/settings/world", validate({ params: novelParams, body: worldUpdateSchema }), async (req, res, next) => {
     try {
-      const data = await storySettingsService.updateWorld(String(req.params.id), req.body);
+      const novelId = String(req.params.id);
+      const { map, ...scalarInput } = req.body;
+      // 地图与文字设定分属两条保存路径：地图有独立的归一与场景挂点清理逻辑。
+      if (map !== undefined) {
+        await worldMapService.applyWorldMap(novelId, map);
+      }
+      if (Object.keys(scalarInput).length > 0) {
+        await storySettingsService.updateWorld(novelId, scalarInput);
+      }
+      const data = await storySettingsService.getWorld(novelId);
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // AI 生成世界地图草稿：纯预览不落库，前端确认后随 PUT /settings/world 保存。
+  router.post("/:id/settings/world/map-preview", validate({ params: novelParams }), async (req, res, next) => {
+    try {
+      const data = await worldMapService.previewWorldMap(String(req.params.id));
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);

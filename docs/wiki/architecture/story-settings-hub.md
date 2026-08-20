@@ -42,7 +42,7 @@
 
 ### 前端
 
-- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`（环形布局 SVG 地图，语义 token）+ `StorySettingsConfirmCard`（确认卡）。
+- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`（SVG 地图：多数节点有保存坐标时按坐标布局，否则环形布局；语义 token）+ `StorySettingsConfirmCard`（确认卡）。
 - 短篇工作室：正文/设定二级页签 + 正文页顶部确认卡；简易书架页：创作/设定二级页签 + 续写前 ensureSettings。
 - 遵循 novel-ui 规范：ui/tabs、Card、AiButton（AI 生成按钮）、toast、语义 token。
 
@@ -84,3 +84,12 @@
 - 桥的落点：`SourceCharacter` 契约（`services/adaptation/contracts/sourceBundle.ts`）扩展 `ageGroup` 与 `facePrompt`；`NovelSourceAdapter` 从 Character 映射这两个字段，并让 `visualHint` 以 facePrompt 打头（对齐旧项目 mydrama 的 face→appearance 拼装顺序——面部一致性优先于整体外貌）。
 - 漫画侧：`ComicProjectService.buildComicVisualAnchor`（已导出供测试）把 facePrompt 写入 `visualSpec.appearance` 的最前段，年龄段以中文标签进入锚点 description；短剧侧经同一 visualHint 自动受益。
 - 改编仍是「一次性快照导入 + sourceCharacterRef 软引用」：导入后漫画角色与小说角色解耦（可拆分保证），小说侧后续修改不会自动同步——这是既有架构决策，如需再同步应走显式的重新导入。
+
+
+## 世界地图工作台（v1.3 追加）
+
+- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 扩展为 `{ overview, nodes:[{id,name,kind,summary,x,y,tier?}], edges:[{fromId,toId,label}] }`，`x/y` 是 0-100 平面百分比坐标。前端 `WorldMapPanel`（漫剧工作室「设定 · 世界地图」页签）用 SVG 程序化渲染——AI 生成的是结构化数据草稿，不是生图；用户拖拽摆位、增删地点与连线后保存。旧格式（bundle 写入的无坐标节点）`x/y` 解析为 null，渲染回落环形布局，**无需迁移**。
+- **node id 稳定是硬契约**：AI 草稿（`novel.world.map@v1`，`worldMap.prompts.ts`）按名称对齐已有节点沿用原 id（`resolveDraftIds`），因为 `NovelScene.mapNodeId` 引用节点 id；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany），不删场景本身。
+- **端点**：`POST /novels/:id/settings/world/map-preview`（纯预览不落库，preview-then-save）+ `PUT /novels/:id/settings/world` 扩展可选 `map` 字段（`worldMapUpdateSchema`）。路径含 `/settings`，简易模式写守卫天然放行，无需加白名单。归一逻辑（坐标夹紧/重复 id/悬空自环重复连线剔除）在 `story-settings/application/WorldMapService.ts` 的 `normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
+- **生成前提**：世界观前提/关键设定/已有地点三者全空时 preview 直接 400（引导先写世界观），不做无米之炊的模型调用。已有地点会作为 `existingLocations` 传入——AI 的任务是保留它们并补全布局，不是推翻重来。
+- **AI 生成世界观（regenerate world）会覆盖地图节点吗**：bundle 资产一次生成含 mapLocations 的完整世界观，regenerate world 类别整体覆盖（既有规则）；地图工作台的人工编辑保存在同一 mapJson，重新生成世界观会覆盖它——排障时先确认用户是否点过「AI 生成世界观」。
