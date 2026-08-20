@@ -258,7 +258,7 @@ export default function SettingsWorldTab({ novelId, onChanged, showMap = true }:
           {showMap ? (
             <Card className="min-w-0">
               <CardHeader>
-                <CardTitle className="text-base">世界地图</CardTitle>
+                <CardTitle className="text-base">地图</CardTitle>
               </CardHeader>
               <CardContent>
                 <SettingsWorldMapView map={world?.map ?? { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} }} />

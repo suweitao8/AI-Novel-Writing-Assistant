@@ -37,7 +37,7 @@ import {
   withMapAtPath,
 } from "./worldMap/mapData";
 
-// 漫剧「设定 · 世界地图」画布工作面：
+// 漫剧「设定 · 地图」画布工作面：
 // 地形（平地/山/水）是程序化定义的多边形，城市摆在画布上、连线算距离——全程不经过 AI 生图。
 // 层级导航：世界级大地图 → 点城市的「内部地图」进入该城的城内图（childMaps 按节点 id 挂接）。
 // AI 只负责起草地点名单（novel.world.map@v1），应用时保留人工画的地形与内部地图。
@@ -120,11 +120,11 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
       if (result.data) {
         applyMap(result.data.map);
       }
-      toast.success("世界地图已保存。");
+      toast.success("地图已保存。");
       await invalidate();
     },
     onError: (error: Error) => {
-      toast.error("世界地图保存失败。", { description: error.message });
+      toast.error("地图保存失败。", { description: error.message });
     },
   });
 
@@ -324,14 +324,14 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
   };
 
   if (worldQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">正在加载世界地图...</p>;
+    return <p className="text-sm text-muted-foreground">正在加载地图...</p>;
   }
 
   const drawing = mode.kind === "terrain";
 
   return (
     <div className="space-y-4">
-      {/* 面包屑：世界地图 › 城市内部 */}
+      {/* 面包屑：地图 › 城市内部 */}
       <div className="flex flex-wrap items-center gap-1 text-sm">
         <button
           type="button"
@@ -341,7 +341,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
           )}
           onClick={() => setActivePath([])}
         >
-          世界地图
+          地图
         </button>
         {breadcrumb.map((label, index) => (
           <span key={`${activePath[index]}-${index}`} className="flex items-center gap-1">

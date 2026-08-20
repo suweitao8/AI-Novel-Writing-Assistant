@@ -124,7 +124,7 @@ export default function MapCanvas(props: MapCanvasProps) {
       )}
       style={{ touchAction: "none" }}
       role="img"
-      aria-label="世界地图画布"
+      aria-label="地图画布"
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
       onPointerLeave={endDrag}

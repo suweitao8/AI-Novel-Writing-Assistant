@@ -294,7 +294,7 @@ export default function WorldOverviewTab(props: WorldOverviewTabProps) {
             <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <WorldAssetPreviewBlock
                 icon={MapPinned}
-                title="世界地图"
+                title="地图"
                 description="承载区域、地点连通、故事发生地和冲突热度。"
                 status={(structure?.locations.length ?? 0) > 0 ? "可整理" : "待补地点"}
               />
