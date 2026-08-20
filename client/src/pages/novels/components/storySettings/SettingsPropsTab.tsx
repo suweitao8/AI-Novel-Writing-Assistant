@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Package, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Package, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
   createStorySettingsProp,
   deleteStorySettingsProp,
   generateStoryEntityDraft,
   getStorySettingsProps,
-  regenerateStorySettings,
   updateStorySettingsProp,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
@@ -34,12 +33,21 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
   const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
 
   const propsQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsProps(novelId),
     queryFn: () => getStorySettingsProps(novelId),
   });
   const props = propsQuery.data?.data ?? [];
+  const normalized = appliedKeyword.trim().toLowerCase();
+  const filteredProps = normalized
+    ? props.filter((prop) =>
+        [prop.name, prop.visualPrompt, prop.description]
+          .filter((text): text is string => Boolean(text))
+          .some((text) => text.toLowerCase().includes(normalized)))
+    : props;
 
   const invalidate = async () => {
     await Promise.all([
@@ -84,17 +92,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     },
     onError: (error) => {
       toast.error("道具删除失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
-
-  const regenerateMutation = useMutation({
-    mutationFn: () => regenerateStorySettings(novelId, "props"),
-    onSuccess: async () => {
-      toast.success("道具已重新生成。");
-      await invalidate();
-    },
-    onError: (error) => {
-      toast.error("道具生成失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -145,37 +142,43 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          剧情里反复出现的关键物品；画面提示词用于生成道具图。
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            添加道具
-          </Button>
-          <AiButton
-            variant="outline"
-            size="sm"
-            onClick={() => regenerateMutation.mutate()}
-            disabled={regenerateMutation.isPending}
-          >
-            {regenerateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {regenerateMutation.isPending ? "生成中..." : "AI 生成道具"}
-          </AiButton>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          添加道具
+        </Button>
+        <Input
+          value={keyword}
+          aria-label="搜索道具"
+          placeholder="搜索名称或说明"
+          maxLength={40}
+          className="h-8 min-w-0 max-w-xs flex-1"
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              setAppliedKeyword(keyword);
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0"
+          aria-label="搜索"
+          onClick={() => setAppliedKeyword(keyword)}
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+        </Button>
       </div>
       {propsQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">正在加载道具...</div>
-      ) : props.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            还没有关键道具。点「AI 生成道具」让 AI 根据剧情需要设计，或手动添加。
-          </CardContent>
-        </Card>
+      ) : filteredProps.length === 0 ? (
+        <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {props.map((prop) => (
+          {filteredProps.map((prop) => (
             <Card key={prop.id} className="min-w-0">
               <CardContent className="space-y-2 py-4">
                 <div className="flex items-start justify-between gap-2">

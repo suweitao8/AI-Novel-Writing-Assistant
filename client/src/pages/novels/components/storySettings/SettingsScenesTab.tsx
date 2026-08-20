@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MapPin, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsScene } from "@/api/story/storySettings";
 import {
   createStorySettingsScene,
   deleteStorySettingsScene,
   generateStoryEntityDraft,
   getStorySettingsScenes,
-  regenerateStorySettings,
   updateStorySettingsScene,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
@@ -42,12 +41,21 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
   const [form, setForm] = useState<SceneFormState>(EMPTY_SCENE_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
 
   const scenesQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsScenes(novelId),
     queryFn: () => getStorySettingsScenes(novelId),
   });
   const scenes = scenesQuery.data?.data ?? [];
+  const normalized = appliedKeyword.trim().toLowerCase();
+  const filteredScenes = normalized
+    ? scenes.filter((scene) =>
+        [scene.name, scene.summary, scene.environmentPrompt, scene.significance]
+          .filter((text): text is string => Boolean(text))
+          .some((text) => text.toLowerCase().includes(normalized)))
+    : scenes;
 
   const invalidate = async () => {
     await Promise.all([
@@ -93,17 +101,6 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     },
     onError: (error) => {
       toast.error("场景删除失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
-
-  const regenerateMutation = useMutation({
-    mutationFn: () => regenerateStorySettings(novelId, "scenes"),
-    onSuccess: async () => {
-      toast.success("场景已重新生成。");
-      await invalidate();
-    },
-    onError: (error) => {
-      toast.error("场景生成失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -158,37 +155,43 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          故事发生的地方。正文会优先发生在这些场景里，并带上这里写的氛围。
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={openCreate}>
-            <Plus className="h-4 w-4" />
-            添加场景
-          </Button>
-          <AiButton
-            variant="outline"
-            size="sm"
-            onClick={() => regenerateMutation.mutate()}
-            disabled={regenerateMutation.isPending}
-          >
-            {regenerateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {regenerateMutation.isPending ? "生成中..." : "AI 生成场景"}
-          </AiButton>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          添加场景
+        </Button>
+        <Input
+          value={keyword}
+          aria-label="搜索场景"
+          placeholder="搜索名称或说明"
+          maxLength={40}
+          className="h-8 min-w-0 max-w-xs flex-1"
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              setAppliedKeyword(keyword);
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0"
+          aria-label="搜索"
+          onClick={() => setAppliedKeyword(keyword)}
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+        </Button>
       </div>
       {scenesQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">正在加载场景...</div>
-      ) : scenes.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            还没有场景。点「AI 生成场景」让 AI 根据故事需要创建地点，或手动添加。
-          </CardContent>
-        </Card>
+      ) : filteredScenes.length === 0 ? (
+        <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {scenes.map((scene) => (
+          {filteredScenes.map((scene) => (
             <Card key={scene.id} className="min-w-0">
               <CardContent className="space-y-2 py-4">
                 <div className="flex items-start justify-between gap-2">
