@@ -40,6 +40,12 @@ interface OutlineSettingsAsideProps {
   characters: StorySettingsCharacter[];
   scenes: StorySettingsScene[];
   props: StorySettingsProp[];
+  /** 脚本的使用情况：只显示用到的资产（按首次出现排序）+ 未生成名字的警告卡 */
+  usage: {
+    usedOrderKeys: string[];
+    usedKeys: Set<string>;
+    missing: Array<{ type: "character" | "scene"; name: string }>;
+  };
 }
 
 const TYPE_LABELS: Record<AssetType, string> = {
@@ -247,13 +253,25 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   }, [props.characters, props.scenes, props.props]);
 
   const normalized = appliedKeyword.trim().toLowerCase();
+  // 有搜索词时检索全库（找旧资产的入口）；没有时只显示本章脚本用到的资产——
+  // 用到的排上面（按脚本里首次出现的顺序），没用到的不显示；脚本里用到了但
+  // 还没有对应资产的（场景/角色按名字精确对应）在下方以橙红警告卡提示创建。
   const filtered = normalized
     ? assets.filter(
       (asset) =>
         asset.name.toLowerCase().includes(normalized)
         || asset.note.toLowerCase().includes(normalized),
     )
-    : assets;
+    : (() => {
+        const usageKey = (asset: AssetCard) => `${asset.type}:${asset.name.trim()}`;
+        const order = new Map(props.usage.usedOrderKeys.map((key, index) => [key, index]));
+        const tail = props.usage.usedOrderKeys.length;
+        return assets
+          .filter((asset) => props.usage.usedKeys.has(usageKey(asset)))
+          .sort((left, right) =>
+            (order.get(usageKey(left)) ?? tail) - (order.get(usageKey(right)) ?? tail)
+            || (left.updatedAt < right.updatedAt ? 1 : -1));
+      })();
   const detailAsset = detailId ? assets.find((asset) => asset.id === detailId) ?? null : null;
 
   const invalidate = async () => {
@@ -341,10 +359,41 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        {filtered.length === 0 ? (
+        {filtered.length === 0 && (!normalized || props.usage.missing.length === 0) ? (
           <div className="flex h-full min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
         ) : (
           <ul className="space-y-2">
+            {!normalized ? props.usage.missing.map((missing) => (
+              <li key={`missing-${missing.type}-${missing.name}`}>
+                <div className="w-full rounded-2xl border border-orange-500/50 bg-orange-500/10 p-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex h-5 shrink-0 items-center rounded border px-1.5 text-[10px] font-medium leading-none",
+                        "border-orange-500/40 bg-orange-500/15 text-orange-600 dark:text-orange-400",
+                      )}
+                    >
+                      {TYPE_LABELS[missing.type]}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground" title="脚本里用到了，但设定里还没有这个名字">{missing.name}</span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 shrink-0 border-orange-500/40 px-2 text-xs text-orange-700 dark:text-orange-400"
+                      onClick={() => {
+                        setCreateType(missing.type);
+                        setCreateName(missing.name);
+                        setCreateOpen(true);
+                      }}
+                    >
+                      创建
+                    </Button>
+                  </div>
+                  <p className="mt-1 text-xs leading-4 text-orange-600 dark:text-orange-400">脚本里用到了，但还没有生成设定</p>
+                </div>
+              </li>
+            )) : null}
             {filtered.map((asset) => (
               <li key={`${asset.type}-${asset.id}`}>
                 <button
