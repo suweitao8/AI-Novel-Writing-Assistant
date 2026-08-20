@@ -65,7 +65,7 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   extract: "提取",
   draft: "初稿",
   text: "正文",
-  storyboard: "分镜配音",
+  storyboard: "分镜",
   video: "视频",
 };
 
