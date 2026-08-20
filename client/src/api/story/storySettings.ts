@@ -55,15 +55,34 @@ export interface StorySettingsCharacter {
   updatedAt: string;
 }
 
+export interface WorldMapNode {
+  id: string;
+  name: string;
+  kind: string;
+  summary: string;
+  x: number | null;
+  y: number | null;
+  tier: string | null;
+}
+
+export interface WorldMapEdge {
+  fromId: string;
+  toId: string;
+  label: string;
+}
+
+export interface WorldMapData {
+  overview: string;
+  nodes: WorldMapNode[];
+  edges: WorldMapEdge[];
+}
+
 export interface StorySettingsWorld {
   premise: string;
   era: string | null;
   toneRules: string[];
   keySettings: Array<{ title: string; content: string }>;
-  map: {
-    nodes: Array<{ id: string; name: string; kind: string; summary: string }>;
-    edges: Array<{ fromId: string; toId: string; label: string }>;
-  };
+  map: WorldMapData;
   source: string;
   updatedAt: string;
 }
@@ -220,11 +239,20 @@ export async function updateStorySettingsWorld(
     era?: string | null;
     toneRules?: string[];
     keySettings?: Array<{ title: string; content: string }>;
+    map?: WorldMapData;
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsWorld>>(
     `/novels/${encodeURIComponent(novelId)}/settings/world`,
     payload,
+  );
+  return data;
+}
+
+// AI 生成世界地图草稿：纯预览，不落库；确认后随 updateStorySettingsWorld 的 map 字段保存。
+export async function previewWorldMap(novelId: string) {
+  const { data } = await apiClient.post<ApiResponse<WorldMapData>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/world/map-preview`,
   );
   return data;
 }

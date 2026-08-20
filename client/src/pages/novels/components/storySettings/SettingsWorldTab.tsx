@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Trash2 } from "lucide-react";
 import { getStorySettingsWorld, regenerateStorySettings, updateStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
@@ -13,6 +13,8 @@ import SettingsWorldMapView from "./SettingsWorldMapView";
 interface SettingsWorldTabProps {
   novelId: string;
   onChanged?: () => void | Promise<void>;
+  // 漫剧工作室里地图有独立页签（WorldMapPanel），这里不再内嵌只读小地图。
+  showMap?: boolean;
 }
 
 interface WorldFormState {
@@ -22,7 +24,9 @@ interface WorldFormState {
   keySettings: Array<{ title: string; content: string }>;
 }
 
-export default function SettingsWorldTab({ novelId, onChanged }: SettingsWorldTabProps) {
+// 世界观工作面：关键设定条目优先——一个条目讲清一个概念（丧尸是什么、异能怎么运作），
+// 基本图景（前提/时代/基调）收在下方；可编辑地图由独立的世界地图工作面负责。
+export default function SettingsWorldTab({ novelId, onChanged, showMap = true }: SettingsWorldTabProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<WorldFormState>({
     premise: "",
@@ -96,11 +100,18 @@ export default function SettingsWorldTab({ novelId, onChanged }: SettingsWorldTa
     }));
   };
 
+  const removeKeySetting = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      keySettings: prev.keySettings.filter((_, i) => i !== index),
+    }));
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          这个世界的基本图景、关键规则和地图。正文里的力量体系、禁忌和地名都以这里为准。
+          这个世界的关键概念一条一条写清楚（例如：丧尸是什么、异能怎么运作），后续写作都以此为准。
         </p>
         <div className="flex items-center gap-2">
           <Button
@@ -127,6 +138,55 @@ export default function SettingsWorldTab({ novelId, onChanged }: SettingsWorldTa
         <div className="text-sm text-muted-foreground">正在加载世界观...</div>
       ) : (
         <>
+          <Card className="min-w-0">
+            <CardHeader className="flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">关键设定</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setForm((prev) => ({ ...prev, keySettings: [...prev.keySettings, { title: "", content: "" }] }))}
+              >
+                添加条目
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {form.keySettings.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  还没有关键设定条目。把这个世界特有的概念一条条加进来，或点「AI 生成世界观」让 AI 起草。
+                </p>
+              ) : (
+                form.keySettings.map((setting, index) => (
+                  <div key={index} className="space-y-1.5 rounded-xl border border-border bg-muted/20 p-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={setting.title}
+                        placeholder="概念名，例如：丧尸"
+                        className="h-8 max-w-[240px]"
+                        onChange={(event) => updateKeySetting(index, { title: event.target.value })}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        aria-label="删除条目"
+                        onClick={() => removeKeySetting(index)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                    <textarea
+                      rows={2}
+                      className="min-h-[56px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      placeholder="具体解释这个概念：它是什么、规则是什么、有什么限制。"
+                      value={setting.content}
+                      onChange={(event) => updateKeySetting(index, { content: event.target.value })}
+                    />
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
           <Card className="min-w-0">
             <CardHeader>
               <CardTitle className="text-base">基本设定</CardTitle>
@@ -161,49 +221,16 @@ export default function SettingsWorldTab({ novelId, onChanged }: SettingsWorldTa
             </CardContent>
           </Card>
 
-          <Card className="min-w-0">
-            <CardHeader className="flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">关键设定</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setForm((prev) => ({ ...prev, keySettings: [...prev.keySettings, { title: "", content: "" }] }))}
-              >
-                添加设定
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {form.keySettings.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  还没有关键设定条目。点「AI 生成世界观」让 AI 补齐力量体系、社会规则等设定。
-                </p>
-              ) : (
-                form.keySettings.map((setting, index) => (
-                  <div key={index} className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,160px)_1fr]">
-                    <Input
-                      value={setting.title}
-                      placeholder="设定名"
-                      onChange={(event) => updateKeySetting(index, { title: event.target.value })}
-                    />
-                    <Input
-                      value={setting.content}
-                      placeholder="设定内容"
-                      onChange={(event) => updateKeySetting(index, { content: event.target.value })}
-                    />
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="min-w-0">
-            <CardHeader>
-              <CardTitle className="text-base">世界地图</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <SettingsWorldMapView map={world?.map ?? { nodes: [], edges: [] }} />
-            </CardContent>
-          </Card>
+          {showMap ? (
+            <Card className="min-w-0">
+              <CardHeader>
+                <CardTitle className="text-base">世界地图</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SettingsWorldMapView map={world?.map ?? { overview: "", nodes: [], edges: [] }} />
+              </CardContent>
+            </Card>
+          ) : null}
         </>
       )}
     </div>

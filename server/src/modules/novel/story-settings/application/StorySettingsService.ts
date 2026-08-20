@@ -82,7 +82,16 @@ export interface StorySettingsWorldMapView {
   toneRules: string[];
   keySettings: Array<{ title: string; content: string }>;
   map: {
-    nodes: Array<{ id: string; name: string; kind: string; summary: string }>;
+    overview: string;
+    nodes: Array<{
+      id: string;
+      name: string;
+      kind: string;
+      summary: string;
+      x: number | null;
+      y: number | null;
+      tier: string | null;
+    }>;
     edges: Array<{ fromId: string; toId: string; label: string }>;
   };
   source: string;
@@ -119,10 +128,14 @@ function parseKeySettings(value: string | null | undefined): Array<{ title: stri
   }
 }
 
+// 地图解析：overview + 节点坐标（x/y 0-100，旧数据无坐标为 null）+ 连线。
+// 旧 mapJson（bundle 写入的 {nodes, edges}）天然兼容：overview 缺省空串、坐标缺省 null。
 function parseMap(value: string | null | undefined): StorySettingsWorldMapView["map"] {
-  if (!value) return { nodes: [], edges: [] };
+  const empty: StorySettingsWorldMapView["map"] = { overview: "", nodes: [], edges: [] };
+  if (!value) return empty;
   try {
     const parsed = JSON.parse(value) as {
+      overview?: unknown;
       nodes?: unknown;
       edges?: unknown;
     };
@@ -130,12 +143,23 @@ function parseMap(value: string | null | undefined): StorySettingsWorldMapView["
       ? parsed.nodes
         .filter((node) => node && typeof node === "object" && typeof (node as { id?: unknown }).id === "string")
         .map((node) => {
-          const record = node as { id: string; name?: unknown; kind?: unknown; summary?: unknown };
+          const record = node as {
+            id: string;
+            name?: unknown;
+            kind?: unknown;
+            summary?: unknown;
+            x?: unknown;
+            y?: unknown;
+            tier?: unknown;
+          };
           return {
             id: record.id,
             name: typeof record.name === "string" ? record.name : record.id,
             kind: typeof record.kind === "string" ? record.kind : "other",
             summary: typeof record.summary === "string" ? record.summary : "",
+            x: typeof record.x === "number" && Number.isFinite(record.x) ? Math.min(100, Math.max(0, record.x)) : null,
+            y: typeof record.y === "number" && Number.isFinite(record.y) ? Math.min(100, Math.max(0, record.y)) : null,
+            tier: typeof record.tier === "string" ? record.tier : null,
           };
         })
       : [];
@@ -156,9 +180,13 @@ function parseMap(value: string | null | undefined): StorySettingsWorldMapView["
           };
         })
       : [];
-    return { nodes, edges };
+    return {
+      overview: typeof parsed.overview === "string" ? parsed.overview : "",
+      nodes,
+      edges,
+    };
   } catch {
-    return { nodes: [], edges: [] };
+    return empty;
   }
 }
 
@@ -678,7 +706,7 @@ export class StorySettingsService {
         era: null,
         toneRules: [],
         keySettings: [],
-        map: { nodes: [], edges: [] },
+        map: { overview: "", nodes: [], edges: [] },
         source: "ai",
         updatedAt: new Date().toISOString(),
       };

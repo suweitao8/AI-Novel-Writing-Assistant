@@ -34,6 +34,7 @@ import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPr
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
+import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
@@ -45,14 +46,14 @@ import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/dram
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
+// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·世界地图·通用）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
 type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
-// 「设定」的子页签：世界观 / 项目（画面风格与分镜项目状态）。
-type SettingsTab = "world" | "project";
+// 「设定」的子页签：世界观（条目式关键设定）/ 世界地图 / 通用（参考小说与项目配置）。
+type SettingsTab = "world" | "map" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
   current: "当前",
@@ -77,7 +78,8 @@ const ASSET_TAB_LABELS: Record<AssetTab, string> = {
 
 const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   world: "世界观",
-  project: "项目",
+  map: "世界地图",
+  general: "通用",
 };
 
 // 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
@@ -332,7 +334,8 @@ export default function ComicDramaStudioPage() {
               >
                 <TabsList>
                   <TabsTrigger value="world">{SETTINGS_TAB_LABELS.world}</TabsTrigger>
-                  <TabsTrigger value="project">{SETTINGS_TAB_LABELS.project}</TabsTrigger>
+                  <TabsTrigger value="map">{SETTINGS_TAB_LABELS.map}</TabsTrigger>
+                  <TabsTrigger value="general">{SETTINGS_TAB_LABELS.general}</TabsTrigger>
                 </TabsList>
               </Tabs>
               <span className="hidden sm:block" aria-hidden="true" />
@@ -384,13 +387,19 @@ export default function ComicDramaStudioPage() {
         </TabsContent>
 
         <TabsContent value="settings" className="space-y-4">
-          <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
           {settingsTab === "world" ? (
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-              <SettingsWorldTab novelId={novelId} onChanged={invalidateStorySettings} />
+              <SettingsWorldTab novelId={novelId} onChanged={invalidateStorySettings} showMap={false} />
+            </section>
+          ) : settingsTab === "map" ? (
+            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+              <WorldMapPanel novelId={novelId} onChanged={invalidateStorySettings} />
             </section>
           ) : (
-            <ProjectSettingsSection drama={overview.drama} storyboard={storyboard} />
+            <>
+              <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
+              <ProjectSettingsSection drama={overview.drama} storyboard={storyboard} />
+            </>
           )}
         </TabsContent>
       </Tabs>
@@ -537,7 +546,7 @@ function useStoryboardStage(input: {
 
 type StoryboardStage = ReturnType<typeof useStoryboardStage>;
 
-// 「设定」页签：项目级配置。画面风格影响首帧图与角色形象的整体渲染，
+// 「设定 · 通用」页签：项目级配置。画面风格影响首帧图与角色形象的整体渲染，
 // 在创建分镜项目前选择会被记住并在创建时生效。
 function ProjectSettingsSection(props: {
   drama: ComicDramaLinkStats | null;

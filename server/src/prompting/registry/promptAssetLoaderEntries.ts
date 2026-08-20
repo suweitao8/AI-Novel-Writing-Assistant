@@ -46,6 +46,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterReferenceExtract.prompts").chapterReferenceExtractPrompt as UnknownPromptAsset,
   },
   {
+    key: "novel.world.map@v1",
+    load: () => require("../prompts/novel/worldMap.prompts").worldMapPrompt as UnknownPromptAsset,
+  },
+  {
     key: "creation.intent.interpret@v2",
     load: () => require("../prompts/creation/creationIntent.prompts").creationIntentInterpretPrompt as UnknownPromptAsset,
   },
