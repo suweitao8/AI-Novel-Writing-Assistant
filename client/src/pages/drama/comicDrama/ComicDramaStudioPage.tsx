@@ -277,6 +277,16 @@ export default function ComicDramaStudioPage() {
                     ) : chapterWorkspace.referenceDirty ? (
                       <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
                     ) : null}
+                    {referenceStage.hasReferenceDoc ? (
+                      <Button
+                        size="sm"
+                        onClick={referenceStage.injectReferenceSource}
+                        disabled={referenceStage.injectDisabled}
+                        title={referenceStage.injectTitle}
+                      >
+                        引用
+                      </Button>
+                    ) : null}
                     {referenceStage.parseDisabledReason ? (
                       <span className="text-xs text-muted-foreground">{referenceStage.parseDisabledReason}</span>
                     ) : null}
@@ -364,21 +374,12 @@ export default function ComicDramaStudioPage() {
 
         <TabsContent value="current" className="space-y-4">
           {currentTab === "extract" ? (
-            <ReferenceExtractTab stage={extractStage} sourceHint={referenceStage.referenceSourceHint} />
+            <ReferenceExtractTab stage={extractStage} />
           ) : currentTab === "reference" ? (
             <ReferenceTab
-              editorValue={referenceStage.referenceEditorValue}
+              value={referenceStage.referenceText}
               onChange={referenceStage.setReferenceText}
-              docTitle={referenceStage.sourceDocTitle}
-              docCharCount={referenceStage.sourceCharCount}
-              previewText={referenceStage.sourcePreviewText}
-              docLoading={referenceStage.sourceDocLoading}
-              chapterTotal={referenceStage.sourceChapterTotal}
-              chapterMatched={referenceStage.sourceChapterMatched}
-              chapterNumber={referenceStage.sourceChapterNumber}
-              chapterTitle={referenceStage.sourceChapterTitle}
-              onCopyDocToChapter={referenceStage.copySourceToChapter}
-              onBeginEdit={referenceStage.beginReferenceEdit}
+              placeholder={referenceStage.hasReferenceDoc ? "点「引用」带入参考小说对应章节，或直接粘贴参考文本" : "粘贴参考文本"}
             />
           ) : currentTab === "draft" ? (
             <NovelOutlineTab

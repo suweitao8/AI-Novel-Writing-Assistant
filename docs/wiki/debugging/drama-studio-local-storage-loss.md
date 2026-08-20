@@ -32,15 +32,16 @@
 
 服务端持久化上线后，用户反馈「参考文本自己复制了 3 份、提取点不动」。排查结论：数据库与知识库都是单份（无重复保存请求），重复只出现在浏览器显示层——当时「参考」页签在章节没有参考文本时把**整本参考小说回落直接当可编辑文本**展示，用户往这个看起来是空输入框（实际已含整本）的编辑器里粘贴同一本小说，内容叠加成多份；「提取没反应」则是禁用原因只放在按钮 `title` 悬浮提示里，内嵌浏览器看不见。
 
-修复与规则：
+修复与规则（当日经两次迭代收敛到最终形态）：
 
-- 「参考」页签拆成预览/编辑两态：无本章参考文本时只读展示整本（解析/提取直接可用），一键「复制为本章参考」或「粘贴新文本」才进入编辑态——从结构上消灭「在整本上再粘一份」的路径（见 comic-drama-workflow.md「参考」子页签）。
+- 「参考」页签 = 编辑器 + 行右侧「引用」按钮：参考小说按章节切分后，「引用」把第 N 章替换式写入本章参考文本；**编辑器内容即解析/提取的全部输入，没有任何隐藏回落**——既消灭「在回落内容上再粘一份」的重复路径，也保证第 1 章不会把参考小说第 2 章的剧情带进初稿/提取（见 comic-drama-workflow.md「参考」子页签）。
+- UI 不加大段解释性文案：用户明确反馈提示文本浪费空间（需求是用户提的，做错会被要求改，不需要界面预防性解释）；规则已写入 AGENTS.md UI Copy Rules。
 - 操作按钮的禁用原因必须内联可见（灰字），不允许只放 title 悬浮提示。
 - 诊断此类「文本重复」问题的关键第一步：先查服务端保存请求（`PUT /chapters/:id` 的 body 大小）与 DB 字段长度——若服务端始终单份，重复必然在显示/输入层，与持久化无关。
 
 ## 相关模块
 
-- `client/src/pages/drama/comicDrama/hooks/useReferenceDraftStage.ts`（服务端持久化 + 知识库回退）
+- `client/src/pages/drama/comicDrama/hooks/useReferenceDraftStage.ts`（服务端持久化 + 「引用」参考小说对应章节）
 - `client/src/pages/drama/comicDrama/hooks/useNovelChapterWorkspace.ts`（referenceText 状态与防抖保存）
 - `server/src/services/novel/novelCore/novelCoreCrudService.ts`（Chapter.referenceText 读写）
 - 迁移 `20260819230000_add_chapter_reference_text`

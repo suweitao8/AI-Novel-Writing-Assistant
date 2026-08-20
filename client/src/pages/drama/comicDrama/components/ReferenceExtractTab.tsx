@@ -8,8 +8,6 @@ import type { ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useRe
 
 interface ReferenceExtractTabProps {
   stage: ReferenceExtractStage;
-  /** 提取将使用的参考文本来源说明（本章参考文本或整本参考小说） */
-  sourceHint: string;
 }
 
 // 漫剧工作室「当前 · 提取」页签：展示从参考小说提取的角色 / 场景 / 世界观建议，
@@ -23,14 +21,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return (
       <Card className="rounded-3xl">
         <CardContent className="space-y-2 p-6 text-sm leading-6 text-muted-foreground">
-          <p>点右上角「提取」，AI 会从参考文本里找出角色、场景与世界观，勾选后创建进设定中心。</p>
-          <p className="text-xs">{props.sourceHint}。</p>
-          {stage.extractMutation.isPending ? (
-            <p className="flex items-center gap-1.5 text-xs text-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-              正在提取，通常需要十几秒，请稍候…
-            </p>
-          ) : null}
+          <p>{stage.extractMutation.isPending ? "正在提取，请稍候…" : "还没有提取结果。"}</p>
         </CardContent>
       </Card>
     );

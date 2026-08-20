@@ -54,6 +54,9 @@
   - current selection or current result.
 - If a workflow belongs in another module, explain the correct user entry point directly, for example "从小说基础信息设置书级默认写法", rather than "书级默认写法已经迁回小说页".
 - Before finishing UI work, review newly added copy and rewrite any sentence that sounds like it is talking to the developer or describing the modification process.
+- Do not add explanatory hint text by default: no long description paragraphs, empty-state tutorials, source/rationale explanations, or preventive "how this works" copy unless the user explicitly asks for it. UI copy is limited to control labels, short placeholders, state feedback (saving/loading/pending), and error messages.
+- The user defines the requirements and knows what they asked for; if an implementation misses the intent, the user will request a fix. Do not use hint text to pre-explain or defend a requirement in the UI.
+- When a feature needs auxiliary actions, prefer a direct control (a button such as `引用`) over explanatory text describing what the system will do.
 
 ## Architecture Rules
 
