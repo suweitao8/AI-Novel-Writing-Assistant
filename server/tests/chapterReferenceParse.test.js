@@ -53,11 +53,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v6 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v6");
+test("prompt 资产为 reference_parse@v7 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v7");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v6",
+    "novel.chapter.reference_parse@v7",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
