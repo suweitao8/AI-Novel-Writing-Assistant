@@ -61,6 +61,7 @@ export class DramaStoryboardService {
           action: shot.action,
           dialogue: shot.dialogue ?? null,
           characterRefs: shot.characterRefs?.length ? JSON.stringify(shot.characterRefs) : null,
+          characterStates: shot.characterStates?.length ? JSON.stringify(shot.characterStates) : null,
           visualPrompt: shot.visualPrompt ?? null,
         })),
       });

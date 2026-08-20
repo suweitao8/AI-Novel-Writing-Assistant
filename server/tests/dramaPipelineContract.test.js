@@ -343,6 +343,7 @@ function installPipelineStubs() {
                 action: "林澈被保安拦住，周围员工围观。",
                 dialogue: "林澈：让董事长下来。",
                 characterRefs: ["林澈"],
+                characterStates: [{ name: "林澈", state: "重伤" }],
                 visualPrompt: "黑色西装青年在现代公司大厅被拦住。",
               }],
             },

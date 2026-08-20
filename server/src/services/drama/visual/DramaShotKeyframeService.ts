@@ -2,6 +2,7 @@ import { getImageModelProvider } from "../../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
@@ -9,6 +10,7 @@ import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { filterImageGenerationReferences, parseImageStateSummary, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
 import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
+import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import {
   buildKeyframeStylePromptLines,
   combineStyleAvoidInstructions,
@@ -54,6 +56,8 @@ interface ShotKeyframeSource {
   action: string;
   dialogue?: string | null;
   characterRefs?: string | null;
+  /** 分镜 LLM 标注的每镜角色状态 JSON（[{name,state}]，drama.storyboard@v4 起） */
+  characterStates?: string | null;
   visualPrompt?: string | null;
   storyboard: {
     project: {
@@ -201,6 +205,40 @@ function selectReferencedCharacters(shot: ShotKeyframeSource): CharacterLite[] {
   });
 }
 
+/** 解析分镜 LLM 标注的每镜角色状态（[{name,state}] JSON）→ 角色名 → 状态名。 */
+function parseShotCharacterStates(raw: string | null | undefined): Map<string, string> {
+  const parsed = safeJsonParse<Array<{ name?: unknown; state?: unknown }>>(raw, []);
+  const map = new Map<string, string>();
+  if (!Array.isArray(parsed)) {
+    return map;
+  }
+  for (const entry of parsed) {
+    if (typeof entry?.name === "string" && typeof entry?.state === "string" && entry.state.trim()) {
+      map.set(entry.name.trim(), entry.state.trim());
+    }
+  }
+  return map;
+}
+
+/**
+ * 镜头状态标注 × 设定中心状态名单 → 该镜各角色的生效状态对象。
+ * 状态名按 label 精确匹配；匹配不到（名单删过/名字不一致）就当没有状态，
+ * 生图回落到角色默认形象——不静默改用别的状态。
+ */
+function resolveActiveStatesByName(
+  shot: ShotKeyframeSource,
+  novelStatesByName: Map<string, StoryAssetState[]>,
+): Map<string, StoryAssetState> {
+  const active = new Map<string, StoryAssetState>();
+  for (const [name, label] of parseShotCharacterStates(shot.characterStates)) {
+    const matched = novelStatesByName.get(name)?.find((state) => state.label.trim() === label);
+    if (matched) {
+      active.set(name, matched);
+    }
+  }
+  return active;
+}
+
 function resolveCharacterRefImageUrl(character: CharacterLite): string | null {
   if (!character.portraitData) return null;
   try {
@@ -211,12 +249,15 @@ function resolveCharacterRefImageUrl(character: CharacterLite): string | null {
   }
 }
 
-function buildCharacterPromptLine(character: CharacterLite): string {
+function buildCharacterPromptLine(character: CharacterLite, activeState?: StoryAssetState): string {
   return [
     character.name,
     character.archetype ? `定位：${character.archetype}` : "",
     character.persona ? `性格：${character.persona}` : "",
     extractVisualDesc(character.visualAnchor) ? `外貌：${extractVisualDesc(character.visualAnchor)}` : "",
+    activeState
+      ? `状态：${activeState.label}（${activeState.imagePrompt?.trim() || activeState.description?.trim() || ""}）`
+      : "",
   ].filter(Boolean).join("；");
 }
 
@@ -308,8 +349,10 @@ function buildShotKeyframePrompt(
   shot: ShotKeyframeSource,
   styleLines: string[],
   settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] },
+  activeStatesByName: Map<string, StoryAssetState>,
 ): string {
-  const characters = selectReferencedCharacters(shot).map(buildCharacterPromptLine);
+  const characters = selectReferencedCharacters(shot).map((character) =>
+    buildCharacterPromptLine(character, activeStatesByName.get(character.name.trim())));
   const lines = [
     ...styleLines,
     "图生视频的决定性单帧首图",
@@ -352,10 +395,16 @@ export class DramaShotKeyframeService {
       sourceRef: shot.storyboard.project.sourceRef,
     });
     const settings = await resolveNovelSettingSources(shot.storyboard.project);
+    const novelStatesByName = shot.storyboard.project.source === "novel_import" && shot.storyboard.project.sourceRef?.trim()
+      ? await loadNovelCharacterStatesByName(shot.storyboard.project.sourceRef.trim())
+      : new Map<string, StoryAssetState[]>();
+    // 该镜各角色的生效状态（分镜 LLM 标注 × 设定中心状态名单）
+    const activeStatesByName = resolveActiveStatesByName(shot, novelStatesByName);
     const prompt = buildShotKeyframePrompt(
       shot,
       buildKeyframeStylePromptLines(styleContext.universal, styleContext.specific),
       settings,
+      activeStatesByName,
     );
     const negativePrompt = [
       "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
@@ -366,6 +415,21 @@ export class DramaShotKeyframeService {
     if (useCharacterRefImages) {
       const referencedChars = selectReferencedCharacters(shot);
       for (const char of referencedChars) {
+        // 角色在这一镜处于登记过的状态且状态图已生成：用状态图当参考图
+        // （比设计稿更贴合当前外观）；否则回落角色设计稿
+        const activeState = activeStatesByName.get(char.name.trim());
+        const stateImageUrl = activeState?.image?.status === "done" && activeState.image.url
+          ? activeState.image.url
+          : null;
+        if (stateImageUrl) {
+          refImages.push(stateImageUrl);
+          referenceImages.push({
+            kind: "asset",
+            label: `${char.name} · ${activeState?.label} 状态图`,
+            url: stateImageUrl,
+          });
+          continue;
+        }
         const url = resolveCharacterRefImageUrl(char);
         if (url) {
           refImages.push(url);

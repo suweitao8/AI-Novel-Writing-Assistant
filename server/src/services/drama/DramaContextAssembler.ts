@@ -1,9 +1,37 @@
 import { prisma } from "../../db/prisma";
 import { compactText, safeJsonParse } from "./utils/json";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface BeatLite {
   order: number;
   summary: string;
+}
+
+/**
+ * novel_import 项目：按名字读设定中心角色的外观状态（含 image/chapterOrder 等完整字段）。
+ * charactersDigest 拼成「状态：」名单喂给分镜 LLM（drama.storyboard@v4 据此标
+ * characterStates）；首帧图服务也用它把镜头状态标注解析成状态对象（切形象与参考图）。
+ */
+export async function loadNovelCharacterStatesByName(novelId: string): Promise<Map<string, StoryAssetState[]>> {
+  const rows = await prisma.character.findMany({
+    where: { novelId },
+    select: { name: true, statesJson: true },
+  });
+  const map = new Map<string, StoryAssetState[]>();
+  for (const row of rows) {
+    const states = safeJsonParse<StoryAssetState[]>(row.statesJson, []);
+    const valid = states.filter((state) => typeof state?.label === "string" && state.label.trim());
+    if (valid.length > 0) {
+      map.set(row.name.trim(), valid);
+    }
+  }
+  return map;
+}
+
+function formatStateLabels(states: StoryAssetState[]): string {
+  return states
+    .map((state) => (state.chapterOrder ? `${state.label.trim()}（第${state.chapterOrder}章）` : state.label.trim()))
+    .join("；");
 }
 
 export class DramaContextAssembler {
@@ -31,6 +59,9 @@ export class DramaContextAssembler {
     const relatedBeats = sourceMap.beatRefs?.length
       ? beats.filter((beat) => sourceMap.beatRefs?.includes(beat.order))
       : beats.slice(Math.max(0, episodeOrder - 2), episodeOrder + 2);
+    const novelStatesByName = project.source === "novel_import" && project.sourceRef?.trim()
+      ? await loadNovelCharacterStatesByName(project.sourceRef.trim())
+      : new Map<string, StoryAssetState[]>();
 
     return {
       project,
@@ -70,6 +101,9 @@ export class DramaContextAssembler {
           character.persona ? `人设：${character.persona}` : "",
           character.speechStyle ? `口吻：${character.speechStyle}` : "",
           character.visualAnchor ? `视觉：${compactText(character.visualAnchor, 160)}` : "",
+          novelStatesByName.get(character.name.trim())?.length
+            ? `状态：${formatStateLabels(novelStatesByName.get(character.name.trim()) ?? [])}`
+            : "",
           refImageUrls.length > 0 ? `参考图：[${refImageUrls.join("，")}]（请保持人物视觉一致性）` : "",
           character.relations ? `关系：${compactText(character.relations, 160)}` : "",
         ].filter(Boolean).join("；");

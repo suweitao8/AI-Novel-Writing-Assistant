@@ -119,6 +119,7 @@ export class DramaVideoPromptService {
           action: shot.action,
           dialogue: shot.dialogue,
           characterRefs: shot.characterRefs,
+          characterStates: shot.characterStates,
           visualPrompt: shot.visualPrompt,
         }, null, 2),
         charactersDigest: context.charactersDigest,

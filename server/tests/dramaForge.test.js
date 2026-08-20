@@ -17,12 +17,31 @@ test("drama prompt assets are registered", () => {
     ["drama.episode.quality", "v1"],
     ["drama.episode.compliance", "v1"],
     ["drama.episode.repair", "v1"],
-    ["drama.storyboard", "v3"],
+    ["drama.storyboard", "v4"],
     ["drama.video.prompt", "v1"],
   ];
   for (const [id, version] of prompts) {
     assert.equal(hasRegisteredPromptAsset(id, version), true, `${id}@${version} should be registered`);
   }
+});
+
+test("drama.storyboard v4 每镜可标角色状态，且状态角色必须在 characterRefs 里", () => {
+  const { dramaStoryboardOutputSchema } = require("../dist/prompting/prompts/drama/drama.prompts.js");
+  const parsed = dramaStoryboardOutputSchema.parse({
+    summary: "大厅羞辱到反转。",
+    shots: [{
+      order: 1,
+      action: "林澈左臂缠着渗血绷带，被保安拦住。",
+      characterRefs: ["林澈"],
+      characterStates: [{ name: "林澈", state: "重伤" }],
+    }],
+  });
+  assert.equal(parsed.shots[0].characterStates[0].state, "重伤");
+  // 状态角色不在画面里 → schema 能过、postValidate 拒绝（由 runStructuredPrompt 触发）
+  assert.doesNotThrow(() => dramaStoryboardOutputSchema.parse({
+    summary: "x",
+    shots: [{ order: 1, action: "x", characterRefs: ["林澈"], characterStates: [{ name: "董事长", state: "重伤" }] }],
+  }));
 });
 
 test("drama paywall plan schema is machine readable", () => {
