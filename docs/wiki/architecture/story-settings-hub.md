@@ -93,7 +93,8 @@
 
 ## 世界地图工作台（v1.3 追加；v1.4 画布化；v1.6 三层级+AI 场景标注；v1.7 纯画布两级切换）
 
-- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**。
+- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标。**刻意不走 AI 生图**。
+- **v1.8 画布换成 React Flow（2026-08-21 用户要求，搬自旧项目 mydrama）**：`MapFlowCanvas`（@xyflow/react@12）提供点阵背景、滚轮缩放、拖拽平移、右下小地图；节点是卡片（`MapFlowNodes.MapCardNode`：色条+名字+说明+下级数），地形多边形渲染成不可拖的背景层节点（`TerrainLayerNode`，pointer-events 关闭，点击空白处经 `screenToFlowPosition`+射线法命中选中）。**数据模型不变**：MapFlowCanvas 内部把 0-100 百分比按基准画布 1600px 换算成 React Flow 像素（node.origin [0.5,0.5] 让 position 即中心），拖动结束换回百分比上抛。旧纯 SVG MapCanvas 已删除。用户反馈小圆点 SVG「太抽象不像画布」——mydrama 的画布体验（自由缩放平移+卡片节点）是这次搬迁的参照。
 - **v1.6 三层级（2026-08-21 用户决定）**：层级语义按 childMaps 深度约定——世界层 nodes=国家（kind=country）、国家层 nodes=城市（kind=city）、城市层 nodes=具体地点（kind=building，即场景，`NovelScene.mapNodeId` 指向节点 id）。前端按 `MAP_LEVELS`（mapData.ts）渲染层级文案与默认 kind。
 - **v1.7 纯画布两级切换（2026-08-21 用户决定）**：交互=塞尔达式大地图——顶部切换条「国家级别 / 城市级别」；国家级别=世界画布（各国分布），城市级别=选定国家的城市画布（旁边国家下拉切换），点城市再下钻一层看城内地点（面包屑 国家 › 城市 回退）。画布上点国家/城市节点=直接进入下级，点地点=选中编辑；MapCanvas 用位移阈值区分点击与拖拽（原地松开=点击）。**所有工具栏按钮与右侧列表全部移除**（AI 标注场景、保存/已保存、画地形、添加节点、LevelListCard）——画布占满整行，点选节点/地形后编辑卡（NodeEditorCard/TerrainEditorCard）出现在画布下方、未选中不占位；改动（拖动/改名/删除）1.5s 防抖自动保存（成功静默、失败 toast），地图数据当前没有 UI 新建入口，内容来源=解析流程或服务端标注端点。
 - **地理尺度内置（v1.7）**：`LEVEL_SCALE_KM = [5000, 2000, 40]`（世界层按中国东西跨度、国家层按大国内部城际、城市层按广州建成区量级）——连线上的公里数按所在层内置尺度换算直接标注在画布上；mapJson 的 scaleKm 字段保留在数据里但展示不再读它，也不再有设置入口。
