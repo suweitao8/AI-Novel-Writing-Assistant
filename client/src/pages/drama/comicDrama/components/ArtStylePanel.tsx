@@ -6,20 +6,19 @@ import type { DramaVisualStyle } from "@/api/media/drama";
 import { getStorySettingsWorld, updateStorySettingsWorld } from "@/api/story/storySettings";
 import { getUniversalArtStyle } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
-// 「设定 · 美术风格」工作面：这本书的画风 = 通用美术风格（系统级渲染质感基线，展示只读）
-// + 具体风格（题材/氛围层——内置预设与本书自定义，如 现代↔末世 切换），两层组合后用于
-// 立绘/首帧图/视频生成；画风不进章节脚本。
+// 「设定 · 美术风格」工作面：通用画风（系统级渲染质感，一行摘要 + 到设置页修改）
+// + 本书画风（题材/氛围——内置预设与本书自定义合成一个点选列表，选中即本书画风），
+// 两层组合后用于立绘/首帧图/视频生成；画风不进章节脚本。
 interface ArtStylePanelProps {
   novelId: string;
   /** 内置风格预设（GET /drama/visual-styles），第一项是内置默认风格。 */
   styleOptions: DramaVisualStyle[];
-  /** 已创建分镜项目时，默认风格变化会同步推送给分镜项目。 */
+  /** 已创建分镜项目时，画风变化会同步推送给分镜项目。 */
   onApplyProjectStyle: (styleId: string) => void;
   onChanged?: () => void | Promise<void>;
 }
@@ -27,7 +26,7 @@ interface ArtStylePanelProps {
 interface ArtStyleDraft {
   label: string;
   prompt: string;
-  /** 进入编辑时的名字：用于识别「改名」并让默认风格跟着改名走。 */
+  /** 进入编辑时的名字：用于识别「改名」并让本书画风跟着改名走。 */
   initialLabel: string;
 }
 
@@ -69,10 +68,10 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     onSuccess: async () => {
       props.onApplyProjectStyle(defaultMutation.variables ?? "");
       await invalidate();
-      toast.success("默认具体风格已保存，之后生成的画面与视频会叠加这个画风。");
+      toast.success("本书画风已保存，之后生成的画面与视频都用它。");
     },
     onError: (error) => {
-      toast.error("保存默认风格失败。", { description: error instanceof Error ? error.message : undefined });
+      toast.error("保存画风失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -84,7 +83,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
       const artStyles = library
         .map((style) => ({ label: style.label.trim(), prompt: style.prompt.trim() }))
         .filter((style) => style.label);
-      // 默认风格指向的自定义风格被改名时，默认引用跟着新名字走；
+      // 本书画风指向的自定义风格被改名时，引用跟着新名字走；
       // 被删除时由服务端回落到内置默认，不需要在这里猜。
       const savedDefault = world?.defaultArtStyle ?? null;
       const renamed = savedDefault
@@ -97,10 +96,10 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     },
     onSuccess: async () => {
       await invalidate();
-      toast.success("风格库已保存。");
+      toast.success("自定义画风已保存。");
     },
     onError: (error) => {
-      toast.error("保存风格库失败。", { description: error instanceof Error ? error.message : undefined });
+      toast.error("保存自定义画风失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -110,7 +109,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
   const removeEntry = (index: number) => {
     const entry = library[index];
-    if (entry && entry.initialLabel && !window.confirm(`删除风格「${entry.initialLabel}」？之后画面生成会改用内置默认具体风格。`)) {
+    if (entry && entry.initialLabel && !window.confirm(`删除画风「${entry.initialLabel}」？`)) {
       return;
     }
     setLibrary((prev) => prev.filter((_, i) => i !== index));
@@ -122,37 +121,24 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
   return (
     <div className="space-y-4">
-      <Card className="min-w-0">
-        <CardHeader>
-          <CardTitle className="text-base">通用美术风格</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-sm leading-6 text-muted-foreground">
-            所有画面共用的渲染质感；下面选的具体风格叠加题材与氛围，两层一起用于生成。
-          </p>
-          <p className="rounded-xl bg-muted/40 px-3 py-2 font-mono text-xs leading-5 break-all text-muted-foreground">
-            {universal ? (universal.prompt || universal.defaultPrompt) : "正在读取通用画风…"}
-          </p>
-          <Link
-            to="/settings/art-style"
-            className="inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline"
-          >
-            到 设置 · 通用画风 修改
-          </Link>
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+        <span className="shrink-0 text-muted-foreground">通用画风</span>
+        <span className="min-w-0 text-foreground">{universal ? universal.summary : "正在读取…"}</span>
+        <Link
+          to="/settings/art-style"
+          className="shrink-0 text-xs text-primary underline-offset-4 hover:underline"
+        >
+          修改
+        </Link>
+      </div>
 
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle className="text-base">默认具体风格</CardTitle>
+          <CardTitle className="text-base">本书画风</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm leading-6 text-muted-foreground">
-            这本书的题材画风（现代、末世、玄幻…），叠加在通用质感上：角色形象、章节画面与视频都用它。
-            想换题材画风时在这里改选，之后生成的画面就会用新组合。
-          </p>
+        <CardContent className="space-y-4">
           {worldQuery.isLoading ? (
-            <div className="text-sm text-muted-foreground">正在加载风格…</div>
+            <div className="text-sm text-muted-foreground">正在加载画风…</div>
           ) : (
             <>
               <div className="flex flex-wrap gap-2">
@@ -171,93 +157,66 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
               </div>
               {selectedChip ? (
                 <p className="text-xs leading-5 text-muted-foreground">
-                  当前默认：{selectedChip.label}——{selectedChip.summary}
+                  当前：{selectedChip.label}——{selectedChip.summary}
                 </p>
               ) : null}
             </>
           )}
-        </CardContent>
-      </Card>
 
-      <Card className="min-w-0">
-        <CardHeader className="flex-row flex-wrap items-center justify-between space-y-0 gap-2">
-          <CardTitle className="text-base">具体风格库</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLibrary((prev) => [...prev, { label: "", prompt: "", initialLabel: "" }])}
-            >
-              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
-              添加自定义风格
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => libraryMutation.mutate()}
-              disabled={libraryMutation.isPending || labelInvalid || (hydrated && library.length === 0 && savedCustoms.length === 0)}
-            >
-              {libraryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              {libraryMutation.isPending ? "保存中..." : "保存风格库"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">内置具体风格</span>
-              <Badge variant="outline">全小说通用</Badge>
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-medium">自定义画风</span>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLibrary((prev) => [...prev, { label: "", prompt: "", initialLabel: "" }])}
+                >
+                  <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+                  添加
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => libraryMutation.mutate()}
+                  disabled={libraryMutation.isPending || labelInvalid || (hydrated && library.length === 0 && savedCustoms.length === 0)}
+                >
+                  {libraryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {libraryMutation.isPending ? "保存中..." : "保存"}
+                </Button>
+              </div>
             </div>
-            {props.styleOptions.map((preset) => (
-              <div key={preset.id} className="rounded-xl border border-border bg-muted/20 px-3 py-2">
-                <span className="text-sm font-medium text-foreground">{preset.label}</span>
-                <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{preset.summary}</p>
+            {library.map((style, index) => (
+              <div key={index} className="space-y-1.5 rounded-xl border border-border bg-muted/20 p-3">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={style.label}
+                    placeholder="风格名，例如：末世爆发后"
+                    className="h-8 max-w-[240px]"
+                    maxLength={20}
+                    onChange={(event) => updateEntry(index, { label: event.target.value })}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                    aria-label="删除画风"
+                    onClick={() => removeEntry(index)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+                <textarea
+                  rows={2}
+                  className="min-h-[56px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  placeholder="描述这个画风的质感、光线、色彩与材质，例如：现代都市但色调诡异压抑，雾气浓重，强对比光影。"
+                  maxLength={500}
+                  value={style.prompt}
+                  onChange={(event) => updateEntry(index, { prompt: event.target.value })}
+                />
               </div>
             ))}
-          </div>
-
-          <div className="space-y-2">
-            <span className="text-sm font-medium">自定义具体风格</span>
-            <p className="text-xs leading-5 text-muted-foreground">
-              把这本书特有的题材画风定义成一个个风格（例如：「现代诡异」「末世爆发后」），设为默认后与通用画风叠加生成。
-            </p>
-            {library.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">
-                还没有自定义风格。一本书保持一种画风时不需要添加；需要中途切换画风再加。
-              </p>
-            ) : (
-              library.map((style, index) => (
-                <div key={index} className="space-y-1.5 rounded-xl border border-border bg-muted/20 p-3">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={style.label}
-                      placeholder="风格名，例如：末世爆发后"
-                      className="h-8 max-w-[240px]"
-                      maxLength={20}
-                      onChange={(event) => updateEntry(index, { label: event.target.value })}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="ml-auto h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                      aria-label="删除风格"
-                      onClick={() => removeEntry(index)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <textarea
-                    rows={2}
-                    className="min-h-[56px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
-                    placeholder="描述这个画风的质感、光线、色彩与材质，例如：现代都市但色调诡异压抑，雾气浓重，强对比光影。"
-                    maxLength={500}
-                    value={style.prompt}
-                    onChange={(event) => updateEntry(index, { prompt: event.target.value })}
-                  />
-                </div>
-              ))
-            )}
             {labelInvalid ? (
-              <p className="text-xs text-destructive">每个风格都要有名字，且不能重名。</p>
+              <p className="text-xs text-destructive">每个画风都要有名字，且不能重名。</p>
             ) : null}
           </div>
         </CardContent>

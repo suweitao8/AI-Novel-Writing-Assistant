@@ -47,15 +47,15 @@ export default function ArtStyleSettingsPage() {
   const effective = customized ? draft : (universalQuery.data?.data?.defaultPrompt ?? "");
 
   return (
-    <SettingsShell title="通用画风" description="所有画面共用的渲染质感基线；每本书的题材风格在小说设定·美术风格里叠加。">
+    <SettingsShell title="通用画风" description="所有画面共用的渲染质感基线；每本书的题材画风在小说设定·美术风格里选。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ImagePlus className="h-4 w-4" aria-hidden="true" />
-            通用美术风格
+            通用画风
           </CardTitle>
           <CardDescription>
-            角色、场景、首帧图和视频画面都以这份质感为底；具体题材（现代、末世、玄幻…）由每本书自己的具体风格补充，两层一起给到生成。留空保存即恢复默认。
+            只写渲染质感（引擎、材质、光照、成片级别），题材（现代、末世、玄幻…）由每本书的画风叠加。留空保存即恢复默认。
             {customized ? "当前使用自定义内容。" : "当前使用默认内容。"}
           </CardDescription>
         </CardHeader>
@@ -72,13 +72,10 @@ export default function ArtStyleSettingsPage() {
                 rows={7}
                 maxLength={2000}
                 spellCheck={false}
-                aria-label="通用美术风格提示词"
-                className="w-full resize-y rounded-xl border border-border bg-background px-3 py-2 font-mono text-xs leading-5 text-foreground outline-none transition focus-visible:border-primary"
+                aria-label="通用画风提示词"
+                className="w-full resize-y rounded-xl border border-border bg-background px-3 py-2 text-sm leading-6 text-foreground outline-none transition focus-visible:border-primary"
                 placeholder="描述所有画面共用的渲染质感（留空保存＝恢复默认）"
               />
-              <p className="text-xs leading-5 text-muted-foreground">
-                提示词会直接拼进生成请求，建议只写渲染质感（引擎、材质、光照、成片级别），不写具体时代或题材。
-              </p>
               <div className="flex flex-wrap items-center gap-2">
                 <Button size="sm" disabled={saveMutation.isPending} onClick={() => saveMutation.mutate({ prompt: draft.trim() })}>
                   {saveMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
