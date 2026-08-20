@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getKnowledgeDocument } from "@/api/knowledge";
-import { previewChapterReferenceDraft, previewChapterReferenceExtract, updateNovelChapter } from "@/api/novel/chapters";
+import { previewChapterReferenceParse, updateNovelChapter } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { splitReferenceChapters } from "@/pages/drama/comicDrama/hooks/referenceChapters";
@@ -116,21 +116,19 @@ export function useReferenceDraftStage(input: {
     input.onApplied();
   };
 
-  // 「解析」一键双任务：初稿（reference_draft）+ 资产提取（reference_extract）并行。
-  // 落库放在 mutationFn 里而不是 onSuccess：解析跑两个大模型要几十秒，期间离开
-  // 页面组件卸载后回调不再执行，放回调里的保存会凭空丢（已踩：提取结果消失）。
+  // 「解析」一次大模型调用同时产出初稿与设定提取（reference_parse，2026-08-20
+  // 起由两个并行调用合并——参考文本量不大，单次调用共享同一份原文理解）。
+  // 落库放在 mutationFn 里而不是 onSuccess：解析要跑几十秒，期间离开页面组件
+  // 卸载后回调不再执行，放回调里的保存会凭空丢（已踩：提取结果消失）。
   // 空初稿时草稿一并直接写入；已有初稿保留原文，是否替换由用户确认。
   const parseMutation = useMutation({
     mutationFn: async () => {
       if (!chapter) {
         throw new Error("还没有章节。");
       }
-      const [draftResponse, extractResponse] = await Promise.all([
-        previewChapterReferenceDraft(input.novelId, chapter.id, trimmedReference),
-        previewChapterReferenceExtract(input.novelId, chapter.id, trimmedReference),
-      ]);
-      const draftText = draftResponse.data?.draftText ?? "";
-      const extraction = normalizeExtraction(extractResponse.data ?? null);
+      const parseResponse = await previewChapterReferenceParse(input.novelId, chapter.id, trimmedReference);
+      const draftText = parseResponse.data?.draftText ?? "";
+      const extraction = normalizeExtraction(parseResponse.data?.extraction ?? null);
       const extractionJson = JSON.stringify(extraction);
       const hasDraft = draftText.trim().length > 0;
       const hadExpectation = workspace.expectationText.trim().length > 0;

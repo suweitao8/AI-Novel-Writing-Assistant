@@ -4,8 +4,7 @@ import type {
   ChapterDetailOutlineDocument,
   ChapterDetailOutlinePayload,
 } from "@ai-novel/shared/types/novelChapterDetailOutline";
-import type { ChapterReferenceDraftPayload } from "@ai-novel/shared/types/novelChapterReferenceDraft";
-import type { ReferenceExtractionPayload } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type { ChapterReferenceParsePayload } from "@ai-novel/shared/types/novelChapterReferenceParse";
 import type {
   TimelineCheckReport,
   TimelineContextForChapter,
@@ -148,27 +147,14 @@ export async function generateChapterExecutionContract(
   return data;
 }
 
-// AI 从本章参考文本提取角色/场景/道具/世界观建议（纯预览；结果由前端随章节持久化，勾选后创建）
-export async function previewChapterReferenceExtract(
+// 参考文本「解析」：一次调用同时产出分镜初稿与设定提取建议（纯预览，落库由解析流程完成）
+export async function previewChapterReferenceParse(
   novelId: string,
   chapterId: string,
   referenceText: string,
 ) {
-  const { data } = await apiClient.post<ApiResponse<ReferenceExtractionPayload>>(
-    `/novels/${novelId}/chapters/${chapterId}/reference-extract/preview`,
-    { referenceText },
-  );
-  return data;
-}
-
-// AI 压缩参考小说原文为本章初稿草稿（不落库，前端确认后写入初稿）
-export async function previewChapterReferenceDraft(
-  novelId: string,
-  chapterId: string,
-  referenceText: string,
-) {
-  const { data } = await apiClient.post<ApiResponse<ChapterReferenceDraftPayload>>(
-    `/novels/${novelId}/chapters/${chapterId}/reference-draft/preview`,
+  const { data } = await apiClient.post<ApiResponse<ChapterReferenceParsePayload>>(
+    `/novels/${novelId}/chapters/${chapterId}/reference-parse/preview`,
     { referenceText },
   );
   return data;

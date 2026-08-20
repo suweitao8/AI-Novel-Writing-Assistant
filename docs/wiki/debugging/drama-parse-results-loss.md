@@ -12,7 +12,7 @@
 1. **解析期间离开页面 → 结果彻底不落库。**
    - `useReferenceDraftStage.parseMutation` 曾把「提取结果 PUT + 初稿写入」放在 `onSuccess`。
    - TanStack Query 的组件级 mutation 回调（`useMutation` options 里的 `onSuccess`/`onError`）
-     在组件卸载后**不会执行**；解析要并行跑两个大模型，耗时几十秒，这段时间路由切走后
+     在组件卸载后**不会执行**；解析是单次大模型调用，耗时几十秒（该案例发生时还是两次并行调用），这段时间路由切走后
      `mutationFn` 照常完成，但所有放在回调里的保存副作用全部丢失。
 2. **重挂载时旧缓存闩锁 → 已落库的结果显示不出来。**
    - `useNovelChapterWorkspace` 的重置 effect 曾以「章节 id」做一次性守卫（`loadedChapterRef`），同 id 只重置一次。

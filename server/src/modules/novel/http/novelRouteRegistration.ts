@@ -39,7 +39,7 @@ import {
   chapterExecutionContractSchema,
   chapterDetailOutlineSaveSchema,
   chapterParamsSchema,
-  chapterReferenceDraftPreviewSchema,
+  chapterReferenceParsePreviewSchema,
   chapterSchema,
   characterParamsSchema,
   characterSchema,
@@ -114,7 +114,7 @@ export function registerNovelHttpRoutes(router: Router, services: NovelHttpServi
     updateChapterSchema,
     chapterExecutionContractSchema,
     chapterDetailOutlineSaveSchema,
-    chapterReferenceDraftPreviewSchema,
+    chapterReferenceParsePreviewSchema,
   });
 
   registerNovelChapterEditorRoutes({
