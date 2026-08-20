@@ -16,6 +16,7 @@ import {
 } from "../../../../prompting/prompts/novel/storySettings.prompts";
 import { WorldContextGateway } from "../../../../services/novel/worldContext/WorldContextGateway";
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
+import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../../services/drama/visual/dramaVisualStyles";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
@@ -98,11 +99,20 @@ export interface WorldMapViewData {
   childMaps: Record<string, WorldMapViewData>;
 }
 
+export interface StorySettingsArtStyle {
+  label: string;
+  prompt: string;
+}
+
 export interface StorySettingsWorldMapView {
   premise: string;
   era: string | null;
   toneRules: string[];
   keySettings: Array<{ title: string; content: string }>;
+  /** 小说自定义美术风格（内置预设不落库，前端与预设列表合并展示）。 */
+  artStyles: StorySettingsArtStyle[];
+  /** 默认美术风格 id：内置预设 id 或自定义风格 key；null 表示用内置默认。 */
+  defaultArtStyle: string | null;
   map: WorldMapViewData;
   source: string;
   updatedAt: string;
@@ -136,6 +146,29 @@ function parseJsonArray(value: string | null | undefined): string[] {
   } catch {
     return [];
   }
+}
+
+// 美术风格解析：只认 {label,prompt} 结构（历史上可能带 key，读取时剥离——风格身份就是名字，
+// 与初稿【风格：…】标记一致）。同名去重、上限 12 条。
+function parseArtStyles(value: string | null | undefined): StorySettingsArtStyle[] {
+  if (!value?.trim()) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const seenLabels = new Set<string>();
+  const styles: StorySettingsArtStyle[] = [];
+  for (const item of parsed) {
+    if (!item || typeof item !== "object") continue;
+    const label = String((item as { label?: unknown }).label ?? "").trim().slice(0, 20);
+    if (!label || seenLabels.has(label)) continue;
+    seenLabels.add(label);
+    styles.push({ label, prompt: String((item as { prompt?: unknown }).prompt ?? "").trim().slice(0, 500) });
+  }
+  return styles.slice(0, 12);
 }
 
 function parseKeySettings(value: string | null | undefined): Array<{ title: string; content: string }> {
@@ -810,6 +843,8 @@ export class StorySettingsService {
         era: null,
         toneRules: [],
         keySettings: [],
+        artStyles: [],
+        defaultArtStyle: null,
         map: { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} },
         source: "ai",
         updatedAt: new Date().toISOString(),
@@ -820,6 +855,8 @@ export class StorySettingsService {
       era: row.era,
       toneRules: parseJsonArray(row.toneRulesJson),
       keySettings: parseKeySettings(row.keySettingsJson),
+      artStyles: parseArtStyles(row.artStylesJson),
+      defaultArtStyle: row.defaultArtStyle?.trim() || null,
       map: parseMap(row.mapJson),
       source: row.source,
       updatedAt: row.updatedAt.toISOString(),
@@ -831,13 +868,36 @@ export class StorySettingsService {
     era?: string | null;
     toneRules?: string[];
     keySettings?: Array<{ title: string; content: string }>;
+    artStyles?: Array<{ label: string; prompt?: string }>;
+    defaultArtStyle?: string | null;
   }): Promise<StorySettingsWorldMapView> {
     await requireNovel(novelId);
+    let effective = input;
+    // 默认风格必须能落到具体风格（内置预设或自定义名）；删除默认自定义风格而未指新默认时，
+    // 回落为内置默认，避免残留无法解析的引用。
+    if (input.defaultArtStyle !== undefined || input.artStyles !== undefined) {
+      const current = await prisma.novelSettingsWorld.findUnique({
+        where: { novelId },
+        select: { defaultArtStyle: true, artStylesJson: true },
+      });
+      const nextStyles = input.artStyles ?? parseArtStyles(current?.artStylesJson);
+      const customLabels = new Set(nextStyles.map((style) => style.label));
+      const presetIds = new Set(DRAMA_VISUAL_STYLE_PRESETS.map((preset) => preset.id));
+      const requested = input.defaultArtStyle !== undefined ? input.defaultArtStyle : current?.defaultArtStyle ?? null;
+      if (requested && !customLabels.has(requested) && !presetIds.has(requested)) {
+        if (input.defaultArtStyle) {
+          throw new AppError("默认美术风格不存在，请从风格列表里选择。", 400);
+        }
+        effective = { ...input, defaultArtStyle: null };
+      }
+    }
     const data = {
-      ...(input.premise !== undefined ? { premise: input.premise } : {}),
-      ...(input.era !== undefined ? { era: input.era } : {}),
-      ...(input.toneRules !== undefined ? { toneRulesJson: JSON.stringify(input.toneRules) } : {}),
-      ...(input.keySettings !== undefined ? { keySettingsJson: JSON.stringify(input.keySettings) } : {}),
+      ...(effective.premise !== undefined ? { premise: effective.premise } : {}),
+      ...(effective.era !== undefined ? { era: effective.era } : {}),
+      ...(effective.toneRules !== undefined ? { toneRulesJson: JSON.stringify(effective.toneRules) } : {}),
+      ...(effective.keySettings !== undefined ? { keySettingsJson: JSON.stringify(effective.keySettings) } : {}),
+      ...(effective.artStyles !== undefined ? { artStylesJson: JSON.stringify(effective.artStyles) } : {}),
+      ...(effective.defaultArtStyle !== undefined ? { defaultArtStyle: effective.defaultArtStyle } : {}),
     };
     if (Object.keys(data).length === 0) {
       return this.getWorld(novelId);
@@ -846,10 +906,12 @@ export class StorySettingsService {
       where: { novelId },
       create: {
         novelId,
-        premise: input.premise ?? "",
-        era: input.era ?? null,
-        toneRulesJson: JSON.stringify(input.toneRules ?? []),
-        keySettingsJson: JSON.stringify(input.keySettings ?? []),
+        premise: effective.premise ?? "",
+        era: effective.era ?? null,
+        toneRulesJson: JSON.stringify(effective.toneRules ?? []),
+        keySettingsJson: JSON.stringify(effective.keySettings ?? []),
+        artStylesJson: JSON.stringify(effective.artStyles ?? []),
+        defaultArtStyle: effective.defaultArtStyle ?? null,
         source: "manual",
       },
       update: { ...data, source: "manual" },

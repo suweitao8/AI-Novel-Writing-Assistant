@@ -1,7 +1,16 @@
 // 参考文本 → 本章初稿契约：漫剧工作室「参考」页签把粘贴的小说原文
 // AI 改编成分镜式初稿草稿（不落库，写入 Chapter.expectation 前由用户确认）。
-// 每个分镜单元两行：分镜画面 + 旁白/角色台词，单元之间空行分隔；
-// 场景变化时单元上方多一行「【场景：地点】」切换标记，后续分镜/视频生成按它换场。
+// 每个分镜单元两行：分镜画面 + 旁白/角色台词，单元之间空行分隔。
+// 三类切换标记单独成行、放在单元上方，持续生效到下一个同类标记：
+// 【场景：地点】换场、【风格：风格名】换画风、【角色状态：名字：状态】换角色形象，
+// 后续分镜/视频生成按这些标记切换对应资产。
+
+export interface ChapterReferenceDraftStateSwitch {
+  /** 发生外观状态变化的角色名（与设定中心角色名一致） */
+  name: string;
+  /** 新外观状态名（优先用设定中心登记过的状态名） */
+  state: string;
+}
 
 export interface ChapterReferenceDraftSegment {
   /** 这一格分镜的景别 */
@@ -17,10 +26,14 @@ export interface ChapterReferenceDraftSegment {
   mood: string;
   /** 这一格的旁白内容或台词 */
   text: string;
+  /** 美术风格切换：从这一格起改用新画风（名字来自设定的风格名单）；不切换为空串 */
+  styleSwitch?: string;
+  /** 角色外观状态切换：从这一格起这些角色的形象发生变化 */
+  stateSwitches?: ChapterReferenceDraftStateSwitch[];
 }
 
 export interface ChapterReferenceDraftPayload {
   segments: ChapterReferenceDraftSegment[];
-  /** 按分镜单元拼好的初稿文本（场景切换时前置【场景：地点】行；分镜：景别，画面\n说话人（神态）：内容，单元间空行），直接可写入初稿编辑器 */
+  /** 按分镜单元拼好的初稿文本（切换标记行 + 分镜：景别，画面\n说话人（神态）：内容，单元间空行），直接可写入初稿编辑器 */
   draftText: string;
 }
