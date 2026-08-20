@@ -1,21 +1,112 @@
+import { useState } from "react";
 import { Check, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import type { ReferenceExtractItem } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type { ReferenceExtractCharacter, ReferenceExtractItem } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
 interface ReferenceExtractTabProps {
   stage: ReferenceExtractStage;
 }
 
+type ExtractGroup = "characters" | "scenes" | "props" | "worldview";
+
+const GROUP_LABELS: Record<ExtractGroup, string> = {
+  characters: "角色",
+  scenes: "场景",
+  props: "道具",
+  worldview: "世界观",
+};
+
+interface ExtractDetail {
+  group: ExtractGroup;
+  index: number;
+}
+
+// 详情弹窗按组渲染字段，这里取各类条目的并集（description 在角色条目上是可选的）。
+interface ExtractDetailItem {
+  name: string;
+  description?: string;
+  role?: string;
+  appearance?: string;
+  personality?: string;
+  imagePrompt?: string;
+  voicePrompt?: string;
+  stateLabel?: string;
+  stateNote?: string;
+}
+
+function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
+  const text = value?.trim();
+  if (!text) return null;
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{text}</p>
+    </div>
+  );
+}
+
+// 提取建议详情弹窗：完整字段（含画面/音色提示词与状态变化说明），确认创建前可先看全貌。
+function ExtractDetailDialog(props: {
+  detail: ExtractDetail | null;
+  item: ExtractDetailItem | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const { detail, item } = props;
+  const character = detail?.group === "characters" ? item : null;
+  return (
+    <Dialog open={detail !== null} onOpenChange={props.onOpenChange}>
+      {detail && item ? (
+        <AppDialogContent
+          title={item.name}
+          description={GROUP_LABELS[detail.group]}
+          footer={<Button variant="outline" onClick={() => props.onOpenChange(false)}>关闭</Button>}
+        >
+          <div className="space-y-4">
+            {character ? (
+              <>
+                {character.role ? <Badge variant="outline">{character.role}</Badge> : null}
+                <DetailRow label="外貌" value={character.appearance} />
+                <DetailRow label="性格" value={character.personality} />
+                <DetailRow label="画面提示词（生图用）" value={character.imagePrompt} />
+                <DetailRow label="音色提示词（配音用）" value={character.voicePrompt} />
+              </>
+            ) : detail.group === "worldview" ? (
+              <DetailRow label="说明" value={item.description} />
+            ) : (
+              <>
+                <DetailRow label="说明" value={item.description} />
+                <DetailRow label="画面提示词（生图用）" value={item.imagePrompt} />
+              </>
+            )}
+            {item.stateLabel?.trim() ? (
+              <div className="space-y-0.5 rounded-lg bg-amber-500/10 px-3 py-2">
+                <p className="text-xs text-amber-700 dark:text-amber-400">状态变化 · {item.stateLabel}</p>
+                {item.stateNote?.trim() ? (
+                  <p className="text-sm leading-6 text-foreground">{item.stateNote}</p>
+                ) : null}
+                <p className="text-xs text-muted-foreground">创建时会给同名资产追加这个新外观状态。</p>
+              </div>
+            ) : null}
+          </div>
+        </AppDialogContent>
+      ) : null}
+    </Dialog>
+  );
+}
+
 // 漫剧工作室「当前 · 提取」页签：展示「解析」产出并随章节保存的角色 / 场景 / 道具 /
-// 世界观建议，勾选后创建进设定中心；带「状态」标签的条目创建时会给同名资产追加新外观状态。
+// 世界观建议，勾选后创建进设定中心；点「详情」看完整信息（画面/音色提示词、状态变化）。
 export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
   const { stage } = props;
   const { extraction, selected } = stage;
   const selectedCount = selected.size;
+  const [detail, setDetail] = useState<ExtractDetail | null>(null);
+  const detailItem = detail ? extraction[detail.group][detail.index] ?? null : null;
 
   if (stage.totalItems === 0) {
     return (
@@ -27,7 +118,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     );
   }
 
-  const renderGroup = (title: string, group: "characters" | "scenes" | "props" | "worldview") => {
+  const renderGroup = (title: string, group: ExtractGroup) => {
     const items = extraction[group];
     if (items.length === 0) {
       return null;
@@ -52,28 +143,27 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           {items.map((item, index) => {
             const key = stage.itemKey(group, index);
             const isSelected = selected.has(key);
-            const character = group === "characters" ? item as ReferenceExtractItem & {
-              role?: string;
-              appearance?: string;
-              personality?: string;
-              imagePrompt?: string;
-              voicePrompt?: string;
-              stateLabel?: string;
-              stateNote?: string;
-            } : null;
+            const character = group === "characters" ? item as ReferenceExtractCharacter : null;
             const body = character
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const extractItem = item as ReferenceExtractItem;
             const stateLabel = extractItem.stateLabel?.trim();
             return (
-              <button
+              <div
                 key={key}
-                type="button"
+                role="button"
+                tabIndex={0}
                 aria-pressed={isSelected}
                 onClick={() => stage.toggleSelected(key)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    stage.toggleSelected(key);
+                  }
+                }}
                 className={cn(
-                  "relative min-w-0 rounded-xl border p-3.5 text-left transition-colors",
+                  "relative min-w-0 cursor-pointer rounded-xl border p-3.5 text-left transition-colors",
                   isSelected
                     ? "border-primary/60 bg-primary/5"
                     : "border-border/70 bg-background hover:border-primary/30",
@@ -103,7 +193,21 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
                   ) : null}
                 </span>
                 <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{body}</span>
-              </button>
+                <span className="mt-2 flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs text-muted-foreground"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setDetail({ group, index });
+                    }}
+                  >
+                    详情
+                  </Button>
+                </span>
+              </div>
             );
           })}
         </div>
@@ -130,6 +234,11 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
             创建所选（{selectedCount}）
           </Button>
         </div>
+        <ExtractDetailDialog
+          detail={detail}
+          item={detailItem as ExtractDetailItem | null}
+          onOpenChange={(open) => { if (!open) setDetail(null); }}
+        />
       </CardContent>
     </Card>
   );
