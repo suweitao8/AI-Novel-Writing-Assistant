@@ -350,6 +350,20 @@ export async function getDramaVisualStyles() {
   return data;
 }
 
+/** 小说当前生效的时代风格：script=章节脚本标记，novel-default=小说默认，builtin=内置默认。 */
+export interface DramaEraStyleInfo {
+  key: string;
+  label: string;
+  source: "script" | "novel-default" | "builtin";
+}
+
+export async function getDramaEraStyle(novelId: string) {
+  const { data } = await apiClient.get<ApiResponse<DramaEraStyleInfo>>(
+    `/drama/era-style/${encodeURIComponent(novelId)}`,
+  );
+  return data;
+}
+
 export async function setDramaVisualStyle(projectId: string, styleId: string | null) {
   const { data } = await apiClient.post<ApiResponse<{ id: string; visualStyle: string | null }>>(
     `/drama/projects/${encodeURIComponent(projectId)}/visual-style`,

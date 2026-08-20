@@ -4,6 +4,7 @@
 // 行格式（与 reference_draft v8 序列化输出一致）：
 // - 【场景：客厅】 场景切换
 // - 【角色状态：李火旺：重伤】 角色形象切换
+// - 【画风：末世废土】 时代风格切换（用户手动插入；对后续内容生效，新章节沿用最近一次）
 // - 分镜：景别，画面
 // - 说话人（神态）：内容 / 旁白：内容
 // 空行是块分隔（一个块=可选标记行+分镜行+若干台词行）；不认识的行原样保留为 text 条目，不丢内容。
@@ -14,12 +15,14 @@ export type ScriptShotType = (typeof SCRIPT_SHOT_TYPES)[number];
 export type ScriptItem =
   | { kind: "scene"; scene: string }
   | { kind: "state"; name: string; state: string }
+  | { kind: "style"; style: string }
   | { kind: "shot"; shot: ScriptShotType; storyboard: string }
   | { kind: "line"; speaker: string; mood: string; text: string }
   | { kind: "text"; text: string };
 
 const SCENE_PATTERN = /^[ \t]*【场景[：:]\s*([^】]+?)】[ \t]*$/;
 const STATE_PATTERN = /^[ \t]*【角色状态[：:]\s*([^：:】]+?)[：:]([^：:】]+?)】[ \t]*$/;
+const STYLE_PATTERN = /^[ \t]*【画风[：:]\s*([^】]+?)】[ \t]*$/;
 const SHOT_PATTERN = /^[ \t]*分镜[：:]\s*(大远景|远景|全景|中景|近景|特写)[，,]\s*(.+)$/;
 const SPEAKER_PATTERN = /^[ \t]*([^\s：:（(]{1,20})(?:[（(]([^）)]{0,20})[)）])?[：:]\s*(.+)$/;
 
@@ -38,6 +41,11 @@ export function parseScriptItems(text: string): ScriptItem[] {
     const state = STATE_PATTERN.exec(line);
     if (state) {
       items.push({ kind: "state", name: state[1].trim(), state: state[2].trim() });
+      continue;
+    }
+    const style = STYLE_PATTERN.exec(line);
+    if (style) {
+      items.push({ kind: "style", style: style[1].trim() });
       continue;
     }
     // 其他【…】标记（如已废弃的【风格：…】）当普通文本保留，不丢内容。
@@ -66,7 +74,7 @@ export function parseScriptItems(text: string): ScriptItem[] {
 }
 
 export function serializeScriptItems(items: ScriptItem[]): string {
-  // 块规则（与解析产出的 canonical 格式一一对应）：标记行（场景/状态）直接跟在块首，
+  // 块规则（与解析产出的 canonical 格式一一对应）：标记行（场景/状态/画风）直接跟在块首，
   // 分镜行接在标记行后面；台词/文本落进当前块；标记或分镜出现在台词之后才开新块。
   const blocks: string[][] = [];
   let current: string[] | null = null;
@@ -79,6 +87,9 @@ export function serializeScriptItems(items: ScriptItem[]): string {
       isMarkerOrShot = true;
     } else if (item.kind === "state") {
       line = `【角色状态：${item.name.trim()}：${item.state.trim()}】`;
+      isMarkerOrShot = true;
+    } else if (item.kind === "style") {
+      line = `【画风：${item.style.trim()}】`;
       isMarkerOrShot = true;
     } else if (item.kind === "shot") {
       line = `分镜：${item.shot}，${item.storyboard.trim()}`;

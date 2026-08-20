@@ -352,6 +352,7 @@ export default function ComicDramaStudioPage() {
               novelId={novelId}
               workspace={chapterWorkspace}
               onOpenChapterManage={() => setChapterManageOpen(true)}
+              styleOptions={storyboard.styleOptions}
             />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (

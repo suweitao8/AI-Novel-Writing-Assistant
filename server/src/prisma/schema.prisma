@@ -1573,6 +1573,7 @@ model World {
   structureSchemaVersion Int @default(1)
   novels             Novel[]
   snapshots          WorldSnapshot[]
+  libraryItems       WorldPropertyLibrary[]
   deepeningQA        WorldDeepeningQA[]
   consistencyIssues  WorldConsistencyIssue[]
   novelWorlds        NovelWorld[]
@@ -1649,6 +1650,21 @@ model WorldAsset {
   @@index([worldId, assetType])
   @@index([novelWorldId, assetType])
   @@index([assetType])
+}
+
+model WorldPropertyLibrary {
+  id            String  @id @default(cuid())
+  name          String
+  description   String?
+  category      String
+  worldType     String?
+  usageCount    Int     @default(0)
+  sourceWorldId String?
+  sourceWorld   World?  @relation(fields: [sourceWorldId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([sourceWorldId])
 }
 
 model WorldSnapshot {

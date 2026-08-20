@@ -47,7 +47,7 @@ export default function ArtStyleSettingsPage() {
   const effective = customized ? draft : (universalQuery.data?.data?.defaultPrompt ?? "");
 
   return (
-    <SettingsShell title="通用画风" description="所有画面共用的渲染质感基线；每本书的题材画风在小说设定·美术风格里选。">
+    <SettingsShell title="通用画风" description="所有画面共用的渲染质感基线；每本书的时代风格在小说设定·美术风格里选，章节脚本里可随时切换。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -55,7 +55,7 @@ export default function ArtStyleSettingsPage() {
             通用画风
           </CardTitle>
           <CardDescription>
-            只写渲染质感（引擎、材质、光照、成片级别），题材（现代、末世、玄幻…）由每本书的画风叠加。留空保存即恢复默认。
+            只写渲染质感（引擎、材质、光照、成片级别），时代（现代、末世、玄幻…）由每本书的时代风格叠加。留空保存即恢复默认。
             {customized ? "当前使用自定义内容。" : "当前使用默认内容。"}
           </CardDescription>
         </CardHeader>

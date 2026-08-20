@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowUp, BookOpenText, Loader2, Plus, X } from "lucide-react";
 import {
   getStorySettingsCharacters,
   getStorySettingsProps,
   getStorySettingsScenes,
+  getStorySettingsWorld,
 } from "@/api/story/storySettings";
+import { getDramaEraStyle, type DramaVisualStyle } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import {
   parseScriptItems,
@@ -30,6 +32,8 @@ interface ScriptTabProps {
   novelId: string;
   workspace: NovelChapterWorkspace;
   onOpenChapterManage: () => void;
+  /** 内置时代风格预设（与美术风格面板同源，供画风切换选择）。 */
+  styleOptions: DramaVisualStyle[];
 }
 
 // 正在编辑的字段：条目下标 + 具体字段（一行可能有多个可点编辑的区域）。
@@ -44,6 +48,7 @@ interface EditingTarget {
 // 列表是它的结构化视图：parse 拆行渲染，编辑后 serialize 回写（往返契约见 shared/utils/scriptDocument）。
 export default function ScriptTab(props: ScriptTabProps) {
   const { novelId, workspace } = props;
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState<EditingTarget | null>(null);
 
   const savePending = workspace.savePending;
@@ -82,11 +87,45 @@ export default function ScriptTab(props: ScriptTabProps) {
     queryFn: () => getStorySettingsProps(novelId),
     enabled: Boolean(novelId),
   });
+  const worldQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsWorld(novelId),
+    queryFn: () => getStorySettingsWorld(novelId),
+    enabled: Boolean(novelId),
+  });
+  const eraStyleQuery = useQuery({
+    queryKey: queryKeys.drama.eraStyle(novelId),
+    queryFn: () => getDramaEraStyle(novelId),
+    enabled: Boolean(novelId),
+  });
   const characters = charactersQuery.data?.data ?? [];
   const scenes = scenesQuery.data?.data ?? [];
   const propList = propsQuery.data?.data ?? [];
+  const customEraStyles = worldQuery.data?.data?.artStyles ?? [];
+  const eraStyleInfo = eraStyleQuery.data?.data ?? null;
+  // 画风选项：内置预设 + 本书自定义（值用 label——脚本标记里写的就是它）。
+  const eraStyleOptions = useMemo(
+    () => [
+      ...props.styleOptions.map((style) => style.label),
+      ...customEraStyles.map((style) => style.label),
+    ].filter((label, index, all) => label && all.indexOf(label) === index),
+    [props.styleOptions, customEraStyles],
+  );
 
   const items = useMemo(() => parseScriptItems(workspace.expectationText), [workspace.expectationText]);
+
+  // 本章画风：本章最后一个【画风】标记；没有则沿用服务端解析的当前生效风格
+  // （更早章节的标记或小说默认——「新章节沿用上一次使用的风格」）。
+  const chapterEraMarker = useMemo(() => {
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const item = items[i];
+      if (item.kind === "style" && item.style.trim()) {
+        return item.style.trim();
+      }
+    }
+    return null;
+  }, [items]);
+  const effectiveEraLabel = chapterEraMarker ?? eraStyleInfo?.label ?? eraStyleOptions[0] ?? "";
+  const eraInherited = !chapterEraMarker && eraStyleInfo?.source === "script";
 
   // 脚本与设定资产的名字对应情况（2026-08-21 用户要求）：
   // - 场景行/台词说话人/角色状态行按名字精确对应资产；
@@ -172,8 +211,22 @@ export default function ScriptTab(props: ScriptTabProps) {
   };
 
   const removeItem = (index: number) => {
+    const removed = items[index];
     applyItems(items.filter((_, i) => i !== index));
     setEditing(null);
+    // 删掉画风标记后，生效画风回落到继承值（更早章节标记或小说默认），刷新一次。
+    if (removed?.kind === "style") {
+      queryClient.invalidateQueries({ queryKey: queryKeys.drama.eraStyle(novelId) });
+    }
+  };
+
+  // 切换画风：在脚本末尾追加一条【画风：名】标记——标记对后续内容生效，
+  // 之后的画面/视频生成用新组合（通用画风不变，时代风格换成新选的）。
+  const switchEraStyle = (label: string) => {
+    if (!label || label === effectiveEraLabel) {
+      return;
+    }
+    applyItems([...items, { kind: "style", style: label }]);
   };
 
   const moveItem = (index: number, direction: -1 | 1) => {
@@ -229,6 +282,20 @@ export default function ScriptTab(props: ScriptTabProps) {
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Card className="rounded-3xl">
         <CardContent className="p-4 sm:p-6">
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <span className="shrink-0 text-sm text-muted-foreground">画风</span>
+            <SelectControl
+              className="h-8 w-40 rounded-md border border-border bg-background px-2 text-sm"
+              value={effectiveEraLabel}
+              onChange={(event) => switchEraStyle(event.target.value)}
+              aria-label="切换本章画风"
+            >
+              {eraStyleOptions.map((label) => (
+                <option key={label} value={label}>{label}</option>
+              ))}
+            </SelectControl>
+            {eraInherited ? <span className="text-xs text-muted-foreground">沿用之前章节</span> : null}
+          </div>
           {items.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
               <p className="text-sm leading-6 text-muted-foreground">
@@ -258,6 +325,19 @@ export default function ScriptTab(props: ScriptTabProps) {
                       total={items.length}
                       editing={editing}
                       matched={scriptUsage.knownCharacters.has(item.name.trim())}
+                      onEdit={setEditing}
+                      onUpdate={updateItem}
+                      onRemove={removeItem}
+                      onMove={moveItem}
+                    />
+                  ) : item.kind === "style" ? (
+                    <StyleRow
+                      item={item}
+                      index={index}
+                      total={items.length}
+                      editing={editing}
+                      isLatest={item.style.trim() === chapterEraMarker}
+                      options={eraStyleOptions}
                       onEdit={setEditing}
                       onUpdate={updateItem}
                       onRemove={removeItem}
@@ -317,6 +397,9 @@ export default function ScriptTab(props: ScriptTabProps) {
             </Button>
             <Button variant="outline" size="sm" onClick={() => appendItem({ kind: "state", name: "角色名", state: "新状态" }, "name")}>
               <Plus className="mr-1 h-4 w-4" aria-hidden="true" />角色状态
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => appendItem({ kind: "style", style: effectiveEraLabel || eraStyleOptions[0] || "现代都市" }, "value")}>
+              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />画风
             </Button>
           </div>
         </CardContent>
@@ -561,6 +644,53 @@ function StateRow(props: RowBaseProps & {
         onCancel={() => props.onEdit(null)}
         onActivate={() => props.onEdit({ index: props.index, field: "value" })}
       />
+      <RowActions {...props} />
+    </div>
+  );
+}
+
+// 画风切换行：标记从这里开始用哪个时代风格；本章最后一条是当前生效的。
+function StyleRow(props: RowBaseProps & {
+  item: Extract<ScriptItem, { kind: "style" }>;
+  isLatest: boolean;
+  options: string[];
+  onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
+}) {
+  const active = props.editing?.index === props.index && props.editing?.field === "value";
+  const options = props.options.length > 0 ? props.options : [props.item.style];
+  return (
+    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-violet-500/10 px-3 py-2">
+      <Badge className="shrink-0 bg-violet-500/15 text-violet-700 hover:bg-violet-500/25 dark:text-violet-300">画风</Badge>
+      {active ? (
+        <SelectControl
+          autoFocus
+          className="h-8 w-40 rounded-md border border-border bg-background px-2 text-sm"
+          value={options.includes(props.item.style) ? props.item.style : options[0]}
+          onChange={(event) => {
+            props.onUpdate(props.index, { style: event.target.value });
+            props.onEdit(null);
+          }}
+          onBlur={() => props.onEdit(null)}
+        >
+          {options.map((label) => (
+            <option key={label} value={label}>{label}</option>
+          ))}
+        </SelectControl>
+      ) : (
+        <button
+          type="button"
+          className={`rounded text-left text-sm font-semibold ${
+            props.isLatest
+              ? "text-violet-700 dark:text-violet-300"
+              : "text-muted-foreground"
+          }`}
+          onClick={() => props.onEdit({ index: props.index, field: "value" })}
+          title="点击换画风"
+        >
+          切换为 {props.item.style}
+        </button>
+      )}
+      {props.isLatest ? <span className="text-xs text-muted-foreground">当前生效</span> : null}
       <RowActions {...props} />
     </div>
   );

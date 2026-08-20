@@ -147,7 +147,7 @@ function extractVisualDesc(visualAnchor: string | null | undefined): string {
 
 /**
  * 构建「角色设计稿」提示词：
- * 单张横版图 = 左侧面部特写（1/3） + 右侧全身正/侧/背三视图（2/3），四个视图合称四视图（沿用旧项目约定）
+ * 单张图四个视角（沿用旧项目口径，2026-08-21 用户明确）：头部正面、头部侧面、正面全身、背面全身。
  */
 function buildCharacterSheetPrompt(character: {
   name: string;
@@ -159,21 +159,21 @@ function buildCharacterSheetPrompt(character: {
 
   const lines: string[] = [
     // 四视图布局沿用旧项目口径（2026-08-21 用户明确）：头部正面、头部侧面、正面全身、背面全身。
-    "professional character design reference sheet, single image with four views",
-    "head close-up FRONT view (detailed facial features, natural expression)",
-    "head close-up SIDE view (90-degree profile)",
-    "full-body FRONT view (standing, whole body visible)",
-    "full-body BACK view (same costume and hairstyle seen from behind)",
-    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
-    "white background, clean studio lighting, no text or watermarks",
+    "专业角色设计参考图，单张图片，含四个视角",
+    "头部特写 正面视角（五官细节清晰，表情自然）",
+    "头部特写 侧面视角（90度侧脸）",
+    "全身 正面视角（站立，全身可见）",
+    "全身 背面视角（同款服装与发型，从背后看）",
+    "四个视角必须是同一个角色：服装、发型与配色完全一致",
+    "白色背景，干净的摄影棚布光，不要文字或水印",
     ...styleLines,
   ];
 
-  if (character.archetype) lines.push(`character archetype: ${character.archetype}`);
-  if (character.persona) lines.push(`character trait: ${character.persona}`);
-  if (visualDesc) lines.push(`appearance: ${visualDesc}`);
+  if (character.archetype) lines.push(`角色定位：${character.archetype}`);
+  if (character.persona) lines.push(`性格特质：${character.persona}`);
+  if (visualDesc) lines.push(`外貌：${visualDesc}`);
 
-  lines.push("professional costume design");
+  lines.push("专业戏服设计");
 
   return lines.join(", ");
 }
