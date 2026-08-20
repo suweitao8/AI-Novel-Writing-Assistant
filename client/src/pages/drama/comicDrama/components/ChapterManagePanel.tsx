@@ -20,7 +20,7 @@ interface ChapterManagePanelProps {
   onSelectChapter: (chapter: Chapter) => void;
 }
 
-// 章节管理面板：工具栏（新建 / 搜索）+ 极简章节卡（第几章 + 标题，桌面一行 5 个）。
+// 章节管理面板：工具栏（新建 / 搜索）+ 极简章节卡（序号 · 标题一行，与页头章节按钮同款）。
 // 打开时自动滚到正在编辑的章节；点卡片把该章切为当前章。
 export default function ChapterManagePanel(props: ChapterManagePanelProps) {
   const { novelId, directorTaskActive } = props;
@@ -132,11 +132,10 @@ export default function ChapterManagePanel(props: ChapterManagePanelProps) {
                       "rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm",
                       isCurrent && "border-primary/50 ring-1 ring-primary/30",
                     )}>
-                      <CardContent className="flex flex-col gap-0.5 p-2.5">
-                        <span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-                          第 {chapter.order} 章
-                        </span>
+                      <CardContent className="p-2.5">
                         <span className="w-full truncate text-sm font-semibold text-foreground group-hover:text-primary" title={chapter.title}>
+                          <span className="tabular-nums text-muted-foreground">{chapter.order}</span>
+                          <span className="mx-1 text-muted-foreground">·</span>
                           {chapter.title}
                         </span>
                       </CardContent>
