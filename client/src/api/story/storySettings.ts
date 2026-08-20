@@ -323,7 +323,8 @@ export interface WorldMapAnnotationResult {
   }>;
 }
 
-// AI 场景标注：把未标注的场景资产放进三层地图（直接落库），无法定位的场景标记后下次跳过。
+// AI 生成/标注地图（直接落库）：空地图时依据书名/世界观生成基础的国家+城市结构；
+// 有未标注场景时把场景放置到地图上，无法定位的标记后下次跳过。
 export async function annotateWorldMap(novelId: string) {
   const { data } = await apiClient.post<ApiResponse<WorldMapAnnotationResult>>(
     `/novels/${encodeURIComponent(novelId)}/settings/world/map-annotate`,

@@ -42,7 +42,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterReferenceParse.prompts").chapterReferenceParsePrompt as UnknownPromptAsset,
   },
     {
-    key: "novel.world.map_annotate@v1",
+    key: "novel.world.map_annotate@v2",
     load: () => require("../prompts/novel/worldMap.prompts").worldMapAnnotatePrompt as UnknownPromptAsset,
   },
   {

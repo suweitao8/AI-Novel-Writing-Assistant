@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-// 地图场景标注（novel.world.map_annotate@v1 + WorldMapService 归一/合并）：
+// 地图场景标注与生成（novel.world.map_annotate@v2 + WorldMapService 归一/合并）：
 // schema 边界、postValidate 决策完备性、mergeAnnotation 只增不改、归一行为。
 
 const { worldMapAnnotatePrompt } = require("../dist/prompting/prompts/novel/worldMap.prompts.js");
@@ -36,9 +36,24 @@ function makeAnnotation(overrides = {}) {
   };
 }
 
-test("prompt 注册进 loader registry（novel.world.map_annotate@v1）", () => {
+test("prompt 注册进 loader registry（novel.world.map_annotate@v2）", () => {
   const keys = promptAssetLoaderEntries.map((entry) => entry.key);
-  assert.ok(keys.includes("novel.world.map_annotate@v1"), "缺少 novel.world.map_annotate@v1 注册");
+  assert.ok(keys.includes("novel.world.map_annotate@v2"), "缺少 novel.world.map_annotate@v2 注册");
+});
+
+test("空场景（生成模式）：postValidate 要求至少一个国家、placements 必须为空", () => {
+  const input = { novelTitle: "测试小说", scenes: [] };
+  const base = { newCountries: [{ name: "大梁国", x: 40, y: 30 }], newCities: [{ name: "云京城", countryName: "大梁国", x: 50, y: 50 }] };
+  const ok = worldMapAnnotatePrompt.postValidate({ ...base, placements: [], unplaceable: [] }, input);
+  assert.equal(ok.newCountries.length, 1);
+  // 生成模式不允许杜撰场景放置（场景名单为空）。
+  assert.throws(() => worldMapAnnotatePrompt.postValidate({
+    ...base,
+    placements: [{ sceneName: "不存在的场景", countryName: "大梁国", cityName: "云京城", x: 10, y: 10 }],
+    unplaceable: [],
+  }, input), /不在待标注名单/);
+  // 空地图空场景却一个国家都不给，直接拒绝（否则调用方拿到的地图与之前完全一样）。
+  assert.throws(() => worldMapAnnotatePrompt.postValidate({ newCountries: [], newCities: [], placements: [], unplaceable: [] }, input), /至少规划一个国家/);
 });
 
 test("outputSchema 接受完整标注并拒绝越界坐标", () => {

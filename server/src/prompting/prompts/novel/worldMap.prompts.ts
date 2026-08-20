@@ -1,5 +1,5 @@
-// 地图场景标注：把未标注的场景资产放到三层地图（世界=国家分布 → 国家=城市分布 → 城市=具体地点）上。
-// 标注直接落库：只新增国家/城市/地点节点，不改动已有节点、地形与人工布局；无法定位的场景标记 unmappable，下次跳过。
+// 地图场景标注与生成：有未标注场景时按 国家→城市→城内地点 放置；没有场景时依据书名/世界观生成基础地图（国家+城市）。
+// 结果直接落库：只新增国家/城市/地点节点，不改动已有节点、地形与人工布局；无法定位的场景标记 unmappable，下次跳过。
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
@@ -45,13 +45,15 @@ const mapAnnotationSchema = z.object({
 
 export interface WorldMapAnnotatePromptInput {
   novelTitle: string;
+  premise?: string;
   era?: string;
+  keySettings?: Array<{ title: string; content: string }>;
   // 现有地图树（按 国家→城市 折叠；地点数量用于让 AI 感知已有布局密度）。
   existingCountries?: Array<{
     name: string;
     cities: Array<{ name: string; placeCount: number }>;
   }>;
-  // 待标注场景（已标注与已标记 unmappable 的不会传进来）。
+  // 待标注场景（已标注与已标记 unmappable 的不会传进来）；可能为空——空时按书名/世界观生成基础地图。
   scenes: Array<{ name: string; summary: string }>;
 }
 
@@ -94,12 +96,16 @@ function validateAnnotation(output: WorldMapAnnotateOutput, input: WorldMapAnnot
   if (missing.length > 0) {
     throw new Error(`这些场景没有给出结论：${missing.map((scene) => scene.name).join("、")}。每个场景必须放置或标记无法定位。`);
   }
+  // 空地图空场景的「生成」模式：必须给出至少一个国家，否则调用方拿到的地图与之前完全一样。
+  if (input.scenes.length === 0 && (input.existingCountries ?? []).length === 0 && output.newCountries.length === 0) {
+    throw new Error("还没有场景也没有已有国家时，必须至少规划一个国家。");
+  }
   return output;
 }
 
 export const worldMapAnnotatePrompt: PromptAsset<WorldMapAnnotatePromptInput, WorldMapAnnotateOutput> = {
   id: "novel.world.map_annotate",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -108,14 +114,15 @@ export const worldMapAnnotatePrompt: PromptAsset<WorldMapAnnotatePromptInput, Wo
   repairPolicy: { maxAttempts: 1 },
   render: (input) => [
     new SystemMessage([
-      "你是小说故事地图的标注员：把场景资产按 国家 → 城市 → 城内地点 三层放到地图上。",
+      "你是小说故事地图的规划与标注员：维护 国家 → 城市 → 城内地点 三层地图。",
       "地图分三层画布：世界画布摆国家的相对位置；每个国家有自己的画布摆城市；每个城市有自己的画布摆具体地点（场景）。",
-      "existingCountries 是已有的地图结构：优先把场景放进已有的国家和城市（名字要完全一致），确实缺再在 newCountries/newCities 里新建。",
-      "场景依据名字与 summary 判断归属：说明里通常写明了它是什么样的场所、属于哪座城。",
+      "scenes 为空（还没有场景资产）时，依据 novelTitle、premise、keySettings、era 构思一张基础地图：2～5 个国家（网文常见格局如中央大国+周边邻国/势力，名字要具体，不要「某国」「东方大陆」），每国 2～4 座主要城市，此时只输出 newCountries/newCities，placements/unplaceable 留空——城内地点等场景出现后再标。",
+      "scenes 不为空时按标注处理：existingCountries 是已有的地图结构，优先把场景放进已有的国家和城市（名字要完全一致），确实缺再在 newCountries/newCities 里新建；场景依据名字与 summary 判断归属。",
+      "keySettings 里的力量体系、势力格局、禁忌与规则要体现在国家与城市的命名和 summary 中（例如宗门林立的世界要有宗门所在的山城）。",
       "坐标都是所在层画布的 0-100 平面百分比：同一层内各点要分散（任意两点至少相距 6 个单位），按地理逻辑布局，留出名字标注空间。",
       "newCountries 的 x/y 是世界画布坐标；newCities 的 x/y 是所属国家画布上的坐标；placements 的 x/y 是所属城市画布上的坐标。",
       "无法定位的场景放 unplaceable：名字是泛称（「街道」「野外」）、描述信息不足、或剧情空间不明确时不要硬猜，给出简短原因。",
-      "每个待标注场景必须出现在 placements 或 unplaceable 之一，不能遗漏。",
+      "scenes 不为空时，每个待标注场景必须出现在 placements 或 unplaceable 之一，不能遗漏。",
       "所有内容用中文。只输出严格 JSON。",
     ].join("\n")),
     new HumanMessage(JSON.stringify(input, null, 2)),

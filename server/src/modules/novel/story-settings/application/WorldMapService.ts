@@ -101,6 +101,23 @@ function parseJsonObjectSafe(value: string | null | undefined): Record<string, u
   }
 }
 
+// 世界观关键设定条目（章节解析累积）：作为 AI 生成基础地图的世界观依据传入。
+function parseKeySettings(value: string | null | undefined): Array<{ title: string; content: string }> {
+  try {
+    const parsed = JSON.parse(value || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => item && typeof item === "object")
+      .map((item) => ({
+        title: normalizeString((item as { title?: unknown }).title, 60),
+        content: normalizeString((item as { content?: unknown }).content, 400),
+      }))
+      .filter((item) => item.title && item.content);
+  } catch {
+    return [];
+  }
+}
+
 function normalizeString(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
@@ -329,7 +346,9 @@ export function mergeAnnotation(
 }
 
 export class WorldMapService {
-  // AI 场景标注（直接落库）：未标注场景 → 三层地图放置；已标注与 unmappable 的不重复处理。
+  // AI 生成/标注地图（直接落库）：有未标注场景→逐个放置（可新建国家/城市）；
+  // 空地图且无场景→依据书名/世界观前提/关键设定生成基础的国家+城市结构；
+  // 已有内容且无待标注场景→400（此时只有人工编辑一种途径）。已标注与 unmappable 的不重复处理。
   async annotateWorldMap(
     novelId: string,
     options: { taskId?: string } = {},
@@ -355,16 +374,22 @@ export class WorldMapService {
         name: row.name.trim().slice(0, 60),
         summary: (row.summary ?? "").trim().slice(0, 200),
       }));
-    if (pendingScenes.length === 0) {
-      throw new AppError("没有需要标注的场景：场景都已标注或已标记为无法标注。", 400);
+    const existingCountries = summarizeCountries(existingMap);
+    if (pendingScenes.length === 0 && existingCountries.length > 0) {
+      throw new AppError("地图已有内容，也没有待标注的场景；需要调整请直接在画布上编辑。", 400);
     }
+    // 空地图（哪怕也没有场景）也放行：AI 依据书名/世界观前提/关键设定生成一张基础地图。
 
+    const premise = worldRow?.premise?.trim() || undefined;
+    const keySettings = parseKeySettings(worldRow?.keySettingsJson);
     const generated = await runStructuredPrompt({
       asset: worldMapAnnotatePrompt,
       promptInput: {
         novelTitle: novel.title,
+        premise,
         era: worldRow?.era?.trim() || undefined,
-        existingCountries: summarizeCountries(existingMap),
+        keySettings: keySettings.length > 0 ? keySettings : undefined,
+        existingCountries: existingCountries.length > 0 ? existingCountries : undefined,
         scenes: pendingScenes,
       },
       options: {
@@ -372,7 +397,7 @@ export class WorldMapService {
         taskId: options.taskId,
         stage: "world_map_annotate",
         entrypoint: "drama_studio",
-        temperature: 0.4,
+        temperature: pendingScenes.length > 0 ? 0.4 : 0.7,
       },
     });
 
