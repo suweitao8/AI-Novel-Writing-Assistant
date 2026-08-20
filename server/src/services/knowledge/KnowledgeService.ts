@@ -228,6 +228,21 @@ export class KnowledgeService {
         if (existing.status === "archived") {
           throw new Error("Archived knowledge documents cannot accept new versions.");
         }
+        // 同名文档重复上传完全相同的内容（contentHash 一致）时不追加新版本，
+        // 否则每次「替换」都会堆一份一模一样的版本（曾出现同一本参考小说 3 份版本）。
+        const activeVersion = existing.activeVersionId
+          ? await tx.knowledgeDocumentVersion.findUnique({ where: { id: existing.activeVersionId } })
+          : null;
+        if (activeVersion?.contentHash === contentHash) {
+          return tx.knowledgeDocument.findUnique({
+            where: { id: existing.id },
+            include: {
+              versions: {
+                orderBy: [{ versionNumber: "desc" }, { createdAt: "desc" }],
+              },
+            },
+          });
+        }
         const nextVersionNumber = existing.activeVersionNumber + 1;
         const version = await tx.knowledgeDocumentVersion.create({
           data: {
@@ -290,6 +305,9 @@ export class KnowledgeService {
       });
     });
 
+    if (!document) {
+      throw new Error("Knowledge document not found after creation.");
+    }
     this.queueKnowledgeRebuild(document.id, input.indexPayload);
     const detail = await this.getDocumentById(document.id);
     if (!detail) {

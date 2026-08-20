@@ -252,35 +252,53 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
+              <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
                 {currentTab === "extract" ? (
-                  <Button
-                    size="sm"
-                    onClick={() => extractStage.extractMutation.mutate()}
-                    disabled={extractStage.extractMutation.isPending || extractStage.extractDisabledReason !== null}
-                    title={extractStage.extractDisabledReason ?? "从参考文本提取角色、场景与世界观"}
-                  >
+                  <>
+                    {extractStage.extractDisabledReason ? (
+                      <span className="text-xs text-muted-foreground">{extractStage.extractDisabledReason}</span>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      onClick={() => extractStage.extractMutation.mutate()}
+                      disabled={extractStage.extractMutation.isPending || extractStage.extractDisabledReason !== null}
+                      title={extractStage.extractDisabledReason ?? "从参考文本提取角色、场景与世界观"}
+                    >
                     {extractStage.extractMutation.isPending
                       ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
                       : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
                     提取
                   </Button>
+                  </>
                 ) : currentTab === "reference" ? (
-                  <Button
-                    size="sm"
-                    onClick={() => referenceStage.parseMutation.mutate()}
-                    disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
-                    title={referenceStage.parseDisabledReason ?? "按参考文本生成本章初稿"}
-                  >
-                    {referenceStage.parseMutation.isPending
-                      ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                      : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                    解析
-                  </Button>
+                  <>
+                    {chapterWorkspace.referenceSavePending ? (
+                      <span className="text-xs text-muted-foreground">自动保存中…</span>
+                    ) : chapterWorkspace.referenceDirty ? (
+                      <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
+                    ) : null}
+                    {referenceStage.parseDisabledReason ? (
+                      <span className="text-xs text-muted-foreground">{referenceStage.parseDisabledReason}</span>
+                    ) : null}
+                    <Button
+                      size="sm"
+                      onClick={() => referenceStage.parseMutation.mutate()}
+                      disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
+                      title={referenceStage.parseDisabledReason ?? "按参考文本生成本章初稿"}
+                    >
+                      {referenceStage.parseMutation.isPending
+                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                        : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+                      解析
+                    </Button>
+                  </>
                 ) : currentTab === "draft" ? (
                   <>
                     {chapterWorkspace.savePending ? (
                       <span className="text-xs text-muted-foreground">自动保存中…</span>
+                    ) : null}
+                    {parseDisabledReason ? (
+                      <span className="text-xs text-muted-foreground">{parseDisabledReason}</span>
                     ) : null}
                     <Button
                       size="sm"
@@ -346,11 +364,17 @@ export default function ComicDramaStudioPage() {
 
         <TabsContent value="current" className="space-y-4">
           {currentTab === "extract" ? (
-            <ReferenceExtractTab stage={extractStage} />
+            <ReferenceExtractTab stage={extractStage} sourceHint={referenceStage.referenceSourceHint} />
           ) : currentTab === "reference" ? (
             <ReferenceTab
-              value={referenceStage.referenceText}
+              editorValue={referenceStage.referenceEditorValue}
               onChange={referenceStage.setReferenceText}
+              docTitle={referenceStage.sourceDocTitle}
+              docCharCount={referenceStage.sourceCharCount}
+              previewText={referenceStage.sourcePreviewText}
+              docLoading={referenceStage.sourceDocLoading}
+              onCopyDocToChapter={referenceStage.copySourceToChapter}
+              onBeginEdit={referenceStage.beginReferenceEdit}
             />
           ) : currentTab === "draft" ? (
             <NovelOutlineTab
