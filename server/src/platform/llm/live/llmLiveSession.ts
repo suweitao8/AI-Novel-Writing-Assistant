@@ -33,8 +33,7 @@ const TASK_TYPE_PURPOSES: Partial<Record<TaskType, string>> = {
 // planner）时，笼统显示「大纲与章节规划」会让用户分不清每个调用在做什么——
 // 这些阶段必须在任务类型兜底之前精确命名。
 const STAGE_PURPOSES: Record<string, string> = {
-  chapter_reference_draft: "参考解析：把参考小说本章改编成分镜初稿",
-  chapter_reference_extract: "参考解析：从参考小说本章提取角色、场景、道具",
+  chapter_reference_parse: "参考解析：改编本章分镜初稿并提取角色/场景/道具/世界观",
 };
 
 // Prompt id → 具体用途名：漫剧/漫画管线大量 prompt 共用 outline_planning 等

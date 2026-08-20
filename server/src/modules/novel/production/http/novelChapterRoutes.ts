@@ -4,7 +4,7 @@ import { z } from "zod";
 import { agentRuntime } from "../../../../agents";
 import { validate } from "../../../../middleware/validate";
 import { chapterDetailOutlineService } from "../../planning/application/ChapterDetailOutlineService";
-import { chapterReferenceDraftService } from "../../planning/application/ChapterReferenceDraftService";
+import { chapterReferenceParseService } from "../../planning/application/ChapterReferenceParseService";
 import type { NovelApplicationServices } from "../../../../services/novel/application/NovelApplicationContracts";
 
 interface RegisterNovelChapterRoutesInput {
@@ -22,7 +22,7 @@ interface RegisterNovelChapterRoutesInput {
   updateChapterSchema: z.ZodTypeAny;
   chapterExecutionContractSchema: z.ZodTypeAny;
   chapterDetailOutlineSaveSchema: z.ZodTypeAny;
-  chapterReferenceDraftPreviewSchema: z.ZodTypeAny;
+  chapterReferenceParsePreviewSchema: z.ZodTypeAny;
 }
 
 export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInput): void {
@@ -35,7 +35,7 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
     updateChapterSchema,
     chapterExecutionContractSchema,
     chapterDetailOutlineSaveSchema,
-    chapterReferenceDraftPreviewSchema,
+    chapterReferenceParsePreviewSchema,
   } = input;
 
   router.get("/:id/chapters", validate({ params: idParamsSchema }), async (req, res, next) => {
@@ -141,14 +141,15 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
     },
   );
 
-  // 参考文本 → 设定建议：AI 提取角色/场景/世界观（不落库，前端勾选确认后创建）
+  // 参考文本「解析」：一次调用同时产出分镜初稿与设定建议（纯预览不落库，
+  // 前端解析流程负责持久化：初稿经确认写 expectation，提取建议随章节保存）
   router.post(
-    "/:id/chapters/:chapterId/reference-extract/preview",
-    validate({ params: chapterParamsSchema, body: chapterReferenceDraftPreviewSchema }),
+    "/:id/chapters/:chapterId/reference-parse/preview",
+    validate({ params: chapterParamsSchema, body: chapterReferenceParsePreviewSchema }),
     async (req, res, next) => {
       try {
         const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
-        const data = await chapterReferenceDraftService.previewReferenceExtraction(
+        const data = await chapterReferenceParseService.previewReferenceParse(
           id,
           chapterId,
           (req.body as { referenceText: string }).referenceText,
@@ -156,30 +157,7 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
         res.status(200).json({
           success: true,
           data,
-          message: "Reference extraction generated.",
-        } satisfies ApiResponse<typeof data>);
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  // 参考文本 → 初稿：AI 压缩粘贴的参考小说原文（不落库，前端确认后写入初稿）
-  router.post(
-    "/:id/chapters/:chapterId/reference-draft/preview",
-    validate({ params: chapterParamsSchema, body: chapterReferenceDraftPreviewSchema }),
-    async (req, res, next) => {
-      try {
-        const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
-        const data = await chapterReferenceDraftService.previewReferenceDraft(
-          id,
-          chapterId,
-          (req.body as { referenceText: string }).referenceText,
-        );
-        res.status(200).json({
-          success: true,
-          data,
-          message: "Chapter reference draft generated.",
+          message: "Chapter reference parse generated.",
         } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
