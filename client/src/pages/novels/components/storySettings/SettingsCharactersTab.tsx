@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Sparkles, Trash2, UserRound } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Sparkles, Trash2, UserRound } from "lucide-react";
 import type { StorySettingsCharacter } from "@/api/story/storySettings";
 import {
   createStorySettingsCharacter,
   deleteStorySettingsCharacter,
   generateStoryEntityDraft,
   getStorySettingsCharacters,
-  regenerateStorySettings,
   updateStorySettingsCharacter,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
@@ -55,12 +54,21 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
   const [form, setForm] = useState<CharacterFormState>(EMPTY_CHARACTER_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [appliedKeyword, setAppliedKeyword] = useState("");
 
   const charactersQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsCharacters(novelId),
     queryFn: () => getStorySettingsCharacters(novelId),
   });
   const characters = charactersQuery.data?.data ?? [];
+  const normalized = appliedKeyword.trim().toLowerCase();
+  const filteredCharacters = normalized
+    ? characters.filter((character) =>
+        [character.name, character.appearance, character.physique, character.attireStyle, character.voiceTexture]
+          .filter((text): text is string => Boolean(text))
+          .some((text) => text.toLowerCase().includes(normalized)))
+    : characters;
 
   const invalidate = async () => {
     await Promise.all([
@@ -125,17 +133,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     },
   });
 
-  const regenerateMutation = useMutation({
-    mutationFn: () => regenerateStorySettings(novelId, "characters"),
-    onSuccess: async () => {
-      toast.success("已补充缺失的角色。");
-      await invalidate();
-    },
-    onError: (error) => {
-      toast.error("角色生成失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: (characterId: string) => deleteStorySettingsCharacter(novelId, characterId),
     onSuccess: async () => {
@@ -182,36 +179,43 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">
-          故事里的每个人物。AI 会按这里的性格写他们的言行；改设定后，后续正文会跟着新设定走。
-        </p>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={openCreate}>
-            添加角色
-          </Button>
-          <AiButton
-            variant="outline"
-            size="sm"
-            onClick={() => regenerateMutation.mutate()}
-            disabled={regenerateMutation.isPending}
-          >
-            {regenerateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {regenerateMutation.isPending ? "生成中..." : "AI 补充角色"}
-          </AiButton>
-        </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="outline" size="sm" onClick={openCreate}>
+          <Plus className="h-4 w-4" />
+          添加角色
+        </Button>
+        <Input
+          value={keyword}
+          aria-label="搜索角色"
+          placeholder="搜索名称或说明"
+          maxLength={40}
+          className="h-8 min-w-0 max-w-xs flex-1"
+          onChange={(event) => setKeyword(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              setAppliedKeyword(keyword);
+              event.currentTarget.blur();
+            }
+          }}
+        />
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="h-8 w-8 shrink-0"
+          aria-label="搜索"
+          onClick={() => setAppliedKeyword(keyword)}
+        >
+          <Search className="h-4 w-4" aria-hidden="true" />
+        </Button>
       </div>
       {charactersQuery.isLoading ? (
         <div className="text-sm text-muted-foreground">正在加载角色...</div>
-      ) : characters.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center text-sm text-muted-foreground">
-            还没有角色。点「添加角色」用一句提示（如「男大学生」）让 AI 生成完整设定，或点「AI 补充角色」自动创建主角阵容。
-          </CardContent>
-        </Card>
+      ) : filteredCharacters.length === 0 ? (
+        <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {characters.map((character) => (
+          {filteredCharacters.map((character) => (
             <Card key={character.id} className="min-w-0">
               <CardContent className="space-y-2 py-4">
                 <div className="flex items-start justify-between gap-2">
