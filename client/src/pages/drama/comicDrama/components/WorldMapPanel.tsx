@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import MapCanvas from "./worldMap/MapCanvas";
-import { LevelListCard, NodeEditorCard, TerrainEditorCard } from "./worldMap/MapEditorPanels";
+import { NodeEditorCard, TerrainEditorCard } from "./worldMap/MapEditorPanels";
 import {
   LEVEL_SCALE_KM,
   MAP_LEVELS,
@@ -24,8 +24,9 @@ import {
 
 // 漫剧「设定 · 地图」画布工作面：国家/城市两级切换 + 点击下钻（塞尔达式大地图）。
 // 顶部切换「国家级别」（世界画布=各国相对位置）与「城市级别」（选定国家的城市分布），
-// 点城市再进一层看城内地点（场景）。地理距离按各层内置尺度估算（世界≈中国跨度、城市≈广州建成区），
-// 连线上直接标注公里数。所有改动（拖动/改名/删除）自动保存，没有手动保存按钮。
+// 点城市再进一层看城内地点（场景）。画布占满整行；点选节点/地形后编辑卡出现在画布下方，未选中不占位。
+// 地理距离按各层内置尺度估算（世界≈中国跨度、城市≈广州建成区），连线上直接标注公里数。
+// 所有改动（拖动/改名/删除）自动保存，没有手动保存按钮。
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -299,74 +300,62 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
         </div>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <Card className="min-w-0 border-border/70">
-          <CardContent className="p-3 sm:p-4">
-            {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
-              <div className="flex aspect-square max-h-[520px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border text-center">
-                <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground">
-                  {activeTab === "country"
-                    ? "还没有国家。"
-                    : activePath.length === 1
-                      ? "这个国家还没有城市。"
-                      : "这座城市还没有地点。"}
-                </p>
-              </div>
-            ) : (
-              <div className="mx-auto w-full max-w-[540px]">
-                <MapCanvas
-                  map={currentMap}
-                  selectedNodeId={selectedNodeId}
-                  selectedTerrainId={selectedTerrainId}
-                  levelScaleKm={levelScaleKm}
-                  onNodeMove={moveNode}
-                  onNodeSelect={handleNodeClick}
-                  onTerrainSelect={(terrainId) => {
-                    setSelectedTerrainId(terrainId);
-                    setSelectedNodeId(null);
-                  }}
-                  onTerrainMove={moveTerrain}
-                />
-              </div>
-            )}
-            {currentMap.nodes.length > 0 ? (
-              <p className="mt-2 text-center text-xs text-muted-foreground">
-                {level.childLevelLabel
-                  ? `点${level.levelLabel}进入${level.childLevelLabel}分布，拖动调整位置；距离按${activeTab === "country" ? "中国量级" : "现实城际尺度"}估算。`
-                  : "点地点查看编辑，拖动调整位置。"}
+      {/* 画布占满整行；点选的编辑卡收在画布下方，未选中时不占位 */}
+      <Card className="min-w-0 border-border/70">
+        <CardContent className="p-3 sm:p-4">
+          {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
+            <div className="flex aspect-square max-h-[560px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border text-center">
+              <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
+              <p className="text-sm text-muted-foreground">
+                {activeTab === "country"
+                  ? "还没有国家。"
+                  : activePath.length === 1
+                    ? "这个国家还没有城市。"
+                    : "这座城市还没有地点。"}
               </p>
-            ) : null}
-          </CardContent>
-        </Card>
-
-        <div className="space-y-4">
-          {selectedNode ? (
-            <NodeEditorCard
-              node={selectedNode}
-              childLevelLabel={level.childLevelLabel}
-              onPatch={(patch) => patchNode(selectedNode.id, patch)}
-              onDelete={() => removeNode(selectedNode.id)}
-              onOpenChildMap={() => openChildMap(selectedNode.id)}
-            />
-          ) : selectedTerrain ? (
-            <TerrainEditorCard
-              terrain={selectedTerrain}
-              onPatch={(patch) => patchTerrain(selectedTerrain.id, patch)}
-              onDelete={() => removeTerrain(selectedTerrain.id)}
-            />
+            </div>
           ) : (
-            <LevelListCard
-              map={currentMap}
-              levelLabel={level.levelLabel}
-              childLevelLabel={level.childLevelLabel}
-              selectedNodeId={selectedNodeId}
-              onSelect={(nodeId) => setSelectedNodeId(nodeId === selectedNodeId ? null : nodeId)}
-              onOpenChild={openChildMap}
-            />
+            <div className="mx-auto w-full max-w-[720px]">
+              <MapCanvas
+                map={currentMap}
+                selectedNodeId={selectedNodeId}
+                selectedTerrainId={selectedTerrainId}
+                levelScaleKm={levelScaleKm}
+                onNodeMove={moveNode}
+                onNodeSelect={handleNodeClick}
+                onTerrainSelect={(terrainId) => {
+                  setSelectedTerrainId(terrainId);
+                  setSelectedNodeId(null);
+                }}
+                onTerrainMove={moveTerrain}
+              />
+            </div>
           )}
-        </div>
-      </div>
+          {currentMap.nodes.length > 0 ? (
+            <p className="mt-2 text-center text-xs text-muted-foreground">
+              {level.childLevelLabel
+                ? `点${level.levelLabel}进入${level.childLevelLabel}分布，拖动调整位置；距离按${activeTab === "country" ? "中国量级" : "现实城际尺度"}估算。`
+                : "点地点查看编辑，拖动调整位置。"}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      {selectedNode ? (
+        <NodeEditorCard
+          node={selectedNode}
+          childLevelLabel={level.childLevelLabel}
+          onPatch={(patch) => patchNode(selectedNode.id, patch)}
+          onDelete={() => removeNode(selectedNode.id)}
+          onOpenChildMap={() => openChildMap(selectedNode.id)}
+        />
+      ) : selectedTerrain ? (
+        <TerrainEditorCard
+          terrain={selectedTerrain}
+          onPatch={(patch) => patchTerrain(selectedTerrain.id, patch)}
+          onDelete={() => removeTerrain(selectedTerrain.id)}
+        />
+      ) : null}
     </div>
   );
 }

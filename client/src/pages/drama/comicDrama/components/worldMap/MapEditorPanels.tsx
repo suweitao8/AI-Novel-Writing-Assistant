@@ -5,68 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TERRAIN_TYPES, nodeLabel, terrainTone } from "./mapData";
+import { TERRAIN_TYPES, terrainTone } from "./mapData";
 
-// 右侧编辑面板：当前层导航列表（世界层=国家 / 国家层=城市 / 城市层=地点）、节点编辑、地形编辑。
-
-// 当前层的导航列表：国家/城市点击进入下一层，地点点击选中。
-export function LevelListCard(props: {
-  map: WorldMapData;
-  levelLabel: string;
-  childLevelLabel: string | null;
-  selectedNodeId: string | null;
-  onSelect: (nodeId: string) => void;
-  onOpenChild: (nodeId: string) => void;
-}) {
-  return (
-    <Card className="min-w-0">
-      <CardContent className="space-y-2 p-3 sm:p-4">
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">{props.levelLabel}（{props.map.nodes.length}）</p>
-        </div>
-        {props.map.nodes.length === 0 ? (
-          <p className="text-xs leading-5 text-muted-foreground">
-            还没有{props.levelLabel}。
-          </p>
-        ) : (
-          <ul className="space-y-1">
-            {props.map.nodes.map((node) => {
-              const childCount = props.map.childMaps?.[node.id]?.nodes.length ?? 0;
-              const canDrill = props.childLevelLabel !== null;
-              return (
-                <li key={node.id}>
-                  <div
-                    className={cn(
-                      "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
-                      props.selectedNodeId === node.id ? "bg-muted" : "hover:bg-muted/60",
-                    )}
-                  >
-                    <button
-                      type="button"
-                      className="min-w-0 flex-1 truncate text-left"
-                      onClick={() => props.onSelect(node.id)}
-                    >
-                      {nodeLabel(node)}
-                    </button>
-                    {canDrill ? (
-                      <button
-                        type="button"
-                        className="shrink-0 rounded-md border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
-                        onClick={() => props.onOpenChild(node.id)}
-                      >
-                        {props.childLevelLabel}（{childCount}）
-                      </button>
-                    ) : null}
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
+// 地图编辑卡：选中节点（名称/说明/删除/进入下级）与选中地形（名字/类型/删除），显示在画布下方。
 
 export function NodeEditorCard(props: {
   node: WorldMapNode;
