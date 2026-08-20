@@ -24,6 +24,7 @@ import type {
   SceneAssetFormState,
   PropAssetFormState,
 } from "@/pages/novels/components/storySettings/assetForms";
+import { newStateId } from "@/pages/novels/components/storySettings/assetForms";
 
 // 「提取」页签：展示「解析」产出并随章节持久化的设定建议（Chapter.referenceExtractionJson）。
 // 每条建议点开弹窗核对、可修改（与资产页签共用 assetForms 表单），点「应用」单个创建——
@@ -78,10 +79,6 @@ export function normalizeExtraction(raw: unknown): ReferenceExtractionPayload {
     props: items(source.props),
     worldview: items(source.worldview).map((item) => ({ name: item.name, description: item.description })),
   };
-}
-
-function newStateId(): string {
-  return `state-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 export type ApplyOneInput = {
@@ -169,12 +166,9 @@ export function useReferenceExtractStage(input: {
           role: form.role.trim() || "配角",
           gender: form.gender || undefined,
           ageGroup: form.ageGroup || undefined,
-          physique: form.physique.trim() || undefined,
-          attireStyle: form.attireStyle.trim() || undefined,
+          appearance: form.appearance.trim() || undefined,
           facePrompt: imagePrompt || undefined,
           voiceTexture: voicePrompt || undefined,
-          personality: form.personality.trim() || undefined,
-          appearance: form.appearance.trim() || undefined,
           states,
         });
       } else if (form.__kind === "scene") {

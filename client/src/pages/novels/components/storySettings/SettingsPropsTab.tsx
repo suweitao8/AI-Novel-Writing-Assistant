@@ -20,7 +20,8 @@ import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
-import { EMPTY_PROP_FORM, PropAssetFormFields, type PropAssetFormState } from "./assetForms";
+import { AssetStatesEditor, EMPTY_PROP_FORM, PropAssetFormFields, type PropAssetFormState } from "./assetForms";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { cn } from "@/lib/utils";
 
 interface SettingsPropsTabProps {
@@ -50,6 +51,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
+  const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
 
   const propsQuery = useQuery({
@@ -84,7 +86,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
         firstAppearHint: form.firstAppearHint.trim() || null,
       };
       return editing
-        ? updateStorySettingsProp(novelId, editing.id, payload)
+        ? updateStorySettingsProp(novelId, editing.id, { ...payload, states })
         : createStorySettingsProp(novelId, {
           ...payload,
           description: payload.description ?? undefined,
@@ -155,6 +157,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_PROP_FORM);
+    setStates([]);
     setHint("");
   };
 
@@ -172,6 +175,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
       importance: prop.importance,
       firstAppearHint: prop.firstAppearHint ?? "",
     });
+    setStates(prop.states ?? []);
   };
 
   const closeDialog = () => {
@@ -319,6 +323,9 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
               onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
               characters={characters.map((character) => ({ id: character.id, name: character.name }))}
             />
+            {editing ? (
+              <AssetStatesEditor states={states} onChange={setStates} kind="prop" />
+            ) : null}
           </div>
         </AppDialogContent>
       </Dialog>
