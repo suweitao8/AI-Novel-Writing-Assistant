@@ -60,6 +60,16 @@
 - **批量任务与进程重启**：drama 批量任务跑在服务进程内（`void runBatchJob()`），ts-node-dev 重启会杀掉进行中的批量——恢复方式是重建同类型批量（已完成镜头自动跳过）；视频 providerTask 卡 running 时把 DramaVideoPrompt 置 failed 并清 providerTaskId 后重新派发。
 - **美术风格（原「画面风格」，2026-08-20 统一改名）**：`services/drama/visual/dramaVisualStyles.ts`（7 预设，移植自旧项目 mydrama/supertale 的 styles/presets；每预设带中文 `summary`；`DEFAULT_DRAMA_VISUAL_STYLE_ID=unreal_cinematic_3d`「3D写实电影」——《黑神话：悟空》式 UE 写实 3D，排在预设列表首位）。注入点：首帧图提示词与角色设计稿提示词；风格只约束渲染媒介，`style_instructions` 中明确不得覆盖角色外貌/服装/场景描述。**小说级多套风格**：内置预设之外，每本小说可在「设定 · 美术风格」页签定义自定义风格与默认风格（存 `NovelSettingsWorld`，契约见 architecture/story-settings-hub.md 美术风格节）；**画风不进初稿**（v8 起无【风格】标记，2026-08-20 用户决定：整本用默认风格一种画风，想换画风改默认风格即可）。与 styleEngine 的通用画面风格体系仍是两套来源（drama 侧为项目级预设+小说级自定义），后续可考虑收敛。
 
+## 设定中心与生成链路的接线（2026-08-19 审计后接线）
+
+设定中心（Character / NovelScene / NovelProp）是漫剧画面与声音的一致性来源，但接线前只有角色真正进链路——场景环境提示词、道具画面提示词、角色音色提示词填了不生效。当前接线规则：
+
+- **角色（一直通）**：设定中心角色就是 `Character` 表（story-settings 复用，不是两张表）；`NovelSourceAdapter.loadBundle` 把 facePrompt 打头的外观拼进 `visualHint` → `DramaCharacter.visualAnchor` → 首帧图 `characters:` 行 + portraitData 参考图。
+- **场景/道具 → 首帧图（2026-08-19 接线）**：`DramaShotKeyframeService.resolveNovelSettingSources`——`novel_import` 项目每次生成首帧时读取 NovelScene/NovelProp；场景按 `shot.location` 匹配（精确名相等优先，其次取名字被 location 包含的最长场景，对应「废弃地铁站·站台」这类带修饰的写法），`environmentPrompt`（缺省 summary）拼成 `scene environment:` 行；道具按镜头文本（location/action/dialogue/visualPrompt 拼接）做词边界匹配（`(?<![\p{L}\p{N}])名字(?![\p{L}\p{N}])`，与脚本页名字对应同一约定），命中的 `visualPrompt` 拼成 `props:` 行。匹配不到不加任何行，生图行为与接线前一致。非 novel_import（original/text_import）项目不查设定。
+- **音色（2026-08-19 接线）**：`Character.voiceTexture` → `SourceCharacter.voicePrompt`（契约新增字段）→ `DramaCharacter.voiceProfile` 初始 `{voicePrompt}`（与 `readCharacterVoice` 的解析键对齐），配音链路（VoxCPM/HTTP TTS）直接可用；用户在音色面板设计过的 voiceProfile 优先于初始值。
+- **同步保产（2026-08-19 修复的真实踩坑）**：工作室每次切章或进入「分镜」子页签都会静默调 `assembleSourceBundle`，其角色导入是 `deleteMany + createMany` 重建——而 `portraitData`（角色设计稿）、`threeViewData`、`voiceProfile` 是**用户在本项目的创作产物**，不是源内容，重建时若不带回就会切章即清空（用户生成的设计稿/配好的音色悄悄消失）。现在的规则：重建前先读旧行，按 `sourceCharacterRef`（缺省按名字 trim 相等）匹配，把三个产物字段原样带回；声线无旧值时才用源音色提示词初始化。**给任何「重建式导入」写代码时必须区分「源内容可刷新」与「用户产物必须保留」两类字段。**
+- **仍断链（后续工作）**：外观状态 states / referenceStateId（状态参考图）未被任何生成侧消费——「生成状态图片」功能整体未实现，数据契约先行（见 story-settings-hub.md）；【角色状态】标记的逐镜解析（首帧图不读它）也未实现；分镜的道具没有结构化引用（靠文本匹配，道具名与镜头描述写法不一致时静默不生效）。
+
 ## 失败模式 / 注意事项
 
 - 视频通道是可插拔 port（`VideoProviderPort`），默认 mock **不会生成真实视频**：studio 视频阶段必须保留"未配置真实通道"的提示，不能让用户误以为出片失败是 bug。

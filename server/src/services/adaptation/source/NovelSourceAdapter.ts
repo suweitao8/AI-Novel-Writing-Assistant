@@ -58,6 +58,7 @@ export class NovelSourceAdapter implements SourceContentPort {
           gender: true,
           ageGroup: true,
           facePrompt: true,
+          voiceTexture: true,
           role: true,
           personality: true,
           background: true,
@@ -107,6 +108,8 @@ export class NovelSourceAdapter implements SourceContentPort {
         character.signatureDetail,
       ].filter(Boolean).join("，") || undefined,
       facePrompt: character.facePrompt?.trim() || undefined,
+      // 设定中心角色的音色提示词直接作为漫剧配音的初始音色（用户在音色面板可再改）
+      voicePrompt: character.voiceTexture?.trim() || undefined,
       sourceCharacterRef: character.id,
     }));
 

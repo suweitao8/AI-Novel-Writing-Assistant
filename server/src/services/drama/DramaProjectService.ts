@@ -117,20 +117,42 @@ export class DramaProjectService {
         },
       });
 
-      // 角色资源导入（重置后重建，保证幂等）
+      // 角色资源导入（重置后重建，保证幂等）。
+      // 立绘/四视图/声线是本项目的创作产物而非源内容：工作室每次切章都会触发同步，
+      // 重建时必须按 sourceCharacterRef（缺省按名字）从旧行带回，否则用户已生成的
+      // 角色图与已配置的音色会被切章静默清空。声线没有旧值时用源角色的音色提示词
+      // 初始化（voiceProfile JSON 的 voicePrompt 键与 readCharacterVoice 的解析对齐）。
+      const previousCharacters = await tx.dramaCharacter.findMany({
+        where: { projectId },
+        select: { name: true, sourceCharacterRef: true, voiceProfile: true, portraitData: true, threeViewData: true },
+      });
+      const previousByRef = new Map(
+        previousCharacters
+          .filter((row) => row.sourceCharacterRef)
+          .map((row) => [row.sourceCharacterRef as string, row]),
+      );
+      const previousByName = new Map(previousCharacters.map((row) => [row.name.trim(), row]));
       await tx.dramaCharacter.deleteMany({ where: { projectId } });
       if (bundle.characters.length > 0) {
         await tx.dramaCharacter.createMany({
-          data: bundle.characters.map((character) => ({
-            projectId,
-            name: character.name,
-            persona: character.persona ?? null,
-            relations: character.relations ?? null,
-            visualAnchor: character.visualHint
-              ? JSON.stringify({ hint: character.visualHint })
-              : null,
-            sourceCharacterRef: character.sourceCharacterRef ?? null,
-          })),
+          data: bundle.characters.map((character) => {
+            const previous = (character.sourceCharacterRef && previousByRef.get(character.sourceCharacterRef))
+              || previousByName.get(character.name.trim());
+            return {
+              projectId,
+              name: character.name,
+              persona: character.persona ?? null,
+              relations: character.relations ?? null,
+              visualAnchor: character.visualHint
+                ? JSON.stringify({ hint: character.visualHint })
+                : null,
+              sourceCharacterRef: character.sourceCharacterRef ?? null,
+              voiceProfile: previous?.voiceProfile
+                ?? (character.voicePrompt ? JSON.stringify({ voicePrompt: character.voicePrompt }) : null),
+              portraitData: previous?.portraitData ?? null,
+              threeViewData: previous?.threeViewData ?? null,
+            };
+          }),
         });
       }
 

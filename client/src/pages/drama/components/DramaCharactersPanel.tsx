@@ -8,7 +8,7 @@ import type {
   DramaProjectDetail,
 } from "@/api/media/drama";
 import {
-  generateDramaCharacterPortrait,
+  generateDramaCharacterSheet,
   prepareDramaCharacterSheet,
 } from "@/api/media/drama";
 import { getAPIKeySettings } from "@/api/settings";
@@ -144,7 +144,7 @@ function CharacterImagesBlock(props: {
           history: current.history,
         }));
         try {
-          const result = await generateDramaCharacterPortrait(
+          const result = await generateDramaCharacterSheet(
             props.projectId,
             props.character.id,
             selectedProvider || undefined,

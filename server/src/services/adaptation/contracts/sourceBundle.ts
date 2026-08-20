@@ -46,6 +46,8 @@ export interface SourceCharacter {
   visualHint?: string;
   /** 纯面部锚点（发型发色/眼睛/肤色/脸型，不含服装），角色设定图的面部一致性基准 */
   facePrompt?: string;
+  /** 音色描述（配音 TTS 用，如「低沉沙哑的青年男声」），novel_import 来自设定中心角色的音色提示词 */
+  voicePrompt?: string;
   /** 软引用：源角色标识（novel_import 时为 characterId） */
   sourceCharacterRef?: string;
 }
