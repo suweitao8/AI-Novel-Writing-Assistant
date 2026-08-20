@@ -12,7 +12,6 @@ const {
 const { prisma } = require("../dist/db/prisma.js");
 const {
   guardSimpleCreationUserWrites,
-  isDramaStudioChapterWorkspaceWrite,
   isSimpleCreationWriteAllowed,
 } = require("../dist/modules/novel/http/simpleCreationWriteGuard.js");
 
@@ -185,32 +184,14 @@ test("simple creation write boundary allows reads, exports, settings and outline
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/chapters/chapter-1/generate"), false);
 });
 
-test("drama studio chapter workspace writes only cover outline-level endpoints", () => {
-  // 漫剧工作室的单章工作台：本章大纲保存、手动建章、单章细纲推理与保存。
-  // 守卫挂在 router.use("/:id")，这里传的是剥掉 /:id 前缀后的运行时形状（/chapters/...）。
-  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1"), true);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters"), true);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/detail-outline/preview"), true);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-draft/preview"), true);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-extract/preview"), true);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/reference-draft/preview"), false);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-draft"), false);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/detail-outline"), true);
-  // 删除与生成等其余章节端点不属于工作台，仍然只读。
-  assert.equal(isDramaStudioChapterWorkspaceWrite("DELETE", "/chapters/chapter-1"), false);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/generate"), false);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", ""), false);
-  assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/execution-contract"), false);
-});
-
-test("simple creation guard allows chapter workspace only for comic-drama novels", async () => {
-  const originals = {
-    novelFindUnique: prisma.novel.findUnique,
-  };
+test("comic-drama novels bypass the simple-mode read-only guard entirely", async () => {
+  // 漫剧工作室是漫剧小说的正式编辑入口：章节增删改、参考解析、细纲全部放行，
+  // 不再按端点路径白名单（端点改名 reference-draft/extract → reference-parse 时
+  // 白名单失配曾把「解析」拦死，已两次踩坑）。
+  const originals = { novelFindUnique: prisma.novel.findUnique };
   const requests = {};
   prisma.novel.findUnique = async () => ({ creationExperience: "simple", productionKind: "comic_drama" });
 
-  // 守卫挂在 router.use("/:id")：params.id 是小说 id，path 已剥掉 /:id 前缀。
   function fakeRequest(method, path) {
     return { method, path, params: { id: "book-1" } };
   }
@@ -221,29 +202,47 @@ test("simple creation guard allows chapter workspace only for comic-drama novels
   }
 
   try {
-    // 漫剧小说（productionKind=comic_drama，含还没生成分镜的新项目）：单章工作台写入放行。
-    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("dramaPutChapter"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters"), {}, captureNext("dramaPostChapter"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/detail-outline/preview"), {}, captureNext("dramaPreview"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/reference-draft/preview"), {}, captureNext("dramaReference"));
-    assert.equal(requests.dramaPutChapter, null);
-    assert.equal(requests.dramaPostChapter, null);
-    assert.equal(requests.dramaPreview, null);
-    assert.equal(requests.dramaReference, null);
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("putChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters"), {}, captureNext("postChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/chapters/chapter-1"), {}, captureNext("deleteChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/reference-parse/preview"), {}, captureNext("referenceParse"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/reference-draft/preview"), {}, captureNext("referenceDraft"));
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1/detail-outline"), {}, captureNext("detailOutline"));
+    assert.equal(requests.putChapter, null);
+    assert.equal(requests.postChapter, null);
+    assert.equal(requests.deleteChapter, null);
+    assert.equal(requests.referenceParse, null);
+    assert.equal(requests.referenceDraft, null);
+    assert.equal(requests.detailOutline, null);
+  } finally {
+    prisma.novel.findUnique = originals.novelFindUnique;
+  }
+});
 
-    // 漫剧小说也不能绕过破坏性写入与正文生成。
-    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/chapters/chapter-1"), {}, captureNext("dramaDelete"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/generate"), {}, captureNext("dramaGenerate"));
-    assert.ok(requests.dramaDelete instanceof Error);
-    assert.equal(requests.dramaDelete.statusCode, 409);
-    assert.ok(requests.dramaGenerate instanceof Error);
-    assert.equal(requests.dramaGenerate.statusCode, 409);
+test("plain simple novels keep chapter writes read-only", async () => {
+  const originals = { novelFindUnique: prisma.novel.findUnique };
+  const requests = {};
+  prisma.novel.findUnique = async () => ({ creationExperience: "simple", productionKind: "novel" });
 
-    // 普通简易小说（productionKind=novel）：单章工作台同样只读。
-    prisma.novel.findUnique = async () => ({ creationExperience: "simple", productionKind: "novel" });
-    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("plainPutChapter"));
-    assert.ok(requests.plainPutChapter instanceof Error);
-    assert.equal(requests.plainPutChapter.statusCode, 409);
+  function fakeRequest(method, path) {
+    return { method, path, params: { id: "book-1" } };
+  }
+
+  try {
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, (error) => {
+      requests.putChapter = error ?? null;
+    });
+    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/chapters/chapter-1"), {}, (error) => {
+      requests.deleteChapter = error ?? null;
+    });
+    // 设定中心与大纲工作台仍走 isSimpleCreationWriteAllowed 白名单放行。
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/settings/scenes/scene-1"), {}, (error) => {
+      requests.putSettings = error ?? null;
+    });
+    assert.ok(requests.putChapter instanceof Error);
+    assert.equal(requests.putChapter.statusCode, 409);
+    assert.ok(requests.deleteChapter instanceof Error);
+    assert.equal(requests.putSettings, null);
   } finally {
     prisma.novel.findUnique = originals.novelFindUnique;
   }

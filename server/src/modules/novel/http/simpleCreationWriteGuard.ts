@@ -17,32 +17,11 @@ export function isSimpleCreationWriteAllowed(method: string, path: string): bool
     || normalizedPath.includes("/outline");
 }
 
-// 漫剧工作室的单章工作台端点。漫剧项目的小说固定以简易模式创建
-// （ComicDramaCreateDialog），工作室的「本章初稿自动保存 / 解析与保存细纲 / 参考解析 /
-// 手动建章」就是这本小说的正式编辑入口，地位等价于空白小说的 /outline 工作台。
-// 放行条件见 isDramaNativeNovel：按小说自身 productionKind 判定（含未生成分镜的新项目）。
-// 只放行非破坏性写入：章节删除、正文生成等其余章节端点仍然只读。
-// 注意：本守卫挂在 router.use("/:id")，执行期间 req.path 已剥掉 /:id 前缀，
-// 这里匹配的是 /chapters/... 形状，不带 novelId 段。
-export function isDramaStudioChapterWorkspaceWrite(method: string, path: string): boolean {
-  const normalizedMethod = method.toUpperCase();
-  const normalizedPath = path.toLowerCase();
-  const putChapter = normalizedMethod === "PUT" && /^\/chapters\/[^/]+$/.test(normalizedPath);
-  const postChapter = normalizedMethod === "POST" && /^\/chapters$/.test(normalizedPath);
-  const detailOutline = (normalizedMethod === "PUT" || normalizedMethod === "POST")
-    && /^\/chapters\/[^/]+\/detail-outline(\/preview)?$/.test(normalizedPath);
-  const referencePreview = normalizedMethod === "POST"
-    && /^\/chapters\/[^/]+\/reference-(draft|extract)\/preview$/.test(normalizedPath);
-  return putChapter || postChapter || detailOutline || referencePreview;
-}
-
-async function isDramaNativeNovel(novel: { productionKind?: string | null }): Promise<boolean> {
-  // 漫剧小说从创建起就是 productionKind=comic_drama（ComicDramaCreateDialog）。
-  // 不能用 DramaProject 关联做判定：DramaProject 要到「从成稿生成分镜」才创建，
-  // 新建的漫剧项目没有关联行，按关联判定会把分镜生成前的章节工作台全部拦死。
-  return novel.productionKind === "comic_drama";
-}
-
+// 漫剧项目（productionKind=comic_drama）不适用简易模式只读（2026-08-20 用户决定，
+// 彻底根治）：漫剧工作室就是这本书的正式编辑入口——章节增删改、参考解析、细纲、
+// 设定全部可编辑。此前按端点路径白名单放行漫剧的工作台写入，端点改名
+// （reference-draft/extract → reference-parse）后白名单失配，把「解析」拦死，
+// 已两次踩坑——路径字符串守卫跟不上端点演进，按项目类型整体放行杜绝复发。
 export async function guardSimpleCreationUserWrites(
   req: Request,
   _res: Response,
@@ -62,14 +41,7 @@ export async function guardSimpleCreationUserWrites(
       where: { id: novelId },
       select: { creationExperience: true, productionKind: true },
     });
-    if (novel?.creationExperience === "simple") {
-      if (
-        isDramaStudioChapterWorkspaceWrite(req.method, req.path)
-        && await isDramaNativeNovel(novel)
-      ) {
-        next();
-        return;
-      }
+    if (novel?.creationExperience === "simple" && novel.productionKind !== "comic_drama") {
       next(new AppError(
         "简易模式项目当前仅供阅读。如需修改，请先切换到专业模式。",
         409,
