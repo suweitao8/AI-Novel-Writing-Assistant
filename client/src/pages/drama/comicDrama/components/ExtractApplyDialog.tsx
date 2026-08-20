@@ -38,7 +38,6 @@ export default function ExtractApplyDialog(props: {
   group: ExtractGroup;
   item: ReferenceExtractCharacter | ReferenceExtractItem | { name: string; description: string } | null;
   existing: boolean;
-  characters: Array<{ id: string; name: string }>;
   pending: boolean;
   onApply: (form: object) => void;
   onOpenChange: (open: boolean) => void;
@@ -75,8 +74,8 @@ export default function ExtractApplyDialog(props: {
     setPropForm({
       ...EMPTY_PROP_FORM,
       name: item.name ?? "",
-      description: extractItem.description ?? "",
-      visualPrompt: extractItem.imagePrompt ?? "",
+      // 道具只要名字和画面提示词；旧提取结果没给提示词时把描述带进来当起点
+      visualPrompt: extractItem.imagePrompt || extractItem.description || "",
     });
     setWorldviewForm({ name: item.name ?? "", description: extractItem.description ?? "" });
   }, [props.open, item, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
@@ -128,11 +127,7 @@ export default function ExtractApplyDialog(props: {
             ) : group === "scenes" ? (
               <SceneAssetFormFields value={sceneForm} onChange={(patch) => setSceneForm((prev) => ({ ...prev, ...patch }))} />
             ) : group === "props" ? (
-              <PropAssetFormFields
-                value={propForm}
-                onChange={(patch) => setPropForm((prev) => ({ ...prev, ...patch }))}
-                characters={props.characters}
-              />
+              <PropAssetFormFields value={propForm} onChange={(patch) => setPropForm((prev) => ({ ...prev, ...patch }))} />
             ) : (
               <div className="space-y-3">
                 <label className="block space-y-1">

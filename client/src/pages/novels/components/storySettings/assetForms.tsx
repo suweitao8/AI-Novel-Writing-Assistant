@@ -330,109 +330,40 @@ export function SceneAssetFormFields(props: {
   );
 }
 
+// 道具表单只留做视频要用的字段（2026-08-19 用户决定：道具就是道具名 + 图片提示词，
+// 类型/持有者/重要度/剧情功能等对生成画面没有作用；数据库旧字段保留，编辑保存时清空）。
 export interface PropAssetFormState {
   name: string;
-  propType: string;
-  description: string;
-  plotFunction: string;
   visualPrompt: string;
-  ownerCharacterId: string;
-  importance: string;
-  firstAppearHint: string;
 }
 
 export const EMPTY_PROP_FORM: PropAssetFormState = {
   name: "",
-  propType: "object",
-  description: "",
-  plotFunction: "",
   visualPrompt: "",
-  ownerCharacterId: "",
-  importance: "major",
-  firstAppearHint: "",
 };
 
 export function PropAssetFormFields(props: {
   value: PropAssetFormState;
   onChange: (patch: Partial<PropAssetFormState>) => void;
-  characters: Array<{ id: string; name: string }>;
 }) {
-  const { value, onChange, characters } = props;
+  const { value, onChange } = props;
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">道具名</span>
-          <Input
-            value={value.name}
-            placeholder="例如：外婆留下的怀表"
-            onChange={(event) => onChange({ name: event.target.value })}
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">道具类型</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.propType}
-            onChange={(event) => onChange({ propType: event.target.value })}
-          >
-            <option value="object">物件</option>
-            <option value="weapon">武器</option>
-            <option value="accessory">饰品</option>
-            <option value="artifact">神器</option>
-            <option value="document">文书</option>
-            <option value="furniture">家具</option>
-          </SelectControl>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">持有者</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.ownerCharacterId}
-            onChange={(event) => onChange({ ownerCharacterId: event.target.value })}
-          >
-            <option value="">未设定</option>
-            {characters.map((character) => (
-              <option key={character.id} value={character.id}>{character.name}</option>
-            ))}
-          </SelectControl>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">重要度</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.importance}
-            onChange={(event) => onChange({ importance: event.target.value })}
-          >
-            <option value="core">核心</option>
-            <option value="major">重要</option>
-            <option value="minor">次要</option>
-          </SelectControl>
-        </label>
-      </div>
       <label className="block space-y-1">
-        <span className="text-sm font-medium">外观 / 来历</span>
-        <Input value={value.description} onChange={(event) => onChange({ description: event.target.value })} />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">剧情功能</span>
+        <span className="text-sm font-medium">道具名</span>
         <Input
-          value={value.plotFunction}
-          placeholder="用于什么转折、伏笔或兑现"
-          onChange={(event) => onChange({ plotFunction: event.target.value })}
+          value={value.name}
+          placeholder="例如：外婆留下的怀表"
+          onChange={(event) => onChange({ name: event.target.value })}
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-sm font-medium">视觉提示词（生成道具图时使用）</span>
+        <span className="text-sm font-medium">画面提示词（生成道具图时使用）</span>
         <Input
           value={value.visualPrompt}
           placeholder="材质、工艺、尺寸、色泽、纹饰"
           onChange={(event) => onChange({ visualPrompt: event.target.value })}
         />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">首次登场提示</span>
-        <Input value={value.firstAppearHint} onChange={(event) => onChange({ firstAppearHint: event.target.value })} />
       </label>
     </div>
   );

@@ -192,14 +192,9 @@ export function useReferenceExtractStage(input: {
         const imagePrompt = form.visualPrompt.trim();
         await createStorySettingsProp(input.novelId, {
           name: form.name.trim(),
-          propType: (form.propType || "object") as "weapon" | "accessory" | "artifact" | "document" | "furniture" | "object",
-          description: form.description.trim() || undefined,
-          plotFunction: form.plotFunction.trim() || undefined,
           visualPrompt: imagePrompt || undefined,
-          ownerCharacterId: form.ownerCharacterId || undefined,
-          importance: (form.importance || "major") as "core" | "major" | "minor",
           states: imagePrompt
-            ? [{ id: newStateId(), label: "初始", description: form.description.trim() || imagePrompt, imagePrompt, ...chapterTag }]
+            ? [{ id: newStateId(), label: "初始", description: imagePrompt, imagePrompt, ...chapterTag }]
             : [],
         });
       } else {
@@ -234,7 +229,6 @@ export function useReferenceExtractStage(input: {
   return {
     extraction,
     existingNames,
-    characters: characters.map((item) => ({ id: item.id, name: item.name })),
     applyOneMutation,
     totalItems,
   };
