@@ -69,8 +69,6 @@ const PROP_TYPE_LABELS: Record<string, string> = {
 };
 const IMPORTANCE_LABELS: Record<string, string> = { core: "核心", major: "重要", minor: "次要" };
 
-const CHARACTER_ROLE_OPTIONS = ["主角", "重要配角", "配角", "反派", "路人"];
-
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
   const text = value?.trim();
   if (!text) return null;
@@ -162,7 +160,6 @@ function AssetDetailDialog(props: {
               return (
                 <>
                   <div className="flex flex-wrap gap-1.5">
-                    <Badge variant="outline">{character.role}</Badge>
                     {character.gender ? <Badge variant="secondary">{GENDER_LABELS[character.gender] ?? character.gender}</Badge> : null}
                     {character.ageGroup ? <Badge variant="secondary">{AGE_LABELS[character.ageGroup] ?? character.ageGroup}</Badge> : null}
                   </div>
@@ -218,7 +215,6 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   const [createType, setCreateType] = useState<AssetType>("character");
   const [createName, setCreateName] = useState("");
   const [createNote, setCreateNote] = useState("");
-  const [characterRole, setCharacterRole] = useState("配角");
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const assets = useMemo<AssetCard[]>(() => {
@@ -287,7 +283,6 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       if (createType === "character") {
         await createStorySettingsCharacter(props.novelId, {
           name,
-          role: characterRole,
           personality: createNote.trim() || undefined,
         });
       } else if (createType === "scene") {
@@ -456,21 +451,6 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
                 <option value="prop">道具</option>
               </SelectControl>
             </div>
-            {createType === "character" ? (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="asset-create-role">角色定位</label>
-                <SelectControl
-                  id="asset-create-role"
-                  className="h-9 w-full rounded-md border border-border bg-background px-2 text-sm"
-                  value={characterRole}
-                  onChange={(event) => setCharacterRole(event.target.value)}
-                >
-                  {CHARACTER_ROLE_OPTIONS.map((option) => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </SelectControl>
-              </div>
-            ) : null}
             <div className="space-y-1.5">
               <label className="text-sm font-medium" htmlFor="asset-create-name">名称</label>
               <Input

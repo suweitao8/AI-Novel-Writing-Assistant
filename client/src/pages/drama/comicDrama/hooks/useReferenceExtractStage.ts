@@ -163,7 +163,6 @@ export function useReferenceExtractStage(input: {
           : [];
         await createStorySettingsCharacter(input.novelId, {
           name: form.name.trim(),
-          role: form.role.trim() || "配角",
           gender: form.gender || undefined,
           ageGroup: form.ageGroup || undefined,
           appearance: form.appearance.trim() || undefined,

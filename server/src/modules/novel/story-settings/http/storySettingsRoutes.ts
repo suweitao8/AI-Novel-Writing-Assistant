@@ -114,7 +114,7 @@ const worldUpdateSchema = z.object({
 
 const characterCreateSchema = z.object({
   name: z.string().trim().min(1).max(60),
-  role: z.string().trim().min(1).max(80),
+  role: z.string().trim().max(80).optional(),
   gender: z.enum(["male", "female", "other", "unknown"]).optional(),
   ageGroup: z.enum(["child", "youth", "middle", "elder"]).optional(),
   physique: z.string().trim().max(200).optional(),

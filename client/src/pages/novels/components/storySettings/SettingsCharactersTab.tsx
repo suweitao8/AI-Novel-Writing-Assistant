@@ -74,7 +74,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     mutationFn: () => {
       const payload = {
         name: form.name.trim(),
-        role: form.role.trim(),
         gender: form.gender || undefined,
         ageGroup: form.ageGroup || undefined,
         appearance: form.appearance.trim() || undefined,
@@ -113,7 +112,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       }
       setForm({
         name: draft.name,
-        role: draft.role,
         gender: draft.gender || "unknown",
         ageGroup: draft.ageGroup || "",
         appearance: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；"),
@@ -163,7 +161,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setHint("");
     setForm({
       name: character.name,
-      role: character.role,
       gender: character.gender ?? "unknown",
       ageGroup: character.ageGroup ?? "",
       // 旧资料把体型/着装分开放：编辑时并入外貌体型一个字段（保存后旧字段清空）
@@ -219,10 +216,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
               <CardContent className="space-y-2 py-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate font-medium text-foreground">{character.name}</span>
-                    <Badge variant="secondary" className="shrink-0">{character.role}</Badge>
-                    {character.gender && character.gender !== "unknown" ? (
+                        <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
+                        <span className="truncate font-medium text-foreground">{character.name}</span>
+                        {character.gender && character.gender !== "unknown" ? (
                       <Badge variant="outline" className="shrink-0">{GENDER_LABELS[character.gender] ?? character.gender}</Badge>
                     ) : null}
                     {character.ageGroup ? (
@@ -289,7 +285,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
           footer={
             <>
               <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim() || !form.role.trim()}>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim()}>
                 {saveMutation.isPending ? "保存中..." : "保存"}
               </Button>
             </>

@@ -28,7 +28,6 @@ function makeSegment(overrides = {}) {
 function makeCharacter(overrides = {}) {
   return {
     name: "林川",
-    role: "男主",
     gender: "male",
     ageGroup: "youth",
     appearance: "高瘦，黑色短发，眉眼锐利，常穿深色夹克，左手腕有一道旧疤。",
@@ -54,11 +53,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v4 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v4");
+test("prompt 资产为 reference_parse@v5 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v5");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v4",
+    "novel.chapter.reference_parse@v5",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -91,11 +90,15 @@ test("角色结构化字段：性别枚举、年龄段可空、外貌体型合�
     characters: [makeCharacter({ physique: "高瘦" })],
   })));
 
-  // 缺省回落：看不出性别→unknown、推不出年龄→null、体型→空串（旧提取结构也能并入解析）
+  // v5 起不再输出 role/身份定位（strict 拒绝）
+  assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    characters: [makeCharacter({ role: "男主" })],
+  })));
+
+  // 缺省回落：看不出性别→unknown、推不出年龄→null（旧提取结构也能并入解析）
   const legacy = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
     characters: [{
       name: "老周",
-      role: "配角",
       appearance: "微驼背，花白头发，穿洗旧的工装。",
       imagePrompt: "老年男性全身像：花白短发、微驼背，洗旧工装与布鞋。",
       voicePrompt: "沙哑的老年男声，慢悠悠。",

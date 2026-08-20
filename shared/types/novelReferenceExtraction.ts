@@ -38,8 +38,8 @@ export interface ReferenceExtractItem {
 
 export interface ReferenceExtractCharacter {
   name: string;
-  /** 身份定位，如 男主/女主/反派/导师/配角 */
-  role: string;
+  /** 身份定位（v5 起不再生成——参考小说只处理成脚本，不判断男主女主；仅为已持久化的旧结果保留） */
+  role?: string;
   /** 性别（v5 起结构化输出；unknown=原文看不出） */
   gender?: "male" | "female" | "other" | "unknown";
   /** 年龄段（child=少年/儿童、youth=青年、middle=中年、elder=老年；null=原文推不出） */

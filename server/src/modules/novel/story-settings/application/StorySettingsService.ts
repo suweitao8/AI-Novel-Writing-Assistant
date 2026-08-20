@@ -120,6 +120,12 @@ export interface StorySettingsWorldMapView {
 
 const CATEGORY_LIST: StorySettingsCategory[] = ["characters", "scenes", "props", "world"];
 
+// 角色摘要行：有剧情定位时「名字（定位）」，没有就只写名字（定位不再由表单/提取维护）。
+function formatCharacterSummary(name: string, role: string | null | undefined): string {
+  const trimmed = role?.trim();
+  return trimmed ? `${name}（${trimmed}）` : name;
+}
+
 function parseStates(value: string | null | undefined): StoryAssetState[] {
   if (!value?.trim()) return [];
   try {
@@ -389,7 +395,7 @@ export class StorySettingsService {
         entityType,
         hint: hint?.trim() || undefined,
         worldPremise: worldRow?.premise?.trim() || undefined,
-        existingCharacters: characters.map((character) => `${character.name}（${character.role}）`),
+        existingCharacters: characters.map((character) => formatCharacterSummary(character.name, character.role)),
         existingScenes: scenes.map((scene) => scene.name),
         existingProps: props.map((prop) => prop.name),
       },
@@ -743,7 +749,8 @@ export class StorySettingsService {
 
   async createCharacter(novelId: string, input: {
     name: string;
-    role: string;
+    /** 剧情定位已不在表单/提取里维护（2026-08-21）；DB 列保留，AI 生成设定包仍会填。 */
+    role?: string;
     gender?: string | null;
     ageGroup?: string | null;
     physique?: string | null;
@@ -760,7 +767,7 @@ export class StorySettingsService {
       data: {
         novelId,
         name: input.name,
-        role: input.role,
+        role: input.role ?? "",
         gender: normalizeCharacterGender(input.gender),
         ageGroup: normalizeCharacterAgeGroup(input.ageGroup),
         physique: input.physique ?? null,
@@ -1012,7 +1019,7 @@ export class StorySettingsService {
         narrativeForm: novel.narrativeForm === "short_story" ? "short_story" : "long_novel",
         existingWorldText: existingWorldText ?? undefined,
         existingCharacterSummaries: existingCharacters.length > 0
-          ? existingCharacters.map((character) => `${character.name}（${character.role}）`)
+          ? existingCharacters.map((character) => formatCharacterSummary(character.name, character.role))
           : undefined,
       },
       options: {
