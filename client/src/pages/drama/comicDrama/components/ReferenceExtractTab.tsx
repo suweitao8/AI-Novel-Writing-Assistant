@@ -112,7 +112,6 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           group={target?.group ?? "characters"}
           item={targetItem}
           existing={targetItem && target ? existingFor(target.group, targetItem.name) : false}
-          characters={stage.characters}
           pending={stage.applyOneMutation.isPending}
           onOpenChange={(open) => { if (!open) setTarget(null); }}
           onApply={(form) => {

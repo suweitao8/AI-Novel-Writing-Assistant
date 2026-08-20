@@ -6,23 +6,19 @@ import {
   createStorySettingsProp,
   deleteStorySettingsProp,
   generateStoryEntityDraft,
-  getStorySettingsCharacters,
   getStorySettingsProps,
   regenerateStorySettings,
   updateStorySettingsProp,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
 import { AssetStatesEditor, EMPTY_PROP_FORM, PropAssetFormFields, type PropAssetFormState } from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
-import { cn } from "@/lib/utils";
 
 interface SettingsPropsTabProps {
   novelId: string;
@@ -30,21 +26,6 @@ interface SettingsPropsTabProps {
 }
 
 type PropFormState = PropAssetFormState;
-
-const IMPORTANCE_LABELS: Record<string, string> = {
-  core: "核心",
-  major: "重要",
-  minor: "次要",
-};
-
-const PROP_TYPE_LABELS: Record<string, string> = {
-  weapon: "兵器",
-  accessory: "饰品",
-  artifact: "法器/神器",
-  document: "文书",
-  furniture: "家具",
-  object: "其他",
-};
 
 export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTabProps) {
   const queryClient = useQueryClient();
@@ -58,12 +39,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     queryKey: queryKeys.novels.storySettingsProps(novelId),
     queryFn: () => getStorySettingsProps(novelId),
   });
-  const charactersQuery = useQuery({
-    queryKey: queryKeys.novels.storySettingsCharacters(novelId),
-    queryFn: () => getStorySettingsCharacters(novelId),
-  });
   const props = propsQuery.data?.data ?? [];
-  const characters = charactersQuery.data?.data ?? [];
 
   const invalidate = async () => {
     await Promise.all([
@@ -75,26 +51,20 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const payload = {
-        name: form.name.trim(),
-        propType: form.propType || "object",
-        description: form.description.trim() || null,
-        plotFunction: form.plotFunction.trim() || null,
-        visualPrompt: form.visualPrompt.trim() || null,
-        ownerCharacterId: form.ownerCharacterId || null,
-        importance: form.importance,
-        firstAppearHint: form.firstAppearHint.trim() || null,
-      };
+      const name = form.name.trim();
+      const visualPrompt = form.visualPrompt.trim();
       return editing
-        ? updateStorySettingsProp(novelId, editing.id, { ...payload, states })
-        : createStorySettingsProp(novelId, {
-          ...payload,
-          description: payload.description ?? undefined,
-          plotFunction: payload.plotFunction ?? undefined,
-          visualPrompt: payload.visualPrompt ?? undefined,
-          ownerCharacterId: payload.ownerCharacterId ?? undefined,
-          firstAppearHint: payload.firstAppearHint ?? undefined,
-        });
+        ? updateStorySettingsProp(novelId, editing.id, {
+          name,
+          visualPrompt: visualPrompt || null,
+          // 旧字段表单里已不存在：编辑保存即清空，数据和界面保持一致
+          description: null,
+          plotFunction: null,
+          ownerCharacterId: null,
+          firstAppearHint: null,
+          states,
+        })
+        : createStorySettingsProp(novelId, { name, visualPrompt: visualPrompt || undefined });
     },
     onSuccess: async () => {
       toast.success(editing ? "道具已保存。" : "道具已添加。");
@@ -138,13 +108,8 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
       }
       setForm({
         name: draft.name,
-        propType: draft.propType || "object",
-        description: draft.description ?? "",
-        plotFunction: draft.plotFunction ?? "",
-        visualPrompt: draft.visualPrompt ?? "",
-        ownerCharacterId: "",
-        importance: draft.importance || "major",
-        firstAppearHint: draft.firstAppearHint ?? "",
+        // 旧草稿可能只写了外观描述：没有提示词时把它带进来当画面提示词的起点
+        visualPrompt: draft.visualPrompt || draft.description || "",
       });
       toast.success("草稿已生成，可以直接修改后保存。");
     },
@@ -167,13 +132,8 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     setHint("");
     setForm({
       name: prop.name,
-      propType: prop.propType || "object",
-      description: prop.description ?? "",
-      plotFunction: prop.plotFunction ?? "",
-      visualPrompt: prop.visualPrompt ?? "",
-      ownerCharacterId: prop.ownerCharacterId ?? "",
-      importance: prop.importance,
-      firstAppearHint: prop.firstAppearHint ?? "",
+      // 旧道具可能只写了外观描述：没有提示词时带进来，避免一保存就把内容弄丢
+      visualPrompt: prop.visualPrompt || prop.description || "",
     });
     setStates(prop.states ?? []);
   };
@@ -187,7 +147,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          推动剧情或埋伏笔的关键物品。正文会按这里的功能和登场安排使用它们。
+          剧情里反复出现的关键物品；画面提示词用于生成道具图。
         </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={openCreate}>
@@ -222,18 +182,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                   <div className="flex min-w-0 items-center gap-2">
                     <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
                     <span className="truncate font-medium text-foreground">{prop.name}</span>
-                    <Badge variant="secondary" className="shrink-0">
-                      {PROP_TYPE_LABELS[prop.propType] ?? prop.propType}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "shrink-0",
-                        prop.importance === "core" && "border-primary text-primary",
-                      )}
-                    >
-                      {IMPORTANCE_LABELS[prop.importance] ?? prop.importance}
-                    </Badge>
                   </div>
                   <div className="flex shrink-0 items-center gap-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(prop)} aria-label="编辑道具">
@@ -251,15 +199,8 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                     </Button>
                   </div>
                 </div>
-                {prop.description ? <p className="text-xs leading-5 text-muted-foreground">{prop.description}</p> : null}
-                {prop.plotFunction ? (
-                  <p className="text-xs leading-5 text-muted-foreground">剧情功能：{prop.plotFunction}</p>
-                ) : null}
                 {prop.visualPrompt ? (
-                  <p className="text-xs leading-5 text-muted-foreground">视觉：{prop.visualPrompt}</p>
-                ) : null}
-                {prop.ownerCharacterName ? (
-                  <p className="text-xs leading-5 text-muted-foreground">持有者：{prop.ownerCharacterName}</p>
+                  <p className="text-xs leading-5 text-muted-foreground">画面：{prop.visualPrompt}</p>
                 ) : null}
                 {prop.states.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -284,8 +225,8 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
         <AppDialogContent
           title={editing ? "编辑道具" : "添加道具"}
           description={editing
-            ? "写清道具的来历和它在剧情里的作用，避免正文里凭空冒出万能道具。"
-            : "写一句提示（也可以留空），让 AI 生成完整道具草稿；生成后可以随意修改再保存。"}
+            ? "核对道具名和画面提示词，生成道具图时直接使用。"
+            : "写一句提示（也可以留空），让 AI 生成道具草稿；生成后可以随意修改再保存。"}
           footer={
             <>
               <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
@@ -321,7 +262,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
             <PropAssetFormFields
               value={form}
               onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
-              characters={characters.map((character) => ({ id: character.id, name: character.name }))}
             />
             {editing ? (
               <AssetStatesEditor states={states} onChange={setStates} kind="prop" />

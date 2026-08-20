@@ -64,10 +64,6 @@ const TYPE_TONES: Record<AssetType, string> = {
 const GENDER_LABELS: Record<string, string> = { male: "男", female: "女", other: "其他", unknown: "未知" };
 const AGE_LABELS: Record<string, string> = { child: "少年", youth: "青年", middle: "中年", elder: "老年" };
 const SCENE_TYPE_LABELS: Record<string, string> = { interior: "室内", exterior: "室外", nature: "自然" };
-const PROP_TYPE_LABELS: Record<string, string> = {
-  weapon: "武器", accessory: "配饰", artifact: "神器", document: "文书", furniture: "家具", object: "物品",
-};
-const IMPORTANCE_LABELS: Record<string, string> = { core: "核心", major: "重要", minor: "次要" };
 
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
   const text = value?.trim();
@@ -186,12 +182,6 @@ function AssetDetailDialog(props: {
               const prop = source as StorySettingsProp;
               return (
                 <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {prop.propType ? <Badge variant="outline">{PROP_TYPE_LABELS[prop.propType] ?? prop.propType}</Badge> : null}
-                    {prop.importance ? <Badge variant="secondary">{IMPORTANCE_LABELS[prop.importance] ?? prop.importance}</Badge> : null}
-                  </div>
-                  <DetailRow label="说明" value={prop.description} />
-                  <DetailRow label="剧情功能" value={prop.plotFunction} />
                   <DetailRow label="生图提示词" value={prop.visualPrompt} />
                   <DetailStates states={prop.states} />
                 </>
@@ -239,7 +229,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         id: prop.id,
         type: "prop" as const,
         name: prop.name,
-        note: prop.description ?? "",
+        note: prop.visualPrompt || prop.description || "",
         updatedAt: prop.updatedAt,
         source: prop,
       })),
@@ -291,9 +281,10 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
           summary: createNote.trim() || undefined,
         });
       } else {
+        // 道具只有名字和画面提示词：快速创建里写的一句说明直接作为提示词起点
         await createStorySettingsProp(props.novelId, {
           name,
-          description: createNote.trim() || undefined,
+          visualPrompt: createNote.trim() || undefined,
         });
       }
       return name;
