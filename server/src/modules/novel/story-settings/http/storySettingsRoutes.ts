@@ -9,6 +9,7 @@ import {
 } from "../application/StorySettingsService";
 import { storyAssetStateImageService } from "../application/StoryAssetStateImageService";
 import { worldMapService } from "../application/WorldMapService";
+import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 
 const novelParams = z.object({ id: z.string().trim().min(1) });
@@ -251,6 +252,33 @@ export function registerStorySettingsRoutes(router: Router): void {
     }
   });
 
+  // 生成场景 360° 全景参考图（同步等待完成，状态随场景持久化）
+  router.post("/:id/settings/scenes/:sceneId/generate-image", validate({ params: sceneParams }), async (req, res, next) => {
+    try {
+      const data = await storyAssetImageService.generateSceneImage(
+        String(req.params.id),
+        String(req.params.sceneId),
+        (req.body as { provider?: string } | undefined)?.provider,
+      );
+      res.json({ success: true, data, message: "场景全景图已生成。" } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // 服务场景全景图文件
+  router.get("/:id/settings/scenes/:sceneId/image", validate({ params: sceneParams }), async (req, res, next) => {
+    try {
+      const { filePath, mimeType } = await storyAssetImageService.serveSceneImage(String(req.params.id), String(req.params.sceneId));
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      const { createReadStream } = await import("fs");
+      createReadStream(filePath).pipe(res);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.get("/:id/settings/props", validate({ params: novelParams }), async (req, res, next) => {
     try {
       const data = await storySettingsService.listProps(String(req.params.id));
@@ -286,6 +314,33 @@ export function registerStorySettingsRoutes(router: Router): void {
     try {
       await storySettingsService.deleteProp(String(req.params.id), String(req.params.propId));
       res.json({ success: true, data: null } satisfies ApiResponse<null>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // 生成道具 45° 透视参考图
+  router.post("/:id/settings/props/:propId/generate-image", validate({ params: propParams }), async (req, res, next) => {
+    try {
+      const data = await storyAssetImageService.generatePropImage(
+        String(req.params.id),
+        String(req.params.propId),
+        (req.body as { provider?: string } | undefined)?.provider,
+      );
+      res.json({ success: true, data, message: "道具图片已生成。" } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // 服务道具图片文件
+  router.get("/:id/settings/props/:propId/image", validate({ params: propParams }), async (req, res, next) => {
+    try {
+      const { filePath, mimeType } = await storyAssetImageService.servePropImage(String(req.params.id), String(req.params.propId));
+      res.setHeader("Content-Type", mimeType);
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      const { createReadStream } = await import("fs");
+      createReadStream(filePath).pipe(res);
     } catch (error) {
       next(error);
     }

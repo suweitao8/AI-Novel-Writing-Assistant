@@ -187,6 +187,9 @@ function AssetDetailDialog(props: {
                     {scene.timeOfDay ? <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge> : null}
                     {scene.weather ? <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge> : null}
                   </div>
+                  {scene.image?.url ? (
+                    <img src={scene.image.url} alt={`${scene.name} 全景图`} className="w-full rounded-lg border border-border" />
+                  ) : null}
                   <DetailRow label="图片提示词" value={scene.environmentPrompt} />
                   <DetailStates states={scene.states} />
                 </>
@@ -195,6 +198,9 @@ function AssetDetailDialog(props: {
               const prop = source as StorySettingsProp;
               return (
                 <>
+                  {prop.image?.url ? (
+                    <img src={prop.image.url} alt={`${prop.name} 参考图`} className="max-h-56 w-full rounded-lg border border-border object-contain" />
+                  ) : null}
                   <DetailRow label="图片提示词" value={prop.visualPrompt} />
                   <DetailStates states={prop.states} />
                 </>

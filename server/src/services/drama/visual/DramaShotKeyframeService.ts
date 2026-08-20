@@ -6,7 +6,7 @@ import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
-import { filterImageGenerationReferences, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
+import { filterImageGenerationReferences, parseImageStateSummary, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
 import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import {
@@ -70,12 +70,16 @@ interface SceneSettingLite {
   name: string;
   environmentPrompt: string | null;
   summary: string | null;
+  /** 360° 全景参考图（生成过且成功才有）。 */
+  imageUrl: string | null;
 }
 
 interface PropSettingLite {
   name: string;
   visualPrompt: string | null;
   description: string | null;
+  /** 45° 透视参考图（生成过且成功才有）。 */
+  imageUrl: string | null;
 }
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
@@ -230,14 +234,17 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
   const [scenes, props] = await Promise.all([
     prisma.novelScene.findMany({
       where: { novelId },
-      select: { name: true, environmentPrompt: true, summary: true },
+      select: { name: true, environmentPrompt: true, summary: true, imageData: true },
     }),
     prisma.novelProp.findMany({
       where: { novelId },
-      select: { name: true, visualPrompt: true, description: true },
+      select: { name: true, visualPrompt: true, description: true, imageData: true },
     }),
   ]);
-  return { scenes, props };
+  return {
+    scenes: scenes.map(({ imageData, ...rest }) => ({ ...rest, imageUrl: parseImageStateSummary(imageData)?.url ?? null })),
+    props: props.map(({ imageData, ...rest }) => ({ ...rest, imageUrl: parseImageStateSummary(imageData)?.url ?? null })),
+  };
 }
 
 function matchSceneByName(scenes: SceneSettingLite[], location: string | null | undefined): SceneSettingLite | null {
@@ -366,6 +373,26 @@ export class DramaShotKeyframeService {
             kind: "character_sheet",
             label: `${char.name} · 角色设计稿`,
             url,
+          });
+        }
+      }
+      // 场景全景（镜头地点与设定场景同名）与画面里点名的道具，也作为参考图挂给首帧图。
+      const matchedScene = matchSceneByName(settings.scenes, shot.location);
+      if (matchedScene?.imageUrl) {
+        refImages.push(matchedScene.imageUrl);
+        referenceImages.push({
+          kind: "scene",
+          label: `${matchedScene.name} · 场景全景`,
+          url: matchedScene.imageUrl,
+        });
+      }
+      for (const prop of matchPropsInShotText(settings.props, shot)) {
+        if (prop.imageUrl) {
+          refImages.push(prop.imageUrl);
+          referenceImages.push({
+            kind: "asset",
+            label: `${prop.name} · 道具视图`,
+            url: prop.imageUrl,
           });
         }
       }

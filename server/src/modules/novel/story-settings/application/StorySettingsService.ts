@@ -17,6 +17,7 @@ import {
 import { WorldContextGateway } from "../../../../services/novel/worldContext/WorldContextGateway";
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../../services/drama/visual/dramaVisualStyles";
+import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
@@ -41,10 +42,12 @@ export interface StorySettingsScene {
   summary: string | null;
   environmentPrompt: string | null;
   significance: string | null;
-  /** 场景时间（morning/noon/night；null=未设定）——影响场景图光线 */
+  /** 场景时间与天气（morning/noon/night；sunny/cloudy/rainy；null=未设定）——影响场景图光线 */
   timeOfDay: string | null;
   /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
   weather: string | null;
+  /** 360° 全景参考图（未生成过为 null）。 */
+  image: StoryAssetImageState | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;
   sortOrder: number;
@@ -64,6 +67,8 @@ export interface StorySettingsProp {
   ownerCharacterName: string | null;
   importance: string;
   firstAppearHint: string | null;
+  /** 45° 透视参考图（未生成过为 null）。 */
+  image: StoryAssetImageState | null;
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
@@ -539,6 +544,7 @@ export class StorySettingsService {
       significance: row.significance,
       timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
       weather: normalizeSceneWeather(row.weather),
+      image: parseStoryAssetImage(row.imageData),
       mapNodeId: row.mapNodeId,
       mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,
@@ -652,6 +658,7 @@ export class StorySettingsService {
         : null,
       importance: row.importance,
       firstAppearHint: row.firstAppearHint,
+      image: parseStoryAssetImage(row.imageData),
       sortOrder: row.sortOrder,
       source: row.source,
       states: parseStates(row.statesJson),
@@ -1212,6 +1219,7 @@ export class StorySettingsService {
     significance: string | null;
     timeOfDay?: string | null;
     weather?: string | null;
+    imageData?: string | null;
     mapNodeId: string | null;
     mapUnmappable: boolean;
     sortOrder: number;
@@ -1228,6 +1236,7 @@ export class StorySettingsService {
       significance: row.significance,
       timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
       weather: normalizeSceneWeather(row.weather),
+      image: parseStoryAssetImage(row.imageData),
       mapNodeId: row.mapNodeId,
       mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,
@@ -1248,6 +1257,7 @@ export class StorySettingsService {
       ownerCharacterId: string | null;
       importance: string;
       firstAppearHint: string | null;
+      imageData?: string | null;
       sortOrder: number;
       source: string;
       statesJson?: string | null;
@@ -1266,6 +1276,7 @@ export class StorySettingsService {
       ownerCharacterName,
       importance: row.importance,
       firstAppearHint: row.firstAppearHint,
+      image: parseStoryAssetImage(row.imageData),
       sortOrder: row.sortOrder,
       source: row.source,
       states: parseStates(row.statesJson),

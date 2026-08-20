@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Package, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, ImagePlus, Package, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
   createStorySettingsProp,
   deleteStorySettingsProp,
   generateStoryEntityDraft,
+  generateStoryPropImage,
   getStorySettingsProps,
   updateStorySettingsProp,
 } from "@/api/story/storySettings";
@@ -81,6 +82,25 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     },
     onError: (error) => {
       toast.error("道具保存失败。", { description: error instanceof Error ? error.message : undefined });
+    },
+  });
+
+  // 45° 透视参考图：同步生成，完成后就地展示。
+  const imageMutation = useMutation({
+    mutationFn: () => {
+      if (!editing) {
+        throw new Error("请先保存道具再生成图片。");
+      }
+      return generateStoryPropImage(novelId, editing.id);
+    },
+    onSuccess: async (result) => {
+      const image = result.data ?? null;
+      setEditing((prev) => (prev ? { ...prev, image } : prev));
+      await invalidate();
+      toast.success("道具图片已生成。");
+    },
+    onError: (error) => {
+      toast.error("道具图片生成失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -273,7 +293,23 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
               onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
             />
             {editing ? (
-              <AssetStatesEditor states={states} onChange={setStates} kind="prop" asset={editing ? { novelId, assetId: editing.id } : undefined} />
+              <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">45° 透视参考图</span>
+                  <Button size="sm" variant="outline" onClick={() => imageMutation.mutate()} disabled={imageMutation.isPending}>
+                    {imageMutation.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1 h-4 w-4" />}
+                    {imageMutation.isPending ? "生成中..." : editing.image?.url ? "重新生成" : "生成图片"}
+                  </Button>
+                </div>
+                {editing.image?.url ? (
+                  <img src={editing.image.url} alt={`${editing.name} 参考图`} className="max-h-64 w-full rounded-lg border border-border object-contain" />
+                ) : (
+                  <p className="text-xs leading-5 text-muted-foreground">还没有图片。生成后，道具出现在分镜画面里时会作为参考图。</p>
+                )}
+              </div>
+            ) : null}
+            {editing ? (
+              <AssetStatesEditor states={states} onChange={setStates} kind="prop" asset={{ novelId, assetId: editing.id }} />
             ) : null}
           </div>
         </AppDialogContent>
