@@ -39,15 +39,17 @@ import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterMana
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
 import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
 import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
+import ReferenceExtractTab from "@/pages/drama/comicDrama/components/ReferenceExtractTab";
 import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
 import StoryboardStagePanel from "@/pages/drama/comicDrama/StoryboardStagePanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
+import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观与项目配置）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
-type CurrentTab = "reference" | "draft" | "text" | "storyboard" | "voice" | "video";
+type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "voice" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观 / 项目（画面风格与分镜项目状态）。
@@ -61,6 +63,7 @@ const STAGE_LABELS: Record<StudioStage, string> = {
 
 const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   reference: "参考",
+  extract: "提取",
   draft: "初稿",
   text: "正文",
   storyboard: "分镜",
@@ -123,6 +126,11 @@ export default function ComicDramaStudioPage() {
     novelId,
     workspace: chapterWorkspace,
     onApplied: () => setCurrentTab("draft"),
+  });
+  const extractStage = useReferenceExtractStage({
+    novelId,
+    chapterId: chapterWorkspace.currentChapter?.id ?? null,
+    referenceText: referenceStage.referenceText,
   });
   const storyboard = useStoryboardStage({
     novelId,
@@ -236,6 +244,7 @@ export default function ComicDramaStudioPage() {
               >
                 <TabsList>
                   <TabsTrigger value="reference">{CURRENT_TAB_LABELS.reference}</TabsTrigger>
+                  <TabsTrigger value="extract">{CURRENT_TAB_LABELS.extract}</TabsTrigger>
                   <TabsTrigger value="draft">{CURRENT_TAB_LABELS.draft}</TabsTrigger>
                   <TabsTrigger value="text">{CURRENT_TAB_LABELS.text}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
@@ -244,7 +253,19 @@ export default function ComicDramaStudioPage() {
                 </TabsList>
               </Tabs>
               <div className="flex w-full items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
-                {currentTab === "reference" ? (
+                {currentTab === "extract" ? (
+                  <Button
+                    size="sm"
+                    onClick={() => extractStage.extractMutation.mutate()}
+                    disabled={extractStage.extractMutation.isPending || extractStage.extractDisabledReason !== null}
+                    title={extractStage.extractDisabledReason ?? "从参考文本提取角色、场景与世界观"}
+                  >
+                    {extractStage.extractMutation.isPending
+                      ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+                      : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+                    提取
+                  </Button>
+                ) : currentTab === "reference" ? (
                   <Button
                     size="sm"
                     onClick={() => referenceStage.parseMutation.mutate()}
@@ -323,7 +344,9 @@ export default function ComicDramaStudioPage() {
         </header>
 
         <TabsContent value="current" className="space-y-4">
-          {currentTab === "reference" ? (
+          {currentTab === "extract" ? (
+            <ReferenceExtractTab stage={extractStage} />
+          ) : currentTab === "reference" ? (
             <ReferenceTab
               value={referenceStage.referenceText}
               onChange={referenceStage.setReferenceText}

@@ -31,9 +31,9 @@ export function isDramaStudioChapterWorkspaceWrite(method: string, path: string)
   const postChapter = normalizedMethod === "POST" && /^\/chapters$/.test(normalizedPath);
   const detailOutline = (normalizedMethod === "PUT" || normalizedMethod === "POST")
     && /^\/chapters\/[^/]+\/detail-outline(\/preview)?$/.test(normalizedPath);
-  const referenceDraftPreview = normalizedMethod === "POST"
-    && /^\/chapters\/[^/]+\/reference-draft\/preview$/.test(normalizedPath);
-  return putChapter || postChapter || detailOutline || referenceDraftPreview;
+  const referencePreview = normalizedMethod === "POST"
+    && /^\/chapters\/[^/]+\/reference-(draft|extract)\/preview$/.test(normalizedPath);
+  return putChapter || postChapter || detailOutline || referencePreview;
 }
 
 async function isDramaNativeNovel(novel: { productionKind?: string | null }): Promise<boolean> {
