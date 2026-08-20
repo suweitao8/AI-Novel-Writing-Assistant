@@ -158,19 +158,19 @@ function buildCharacterSheetPrompt(character: {
   const visualDesc = extractVisualDesc(character.visualAnchor);
 
   const lines: string[] = [
-    "professional character design reference sheet, single image",
-    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
-    "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
-    "white background, clean studio lighting, no text or watermarks",
+    "专业角色设计参考图，单张图片",
+    "左三分之一：角色面部特写肖像（正面视角，五官细节清晰，表情自然）",
+    "右三分之二：角色全身三视图并排——正面、侧面（90度侧脸）、背面",
+    "四个视角必须是同一个角色：服装、发型与配色完全一致",
+    "白色背景，干净的摄影棚布光，不要文字或水印",
     ...styleLines,
   ];
 
-  if (character.archetype) lines.push(`character archetype: ${character.archetype}`);
-  if (character.persona) lines.push(`character trait: ${character.persona}`);
-  if (visualDesc) lines.push(`appearance: ${visualDesc}`);
+  if (character.archetype) lines.push(`角色定位：${character.archetype}`);
+  if (character.persona) lines.push(`性格特质：${character.persona}`);
+  if (visualDesc) lines.push(`外貌：${visualDesc}`);
 
-  lines.push("professional costume design");
+  lines.push("专业戏服设计");
 
   return lines.join(", ");
 }

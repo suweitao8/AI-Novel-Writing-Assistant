@@ -73,6 +73,29 @@ test("serialize：空 speaker 的台词降级为纯文本行，空条目被丢�
   assert.equal(text, "【场景：天台】\n没有说话人的行");
 });
 
+// 画风标记（2026-08-21 用户决定：时代风格可在章节脚本里切换，标记对后续内容生效）
+test("画风标记行：parse 拆出 style 条目，serialize 往返逐字稳定", () => {
+  const draft = [
+    "【场景：街道】",
+    "分镜：全景，现代都市的雨夜街口",
+    "旁白：末世来临前的最后一个雨季。",
+    "",
+    "【画风：末世废土】",
+    "【场景：废墟营地】",
+    "分镜：中景，他在锈蚀的栏杆边生火",
+    "旁白：三年后，城市只剩尘土。",
+  ].join("\n");
+  const items = parseScriptItems(draft);
+  assert.deepEqual(items[3], { kind: "style", style: "末世废土" });
+  assert.equal(serializeScriptItems(parseScriptItems(draft)), draft);
+  assert.deepEqual(roundTripScriptItems(draft), items);
+});
+
+test("画风标记：多个标记共存，格式容错（全角/半角冒号、首尾空格）", () => {
+  const items = parseScriptItems("  【画风: 现代都市 】 ");
+  assert.deepEqual(items[0], { kind: "style", style: "现代都市" });
+});
+
 test("景别枚举与解析一致", () => {
   assert.deepEqual([...SCRIPT_SHOT_TYPES], ["大远景", "远景", "全景", "中景", "近景", "特写"]);
   for (const shotType of SCRIPT_SHOT_TYPES) {

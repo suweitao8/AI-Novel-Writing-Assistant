@@ -13,6 +13,7 @@ import { dramaEpisodeOutlineService } from "../../../services/drama/DramaEpisode
 import { dramaExportService } from "../../../services/drama/DramaExportService";
 import { dramaGuidanceService } from "../../../services/drama/guidance/DramaGuidanceService";
 import { dramaProjectService } from "../../../services/drama/DramaProjectService";
+import { resolveNovelEraStyleOverview } from "../../../services/drama/visual/dramaArtStyleResolver";
 import { getSharedNovelServices } from "../../../services/novel/application/sharedNovelServices";
 import { dramaQualityGate } from "../../../services/drama/DramaQualityGate";
 import { dramaRepairService } from "../../../services/drama/DramaRepairService";
@@ -230,6 +231,21 @@ router.get("/visual-styles", (_req, res) => {
     data: DRAMA_VISUAL_STYLE_PRESETS,
     message: "Visual styles loaded.",
   } satisfies ApiResponse<typeof DRAMA_VISUAL_STYLE_PRESETS>);
+});
+
+/** GET /api/drama/era-style/:novelId — 小说当前生效的时代风格（脚本标记 > 小说默认 > 内置） */
+router.get("/era-style/:novelId", validate({ params: novelRefParamsSchema }), async (req, res, next) => {
+  try {
+    const { novelId } = req.params as z.infer<typeof novelRefParamsSchema>;
+    const overview = await resolveNovelEraStyleOverview(novelId);
+    res.status(200).json({
+      success: true,
+      data: overview,
+      message: "时代风格读取成功。",
+    } satisfies ApiResponse<typeof overview>);
+  } catch (error) {
+    next(error);
+  }
 });
 
 const visualStyleUpdateSchema = z.object({

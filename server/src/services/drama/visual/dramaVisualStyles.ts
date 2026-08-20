@@ -134,6 +134,53 @@ export function resolveDramaVisualStyle(styleId: string | null | undefined): Dra
   return DRAMA_VISUAL_STYLE_PRESETS.find((preset) => preset.id === normalized) ?? null;
 }
 
+// —— 脚本画风标记（2026-08-21 用户决定：时代风格可在章节脚本里切换） ——
+// 章节脚本的 expectation 文本里以标记行记录画风切换：【画风：末世废土】。
+// 语义：标记对后续内容生效（"切换之后后面都用新的"）；本章没有标记则沿用更早章节的
+// 最近一次标记（"新章节沿用上一次使用的风格"）；全都没有才回落 小说默认/项目选择。
+// 标记里写时代风格名：内置预设用 label（脚本文本要人读），兼容历史存的预设 id。
+
+/** 脚本画风标记行的格式。 */
+export const DRAMA_ERA_STYLE_MARKER_PATTERN = /^[ \t]*【画风[：:]\s*([^】]+?)】[ \t]*$/;
+
+/** 从一段脚本文本里取最后一个画风标记（从末往前扫；没有返回 null）。 */
+export function extractLastEraStyleMarker(text: string | null | undefined): string | null {
+  if (!text) {
+    return null;
+  }
+  const lines = text.split(/\r?\n/);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const match = DRAMA_ERA_STYLE_MARKER_PATTERN.exec(lines[i].trim());
+    const key = match?.[1].trim();
+    if (key) {
+      return key;
+    }
+  }
+  return null;
+}
+
+/**
+ * 时代风格匹配：key 可能是预设 id（defaultArtStyle 历史存法）、预设 label（脚本标记写法）
+ * 或自定义风格名。找不到（悬空引用）返回 null，由调用方回落。
+ */
+export function matchDramaEraStyle(
+  key: string | null | undefined,
+  customs: DramaSpecificStyle[],
+): DramaSpecificStyle | null {
+  const normalized = key?.trim();
+  if (!normalized) {
+    return null;
+  }
+  const preset = resolveDramaVisualStyle(normalized)
+    ?? DRAMA_VISUAL_STYLE_PRESETS.find((candidate) => candidate.label === normalized)
+    ?? null;
+  if (preset) {
+    return preset;
+  }
+  const custom = customs.find((style) => style.label === normalized);
+  return custom && custom.styleInstructions ? custom : null;
+}
+
 // 首帧图提示词的风格片段：通用质感基线在前、题材氛围在后。
 export function buildKeyframeStylePromptLines(
   universal: DramaUniversalArtStyle,

@@ -210,10 +210,10 @@ function resolveCharacterRefImageUrl(character: CharacterLite): string | null {
 function buildCharacterPromptLine(character: CharacterLite): string {
   return [
     character.name,
-    character.archetype ? `role: ${character.archetype}` : "",
-    character.persona ? `persona: ${character.persona}` : "",
-    extractVisualDesc(character.visualAnchor) ? `appearance: ${extractVisualDesc(character.visualAnchor)}` : "",
-  ].filter(Boolean).join("; ");
+    character.archetype ? `定位：${character.archetype}` : "",
+    character.persona ? `性格：${character.persona}` : "",
+    extractVisualDesc(character.visualAnchor) ? `外貌：${extractVisualDesc(character.visualAnchor)}` : "",
+  ].filter(Boolean).join("；");
 }
 
 // 设定中心 → 首帧生图接线：novel_import 项目按「名字对应」把设定中心的场景环境
@@ -284,15 +284,15 @@ function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: S
   if (scene) {
     const environment = scene.environmentPrompt?.trim() || scene.summary?.trim();
     if (environment) {
-      lines.push(`scene environment: ${environment}`);
+      lines.push(`场景环境：${environment}`);
     }
   }
   const matchedProps = matchPropsInShotText(settings.props, shot);
   if (matchedProps.length > 0) {
-    lines.push(`props: ${matchedProps
-      .map((prop) => `${prop.name} (${prop.visualPrompt?.trim() || prop.description?.trim() || ""})`)
-      .filter((entry) => !entry.endsWith("()"))
-      .join(" | ")}`);
+    lines.push(`道具：${matchedProps
+      .map((prop) => `${prop.name}（${prop.visualPrompt?.trim() || prop.description?.trim() || ""}）`)
+      .filter((entry) => !entry.endsWith("（）"))
+      .join("｜")}`);
   }
   return lines;
 }
@@ -305,20 +305,20 @@ function buildShotKeyframePrompt(
   const characters = selectReferencedCharacters(shot).map(buildCharacterPromptLine);
   const lines = [
     ...styleLines,
-    "single decisive first frame for image-to-video generation",
-    "clean composition, strong subject focus",
-    shot.location ? `location: ${shot.location}` : "",
+    "图生视频的决定性单帧首图",
+    "构图干净，主体突出",
+    shot.location ? `地点：${shot.location}` : "",
     ...buildSettingPromptLines(shot, settings),
-    shot.shotSize ? `shot size: ${shot.shotSize}` : "",
-    shot.cameraMove ? `camera movement intention: ${shot.cameraMove}` : "",
-    `screen action: ${shot.action}`,
-    shot.dialogue ? `dialogue context, do not render subtitles: ${shot.dialogue}` : "",
-    shot.visualPrompt ? `visual prompt: ${shot.visualPrompt}` : "",
-    characters.length ? `characters: ${characters.join(" | ")}` : "",
-    "preserve consistent costume, hairstyle, face, age, and mood for all recurring characters",
-    "no text, no watermark, no subtitles, no logo",
+    shot.shotSize ? `景别：${shot.shotSize}` : "",
+    shot.cameraMove ? `运镜意图：${shot.cameraMove}` : "",
+    `画面内容：${shot.action}`,
+    shot.dialogue ? `台词语境（不要渲染字幕）：${shot.dialogue}` : "",
+    shot.visualPrompt ? `画面提示词：${shot.visualPrompt}` : "",
+    characters.length ? `角色：${characters.join("｜")}` : "",
+    "所有出场角色保持服装、发型、五官、年龄与情绪一致",
+    "不要文字、水印、字幕或标志",
   ];
-  return lines.filter(Boolean).join(", ");
+  return lines.filter(Boolean).join("，");
 }
 
 export class DramaShotKeyframeService {
@@ -351,9 +351,9 @@ export class DramaShotKeyframeService {
       settings,
     );
     const negativePrompt = [
-      "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
+      "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
       combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
-    ].filter(Boolean).join(", ");
+    ].filter(Boolean).join("，");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];
     if (useCharacterRefImages) {

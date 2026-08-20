@@ -12,8 +12,9 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
 // 「设定 · 美术风格」工作面：通用画风（系统级渲染质感，一行摘要 + 到设置页修改）
-// + 本书画风（题材/氛围——内置预设与本书自定义合成一个点选列表，选中即本书画风），
-// 两层组合后用于立绘/首帧图/视频生成；画风不进章节脚本。
+// + 时代风格（题材/氛围——内置预设与本书自定义合成一个点选列表，选中即默认时代风格），
+// 两层组合后用于立绘/首帧图/视频生成。章节脚本里可随时【画风：名】切换（切换后后面
+// 都用新的、新章节沿用最近一次），脚本标记优先于这里选的默认值（解析链见 dramaArtStyleResolver）。
 interface ArtStylePanelProps {
   novelId: string;
   /** 内置风格预设（GET /drama/visual-styles），第一项是内置默认风格。 */
@@ -26,7 +27,7 @@ interface ArtStylePanelProps {
 interface ArtStyleDraft {
   label: string;
   prompt: string;
-  /** 进入编辑时的名字：用于识别「改名」并让本书画风跟着改名走。 */
+  /** 进入编辑时的名字：用于识别「改名」并让时代风格跟着改名走。 */
   initialLabel: string;
 }
 
@@ -68,7 +69,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     onSuccess: async () => {
       props.onApplyProjectStyle(defaultMutation.variables ?? "");
       await invalidate();
-      toast.success("本书画风已保存，之后生成的画面与视频都用它。");
+      toast.success("时代风格已保存，之后生成的画面与视频都用它。");
     },
     onError: (error) => {
       toast.error("保存画风失败。", { description: error instanceof Error ? error.message : undefined });
@@ -83,7 +84,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
       const artStyles = library
         .map((style) => ({ label: style.label.trim(), prompt: style.prompt.trim() }))
         .filter((style) => style.label);
-      // 本书画风指向的自定义风格被改名时，引用跟着新名字走；
+      // 时代风格指向的自定义风格被改名时，引用跟着新名字走；
       // 被删除时由服务端回落到内置默认，不需要在这里猜。
       const savedDefault = world?.defaultArtStyle ?? null;
       const renamed = savedDefault
@@ -96,10 +97,10 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     },
     onSuccess: async () => {
       await invalidate();
-      toast.success("自定义画风已保存。");
+      toast.success("自定义时代风格已保存。");
     },
     onError: (error) => {
-      toast.error("保存自定义画风失败。", { description: error instanceof Error ? error.message : undefined });
+      toast.error("保存自定义时代风格失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -134,7 +135,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle className="text-base">本书画风</CardTitle>
+          <CardTitle className="text-base">时代风格</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {worldQuery.isLoading ? (
@@ -165,7 +166,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
           <div className="space-y-2 border-t border-border pt-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-sm font-medium">自定义画风</span>
+              <span className="text-sm font-medium">自定义时代风格</span>
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
