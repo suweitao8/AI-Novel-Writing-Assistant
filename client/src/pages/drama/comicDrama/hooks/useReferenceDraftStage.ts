@@ -7,8 +7,24 @@ import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNo
 // 参考文本按「小说+章」存浏览器本地：粘贴即保存（写穿，无保存按钮），
 // 切章时换入对应章的参考文本，刷新/重开不丢。不落服务端——它是解析用的
 // 临时素材，正式产物是写入 Chapter.expectation 的初稿。
-function referenceStorageKey(novelId: string, chapterId: string): string {
+// NOVEL_REFERENCE_SOURCE_SLOT 是项目级「原始参考小说」槽位：创建漫剧时拖入的
+// 现成小说正文存在这里；某章还没有自己的参考文本时回落到它（截取本章相关部分）。
+export const NOVEL_REFERENCE_SOURCE_SLOT = "source";
+
+export function referenceStorageKey(novelId: string, chapterId: string): string {
   return `drama-studio-reference:${novelId}:${chapterId}`;
+}
+
+function readStoredReference(novelId: string, chapterId: string): string {
+  try {
+    const stored = window.localStorage.getItem(referenceStorageKey(novelId, chapterId));
+    if (stored !== null) {
+      return stored;
+    }
+    return window.localStorage.getItem(referenceStorageKey(novelId, NOVEL_REFERENCE_SOURCE_SLOT)) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 // 「参考」页签的解析管线：把粘贴的参考小说原文 AI 压缩成本章初稿。
@@ -26,17 +42,13 @@ export function useReferenceDraftStage(input: {
   const chapterId = chapter?.id ?? null;
   const trimmedReference = referenceText.trim();
 
-  // 切章时载入该章已保存的参考文本（没有则空）。
+  // 切章时载入该章已保存的参考文本；该章没有则回落到创建时上传的整本参考小说。
   useEffect(() => {
     if (!chapterId) {
       setReferenceTextState("");
       return;
     }
-    try {
-      setReferenceTextState(window.localStorage.getItem(referenceStorageKey(input.novelId, chapterId)) ?? "");
-    } catch {
-      setReferenceTextState("");
-    }
+    setReferenceTextState(readStoredReference(input.novelId, chapterId));
   }, [chapterId, input.novelId]);
 
   // 粘贴/修改即写穿本地存储（文本量小，同步写开销可忽略；私有模式等失败静默）。
