@@ -209,6 +209,12 @@ export default function ScriptTab(props: ScriptTabProps) {
     };
   }, [items, characters, scenes, propList, workspace.expectationText]);
 
+  const entityNames = useMemo(() => ({
+    characters: characters.map((character) => character.name),
+    scenes: scenes.map((scene) => scene.name),
+    props: propList.map((prop) => prop.name),
+  }), [characters, scenes, propList]);
+
   // 列表编辑的唯一出口：改条目 → 序列化回文本 → 走原自动保存链路。
   const applyItems = (next: ScriptItem[]) => {
     const nextText = serializeScriptItems(next);
@@ -284,12 +290,6 @@ export default function ScriptTab(props: ScriptTabProps) {
       </div>
     );
   }
-
-  const entityNames = useMemo(() => ({
-    characters: characters.map((character) => character.name),
-    scenes: scenes.map((scene) => scene.name),
-    props: propList.map((prop) => prop.name),
-  }), [characters, scenes, propList]);
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
