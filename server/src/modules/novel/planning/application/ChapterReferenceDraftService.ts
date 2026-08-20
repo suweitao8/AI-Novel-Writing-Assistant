@@ -62,10 +62,10 @@ export class ChapterReferenceDraftService {
       },
     });
     const segments = generated.output.segments;
-    // 分镜式初稿：每个单元两行（分镜画面 + 旁白/台词，台词带（神态）），单元之间空行。
+    // 分镜式初稿：每个单元两行（「分镜：景别，画面」+「旁白/台词（带神态）」），单元之间空行。
     const draftText = segments.map((segment) => {
       const mood = segment.kind === "dialogue" && segment.mood ? `（${segment.mood}）` : "";
-      return `分镜：${segment.storyboard}\n${segment.speaker}${mood}：${segment.text}`;
+      return `分镜：${segment.shot}，${segment.storyboard}\n${segment.speaker}${mood}：${segment.text}`;
     }).join("\n\n");
     return { segments, draftText };
   }

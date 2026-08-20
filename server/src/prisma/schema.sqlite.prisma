@@ -743,6 +743,7 @@ model Chapter {
   riskFlags       String?
   hook            String?
   expectation     String?
+  referenceText   String?
   detailOutlineJson String?
   novelId         String
   novel           Novel                  @relation(fields: [novelId], references: [id], onDelete: Cascade)

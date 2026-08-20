@@ -96,6 +96,7 @@ export interface ChapterInput {
   order: number;
   content?: string;
   expectation?: string;
+  referenceText?: string | null;
   chapterStatus?: "unplanned" | "pending_generation" | "generating" | "pending_review" | "needs_repair" | "completed";
   targetWordCount?: number | null;
   conflictLevel?: number | null;

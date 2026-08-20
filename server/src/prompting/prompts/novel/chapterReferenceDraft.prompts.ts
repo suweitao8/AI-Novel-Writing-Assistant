@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
 
 const referenceDraftSegmentSchema = z.object({
+  shot: z.enum(["大远景", "远景", "全景", "中景", "近景", "特写"]),
   storyboard: z.string().min(2).max(80),
   speaker: z.string().min(1).max(20),
   kind: z.enum(["narration", "dialogue"]),
@@ -50,7 +51,7 @@ function validateChapterReferenceDraft(output: ChapterReferenceDraftOutput): Cha
 
 export const chapterReferenceDraftPrompt: PromptAsset<ChapterReferenceDraftPromptInput, ChapterReferenceDraftOutput> = {
   id: "novel.chapter.reference_draft",
-  version: "v3",
+  version: "v4",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -63,7 +64,7 @@ export const chapterReferenceDraftPrompt: PromptAsset<ChapterReferenceDraftPromp
       "先剔除非正文内容：书名、章节标题行（如「第一章 xxx」）、作者感言、求票求收藏、错别字勘误等一切与剧情无关的元信息，一律不得进入初稿，只改编故事本体。",
       "把整章拆成 10～16 个分镜单元（segments 数组元素），按剧情推进排列；一个分镜单元只讲一个镜头画面，不得把多个场景塞进同一单元。",
       "每个单元由两行构成：",
-      "storyboard＝这一格分镜的画面：镜头拍什么（主体、动作、环境或景别），像导演给摄影师的一句话指令，不超过 40 字。",
+      "第一行是这一格分镜的画面，由 shot 与 storyboard 组成：shot 必须选一个景别（大远景/远景/全景/中景/近景/特写）；storyboard 写这个画面里正在发生什么——谁在画面中、人物的动作/姿势/神态、所处的环境，像导演给摄影师的一句话指令，不超过 40 字。这是初步分镜，后续会再细化，不用写得太细。",
       "第二行是这一格的内容：叙述镜头 kind=narration、speaker 固定「旁白」，text 写画面里发生的事与关键动作神态；角色开口 kind=dialogue、speaker 用原文中说话角色的名字，mood 写说话时的表情神态（如「皱眉」「冷笑」，没有就留空），text 是这句台词——紧凑口语，不逐字照搬原文。",
       "台词逐句归属到说话角色，不得改名、不得把台词归到别人名下；旁白优先有画面感的内容（动作神态、场景环境、有视觉冲击的瞬间），纯心理独白和重复铺垫删掉。",
       "保留原文主线（开端、关键冲突、转折、结尾钩子）；不得虚构原文没有的重大事件或人物。所有内容用中文。只输出严格 JSON。",
