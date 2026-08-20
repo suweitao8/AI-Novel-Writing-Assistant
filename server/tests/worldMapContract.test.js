@@ -1,92 +1,166 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-// 世界地图（novel.world.map@v2 + WorldMapService 归一）：schema 边界、草稿 id 对齐、保存归一行为。
+// 地图场景标注（novel.world.map_annotate@v1 + WorldMapService 归一/合并）：
+// schema 边界、postValidate 决策完备性、mergeAnnotation 只增不改、归一行为。
 
-const { worldMapPrompt } = require("../dist/prompting/prompts/novel/worldMap.prompts.js");
+const { worldMapAnnotatePrompt } = require("../dist/prompting/prompts/novel/worldMap.prompts.js");
 const { promptAssetLoaderEntries } = require("../dist/prompting/registry/promptAssetLoaderEntries.js");
 const {
   normalizeWorldMap,
-  resolveDraftIds,
+  mergeAnnotation,
+  summarizeCountries,
 } = require("../dist/modules/novel/story-settings/application/WorldMapService.js");
 
-function makeLocations(count) {
-  return Array.from({ length: count }, (_, index) => ({
-    name: `地点${index + 1}号`,
-    kind: index % 2 === 0 ? "city" : "wild",
-    summary: `这个世界里的关键地点${index + 1}，承担故事功能。`,
-    x: 10 + index * 8,
-    y: 20 + index * 6,
-    tier: index === 0 ? "capital" : undefined,
-  }));
+function makeInput(overrides = {}) {
+  return {
+    novelTitle: "测试小说",
+    scenes: [
+      { name: "林家老宅", summary: "城东的老宅，主角的家。" },
+      { name: "青云宗山门", summary: "城外山上的宗门山门。" },
+    ],
+    ...overrides,
+  };
 }
 
-test("prompt 注册进 loader registry（novel.world.map@v2）", () => {
-  const keys = promptAssetLoaderEntries.map((entry) => entry.key);
-  assert.ok(keys.includes("novel.world.map@v2"), "缺少 novel.world.map@v2 注册");
-});
-
-test("outputSchema 接受 3～12 个地点与坐标", () => {
-  const parsed = worldMapPrompt.outputSchema.parse({
-    overview: "末世废土：幸存者据点环绕危机四伏的城市废墟分布。",
-    locations: makeLocations(5),
-    paths: [{ fromName: "地点1号", toName: "地点2号", label: "南下商路" }],
-  });
-  assert.equal(parsed.locations.length, 5);
-  assert.equal(parsed.locations[0].tier, "capital");
-});
-
-test("outputSchema 拒绝越界坐标与过少地点", () => {
-  const base = { overview: "一段足够长的世界格局总述。", paths: [] };
-  assert.throws(() => worldMapPrompt.outputSchema.parse({
-    ...base,
-    locations: makeLocations(2),
-  }));
-  assert.throws(() => worldMapPrompt.outputSchema.parse({
-    ...base,
-    locations: [{ ...makeLocations(1)[0], x: 120 }],
-  }));
-});
-
-test("postValidate 拒绝悬空连线、重复地点与过近坐标", () => {
-  const overview = "一段足够长的世界格局总述。";
-  assert.throws(() => worldMapPrompt.postValidate({
-    overview,
-    locations: makeLocations(3),
-    paths: [{ fromName: "地点1号", toName: "不存在的地点", label: "通路" }],
-  }), /已存在的地点/);
-  assert.throws(() => worldMapPrompt.postValidate({
-    overview,
-    locations: [...makeLocations(3), { ...makeLocations(1)[0], x: 80, y: 80 }],
-    paths: [],
-  }), /不能重复/);
-  assert.throws(() => worldMapPrompt.postValidate({
-    overview,
-    locations: [
-      { ...makeLocations(2)[0], x: 50, y: 50 },
-      { ...makeLocations(2)[1], x: 52, y: 51 },
+function makeAnnotation(overrides = {}) {
+  return {
+    newCountries: [{ name: "大梁国", x: 40, y: 30 }],
+    newCities: [{ name: "云京城", countryName: "大梁国", x: 50, y: 50 }],
+    placements: [
+      { sceneName: "林家老宅", countryName: "大梁国", cityName: "云京城", x: 70, y: 60 },
+      { sceneName: "青云宗山门", countryName: "大梁国", cityName: "云京城", x: 20, y: 30 },
     ],
-    paths: [],
-  }), /过于接近/);
+    unplaceable: [],
+    ...overrides,
+  };
+}
+
+test("prompt 注册进 loader registry（novel.world.map_annotate@v1）", () => {
+  const keys = promptAssetLoaderEntries.map((entry) => entry.key);
+  assert.ok(keys.includes("novel.world.map_annotate@v1"), "缺少 novel.world.map_annotate@v1 注册");
 });
 
-test("resolveDraftIds 同名沿用已有 id，新地点生成新 id", () => {
-  const draft = {
-    overview: "总述内容超过八个字，描述整体格局。",
-    locations: makeLocations(3),
-    paths: [{ fromName: "地点1号", toName: "地点3号", label: "东进干道" }],
-  };
-  const existing = [
-    { id: "keep-me", name: "地点1号" },
-    { id: "keep-too", name: "地点2号" },
-  ];
-  const resolved = resolveDraftIds(draft, existing);
-  assert.equal(resolved.nodes[0].id, "keep-me");
-  assert.equal(resolved.nodes[1].id, "keep-too");
-  assert.notEqual(resolved.nodes[2].id, "keep-me");
-  assert.equal(resolved.edges.length, 1);
-  assert.equal(resolved.edges[0].fromId, "keep-me");
-  assert.equal(resolved.edges[0].toId, resolved.nodes[2].id);
+test("outputSchema 接受完整标注并拒绝越界坐标", () => {
+  const parsed = worldMapAnnotatePrompt.outputSchema.parse(makeAnnotation());
+  assert.equal(parsed.placements.length, 2);
+  assert.throws(() => worldMapAnnotatePrompt.outputSchema.parse(
+    makeAnnotation({ placements: [{ sceneName: "林家老宅", countryName: "大梁国", cityName: "云京城", x: 120, y: 60 }] }),
+  ));
+});
+
+test("postValidate 拒绝未知场景、未知国家与遗漏决策", () => {
+  const input = makeInput();
+  assert.throws(() => worldMapAnnotatePrompt.postValidate(
+    makeAnnotation({ placements: [{ sceneName: "不存在的场景", countryName: "大梁国", cityName: "云京城", x: 10, y: 10 }] }),
+    input,
+  ), /不在待标注名单/);
+  assert.throws(() => worldMapAnnotatePrompt.postValidate(
+    makeAnnotation({ placements: [{ sceneName: "林家老宅", countryName: "未知国", cityName: "云京城", x: 10, y: 10 }] }),
+    input,
+  ), /不存在/);
+  assert.throws(() => worldMapAnnotatePrompt.postValidate(
+    makeAnnotation({ placements: [], unplaceable: [] }),
+    input,
+  ), /没有给出结论/);
+  // 放置 + 无法定位覆盖全部场景即可通过。
+  const ok = worldMapAnnotatePrompt.postValidate(
+    makeAnnotation({ placements: [{ sceneName: "林家老宅", countryName: "大梁国", cityName: "云京城", x: 10, y: 10 }], unplaceable: [{ sceneName: "青云宗山门", reason: "描述不足" }] }),
+    input,
+  );
+  assert.equal(ok.unplaceable.length, 1);
+});
+
+test("mergeAnnotation 新建国家/城市/地点并只增不改已有节点", () => {
+  const existing = normalizeWorldMap({
+    nodes: [{ id: "kept-country", name: "旧国", kind: "country", summary: "人工整理", x: 80, y: 80, tier: null }],
+    edges: [],
+  });
+  const result = mergeAnnotation(existing, makeAnnotation(), [
+    { id: "scene-1", name: "林家老宅" },
+    { id: "scene-2", name: "青云宗山门" },
+  ]);
+  const country = result.map.nodes.find((node) => node.name === "大梁国");
+  assert.ok(country, "新国家已加入世界层");
+  assert.equal(country.kind, "country");
+  const oldCountry = result.map.nodes.find((node) => node.id === "kept-country");
+  assert.equal(oldCountry.x, 80, "已有节点坐标不被改动");
+  const countryMap = result.map.childMaps[country.id];
+  const city = countryMap.nodes.find((node) => node.name === "云京城");
+  assert.ok(city, "新城市已加入国家层");
+  const cityMap = countryMap.childMaps[city.id];
+  assert.equal(cityMap.nodes.length, 2, "两个场景都放进城市层");
+  assert.ok(cityMap.nodes.every((node) => node.kind === "building"));
+  assert.equal(result.assignments.length, 2);
+  assert.equal(result.assignments[0].nodeId, cityMap.nodes[0].id);
+});
+
+test("mergeAnnotation 同名国家/城市/地点沿用已有节点", () => {
+  const existing = normalizeWorldMap({
+    nodes: [{ id: "country-1", name: "大梁国", kind: "country", summary: "", x: 30, y: 30, tier: null }],
+    childMaps: {
+      "country-1": {
+        nodes: [{ id: "city-1", name: "云京城", kind: "city", summary: "", x: 50, y: 40, tier: null }],
+        childMaps: {
+          "city-1": {
+            nodes: [{ id: "place-1", name: "林家老宅", kind: "building", summary: "", x: 15, y: 15, tier: null }],
+          },
+        },
+      },
+    },
+  });
+  const result = mergeAnnotation(existing, makeAnnotation(), [
+    { id: "scene-1", name: "林家老宅" },
+    { id: "scene-2", name: "青云宗山门" },
+  ]);
+  const country = result.map.nodes.find((node) => node.id === "country-1");
+  assert.equal(country.x, 30, "同名国家沿用（坐标不动）");
+  assert.equal(result.map.nodes.filter((node) => node.name === "大梁国").length, 1, "不重复建国家");
+  const cityMap = result.map.childMaps["country-1"].childMaps["city-1"];
+  assert.equal(cityMap.nodes.length, 2, "同名地点沿用、新场景补建");
+  const kept = cityMap.nodes.find((node) => node.id === "place-1");
+  assert.equal(kept.x, 15, "同名地点坐标不被覆盖");
+  const assignment = result.assignments.find((item) => item.sceneName === "林家老宅");
+  assert.equal(assignment.nodeId, "place-1", "场景挂点指向已有地点节点");
+});
+
+test("mergeAnnotation 记录无法定位的场景", () => {
+  const existing = normalizeWorldMap(null);
+  const result = mergeAnnotation(existing, makeAnnotation({
+    placements: [{ sceneName: "林家老宅", countryName: "大梁国", cityName: "云京城", x: 70, y: 60 }],
+    unplaceable: [{ sceneName: "青云宗山门", reason: "名字过于笼统" }],
+  }), [
+    { id: "scene-1", name: "林家老宅" },
+    { id: "scene-2", name: "青云宗山门" },
+  ]);
+  assert.equal(result.unplaceable.length, 1);
+  assert.equal(result.unplaceable[0].sceneId, "scene-2");
+  assert.equal(result.assignments.length, 1);
+});
+
+test("summarizeCountries 折叠国家→城市树（地点计数）", () => {
+  const existing = normalizeWorldMap({
+    nodes: [
+      { id: "country-1", name: "大梁国", kind: "country", summary: "", x: 30, y: 30, tier: null },
+      { id: "city-x", name: "孤立城市", kind: "city", summary: "", x: 10, y: 10, tier: null },
+    ],
+    childMaps: {
+      "country-1": {
+        nodes: [{ id: "city-1", name: "云京城", kind: "city", summary: "", x: 50, y: 40, tier: null }],
+        childMaps: {
+          "city-1": {
+            nodes: [
+              { id: "p1", name: "老宅", kind: "building", summary: "", x: 10, y: 10, tier: null },
+              { id: "p2", name: "山门", kind: "building", summary: "", x: 20, y: 20, tier: null },
+            ],
+          },
+        },
+      },
+    },
+  });
+  const summary = summarizeCountries(existing);
+  const country = summary.find((item) => item.name === "大梁国");
+  assert.deepEqual(country.cities, [{ name: "云京城", placeCount: 2 }]);
 });
 
 test("normalizeWorldMap 夹紧坐标、剔除悬空/自环/重复连线与重复 id", () => {
@@ -118,34 +192,18 @@ test("normalizeWorldMap 夹紧坐标、剔除悬空/自环/重复连线与重复
   assert.ok(normalized.edges.every((edge) => ["国道", "山道"].includes(edge.label)));
 });
 
-test("normalizeWorldMap 兼容旧格式（无坐标无 overview）与空输入", () => {
+test("normalizeWorldMap 接受 country kind 并兼容旧格式/空输入", () => {
+  const withCountry = normalizeWorldMap({
+    nodes: [{ id: "c1", name: "大梁国", kind: "country", summary: "s", x: 30, y: 30 }],
+  });
+  assert.equal(withCountry.nodes[0].kind, "country");
   const legacy = normalizeWorldMap({
     nodes: [{ id: "old", name: "旧地点", kind: "city", summary: "旧数据" }],
     edges: [],
   });
-  assert.equal(legacy.overview, "");
   assert.equal(legacy.nodes[0].x, null);
-  assert.equal(legacy.nodes[0].tier, null);
-  assert.equal(legacy.scaleKm, null);
-  assert.deepEqual(legacy.terrain, []);
-  assert.deepEqual(legacy.childMaps, {});
   const empty = normalizeWorldMap(null);
   assert.deepEqual(empty, { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} });
-});
-
-test("normalizeWorldMap 归一地形多边形：类型兜底、坐标夹紧、少于三点的丢弃", () => {
-  const normalized = normalizeWorldMap({
-    terrain: [
-      { id: "t1", type: "water", label: "东海", points: [{ x: -10, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 30 }] },
-      { id: "t2", type: "volcano", label: "熔岩区", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 20 }] },
-      { id: "t3", type: "mountain", label: "北岭", points: [{ x: 0, y: 0 }, { x: 9, y: 9 }] },
-    ],
-  });
-  assert.equal(normalized.terrain.length, 2);
-  const water = normalized.terrain.find((item) => item.id === "t1");
-  assert.equal(water.points[0].x, 0);
-  const volcano = normalized.terrain.find((item) => item.id === "t2");
-  assert.equal(volcano.type, "plain");
 });
 
 test("normalizeWorldMap 递归处理内部地图：悬空挂点丢弃、超深丢弃、scaleKm 归一", () => {
@@ -182,7 +240,7 @@ test("normalizeWorldMap 递归处理内部地图：悬空挂点丢弃、超深�
   assert.equal(cityInner.scaleKm, 20);
   assert.equal(cityInner.nodes[0].id, "gate");
   const gateInner = cityInner.childMaps.gate;
-  assert.ok(gateInner, "第二层（城区级）保留");
+  assert.ok(gateInner, "第二层（城市级）保留");
   assert.deepEqual(gateInner.childMaps, {}, "第四层被深度上限丢弃");
   assert.equal(normalized.childMaps["ghost-node"], undefined, "悬空挂点（节点不存在）丢弃");
 });

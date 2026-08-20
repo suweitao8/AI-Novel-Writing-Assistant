@@ -558,6 +558,7 @@ model NovelScene {
   significance String?
   statesJson      String?
   mapNodeId    String?
+  mapUnmappable Boolean @default(false)
   sortOrder    Int      @default(0)
   source       String   @default("ai")
   novel        Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)

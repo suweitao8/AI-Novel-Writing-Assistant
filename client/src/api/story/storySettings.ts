@@ -20,6 +20,7 @@ export interface StorySettingsScene {
   environmentPrompt: string | null;
   significance: string | null;
   mapNodeId: string | null;
+  mapUnmappable: boolean;
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
@@ -296,10 +297,27 @@ export async function updateStorySettingsWorld(
   return data;
 }
 
-// AI 生成世界地图草稿：纯预览，不落库；确认后随 updateStorySettingsWorld 的 map 字段保存。
-export async function previewWorldMap(novelId: string) {
-  const { data } = await apiClient.post<ApiResponse<WorldMapData>>(
-    `/novels/${encodeURIComponent(novelId)}/settings/world/map-preview`,
+// AI 场景标注结果：已放到地图上的场景（含国家/城市归属）与无法定位的场景。
+export interface WorldMapAnnotationResult {
+  map: WorldMapData;
+  assignments: Array<{
+    sceneId: string;
+    sceneName: string;
+    nodeId: string;
+    countryName: string;
+    cityName: string;
+  }>;
+  unplaceable: Array<{
+    sceneId: string;
+    sceneName: string;
+    reason: string;
+  }>;
+}
+
+// AI 场景标注：把未标注的场景资产放进三层地图（直接落库），无法定位的场景标记后下次跳过。
+export async function annotateWorldMap(novelId: string) {
+  const { data } = await apiClient.post<ApiResponse<WorldMapAnnotationResult>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/world/map-annotate`,
   );
   return data;
 }
