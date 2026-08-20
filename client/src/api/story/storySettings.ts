@@ -355,6 +355,22 @@ export async function confirmStorySettings(novelId: string) {
   return data;
 }
 
+export type StoryAssetKind = "character" | "scene" | "prop";
+
+/** 生成资产某个外观状态的图片（服务端按状态的生图参考配置取参考图），返回更新后的资产。 */
+export async function generateStoryAssetStateImage(
+  novelId: string,
+  kind: StoryAssetKind,
+  assetId: string,
+  stateId: string,
+) {
+  const resource = kind === "character" ? "characters" : kind === "scene" ? "scenes" : "props";
+  const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter | StorySettingsScene | StorySettingsProp>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/${resource}/${encodeURIComponent(assetId)}/states/${encodeURIComponent(stateId)}/generate-image`,
+  );
+  return data;
+}
+
 export interface StoryEntityDraft {
   character: {
     name: string;

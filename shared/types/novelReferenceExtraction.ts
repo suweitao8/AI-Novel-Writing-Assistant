@@ -4,6 +4,16 @@
 // v5 起角色带结构化 gender/ageGroup/physique（应用时直接预填设定表单）；
 // v3 的 stateLabel/stateNote 提取时已不再生成，仅为已持久化的旧结果保留。
 
+/** 资产状态生成图：状态编辑器点「生成图」后写入；按 referenceStateId 取另一状态的图当参考。 */
+export interface StoryAssetStateImage {
+  status: "idle" | "generating" | "done" | "error";
+  url?: string;
+  prompt?: string;
+  provider?: string;
+  generatedAt?: string;
+  error?: string;
+}
+
 /** 资产外观状态：同一资产随剧情推进的外观形态（换装/受伤/昼夜/损坏…）。 */
 export interface StoryAssetState {
   id: string;
@@ -23,6 +33,8 @@ export interface StoryAssetState {
    * 状态；不填＝不用参考图，直接生成全新形象（2026-08-20 用户要求的灵活配置）。
    */
   referenceStateId?: string | null;
+  /** 该状态已生成的图片（状态编辑器生成/重新生成；文件在服务端，URL 随 statesJson 持久化） */
+  image?: StoryAssetStateImage;
 }
 
 export interface ReferenceExtractItem {

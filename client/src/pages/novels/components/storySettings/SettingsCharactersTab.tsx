@@ -329,7 +329,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
             ) : null}
             <CharacterAssetFormFields value={form} onChange={updateField} />
             {editing ? (
-              <AssetStatesEditor states={states} onChange={setStates} kind="character" />
+              <AssetStatesEditor states={states} onChange={setStates} kind="character" asset={editing ? { novelId, assetId: editing.id } : undefined} />
             ) : null}
           </div>
         </AppDialogContent>
