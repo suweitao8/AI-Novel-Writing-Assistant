@@ -125,6 +125,7 @@ export default function ComicDramaStudioPage() {
   const referenceStage = useReferenceDraftStage({
     novelId,
     workspace: chapterWorkspace,
+    referenceDocId: overview?.novel.referenceDocument?.id ?? null,
     onApplied: () => setCurrentTab("draft"),
   });
   const extractStage = useReferenceExtractStage({
@@ -424,6 +425,7 @@ export default function ComicDramaStudioPage() {
         nextOrder={chapterWorkspace.chapters.length > 0
           ? Math.max(...chapterWorkspace.chapters.map((chapter) => chapter.order)) + 1
           : 1}
+        referenceDocId={overview?.novel.referenceDocument?.id ?? null}
         onCreated={async () => {
           await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
         }}

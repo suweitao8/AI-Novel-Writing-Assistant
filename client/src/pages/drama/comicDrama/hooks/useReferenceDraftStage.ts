@@ -1,25 +1,25 @@
-import { useEffect, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getKnowledgeDocument } from "@/api/knowledge";
 import { previewChapterReferenceDraft } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
-// 参考文本按「小说+章」存浏览器本地：粘贴即保存（写穿，无保存按钮），
-// 切章时换入对应章的参考文本，刷新/重开不丢。不落服务端——它是解析用的
-// 临时素材，正式产物是写入 Chapter.expectation 的初稿。
-// NOVEL_REFERENCE_SOURCE_SLOT 是项目级「原始参考小说」槽位：创建漫剧时拖入的
-// 现成小说正文存在这里；某章还没有自己的参考文本时回落到它（截取本章相关部分）。
-export const NOVEL_REFERENCE_SOURCE_SLOT = "source";
+// 参考文本服务端持久化：本章参考正文存 Chapter.referenceText（PUT /chapters/:id，
+// 1.2s 防抖静默保存），整本「原始参考小说」存知识库文档（创建漫剧时上传）；
+// 本章没有自己的参考文本时，编辑器回落展示整本小说开头，编辑即落到本章字段。
+// 不再使用浏览器 localStorage——内嵌浏览器的本地存储不可靠（写入静默失败/重载即丢），
+// 已踩过：参考文本与提取建议凭空消失。
+const REFERENCE_AUTOSAVE_DELAY_MS = 1200;
 
-export function referenceStorageKey(novelId: string, chapterId: string): string {
-  return `drama-studio-reference:${novelId}:${chapterId}`;
-}
+// 整本参考小说文档查询键（「参考」回退与新建章节标题预填共用一份缓存）。
+export const referenceDocQueryKey = (docId: string | null) => ["drama-reference-doc", docId] as const;
 
 // —— 参考小说章节标题提取：新建第 N 章时按「第N章/回/节 标题」行取对应章名。
 // 标题行是小说文本的强约定，属确定性解析（非 AI 决策路径）；全篇没有「第N章」式
 // 标题时退回「N、标题 / N. 标题」编号式，仍无匹配则留空由用户填写。
-const CHAPTER_HEADING_PATTERN = /^[ 	]*第\s*([0-9零〇一二两三四五六七八九十百千万]+)\s*[章回节][ 	]*[:：、．.，,\-—–]?[ 	]*(.*?)[ 	]*$/;
-const NUMBERED_HEADING_PATTERN = /^[ 	]*(\d{1,4})[ 	]*[、.．)）][ 	]*(.*?)[ 	]*$/;
+const CHAPTER_HEADING_PATTERN = /^[ \t]*第\s*([0-9零〇一二两三四五六七八九十百千万]+)\s*[章回节][ \t]*[:：、．.，,\-—–]?[ \t]*(.*?)[ \t]*$/;
+const NUMBERED_HEADING_PATTERN = /^[ \t]*(\d{1,4})[ \t]*[、.．)）][ \t]*(.*?)[ \t]*$/;
 
 function chineseChapterNumber(raw: string): number | null {
   if (/^\d{1,4}$/.test(raw)) {
@@ -51,7 +51,7 @@ function chineseChapterNumber(raw: string): number | null {
   return value > 0 ? value : null;
 }
 
-function collectReferenceChapterTitles(source: string): Map<number, string> {
+export function collectReferenceChapterTitles(source: string): Map<number, string> {
   const titles = new Map<number, string>();
   const record = (rawNumber: string, rawTitle: string) => {
     const number = chineseChapterNumber(rawNumber);
@@ -78,69 +78,59 @@ function collectReferenceChapterTitles(source: string): Map<number, string> {
   return titles;
 }
 
-// 新建第 order 章时从项目参考源取对应章节标题；没有参考源或没找到返回空串。
-export function findReferenceChapterTitle(novelId: string, order: number): string {
-  if (order < 1) {
-    return "";
-  }
-  let source: string | null = null;
-  try {
-    source = window.localStorage.getItem(referenceStorageKey(novelId, NOVEL_REFERENCE_SOURCE_SLOT));
-  } catch {
-    return "";
-  }
-  if (!source) {
-    return "";
-  }
-  return collectReferenceChapterTitles(source).get(order) ?? "";
-}
-
-function readStoredReference(novelId: string, chapterId: string): string {
-  try {
-    const stored = window.localStorage.getItem(referenceStorageKey(novelId, chapterId));
-    if (stored !== null) {
-      return stored;
-    }
-    return window.localStorage.getItem(referenceStorageKey(novelId, NOVEL_REFERENCE_SOURCE_SLOT)) ?? "";
-  } catch {
-    return "";
-  }
-}
-
-// 「参考」页签的解析管线：把粘贴的参考小说原文 AI 压缩成本章初稿。
+// 「参考」页签的解析管线：把参考小说原文 AI 改编成本章分镜式初稿。
 // 状态放在页级 hook：子页签行右侧的「解析」按钮与替换确认弹窗共享同一份 mutation，
 // 切换子页签不丢参考文本；解析结果写入初稿并立即落库（applyExpectationText）。
 export function useReferenceDraftStage(input: {
   novelId: string;
   workspace: NovelChapterWorkspace;
+  referenceDocId: string | null;
   onApplied: () => void;
 }) {
   const { workspace } = input;
-  const [referenceText, setReferenceTextState] = useState("");
   const [pendingDraft, setPendingDraft] = useState<string | null>(null);
   const chapter = workspace.currentChapter;
-  const chapterId = chapter?.id ?? null;
+
+  // 整本参考小说（创建漫剧时上传，知识库文档服务端存档）。
+  const referenceDocQuery = useQuery({
+    queryKey: referenceDocQueryKey(input.referenceDocId),
+    queryFn: () => getKnowledgeDocument(input.referenceDocId as string),
+    enabled: Boolean(input.referenceDocId),
+    staleTime: 5 * 60 * 1000,
+  });
+  const sourceFallbackText = useMemo(() => {
+    const versions = referenceDocQuery.data?.data?.versions ?? [];
+    const activeVersion = versions.find((version) => version.isActive) ?? versions[versions.length - 1];
+    return (activeVersion?.content ?? "").slice(0, 20000);
+  }, [referenceDocQuery.data]);
+
+  // 本章已有参考文本用本章的；否则回落展示整本小说开头（编辑后落到本章字段）。
+  const referenceText = workspace.referenceText.trim() ? workspace.referenceText : sourceFallbackText;
   const trimmedReference = referenceText.trim();
 
-  // 切章时载入该章已保存的参考文本；该章没有则回落到创建时上传的整本参考小说。
+  // 参考文本防抖自动保存到 Chapter.referenceText（服务端），卸载时冲保存避免丢稿。
+  const referenceDirty = workspace.referenceDirty;
+  const referenceSavePending = workspace.referenceSavePending;
+  const autosaveRef = useRef({ dirty: referenceDirty, pending: referenceSavePending, flush: workspace.flushReferenceSave });
+  autosaveRef.current = { dirty: referenceDirty, pending: referenceSavePending, flush: workspace.flushReferenceSave };
+
   useEffect(() => {
-    if (!chapterId) {
-      setReferenceTextState("");
+    if (!referenceDirty || referenceSavePending) {
       return;
     }
-    setReferenceTextState(readStoredReference(input.novelId, chapterId));
-  }, [chapterId, input.novelId]);
+    const timer = setTimeout(() => autosaveRef.current.flush(), REFERENCE_AUTOSAVE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [workspace.referenceText, referenceDirty, referenceSavePending]);
 
-  // 粘贴/修改即写穿本地存储（文本量小，同步写开销可忽略；私有模式等失败静默）。
-  const setReferenceText = (value: string) => {
-    setReferenceTextState(value);
-    if (chapterId) {
-      try {
-        window.localStorage.setItem(referenceStorageKey(input.novelId, chapterId), value);
-      } catch {
-        // 本地存储不可用时仅保留内存态
-      }
+  useEffect(() => () => {
+    const { dirty, pending, flush } = autosaveRef.current;
+    if (dirty && !pending) {
+      flush();
     }
+  }, []);
+
+  const setReferenceText = (value: string) => {
+    workspace.setReferenceText(value.slice(0, 20000));
   };
 
   const applyDraft = (draftText: string) => {
@@ -181,6 +171,7 @@ export function useReferenceDraftStage(input: {
   return {
     referenceText,
     setReferenceText,
+    sourceFallbackText,
     parseMutation,
     parseDisabledReason,
     pendingDraft,

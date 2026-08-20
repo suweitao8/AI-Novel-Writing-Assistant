@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   createStorySettingsCharacter,
@@ -15,13 +15,10 @@ import type {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 // 「提取」页签的管线：从当前参考文本 AI 提取角色/场景/世界观建议，
-// 用户勾选确认后创建进设定中心（建议而已，不自动写入）。提取结果按小说存
-// 浏览器本地（与参考文本同策略）；创建成功或已存在同名条目后从建议列表移除，
-// 失败的保留在列表里供重试。
-function extractionStorageKey(novelId: string): string {
-  return `drama-studio-extract:${novelId}`;
-}
-
+// 用户勾选确认后创建进设定中心（建议而已，不自动写入）。提取结果是页级内存态：
+// 参考文本已在服务端持久化，重开页面点一次「提取」即可恢复建议；创建成功或已存在
+// 同名条目后从建议列表移除，失败的保留在列表里供重试。不落浏览器 localStorage
+// （内嵌浏览器本地存储不可靠，曾导致提取结果凭空消失）。
 const EMPTY_EXTRACTION: ReferenceExtractionPayload = { characters: [], scenes: [], worldview: [] };
 
 function normalizeExtraction(raw: unknown): ReferenceExtractionPayload {
@@ -53,25 +50,6 @@ export function useReferenceExtractStage(input: {
   const [extraction, setExtraction] = useState<ReferenceExtractionPayload>(EMPTY_EXTRACTION);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(extractionStorageKey(input.novelId));
-      setExtraction(raw ? normalizeExtraction(JSON.parse(raw)) : EMPTY_EXTRACTION);
-    } catch {
-      setExtraction(EMPTY_EXTRACTION);
-    }
-    setSelected(new Set());
-  }, [input.novelId]);
-
-  const persist = (next: ReferenceExtractionPayload) => {
-    setExtraction(next);
-    try {
-      window.localStorage.setItem(extractionStorageKey(input.novelId), JSON.stringify(next));
-    } catch {
-      // 本地存储不可用时仅保留内存态
-    }
-  };
-
   const extractMutation = useMutation({
     mutationFn: async () => {
       if (!input.chapterId) {
@@ -81,7 +59,8 @@ export function useReferenceExtractStage(input: {
     },
     onSuccess: (response) => {
       const next = normalizeExtraction(response.data ?? EMPTY_EXTRACTION);
-      persist(next);
+      setExtraction(next);
+      setSelected(new Set());
       const count = next.characters.length + next.scenes.length + next.worldview.length;
       if (count === 0) {
         toast.error("没有提取到内容。");
@@ -181,7 +160,7 @@ export function useReferenceExtractStage(input: {
         worldview: extraction.worldview.filter((item, index) =>
           !selected.has(itemKey("worldview", index)) || failedKeys.has(`worldview:${item.name}`)),
       };
-      persist(remaining);
+      setExtraction(remaining);
       setSelected(new Set());
 
       if (created > 0) {

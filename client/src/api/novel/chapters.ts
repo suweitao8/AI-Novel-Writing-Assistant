@@ -60,6 +60,7 @@ export async function updateNovelChapter(
     order: number;
     content: string;
     expectation: string;
+    referenceText: string;
     chapterStatus: ChapterStatus;
     targetWordCount: number;
     conflictLevel: number;

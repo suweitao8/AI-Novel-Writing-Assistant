@@ -11,25 +11,19 @@ import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
-import {
-  NOVEL_REFERENCE_SOURCE_SLOT,
-  referenceStorageKey,
-} from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 
 interface ComicDramaCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-const REFERENCE_CONTENT_LIMIT = 20000;
-
 function titleFromFileName(fileName: string): string {
   return fileName.replace(/\.txt$/i, "").slice(0, 60);
 }
 
 // 创建漫剧：作品名（拖入现成小说时自动取文件名）+ 可选想法。
-// 上传的参考小说在提交时存入知识库（取消创建不留孤儿文档），同时把正文（截断到
-// 参考编辑器上限）写入项目级参考源 localStorage，工作室「参考」页签按章回落到它。
+// 上传的参考小说在提交时存入知识库并关联到作品（取消创建不留孤儿文档），
+// 工作室「参考」页签与新建章节标题预填都从这份服务端文档取，不再写浏览器本地。
 export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProps) {
   const { open, onOpenChange } = props;
   const navigate = useNavigate();
@@ -53,9 +47,8 @@ export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProp
   };
 
   const createMutation = useMutation({
-    mutationFn: async (): Promise<{ novelId: string; referenceContent: string | null }> => {
+    mutationFn: async (): Promise<string> => {
       let referenceKnowledgeDocumentId: string | undefined;
-      let referenceContent: string | null = null;
       if (referenceFile) {
         const content = await readTextFile(referenceFile);
         if (!content.trim()) {
@@ -70,7 +63,6 @@ export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProp
         if (!referenceKnowledgeDocumentId) {
           throw new Error("参考小说保存失败，请重试。");
         }
-        referenceContent = content.slice(0, REFERENCE_CONTENT_LIMIT);
       }
       const response = await createNovel({
         title: title.trim(),
@@ -84,19 +76,9 @@ export default function ComicDramaCreateDialog(props: ComicDramaCreateDialogProp
       if (!novelId) {
         throw new Error("创建成功但没有返回作品信息，请回到漫剧列表查找。");
       }
-      return { novelId, referenceContent };
+      return novelId;
     },
-    onSuccess: async ({ novelId, referenceContent }) => {
-      if (referenceContent) {
-        try {
-          window.localStorage.setItem(
-            referenceStorageKey(novelId, NOVEL_REFERENCE_SOURCE_SLOT),
-            referenceContent,
-          );
-        } catch {
-          // 本地存储不可用时跳过，「参考」页签仍可手动粘贴
-        }
-      }
+    onSuccess: async (novelId) => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.novels.all });
       onOpenChange(false);
       setTitle("");

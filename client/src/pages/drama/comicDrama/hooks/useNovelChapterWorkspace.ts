@@ -41,6 +41,7 @@ export function useNovelChapterWorkspace(novelId: string) {
   const queryClient = useQueryClient();
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [expectationText, setExpectationText] = useState("");
+  const [referenceText, setReferenceTextState] = useState("");
   const [beats, setBeats] = useState<ChapterBeatDraft[] | null>(null);
   const [notes, setNotes] = useState("");
 
@@ -81,6 +82,16 @@ export function useNovelChapterWorkspace(novelId: string) {
     onError: (error) => toast.error(error instanceof Error ? error.message : "保存初稿失败，请重试。"),
   });
 
+  // 本章参考文本（漫剧「参考」页签）同样静默自动保存到 Chapter.referenceText。
+  const saveReferenceMutation = useMutation({
+    mutationFn: (input: { chapterId: string; text: string }) =>
+      updateNovelChapter(novelId, input.chapterId, { referenceText: input.text }),
+    onSuccess: async () => {
+      await invalidateChapters();
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "保存参考文本失败，请重试。"),
+  });
+
   const expectationDirty = Boolean(currentChapter)
     && expectationText.trim() !== (currentChapter?.expectation ?? "").trim();
 
@@ -105,12 +116,30 @@ export function useNovelChapterWorkspace(novelId: string) {
     saveExpectationMutation.mutate({ chapterId: currentChapter.id, text, silent: true });
   };
 
+  const referenceDirty = Boolean(currentChapter)
+    && referenceText !== (currentChapter?.referenceText ?? "");
+  const referenceSavePending = saveReferenceMutation.isPending;
+  const flushReferenceSave = () => {
+    if (currentChapter && referenceDirty && !referenceSavePending) {
+      saveReferenceMutation.mutate({ chapterId: currentChapter.id, text: referenceText });
+    }
+  };
+  const setReferenceText = (text: string) => {
+    setReferenceTextState(text);
+  };
+
   const switchChapter = (chapter: Chapter) => {
     if (currentChapter && currentChapter.id !== chapter.id && expectationDirty && !savePending) {
       saveExpectationMutation.mutate({
         chapterId: currentChapter.id,
         text: expectationText,
         silent: true,
+      });
+    }
+    if (currentChapter && currentChapter.id !== chapter.id && referenceDirty && !referenceSavePending) {
+      saveReferenceMutation.mutate({
+        chapterId: currentChapter.id,
+        text: referenceText,
       });
     }
     setCurrentChapterId(chapter.id);
@@ -125,6 +154,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     loadedChapterRef.current = currentChapter.id;
     const expectation = currentChapter.expectation ?? "";
     setExpectationText(expectation.trim() ? expectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
+    setReferenceTextState(currentChapter.referenceText ?? "");
     const parsed = parseDetailOutline(currentChapter);
     setBeats(
       parsed
@@ -203,6 +233,11 @@ export function useNovelChapterWorkspace(novelId: string) {
     expectationDirty,
     savePending,
     flushExpectationSave,
+    referenceText,
+    setReferenceText,
+    referenceDirty,
+    referenceSavePending,
+    flushReferenceSave,
     previewMutation,
     saveBeatsMutation,
     beats,
