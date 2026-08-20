@@ -1,5 +1,8 @@
-// 世界地图应用服务：AI 生成地图草稿（纯预览不落库）与人工编辑后地图的保存。
-// 地图存储在 NovelSettingsWorld.mapJson：{ overview, nodes:[{id,name,kind,summary,x,y,tier?}], edges:[{fromId,toId,label}] }。
+// 世界地图应用服务：AI 生成地点草稿（纯预览不落库）与人工编辑后地图的保存。
+// 地图存储在 NovelSettingsWorld.mapJson：
+// { overview, scaleKm, terrain:[{id,type,label,points}], nodes:[{id,name,kind,summary,x,y,tier?}],
+//   edges:[{fromId,toId,label}], childMaps:{[nodeId]: 同构内部地图} }。
+// 地形（平地/山/水）是程序化多边形，AI 不生成地形也不生图；childMaps 是城市/村镇内部地图，按节点 id 挂接。
 // 边界说明：
 // - node id 必须稳定：AI 草稿按名称对齐已有节点沿用原 id，NovelScene.mapNodeId 的引用因此不丢；
 //   保存时被删除的节点会把引用它的场景挂点清空（不删场景本身）。
@@ -17,8 +20,14 @@ import { storySettingsService } from "./StorySettingsService";
 
 const NODE_COUNT_MAX = 24;
 const EDGE_COUNT_MAX = 32;
+const TERRAIN_COUNT_MAX = 24;
+const TERRAIN_VERTEX_MAX = 24;
+const CHILD_MAP_COUNT_MAX = 16;
+// 世界(0) → 城市/村镇(1) → 城区(2)：超过三级的内部地图丢弃，防止无限嵌套。
+const CHILD_MAP_DEPTH_MAX = 3;
 const NODE_KINDS = new Set(["city", "region", "building", "wild", "other"]);
 const NODE_TIERS = new Set(["capital", "city", "town", "landmark"]);
+const TERRAIN_TYPES = new Set(["plain", "mountain", "water"]);
 
 export interface WorldMapNode {
   id: string;
@@ -36,10 +45,20 @@ export interface WorldMapEdge {
   label: string;
 }
 
+export interface WorldMapTerrain {
+  id: string;
+  type: string;
+  label: string;
+  points: Array<{ x: number; y: number }>;
+}
+
 export interface WorldMapData {
   overview: string;
+  scaleKm: number | null;
+  terrain: WorldMapTerrain[];
   nodes: WorldMapNode[];
   edges: WorldMapEdge[];
+  childMaps: Record<string, WorldMapData>;
 }
 
 function clampCoordinate(value: unknown): number | null {
@@ -63,15 +82,52 @@ function normalizeString(value: unknown, max: number): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
 }
 
-// 确定性归一：坐标夹紧、长度截断、id 去重、悬空/自环/重复连线剔除。
+// 确定性归一：坐标夹紧、长度截断、id 去重、悬空/自环/重复连线剔除、地形多边形与内部地图递归处理。
 // 输入来自前端编辑器（已过 zod）或 AI 草稿，这里只做格式兜底，不做业务拒绝。
-export function normalizeWorldMap(raw: unknown): WorldMapData {
+export function normalizeWorldMap(raw: unknown, depth = 0): WorldMapData {
   const source = (raw ?? {}) as {
     overview?: unknown;
+    scaleKm?: unknown;
+    terrain?: unknown;
     nodes?: unknown;
     edges?: unknown;
+    childMaps?: unknown;
   };
   const overview = normalizeString(source.overview, 600);
+  const scaleKm = typeof source.scaleKm === "number" && Number.isFinite(source.scaleKm) && source.scaleKm > 0
+    ? Math.min(1000000, Math.round(source.scaleKm * 10) / 10)
+    : null;
+
+  const terrain: WorldMapTerrain[] = [];
+  const terrainIds = new Set<string>();
+  if (Array.isArray(source.terrain)) {
+    for (const item of source.terrain) {
+      if (!item || typeof item !== "object") continue;
+      const record = item as Record<string, unknown>;
+      const id = normalizeString(record.id, 60);
+      const type = TERRAIN_TYPES.has(String(record.type)) ? String(record.type) : "plain";
+      if (!id || terrainIds.has(id)) continue;
+      const points: Array<{ x: number; y: number }> = [];
+      if (Array.isArray(record.points)) {
+        for (const point of record.points) {
+          if (!point || typeof point !== "object") continue;
+          const pointRecord = point as { x?: unknown; y?: unknown };
+          const x = clampCoordinate(pointRecord.x);
+          const y = clampCoordinate(pointRecord.y);
+          if (x === null || y === null) continue;
+          const previous = points[points.length - 1];
+          if (previous && Math.abs(previous.x - x) < 0.05 && Math.abs(previous.y - y) < 0.05) continue;
+          points.push({ x, y });
+          if (points.length >= TERRAIN_VERTEX_MAX) break;
+        }
+      }
+      if (points.length < 3) continue;
+      terrainIds.add(id);
+      terrain.push({ id, type, label: normalizeString(record.label, 40), points });
+      if (terrain.length >= TERRAIN_COUNT_MAX) break;
+    }
+  }
+
   const nodes: WorldMapNode[] = [];
   const seenIds = new Set<string>();
   if (Array.isArray(source.nodes)) {
@@ -112,7 +168,18 @@ export function normalizeWorldMap(raw: unknown): WorldMapData {
       if (edges.length >= EDGE_COUNT_MAX) break;
     }
   }
-  return { overview, nodes, edges };
+
+  // 内部地图只挂在真实存在的节点上，超出深度上限或数量的丢弃（静默兜底）。
+  const childMaps: Record<string, WorldMapData> = {};
+  if (depth < CHILD_MAP_DEPTH_MAX - 1 && source.childMaps && typeof source.childMaps === "object") {
+    for (const [key, value] of Object.entries(source.childMaps as Record<string, unknown>)) {
+      if (!seenIds.has(normalizeString(key, 60))) continue;
+      if (Object.keys(childMaps).length >= CHILD_MAP_COUNT_MAX) break;
+      childMaps[normalizeString(key, 60)] = normalizeWorldMap(value, depth + 1);
+    }
+  }
+
+  return { overview, scaleKm, terrain, nodes, edges, childMaps };
 }
 
 // AI 草稿按名称对齐已有节点：同名沿用原 id（保住场景挂点引用），新地点生成新 id。
@@ -139,7 +206,14 @@ export function resolveDraftIds(draft: WorldMapOutput, existingNodes: Array<{ id
     seenPairs.add(pairKey);
     edges.push({ fromId, toId, label: path.label.slice(0, 40) });
   }
-  return { overview: draft.overview.slice(0, 600), nodes, edges };
+  return {
+    overview: draft.overview.slice(0, 600),
+    scaleKm: null,
+    terrain: [],
+    nodes,
+    edges,
+    childMaps: {},
+  };
 }
 
 export class WorldMapService {

@@ -76,24 +76,29 @@ export interface StorySettingsCharacter {
   updatedAt: string;
 }
 
+export interface WorldMapViewData {
+  overview: string;
+  scaleKm: number | null;
+  terrain: Array<{ id: string; type: string; label: string; points: Array<{ x: number; y: number }> }>;
+  nodes: Array<{
+    id: string;
+    name: string;
+    kind: string;
+    summary: string;
+    x: number | null;
+    y: number | null;
+    tier: string | null;
+  }>;
+  edges: Array<{ fromId: string; toId: string; label: string }>;
+  childMaps: Record<string, WorldMapViewData>;
+}
+
 export interface StorySettingsWorldMapView {
   premise: string;
   era: string | null;
   toneRules: string[];
   keySettings: Array<{ title: string; content: string }>;
-  map: {
-    overview: string;
-    nodes: Array<{
-      id: string;
-      name: string;
-      kind: string;
-      summary: string;
-      x: number | null;
-      y: number | null;
-      tier: string | null;
-    }>;
-    edges: Array<{ fromId: string; toId: string; label: string }>;
-  };
+  map: WorldMapViewData;
   source: string;
   updatedAt: string;
 }
@@ -128,17 +133,44 @@ function parseKeySettings(value: string | null | undefined): Array<{ title: stri
   }
 }
 
-// 地图解析：overview + 节点坐标（x/y 0-100，旧数据无坐标为 null）+ 连线。
-// 旧 mapJson（bundle 写入的 {nodes, edges}）天然兼容：overview 缺省空串、坐标缺省 null。
-function parseMap(value: string | null | undefined): StorySettingsWorldMapView["map"] {
-  const empty: StorySettingsWorldMapView["map"] = { overview: "", nodes: [], edges: [] };
+// 地图解析：overview + 地形多边形 + 节点坐标（x/y 0-100，旧数据无坐标为 null）+ 连线 + 内部地图（递归）。
+// 旧 mapJson（bundle 写入的 {nodes, edges}）天然兼容：新增字段缺省为空，无需迁移。
+function parseMap(value: string | null | undefined, depth = 0): WorldMapViewData {
+  const empty: WorldMapViewData = { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} };
   if (!value) return empty;
   try {
-    const parsed = JSON.parse(value) as {
-      overview?: unknown;
-      nodes?: unknown;
-      edges?: unknown;
-    };
+    return parseMapObject(JSON.parse(value) as Record<string, unknown>, depth);
+  } catch {
+    return empty;
+  }
+}
+
+function parseMapObject(parsed: Record<string, unknown>, depth: number): WorldMapViewData {
+  const terrain = Array.isArray(parsed.terrain)
+      ? parsed.terrain
+        .filter((item) => item && typeof item === "object" && typeof (item as { id?: unknown }).id === "string")
+        .map((item) => {
+          const record = item as { id: string; type?: unknown; label?: unknown; points?: unknown };
+          return {
+            id: record.id,
+            type: typeof record.type === "string" ? record.type : "plain",
+            label: typeof record.label === "string" ? record.label : "",
+            points: Array.isArray(record.points)
+              ? record.points
+                .filter((point) => point && typeof point === "object")
+                .map((point) => {
+                  const pointRecord = point as { x?: unknown; y?: unknown };
+                  return {
+                    x: typeof pointRecord.x === "number" && Number.isFinite(pointRecord.x)
+                      ? Math.min(100, Math.max(0, pointRecord.x)) : 0,
+                    y: typeof pointRecord.y === "number" && Number.isFinite(pointRecord.y)
+                      ? Math.min(100, Math.max(0, pointRecord.y)) : 0,
+                  };
+                })
+              : [],
+          };
+        })
+      : [];
     const nodes = Array.isArray(parsed.nodes)
       ? parsed.nodes
         .filter((node) => node && typeof node === "object" && typeof (node as { id?: unknown }).id === "string")
@@ -180,14 +212,22 @@ function parseMap(value: string | null | undefined): StorySettingsWorldMapView["
           };
         })
       : [];
+    const childMaps: Record<string, WorldMapViewData> = {};
+    if (depth < 2 && parsed.childMaps && typeof parsed.childMaps === "object") {
+      for (const [key, child] of Object.entries(parsed.childMaps as Record<string, unknown>)) {
+        if (!child || typeof child !== "object" || !nodeIds.has(key)) continue;
+        childMaps[key] = parseMapObject(child as Record<string, unknown>, depth + 1);
+      }
+    }
     return {
       overview: typeof parsed.overview === "string" ? parsed.overview : "",
+      scaleKm: typeof parsed.scaleKm === "number" && Number.isFinite(parsed.scaleKm) && parsed.scaleKm > 0
+        ? parsed.scaleKm : null,
+      terrain,
       nodes,
       edges,
+      childMaps,
     };
-  } catch {
-    return empty;
-  }
 }
 
 function normalizeCategories(value: unknown): StorySettingsCategory[] {
@@ -706,7 +746,7 @@ export class StorySettingsService {
         era: null,
         toneRules: [],
         keySettings: [],
-        map: { overview: "", nodes: [], edges: [] },
+        map: { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} },
         source: "ai",
         updatedAt: new Date().toISOString(),
       };

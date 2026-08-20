@@ -1,9 +1,15 @@
 import { useMemo } from "react";
 import type { StorySettingsWorld } from "@/api/story/storySettings";
 
-// 世界观地图：多数地点有保存坐标（0-100）时按坐标换算到画布，其余（旧数据）回落环形布局；
-// 连线表示地点间的通路与关系。只用语义 token 与 currentColor，自动适配明暗主题。
+// 世界观地图（只读概览）：地形多边形铺底，多数地点有保存坐标（0-100）时按坐标换算到画布，
+// 其余（旧数据）回落环形布局；连线表示地点间的通路与关系。只用语义 token 与 currentColor。
 export default function SettingsWorldMapView({ map }: { map: StorySettingsWorld["map"] }) {
+  const terrain = useMemo(() => {
+    return (map.terrain ?? []).map((item) => ({
+      ...item,
+      points: item.points.map((point) => `${point.x * 3.2},${point.y * 2.4}`).join(" "),
+    }));
+  }, [map.terrain]);
   const layout = useMemo(() => {
     const positionedCount = map.nodes.filter((node) => node.x !== null && node.y !== null).length;
     const useStored = positionedCount >= Math.max(2, Math.ceil(map.nodes.length / 2));
@@ -50,6 +56,18 @@ export default function SettingsWorldMapView({ map }: { map: StorySettingsWorld[
         role="img"
         aria-label="世界观地图"
       >
+        {terrain.map((item) => (
+          <polygon
+            key={item.id}
+            points={item.points}
+            className={item.type === "water"
+              ? "fill-primary/10 stroke-primary/40"
+              : item.type === "mountain"
+                ? "fill-muted stroke-muted-foreground/50"
+                : "fill-emerald-500/10 stroke-emerald-600/40 dark:stroke-emerald-400/40"}
+            strokeWidth={1}
+          />
+        ))}
         {layout.edges.map(({ edge, from, to }, index) => (
           <g key={`${edge.fromId}-${edge.toId}-${index}`}>
             <line

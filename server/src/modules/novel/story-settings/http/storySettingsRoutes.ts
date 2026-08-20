@@ -26,25 +26,56 @@ const characterUpdateSchema = z.object({
 
 const worldMapKindSchema = z.enum(["city", "region", "building", "wild", "other"]);
 const worldMapTierSchema = z.enum(["capital", "city", "town", "landmark"]);
+const worldMapTerrainTypeSchema = z.enum(["plain", "mountain", "water"]);
 
 // 地图保存载荷：坐标是 0-100 平面百分比；旧地图无坐标节点允许 x/y 为空。
-const worldMapUpdateSchema = z.object({
-  overview: z.string().trim().max(600).optional(),
-  nodes: z.array(z.object({
-    id: z.string().trim().min(1).max(60),
-    name: z.string().trim().min(1).max(40),
-    kind: worldMapKindSchema,
-    summary: z.string().trim().max(200).optional(),
-    x: z.number().min(0).max(100).nullable().optional(),
-    y: z.number().min(0).max(100).nullable().optional(),
-    tier: worldMapTierSchema.nullable().optional(),
-  }).strict()).max(24).optional(),
-  edges: z.array(z.object({
-    fromId: z.string().trim().min(1).max(60),
-    toId: z.string().trim().min(1).max(60),
-    label: z.string().trim().max(40).optional(),
-  }).strict()).max(32).optional(),
+// 地形是程序化多边形（平地/山/水）；childMaps 是按上级节点 id 挂接的内部地图（城市/村镇），
+// 数据同构递归，深度上限在服务端 normalizeWorldMap 里控制。
+const worldMapPointSchema = z.object({
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
 }).strict();
+
+const worldMapTerrainSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  type: worldMapTerrainTypeSchema,
+  label: z.string().trim().max(40).optional(),
+  points: z.array(worldMapPointSchema).min(3).max(24),
+}).strict();
+
+const worldMapNodeUpdateSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  name: z.string().trim().min(1).max(40),
+  kind: worldMapKindSchema,
+  summary: z.string().trim().max(200).optional(),
+  x: z.number().min(0).max(100).nullable().optional(),
+  y: z.number().min(0).max(100).nullable().optional(),
+  tier: worldMapTierSchema.nullable().optional(),
+}).strict();
+
+const worldMapEdgeUpdateSchema = z.object({
+  fromId: z.string().trim().min(1).max(60),
+  toId: z.string().trim().min(1).max(60),
+  label: z.string().trim().max(40).optional(),
+}).strict();
+
+interface WorldMapUpdateInput {
+  overview?: string;
+  scaleKm?: number | null;
+  terrain?: Array<z.infer<typeof worldMapTerrainSchema>>;
+  nodes?: Array<z.infer<typeof worldMapNodeUpdateSchema>>;
+  edges?: Array<z.infer<typeof worldMapEdgeUpdateSchema>>;
+  childMaps?: Record<string, WorldMapUpdateInput>;
+}
+
+const worldMapUpdateSchema: z.ZodType<WorldMapUpdateInput> = z.lazy(() => z.object({
+  overview: z.string().trim().max(600).optional(),
+  scaleKm: z.number().min(0.1).max(1000000).nullable().optional(),
+  terrain: z.array(worldMapTerrainSchema).max(24).optional(),
+  nodes: z.array(worldMapNodeUpdateSchema).max(24).optional(),
+  edges: z.array(worldMapEdgeUpdateSchema).max(32).optional(),
+  childMaps: z.record(z.string().trim().min(1).max(60), worldMapUpdateSchema).optional(),
+}).strict());
 
 const worldUpdateSchema = z.object({
   premise: z.string().trim().min(1).max(1200).optional(),

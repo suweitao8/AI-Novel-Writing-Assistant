@@ -126,6 +126,63 @@ test("normalizeWorldMap 兼容旧格式（无坐标无 overview）与空输入",
   assert.equal(legacy.overview, "");
   assert.equal(legacy.nodes[0].x, null);
   assert.equal(legacy.nodes[0].tier, null);
+  assert.equal(legacy.scaleKm, null);
+  assert.deepEqual(legacy.terrain, []);
+  assert.deepEqual(legacy.childMaps, {});
   const empty = normalizeWorldMap(null);
-  assert.deepEqual(empty, { overview: "", nodes: [], edges: [] });
+  assert.deepEqual(empty, { overview: "", scaleKm: null, terrain: [], nodes: [], edges: [], childMaps: {} });
+});
+
+test("normalizeWorldMap 归一地形多边形：类型兜底、坐标夹紧、少于三点的丢弃", () => {
+  const normalized = normalizeWorldMap({
+    terrain: [
+      { id: "t1", type: "water", label: "东海", points: [{ x: -10, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 30 }] },
+      { id: "t2", type: "volcano", label: "熔岩区", points: [{ x: 0, y: 0 }, { x: 10, y: 10 }, { x: 20, y: 20 }] },
+      { id: "t3", type: "mountain", label: "北岭", points: [{ x: 0, y: 0 }, { x: 9, y: 9 }] },
+    ],
+  });
+  assert.equal(normalized.terrain.length, 2);
+  const water = normalized.terrain.find((item) => item.id === "t1");
+  assert.equal(water.points[0].x, 0);
+  const volcano = normalized.terrain.find((item) => item.id === "t2");
+  assert.equal(volcano.type, "plain");
+});
+
+test("normalizeWorldMap 递归处理内部地图：悬空挂点丢弃、超深丢弃、scaleKm 归一", () => {
+  const normalized = normalizeWorldMap({
+    scaleKm: -5,
+    nodes: [{ id: "city-a", name: "甲城", kind: "city", summary: "", x: 50, y: 50, tier: null }],
+    childMaps: {
+      "city-a": {
+        overview: "甲城内部",
+        scaleKm: 20,
+        nodes: [{ id: "gate", name: "南门", kind: "building", summary: "", x: 50, y: 80, tier: null }],
+        edges: [],
+        childMaps: {
+          gate: {
+            overview: "再深一层",
+            nodes: [{ id: "too-deep", name: "深层", kind: "building", summary: "", x: 10, y: 10, tier: null }],
+            edges: [],
+            childMaps: {
+              "too-deep": {
+                overview: "第四层",
+                nodes: [],
+                edges: [],
+              },
+            },
+          },
+        },
+      },
+      "ghost-node": { overview: "悬空内部地图", nodes: [], edges: [] },
+    },
+  });
+  assert.equal(normalized.scaleKm, null);
+  const cityInner = normalized.childMaps["city-a"];
+  assert.ok(cityInner, "真实节点的内部地图保留");
+  assert.equal(cityInner.scaleKm, 20);
+  assert.equal(cityInner.nodes[0].id, "gate");
+  const gateInner = cityInner.childMaps.gate;
+  assert.ok(gateInner, "第二层（城区级）保留");
+  assert.deepEqual(gateInner.childMaps, {}, "第四层被深度上限丢弃");
+  assert.equal(normalized.childMaps["ghost-node"], undefined, "悬空挂点（节点不存在）丢弃");
 });
