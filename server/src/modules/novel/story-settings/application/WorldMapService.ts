@@ -262,6 +262,20 @@ export function mergeAnnotation(
   const unplaceable: WorldMapUnplaceable[] = [];
   const sceneByName = new Map(pendingScenes.map((scene) => [scene.name.trim(), scene]));
 
+  // 生成模式的地形分区：只追加到世界层（已有地形不动；标注模式下 AI 不输出地形）。
+  for (const draft of annotation.terrain ?? []) {
+    const points = draft.points
+      .map((point) => ({ x: clampCoordinate(point.x), y: clampCoordinate(point.y) }))
+      .filter((point): point is { x: number; y: number } => point.x !== null && point.y !== null);
+    if (points.length < 3) continue;
+    map.terrain.push({
+      id: randomUUID(),
+      type: draft.type,
+      label: draft.label?.trim().slice(0, 40) ?? "",
+      points,
+    });
+  }
+
   const countryByName = new Map(map.nodes.map((node) => [node.name.trim(), node]));
   for (const draft of annotation.newCountries) {
     const name = draft.name.trim();

@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-// 地图场景标注与生成（novel.world.map_annotate@v2 + WorldMapService 归一/合并）：
+// 地图场景标注与生成（novel.world.map_annotate@v3 + WorldMapService 归一/合并）：
 // schema 边界、postValidate 决策完备性、mergeAnnotation 只增不改、归一行为。
 
 const { worldMapAnnotatePrompt } = require("../dist/prompting/prompts/novel/worldMap.prompts.js");
@@ -27,6 +27,7 @@ function makeAnnotation(overrides = {}) {
   return {
     newCountries: [{ name: "大梁国", x: 40, y: 30 }],
     newCities: [{ name: "云京城", countryName: "大梁国", x: 50, y: 50 }],
+    terrain: [],
     placements: [
       { sceneName: "林家老宅", countryName: "大梁国", cityName: "云京城", x: 70, y: 60 },
       { sceneName: "青云宗山门", countryName: "大梁国", cityName: "云京城", x: 20, y: 30 },
@@ -36,24 +37,64 @@ function makeAnnotation(overrides = {}) {
   };
 }
 
-test("prompt 注册进 loader registry（novel.world.map_annotate@v2）", () => {
+test("prompt 注册进 loader registry（novel.world.map_annotate@v3）", () => {
   const keys = promptAssetLoaderEntries.map((entry) => entry.key);
-  assert.ok(keys.includes("novel.world.map_annotate@v2"), "缺少 novel.world.map_annotate@v2 注册");
+  assert.ok(keys.includes("novel.world.map_annotate@v3"), "缺少 novel.world.map_annotate@v3 注册");
 });
 
 test("空场景（生成模式）：postValidate 要求至少一个国家、placements 必须为空", () => {
   const input = { novelTitle: "测试小说", scenes: [] };
   const base = { newCountries: [{ name: "大梁国", x: 40, y: 30 }], newCities: [{ name: "云京城", countryName: "大梁国", x: 50, y: 50 }] };
-  const ok = worldMapAnnotatePrompt.postValidate({ ...base, placements: [], unplaceable: [] }, input);
+  const ok = worldMapAnnotatePrompt.postValidate({ ...base, placements: [], unplaceable: [], terrain: [] }, input);
   assert.equal(ok.newCountries.length, 1);
   // 生成模式不允许杜撰场景放置（场景名单为空）。
   assert.throws(() => worldMapAnnotatePrompt.postValidate({
     ...base,
     placements: [{ sceneName: "不存在的场景", countryName: "大梁国", cityName: "云京城", x: 10, y: 10 }],
     unplaceable: [],
+    terrain: [],
   }, input), /不在待标注名单/);
   // 空地图空场景却一个国家都不给，直接拒绝（否则调用方拿到的地图与之前完全一样）。
-  assert.throws(() => worldMapAnnotatePrompt.postValidate({ newCountries: [], newCities: [], placements: [], unplaceable: [] }, input), /至少规划一个国家/);
+  assert.throws(() => worldMapAnnotatePrompt.postValidate({ newCountries: [], newCities: [], placements: [], unplaceable: [], terrain: [] }, input), /至少规划一个国家/);
+  // 生成模式允许并接受地形分区。
+  const withTerrain = worldMapAnnotatePrompt.postValidate({
+    ...base,
+    placements: [],
+    unplaceable: [],
+    terrain: [{ type: "water", points: [{ x: 0, y: 0 }, { x: 30, y: 0 }, { x: 30, y: 40 }] }],
+  }, input);
+  assert.equal(withTerrain.terrain.length, 1);
+});
+
+test("标注模式禁止输出地形；地形 schema 校验顶点数量", () => {
+  const input = makeInput();
+  assert.throws(() => worldMapAnnotatePrompt.postValidate(
+    makeAnnotation({ terrain: [{ type: "plain", points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }] }] }),
+    input,
+  ), /不允许输出地形/);
+  assert.throws(() => worldMapAnnotatePrompt.outputSchema.parse(
+    makeAnnotation({ terrain: [{ type: "plain", points: [{ x: 0, y: 0 }, { x: 10, y: 0 }] }] }),
+  ));
+});
+
+test("mergeAnnotation 生成模式合入地形多边形（只追加）", () => {
+  const existing = normalizeWorldMap({
+    terrain: [{ id: "t-old", type: "water", label: "旧海", points: [{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 20, y: 20 }] }],
+    nodes: [],
+  });
+  const result = mergeAnnotation(existing, {
+    newCountries: [{ name: "临江省", x: 50, y: 50 }],
+    newCities: [{ name: "临江市", countryName: "临江省", x: 40, y: 40 }],
+    placements: [],
+    unplaceable: [],
+    terrain: [
+      { type: "plain", label: "中部平原", points: [{ x: 20, y: 20 }, { x: 80, y: 20 }, { x: 80, y: 80 }, { x: 20, y: 80 }] },
+      { type: "mountain", points: [{ x: 82, y: 30 }, { x: 98, y: 40 }, { x: 90, y: 60 }] },
+    ],
+  }, []);
+  assert.equal(result.map.terrain.length, 3, "旧地形保留+两块新地形追加");
+  assert.ok(result.map.terrain.some((item) => item.id === "t-old"));
+  assert.equal(result.map.nodes[0].name, "临江省");
 });
 
 test("outputSchema 接受完整标注并拒绝越界坐标", () => {
