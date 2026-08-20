@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, MapPin } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, Sparkles } from "lucide-react";
 import {
+  annotateWorldMap,
   getStorySettingsWorld,
   updateStorySettingsWorld,
   type WorldMapData,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
+import AiButton from "@/components/common/AiButton";
 import SelectControl from "@/components/common/SelectControl";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -25,8 +28,8 @@ import {
 // 漫剧「设定 · 地图」画布工作面：国家/城市两级切换 + 点击下钻（塞尔达式大地图）。
 // 顶部切换「国家级别」（世界画布=各国相对位置）与「城市级别」（选定国家的城市分布），
 // 点城市再进一层看城内地点（场景）。画布占满整行；点选节点/地形后编辑卡出现在画布下方，未选中不占位。
-// 地理距离按各层内置尺度估算（世界≈中国跨度、城市≈广州建成区），连线上直接标注公里数。
-// 所有改动（拖动/改名/删除）自动保存，没有手动保存按钮。
+// 「AI 生成地图」：空地图时依据书名/世界观生成基础的国家+城市结构；有未标注场景时把场景放置到地图上
+//（可新建国家/城市；无法定位的标记后跳过）。地理距离按各层内置尺度估算，连线直接标注公里数；改动自动保存。
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -97,6 +100,27 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     },
     onError: (error: Error) => {
       toast.error("地图保存失败。", { description: error.message });
+    },
+  });
+
+  // AI 生成/标注地图：服务端落库后返回新地图（空地图→生成基础国家+城市；有未标注场景→放置场景）。
+  const generateMutation = useMutation({
+    mutationFn: () => annotateWorldMap(novelId),
+    onSuccess: async (result) => {
+      if (result.data) {
+        applyMap(result.data.map);
+      }
+      const placed = result.data?.assignments.length ?? 0;
+      const skipped = result.data?.unplaceable.length ?? 0;
+      const countryCount = result.data?.map.nodes.length ?? 0;
+      const summary = placed > 0
+        ? `已标注 ${placed} 个场景${skipped > 0 ? `，${skipped} 个无法定位已标记（下次不再处理）` : ""}。`
+        : `已生成 ${countryCount} 个国家的基础地图。`;
+      toast.success(summary);
+      await invalidate();
+    },
+    onError: (error: Error) => {
+      toast.error("生成地图失败", { description: error.message });
     },
   });
 
@@ -281,6 +305,16 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
             ))}
           </SelectControl>
         ) : null}
+        <AiButton
+          variant="outline"
+          size="sm"
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending}
+          title="还没有地图时依据书名与世界观生成基础地图；有未标注的场景时把它们放置到地图上"
+        >
+          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generateMutation.isPending ? "生成中..." : "AI 生成地图"}
+        </AiButton>
       </div>
 
       {/* 城市下钻的回退面包屑：国家 › 城市 */}
@@ -304,7 +338,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
       <Card className="min-w-0 border-border/70">
         <CardContent className="p-3 sm:p-4">
           {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
-            <div className="flex aspect-square max-h-[560px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border text-center">
+            <div className="flex aspect-square max-h-[560px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border text-center">
               <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
               <p className="text-sm text-muted-foreground">
                 {activeTab === "country"
@@ -313,6 +347,12 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
                     ? "这个国家还没有城市。"
                     : "这座城市还没有地点。"}
               </p>
+              {activeTab === "country" ? (
+                <Button size="sm" onClick={() => generateMutation.mutate()} disabled={generateMutation.isPending}>
+                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {generateMutation.isPending ? "生成中..." : "AI 生成地图"}
+                </Button>
+              ) : null}
             </div>
           ) : (
             <div className="mx-auto w-full max-w-[720px]">
