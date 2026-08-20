@@ -220,6 +220,7 @@ export function AssetStatesEditor(props: {
               <span className="text-sm font-medium">生图参考</span>
               <SelectControl
                 className="h-9 rounded-md border bg-background px-2 text-sm"
+                aria-label="生图参考"
                 value={draft.referenceStateId ?? ""}
                 onChange={(event) => setDraft({ ...draft, referenceStateId: event.target.value || undefined })}
               >
