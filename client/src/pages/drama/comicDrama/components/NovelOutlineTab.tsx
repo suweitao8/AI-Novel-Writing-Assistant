@@ -21,7 +21,7 @@ interface NovelOutlineTabProps {
 }
 
 // 漫剧工作室「当前 · 初稿」页签：当前章的分镜式初稿（每单元「分镜：画面」+「旁白/角色（神态）：内容」
-// 两行一组、组间空行，对话组整组淡蓝显示；修改后自动静默保存），右侧是设定资产面板
+// 两行一组、组间空行，对话组极淡蓝显示、场景切换行（【场景：…】）偏绿加粗；修改后自动静默保存），右侧是设定资产面板
 // （快速查找与创建，名字在本章初稿里高亮）。「解析」按钮在上方子页签行右侧，按本章初稿生成本章节拍。
 export default function NovelOutlineTab(props: NovelOutlineTabProps) {
   const { novelId, workspace } = props;

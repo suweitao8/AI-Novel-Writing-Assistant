@@ -8,6 +8,7 @@ import type { PromptAsset } from "../../core/promptTypes";
 const referenceDraftSegmentSchema = z.object({
   shot: z.enum(["大远景", "远景", "全景", "中景", "近景", "特写"]),
   storyboard: z.string().min(2).max(80),
+  scene: z.string().min(1).max(30),
   speaker: z.string().min(1).max(20),
   kind: z.enum(["narration", "dialogue"]),
   mood: z.string().max(20).default(""),
@@ -23,6 +24,8 @@ export interface ChapterReferenceDraftPromptInput {
   chapterTitle: string;
   chapterOrder: number;
   referenceText: string;
+  /** 设定中心已有的场景名（优先沿用，保证初稿场景与项目资产对得上） */
+  existingScenes?: string[];
 }
 
 export interface ChapterReferenceDraftOutput extends z.infer<typeof chapterReferenceDraftSchema> {}
@@ -51,7 +54,7 @@ function validateChapterReferenceDraft(output: ChapterReferenceDraftOutput): Cha
 
 export const chapterReferenceDraftPrompt: PromptAsset<ChapterReferenceDraftPromptInput, ChapterReferenceDraftOutput> = {
   id: "novel.chapter.reference_draft",
-  version: "v5",
+  version: "v6",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -66,6 +69,7 @@ export const chapterReferenceDraftPrompt: PromptAsset<ChapterReferenceDraftPromp
       "每个单元由两行构成：",
       "第一行是这一格分镜的画面，由 shot 与 storyboard 组成：shot 必须选一个景别（大远景/远景/全景/中景/近景/特写）；storyboard 写这个画面里正在发生什么——谁在画面中、人物的动作/姿势/神态、所处的环境，像导演给摄影师的一句话指令，不超过 40 字。这是初步分镜，后续会再细化，不用写得太细。",
       "第二行是这一格的内容：叙述镜头 kind=narration、speaker 固定「旁白」，text 写画面里发生的事与关键动作神态；角色开口 kind=dialogue、speaker 用原文中说话角色的名字，mood 写这一句说话的神态与语气（如「冷笑嘲讽」「压抑怒气」「急切」「沙哑低语」，2～8 字）——它会作为后续配音的情绪提示，只写听得出的语气，不写纯视觉描写；没有明显情绪就留空。text 是这句台词——紧凑口语，不逐字照搬原文。",
+      "scene 是这一格所在的场景（地点名，具体到空间，如 卧室/客厅/街道/天台/仓库）：优先使用 existingScenes 名单里的名字（画面发生在名单场景就用名单名，不要另起同义名）；名单没有的按原文地点起短名。同一场景连续出现的单元 scene 保持同一个值；地点变了才换新值——初稿会按 scene 的变化生成「【场景：…】」换场标记，后续分镜与视频生成按它切换场景。",
       "台词逐句归属到说话角色，不得改名、不得把台词归到别人名下；旁白优先有画面感的内容（动作神态、场景环境、有视觉冲击的瞬间），纯心理独白和重复铺垫删掉。",
       "保留原文主线（开端、关键冲突、转折、结尾钩子）；不得虚构原文没有的重大事件或人物。所有内容用中文。只输出严格 JSON。",
     ].join("\n")),
