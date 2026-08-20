@@ -85,47 +85,74 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
     seenNovelIds.add(novelId);
     return true;
   });
-  await Promise.all(latestProjects.map(async (project) => {
-    const [episodeAggregate, scriptedEpisodeAggregate, storyboardAggregate] = await Promise.all([
-      prisma.dramaEpisode.aggregate({ where: { projectId: project.id }, _count: { _all: true } }),
-      prisma.dramaEpisode.aggregate({
-        where: { projectId: project.id, status: { in: [...SCRIPTED_EPISODE_STATUSES] } },
+  const projectIds = latestProjects.map((project) => project.id);
+  if (projectIds.length === 0) {
+    return result;
+  }
+  // 统计一律走分组聚合/裸计数，绝不 select keyframeData / dialogueAudioData 载荷列。
+  // 每个项目 3 个无载荷计数（总数 / 关键帧就绪 / 配音就绪），与分组聚合一起并发执行。
+  // 写入方（DramaShotKeyframeService / DramaDialogueAudioService / interruptedStateHealer）
+  // 只写 JSON.stringify 结果或 null，从不写空串，因此 not: null 与旧的 trim() 判定等价。
+  const [
+    [episodeGroups, storyboardGroups, videoPromptGroups, videoReadyGroups],
+    shotCountRows,
+  ] = await Promise.all([
+    Promise.all([
+      prisma.dramaEpisode.groupBy({
+        by: ["projectId", "status"],
+        where: { projectId: { in: projectIds } },
         _count: { _all: true },
       }),
-      prisma.dramaStoryboard.findMany({
-        where: { projectId: project.id },
-        select: {
-          id: true,
-          shots: {
-            select: {
-              keyframeData: true,
-              dialogueAudioData: true,
-            },
-          },
-        },
+      prisma.dramaStoryboard.groupBy({
+        by: ["projectId"],
+        where: { projectId: { in: projectIds } },
+        _count: { _all: true },
       }),
-    ]);
-    const shots = storyboardAggregate.flatMap((storyboard) => storyboard.shots);
-    const [videoPromptAggregate, videoReadyAggregate] = await Promise.all([
-      prisma.dramaVideoPrompt.count({ where: { projectId: project.id } }),
-      prisma.dramaVideoPrompt.count({ where: { projectId: project.id, resultUrl: { not: null } } }),
-    ]);
+      prisma.dramaVideoPrompt.groupBy({
+        by: ["projectId"],
+        where: { projectId: { in: projectIds } },
+        _count: { _all: true },
+      }),
+      prisma.dramaVideoPrompt.groupBy({
+        by: ["projectId"],
+        where: { projectId: { in: projectIds }, resultUrl: { not: null } },
+        _count: { _all: true },
+      }),
+    ]),
+    Promise.all(projectIds.flatMap((projectId) => [
+      prisma.dramaShot.count({ where: { storyboard: { projectId } } }),
+      prisma.dramaShot.count({ where: { storyboard: { projectId }, keyframeData: { not: null } } }),
+      prisma.dramaShot.count({ where: { storyboard: { projectId }, dialogueAudioData: { not: null } } }),
+    ])),
+  ]);
+  const episodeCountByProject = new Map<string, number>();
+  const scriptedCountByProject = new Map<string, number>();
+  for (const group of episodeGroups) {
+    episodeCountByProject.set(group.projectId, (episodeCountByProject.get(group.projectId) ?? 0) + group._count._all);
+    if (SCRIPTED_EPISODE_STATUSES.has(group.status)) {
+      scriptedCountByProject.set(group.projectId, (scriptedCountByProject.get(group.projectId) ?? 0) + group._count._all);
+    }
+  }
+  const storyboardCountByProject = new Map(storyboardGroups.map((group) => [group.projectId, group._count._all]));
+  const videoPromptCountByProject = new Map(videoPromptGroups.map((group) => [group.projectId, group._count._all]));
+  const videoReadyCountByProject = new Map(videoReadyGroups.map((group) => [group.projectId, group._count._all]));
+  latestProjects.forEach((project, index) => {
     result.set(project.sourceRef ?? "", {
       projectId: project.id,
       projectTitle: project.title,
       status: project.status,
       visualStyle: project.visualStyle ?? null,
       updatedAt: project.updatedAt.toISOString(),
-      episodeCount: episodeAggregate._count._all,
-      scriptedEpisodeCount: scriptedEpisodeAggregate._count._all,
-      storyboardCount: storyboardAggregate.length,
-      shotCount: shots.length,
-      keyframeReadyCount: shots.filter((shot) => Boolean(shot.keyframeData?.trim())).length,
-      audioReadyCount: shots.filter((shot) => Boolean(shot.dialogueAudioData?.trim())).length,
-      videoPromptCount: videoPromptAggregate,
-      videoReadyCount: videoReadyAggregate,
+      episodeCount: episodeCountByProject.get(project.id) ?? 0,
+      scriptedEpisodeCount: scriptedCountByProject.get(project.id) ?? 0,
+      storyboardCount: storyboardCountByProject.get(project.id) ?? 0,
+      shotCount: shotCountRows[index * 3] ?? 0,
+      keyframeReadyCount: shotCountRows[index * 3 + 1] ?? 0,
+      audioReadyCount: shotCountRows[index * 3 + 2] ?? 0,
+      videoPromptCount: videoPromptCountByProject.get(project.id) ?? 0,
+      videoReadyCount: videoReadyCountByProject.get(project.id) ?? 0,
     });
-  }));
+  });
   return result;
 }
 
