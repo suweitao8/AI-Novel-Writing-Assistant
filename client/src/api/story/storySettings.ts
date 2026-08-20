@@ -4,6 +4,12 @@ import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
+/** 资产参考图的精简状态（场景=360° 全景，道具=45° 透视）。 */
+export interface StoryAssetImage {
+  status: string;
+  url?: string;
+}
+
 export interface StorySettingsOverview {
   novelId: string;
   counts: { characters: number; scenes: number; props: number };
@@ -23,6 +29,8 @@ export interface StorySettingsScene {
   timeOfDay: string | null;
   /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
   weather: string | null;
+  /** 360° 全景参考图（未生成过为 null）。 */
+  image: StoryAssetImage | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;
   sortOrder: number;
@@ -42,6 +50,8 @@ export interface StorySettingsProp {
   ownerCharacterName: string | null;
   importance: string;
   firstAppearHint: string | null;
+  /** 45° 透视参考图（未生成过为 null）。 */
+  image: StoryAssetImage | null;
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
@@ -187,6 +197,22 @@ export async function deleteStorySettingsScene(novelId: string, sceneId: string)
 export async function getStorySettingsProps(novelId: string) {
   const { data } = await apiClient.get<ApiResponse<StorySettingsProp[]>>(
     `/novels/${encodeURIComponent(novelId)}/settings/props`,
+  );
+  return data;
+}
+
+/** 生成场景 360° 全景参考图（同步等待完成，返回最新图片状态）。 */
+export async function generateStorySceneImage(novelId: string, sceneId: string) {
+  const { data } = await apiClient.post<ApiResponse<StorySettingsScene["image"]>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/scenes/${encodeURIComponent(sceneId)}/generate-image`,
+  );
+  return data;
+}
+
+/** 生成道具 45° 透视参考图。 */
+export async function generateStoryPropImage(novelId: string, propId: string) {
+  const { data } = await apiClient.post<ApiResponse<StorySettingsProp["image"]>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/props/${encodeURIComponent(propId)}/generate-image`,
   );
   return data;
 }

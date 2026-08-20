@@ -16,6 +16,13 @@ export function safeJsonParse<T>(raw: string | null | undefined, fallback: T): T
   }
 }
 
+/** 从资产表的状态 JSON 里取出列表/详情要用的精简图片状态（没生成过为 null）。 */
+export function parseImageStateSummary(value: string | null | undefined): { status: string; url?: string } | null {
+  if (!value?.trim()) return null;
+  const parsed = safeJsonParse<{ status?: string; url?: string }>(value, { status: "idle" });
+  return { status: parsed.status ?? "idle", ...(parsed.url ? { url: parsed.url } : {}) };
+}
+
 /** 把图片 URL（data: 或 http(s):）保存到本地磁盘 */
 export async function saveImageToDisk(imageUrl: string, destPath: string): Promise<void> {
   await fs.mkdir(path.dirname(destPath), { recursive: true });

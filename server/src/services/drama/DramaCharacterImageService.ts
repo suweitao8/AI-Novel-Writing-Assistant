@@ -158,9 +158,12 @@ function buildCharacterSheetPrompt(character: {
   const visualDesc = extractVisualDesc(character.visualAnchor);
 
   const lines: string[] = [
-    "professional character design reference sheet, single image",
-    "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
-    "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
+    // 四视图布局沿用旧项目口径（2026-08-21 用户明确）：头部正面、头部侧面、正面全身、背面全身。
+    "professional character design reference sheet, single image with four views",
+    "head close-up FRONT view (detailed facial features, natural expression)",
+    "head close-up SIDE view (90-degree profile)",
+    "full-body FRONT view (standing, whole body visible)",
+    "full-body BACK view (same costume and hairstyle seen from behind)",
     "all four views depict the SAME character with IDENTICAL costume, hairstyle, and color scheme",
     "white background, clean studio lighting, no text or watermarks",
     ...styleLines,

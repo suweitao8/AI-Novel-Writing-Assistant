@@ -559,6 +559,8 @@ model NovelScene {
   // 场景时间与天气（morning/noon/night；sunny/cloudy/rainy）：影响场景图的光线与氛围。
   timeOfDay       String?
   weather         String?
+  // 场景 360° 全景参考图的生成状态 JSON（{status,url,...}，文件存 generated-images/story-assets）。
+  imageData       String?
   statesJson      String?
   mapNodeId    String?
   mapUnmappable Boolean @default(false)
@@ -580,8 +582,10 @@ model NovelProp {
   plotFunction     String?
   visualPrompt     String?
   ownerCharacterId String?
-  importance       String   @default("major")
+  importance       String @default("major")
   firstAppearHint  String?
+  // 道具 45° 透视参考图的生成状态 JSON（{status,url,...}）。
+  imageData        String?
   statesJson       String?
   sortOrder        Int      @default(0)
   source           String   @default("ai")
