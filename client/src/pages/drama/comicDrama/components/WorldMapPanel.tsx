@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import MapCanvas from "./worldMap/MapCanvas";
+import MapFlowCanvas from "./worldMap/MapFlowCanvas";
 import { NodeEditorCard, TerrainEditorCard } from "./worldMap/MapEditorPanels";
 import {
   LEVEL_SCALE_KM,
@@ -26,10 +26,12 @@ import {
 } from "./worldMap/mapData";
 
 // 漫剧「设定 · 地图」画布工作面：国家/城市两级切换 + 点击下钻（塞尔达式大地图）。
+// 画布是 React Flow（@xyflow/react，沿用旧项目 mydrama 画布的体验）：点阵背景、滚轮缩放、拖拽平移、
+// 右下小地图、卡片式节点；坐标数据仍是 0-100 百分比，由 MapFlowCanvas 换算像素。
 // 顶部切换「国家级别」（世界画布=各国相对位置）与「城市级别」（选定国家的城市分布），
-// 点城市再进一层看城内地点（场景）。画布占满整行；点选节点/地形后编辑卡出现在画布下方，未选中不占位。
+// 点城市再进一层看城内地点（场景）。点选节点/地形后编辑卡出现在画布下方，未选中不占位。
 // 「AI 生成地图」：空地图时依据书名/世界观生成基础的国家+城市结构；有未标注场景时把场景放置到地图上
-//（可新建国家/城市；无法定位的标记后跳过）。地理距离按各层内置尺度估算，连线直接标注公里数；改动自动保存。
+//（可新建国家/城市；无法定位的标记后跳过）。连线公里数按各层内置尺度估算；改动自动保存。
 
 const AUTOSAVE_DELAY_MS = 1500;
 
@@ -234,27 +236,12 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     setSelectedTerrainId(null);
   };
 
-  // ---- 地形编辑（仅编辑已有地形，画布上不再提供新建入口） ----
+  // ---- 地形编辑（仅编辑已有地形，画布上不再提供新建入口；点击地形所在区域选中它） ----
 
   const patchTerrain = (terrainId: string, patch: Partial<{ type: WorldMapData["terrain"][number]["type"]; label: string }>) => {
     updateCurrentMap((map) => ({
       ...map,
       terrain: map.terrain.map((item) => (item.id === terrainId ? { ...item, ...patch } : item)),
-    }));
-  };
-
-  const moveTerrain = (terrainId: string, dx: number, dy: number) => {
-    updateCurrentMap((map) => ({
-      ...map,
-      terrain: map.terrain.map((item) => (item.id === terrainId
-        ? {
-          ...item,
-          points: item.points.map((point) => ({
-            x: Math.round(Math.min(100, Math.max(0, point.x + dx)) * 10) / 10,
-            y: Math.round(Math.min(100, Math.max(0, point.y + dy)) * 10) / 10,
-          })),
-        }
-        : item)),
     }));
   };
 
@@ -355,27 +342,24 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
               ) : null}
             </div>
           ) : (
-            <div className="mx-auto w-full max-w-[720px]">
-              <MapCanvas
-                map={currentMap}
-                selectedNodeId={selectedNodeId}
-                selectedTerrainId={selectedTerrainId}
-                levelScaleKm={levelScaleKm}
-                onNodeMove={moveNode}
-                onNodeSelect={handleNodeClick}
-                onTerrainSelect={(terrainId) => {
-                  setSelectedTerrainId(terrainId);
-                  setSelectedNodeId(null);
-                }}
-                onTerrainMove={moveTerrain}
-              />
-            </div>
+            <MapFlowCanvas
+              map={currentMap}
+              childLevelLabel={level.childLevelLabel}
+              selectedNodeId={selectedNodeId}
+              levelScaleKm={levelScaleKm}
+              onNodeMove={moveNode}
+              onNodeSelect={handleNodeClick}
+              onTerrainSelect={(terrainId) => {
+                setSelectedTerrainId(terrainId);
+                setSelectedNodeId(null);
+              }}
+            />
           )}
           {currentMap.nodes.length > 0 ? (
             <p className="mt-2 text-center text-xs text-muted-foreground">
               {level.childLevelLabel
-                ? `点${level.levelLabel}进入${level.childLevelLabel}分布，拖动调整位置；距离按${activeTab === "country" ? "中国量级" : "现实城际尺度"}估算。`
-                : "点地点查看编辑，拖动调整位置。"}
+                ? `点${level.levelLabel}进入${level.childLevelLabel}分布，拖动调整位置，滚轮缩放；距离按${activeTab === "country" ? "中国量级" : "现实城际尺度"}估算。`
+                : "点地点查看编辑，拖动调整位置，滚轮缩放。"}
             </p>
           ) : null}
         </CardContent>

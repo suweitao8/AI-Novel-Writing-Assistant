@@ -98,7 +98,7 @@ export function TerrainEditorCard(props: {
               <option key={item.value} value={item.value}>{item.label}</option>
             ))}
           </SelectControl>
-          <p className={cn("text-xs", tone.text)}>在画布上拖动可调整位置。</p>
+          <p className={cn("text-xs", tone.text)}>点地图上的地形区域可选中编辑。</p>
         </label>
       </CardContent>
     </Card>
