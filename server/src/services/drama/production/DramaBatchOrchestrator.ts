@@ -9,6 +9,7 @@ import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
 import { ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { videoProviderRegistry } from "../video/VideoProviderPort";
+import { failStaleBatchJobs } from "./batchJobRecovery";
 
 export type DramaBatchJobType = "keyframes" | "videos" | "tts";
 export type DramaBatchJobStatus = "pending" | "running" | "paused" | "done" | "failed";
@@ -77,6 +78,7 @@ interface BatchEpisode {
 }
 
 interface BatchVideoPrompt {
+  id: string;
   shotId?: string | null;
   providerTaskId?: string | null;
   status: string;
@@ -91,6 +93,16 @@ type BatchProcessResult = {
 const DEFAULT_VIDEO_PROVIDER = "mock";
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
 const DEFAULT_TTS_PROVIDER = "mock";
+// progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
+const MAX_PROGRESS_ERRORS = 50;
+
+function appendProgressError(
+  progress: DramaBatchProgress,
+  shotId: string,
+  message: string,
+): void {
+  progress.errors = (progress.errors ?? []).concat({ shotId, message }).slice(-MAX_PROGRESS_ERRORS);
+}
 
 function normalizeDurationSec(value: number | null | undefined, fallback = 5): number {
   return Number.isFinite(value) && Number(value) > 0 ? Number(value) : fallback;
@@ -207,6 +219,7 @@ export class DramaBatchOrchestrator {
     input: CreateEpisodeBatchJobInput,
     options: CreateEpisodeBatchJobOptions = {},
   ) {
+    await failStaleBatchJobs(projectId);
     const prepared = await this.prepareEpisodeBatchJob(projectId, order, input);
     const progress = normalizeProgress({
       total: prepared.targetShotIds.length,
@@ -257,6 +270,7 @@ export class DramaBatchOrchestrator {
       return prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
     }
     this.runningJobs.add(jobId);
+    let lastProgress: DramaBatchProgress | null = null;
     try {
       const job = await prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
       if (!job) {
@@ -272,6 +286,7 @@ export class DramaBatchOrchestrator {
             orderBy: { createdAt: "desc" },
             include: { shots: { orderBy: { order: "asc" } } },
           },
+          videoPrompts: { orderBy: [{ version: "desc" }, { createdAt: "desc" }] },
         },
       });
       if (!episode) {
@@ -282,6 +297,13 @@ export class DramaBatchOrchestrator {
       const targetSet = new Set(progress.targetShotIds ?? []);
       const shots = (episode.storyboards[0]?.shots ?? [])
         .filter((shot) => targetSet.size === 0 || targetSet.has(shot.id));
+      // 避免逐镜头回查 dramaVideoPrompt：按 version 倒序取每镜头最新一条未废弃记录。
+      const promptByShot = new Map<string, BatchVideoPrompt>();
+      for (const prompt of episode.videoPrompts ?? []) {
+        if (prompt.shotId && isActiveVideoPrompt(prompt) && !promptByShot.has(prompt.shotId)) {
+          promptByShot.set(prompt.shotId, prompt);
+        }
+      }
       const nextProgress = normalizeProgress({
         ...progress,
         total: shots.length,
@@ -292,13 +314,14 @@ export class DramaBatchOrchestrator {
         errors: [],
         cost: progress.cost ? { ...progress.cost, actual: 0, actualUnits: {} } : undefined,
       });
+      lastProgress = nextProgress;
       await this.updateJob(jobId, "running", nextProgress);
 
       for (const shot of shots) {
         nextProgress.currentShotId = shot.id;
         await this.updateJob(jobId, "running", nextProgress);
         try {
-          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, episode.id, shot, nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
+          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, shot, promptByShot.get(shot.id), nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
           if (result.status === "skipped") {
             nextProgress.skipped += 1;
           }
@@ -309,16 +332,26 @@ export class DramaBatchOrchestrator {
         } catch (error) {
           nextProgress.failed += 1;
           nextProgress.failedShotIds.push(shot.id);
-          nextProgress.errors = (nextProgress.errors ?? []).concat({
-            shotId: shot.id,
-            message: error instanceof Error ? error.message : String(error),
-          });
+          appendProgressError(
+            nextProgress,
+            shot.id,
+            error instanceof Error ? error.message : String(error),
+          );
         }
         await this.updateJob(jobId, "running", nextProgress);
       }
 
       nextProgress.currentShotId = undefined;
       return this.updateJob(jobId, nextProgress.failed > 0 ? "failed" : "done", nextProgress);
+    } catch (error) {
+      // 任何未被单镜头捕获的异常都必须终止任务，不能让任务永久停留在 running。
+      const message = error instanceof Error ? error.message : String(error);
+      const failedProgress = lastProgress
+        ? { ...lastProgress, currentShotId: undefined }
+        : normalizeProgress({ total: 0, failed: 1 });
+      appendProgressError(failedProgress, "", message);
+      await this.updateJob(jobId, "failed", failedProgress).catch(() => undefined);
+      throw error;
     } finally {
       this.runningJobs.delete(jobId);
     }
@@ -352,14 +385,11 @@ export class DramaBatchOrchestrator {
 
   private async processVideoShot(
     projectId: string,
-    episodeId: string,
     shotId: string,
+    cachedPrompt: BatchVideoPrompt | undefined,
     provider?: string,
   ): Promise<"processed" | "skipped"> {
-    let prompt = await prisma.dramaVideoPrompt.findFirst({
-      where: { projectId, episodeId, shotId, status: { not: "superseded" } },
-      orderBy: [{ version: "desc" }, { createdAt: "desc" }],
-    });
+    let prompt = cachedPrompt ?? null;
     if (prompt?.providerTaskId && prompt.status !== "failed") {
       return "skipped";
     }
@@ -373,8 +403,8 @@ export class DramaBatchOrchestrator {
   private async processShot(
     type: DramaBatchJobType,
     projectId: string,
-    episodeId: string,
     shot: BatchShot,
+    cachedVideoPrompt: BatchVideoPrompt | undefined,
     provider?: string,
     useCharacterRefImages = false,
     force = false,
@@ -388,7 +418,7 @@ export class DramaBatchOrchestrator {
     if (type === "tts") {
       return this.processTtsShot(shot, provider, force);
     }
-    const status = await this.processVideoShot(projectId, episodeId, shot.id, provider);
+    const status = await this.processVideoShot(projectId, shot.id, cachedVideoPrompt, provider);
     return status === "processed"
       ? { status, costUnits: { seconds: normalizeDurationSec(shot.durationSec), shots: 1 } }
       : { status };

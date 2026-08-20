@@ -14,6 +14,8 @@ const VIDEOS_DIR_NAME = "generated-videos";
 const DEFAULT_FPS = 30;
 const DEFAULT_DURATION_SEC = 4;
 const MAX_AUDIO_ITEMS = 12;
+// 与整集合成 runVideoProcess 相同的超时窗口：超时强杀，避免 ffmpeg 卡死后任务永远 running。
+const FFMPEG_TIMEOUT_MS = 10 * 60_000;
 
 export function resolveGeneratedVideosRoot(): string {
   return path.join(resolveServerRoot(), "storage", VIDEOS_DIR_NAME);
@@ -49,7 +51,12 @@ function dataUrlToBuffer(dataUrl: string): Buffer | null {
 }
 
 // 把可用的参考图解析成本地文件路径：本地图直用；http(s)/相对 URL 落到临时文件。
-async function resolveImageInput(refImages: string[] | undefined, taskId: string): Promise<string | null> {
+// 产生的临时文件统一登记到 tempFiles，由 createTask 的收尾逻辑清理。
+async function resolveImageInput(
+  refImages: string[] | undefined,
+  taskId: string,
+  tempFiles: string[],
+): Promise<string | null> {
   const candidates = (refImages ?? []).filter((url) => typeof url === "string" && url.trim());
   const first = candidates[0];
   if (!first) {
@@ -62,6 +69,7 @@ async function resolveImageInput(refImages: string[] | undefined, taskId: string
     const buffer = dataUrlToBuffer(first);
     if (buffer) {
       const tempPath = path.join(os.tmpdir(), `cd-img-${taskId}${path.extname(first.split(";")[0]).slice(0, 5) || ".png"}`);
+      tempFiles.push(tempPath);
       await fs.writeFile(tempPath, buffer);
       return tempPath;
     }
@@ -74,6 +82,7 @@ async function resolveImageInput(refImages: string[] | undefined, taskId: string
     }
     const buffer = Buffer.from(await response.arrayBuffer());
     const tempPath = path.join(os.tmpdir(), `cd-img-${taskId}.img`);
+    tempFiles.push(tempPath);
     await fs.writeFile(tempPath, buffer);
     return tempPath;
   }
@@ -177,11 +186,18 @@ export class LocalFfmpegVideoProvider implements VideoProviderPort {
     const outputPath = dramaVideoFilePath(taskId);
     const errorPath = `${outputPath}.err`;
 
+    const tempFiles: string[] = [];
     const localFirst = input.localImagePaths?.[0];
     const imagePath = (localFirst && await pathExists(localFirst))
       ? localFirst
-      : await resolveImageInput(input.refImages, taskId);
+      : await resolveImageInput(input.refImages, taskId, tempFiles);
     const audio = await writeAudioInputs(input.audioDataUrls, taskId);
+    if (audio) {
+      tempFiles.push(...audio.audioPaths);
+      if (audio.concatListPath !== audio.audioPaths[0]) {
+        tempFiles.push(audio.concatListPath);
+      }
+    }
     const durationSec = Math.round(
       Math.max(input.durationSec ?? 0, audio ? 4 : 0) || DEFAULT_DURATION_SEC,
     );
@@ -193,24 +209,44 @@ export class LocalFfmpegVideoProvider implements VideoProviderPort {
       outputPath,
     });
 
+    // Windows 下文件可能被占用：逐个兜底删除，失败忽略（下次启动同名 taskId 不同，不会堆积复用）。
+    let tempCleaned = false;
+    const cleanupTempFiles = async (): Promise<void> => {
+      if (tempCleaned) {
+        return;
+      }
+      tempCleaned = true;
+      for (const tempPath of tempFiles) {
+        await fs.unlink(tempPath).catch(() => undefined);
+      }
+    };
+
     const child = spawn(ffmpegPath, args, {
       stdio: ["ignore", "ignore", "pipe"],
       windowsHide: true,
     });
     let stderrTail = "";
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill("SIGKILL");
+    }, FFMPEG_TIMEOUT_MS);
     child.stderr.on("data", (chunk: Buffer) => {
       stderrTail = `${stderrTail}${chunk.toString("utf8")}`.slice(-2000);
     });
     child.on("error", async (error) => {
+      clearTimeout(timer);
       await fs.writeFile(errorPath, `ffmpeg spawn 失败：${error.message}`, "utf8").catch(() => undefined);
+      await cleanupTempFiles();
     });
     child.on("close", async (code) => {
-      if (code !== 0) {
+      clearTimeout(timer);
+      if (timedOut) {
+        await fs.writeFile(errorPath, `ffmpeg 合成超时（超过 ${Math.round(FFMPEG_TIMEOUT_MS / 1000)} 秒），已强制终止。`, "utf8").catch(() => undefined);
+      } else if (code !== 0) {
         await fs.writeFile(errorPath, `ffmpeg 退出码 ${code}：${stderrTail.slice(-800)}`, "utf8").catch(() => undefined);
       }
-      for (const tempPath of audio?.audioPaths ?? []) {
-        await fs.unlink(tempPath).catch(() => undefined);
-      }
+      await cleanupTempFiles();
     });
 
     return {

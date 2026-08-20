@@ -8,13 +8,14 @@ export function isSimpleCreationWriteAllowed(method: string, path: string): bool
   }
   const normalizedPath = path.toLowerCase();
   // 简易模式整体只读，但三类工作台端点例外：
-  // - creation-experience / export：模式切换与导出；
+  // - creation-experience / export（含 export-as-document）：模式切换与导出；
   // - settings：设定中心（角色/场景/道具/世界观）是简易书架的正式编辑入口；
   // - outline：空白小说的大纲工作台（简略大纲与分章细纲在导演启动前属于用户输入区）。
+  // 白名单按完整路径段匹配（/settings/、/outline、/export-as-document），
+  // 不用 includes 子串：未来任何恰好含这些字样的端点（如 /export-summary）不得被顺带放行；
+  // 段边界锚定同时兼容守卫内剥掉 /:id 前缀的形状（/settings/...）与完整形状（/novels/x/settings/...）。
   return /\/creation-experience\/(simple|professional)$/.test(normalizedPath)
-    || normalizedPath.includes("/export")
-    || normalizedPath.includes("/settings")
-    || normalizedPath.includes("/outline");
+    || /(?:^|\/)(settings|outline|export-as-document|export)(?:\/|$)/.test(normalizedPath);
 }
 
 // 漫剧项目（productionKind=comic_drama）不适用简易模式只读（2026-08-20 用户决定，

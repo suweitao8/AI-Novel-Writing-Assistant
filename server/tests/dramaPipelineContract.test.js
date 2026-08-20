@@ -190,6 +190,27 @@ function installPipelineStubs() {
     },
     dramaEpisode: {
       update: tx.dramaEpisode.update,
+      // 上下文装配（DramaContextAssembler）按分集列表 + 目标集/前情明细查询，
+      // 不再从 project include 里带全部分集正文；mock 跟随 state 返回活数据。
+      findMany: async ({ where = {}, take } = {}) => {
+        let rows = [state.episode].filter((episode) => {
+          if (where.projectId && episode.projectId !== where.projectId) return false;
+          if (typeof where.order === "number" && episode.order !== where.order) return false;
+          if (where.order && typeof where.order === "object" && where.order.lt !== undefined
+            && !(episode.order < where.order.lt)) return false;
+          return true;
+        });
+        if (typeof take === "number" && rows.length > take) {
+          rows = rows.slice(0, take);
+        }
+        return rows;
+      },
+      findFirst: async ({ where = {} } = {}) => {
+        if (where.projectId === "project_1" && where.order === state.episode.order) {
+          return { content: state.episode.content };
+        }
+        return null;
+      },
       findUnique: async ({ where }) => {
         const matchesComposite = where.projectId_order
           && where.projectId_order.projectId === "project_1"
@@ -266,6 +287,11 @@ function installPipelineStubs() {
         return created;
       },
       findUnique: async ({ where }) => state.batchJobs.find((job) => job.id === where.id) ?? null,
+      // 入口 stale 清扫（batchJobRecovery.failStaleBatchJobs）：按项目查遗留任务。
+      findMany: async ({ where = {} } = {}) => state.batchJobs.filter((job) =>
+        (!where.projectId || job.projectId === where.projectId)
+        && (!where.type?.in || where.type.in.includes(job.type))
+        && (!where.status?.in || where.status.in.includes(job.status))),
       update: async ({ where, data }) => {
         const job = state.batchJobs.find((item) => item.id === where.id);
         Object.assign(job, data, { updatedAt: new Date("2026-06-10T00:00:00.000Z") });
