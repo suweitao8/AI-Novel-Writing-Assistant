@@ -88,6 +88,75 @@ export default function ScriptTab(props: ScriptTabProps) {
 
   const items = useMemo(() => parseScriptItems(workspace.expectationText), [workspace.expectationText]);
 
+  // 脚本与设定资产的名字对应情况（2026-08-21 用户要求）：
+  // - 场景行/台词说话人/角色状态行按名字精确对应资产；
+  // - 右侧面板只显示脚本用到的资产（按首次出现排序），用到了但没有对应资产的
+  //   名字进 missing，以橙红警告卡提示「未生成，需要手动创建」——建好后自动消失；
+  // - 已有资产名出现在正文任意位置（断词匹配，与正文高亮同口径）也算用到。
+  const scriptUsage = useMemo(() => {
+    const knownCharacters = new Set(characters.map((character) => character.name.trim()));
+    const knownScenes = new Set(scenes.map((scene) => scene.name.trim()));
+    const usedOrderKeys: string[] = [];
+    const usedKeys = new Set<string>();
+    const missingScenes: string[] = [];
+    const missingCharacters: string[] = [];
+    const pushUsed = (key: string) => {
+      if (!usedKeys.has(key)) {
+        usedKeys.add(key);
+        usedOrderKeys.push(key);
+      }
+    };
+    for (const item of items) {
+      if (item.kind === "scene") {
+        const name = item.scene.trim();
+        if (!name) continue;
+        if (knownScenes.has(name)) {
+          pushUsed(`scene:${name}`);
+        } else if (!missingScenes.includes(name)) {
+          missingScenes.push(name);
+        }
+      } else if (item.kind === "line") {
+        const name = item.speaker.trim();
+        if (!name || name === "旁白") continue;
+        if (knownCharacters.has(name)) {
+          pushUsed(`character:${name}`);
+        } else if (!missingCharacters.includes(name)) {
+          missingCharacters.push(name);
+        }
+      } else if (item.kind === "state") {
+        const name = item.name.trim();
+        if (!name) continue;
+        if (knownCharacters.has(name)) {
+          pushUsed(`character:${name}`);
+        } else if (!missingCharacters.includes(name)) {
+          missingCharacters.push(name);
+        }
+      }
+    }
+    const text = workspace.expectationText;
+    const mentioned = (name: string) => name.trim().length >= 2
+      && new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(name.trim())}(?![\\p{L}\\p{N}])`, "u").test(text);
+    for (const character of characters) {
+      if (mentioned(character.name)) usedKeys.add(`character:${character.name.trim()}`);
+    }
+    for (const scene of scenes) {
+      if (mentioned(scene.name)) usedKeys.add(`scene:${scene.name.trim()}`);
+    }
+    for (const prop of propList) {
+      if (mentioned(prop.name)) usedKeys.add(`prop:${prop.name.trim()}`);
+    }
+    return {
+      knownCharacters,
+      knownScenes,
+      usedOrderKeys,
+      usedKeys,
+      missing: [
+        ...missingScenes.map((name) => ({ type: "scene" as const, name })),
+        ...missingCharacters.map((name) => ({ type: "character" as const, name })),
+      ],
+    };
+  }, [items, characters, scenes, propList, workspace.expectationText]);
+
   // 列表编辑的唯一出口：改条目 → 序列化回文本 → 走原自动保存链路。
   const applyItems = (next: ScriptItem[]) => {
     const nextText = serializeScriptItems(next);
@@ -176,6 +245,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       index={index}
                       total={items.length}
                       editing={editing}
+                      matched={scriptUsage.knownScenes.has(item.scene.trim())}
                       onEdit={setEditing}
                       onUpdate={updateItem}
                       onRemove={removeItem}
@@ -187,6 +257,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       index={index}
                       total={items.length}
                       editing={editing}
+                      matched={scriptUsage.knownCharacters.has(item.name.trim())}
                       onEdit={setEditing}
                       onUpdate={updateItem}
                       onRemove={removeItem}
@@ -215,6 +286,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       onRemove={removeItem}
                       onMove={moveItem}
                       entityNames={entityNames}
+                      speakerKnown={scriptUsage.knownCharacters.has(item.speaker.trim())}
                     />
                   ) : (
                     <TextRow
@@ -249,7 +321,17 @@ export default function ScriptTab(props: ScriptTabProps) {
           </div>
         </CardContent>
       </Card>
-      <OutlineSettingsAside novelId={novelId} characters={characters} scenes={scenes} props={propList} />
+      <OutlineSettingsAside
+        novelId={novelId}
+        characters={characters}
+        scenes={scenes}
+        props={propList}
+        usage={{
+          usedOrderKeys: scriptUsage.usedOrderKeys,
+          usedKeys: scriptUsage.usedKeys,
+          missing: scriptUsage.missing,
+        }}
+      />
     </div>
   );
 }
@@ -346,6 +428,18 @@ function EditableValue(props: {
   );
 }
 
+// 未对应资产的名字标记：脚本里用到了但设定里还没有——行内橙红提示，右侧面板有同名警告卡。
+function MissingChip(props: { kind: string }) {
+  return (
+    <span
+      className="shrink-0 rounded-full bg-orange-500/15 px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400"
+      title={`设定里还没有这个${props.kind}，可在右侧面板创建`}
+    >
+      未生成
+    </span>
+  );
+}
+
 // 正文里的角色/场景/道具名高亮：列表视图里沿用「名字即锚点」的约定。
 function EntityHighlightedText(props: { text: string; entityNames: { characters: string[]; scenes: string[]; props: string[] } }) {
   const groups: Array<{ names: string[]; className: string }> = [
@@ -404,12 +498,14 @@ function escapeRegExp(value: string): string {
 
 function SceneRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "scene" }>;
+  matched: boolean;
   onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
 }) {
   const active = props.editing?.index === props.index && props.editing?.field === "value";
   return (
     <div className="group flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
       <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景</Badge>
+      {!props.matched ? <MissingChip kind="场景" /> : null}
       <EditableValue
         active={active}
         value={props.item.scene}
@@ -432,6 +528,7 @@ function SceneRow(props: RowBaseProps & {
 
 function StateRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "state" }>;
+  matched: boolean;
   onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
 }) {
   const nameActive = props.editing?.index === props.index && props.editing?.field === "name";
@@ -439,6 +536,7 @@ function StateRow(props: RowBaseProps & {
   return (
     <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2">
       <Badge className="shrink-0 bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 dark:text-amber-400">角色状态</Badge>
+      {!props.matched ? <MissingChip kind="角色" /> : null}
       <EditableValue
         active={nameActive}
         value={props.item.name}
@@ -540,6 +638,7 @@ function ShotRow(props: RowBaseProps & {
 function LineRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "line" }>;
   entityNames: { characters: string[]; scenes: string[]; props: string[] };
+  speakerKnown: boolean;
   onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
 }) {
   const speakerActive = props.editing?.index === props.index && props.editing?.field === "speaker";
@@ -558,7 +657,13 @@ function LineRow(props: RowBaseProps & {
         onCancel={() => props.onEdit(null)}
         onActivate={() => props.onEdit({ index: props.index, field: "speaker" })}
       >
-        <Badge variant={isNarrator ? "outline" : "secondary"}>{props.item.speaker || "旁白"}</Badge>
+        <Badge
+          variant={isNarrator ? "outline" : "secondary"}
+          className={!isNarrator && !props.speakerKnown ? "bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 dark:text-orange-400" : undefined}
+          title={!isNarrator && !props.speakerKnown ? "设定里还没有这个角色，可在右侧创建" : undefined}
+        >
+          {props.item.speaker || "旁白"}
+        </Badge>
       </EditableValue>
       <EditableValue
         active={moodActive}
