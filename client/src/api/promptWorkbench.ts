@@ -471,15 +471,7 @@ export async function previewPrompt(payload: PromptPreviewPayload) {
 export async function testRunPrompt(payload: PromptTestRunPayload) {
   const { data } = await apiClient.post<ApiResponse<PromptTestRunResult>>("/prompt-workbench/test-run", payload);
   return data;
-}
-
-export async function exportNovelPromptMaterials(payload: NovelMaterialExportPayload) {
-  const { data } = await apiClient.post<ApiResponse<NovelMaterialExportResult>>(
-    "/prompt-workbench/materials/export",
-    payload,
-  );
-  return data;
-}
+}
 
 // Slot override CRUD
 
@@ -489,15 +481,7 @@ export async function getSlotOverrides(params: PromptSlotOverrideParams) {
     { params },
   );
   return data;
-}
-
-export async function getOfficialPromptSlots(params: { promptId: string }) {
-  const { data } = await apiClient.get<ApiResponse<OfficialPromptSlotLibrary>>(
-    "/prompt-workbench/official-slots",
-    { params },
-  );
-  return data;
-}
+}
 
 export async function saveSlotOverride(payload: PromptSlotOverrideSavePayload) {
   const { data } = await apiClient.put<ApiResponse<PromptSlotOverrideView>>(
@@ -610,12 +594,7 @@ export interface WritingPlatformProfileDetail {
   activeVersion: number;
   source: "official" | "custom";
   versions: WritingPlatformProfileVersionView[];
-}
-
-export async function listWritingPlatformProfiles() {
-  const { data } = await apiClient.get<ApiResponse<Array<{ profile: WritingPlatformProfileDefinition; activeVersion: number; source: "official" | "custom" }>>>("/prompt-workbench/writing-platform-profiles");
-  return data;
-}
+}
 
 export async function getWritingPlatformProfile(platform: WritingPlatform) {
   const { data } = await apiClient.get<ApiResponse<WritingPlatformProfileDetail>>(`/prompt-workbench/writing-platform-profiles/${platform}`);

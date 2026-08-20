@@ -298,12 +298,7 @@ export async function refreshProviderModelList(provider: LLMProvider) {
     }>
   >(`/settings/api-keys/${provider}/refresh-models`);
   return data;
-}
-
-export async function getLLMProviders() {
-  const { data } = await apiClient.get<ApiResponse<Record<string, unknown>>>("/llm/providers");
-  return data;
-}
+}
 
 export async function getAutoDirectorChannelSettings() {
   const { data } = await apiClient.get<ApiResponse<AutoDirectorChannelSettings>>("/settings/auto-director/channels");
