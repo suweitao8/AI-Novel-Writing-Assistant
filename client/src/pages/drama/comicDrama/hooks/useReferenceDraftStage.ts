@@ -4,81 +4,22 @@ import { getKnowledgeDocument } from "@/api/knowledge";
 import { previewChapterReferenceDraft } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { splitReferenceChapters } from "@/pages/drama/comicDrama/hooks/referenceChapters";
+
+export { collectReferenceChapterTitles } from "@/pages/drama/comicDrama/hooks/referenceChapters";
 
 // 参考文本服务端持久化：本章参考正文存 Chapter.referenceText（PUT /chapters/:id，
 // 1.2s 防抖静默保存），整本「原始参考小说」存知识库文档（创建漫剧时上传）。
-// 本章没有自己的参考文本时，「参考」页签只读展示整本小说（解析/提取直接用它），
-// 一键「复制为本章参考」或粘贴新文本后才进入可编辑态——不把整本小说当可编辑框
-// 展示，否则往里粘贴同一本小说会叠出多份重复文本。
+// 本章没有自己的参考文本时，「参考」页签只读展示**参考小说中与本章同序号的章节**
+// （解析/提取直接用它），一键「复制为本章参考」或粘贴新文本后才进入可编辑态——
+// 不把整本当可编辑框展示（往里粘贴同一本小说会叠出多份重复），也不把整本
+// （含后面章节）当本章参考（第 1 章只该参考第 1 章的内容）。
 // 不使用浏览器 localStorage——内嵌浏览器的本地存储不可靠（写入静默失败/重载即丢），
 // 已踩过：参考文本与提取建议凭空消失。
 const REFERENCE_AUTOSAVE_DELAY_MS = 1200;
 
 // 整本参考小说文档查询键（「参考」回退与新建章节标题预填共用一份缓存）。
 export const referenceDocQueryKey = (docId: string | null) => ["drama-reference-doc", docId] as const;
-
-// —— 参考小说章节标题提取：新建第 N 章时按「第N章/回/节 标题」行取对应章名。
-// 标题行是小说文本的强约定，属确定性解析（非 AI 决策路径）；全篇没有「第N章」式
-// 标题时退回「N、标题 / N. 标题」编号式，仍无匹配则留空由用户填写。
-const CHAPTER_HEADING_PATTERN = /^[ \t]*第\s*([0-9零〇一二两三四五六七八九十百千万]+)\s*[章回节][ \t]*[:：、．.，,\-—–]?[ \t]*(.*?)[ \t]*$/;
-const NUMBERED_HEADING_PATTERN = /^[ \t]*(\d{1,4})[ \t]*[、.．)）][ \t]*(.*?)[ \t]*$/;
-
-function chineseChapterNumber(raw: string): number | null {
-  if (/^\d{1,4}$/.test(raw)) {
-    return Number(raw);
-  }
-  if (!/^[零〇一二两三四五六七八九十百千万]+$/.test(raw)) {
-    return null;
-  }
-  const digits: Record<string, number> = { 零: 0, 〇: 0, 一: 1, 两: 2, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
-  const units: Record<string, number> = { 十: 10, 百: 100, 千: 1000 };
-  let total = 0;
-  let section = 0;
-  let current = 0;
-  for (const ch of raw) {
-    if (ch === "万") {
-      section = (section + current) * 10000;
-      total += section;
-      section = 0;
-      current = 0;
-    } else if (units[ch] !== undefined) {
-      current = current || 1;
-      section += current * units[ch];
-      current = 0;
-    } else if (digits[ch] !== undefined) {
-      current = digits[ch];
-    }
-  }
-  const value = total + section + current;
-  return value > 0 ? value : null;
-}
-
-export function collectReferenceChapterTitles(source: string): Map<number, string> {
-  const titles = new Map<number, string>();
-  const record = (rawNumber: string, rawTitle: string) => {
-    const number = chineseChapterNumber(rawNumber);
-    const title = rawTitle.trim().slice(0, 60);
-    if (number !== null && number >= 1 && title && !titles.has(number)) {
-      titles.set(number, title);
-    }
-  };
-  let sawChapterHeading = false;
-  for (const line of source.split(/\r?\n/)) {
-    const chapterMatch = CHAPTER_HEADING_PATTERN.exec(line);
-    if (chapterMatch) {
-      sawChapterHeading = true;
-      record(chapterMatch[1], chapterMatch[2] ?? "");
-      continue;
-    }
-    if (!sawChapterHeading) {
-      const numberedMatch = NUMBERED_HEADING_PATTERN.exec(line);
-      if (numberedMatch) {
-        record(numberedMatch[1], numberedMatch[2] ?? "");
-      }
-    }
-  }
-  return titles;
-}
 
 // 「参考」页签的解析管线：把参考小说原文 AI 改编成本章分镜式初稿。
 // 状态放在页级 hook：子页签行右侧的「解析」按钮与替换确认弹窗共享同一份 mutation，
@@ -91,8 +32,8 @@ export function useReferenceDraftStage(input: {
 }) {
   const { workspace } = input;
   const [pendingDraft, setPendingDraft] = useState<string | null>(null);
-  // 本章没有参考文本时，「参考」页签先只读展示整本小说；用户点「粘贴新文本」后才进入
-  // 空白可编辑态。避免把整本小说当可编辑框展示——往里面粘贴同一本小说会叠出多份重复文本。
+  // 本章没有参考文本时，「参考」页签先只读展示参考小说对应章节；用户点「粘贴新文本」
+  // 后才进入空白可编辑态。避免把参考内容当可编辑框展示——往里粘贴会叠出重复文本。
   const [referenceEditIntent, setReferenceEditIntent] = useState(false);
   const chapter = workspace.currentChapter;
 
@@ -107,21 +48,46 @@ export function useReferenceDraftStage(input: {
     const versions = referenceDocQuery.data?.data?.versions ?? [];
     return versions.find((version) => version.isActive) ?? versions[versions.length - 1] ?? null;
   }, [referenceDocQuery.data]);
-  const sourceFallbackText = (activeDocVersion?.content ?? "").slice(0, 20000);
-  const sourceCharCount = activeDocVersion?.charCount ?? activeDocVersion?.content?.length ?? 0;
   const sourceDocTitle = referenceDocQuery.data?.data?.title ?? "参考小说";
 
-  // 解析与提取用的「有效参考文本」：本章有自己的参考文本用本章的，否则用整本小说。
+  // 按章节切分参考小说；本章（第 N 章）回落到同序号章节，切分不出章节才按整本对待。
+  const sourceChapterSegments = useMemo(
+    () => splitReferenceChapters(activeDocVersion?.content ?? ""),
+    [activeDocVersion],
+  );
+  const sourceChapterTotal = sourceChapterSegments.length;
+  const chapterOrder = chapter?.order ?? 1;
+  const matchedSourceChapter = useMemo(
+    () => sourceChapterSegments.find((segment) => segment.number === chapterOrder) ?? null,
+    [sourceChapterSegments, chapterOrder],
+  );
+  // 源文本（预览/复制/回落用）：优先本章对应章节；小说无章节结构时退整本（截前 2 万字）。
+  const sourceFallbackText = matchedSourceChapter
+    ? matchedSourceChapter.text.slice(0, 20000)
+    : sourceChapterTotal === 0
+      ? (activeDocVersion?.content ?? "").slice(0, 20000)
+      : "";
+  const sourceCharCount = matchedSourceChapter
+    ? matchedSourceChapter.text.length
+    : sourceChapterTotal === 0
+      ? (activeDocVersion?.charCount ?? activeDocVersion?.content?.length ?? 0)
+      : 0;
+
+  // 解析与提取用的「有效参考文本」：本章有自己的参考文本用本章的，否则用回落源文本。
   const hasChapterReference = workspace.referenceText.trim().length > 0;
   const referenceText = hasChapterReference ? workspace.referenceText : sourceFallbackText;
   const trimmedReference = referenceText.trim();
-  // 「参考」页签编辑器的值：preview 模式传 null（只读展示整本小说，不进编辑器）。
+  // 「参考」页签编辑器的值：preview 模式传 null（只读展示源文本，不进编辑器）。
   const referenceEditorValue = hasChapterReference ? workspace.referenceText : referenceEditIntent ? "" : null;
   const referenceSourceHint = hasChapterReference
     ? `将使用本章参考文本（约 ${workspace.referenceText.trim().length.toLocaleString()} 字）`
-    : sourceCharCount > 0
-      ? `本章没有单独的参考文本，将使用整本《${sourceDocTitle}》（约 ${sourceCharCount.toLocaleString()} 字）`
-      : "还没有可用的参考内容";
+    : matchedSourceChapter
+      ? `本章没有单独的参考文本，将使用《${sourceDocTitle}》第 ${chapterOrder} 章（约 ${sourceCharCount.toLocaleString()} 字）`
+      : sourceChapterTotal > 0
+        ? `《${sourceDocTitle}》共解析出 ${sourceChapterTotal} 章，本章（第 ${chapterOrder} 章）没有对应的参考内容`
+        : sourceCharCount > 0
+          ? `本章没有单独的参考文本，将使用整本《${sourceDocTitle}》（约 ${sourceCharCount.toLocaleString()} 字）`
+          : "还没有可用的参考内容";
 
   // 参考文本防抖自动保存到 Chapter.referenceText（服务端），卸载时冲保存避免丢稿。
   const referenceDirty = workspace.referenceDirty;
@@ -183,7 +149,8 @@ export function useReferenceDraftStage(input: {
       ? "还没有粘贴参考内容。"
       : null;
 
-  // 把整本参考小说复制成本章参考文本（超过上限取开头 2 万字），复制后随自动保存落库。
+  // 把回落源文本（本章对应章节，或无章节结构时的整本）复制成本章参考文本
+  // （超过上限取开头 2 万字），复制后随自动保存落库。
   const copySourceToChapter = () => {
     if (!sourceFallbackText.trim()) {
       return;
@@ -203,6 +170,11 @@ export function useReferenceDraftStage(input: {
     sourceDocLoading: referenceDocQuery.isPending,
     sourcePreviewText: sourceFallbackText,
     referenceSourceHint,
+    // 参考小说章节切分信息：预览文案按「本章对应章节」还是「整本」展示。
+    sourceChapterTotal,
+    sourceChapterMatched: matchedSourceChapter !== null,
+    sourceChapterNumber: chapterOrder,
+    sourceChapterTitle: matchedSourceChapter?.title ?? "",
     setReferenceText,
     sourceFallbackText,
     parseMutation,

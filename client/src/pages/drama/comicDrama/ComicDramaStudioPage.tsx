@@ -373,6 +373,10 @@ export default function ComicDramaStudioPage() {
               docCharCount={referenceStage.sourceCharCount}
               previewText={referenceStage.sourcePreviewText}
               docLoading={referenceStage.sourceDocLoading}
+              chapterTotal={referenceStage.sourceChapterTotal}
+              chapterMatched={referenceStage.sourceChapterMatched}
+              chapterNumber={referenceStage.sourceChapterNumber}
+              chapterTitle={referenceStage.sourceChapterTitle}
               onCopyDocToChapter={referenceStage.copySourceToChapter}
               onBeginEdit={referenceStage.beginReferenceEdit}
             />
