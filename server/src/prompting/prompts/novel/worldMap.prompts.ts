@@ -1,4 +1,4 @@
-// 世界地图生成：依据世界观前提/关键设定/场景名单，产出带平面坐标的世界地图草稿。
+// 世界地图生成：依据世界观前提/关键设定/场景名单（可为空，空时按书名自由构思）产出带平面坐标的世界地图草稿。
 // 草稿不落库，用户在地图工作台里预览、微调（拖拽/增删）后才保存进 NovelSettingsWorld.mapJson。
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
@@ -82,7 +82,7 @@ function validateWorldMap(output: WorldMapOutput): WorldMapOutput {
 
 export const worldMapPrompt: PromptAsset<WorldMapPromptInput, WorldMapOutput> = {
   id: "novel.world.map",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -92,6 +92,7 @@ export const worldMapPrompt: PromptAsset<WorldMapPromptInput, WorldMapOutput> = 
   render: (input) => [
     new SystemMessage([
       "你是中文网文的世界地图设计师：在世界观成立的前提下，规划一张故事世界的平面地图。",
+      "如果没有提供 premise、keySettings、existingLocations、sceneNames 或 characterNames，说明世界观尚未整理：依据 novelTitle 与 era 自行构思一个适合展开长篇故事的世界（含势力格局与冲突点），再规划地图，不要因为输入为空而拒绝或敷衍。",
       "地点要具体可感（有名字、有功能、有故事价值），覆盖核心势力与故事主要区域；不要「东方大陆」「某国」这类空壳地名。",
       "kind 含义：city 城市 / region 大区域 / building 具体建筑 / wild 荒野或危险区 / other 其他。tier 表示规模：capital 中心 / city 大 / town 小 / landmark 地标。总量 3～12 个，宁精勿滥。",
       "x/y 是 0-100 的平面坐标：按地理逻辑布局（主城居中偏心、荒野靠边、卫星城镇环绕），任意两点至少相距 6 个单位，重要地点之间留出标注空间。",
