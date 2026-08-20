@@ -5,6 +5,7 @@ import type {
   ChapterDetailOutlinePayload,
 } from "@ai-novel/shared/types/novelChapterDetailOutline";
 import type { ChapterReferenceDraftPayload } from "@ai-novel/shared/types/novelChapterReferenceDraft";
+import type { ReferenceExtractionPayload } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type {
   TimelineCheckReport,
   TimelineContextForChapter,
@@ -141,6 +142,19 @@ export async function generateChapterExecutionContract(
   const { data } = await apiClient.post<ApiResponse<Chapter>>(
     `/novels/${novelId}/chapters/${chapterId}/execution-contract`,
     payload,
+  );
+  return data;
+}
+
+// AI 从参考小说原文提取角色/场景/世界观设定建议（不落库，前端勾选确认后创建）
+export async function previewChapterReferenceExtract(
+  novelId: string,
+  chapterId: string,
+  referenceText: string,
+) {
+  const { data } = await apiClient.post<ApiResponse<ReferenceExtractionPayload>>(
+    `/novels/${novelId}/chapters/${chapterId}/reference-extract/preview`,
+    { referenceText },
   );
   return data;
 }

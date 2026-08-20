@@ -192,6 +192,7 @@ test("drama studio chapter workspace writes only cover outline-level endpoints",
   assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters"), true);
   assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/detail-outline/preview"), true);
   assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-draft/preview"), true);
+  assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-extract/preview"), true);
   assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/reference-draft/preview"), false);
   assert.equal(isDramaStudioChapterWorkspaceWrite("POST", "/chapters/chapter-1/reference-draft"), false);
   assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/detail-outline"), true);

@@ -141,6 +141,29 @@ export function registerNovelChapterRoutes(input: RegisterNovelChapterRoutesInpu
     },
   );
 
+  // 参考文本 → 设定建议：AI 提取角色/场景/世界观（不落库，前端勾选确认后创建）
+  router.post(
+    "/:id/chapters/:chapterId/reference-extract/preview",
+    validate({ params: chapterParamsSchema, body: chapterReferenceDraftPreviewSchema }),
+    async (req, res, next) => {
+      try {
+        const { id, chapterId } = req.params as z.infer<typeof chapterParamsSchema>;
+        const data = await chapterReferenceDraftService.previewReferenceExtraction(
+          id,
+          chapterId,
+          (req.body as { referenceText: string }).referenceText,
+        );
+        res.status(200).json({
+          success: true,
+          data,
+          message: "Reference extraction generated.",
+        } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   // 参考文本 → 初稿：AI 压缩粘贴的参考小说原文（不落库，前端确认后写入初稿）
   router.post(
     "/:id/chapters/:chapterId/reference-draft/preview",
