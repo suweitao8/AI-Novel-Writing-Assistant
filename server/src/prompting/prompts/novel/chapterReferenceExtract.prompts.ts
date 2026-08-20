@@ -50,6 +50,10 @@ export interface ChapterReferenceExtractOutput extends z.infer<typeof chapterRef
 const PLACEHOLDER_VALUES = new Set(["示例文本", "示例内容", "示例", "xxx", "XXX", "占位"]);
 
 function validateChapterReferenceExtract(output: ChapterReferenceExtractOutput): ChapterReferenceExtractOutput {
+  // 小说章节里有场景/道具却没有任何角色，基本是模型漏掉了主角群——判无效触发修复重试。
+  if (output.characters.length === 0 && (output.scenes.length > 0 || output.props.length > 0)) {
+    throw new Error("参考文本里有人物活动，characters 不能为空。");
+  }
   for (const group of [output.characters, output.scenes, output.props, output.worldview] as Array<Array<{ name: string; description?: string }>>) {
     const names = group.map((item) => item.name.trim());
     if (names.some((name) => !name)) {
@@ -83,7 +87,7 @@ export const chapterReferenceExtractPrompt: PromptAsset<ChapterReferenceExtractP
       "忽略非正文内容：书名、章节标题行、作者感言、求票求收藏等元信息不参与提取。",
       "原则是宁多勿漏：建议列表由用户逐条挑选确认，漏提比多提更影响使用。只提取原文明确出现或可直接推断的内容，不虚构；名字保留原文写法。",
       "",
-      "characters＝出场角色（凡是原文里有名字或有台词的角色都要提取，含只出现一次的有名配角，role 可用「配角」）：",
+      "characters＝出场角色（凡是原文里有名字或有台词的角色都要提取，含只出现一次的有名配角，role 可用「配角」）。只要原文里有人物，characters 绝不能是空数组：",
       "- name＝原文人名；role＝身份定位（男主/女主/反派/导师/配角等）。",
       "- appearance＝外貌一句话：性别、年龄段、体型、发色发型、穿着、标志性特征合并成一句，按原文与常理推测。",
       "- personality＝性格一句话（按言行推测）。",
