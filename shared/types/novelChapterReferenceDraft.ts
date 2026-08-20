@@ -10,7 +10,7 @@ export interface ChapterReferenceDraftSegment {
   /** 旁白行固定为「旁白」；台词行为原文中说话角色的名字 */
   speaker: string;
   kind: "narration" | "dialogue";
-  /** 台词行的表情神态（旁白行为空串） */
+  /** 台词行的神态与语气（听得出的情绪，作为配音提示；旁白行为空串） */
   mood: string;
   /** 这一格的旁白内容或台词 */
   text: string;

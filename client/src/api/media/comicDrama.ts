@@ -47,6 +47,8 @@ export interface DramaAudioSegment {
   type: DramaAudioSegmentType;
   speaker?: string;
   text: string;
+  /** 台词行的语气（「角色（语气）：台词」），配音时作为情绪提示 */
+  emotion?: string;
   audioUrl?: string;
   durationSec?: number;
   status: DramaAudioSegmentStatus;

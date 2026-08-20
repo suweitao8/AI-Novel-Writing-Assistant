@@ -13,6 +13,8 @@ export interface DialogueAudioItem {
   type: DialogueLineType;
   speaker?: string;
   text: string;
+  /** 台词行自带的语气（「角色（语气）：台词」约定），配音时优先于角色默认情绪 */
+  emotion?: string;
   voiceId?: string;
   /** 生成时的文本指纹与音色指纹，用于判断已有音频是否过期（参考 mydrama 的 sha 过期判定） */
   textHash?: string;
@@ -35,6 +37,8 @@ interface DialogueLine {
   type: DialogueLineType;
   speaker?: string;
   text: string;
+  /** 「角色（语气）：台词」行里的语气，供 TTS emotion_prompt 使用 */
+  emotion?: string;
 }
 
 export interface CharacterVoice {
@@ -54,21 +58,33 @@ export interface NarratorVoiceData {
 
 const DEFAULT_TTS_PROVIDER = "mock";
 
+// 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM 的
+// emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。
+const SPEAKER_EMOTION_PATTERN = /^([^（(]{1,24})[（(]([^）)]{1,24})[)）]/;
+
 export function parseDialogueLines(raw: string | null | undefined): DialogueLine[] {
   return (raw ?? "")
     .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line, index) => {
-      const match = /^([^:：]{1,32})[:：]\s*(.+)$/.exec(line);
+      const match = /^([^:：]{1,48})[:：]\s*(.+)$/.exec(line);
       if (!match) {
         return { lineIndex: index, type: "narration" as DialogueLineType, text: line };
+      }
+      let speaker = (match[1] ?? "").trim();
+      let emotion: string | undefined;
+      const emotionMatch = SPEAKER_EMOTION_PATTERN.exec(speaker);
+      if (emotionMatch) {
+        speaker = (emotionMatch[1] ?? "").trim();
+        emotion = (emotionMatch[2] ?? "").trim() || undefined;
       }
       return {
         lineIndex: index,
         type: "dialogue" as DialogueLineType,
-        speaker: match[1]?.trim(),
+        speaker: speaker || match[1]?.trim(),
         text: match[2]?.trim() || line,
+        emotion,
       };
     })
     .filter((line) => line.text.length > 0);
@@ -78,11 +94,12 @@ export function hashDialogueText(text: string): string {
   return createHash("sha256").update(text).digest("hex").slice(0, 16);
 }
 
-/** 音色指纹：voiceId/情绪/语速或旁白描述变化即视为音色变化，需要重新合成 */
+/** 音色指纹：voiceId/行内语气/角色情绪/语速或旁白描述变化即视为音色变化，需要重新合成 */
 export function buildDialogueVoiceKey(input: {
   type: DialogueLineType;
   voice?: CharacterVoice;
   narratorDescription?: string;
+  lineEmotion?: string;
 }): string {
   if (input.type === "narration") {
     return `narrator|${(input.narratorDescription ?? "").trim()}`;
@@ -90,6 +107,7 @@ export function buildDialogueVoiceKey(input: {
   const voice = input.voice;
   return [
     voice?.voiceId ?? "",
+    input.lineEmotion ?? "",
     voice?.emotion ?? voice?.voicePrompt ?? "",
     voice?.speed ?? "",
   ].join("|");
@@ -201,6 +219,7 @@ export class DramaDialogueAudioService {
         type: line.type,
         voice,
         narratorDescription: narratorVoice.description,
+        lineEmotion: line.emotion,
       });
       const prev = existingItems.get(line.lineIndex);
       const reusable = !options.force
@@ -217,6 +236,7 @@ export class DramaDialogueAudioService {
         type: line.type,
         speaker: line.speaker,
         text: line.text,
+        emotion: line.emotion,
         voiceId: voice?.voiceId,
         textHash,
         voiceKey,
@@ -239,14 +259,17 @@ export class DramaDialogueAudioService {
       const synthesized: DialogueAudioItem[] = [];
       for (const item of pendingItems) {
         const voice = item.speaker ? voiceMap.get(normalizeKey(item.speaker) ?? "") : undefined;
+        // 「旁白：内容」行解析后 speaker=旁白，配音按旁白处理（旁白音色描述，不找角色音色）。
+        const isNarrationLine = item.type === "narration" || item.speaker === "旁白";
         const result = await adapter.synthesize({
           text: item.text,
-          voiceId: item.type === "dialogue" ? voice?.voiceId : undefined,
-          speed: item.type === "dialogue" ? voice?.speed : undefined,
-          emotion: item.type === "dialogue"
-            ? (voice?.emotion || voice?.voicePrompt)
-            : narratorVoice.description,
-          speaker: item.type === "dialogue" ? item.speaker : "旁白",
+          voiceId: isNarrationLine ? undefined : voice?.voiceId,
+          speed: isNarrationLine ? undefined : voice?.speed,
+          // 行内语气优先（分镜台词的「角色（语气）：台词」），其次角色默认情绪，旁白用旁白音色描述。
+          emotion: isNarrationLine
+            ? narratorVoice.description
+            : (item.emotion || voice?.emotion || voice?.voicePrompt),
+          speaker: isNarrationLine ? "旁白" : item.speaker,
         });
         synthesized.push({ ...item, audioUrl: result.audioUrl, durationSec: result.durationSec });
       }
