@@ -89,14 +89,15 @@
 - 改编仍是「一次性快照导入 + sourceCharacterRef 软引用」：导入后漫画角色与小说角色解耦（可拆分保证），小说侧后续修改不会自动同步——这是既有架构决策，如需再同步应走显式的重新导入。
 
 
-## 世界地图工作台（v1.3 追加；v1.4 画布化）
+## 世界地图工作台（v1.3 追加；v1.4 画布化；v1.6 三层级+AI 场景标注）
 
-- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 世界地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**：地形（平地/山/水）是用户在画布上点顶点圈出来的多边形，AI 只起草地点名单。
-- **v1.4 画布模式**（沿用旧项目 mydrama 画布「自由摆放+连线」的交互思想，但不引 xyflow，纯 SVG 实现）：`MapCanvas` 支持拖动地点与地形、点击选中、画地形模式（依次点击落顶点，回到起点闭合，Esc 取消）；连线选中后在右侧显示直线距离（`scaleKm` 地图跨度换算公里）与步行/骑马/车船耗时估算（`mapData.travelEstimates`，40/80/160 公里每天，纯展示）。多级地图：世界级 → 点城市的「内部地图」进入城内图（`childMaps` 按上级节点 id 挂接，面包屑导航，数据同构递归；服务端深度上限三级 世界→城市→城区）。
-- **node id 稳定是硬契约**：AI 草稿（`novel.world.map@v2`）按名称对齐已有节点沿用原 id（`resolveDraftIds`），因为 `NovelScene.mapNodeId` 引用节点 id；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany）。AI 草稿只含 overview/nodes/edges，前端应用时合并进现有地图——**人工画的地形与内部地图不会被 AI 覆盖**；同名地点的内部地图因 id 对齐而保留。
-- **端点**：`POST /novels/:id/settings/world/map-preview`（纯预览不落库）+ `PUT /novels/:id/settings/world` 的 `map` 字段（`worldMapUpdateSchema`，zod z.lazy 递归校验 childMaps）。路径含 `/settings`，简易模式写守卫天然放行。归一逻辑（坐标夹紧/重复 id/悬空自环重复连线剔除/地形≥3 点/childMaps 挂点必须指向真实节点/深度与数量上限）在 `WorldMapService.normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
-- **生成输入为空不拦截（2026-08-21 决策，v1 时代曾 400）**：世界观前提/关键设定/已有地点全空时 preview 不再报错，prompt v2 让 AI 依据书名与时代自行构思世界再规划地图——符合 AI-First 规则（不用固定守卫拦 AI 能处理的情况），也符合新手优先（先出地图草稿再回头补世界观是允许的创作顺序）。已有地点会作为 `existingLocations` 传入——AI 的任务是保留它们并补全，不是推翻重来。
-- **AI 生成世界观（regenerate world）会覆盖地图节点吗**：bundle 资产一次生成含 mapLocations 的完整世界观，regenerate world 类别整体覆盖（既有规则，且 bundle 写入的旧格式不含地形/childMaps）；地图工作台的人工编辑保存在同一 mapJson，重新生成世界观会覆盖它——排障时先确认用户是否点过「AI 生成世界观」。
+- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**：地形（平地/山/水）是用户在画布上点顶点圈出来的多边形。
+- **v1.6 三层级（2026-08-21 用户决定）**：层级语义按 childMaps 深度约定——世界层 nodes=国家（kind=country）、国家层 nodes=城市（kind=city）、城市层 nodes=具体地点（kind=building，即场景，`NovelScene.mapNodeId` 指向节点 id）。前端按 `MAP_LEVELS`（mapData.ts）渲染层级文案与默认 kind；面包屑 世界 › 国家 › 城市；右侧每层一个导航列表（LevelListCard：国家/城市可点「城市(n)/地点(n)」进入，地点点击选中编辑）。v1.4 时代的地点列表/地形列表/连线创建/地图总述/地图跨度编辑全部移除——编辑只保留 画地形、添加当前层节点、选中编辑（名称/说明/删除/进入下级）、保存。
+- **AI 场景标注取代 AI 起草（novel.world.map_annotate@v1）**：「AI 标注场景」= 服务端扫全部未标注场景（`mapNodeId` 为空且 `mapUnmappable=false`）→ AI 判断每个场景的归属（可新建国家/城市）→ `mergeAnnotation` 合并进地图 → **直接落库**（无预览弹窗；幂等安全因为只新增节点，已有节点/地形/坐标一律不动，最坏情况是多几个可删的节点）。无法定位的场景写 `NovelScene.mapUnmappable=true`，下次标注跳过（用户要求：判断不了就标记，不反复处理）。误标注的解除途径=删除地图节点（`applyWorldMap` 会把挂它的场景 mapNodeId 清空，回到未标注态）。地图为空时同一按钮即为「从场景生成整张地图」的入口，不存在单独的起草流程。
+- **node id 稳定是硬契约**：AI 标注按名称对齐已有国家/城市/地点沿用原节点（`mergeAnnotation`），`NovelScene.mapNodeId` 的引用因此不丢；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany）。
+- **端点**：`POST /novels/:id/settings/world/map-annotate`（标注并落库）+ `PUT /novels/:id/settings/world` 的 `map` 字段（`worldMapUpdateSchema`，zod z.lazy 递归校验 childMaps）。路径含 `/settings`，简易模式写守卫天然放行。归一逻辑（坐标夹紧/重复 id/悬空连线剔除/地形≥3 点/childMaps 挂点必须指向真实节点/深度三级/每图节点 48·子图 32 上限——上限要容得下 AI 建树，静默截断会丢标注结果）在 `WorldMapService.normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
+- **漫剧侧世界观只读（2026-08-21 用户决定）**：漫剧工作室「设定 · 世界观」用 `WorldSettingsPanel` 只读展示关键设定条目（可删误提取）——条目唯一来源是章节解析（referenceParse 提取 worldview → 「提取」页签应用 → `updateStorySettingsWorld({ keySettings })` 追加，keySettings zod 上限 200 条）。不再提供 AI 生成世界观/基础设定编辑/保存按钮（小说侧 `SettingsWorldTab` 保持原样不动）。premise/era 数据仍在（解析与其他 AI 流程还读它），只是漫剧 UI 不再编辑。
+- **AI 生成世界观（regenerate world）会覆盖地图节点吗**：bundle 资产一次生成含 mapLocations 的完整世界观，regenerate world 类别整体覆盖（既有规则，且 bundle 写入的旧格式不含地形/childMaps）；地图工作台的人工编辑保存在同一 mapJson，重新生成世界观会覆盖它——排障时先确认用户是否在小说侧点过「AI 生成世界观」。
 
 ## 美术风格（v1.6：两层组合）
 

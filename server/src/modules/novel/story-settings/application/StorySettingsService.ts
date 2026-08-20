@@ -42,6 +42,7 @@ export interface StorySettingsScene {
   environmentPrompt: string | null;
   significance: string | null;
   mapNodeId: string | null;
+  mapUnmappable: boolean;
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
@@ -519,6 +520,7 @@ export class StorySettingsService {
       environmentPrompt: row.environmentPrompt,
       significance: row.significance,
       mapNodeId: row.mapNodeId,
+      mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,
       source: row.source,
       states: parseStates(row.statesJson),
@@ -1181,6 +1183,7 @@ export class StorySettingsService {
     environmentPrompt: string | null;
     significance: string | null;
     mapNodeId: string | null;
+    mapUnmappable: boolean;
     sortOrder: number;
     source: string;
     statesJson?: string | null;
@@ -1194,6 +1197,7 @@ export class StorySettingsService {
       environmentPrompt: row.environmentPrompt,
       significance: row.significance,
       mapNodeId: row.mapNodeId,
+      mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,
       source: row.source,
       states: parseStates(row.statesJson),

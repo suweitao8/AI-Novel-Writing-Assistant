@@ -31,7 +31,7 @@ import { toast } from "@/components/ui/toast";
 import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
-import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
+import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
 import ArtStylePanel from "@/pages/drama/comicDrama/components/ArtStylePanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
@@ -52,7 +52,7 @@ type StudioStage = "current" | "assets" | "settings";
 type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
-// 「设定」的子页签：世界观（条目式关键设定）/ 地图 / 美术风格 / 通用（参考小说与项目配置）。
+// 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 美术风格 / 通用（参考小说与项目配置）。
 type SettingsTab = "world" | "map" | "style" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
@@ -383,7 +383,7 @@ export default function ComicDramaStudioPage() {
         <TabsContent value="settings" className="space-y-4">
           {settingsTab === "world" ? (
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-              <SettingsWorldTab novelId={novelId} onChanged={invalidateStorySettings} showMap={false} />
+              <WorldSettingsPanel novelId={novelId} onChanged={invalidateStorySettings} />
             </section>
           ) : settingsTab === "map" ? (
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronRight, Loader2, MapPin, MousePointer2, Pencil, Save } from "lucide-react";
+import { ChevronRight, Loader2, MapPin, MousePointer2, Pencil, Save, Sparkles } from "lucide-react";
 import {
+  annotateWorldMap,
   getStorySettingsWorld,
-  previewWorldMap,
   updateStorySettingsWorld,
   type WorldMapData,
   type WorldMapTerrainType,
@@ -13,34 +13,24 @@ import AiButton from "@/components/common/AiButton";
 import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Dialog, AppDialogContent } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import MapCanvas, { type CanvasMode } from "./worldMap/MapCanvas";
+import { LevelListCard, NodeEditorCard, TerrainEditorCard } from "./worldMap/MapEditorPanels";
 import {
-  EdgeCreatorCard,
-  EdgeEditorCard,
-  NodeEditorCard,
-  NodeListCard,
-  TerrainListCard,
-} from "./worldMap/MapEditorPanels";
-import {
+  MAP_LEVELS,
   TERRAIN_TYPES,
   createEmptyMap,
-  edgeKey,
-  kindTone,
   mapAtPath,
-  nodeLabel,
   normalizeMapShape,
   pathLabels,
   withMapAtPath,
 } from "./worldMap/mapData";
 
 // 漫剧「设定 · 地图」画布工作面：
-// 地形（平地/山/水）是程序化定义的多边形，城市摆在画布上、连线算距离——全程不经过 AI 生图。
-// 层级导航：世界级大地图 → 点城市的「内部地图」进入该城的城内图（childMaps 按节点 id 挂接）。
-// AI 只负责起草地点名单（novel.world.map@v2），应用时保留人工画的地形与内部地图。
+// 三层地图——世界层摆国家的相对位置，点进国家看城市分布，点进城市看具体地点（场景）。
+// 「AI 标注场景」把未标注的场景资产交给 AI 判断归属（可新建国家/城市）并直接落库；
+// 无法定位的场景会被标记，之后不再重复处理。地形（平地/山/水）是程序化多边形，全程不经过 AI 生图。
 
 const CLOSE_VERTEX_DISTANCE = 4;
 
@@ -55,9 +45,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
   const [activePath, setActivePath] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [savedSnapshot, setSavedSnapshot] = useState("");
-  const [previewDraft, setPreviewDraft] = useState<WorldMapData | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [selectedEdgeKey, setSelectedEdgeKey] = useState<string | null>(null);
   const [selectedTerrainId, setSelectedTerrainId] = useState<string | null>(null);
   const [mode, setMode] = useState<CanvasMode>({ kind: "select" });
   const [drawTerrainType, setDrawTerrainType] = useState<WorldMapTerrainType>("plain");
@@ -71,13 +59,14 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
 
   const currentMap = useMemo(() => mapAtPath(rootMap, activePath), [rootMap, activePath]) ?? createEmptyMap(20);
   const breadcrumb = useMemo(() => pathLabels(rootMap, activePath), [rootMap, activePath]);
+  // 层级语义按深度取：0=世界（国家）、1=国家（城市）、2=城市（地点）。
+  const level = MAP_LEVELS[Math.min(activePath.length, MAP_LEVELS.length - 1)];
 
   const applyMap = (map: WorldMapData) => {
     const normalized = normalizeMapShape(map);
     setRootMap(normalized);
     setActivePath([]);
     setSelectedNodeId(null);
-    setSelectedEdgeKey(null);
     setSelectedTerrainId(null);
     setDraftTerrainPoints([]);
     setSavedSnapshot(JSON.stringify(normalized));
@@ -102,9 +91,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
 
   const dirty = hydrated && JSON.stringify(rootMap) !== savedSnapshot;
   const selectedNode = currentMap.nodes.find((node) => node.id === selectedNodeId) ?? null;
-  const selectedEdgeIndex = selectedEdgeKey
-    ? currentMap.edges.findIndex((edge) => edgeKey(edge) === selectedEdgeKey)
-    : -1;
+  const selectedTerrain = currentMap.terrain.find((item) => item.id === selectedTerrainId) ?? null;
 
   const invalidate = async () => {
     await Promise.all([
@@ -128,13 +115,21 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     },
   });
 
-  const previewMutation = useMutation({
-    mutationFn: () => previewWorldMap(novelId),
-    onSuccess: (result) => {
-      setPreviewDraft(result.data ? normalizeMapShape(result.data) : null);
+  // AI 场景标注：服务端直接落库并返回新地图；无法定位的场景已标记，下次自动跳过。
+  const annotateMutation = useMutation({
+    mutationFn: () => annotateWorldMap(novelId),
+    onSuccess: async (result) => {
+      if (result.data) {
+        applyMap(result.data.map);
+      }
+      const placed = result.data?.assignments.length ?? 0;
+      const skipped = result.data?.unplaceable.length ?? 0;
+      const detail = skipped > 0 ? `，${skipped} 个无法定位已标记（下次不再处理）` : "";
+      toast.success(`已标注 ${placed} 个场景${detail}。`);
+      await invalidate();
     },
     onError: (error: Error) => {
-      toast.error("生成地点草稿失败", { description: error.message });
+      toast.error("场景标注失败", { description: error.message });
     },
   });
 
@@ -158,7 +153,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     const node = {
       id: crypto.randomUUID(),
       name: "",
-      kind: "city",
+      kind: level.defaultKind,
       summary: "",
       x: Math.round((50 + 30 * Math.cos(angle)) * 10) / 10,
       y: Math.round((50 + 30 * Math.sin(angle)) * 10) / 10,
@@ -166,42 +161,21 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     };
     updateCurrentMap((map) => ({ ...map, nodes: [...map.nodes, node] }));
     setSelectedNodeId(node.id);
-    setSelectedEdgeKey(null);
     setSelectedTerrainId(null);
   };
 
   const removeNode = (nodeId: string) => {
     const node = currentMap.nodes.find((item) => item.id === nodeId);
     if (!node) return;
-    const linked = currentMap.edges.filter((edge) => edge.fromId === nodeId || edge.toId === nodeId).length;
-    const hasChild = Boolean(currentMap.childMaps?.[nodeId]);
-    const message = [
-      `删除地点「${nodeLabel(node)}」？`,
-      linked > 0 ? `它的 ${linked} 条连线会一起删除。` : "",
-      hasChild ? "它的内部地图也会一起删除。" : "",
-    ].join("");
+    const childLabel = level.childLevelLabel ? `它的${level.childLevelLabel}会一起删除。` : "";
+    const message = `删除${level.levelLabel}「${node.name || "未命名"}」？${childLabel}`.trim();
     if (!window.confirm(message)) return;
     updateCurrentMap((map) => ({
       ...map,
       nodes: map.nodes.filter((item) => item.id !== nodeId),
-      edges: map.edges.filter((edge) => edge.fromId !== nodeId && edge.toId !== nodeId),
       childMaps: Object.fromEntries(Object.entries(map.childMaps ?? {}).filter(([key]) => key !== nodeId)),
     }));
     setSelectedNodeId(null);
-  };
-
-  const addEdge = (fromId: string, toId: string, label: string) => {
-    const key = edgeKey({ fromId, toId });
-    if (currentMap.edges.some((edge) => edgeKey(edge) === key)) {
-      toast.error("这两个地点之间已经有连线了。");
-      return;
-    }
-    updateCurrentMap((map) => ({ ...map, edges: [...map.edges, { fromId, toId, label }] }));
-  };
-
-  const removeEdge = (index: number) => {
-    updateCurrentMap((map) => ({ ...map, edges: map.edges.filter((_, i) => i !== index) }));
-    setSelectedEdgeKey(null);
   };
 
   // ---- 地形绘制 ----
@@ -221,7 +195,6 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     setDraftTerrainPoints([]);
     setSelectedTerrainId(terrain.id);
     setSelectedNodeId(null);
-    setSelectedEdgeKey(null);
     toast.success("地形已添加，可在右侧改名字和类型。");
   };
 
@@ -262,7 +235,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     if (selectedTerrainId === terrainId) setSelectedTerrainId(null);
   };
 
-  // ---- 层级导航：进入/退出内部地图 ----
+  // ---- 层级导航：进入下级地图 ----
 
   const openChildMap = (nodeId: string) => {
     updateCurrentMap((map) => {
@@ -271,7 +244,6 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     });
     setActivePath((prev) => [...prev, nodeId]);
     setSelectedNodeId(null);
-    setSelectedEdgeKey(null);
     setSelectedTerrainId(null);
     setDraftTerrainPoints([]);
   };
@@ -331,7 +303,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
 
   return (
     <div className="space-y-4">
-      {/* 面包屑：地图 › 城市内部 */}
+      {/* 面包屑：世界 › 国家 › 城市 */}
       <div className="flex flex-wrap items-center gap-1 text-sm">
         <button
           type="button"
@@ -341,7 +313,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
           )}
           onClick={() => setActivePath([])}
         >
-          地图
+          世界
         </button>
         {breadcrumb.map((label, index) => (
           <span key={`${activePath[index]}-${index}`} className="flex items-center gap-1">
@@ -385,35 +357,25 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
               ))}
             </SelectControl>
           ) : null}
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            地图跨度
-            <Input
-              className="h-8 w-24"
-              type="number"
-              min={1}
-              value={currentMap.scaleKm ?? ""}
-              placeholder="1000"
-              onChange={(event) => {
-                const value = Number(event.target.value);
-                updateCurrentMap((map) => ({
-                  ...map,
-                  scaleKm: Number.isFinite(value) && value > 0 ? value : null,
-                }));
-              }}
-            />
-            公里
-          </label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addNode}
+          >
+            <MapPin className="h-4 w-4" />
+            添加{level.levelLabel}
+          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <AiButton
             variant="outline"
             size="sm"
-            onClick={() => previewMutation.mutate()}
-            disabled={previewMutation.isPending || activePath.length > 0}
-            title={activePath.length > 0 ? "AI 起草只作用于世界级大地图" : undefined}
+            onClick={() => annotateMutation.mutate()}
+            disabled={annotateMutation.isPending}
+            title="AI 判断未标注场景的归属（可新建国家与城市）并放到地图上"
           >
-            {previewMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <MapPin className="h-4 w-4" />}
-            {previewMutation.isPending ? "生成中..." : currentMap.nodes.length > 0 ? "AI 补充地点" : "AI 起草地点"}
+            {annotateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {annotateMutation.isPending ? "标注中..." : "AI 标注场景"}
           </AiButton>
           <Button size="sm" onClick={() => save(buildPayload())} disabled={saveMutation.isPending || !dirty}>
             {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
@@ -422,28 +384,17 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
         </div>
       </div>
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">{activePath.length === 0 ? "地图总述" : "内部地图说明"}</span>
-        <textarea
-          rows={2}
-          className="min-h-[56px] w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring focus:ring-2 focus:ring-ring/30"
-          placeholder={activePath.length === 0
-            ? "一段话讲清整体格局：哪里是大陆、哪里临海、势力怎么分布。"
-            : "这座城/村镇里面的格局：城区、要塞、集市怎么分布。"}
-          value={currentMap.overview}
-          onChange={(event) => updateCurrentMap((map) => ({ ...map, overview: event.target.value }))}
-        />
-      </label>
-
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <Card className="min-w-0 border-border/70">
           <CardContent className="p-3 sm:p-4">
             {currentMap.nodes.length === 0 && currentMap.terrain.length === 0 ? (
               <div className="flex aspect-square max-h-[520px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border text-center">
                 <MapPin className="h-8 w-8 text-muted-foreground/50" aria-hidden="true" />
-                <p className="text-sm text-muted-foreground">空画布。</p>
+                <p className="text-sm text-muted-foreground">
+                  {activePath.length === 0 ? "世界地图。" : `${breadcrumb[breadcrumb.length - 1] ?? ""}内部。`}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                                  先「画地形」圈出陆地与水域，再「添加地点」把城市摆上去；或让 AI 起草地点。
+                  点「AI 标注场景」依据场景资产生成，或手动添加{level.levelLabel}。
                 </p>
               </div>
             ) : (
@@ -452,24 +403,18 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
                   map={currentMap}
                   mode={mode}
                   selectedNodeId={selectedNodeId}
-                  selectedEdgeKey={selectedEdgeKey}
+                  selectedEdgeKey={null}
                   selectedTerrainId={selectedTerrainId}
                   draftTerrainPoints={draftTerrainPoints}
                   onNodeMove={moveNode}
                   onNodeSelect={(nodeId) => {
                     setSelectedNodeId(nodeId);
-                    setSelectedEdgeKey(null);
                     setSelectedTerrainId(null);
                   }}
-                  onEdgeSelect={(edge) => {
-                    setSelectedEdgeKey(edgeKey(edge));
-                    setSelectedNodeId(null);
-                    setSelectedTerrainId(null);
-                  }}
+                  onEdgeSelect={() => {}}
                   onTerrainSelect={(terrainId) => {
                     setSelectedTerrainId(terrainId);
                     setSelectedNodeId(null);
-                    setSelectedEdgeKey(null);
                   }}
                   onTerrainMove={moveTerrain}
                   onCanvasClick={handleCanvasClick}
@@ -481,124 +426,41 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
                 在画布上依次点击圈出范围，回到起点或点满三个点后再次点击起点闭合；Esc 取消。
               </p>
             ) : currentMap.nodes.length > 0 ? (
-              <p className="mt-2 text-center text-xs text-muted-foreground">拖动圆点/地形调整位置，点击元素后在右侧编辑。</p>
+              <p className="mt-2 text-center text-xs text-muted-foreground">
+                拖动圆点/地形调整位置，点击元素后在右侧编辑。
+              </p>
             ) : null}
           </CardContent>
         </Card>
 
         <div className="space-y-4">
-          <NodeListCard
-            map={currentMap}
-            selectedNodeId={selectedNodeId}
-            onSelect={(nodeId) => setSelectedNodeId(nodeId === selectedNodeId ? null : nodeId)}
-            onAdd={addNode}
-          />
           {selectedNode ? (
             <NodeEditorCard
               node={selectedNode}
-              hasChildMap={Boolean(currentMap.childMaps?.[selectedNode.id])}
+              childLevelLabel={level.childLevelLabel}
               onPatch={(patch) => patchNode(selectedNode.id, patch)}
               onDelete={() => removeNode(selectedNode.id)}
               onOpenChildMap={() => openChildMap(selectedNode.id)}
             />
-          ) : null}
-          {selectedEdgeIndex >= 0 ? (
-            <EdgeEditorCard
-              map={currentMap}
-              edgeIndex={selectedEdgeIndex}
-              onPatchLabel={(label) => updateCurrentMap((map) => ({
-                ...map,
-                edges: map.edges.map((edge, index) => (index === selectedEdgeIndex ? { ...edge, label } : edge)),
-              }))}
-              onDelete={() => removeEdge(selectedEdgeIndex)}
+          ) : selectedTerrain ? (
+            <TerrainEditorCard
+              terrain={selectedTerrain}
+              onPatch={(patch) => patchTerrain(selectedTerrain.id, patch)}
+              onDelete={() => removeTerrain(selectedTerrain.id)}
             />
           ) : (
-            <EdgeCreatorCard
-              key={activePath.join("\u0000")}
+            <LevelListCard
               map={currentMap}
-              onAdd={addEdge}
+              levelLabel={level.levelLabel}
+              childLevelLabel={level.childLevelLabel}
+              selectedNodeId={selectedNodeId}
+              onSelect={(nodeId) => setSelectedNodeId(nodeId === selectedNodeId ? null : nodeId)}
+              onOpenChild={openChildMap}
+              onAdd={addNode}
             />
           )}
-          <TerrainListCard
-            map={currentMap}
-            selectedTerrainId={selectedTerrainId}
-            onSelect={(terrainId) => setSelectedTerrainId(terrainId === selectedTerrainId ? null : terrainId)}
-            onPatch={patchTerrain}
-            onDelete={removeTerrain}
-          />
         </div>
       </div>
-
-      <Dialog open={previewDraft !== null} onOpenChange={(open) => { if (!open) setPreviewDraft(null); }}>
-        <AppDialogContent
-          title="AI 起草的地点名单"
-          description={previewDraft?.overview}
-          footer={
-            <>
-              <Button variant="outline" onClick={() => setPreviewDraft(null)}>取消</Button>
-              <Button
-                onClick={() => {
-                  if (!previewDraft) return;
-                  // 只采用 AI 的 overview/nodes/edges；人工画的地形与内部地图全部保留。
-                  const merged: WorldMapData = {
-                    ...rootMap,
-                    overview: previewDraft.overview,
-                    nodes: previewDraft.nodes,
-                    edges: previewDraft.edges,
-                  };
-                  setPreviewDraft(null);
-                  save(merged);
-                }}
-                disabled={saveMutation.isPending}
-              >
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                应用并保存
-              </Button>
-            </>
-          }
-        >
-          {previewDraft ? (
-            <div className="space-y-3">
-              <div className="mx-auto w-full max-w-[440px] rounded-xl border border-border bg-muted/20 p-2">
-                <MapCanvas
-                  map={previewDraft}
-                  mode={{ kind: "select" }}
-                  selectedNodeId={null}
-                  selectedEdgeKey={null}
-                  selectedTerrainId={null}
-                  draftTerrainPoints={[]}
-                  onNodeMove={() => {}}
-                  onNodeSelect={() => {}}
-                  onEdgeSelect={() => {}}
-                  onTerrainSelect={() => {}}
-                  onTerrainMove={() => {}}
-                  onCanvasClick={() => {}}
-                />
-              </div>
-              <ul className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                {previewDraft.nodes.map((node) => {
-                  const tone = kindTone(node.kind);
-                  return (
-                    <li key={node.id} className="flex items-start gap-2 text-sm">
-                      <span className={cn("mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full", tone.dot)} aria-hidden="true" />
-                      <span className="min-w-0">
-                        <span className="font-medium">{nodeLabel(node)}</span>
-                        <span className="text-muted-foreground">（{tone.label}）</span>
-                        {node.summary ? <span className="block text-xs text-muted-foreground">{node.summary}</span> : null}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-              {rootMap.nodes.length > 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  应用后世界级的地点与连线会被草稿替换（同名地点保留内部地图）；你画的地形分区不受影响。
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-        </AppDialogContent>
-      </Dialog>
     </div>
   );
 }

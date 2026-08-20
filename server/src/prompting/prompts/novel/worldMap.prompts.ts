@@ -1,108 +1,124 @@
-// 世界地图生成：依据世界观前提/关键设定/场景名单（可为空，空时按书名自由构思）产出带平面坐标的世界地图草稿。
-// 草稿不落库，用户在地图工作台里预览、微调（拖拽/增删）后才保存进 NovelSettingsWorld.mapJson。
+// 地图场景标注：把未标注的场景资产放到三层地图（世界=国家分布 → 国家=城市分布 → 城市=具体地点）上。
+// 标注直接落库：只新增国家/城市/地点节点，不改动已有节点、地形与人工布局；无法定位的场景标记 unmappable，下次跳过。
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
 
-const mapNodeKindSchema = z.enum(["city", "region", "building", "wild", "other"]);
-const mapNodeTierSchema = z.enum(["capital", "city", "town", "landmark"]);
-
-const mapLocationSchema = z.object({
+const countryDraftSchema = z.object({
   name: z.string().min(2).max(40),
-  kind: mapNodeKindSchema,
-  summary: z.string().min(4).max(200),
-  // 平面坐标（0-100），由 AI 按地理逻辑布局；前端渲染成 SVG 地图并允许拖拽微调。
   x: z.number().min(0).max(100),
   y: z.number().min(0).max(100),
-  tier: mapNodeTierSchema.optional(),
+  summary: z.string().max(200).optional(),
 }).strict();
 
-const mapPathSchema = z.object({
-  fromName: z.string().min(2).max(40),
-  toName: z.string().min(2).max(40),
-  label: z.string().min(1).max(40),
+const cityDraftSchema = z.object({
+  name: z.string().min(2).max(40),
+  countryName: z.string().min(2).max(40),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
+  summary: z.string().max(200).optional(),
 }).strict();
 
-const worldMapSchema = z.object({
-  // 地图总述：一段话讲清这个世界的整体地理格局（方位、势力分布、危险区域）。
-  overview: z.string().min(8).max(400),
-  locations: z.array(mapLocationSchema).min(3).max(12),
-  paths: z.array(mapPathSchema).max(16),
+const placementSchema = z.object({
+  sceneName: z.string().min(1).max(60),
+  countryName: z.string().min(2).max(40),
+  cityName: z.string().min(2).max(40),
+  x: z.number().min(0).max(100),
+  y: z.number().min(0).max(100),
 }).strict();
 
-export interface WorldMapPromptInput {
+const unplaceableSchema = z.object({
+  sceneName: z.string().min(1).max(60),
+  reason: z.string().min(2).max(120),
+}).strict();
+
+const mapAnnotationSchema = z.object({
+  // 需要新建的国家（世界画布坐标）；已有的国家复用名字，不要出现在这里。
+  newCountries: z.array(countryDraftSchema).max(12),
+  // 需要新建的城市（国家画布坐标）；countryName 可指向已有国家或 newCountries 里的新国家。
+  newCities: z.array(cityDraftSchema).max(24),
+  // 场景放置：一律放进某个城市的城内画布；坐标是该城市内部画布上的位置。
+  placements: z.array(placementSchema).max(100),
+  // 无法定位的场景：名字过于笼统（如「街道」）或描述不足以判断归属时放这里，不要硬猜。
+  unplaceable: z.array(unplaceableSchema).max(100),
+}).strict();
+
+export interface WorldMapAnnotatePromptInput {
   novelTitle: string;
-  premise?: string;
   era?: string;
-  toneRules?: string[];
-  keySettings?: Array<{ title: string; content: string }>;
-  existingLocations?: Array<{ name: string; kind: string; summary: string }>;
-  sceneNames?: string[];
-  characterNames?: string[];
+  // 现有地图树（按 国家→城市 折叠；地点数量用于让 AI 感知已有布局密度）。
+  existingCountries?: Array<{
+    name: string;
+    cities: Array<{ name: string; placeCount: number }>;
+  }>;
+  // 待标注场景（已标注与已标记 unmappable 的不会传进来）。
+  scenes: Array<{ name: string; summary: string }>;
 }
 
-export interface WorldMapOutput extends z.infer<typeof worldMapSchema> {}
+export interface WorldMapAnnotateOutput extends z.infer<typeof mapAnnotationSchema> {}
 
-function validateWorldMap(output: WorldMapOutput): WorldMapOutput {
-  const names = output.locations.map((location) => location.name.trim());
-  if (new Set(names).size !== names.length) {
-    throw new Error("地图地点名不能重复。");
-  }
-  if (names.some((name) => !name)) {
-    throw new Error("地图地点名不能为空。");
-  }
-  const nameSet = new Set(names);
-  const seenPairs = new Set<string>();
-  output.paths.forEach((path) => {
-    if (!nameSet.has(path.fromName) || !nameSet.has(path.toName)) {
-      throw new Error("地图连线必须连接已存在的地点。");
-    }
-    if (path.fromName === path.toName) {
-      throw new Error("地图连线不能指向自身。");
-    }
-    const pairKey = [path.fromName, path.toName].sort().join("\u0000");
-    if (seenPairs.has(pairKey)) {
-      throw new Error("地图连线不能重复。");
-    }
-    seenPairs.add(pairKey);
-  });
-  // 坐标要分散：任意两点不能几乎重叠（<6 个坐标单位），否则标签会叠在一起。
-  for (let i = 0; i < output.locations.length; i += 1) {
-    for (let j = i + 1; j < output.locations.length; j += 1) {
-      const a = output.locations[i];
-      const b = output.locations[j];
-      const distance = Math.hypot(a.x - b.x, a.y - b.y);
-      if (distance < 6) {
-        throw new Error(`地点「${a.name}」与「${b.name}」坐标过于接近，请重新布局。`);
+function validateAnnotation(output: WorldMapAnnotateOutput, input: WorldMapAnnotatePromptInput): WorldMapAnnotateOutput {
+  const sceneNames = new Set(input.scenes.map((scene) => scene.name.trim()));
+  const knownCountry = (name: string) =>
+    (input.existingCountries ?? []).some((country) => country.name === name.trim())
+    || output.newCountries.some((country) => country.name.trim() === name.trim());
+  const assertUnique = (keys: Array<[string, string]>) => {
+    const seen = new Set<string>();
+    for (const [key, label] of keys) {
+      const trimmed = key.trim();
+      if (seen.has(trimmed)) {
+        throw new Error(`标注结果里「${trimmed}」重复了（${label}），请合并后重新输出。`);
       }
+      seen.add(trimmed);
     }
+  };
+  assertUnique(output.newCountries.map((item) => [item.name, "国家"] as [string, string]));
+  assertUnique(output.newCities.map((item) => [`${item.countryName}\u0000${item.name}`, "同一国家下的城市"] as [string, string]));
+  const decided = new Set<string>();
+  for (const placement of output.placements) {
+    if (!sceneNames.has(placement.sceneName.trim())) {
+      throw new Error(`场景「${placement.sceneName}」不在待标注名单里。`);
+    }
+    if (!knownCountry(placement.countryName)) {
+      throw new Error(`场景「${placement.sceneName}」指向的国家「${placement.countryName}」不存在，请先在 newCountries 里给出。`);
+    }
+    decided.add(placement.sceneName.trim());
+  }
+  for (const item of output.unplaceable) {
+    if (!sceneNames.has(item.sceneName.trim())) {
+      throw new Error(`场景「${item.sceneName}」不在待标注名单里。`);
+    }
+    decided.add(item.sceneName.trim());
+  }
+  const missing = input.scenes.filter((scene) => !decided.has(scene.name.trim()));
+  if (missing.length > 0) {
+    throw new Error(`这些场景没有给出结论：${missing.map((scene) => scene.name).join("、")}。每个场景必须放置或标记无法定位。`);
   }
   return output;
 }
 
-export const worldMapPrompt: PromptAsset<WorldMapPromptInput, WorldMapOutput> = {
-  id: "novel.world.map",
-  version: "v2",
+export const worldMapAnnotatePrompt: PromptAsset<WorldMapAnnotatePromptInput, WorldMapAnnotateOutput> = {
+  id: "novel.world.map_annotate",
+  version: "v1",
   taskType: "planner",
   mode: "structured",
   language: "zh",
-  contextPolicy: { maxTokensBudget: 3000 },
-  outputSchema: worldMapSchema,
+  contextPolicy: { maxTokensBudget: 4000 },
+  outputSchema: mapAnnotationSchema,
   repairPolicy: { maxAttempts: 1 },
   render: (input) => [
     new SystemMessage([
-      "你是中文网文的世界地图设计师：在世界观成立的前提下，规划一张故事世界的平面地图。",
-      "如果没有提供 premise、keySettings、existingLocations、sceneNames 或 characterNames，说明世界观尚未整理：依据 novelTitle 与 era 自行构思一个适合展开长篇故事的世界（含势力格局与冲突点），再规划地图，不要因为输入为空而拒绝或敷衍。",
-      "地点要具体可感（有名字、有功能、有故事价值），覆盖核心势力与故事主要区域；不要「东方大陆」「某国」这类空壳地名。",
-      "kind 含义：city 城市 / region 大区域 / building 具体建筑 / wild 荒野或危险区 / other 其他。tier 表示规模：capital 中心 / city 大 / town 小 / landmark 地标。总量 3～12 个，宁精勿滥。",
-      "x/y 是 0-100 的平面坐标：按地理逻辑布局（主城居中偏心、荒野靠边、卫星城镇环绕），任意两点至少相距 6 个单位，重要地点之间留出标注空间。",
-      "overview 用一段话描述整体地理格局：方位关系、势力分布、危险区域在哪，让读者不用看图也能想象这个世界。",
-      "paths 描述地点之间的通路或关系（商路/国道/秘径/对立防线），每条一句话（如「南下商路」），最多 16 条。",
-      "keySettings 里的力量体系、禁忌与规则要体现在地名与 summary 中（例如丧尸围城的世界要有安全区与失陷区）。",
-      "如果提供了 existingLocations，说明地图已有人工整理：必须保留这些地点（名称不变，可以微调坐标），在它们之间补充缺失区域并重新布局全局坐标；paths 优先沿用既有地点间的通路。",
+      "你是小说故事地图的标注员：把场景资产按 国家 → 城市 → 城内地点 三层放到地图上。",
+      "地图分三层画布：世界画布摆国家的相对位置；每个国家有自己的画布摆城市；每个城市有自己的画布摆具体地点（场景）。",
+      "existingCountries 是已有的地图结构：优先把场景放进已有的国家和城市（名字要完全一致），确实缺再在 newCountries/newCities 里新建。",
+      "场景依据名字与 summary 判断归属：说明里通常写明了它是什么样的场所、属于哪座城。",
+      "坐标都是所在层画布的 0-100 平面百分比：同一层内各点要分散（任意两点至少相距 6 个单位），按地理逻辑布局，留出名字标注空间。",
+      "newCountries 的 x/y 是世界画布坐标；newCities 的 x/y 是所属国家画布上的坐标；placements 的 x/y 是所属城市画布上的坐标。",
+      "无法定位的场景放 unplaceable：名字是泛称（「街道」「野外」）、描述信息不足、或剧情空间不明确时不要硬猜，给出简短原因。",
+      "每个待标注场景必须出现在 placements 或 unplaceable 之一，不能遗漏。",
       "所有内容用中文。只输出严格 JSON。",
     ].join("\n")),
     new HumanMessage(JSON.stringify(input, null, 2)),
   ],
-  postValidate: validateWorldMap,
+  postValidate: validateAnnotation,
 };

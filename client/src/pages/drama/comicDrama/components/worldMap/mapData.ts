@@ -6,7 +6,7 @@ import type {
   WorldMapTerrainType,
 } from "@/api/story/storySettings";
 
-// 世界地图画布的纯数据层：类型色调、距离/耗时换算、层级（世界→城市内部）导航与编辑工具。
+// 地图画布的纯数据层：类型色调、层级（世界=国家 → 国家=城市 → 城市=地点）导航与编辑工具。
 // 地图是结构化数据渲染出来的 SVG——地形是程序化定义的多边形，不经过任何 AI 生图。
 
 export const TERRAIN_TYPES: Array<{ value: WorldMapTerrainType; label: string }> = [
@@ -31,12 +31,20 @@ export const TRAVEL_MODES = [
 ] as const;
 
 export const KIND_TONES: Record<string, { stroke: string; fill: string; dot: string; label: string }> = {
+  country: { stroke: "stroke-violet-600 dark:stroke-violet-400", fill: "fill-violet-500/15", dot: "bg-violet-500", label: "国家" },
   city: { stroke: "stroke-primary", fill: "fill-primary/15", dot: "bg-primary", label: "城市" },
   region: { stroke: "stroke-emerald-600 dark:stroke-emerald-400", fill: "fill-emerald-500/15", dot: "bg-emerald-500", label: "区域" },
-  building: { stroke: "stroke-amber-600 dark:stroke-amber-400", fill: "fill-amber-500/15", dot: "bg-amber-500", label: "建筑" },
+  building: { stroke: "stroke-amber-600 dark:stroke-amber-400", fill: "fill-amber-500/15", dot: "bg-amber-500", label: "地点" },
   wild: { stroke: "stroke-muted-foreground", fill: "fill-muted", dot: "bg-muted-foreground", label: "荒野" },
   other: { stroke: "stroke-foreground/50", fill: "fill-muted/60", dot: "bg-muted-foreground/60", label: "其他" },
 };
+
+// 三层地图的层级语义（按 activePath 深度取）：世界层摆国家、国家层摆城市、城市层摆具体地点（场景）。
+export const MAP_LEVELS = [
+  { levelLabel: "国家", childLevelLabel: "城市", defaultKind: "country" },
+  { levelLabel: "城市", childLevelLabel: "地点", defaultKind: "city" },
+  { levelLabel: "地点", childLevelLabel: null, defaultKind: "building" },
+] as const;
 
 export const TIER_LABELS: Record<string, { label: string; radius: number }> = {
   capital: { label: "世界中心", radius: 4.6 },

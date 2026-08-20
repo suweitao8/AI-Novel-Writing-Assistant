@@ -43,7 +43,7 @@ const characterUpdateSchema = z.object({
   states: z.array(assetStateSchema).max(24).optional(),
 });
 
-const worldMapKindSchema = z.enum(["city", "region", "building", "wild", "other"]);
+const worldMapKindSchema = z.enum(["country", "city", "region", "building", "wild", "other"]);
 const worldMapTierSchema = z.enum(["capital", "city", "town", "landmark"]);
 const worldMapTerrainTypeSchema = z.enum(["plain", "mountain", "water"]);
 
@@ -91,8 +91,8 @@ const worldMapUpdateSchema: z.ZodType<WorldMapUpdateInput> = z.lazy(() => z.obje
   overview: z.string().trim().max(600).optional(),
   scaleKm: z.number().min(0.1).max(1000000).nullable().optional(),
   terrain: z.array(worldMapTerrainSchema).max(24).optional(),
-  nodes: z.array(worldMapNodeUpdateSchema).max(24).optional(),
-  edges: z.array(worldMapEdgeUpdateSchema).max(32).optional(),
+  nodes: z.array(worldMapNodeUpdateSchema).max(48).optional(),
+  edges: z.array(worldMapEdgeUpdateSchema).max(48).optional(),
   childMaps: z.record(z.string().trim().min(1).max(60), worldMapUpdateSchema).optional(),
 }).strict());
 
@@ -103,7 +103,7 @@ const worldUpdateSchema = z.object({
   keySettings: z.array(z.object({
     title: z.string().trim().min(1).max(60),
     content: z.string().trim().min(1).max(1000),
-  }).strict()).max(12).optional(),
+  }).strict()).max(200).optional(),
   artStyles: z.array(z.object({
     label: z.string().trim().min(1).max(20),
     prompt: z.string().trim().max(500).optional(),
@@ -334,10 +334,10 @@ export function registerStorySettingsRoutes(router: Router): void {
     }
   });
 
-  // AI 生成世界地图草稿：纯预览不落库，前端确认后随 PUT /settings/world 保存。
-  router.post("/:id/settings/world/map-preview", validate({ params: novelParams }), async (req, res, next) => {
+  // AI 场景标注：把未标注的场景资产放进三层地图（直接落库），无法定位的场景标记 unmappable。
+  router.post("/:id/settings/world/map-annotate", validate({ params: novelParams }), async (req, res, next) => {
     try {
-      const data = await worldMapService.previewWorldMap(String(req.params.id));
+      const data = await worldMapService.annotateWorldMap(String(req.params.id));
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);
