@@ -263,9 +263,6 @@ export class WorldMapService {
       })()
       : [];
     const existingLocations = existingMap?.nodes ?? [];
-    if (!premise && keySettings.length === 0 && existingLocations.length === 0) {
-      throw new AppError("先在「世界观」里写下世界前提或关键设定，AI 才能规划地图。", 400);
-    }
 
     const generated = await runStructuredPrompt({
       asset: worldMapPrompt,

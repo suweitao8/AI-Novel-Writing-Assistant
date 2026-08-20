@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-// 世界地图（novel.world.map@v1 + WorldMapService 归一）：schema 边界、草稿 id 对齐、保存归一行为。
+// 世界地图（novel.world.map@v2 + WorldMapService 归一）：schema 边界、草稿 id 对齐、保存归一行为。
 
 const { worldMapPrompt } = require("../dist/prompting/prompts/novel/worldMap.prompts.js");
 const { promptAssetLoaderEntries } = require("../dist/prompting/registry/promptAssetLoaderEntries.js");
@@ -21,9 +21,9 @@ function makeLocations(count) {
   }));
 }
 
-test("prompt 注册进 loader registry（novel.world.map@v1）", () => {
+test("prompt 注册进 loader registry（novel.world.map@v2）", () => {
   const keys = promptAssetLoaderEntries.map((entry) => entry.key);
-  assert.ok(keys.includes("novel.world.map@v1"), "缺少 novel.world.map@v1 注册");
+  assert.ok(keys.includes("novel.world.map@v2"), "缺少 novel.world.map@v2 注册");
 });
 
 test("outputSchema 接受 3～12 个地点与坐标", () => {
