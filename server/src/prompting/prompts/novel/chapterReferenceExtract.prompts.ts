@@ -1,5 +1,5 @@
 // 漫剧工作室「解析」：从本章参考文本提取设定建议——角色 / 场景 / 道具 / 世界观条目，
-// 并为每条推测外貌、性格、画面提示词（生图）、音色提示词（配音）。
+// 角色带结构化 gender/ageGroup/physique（应用时分别填进设定表单）+ 外貌/性格/画面提示词（生图）/音色提示词（配音）。
 // 结果随章节持久化，前端「提取」页签逐条核对/修改后点「应用」创建（不批量、不自动写入）。
 // 重复资产由前端按名称拦截（不重复创建）；外观状态不在提取环节生成（用户手动管理），
 // 提示词一律写资产当前的初始形象。
@@ -18,6 +18,9 @@ const chapterReferenceExtractSchema = z.object({
   characters: z.array(z.object({
     name: z.string().min(1).max(20),
     role: z.string().min(1).max(12),
+    gender: z.enum(["male", "female", "other", "unknown"]).default("unknown"),
+    ageGroup: z.enum(["child", "youth", "middle", "elder"]).nullable().default(null),
+    physique: z.string().max(40).default(""),
     appearance: z.string().min(2).max(200),
     personality: z.string().min(2).max(120),
     imagePrompt: z.string().min(2).max(300),
@@ -68,7 +71,7 @@ function validateChapterReferenceExtract(output: ChapterReferenceExtractOutput):
 
 export const chapterReferenceExtractPrompt: PromptAsset<ChapterReferenceExtractPromptInput, ChapterReferenceExtractOutput> = {
   id: "novel.chapter.reference_extract",
-  version: "v4",
+  version: "v5",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -83,7 +86,8 @@ export const chapterReferenceExtractPrompt: PromptAsset<ChapterReferenceExtractP
       "",
       "characters＝出场角色（凡是原文里有名字或有台词的角色都要提取，含只出现一次的有名配角，role 可用「配角」）。只要原文里有人物，characters 绝不能是空数组：",
       "- name＝原文人名；role＝身份定位（男主/女主/反派/导师/配角等）。",
-      "- appearance＝外貌一句话：性别、年龄段、体型、发色发型、穿着、标志性特征合并成一句，按原文与常理推测。",
+      "- gender/ageGroup/physique 是结构化字段，应用时会分别填进设定的性别、年龄段、体型：gender 按 male/female/other/unknown 输出（原文可推断就给准确值，完全看不出才用 unknown）；ageGroup 按 child（少年/儿童）/youth（青年）/middle（中年）/elder（老年）输出，原文写不出年龄段就填 null；physique 写体型短词（如 高瘦/娇小/壮实/魁梧），推不出就留空串。",
+      "- appearance＝外貌一句话：发型发色、五官特点、穿着、标志性特征——性别、年龄段、体型已经写在结构化字段里，这里不要再重复。",
       "- personality＝性格一句话（按言行推测）。",
       "- imagePrompt＝角色画面提示词（中文，80～150 字）：以全身像可直接作画为准，写清性别年龄段、发型发色、五官特点、体型、服装配饰、气质神态；不要写动作场景。",
       "- voicePrompt＝音色提示词（中文，30～60 字）：音高（低沉/清亮）、音质（沙哑/柔/冷）、说话气质（如 急躁少年音/疲惫沙哑的中年男声），按角色身份与言行推测。",
