@@ -32,6 +32,13 @@
 1. 看该小说 `productionKind` 是否 `comic_drama`——不是则本就该拦（检查创建入口）。
 2. 是 comic_drama 仍被拦 → 守卫版本旧（服务未重启）或有人往守卫里重新加了路径判定。
 
+## 伴生坑：改 server/src 不一定触发 dev 服务重启
+
+本次排查发现：本机 dev 服务的 ts-node-dev 实际只对 `shared/dist` 的变更触发
+Restarting，`server/src` 的合并写入常常不触发——表现为「代码已合并但线上行为没变」。
+凡是只改了 server/src 的合并（没动 shared），验证前先强制重启：
+`touch shared/dist/imagePrompt.js` 等 watched 文件即可。
+
 ## 相关模块
 
 - `server/src/modules/novel/http/simpleCreationWriteGuard.ts`
