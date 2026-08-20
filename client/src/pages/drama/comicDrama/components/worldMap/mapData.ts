@@ -46,6 +46,11 @@ export const MAP_LEVELS = [
   { levelLabel: "地点", childLevelLabel: null, defaultKind: "building" },
 ] as const;
 
+// 各层地图的内置地理尺度（公里 / 100 坐标单位），按现实量级估算做展示：
+// 世界层=国家级跨度（参考中国东西约 5000 公里）、国家层=大国内部城际（约 2000 公里）、
+// 城市层=建成区量级（参考广州建成区约 40 公里）。mapJson 的 scaleKm 字段不再由用户设置，展示一律用这里的内置值。
+export const LEVEL_SCALE_KM = [5000, 2000, 40] as const;
+
 export const TIER_LABELS: Record<string, { label: string; radius: number }> = {
   capital: { label: "世界中心", radius: 4.6 },
   city: { label: "重镇", radius: 3.6 },

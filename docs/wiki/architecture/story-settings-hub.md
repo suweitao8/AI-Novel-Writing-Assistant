@@ -90,11 +90,13 @@
 - 改编仍是「一次性快照导入 + sourceCharacterRef 软引用」：导入后漫画角色与小说角色解耦（可拆分保证），小说侧后续修改不会自动同步——这是既有架构决策，如需再同步应走显式的重新导入。
 
 
-## 世界地图工作台（v1.3 追加；v1.4 画布化；v1.6 三层级+AI 场景标注）
+## 世界地图工作台（v1.3 追加；v1.4 画布化；v1.6 三层级+AI 场景标注；v1.7 纯画布两级切换）
 
-- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**：地形（平地/山/水）是用户在画布上点顶点圈出来的多边形。
-- **v1.6 三层级（2026-08-21 用户决定）**：层级语义按 childMaps 深度约定——世界层 nodes=国家（kind=country）、国家层 nodes=城市（kind=city）、城市层 nodes=具体地点（kind=building，即场景，`NovelScene.mapNodeId` 指向节点 id）。前端按 `MAP_LEVELS`（mapData.ts）渲染层级文案与默认 kind；面包屑 世界 › 国家 › 城市；右侧每层一个导航列表（LevelListCard：国家/城市可点「城市(n)/地点(n)」进入，地点点击选中编辑）。v1.4 时代的地点列表/地形列表/连线创建/地图总述/地图跨度编辑全部移除——编辑只保留 画地形、添加当前层节点、选中编辑（名称/说明/删除/进入下级）、保存。
-- **AI 场景标注取代 AI 起草（novel.world.map_annotate@v1）**：「AI 标注场景」= 服务端扫全部未标注场景（`mapNodeId` 为空且 `mapUnmappable=false`）→ AI 判断每个场景的归属（可新建国家/城市）→ `mergeAnnotation` 合并进地图 → **直接落库**（无预览弹窗；幂等安全因为只新增节点，已有节点/地形/坐标一律不动，最坏情况是多几个可删的节点）。无法定位的场景写 `NovelScene.mapUnmappable=true`，下次标注跳过（用户要求：判断不了就标记，不反复处理）。误标注的解除途径=删除地图节点（`applyWorldMap` 会把挂它的场景 mapNodeId 清空，回到未标注态）。地图为空时同一按钮即为「从场景生成整张地图」的入口，不存在单独的起草流程。
+- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**。
+- **v1.6 三层级（2026-08-21 用户决定）**：层级语义按 childMaps 深度约定——世界层 nodes=国家（kind=country）、国家层 nodes=城市（kind=city）、城市层 nodes=具体地点（kind=building，即场景，`NovelScene.mapNodeId` 指向节点 id）。前端按 `MAP_LEVELS`（mapData.ts）渲染层级文案与默认 kind。
+- **v1.7 纯画布两级切换（2026-08-21 用户决定）**：交互=塞尔达式大地图——顶部切换条「国家级别 / 城市级别」；国家级别=世界画布（各国分布），城市级别=选定国家的城市画布（旁边国家下拉切换），点城市再下钻一层看城内地点（面包屑 国家 › 城市 回退）。画布上点国家/城市节点=直接进入下级，点地点=选中编辑；MapCanvas 用位移阈值区分点击与拖拽（原地松开=点击）。**所有工具栏按钮全部移除**（AI 标注场景、保存/已保存、画地形、添加节点）——地图只剩画布+右侧列表/编辑卡；改动（拖动/改名/删除）1.5s 防抖自动保存（成功静默、失败 toast），地图数据当前没有 UI 新建入口，内容来源=解析流程或服务端标注端点。
+- **地理尺度内置（v1.7）**：`LEVEL_SCALE_KM = [5000, 2000, 40]`（世界层按中国东西跨度、国家层按大国内部城际、城市层按广州建成区量级）——连线上的公里数按所在层内置尺度换算直接标注在画布上；mapJson 的 scaleKm 字段保留在数据里但展示不再读它，也不再有设置入口。
+- **AI 场景标注（novel.world.map_annotate@v1，v1.7 起 UI 无入口）**：服务端能力保留——扫全部未标注场景（`mapNodeId` 为空且 `mapUnmappable=false`）→ AI 判断归属（可新建国家/城市）→ `mergeAnnotation` 合并（只新增节点，已有节点/地形/坐标不动）→ 直接落库；无法定位的场景写 `NovelScene.mapUnmappable=true` 下次跳过。误标注的解除=删除地图节点（`applyWorldMap` 清场景挂点回未标注态）。前端 `annotateWorldMap` API 封装保留，后续要恢复入口直接接回。
 - **node id 稳定是硬契约**：AI 标注按名称对齐已有国家/城市/地点沿用原节点（`mergeAnnotation`），`NovelScene.mapNodeId` 的引用因此不丢；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany）。
 - **端点**：`POST /novels/:id/settings/world/map-annotate`（标注并落库）+ `PUT /novels/:id/settings/world` 的 `map` 字段（`worldMapUpdateSchema`，zod z.lazy 递归校验 childMaps）。路径含 `/settings`，简易模式写守卫天然放行。归一逻辑（坐标夹紧/重复 id/悬空连线剔除/地形≥3 点/childMaps 挂点必须指向真实节点/深度三级/每图节点 48·子图 32 上限——上限要容得下 AI 建树，静默截断会丢标注结果）在 `WorldMapService.normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
 - **漫剧侧世界观只读（2026-08-21 用户决定）**：漫剧工作室「设定 · 世界观」用 `WorldSettingsPanel` 只读展示关键设定条目（可删误提取）——条目唯一来源是章节解析（referenceParse 提取 worldview → 「提取」页签应用 → `updateStorySettingsWorld({ keySettings })` 追加，keySettings zod 上限 200 条）。不再提供 AI 生成世界观/基础设定编辑/保存按钮（小说侧 `SettingsWorldTab` 保持原样不动）。premise/era 数据仍在（解析与其他 AI 流程还读它），只是漫剧 UI 不再编辑。

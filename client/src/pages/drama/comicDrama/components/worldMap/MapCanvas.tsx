@@ -1,7 +1,8 @@
 import { useMemo, useRef } from "react";
-import type { WorldMapData, WorldMapEdge, WorldMapNode, WorldMapTerrain, WorldMapTerrainType } from "@/api/story/storySettings";
+import type { WorldMapData, WorldMapNode, WorldMapTerrain } from "@/api/story/storySettings";
 import { cn } from "@/lib/utils";
 import {
+  edgeDistanceKm,
   kindTone,
   nodeLabel,
   polygonCenter,
@@ -10,45 +11,31 @@ import {
   tierRadius,
 } from "./mapData";
 
-// 地图画布：地形多边形铺底，地点圆点与连线浮在上面。
-// 两种交互模式：select（拖地点/选中元素）与 terrain（点击落顶点圈出地形范围）。
-
-export type CanvasSelectionMode = {
-  kind: "select";
-};
-
-export type CanvasTerrainMode = {
-  kind: "terrain";
-  terrainType: WorldMapTerrainType;
-};
-
-export type CanvasMode = CanvasSelectionMode | CanvasTerrainMode;
+// 地图画布：地形多边形铺底，节点圆点与连线浮在上面。
+// 交互区分点击与拖拽：按住移动=拖动节点/地形；原地松开=点击（上层用它进入下级或选中编辑）。
+// 连线标注附带按所在层内置尺度换算的直线距离（km）。
 
 interface MapCanvasProps {
   map: WorldMapData;
-  mode: CanvasMode;
   selectedNodeId: string | null;
-  selectedEdgeKey: string | null;
   selectedTerrainId: string | null;
-  draftTerrainPoints: Array<{ x: number; y: number }>;
+  // 所在层内置地理尺度（公里），用于连线距离换算；null 则只显示连线说明。
+  levelScaleKm: number | null;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
   onNodeSelect: (nodeId: string) => void;
-  onEdgeSelect: (edge: WorldMapEdge) => void;
   onTerrainSelect: (terrainId: string) => void;
   onTerrainMove: (terrainId: string, dx: number, dy: number) => void;
-  onCanvasClick: (point: { x: number; y: number }) => void;
 }
 
-function edgeKeyOf(edge: Pick<WorldMapEdge, "fromId" | "toId">) {
-  return [edge.fromId, edge.toId].sort().join("\u0000");
-}
+// 位移小于该坐标单位视为原地点击（未拖动）。
+const CLICK_MOVE_THRESHOLD = 1.5;
 
 export default function MapCanvas(props: MapCanvasProps) {
-  const { map, mode } = props;
+  const { map } = props;
   const svgRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<
-    | { type: "node"; id: string }
-    | { type: "terrain"; id: string; last: { x: number; y: number } }
+    | { type: "node"; id: string; moved: boolean; origin: { x: number; y: number } }
+    | { type: "terrain"; id: string; moved: boolean; last: { x: number; y: number } }
     | null
   >(null);
 
@@ -81,47 +68,57 @@ export default function MapCanvas(props: MapCanvasProps) {
     const point = toSvgPoint(event.clientX, event.clientY);
     if (!point) return;
     if (drag.type === "node") {
+      if (!drag.moved && Math.hypot(point.x - drag.origin.x, point.y - drag.origin.y) < CLICK_MOVE_THRESHOLD) {
+        return;
+      }
+      drag.moved = true;
       props.onNodeMove(drag.id, point.x, point.y);
     } else {
+      if (!drag.moved && Math.hypot(point.x - drag.last.x, point.y - drag.last.y) < CLICK_MOVE_THRESHOLD) {
+        return;
+      }
+      drag.moved = true;
       props.onTerrainMove(drag.id, point.x - drag.last.x, point.y - drag.last.y);
       drag.last = point;
     }
   };
 
   const endDrag = () => {
+    const drag = dragRef.current;
+    if (drag && !drag.moved) {
+      // 原地松开=点击：选中（上层决定点击是进入下级还是编辑）。
+      if (drag.type === "node") {
+        props.onNodeSelect(drag.id);
+      } else {
+        props.onTerrainSelect(drag.id);
+      }
+    }
     dragRef.current = null;
   };
 
   const startNodeDrag = (event: React.PointerEvent, node: WorldMapNode) => {
-    if (mode.kind === "terrain") return;
     event.preventDefault();
     event.stopPropagation();
-    props.onNodeSelect(node.id);
-    dragRef.current = { type: "node", id: node.id };
+    const point = toSvgPoint(event.clientX, event.clientY);
+    if (!point) return;
+    dragRef.current = { type: "node", id: node.id, moved: false, origin: point };
     (event.target as Element).setPointerCapture?.(event.pointerId);
   };
 
   const startTerrainDrag = (event: React.PointerEvent, terrain: WorldMapTerrain) => {
-    if (mode.kind === "terrain") return;
-    const point = toSvgPoint(event.clientX, event.clientY);
-    if (!point) return;
     event.preventDefault();
     event.stopPropagation();
-    props.onTerrainSelect(terrain.id);
-    dragRef.current = { type: "terrain", id: terrain.id, last: point };
+    const point = toSvgPoint(event.clientX, event.clientY);
+    if (!point) return;
+    dragRef.current = { type: "terrain", id: terrain.id, moved: false, last: point };
     (event.target as Element).setPointerCapture?.(event.pointerId);
   };
-
-  const drawing = mode.kind === "terrain";
 
   return (
     <svg
       ref={svgRef}
       viewBox="0 0 100 100"
-      className={cn(
-        "block h-auto w-full select-none text-foreground",
-        drawing ? "cursor-crosshair" : "cursor-default",
-      )}
+      className="block h-auto w-full cursor-default select-none text-foreground"
       style={{ touchAction: "none" }}
       role="img"
       aria-label="地图画布"
@@ -129,11 +126,6 @@ export default function MapCanvas(props: MapCanvasProps) {
       onPointerUp={endDrag}
       onPointerLeave={endDrag}
       onPointerCancel={endDrag}
-      onClick={(event) => {
-        if (!drawing) return;
-        const point = toSvgPoint(event.clientX, event.clientY);
-        if (point) props.onCanvasClick(point);
-      }}
     >
       <rect x={0} y={0} width={100} height={100} className="fill-background" />
       <g className="stroke-border" strokeWidth={0.2} opacity={0.55}>
@@ -153,7 +145,7 @@ export default function MapCanvas(props: MapCanvasProps) {
           <g
             key={terrain.id}
             onPointerDown={(event) => startTerrainDrag(event, terrain)}
-            className={drawing ? undefined : "cursor-move"}
+            className="cursor-move"
           >
             <polygon
               points={polygonPointsAttribute(terrain.points)}
@@ -181,25 +173,25 @@ export default function MapCanvas(props: MapCanvasProps) {
         const from = nodeById.get(edge.fromId);
         const to = nodeById.get(edge.toId);
         if (!from || !to) return null;
-        const selected = props.selectedEdgeKey === edgeKeyOf(edge);
+        const km = props.levelScaleKm !== null
+          ? edgeDistanceKm({ x: from.x, y: from.y }, { x: to.x, y: to.y }, props.levelScaleKm)
+          : null;
+        const labelText = edge.label
+          ? km !== null ? `${edge.label} · ${km}km` : edge.label
+          : km !== null ? `${km}km` : "";
         return (
           <g
             key={`${edge.fromId}-${edge.toId}-${index}`}
             className="text-muted-foreground"
-            onClick={(event) => {
-              if (drawing) return;
-              event.stopPropagation();
-              props.onEdgeSelect(edge);
-            }}
           >
             <line
               x1={from.x} y1={from.y} x2={to.x} y2={to.y}
               className="stroke-current"
-              strokeWidth={selected ? 0.9 : 0.5}
+              strokeWidth={0.5}
               strokeDasharray="1.6 1.2"
-              opacity={selected ? 0.95 : 0.65}
+              opacity={0.65}
             />
-            {edge.label ? (
+            {labelText ? (
               <text
                 x={(from.x + to.x) / 2}
                 y={(from.y + to.y) / 2 - 1}
@@ -207,7 +199,7 @@ export default function MapCanvas(props: MapCanvasProps) {
                 className="fill-current"
                 fontSize={2.2}
               >
-                {edge.label}
+                {labelText}
               </text>
             ) : null}
           </g>
@@ -222,7 +214,7 @@ export default function MapCanvas(props: MapCanvasProps) {
           <g
             key={node.id}
             onPointerDown={(event) => startNodeDrag(event, node)}
-            className={drawing ? undefined : "cursor-grab active:cursor-grabbing"}
+            className="cursor-grab active:cursor-grabbing"
           >
             {selected ? (
               <circle cx={x} cy={y} r={r + 1.6} fill="none" className="stroke-ring" strokeWidth={0.5} strokeDasharray="1 1" />
@@ -243,17 +235,6 @@ export default function MapCanvas(props: MapCanvasProps) {
           </g>
         );
       })}
-
-      {drawing && props.draftTerrainPoints.length > 0 ? (
-        <g className="pointer-events-none">
-          <polygon
-            points={polygonPointsAttribute(props.draftTerrainPoints)}
-            className="fill-muted/40 stroke-muted-foreground"
-            strokeWidth={0.4}
-            strokeDasharray="1.2 1"
-          />
-        </g>
-      ) : null}
     </svg>
   );
 }
