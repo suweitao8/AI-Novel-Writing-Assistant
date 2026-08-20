@@ -42,6 +42,7 @@ export function useNovelChapterWorkspace(novelId: string) {
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [expectationText, setExpectationText] = useState("");
   const [referenceText, setReferenceTextState] = useState("");
+  const [referenceExtractionJson, setReferenceExtractionJsonState] = useState("");
   const [beats, setBeats] = useState<ChapterBeatDraft[] | null>(null);
   const [notes, setNotes] = useState("");
 
@@ -91,6 +92,25 @@ export function useNovelChapterWorkspace(novelId: string) {
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "保存参考文本失败，请重试。"),
   });
+
+  // 「解析」提取的设定建议随章节持久化（与初稿一样是成果，不用不丢）。
+  const saveReferenceExtractionMutation = useMutation({
+    mutationFn: (input: { chapterId: string; json: string | null }) =>
+      updateNovelChapter(novelId, input.chapterId, { referenceExtractionJson: input.json }),
+    onSuccess: async () => {
+      await invalidateChapters();
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "保存提取结果失败。"),
+  });
+
+  // 解析产出的提取建议：立即静默落库（不做防抖——解析是一次性动作，结果要稳）。
+  const applyReferenceExtraction = (json: string | null) => {
+    if (!currentChapter) {
+      return;
+    }
+    setReferenceExtractionJsonState(json ?? "");
+    saveReferenceExtractionMutation.mutate({ chapterId: currentChapter.id, json });
+  };
 
   const expectationDirty = Boolean(currentChapter)
     && expectationText.trim() !== (currentChapter?.expectation ?? "").trim();
@@ -155,6 +175,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     const expectation = currentChapter.expectation ?? "";
     setExpectationText(expectation.trim() ? expectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
     setReferenceTextState(currentChapter.referenceText ?? "");
+    setReferenceExtractionJsonState(currentChapter.referenceExtractionJson ?? "");
     const parsed = parseDetailOutline(currentChapter);
     setBeats(
       parsed
@@ -238,6 +259,8 @@ export function useNovelChapterWorkspace(novelId: string) {
     referenceDirty,
     referenceSavePending,
     flushReferenceSave,
+    referenceExtractionJson,
+    applyReferenceExtraction,
     previewMutation,
     saveBeatsMutation,
     beats,

@@ -13,7 +13,47 @@ import {
   chapterReferenceExtractPrompt,
 } from "../../../../prompting/prompts/novel/chapterReferenceExtract.prompts";
 import type { ChapterReferenceDraftPayload } from "@ai-novel/shared/types/novelChapterReferenceDraft";
-import type { ReferenceExtractionPayload } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type { ReferenceExtractionPayload, StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+
+function parseStates(raw: string | null | undefined): StoryAssetState[] {
+  if (!raw?.trim()) return [];
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? (parsed as StoryAssetState[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+// 已有资产摘要行：类别｜名称｜当前（最新）外观状态。喂给提取 Prompt 做
+// 同名判断与外观变化检测（AI 决定是否需要新状态，不是关键词匹配）。
+async function buildExistingAssetLines(novelId: string): Promise<string[]> {
+  const [characters, scenes, props] = await Promise.all([
+    prisma.character.findMany({
+      where: { novelId },
+      select: { name: true, role: true, appearance: true, statesJson: true },
+    }),
+    prisma.novelScene.findMany({ where: { novelId }, select: { name: true, summary: true, statesJson: true } }),
+    prisma.novelProp.findMany({ where: { novelId }, select: { name: true, description: true, statesJson: true } }),
+  ]);
+  const lines: string[] = [];
+  for (const character of characters) {
+    const states = parseStates(character.statesJson);
+    const latest = states[states.length - 1];
+    lines.push(`角色｜${character.name}｜${latest ? `${latest.label}：${latest.description}` : character.appearance ?? "无外观记录"}`);
+  }
+  for (const scene of scenes) {
+    const states = parseStates(scene.statesJson);
+    const latest = states[states.length - 1];
+    lines.push(`场景｜${scene.name}｜${latest ? `${latest.label}：${latest.description}` : scene.summary ?? "无描述"}`);
+  }
+  for (const prop of props) {
+    const states = parseStates(prop.statesJson);
+    const latest = states[states.length - 1];
+    lines.push(`道具｜${prop.name}｜${latest ? `${latest.label}：${latest.description}` : prop.description ?? "无描述"}`);
+  }
+  return lines;
+}
 
 const REFERENCE_TEXT_MIN_LENGTH = 50;
 const REFERENCE_TEXT_MAX_LENGTH = 20000;
@@ -98,6 +138,7 @@ export class ChapterReferenceDraftService {
       throw new AppError("参考内容过长。", 400);
     }
 
+    const existingAssets = await buildExistingAssetLines(novelId);
     const generated = await runStructuredPrompt({
       asset: chapterReferenceExtractPrompt,
       promptInput: {
@@ -105,6 +146,7 @@ export class ChapterReferenceDraftService {
         chapterTitle: chapter.title,
         chapterOrder: chapter.order,
         referenceText: text,
+        existingAssets,
       },
       options: {
         novelId,

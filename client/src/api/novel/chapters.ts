@@ -61,6 +61,7 @@ export async function updateNovelChapter(
     content: string;
     expectation: string;
     referenceText: string;
+    referenceExtractionJson: string | null;
     chapterStatus: ChapterStatus;
     targetWordCount: number;
     conflictLevel: number;
@@ -147,7 +148,7 @@ export async function generateChapterExecutionContract(
   return data;
 }
 
-// AI 从参考小说原文提取角色/场景/世界观设定建议（不落库，前端勾选确认后创建）
+// AI 从本章参考文本提取角色/场景/道具/世界观建议（纯预览；结果由前端随章节持久化，勾选后创建）
 export async function previewChapterReferenceExtract(
   novelId: string,
   chapterId: string,

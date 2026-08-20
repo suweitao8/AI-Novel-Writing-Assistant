@@ -4,6 +4,7 @@
 //   不写 NovelWorld 生成管线；已有导演世界观的小说由 AI 蒸馏成设定摘要（existingWorldText 输入）。
 // - ensureSettings 幂等：只补缺失类别；regenerate 按类别重建。
 // - 角色不做删除式重建（保护关系与状态数据），重新生成只会补充缺失角色。
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
@@ -42,6 +43,7 @@ export interface StorySettingsScene {
   mapNodeId: string | null;
   sortOrder: number;
   source: string;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -58,6 +60,7 @@ export interface StorySettingsProp {
   firstAppearHint: string | null;
   sortOrder: number;
   source: string;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -70,9 +73,11 @@ export interface StorySettingsCharacter {
   physique: string | null;
   attireStyle: string | null;
   facePrompt: string | null;
+  voiceTexture: string | null;
   personality: string | null;
   appearance: string | null;
   background: string | null;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -104,6 +109,24 @@ export interface StorySettingsWorldMapView {
 }
 
 const CATEGORY_LIST: StorySettingsCategory[] = ["characters", "scenes", "props", "world"];
+
+function parseStates(value: string | null | undefined): StoryAssetState[] {
+  if (!value?.trim()) return [];
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    if (!Array.isArray(parsed)) return [];
+    return (parsed as StoryAssetState[]).filter((state) =>
+      typeof state?.id === "string" && typeof state?.label === "string");
+  } catch {
+    return [];
+  }
+}
+
+function serializeStates(states: StoryAssetState[] | undefined | null): string | null {
+  if (!states) return null;
+  const cleaned = states.filter((state) => state.id?.trim() && state.label?.trim());
+  return cleaned.length > 0 ? JSON.stringify(cleaned) : null;
+}
 
 function parseJsonArray(value: string | null | undefined): string[] {
   if (!value) return [];
@@ -459,6 +482,7 @@ export class StorySettingsService {
       mapNodeId: row.mapNodeId,
       sortOrder: row.sortOrder,
       source: row.source,
+      states: parseStates(row.statesJson),
       updatedAt: row.updatedAt.toISOString(),
     }));
   }
@@ -470,6 +494,7 @@ export class StorySettingsService {
     environmentPrompt?: string | null;
     significance?: string | null;
     mapNodeId?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsScene> {
     await requireNovel(novelId);
     const maxOrder = await prisma.novelScene.findFirst({
@@ -486,6 +511,7 @@ export class StorySettingsService {
         environmentPrompt: input.environmentPrompt ?? null,
         significance: input.significance ?? null,
         mapNodeId: input.mapNodeId ?? null,
+        statesJson: serializeStates(input.states),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
@@ -500,6 +526,7 @@ export class StorySettingsService {
     environmentPrompt?: string | null;
     significance?: string | null;
     mapNodeId?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsScene> {
     const row = await prisma.novelScene.findFirst({ where: { id: sceneId, novelId } });
     if (!row) {
@@ -514,6 +541,7 @@ export class StorySettingsService {
         ...(input.environmentPrompt !== undefined ? { environmentPrompt: input.environmentPrompt } : {}),
         ...(input.significance !== undefined ? { significance: input.significance } : {}),
         ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
+        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
       },
     });
     return this.projectScene(updated);
@@ -557,6 +585,7 @@ export class StorySettingsService {
       firstAppearHint: row.firstAppearHint,
       sortOrder: row.sortOrder,
       source: row.source,
+      states: parseStates(row.statesJson),
       updatedAt: row.updatedAt.toISOString(),
     }));
   }
@@ -570,6 +599,7 @@ export class StorySettingsService {
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsProp> {
     await requireNovel(novelId);
     const maxOrder = await prisma.novelProp.findFirst({
@@ -588,6 +618,7 @@ export class StorySettingsService {
         ownerCharacterId: input.ownerCharacterId ?? null,
         importance: input.importance ?? "major",
         firstAppearHint: input.firstAppearHint ?? null,
+        statesJson: serializeStates(input.states),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
@@ -610,6 +641,7 @@ export class StorySettingsService {
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsProp> {
     const row = await prisma.novelProp.findFirst({ where: { id: propId, novelId } });
     if (!row) {
@@ -626,6 +658,7 @@ export class StorySettingsService {
         ...(input.ownerCharacterId !== undefined ? { ownerCharacterId: input.ownerCharacterId } : {}),
         ...(input.importance !== undefined ? { importance: input.importance } : {}),
         ...(input.firstAppearHint !== undefined ? { firstAppearHint: input.firstAppearHint } : {}),
+        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
       },
     });
     const ownerName = updated.ownerCharacterId
@@ -661,13 +694,18 @@ export class StorySettingsService {
         physique: true,
         attireStyle: true,
         facePrompt: true,
+        voiceTexture: true,
         personality: true,
         appearance: true,
         background: true,
+        statesJson: true,
         updatedAt: true,
       },
     });
-    return rows.map((row) => ({ ...row, updatedAt: row.updatedAt.toISOString() }));
+    return rows.map((row) => {
+      const { statesJson, ...rest } = row;
+      return { ...rest, states: parseStates(statesJson), updatedAt: row.updatedAt.toISOString() };
+    });
   }
 
   async createCharacter(novelId: string, input: {
@@ -678,9 +716,11 @@ export class StorySettingsService {
     physique?: string | null;
     attireStyle?: string | null;
     facePrompt?: string | null;
+    voiceTexture?: string | null;
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsCharacter> {
     await requireNovel(novelId);
     const row = await prisma.character.create({
@@ -693,9 +733,11 @@ export class StorySettingsService {
         physique: input.physique ?? null,
         attireStyle: input.attireStyle ?? null,
         facePrompt: input.facePrompt ?? null,
+        voiceTexture: input.voiceTexture ?? null,
         personality: input.personality ?? null,
         appearance: input.appearance ?? null,
         background: input.background ?? null,
+        statesJson: serializeStates(input.states),
       },
     });
     return this.projectCharacter(row);
@@ -709,9 +751,11 @@ export class StorySettingsService {
     physique?: string | null;
     attireStyle?: string | null;
     facePrompt?: string | null;
+    voiceTexture?: string | null;
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
+    states?: StoryAssetState[];
   }): Promise<StorySettingsCharacter> {
     const row = await prisma.character.findFirst({ where: { id: characterId, novelId } });
     if (!row) {
@@ -727,12 +771,32 @@ export class StorySettingsService {
         ...(input.physique !== undefined ? { physique: input.physique } : {}),
         ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
         ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
+        ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
+        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
         ...(input.personality !== undefined ? { personality: input.personality } : {}),
         ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
         ...(input.background !== undefined ? { background: input.background } : {}),
       },
     });
     return this.projectCharacter(updated);
+  }
+
+  async deleteCharacter(novelId: string, characterId: string): Promise<void> {
+    const row = await prisma.character.findFirst({ where: { id: characterId, novelId } });
+    if (!row) {
+      throw new AppError("没有找到这个角色。", 404);
+    }
+    try {
+      await prisma.character.delete({ where: { id: row.id } });
+    } catch (error) {
+      // Character 被小说写作链路（状态账本/关系/时间线等）引用时数据库会拒绝删除；
+      // 设定资产场景下通常无引用可直接删，有引用时给出明确提示而不是 500。
+      const code = (error as { code?: string }).code;
+      if (code === "P2003") {
+        throw new AppError("这个角色已被写作数据（状态/关系/时间线等）引用，不能在这里删除。", 409);
+      }
+      throw error;
+    }
   }
 
   // ---- 世界观 ----
@@ -1015,9 +1079,11 @@ export class StorySettingsService {
     physique: string | null;
     attireStyle: string | null;
     facePrompt: string | null;
+    voiceTexture?: string | null;
     personality: string | null;
     appearance: string | null;
     background: string | null;
+    statesJson?: string | null;
     updatedAt: Date;
   }): StorySettingsCharacter {
     return {
@@ -1029,9 +1095,11 @@ export class StorySettingsService {
       physique: row.physique,
       attireStyle: row.attireStyle,
       facePrompt: row.facePrompt,
+      voiceTexture: row.voiceTexture ?? null,
       personality: row.personality,
       appearance: row.appearance,
       background: row.background,
+      states: parseStates(row.statesJson),
       updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -1046,6 +1114,7 @@ export class StorySettingsService {
     mapNodeId: string | null;
     sortOrder: number;
     source: string;
+    statesJson?: string | null;
     updatedAt: Date;
   }): StorySettingsScene {
     return {
@@ -1058,6 +1127,7 @@ export class StorySettingsService {
       mapNodeId: row.mapNodeId,
       sortOrder: row.sortOrder,
       source: row.source,
+      states: parseStates(row.statesJson),
       updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -1075,6 +1145,7 @@ export class StorySettingsService {
       firstAppearHint: string | null;
       sortOrder: number;
       source: string;
+      statesJson?: string | null;
       updatedAt: Date;
     },
     ownerCharacterName: string | null,
@@ -1092,6 +1163,7 @@ export class StorySettingsService {
       firstAppearHint: row.firstAppearHint,
       sortOrder: row.sortOrder,
       source: row.source,
+      states: parseStates(row.statesJson),
       updatedAt: row.updatedAt.toISOString(),
     };
   }

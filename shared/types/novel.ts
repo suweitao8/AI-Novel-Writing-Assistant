@@ -297,6 +297,8 @@ export interface Chapter {
   expectation?: string | null;
   /** 漫剧工作室「参考」页签的本章参考小说正文（服务端持久化） */
   referenceText?: string | null;
+  /** 「解析」提取的设定建议（ReferenceExtractionPayload 的 JSON 序列化，服务端持久化） */
+  referenceExtractionJson?: string | null;
   /** 单章细纲（ChapterDetailOutlineDocument 的 JSON 序列化，见 novelChapterDetailOutline.ts） */
   detailOutlineJson?: string | null;
   novelId: string;
