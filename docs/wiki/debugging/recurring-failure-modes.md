@@ -18,6 +18,7 @@
 - 运行时报 `The column main.X does not exist` 先查 Prisma schema 与 dev.db 是否脱节（并会话提交 schema 后数据库未同步），不要从 schema 撤字段来消错。
 - API 起不来或秒死先查端口归属：`Get-NetTCPConnection -LocalPort 3100` 能看到 `netstat` 看不见的 Bound 状态占用（Docker Desktop 的 `com.docker.backend.exe` 会留下无容器认领的僵尸绑定）。
 - 数据破坏风险操作必须先备份、验证备份，再取得明确批准。
+- 手工/浏览器 E2E 验证不得在共享 `server/dev.db` 留持久夹具数据：验证完当场清理；自动化测试一律用内联数据或 `mkdtemp` 临时库，禁止依赖 dev.db 里的持久行。
 
 ## 示例
 
@@ -35,6 +36,7 @@
 - 重启电脑后固定端口报 `listen EACCES 0.0.0.0:3100/5174`、netstat 查不到任何占用者（2026-08-19 实例，已根治）：WinNAT（Hyper-V/Docker/WSL2）每次开机会随机圈一批端口做成"排除区"禁止应用绑定，`netsh interface ipv4 show excludedportrange protocol=tcp` 可看到端口落在无 `*` 标记的动态区间内，且任意地址（含 127.0.0.1）都绑不上；表现为整栈里一个服务正常另一个 EACCES。根治步骤：`net stop winnat` 释放动态保留 → 对每个固定端口执行 `netsh int ipv4 add excludedportrange protocol=tcp startport=<port> numberofports=1`（端口正被进程占用时会报"另一个程序正在使用此文件"，需先停服务栈再加）→ `net start winnat`。3100 与 5174 已于 2026-08-19 打上带 `*` 的管理级保留，NAT 不会再圈；未来新增固定端口遇到同样问题按此处理，禁止用换端口规避。另注：`mydrama-frontend-1` 容器只是 expose 5173 并未 publish 到宿主机，宿主机 5173 无 socket，"5173 被 Docker 占用"的历史说法指 Docker 后端的虚拟保留。
 - 开发进程会被并行会话周期性杀掉（单例脚本匹配 `ts-node-dev + src/app.ts`；也可能有人按端口杀进程树），表现为整条后台任务无错误消失、退出码 4294967295。防复发模式：① 启动命令不含 `ts-node-dev` 字样（用裸 ts-node 启动即不匹配单例脚本）；② 外面套 `while true; do <启动命令>; sleep 3; done` 守护循环并作为常驻后台任务运行，被杀后秒级自愈；③ 不要依赖在"已完成的 Bash 调用"里 nohup 出去的进程——会随调用作业对象关闭被回收。
 - 页面报"上游模型服务连接失败"且所有任务类型同时中招（2026-08-20 实例）：`ModelRouteConfig` 全量路由到 `opencode` 提供商（`server/.env` 的 `OPENCODE_BASE_URL=http://127.0.0.1:18762/v1`），它依赖两个**不自启的本地守护进程**——opencode serve（18763）和 OpenCode Go 桥接（18762）。电脑重启后两者不在，服务端 fetch 立即连接被拒，errorHandler 把一切网络型错误统一包装成该文案（host 缺失时显示为"上游模型服务"）。处置：在仓库根目录执行 `pnpm opencode:bridge`（守护式拉起并等健康检查就绪后自动退出，日志在 `%LOCALAPPDATA%\AINovel\opencode-go-bridge\logs`），再用 `curl http://127.0.0.1:18762/health` 与一次 `/v1/chat/completions` 实调验证；首次真实调用可能冷启动偏慢，重试一次再下结论。
+- 漫剧项目列表出现来历不明的占位项目（2026-08-21 实例，"E2E守卫-漫剧-勿动"）：这是此前会话做浏览器 E2E 验证时手工建的小说夹具——它只是一条普通的 `productionKind=comic_drama` 的 `Novel` 行，列表按该字段正常查询就会显示，代码/测试/脚本对它零依赖（自动化测试全用内联数据或临时库）。清理路径：备份 dev.db 后调 `DELETE /api/drama/projects/by-novel/:novelId`（会先清 drama 侧软引用再级联删小说与 RAG）。禁止用标题关键词过滤来"隐藏"这类项目——那是 AI-first 规则明令禁止的特例字符串规则；正确做法是验证会话自己收走夹具。
 
 ## 失败模式
 
