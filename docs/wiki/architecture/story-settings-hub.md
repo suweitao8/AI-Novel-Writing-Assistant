@@ -26,7 +26,7 @@
 - `ensureSettings` 幂等：只补缺失类别（角色 0/场景 0/道具 0/无世界摘要任一触发），单次 bundle 生成后只写缺失的桶。
 - `regenerate` 按类别重建：场景/道具整体替换，世界观整体覆盖；**角色只补充缺失，不删除已有角色**（保护关系、心理快照、状态等下游数据）。
 - `NovelScene.mapNodeId` 指向 `NovelSettingsWorld.mapJson` 中的节点 id；bundle 的 `postValidate` 保证场景→地点、道具→持有者、连线→节点的引用完整性。
-- **外观状态（statesJson）**：Character/NovelScene/NovelProp 各有 `statesJson`（`StoryAssetState[]`：id/label/description/imagePrompt/voicePrompt?/chapterOrder?），记录资产随剧情的外观变化（初始、换装、受伤、昼夜、破损…）。漫剧「解析」提取时由 AI 对照已有资产的最新状态判断是否重大外观变化（`novel.chapter.reference_extract@v3` 的 stateLabel/stateNote），创建时追加为新状态并**把基础画面字段同步为最新状态**（facePrompt/voiceTexture 或 environmentPrompt/visualPrompt）——下游生图（NovelSourceAdapter visualHint）与配音读基础字段，新状态自动生效，states 保留完整变化史。列表/创建/更新 API 均带 states（替换式数组）。
+- **外观状态（statesJson）**：Character/NovelScene/NovelProp 各有 `statesJson`（`StoryAssetState[]`：id/label/description/imagePrompt/voicePrompt?/chapterOrder?），记录资产随剧情的外观变化（初始、换装、受伤、昼夜、破损…）。states 只在资产首次创建时随画面/音色提示词记为「初始」状态；后续外观状态由用户手动管理（2026-08-20 用户明确：提取环节不生成新状态，只保证资产不重复）。下游生图（NovelSourceAdapter visualHint）与配音读基础字段。列表/创建/更新 API 均带 states（替换式数组）。
 - **角色删除**：`DELETE /novels/:id/settings/characters/:characterId`。设定资产可直接删；被写作链路（状态账本/关系/时间线等 FK）引用的角色删除会被数据库拒绝（P2003 → 409 明确报错），不做级联删除。
 
 ### 写作上下文注入（核心）
@@ -44,7 +44,7 @@
 
 ### 前端
 
-- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`（SVG 地图：多数节点有保存坐标时按坐标布局，否则环形布局；语义 token）+ `StorySettingsConfirmCard`（确认卡）。
+- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`；`assetForms.tsx` 是角色/场景/道具的共用表单字段组件——资产页签编辑弹窗与漫剧「提取」应用弹窗（`ExtractApplyDialog`）复用同一套表单，两边编辑体验必须一致（SVG 地图：多数节点有保存坐标时按坐标布局，否则环形布局；语义 token）+ `StorySettingsConfirmCard`（确认卡）。
 - 短篇工作室：正文/设定二级页签 + 正文页顶部确认卡；简易书架页：创作/设定二级页签 + 续写前 ensureSettings。
 - 遵循 novel-ui 规范：ui/tabs、Card、AiButton（AI 生成按钮）、toast、语义 token。
 
