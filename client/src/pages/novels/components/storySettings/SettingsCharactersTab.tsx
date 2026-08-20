@@ -179,17 +179,23 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant="outline" size="sm" onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          添加角色
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button
+          type="button"
+          size="icon"
+          className="h-8 w-8 shrink-0"
+          aria-label="添加角色"
+          title="添加角色"
+          onClick={openCreate}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
         <Input
           value={keyword}
           aria-label="搜索角色"
           placeholder="搜索名称或说明"
           maxLength={40}
-          className="h-8 min-w-0 max-w-xs flex-1"
+          className="h-9 min-w-0 max-w-sm flex-1"
           onChange={(event) => setKeyword(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === "Enter") {
@@ -202,7 +208,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
           type="button"
           size="icon"
           variant="outline"
-          className="h-8 w-8 shrink-0"
+          className="h-9 w-9 shrink-0"
           aria-label="搜索"
           onClick={() => setAppliedKeyword(keyword)}
         >
