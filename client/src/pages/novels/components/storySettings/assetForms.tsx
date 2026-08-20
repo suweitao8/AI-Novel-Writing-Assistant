@@ -8,13 +8,12 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
 // 资产是同一种东西，编辑体验也必须一致。
-// 角色表单只保留关键属性（2026-08-20 用户要求：这是从小说做视频，不是写小说——
-// 基础属性（姓名/定位/性别/年龄段/外貌体型）+ 画面提示词 + 音色提示词就够了，
-// 体型并入外貌、性格/着装/背景不再出现在表单里，随剧情变化的外观走「状态」）。
+// 角色表单只保留做视频要用的属性（2026-08-20 起属性从简：姓名/性别/年龄段/外貌体型
+// + 画面提示词 + 音色提示词；2026-08-21 起身份定位移除——参考小说只处理成脚本，
+// 不判断男主女主，随剧情变化的外观走「状态」）。
 
 export interface CharacterAssetFormState {
   name: string;
-  role: string;
   gender: string;
   ageGroup: string;
   appearance: string;
@@ -24,7 +23,6 @@ export interface CharacterAssetFormState {
 
 export const EMPTY_CHARACTER_FORM: CharacterAssetFormState = {
   name: "",
-  role: "",
   gender: "unknown",
   ageGroup: "",
   appearance: "",
@@ -43,14 +41,6 @@ export function CharacterAssetFormFields(props: {
         <label className="block space-y-1">
           <span className="text-sm font-medium">姓名</span>
           <Input value={value.name} onChange={(event) => onChange({ name: event.target.value })} />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">身份定位</span>
-          <Input
-            value={value.role}
-            placeholder="例如：主角 / 对手 / 师父"
-            onChange={(event) => onChange({ role: event.target.value })}
-          />
         </label>
         <label className="block space-y-1">
           <span className="text-sm font-medium">性别</span>

@@ -46,7 +46,8 @@ export interface StorySettingsProp {
 export interface StorySettingsCharacter {
   id: string;
   name: string;
-  role: string;
+  /** 剧情定位已不在表单/提取里维护（2026-08-21）；仅旧数据与 AI 设定包仍会带值。 */
+  role?: string;
   gender: string | null;
   ageGroup: string | null;
   physique: string | null;
@@ -374,7 +375,7 @@ export async function createStorySettingsCharacter(
   novelId: string,
   payload: {
     name: string;
-    role: string;
+    role?: string;
     gender?: string;
     ageGroup?: string;
     physique?: string;

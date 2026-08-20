@@ -59,7 +59,6 @@ export default function ExtractApplyDialog(props: {
     setCharacterForm({
       ...EMPTY_CHARACTER_FORM,
       name: item.name ?? "",
-      role: character?.role ?? "配角",
       // 提取给结构化性别/年龄段；外貌体型一个字段（旧结果的 physique 并入）；旧结果没有的字段保持未设定。
       gender: character?.gender ?? "unknown",
       ageGroup: character?.ageGroup ?? "",
@@ -80,10 +79,10 @@ export default function ExtractApplyDialog(props: {
       visualPrompt: extractItem.imagePrompt ?? "",
     });
     setWorldviewForm({ name: item.name ?? "", description: extractItem.description ?? "" });
-  }, [props.open, item, character?.role, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
+  }, [props.open, item, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
 
   const formValid = group === "characters"
-    ? characterForm.name.trim() !== "" && characterForm.role.trim() !== ""
+    ? characterForm.name.trim() !== ""
     : group === "worldview"
       ? worldviewForm.name.trim() !== "" && worldviewForm.description.trim() !== ""
       : (group === "scenes" ? sceneForm.name.trim() : propForm.name.trim()) !== "";

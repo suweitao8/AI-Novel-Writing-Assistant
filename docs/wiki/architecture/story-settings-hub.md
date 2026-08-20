@@ -27,7 +27,7 @@
 - `regenerate` 按类别重建：场景/道具整体替换，世界观整体覆盖；**角色只补充缺失，不删除已有角色**（保护关系、心理快照、状态等下游数据）。
 - `NovelScene.mapNodeId` 指向 `NovelSettingsWorld.mapJson` 中的节点 id；bundle 的 `postValidate` 保证场景→地点、道具→持有者、连线→节点的引用完整性。
 - **外观状态（statesJson）**：Character/NovelScene/NovelProp 各有 `statesJson`（`StoryAssetState[]`：id/label/description/imagePrompt/voicePrompt?/chapterOrder?/referenceStateId?），记录资产随剧情的外观变化（初始、换装、受伤、昼夜、破损…）。states 只在资产首次创建时随画面/音色提示词记为「初始」状态；后续外观状态由用户在编辑弹窗的 `AssetStatesEditor`（assetForms.tsx，三类资产共用）手动增删改——每个状态可配置 **生图参考 referenceStateId**：参考同一资产的另一个状态的图（典型：新状态参考上一状态，长相不变只换装/加伤），或不参考直接生成全新形象（2026-08-20 用户要求的灵活配置；图片生成侧尚未消费，先落数据契约）。删除状态时参考它的状态自动回落为不参考。角色状态可单独设置音色。下游生图（NovelSourceAdapter visualHint）与配音读基础字段。列表/创建/更新 API 均带 states（替换式数组）。
-- **角色表单从简（2026-08-20 用户决定：从小说做视频，不是写小说）**：表单只留 姓名/定位/性别/年龄段/外貌体型（合并字段）+ 画面提示词 + 音色提示词；性格/着装/背景不再出现在表单（DB 字段保留，编辑保存时把 physique/attireStyle/personality/background 清空，避免旧值在下次编辑时重复拼进外貌）。提取（reference_parse@v2）同步只产出精简字段。
+- **角色表单从简（2026-08-20 用户决定：从小说做视频，不是写小说）**：表单只留 姓名/性别/年龄段/外貌体型（合并字段）+ 画面提示词 + 音色提示词；性格/着装/背景不再出现在表单（DB 字段保留，编辑保存时把 physique/attireStyle/personality/background 清空，避免旧值在下次编辑时重复拼进外貌）。提取（reference_parse）同步只产出精简字段。**身份定位（role）2026-08-21 起整体移出角色面**：参考小说只处理成脚本，定位男主女主没有消费方——提取不再输出（reference_parse@v5，strict 拒绝）、表单/卡片徽标/快捷新建不再出现、创建入参改可选（缺省存空串）；DB 列保留，AI 生成设定包（storySettingsBundle）仍会填 role，服务端把角色拼进提示词上下文时按「名字（定位）」空值容错（formatCharacterSummary）。
 - **角色删除**：`DELETE /novels/:id/settings/characters/:characterId`。设定资产可直接删；被写作链路（状态账本/关系/时间线等 FK）引用的角色删除会被数据库拒绝（P2003 → 409 明确报错），不做级联删除。
 
 ### 写作上下文注入（核心）
