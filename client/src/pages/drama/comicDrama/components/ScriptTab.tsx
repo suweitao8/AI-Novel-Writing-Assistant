@@ -51,12 +51,10 @@ export default function ScriptTab(props: ScriptTabProps) {
   const autosaveRef = useRef({ dirty, pending: savePending, flush: workspace.flushExpectationSave });
   autosaveRef.current = { dirty, pending: savePending, flush: workspace.flushExpectationSave };
 
-  // 切走页签时把还没到自动保存间隔的修改立即落库，避免丢稿。
+  // 切走页签时把还没到自动保存间隔的修改立即落库，避免丢稿
+  // （排队/去重逻辑在 workspace.flushExpectationSave 内部处理）。
   useEffect(() => () => {
-    const { dirty: wasDirty, pending, flush } = autosaveRef.current;
-    if (wasDirty && !pending) {
-      flush();
-    }
+    autosaveRef.current.flush();
   }, []);
 
   useEffect(() => {
@@ -134,16 +132,31 @@ export default function ScriptTab(props: ScriptTabProps) {
       }
     }
     const text = workspace.expectationText;
-    const mentioned = (name: string) => name.trim().length >= 2
-      && new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(name.trim())}(?![\\p{L}\\p{N}])`, "u").test(text);
+    // 每类资产一个交替正则一次全文扫描（长名优先 + 断词边界），等价于逐名 test 但只扫三遍。
+    const mentionedIn = (names: string[]) => {
+      const unique = [...new Set(names.map((name) => name.trim()).filter((name) => name.length >= 2))]
+        .sort((left, right) => right.length - left.length);
+      if (unique.length === 0) {
+        return new Set<string>();
+      }
+      const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu");
+      const found = new Set<string>();
+      for (const match of text.matchAll(pattern)) {
+        found.add(match[0]);
+      }
+      return found;
+    };
+    const mentionedCharacters = mentionedIn(characters.map((character) => character.name));
+    const mentionedScenes = mentionedIn(scenes.map((scene) => scene.name));
+    const mentionedProps = mentionedIn(propList.map((prop) => prop.name));
     for (const character of characters) {
-      if (mentioned(character.name)) usedKeys.add(`character:${character.name.trim()}`);
+      if (mentionedCharacters.has(character.name.trim())) usedKeys.add(`character:${character.name.trim()}`);
     }
     for (const scene of scenes) {
-      if (mentioned(scene.name)) usedKeys.add(`scene:${scene.name.trim()}`);
+      if (mentionedScenes.has(scene.name.trim())) usedKeys.add(`scene:${scene.name.trim()}`);
     }
     for (const prop of propList) {
-      if (mentioned(prop.name)) usedKeys.add(`prop:${prop.name.trim()}`);
+      if (mentionedProps.has(prop.name.trim())) usedKeys.add(`prop:${prop.name.trim()}`);
     }
     return {
       knownCharacters,
@@ -219,11 +232,11 @@ export default function ScriptTab(props: ScriptTabProps) {
     );
   }
 
-  const entityNames = {
+  const entityNames = useMemo(() => ({
     characters: characters.map((character) => character.name),
     scenes: scenes.map((scene) => scene.name),
     props: propList.map((prop) => prop.name),
-  };
+  }), [characters, scenes, propList]);
 
   return (
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -431,21 +444,24 @@ function EditableValue(props: {
 
 // 正文里的角色/场景/道具名高亮：列表视图里沿用「名字即锚点」的约定。
 function EntityHighlightedText(props: { text: string; entityNames: { characters: string[]; scenes: string[]; props: string[] } }) {
-  const groups: Array<{ names: string[]; className: string }> = [
-    { names: props.entityNames.characters, className: "rounded bg-primary/20 px-0.5" },
-    { names: props.entityNames.scenes, className: "rounded bg-emerald-500/20 px-0.5" },
-    { names: props.entityNames.props, className: "rounded bg-amber-500/20 px-0.5" },
-  ];
-  const matchers = groups
-    .map((group) => {
-      const unique = [...new Set(group.names.map((name) => name.trim()).filter((name) => name.length >= 2))];
-      if (unique.length === 0) {
-        return null;
-      }
-      unique.sort((left, right) => right.length - left.length);
-      return { pattern: new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu"), className: group.className };
-    })
-    .filter((matcher): matcher is { pattern: RegExp; className: string } => matcher !== null);
+  // 匹配器按三类名单构建一次（名单来自设定资产，引用稳定），不在每次渲染重编译正则。
+  const matchers = useMemo(() => {
+    const groups: Array<{ names: string[]; className: string }> = [
+      { names: props.entityNames.characters, className: "rounded bg-primary/20 px-0.5" },
+      { names: props.entityNames.scenes, className: "rounded bg-emerald-500/20 px-0.5" },
+      { names: props.entityNames.props, className: "rounded bg-amber-500/20 px-0.5" },
+    ];
+    return groups
+      .map((group) => {
+        const unique = [...new Set(group.names.map((name) => name.trim()).filter((name) => name.length >= 2))];
+        if (unique.length === 0) {
+          return null;
+        }
+        unique.sort((left, right) => right.length - left.length);
+        return { pattern: new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu"), className: group.className };
+      })
+      .filter((matcher): matcher is { pattern: RegExp; className: string } => matcher !== null);
+  }, [props.entityNames.characters, props.entityNames.scenes, props.entityNames.props]);
   if (matchers.length === 0) {
     return <>{props.text}</>;
   }

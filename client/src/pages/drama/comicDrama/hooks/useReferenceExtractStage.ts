@@ -19,6 +19,7 @@ import type {
   StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import type {
   CharacterAssetFormState,
   SceneAssetFormState,
@@ -212,13 +213,7 @@ export function useReferenceExtractStage(input: {
       return { group };
     },
     onSuccess: async ({ group }) => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(input.novelId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsCharacters(input.novelId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(input.novelId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsProps(input.novelId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsWorld(input.novelId) }),
-      ]);
+      await invalidateStorySettingsCaches(queryClient, input.novelId);
       toast.success(`${GROUP_LABELS[group] ?? "资产"}已应用。`);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "应用失败，请重试。"),

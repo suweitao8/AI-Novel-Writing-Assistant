@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clapperboard,
@@ -43,6 +43,10 @@ function parseKeyframe(raw: string | null | undefined): KeyframeState {
   }
 }
 
+// 轮询宽限窗：任务派发后服务端可能稍晚才把状态翻成 generating（异步任务），
+// 只看当前状态会漏掉「首次轮询前已完成」的窗口，导致结果永远不刷新。
+const POLL_GRACE_MS = 30_000;
+
 // 一行 = 一个分镜 + 它的配音：分镜与配音强相关，合并成一个列表逐镜对照。
 // 深度操作（圈选批量、宫格预览、视频提示词、导出）仍在独立分镜工作台。
 export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceListPanelProps) {
@@ -52,6 +56,8 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
   const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
+  const lastTaskActivityAtRef = useRef(0);
+  const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;
 
   const projectQuery = useQuery({
     queryKey: queryKeys.drama.project(projectId),
@@ -60,6 +66,9 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
       const project = query.state.data?.data;
       if (!project) {
         return false;
+      }
+      if (inTaskGraceWindow()) {
+        return 3000;
       }
       const hasTtsJob = (project.batchJobs ?? []).some((job) => job.type === "tts" && (job.status === "pending" || job.status === "running"));
       const hasKeyframeWork = (project.episodes ?? []).some((episode) =>
@@ -71,7 +80,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     },
   });
   const providersQuery = useQuery({
-    queryKey: ["drama", "tts-providers"],
+    queryKey: queryKeys.drama.ttsProviders,
     queryFn: () => listDramaTTSProviders(),
   });
 
@@ -93,11 +102,12 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     queryKey: queryKeys.comicDrama.audioSegments(projectId, activeOrder ?? 0),
     queryFn: () => listDramaAudioSegments(projectId, activeOrder as number),
     enabled: activeOrder !== null,
-    refetchInterval: () => (jobRunning ? 2500 : false),
+    refetchInterval: () => (jobRunning || inTaskGraceWindow() ? 3000 : false),
   });
   const segments = segmentsQuery.data ?? [];
 
   // 配音段按镜头归组：一行分镜挂它自己的段（对白行 + 旁白行）。
+  // 无段的镜共用同一个空数组常量，避免每次渲染产生新引用击穿行组件 memo。
   const segmentsByShotId = useMemo(() => {
     const map = new Map<string, DramaAudioSegment[]>();
     for (const segment of segments) {
@@ -160,6 +170,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     mutationFn: (shotId: string) => generateDramaShotKeyframe(projectId, shotId),
     onMutate: (shotId) => setKeyframeShotId(shotId),
     onSuccess: () => {
+      lastTaskActivityAtRef.current = Date.now();
       toast.success("首帧任务已开始。");
       invalidateAll();
     },
@@ -171,6 +182,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     mutationFn: (force: boolean) =>
       createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "tts", provider, force }),
     onSuccess: () => {
+      lastTaskActivityAtRef.current = Date.now();
       toast.success("配音任务已开始", { description: "完成后每一行的配音会变成可播放状态。" });
       invalidateAll();
     },
@@ -179,10 +191,8 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
 
   const regenerateMutation = useMutation({
     mutationFn: (shot: DramaShot) => {
-      const shotSegments = segmentsByShotId.get(shot.id) ?? [];
-      // 未变化的行自动复用已有音频，只重配这一镜里变化或缺失的行
-      const anyReady = shotSegments.some((segment) => segment.status === "ready");
-      return regenerateDramaShotAudio(projectId, shot.id, { provider, force: anyReady });
+      // 服务端按文本/音色指纹复用未变化的行，这里不强制整镜重配（force 只留给「全部重新配音」）。
+      return regenerateDramaShotAudio(projectId, shot.id, { provider, force: false });
     },
     onMutate: (shot) => setRegeneratingShotId(shot.id),
     onSuccess: () => {
@@ -194,6 +204,16 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   });
 
   const busy = storyboardMutation.isPending || keyframeBatchMutation.isPending || ttsBatchMutation.isPending;
+
+  const { mutate: mutateKeyframeOne } = keyframeOneMutation;
+  const { mutate: mutateRegenerate } = regenerateMutation;
+  // 稳定回调供行组件 memo：只传 shotId/shot，不在 map 里逐行新建闭包。
+  const handleGenerateKeyframe = useCallback((shotId: string) => {
+    mutateKeyframeOne(shotId);
+  }, [mutateKeyframeOne]);
+  const handleRegenerate = useCallback((shot: DramaShot) => {
+    mutateRegenerate(shot);
+  }, [mutateRegenerate]);
 
   return (
     <div className="space-y-3">
@@ -325,11 +345,11 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
             <ShotVoiceRow
               key={shot.id}
               shot={shot}
-              segments={segmentsByShotId.get(shot.id) ?? []}
+              segments={segmentsByShotId.get(shot.id) ?? EMPTY_SEGMENTS}
               keyframeBusy={keyframeShotId === shot.id || parseKeyframe(shot.keyframeData).status === "generating"}
               regenerating={regeneratingShotId === shot.id}
-              onGenerateKeyframe={() => keyframeOneMutation.mutate(shot.id)}
-              onRegenerate={() => regenerateMutation.mutate(shot)}
+              onGenerateKeyframe={handleGenerateKeyframe}
+              onRegenerate={handleRegenerate}
             />
           ))}
         </div>
@@ -338,13 +358,15 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   );
 }
 
-function ShotVoiceRow(props: {
+const EMPTY_SEGMENTS: DramaAudioSegment[] = [];
+
+const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   shot: DramaShot;
   segments: DramaAudioSegment[];
   keyframeBusy: boolean;
   regenerating: boolean;
-  onGenerateKeyframe: () => void;
-  onRegenerate: () => void;
+  onGenerateKeyframe: (shotId: string) => void;
+  onRegenerate: (shot: DramaShot) => void;
 }) {
   const { shot, segments } = props;
   const keyframe = parseKeyframe(shot.keyframeData);
@@ -372,7 +394,7 @@ function ShotVoiceRow(props: {
         ) : (
           <button
             type="button"
-            onClick={props.onGenerateKeyframe}
+            onClick={() => props.onGenerateKeyframe(shot.id)}
             title="生成这一镜的首帧图"
             className="flex h-28 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground sm:h-32"
           >
@@ -401,7 +423,7 @@ function ShotVoiceRow(props: {
               size="sm"
               className="ml-auto h-7 px-2 text-xs"
               disabled={props.regenerating}
-              onClick={props.onRegenerate}
+              onClick={() => props.onRegenerate(shot)}
               title="未变化的行会自动复用已有音频"
             >
               {props.regenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />}
@@ -444,4 +466,4 @@ function ShotVoiceRow(props: {
       </div>
     </div>
   );
-}
+});

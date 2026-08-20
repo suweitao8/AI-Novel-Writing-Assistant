@@ -79,7 +79,10 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
     applyMap(world.map ?? createEmptyMap(1000));
   }, [hydrated, world]);
 
-  const dirty = hydrated && JSON.stringify(rootMap) !== savedSnapshot;
+  const dirty = useMemo(
+    () => hydrated && JSON.stringify(rootMap) !== savedSnapshot,
+    [hydrated, rootMap, savedSnapshot],
+  );
   const selectedNode = currentMap.nodes.find((node) => node.id === selectedNodeId) ?? null;
   const selectedTerrain = currentMap.terrain.find((item) => item.id === selectedTerrainId) ?? null;
 
@@ -153,7 +156,11 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
   useEffect(() => {
     if (!dirty || saveMutation.isPending) return;
     const timer = setTimeout(() => {
-      saveMutation.mutate(sanitizeMap(rootMap));
+      // 状态先收敛到提交形态（sanitize 会补默认名/裁空白），再提交同一份数据：
+      // 否则基线记的是 sanitize 后的 JSON、状态还是原始值，dirty 永远为 true，自动保存会无限重发。
+      const sanitized = sanitizeMap(rootMap);
+      setRootMap(sanitized);
+      saveMutation.mutate(sanitized);
     }, AUTOSAVE_DELAY_MS);
     return () => clearTimeout(timer);
     // sanitizeMap 是组件内稳定纯函数；saveMutation.isPending 已在依赖里。

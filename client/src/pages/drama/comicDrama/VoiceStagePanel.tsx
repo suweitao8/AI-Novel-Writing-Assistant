@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AudioLines,
@@ -61,8 +61,10 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
     mutationFn: () => designDramaNarratorVoice(projectId, description),
     onSuccess: () => {
       toast.success("旁白音色试听已生成");
+      // 丢弃本地草稿跟随服务端：设计成功后服务端描述已是权威值，旧草稿再保存会覆盖它。
+      setDraft(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.narratorVoice(projectId) });
-      void queryClient.invalidateQueries({ queryKey: ["comic-drama", "audio-segments", projectId] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.audioSegmentsAll(projectId) });
     },
     onError: (error: Error) => {
       toast.error("生成旁白音色失败", { description: error.message });
@@ -137,6 +139,15 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
   const queryClient = useQueryClient();
   const profile = parseVoiceProfile(character.voiceProfile);
   const [prompt, setPrompt] = useState(profile.voicePrompt ?? "");
+  // 本地未改动时跟随服务端音色描述：音色设计完成后轮询会带回新值，不同步会一直显示旧文案。
+  const lastServerPromptRef = useRef(profile.voicePrompt ?? "");
+  useEffect(() => {
+    const serverPrompt = profile.voicePrompt ?? "";
+    if (prompt === lastServerPromptRef.current) {
+      setPrompt(serverPrompt);
+    }
+    lastServerPromptRef.current = serverPrompt;
+  }, [profile.voicePrompt, prompt]);
 
   const designMutation = useMutation({
     mutationFn: () => designDramaCharacterVoice(projectId, character.id, prompt),
