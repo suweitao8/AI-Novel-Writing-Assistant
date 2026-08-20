@@ -18,8 +18,9 @@ export function isSimpleCreationWriteAllowed(method: string, path: string): bool
 }
 
 // 漫剧工作室的单章工作台端点。漫剧项目的小说固定以简易模式创建
-// （ComicDramaCreateDialog），工作室的「本章大纲自动保存 / 解析与保存细纲 / 手动建章」
-// 就是这本小说的正式编辑入口，地位等价于空白小说的 /outline 工作台。
+// （ComicDramaCreateDialog），工作室的「本章初稿自动保存 / 解析与保存细纲 / 参考解析 /
+// 手动建章」就是这本小说的正式编辑入口，地位等价于空白小说的 /outline 工作台。
+// 放行条件见 isDramaNativeNovel：按小说自身 productionKind 判定（含未生成分镜的新项目）。
 // 只放行非破坏性写入：章节删除、正文生成等其余章节端点仍然只读。
 // 注意：本守卫挂在 router.use("/:id")，执行期间 req.path 已剥掉 /:id 前缀，
 // 这里匹配的是 /chapters/... 形状，不带 novelId 段。
@@ -35,14 +36,11 @@ export function isDramaStudioChapterWorkspaceWrite(method: string, path: string)
   return putChapter || postChapter || detailOutline || referenceDraftPreview;
 }
 
-async function isNovelLinkedToDramaProject(novelId: string): Promise<boolean> {
-  // DramaProject.sourceRef 是软引用（source=novel_import 时存 novelId），
-  // 与工作室 overview 的反查约定保持一致。
-  const project = await prisma.dramaProject.findFirst({
-    where: { source: "novel_import", sourceRef: novelId },
-    select: { id: true },
-  });
-  return project !== null;
+async function isDramaNativeNovel(novel: { productionKind?: string | null }): Promise<boolean> {
+  // 漫剧小说从创建起就是 productionKind=comic_drama（ComicDramaCreateDialog）。
+  // 不能用 DramaProject 关联做判定：DramaProject 要到「从成稿生成分镜」才创建，
+  // 新建的漫剧项目没有关联行，按关联判定会把分镜生成前的章节工作台全部拦死。
+  return novel.productionKind === "comic_drama";
 }
 
 export async function guardSimpleCreationUserWrites(
@@ -62,12 +60,12 @@ export async function guardSimpleCreationUserWrites(
     }
     const novel = await prisma.novel.findUnique({
       where: { id: novelId },
-      select: { creationExperience: true },
+      select: { creationExperience: true, productionKind: true },
     });
     if (novel?.creationExperience === "simple") {
       if (
         isDramaStudioChapterWorkspaceWrite(req.method, req.path)
-        && await isNovelLinkedToDramaProject(novelId)
+        && await isDramaNativeNovel(novel)
       ) {
         next();
         return;

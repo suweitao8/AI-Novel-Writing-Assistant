@@ -202,13 +202,12 @@ test("drama studio chapter workspace writes only cover outline-level endpoints",
   assert.equal(isDramaStudioChapterWorkspaceWrite("PUT", "/chapters/chapter-1/execution-contract"), false);
 });
 
-test("simple creation guard allows chapter workspace only for drama-linked novels", async () => {
+test("simple creation guard allows chapter workspace only for comic-drama novels", async () => {
   const originals = {
     novelFindUnique: prisma.novel.findUnique,
-    dramaFindFirst: prisma.dramaProject.findFirst,
   };
   const requests = {};
-  prisma.novel.findUnique = async () => ({ creationExperience: "simple" });
+  prisma.novel.findUnique = async () => ({ creationExperience: "simple", productionKind: "comic_drama" });
 
   // 守卫挂在 router.use("/:id")：params.id 是小说 id，path 已剥掉 /:id 前缀。
   function fakeRequest(method, path) {
@@ -221,30 +220,30 @@ test("simple creation guard allows chapter workspace only for drama-linked novel
   }
 
   try {
-    // 关联漫剧项目的简易小说：单章工作台写入放行。
-    prisma.dramaProject.findFirst = async () => ({ id: "drama-1" });
-    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("linkedPutChapter"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters"), {}, captureNext("linkedPostChapter"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/detail-outline/preview"), {}, captureNext("linkedPreview"));
-    assert.equal(requests.linkedPutChapter, null);
-    assert.equal(requests.linkedPostChapter, null);
-    assert.equal(requests.linkedPreview, null);
+    // 漫剧小说（productionKind=comic_drama，含还没生成分镜的新项目）：单章工作台写入放行。
+    await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("dramaPutChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters"), {}, captureNext("dramaPostChapter"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/detail-outline/preview"), {}, captureNext("dramaPreview"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/reference-draft/preview"), {}, captureNext("dramaReference"));
+    assert.equal(requests.dramaPutChapter, null);
+    assert.equal(requests.dramaPostChapter, null);
+    assert.equal(requests.dramaPreview, null);
+    assert.equal(requests.dramaReference, null);
 
-    // 关联漫剧项目也不能绕过破坏性写入与正文生成。
-    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/chapters/chapter-1"), {}, captureNext("linkedDelete"));
-    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/generate"), {}, captureNext("linkedGenerate"));
-    assert.ok(requests.linkedDelete instanceof Error);
-    assert.equal(requests.linkedDelete.statusCode, 409);
-    assert.ok(requests.linkedGenerate instanceof Error);
-    assert.equal(requests.linkedGenerate.statusCode, 409);
+    // 漫剧小说也不能绕过破坏性写入与正文生成。
+    await guardSimpleCreationUserWrites(fakeRequest("DELETE", "/chapters/chapter-1"), {}, captureNext("dramaDelete"));
+    await guardSimpleCreationUserWrites(fakeRequest("POST", "/chapters/chapter-1/generate"), {}, captureNext("dramaGenerate"));
+    assert.ok(requests.dramaDelete instanceof Error);
+    assert.equal(requests.dramaDelete.statusCode, 409);
+    assert.ok(requests.dramaGenerate instanceof Error);
+    assert.equal(requests.dramaGenerate.statusCode, 409);
 
-    // 未关联漫剧项目的普通简易小说：单章工作台同样只读。
-    prisma.dramaProject.findFirst = async () => null;
+    // 普通简易小说（productionKind=novel）：单章工作台同样只读。
+    prisma.novel.findUnique = async () => ({ creationExperience: "simple", productionKind: "novel" });
     await guardSimpleCreationUserWrites(fakeRequest("PUT", "/chapters/chapter-1"), {}, captureNext("plainPutChapter"));
     assert.ok(requests.plainPutChapter instanceof Error);
     assert.equal(requests.plainPutChapter.statusCode, 409);
   } finally {
     prisma.novel.findUnique = originals.novelFindUnique;
-    prisma.dramaProject.findFirst = originals.dramaFindFirst;
   }
 });
