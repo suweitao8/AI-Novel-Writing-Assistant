@@ -210,7 +210,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/drama.prompts").dramaRepairPrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.storyboard@v3",
+    key: "drama.storyboard@v4",
     load: () => require("../prompts/drama/drama.prompts").dramaStoryboardPrompt as UnknownPromptAsset,
   },
   {

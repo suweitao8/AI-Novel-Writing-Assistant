@@ -195,6 +195,8 @@ export interface DramaShot {
   action: string;
   dialogue?: string | null;
   characterRefs?: string | null;
+  /** 每镜角色状态 JSON（[{name,state}]）：这一镜各角色所处的外观状态 */
+  characterStates?: string | null;
   visualPrompt?: string | null;
   keyframeData?: string | null;
   dialogueAudioData?: string | null;

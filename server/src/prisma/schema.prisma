@@ -3847,6 +3847,7 @@ model DramaShot {
   action        String
   dialogue      String?
   characterRefs String?
+  characterStates String?
   visualPrompt  String?
   keyframeData  String?
   dialogueAudioData String?

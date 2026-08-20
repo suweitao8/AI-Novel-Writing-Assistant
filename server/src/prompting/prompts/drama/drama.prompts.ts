@@ -568,23 +568,52 @@ export const dramaStoryboardOutputSchema = z.object({
     action: z.string().trim().min(1),
     dialogue: z.string().trim().optional(),
     characterRefs: z.array(z.string().trim()).optional(),
+    /** 这一镜里角色的外观状态（v4）：只标「角色视觉锚点」里登记过状态名单的角色 */
+    characterStates: z.array(z.object({
+      name: z.string().trim().min(1).max(60),
+      state: z.string().trim().min(1).max(24),
+    })).max(8).optional(),
     visualPrompt: z.string().trim().optional(),
   })).min(1).max(40),
 });
 
 export type DramaStoryboardOutput = z.infer<typeof dramaStoryboardOutputSchema>;
 
+/** postValidate：characterStates 只能标画面里可见的角色，且只保留有内容的条目。 */
+function validateDramaStoryboard(output: DramaStoryboardOutput): DramaStoryboardOutput {
+  for (const shot of output.shots) {
+    if (!shot.characterStates?.length) {
+      continue;
+    }
+    const refs = new Set((shot.characterRefs ?? []).map((name) => name.trim()));
+    shot.characterStates = shot.characterStates.filter((entry) => {
+      if (!entry.name.trim() || !entry.state.trim()) {
+        return false;
+      }
+      if (refs.size > 0 && !refs.has(entry.name.trim())) {
+        throw new Error(`镜头 ${shot.order} 的状态角色「${entry.name}」不在 characterRefs 里。`);
+      }
+      return true;
+    });
+    if (shot.characterStates.length === 0) {
+      shot.characterStates = undefined;
+    }
+  }
+  return output;
+}
+
 export const dramaStoryboardPrompt: PromptAsset<{
   content: string;
   charactersDigest: string;
 }, DramaStoryboardOutput> = {
   id: "drama.storyboard",
-  version: "v3",
+  version: "v4",
   taskType: "outline_planning",
   mode: "structured",
   language: "zh",
   contextPolicy: { maxTokensBudget: 8000 },
   outputSchema: dramaStoryboardOutputSchema,
+  postValidate: validateDramaStoryboard,
   render: (input) => [
     new SystemMessage([
       "你是竖屏短剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
@@ -592,6 +621,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
       "action 写这一镜的画面：出现的角色一律用「角色视觉锚点」里的角色全名，台本里用「妹妹」「大哥」「老板」等称谓的，换成对应角色的全名再写——后续按名字给镜头挂角色参考图，称谓对不上角色就画不出对应形象。",
       "action 里要写清每个角色的位置与姿态（站/坐/躺/蹲、面向哪边、在画面中的方位）；同一地点内相邻镜头的位置要连贯，角色起身/坐下/躺下/走动等位置变化必须写明，不要让人物在镜头之间无故换位。",
       "characterRefs 列出这一镜画面里出现的角色全名（与「角色视觉锚点」名单逐字一致），画面里可见的角色都要列、不漏也不多——它是程序挂角色参考图的依据。",
+      "「角色视觉锚点」里带「状态」名单的角色，外观随剧情变化（换装、受伤、变身、昼夜等）：变化发生后的镜头用 characterStates 标出该角色此镜所处的状态（name=角色全名，state=状态名，只能从该角色的状态名单里选）；切换后的镜头持续沿用新状态直到再次变化，action 里同步写清新外观。没登记状态名单的角色不要标，没有变化就一直不标。",
       "dialogue 逐行写这一镜的台词，对白行用「角色名（语气）：台词」（台本用称谓的同样换成本名）：语气按台本上下文写这一句说话的情绪与口吻（如 冷声质问、压抑怒气、惊喜、沙哑低语、自嘲笑意），2～10 字——它会直接作为配音的情绪提示，只写听得出的语气，不写纯视觉描写；旁白行写「旁白：内容」。",
       "只输出符合 schema 的 JSON。",
     ].join("\n")),

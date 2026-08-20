@@ -52,6 +52,21 @@ function parseCharacterRefs(raw: string | null | undefined): string[] {
   return refs.filter((item) => typeof item === "string" && item.trim()).slice(0, 6);
 }
 
+// 每镜角色状态标注（[{name,state}]）：角色在这一镜所处的外观状态
+function parseShotStates(raw: string | null | undefined): Map<string, string> {
+  const entries = safeJson<Array<{ name?: unknown; state?: unknown }>>(raw, []);
+  const map = new Map<string, string>();
+  if (!Array.isArray(entries)) {
+    return map;
+  }
+  for (const entry of entries) {
+    if (typeof entry?.name === "string" && typeof entry?.state === "string" && entry.state.trim()) {
+      map.set(entry.name.trim(), entry.state.trim());
+    }
+  }
+  return map;
+}
+
 function formatLocalTime(value: string | undefined): string {
   if (!value) {
     return "";
@@ -208,9 +223,23 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                 <div className="flex flex-1 flex-col gap-2 p-3">
                   {characters.length > 0 ? (
                     <div className="flex flex-wrap gap-1">
-                      {characters.map((name) => (
-                        <Badge key={name} variant="secondary" className="text-[11px]">{name}</Badge>
-                      ))}
+                      {(() => {
+                        const stateByName = parseShotStates(shot.characterStates);
+                        return characters.map((name) => {
+                          const state = stateByName.get(name.trim());
+                          return state ? (
+                            <Badge
+                              key={name}
+                              className="bg-amber-500/15 text-[11px] text-amber-700 hover:bg-amber-500/25 dark:text-amber-400"
+                              title={`${name} 当前处于「${state}」状态`}
+                            >
+                              {name}·{state}
+                            </Badge>
+                          ) : (
+                            <Badge key={name} variant="secondary" className="text-[11px]">{name}</Badge>
+                          );
+                        });
+                      })()}
                     </div>
                   ) : null}
                   <p className="line-clamp-3 text-sm leading-5 text-foreground/90">{shot.action}</p>
