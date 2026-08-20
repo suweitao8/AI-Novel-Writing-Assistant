@@ -381,6 +381,7 @@ function EditableValue(props: {
   placeholder?: string;
   className?: string;
   inputClassName?: string;
+  title?: string;
   onCommit: (next: string) => void;
   onCancel: () => void;
   onActivate: () => void;
@@ -421,22 +422,10 @@ function EditableValue(props: {
       type="button"
       className={`min-w-0 cursor-text rounded text-left ${props.className ?? "flex-1"}`}
       onClick={props.onActivate}
-      title="点击编辑"
+      title={props.title ?? "点击编辑"}
     >
       {props.children ?? (props.value || <span className="text-muted-foreground/60">{props.placeholder}</span>)}
     </button>
-  );
-}
-
-// 未对应资产的名字标记：脚本里用到了但设定里还没有——行内橙红提示，右侧面板有同名警告卡。
-function MissingChip(props: { kind: string }) {
-  return (
-    <span
-      className="shrink-0 rounded-full bg-orange-500/15 px-2 py-0.5 text-[11px] text-orange-600 dark:text-orange-400"
-      title={`设定里还没有这个${props.kind}，可在右侧面板创建`}
-    >
-      未生成
-    </span>
   );
 }
 
@@ -505,12 +494,14 @@ function SceneRow(props: RowBaseProps & {
   return (
     <div className="group flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
       <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景</Badge>
-      {!props.matched ? <MissingChip kind="场景" /> : null}
       <EditableValue
         active={active}
         value={props.item.scene}
         placeholder="场景名，如 客厅"
-        className="text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+        className={props.matched
+          ? "text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+          : "text-sm font-semibold text-orange-600 dark:text-orange-400"}
+        title={props.matched ? undefined : "设定里还没有这个场景，可在右侧面板创建"}
         inputClassName="h-8 flex-1"
         onCommit={(next) => {
           const value = next.trim();
@@ -536,12 +527,14 @@ function StateRow(props: RowBaseProps & {
   return (
     <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2">
       <Badge className="shrink-0 bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 dark:text-amber-400">角色状态</Badge>
-      {!props.matched ? <MissingChip kind="角色" /> : null}
       <EditableValue
         active={nameActive}
         value={props.item.name}
         placeholder="角色名"
-        className="w-auto text-sm font-semibold text-amber-700 dark:text-amber-400"
+        className={props.matched
+          ? "w-auto text-sm font-semibold text-amber-700 dark:text-amber-400"
+          : "w-auto text-sm font-semibold text-orange-600 dark:text-orange-400"}
+        title={props.matched ? undefined : "设定里还没有这个角色，可在右侧面板创建"}
         inputClassName="h-8 w-28"
         onCommit={(next) => {
           const value = next.trim();
