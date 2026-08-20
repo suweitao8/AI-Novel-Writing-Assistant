@@ -19,7 +19,8 @@ import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
-import { EMPTY_SCENE_FORM, SceneAssetFormFields, type SceneAssetFormState } from "./assetForms";
+import { AssetStatesEditor, EMPTY_SCENE_FORM, SceneAssetFormFields, type SceneAssetFormState } from "./assetForms";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface SettingsScenesTabProps {
   novelId: string;
@@ -39,6 +40,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<SceneFormState>(EMPTY_SCENE_FORM);
+  const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
 
   const scenesQuery = useQuery({
@@ -63,6 +65,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
         summary: form.summary.trim() || null,
         environmentPrompt: form.environmentPrompt.trim() || null,
         significance: form.significance.trim() || null,
+        states,
       })
       : createStorySettingsScene(novelId, {
         name: form.name.trim(),
@@ -130,6 +133,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_SCENE_FORM);
+    setStates([]);
     setHint("");
   };
 
@@ -144,6 +148,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
       environmentPrompt: scene.environmentPrompt ?? "",
       significance: scene.significance ?? "",
     });
+    setStates(scene.states ?? []);
   };
 
   const closeDialog = () => {
@@ -275,6 +280,9 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
               </div>
             ) : null}
             <SceneAssetFormFields value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} />
+            {editing ? (
+              <AssetStatesEditor states={states} onChange={setStates} kind="scene" />
+            ) : null}
           </div>
         </AppDialogContent>
       </Dialog>

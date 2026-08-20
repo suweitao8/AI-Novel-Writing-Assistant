@@ -20,10 +20,12 @@ import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
 import {
+  AssetStatesEditor,
   CharacterAssetFormFields,
   EMPTY_CHARACTER_FORM,
   type CharacterAssetFormState,
 } from "./assetForms";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface SettingsCharactersTabProps {
   novelId: string;
@@ -51,6 +53,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CharacterFormState>(EMPTY_CHARACTER_FORM);
+  const [states, setStates] = useState<StoryAssetState[]>([]);
   const [hint, setHint] = useState("");
 
   const charactersQuery = useQuery({
@@ -74,16 +77,20 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         role: form.role.trim(),
         gender: form.gender || undefined,
         ageGroup: form.ageGroup || undefined,
-        physique: form.physique.trim() || undefined,
-        attireStyle: form.attireStyle.trim() || undefined,
+        appearance: form.appearance.trim() || undefined,
         facePrompt: form.facePrompt.trim() || undefined,
         voiceTexture: form.voiceTexture.trim() || undefined,
-        personality: form.personality.trim() || undefined,
-        appearance: form.appearance.trim() || undefined,
-        background: form.background.trim() || undefined,
+        states,
       };
       return editing
-        ? updateStorySettingsCharacter(novelId, editing.id, payload)
+        ? updateStorySettingsCharacter(novelId, editing.id, {
+            ...payload,
+            // 旧资料的体型/着装/性格/背景已并入外貌或不再展示，保存时清空避免下次编辑再拼一遍
+            physique: null,
+            attireStyle: null,
+            personality: null,
+            background: null,
+          })
         : createStorySettingsCharacter(novelId, payload);
     },
     onSuccess: async () => {
@@ -109,13 +116,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         role: draft.role,
         gender: draft.gender || "unknown",
         ageGroup: draft.ageGroup || "",
-        physique: draft.physique ?? "",
-        attireStyle: draft.attireStyle ?? "",
+        appearance: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；"),
         facePrompt: draft.facePrompt ?? "",
         voiceTexture: "",
-        personality: draft.personality ?? "",
-        appearance: draft.appearance ?? "",
-        background: draft.background ?? "",
       });
       toast.success("草稿已生成，可以直接修改后保存。");
     },
@@ -150,6 +153,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_CHARACTER_FORM);
+    setStates([]);
     setHint("");
   };
 
@@ -162,14 +166,12 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       role: character.role,
       gender: character.gender ?? "unknown",
       ageGroup: character.ageGroup ?? "",
-      physique: character.physique ?? "",
-      attireStyle: character.attireStyle ?? "",
+      // 旧资料把体型/着装分开放：编辑时并入外貌体型一个字段（保存后旧字段清空）
+      appearance: [character.appearance, character.physique, character.attireStyle].filter(Boolean).join("；"),
       facePrompt: character.facePrompt ?? "",
       voiceTexture: character.voiceTexture ?? "",
-      personality: character.personality ?? "",
-      appearance: character.appearance ?? "",
-      background: character.background ?? "",
     });
+    setStates(character.states ?? []);
   };
 
   const closeDialog = () => {
@@ -247,12 +249,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                     </Button>
                   </div>
                 </div>
-                {character.personality ? (
-                  <p className="text-xs leading-5 text-muted-foreground">{character.personality}</p>
-                ) : null}
                 {character.appearance || character.physique || character.attireStyle ? (
                   <p className="text-xs leading-5 text-muted-foreground">
-                    外貌：{character.appearance || [character.physique, character.attireStyle].filter(Boolean).join("，")}
+                    外貌体型：{[character.appearance, character.physique, character.attireStyle].filter(Boolean).join("，")}
                   </p>
                 ) : null}
                 {character.voiceTexture ? (
@@ -323,6 +322,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
               </div>
             ) : null}
             <CharacterAssetFormFields value={form} onChange={updateField} />
+            {editing ? (
+              <AssetStatesEditor states={states} onChange={setStates} kind="character" />
+            ) : null}
           </div>
         </AppDialogContent>
       </Dialog>

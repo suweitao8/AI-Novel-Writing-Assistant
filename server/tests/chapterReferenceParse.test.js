@@ -31,9 +31,7 @@ function makeCharacter(overrides = {}) {
     role: "男主",
     gender: "male",
     ageGroup: "youth",
-    physique: "高瘦",
-    appearance: "黑色短发，眉眼锐利，常穿深色夹克，左手腕有一道旧疤。",
-    personality: "外冷内热，遇事先扛。",
+    appearance: "高瘦，黑色短发，眉眼锐利，常穿深色夹克，左手腕有一道旧疤。",
     imagePrompt: "青年男性全身像：黑色短发、眉眼锐利、高瘦体型，深色夹克与工装裤，警惕的神态",
     voicePrompt: "偏低的青年男声，语速快，压着情绪说话。",
     ...overrides,
@@ -56,11 +54,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v1 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v1");
+test("prompt 资产为 reference_parse@v2 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v2");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v1",
+    "novel.chapter.reference_parse@v2",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -84,26 +82,27 @@ test("segments 契约：scene 必填、无风格字段（画风不进初稿）�
   assert.deepEqual(withSwitches.segments[0].stateSwitches, [{ name: "林川", state: "重伤" }]);
 });
 
-test("角色结构化字段：性别枚举、年龄段可空、体型短词（预填设定表单）", () => {
+test("角色结构化字段：性别枚举、年龄段可空、外貌体型合并一个字段（预填设定表单）", () => {
   const parsed = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload());
   assert.equal(parsed.characters[0].gender, "male");
   assert.equal(parsed.characters[0].ageGroup, "youth");
-  assert.equal(parsed.characters[0].physique, "高瘦");
+  // v2 起体型并入 appearance，physique/personality 不再是输出字段（strict 拒绝）
+  assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    characters: [makeCharacter({ physique: "高瘦" })],
+  })));
 
   // 缺省回落：看不出性别→unknown、推不出年龄→null、体型→空串（旧提取结构也能并入解析）
   const legacy = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
     characters: [{
       name: "老周",
       role: "配角",
-      appearance: "花白头发，穿洗旧的工装。",
-      personality: "絮叨但可靠。",
+      appearance: "微驼背，花白头发，穿洗旧的工装。",
       imagePrompt: "老年男性全身像：花白短发、微驼背，洗旧工装与布鞋。",
       voicePrompt: "沙哑的老年男声，慢悠悠。",
     }],
   }));
   assert.equal(legacy.characters[0].gender, "unknown");
   assert.equal(legacy.characters[0].ageGroup, null);
-  assert.equal(legacy.characters[0].physique, "");
 
   assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(
     makeParsePayload({ characters: [makeCharacter({ gender: "男的" })] }),

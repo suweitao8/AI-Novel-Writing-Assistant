@@ -26,7 +26,8 @@
 - `ensureSettings` 幂等：只补缺失类别（角色 0/场景 0/道具 0/无世界摘要任一触发），单次 bundle 生成后只写缺失的桶。
 - `regenerate` 按类别重建：场景/道具整体替换，世界观整体覆盖；**角色只补充缺失，不删除已有角色**（保护关系、心理快照、状态等下游数据）。
 - `NovelScene.mapNodeId` 指向 `NovelSettingsWorld.mapJson` 中的节点 id；bundle 的 `postValidate` 保证场景→地点、道具→持有者、连线→节点的引用完整性。
-- **外观状态（statesJson）**：Character/NovelScene/NovelProp 各有 `statesJson`（`StoryAssetState[]`：id/label/description/imagePrompt/voicePrompt?/chapterOrder?），记录资产随剧情的外观变化（初始、换装、受伤、昼夜、破损…）。states 只在资产首次创建时随画面/音色提示词记为「初始」状态；后续外观状态由用户手动管理（2026-08-20 用户明确：提取环节不生成新状态，只保证资产不重复）。下游生图（NovelSourceAdapter visualHint）与配音读基础字段。列表/创建/更新 API 均带 states（替换式数组）。
+- **外观状态（statesJson）**：Character/NovelScene/NovelProp 各有 `statesJson`（`StoryAssetState[]`：id/label/description/imagePrompt/voicePrompt?/chapterOrder?/referenceStateId?），记录资产随剧情的外观变化（初始、换装、受伤、昼夜、破损…）。states 只在资产首次创建时随画面/音色提示词记为「初始」状态；后续外观状态由用户在编辑弹窗的 `AssetStatesEditor`（assetForms.tsx，三类资产共用）手动增删改——每个状态可配置 **生图参考 referenceStateId**：参考同一资产的另一个状态的图（典型：新状态参考上一状态，长相不变只换装/加伤），或不参考直接生成全新形象（2026-08-20 用户要求的灵活配置；图片生成侧尚未消费，先落数据契约）。删除状态时参考它的状态自动回落为不参考。角色状态可单独设置音色。下游生图（NovelSourceAdapter visualHint）与配音读基础字段。列表/创建/更新 API 均带 states（替换式数组）。
+- **角色表单从简（2026-08-20 用户决定：从小说做视频，不是写小说）**：表单只留 姓名/定位/性别/年龄段/外貌体型（合并字段）+ 画面提示词 + 音色提示词；性格/着装/背景不再出现在表单（DB 字段保留，编辑保存时把 physique/attireStyle/personality/background 清空，避免旧值在下次编辑时重复拼进外貌）。提取（reference_parse@v2）同步只产出精简字段。
 - **角色删除**：`DELETE /novels/:id/settings/characters/:characterId`。设定资产可直接删；被写作链路（状态账本/关系/时间线等 FK）引用的角色删除会被数据库拒绝（P2003 → 409 明确报错），不做级联删除。
 
 ### 写作上下文注入（核心）
