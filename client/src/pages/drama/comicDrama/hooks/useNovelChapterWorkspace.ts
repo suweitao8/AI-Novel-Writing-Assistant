@@ -42,7 +42,7 @@ export function useNovelChapterWorkspace(novelId: string) {
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [expectationText, setExpectationText] = useState("");
   const [referenceText, setReferenceTextState] = useState("");
-  const [referenceExtractionJson, setReferenceExtractionJsonState] = useState("");
+  const [extractionOverride, setExtractionOverride] = useState<{ chapterId: string; json: string } | null>(null);
   const [beats, setBeats] = useState<ChapterBeatDraft[] | null>(null);
   const [notes, setNotes] = useState("");
 
@@ -71,6 +71,17 @@ export function useNovelChapterWorkspace(novelId: string) {
     await queryClient.invalidateQueries({ queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId] });
   };
 
+  // 提取建议展示值：以服务端章节行为准，本地只保留「保存请求在途」的乐观覆盖
+  // （同章生效、服务端追上即自然回落）。直接派生而不是重置一次性的本地状态，
+  // 避免重挂载时先拿到旧缓存再刷新，却被「同章只重置一次」的守卫闩死成旧值。
+  const chapterExtractionJson = currentChapter?.referenceExtractionJson ?? "";
+  const referenceExtractionJson =
+    extractionOverride
+      && extractionOverride.chapterId === currentChapter?.id
+      && extractionOverride.json !== chapterExtractionJson
+      ? extractionOverride.json
+      : chapterExtractionJson;
+
   const saveExpectationMutation = useMutation({
     mutationFn: (input: { chapterId: string; text: string; silent?: boolean }) =>
       updateNovelChapter(novelId, input.chapterId, { expectation: input.text }),
@@ -94,22 +105,29 @@ export function useNovelChapterWorkspace(novelId: string) {
   });
 
   // 「解析」提取的设定建议随章节持久化（与初稿一样是成果，不用不丢）。
-  const saveReferenceExtractionMutation = useMutation({
-    mutationFn: (input: { chapterId: string; json: string | null }) =>
-      updateNovelChapter(novelId, input.chapterId, { referenceExtractionJson: input.json }),
-    onSuccess: async () => {
-      await invalidateChapters();
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存提取结果失败。"),
-  });
+  // 保存走直接 PUT 而非 useMutation：组件卸载后 mutation 回调不会执行，
+  // 直接发请求才能保证解析期间离开页面结果也一定落库。
+  const persistReferenceExtraction = (chapterId: string, json: string | null) => {
+    updateNovelChapter(novelId, chapterId, { referenceExtractionJson: json })
+      .then(() => invalidateChapters())
+      .catch((error: unknown) => toast.error(error instanceof Error ? error.message : "保存提取结果失败。"));
+  };
 
-  // 解析产出的提取建议：立即静默落库（不做防抖——解析是一次性动作，结果要稳）。
+  // 只同步本地展示（保存请求由调用方负责时用，避免重复 PUT）。
+  const syncReferenceExtraction = (json: string | null) => {
+    if (!currentChapter) {
+      return;
+    }
+    setExtractionOverride({ chapterId: currentChapter.id, json: json ?? "" });
+  };
+
+  // 应用建议移除一条后回写：本地覆盖 + 立即静默落库（解析是一次性动作，结果要稳）。
   const applyReferenceExtraction = (json: string | null) => {
     if (!currentChapter) {
       return;
     }
-    setReferenceExtractionJsonState(json ?? "");
-    saveReferenceExtractionMutation.mutate({ chapterId: currentChapter.id, json });
+    syncReferenceExtraction(json);
+    persistReferenceExtraction(currentChapter.id, json);
   };
 
   const expectationDirty = Boolean(currentChapter)
@@ -175,7 +193,6 @@ export function useNovelChapterWorkspace(novelId: string) {
     const expectation = currentChapter.expectation ?? "";
     setExpectationText(expectation.trim() ? expectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
     setReferenceTextState(currentChapter.referenceText ?? "");
-    setReferenceExtractionJsonState(currentChapter.referenceExtractionJson ?? "");
     const parsed = parseDetailOutline(currentChapter);
     setBeats(
       parsed
@@ -261,6 +278,8 @@ export function useNovelChapterWorkspace(novelId: string) {
     flushReferenceSave,
     referenceExtractionJson,
     applyReferenceExtraction,
+    syncReferenceExtraction,
+    refreshChapters: invalidateChapters,
     previewMutation,
     saveBeatsMutation,
     beats,
