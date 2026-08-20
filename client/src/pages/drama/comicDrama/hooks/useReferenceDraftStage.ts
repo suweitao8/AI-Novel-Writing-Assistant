@@ -112,7 +112,7 @@ export function useReferenceDraftStage(input: {
   const applyDraft = (draftText: string) => {
     workspace.applyExpectationText(draftText);
     const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ \t]*分镜[：:]/.test(line)).length;
-    toast.success(shotCount > 0 ? `已写入初稿，共 ${shotCount} 个分镜。` : "已写入初稿。");
+    toast.success(shotCount > 0 ? `已写入脚本，共 ${shotCount} 个分镜。` : "已写入脚本。");
     input.onApplied();
   };
 
@@ -153,7 +153,7 @@ export function useReferenceDraftStage(input: {
       const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`;
 
       if (!hasDraft) {
-        toast.error(`AI 没有生成初稿；提取完成：${extractSummary}。`);
+        toast.error(`AI 没有生成脚本；提取完成：${extractSummary}。`);
         return;
       }
       if (hadExpectation) {
