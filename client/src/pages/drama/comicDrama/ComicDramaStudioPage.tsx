@@ -44,6 +44,7 @@ import ShotVoiceListPanel from "@/pages/drama/comicDrama/ShotVoiceListPanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
+import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·美术风格·通用）。
 type StudioStage = "current" | "assets" | "settings";
@@ -119,15 +120,7 @@ export default function ComicDramaStudioPage() {
     enabled: Boolean(novelId),
   });
   const novelDefaultArtStyle = worldSettingsQuery.data?.data?.defaultArtStyle ?? null;
-  const invalidateStorySettings = async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(novelId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsCharacters(novelId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsProps(novelId) }),
-      queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsWorld(novelId) }),
-    ]);
-  };
+  const invalidateStorySettings = () => invalidateStorySettingsCaches(queryClient, novelId);
   const chapterWorkspace = useNovelChapterWorkspace(novelId);
   const referenceStage = useReferenceDraftStage({
     novelId,
@@ -284,6 +277,17 @@ export default function ComicDramaStudioPage() {
                 ) : currentTab === "script" ? (
                   chapterWorkspace.savePending ? (
                     <span className="text-xs text-muted-foreground">自动保存中…</span>
+                  ) : chapterWorkspace.saveError ? (
+                    <span className="inline-flex items-center gap-2 text-xs text-destructive">
+                      保存失败
+                      <button
+                        type="button"
+                        className="underline underline-offset-2"
+                        onClick={chapterWorkspace.flushExpectationSave}
+                      >
+                        重试
+                      </button>
+                    </span>
                   ) : chapterWorkspace.expectationDirty ? (
                     <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
                   ) : null
@@ -463,18 +467,16 @@ function useStoryboardStage(input: {
   novelDefaultStyleId: string | null;
 }) {
   const queryClient = useQueryClient();
-  const [selectedStyle, setSelectedStyle] = useState<string>("");
   const stylesQuery = useQuery({
-    queryKey: ["drama", "visual-styles"],
+    queryKey: queryKeys.drama.visualStyles,
     queryFn: () => getDramaVisualStyles(),
   });
   const styleOptions = stylesQuery.data?.data ?? [];
-  // 生效优先级：手动选择 > 已有分镜项目的风格 > 小说默认风格 > 内置默认（预设列表第一项）。
+  // 生效优先级：已有分镜项目的风格 > 小说默认风格 > 内置默认（预设列表第一项）。
   // 分镜项目的 visualStyle 只认内置预设 id——小说默认是自定义风格名时退到内置默认。
   const novelDefaultIsPreset = Boolean(input.novelDefaultStyleId)
     && styleOptions.some((style) => style.id === input.novelDefaultStyleId);
-  const effectiveStyleId = selectedStyle
-    || input.drama?.visualStyle
+  const effectiveStyleId = input.drama?.visualStyle
     || (novelDefaultIsPreset ? input.novelDefaultStyleId : null)
     || styleOptions[0]?.id
     || "unreal_cinematic_3d";
@@ -532,7 +534,7 @@ function useStoryboardStage(input: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "同步小说内容到分镜失败，请重试。"),
   });
 
-  return { styleOptions, effectiveStyleId, selectedStyle, setSelectedStyle, styleMutation, createMutation, syncMutation };
+  return { styleOptions, effectiveStyleId, styleMutation, createMutation, syncMutation };
 }
 
 // 「设定 · 通用」页签：项目级配置。整本画风在「美术风格」页签设置，这里看分镜项目状态。

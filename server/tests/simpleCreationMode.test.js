@@ -182,6 +182,11 @@ test("simple creation write boundary allows reads, exports, settings and outline
   assert.equal(isSimpleCreationWriteAllowed("PUT", "/book"), false);
   assert.equal(isSimpleCreationWriteAllowed("DELETE", "/book/chapters/chapter-1"), false);
   assert.equal(isSimpleCreationWriteAllowed("POST", "/book/chapters/chapter-1/generate"), false);
+  // 白名单按完整路径段匹配：字样相近但不同的端点不得被子串匹配顺带放行。
+  assert.equal(isSimpleCreationWriteAllowed("POST", "/book/export-summary"), false);
+  assert.equal(isSimpleCreationWriteAllowed("PUT", "/book/settings-archive"), false);
+  assert.equal(isSimpleCreationWriteAllowed("PUT", "/book/myoutline"), false);
+  assert.equal(isSimpleCreationWriteAllowed("POST", "/outline/chapters"), true);
 });
 
 test("comic-drama novels bypass the simple-mode read-only guard entirely", async () => {

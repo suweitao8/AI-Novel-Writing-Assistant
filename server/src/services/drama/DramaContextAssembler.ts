@@ -36,24 +36,54 @@ function formatStateLabels(states: StoryAssetState[]): string {
 
 export class DramaContextAssembler {
   async buildEpisodeContext(projectId: string, episodeOrder: number) {
-    const project = await prisma.dramaProject.findUnique({
-      where: { id: projectId },
-      include: {
-        sourceBundle: true,
-        characters: true,
-        facts: { orderBy: [{ episodeOrder: "asc" }, { createdAt: "asc" }] },
-        episodes: { orderBy: { order: "asc" } },
-      },
-    });
-    if (!project) {
-      throw new Error(`未找到短剧项目：${projectId}`);
-    }
     // 防御：即使调用方传入字符串型 order 也能正确匹配
     const targetOrder = Number(episodeOrder);
-    const episode = project.episodes.find((item) => item.order === targetOrder);
-    if (!episode) {
+    // 分集列表不携带台本正文（content 可能是整集长文本）；只有目标集与前情摘要按需取正文。
+    const [projectBase, episodes, previousContentRows, targetContentRow] = await Promise.all([
+      prisma.dramaProject.findUnique({
+        where: { id: projectId },
+        include: {
+          sourceBundle: true,
+          characters: true,
+          facts: { orderBy: [{ episodeOrder: "asc" }, { createdAt: "asc" }] },
+        },
+      }),
+      prisma.dramaEpisode.findMany({
+        where: { projectId },
+        orderBy: { order: "asc" },
+        omit: { content: true },
+      }),
+      // 只取最近 3 集有正文的前情（旧逻辑 content 非空判定等价于 not null 且非空串）。
+      prisma.dramaEpisode.findMany({
+        where: {
+          projectId,
+          order: { lt: targetOrder },
+          AND: [{ content: { not: null } }, { content: { not: "" } }],
+        },
+        orderBy: { order: "desc" },
+        take: 3,
+        select: { order: true, title: true, content: true },
+      }),
+      prisma.dramaEpisode.findFirst({
+        where: { projectId, order: targetOrder },
+        select: { content: true },
+      }),
+    ]);
+    if (!projectBase) {
+      throw new Error(`未找到短剧项目：${projectId}`);
+    }
+    const episodeRow = episodes.find((item) => item.order === targetOrder);
+    if (!episodeRow) {
       throw new Error(`未找到短剧第 ${episodeOrder} 集大纲。`);
     }
+    // 仅目标集回填正文（episode 与 project.episodes 同源同形），其余分集保持无正文形态，避免一次拉全项目台本。
+    const targetContent = targetContentRow?.content ?? null;
+    const episode = { ...episodeRow, content: targetContent };
+    const episodesWithContent = episodes.map((item) => ({
+      ...item,
+      content: item.order === targetOrder ? targetContent : null,
+    }));
+    const project = { ...projectBase, episodes: episodesWithContent };
     const beats = safeJsonParse<BeatLite[]>(project.sourceBundle?.beats, []);
     const sourceMap = safeJsonParse<{ beatRefs?: number[] }>(episode.sourceMap, {});
     const relatedBeats = sourceMap.beatRefs?.length
@@ -109,9 +139,9 @@ export class DramaContextAssembler {
         ].filter(Boolean).join("；");
       }).join("\n") || "暂无角色资源",
       factsDigest: project.facts.map((fact) => `E${fact.episodeOrder} ${fact.category}：${fact.text}`).join("\n") || "暂无事实",
-      previousDigest: project.episodes
-        .filter((item) => item.order < episodeOrder && item.content)
-        .slice(-3)
+      previousDigest: previousContentRows
+        .slice()
+        .reverse()
         .map((item) => `第${item.order}集《${item.title}》：${compactText(item.content, 260)}`)
         .join("\n") || "暂无前序台本",
       sourceDigest: relatedBeats.map((beat) => `${beat.order}：${beat.summary}`).join("\n") || compactText(project.sourceBundle?.synopsis, 1000),

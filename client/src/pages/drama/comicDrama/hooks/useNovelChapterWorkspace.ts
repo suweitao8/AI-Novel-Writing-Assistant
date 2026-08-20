@@ -1,50 +1,40 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chapter } from "@ai-novel/shared/types/novel";
-import type {
-  ChapterDetailOutlineBeat,
-  ChapterDetailOutlineDocument,
-} from "@ai-novel/shared/types/novelChapterDetailOutline";
-import {
-  getNovelChapters,
-  previewChapterDetailOutline,
-  saveChapterDetailOutline,
-  updateNovelChapter,
-} from "@/api/novel/chapters";
+import { getNovelChapters, updateNovelChapter } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 
 export const DRAMA_CHAPTERS_QUERY_KEY = "drama-studio-chapters";
 
 const DEFAULT_LINE_COUNT = 20;
 
-export interface ChapterBeatDraft {
-  summary: string;
-  keyEvent: string | null;
+interface DispatchedText {
+  chapterId: string;
+  text: string;
 }
 
-function parseDetailOutline(chapter: Chapter): { beats: ChapterDetailOutlineBeat[]; notes: string | null } | null {
-  const raw = chapter.detailOutlineJson?.trim();
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as ChapterDetailOutlineDocument;
-    if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.beats)) return null;
-    return { beats: parsed.beats, notes: parsed.notes ?? null };
-  } catch {
-    return null;
-  }
-}
+const sameDispatchedText = (left: DispatchedText | null, chapterId: string, text: string) =>
+  Boolean(left && left.chapterId === chapterId && left.text.trim() === text.trim());
 
 // 漫剧工作室小说阶段的「按章创作」工作区：当前章（顶栏章节管理显示与切换）+
-// 本章初稿（expectation，静默自动保存）+ 本章节拍（AI 解析草稿，确认才落库）。
-// 初稿/正文两个子页签共享这一份状态，切页签不丢稿；切章时先落库上一章再重置。
+// 本章初稿（expectation，静默自动保存）+ 本章参考文本（referenceText，静默自动保存）。
+// 「参考」「脚本」两个子页签共享这一份状态，切页签不丢稿；切章时先落库上一章再重置。
 export function useNovelChapterWorkspace(novelId: string) {
   const queryClient = useQueryClient();
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   const [expectationText, setExpectationText] = useState("");
   const [referenceText, setReferenceTextState] = useState("");
   const [extractionOverride, setExtractionOverride] = useState<{ chapterId: string; json: string } | null>(null);
-  const [beats, setBeats] = useState<ChapterBeatDraft[] | null>(null);
-  const [notes, setNotes] = useState("");
+
+  // 冲保存排队：保存请求在途时又有新编辑（或切章/卸载冲保存），
+  // 在途请求带的是旧文本，直接跳过会丢字——排队快照，请求落定后补存一次。
+  const pendingExpectationFlushRef = useRef<DispatchedText | null>(null);
+  const pendingReferenceFlushRef = useRef<DispatchedText | null>(null);
+  // 最近一次已派发内容：解析结果整章写入后等服务端缓存追上的窗口里，
+  // 避免「dirty 仍为 true」触发第二次内容完全相同的 PUT；保存失败时会清掉，恢复可重试。
+  const lastDispatchedExpectationRef = useRef<DispatchedText | null>(null);
+  const lastDispatchedReferenceRef = useRef<DispatchedText | null>(null);
+  const lastErroredExpectationRef = useRef<DispatchedText | null>(null);
 
   const chaptersQuery = useQuery({
     queryKey: [DRAMA_CHAPTERS_QUERY_KEY, novelId],
@@ -82,6 +72,11 @@ export function useNovelChapterWorkspace(novelId: string) {
       ? extractionOverride.json
       : chapterExtractionJson;
 
+  const dispatchQueuedExpectation = (queued: DispatchedText) => {
+    lastDispatchedExpectationRef.current = queued;
+    saveExpectationMutation.mutate({ chapterId: queued.chapterId, text: queued.text, silent: true });
+  };
+
   const saveExpectationMutation = useMutation({
     mutationFn: (input: { chapterId: string; text: string; silent?: boolean }) =>
       updateNovelChapter(novelId, input.chapterId, { expectation: input.text }),
@@ -91,17 +86,49 @@ export function useNovelChapterWorkspace(novelId: string) {
         toast.success("本章初稿已保存。");
       }
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存初稿失败，请重试。"),
+    onError: (error, input) => {
+      // 保存失败要恢复「未保存」语义（清掉已派发标记，dirty 重新可见、可重试）；
+      // 同一内容反复重试只提示一次，避免失败循环刷屏。
+      lastDispatchedExpectationRef.current = null;
+      const prev = lastErroredExpectationRef.current;
+      const sameFailure = sameDispatchedText(prev, input.chapterId, input.text);
+      lastErroredExpectationRef.current = { chapterId: input.chapterId, text: input.text };
+      if (!sameFailure) {
+        toast.error(error instanceof Error ? error.message : "保存初稿失败，请重试。");
+      }
+    },
+    onSettled: (_data, _error, input) => {
+      const queued = pendingExpectationFlushRef.current;
+      pendingExpectationFlushRef.current = null;
+      if (queued && !sameDispatchedText({ chapterId: input.chapterId, text: input.text }, queued.chapterId, queued.text)) {
+        dispatchQueuedExpectation(queued);
+      }
+    },
   });
 
   // 本章参考文本（漫剧「参考」页签）同样静默自动保存到 Chapter.referenceText。
+  const dispatchQueuedReference = (queued: DispatchedText) => {
+    lastDispatchedReferenceRef.current = queued;
+    saveReferenceMutation.mutate({ chapterId: queued.chapterId, text: queued.text });
+  };
+
   const saveReferenceMutation = useMutation({
     mutationFn: (input: { chapterId: string; text: string }) =>
       updateNovelChapter(novelId, input.chapterId, { referenceText: input.text }),
     onSuccess: async () => {
       await invalidateChapters();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存参考文本失败，请重试。"),
+    onError: (error) => {
+      lastDispatchedReferenceRef.current = null;
+      toast.error(error instanceof Error ? error.message : "保存参考文本失败，请重试。");
+    },
+    onSettled: (_data, _error, input) => {
+      const queued = pendingReferenceFlushRef.current;
+      pendingReferenceFlushRef.current = null;
+      if (queued && !sameDispatchedText({ chapterId: input.chapterId, text: input.text }, queued.chapterId, queued.text)) {
+        dispatchQueuedReference(queued);
+      }
+    },
   });
 
   // 「解析」提取的设定建议随章节持久化（与初稿一样是成果，不用不丢）。
@@ -131,17 +158,24 @@ export function useNovelChapterWorkspace(novelId: string) {
   };
 
   const expectationDirty = Boolean(currentChapter)
-    && expectationText.trim() !== (currentChapter?.expectation ?? "").trim();
+    && expectationText.trim() !== (currentChapter?.expectation ?? "").trim()
+    && !sameDispatchedText(lastDispatchedExpectationRef.current, currentChapter?.id ?? "", expectationText);
 
   const savePending = saveExpectationMutation.isPending;
   const flushExpectationSave = () => {
-    if (currentChapter && expectationDirty && !savePending) {
-      saveExpectationMutation.mutate({
-        chapterId: currentChapter.id,
-        text: expectationText,
-        silent: true,
-      });
+    if (!currentChapter || expectationText.trim() === (currentChapter.expectation ?? "").trim()) {
+      return;
     }
+    const snapshot = { chapterId: currentChapter.id, text: expectationText };
+    if (savePending) {
+      pendingExpectationFlushRef.current = snapshot;
+      return;
+    }
+    if (sameDispatchedText(lastDispatchedExpectationRef.current, snapshot.chapterId, snapshot.text)) {
+      return;
+    }
+    lastDispatchedExpectationRef.current = snapshot;
+    saveExpectationMutation.mutate({ ...snapshot, silent: true });
   };
 
   // 「参考」页签解析结果写入初稿：替换编辑器文本并立即静默落库，
@@ -151,34 +185,48 @@ export function useNovelChapterWorkspace(novelId: string) {
       return;
     }
     setExpectationText(text);
-    saveExpectationMutation.mutate({ chapterId: currentChapter.id, text, silent: true });
+    if (!sameDispatchedText(lastDispatchedExpectationRef.current, currentChapter.id, text)) {
+      lastDispatchedExpectationRef.current = { chapterId: currentChapter.id, text };
+      saveExpectationMutation.mutate({ chapterId: currentChapter.id, text, silent: true });
+    }
+  };
+
+  // 只同步展示与已派发标记（调用方已把同一文本随自己的合并请求落库时用，避免重复 PUT）。
+  const syncExpectationText = (text: string) => {
+    if (!currentChapter) {
+      return;
+    }
+    setExpectationText(text);
+    lastDispatchedExpectationRef.current = { chapterId: currentChapter.id, text };
   };
 
   const referenceDirty = Boolean(currentChapter)
-    && referenceText !== (currentChapter?.referenceText ?? "");
+    && referenceText !== (currentChapter?.referenceText ?? "")
+    && !sameDispatchedText(lastDispatchedReferenceRef.current, currentChapter?.id ?? "", referenceText);
   const referenceSavePending = saveReferenceMutation.isPending;
   const flushReferenceSave = () => {
-    if (currentChapter && referenceDirty && !referenceSavePending) {
-      saveReferenceMutation.mutate({ chapterId: currentChapter.id, text: referenceText });
+    if (!currentChapter || referenceText === (currentChapter.referenceText ?? "")) {
+      return;
     }
+    const snapshot = { chapterId: currentChapter.id, text: referenceText };
+    if (referenceSavePending) {
+      pendingReferenceFlushRef.current = snapshot;
+      return;
+    }
+    if (sameDispatchedText(lastDispatchedReferenceRef.current, snapshot.chapterId, snapshot.text)) {
+      return;
+    }
+    lastDispatchedReferenceRef.current = snapshot;
+    saveReferenceMutation.mutate(snapshot);
   };
   const setReferenceText = (text: string) => {
     setReferenceTextState(text);
   };
 
   const switchChapter = (chapter: Chapter) => {
-    if (currentChapter && currentChapter.id !== chapter.id && expectationDirty && !savePending) {
-      saveExpectationMutation.mutate({
-        chapterId: currentChapter.id,
-        text: expectationText,
-        silent: true,
-      });
-    }
-    if (currentChapter && currentChapter.id !== chapter.id && referenceDirty && !referenceSavePending) {
-      saveReferenceMutation.mutate({
-        chapterId: currentChapter.id,
-        text: referenceText,
-      });
+    if (currentChapter && currentChapter.id !== chapter.id) {
+      flushExpectationSave();
+      flushReferenceSave();
     }
     setCurrentChapterId(chapter.id);
   };
@@ -193,72 +241,9 @@ export function useNovelChapterWorkspace(novelId: string) {
     const expectation = currentChapter.expectation ?? "";
     setExpectationText(expectation.trim() ? expectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
     setReferenceTextState(currentChapter.referenceText ?? "");
-    const parsed = parseDetailOutline(currentChapter);
-    setBeats(
-      parsed
-        ? parsed.beats.map((beat) => ({ summary: beat.summary, keyEvent: beat.keyEvent ?? null }))
-        : null,
-    );
-    setNotes(parsed?.notes ?? "");
+    lastDispatchedExpectationRef.current = null;
+    lastDispatchedReferenceRef.current = null;
   }, [currentChapter]);
-
-  const previewMutation = useMutation({
-    mutationFn: async () => {
-      if (!currentChapter) {
-        throw new Error("还没有章节。");
-      }
-      if (!expectationText.trim()) {
-        throw new Error("本章还没有初稿。");
-      }
-      return previewChapterDetailOutline(novelId, currentChapter.id);
-    },
-    onSuccess: (response) => {
-      const draft = (response.data?.beats ?? []).map((beat) => ({
-        summary: beat.summary,
-        keyEvent: beat.keyEvent ?? null,
-      }));
-      setBeats(draft);
-      setNotes(response.data?.notes ?? "");
-      toast.success(`AI 已解析出 ${draft.length} 拍草稿，确认前可逐拍修改。`);
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请稍后重试。"),
-  });
-
-  const saveBeatsMutation = useMutation({
-    mutationFn: () => {
-      if (!currentChapter) {
-        throw new Error("还没有章节。");
-      }
-      const count = beats?.length ?? 0;
-      if (count < 3 || count > 10) {
-        throw new Error("节拍需要 3～10 拍。");
-      }
-      return saveChapterDetailOutline(novelId, currentChapter.id, {
-        beats: (beats ?? []).map((beat) => ({ summary: beat.summary, keyEvent: beat.keyEvent })),
-        notes: notes.trim() || null,
-      });
-    },
-    onSuccess: async () => {
-      await invalidateChapters();
-      toast.success("本章节拍已保存。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "保存节拍失败，请重试。"),
-  });
-
-  const updateBeat = (index: number, patch: Partial<ChapterBeatDraft>) => {
-    setBeats((current) => {
-      if (!current) return current;
-      const next = [...current];
-      next[index] = { ...next[index], ...patch };
-      return next;
-    });
-  };
-  const removeBeat = (index: number) => {
-    setBeats((current) => (current ? current.filter((_item, position) => position !== index) : current));
-  };
-  const addBeat = () => {
-    setBeats((current) => [...(current ?? []), { summary: "", keyEvent: null }]);
-  };
 
   return {
     chaptersQuery,
@@ -268,8 +253,10 @@ export function useNovelChapterWorkspace(novelId: string) {
     expectationText,
     setExpectationText,
     applyExpectationText,
+    syncExpectationText,
     expectationDirty,
     savePending,
+    saveError: saveExpectationMutation.isError,
     flushExpectationSave,
     referenceText,
     setReferenceText,
@@ -280,14 +267,6 @@ export function useNovelChapterWorkspace(novelId: string) {
     applyReferenceExtraction,
     syncReferenceExtraction,
     refreshChapters: invalidateChapters,
-    previewMutation,
-    saveBeatsMutation,
-    beats,
-    notes,
-    setNotes,
-    updateBeat,
-    removeBeat,
-    addBeat,
   };
 }
 

@@ -3,6 +3,8 @@ export const queryKeys = {
     links: (novelIds: string[]) => ["comic-drama", "links", ...novelIds] as const,
     overview: (novelId: string) => ["comic-drama", "overview", novelId] as const,
     audioSegments: (projectId: string, order: number) => ["comic-drama", "audio-segments", projectId, order] as const,
+    // 按项目失效全部集数的配音段（react-query 前缀匹配）。
+    audioSegmentsAll: (projectId: string) => ["comic-drama", "audio-segments", projectId] as const,
     narratorVoice: (projectId: string) => ["comic-drama", "narrator-voice", projectId] as const,
   },
   novels: {
@@ -98,6 +100,7 @@ export const queryKeys = {
     storyboard: (storyboardId: string) => ["drama", "storyboard", storyboardId] as const,
     videoProviders: ["drama", "video-providers"] as const,
     ttsProviders: ["drama", "tts-providers"] as const,
+    visualStyles: ["drama", "visual-styles"] as const,
     episodeAssembly: (id: string, order: number) => ["drama", "episode-assembly", id, order] as const,
     eraStyle: (novelId: string) => ["drama", "era-style", novelId] as const,
   },

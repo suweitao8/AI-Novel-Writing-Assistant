@@ -833,7 +833,8 @@ router.post("/video-prompts/:videoPromptId/provider-task/refresh", validate({ pa
 // ─────────────────────────────────────────────────────────────────────────────
 
 const charImageParamsSchema = z.object({
-  characterId: z.string().trim().min(1),
+  // characterId 进文件路径拼接，只放行 DB id 字符集，挡住路径穿越串。
+  characterId: z.string().regex(/^[a-zA-Z0-9_-]+$/),
 });
 const charImageVersionParamsSchema = z.object({
   characterId: z.string().trim().min(1),
@@ -1005,7 +1006,7 @@ router.get("/shot-images/:shotId/keyframe/:version", validate({ params: shotImag
 });
 
 /** GET /api/drama/character-images/:characterId/character-sheet */
-router.get("/character-images/:characterId/character-sheet", async (req, res, next) => {
+router.get("/character-images/:characterId/character-sheet", validate({ params: charImageParamsSchema }), async (req, res, next) => {
   try {
     const { characterId } = req.params as z.infer<typeof charImageParamsSchema>;
     const resolved = await dramaCharacterImageService.resolveExistingImagePath(
@@ -1047,7 +1048,7 @@ router.get("/character-images/:characterId/character-sheet/:version", validate({
 });
 
 /** GET /api/drama/character-images/:characterId/portrait （兼容旧 URL，指向同一文件） */
-router.get("/character-images/:characterId/portrait", async (req, res, next) => {
+router.get("/character-images/:characterId/portrait", validate({ params: charImageParamsSchema }), async (req, res, next) => {
   try {
     const { characterId } = req.params as z.infer<typeof charImageParamsSchema>;
     const resolved = await dramaCharacterImageService.resolveExistingImagePath(

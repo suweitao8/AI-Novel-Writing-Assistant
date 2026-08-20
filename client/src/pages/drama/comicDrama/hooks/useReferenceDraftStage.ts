@@ -90,10 +90,8 @@ export function useReferenceDraftStage(input: {
   }, [workspace.referenceText, referenceDirty, referenceSavePending]);
 
   useEffect(() => () => {
-    const { dirty, pending, flush } = autosaveRef.current;
-    if (dirty && !pending) {
-      flush();
-    }
+    // 冲保存的排队/去重逻辑在 workspace.flushReferenceSave 内部处理（含在途请求时排队补存）。
+    autosaveRef.current.flush();
   }, []);
 
   const setReferenceText = (value: string) => {
@@ -112,7 +110,7 @@ export function useReferenceDraftStage(input: {
   // 起由两个并行调用合并——参考文本量不大，单次调用共享同一份原文理解）。
   // 落库放在 mutationFn 里而不是 onSuccess：解析要跑几十秒，期间离开页面组件
   // 卸载后回调不再执行，放回调里的保存会凭空丢（已踩：提取结果消失）。
-  // 空初稿时草稿一并直接写入；已有初稿保留原文，是否替换由用户确认。
+  // 脚本整章覆盖是既定行为（2026-08-21 用户决定：重新解析即对现有结果不满意，结果一到即重写）。
   const parseMutation = useMutation({
     mutationFn: async () => {
       if (!chapter) {
@@ -137,7 +135,8 @@ export function useReferenceDraftStage(input: {
     onSuccess: ({ draftText, extractionJson, extraction, hasDraft }) => {
       workspace.syncReferenceExtraction(extractionJson);
       if (hasDraft) {
-        workspace.setExpectationText(draftText);
+        // expectation 已随上面的合并 PUT 落库：只同步展示与已派发标记，不再触发第二次保存。
+        workspace.syncExpectationText(draftText);
       }
       const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`;
 

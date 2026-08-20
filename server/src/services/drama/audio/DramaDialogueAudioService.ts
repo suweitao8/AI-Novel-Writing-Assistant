@@ -256,23 +256,42 @@ export class DramaDialogueAudioService {
     });
 
     try {
-      const synthesized: DialogueAudioItem[] = [];
-      for (const item of pendingItems) {
+      // 先在派发前解析每行的音色/语气参数，避免并发 worker 内重复查表。
+      const prepared = pendingItems.map((item) => {
         const voice = item.speaker ? voiceMap.get(normalizeKey(item.speaker) ?? "") : undefined;
         // 「旁白：内容」行解析后 speaker=旁白，配音按旁白处理（旁白音色描述，不找角色音色）。
         const isNarrationLine = item.type === "narration" || item.speaker === "旁白";
-        const result = await adapter.synthesize({
-          text: item.text,
-          voiceId: isNarrationLine ? undefined : voice?.voiceId,
-          speed: isNarrationLine ? undefined : voice?.speed,
-          // 行内语气优先（分镜台词的「角色（语气）：台词」），其次角色默认情绪，旁白用旁白音色描述。
-          emotion: isNarrationLine
-            ? narratorVoice.description
-            : (item.emotion || voice?.emotion || voice?.voicePrompt),
-          speaker: isNarrationLine ? "旁白" : item.speaker,
-        });
-        synthesized.push({ ...item, audioUrl: result.audioUrl, durationSec: result.durationSec });
-      }
+        return {
+          item,
+          request: {
+            text: item.text,
+            voiceId: isNarrationLine ? undefined : voice?.voiceId,
+            speed: isNarrationLine ? undefined : voice?.speed,
+            // 行内语气优先（分镜台词的「角色（语气）：台词」），其次角色默认情绪，旁白用旁白音色描述。
+            emotion: isNarrationLine
+              ? narratorVoice.description
+              : (item.emotion || voice?.emotion || voice?.voicePrompt),
+            speaker: isNarrationLine ? "旁白" : item.speaker,
+          },
+        };
+      });
+      // 有界并发（3 路）合成；任一行失败仍走原有整体失败语义，最终按 lineIndex 排序。
+      const synthesized: DialogueAudioItem[] = [];
+      let cursor = 0;
+      let aborted = false;
+      const worker = async (): Promise<void> => {
+        while (!aborted && cursor < prepared.length) {
+          const current = prepared[cursor++];
+          try {
+            const result = await adapter.synthesize(current.request);
+            synthesized.push({ ...current.item, audioUrl: result.audioUrl, durationSec: result.durationSec });
+          } catch (error) {
+            aborted = true;
+            throw error;
+          }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, prepared.length) }, () => worker()));
 
       const doneData: DialogueAudioData = {
         status: "done",

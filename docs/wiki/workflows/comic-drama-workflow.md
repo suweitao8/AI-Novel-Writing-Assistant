@@ -15,7 +15,7 @@
 
 - `Novel.productionKind`（`novel` | `comic_drama`，默认 `novel`）标记漫剧项目；创建漫剧时同时置 `creationExperience=simple`。
 - 小说列表（`GET /novels`）与首页最近作品**默认只返回 `productionKind=novel`**（`productionKind: productionKind ?? "novel"`）；漫剧列表用 `?productionKind=comic_drama` 查询。新增任何消费小说列表的界面都要意识到这个默认过滤。
-- DramaProject 完全复用：`source="novel_import"` + `sourceRef=novelId`（软链，不建外键）。分镜项目在用户首次进入分镜阶段时**懒创建**（避免空来源快照）；"同步最新章节"走既有 `source-bundle` 重新装配。
+- DramaProject 完全复用：`source="novel_import"` + `sourceRef=novelId`（软链，不建外键）。分镜项目在用户首次进入分镜阶段时**懒创建**（避免空来源快照）；"同步最新章节"走既有 `source-bundle` 重新装配。**角色装配是合并不是重建**（2026-08-21 起实现于 `assembleSourceBundle`）：按 `sourceCharacterRef`（缺省按名字）对上已有 `DramaCharacter` 行原地更新、缺失的补建，只删除「源侧已移除的自动导入行」——角色行 id 是形象图目录与下游引用的关联键，整表 deleteMany 重建会换 id 并连带删掉用户在分镜侧自建的角色；更新路径不触碰 voiceProfile/portraitData/threeViewData（本项目创作产物），voiceProfile 为空时才用源角色音色提示词初始化。
 
 ### 阶段编排（studio 层）
 
@@ -29,7 +29,7 @@
 - Prompt 资产 `novel.outline.expand@v1`：输入大纲 + 设定中心快照，输出分章细纲**草稿（不落库）**；postValidate 强制章序连续、章数等于期望值、出场角色必须在设定中心名单内。该入口只服务空白小说书架的三步流；漫剧工作室不暴露全书级细纲推理与期望章数——漫剧按逐章推进（章节管理里写本章初稿→AI 节拍），分章细纲页签只做手动整理与确认。
 - 确认细纲后同步 `estimatedChapterCount`，让导演链按用户章数规划规模。
 - 剧情契约注入点：接管 idea 携带用户大纲（`novelDirectorTakeover.ts` 的 `buildTakeoverIdea`）；卷战略/卷骨架/节奏板/章节列表/章节细化上下文注入 `user_outline_contract` 块（`prompting/prompts/novel/volume/contextBlocks.ts`，priority=99）——章节划分、事件顺序与结果不得推翻，允许补节奏与衔接。
-- 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。**漫剧项目整体豁免**（2026-08-20 用户决定，彻底根治）：漫剧创建的小说固定简易模式（`ComicDramaCreateDialog` 传 `creationExperience: "simple"`），而漫剧工作室就是这本书的正式编辑入口——`productionKind=comic_drama` 的小说**不走简易模式只读**，章节增删改、参考解析、细纲、设定全部放行。历史教训：曾按端点路径白名单放行漫剧工作台写入，端点改名（`reference-draft/extract` → `reference-parse`）后白名单失配把「解析」拦死，先后踩坑两次——**路径字符串守卫跟不上端点演进，不要再给漫剧加路径白名单**；判定依据必须是小说自身 `productionKind` 字段（不能用 DramaProject 关联做判定——要到「从成稿生成分镜」才创建，新项目没有关联行）。普通简易小说（productionKind 非 comic_drama）的只读行为不变。修改守卫必须同步更新 `simpleCreationMode.test.js`。
+- 简易模式写守卫（`simpleCreationWriteGuard.ts`）放行 `/settings` 与 `/outline` 工作台端点；其余写入仍只读。**漫剧项目整体豁免**（2026-08-20 用户决定，彻底根治）：漫剧创建的小说固定简易模式（`ComicDramaCreateDialog` 传 `creationExperience: "simple"`），而漫剧工作室就是这本书的正式编辑入口——`productionKind=comic_drama` 的小说**不走简易模式只读**，章节增删改、参考解析、细纲、设定全部放行。历史教训：曾按端点路径白名单放行漫剧工作台写入，端点改名（`reference-draft/extract` → `reference-parse`）后白名单失配把「解析」拦死，先后踩坑两次——**路径字符串守卫跟不上端点演进，不要再给漫剧加路径白名单**；判定依据必须是小说自身 `productionKind` 字段（不能用 DramaProject 关联做判定——要到「从成稿生成分镜」才创建，新项目没有关联行）。普通简易小说（productionKind 非 comic_drama）的只读行为不变。修改守卫必须同步更新 `simpleCreationMode.test.js`。普通模式的放行白名单按**完整路径段**匹配（`/(?:^|\/)(settings|outline|export-as-document|export)(?:\/|$)/`）：`includes()` 子串匹配会让未来任何恰好含这些字样的端点（如 `/export-summary`）被顺带放行，已改为段边界锚定；`export-as-document` 是有意放行的合法导出端点，新增导出端点要显式加进正则。
 - **守卫内 req.path 是剥掉 `/:id` 前缀的形状**：守卫挂在 `router.use("/:id", ...)`（novel 路由 `app.use("/api/novels", ...)` 内），Express 在中间件执行期间会把已匹配的 `/:id` 从 `req.url` 剥掉，所以守卫看到的 path 是 `/chapters/xxx` 而不是 `/{novelId}/chapters/xxx`；小说 id 要从 `req.params.id` 取。给守卫写锚定正则（`^/chapters/...`）时必须用剥前缀后的形状，用完整路径形状写的正则会静默不匹配（放行失效、回落 409）。旧白名单用 `includes()` 所以两种形状都能过，这曾掩盖过该差异。
 
 ### 项目级参考小说（referenceKnowledgeDocumentId）
@@ -57,7 +57,7 @@
 - **语音通道**：VoxCPM2 桥接服务 `D:\Github\VoxCPM\openai_speech_server.py`（FastAPI，OpenAI /v1/audio/speech 兼容，默认 18761）。启动：`cd D:\Github\VoxCPM && .venv/Scripts/python.exe openai_speech_server.py`。CPU 上约 0.8s/字，先知预热情境下可用；项目 venv 无 CUDA torch，装 CUDA 版可提速。**台词情绪链路**：分镜台词行约定「角色名（语气）：台词」（`drama.storyboard@v3` 生成时写入，初稿解析 `novel.chapter.reference_parse@v4` 的 mood 同源语义；v3 起两处都要求角色用本名、禁「妹妹」等称谓，drama.storyboard 的 action 另需写明位置姿态且同地点相邻镜头位置连贯，characterRefs 列画面可见角色全名——首帧图按 characterRefs 名字挂角色参考图）；`parseDialogueLines` 把（语气）拆成独立 `emotion` 字段、角色名保持干净用于匹配角色音色；配音时逐行 emotion 经 VoxCPM provider 透传为 `metadata.emotion_prompt`（`should_use_prompt_for_emotion: true`），行内语气优先于角色默认情绪（voice.emotion/voicePrompt），旁白行（含「旁白：」前缀行）用旁白音色描述；`buildDialogueVoiceKey` 把行内语气纳入音色指纹——语气变化会使已有音频判 stale 需重配。
 - **视频通道**：`LocalFfmpegVideoProvider`（provider id `local_ffmpeg`）——首帧图+台词配音 → Ken Burns 竖屏 mp4，产物在 `server/storage/generated-videos/{taskId}.mp4`，经 `GET /api/drama/video-files/:taskId` 提供。ffmpeg 需在 PATH（本机 C:fmpegin）。
 - **ffmpeg 拼接两个坑**：concat demuxer 列表必须 `-f concat -safe 0` 显式声明且列表内用正斜杠（Windows 反斜杠被当转义符）；多段配音文件扩展名按 dataUrl mime 定（wav 别存成 .mp3）。
-- **批量任务与进程重启**：drama 批量任务跑在服务进程内（`void runBatchJob()`），ts-node-dev 重启会杀掉进行中的批量——恢复方式是重建同类型批量（已完成镜头自动跳过）；视频 providerTask 卡 running 时把 DramaVideoPrompt 置 failed 并清 providerTaskId 后重新派发。
+- **批量任务与进程重启**：drama 批量任务跑在服务进程内（`void runBatchJob()`），ts-node-dev 重启会杀掉进行中的批量——恢复方式是重建同类型批量（已完成镜头自动跳过）。自 2026-08-21 起有两层自动兜底：`runBatchJob` 整体 try/catch，任何未被单镜头捕获的异常都会把任务置 `failed`（不再永久卡 running）；`createEpisodeBatchJob` 入口先跑 `failStaleBatchJobs`（production/batchJobRecovery.ts），把本项目超过 10 分钟仍 pending/running 的 keyframes/videos/tts 任务标记失败并写入提示——与整集装配的 stale 判定同窗口。已知边界：单镜头合法耗时超过 10 分钟且期间未创建新批量时不会被误标（updateJob 每镜头前后都触 updatedAt）；若未来接入极慢图像供应商，需在镜头处理内加心跳更新。本地 ffmpeg provider 的每次合成有 10 分钟超时强杀并落 `.err`，临时图片/音频在所有退出路径统一清理。视频 providerTask 卡 running 时把 DramaVideoPrompt 置 failed 并清 providerTaskId 后重新派发。
 - **美术风格（两层组合 + 全中文，2026-08-21）**：`services/drama/visual/dramaVisualStyles.ts`——通用画风（`DEFAULT_UNIVERSAL_ART_STYLE`，UE5 级 3D 写实质感基线，系统级 AppSetting）+ 6 项题材预设（现代都市/末世废土/东方玄幻/现代诡异/古代年代/民国年代，默认 `realistic`，渲染媒介词不进预设）。注入点：首帧图提示词与角色设计稿提示词（通用→题材顺序，negative 两层合并，解析入口 `dramaArtStyleResolver.ts`）；风格只约束渲染媒介/题材氛围，指令中明确不得覆盖角色外貌/服装/场景描述。**指令全中文**（2026-08-21 用户决定：自定义画风与分镜描述本就是中文，界面与风格内容尽量中文）。**小说侧**：每本书在「设定 · 美术风格」选默认时代风格（预设+自定义一个列表，点选即存 `defaultArtStyle`），自定义时代风格增删改在同一卡片（存 `NovelSettingsWorld`，契约见 architecture/story-settings-hub.md 美术风格节）；**AI 解析不产出画风标记**（v8 起无 styleSwitch，2026-08-20 用户决定），但**用户可在「脚本」页签手动切换画风**（2026-08-21：【画风：名】标记行，切换后后面都用新的、新章节沿用最近一次，解析优先级与粒度见 story-settings-hub.md 画风解析链）。与 styleEngine 的通用画面风格体系仍是两套来源，后续可考虑收敛。
 
 ## 设定中心与生成链路的接线（2026-08-19 审计后接线）
@@ -74,7 +74,7 @@
 ## 失败模式 / 注意事项
 
 - 视频通道是可插拔 port（`VideoProviderPort`），默认 mock **不会生成真实视频**：studio 视频阶段必须保留"未配置真实通道"的提示，不能让用户误以为出片失败是 bug。
-- `ComicDramaStudioService` 的 links 查询按项目做聚合并发查询（列表 ≤50 本）；若未来漫剧项目规模显著变大，需要改为 groupBy 一次聚合。
+- `ComicDramaStudioService` 的 links 统计自 2026-08-21 起走分组聚合 + 无载荷计数（episode/storyboard/videoPrompt 各一次 groupBy、每项目 3 个 `dramaShot.count`），**绝不 select `keyframeData`/`dialogueAudioData` 载荷列**；就绪计数语义 = 字段非空（写入方只写 JSON.stringify 结果或 null，无空串，与旧的 trim() 判定等价）。
 - 漫剧小说仍可经 `/novels/:id/simple` 深链访问（书架行为一致）；不要在书架路径上做漫剧特判。
 - 与 drama 模块的边界：studio 只读投影；任何对 drama 管线行为的修改仍应发生在 `services/drama/` 原有服务里，不要把管线逻辑写进 studio 层。
 

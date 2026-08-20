@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 
 type AssetType = "character" | "scene" | "prop";
 
@@ -279,12 +280,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       })();
   const detailAsset = detailId ? assets.find((asset) => asset.id === detailId) ?? null : null;
 
-  const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsCharacters(props.novelId) });
-    await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(props.novelId) });
-    await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsProps(props.novelId) });
-    await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(props.novelId) });
-  };
+  const invalidate = () => invalidateStorySettingsCaches(queryClient, props.novelId);
 
   const createMutation = useMutation({
     mutationFn: async (): Promise<string> => {

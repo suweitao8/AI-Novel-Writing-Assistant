@@ -117,14 +117,14 @@ export class DramaProjectService {
         },
       });
 
-      // 角色资源导入（重置后重建，保证幂等）。
-      // 立绘/四视图/声线是本项目的创作产物而非源内容：工作室每次切章都会触发同步，
-      // 重建时必须按 sourceCharacterRef（缺省按名字）从旧行带回，否则用户已生成的
-      // 角色图与已配置的音色会被切章静默清空。声线没有旧值时用源角色的音色提示词
-      // 初始化（voiceProfile JSON 的 voicePrompt 键与 readCharacterVoice 的解析对齐）。
+      // 角色资源导入：按 sourceCharacterRef（缺省按名字）对上已有行原地更新、缺失的补建，
+      // 只删除「源侧已移除的自动导入行」。角色行 id 是形象图目录与下游引用的关联键，
+      // 整表 deleteMany 重建会换 id，还会连带删掉用户在分镜侧自建的角色；
+      // 立绘/四视图/声线是本项目的创作产物而非源内容，更新路径不触碰这些列。
+      // 声线没有旧值时用源角色的音色提示词初始化（voiceProfile JSON 的 voicePrompt 键与 readCharacterVoice 的解析对齐）。
       const previousCharacters = await tx.dramaCharacter.findMany({
         where: { projectId },
-        select: { name: true, sourceCharacterRef: true, voiceProfile: true, portraitData: true, threeViewData: true },
+        select: { id: true, name: true, sourceCharacterRef: true, voiceProfile: true },
       });
       const previousByRef = new Map(
         previousCharacters
@@ -132,28 +132,50 @@ export class DramaProjectService {
           .map((row) => [row.sourceCharacterRef as string, row]),
       );
       const previousByName = new Map(previousCharacters.map((row) => [row.name.trim(), row]));
-      await tx.dramaCharacter.deleteMany({ where: { projectId } });
-      if (bundle.characters.length > 0) {
-        await tx.dramaCharacter.createMany({
-          data: bundle.characters.map((character) => {
-            const previous = (character.sourceCharacterRef && previousByRef.get(character.sourceCharacterRef))
-              || previousByName.get(character.name.trim());
-            return {
-              projectId,
+      const bundleRefs = new Set(
+        bundle.characters
+          .map((character) => character.sourceCharacterRef)
+          .filter((ref): ref is string => Boolean(ref)),
+      );
+      for (const character of bundle.characters) {
+        const previous = (character.sourceCharacterRef && previousByRef.get(character.sourceCharacterRef))
+          || previousByName.get(character.name.trim())
+          || null;
+        if (previous) {
+          await tx.dramaCharacter.update({
+            where: { id: previous.id },
+            data: {
               name: character.name,
               persona: character.persona ?? null,
               relations: character.relations ?? null,
               visualAnchor: character.visualHint
                 ? JSON.stringify({ hint: character.visualHint })
                 : null,
-              sourceCharacterRef: character.sourceCharacterRef ?? null,
-              voiceProfile: previous?.voiceProfile
+              voiceProfile: previous.voiceProfile
                 ?? (character.voicePrompt ? JSON.stringify({ voicePrompt: character.voicePrompt }) : null),
-              portraitData: previous?.portraitData ?? null,
-              threeViewData: previous?.threeViewData ?? null,
-            };
-          }),
+            },
+          });
+          continue;
+        }
+        await tx.dramaCharacter.create({
+          data: {
+            projectId,
+            name: character.name,
+            persona: character.persona ?? null,
+            relations: character.relations ?? null,
+            visualAnchor: character.visualHint
+              ? JSON.stringify({ hint: character.visualHint })
+              : null,
+            sourceCharacterRef: character.sourceCharacterRef ?? null,
+            voiceProfile: character.voicePrompt ? JSON.stringify({ voicePrompt: character.voicePrompt }) : null,
+          },
         });
+      }
+      const staleCharacterIds = previousCharacters
+        .filter((row) => row.sourceCharacterRef && !bundleRefs.has(row.sourceCharacterRef))
+        .map((row) => row.id);
+      if (staleCharacterIds.length > 0) {
+        await tx.dramaCharacter.deleteMany({ where: { id: { in: staleCharacterIds } } });
       }
 
       // 初始事实账本（episodeOrder=0 表示源带入的初始硬事实）
