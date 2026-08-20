@@ -222,6 +222,7 @@ export const updateChapterSchema = z.object({
   content: z.string().optional(),
   expectation: z.string().optional(),
   referenceText: z.string().max(20000).nullable().optional(),
+  referenceExtractionJson: z.string().max(200000).nullable().optional(),
   chapterStatus: z.enum(["unplanned", "pending_generation", "generating", "pending_review", "needs_repair", "completed"]).optional(),
   targetWordCount: z.number().int().min(200).max(20000).nullable().optional(),
   conflictLevel: z.number().int().min(0).max(100).nullable().optional(),

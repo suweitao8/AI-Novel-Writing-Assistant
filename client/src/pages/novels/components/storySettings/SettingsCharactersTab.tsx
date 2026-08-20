@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Sparkles, UserRound } from "lucide-react";
+import { Loader2, Pencil, Sparkles, Trash2, UserRound } from "lucide-react";
 import type { StorySettingsCharacter } from "@/api/story/storySettings";
 import {
   createStorySettingsCharacter,
+  deleteStorySettingsCharacter,
   generateStoryEntityDraft,
   getStorySettingsCharacters,
   regenerateStorySettings,
@@ -151,6 +152,17 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: (characterId: string) => deleteStorySettingsCharacter(novelId, characterId),
+    onSuccess: async () => {
+      toast.success("角色已删除。");
+      await invalidate();
+    },
+    onError: (error) => {
+      toast.error("角色删除失败。", { description: error instanceof Error ? error.message : undefined });
+    },
+  });
+
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
@@ -231,21 +243,53 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                       <Badge variant="outline" className="shrink-0">{AGE_GROUP_LABELS[character.ageGroup] ?? character.ageGroup}</Badge>
                     ) : null}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(character)} aria-label="编辑角色">
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
+                  <div className="flex shrink-0 gap-1">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(character)} aria-label="编辑角色">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+                      aria-label="删除角色"
+                      disabled={deleteMutation.isPending}
+                      onClick={() => {
+                        if (window.confirm(`删除角色「${character.name}」？已生成的分镜与配音不受影响。`)) {
+                          deleteMutation.mutate(character.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                {character.physique ? (
-                  <p className="text-xs leading-5 text-muted-foreground">体型：{character.physique}</p>
-                ) : null}
                 {character.personality ? (
                   <p className="text-xs leading-5 text-muted-foreground">{character.personality}</p>
                 ) : null}
-                {character.attireStyle ? (
-                  <p className="text-xs leading-5 text-muted-foreground">着装：{character.attireStyle}</p>
+                {character.appearance || character.physique || character.attireStyle ? (
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    外貌：{character.appearance || [character.physique, character.attireStyle].filter(Boolean).join("，")}
+                  </p>
                 ) : null}
-                {character.facePrompt ? (
-                  <p className="text-xs leading-5 text-muted-foreground">面部锚点（用于角色立绘）：{character.facePrompt}</p>
+                {character.voiceTexture ? (
+                  <p className="text-xs leading-5 text-muted-foreground">音色：{character.voiceTexture}</p>
+                ) : null}
+                {character.states.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {character.states.map((state) => (
+                      <span
+                        key={state.id}
+                        className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400"
+                        title={[
+                          state.description,
+                          state.imagePrompt ? `画面：${state.imagePrompt}` : "",
+                          state.voicePrompt ? `音色：${state.voicePrompt}` : "",
+                        ].filter(Boolean).join("\n")}
+                      >
+                        {state.label}{state.chapterOrder ? `·第${state.chapterOrder}章` : ""}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
               </CardContent>
             </Card>

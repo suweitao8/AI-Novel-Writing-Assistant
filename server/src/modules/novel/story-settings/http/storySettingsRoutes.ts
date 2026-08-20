@@ -16,12 +16,29 @@ const characterParams = z.object({ id: z.string().trim().min(1), characterId: z.
 
 const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 
+// 资产外观状态：初始 + 换装/受伤/昼夜/损坏等变化态（生图/配音提示词随状态走）。
+const assetStateSchema = z.object({
+  id: z.string().trim().min(1).max(60),
+  label: z.string().trim().min(1).max(24),
+  description: z.string().trim().min(1).max(200),
+  imagePrompt: z.string().trim().min(1).max(600),
+  voicePrompt: z.string().trim().max(300).optional(),
+  chapterOrder: z.number().int().min(0).max(9999).optional(),
+}).strict();
+
 const characterUpdateSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   role: z.string().trim().min(1).max(80).optional(),
+  gender: z.enum(["male", "female", "other", "unknown"]).nullable().optional(),
+  ageGroup: z.enum(["child", "youth", "middle", "elder"]).nullable().optional(),
+  physique: z.string().trim().max(200).nullable().optional(),
+  attireStyle: z.string().trim().max(400).nullable().optional(),
+  facePrompt: z.string().trim().max(600).nullable().optional(),
+  voiceTexture: z.string().trim().max(400).nullable().optional(),
   personality: z.string().trim().max(1200).nullable().optional(),
   appearance: z.string().trim().max(1200).nullable().optional(),
   background: z.string().trim().max(2000).nullable().optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const worldMapKindSchema = z.enum(["city", "region", "building", "wild", "other"]);
@@ -96,9 +113,11 @@ const characterCreateSchema = z.object({
   physique: z.string().trim().max(200).optional(),
   attireStyle: z.string().trim().max(400).optional(),
   facePrompt: z.string().trim().max(600).optional(),
+  voiceTexture: z.string().trim().max(400).optional(),
   personality: z.string().trim().max(1200).optional(),
   appearance: z.string().trim().max(1200).optional(),
   background: z.string().trim().max(2000).optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const sceneCreateSchema = z.object({
@@ -108,6 +127,7 @@ const sceneCreateSchema = z.object({
   environmentPrompt: z.string().trim().max(1200).optional(),
   significance: z.string().trim().max(600).optional(),
   mapNodeId: z.string().trim().max(60).optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const sceneUpdateSchema = z.object({
@@ -117,6 +137,7 @@ const sceneUpdateSchema = z.object({
   environmentPrompt: z.string().trim().max(1200).nullable().optional(),
   significance: z.string().trim().max(600).nullable().optional(),
   mapNodeId: z.string().trim().max(60).nullable().optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const propCreateSchema = z.object({
@@ -128,6 +149,7 @@ const propCreateSchema = z.object({
   ownerCharacterId: z.string().trim().max(60).optional(),
   importance: z.enum(["core", "major", "minor"]).optional(),
   firstAppearHint: z.string().trim().max(300).optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const propUpdateSchema = z.object({
@@ -139,6 +161,7 @@ const propUpdateSchema = z.object({
   ownerCharacterId: z.string().trim().max(60).nullable().optional(),
   importance: z.enum(["core", "major", "minor"]).optional(),
   firstAppearHint: z.string().trim().max(300).nullable().optional(),
+  states: z.array(assetStateSchema).max(24).optional(),
 });
 
 const entityGenerateSchema = z.object({
@@ -263,6 +286,15 @@ export function registerStorySettingsRoutes(router: Router): void {
         req.body,
       );
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.delete("/:id/settings/characters/:characterId", validate({ params: characterParams }), async (req, res, next) => {
+    try {
+      await storySettingsService.deleteCharacter(String(req.params.id), String(req.params.characterId));
+      res.json({ success: true, data: null } satisfies ApiResponse<null>);
     } catch (error) {
       next(error);
     }

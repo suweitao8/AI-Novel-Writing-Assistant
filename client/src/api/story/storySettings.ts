@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
@@ -21,6 +22,7 @@ export interface StorySettingsScene {
   mapNodeId: string | null;
   sortOrder: number;
   source: string;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -37,6 +39,7 @@ export interface StorySettingsProp {
   firstAppearHint: string | null;
   sortOrder: number;
   source: string;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -49,9 +52,11 @@ export interface StorySettingsCharacter {
   physique: string | null;
   attireStyle: string | null;
   facePrompt: string | null;
+  voiceTexture: string | null;
   personality: string | null;
   appearance: string | null;
   background: string | null;
+  states: StoryAssetState[];
   updatedAt: string;
 }
 
@@ -125,6 +130,7 @@ export async function createStorySettingsScene(
     environmentPrompt?: string;
     significance?: string;
     mapNodeId?: string;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsScene>>(
@@ -144,6 +150,7 @@ export async function updateStorySettingsScene(
     environmentPrompt?: string | null;
     significance?: string | null;
     mapNodeId?: string | null;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsScene>>(
@@ -178,6 +185,7 @@ export async function createStorySettingsProp(
     ownerCharacterId?: string;
     importance?: string;
     firstAppearHint?: string;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsProp>>(
@@ -199,6 +207,7 @@ export async function updateStorySettingsProp(
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsProp>>(
@@ -228,14 +237,28 @@ export async function updateStorySettingsCharacter(
   payload: {
     name?: string;
     role?: string;
+    gender?: string | null;
+    ageGroup?: string | null;
+    physique?: string | null;
+    attireStyle?: string | null;
+    facePrompt?: string | null;
+    voiceTexture?: string | null;
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsCharacter>>(
     `/novels/${encodeURIComponent(novelId)}/settings/characters/${encodeURIComponent(characterId)}`,
     payload,
+  );
+  return data;
+}
+
+export async function deleteStorySettingsCharacter(novelId: string, characterId: string) {
+  const { data } = await apiClient.delete<ApiResponse<null>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/characters/${encodeURIComponent(characterId)}`,
   );
   return data;
 }
@@ -348,9 +371,11 @@ export async function createStorySettingsCharacter(
     physique?: string;
     attireStyle?: string;
     facePrompt?: string;
+    voiceTexture?: string;
     personality?: string;
     appearance?: string;
     background?: string;
+    states?: StoryAssetState[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter>>(

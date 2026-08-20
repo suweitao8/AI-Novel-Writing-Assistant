@@ -224,6 +224,19 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
                 {scene.significance ? (
                   <p className="text-xs leading-5 text-muted-foreground">故事作用：{scene.significance}</p>
                 ) : null}
+                {scene.states.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    {scene.states.map((state) => (
+                      <span
+                        key={state.id}
+                        className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400"
+                        title={[state.description, state.imagePrompt ? `画面：${state.imagePrompt}` : ""].filter(Boolean).join("\n")}
+                      >
+                        {state.label}{state.chapterOrder ? `·第${state.chapterOrder}章` : ""}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           ))}

@@ -130,8 +130,7 @@ export default function ComicDramaStudioPage() {
   });
   const extractStage = useReferenceExtractStage({
     novelId,
-    chapterId: chapterWorkspace.currentChapter?.id ?? null,
-    referenceText: referenceStage.referenceText,
+    workspace: chapterWorkspace,
   });
   const storyboard = useStoryboardStage({
     novelId,
@@ -245,7 +244,9 @@ export default function ComicDramaStudioPage() {
               >
                 <TabsList>
                   <TabsTrigger value="reference">{CURRENT_TAB_LABELS.reference}</TabsTrigger>
-                  <TabsTrigger value="extract">{CURRENT_TAB_LABELS.extract}</TabsTrigger>
+                  <TabsTrigger value="extract">
+                    {CURRENT_TAB_LABELS.extract}{extractStage.totalItems > 0 ? ` ${extractStage.totalItems}` : ""}
+                  </TabsTrigger>
                   <TabsTrigger value="draft">{CURRENT_TAB_LABELS.draft}</TabsTrigger>
                   <TabsTrigger value="text">{CURRENT_TAB_LABELS.text}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
@@ -253,24 +254,7 @@ export default function ComicDramaStudioPage() {
                 </TabsList>
               </Tabs>
               <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
-                {currentTab === "extract" ? (
-                  <>
-                    {extractStage.extractDisabledReason ? (
-                      <span className="text-xs text-muted-foreground">{extractStage.extractDisabledReason}</span>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      onClick={() => extractStage.extractMutation.mutate()}
-                      disabled={extractStage.extractMutation.isPending || extractStage.extractDisabledReason !== null}
-                      title={extractStage.extractDisabledReason ?? "从参考文本提取角色、场景与世界观"}
-                    >
-                    {extractStage.extractMutation.isPending
-                      ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                      : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                    提取
-                  </Button>
-                  </>
-                ) : currentTab === "reference" ? (
+                {currentTab === "reference" ? (
                   <>
                     {chapterWorkspace.referenceSavePending ? (
                       <span className="text-xs text-muted-foreground">自动保存中…</span>

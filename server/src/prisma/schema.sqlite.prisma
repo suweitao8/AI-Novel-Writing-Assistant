@@ -556,6 +556,7 @@ model NovelScene {
   summary         String?
   environmentPrompt String?
   significance String?
+  statesJson      String?
   mapNodeId    String?
   sortOrder    Int      @default(0)
   source       String   @default("ai")
@@ -577,6 +578,7 @@ model NovelProp {
   ownerCharacterId String?
   importance       String   @default("major")
   firstAppearHint  String?
+  statesJson       String?
   sortOrder        Int      @default(0)
   source           String   @default("ai")
   novel            Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
@@ -744,6 +746,7 @@ model Chapter {
   hook            String?
   expectation     String?
   referenceText   String?
+  referenceExtractionJson String?
   detailOutlineJson String?
   novelId         String
   novel           Novel                  @relation(fields: [novelId], references: [id], onDelete: Cascade)
@@ -833,6 +836,8 @@ model Character {
   facePrompt      String?
   attireStyle     String?
   signatureDetail String?
+  // 外观状态列表 JSON：[{ id,label,description,imagePrompt,voicePrompt?,chapterOrder? }]（初始 + 换装/受伤等变化态）
+  statesJson      String?
   voiceTexture    String?
   presenceImpression String?
   arcStart        String?

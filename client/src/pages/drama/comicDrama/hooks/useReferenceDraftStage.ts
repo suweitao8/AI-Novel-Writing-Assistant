@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getKnowledgeDocument } from "@/api/knowledge";
-import { previewChapterReferenceDraft } from "@/api/novel/chapters";
+import { previewChapterReferenceDraft, previewChapterReferenceExtract } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { splitReferenceChapters } from "@/pages/drama/comicDrama/hooks/referenceChapters";
+import { normalizeExtraction } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
 export { collectReferenceChapterTitles } from "@/pages/drama/comicDrama/hooks/referenceChapters";
 
@@ -115,24 +116,44 @@ export function useReferenceDraftStage(input: {
     input.onApplied();
   };
 
+  // 「解析」一键双任务：初稿（reference_draft）+ 资产提取（reference_extract）并行，
+  // 提取结果立即随章节持久化（不用也保存），初稿直接写入或进入替换确认。
   const parseMutation = useMutation({
     mutationFn: async () => {
       if (!chapter) {
         throw new Error("还没有章节。");
       }
-      return previewChapterReferenceDraft(input.novelId, chapter.id, trimmedReference);
+      const [draftResponse, extractResponse] = await Promise.all([
+        previewChapterReferenceDraft(input.novelId, chapter.id, trimmedReference),
+        previewChapterReferenceExtract(input.novelId, chapter.id, trimmedReference),
+      ]);
+      return { draftResponse, extractResponse };
     },
-    onSuccess: (response) => {
-      const draftText = response.data?.draftText ?? "";
+    onSuccess: ({ draftResponse, extractResponse }) => {
+      const draftText = draftResponse.data?.draftText ?? "";
+      const extraction = normalizeExtraction(extractResponse.data ?? null);
+      workspace.applyReferenceExtraction(JSON.stringify(extraction));
+
+      const stateChanges =
+        extraction.characters.filter((item) => item.stateLabel).length
+        + extraction.scenes.filter((item) => item.stateLabel).length
+        + extraction.props.filter((item) => item.stateLabel).length;
+      const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`
+        + (stateChanges > 0 ? `（${stateChanges} 项外观变化）` : "");
+
       if (!draftText.trim()) {
-        toast.error("AI 没有生成初稿，请重试。");
+        toast.error(`AI 没有生成初稿；提取完成：${extractSummary}。`);
         return;
       }
+      const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ 	]*分镜[：:]/.test(line)).length;
       if (workspace.expectationText.trim()) {
         setPendingDraft(draftText);
+        toast.success(`已提取：${extractSummary}。初稿待确认替换。`);
         return;
       }
-      applyDraft(draftText);
+      workspace.applyExpectationText(draftText);
+      toast.success(`初稿 ${shotCount} 个分镜；提取：${extractSummary}。`);
+      input.onApplied();
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请重试。"),
   });
