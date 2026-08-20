@@ -85,10 +85,19 @@ function DetailStates({ states }: { states: StoryAssetState[] | undefined }) {
       <p className="text-xs text-muted-foreground">外观状态（{states.length}）</p>
       <div className="space-y-1">
         {states.map((state) => (
-          <div key={state.id} className="rounded-lg bg-muted/40 px-3 py-1.5 text-xs leading-5">
-            <span className="font-medium text-foreground">{state.label}</span>
-            {state.chapterOrder ? <span className="text-muted-foreground">（第 {state.chapterOrder} 章）</span> : null}
-            {state.description ? <span className="block text-muted-foreground">{state.description}</span> : null}
+          <div key={state.id} className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs leading-5">
+            {state.image?.url ? (
+              <img
+                src={state.image.url}
+                alt={`${state.label} 状态图`}
+                className="h-12 w-[4.5rem] shrink-0 rounded-md border border-border object-cover"
+              />
+            ) : null}
+            <span className="min-w-0">
+              <span className="font-medium text-foreground">{state.label}</span>
+              {state.chapterOrder ? <span className="text-muted-foreground">（第 {state.chapterOrder} 章）</span> : null}
+              {state.description ? <span className="block text-muted-foreground">{state.description}</span> : null}
+            </span>
           </div>
         ))}
       </div>

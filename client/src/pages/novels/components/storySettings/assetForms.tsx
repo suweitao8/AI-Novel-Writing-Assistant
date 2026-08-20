@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { ImagePlus, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "@/components/ui/toast";
+import { generateStoryAssetStateImage } from "@/api/story/storySettings";
 import SelectControl from "@/components/common/SelectControl";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -105,16 +108,36 @@ export function newStateId(): string {
 // 外观状态编辑器（角色/场景/道具编辑弹窗共用）：同一资产随剧情变化的外观形态
 // （换装/受伤/昼夜/损坏…）。每个状态可配置生图参考方式——参考同一资产的另一个
 // 状态的图（典型：新状态参考上一状态，保持长相一致只换装/加伤），或不参考直接
-// 生成全新形象；后续生成状态图片时按这个配置取参考图（2026-08-20 用户要求的灵活配置）。
+// 生成全新形象；「生成图」按这个配置取参考图直接产出该状态的图（2026-08-20 用户
+// 要求的灵活配置，图片生成即时落库并回填缩略图）。
 export function AssetStatesEditor(props: {
   states: StoryAssetState[];
   onChange: (states: StoryAssetState[]) => void;
   kind: "character" | "scene" | "prop";
+  /** 编辑已有资产时传入；「生成图」需要它调用生成接口（新建未保存的资产还没有 id） */
+  asset?: { novelId: string; assetId: string };
 }) {
-  const { states, onChange, kind } = props;
+  const { states, onChange, kind, asset } = props;
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<StoryAssetState | null>(null);
   const showVoice = kind === "character";
+
+  const imageMutation = useMutation({
+    mutationFn: (stateId: string) => {
+      if (!asset) {
+        throw new Error("先保存资产，再生成状态图。");
+      }
+      return generateStoryAssetStateImage(asset.novelId, kind, asset.assetId, stateId);
+    },
+    onSuccess: async (response) => {
+      // 服务端把生成结果写进了 statesJson：用返回的 states 覆盖本地编辑态，
+      // 这样弹窗后续「保存」带回的就是含 image 字段的最新数据
+      const updated = response.data?.states ?? [];
+      onChange(updated);
+      toast.success("状态图已生成。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "状态图生成失败，请重试。"),
+  });
 
   const startCreate = () => {
     setEditingIndex(null);
@@ -170,21 +193,48 @@ export function AssetStatesEditor(props: {
       <div className="space-y-1.5">
         {states.map((state) => (
           <div key={state.id} className="flex items-start justify-between gap-2 rounded-md bg-muted/40 px-2.5 py-2">
-            <div className="min-w-0">
-              <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
-                {state.label}
-                {state.chapterOrder ? <span className="text-[11px] text-muted-foreground">第{state.chapterOrder}章</span> : null}
-                <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-normal text-amber-600 dark:text-amber-400">
-                  {state.referenceStateId
-                    ? `参考：${states.find((item) => item.id === state.referenceStateId)?.label ?? "已删除"}`
-                    : "不参考"}
-                </span>
-              </p>
-              <p className="truncate text-xs leading-5 text-muted-foreground" title={[state.description, state.imagePrompt].filter(Boolean).join("\n")}>
-                {state.description}
-              </p>
+            <div className="flex min-w-0 items-start gap-2">
+              {state.image?.url ? (
+                <img
+                  src={state.image.url}
+                  alt={`${state.label} 状态图`}
+                  className="h-10 w-14 shrink-0 rounded-md border border-border object-cover"
+                />
+              ) : null}
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
+                  {state.label}
+                  {state.chapterOrder ? <span className="text-[11px] text-muted-foreground">第{state.chapterOrder}章</span> : null}
+                  <span className="rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-normal text-amber-600 dark:text-amber-400">
+                    {state.referenceStateId
+                      ? `参考：${states.find((item) => item.id === state.referenceStateId)?.label ?? "已删除"}`
+                      : "不参考"}
+                  </span>
+                </p>
+                <p className="truncate text-xs leading-5 text-muted-foreground" title={[state.description, state.imagePrompt].filter(Boolean).join("\n")}>
+                  {state.description}
+                </p>
+              </div>
             </div>
             <div className="flex shrink-0 gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                aria-label={state.image?.url ? "重新生成状态图" : "生成状态图"}
+                title={state.image?.url ? "重新生成状态图" : "生成状态图（按生图参考配置取参考图）"}
+                disabled={!asset || imageMutation.isPending || draft !== null}
+                onClick={() => imageMutation.mutate(state.id)}
+              >
+                {imageMutation.isPending && imageMutation.variables === state.id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : state.image?.url ? (
+                  <RefreshCw className="h-3 w-3" />
+                ) : (
+                  <ImagePlus className="h-3 w-3" />
+                )}
+              </Button>
               <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label="编辑状态" disabled={draft !== null} onClick={() => startEdit(states.indexOf(state))}>
                 <Pencil className="h-3 w-3" />
               </Button>

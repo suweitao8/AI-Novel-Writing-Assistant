@@ -1,4 +1,5 @@
 import type { Router } from "express";
+import fs from "fs";
 import { z } from "zod";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { validate } from "../../../../middleware/validate";
@@ -6,6 +7,7 @@ import {
   storySettingsService,
   type StorySettingsCategory,
 } from "../application/StorySettingsService";
+import { storyAssetStateImageService } from "../application/StoryAssetStateImageService";
 import { worldMapService } from "../application/WorldMapService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 
@@ -17,6 +19,17 @@ const characterParams = z.object({ id: z.string().trim().min(1), characterId: z.
 const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 
 // 资产外观状态：初始 + 换装/受伤/昼夜/损坏等变化态（生图/配音提示词随状态走）。
+// image 是「生成图」按钮写入的产物（服务端生成后随 statesJson 持久化），客户端
+// 保存时原样带回——schema 必须放行，否则编辑弹窗一保存就把已生成的图丢掉。
+const assetStateImageSchema = z.object({
+  status: z.enum(["idle", "generating", "done", "error"]),
+  url: z.string().max(600).optional(),
+  prompt: z.string().max(2400).optional(),
+  provider: z.string().max(60).optional(),
+  generatedAt: z.string().max(60).optional(),
+  error: z.string().max(600).optional(),
+});
+
 const assetStateSchema = z.object({
   id: z.string().trim().min(1).max(60),
   label: z.string().trim().min(1).max(24),
@@ -26,6 +39,7 @@ const assetStateSchema = z.object({
   chapterOrder: z.number().int().min(0).max(9999).optional(),
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),
+  image: assetStateImageSchema.optional(),
 }).strict();
 
 const characterUpdateSchema = z.object({
@@ -407,6 +421,71 @@ export function registerStorySettingsRoutes(router: Router): void {
       next(error);
     }
   });
+
+  // 状态图片生成：按状态的 referenceStateId 配置取同一资产另一状态的图当参考；
+  // 返回更新后的资产（与列表接口同形），前端据此刷新缓存与编辑弹窗里的缩略图。
+  router.post(
+    "/:id/settings/characters/:characterId/states/:stateId/generate-image",
+    validate({ params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, characterId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.generateStateImage(id, "character", characterId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/scenes/:sceneId/states/:stateId/generate-image",
+    validate({ params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, sceneId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.generateStateImage(id, "scene", sceneId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/props/:propId/states/:stateId/generate-image",
+    validate({ params: z.object({ id: novelParams.shape.id, propId: propParams.shape.propId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, propId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.generateStateImage(id, "prop", propId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /** GET /api/novels/:id/settings/state-images/:stateId —— 状态图文件（长缓存，内容寻址靠覆盖清理） */
+  router.get(
+    "/:id/settings/state-images/:stateId",
+    validate({ params: z.object({ id: novelParams.shape.id, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { stateId } = req.params as Record<string, string>;
+        const resolved = await storyAssetStateImageService.resolveStateImagePath(stateId);
+        if (!resolved) {
+          res.status(404).json({ success: false, message: "该状态还没有生成图片。" });
+          return;
+        }
+        res.setHeader("Content-Type", resolved.mimeType);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        fs.createReadStream(resolved.filePath).pipe(res);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   // 短篇设定确认：放行生产任务并立即调度（调度放在路由层，避免 story-settings 与 short-story 模块循环依赖）。
   router.post("/:id/settings/confirm", validate({ params: novelParams }), async (req, res, next) => {
