@@ -48,7 +48,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
             {allSelected ? "取消全选" : "全选"}
           </Button>
         </div>
-        <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
           {items.map((item, index) => {
             const key = stage.itemKey(group, index);
             const isSelected = selected.has(key);
@@ -60,7 +60,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
                 aria-pressed={isSelected}
                 onClick={() => stage.toggleSelected(key)}
                 className={cn(
-                  "flex min-w-0 items-start gap-2.5 rounded-xl border p-3 text-left transition-colors",
+                  "relative min-w-0 rounded-xl border p-3.5 text-left transition-colors",
                   isSelected
                     ? "border-primary/60 bg-primary/5"
                     : "border-border/70 bg-background hover:border-primary/30",
@@ -68,22 +68,20 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               >
                 <span
                   className={cn(
-                    "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border",
-                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border",
+                    "absolute right-2.5 top-2.5 flex h-4 w-4 items-center justify-center rounded-full border",
+                    isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background",
                   )}
                   aria-hidden="true"
                 >
                   {isSelected ? <Check className="h-3 w-3" /> : null}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex flex-wrap items-center gap-1.5">
-                    <span className="truncate text-sm font-medium text-foreground">{item.name}</span>
-                    {group === "characters" && character.role ? (
-                      <Badge variant="outline" className="shrink-0">{character.role}</Badge>
-                    ) : null}
-                  </span>
-                  <span className="mt-1 block text-xs leading-5 text-muted-foreground">{item.description}</span>
+                <span className="flex min-w-0 flex-wrap items-center gap-1.5 pr-6">
+                  <span className="truncate text-sm font-semibold text-foreground">{item.name}</span>
+                  {group === "characters" && character.role ? (
+                    <Badge variant="outline" className="shrink-0">{character.role}</Badge>
+                  ) : null}
                 </span>
+                <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{item.description}</span>
               </button>
             );
           })}

@@ -83,6 +83,10 @@ export function useReferenceExtractStage(input: {
       const next = normalizeExtraction(response.data ?? EMPTY_EXTRACTION);
       persist(next);
       const count = next.characters.length + next.scenes.length + next.worldview.length;
+      if (count === 0) {
+        toast.error("没有提取到内容。");
+        return;
+      }
       toast.success(`已提取 ${count} 条：角色 ${next.characters.length}、场景 ${next.scenes.length}、世界观 ${next.worldview.length}。`);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "提取失败，请重试。"),
