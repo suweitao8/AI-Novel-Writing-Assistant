@@ -19,37 +19,18 @@ import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
+import {
+  CharacterAssetFormFields,
+  EMPTY_CHARACTER_FORM,
+  type CharacterAssetFormState,
+} from "./assetForms";
 
 interface SettingsCharactersTabProps {
   novelId: string;
   onChanged?: () => void | Promise<void>;
 }
 
-interface CharacterFormState {
-  name: string;
-  role: string;
-  gender: string;
-  ageGroup: string;
-  physique: string;
-  attireStyle: string;
-  facePrompt: string;
-  personality: string;
-  appearance: string;
-  background: string;
-}
-
-const EMPTY_FORM: CharacterFormState = {
-  name: "",
-  role: "",
-  gender: "unknown",
-  ageGroup: "",
-  physique: "",
-  attireStyle: "",
-  facePrompt: "",
-  personality: "",
-  appearance: "",
-  background: "",
-};
+type CharacterFormState = CharacterAssetFormState;
 
 const AGE_GROUP_LABELS: Record<string, string> = {
   child: "少年/儿童",
@@ -69,7 +50,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<CharacterFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<CharacterFormState>(EMPTY_CHARACTER_FORM);
   const [hint, setHint] = useState("");
 
   const charactersQuery = useQuery({
@@ -96,6 +77,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         physique: form.physique.trim() || undefined,
         attireStyle: form.attireStyle.trim() || undefined,
         facePrompt: form.facePrompt.trim() || undefined,
+        voiceTexture: form.voiceTexture.trim() || undefined,
         personality: form.personality.trim() || undefined,
         appearance: form.appearance.trim() || undefined,
         background: form.background.trim() || undefined,
@@ -130,6 +112,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         physique: draft.physique ?? "",
         attireStyle: draft.attireStyle ?? "",
         facePrompt: draft.facePrompt ?? "",
+        voiceTexture: "",
         personality: draft.personality ?? "",
         appearance: draft.appearance ?? "",
         background: draft.background ?? "",
@@ -166,7 +149,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_CHARACTER_FORM);
     setHint("");
   };
 
@@ -182,6 +165,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       physique: character.physique ?? "",
       attireStyle: character.attireStyle ?? "",
       facePrompt: character.facePrompt ?? "",
+      voiceTexture: character.voiceTexture ?? "",
       personality: character.personality ?? "",
       appearance: character.appearance ?? "",
       background: character.background ?? "",
@@ -338,79 +322,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                 </p>
               </div>
             ) : null}
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">姓名</span>
-                <Input value={form.name} onChange={(event) => updateField({ name: event.target.value })} />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">身份定位</span>
-                <Input
-                  value={form.role}
-                  placeholder="例如：主角 / 对手 / 师父"
-                  onChange={(event) => updateField({ role: event.target.value })}
-                />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">性别</span>
-                <SelectControl
-                  className="h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.gender}
-                  onChange={(event) => updateField({ gender: event.target.value })}
-                >
-                  <option value="unknown">未设定</option>
-                  <option value="male">男</option>
-                  <option value="female">女</option>
-                  <option value="other">其他</option>
-                </SelectControl>
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">年龄段</span>
-                <SelectControl
-                  className="h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.ageGroup}
-                  onChange={(event) => updateField({ ageGroup: event.target.value })}
-                >
-                  <option value="">未设定</option>
-                  <option value="child">少年/儿童</option>
-                  <option value="youth">青年</option>
-                  <option value="middle">中年</option>
-                  <option value="elder">老年</option>
-                </SelectControl>
-              </label>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">体型</span>
-              <Input
-                value={form.physique}
-                placeholder="例如：高瘦 / 娇小 / 壮实"
-                onChange={(event) => updateField({ physique: event.target.value })}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">性格（说话方式与行动倾向）</span>
-              <Input value={form.personality} onChange={(event) => updateField({ personality: event.target.value })} />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">外貌</span>
-              <Input value={form.appearance} onChange={(event) => updateField({ appearance: event.target.value })} />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">默认着装</span>
-              <Input value={form.attireStyle} onChange={(event) => updateField({ attireStyle: event.target.value })} />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">面部锚点（生成角色立绘时使用）</span>
-              <Input
-                value={form.facePrompt}
-                placeholder="性别、年龄段、发型发色、眼睛、肤色、脸型；不要写服装"
-                onChange={(event) => updateField({ facePrompt: event.target.value })}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">背景</span>
-              <Input value={form.background} onChange={(event) => updateField({ background: event.target.value })} />
-            </label>
+            <CharacterAssetFormFields value={form} onChange={updateField} />
           </div>
         </AppDialogContent>
       </Dialog>

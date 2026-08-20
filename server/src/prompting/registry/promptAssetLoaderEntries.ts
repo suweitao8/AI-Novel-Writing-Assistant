@@ -42,7 +42,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterReferenceDraft.prompts").chapterReferenceDraftPrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_extract@v3",
+    key: "novel.chapter.reference_extract@v4",
     load: () => require("../prompts/novel/chapterReferenceExtract.prompts").chapterReferenceExtractPrompt as UnknownPromptAsset,
   },
   {

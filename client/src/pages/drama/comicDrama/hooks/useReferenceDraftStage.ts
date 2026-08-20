@@ -134,12 +134,7 @@ export function useReferenceDraftStage(input: {
       const extraction = normalizeExtraction(extractResponse.data ?? null);
       workspace.applyReferenceExtraction(JSON.stringify(extraction));
 
-      const stateChanges =
-        extraction.characters.filter((item) => item.stateLabel).length
-        + extraction.scenes.filter((item) => item.stateLabel).length
-        + extraction.props.filter((item) => item.stateLabel).length;
-      const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`
-        + (stateChanges > 0 ? `（${stateChanges} 项外观变化）` : "");
+      const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`;
 
       if (!draftText.trim()) {
         toast.error(`AI 没有生成初稿；提取完成：${extractSummary}。`);

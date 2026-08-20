@@ -20,6 +20,7 @@ import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
+import { EMPTY_PROP_FORM, PropAssetFormFields, type PropAssetFormState } from "./assetForms";
 import { cn } from "@/lib/utils";
 
 interface SettingsPropsTabProps {
@@ -27,27 +28,7 @@ interface SettingsPropsTabProps {
   onChanged?: () => void | Promise<void>;
 }
 
-interface PropFormState {
-  name: string;
-  propType: string;
-  description: string;
-  plotFunction: string;
-  visualPrompt: string;
-  ownerCharacterId: string;
-  importance: string;
-  firstAppearHint: string;
-}
-
-const EMPTY_FORM: PropFormState = {
-  name: "",
-  propType: "object",
-  description: "",
-  plotFunction: "",
-  visualPrompt: "",
-  ownerCharacterId: "",
-  importance: "major",
-  firstAppearHint: "",
-};
+type PropFormState = PropAssetFormState;
 
 const IMPORTANCE_LABELS: Record<string, string> = {
   core: "核心",
@@ -68,7 +49,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<PropFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
   const [hint, setHint] = useState("");
 
   const propsQuery = useQuery({
@@ -173,7 +154,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_PROP_FORM);
     setHint("");
   };
 
@@ -333,87 +314,11 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                 </AiButton>
               </div>
             ) : null}
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">道具名</span>
-              <Input
-                value={form.name}
-                placeholder="例如：外婆留下的怀表"
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">外观 / 来历</span>
-              <Input
-                value={form.description}
-                onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">剧情功能</span>
-              <Input
-                value={form.plotFunction}
-                placeholder="用于什么转折、伏笔或兑现"
-                onChange={(event) => setForm((prev) => ({ ...prev, plotFunction: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">视觉提示词（生成道具图时使用）</span>
-              <Input
-                value={form.visualPrompt}
-                placeholder="材质、工艺、尺寸、色泽、纹饰"
-                onChange={(event) => setForm((prev) => ({ ...prev, visualPrompt: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">道具类型</span>
-              <SelectControl
-                className="h-9 rounded-md border bg-background px-2 text-sm"
-                value={form.propType}
-                onChange={(event) => setForm((prev) => ({ ...prev, propType: event.target.value }))}
-              >
-                <option value="weapon">兵器</option>
-                <option value="accessory">饰品</option>
-                <option value="artifact">法器/神器</option>
-                <option value="document">文书</option>
-                <option value="furniture">家具</option>
-                <option value="object">其他</option>
-              </SelectControl>
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">持有者</span>
-                <SelectControl
-                  className="h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.ownerCharacterId}
-                  onChange={(event) => setForm((prev) => ({ ...prev, ownerCharacterId: event.target.value }))}
-                >
-                  <option value="">未指定</option>
-                  {characters.map((character) => (
-                    <option key={character.id} value={character.id}>{character.name}</option>
-                  ))}
-                </SelectControl>
-              </label>
-              <label className="block space-y-1">
-                <span className="text-sm font-medium">重要度</span>
-                <SelectControl
-                  className="h-9 rounded-md border bg-background px-2 text-sm"
-                  value={form.importance}
-                  onChange={(event) => setForm((prev) => ({ ...prev, importance: event.target.value }))}
-                >
-                  <option value="core">核心</option>
-                  <option value="major">重要</option>
-                  <option value="minor">次要</option>
-                </SelectControl>
-              </label>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">首次登场提示</span>
-              <Input
-                value={form.firstAppearHint}
-                placeholder="它应该在哪一段先出现"
-                onChange={(event) => setForm((prev) => ({ ...prev, firstAppearHint: event.target.value }))}
-              />
-            </label>
+            <PropAssetFormFields
+              value={form}
+              onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
+              characters={characters.map((character) => ({ id: character.id, name: character.name }))}
+            />
           </div>
         </AppDialogContent>
       </Dialog>
