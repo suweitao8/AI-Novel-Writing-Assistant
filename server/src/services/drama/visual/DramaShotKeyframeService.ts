@@ -58,10 +58,24 @@ interface ShotKeyframeSource {
   storyboard: {
     project: {
       id: string;
+      source: string;
+      sourceRef?: string | null;
       characters: CharacterLite[];
       visualStyle?: string | null;
     };
   };
+}
+
+interface SceneSettingLite {
+  name: string;
+  environmentPrompt: string | null;
+  summary: string | null;
+}
+
+interface PropSettingLite {
+  name: string;
+  visualPrompt: string | null;
+  description: string | null;
 }
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
@@ -202,13 +216,99 @@ function buildCharacterPromptLine(character: CharacterLite): string {
   ].filter(Boolean).join("; ");
 }
 
-function buildShotKeyframePrompt(shot: ShotKeyframeSource, styleLines: string[]): string {
+// 设定中心 → 首帧生图接线：novel_import 项目按「名字对应」把设定中心的场景环境
+// 提示词与道具画面提示词带进镜头提示词（场景按 location 匹配，道具按镜头文本出现
+// 的道具名匹配）。没有对应设定时不添加任何行，生图行为与接线前一致。
+async function resolveNovelSettingSources(project: { source: string; sourceRef?: string | null }): Promise<{
+  scenes: SceneSettingLite[];
+  props: PropSettingLite[];
+}> {
+  if (project.source !== "novel_import" || !project.sourceRef?.trim()) {
+    return { scenes: [], props: [] };
+  }
+  const novelId = project.sourceRef.trim();
+  const [scenes, props] = await Promise.all([
+    prisma.novelScene.findMany({
+      where: { novelId },
+      select: { name: true, environmentPrompt: true, summary: true },
+    }),
+    prisma.novelProp.findMany({
+      where: { novelId },
+      select: { name: true, visualPrompt: true, description: true },
+    }),
+  ]);
+  return { scenes, props };
+}
+
+function matchSceneByName(scenes: SceneSettingLite[], location: string | null | undefined): SceneSettingLite | null {
+  const target = location?.trim();
+  if (!target || scenes.length === 0) {
+    return null;
+  }
+  const exact = scenes.find((scene) => scene.name.trim() === target);
+  if (exact) {
+    return exact;
+  }
+  // location 可能带修饰（如「废弃地铁站·站台」）：取名字被包含的最长场景，避免短名误吞长名
+  const contained = scenes
+    .filter((scene) => target.includes(scene.name.trim()))
+    .sort((left, right) => right.name.trim().length - left.name.trim().length)[0];
+  return contained ?? null;
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function matchPropsInShotText(props: PropSettingLite[], shot: ShotKeyframeSource): PropSettingLite[] {
+  if (props.length === 0) {
+    return [];
+  }
+  const haystack = [shot.location, shot.action, shot.dialogue, shot.visualPrompt]
+    .filter(Boolean)
+    .join("\n");
+  // 与脚本页「名字对应」同一约定：名字前后不能紧贴其他文字，避免「刀」匹配「刀光剑影」
+  return props.filter((prop) => {
+    const name = prop.name.trim();
+    if (!name) {
+      return false;
+    }
+    const pattern = new RegExp(`(?<![\\p{L}\\p{N}])${escapeRegExp(name)}(?![\\p{L}\\p{N}])`, "u");
+    return pattern.test(haystack);
+  });
+}
+
+function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] }): string[] {
+  const lines: string[] = [];
+  const scene = matchSceneByName(settings.scenes, shot.location);
+  if (scene) {
+    const environment = scene.environmentPrompt?.trim() || scene.summary?.trim();
+    if (environment) {
+      lines.push(`scene environment: ${environment}`);
+    }
+  }
+  const matchedProps = matchPropsInShotText(settings.props, shot);
+  if (matchedProps.length > 0) {
+    lines.push(`props: ${matchedProps
+      .map((prop) => `${prop.name} (${prop.visualPrompt?.trim() || prop.description?.trim() || ""})`)
+      .filter((entry) => !entry.endsWith("()"))
+      .join(" | ")}`);
+  }
+  return lines;
+}
+
+function buildShotKeyframePrompt(
+  shot: ShotKeyframeSource,
+  styleLines: string[],
+  settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] },
+): string {
   const characters = selectReferencedCharacters(shot).map(buildCharacterPromptLine);
   const lines = [
     ...styleLines,
     "single decisive first frame for image-to-video generation",
     "clean composition, strong subject focus",
     shot.location ? `location: ${shot.location}` : "",
+    ...buildSettingPromptLines(shot, settings),
     shot.shotSize ? `shot size: ${shot.shotSize}` : "",
     shot.cameraMove ? `camera movement intention: ${shot.cameraMove}` : "",
     `screen action: ${shot.action}`,
@@ -244,9 +344,11 @@ export class DramaShotKeyframeService {
       visualStyle: shot.storyboard.project.visualStyle,
       sourceRef: shot.storyboard.project.sourceRef,
     });
+    const settings = await resolveNovelSettingSources(shot.storyboard.project);
     const prompt = buildShotKeyframePrompt(
       shot,
       buildKeyframeStylePromptLines(styleContext.universal, styleContext.specific),
+      settings,
     );
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",

@@ -337,11 +337,6 @@ export type DramaProjectDetail = DramaProject & {
   batchJobs?: DramaBatchJob[];
 }
 
-export async function listDramaProjects() {
-  const { data } = await apiClient.get<ApiResponse<DramaProject[]>>("/drama/projects");
-  return data;
-}
-
 export interface DramaVisualStyle {
   id: string;
   label: string;
@@ -375,17 +370,6 @@ export async function getDramaProject(id: string) {
 
 export async function assembleDramaSourceBundle(id: string) {
   const { data } = await apiClient.post<ApiResponse<unknown>>(`/drama/projects/${id}/source-bundle`, {});
-  return data;
-}
-
-export async function recommendDramaTrack(payload: {
-  title: string;
-  sourceType: DramaSourceType;
-  sourceDigest?: string;
-  theme?: string;
-  targetEpisodes?: number;
-}) {
-  const { data } = await apiClient.post<ApiResponse<DramaTrackRecommendation>>("/drama/track-recommendation", payload);
   return data;
 }
 
@@ -433,14 +417,6 @@ export async function reviewDramaEpisode(id: string, order: number, payload: Dra
   return data;
 }
 
-export async function checkDramaEpisodeCompliance(id: string, order: number, payload: DramaLLMOptions = {}) {
-  const { data } = await apiClient.post<ApiResponse<DramaComplianceReport>>(
-    `/drama/projects/${id}/episodes/${order}/compliance`,
-    payload,
-  );
-  return data;
-}
-
 export async function checkDramaProjectCompliance(id: string, payload: DramaLLMOptions = {}) {
   const { data } = await apiClient.post<ApiResponse<DramaComplianceBatchResult>>(
     `/drama/projects/${id}/compliance`,
@@ -453,11 +429,6 @@ export async function repairDramaEpisode(id: string, order: number, payload: Dra
   instruction?: string;
 } = {}) {
   const { data } = await apiClient.post<ApiResponse<unknown>>(`/drama/projects/${id}/episodes/${order}/repair`, payload);
-  return data;
-}
-
-export async function listDramaCharacters(id: string) {
-  const { data } = await apiClient.get<ApiResponse<unknown[]>>(`/drama/projects/${id}/characters`);
   return data;
 }
 
@@ -490,11 +461,6 @@ export async function importDramaCharacterFromLibrary(id: string, libraryId: str
 
 export async function generateDramaStoryboard(id: string, order: number, payload: DramaLLMOptions = {}) {
   const { data } = await apiClient.post<ApiResponse<unknown>>(`/drama/projects/${id}/episodes/${order}/storyboard`, payload);
-  return data;
-}
-
-export async function getDramaStoryboard(storyboardId: string) {
-  const { data } = await apiClient.get<ApiResponse<unknown>>(`/drama/storyboards/${storyboardId}`);
   return data;
 }
 
@@ -667,13 +633,6 @@ export async function downloadDramaEpisodeExport(id: string, order: number, form
 // 角色图片生成
 // ─────────────────────────────────────────────────────────────────────────────
 
-export async function getDramaCharacterImageStatus(id: string, characterId: string) {
-  const { data } = await apiClient.get<ApiResponse<{ portrait: DramaCharacterPortraitData; threeView: DramaCharacterThreeViewItem[] }>>(
-    `/drama/projects/${id}/characters/${characterId}/image-status`,
-  );
-  return data;
-}
-
 /** 生成角色设计稿（面部特写 + 四视图合图，推荐使用） */
 export async function prepareDramaCharacterSheet(
   id: string,
@@ -696,24 +655,6 @@ export async function generateDramaCharacterSheet(
   const { data } = await apiClient.post<ApiResponse<DramaCharacterPortraitData>>(
     `/drama/projects/${id}/characters/${characterId}/generate-character-sheet`,
     { ...(provider ? { provider } : {}), ...(overrides ?? {}) },
-  );
-  return data;
-}
-
-/** @deprecated 使用 generateDramaCharacterSheet 替代 */
-export async function generateDramaCharacterPortrait(
-  id: string,
-  characterId: string,
-  provider?: string,
-  overrides?: ImageGenerationOverrides,
-) {
-  return generateDramaCharacterSheet(id, characterId, provider, overrides);
-}
-
-export async function generateDramaCharacterThreeView(id: string, characterId: string, provider?: string) {
-  const { data } = await apiClient.post<ApiResponse<DramaCharacterThreeViewItem[]>>(
-    `/drama/projects/${id}/characters/${characterId}/generate-three-view`,
-    provider ? { provider } : {},
   );
   return data;
 }
