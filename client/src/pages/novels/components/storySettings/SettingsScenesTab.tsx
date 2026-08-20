@@ -19,21 +19,14 @@ import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
+import { EMPTY_SCENE_FORM, SceneAssetFormFields, type SceneAssetFormState } from "./assetForms";
 
 interface SettingsScenesTabProps {
   novelId: string;
   onChanged?: () => void | Promise<void>;
 }
 
-interface SceneFormState {
-  name: string;
-  sceneType: string;
-  summary: string;
-  environmentPrompt: string;
-  significance: string;
-}
-
-const EMPTY_FORM: SceneFormState = { name: "", sceneType: "", summary: "", environmentPrompt: "", significance: "" };
+type SceneFormState = SceneAssetFormState;
 
 const SCENE_TYPE_LABELS: Record<string, string> = {
   interior: "室内",
@@ -45,7 +38,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<SceneFormState>(EMPTY_FORM);
+  const [form, setForm] = useState<SceneFormState>(EMPTY_SCENE_FORM);
   const [hint, setHint] = useState("");
 
   const scenesQuery = useQuery({
@@ -136,7 +129,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
-    setForm(EMPTY_FORM);
+    setForm(EMPTY_SCENE_FORM);
     setHint("");
   };
 
@@ -281,53 +274,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
                 </AiButton>
               </div>
             ) : null}
-            <div className="grid grid-cols-2 gap-3">
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">场景名</span>
-              <Input
-                value={form.name}
-                placeholder="例如：废弃地铁站"
-                onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">场景类型</span>
-              <SelectControl
-                className="h-9 rounded-md border bg-background px-2 text-sm"
-                value={form.sceneType}
-                onChange={(event) => setForm((prev) => ({ ...prev, sceneType: event.target.value }))}
-              >
-                <option value="">未设定</option>
-                <option value="interior">室内</option>
-                <option value="exterior">室外</option>
-                <option value="nature">自然</option>
-              </SelectControl>
-            </label>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">氛围 / 环境描述</span>
-              <Input
-                value={form.summary}
-                placeholder="这个地方长什么样、有什么感觉"
-                onChange={(event) => setForm((prev) => ({ ...prev, summary: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">环境提示词（生成场景图时使用）</span>
-              <Input
-                value={form.environmentPrompt}
-                placeholder="正面/左右/背面的可见布局、光源、材质风格"
-                onChange={(event) => setForm((prev) => ({ ...prev, environmentPrompt: event.target.value }))}
-              />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-sm font-medium">故事作用</span>
-              <Input
-                value={form.significance}
-                placeholder="为什么故事要在这里发生"
-                onChange={(event) => setForm((prev) => ({ ...prev, significance: event.target.value }))}
-              />
-            </label>
+            <SceneAssetFormFields value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} />
           </div>
         </AppDialogContent>
       </Dialog>
