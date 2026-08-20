@@ -97,11 +97,18 @@ export interface WorldMapData {
   childMaps: Record<string, WorldMapData>;
 }
 
+export interface StorySettingsArtStyle {
+  label: string;
+  prompt: string;
+}
+
 export interface StorySettingsWorld {
   premise: string;
   era: string | null;
   toneRules: string[];
   keySettings: Array<{ title: string; content: string }>;
+  artStyles: StorySettingsArtStyle[];
+  defaultArtStyle: string | null;
   map: WorldMapData;
   source: string;
   updatedAt: string;
@@ -277,6 +284,8 @@ export async function updateStorySettingsWorld(
     era?: string | null;
     toneRules?: string[];
     keySettings?: Array<{ title: string; content: string }>;
+    artStyles?: Array<{ label: string; prompt?: string }>;
+    defaultArtStyle?: string | null;
     map?: WorldMapData;
   },
 ) {

@@ -102,6 +102,11 @@ const worldUpdateSchema = z.object({
     title: z.string().trim().min(1).max(60),
     content: z.string().trim().min(1).max(1000),
   }).strict()).max(12).optional(),
+  artStyles: z.array(z.object({
+    label: z.string().trim().min(1).max(20),
+    prompt: z.string().trim().max(500).optional(),
+  }).strict()).max(12).optional(),
+  defaultArtStyle: z.string().trim().min(1).max(40).nullable().optional(),
   map: worldMapUpdateSchema.optional(),
 });
 

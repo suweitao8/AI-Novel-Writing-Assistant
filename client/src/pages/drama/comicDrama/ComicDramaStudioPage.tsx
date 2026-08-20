@@ -19,9 +19,8 @@ import {
   createDramaProject,
   getDramaVisualStyles,
   setDramaVisualStyle,
-  type DramaVisualStyle,
 } from "@/api/media/drama";
-import { getStorySettingsOverview } from "@/api/story/storySettings";
+import { getStorySettingsOverview, getStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,6 +32,7 @@ import SettingsCharactersTab from "@/pages/novels/components/storySettings/Setti
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import SettingsWorldTab from "@/pages/novels/components/storySettings/SettingsWorldTab";
+import ArtStylePanel from "@/pages/drama/comicDrama/components/ArtStylePanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
@@ -46,14 +46,14 @@ import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/dram
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·世界地图·通用）。
+// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·世界地图·美术风格·通用）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
 type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
-// 「设定」的子页签：世界观（条目式关键设定）/ 世界地图 / 通用（参考小说与项目配置）。
-type SettingsTab = "world" | "map" | "general";
+// 「设定」的子页签：世界观（条目式关键设定）/ 世界地图 / 美术风格 / 通用（参考小说与项目配置）。
+type SettingsTab = "world" | "map" | "style" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
   current: "当前",
@@ -79,6 +79,7 @@ const ASSET_TAB_LABELS: Record<AssetTab, string> = {
 const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   world: "世界观",
   map: "世界地图",
+  style: "美术风格",
   general: "通用",
 };
 
@@ -112,6 +113,13 @@ export default function ComicDramaStudioPage() {
     enabled: Boolean(novelId),
   });
   const settingsOverview = settingsOverviewQuery.data?.data ?? null;
+  // 小说级默认美术风格：创建分镜项目与首帧图的基准画风来源（「设定 · 美术风格」页签维护）。
+  const worldSettingsQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsWorld(novelId),
+    queryFn: () => getStorySettingsWorld(novelId),
+    enabled: Boolean(novelId),
+  });
+  const novelDefaultArtStyle = worldSettingsQuery.data?.data?.defaultArtStyle ?? null;
   const invalidateStorySettings = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(novelId) }),
@@ -137,6 +145,7 @@ export default function ComicDramaStudioPage() {
     novelTitle: overview?.novel.title ?? "",
     drama: overview?.drama ?? null,
     chapterCount: overview?.novel.chapterCount ?? 0,
+    novelDefaultStyleId: novelDefaultArtStyle,
   });
 
   const directorTask = overview?.novel.directorTask ?? null;
@@ -348,6 +357,7 @@ export default function ComicDramaStudioPage() {
                 <TabsList>
                   <TabsTrigger value="world">{SETTINGS_TAB_LABELS.world}</TabsTrigger>
                   <TabsTrigger value="map">{SETTINGS_TAB_LABELS.map}</TabsTrigger>
+                  <TabsTrigger value="style">{SETTINGS_TAB_LABELS.style}</TabsTrigger>
                   <TabsTrigger value="general">{SETTINGS_TAB_LABELS.general}</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -409,10 +419,24 @@ export default function ComicDramaStudioPage() {
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
               <WorldMapPanel novelId={novelId} onChanged={invalidateStorySettings} />
             </section>
+          ) : settingsTab === "style" ? (
+            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+              <ArtStylePanel
+                novelId={novelId}
+                styleOptions={storyboard.styleOptions}
+                onApplyProjectStyle={(styleId) => {
+                  // 已有分镜项目时默认风格同步生效；自定义风格名不是预设 id，不推送（首帧图按预设解析）。
+                  if (overview?.drama && storyboard.styleOptions.some((style) => style.id === styleId)) {
+                    storyboard.styleMutation.mutate(styleId);
+                  }
+                }}
+                onChanged={invalidateStorySettings}
+              />
+            </section>
           ) : (
             <>
               <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
-              <ProjectSettingsSection drama={overview.drama} storyboard={storyboard} />
+              <ProjectSettingsSection drama={overview.drama} />
             </>
           )}
         </TabsContent>
@@ -486,13 +510,14 @@ function SubTabRow(props: { children: ReactNode }) {
   );
 }
 
-// 分镜管线共享状态：画面风格选择（「设定」页签用）、创建分镜项目、章节自动同步。
+// 分镜管线共享状态：美术风格选择（「设定 · 美术风格」页签维护默认）、创建分镜项目、章节自动同步。
 // 顶栏按钮与内容区共用同一份 mutation，避免两处状态漂移。
 function useStoryboardStage(input: {
   novelId: string;
   novelTitle: string;
   drama: ComicDramaLinkStats | null;
   chapterCount: number;
+  novelDefaultStyleId: string | null;
 }) {
   const queryClient = useQueryClient();
   const [selectedStyle, setSelectedStyle] = useState<string>("");
@@ -501,7 +526,16 @@ function useStoryboardStage(input: {
     queryFn: () => getDramaVisualStyles(),
   });
   const styleOptions = stylesQuery.data?.data ?? [];
-  const effectiveStyleId = selectedStyle || input.drama?.visualStyle || "post_apocalyptic";
+  // 生效优先级：手动选择 > 已有分镜项目的风格 > 小说默认风格 > 内置默认（预设列表第一项）。
+  // 分镜项目的 visualStyle 只认内置预设 id——小说默认是自定义风格名时退到内置默认，
+  // 自定义风格只通过初稿【风格：…】标记生效。
+  const novelDefaultIsPreset = Boolean(input.novelDefaultStyleId)
+    && styleOptions.some((style) => style.id === input.novelDefaultStyleId);
+  const effectiveStyleId = selectedStyle
+    || input.drama?.visualStyle
+    || (novelDefaultIsPreset ? input.novelDefaultStyleId : null)
+    || styleOptions[0]?.id
+    || "unreal_cinematic_3d";
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.overview(input.novelId) });
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.links([input.novelId]) });
@@ -538,7 +572,7 @@ function useStoryboardStage(input: {
     },
     onSuccess: async () => {
       await invalidate();
-      toast.success("画面风格已更新，之后生成的首帧图与角色图会使用新风格。");
+      toast.success("美术风格已更新，之后生成的首帧图与角色图会使用新风格。");
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "更新风格失败，请重试。"),
   });
@@ -559,42 +593,14 @@ function useStoryboardStage(input: {
   return { styleOptions, effectiveStyleId, selectedStyle, setSelectedStyle, styleMutation, createMutation, syncMutation };
 }
 
-type StoryboardStage = ReturnType<typeof useStoryboardStage>;
-
-// 「设定 · 通用」页签：项目级配置。画面风格影响首帧图与角色形象的整体渲染，
-// 在创建分镜项目前选择会被记住并在创建时生效。
+// 「设定 · 通用」页签：项目级配置。整本画风在「美术风格」页签设置，这里看分镜项目状态。
 function ProjectSettingsSection(props: {
   drama: ComicDramaLinkStats | null;
-  storyboard: StoryboardStage;
 }) {
-  const { storyboard, drama } = props;
+  const { drama } = props;
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-4 p-6">
-        <div className="space-y-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium text-foreground">画面风格</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {storyboard.styleOptions.map((style: DramaVisualStyle) => (
-              <Button
-                key={style.id}
-                type="button"
-                size="sm"
-                variant={storyboard.effectiveStyleId === style.id ? "default" : "outline"}
-                disabled={storyboard.styleMutation.isPending}
-                onClick={() => {
-                  storyboard.setSelectedStyle(style.id);
-                  if (drama) {
-                    storyboard.styleMutation.mutate(style.id);
-                  }
-                }}
-              >
-                {style.label}
-              </Button>
-            ))}
-          </div>
-        </div>
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <span>分镜项目状态</span>
           {drama ? (
@@ -603,6 +609,9 @@ function ProjectSettingsSection(props: {
             <span>还没有分镜项目。</span>
           )}
         </div>
+        <p className="text-xs leading-5 text-muted-foreground">
+          整本画面与视频的画风在「美术风格」页签设置；章节初稿里也可以用【风格：…】随时切换。
+        </p>
       </CardContent>
     </Card>
   );

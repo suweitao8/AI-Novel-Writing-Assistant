@@ -345,6 +345,7 @@ export async function listDramaProjects() {
 export interface DramaVisualStyle {
   id: string;
   label: string;
+  summary: string;
   styleTag: string;
   styleFamily: "animation" | "live_action";
 }

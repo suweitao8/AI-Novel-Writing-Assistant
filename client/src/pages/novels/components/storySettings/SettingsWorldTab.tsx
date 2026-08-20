@@ -4,6 +4,7 @@ import { Loader2, Save, Trash2 } from "lucide-react";
 import { getStorySettingsWorld, regenerateStorySettings, updateStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
+import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,21 +21,26 @@ interface SettingsWorldTabProps {
 interface WorldFormState {
   premise: string;
   era: string;
-  toneRulesText: string;
   keySettings: Array<{ title: string; content: string }>;
 }
 
+// 时代背景下拉的常用选项；不在名单里的存量值与「自定义」都会转成自由输入。
+const ERA_OPTIONS = ["古代", "架空古代", "民国", "现代", "近未来", "未来", "末世", "异世界"];
+const ERA_CUSTOM_VALUE = "__custom__";
+
 // 世界观工作面：关键设定条目优先——一个条目讲清一个概念（丧尸是什么、异能怎么运作），
-// 基本图景（前提/时代/基调）收在下方；可编辑地图由独立的世界地图工作面负责。
+// 其他世界观规则继续按条目补充；基本图景只留一句话前提与时代背景。
+// 可编辑地图由独立的世界地图工作面负责。
 export default function SettingsWorldTab({ novelId, onChanged, showMap = true }: SettingsWorldTabProps) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<WorldFormState>({
     premise: "",
     era: "",
-    toneRulesText: "",
     keySettings: [],
   });
   const [hydrated, setHydrated] = useState(false);
+  // 时代背景处于自由输入模式（选了「自定义」或存量值不在常用名单里）。
+  const [eraCustom, setEraCustom] = useState(false);
 
   const worldQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsWorld(novelId),
@@ -47,10 +53,10 @@ export default function SettingsWorldTab({ novelId, onChanged, showMap = true }:
       return;
     }
     setHydrated(true);
+    setEraCustom(Boolean(world.era) && !ERA_OPTIONS.includes(world.era as string));
     setForm({
       premise: world.premise,
       era: world.era ?? "",
-      toneRulesText: world.toneRules.join("\n"),
       keySettings: world.keySettings.map((setting) => ({ ...setting })),
     });
   }, [hydrated, world]);
@@ -68,7 +74,6 @@ export default function SettingsWorldTab({ novelId, onChanged, showMap = true }:
     mutationFn: () => updateStorySettingsWorld(novelId, {
       premise: form.premise.trim(),
       era: form.era.trim() || null,
-      toneRules: form.toneRulesText.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
       keySettings: form.keySettings
         .map((setting) => ({ title: setting.title.trim(), content: setting.content.trim() }))
         .filter((setting) => setting.title && setting.content),
@@ -200,23 +205,52 @@ export default function SettingsWorldTab({ novelId, onChanged, showMap = true }:
                   onChange={(event) => setForm((prev) => ({ ...prev, premise: event.target.value }))}
                 />
               </label>
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">时代背景</span>
-                  <Input
+              <div className="space-y-1">
+                <span className="text-sm font-medium">时代背景</span>
+                {eraCustom || (form.era !== "" && !ERA_OPTIONS.includes(form.era)) ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={form.era}
+                      className="max-w-[240px]"
+                      placeholder="自填时代，例如：星际殖民时代"
+                      onChange={(event) => setForm((prev) => ({ ...prev, era: event.target.value }))}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 text-muted-foreground"
+                      onClick={() => {
+                        setEraCustom(false);
+                        setForm((prev) => ({ ...prev, era: "" }));
+                      }}
+                    >
+                      改为选择
+                    </Button>
+                  </div>
+                ) : (
+                  <SelectControl
+                    className="h-9 max-w-[240px] rounded-md border border-border bg-background px-2 text-sm text-foreground"
                     value={form.era}
-                    placeholder="例如：近未来 / 架空古代"
-                    onChange={(event) => setForm((prev) => ({ ...prev, era: event.target.value }))}
-                  />
-                </label>
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">基调规则（每行一条）</span>
-                  <Input
-                    value={form.toneRulesText}
-                    placeholder="例如：低魔世界，能力有代价"
-                    onChange={(event) => setForm((prev) => ({ ...prev, toneRulesText: event.target.value }))}
-                  />
-                </label>
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      if (next === ERA_CUSTOM_VALUE) {
+                        setEraCustom(true);
+                        setForm((prev) => ({ ...prev, era: "" }));
+                        return;
+                      }
+                      setForm((prev) => ({ ...prev, era: next }));
+                    }}
+                  >
+                    <option value="">选择时代背景</option>
+                    {ERA_OPTIONS.map((era) => (
+                      <option key={era} value={era}>{era}</option>
+                    ))}
+                    <option value={ERA_CUSTOM_VALUE}>自定义…</option>
+                  </SelectControl>
+                )}
+                <p className="text-xs leading-5 text-muted-foreground">
+                  时代影响画面的服装、建筑与技术水平；更细的世界规则（低魔、能力代价等）写到上面的关键设定条目里。
+                </p>
               </div>
             </CardContent>
           </Card>
