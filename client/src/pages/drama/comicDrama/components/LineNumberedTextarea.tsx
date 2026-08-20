@@ -25,7 +25,7 @@ interface LineNumberedTextareaProps {
   maxLength?: number;
   ariaLabel?: string;
   highlight?: OutlineEntityHighlight;
-  /** 分镜式初稿模式：按「分镜+旁白/台词」两行一组整体着色，对话组淡蓝、旁白组默认前景色 */
+  /** 分镜式初稿模式：按「分镜+旁白/台词」两行一组整体着色，对话组极淡蓝、场景切换行偏绿加粗 */
   storyboardMode?: boolean;
   onChange: (next: string) => void;
   onBlur?: () => void;
@@ -38,8 +38,11 @@ function escapeRegExp(value: string): string {
 // —— 分镜式初稿的行分组着色 ——
 // 文本结构：每组是连续的非空行（「分镜：画面」+「旁白：…/角色（神态）：台词」），
 // 组间以空行分隔。组内第二行的说话人不是「旁白」即对话组，整组（含分镜行）标为对话色。
+// 「【场景：客厅】」是场景切换行：单独成行、标场景色，不参与分组判定——
+// 后续生成分镜/视频时按这一行知道从哪里起换到哪个场景。
 const STORYBOARD_SHOT_PATTERN = /^[ \t]*分镜[：:]/;
 const STORYBOARD_SPEAKER_PATTERN = /^[ \t]*([^\s：:（(]{1,20})(?:[（(][^）)]{0,20}[)）])?[：:]/;
+const STORYBOARD_SCENE_PATTERN = /^[ \t]*【场景[：:]\s*[^】\s][^】]{0,29}】[ \t]*$/;
 
 function isDialogueLine(line: string): boolean {
   const match = STORYBOARD_SPEAKER_PATTERN.exec(line);
@@ -48,6 +51,7 @@ function isDialogueLine(line: string): boolean {
 
 function buildStoryboardLineDecorations(view: EditorView): DecorationSet {
   const dialogueLineStarts: number[] = [];
+  const sceneLineStarts: number[] = [];
   const doc = view.state.doc;
   let group: Array<{ from: number; text: string }> = [];
   const flushGroup = () => {
@@ -68,10 +72,20 @@ function buildStoryboardLineDecorations(view: EditorView): DecorationSet {
       flushGroup();
       continue;
     }
+    if (STORYBOARD_SCENE_PATTERN.test(line.text)) {
+      // 场景切换行自成一块，同时结束上一个分组。
+      flushGroup();
+      sceneLineStarts.push(line.from);
+      continue;
+    }
     group.push({ from: line.from, text: line.text });
   }
   flushGroup();
-  return Decoration.set(dialogueLineStarts.map((from) => Decoration.line({ class: "cm-sb-dialogue" }).range(from)));
+  const ranges = [
+    ...dialogueLineStarts.map((from) => Decoration.line({ class: "cm-sb-dialogue" }).range(from)),
+    ...sceneLineStarts.map((from) => Decoration.line({ class: "cm-sb-scene" }).range(from)),
+  ];
+  return Decoration.set(ranges);
 }
 
 function storyboardLineColors() {
@@ -123,7 +137,7 @@ function buildEntityHighlight(names: string[] | undefined, className: string) {
 // 传入 highlight 名单（设定里的角色/场景/道具名）后，正文里出现这些名字会按类别着色。
 // 颜色全部走项目语义 token（CSS 变量），明暗主题自适应；场景/道具用组件内色调映射的
 // 调色板原色（emerald/amber），与 WorkflowProgressBar 的做法一致。
-// storyboardMode 按分镜分组着色：对话组整组淡蓝（blue-400 调色板原色），旁白组保持默认前景色。
+// storyboardMode 按分镜分组着色：对话组整组极淡蓝（blue-400 低比例混入前景色），场景切换行（【场景：x】）偏绿加粗。
 export default function LineNumberedTextarea(props: LineNumberedTextareaProps) {
   const minRows = props.minRows ?? 20;
   const { characters, scenes, props: propNames } = props.highlight ?? {};
@@ -170,7 +184,10 @@ export default function LineNumberedTextarea(props: LineNumberedTextareaProps) {
           backgroundColor: "color-mix(in srgb, #d97706 14%, transparent)",
           boxShadow: "inset 0 -2px 0 color-mix(in srgb, #d97706 45%, transparent)",
         },
-        ".cm-sb-dialogue": { color: "#60a5fa" },
+        // 对话组文字：接近正文色、只带一点蓝（混入前景色，明暗主题都柔和可读）。
+        ".cm-sb-dialogue": { color: "color-mix(in srgb, #60a5fa 28%, var(--foreground))" },
+        // 场景切换行（【场景：客厅】）：偏绿加粗，一眼找到换场点。
+        ".cm-sb-scene": { color: "color-mix(in srgb, #10b981 55%, var(--foreground))", fontWeight: 600 },
       }),
         buildEntityHighlight(characters, "cm-entity-character"),
         buildEntityHighlight(scenes, "cm-entity-scene"),

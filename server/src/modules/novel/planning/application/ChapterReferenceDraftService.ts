@@ -58,6 +58,24 @@ async function buildExistingAssetLines(novelId: string): Promise<string[]> {
 const REFERENCE_TEXT_MIN_LENGTH = 50;
 const REFERENCE_TEXT_MAX_LENGTH = 20000;
 
+// 分镜式初稿文本序列化：每个单元两行（「分镜：景别，画面」+「旁白/台词（带神态）」），
+// 单元之间空行；场景变化时在单元上方多一行「【场景：地点】」换场标记——
+// 后续分镜/视频生成按这一行知道从哪里起切换到哪个场景。
+export function serializeDraftSegments(
+  segments: Array<{ shot: string; storyboard: string; scene: string; speaker: string; kind: string; mood: string; text: string }>,
+): string {
+  let currentScene = "";
+  return segments.map((segment) => {
+    const sceneName = segment.scene.trim();
+    const sceneLine = sceneName && sceneName !== currentScene ? `【场景：${sceneName}】\n` : "";
+    if (sceneName) {
+      currentScene = sceneName;
+    }
+    const mood = segment.kind === "dialogue" && segment.mood ? `（${segment.mood}）` : "";
+    return `${sceneLine}分镜：${segment.shot}，${segment.storyboard}\n${segment.speaker}${mood}：${segment.text}`;
+  }).join("\n\n");
+}
+
 export class ChapterReferenceDraftService {
   // AI 压缩参考原文：返回结构化逐行结果与拼好的初稿文本，供前端预览确认。
   async previewReferenceDraft(
@@ -65,11 +83,17 @@ export class ChapterReferenceDraftService {
     chapterId: string,
     referenceText: string,
   ): Promise<ChapterReferenceDraftPayload> {
-    const [novel, chapter] = await Promise.all([
+    const [novel, chapter, sceneRows] = await Promise.all([
       prisma.novel.findUnique({ where: { id: novelId }, select: { id: true, title: true } }),
       prisma.chapter.findFirst({
         where: { id: chapterId, novelId },
         select: { id: true, title: true, order: true },
+      }),
+      prisma.novelScene.findMany({
+        where: { novelId },
+        select: { name: true },
+        orderBy: { sortOrder: "asc" },
+        take: 20,
       }),
     ]);
     if (!novel) {
@@ -85,7 +109,7 @@ export class ChapterReferenceDraftService {
     if (text.length > REFERENCE_TEXT_MAX_LENGTH) {
       throw new AppError("参考内容过长。", 400);
     }
-
+    const existingScenes = sceneRows.map((row) => row.name).filter(Boolean);
     const generated = await runStructuredPrompt({
       asset: chapterReferenceDraftPrompt,
       promptInput: {
@@ -93,6 +117,7 @@ export class ChapterReferenceDraftService {
         chapterTitle: chapter.title,
         chapterOrder: chapter.order,
         referenceText: text,
+        existingScenes: existingScenes.length > 0 ? existingScenes : undefined,
       },
       options: {
         novelId,
@@ -102,11 +127,7 @@ export class ChapterReferenceDraftService {
       },
     });
     const segments = generated.output.segments;
-    // 分镜式初稿：每个单元两行（「分镜：景别，画面」+「旁白/台词（带神态）」），单元之间空行。
-    const draftText = segments.map((segment) => {
-      const mood = segment.kind === "dialogue" && segment.mood ? `（${segment.mood}）` : "";
-      return `分镜：${segment.shot}，${segment.storyboard}\n${segment.speaker}${mood}：${segment.text}`;
-    }).join("\n\n");
+    const draftText = serializeDraftSegments(segments);
     return { segments, draftText };
   }
 
