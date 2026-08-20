@@ -17,6 +17,10 @@ import type {
   StoryAssetState,
   StoryAssetStateImage,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryAssetStates,
+  resolveStoryAssetStateReferenceId,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -117,7 +121,7 @@ function parseAssetStates(raw: string | null | undefined): StoryAssetState[] {
   if (!Array.isArray(parsed)) {
     return [];
   }
-  return (parsed as StoryAssetState[]).filter((state) => typeof state?.id === "string" && typeof state?.label === "string");
+  return normalizeStoryAssetStates((parsed as StoryAssetState[]).filter((state) => typeof state?.id === "string" && typeof state?.label === "string"));
 }
 
 /** 只保留状态图契约字段，丢弃 runtime 可能附加的 history 等，保持 statesJson 干净。 */
@@ -165,10 +169,11 @@ export function buildStateImagePrompt(
 }
 
 export function resolveStateReferenceImageUrl(states: StoryAssetState[], state: StoryAssetState): string | null {
-  if (!state.referenceStateId) {
+  const referenceStateId = resolveStoryAssetStateReferenceId(states, state);
+  if (!referenceStateId) {
     return null;
   }
-  const referenced = states.find((item) => item.id === state.referenceStateId);
+  const referenced = states.find((item) => item.id === referenceStateId);
   if (!referenced?.image || referenced.image.status !== "done" || !referenced.image.url) {
     return null;
   }
@@ -217,8 +222,9 @@ export class StoryAssetStateImageService {
   ): Promise<unknown> {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
     const referenceUrl = resolveStateReferenceImageUrl(states, state);
+    const effectiveReferenceStateId = resolveStoryAssetStateReferenceId(states, state);
     const referencedLabel = referenceUrl
-      ? states.find((item) => item.id === state.referenceStateId)?.label ?? "参考状态"
+      ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
       : null;
 
     // 状态图与首帧图/角色设计稿同源的两层画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）

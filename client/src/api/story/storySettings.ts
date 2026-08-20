@@ -1,5 +1,8 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type {
+  StoryAssetState,
+  StoryAssetStateVoiceMode,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
@@ -393,6 +396,20 @@ export async function generateStoryAssetStateImage(
   const resource = kind === "character" ? "characters" : kind === "scene" ? "scenes" : "props";
   const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter | StorySettingsScene | StorySettingsProp>>(
     `/novels/${encodeURIComponent(novelId)}/settings/${resource}/${encodeURIComponent(assetId)}/states/${encodeURIComponent(stateId)}/generate-image`,
+  );
+  return data;
+}
+
+/** 生成或复用角色某个外观状态的音色试听，返回更新后的角色。 */
+export async function generateStoryCharacterStateVoice(
+  novelId: string,
+  characterId: string,
+  stateId: string,
+  mode?: StoryAssetStateVoiceMode,
+) {
+  const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/characters/${encodeURIComponent(characterId)}/states/${encodeURIComponent(stateId)}/generate-voice`,
+    mode ? { mode } : {},
   );
   return data;
 }

@@ -374,7 +374,7 @@ function buildShotKeyframePrompt(
 export class DramaShotKeyframeService {
   private async buildKeyframeGenerationContext(
     shotId: string,
-    useCharacterRefImages = false,
+    useCharacterRefImages = true,
   ) {
     const shot = await prisma.dramaShot.findUnique({
       where: { id: shotId },
@@ -492,7 +492,7 @@ export class DramaShotKeyframeService {
   async prepareKeyframe(
     shotId: string,
     provider: LLMProvider = DEFAULT_PROVIDER,
-    useCharacterRefImages = false,
+    useCharacterRefImages = true,
   ): Promise<import("../../image/runtime").ImageGenerationPreview> {
     const ctx = await this.buildKeyframeGenerationContext(shotId, useCharacterRefImages);
     return {
@@ -509,7 +509,7 @@ export class DramaShotKeyframeService {
   async generateKeyframe(
     shotId: string,
     provider: LLMProvider = DEFAULT_PROVIDER,
-    useCharacterRefImages = false,
+    useCharacterRefImages = true,
     overrides?: import("../../image/runtime").ImageGenerationOverrides,
   ): Promise<ShotKeyframeData> {
     const ctx = await this.buildKeyframeGenerationContext(shotId, useCharacterRefImages);

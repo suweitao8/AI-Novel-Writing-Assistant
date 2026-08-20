@@ -4,7 +4,10 @@
 //   不写 NovelWorld 生成管线；已有导演世界观的小说由 AI 蒸馏成设定摘要（existingWorldText 输入）。
 // - ensureSettings 幂等：只补缺失类别；regenerate 按类别重建。
 // - 角色不做删除式重建（保护关系与状态数据），重新生成只会补充缺失角色。
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryAssetStates,
+  type StoryAssetState,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
@@ -155,8 +158,8 @@ function parseStates(value: string | null | undefined): StoryAssetState[] {
   try {
     const parsed = JSON.parse(value) as unknown;
     if (!Array.isArray(parsed)) return [];
-    return (parsed as StoryAssetState[]).filter((state) =>
-      typeof state?.id === "string" && typeof state?.label === "string");
+    return normalizeStoryAssetStates((parsed as StoryAssetState[]).filter((state) =>
+      typeof state?.id === "string" && typeof state?.label === "string"));
   } catch {
     return [];
   }
@@ -165,7 +168,7 @@ function parseStates(value: string | null | undefined): StoryAssetState[] {
 function serializeStates(states: StoryAssetState[] | undefined | null): string | null {
   if (!states) return null;
   const cleaned = states.filter((state) => state.id?.trim() && state.label?.trim());
-  return cleaned.length > 0 ? JSON.stringify(cleaned) : null;
+  return cleaned.length > 0 ? JSON.stringify(normalizeStoryAssetStates(cleaned)) : null;
 }
 
 function parseJsonArray(value: string | null | undefined): string[] {

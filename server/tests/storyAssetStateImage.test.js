@@ -51,12 +51,12 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.doesNotMatch(prop, /keep the same subject identity/);
 });
 
-test("resolveStateReferenceImageUrl：只认已生成完成（done 且有 url）的参考状态图", () => {
+test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，null 才表示明确不参考", () => {
   const states = [
     { id: "s1", label: "初始", description: "", imagePrompt: "", image: { status: "done", url: "/api/novels/n1/settings/state-images/s1" } },
     { id: "s2", label: "生成中", description: "", imagePrompt: "", image: { status: "generating" } },
     { id: "s3", label: "无图", description: "", imagePrompt: "" },
-    { id: "s4", label: "参考初始", description: "", imagePrompt: "" },
+    { id: "s4", label: "参考初始", description: "", imagePrompt: "", referenceStateId: "s1" },
   ];
   assert.equal(
     resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s1" }),
@@ -65,5 +65,12 @@ test("resolveStateReferenceImageUrl：只认已生成完成（done 且有 url）
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s404" }), null);
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3] }), null);
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: null }), null);
+  assert.equal(
+    resolveStateReferenceImageUrl(
+      [states[0], { id: "s5", label: "默认上一状态", description: "", imagePrompt: "" }],
+      { id: "s5", label: "默认上一状态", description: "", imagePrompt: "" },
+    ),
+    "/api/novels/n1/settings/state-images/s1",
+  );
 });

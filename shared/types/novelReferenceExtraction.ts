@@ -14,6 +14,28 @@ export interface StoryAssetStateImage {
   error?: string;
 }
 
+/** 状态音色的操作模式：沿用上一状态的试听，或为当前状态重新合成。 */
+export type StoryAssetStateVoiceMode = "reuse_previous" | "generate_new";
+
+export function getDefaultStoryAssetStateVoiceMode(
+  states: Array<{ id: string }>,
+  stateId: string,
+): StoryAssetStateVoiceMode {
+  const index = states.findIndex((state) => state.id === stateId);
+  return index > 0 ? "reuse_previous" : "generate_new";
+}
+
+/** 角色状态的音色资产（试听音频以 data URL 形式随 statesJson 保存）。 */
+export interface StoryAssetStateVoice {
+  status: "idle" | "generating" | "done" | "error";
+  mode: StoryAssetStateVoiceMode;
+  sourceStateId?: string | null;
+  sampleAudioUrl?: string;
+  prompt?: string;
+  generatedAt?: string;
+  error?: string;
+}
+
 /** 资产外观状态：同一资产随剧情推进的外观形态（换装/受伤/昼夜/损坏…）。 */
 export interface StoryAssetState {
   id: string;
@@ -35,6 +57,31 @@ export interface StoryAssetState {
   referenceStateId?: string | null;
   /** 该状态已生成的图片（状态编辑器生成/重新生成；文件在服务端，URL 随 statesJson 持久化） */
   image?: StoryAssetStateImage;
+  /** 该状态的音色试听与复用来源（角色状态专用，场景/道具不使用）。 */
+  voice?: StoryAssetStateVoice;
+}
+
+/**
+ * 旧状态数据没有 referenceStateId 时的兼容规则：默认引用上一状态；首状态没有上游，
+ * 用 null 表示不参考。显式 null 永远保留，代表用户主动选择了不参考。
+ */
+export function resolveStoryAssetStateReferenceId(
+  states: StoryAssetState[],
+  state: Pick<StoryAssetState, "id" | "referenceStateId">,
+): string | null {
+  if (state.referenceStateId !== undefined) {
+    return state.referenceStateId;
+  }
+  const index = states.findIndex((item) => item.id === state.id);
+  return index > 0 ? states[index - 1]?.id ?? null : null;
+}
+
+/** 读写 statesJson 前统一补齐旧数据的默认参考值，不改变显式取消参考。 */
+export function normalizeStoryAssetStates(states: StoryAssetState[]): StoryAssetState[] {
+  return states.map((state) => ({
+    ...state,
+    referenceStateId: resolveStoryAssetStateReferenceId(states, state),
+  }));
 }
 
 export interface ReferenceExtractItem {

@@ -8,6 +8,7 @@ import {
   type StorySettingsCategory,
 } from "../application/StorySettingsService";
 import { storyAssetStateImageService } from "../application/StoryAssetStateImageService";
+import { storyAssetStateVoiceService } from "../application/StoryAssetStateVoiceService";
 import { worldMapService } from "../application/WorldMapService";
 import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
@@ -31,6 +32,17 @@ const assetStateImageSchema = z.object({
   error: z.string().max(600).optional(),
 });
 
+const assetStateVoiceSchema = z.object({
+  status: z.enum(["idle", "generating", "done", "error"]),
+  mode: z.enum(["reuse_previous", "generate_new"]),
+  sourceStateId: z.string().trim().max(60).nullable().optional(),
+  // 试听音频以 data URL 保存，限制单条状态的载荷，避免误传超大文件。
+  sampleAudioUrl: z.string().max(5_000_000).optional(),
+  prompt: z.string().max(400).optional(),
+  generatedAt: z.string().max(60).optional(),
+  error: z.string().max(600).optional(),
+}).strict();
+
 const assetStateSchema = z.object({
   id: z.string().trim().min(1).max(60),
   label: z.string().trim().min(1).max(24),
@@ -41,6 +53,7 @@ const assetStateSchema = z.object({
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),
   image: assetStateImageSchema.optional(),
+  voice: assetStateVoiceSchema.optional(),
 }).strict();
 
 const characterUpdateSchema = z.object({
@@ -486,6 +499,30 @@ export function registerStorySettingsRoutes(router: Router): void {
       try {
         const { id, characterId, stateId } = req.params as Record<string, string>;
         const data = await storyAssetStateImageService.generateStateImage(id, "character", characterId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/characters/:characterId/states/:stateId/generate-voice",
+    validate({
+      params: z.object({
+        id: novelParams.shape.id,
+        characterId: characterParams.shape.characterId,
+        stateId: z.string().trim().min(1),
+      }),
+      body: z.object({
+        mode: z.enum(["reuse_previous", "generate_new"]).optional(),
+      }).strict(),
+    }),
+    async (req, res, next) => {
+      try {
+        const { id, characterId, stateId } = req.params as Record<string, string>;
+        const mode = (req.body as { mode?: "reuse_previous" | "generate_new" }).mode;
+        const data = await storyAssetStateVoiceService.generateStateVoice(id, characterId, stateId, mode);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

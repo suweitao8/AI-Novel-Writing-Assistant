@@ -521,7 +521,11 @@ export async function generateDramaShotKeyframe(
 ) {
   const { data } = await apiClient.post<ApiResponse<DramaShotKeyframeData>>(
     `/drama/projects/${id}/shots/${shotId}/keyframe`,
-    { ...(provider ? { provider } : {}), ...(useCharacterRefImages ? { useCharacterRefImages } : {}), ...(overrides ?? {}) },
+    {
+      ...(provider ? { provider } : {}),
+      ...(useCharacterRefImages === undefined ? {} : { useCharacterRefImages }),
+      ...(overrides ?? {}),
+    },
   );
   return data;
 }
@@ -534,7 +538,10 @@ export async function prepareDramaShotKeyframe(
 ): Promise<ApiResponse<ImageGenerationPreview>> {
   const { data } = await apiClient.post<ApiResponse<ImageGenerationPreview>>(
     `/drama/projects/${id}/shots/${shotId}/keyframe/prepare`,
-    { ...(provider ? { provider } : {}), ...(useCharacterRefImages ? { useCharacterRefImages } : {}) },
+    {
+      ...(provider ? { provider } : {}),
+      ...(useCharacterRefImages === undefined ? {} : { useCharacterRefImages }),
+    },
   );
   return data;
 }

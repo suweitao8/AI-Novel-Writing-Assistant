@@ -769,7 +769,7 @@ router.post("/projects/:id/shots/:shotId/keyframe/prepare", validate({ params: s
     const data = await dramaShotKeyframeService.prepareKeyframe(
       shotId,
       body?.provider as Parameters<typeof dramaShotKeyframeService.prepareKeyframe>[1],
-      body?.useCharacterRefImages ?? false,
+      body?.useCharacterRefImages ?? true,
     );
     res.status(200).json({ success: true, data, message: "Drama shot keyframe preview prepared." });
   } catch (error) {
@@ -792,7 +792,7 @@ router.post("/projects/:id/shots/:shotId/keyframe", validate({ params: shotParam
     const data = await dramaShotKeyframeService.generateKeyframe(
       shotId,
       body?.provider as Parameters<typeof dramaShotKeyframeService.generateKeyframe>[1],
-      body?.useCharacterRefImages ?? false,
+      body?.useCharacterRefImages ?? true,
       {
         promptOverride: body?.promptOverride,
         providerOverride: body?.providerOverride,

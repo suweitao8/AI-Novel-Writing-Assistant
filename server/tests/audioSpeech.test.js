@@ -36,6 +36,7 @@ test("audio speech synthesis follows the voxcpm2 speech protocol", async () => {
         audioType: "dialogue",
         speaker: "林月",
         emotion: "紧张",
+        referenceAudioUrl: "data:audio/mpeg;base64,cmVm",
       },
       {
         baseURL: `http://127.0.0.1:${port}/v1`,
@@ -52,6 +53,7 @@ test("audio speech synthesis follows the voxcpm2 speech protocol", async () => {
     assert.equal(seen[0].body.metadata.audio_type, "dialogue");
     assert.equal(seen[0].body.metadata.speaker, "林月");
     assert.equal(seen[0].body.metadata.emotion_prompt, "紧张");
+    assert.equal(seen[0].body.metadata.audio_url, "data:audio/mpeg;base64,cmVm");
     assert.equal(seen[0].body.metadata.should_use_prompt_for_emotion, true);
     assert.equal(result.contentType, "audio/mpeg");
     assert.ok(result.byteLength > 0);

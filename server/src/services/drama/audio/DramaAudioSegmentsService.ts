@@ -1,12 +1,17 @@
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { safeJsonParse } from "../utils/json";
+import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import {
   buildDialogueVoiceKey,
   buildVoiceMap,
+  findNovelCharacterStates,
   hashDialogueText,
   parseDialogueLines,
+  parseShotCharacterStates,
   readNarratorVoiceData,
+  resolveVoiceForCharacterState,
   type DialogueAudioData,
   type DialogueLineType,
 } from "./DramaDialogueAudioService";
@@ -57,6 +62,10 @@ export class DramaAudioSegmentsService {
     }
     const voiceMap = buildVoiceMap(episode.project.characters);
     const narratorVoice = readNarratorVoiceData(episode.project.narratorVoiceData);
+    const novelStatesByName = episode.project.source === "novel_import"
+      && episode.project.sourceRef?.trim()
+      ? await loadNovelCharacterStatesByName(episode.project.sourceRef.trim())
+      : new Map<string, StoryAssetState[]>();
 
     const segments: DramaAudioSegment[] = [];
     for (const shot of storyboard.shots) {
@@ -64,10 +73,18 @@ export class DramaAudioSegmentsService {
       if (!lines.length) {
         continue;
       }
+      const shotCharacterStates = parseShotCharacterStates(shot.characterStates);
       const audioData = safeJsonParse<DialogueAudioData | null>(shot.dialogueAudioData, null);
       const itemsByLine = new Map((audioData?.items ?? []).map((item) => [item.lineIndex, item]));
       for (const line of lines) {
-        const voice = line.speaker ? voiceMap.get(line.speaker.toLowerCase()) : undefined;
+        const baseVoice = line.speaker ? voiceMap.get(line.speaker.trim().toLowerCase()) : undefined;
+        const stateLabel = line.speaker
+          ? shotCharacterStates.get(line.speaker.trim().toLowerCase())
+          : undefined;
+        const statefulStates = line.speaker
+          ? findNovelCharacterStates(novelStatesByName, line.speaker)
+          : undefined;
+        const voice = resolveVoiceForCharacterState(baseVoice, statefulStates, stateLabel, line.speaker);
         const item = itemsByLine.get(line.lineIndex);
         const textHash = hashDialogueText(line.text);
         const voiceKey = buildDialogueVoiceKey({

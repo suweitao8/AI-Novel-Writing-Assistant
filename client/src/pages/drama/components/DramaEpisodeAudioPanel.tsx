@@ -64,9 +64,12 @@ export function DramaEpisodeAudioPanel(props: {
   onBatchJob: (order: number, input: { type: "tts"; provider?: string; failedShotIds?: string[] }) => void;
 }) {
   const [selectedProvider, setSelectedProvider] = useState("");
+  const defaultProvider = props.ttsProviders.find((provider) => provider.provider === "voxcpm2")?.provider
+    ?? props.ttsProviders[0]?.provider
+    ?? "voxcpm2";
   const activeProvider = props.ttsProviders.some((provider) => provider.provider === selectedProvider)
     ? selectedProvider
-    : props.ttsProviders[0]?.provider ?? "mock";
+    : defaultProvider;
   const latestTtsBatch = props.batchJobs?.find((job) => job.episodeId === props.episode.id && job.type === "tts");
   const latestProgress = parseBatchProgress(latestTtsBatch?.progress);
   const ttsActive = isActiveBatch(latestTtsBatch);
@@ -93,9 +96,9 @@ export function DramaEpisodeAudioPanel(props: {
 
   useEffect(() => {
     if (props.ttsProviders.length > 0 && !selectedProvider) {
-      setSelectedProvider(props.ttsProviders[0]!.provider);
+      setSelectedProvider(defaultProvider);
     }
-  }, [props.ttsProviders, selectedProvider]);
+  }, [defaultProvider, props.ttsProviders.length, selectedProvider]);
 
   const total = Math.max(0, latestProgress.total ?? 0);
   const done = Math.max(0, latestProgress.done ?? 0);

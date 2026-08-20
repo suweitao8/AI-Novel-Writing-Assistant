@@ -21,6 +21,7 @@ export class VoxCPM2TTSProvider implements TTSProviderPort {
       audioType: "dialogue",
       speaker: input.speaker ?? input.voiceId ?? undefined,
       emotion: input.emotion ?? undefined,
+      referenceAudioUrl: input.referenceAudioUrl ?? undefined,
     });
     return {
       audioUrl: result.dataUrl,

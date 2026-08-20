@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
+import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { ttsProviderRegistry } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
@@ -48,6 +50,8 @@ export interface CharacterVoice {
   speed?: number;
   /** 角色音色描述（voiceProfile.voicePrompt），无显式 emotion 时作为语气提示传入 */
   voicePrompt?: string;
+  /** 角色当前剧情状态已生成的试听，用作 VoxCPM2 的参考音频。 */
+  referenceAudioUrl?: string;
 }
 
 export interface NarratorVoiceData {
@@ -56,7 +60,7 @@ export interface NarratorVoiceData {
   updatedAt?: string;
 }
 
-const DEFAULT_TTS_PROVIDER = "mock";
+const DEFAULT_TTS_PROVIDER = "voxcpm2";
 
 // 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM 的
 // emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。
@@ -110,6 +114,7 @@ export function buildDialogueVoiceKey(input: {
     input.lineEmotion ?? "",
     voice?.emotion ?? voice?.voicePrompt ?? "",
     voice?.speed ?? "",
+    voice?.referenceAudioUrl ?? "",
   ].join("|");
 }
 
@@ -156,6 +161,73 @@ export function buildVoiceMap(characters: Array<{ name: string; voiceProfile?: s
     }
   }
   return map;
+}
+
+/** 解析分镜 LLM 标注的每镜角色状态（[{name,state}] JSON）。 */
+export function parseShotCharacterStates(raw: string | null | undefined): Map<string, string> {
+  const parsed = safeJsonParse<Array<{ name?: unknown; state?: unknown }>>(raw, []);
+  const map = new Map<string, string>();
+  if (!Array.isArray(parsed)) {
+    return map;
+  }
+  for (const entry of parsed) {
+    const name = normalizeKey(entry?.name);
+    const state = typeof entry?.state === "string" ? entry.state.trim() : "";
+    if (name && state) {
+      map.set(name, state);
+    }
+  }
+  return map;
+}
+
+export function findNovelCharacterStates(
+  statesByName: Map<string, StoryAssetState[]>,
+  characterName: string,
+): StoryAssetState[] | undefined {
+  const direct = statesByName.get(characterName.trim());
+  if (direct) {
+    return direct;
+  }
+  const key = normalizeKey(characterName);
+  if (!key) {
+    return undefined;
+  }
+  for (const [name, states] of statesByName) {
+    if (normalizeKey(name) === key) {
+      return states;
+    }
+  }
+  return undefined;
+}
+
+/** 把小说角色状态的音色覆盖到漫剧角色基础音色上。 */
+export function resolveVoiceForCharacterState(
+  voice: CharacterVoice | undefined,
+  states: StoryAssetState[] | undefined,
+  stateLabel: string | undefined,
+  characterName?: string,
+): CharacterVoice | undefined {
+  if ((!voice && !characterName) || !stateLabel?.trim() || !states?.length) {
+    return voice;
+  }
+  const stateKey = normalizeKey(stateLabel);
+  const state = states.find((item) => normalizeKey(item.label) === stateKey);
+  if (!state) {
+    return voice;
+  }
+  const stateVoice = state.voice?.status === "done" && state.voice.sampleAudioUrl?.trim()
+    ? state.voice.sampleAudioUrl.trim()
+    : undefined;
+  const statePrompt = state.voice?.prompt?.trim() || state.voicePrompt?.trim() || undefined;
+  if (!stateVoice && !statePrompt) {
+    return voice;
+  }
+  const baseVoice = voice ?? { name: characterName! };
+  return {
+    ...baseVoice,
+    ...(statePrompt ? { emotion: statePrompt, voicePrompt: statePrompt } : {}),
+    ...(stateVoice ? { referenceAudioUrl: stateVoice } : {}),
+  };
 }
 
 export function readNarratorVoiceData(raw: string | null | undefined): NarratorVoiceData {
@@ -209,11 +281,26 @@ export class DramaDialogueAudioService {
     const adapter = ttsProviderRegistry.resolve(provider);
     const voiceMap = buildVoiceMap(shot.storyboard.project.characters);
     const narratorVoice = readNarratorVoiceData(shot.storyboard.project.narratorVoiceData);
+    const shotCharacterStates = parseShotCharacterStates(shot.characterStates);
+    const novelStatesByName = shot.storyboard.project.source === "novel_import"
+      && shot.storyboard.project.sourceRef?.trim()
+      ? await loadNovelCharacterStatesByName(shot.storyboard.project.sourceRef.trim())
+      : new Map<string, StoryAssetState[]>();
+    const resolvedVoiceByLine = new Map<number, CharacterVoice | undefined>();
 
     const pendingItems: DialogueAudioItem[] = [];
     const reusedItems: DialogueAudioItem[] = [];
     for (const line of lines) {
-      const voice = line.speaker ? voiceMap.get(normalizeKey(line.speaker) ?? "") : undefined;
+      const baseVoice = line.speaker ? voiceMap.get(normalizeKey(line.speaker) ?? "") : undefined;
+      const voice = line.speaker
+        ? resolveVoiceForCharacterState(
+          baseVoice,
+          findNovelCharacterStates(novelStatesByName, line.speaker),
+          shotCharacterStates.get(normalizeKey(line.speaker) ?? ""),
+          line.speaker,
+        )
+        : undefined;
+      resolvedVoiceByLine.set(line.lineIndex, voice);
       const textHash = hashDialogueText(line.text);
       const voiceKey = buildDialogueVoiceKey({
         type: line.type,
@@ -258,7 +345,7 @@ export class DramaDialogueAudioService {
     try {
       // 先在派发前解析每行的音色/语气参数，避免并发 worker 内重复查表。
       const prepared = pendingItems.map((item) => {
-        const voice = item.speaker ? voiceMap.get(normalizeKey(item.speaker) ?? "") : undefined;
+        const voice = resolvedVoiceByLine.get(item.lineIndex);
         // 「旁白：内容」行解析后 speaker=旁白，配音按旁白处理（旁白音色描述，不找角色音色）。
         const isNarrationLine = item.type === "narration" || item.speaker === "旁白";
         return {
@@ -272,6 +359,7 @@ export class DramaDialogueAudioService {
               ? narratorVoice.description
               : (item.emotion || voice?.emotion || voice?.voicePrompt),
             speaker: isNarrationLine ? "旁白" : item.speaker,
+            referenceAudioUrl: isNarrationLine ? undefined : voice?.referenceAudioUrl,
           },
         };
       });

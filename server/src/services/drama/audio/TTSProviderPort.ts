@@ -7,6 +7,8 @@ export interface TTSGenerationRequest {
   speed?: number | null;
   emotion?: string | null;
   speaker?: string | null;
+  /** 状态音色试听（data URL/宿主机可访问地址），供支持参考音频的 provider 使用。 */
+  referenceAudioUrl?: string | null;
 }
 
 export interface TTSGenerationResult {

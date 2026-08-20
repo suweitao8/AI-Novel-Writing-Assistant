@@ -92,7 +92,7 @@ type BatchProcessResult = {
 
 const DEFAULT_VIDEO_PROVIDER = "mock";
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
-const DEFAULT_TTS_PROVIDER = "mock";
+const DEFAULT_TTS_PROVIDER = "voxcpm2";
 // progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
 const MAX_PROGRESS_ERRORS = 50;
 
@@ -230,7 +230,7 @@ export class DramaBatchOrchestrator {
       provider: prepared.provider,
       targetShotIds: prepared.targetShotIds,
       errors: [],
-      useCharacterRefImages: input.useCharacterRefImages ?? false,
+      useCharacterRefImages: input.useCharacterRefImages ?? true,
       force: input.force ?? false,
       cost: prepared.cost,
     });
@@ -357,7 +357,7 @@ export class DramaBatchOrchestrator {
     }
   }
 
-  private async processKeyframeShot(shot: BatchShot, provider?: string, useCharacterRefImages = false): Promise<"processed" | "skipped"> {
+  private async processKeyframeShot(shot: BatchShot, provider?: string, useCharacterRefImages = true): Promise<"processed" | "skipped"> {
     if (hasDoneKeyframe(shot.keyframeData)) {
       return "skipped";
     }
@@ -406,7 +406,7 @@ export class DramaBatchOrchestrator {
     shot: BatchShot,
     cachedVideoPrompt: BatchVideoPrompt | undefined,
     provider?: string,
-    useCharacterRefImages = false,
+    useCharacterRefImages = true,
     force = false,
   ): Promise<BatchProcessResult> {
     if (type === "keyframes") {

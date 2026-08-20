@@ -56,7 +56,7 @@ export function DramaVisualPanel(props: {
   const latestKeyframeBatch = selectedBatchJobs.find((job) => job.type === "keyframes");
   const latestVideoBatch = selectedBatchJobs.find((job) => job.type === "videos");
   const [selectedImageProvider, setSelectedImageProvider] = useState("");
-  const [useCharacterRefImages, setUseCharacterRefImages] = useState(false);
+  const [useCharacterRefImages, setUseCharacterRefImages] = useState(true);
   const keyframeFlow = useImageGenerationFlow();
   const apiKeyQuery = useQuery({
     queryKey: ["api-key-settings"],
