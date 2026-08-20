@@ -17,20 +17,16 @@ export function LevelListCard(props: {
   selectedNodeId: string | null;
   onSelect: (nodeId: string) => void;
   onOpenChild: (nodeId: string) => void;
-  onAdd: () => void;
 }) {
   return (
     <Card className="min-w-0">
       <CardContent className="space-y-2 p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium">{props.levelLabel}（{props.map.nodes.length}）</p>
-          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={props.onAdd}>
-            添加{props.levelLabel}
-          </Button>
         </div>
         {props.map.nodes.length === 0 ? (
           <p className="text-xs leading-5 text-muted-foreground">
-            还没有{props.levelLabel}。点「AI 标注场景」让 AI 依据场景规划，或手动添加。
+            还没有{props.levelLabel}。
           </p>
         ) : (
           <ul className="space-y-1">
