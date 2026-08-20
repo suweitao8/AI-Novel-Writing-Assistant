@@ -17,7 +17,7 @@ test("drama prompt assets are registered", () => {
     ["drama.episode.quality", "v1"],
     ["drama.episode.compliance", "v1"],
     ["drama.episode.repair", "v1"],
-    ["drama.storyboard", "v1"],
+    ["drama.storyboard", "v3"],
     ["drama.video.prompt", "v1"],
   ];
   for (const [id, version] of prompts) {
