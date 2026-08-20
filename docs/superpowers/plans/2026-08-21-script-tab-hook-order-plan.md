@@ -121,9 +121,11 @@ Observed: 37/37 comic/drama contracts passed after generating Prisma Client and 
 **Files:**
 - Verify: `http://localhost:5174/drama/studio/cmt0z2mgy0012zsb5d716mkzj`
 
-- [ ] **Step 1: Use the existing in-app browser tab to verify the Studio page**
+- [x] **Step 1: Use the existing in-app browser tab to verify the Studio page**
 
 Reload the current tab only after checking that no unsaved user input is present. Verify the root is not empty, the Studio content is visible, and the browser console contains no `Rendered more hooks than during the previous render` or Hook-order error from `ScriptTab`.
+
+Observed: after merging the fix into `main`, the Studio rendered its navigation, chapter controls, script panel, and asset panel; the reload produced zero errors and zero Hook-order errors.
 
 - [x] **Step 2: Check the diff and working tree**
 
