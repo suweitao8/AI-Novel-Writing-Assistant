@@ -198,27 +198,7 @@ export async function deleteWorld(id: string) {
 export async function getWorldTemplates() {
   const { data } = await apiClient.get<ApiResponse<WorldTemplate[]>>("/worlds/templates");
   return data;
-}
-
-export async function analyzeWorldInspiration(payload: {
-  input?: string;
-  mode?: "free" | "reference" | "random";
-  worldType?: string;
-  knowledgeDocumentIds?: string[];
-  referenceMode?: WorldReferenceMode;
-  preserveElements?: string[];
-  allowedChanges?: string[];
-  forbiddenElements?: string[];
-  refinementLevel?: WorldOptionRefinementLevel;
-  optionsCount?: number;
-  provider?: LLMProvider;
-  model?: string;
-}) {
-  const { data } = await apiClient.post<
-    ApiResponse<WorldInspirationAnalysisResult>
-  >("/worlds/inspiration/analyze", payload);
-  return data;
-}
+}
 
 export async function generateWorldSkeleton(payload: {
   idea: string;
@@ -236,21 +216,7 @@ export async function generateWorldSkeleton(payload: {
     { timeout: WORLD_SKELETON_GENERATE_TIMEOUT_MS },
   );
   return data;
-}
-
-export async function suggestWorldAxioms(
-  id: string,
-  payload?: {
-    provider?: LLMProvider;
-    model?: string;
-  },
-) {
-  const { data } = await apiClient.post<ApiResponse<string[]>>(`/worlds/${id}/axioms/suggest`, payload ?? {});
-  return {
-    ...data,
-    data: normalizeSuggestedAxioms(data.data),
-  };
-}
+}
 
 export async function updateWorldAxioms(id: string, axioms: string[]) {
   const { data } = await apiClient.put<ApiResponse<World>>(`/worlds/${id}/axioms`, { axioms });

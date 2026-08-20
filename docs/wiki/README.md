@@ -70,8 +70,8 @@ Wiki 不应写：
 ## 与其他 docs 目录的关系
 
 - `docs/wiki/`：稳定知识和原因。
-- `docs/plans/`：仍有执行价值的方案和任务拆解。
+- `docs/plans/`：仍有执行价值的方案和任务拆解（已实现的旧方案归档在 `docs/archive/plans/`）。
 - `docs/checkpoints/`：阶段性进度、迁移里程碑和审计记录。
-- `docs/design/`：系统设计、领域模型和产品机制。
+- `docs/design/`：系统设计、领域模型和产品机制（已实现的旧设计归档在 `docs/archive/design/`）。
 - `docs/releases/`：用户可见更新历史。
 - `README.md`：对外入口和最新公开摘要。

@@ -25,12 +25,7 @@ export async function getBaseCharacterList(params?: {
     params,
   });
   return data;
-}
-
-export async function getBaseCharacterDetail(id: string) {
-  const { data } = await apiClient.get<ApiResponse<BaseCharacter>>(`/base-characters/${id}`);
-  return data;
-}
+}
 
 export async function createBaseCharacter(payload: Omit<BaseCharacter, "id" | "createdAt" | "updatedAt">) {
   const { data } = await apiClient.post<ApiResponse<BaseCharacter>>("/base-characters", payload);

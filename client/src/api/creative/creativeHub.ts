@@ -58,12 +58,6 @@ export async function getCreativeHubThreadHistory(threadId: string): Promise<Api
   return data;
 }
 
-export async function generateCreativeHubThreadTitle(threadId: string): Promise<ApiResponse<{ title: string }>> {
-  const resolvedThreadId = ensureThreadId(threadId);
-  const { data } = await apiClient.post<ApiResponse<{ title: string }>>(`/creative-hub/threads/${resolvedThreadId}/generate-title`);
-  return data;
-}
-
 export async function resolveCreativeHubInterrupt(
   threadId: string,
   interruptId: string,

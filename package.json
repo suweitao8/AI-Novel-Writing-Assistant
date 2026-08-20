@@ -39,10 +39,6 @@
       "better-sqlite3",
       "esbuild",
       "prisma"
-    ],
-    "ignoredBuiltDependencies": [
-      "electron",
-      "electron-winstaller"
     ]
   },
   "devDependencies": {

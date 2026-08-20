@@ -26,7 +26,7 @@ interface DirectorRiskPolicyPayload extends Partial<DirectorRiskPolicy> {
 
 export const DEFAULT_DIRECTOR_RISK_POLICY: DirectorRiskPolicy = SHARED_DEFAULT_DIRECTOR_RISK_POLICY;
 
-export function normalizeDirectorRiskPolicy(value?: DirectorRiskPolicyPayload | null): DirectorRiskPolicy {
+function normalizeDirectorRiskPolicy(value?: DirectorRiskPolicyPayload | null): DirectorRiskPolicy {
   const source = value?.effectivePolicy ?? value?.policy ?? value;
   const noticeThreshold = Number.isInteger(source?.noticeThreshold)
     ? Math.min(DIRECTOR_RISK_NOTICE_THRESHOLD_MAX, Math.max(DIRECTOR_RISK_NOTICE_THRESHOLD_MIN, source!.noticeThreshold!))

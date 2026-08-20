@@ -69,19 +69,7 @@ export async function updateStyleProfile(id: string, payload: Partial<{
 export async function deleteStyleProfile(id: string) {
   const { data } = await apiClient.delete<ApiResponse<null>>(`/style-profiles/${id}`);
   return data;
-}
-
-export async function createStyleProfileFromText(payload: {
-  name: string;
-  sourceText: string;
-  category?: string;
-  provider?: string;
-  model?: string;
-  temperature?: number;
-}) {
-  const { data } = await apiClient.post<ApiResponse<StyleProfile>>("/style-profiles/from-text", payload);
-  return data;
-}
+}
 
 export async function extractStyleFeaturesFromText(payload: {
   name: string;
@@ -123,22 +111,7 @@ export async function createStyleExtractionTaskFromKnowledgeDocument(payload: {
     payload,
   );
   return data;
-}
-
-export async function createStyleProfileFromExtraction(payload: {
-  name: string;
-  sourceText: string;
-  category?: string;
-  draft: StyleExtractionDraft;
-  presetKey?: "imitate" | "balanced" | "transfer";
-  decisions: Array<{
-    featureId: string;
-    decision: StyleFeatureDecision;
-  }>;
-}) {
-  const { data } = await apiClient.post<ApiResponse<StyleProfile>>("/style-profiles/from-extraction", payload);
-  return data;
-}
+}
 
 export async function createStyleProfileFromBookAnalysis(payload: {
   bookAnalysisId: string;

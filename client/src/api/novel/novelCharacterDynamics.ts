@@ -85,28 +85,7 @@ export async function updateCharacterDynamicState(
     payload,
   );
   return data;
-}
-
-export async function updateCharacterRelationStage(
-  id: string,
-  relationId: string,
-  payload: {
-    stageLabel: string;
-    stageSummary: string;
-    nextTurnPoint?: string;
-    volumeId?: string;
-    chapterId?: string;
-    chapterOrder?: number;
-    confidence?: number;
-    decisionNote?: string;
-  },
-) {
-  const { data } = await apiClient.patch<ApiResponse<CharacterRelationStage>>(
-    `/novels/${id}/character-relations/${relationId}/stage`,
-    payload,
-  );
-  return data;
-}
+}
 
 export async function rebuildCharacterDynamics(id: string) {
   const { data } = await apiClient.post<ApiResponse<DynamicCharacterOverview>>(
@@ -129,48 +108,4 @@ export async function refreshCharacterMindState(id: string, characterId: string)
     {},
   );
   return data;
-}
-
-export async function getActiveCharacterDialogueSession(id: string, characterId: string) {
-  const { data } = await apiClient.get<ApiResponse<CharacterDialogueSession | null>>(
-    `/novels/${id}/characters/${characterId}/dialogue-sessions/active`,
-  );
-  return data;
-}
-
-export async function createCharacterDialogueSession(id: string, characterId: string) {
-  const { data } = await apiClient.post<ApiResponse<CharacterDialogueSession>>(
-    `/novels/${id}/characters/${characterId}/dialogue-sessions`,
-    {},
-  );
-  return data;
-}
-
-export async function sendCharacterDialogueTurn(
-  id: string,
-  characterId: string,
-  sessionId: string,
-  payload: { message: string },
-) {
-  const { data } = await apiClient.post<ApiResponse<CharacterDialogueTurnResult>>(
-    `/novels/${id}/characters/${characterId}/dialogue-sessions/${sessionId}/turns`,
-    payload,
-  );
-  return data;
-}
-
-export async function activateLatestCharacterDialogueInfluence(id: string, characterId: string, sessionId: string) {
-  const { data } = await apiClient.post<ApiResponse<CharacterDialogueInfluence>>(
-    `/novels/${id}/characters/${characterId}/dialogue-sessions/${sessionId}/influence/activate`,
-    {},
-  );
-  return data;
-}
-
-export async function dismissLatestCharacterDialogueInfluence(id: string, characterId: string, sessionId: string) {
-  const { data } = await apiClient.post<ApiResponse<CharacterDialogueInfluence>>(
-    `/novels/${id}/characters/${characterId}/dialogue-sessions/${sessionId}/influence/dismiss`,
-    {},
-  );
-  return data;
-}
+}

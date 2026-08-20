@@ -101,12 +101,7 @@ export interface ImagePromptAssistResult {
 export async function generateCharacterImages(payload: GenerateCharacterImagePayload) {
   const { data } = await apiClient.post<ApiResponse<ImageGenerationTask>>("/images/generate", payload);
   return data;
-}
-
-export async function generateBookAnalysisCharacterImages(payload: GenerateBookAnalysisCharacterImagePayload) {
-  const { data } = await apiClient.post<ApiResponse<ImageGenerationTask>>("/images/generate", payload);
-  return data;
-}
+}
 
 export async function generateNovelCover(payload: GenerateNovelCoverPayload) {
   const { data } = await apiClient.post<ApiResponse<ImageGenerationTask>>("/images/generate", payload);

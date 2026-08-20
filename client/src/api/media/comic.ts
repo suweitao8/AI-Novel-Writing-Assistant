@@ -187,11 +187,6 @@ export async function importComicSourceBundle(projectId: string): Promise<ComicP
   return res.data.data!;
 }
 
-export async function updateComicStyle(projectId: string, style: string): Promise<ComicProject> {
-  const res = await apiClient.patch<ApiResponse<ComicProject>>(`/comic/projects/${projectId}/style`, { style });
-  return res.data.data!;
-}
-
 export interface UpdateComicPresetPayload {
   format?: string;
   style?: string;
@@ -247,10 +242,6 @@ export function characterExpressionImageUrl(charId: string): string {
   return `/api/comic/character-images/${charId}/expressions`;
 }
 
-export function characterFaceImageUrl(charId: string): string {
-  return `/api/comic/character-images/${charId}/face`;
-}
-
 export async function generateCharacterSheet(
   charId: string,
   provider?: string,
@@ -276,11 +267,6 @@ export async function prepareCharacterSheet(
   return res.data.data!;
 }
 
-export async function getCharacterSheetData(charId: string): Promise<CharacterSheetData> {
-  const res = await apiClient.get<ApiResponse<CharacterSheetData>>(`/comic/characters/${charId}/sheet`);
-  return res.data.data!;
-}
-
 export async function prepareCharacterExpressionSheet(charId: string, provider?: string): Promise<ImageGenerationPreview> {
   const res = await apiClient.post<ApiResponse<ImageGenerationPreview>>(
     `/comic/characters/${charId}/expressions/prepare`,
@@ -301,11 +287,6 @@ export async function generateCharacterExpressionSheet(
   return res.data.data!;
 }
 
-export async function getCharacterExpressionData(charId: string): Promise<CharacterExpressionData> {
-  const res = await apiClient.get<ApiResponse<CharacterExpressionData>>(`/comic/characters/${charId}/expressions`);
-  return res.data.data!;
-}
-
 // ─── Episodes ─────────────────────────────────────────────────────────────────
 
 export async function listComicEpisodes(projectId: string): Promise<ComicEpisode[]> {
@@ -318,16 +299,6 @@ export async function generateComicOutline(projectId: string, payload?: Generate
     `/comic/projects/${projectId}/episodes/generate-outline`,
     payload ?? {},
   );
-  return res.data.data!;
-}
-
-export async function getComicEpisode(episodeId: string): Promise<ComicEpisode> {
-  const res = await apiClient.get<ApiResponse<ComicEpisode>>(`/comic/episodes/${episodeId}`);
-  return res.data.data!;
-}
-
-export async function updateEpisodeSourceText(episodeId: string, sourceText: string): Promise<ComicEpisode> {
-  const res = await apiClient.patch<ApiResponse<ComicEpisode>>(`/comic/episodes/${episodeId}/source-text`, { sourceText });
   return res.data.data!;
 }
 
@@ -355,11 +326,6 @@ export async function generateComicPanelScript(episodeId: string, payload?: Gene
     `/comic/episodes/${episodeId}/generate-script`,
     payload ?? {},
   );
-  return res.data.data!;
-}
-
-export async function getComicPanel(panelId: string): Promise<ComicPanel> {
-  const res = await apiClient.get<ApiResponse<ComicPanel>>(`/comic/panels/${panelId}`);
   return res.data.data!;
 }
 
@@ -394,23 +360,6 @@ export function panelImageUrl(panelId: string): string {
   return `/api/comic/panel-images/${panelId}/panel`;
 }
 
-export function panelLetteredImageUrl(panelId: string): string {
-  return `/api/comic/panel-images/${panelId}/lettered`;
-}
-
-// ─── Bubble lettering ─────────────────────────────────────────────────────────
-
-export async function letterPanel(
-  panelId: string,
-  opts?: { bubbleOpacity?: number; maxBubbleWidthRatio?: number },
-): Promise<{ url: string; width: number; height: number }> {
-  const res = await apiClient.post<ApiResponse<{ url: string; width: number; height: number }>>(
-    `/comic/panels/${panelId}/letter`,
-    opts ?? {},
-  );
-  return res.data.data!;
-}
-
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export async function exportComicEpisode(
@@ -419,11 +368,6 @@ export async function exportComicEpisode(
 ): Promise<{ jobId: string; artifacts: Array<{ index?: number; url: string; width: number; height: number }> }> {
   const res = await apiClient.post(`/comic/episodes/${episodeId}/export`, payload ?? {});
   return (res.data as ApiResponse<unknown>).data as ReturnType<typeof exportComicEpisode> extends Promise<infer T> ? T : never;
-}
-
-export async function listExportJobs(projectId: string): Promise<ComicExportJob[]> {
-  const res = await apiClient.get<ApiResponse<ComicExportJob[]>>(`/comic/projects/${projectId}/export-jobs`);
-  return res.data.data!;
 }
 
 // ─── Batch jobs ───────────────────────────────────────────────────────────────
@@ -470,11 +414,6 @@ export async function retryBatchJob(jobId: string, provider?: string): Promise<{
 
 export async function getBatchJob(jobId: string): Promise<ComicBatchJob> {
   const res = await apiClient.get<ApiResponse<ComicBatchJob>>(`/comic/batch-jobs/${jobId}`);
-  return res.data.data!;
-}
-
-export async function listBatchJobs(projectId: string): Promise<ComicBatchJob[]> {
-  const res = await apiClient.get<ApiResponse<ComicBatchJob[]>>(`/comic/projects/${projectId}/batch-jobs`);
   return res.data.data!;
 }
 
@@ -557,18 +496,8 @@ export async function listCharacterAssets(characterId: string): Promise<ComicCha
   return res.data.data!;
 }
 
-export async function listProjectCharacterAssets(projectId: string): Promise<ComicCharacterAsset[]> {
-  const res = await apiClient.get<ApiResponse<ComicCharacterAsset[]>>(`/comic/projects/${projectId}/character-assets`);
-  return res.data.data!;
-}
-
 export async function createCharacterAsset(payload: CreateAssetPayload): Promise<ComicCharacterAsset> {
   const res = await apiClient.post<ApiResponse<ComicCharacterAsset>>("/comic/character-assets", payload);
-  return res.data.data!;
-}
-
-export async function updateCharacterAsset(assetId: string, payload: UpdateAssetPayload): Promise<ComicCharacterAsset> {
-  const res = await apiClient.patch<ApiResponse<ComicCharacterAsset>>(`/comic/character-assets/${assetId}`, payload);
   return res.data.data!;
 }
 

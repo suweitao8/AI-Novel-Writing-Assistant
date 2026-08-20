@@ -141,28 +141,7 @@ export async function getKnowledgeDocumentVersionChapters(documentId: string, ve
     `/knowledge/documents/${documentId}/versions/${versionId}/chapters`,
   );
   return data;
-}
-
-export async function rebuildKnowledgeDocumentVersionChapters(documentId: string, versionId: string) {
-  const { data } = await apiClient.post<ApiResponse<DocumentChapterSplitResult>>(
-    `/knowledge/documents/${documentId}/versions/${versionId}/chapters`,
-    {},
-  );
-  return data;
-}
-
-export async function updateKnowledgeDocumentChapter(
-  documentId: string,
-  versionId: string,
-  chapterIndex: number,
-  payload: { title?: string; summary?: string | null },
-) {
-  const { data } = await apiClient.patch<ApiResponse<DocumentChapter>>(
-    `/knowledge/documents/${documentId}/versions/${versionId}/chapters/${chapterIndex}`,
-    payload,
-  );
-  return data;
-}
+}
 
 export async function createKnowledgeDocument(payload: {
   title?: string;

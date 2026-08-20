@@ -83,14 +83,7 @@ export async function updateNovelChapter(
 export async function deleteNovelChapter(id: string, chapterId: string) {
   const { data } = await apiClient.delete<ApiResponse<null>>(`/novels/${id}/chapters/${chapterId}`);
   return data;
-}
-
-export async function getChapterTraces(novelId: string, chapterId: string) {
-  const { data } = await apiClient.get<ApiResponse<import("@ai-novel/shared/types/agent").AgentRun[]>>(
-    `/novels/${novelId}/chapters/${chapterId}/traces`,
-  );
-  return data;
-}
+}
 
 export async function getChapterTimeline(novelId: string, chapterId: string) {
   const { data } = await apiClient.get<ApiResponse<{
@@ -98,19 +91,7 @@ export async function getChapterTimeline(novelId: string, chapterId: string) {
     latestReport: TimelineCheckReport | null;
   }>>(`/novels/${novelId}/chapters/${chapterId}/timeline`);
   return data;
-}
-
-export async function previewChapterRewrite(
-  novelId: string,
-  chapterId: string,
-  payload: ChapterEditorRewritePreviewRequest,
-) {
-  const { data } = await apiClient.post<ApiResponse<ChapterEditorRewritePreviewResponse>>(
-    `/novels/${novelId}/chapters/${chapterId}/editor/rewrite-preview`,
-    payload,
-  );
-  return data;
-}
+}
 
 export async function getChapterEditorWorkspace(novelId: string, chapterId: string) {
   const { data } = await apiClient.get<ApiResponse<ChapterEditorWorkspaceResponse>>(
