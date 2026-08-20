@@ -16,6 +16,7 @@
 ## 当前规则
 
 - 新增技术探针或非 Prompt Registry 的 LLM 调用时，必须同时在 `KNOWN_LABEL_PURPOSES` 登记用户可读的用途文案，避免实况面板出现新的裸标识。
+- **用途推导顺序**：`KNOWN_LABEL_PURPOSES`（探针 label）→ `STAGE_PURPOSES`（调用阶段）→ `PROMPT_ID_PURPOSES`（Prompt id）→ `TASK_TYPE_PURPOSES`（任务类型兜底）。多个不同用途的 prompt 共用同一任务类型时（典型：参考解析的初稿/提取与漫剧管线各环节都是 `outline_planning`/`planner`），任务类型的笼统名（如「大纲与章节规划」）会让用户分不清每个调用在做什么——这类 prompt **必须在 `STAGE_PURPOSES` 或 `PROMPT_ID_PURPOSES` 里登记具体用途**（2026-08-20 用户反馈：参考「解析」同时开两个模型调用，标题都叫「大纲与章节规划」，无法分辨）。新增共用任务类型的 prompt 时同步登记。
 - 新增任务类型（TaskType）时，同步补 `TASK_TYPE_PURPOSES` 的中文名称。
 - `purpose` 是展示字段，不参与任何路由或执行逻辑判断。
 
