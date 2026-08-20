@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import type { DramaVisualStyle } from "@/api/media/drama";
 import { getStorySettingsWorld, updateStorySettingsWorld } from "@/api/story/storySettings";
+import { getUniversalArtStyle } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,9 +12,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
-// 「设定 · 美术风格」工作面：整本作品的画风体系。
-// - 默认风格：封面/立绘/首帧图与视频的基准画风，点选即存（画风不进章节初稿）；
-// - 风格库：内置风格只读，自定义风格（如 现代→末世 的多套画风）按本小说自由定义。
+// 「设定 · 美术风格」工作面：这本书的画风 = 通用美术风格（系统级渲染质感基线，展示只读）
+// + 具体风格（题材/氛围层——内置预设与本书自定义，如 现代↔末世 切换），两层组合后用于
+// 立绘/首帧图/视频生成；画风不进章节脚本。
 interface ArtStylePanelProps {
   novelId: string;
   /** 内置风格预设（GET /drama/visual-styles），第一项是内置默认风格。 */
@@ -38,6 +40,11 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     queryKey: queryKeys.novels.storySettingsWorld(props.novelId),
     queryFn: () => getStorySettingsWorld(props.novelId),
   });
+  const universalQuery = useQuery({
+    queryKey: queryKeys.settings.universalArtStyle,
+    queryFn: getUniversalArtStyle,
+  });
+  const universal = universalQuery.data?.data;
   const world = worldQuery.data?.data;
   const savedCustoms = world?.artStyles ?? [];
   const builtinDefaultId = props.styleOptions[0]?.id ?? null;
@@ -62,7 +69,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     onSuccess: async () => {
       props.onApplyProjectStyle(defaultMutation.variables ?? "");
       await invalidate();
-      toast.success("默认美术风格已保存，之后生成的画面与视频会用这个画风。");
+      toast.success("默认具体风格已保存，之后生成的画面与视频会叠加这个画风。");
     },
     onError: (error) => {
       toast.error("保存默认风格失败。", { description: error instanceof Error ? error.message : undefined });
@@ -103,7 +110,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
   const removeEntry = (index: number) => {
     const entry = library[index];
-    if (entry && entry.initialLabel && !window.confirm(`删除风格「${entry.initialLabel}」？之后画面生成会改用默认风格。`)) {
+    if (entry && entry.initialLabel && !window.confirm(`删除风格「${entry.initialLabel}」？之后画面生成会改用内置默认具体风格。`)) {
       return;
     }
     setLibrary((prev) => prev.filter((_, i) => i !== index));
@@ -117,12 +124,32 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     <div className="space-y-4">
       <Card className="min-w-0">
         <CardHeader>
-          <CardTitle className="text-base">默认美术风格</CardTitle>
+          <CardTitle className="text-base">通用美术风格</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <p className="text-sm leading-6 text-muted-foreground">
+            所有画面共用的渲染质感；下面选的具体风格叠加题材与氛围，两层一起用于生成。
+          </p>
+          <p className="rounded-xl bg-muted/40 px-3 py-2 font-mono text-xs leading-5 break-all text-muted-foreground">
+            {universal ? (universal.prompt || universal.defaultPrompt) : "正在读取通用画风…"}
+          </p>
+          <Link
+            to="/settings/art-style"
+            className="inline-flex items-center gap-1 text-xs text-primary underline-offset-4 hover:underline"
+          >
+            到 设置 · 通用画风 修改
+          </Link>
+        </CardContent>
+      </Card>
+
+      <Card className="min-w-0">
+        <CardHeader>
+          <CardTitle className="text-base">默认具体风格</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            整本作品画面与视频的基准画风：封面、角色形象、章节画面都用它。
-            想换画风时在这里改选默认风格，之后生成的画面与视频就会用新画风。
+            这本书的题材画风（现代、末世、玄幻…），叠加在通用质感上：角色形象、章节画面与视频都用它。
+            想换题材画风时在这里改选，之后生成的画面就会用新组合。
           </p>
           {worldQuery.isLoading ? (
             <div className="text-sm text-muted-foreground">正在加载风格…</div>
@@ -154,7 +181,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
       <Card className="min-w-0">
         <CardHeader className="flex-row flex-wrap items-center justify-between space-y-0 gap-2">
-          <CardTitle className="text-base">风格库</CardTitle>
+          <CardTitle className="text-base">具体风格库</CardTitle>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -177,7 +204,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">内置风格</span>
+              <span className="text-sm font-medium">内置具体风格</span>
               <Badge variant="outline">全小说通用</Badge>
             </div>
             {props.styleOptions.map((preset) => (
@@ -189,9 +216,9 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
           </div>
 
           <div className="space-y-2">
-            <span className="text-sm font-medium">自定义风格</span>
+            <span className="text-sm font-medium">自定义具体风格</span>
             <p className="text-xs leading-5 text-muted-foreground">
-              把这本书特有的画风定义成一个个风格（例如：「现代诡异」「末世爆发后」），设为默认后画面与视频生成都会按它渲染。
+              把这本书特有的题材画风定义成一个个风格（例如：「现代诡异」「末世爆发后」），设为默认后与通用画风叠加生成。
             </p>
             {library.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">

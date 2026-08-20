@@ -17,10 +17,8 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
-import {
-  buildCharacterStylePromptLines,
-  resolveDramaVisualStyle,
-} from "./visual/dramaVisualStyles";
+import { buildCharacterStylePromptLines } from "./visual/dramaVisualStyles";
+import { resolveDramaArtStyleContext } from "./visual/dramaArtStyleResolver";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -187,14 +185,20 @@ export class DramaCharacterImageService {
   ) {
     const character = await prisma.dramaCharacter.findUnique({
       where: { id: characterId },
-      include: { project: { select: { visualStyle: true } } },
+      include: { project: { select: { visualStyle: true, sourceRef: true } } },
     });
     if (!character) {
       throw new AppError(`未找到短剧角色：${characterId}`, 404);
     }
 
-    const visualStyle = resolveDramaVisualStyle(character.project?.visualStyle);
-    const prompt = buildCharacterSheetPrompt(character, buildCharacterStylePromptLines(visualStyle));
+    const styleContext = await resolveDramaArtStyleContext({
+      visualStyle: character.project?.visualStyle ?? null,
+      sourceRef: character.project?.sourceRef ?? null,
+    });
+    const prompt = buildCharacterSheetPrompt(
+      character,
+      buildCharacterStylePromptLines(styleContext.universal, styleContext.specific),
+    );
 
     const adapter: ImageTargetAdapter<CharacterSheetData> = {
       kind: `drama.character.sheet:${characterId}`,

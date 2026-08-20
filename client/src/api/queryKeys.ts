@@ -163,6 +163,7 @@ export const queryKeys = {
     rag: ["settings", "rag"] as const,
     ragEmbeddingModels: (provider: string) => ["settings", "rag", "embedding-models", provider] as const,
     styleEngineRuntime: ["settings", "style-engine-runtime"] as const,
+    universalArtStyle: ["settings", "universal-art-style"] as const,
     autoDirectorChannels: ["settings", "auto-director-channels"] as const,
     autoDirectorIssuePolicy: ["settings", "auto-director-issue-policy"] as const,
     autoDirectorApprovalPreferences: ["settings", "auto-director-approval-preferences"] as const,
