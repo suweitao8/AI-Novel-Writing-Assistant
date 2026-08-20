@@ -21,7 +21,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 // 漫剧配音共享组件：状态点 / 旁白音色卡 / 角色音色卡。
-// 「分镜配音」合并列表（ShotVoiceListPanel）消费这些组件；音色改动会让已生成的配音标记过期。
+// 「分镜」页签的合并列表（ShotVoiceListPanel）消费这些组件；音色改动会让已生成的配音标记过期。
 
 
 function parseVoiceProfile(raw: string | null | undefined): {
