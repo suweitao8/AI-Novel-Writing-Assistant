@@ -6,9 +6,11 @@ import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 
 // 参考文本服务端持久化：本章参考正文存 Chapter.referenceText（PUT /chapters/:id，
-// 1.2s 防抖静默保存），整本「原始参考小说」存知识库文档（创建漫剧时上传）；
-// 本章没有自己的参考文本时，编辑器回落展示整本小说开头，编辑即落到本章字段。
-// 不再使用浏览器 localStorage——内嵌浏览器的本地存储不可靠（写入静默失败/重载即丢），
+// 1.2s 防抖静默保存），整本「原始参考小说」存知识库文档（创建漫剧时上传）。
+// 本章没有自己的参考文本时，「参考」页签只读展示整本小说（解析/提取直接用它），
+// 一键「复制为本章参考」或粘贴新文本后才进入可编辑态——不把整本小说当可编辑框
+// 展示，否则往里粘贴同一本小说会叠出多份重复文本。
+// 不使用浏览器 localStorage——内嵌浏览器的本地存储不可靠（写入静默失败/重载即丢），
 // 已踩过：参考文本与提取建议凭空消失。
 const REFERENCE_AUTOSAVE_DELAY_MS = 1200;
 
@@ -89,6 +91,9 @@ export function useReferenceDraftStage(input: {
 }) {
   const { workspace } = input;
   const [pendingDraft, setPendingDraft] = useState<string | null>(null);
+  // 本章没有参考文本时，「参考」页签先只读展示整本小说；用户点「粘贴新文本」后才进入
+  // 空白可编辑态。避免把整本小说当可编辑框展示——往里面粘贴同一本小说会叠出多份重复文本。
+  const [referenceEditIntent, setReferenceEditIntent] = useState(false);
   const chapter = workspace.currentChapter;
 
   // 整本参考小说（创建漫剧时上传，知识库文档服务端存档）。
@@ -98,15 +103,25 @@ export function useReferenceDraftStage(input: {
     enabled: Boolean(input.referenceDocId),
     staleTime: 5 * 60 * 1000,
   });
-  const sourceFallbackText = useMemo(() => {
+  const activeDocVersion = useMemo(() => {
     const versions = referenceDocQuery.data?.data?.versions ?? [];
-    const activeVersion = versions.find((version) => version.isActive) ?? versions[versions.length - 1];
-    return (activeVersion?.content ?? "").slice(0, 20000);
+    return versions.find((version) => version.isActive) ?? versions[versions.length - 1] ?? null;
   }, [referenceDocQuery.data]);
+  const sourceFallbackText = (activeDocVersion?.content ?? "").slice(0, 20000);
+  const sourceCharCount = activeDocVersion?.charCount ?? activeDocVersion?.content?.length ?? 0;
+  const sourceDocTitle = referenceDocQuery.data?.data?.title ?? "参考小说";
 
-  // 本章已有参考文本用本章的；否则回落展示整本小说开头（编辑后落到本章字段）。
-  const referenceText = workspace.referenceText.trim() ? workspace.referenceText : sourceFallbackText;
+  // 解析与提取用的「有效参考文本」：本章有自己的参考文本用本章的，否则用整本小说。
+  const hasChapterReference = workspace.referenceText.trim().length > 0;
+  const referenceText = hasChapterReference ? workspace.referenceText : sourceFallbackText;
   const trimmedReference = referenceText.trim();
+  // 「参考」页签编辑器的值：preview 模式传 null（只读展示整本小说，不进编辑器）。
+  const referenceEditorValue = hasChapterReference ? workspace.referenceText : referenceEditIntent ? "" : null;
+  const referenceSourceHint = hasChapterReference
+    ? `将使用本章参考文本（约 ${workspace.referenceText.trim().length.toLocaleString()} 字）`
+    : sourceCharCount > 0
+      ? `本章没有单独的参考文本，将使用整本《${sourceDocTitle}》（约 ${sourceCharCount.toLocaleString()} 字）`
+      : "还没有可用的参考内容";
 
   // 参考文本防抖自动保存到 Chapter.referenceText（服务端），卸载时冲保存避免丢稿。
   const referenceDirty = workspace.referenceDirty;
@@ -168,8 +183,26 @@ export function useReferenceDraftStage(input: {
       ? "还没有粘贴参考内容。"
       : null;
 
+  // 把整本参考小说复制成本章参考文本（超过上限取开头 2 万字），复制后随自动保存落库。
+  const copySourceToChapter = () => {
+    if (!sourceFallbackText.trim()) {
+      return;
+    }
+    workspace.setReferenceText(sourceFallbackText);
+  };
+
   return {
     referenceText,
+    referenceEditorValue,
+    hasChapterReference,
+    referenceEditIntent,
+    beginReferenceEdit: () => setReferenceEditIntent(true),
+    copySourceToChapter,
+    sourceDocTitle,
+    sourceCharCount,
+    sourceDocLoading: referenceDocQuery.isPending,
+    sourcePreviewText: sourceFallbackText,
+    referenceSourceHint,
     setReferenceText,
     sourceFallbackText,
     parseMutation,
