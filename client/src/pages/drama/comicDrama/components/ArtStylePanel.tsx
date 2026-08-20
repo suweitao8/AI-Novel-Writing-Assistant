@@ -11,10 +11,8 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
 // 「设定 · 美术风格」工作面：整本作品的画风体系。
-// - 默认风格：章节开头与封面/立绘/首帧图的基准画风，点选即存；
-// - 风格库：内置风格只读，自定义风格（如 现代→末世 的多套画风）按本小说自由定义；
-// - 章节初稿里用「【风格：风格名】」切换画风，切换后一直生效到下一个【风格：…】，
-//   与【场景：…】换场、【角色状态：…】换形象的机制一致。
+// - 默认风格：封面/立绘/首帧图与视频的基准画风，点选即存（画风不进章节初稿）；
+// - 风格库：内置风格只读，自定义风格（如 现代→末世 的多套画风）按本小说自由定义。
 interface ArtStylePanelProps {
   novelId: string;
   /** 内置风格预设（GET /drama/visual-styles），第一项是内置默认风格。 */
@@ -105,7 +103,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
 
   const removeEntry = (index: number) => {
     const entry = library[index];
-    if (entry && entry.initialLabel && !window.confirm(`删除风格「${entry.initialLabel}」？初稿里已有的【风格：…】标记不会被自动改写。`)) {
+    if (entry && entry.initialLabel && !window.confirm(`删除风格「${entry.initialLabel}」？之后画面生成会改用默认风格。`)) {
       return;
     }
     setLibrary((prev) => prev.filter((_, i) => i !== index));
@@ -123,8 +121,8 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            整本作品画面与视频的基准画风：封面、角色形象、章节开头都用它。
-            剧情画风转变时（末世爆发、进入异世界），在章节初稿里写「【风格：风格名】」即可切换，切换后一直生效到下一个【风格：…】。
+            整本作品画面与视频的基准画风：封面、角色形象、章节画面都用它。
+            想换画风时在这里改选默认风格，之后生成的画面与视频就会用新画风。
           </p>
           {worldQuery.isLoading ? (
             <div className="text-sm text-muted-foreground">正在加载风格…</div>
@@ -193,7 +191,7 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
           <div className="space-y-2">
             <span className="text-sm font-medium">自定义风格</span>
             <p className="text-xs leading-5 text-muted-foreground">
-              把这本书特有的画风定义成一个个风格（例如：「现代诡异」「末世爆发后」），初稿切换与画面生成都会按名字使用它们。
+              把这本书特有的画风定义成一个个风格（例如：「现代诡异」「末世爆发后」），设为默认后画面与视频生成都会按它渲染。
             </p>
             {library.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">

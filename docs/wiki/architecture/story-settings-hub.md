@@ -99,8 +99,8 @@
 
 ## 美术风格（v1.5 追加）
 
-- **为什么放在 NovelSettingsWorld**：美术风格是「这本小说怎么画」的小说级设定（初稿【风格：…】标记按小说的风格名单解析），与 mapJson 同挂在 `NovelSettingsWorld`（`artStylesJson` 自定义风格列表 `[{label,prompt}]`，≤12 条；`defaultArtStyle` 默认风格 id=内置预设 id 或自定义风格名）。两列均可空（20260820210000 双迁移目录各加一列 ALTER TABLE，additive 无损）。内置预设不入库：`services/drama/visual/dramaVisualStyles.ts`（7 项，默认 `unreal_cinematic_3d`「3D写实电影」），GET /drama/visual-styles 返回全量。
-- **风格身份=名字**：自定义风格没有独立 id，label 就是身份——初稿【风格：风格名】标记、默认风格引用、ArtStylePanel 展示都用同一个名字（刻意与标记约定对齐；改名=换身份，前端保存风格库时按「initialLabel→新名」让默认引用跟着走，删除默认自定义风格时服务端 `updateWorld` 检测到悬空引用自动回落 null=内置默认）。`parseArtStyles` 读取时同名去重、剥离历史 key 字段。
+- **为什么放在 NovelSettingsWorld**：美术风格是「这本小说怎么画」的小说级设定，与 mapJson 同挂在 `NovelSettingsWorld`（`artStylesJson` 自定义风格列表 `[{label,prompt}]`，≤12 条；`defaultArtStyle` 默认风格 id=内置预设 id 或自定义风格名）。两列均可空（20260820210000 双迁移目录各加一列 ALTER TABLE，additive 无损）。内置预设不入库：`services/drama/visual/dramaVisualStyles.ts`（7 项，默认 `unreal_cinematic_3d`「3D写实电影」），GET /drama/visual-styles 返回全量。
+- **风格身份=名字**：自定义风格没有独立 id，label 就是身份——默认风格引用与 ArtStylePanel 展示都用同一个名字（改名=换身份，前端保存风格库时按「initialLabel→新名」让默认引用跟着走，删除默认自定义风格时服务端 `updateWorld` 检测到悬空引用自动回落 null=内置默认）。`parseArtStyles` 读取时同名去重、剥离历史 key 字段。
 - **默认风格解析链**（创建分镜项目/首帧图生效优先级）：手动选择 > `DramaProject.visualStyle` > 小说 `defaultArtStyle` > 内置默认（预设列表首位）。默认风格点选即存；已有分镜项目时仅当选择的是内置预设 id 才同步推送 `setDramaVisualStyle`（自定义风格名不是预设 id，首帧图侧按预设解析，推送无意义）。
-- **初稿切换消费（尚未实现的部分）**：`reference_draft@v7` 已按风格名单输出 `styleSwitch`、按角色 statesJson 输出 `stateSwitches`，序列化为【风格：…】【角色状态：名字：状态】标记行；但首帧图/视频生成目前仍按 DramaProject.visualStyle 单一预设解析，**逐镜按标记切换画风/角色形象是画面生成侧的后续工作**——做的时候解析标记行的位置在 Chapter.expectation 文本（`serializeDraftSegments` 的输出格式）。
+- **画风不进初稿（2026-08-20 用户决定）**：v7 曾让 `reference_draft` 输出 styleSwitch（【风格：…】标记）按剧情切画风，用户看过实际产出后决定不要——整本用默认风格一种画风，想换画风改「设定 · 美术风格」的默认风格；v8 起契约无 styleSwitch/artStyles。**角色状态切换保留**：`stateSwitches`（【角色状态：名字：状态】标记）仍在初稿里输出，其逐镜消费是画面生成侧的后续工作——做的时候解析标记行的位置在 Chapter.expectation 文本（`serializeDraftSegments` 的输出格式）。
 - **世界观基本设定精简（同一时期决策）**：基本设定只留 世界前提 + 时代背景（前端下拉：古代/架空古代/民国/现代/近未来/未来/末世/异世界 + 自定义自由输入，存量非名单值自动转自定义态）；基调规则（toneRules）不再提供编辑入口——世界规则一律走关键设定条目（条目式更符合写作新手的心智）。存量 toneRulesJson 数据保留不删，AI 重新生成世界观仍读它，属可接受的遗留输入。
