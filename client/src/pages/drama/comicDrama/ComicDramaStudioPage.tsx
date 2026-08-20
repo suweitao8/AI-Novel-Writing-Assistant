@@ -37,8 +37,7 @@ import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNov
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
 import CreateChapterDialog from "@/pages/drama/comicDrama/components/CreateChapterDialog";
-import NovelChapterOutlineTab from "@/pages/drama/comicDrama/components/NovelChapterOutlineTab";
-import NovelOutlineTab from "@/pages/drama/comicDrama/components/NovelOutlineTab";
+import ScriptTab from "@/pages/drama/comicDrama/components/ScriptTab";
 import ReferenceExtractTab from "@/pages/drama/comicDrama/components/ReferenceExtractTab";
 import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
 import ShotVoiceListPanel from "@/pages/drama/comicDrama/ShotVoiceListPanel";
@@ -48,8 +47,9 @@ import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useRefe
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·世界地图·美术风格·通用）。
 type StudioStage = "current" | "assets" | "settings";
-// 「当前」的子页签全部作用于当前章：参考→初稿→正文→分镜→配音→视频。
-type CurrentTab = "reference" | "extract" | "draft" | "text" | "storyboard" | "video";
+// 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→视频（脚本是本章的线性分镜脚本，
+// 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
+type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观（条目式关键设定）/ 世界地图 / 美术风格 / 通用（参考小说与项目配置）。
@@ -64,8 +64,7 @@ const STAGE_LABELS: Record<StudioStage, string> = {
 const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   reference: "参考",
   extract: "提取",
-  draft: "初稿",
-  text: "正文",
+  script: "脚本",
   storyboard: "分镜",
   video: "视频",
 };
@@ -85,13 +84,13 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
 
 // 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
 // 每个页签下方都有自己的居中子页签条、操作按钮靠右。
-// 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（初稿/正文/分镜/配音/视频）
-// 全部随当前章更新；「解析」按本章初稿生成本章节拍。
+// 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（脚本/分镜/视频）
+// 全部随当前章更新；「解析」按参考文本生成本章脚本与设定提取。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
   const queryClient = useQueryClient();
   const [stage, setStage] = useState<StudioStage>("current");
-  const [currentTab, setCurrentTab] = useState<CurrentTab>("draft");
+  const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
   const [assetTab, setAssetTab] = useState<AssetTab>("characters");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
@@ -134,7 +133,7 @@ export default function ComicDramaStudioPage() {
     novelId,
     workspace: chapterWorkspace,
     referenceDocId: overview?.novel.referenceDocument?.id ?? null,
-    onApplied: () => setCurrentTab("draft"),
+    onApplied: () => setCurrentTab("script"),
   });
   const extractStage = useReferenceExtractStage({
     novelId,
@@ -182,18 +181,6 @@ export default function ComicDramaStudioPage() {
       </div>
     );
   }
-
-  const parseChapterOutline = () => {
-    chapterWorkspace.previewMutation.mutate(undefined, {
-      onSuccess: () => setCurrentTab("text"),
-    });
-  };
-
-  const parseDisabledReason = !chapterWorkspace.currentChapter
-    ? "还没有章节。"
-    : !chapterWorkspace.expectationText.trim()
-      ? "本章还没有初稿。"
-      : null;
 
   let headerActions: ReactNode = null;
   if (stage === "current") {
@@ -256,8 +243,7 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="extract">
                     {CURRENT_TAB_LABELS.extract}{extractStage.totalItems > 0 ? ` ${extractStage.totalItems}` : ""}
                   </TabsTrigger>
-                  <TabsTrigger value="draft">{CURRENT_TAB_LABELS.draft}</TabsTrigger>
-                  <TabsTrigger value="text">{CURRENT_TAB_LABELS.text}</TabsTrigger>
+                  <TabsTrigger value="script">{CURRENT_TAB_LABELS.script}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
@@ -287,7 +273,7 @@ export default function ComicDramaStudioPage() {
                       size="sm"
                       onClick={() => referenceStage.parseMutation.mutate()}
                       disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
-                      title={referenceStage.parseDisabledReason ?? "按参考文本生成本章初稿"}
+                      title={referenceStage.parseDisabledReason ?? "按参考文本生成本章脚本"}
                     >
                       {referenceStage.parseMutation.isPending
                         ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
@@ -295,26 +281,12 @@ export default function ComicDramaStudioPage() {
                       解析
                     </Button>
                   </>
-                ) : currentTab === "draft" ? (
-                  <>
-                    {chapterWorkspace.savePending ? (
-                      <span className="text-xs text-muted-foreground">自动保存中…</span>
-                    ) : null}
-                    {parseDisabledReason ? (
-                      <span className="text-xs text-muted-foreground">{parseDisabledReason}</span>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      onClick={parseChapterOutline}
-                      disabled={chapterWorkspace.previewMutation.isPending || parseDisabledReason !== null}
-                      title={parseDisabledReason ?? "按本章初稿生成本章节拍"}
-                    >
-                      {chapterWorkspace.previewMutation.isPending
-                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                        : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                      解析
-                    </Button>
-                  </>
+                ) : currentTab === "script" ? (
+                  chapterWorkspace.savePending ? (
+                    <span className="text-xs text-muted-foreground">自动保存中…</span>
+                  ) : chapterWorkspace.expectationDirty ? (
+                    <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
+                  ) : null
                 ) : currentTab === "video" && overview.drama ? (
                   <Button size="sm" asChild>
                     <Link to={`/drama/projects/${overview.drama.projectId}`}>
@@ -375,14 +347,12 @@ export default function ComicDramaStudioPage() {
               onChange={referenceStage.setReferenceText}
               placeholder={referenceStage.hasReferenceDoc ? "点「引用」带入参考小说对应章节，或直接粘贴参考文本" : "粘贴参考文本"}
             />
-          ) : currentTab === "draft" ? (
-            <NovelOutlineTab
+          ) : currentTab === "script" ? (
+            <ScriptTab
               novelId={novelId}
               workspace={chapterWorkspace}
               onOpenChapterManage={() => setChapterManageOpen(true)}
             />
-          ) : currentTab === "text" ? (
-            <NovelChapterOutlineTab workspace={chapterWorkspace} />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (
               <ShotVoiceListPanel novelId={novelId} projectId={overview.drama.projectId} />
@@ -473,8 +443,8 @@ export default function ComicDramaStudioPage() {
         onOpenChange={(open) => { if (!open) referenceStage.setPendingDraft(null); }}
       >
         <AppDialogContent
-          title="替换本章初稿"
-          description="本章初稿已有内容。"
+          title="替换本章脚本"
+          description="本章脚本已有内容。"
           footer={
             <>
               <Button variant="outline" onClick={() => referenceStage.setPendingDraft(null)}>取消</Button>
