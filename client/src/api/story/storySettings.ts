@@ -19,6 +19,10 @@ export interface StorySettingsScene {
   summary: string | null;
   environmentPrompt: string | null;
   significance: string | null;
+  /** 场景时间（morning/noon/night；null=未设定）——影响场景图光线 */
+  timeOfDay: string | null;
+  /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
+  weather: string | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;
   sortOrder: number;
@@ -138,6 +142,8 @@ export async function createStorySettingsScene(
     summary?: string;
     environmentPrompt?: string;
     significance?: string;
+    timeOfDay?: string;
+    weather?: string;
     mapNodeId?: string;
     states?: StoryAssetState[];
   },
@@ -158,6 +164,8 @@ export async function updateStorySettingsScene(
     summary?: string | null;
     environmentPrompt?: string | null;
     significance?: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetState[];
   },

@@ -41,6 +41,10 @@ export interface StorySettingsScene {
   summary: string | null;
   environmentPrompt: string | null;
   significance: string | null;
+  /** 场景时间（morning/noon/night；null=未设定）——影响场景图光线 */
+  timeOfDay: string | null;
+  /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
+  weather: string | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;
   sortOrder: number;
@@ -125,6 +129,20 @@ const CATEGORY_LIST: StorySettingsCategory[] = ["characters", "scenes", "props",
 function formatCharacterSummary(name: string, role: string | null | undefined): string {
   const trimmed = role?.trim();
   return trimmed ? `${name}（${trimmed}）` : name;
+}
+
+// 场景时间与天气只收这三个枚举（2026-08-21 用户定的口径：早/中/晚，晴/阴/雨）。
+const SCENE_TIME_OF_DAY_VALUES = new Set(["morning", "noon", "night"]);
+const SCENE_WEATHER_VALUES = new Set(["sunny", "cloudy", "rainy"]);
+
+function normalizeSceneTimeOfDay(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed && SCENE_TIME_OF_DAY_VALUES.has(trimmed) ? trimmed : null;
+}
+
+function normalizeSceneWeather(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed && SCENE_WEATHER_VALUES.has(trimmed) ? trimmed : null;
 }
 
 function parseStates(value: string | null | undefined): StoryAssetState[] {
@@ -519,6 +537,8 @@ export class StorySettingsService {
       summary: row.summary,
       environmentPrompt: row.environmentPrompt,
       significance: row.significance,
+      timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
+      weather: normalizeSceneWeather(row.weather),
       mapNodeId: row.mapNodeId,
       mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,
@@ -534,6 +554,8 @@ export class StorySettingsService {
     summary?: string | null;
     environmentPrompt?: string | null;
     significance?: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetState[];
   }): Promise<StorySettingsScene> {
@@ -551,6 +573,8 @@ export class StorySettingsService {
         summary: input.summary ?? null,
         environmentPrompt: input.environmentPrompt ?? null,
         significance: input.significance ?? null,
+        timeOfDay: normalizeSceneTimeOfDay(input.timeOfDay),
+        weather: normalizeSceneWeather(input.weather),
         mapNodeId: input.mapNodeId ?? null,
         statesJson: serializeStates(input.states),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
@@ -566,6 +590,8 @@ export class StorySettingsService {
     summary?: string | null;
     environmentPrompt?: string | null;
     significance?: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetState[];
   }): Promise<StorySettingsScene> {
@@ -581,6 +607,8 @@ export class StorySettingsService {
         ...(input.summary !== undefined ? { summary: input.summary } : {}),
         ...(input.environmentPrompt !== undefined ? { environmentPrompt: input.environmentPrompt } : {}),
         ...(input.significance !== undefined ? { significance: input.significance } : {}),
+        ...(input.timeOfDay !== undefined ? { timeOfDay: normalizeSceneTimeOfDay(input.timeOfDay) } : {}),
+        ...(input.weather !== undefined ? { weather: normalizeSceneWeather(input.weather) } : {}),
         ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
         ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
       },
@@ -1182,6 +1210,8 @@ export class StorySettingsService {
     summary: string | null;
     environmentPrompt: string | null;
     significance: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
     mapNodeId: string | null;
     mapUnmappable: boolean;
     sortOrder: number;
@@ -1196,6 +1226,8 @@ export class StorySettingsService {
       summary: row.summary,
       environmentPrompt: row.environmentPrompt,
       significance: row.significance,
+      timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
+      weather: normalizeSceneWeather(row.weather),
       mapNodeId: row.mapNodeId,
       mapUnmappable: row.mapUnmappable,
       sortOrder: row.sortOrder,

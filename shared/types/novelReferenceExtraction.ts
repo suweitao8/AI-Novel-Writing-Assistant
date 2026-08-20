@@ -28,8 +28,12 @@ export interface StoryAssetState {
 export interface ReferenceExtractItem {
   name: string;
   description: string;
-  /** 画面提示词（场景=环境画面，道具=实物画面） */
+  /** 图片提示词（角色/场景/道具统一命名；场景=环境画面，道具=实物画面） */
   imagePrompt?: string;
+  /** 场景时间（morning/noon/night；v6 起场景条目结构化输出，原文看不出为 null；道具无此字段） */
+  timeOfDay?: "morning" | "noon" | "night" | null;
+  /** 场景天气（sunny/cloudy/rainy；仅场景条目） */
+  weather?: "sunny" | "cloudy" | "rainy" | null;
   /** 外观状态短名：同名资产本章发生重大外观变化时才有 */
   stateLabel?: string;
   /** 外观变化说明：发生了什么、相对上一状态变了哪里 */

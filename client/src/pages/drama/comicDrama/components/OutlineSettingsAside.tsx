@@ -64,6 +64,8 @@ const TYPE_TONES: Record<AssetType, string> = {
 const GENDER_LABELS: Record<string, string> = { male: "男", female: "女", other: "其他", unknown: "未知" };
 const AGE_LABELS: Record<string, string> = { child: "少年", youth: "青年", middle: "中年", elder: "老年" };
 const SCENE_TYPE_LABELS: Record<string, string> = { interior: "室内", exterior: "室外", nature: "自然" };
+const SCENE_TIME_LABELS: Record<string, string> = { morning: "早上", noon: "中午", night: "晚上" };
+const SCENE_WEATHER_LABELS: Record<string, string> = { sunny: "晴天", cloudy: "阴天", rainy: "雨天" };
 
 function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
   const text = value?.trim();
@@ -161,7 +163,7 @@ function AssetDetailDialog(props: {
                   </div>
                   <DetailRow label="性格" value={character.personality} />
                   <DetailRow label="外貌" value={character.appearance} />
-                  <DetailRow label="生图提示词" value={character.facePrompt} />
+                  <DetailRow label="图片提示词" value={character.facePrompt} />
                   <DetailRow label="音色提示词" value={character.voiceTexture} />
                   <DetailRow label="背景" value={character.background} />
                   <DetailStates states={character.states} />
@@ -171,10 +173,12 @@ function AssetDetailDialog(props: {
               const scene = source as StorySettingsScene;
               return (
                 <>
-                  {scene.sceneType ? <Badge variant="outline">{SCENE_TYPE_LABELS[scene.sceneType] ?? scene.sceneType}</Badge> : null}
-                  <DetailRow label="概述" value={scene.summary} />
-                  <DetailRow label="生图提示词" value={scene.environmentPrompt} />
-                  <DetailRow label="剧情作用" value={scene.significance} />
+                  <div className="flex flex-wrap gap-1.5">
+                    {scene.sceneType ? <Badge variant="outline">{SCENE_TYPE_LABELS[scene.sceneType] ?? scene.sceneType}</Badge> : null}
+                    {scene.timeOfDay ? <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge> : null}
+                    {scene.weather ? <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge> : null}
+                  </div>
+                  <DetailRow label="图片提示词" value={scene.environmentPrompt} />
                   <DetailStates states={scene.states} />
                 </>
               );
@@ -182,7 +186,7 @@ function AssetDetailDialog(props: {
               const prop = source as StorySettingsProp;
               return (
                 <>
-                  <DetailRow label="生图提示词" value={prop.visualPrompt} />
+                  <DetailRow label="图片提示词" value={prop.visualPrompt} />
                   <DetailStates states={prop.states} />
                 </>
               );
@@ -194,7 +198,7 @@ function AssetDetailDialog(props: {
   );
 }
 
-// 大纲编辑区右侧的设定资产面板：卡片只放类型和名字，点开弹窗看完整信息（生图提示词、
+// 大纲编辑区右侧的设定资产面板：卡片只放类型和名字，点开弹窗看完整信息（图片提示词、
 // 外观状态等）并可删除；工具栏为 左新增 / 中搜索框 / 右搜索按钮，新增走弹窗。
 // 创建走正式设定接口，与「设定」页签共享缓存；名字实时进入大纲高亮名单。
 export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
@@ -221,7 +225,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         id: scene.id,
         type: "scene" as const,
         name: scene.name,
-        note: scene.summary ?? "",
+        note: scene.summary ?? scene.environmentPrompt ?? "",
         updatedAt: scene.updatedAt,
         source: scene,
       })),

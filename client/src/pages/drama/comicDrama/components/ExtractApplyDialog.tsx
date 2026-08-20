@@ -68,8 +68,10 @@ export default function ExtractApplyDialog(props: {
     setSceneForm({
       ...EMPTY_SCENE_FORM,
       name: item.name ?? "",
-      summary: extractItem.description ?? "",
       environmentPrompt: extractItem.imagePrompt ?? "",
+      // 提取给结构化时间/天气（旧结果没有则保持未设定）。
+      timeOfDay: extractItem.timeOfDay ?? "",
+      weather: extractItem.weather ?? "",
     });
     setPropForm({
       ...EMPTY_PROP_FORM,

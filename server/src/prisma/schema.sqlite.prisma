@@ -556,6 +556,9 @@ model NovelScene {
   summary         String?
   environmentPrompt String?
   significance String?
+  // 场景时间与天气（morning/noon/night；sunny/cloudy/rainy）：影响场景图的光线与氛围。
+  timeOfDay       String?
+  weather         String?
   statesJson      String?
   mapNodeId    String?
   mapUnmappable Boolean @default(false)

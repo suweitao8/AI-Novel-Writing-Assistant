@@ -133,6 +133,8 @@ const sceneCreateSchema = z.object({
   summary: z.string().trim().max(600).optional(),
   environmentPrompt: z.string().trim().max(1200).optional(),
   significance: z.string().trim().max(600).optional(),
+  timeOfDay: z.enum(["morning", "noon", "night"]).optional(),
+  weather: z.enum(["sunny", "cloudy", "rainy"]).optional(),
   mapNodeId: z.string().trim().max(60).optional(),
   states: z.array(assetStateSchema).max(24).optional(),
 });
@@ -143,6 +145,8 @@ const sceneUpdateSchema = z.object({
   summary: z.string().trim().max(600).nullable().optional(),
   environmentPrompt: z.string().trim().max(1200).nullable().optional(),
   significance: z.string().trim().max(600).nullable().optional(),
+  timeOfDay: z.enum(["morning", "noon", "night"]).nullable().optional(),
+  weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
   mapNodeId: z.string().trim().max(60).nullable().optional(),
   states: z.array(assetStateSchema).max(24).optional(),
 });
