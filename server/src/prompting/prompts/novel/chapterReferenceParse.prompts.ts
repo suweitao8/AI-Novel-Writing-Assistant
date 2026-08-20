@@ -13,6 +13,9 @@
 // 开场没有基准状态，后续【角色状态】切换就没有起点（用户实测第一章开头主角无状态）。
 // v5（2026-08-21）：characters 不再输出 role/身份定位——参考小说只处理成脚本，
 // 定位男主/女主没有消费方（用户明确要求去掉；表单与卡片同步移除该字段）。
+// v6（2026-08-21）：场景条目新增结构化 timeOfDay（早/中/晚）与 weather（晴/阴/雨），
+// 三类资产的提示词统一叫「图片提示词」（用户要求：时间天气影响场景图，氛围/故事作用
+// 从场景表单移除，summary/significance 仅保留 DB 列）。
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
@@ -40,6 +43,12 @@ const referenceParseItemSchema = z.object({
   imagePrompt: z.string().max(300).optional().default(""),
 }).strict();
 
+// 场景条目在通用条目之上多两个结构化字段：时间与天气（影响场景图的光线与氛围）。
+const referenceParseSceneSchema = referenceParseItemSchema.extend({
+  timeOfDay: z.enum(["morning", "noon", "night"]).nullable().default(null),
+  weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().default(null),
+}).strict();
+
 const chapterReferenceParseSchema = z.object({
   segments: z.array(referenceParseSegmentSchema).min(8).max(18),
   characters: z.array(z.object({
@@ -50,7 +59,7 @@ const chapterReferenceParseSchema = z.object({
     imagePrompt: z.string().min(2).max(300),
     voicePrompt: z.string().min(2).max(160),
   }).strict()).max(16).default([]),
-  scenes: z.array(referenceParseItemSchema).max(16).default([]),
+  scenes: z.array(referenceParseSceneSchema).max(16).default([]),
   props: z.array(referenceParseItemSchema).max(12).default([]),
   worldview: z.array(z.object({
     name: z.string().min(1).max(30),
@@ -117,7 +126,7 @@ function validateChapterReferenceParse(output: ChapterReferenceParseOutput): Cha
 
 export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromptInput, ChapterReferenceParseOutput> = {
   id: "novel.chapter.reference_parse",
-  version: "v5",
+  version: "v6",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -143,10 +152,10 @@ export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromp
       "- name＝原文人名。",
       "- gender/ageGroup 是结构化字段，应用时会分别填进设定的性别、年龄段：gender 按 male/female/other/unknown 输出（原文可推断就给准确值，完全看不出才用 unknown）；ageGroup 按 child（少年/儿童）/youth（青年）/middle（中年）/elder（老年）输出，原文写不出年龄段就填 null。",
       "- appearance＝外貌体型一句话：体型（高瘦/娇小/壮实/魁梧）、发型发色、五官特点、穿着、标志性特征——性别与年龄段已在结构化字段里，不在此重复（2026-08-20 起 physique/personality 不再单列：做视频只关注画面与音色提示词，属性从简）。",
-      "- imagePrompt＝角色画面提示词（中文，80～150 字）：以全身像可直接作画为准，写清性别年龄段、发型发色、五官特点、体型、服装配饰、气质神态；不要写动作场景。",
+      "- imagePrompt＝图片提示词（角色全身像，中文，80～150 字）：以全身像可直接作画为准，写清性别年龄段、发型发色、五官特点、体型、服装配饰、气质神态；不要写动作场景。",
       "- voicePrompt＝音色提示词（中文，30～60 字）：音高（低沉/清亮）、音质（沙哑/柔/冷）、说话气质（如 急躁少年音/疲惫沙哑的中年男声），按角色身份与言行推测。",
-      "scenes＝场景地点（每个独立空间都算）：name＝地点名，与 segments 里用的 scene 名保持一致，已有的 existingScenes 名单优先沿用；description＝环境特征与用途一句话；imagePrompt＝环境画面提示词（中文，60～120 字）：时间（白天/黑夜）、天气、光线、空间结构、氛围。",
-      "props＝重要道具（武器/信物/关键物品，路人杂物不算）：name＝物品名；description＝用途与来历一句话；imagePrompt＝实物画面提示词（中文，40～80 字）。",
+      "scenes＝场景地点（每个独立空间都算）：name＝地点名，与 segments 里用的 scene 名保持一致，已有的 existingScenes 名单优先沿用；description＝环境特征一句话（列表摘要用）；timeOfDay/weather 是结构化字段：时间按 morning（早上）/noon（中午）/night（晚上）输出、天气按 sunny（晴天）/cloudy（阴天）/rainy（雨天）输出——按这个场景在原文里的常态推断（一个场景多次出现就按主要时段），原文写不出就填 null；imagePrompt＝图片提示词（场景环境，中文，60～120 字）：光线、空间结构、材质与氛围——时间与天气已走结构化字段，不在此重复。",
+      "props＝重要道具（武器/信物/关键物品，路人杂物不算）：name＝物品名；description＝用途与来历一句话；imagePrompt＝图片提示词（道具实物，中文，40～80 字）。",
       "worldview＝世界观条目：力量体系、金手指/系统、势力组织、关键规则、时代背景等（name＝条目名，description＝一句话说明），不需要提示词。",
       "每类上限：characters 16、scenes 16、props 12、worldview 16；原文里确实没有的类别返回空数组。外观状态不在解析环节生成（用户手动管理），提示词一律写资产当前的初始形象。",
       "严禁把「示例文本」等占位内容原样输出——每一条都必须来自原文。所有内容用中文。只输出严格 JSON。",

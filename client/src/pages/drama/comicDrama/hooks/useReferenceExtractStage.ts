@@ -178,11 +178,11 @@ export function useReferenceExtractStage(input: {
         await createStorySettingsScene(input.novelId, {
           name: form.name.trim(),
           sceneType: (form.sceneType || undefined) as "interior" | "exterior" | "nature" | undefined,
-          summary: form.summary.trim() || undefined,
           environmentPrompt: imagePrompt || undefined,
-          significance: form.significance.trim() || undefined,
+          timeOfDay: (form.timeOfDay || undefined) as "morning" | "noon" | "night" | undefined,
+          weather: (form.weather || undefined) as "sunny" | "cloudy" | "rainy" | undefined,
           states: imagePrompt
-            ? [{ id: newStateId(), label: "初始", description: form.summary.trim() || imagePrompt, imagePrompt, ...chapterTag }]
+            ? [{ id: newStateId(), label: "初始", description: imagePrompt, imagePrompt, ...chapterTag }]
             : [],
         });
       } else if (form.__kind === "prop") {

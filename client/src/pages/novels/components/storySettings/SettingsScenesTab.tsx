@@ -35,6 +35,18 @@ const SCENE_TYPE_LABELS: Record<string, string> = {
   nature: "自然",
 };
 
+const SCENE_TIME_LABELS: Record<string, string> = {
+  morning: "早上",
+  noon: "中午",
+  night: "晚上",
+};
+
+const SCENE_WEATHER_LABELS: Record<string, string> = {
+  sunny: "晴天",
+  cloudy: "阴天",
+  rainy: "雨天",
+};
+
 export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenesTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
@@ -62,17 +74,17 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
       ? updateStorySettingsScene(novelId, editing.id, {
         name: form.name.trim(),
         sceneType: form.sceneType || null,
-        summary: form.summary.trim() || null,
         environmentPrompt: form.environmentPrompt.trim() || null,
-        significance: form.significance.trim() || null,
+        timeOfDay: form.timeOfDay || null,
+        weather: form.weather || null,
         states,
       })
       : createStorySettingsScene(novelId, {
         name: form.name.trim(),
         sceneType: form.sceneType || undefined,
-        summary: form.summary.trim() || undefined,
         environmentPrompt: form.environmentPrompt.trim() || undefined,
-        significance: form.significance.trim() || undefined,
+        timeOfDay: form.timeOfDay || undefined,
+        weather: form.weather || undefined,
       }),
     onSuccess: async () => {
       toast.success(editing ? "场景已保存。" : "场景已添加。");
@@ -118,9 +130,9 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
       setForm({
         name: draft.name,
         sceneType: draft.sceneType || "",
-        summary: draft.summary ?? "",
         environmentPrompt: draft.environmentPrompt ?? "",
-        significance: draft.significance ?? "",
+        timeOfDay: "",
+        weather: "",
       });
       toast.success("草稿已生成，可以直接修改后保存。");
     },
@@ -144,9 +156,9 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     setForm({
       name: scene.name,
       sceneType: scene.sceneType ?? "",
-      summary: scene.summary ?? "",
       environmentPrompt: scene.environmentPrompt ?? "",
-      significance: scene.significance ?? "",
+      timeOfDay: scene.timeOfDay ?? "",
+      weather: scene.weather ?? "",
     });
     setStates(scene.states ?? []);
   };
@@ -160,7 +172,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">
-          故事发生的地方。正文会优先发生在这些场景里，并带上这里写的氛围。
+          故事发生的地方。选好时间与天气，生成画面时会带上对应的光线和氛围。
         </p>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={openCreate}>
@@ -215,12 +227,14 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
                 {scene.sceneType ? (
                   <Badge variant="outline">{SCENE_TYPE_LABELS[scene.sceneType] ?? scene.sceneType}</Badge>
                 ) : null}
-                {scene.summary ? <p className="text-xs leading-5 text-muted-foreground">{scene.summary}</p> : null}
-                {scene.environmentPrompt ? (
-                  <p className="text-xs leading-5 text-muted-foreground">环境：{scene.environmentPrompt}</p>
+                {scene.timeOfDay ? (
+                  <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge>
                 ) : null}
-                {scene.significance ? (
-                  <p className="text-xs leading-5 text-muted-foreground">故事作用：{scene.significance}</p>
+                {scene.weather ? (
+                  <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge>
+                ) : null}
+                {scene.environmentPrompt ? (
+                  <p className="text-xs leading-5 text-muted-foreground">图片提示词：{scene.environmentPrompt}</p>
                 ) : null}
                 {scene.states.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -245,7 +259,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
         <AppDialogContent
           title={editing ? "编辑场景" : "添加场景"}
           description={editing
-            ? "写清场景的氛围和它在故事里的作用，正文会自动使用。"
+            ? "写清场景的画面与时间天气，生成场景图时会按它渲染。"
             : "写一句提示（也可以留空），让 AI 生成完整场景草稿；生成后可以随意修改再保存。"}
           footer={
             <>

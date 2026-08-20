@@ -53,11 +53,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v5 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v5");
+test("prompt 资产为 reference_parse@v6 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v6");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v5",
+    "novel.chapter.reference_parse@v6",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -113,6 +113,21 @@ test("角色结构化字段：性别枚举、年龄段可空、外貌体型合�
   assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(
     makeParsePayload({ characters: [makeCharacter({ ageGroup: "22岁" })] }),
   ));
+
+  // v6 起场景条目带结构化时间/天气（枚举，缺省 null；非法值 strict 拒绝）
+  const withScene = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    scenes: [{ name: "废弃地铁站", description: "停运的地下站台，灯管忽明忽暗。", imagePrompt: "昏暗的停运站台，湿滑轨道，闪烁灯管。", timeOfDay: "night", weather: "rainy" }],
+  }));
+  assert.equal(withScene.scenes[0].timeOfDay, "night");
+  assert.equal(withScene.scenes[0].weather, "rainy");
+  const sceneDefaults = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    scenes: [{ name: "客厅", description: "普通居民楼客厅。", imagePrompt: "白天，居民楼客厅。" }],
+  }));
+  assert.equal(sceneDefaults.scenes[0].timeOfDay, null);
+  assert.equal(sceneDefaults.scenes[0].weather, null);
+  assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    scenes: [{ name: "海边", description: "清晨的海滩。", imagePrompt: "清晨海滩。", timeOfDay: "清晨" }],
+  })));
 });
 
 test("postValidate：有场景却零角色判无效、占位内容判无效、分镜单元不能重复", () => {

@@ -9,7 +9,7 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
 // 资产是同一种东西，编辑体验也必须一致。
 // 角色表单只保留做视频要用的属性（2026-08-20 起属性从简：姓名/性别/年龄段/外貌体型
-// + 画面提示词 + 音色提示词；2026-08-21 起身份定位移除——参考小说只处理成脚本，
+// + 图片提示词 + 音色提示词；2026-08-21 起身份定位移除——参考小说只处理成脚本，
 // 不判断男主女主，随剧情变化的外观走「状态」）。
 
 export interface CharacterAssetFormState {
@@ -79,7 +79,7 @@ export function CharacterAssetFormFields(props: {
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-sm font-medium">画面提示词（生成角色图时使用）</span>
+        <span className="text-sm font-medium">图片提示词（生成角色图时使用）</span>
         <Input
           value={value.facePrompt}
           placeholder="性别、年龄段、发型发色、眼睛、肤色、体型、服装"
@@ -230,7 +230,7 @@ export function AssetStatesEditor(props: {
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium">画面提示词（生成该状态图片时使用）</span>
+            <span className="text-sm font-medium">图片提示词（生成该状态图片时使用）</span>
             <Input
               value={draft.imagePrompt}
               onChange={(event) => setDraft({ ...draft, imagePrompt: event.target.value })}
@@ -259,17 +259,17 @@ export function AssetStatesEditor(props: {
 export interface SceneAssetFormState {
   name: string;
   sceneType: string;
-  summary: string;
+  timeOfDay: string;
+  weather: string;
   environmentPrompt: string;
-  significance: string;
 }
 
 export const EMPTY_SCENE_FORM: SceneAssetFormState = {
   name: "",
   sceneType: "",
-  summary: "",
+  timeOfDay: "",
+  weather: "",
   environmentPrompt: "",
-  significance: "",
 };
 
 export function SceneAssetFormFields(props: {
@@ -301,29 +301,39 @@ export function SceneAssetFormFields(props: {
             <option value="nature">自然</option>
           </SelectControl>
         </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">时间</span>
+          <SelectControl
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+            value={value.timeOfDay}
+            onChange={(event) => onChange({ timeOfDay: event.target.value })}
+          >
+            <option value="">未设定</option>
+            <option value="morning">早上</option>
+            <option value="noon">中午</option>
+            <option value="night">晚上</option>
+          </SelectControl>
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">天气</span>
+          <SelectControl
+            className="h-9 rounded-md border bg-background px-2 text-sm"
+            value={value.weather}
+            onChange={(event) => onChange({ weather: event.target.value })}
+          >
+            <option value="">未设定</option>
+            <option value="sunny">晴天</option>
+            <option value="cloudy">阴天</option>
+            <option value="rainy">雨天</option>
+          </SelectControl>
+        </label>
       </div>
       <label className="block space-y-1">
-        <span className="text-sm font-medium">氛围 / 环境描述</span>
-        <Input
-          value={value.summary}
-          placeholder="这个地方长什么样、有什么感觉"
-          onChange={(event) => onChange({ summary: event.target.value })}
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">环境提示词（生成场景图时使用）</span>
+        <span className="text-sm font-medium">图片提示词（生成场景图时使用）</span>
         <Input
           value={value.environmentPrompt}
-          placeholder="时间、光线、空间布局、材质风格、氛围"
+          placeholder="光线、空间布局、材质风格；时间与天气用上面的选项"
           onChange={(event) => onChange({ environmentPrompt: event.target.value })}
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">故事作用</span>
-        <Input
-          value={value.significance}
-          placeholder="为什么故事要在这里发生"
-          onChange={(event) => onChange({ significance: event.target.value })}
         />
       </label>
     </div>
@@ -423,7 +433,7 @@ export function PropAssetFormFields(props: {
         />
       </label>
       <label className="block space-y-1">
-        <span className="text-sm font-medium">视觉提示词（生成道具图时使用）</span>
+        <span className="text-sm font-medium">图片提示词（生成道具图时使用）</span>
         <Input
           value={value.visualPrompt}
           placeholder="材质、工艺、尺寸、色泽、纹饰"
