@@ -527,8 +527,7 @@ function useStoryboardStage(input: {
   });
   const styleOptions = stylesQuery.data?.data ?? [];
   // 生效优先级：手动选择 > 已有分镜项目的风格 > 小说默认风格 > 内置默认（预设列表第一项）。
-  // 分镜项目的 visualStyle 只认内置预设 id——小说默认是自定义风格名时退到内置默认，
-  // 自定义风格只通过初稿【风格：…】标记生效。
+  // 分镜项目的 visualStyle 只认内置预设 id——小说默认是自定义风格名时退到内置默认。
   const novelDefaultIsPreset = Boolean(input.novelDefaultStyleId)
     && styleOptions.some((style) => style.id === input.novelDefaultStyleId);
   const effectiveStyleId = selectedStyle
@@ -610,7 +609,7 @@ function ProjectSettingsSection(props: {
           )}
         </div>
         <p className="text-xs leading-5 text-muted-foreground">
-          整本画面与视频的画风在「美术风格」页签设置；章节初稿里也可以用【风格：…】随时切换。
+          整本画面与视频的画风在「美术风格」页签设置，改选默认风格后新生成的画面就会用新画风。
         </p>
       </CardContent>
     </Card>
