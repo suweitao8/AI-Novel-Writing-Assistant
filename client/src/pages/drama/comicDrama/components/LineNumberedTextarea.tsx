@@ -184,8 +184,9 @@ export default function LineNumberedTextarea(props: LineNumberedTextareaProps) {
           backgroundColor: "color-mix(in srgb, #d97706 14%, transparent)",
           boxShadow: "inset 0 -2px 0 color-mix(in srgb, #d97706 45%, transparent)",
         },
-        // 对话组文字：接近正文色、只带一点蓝（混入前景色，明暗主题都柔和可读）。
-        ".cm-sb-dialogue": { color: "color-mix(in srgb, #60a5fa 28%, var(--foreground))" },
+        // 对话组文字：柔和的淡蓝（blue-400 45% 混入前景色——太淡会和旁白分不清，
+        // 太浓刺眼；45% 在暗色主题下是清晰的浅蓝、亮色主题下是可读的偏蓝深色）。
+        ".cm-sb-dialogue": { color: "color-mix(in srgb, #60a5fa 45%, var(--foreground))" },
         // 场景切换行（【场景：客厅】）：偏绿加粗，一眼找到换场点。
         ".cm-sb-scene": { color: "color-mix(in srgb, #10b981 55%, var(--foreground))", fontWeight: 600 },
       }),
