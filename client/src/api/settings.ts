@@ -402,10 +402,12 @@ export async function testLLMConnection(payload: {
 }
 
 export interface UniversalArtStyleSettings {
-  /** 自定义通用风格提示词；空串表示使用内置默认。 */
+  /** 自定义通用画风提示词；空串表示使用内置默认。 */
   prompt: string;
   /** 内置默认提示词（供预览与恢复默认）。 */
   defaultPrompt: string;
+  /** 面向用户的一句话摘要：未自定义时是内置摘要，自定义时是自定义内容开头。 */
+  summary: string;
 }
 
 export async function getUniversalArtStyle() {

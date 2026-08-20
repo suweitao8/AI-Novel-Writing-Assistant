@@ -11,6 +11,7 @@ const {
 
 // 美术风格两层组合契约（2026-08-21）：通用层=系统级渲染质感基线（不含时代/题材），
 // 具体层=题材氛围叠加（内置预设或小说自定义）；首帧图与立绘按 通用→具体 顺序拼提示词。
+// 风格指令统一中文书写（用户 2026-08-21 要求，自定义画风与分镜描述本就是中文）。
 // 生成侧解析入口在 dramaArtStyleResolver（依赖 DB，不在本测试覆盖）。
 
 test("内置具体风格都是题材叠加层：id 唯一、默认 id 在列、不自带渲染媒介指令", () => {
@@ -20,16 +21,30 @@ test("内置具体风格都是题材叠加层：id 唯一、默认 id 在列、�
   // 渲染媒介由通用层决定：具体风格出现媒介词会与 UE5 基线打架（旧版预设的坑）。
   for (const preset of DRAMA_VISUAL_STYLE_PRESETS) {
     assert.ok(
-      !/photorealistic|live-action image|cel-animation|3D render|anime render/i.test(preset.styleInstructions),
+      !/photorealistic|live-action|cel-animation|3D render|anime render|写实3D|真人实拍|赛璐璐|二维动画|动漫渲染/i.test(preset.styleInstructions),
       `${preset.id} 不应包含渲染媒介指令`,
     );
     assert.ok(preset.summary.trim().length > 0, `${preset.id} 缺少面向用户的 summary`);
   }
 });
 
-test("通用默认是 UE5 质感基线且不含时代属性", () => {
-  assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions.includes("Unreal Engine 5"));
-  assert.ok(!/apocalyptic|republican|xianxia|ancient Chinese period|modern-day/i.test(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions));
+test("通用默认是虚幻引擎质感基线、有中文摘要、且不含时代属性", () => {
+  assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions.includes("虚幻引擎"));
+  assert.ok(!/末世|民国|仙侠|玄幻|古代|都市|当代/.test(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions));
+  assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.summary.trim().length > 0, "通用画风需要面向 UI 的中文 summary");
+});
+
+test("风格指令全部中文化：内置预设与通用层不残留英文指令句", () => {
+  // 只拦「成句英文指令」：允许个别的专有名词/数字（如 UE5、8K、1920）。连续五个以上英文单词视为指令句。
+  const englishSentence = /[A-Za-z]+[^，。；\n]*[A-Za-z]+[^，。；\n]*[A-Za-z]+[^，。；\n]*[A-Za-z]+[^，。；\n]*[A-Za-z]+/;
+  const samples = [
+    DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions,
+    DEFAULT_UNIVERSAL_ART_STYLE.avoidInstructions,
+    ...DRAMA_VISUAL_STYLE_PRESETS.flatMap((preset) => [preset.styleInstructions, preset.avoidInstructions ?? ""]),
+  ];
+  for (const sample of samples) {
+    assert.ok(!englishSentence.test(sample), `风格指令应全中文：${sample.slice(0, 40)}…`);
+  }
 });
 
 test("两层组合：首帧图提示词包含通用层与具体层，通用在前、具体在后", () => {
@@ -46,8 +61,8 @@ test("无具体风格时只输出通用层（立绘提示词不出现空标签�
   const lines = buildCharacterStylePromptLines(DEFAULT_UNIVERSAL_ART_STYLE, null);
   assert.equal(lines.length, 2);
   assert.ok(lines[0].includes(DEFAULT_UNIVERSAL_ART_STYLE.styleTag));
-  assert.ok(!lines[0].includes(", ,"));
-  assert.ok(!lines[0].endsWith(","));
+  assert.ok(!lines[0].includes("，，"));
+  assert.ok(!lines[0].endsWith("，"));
 });
 
 test("negative 禁区合并两层；无具体风格时只有通用层", () => {

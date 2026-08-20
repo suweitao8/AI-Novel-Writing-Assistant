@@ -323,15 +323,19 @@ router.put(
   },
 );
 
-/** 通用美术风格：所有漫剧画面共用的渲染质感基线（具体题材风格在小说级美术风格里选）。 */
+/** 通用画风：所有漫剧画面共用的渲染质感基线（题材画风在每本书的美术风格里选）。 */
 router.get("/universal-art-style", async (_req, res, next) => {
   try {
     const settings = await getGlobalArtStyleSettings();
-    const data = { ...settings, defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions };
+    const data = {
+      ...settings,
+      defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions,
+      summary: settings.prompt ? settings.prompt.slice(0, 80) : DEFAULT_UNIVERSAL_ART_STYLE.summary,
+    };
     res.status(200).json({
       success: true,
       data,
-      message: "通用美术风格读取成功。",
+      message: "通用画风读取成功。",
     } satisfies ApiResponse<typeof data>);
   } catch (error) {
     next(error);
@@ -349,11 +353,15 @@ router.put(
     try {
       const body = req.body as z.infer<typeof universalArtStyleUpdateSchema>;
       const settings = await saveGlobalArtStyleSettings(body);
-      const data = { ...settings, defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions };
+      const data = {
+        ...settings,
+        defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions,
+        summary: settings.prompt ? settings.prompt.slice(0, 80) : DEFAULT_UNIVERSAL_ART_STYLE.summary,
+      };
       res.status(200).json({
         success: true,
         data,
-        message: settings.prompt ? "通用美术风格已保存。" : "通用美术风格已恢复默认。",
+        message: settings.prompt ? "通用画风已保存。" : "通用画风已恢复默认。",
       } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);
