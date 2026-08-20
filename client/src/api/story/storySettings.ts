@@ -71,10 +71,25 @@ export interface WorldMapEdge {
   label: string;
 }
 
+// 地形分区：程序化定义的多边形（平地/山/水），不经过任何生图。
+export type WorldMapTerrainType = "plain" | "mountain" | "water";
+
+export interface WorldMapTerrain {
+  id: string;
+  type: WorldMapTerrainType;
+  label: string;
+  points: Array<{ x: number; y: number }>;
+}
+
+// 地图数据是同构递归的：世界级地图与城市/村镇内部地图共用一个形状，
+// 内部地图按上级节点的 id 挂在 childMaps 里，形成多级导航。
 export interface WorldMapData {
   overview: string;
+  scaleKm: number | null;
+  terrain: WorldMapTerrain[];
   nodes: WorldMapNode[];
   edges: WorldMapEdge[];
+  childMaps: Record<string, WorldMapData>;
 }
 
 export interface StorySettingsWorld {

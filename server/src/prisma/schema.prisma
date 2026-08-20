@@ -604,7 +604,8 @@ model NovelSettingsWorld {
 
 model PromptAddendum {
   id        String   @id @default(cuid())
-  scope     String  novelId   String?
+  scope     String
+  novelId   String?
   promptId  String
   title     String
   content   String

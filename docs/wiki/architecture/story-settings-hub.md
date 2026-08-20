@@ -86,10 +86,11 @@
 - 改编仍是「一次性快照导入 + sourceCharacterRef 软引用」：导入后漫画角色与小说角色解耦（可拆分保证），小说侧后续修改不会自动同步——这是既有架构决策，如需再同步应走显式的重新导入。
 
 
-## 世界地图工作台（v1.3 追加）
+## 世界地图工作台（v1.3 追加；v1.4 画布化）
 
-- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 扩展为 `{ overview, nodes:[{id,name,kind,summary,x,y,tier?}], edges:[{fromId,toId,label}] }`，`x/y` 是 0-100 平面百分比坐标。前端 `WorldMapPanel`（漫剧工作室「设定 · 世界地图」页签）用 SVG 程序化渲染——AI 生成的是结构化数据草稿，不是生图；用户拖拽摆位、增删地点与连线后保存。旧格式（bundle 写入的无坐标节点）`x/y` 解析为 null，渲染回落环形布局，**无需迁移**。
-- **node id 稳定是硬契约**：AI 草稿（`novel.world.map@v1`，`worldMap.prompts.ts`）按名称对齐已有节点沿用原 id（`resolveDraftIds`），因为 `NovelScene.mapNodeId` 引用节点 id；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany），不删场景本身。
-- **端点**：`POST /novels/:id/settings/world/map-preview`（纯预览不落库，preview-then-save）+ `PUT /novels/:id/settings/world` 扩展可选 `map` 字段（`worldMapUpdateSchema`）。路径含 `/settings`，简易模式写守卫天然放行，无需加白名单。归一逻辑（坐标夹紧/重复 id/悬空自环重复连线剔除）在 `story-settings/application/WorldMapService.ts` 的 `normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
-- **生成前提**：世界观前提/关键设定/已有地点三者全空时 preview 直接 400（引导先写世界观），不做无米之炊的模型调用。已有地点会作为 `existingLocations` 传入——AI 的任务是保留它们并补全布局，不是推翻重来。
-- **AI 生成世界观（regenerate world）会覆盖地图节点吗**：bundle 资产一次生成含 mapLocations 的完整世界观，regenerate world 类别整体覆盖（既有规则）；地图工作台的人工编辑保存在同一 mapJson，重新生成世界观会覆盖它——排障时先确认用户是否点过「AI 生成世界观」。
+- **地图是数据不是图片**：`NovelSettingsWorld.mapJson` 存 `{ overview, scaleKm, terrain, nodes, edges, childMaps }`——`x/y` 与地形顶点都是 0-100 平面百分比坐标，前端 `WorldMapPanel`（漫剧工作室「设定 · 世界地图」页签）用 SVG 程序化渲染。**刻意不走 AI 生图**：地形（平地/山/水）是用户在画布上点顶点圈出来的多边形，AI 只起草地点名单。
+- **v1.4 画布模式**（沿用旧项目 mydrama 画布「自由摆放+连线」的交互思想，但不引 xyflow，纯 SVG 实现）：`MapCanvas` 支持拖动地点与地形、点击选中、画地形模式（依次点击落顶点，回到起点闭合，Esc 取消）；连线选中后在右侧显示直线距离（`scaleKm` 地图跨度换算公里）与步行/骑马/车船耗时估算（`mapData.travelEstimates`，40/80/160 公里每天，纯展示）。多级地图：世界级 → 点城市的「内部地图」进入城内图（`childMaps` 按上级节点 id 挂接，面包屑导航，数据同构递归；服务端深度上限三级 世界→城市→城区）。
+- **node id 稳定是硬契约**：AI 草稿（`novel.world.map@v1`）按名称对齐已有节点沿用原 id（`resolveDraftIds`），因为 `NovelScene.mapNodeId` 引用节点 id；保存时被删节点会把引用它的场景挂点置空（`applyWorldMap` 的 updateMany）。AI 草稿只含 overview/nodes/edges，前端应用时合并进现有地图——**人工画的地形与内部地图不会被 AI 覆盖**；同名地点的内部地图因 id 对齐而保留。
+- **端点**：`POST /novels/:id/settings/world/map-preview`（纯预览不落库）+ `PUT /novels/:id/settings/world` 的 `map` 字段（`worldMapUpdateSchema`，zod z.lazy 递归校验 childMaps）。路径含 `/settings`，简易模式写守卫天然放行。归一逻辑（坐标夹紧/重复 id/悬空自环重复连线剔除/地形≥3 点/childMaps 挂点必须指向真实节点/深度与数量上限）在 `WorldMapService.normalizeWorldMap`，纯函数、契约锁定在 `tests/worldMapContract.test.js`。
+- **生成前提**：世界观前提/关键设定/已有地点三者全空时 preview 直接 400（引导先写世界观）。已有地点会作为 `existingLocations` 传入——AI 的任务是保留它们并补全，不是推翻重来。
+- **AI 生成世界观（regenerate world）会覆盖地图节点吗**：bundle 资产一次生成含 mapLocations 的完整世界观，regenerate world 类别整体覆盖（既有规则，且 bundle 写入的旧格式不含地形/childMaps）；地图工作台的人工编辑保存在同一 mapJson，重新生成世界观会覆盖它——排障时先确认用户是否点过「AI 生成世界观」。
