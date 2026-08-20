@@ -438,35 +438,6 @@ export default function ComicDramaStudioPage() {
         }}
       />
 
-      <Dialog
-        open={referenceStage.pendingDraft !== null}
-        onOpenChange={(open) => { if (!open) referenceStage.setPendingDraft(null); }}
-      >
-        <AppDialogContent
-          title="替换本章脚本"
-          description="本章脚本已有内容。"
-          footer={
-            <>
-              <Button variant="outline" onClick={() => referenceStage.setPendingDraft(null)}>取消</Button>
-              <Button
-                onClick={() => {
-                  const draft = referenceStage.pendingDraft;
-                  if (draft !== null) {
-                    referenceStage.applyDraft(draft);
-                    referenceStage.setPendingDraft(null);
-                  }
-                }}
-              >
-                替换
-              </Button>
-            </>
-          }
-        >
-          <div className="max-h-[50vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-border/70 bg-muted/10 px-4 py-3 text-sm leading-7 text-foreground">
-            {referenceStage.pendingDraft}
-          </div>
-        </AppDialogContent>
-      </Dialog>
     </div>
   );
 }

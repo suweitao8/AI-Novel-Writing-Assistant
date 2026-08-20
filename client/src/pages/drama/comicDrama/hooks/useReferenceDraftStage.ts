@@ -30,7 +30,6 @@ export function useReferenceDraftStage(input: {
   onApplied: () => void;
 }) {
   const { workspace } = input;
-  const [pendingDraft, setPendingDraft] = useState<string | null>(null);
   const chapter = workspace.currentChapter;
 
   // 整本参考小说（创建漫剧时上传，知识库文档服务端存档）。
@@ -109,13 +108,6 @@ export function useReferenceDraftStage(input: {
     workspace.setReferenceText(injectSourceText);
   };
 
-  const applyDraft = (draftText: string) => {
-    workspace.applyExpectationText(draftText);
-    const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ \t]*分镜[：:]/.test(line)).length;
-    toast.success(shotCount > 0 ? `已写入脚本，共 ${shotCount} 个分镜。` : "已写入脚本。");
-    input.onApplied();
-  };
-
   // 「解析」一次大模型调用同时产出初稿与设定提取（reference_parse，2026-08-20
   // 起由两个并行调用合并——参考文本量不大，单次调用共享同一份原文理解）。
   // 落库放在 mutationFn 里而不是 onSuccess：解析要跑几十秒，期间离开页面组件
@@ -131,21 +123,20 @@ export function useReferenceDraftStage(input: {
       const extraction = normalizeExtraction(parseResponse.data?.extraction ?? null);
       const extractionJson = JSON.stringify(extraction);
       const hasDraft = draftText.trim().length > 0;
-      const hadExpectation = workspace.expectationText.trim().length > 0;
       try {
         await updateNovelChapter(input.novelId, chapter.id, {
           referenceExtractionJson: extractionJson,
-          ...(hasDraft && !hadExpectation ? { expectation: draftText } : {}),
+          ...(hasDraft ? { expectation: draftText } : {}),
         });
       } catch (error) {
         throw new Error(`解析完成，但保存结果失败：${error instanceof Error ? error.message : "请重试。"}`);
       }
       await workspace.refreshChapters();
-      return { draftText, extractionJson, extraction, hasDraft, hadExpectation };
+      return { draftText, extractionJson, extraction, hasDraft };
     },
-    onSuccess: ({ draftText, extractionJson, extraction, hasDraft, hadExpectation }) => {
+    onSuccess: ({ draftText, extractionJson, extraction, hasDraft }) => {
       workspace.syncReferenceExtraction(extractionJson);
-      if (hasDraft && !hadExpectation) {
+      if (hasDraft) {
         workspace.setExpectationText(draftText);
       }
       const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`;
@@ -154,13 +145,8 @@ export function useReferenceDraftStage(input: {
         toast.error(`AI 没有生成脚本；提取完成：${extractSummary}。`);
         return;
       }
-      if (hadExpectation) {
-        setPendingDraft(draftText);
-        toast.success(`已提取：${extractSummary}。初稿待确认替换。`);
-        return;
-      }
-      const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ 	]*分镜[：:]/.test(line)).length;
-      toast.success(`初稿 ${shotCount} 个分镜；提取：${extractSummary}。`);
+      const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ \t]*分镜[：:]/.test(line)).length;
+      toast.success(`已重写本章脚本（${shotCount} 个分镜）；提取：${extractSummary}。`);
       input.onApplied();
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请重试。"),
@@ -177,9 +163,6 @@ export function useReferenceDraftStage(input: {
     setReferenceText,
     parseMutation,
     parseDisabledReason,
-    pendingDraft,
-    setPendingDraft,
-    applyDraft,
     // 「引用」参考小说对应章节
     hasReferenceDoc,
     injectReferenceSource,
