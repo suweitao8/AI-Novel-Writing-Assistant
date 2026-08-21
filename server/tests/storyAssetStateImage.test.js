@@ -74,9 +74,11 @@ test("场景状态提示词会把叙事里的生物改写为环境痕迹", () =>
   assert.doesNotMatch(prompt, /怪物/);
 });
 
-test("角色状态图走四视图合成，不再把竖屏首帧提示词当作角色设计稿", () => {
-  assert.match(imageServiceSource, /runCompositeImageGeneration/);
-  assert.match(imageServiceSource, /buildCharacterStateViewPrompts/);
+test("角色状态图一次生成完整四视图，不再四次独立生图后裁切", () => {
+  assert.match(imageServiceSource, /runImageGeneration/);
+  assert.match(imageServiceSource, /buildCharacterStateSheetPrompt/);
+  assert.doesNotMatch(imageServiceSource, /runCompositeImageGeneration/);
+  assert.doesNotMatch(imageServiceSource, /buildCharacterStateViewPrompts/);
   assert.doesNotMatch(imageServiceSource, /buildKeyframeStylePromptLines\(styleContext\.universal, styleContext\.specific\)/);
 });
 

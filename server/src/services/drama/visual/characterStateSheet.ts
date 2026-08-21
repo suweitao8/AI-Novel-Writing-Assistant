@@ -27,13 +27,17 @@ export const CHARACTER_STATE_VIEW_SPECS = [
 
 export type CharacterStateViewId = (typeof CHARACTER_STATE_VIEW_SPECS)[number]["id"];
 
+/**
+ * Grok Build 的原生图片产物是 1280x720。四视图直接由一次生图生成，
+ * 因此这里的模板只描述最终板式，不再把四张独立图片裁切成四栏。
+ */
 export const CHARACTER_STATE_SHEET_TEMPLATE = {
-  size: { width: 1536, height: 1024 },
+  size: { width: 1280, height: 720 },
   slots: [
-    { id: "front_portrait", x: 0, width: 512 },
-    { id: "side_portrait", x: 512, width: 341 },
-    { id: "front_full_body", x: 853, width: 341 },
-    { id: "back_full_body", x: 1194, width: 342 },
+    { id: "front_portrait", x: 0, width: 320 },
+    { id: "side_portrait", x: 320, width: 320 },
+    { id: "front_full_body", x: 640, width: 320 },
+    { id: "back_full_body", x: 960, width: 320 },
   ],
 } as const;
 
@@ -56,25 +60,65 @@ export interface CharacterStateViewPrompt {
   negativePrompt: string;
 }
 
-const CHARACTER_SHEET_NEGATIVE_PROMPT = [
-  "第二个人",
-  "额外人物",
-  "多人",
-  "重复人物",
-  "环境场景",
-  "房间",
-  "街道",
-  "道具堆",
-  "文字",
-  "标签",
-  "水印",
-  "裁切身体",
-  "多余肢体",
-  "畸形手脚",
-].join("、");
+export const CHARACTER_STATE_SHEET_NEGATIVE_PROMPT = [
+  "multiple people, extra person, duplicate character, duplicate face",
+  "environment, room, street, scenery, props, weapons",
+  "text, labels, numbers, logo, watermark",
+  "cropped body, cropped feet, extra limbs, malformed hands or feet",
+  "collage, poster, fashion editorial, real photograph, anime illustration",
+  "第二个人、额外人物、多人、重复人物、环境场景、房间、街道、道具堆、文字、标签、水印、裁切身体、多余肢体、畸形手脚",
+].join(", ");
 
 function clean(value: string | null | undefined): string {
   return value?.trim() ?? "";
+}
+
+function buildCharacterDataLines(input: CharacterStateSheetPromptInput): string[] {
+  return [
+    `character: ${clean(input.assetName)}`,
+    input.gender ? `gender: ${clean(input.gender)}` : "",
+    input.ageGroup ? `age group: ${clean(input.ageGroup)}` : "",
+    input.appearance ? `stable appearance and physique: ${clean(input.appearance)}` : "",
+    `current state: ${clean(input.stateLabel)}`,
+    `state description: ${clean(input.stateDescription)}`,
+    `state image prompt: ${clean(input.stateImagePrompt)}`,
+  ].filter(Boolean);
+}
+
+/**
+ * 构建单次生图的完整四视图提示词。
+ *
+ * 角色状态图不能把「四视图」拆成四次独立生图：那会让模型分别决定
+ * 人脸、比例和背景，再由本地裁切器强行拼接，最终只像四张图的拼盘。
+ * 这个提示词把板式、视角顺序和身份锁定放在同一个模型请求中。
+ */
+export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptInput): string {
+  const styleLines = (input.styleLines ?? []).map(clean).filter(Boolean);
+  const referenceLine = input.hasReference
+    ? "If a reference image is supplied, use it as the identity anchor; preserve the same face, hair, body proportions and clothing, changing only the state details explicitly described below."
+    : "Generate exactly one character from the structured character data below; do not invent another person or narrative subject.";
+
+  return [
+    "Create ONE production character reference board, not four separate images and not a poster.",
+    "FORMAT AND LAYOUT (HARD CONSTRAINT): one clean 16:9 image with four equal-width vertical panels arranged left to right, separated only by subtle equal gutters; each panel contains exactly one view.",
+    "PANEL 1 — FRONT FACE CLOSE-UP: head and shoulders, face looking straight at the camera, clear facial structure and hairstyle.",
+    "PANEL 2 — EXACT 90-DEGREE SIDE FACE CLOSE-UP: head and shoulders, profile looking to the right, clear nose, jawline, ear and hair silhouette.",
+    "PANEL 3 — FRONT FULL BODY: the same person facing the camera in a neutral standing pose, complete figure from the top of the head through both shoes, never cropped.",
+    "PANEL 4 — BACK FULL BODY: the same person facing away in the same neutral standing pose, complete figure from the back of the head through both shoes, clearly showing the back of the hair and clothing.",
+    "The four panels are the required four views in this exact order: front face, side face, front full body, back full body.",
+    "IDENTITY LOCK (CRITICAL): all four panels must show the same single person, same face structure, hairline, hairstyle, hair volume, skin tone, age impression, clothing, colors, body proportions and lighting; only the camera angle and framing change.",
+    referenceLine,
+    "角色四视图必须是单一生产参考板；不添加环境故事或其他人物。",
+    "CHARACTER DATA (follow this over any generic visual assumption):",
+    ...buildCharacterDataLines(input),
+    styleLines.length > 0 ? "PROJECT RENDERING DIRECTION:" : "",
+    ...styleLines,
+    "RENDERING: high-budget Unreal Engine 5 cinematic game character asset, sculpted digital-human materials, detailed skin, hair and fabric, controlled neutral turntable lighting, premium Chinese fantasy game production quality; use the style direction only for rendering medium, materials and light, never to change the explicit character data.",
+    "Legacy medium words inside the character data, such as 写实动漫风格, are metadata only; they must not turn this production board into a flat illustration, anime image, real photograph or fashion portrait.",
+    "BACKGROUND: one plain light-grey or white production-board background across all four panels; no scenery, room, street, furniture, floor props, weapons, effects or narrative environment.",
+    "Do not put more than one view in any panel. Do not merge the face panels. Do not add panel labels, numbers or text.",
+    `AVOID: ${CHARACTER_STATE_SHEET_NEGATIVE_PROMPT}`,
+  ].filter(Boolean).join("\n");
 }
 
 export function buildCharacterStateViewPrompts(
@@ -109,7 +153,7 @@ export function buildCharacterStateViewPrompts(
     id: view.id,
     label: view.label,
     prompt: [...common, view.framing].join("，"),
-    negativePrompt: CHARACTER_SHEET_NEGATIVE_PROMPT,
+    negativePrompt: CHARACTER_STATE_SHEET_NEGATIVE_PROMPT,
   }));
 }
 
@@ -117,6 +161,8 @@ export async function composeCharacterStateSheet(input: {
   viewPaths: Partial<Record<CharacterStateViewId, string>>;
   outputPath: string;
 }): Promise<void> {
+  // 仅保留给旧调用方/测试；角色状态主链路使用 buildCharacterStateSheetPrompt
+  // 直接生成整张板，不再调用这个四张图拼接器。
   const layers: sharp.OverlayOptions[] = [];
   for (const slot of CHARACTER_STATE_SHEET_TEMPLATE.slots) {
     const sourcePath = input.viewPaths[slot.id as CharacterStateViewId];

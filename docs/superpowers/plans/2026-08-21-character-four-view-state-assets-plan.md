@@ -4,7 +4,7 @@
 
 **Goal:** 让漫剧 Studio 的角色状态生成稳定产出固定四视图设计稿，让场景图只包含纯环境，并让三类资产状态使用紧凑统一的左右详情编辑器。
 
-**Architecture:** 角色状态走专用四视图应用服务：四个 view prompt 通过现有图片 provider 生成，使用 Sharp 按固定 1536×1024 版式合成后再写入现有 statesJson 状态机。场景和道具继续使用统一 runtime；场景 prompt 增加纯环境契约。前端只改共用 `AssetStatesEditor` 的布局，不拆分三套重复组件。
+**Architecture:** 角色状态走专用四视图应用服务：一个完整 sheet prompt 通过现有图片 provider 一次生成 1280×720 四等分参考板，再写入现有 statesJson 状态机；主链路不再四次生图后用 Sharp 裁切拼接。场景和道具继续使用统一 runtime；场景 prompt 增加纯环境契约。前端只改共用 `AssetStatesEditor` 的布局，不拆分三套重复组件。
 
 **Tech Stack:** TypeScript, React 19, Tailwind CSS semantic tokens, Vitest/Node tests, Sharp, existing image runtime and local Grok Build bridge.
 
@@ -18,7 +18,7 @@
 
 - [ ] **Step 1: Write the failing tests**
 
-Add tests for the exported view contract, prompts and compositor:
+Add tests for the exported view contract and one-shot sheet prompt:
 
 ```js
 test("builds four character state view prompts in stable order", () => {
@@ -37,19 +37,19 @@ test("builds four character state view prompts in stable order", () => {
   expect(prompts.every((item) => item.prompt.includes("同一个角色"))).toBe(true);
 });
 
-test("character sheet template has two portrait slots and two full-body slots", () => {
-  expect(CHARACTER_STATE_SHEET_TEMPLATE.size).toEqual({ width: 1536, height: 1024 });
+test("character sheet template has four equal native Grok Build slots", () => {
+  expect(CHARACTER_STATE_SHEET_TEMPLATE.size).toEqual({ width: 1280, height: 720 });
   expect(CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.id)).toEqual([
     "front_portrait", "side_portrait", "front_full_body", "back_full_body",
   ]);
   expect(CHARACTER_STATE_SHEET_TEMPLATE.slots.reduce((sum, slot) => sum + slot.width, 0)).toBe(1536);
 });
 
-test("composes four view files into a 1536x1024 png", async () => {
-  const fixture = await createSolidViewFixtures();
-  const outputPath = path.join(tmpDir, "sheet.png");
-  await composeCharacterStateSheet({ viewPaths: fixture, outputPath });
-  await expect(sharp(outputPath).metadata()).resolves.toMatchObject({ width: 1536, height: 1024, format: "png" });
+test("builds one prompt containing the four ordered panels", () => {
+  const prompt = buildCharacterStateSheetPrompt(fixtureInput);
+  expect(prompt).toContain("four equal-width vertical panels");
+  expect(prompt).toContain("PANEL 1");
+  expect(prompt).toContain("PANEL 4");
 });
 ```
 
@@ -65,7 +65,7 @@ Expected: FAIL because the contract and compositor module do not exist yet.
 
 - [ ] **Step 3: Implement the minimal contract and compositor**
 
-Implement `CHARACTER_STATE_VIEW_SPECS`, `CHARACTER_STATE_SHEET_TEMPLATE`, `buildCharacterStateViewPrompts`, and `composeCharacterStateSheet`. Use Sharp to place the first view in the 512px portrait slot and the remaining views in three 341/342px full-body slots on a white canvas. Use `fit: "contain"` with a white background for each slot, and add no labels or generated text.
+Implement `CHARACTER_STATE_VIEW_SPECS`, `CHARACTER_STATE_SHEET_TEMPLATE`, `buildCharacterStateSheetPrompt` and keep the old compositor only as a compatibility helper. The active prompt must describe four equal native 1280×720 panels in the order front face, side face, front full body, back full body; do not claim that a PSD was uploaded to Grok Build.
 
 - [ ] **Step 4: Run the focused test and verify it passes**
 
@@ -78,17 +78,15 @@ git add server/src/services/drama/visual/characterStateSheet.ts server/tests/cha
 git commit -m "feat: add deterministic character four-view sheet composer"
 ```
 
-### Task 2: Route character state generation through four view composition
+### Task 2: Route character state generation through one complete sheet request
 
 **Files:**
 - Modify: `server/src/modules/novel/story-settings/application/StoryAssetStateImageService.ts:170-203,333-409`
-- Create: `server/src/services/image/runtime/compositeRunner.ts`
-- Modify: `server/src/services/image/runtime/index.ts`
 - Test: `server/tests/storyAssetStateImage.test.js`
 
 - [ ] **Step 1: Add failing service tests**
 
-Add tests that mock the provider boundary and assert character generation requests the four view prompts in order, writes one final state image, and never stores a partial result. Keep existing scene and prop tests unchanged and add the scene/prop prompt assertions from Task 3.
+Add tests that assert character generation uses `runImageGeneration` with one complete sheet prompt, writes one final state image, and never enters the four-call compositor. Keep existing scene and prop tests unchanged and add the scene/prop prompt assertions from Task 3.
 
 - [ ] **Step 2: Run the focused tests and verify the new assertions fail**
 
@@ -197,7 +195,7 @@ git commit -m "fix: unify compact asset state editor layout"
 
 - [ ] **Step 1: Document the durable rules**
 
-Record that character state sheets are locally composed from four view outputs, Grok Build receives text only, reference-image states use the compatible provider, and scene references prohibit living subjects. Record the compact state-editor layout as the single shared UI boundary.
+Record that character state sheets are generated in one request as four equal native panels, Grok Build receives text only and no PSD/template file, reference-image states use the compatible provider, and scene references prohibit living subjects. Record the compact state-editor layout as the single shared UI boundary.
 
 - [ ] **Step 2: Run focused regression checks**
 
@@ -226,4 +224,4 @@ git commit -m "docs: record four-view and pure-scene asset contracts"
 
 - [ ] **Step 6: Merge, push and clean up**
 
-After verification, merge the branch into the main workspace, run `git push origin main`, then remove this exact worktree and delete `codex/character-asset-polish`. Preserve the pre-existing `server/backups/` directory.
+After verification, merge the branch into the main workspace, run `git push origin main`, then remove this exact worktree and delete the feature branch. Preserve the pre-existing `server/backups/` directory.

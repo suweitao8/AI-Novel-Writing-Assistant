@@ -402,7 +402,7 @@ export function AssetStatesEditor(props: {
                         alt={`${selectedState.label} 状态图`}
                         fit="contain"
                         blurBackdrop={false}
-                        className="max-h-64 aspect-[3/2] w-full rounded-lg border-0"
+                        className="aspect-video max-h-64 w-full rounded-lg border-0"
                       />
                     ) : (
                       <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
