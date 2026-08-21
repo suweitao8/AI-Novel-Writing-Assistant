@@ -101,6 +101,14 @@ export function buildStateImageSrc(url: string, generatedAt?: string): string {
   return `${url}${separator}v=${encodeURIComponent(generatedAt)}`;
 }
 
+function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string {
+  const label = state.label?.trim();
+  if (stateIndex === 0 && (label === "初始形象" || label === "初始状态")) {
+    return "初始";
+  }
+  return label || "未命名状态";
+}
+
 function getStateVoiceMode(states: StoryAssetState[], stateId: string): StoryAssetStateVoiceMode {
   const defaultMode = getDefaultStoryAssetStateVoiceMode(states, stateId);
   if (defaultMode === "generate_new") {
@@ -206,6 +214,7 @@ export function AssetStatesEditor(props: {
     setVoiceModeOverride(null);
     setDraft({
       ...state,
+      ...(index === 0 ? { label: getAssetStateLabel(state, index) } : {}),
       referenceStateId: resolveStoryAssetStateReferenceId(states, state),
     });
   };
@@ -266,6 +275,9 @@ export function AssetStatesEditor(props: {
   const selectedState = draft ?? states.find((state) => state.id === selectedStateId) ?? states[0] ?? null;
   const referenceOptions = states.filter((state) => state.id !== selectedState?.id);
   const selectedStateIndex = selectedState ? states.findIndex((state) => state.id === selectedState.id) : -1;
+  const selectedStateLabel = selectedState && selectedStateIndex === 0
+    ? getAssetStateLabel(selectedState, selectedStateIndex)
+    : selectedState?.label ?? "";
   const voiceStates = selectedState && selectedStateIndex < 0 ? [...states, selectedState] : states;
   const voiceMode: StoryAssetStateVoiceMode = voiceModeOverride
     ?? selectedState?.voice?.mode
@@ -289,7 +301,7 @@ export function AssetStatesEditor(props: {
   };
 
   return (
-    <div className="space-y-3 rounded-lg border border-border/70 p-3">
+    <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
           <span className="text-sm font-medium">{stateTitle}</span>
@@ -298,8 +310,8 @@ export function AssetStatesEditor(props: {
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
         </Button>
       </div>
-      <div className="grid items-start gap-4 lg:grid-cols-[minmax(15rem,0.78fr)_minmax(0,1.42fr)]">
-        <div className="self-start min-w-0 max-h-[32rem] overflow-y-auto space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2">
+      <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
+        <div className="self-start h-max min-w-0 max-h-[28rem] overflow-y-auto space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2 lg:w-72 lg:shrink-0">
           {states.length === 0 && !draft ? (
             <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
               还没有状态
@@ -308,6 +320,7 @@ export function AssetStatesEditor(props: {
           {states.map((state) => {
             const isSelected = state.id === selectedStateId && !draft;
             const stateIndex = states.findIndex((item) => item.id === state.id);
+            const stateLabel = getAssetStateLabel(state, stateIndex);
             return (
               <div key={state.id} className="flex items-start gap-1">
                 <button
@@ -326,14 +339,14 @@ export function AssetStatesEditor(props: {
                   disabled={draft !== null}
                 >
                   {state.image?.url ? (
-                    <img src={buildStateImageSrc(state.image.url, state.image.generatedAt)} alt={`${state.label} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
+                    <img src={buildStateImageSrc(state.image.url, state.image.generatedAt)} alt={`${stateLabel} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
                   ) : (
-                    <div className="h-10 w-14 shrink-0 rounded-md border border-dashed border-border bg-muted/20" aria-label={`${state.label || "状态"}尚未生成图片`} />
+                    <div className="h-10 w-14 shrink-0 rounded-md border border-dashed border-border bg-muted/20" aria-label={`${stateLabel}尚未生成图片`} />
                   )}
-                  <span className="min-w-0 truncate text-sm font-medium text-foreground">{state.label || "未命名状态"}</span>
+                  <span className="min-w-0 truncate text-sm font-medium text-foreground">{stateLabel}</span>
                 </button>
                 <div className="flex shrink-0 flex-col gap-0.5 pt-1">
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label={`编辑${state.label || "状态"}`} disabled={draft !== null} onClick={() => startEdit(stateIndex)}>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label={`编辑${stateLabel}`} disabled={draft !== null} onClick={() => startEdit(stateIndex)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" aria-label={stateIndex === 0 ? "初始状态不能删除" : `删除${state.label || "状态"}`} disabled={draft !== null || stateIndex === 0} onClick={() => remove(stateIndex)}>
@@ -345,7 +358,7 @@ export function AssetStatesEditor(props: {
           })}
         </div>
 
-        <div className="self-start min-w-0 rounded-lg border border-border/60 bg-background p-3">
+        <div className="min-w-0 flex-1 rounded-lg border border-border/60 bg-background p-3">
           {selectedState ? (
             <div className="space-y-3">
               <div className="space-y-4">
@@ -354,7 +367,7 @@ export function AssetStatesEditor(props: {
                     {selectedState.image?.url ? (
                       <LightboxImage
                         src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
-                        alt={`${selectedState.label} 状态图`}
+                        alt={`${selectedStateLabel} 状态图`}
                         fit="contain"
                         blurBackdrop={false}
                         className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
@@ -363,7 +376,7 @@ export function AssetStatesEditor(props: {
                       <div
                         className="aspect-[3/2] max-h-[28rem] w-full rounded-lg bg-muted/10"
                         role="img"
-                        aria-label={`${selectedState.label || "状态"}尚未生成图片`}
+                        aria-label={`${selectedStateLabel || "状态"}尚未生成图片`}
                       />
                     )}
                   </div>
@@ -393,7 +406,7 @@ export function AssetStatesEditor(props: {
                   <div className="grid gap-3 md:grid-cols-2">
                   <label className="block space-y-1">
                     <span className="text-xs font-medium">状态名</span>
-                    <Input value={selectedState.label} placeholder="例如：警察制服 / 重伤 / 黑夜" disabled={!draft} onChange={(event) => updateDraft({ label: event.target.value })} />
+                    <Input value={selectedStateLabel} placeholder="例如：警察制服 / 重伤 / 黑夜" disabled={!draft} onChange={(event) => updateDraft({ label: event.target.value })} />
                   </label>
                   <label className="block space-y-1">
                     <span className="text-xs font-medium">生图参考</span>
@@ -405,7 +418,7 @@ export function AssetStatesEditor(props: {
                       onChange={(event) => updateDraft({ referenceStateId: event.target.value || null })}
                     >
                       <option value="">不参考，直接生成新形象</option>
-                      {referenceOptions.map((state) => <option key={state.id} value={state.id}>参考「{state.label}」</option>)}
+                      {referenceOptions.map((state) => <option key={state.id} value={state.id}>参考「{getAssetStateLabel(state, states.findIndex((item) => item.id === state.id))}」</option>)}
                     </SelectControl>
                   </label>
                   <label className="block space-y-1">
@@ -532,7 +545,7 @@ export function AssetStatesEditor(props: {
 
               {draft ? (
                 <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
-                  <Button type="button" variant="outline" size="sm" onClick={cancelDraft}>取消</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={cancelDraft}>取消状态</Button>
                   <Button type="button" size="sm" onClick={commit} disabled={!draftValid}>确定</Button>
                 </div>
               ) : null}

@@ -10,12 +10,19 @@ const source = readFileSync(
 );
 
 test("角色、场景、道具共用放大的左状态列表右详情布局", () => {
-  assert.match(source, /grid items-start gap-4 lg:grid-cols/);
-  assert.match(source, /self-start min-w-0 max-h-\[32rem\] overflow-y-auto/);
-  assert.match(source, /self-start min-w-0 rounded-lg/);
+  assert.match(source, /flex flex-col items-stretch gap-4 lg:flex-row lg:items-start/);
+  assert.match(source, /self-start h-max min-w-0 max-h-\[28rem\] overflow-y-auto/);
+  assert.match(source, /min-w-0 flex-1 rounded-lg/);
   assert.match(source, /aspect-\[3\/2\] max-h-\[28rem\] w-full/);
   assert.match(source, /flex min-h-28 items-center justify-center/);
   assert.doesNotMatch(source, /className="aspect-video w-full object-cover"/);
+  assert.doesNotMatch(source, /<div className="space-y-3 rounded-lg border border-border\/70 p-3">/);
+});
+
+test("首个状态统一显示为初始，不保留旧的初始形象名称", () => {
+  assert.match(source, /function getAssetStateLabel\(/);
+  assert.match(source, /初始形象/);
+  assert.match(source, /return "初始"/);
 });
 
 test("状态图地址携带生成时间，重新生成后不会命中旧缓存", () => {
@@ -45,4 +52,5 @@ test("状态详情按图片、图片设定、音色分区，不重复显示可�
   assert.doesNotMatch(source, /暂无状态图/);
   assert.doesNotMatch(source, /高级提示词/);
   assert.match(source, /音色提示词/);
+  assert.match(source, />取消状态</);
 });
