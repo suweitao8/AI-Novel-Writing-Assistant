@@ -161,6 +161,7 @@ function toVideoProviders() {
     id: provider.provider,
     label: provider.label,
     kind: provider.provider,
+    isDefault: provider.isDefault,
   }));
 }
 

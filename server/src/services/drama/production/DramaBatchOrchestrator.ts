@@ -8,7 +8,7 @@ import { DramaVideoPromptService } from "../DramaVideoPromptService";
 import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
 import { ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
-import { videoProviderRegistry } from "../video/VideoProviderPort";
+import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
 import { failStaleBatchJobs } from "./batchJobRecovery";
 
 export type DramaBatchJobType = "keyframes" | "videos" | "tts";
@@ -90,7 +90,6 @@ type BatchProcessResult = {
   costUnits?: DramaBatchCostUnits;
 };
 
-const DEFAULT_VIDEO_PROVIDER = "mock";
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
 const DEFAULT_TTS_PROVIDER = "voxcpm2";
 // progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
@@ -396,7 +395,7 @@ export class DramaBatchOrchestrator {
     if (!prompt) {
       prompt = await this.videoPromptService.generateVideoPromptForShot(projectId, shotId);
     }
-    await this.videoPromptService.createProviderTask(prompt.id, provider || DEFAULT_VIDEO_PROVIDER);
+    await this.videoPromptService.createProviderTask(prompt.id, provider || resolveDefaultVideoProvider());
     return "processed";
   }
 
@@ -431,7 +430,7 @@ export class DramaBatchOrchestrator {
     if (type === "tts") {
       return DEFAULT_TTS_PROVIDER;
     }
-    return DEFAULT_VIDEO_PROVIDER;
+    return resolveDefaultVideoProvider();
   }
 
   private async prepareEpisodeBatchJob(

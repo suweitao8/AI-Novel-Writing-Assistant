@@ -3,7 +3,7 @@ import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { dramaVideoPromptPrompt } from "../../prompting/prompts/drama/drama.prompts";
 import { dramaContextAssembler } from "./DramaContextAssembler";
 import { safeJsonParse } from "./utils/json";
-import { videoProviderRegistry } from "./video/VideoProviderPort";
+import { resolveDefaultVideoProvider, videoProviderRegistry } from "./video/VideoProviderPort";
 import { dramaShotKeyframeService } from "./visual/DramaShotKeyframeService";
 import type { DramaLLMOptions } from "./DramaStrategyService";
 import type { VideoGenerationRequest } from "./video/VideoProviderPort";
@@ -142,7 +142,7 @@ export class DramaVideoPromptService {
           projectId,
           episodeId: shot.storyboard.episodeId,
           shotId,
-          provider: "mock",
+          provider: resolveDefaultVideoProvider(),
           prompt: output.prompt,
           negativePrompt: output.negativePrompt ?? null,
           aspectRatio: output.aspectRatio || "9:16",
@@ -167,7 +167,7 @@ export class DramaVideoPromptService {
     });
   }
 
-  async createProviderTask(videoPromptId: string, provider = "mock") {
+  async createProviderTask(videoPromptId: string, provider?: string) {
     const videoPrompt = await prisma.dramaVideoPrompt.findUnique({ where: { id: videoPromptId } });
     if (!videoPrompt) {
       throw new Error(`未找到视频提示词：${videoPromptId}`);
@@ -175,7 +175,8 @@ export class DramaVideoPromptService {
     if (videoPrompt.status === "superseded") {
       throw new Error("该视频提示词已有新版，请使用当前版本创建视频任务。");
     }
-    const adapter = videoProviderRegistry.resolve(provider);
+    const resolvedProvider = provider?.trim() || resolveDefaultVideoProvider();
+    const adapter = videoProviderRegistry.resolve(resolvedProvider);
     const refImages = adapter.supportsRefImages ? await collectShotReferenceImages(videoPrompt) : [];
     const request: VideoGenerationRequest = {
       prompt: videoPrompt.prompt,
@@ -208,7 +209,7 @@ export class DramaVideoPromptService {
     return prisma.dramaVideoPrompt.update({
       where: { id: videoPromptId },
       data: {
-        provider,
+        provider: resolvedProvider,
         providerTaskId: result.providerTaskId,
         status: result.status,
         resultUrl: result.resultUrl ?? null,

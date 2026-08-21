@@ -499,6 +499,13 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(videoEstimate.cost.estimated, 2);
   assert.equal(videoEstimate.cost.estimatedUnits.seconds, 5);
 
+  const defaultVideoEstimate = await batchOrchestrator.estimateEpisodeBatchJob(
+    "project_1",
+    1,
+    { type: "videos" },
+  );
+  assert.equal(defaultVideoEstimate.provider, "local_ffmpeg");
+
   const videoJob = await batchOrchestrator.createEpisodeBatchJob(
     "project_1",
     1,
@@ -577,8 +584,42 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   const regeneratedPrompt = await videoPromptService.generateVideoPromptForShot("project_1", "shot_1");
   assert.equal(regeneratedPrompt.version, 2);
   assert.equal(regeneratedPrompt.status, "prompted");
+  assert.equal(regeneratedPrompt.provider, "local_ffmpeg");
   assert.equal(prompt.status, "superseded");
   assert.equal(prompt.supersededById, regeneratedPrompt.id);
+
+  const videoPort = require("../dist/services/drama/video/VideoProviderPort.js");
+  const originalLocalProvider = videoPort.videoProviderRegistry.resolve("local_ffmpeg");
+  videoPort.videoProviderRegistry.register({
+    provider: "local_ffmpeg",
+    label: "测试本地通道",
+    supportsRefImages: false,
+    costPerSecond: 0,
+    currency: "CNY",
+    createTask: async () => ({ providerTaskId: "local_default_task", status: "running" }),
+    getTask: async (providerTaskId) => ({ providerTaskId, status: "running" }),
+  });
+  try {
+    const defaultTask = await videoPromptService.createProviderTask(regeneratedPrompt.id);
+    assert.equal(defaultTask.provider, "local_ffmpeg");
+    assert.equal(defaultTask.providerTaskId, "local_default_task");
+  } finally {
+    videoPort.videoProviderRegistry.register(originalLocalProvider);
+  }
+
+  const previousTaskId = state.videoPrompts.find((item) => item.id === regeneratedPrompt.id).providerTaskId;
+  Object.assign(state.videoPrompts.find((item) => item.id === regeneratedPrompt.id), {
+    status: "failed",
+    resultUrl: "/api/drama/video-files/old-task",
+    failureReason: "上一轮本地合成失败",
+  });
+  const retriedPrompt = await videoPromptService.createProviderTask(regeneratedPrompt.id, "mock");
+  assert.notEqual(retriedPrompt.providerTaskId, previousTaskId);
+  assert.match(retriedPrompt.providerTaskId, /^mock_/);
+  assert.equal(retriedPrompt.provider, "mock");
+  assert.equal(retriedPrompt.status, "queued");
+  assert.equal(retriedPrompt.resultUrl, null);
+  assert.equal(retriedPrompt.failureReason, null);
   await assert.rejects(
     () => videoPromptService.createProviderTask(prompt.id, "mock"),
     /已有新版/,

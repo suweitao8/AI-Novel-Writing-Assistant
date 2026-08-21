@@ -51,5 +51,5 @@ export interface ComicDramaNovelSummary {
 export interface ComicDramaStudioOverview {
   novel: ComicDramaNovelSummary;
   drama: ComicDramaLinkStats | null;
-  videoProviders: Array<{ id: string; label: string; kind: string }>;
+  videoProviders: Array<{ id: string; label: string; kind: string; isDefault: boolean }>;
 }

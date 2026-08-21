@@ -32,7 +32,7 @@ import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaSh
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../services/drama/visual/dramaVisualStyles";
 import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVideoProvider";
 import { dramaEpisodeAssemblyService } from "../../../services/drama/video/DramaEpisodeAssemblyService";
-import { videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
+import { resolveDefaultVideoProvider, videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
 
 const router = Router();
 
@@ -811,7 +811,7 @@ router.post("/video-prompts/:videoPromptId/provider-task", validate({ params: vi
   try {
     const { videoPromptId } = req.params as z.infer<typeof videoPromptParamsSchema>;
     const body = (req.body ?? {}) as { provider?: string };
-    const data = await dramaVideoPromptService.createProviderTask(videoPromptId, body.provider ?? "mock");
+    const data = await dramaVideoPromptService.createProviderTask(videoPromptId, body.provider ?? resolveDefaultVideoProvider());
     res.status(200).json({ success: true, data, message: "Drama video task created." });
   } catch (error) {
     next(error);
