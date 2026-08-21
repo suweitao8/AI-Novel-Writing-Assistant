@@ -14,7 +14,6 @@ import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
 import {
   buildStoryAssetPresentation,
@@ -22,7 +21,13 @@ import {
   StoryAssetDetailDialog,
   type StoryAssetPresentation,
 } from "@/components/storyAssets";
-import { AssetStatesEditor, EMPTY_SCENE_FORM, SceneAssetFormFields, type SceneAssetFormState } from "./assetForms";
+import {
+  AssetStatesEditor,
+  createInitialSceneState,
+  EMPTY_SCENE_FORM,
+  SceneAssetFormFields,
+  type SceneAssetFormState,
+} from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface SettingsScenesTabProps {
@@ -31,6 +36,27 @@ interface SettingsScenesTabProps {
 }
 
 type SceneFormState = SceneAssetFormState;
+
+function sceneStatesForEditor(scene: StorySettingsScene): StoryAssetState[] {
+  return scene.states?.length > 0
+    ? scene.states
+    : [createInitialSceneState(scene)];
+}
+
+function prepareSceneStatesForSave(
+  states: StoryAssetState[],
+  form: SceneFormState,
+  isCreating: boolean,
+): StoryAssetState[] {
+  if (!isCreating || states.length === 0) {
+    return states;
+  }
+  const defaultInitialState = createInitialSceneState({ name: "" });
+  if (JSON.stringify(states[0]) !== JSON.stringify(defaultInitialState)) {
+    return states;
+  }
+  return [createInitialSceneState({ name: form.name.trim() }), ...states.slice(1)];
+}
 
 export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenesTabProps) {
   const queryClient = useQueryClient();
@@ -56,6 +82,10 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
           .some((text) => text.toLowerCase().includes(normalized)))
     : scenes;
 
+  const statesValid = states.length > 0 && states.every((state) => Boolean(
+    state.label.trim() && state.description.trim() && state.imagePrompt.trim(),
+  ));
+
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
@@ -65,22 +95,32 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
   };
 
   const saveMutation = useMutation({
-    mutationFn: () => editing
-      ? updateStorySettingsScene(novelId, editing.id, {
-        name: form.name.trim(),
-        sceneType: form.sceneType || null,
-        environmentPrompt: form.environmentPrompt.trim() || null,
-        timeOfDay: form.timeOfDay || null,
-        weather: form.weather || null,
-        states,
-      })
-      : createStorySettingsScene(novelId, {
-        name: form.name.trim(),
-        sceneType: form.sceneType || undefined,
-        environmentPrompt: form.environmentPrompt.trim() || undefined,
-        timeOfDay: form.timeOfDay || undefined,
-        weather: form.weather || undefined,
-      }),
+    mutationFn: () => {
+      const savedStates = prepareSceneStatesForSave(states, form, creating);
+      const initial = savedStates[0];
+      const compatibilityFields = {
+        sceneType: initial?.sceneType ?? null,
+        summary: initial?.description?.trim() || null,
+        environmentPrompt: initial?.imagePrompt?.trim() || null,
+        timeOfDay: initial?.timeOfDay ?? null,
+        weather: initial?.weather ?? null,
+      };
+      return editing
+        ? updateStorySettingsScene(novelId, editing.id, {
+          name: form.name.trim(),
+          ...compatibilityFields,
+          states: savedStates,
+        })
+        : createStorySettingsScene(novelId, {
+          name: form.name.trim(),
+          ...(compatibilityFields.sceneType ? { sceneType: compatibilityFields.sceneType } : {}),
+          ...(compatibilityFields.summary ? { summary: compatibilityFields.summary } : {}),
+          ...(compatibilityFields.environmentPrompt ? { environmentPrompt: compatibilityFields.environmentPrompt } : {}),
+          ...(compatibilityFields.timeOfDay ? { timeOfDay: compatibilityFields.timeOfDay } : {}),
+          ...(compatibilityFields.weather ? { weather: compatibilityFields.weather } : {}),
+          states: savedStates,
+        });
+    },
     onSuccess: async () => {
       toast.success(editing ? "场景已保存。" : "场景已添加。");
       setEditing(null);
@@ -114,11 +154,8 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
       }
       setForm({
         name: draft.name,
-        sceneType: draft.sceneType || "",
-        environmentPrompt: draft.environmentPrompt ?? "",
-        timeOfDay: "",
-        weather: "",
       });
+      setStates([createInitialSceneState(draft)]);
       toast.success("草稿已生成，可以直接修改后保存。");
     },
     onError: (error) => {
@@ -130,7 +167,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_SCENE_FORM);
-    setStates([]);
+    setStates([createInitialSceneState({ name: "" })]);
     setHint("");
   };
 
@@ -138,14 +175,8 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     setCreating(false);
     setEditing(scene);
     setHint("");
-    setForm({
-      name: scene.name,
-      sceneType: scene.sceneType ?? "",
-      environmentPrompt: scene.environmentPrompt ?? "",
-      timeOfDay: scene.timeOfDay ?? "",
-      weather: scene.weather ?? "",
-    });
-    setStates(scene.states ?? []);
+    setForm({ name: scene.name });
+    setStates(sceneStatesForEditor(scene));
   };
 
   const closeDialog = () => {
@@ -247,14 +278,15 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
+          className="max-w-6xl"
           title={editing ? "编辑场景" : "添加场景"}
           description={editing
-            ? "写清场景的画面与时间天气，生成场景图时会按它渲染。"
+            ? "管理场景名，以及每个状态的空间、时间、天气和画面提示词。"
             : "写一句提示（也可以留空），让 AI 生成完整场景草稿；生成后可以随意修改再保存。"}
           footer={
             <>
               <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim()}>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim() || !statesValid}>
                 {saveMutation.isPending ? "保存中..." : "保存"}
               </Button>
             </>
@@ -284,9 +316,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
               </div>
             ) : null}
             <SceneAssetFormFields value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} />
-            {editing ? (
-              <AssetStatesEditor states={states} onChange={setStates} kind="scene" asset={{ novelId, assetId: editing.id }} />
-            ) : null}
+            <AssetStatesEditor states={states} onChange={setStates} kind="scene" asset={editing ? { novelId, assetId: editing.id } : undefined} />
           </div>
         </AppDialogContent>
       </Dialog>

@@ -7,6 +7,9 @@ import { Input } from "@/components/ui/input";
 import {
   CharacterAssetFormFields,
   createInitialCharacterState,
+  createInitialPropState,
+  createInitialSceneState,
+  AssetStatesEditor,
   SceneAssetFormFields,
   PropAssetFormFields,
   EMPTY_CHARACTER_FORM,
@@ -36,6 +39,14 @@ type CharacterApplyFormState = CharacterAssetFormState & {
   states: StoryAssetState[];
 };
 
+type SceneApplyFormState = SceneAssetFormState & {
+  states: StoryAssetState[];
+};
+
+type PropApplyFormState = PropAssetFormState & {
+  states: StoryAssetState[];
+};
+
 // 提取建议的应用弹窗：与资产页签的编辑弹窗共用同一套表单（assetForms），
 // 先核对、可修改，点「应用」创建这一条资产——不做批量勾选，每条单独确认。
 export default function ExtractApplyDialog(props: {
@@ -53,8 +64,8 @@ export default function ExtractApplyDialog(props: {
     ...EMPTY_CHARACTER_FORM,
     states: [createInitialCharacterState()],
   });
-  const [sceneForm, setSceneForm] = useState<SceneAssetFormState>(EMPTY_SCENE_FORM);
-  const [propForm, setPropForm] = useState<PropAssetFormState>(EMPTY_PROP_FORM);
+  const [sceneForm, setSceneForm] = useState<SceneApplyFormState>({ ...EMPTY_SCENE_FORM, states: [] });
+  const [propForm, setPropForm] = useState<PropApplyFormState>({ ...EMPTY_PROP_FORM, states: [] });
   const [worldviewForm, setWorldviewForm] = useState<WorldviewFormState>({ name: "", description: "" });
 
   // 打开时用提取内容预填表单；弹窗内改动的就是即将应用的最终内容。
@@ -83,16 +94,22 @@ export default function ExtractApplyDialog(props: {
     setSceneForm({
       ...EMPTY_SCENE_FORM,
       name: item.name ?? "",
-      environmentPrompt: extractItem.imagePrompt ?? "",
-      // 提取给结构化时间/天气（旧结果没有则保持未设定）。
-      timeOfDay: extractItem.timeOfDay ?? "",
-      weather: extractItem.weather ?? "",
+      states: [createInitialSceneState({
+        name: item.name ?? "",
+        summary: extractItem.description,
+        environmentPrompt: extractItem.imagePrompt,
+        timeOfDay: extractItem.timeOfDay,
+        weather: extractItem.weather,
+      })],
     });
     setPropForm({
       ...EMPTY_PROP_FORM,
       name: item.name ?? "",
-      // 道具只要名字和画面提示词；旧提取结果没给提示词时把描述带进来当起点
-      visualPrompt: extractItem.imagePrompt || extractItem.description || "",
+      states: [createInitialPropState({
+        name: item.name ?? "",
+        description: extractItem.description,
+        visualPrompt: extractItem.imagePrompt,
+      })],
     });
     setWorldviewForm({ name: item.name ?? "", description: extractItem.description ?? "" });
   }, [props.open, item, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
@@ -101,7 +118,9 @@ export default function ExtractApplyDialog(props: {
     ? characterForm.name.trim() !== ""
     : group === "worldview"
       ? worldviewForm.name.trim() !== "" && worldviewForm.description.trim() !== ""
-      : (group === "scenes" ? sceneForm.name.trim() : propForm.name.trim()) !== "";
+      : (group === "scenes"
+        ? sceneForm.name.trim() !== "" && sceneForm.states.length > 0
+        : propForm.name.trim() !== "" && propForm.states.length > 0);
   const applyDisabled = props.pending || props.existing || !formValid;
 
   const handleApply = () => {
@@ -120,6 +139,7 @@ export default function ExtractApplyDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       {item ? (
         <AppDialogContent
+          className="max-w-6xl"
           title={item.name || `应用${GROUP_LABELS[group]}`}
           description={GROUP_LABELS[group]}
           footer={
@@ -140,11 +160,20 @@ export default function ExtractApplyDialog(props: {
               </p>
             ) : null}
             {group === "characters" ? (
-              <CharacterAssetFormFields value={characterForm} onChange={(patch) => setCharacterForm((prev) => ({ ...prev, ...patch }))} />
+              <>
+                <CharacterAssetFormFields value={characterForm} onChange={(patch) => setCharacterForm((prev) => ({ ...prev, ...patch }))} />
+                <AssetStatesEditor states={characterForm.states} onChange={(states) => setCharacterForm((prev) => ({ ...prev, states }))} kind="character" />
+              </>
             ) : group === "scenes" ? (
-              <SceneAssetFormFields value={sceneForm} onChange={(patch) => setSceneForm((prev) => ({ ...prev, ...patch }))} />
+              <>
+                <SceneAssetFormFields value={sceneForm} onChange={(patch) => setSceneForm((prev) => ({ ...prev, ...patch }))} />
+                <AssetStatesEditor states={sceneForm.states} onChange={(states) => setSceneForm((prev) => ({ ...prev, states }))} kind="scene" />
+              </>
             ) : group === "props" ? (
-              <PropAssetFormFields value={propForm} onChange={(patch) => setPropForm((prev) => ({ ...prev, ...patch }))} />
+              <>
+                <PropAssetFormFields value={propForm} onChange={(patch) => setPropForm((prev) => ({ ...prev, ...patch }))} />
+                <AssetStatesEditor states={propForm.states} onChange={(states) => setPropForm((prev) => ({ ...prev, states }))} kind="prop" />
+              </>
             ) : (
               <div className="space-y-3">
                 <label className="block space-y-1">

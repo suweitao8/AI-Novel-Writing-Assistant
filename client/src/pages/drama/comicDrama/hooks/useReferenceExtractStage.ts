@@ -86,8 +86,8 @@ export type ApplyOneInput = {
   index: number;
   form:
     | (CharacterAssetFormState & { __kind: "character"; states: StoryAssetState[] })
-    | (SceneAssetFormState & { __kind: "scene" })
-    | (PropAssetFormState & { __kind: "prop" })
+    | (SceneAssetFormState & { __kind: "scene"; states: StoryAssetState[] })
+    | (PropAssetFormState & { __kind: "prop"; states: StoryAssetState[] })
     | { __kind: "worldview"; name: string; description: string };
 };
 
@@ -163,26 +163,36 @@ export function useReferenceExtractStage(input: {
         if (existingNames.scenes.has(form.name.trim())) {
           throw new Error("已有同名场景，不能重复创建。");
         }
-        const imagePrompt = form.environmentPrompt.trim();
-        const initialPrompt = imagePrompt || `${form.name.trim()}初始状态`;
+        const initial = form.states[0];
+        const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
+        const initialDescription = initial?.description?.trim() || imagePrompt;
         await createStorySettingsScene(input.novelId, {
           name: form.name.trim(),
-          sceneType: (form.sceneType || undefined) as "interior" | "exterior" | "nature" | undefined,
+          sceneType: initial?.sceneType ?? undefined,
+          summary: initialDescription,
           environmentPrompt: imagePrompt || undefined,
-          timeOfDay: (form.timeOfDay || undefined) as "morning" | "noon" | "night" | undefined,
-          weather: (form.weather || undefined) as "sunny" | "cloudy" | "rainy" | undefined,
-          states: [{ id: "initial", label: "初始状态", description: initialPrompt, imagePrompt: initialPrompt, ...chapterTag }],
+          timeOfDay: initial?.timeOfDay ?? undefined,
+          weather: initial?.weather ?? undefined,
+          states: form.states.map((state, stateIndex) => ({
+            ...state,
+            ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+            ...chapterTag,
+          })),
         });
       } else if (form.__kind === "prop") {
         if (existingNames.props.has(form.name.trim())) {
           throw new Error("已有同名道具，不能重复创建。");
         }
-        const imagePrompt = form.visualPrompt.trim();
-        const initialPrompt = imagePrompt || `${form.name.trim()}初始状态`;
+        const initial = form.states[0];
+        const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
         await createStorySettingsProp(input.novelId, {
           name: form.name.trim(),
           visualPrompt: imagePrompt || undefined,
-          states: [{ id: "initial", label: "初始状态", description: initialPrompt, imagePrompt: initialPrompt, ...chapterTag }],
+          states: form.states.map((state, stateIndex) => ({
+            ...state,
+            ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+            ...chapterTag,
+          })),
         });
       } else {
         const worldResponse = await getStorySettingsWorld(input.novelId);

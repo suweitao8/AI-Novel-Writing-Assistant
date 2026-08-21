@@ -9,11 +9,11 @@ const source = readFileSync(
   "utf8",
 );
 
-test("角色、场景、道具共用紧凑的左状态列表右详情布局", () => {
-  assert.match(source, /grid items-start gap-3 lg:grid-cols/);
-  assert.match(source, /self-start min-w-0 max-h-\[26rem\] overflow-y-auto/);
+test("角色、场景、道具共用放大的左状态列表右详情布局", () => {
+  assert.match(source, /grid items-start gap-4 lg:grid-cols/);
+  assert.match(source, /self-start min-w-0 max-h-\[32rem\] overflow-y-auto/);
   assert.match(source, /self-start min-w-0 rounded-lg/);
-  assert.match(source, /max-h-64 aspect-\[3\/2\] w-full/);
+  assert.match(source, /aspect-\[3\/2\] max-h-\[28rem\] w-full/);
   assert.match(source, /flex min-h-28 items-center justify-center/);
   assert.doesNotMatch(source, /className="aspect-video w-full object-cover"/);
 });

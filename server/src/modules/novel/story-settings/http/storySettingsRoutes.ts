@@ -50,6 +50,10 @@ const assetStateSchema = z.object({
   imagePrompt: z.string().trim().min(1).max(600),
   voicePrompt: z.string().trim().max(300).optional(),
   ageGroup: z.enum(["child", "youth", "middle", "elder"]).optional(),
+  // 场景的时间/天气/空间类型跟随状态保存；角色和道具不会使用这些字段。
+  sceneType: z.enum(["interior", "exterior", "nature"]).nullable().optional(),
+  timeOfDay: z.enum(["morning", "noon", "night"]).nullable().optional(),
+  weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
   chapterOrder: z.number().int().min(0).max(9999).optional(),
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),

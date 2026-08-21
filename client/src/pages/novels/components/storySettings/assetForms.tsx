@@ -135,6 +135,8 @@ export function AssetStatesEditor(props: {
   // 角色弹窗的总保存仍由外层负责；本地改过状态后先禁止直接生成，避免服务端按旧 statesJson 生图/生音色。
   const [localDirty, setLocalDirty] = useState(false);
   const showVoice = kind === "character";
+  const showScene = kind === "scene";
+  const stateTitle = showVoice ? "角色状态" : showScene ? "场景状态" : "道具状态";
 
   useEffect(() => {
     if (draft) return;
@@ -191,6 +193,11 @@ export function AssetStatesEditor(props: {
       description: "",
       imagePrompt: "",
       ...(showVoice ? { ageGroup: previous?.ageGroup ?? "youth" } : {}),
+      ...(showScene ? {
+        sceneType: previous?.sceneType ?? null,
+        timeOfDay: previous?.timeOfDay ?? null,
+        weather: previous?.weather ?? null,
+      } : {}),
       referenceStateId: previous?.id ?? null,
     });
   };
@@ -228,6 +235,11 @@ export function AssetStatesEditor(props: {
       imagePrompt: draft.imagePrompt.trim() || draft.description.trim(),
       ...(showVoice && draft.voicePrompt?.trim() ? { voicePrompt: draft.voicePrompt.trim() } : {}),
       ...(showVoice && draft.ageGroup ? { ageGroup: draft.ageGroup } : {}),
+      ...(showScene ? {
+        sceneType: draft.sceneType ?? null,
+        timeOfDay: draft.timeOfDay ?? null,
+        weather: draft.weather ?? null,
+      } : {}),
       referenceStateId: draft.referenceStateId ?? null,
       ...(draft.chapterOrder ? { chapterOrder: draft.chapterOrder } : {}),
       ...(draft.image ? { image: draft.image } : {}),
@@ -302,15 +314,15 @@ export function AssetStatesEditor(props: {
     <div className="space-y-3 rounded-lg border border-border/70 p-3">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-sm font-medium">{showVoice ? "角色状态" : "外观状态"}</span>
+          <span className="text-sm font-medium">{stateTitle}</span>
           <span className="ml-2 text-xs text-muted-foreground">选择状态查看图片、描述和生成状态</span>
         </div>
         <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={startCreate} disabled={draft !== null || imageMutation.isPending || voiceMutation.isPending}>
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
         </Button>
       </div>
-      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.42fr)]">
-        <div className="self-start min-w-0 max-h-[26rem] overflow-y-auto space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2">
+      <div className="grid items-start gap-4 lg:grid-cols-[minmax(15rem,0.78fr)_minmax(0,1.42fr)]">
+        <div className="self-start min-w-0 max-h-[32rem] overflow-y-auto space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2">
           {states.length === 0 && !draft ? (
             <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
               还没有状态
@@ -353,6 +365,11 @@ export function AssetStatesEditor(props: {
                       <Badge variant={state.image?.status === "done" ? "secondary" : "outline"} className="px-1.5 py-0 text-[10px]">图：{state.image?.status === "done" ? "已生成" : "待生成"}</Badge>
                       {showVoice ? <Badge variant={state.voice?.status === "done" ? "secondary" : "outline"} className="px-1.5 py-0 text-[10px]">音：{state.voice?.status === "done" ? "已生成" : "待生成"}</Badge> : null}
                       <span className="max-w-full truncate text-[10px] text-muted-foreground">参考：{effectiveReferenceId ? states.find((item) => item.id === effectiveReferenceId)?.label ?? "已删除" : "不参考"}</span>
+                      {showScene && (state.sceneType || state.timeOfDay || state.weather) ? (
+                        <span className="max-w-full truncate text-[10px] text-muted-foreground">
+                          {sceneStateMetaLabel(state)}
+                        </span>
+                      ) : null}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">{state.description || "填写状态描述"}</span>
                   </span>
@@ -402,7 +419,7 @@ export function AssetStatesEditor(props: {
                         alt={`${selectedState.label} 状态图`}
                         fit="contain"
                         blurBackdrop={false}
-                        className="aspect-video max-h-64 w-full rounded-lg border-0"
+                        className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
                       />
                     ) : (
                       <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
@@ -417,7 +434,7 @@ export function AssetStatesEditor(props: {
                       variant="outline"
                       size="sm"
                       disabled={generationDisabled}
-                      title={localDirty ? "保存角色后再生成状态图" : undefined}
+                      title={localDirty ? "保存状态设定后再生成状态图" : undefined}
                       onClick={() => imageMutation.mutate(selectedState.id)}
                     >
                       {imageMutation.isPending && imageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
@@ -449,6 +466,55 @@ export function AssetStatesEditor(props: {
                     <span className="text-xs font-medium">状态变化</span>
                     <Input value={selectedState.description} placeholder={showVoice ? "例如：战斗后左臂受伤，换成破损外套" : "这个状态下发生了什么变化"} disabled={!draft} onChange={(event) => updateDraft({ description: event.target.value })} />
                   </label>
+                  {showScene ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <label className="block min-w-0 space-y-1">
+                        <span className="text-xs font-medium">场景类型</span>
+                        <SelectControl
+                          className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                          aria-label="状态场景类型"
+                          value={selectedState.sceneType ?? ""}
+                          disabled={!draft}
+                          onChange={(event) => updateDraft({ sceneType: event.target.value ? event.target.value as StoryAssetState["sceneType"] : null })}
+                        >
+                          <option value="">未设定</option>
+                          <option value="interior">室内</option>
+                          <option value="exterior">室外</option>
+                          <option value="nature">自然</option>
+                        </SelectControl>
+                      </label>
+                      <label className="block min-w-0 space-y-1">
+                        <span className="text-xs font-medium">时间</span>
+                        <SelectControl
+                          className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                          aria-label="状态时间"
+                          value={selectedState.timeOfDay ?? ""}
+                          disabled={!draft}
+                          onChange={(event) => updateDraft({ timeOfDay: event.target.value ? event.target.value as StoryAssetState["timeOfDay"] : null })}
+                        >
+                          <option value="">未设定</option>
+                          <option value="morning">早上</option>
+                          <option value="noon">中午</option>
+                          <option value="night">晚上</option>
+                        </SelectControl>
+                      </label>
+                      <label className="block min-w-0 space-y-1">
+                        <span className="text-xs font-medium">天气</span>
+                        <SelectControl
+                          className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                          aria-label="状态天气"
+                          value={selectedState.weather ?? ""}
+                          disabled={!draft}
+                          onChange={(event) => updateDraft({ weather: event.target.value ? event.target.value as StoryAssetState["weather"] : null })}
+                        >
+                          <option value="">未设定</option>
+                          <option value="sunny">晴天</option>
+                          <option value="cloudy">阴天</option>
+                          <option value="rainy">雨天</option>
+                        </SelectControl>
+                      </label>
+                    </div>
+                  ) : null}
                   {showVoice ? (
                     <label className="block space-y-1">
                       <span className="text-xs font-medium">年龄段</span>
@@ -534,7 +600,7 @@ export function AssetStatesEditor(props: {
                   <Button type="button" size="sm" onClick={commit} disabled={!draftValid}>确定</Button>
                 </div>
               ) : null}
-              {localDirty ? <p className="text-xs text-muted-foreground">状态设定已修改，请先保存角色，再生成图片或音色。</p> : null}
+              {localDirty ? <p className="text-xs text-muted-foreground">状态设定已修改，请先保存资产，再生成图片或音色。</p> : null}
             </div>
           ) : (
             <div className="flex min-h-64 items-center justify-center text-center text-sm text-muted-foreground">添加一个状态后，在这里查看和编辑状态资产。</div>
@@ -547,18 +613,64 @@ export function AssetStatesEditor(props: {
 
 export interface SceneAssetFormState {
   name: string;
-  sceneType: string;
-  timeOfDay: string;
-  weather: string;
-  environmentPrompt: string;
+}
+
+const SCENE_STATE_TYPE_LABELS: Record<string, string> = {
+  interior: "室内",
+  exterior: "室外",
+  nature: "自然",
+};
+
+const SCENE_STATE_TIME_LABELS: Record<string, string> = {
+  morning: "早上",
+  noon: "中午",
+  night: "晚上",
+};
+
+const SCENE_STATE_WEATHER_LABELS: Record<string, string> = {
+  sunny: "晴天",
+  cloudy: "阴天",
+  rainy: "雨天",
+};
+
+function sceneStateMetaLabel(state: StoryAssetState): string {
+  return [
+    state.sceneType ? SCENE_STATE_TYPE_LABELS[state.sceneType] : null,
+    state.timeOfDay ? SCENE_STATE_TIME_LABELS[state.timeOfDay] : null,
+    state.weather ? SCENE_STATE_WEATHER_LABELS[state.weather] : null,
+  ].filter(Boolean).join(" · ");
+}
+
+export function createInitialSceneState(input: {
+  name: string;
+  sceneType?: string | null;
+  timeOfDay?: string | null;
+  weather?: string | null;
+  summary?: string | null;
+  environmentPrompt?: string | null;
+}): StoryAssetState {
+  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}初始状态`;
+  const imagePrompt = input.environmentPrompt?.trim() || description;
+  return {
+    id: "initial",
+    label: "初始状态",
+    description,
+    imagePrompt,
+    sceneType: input.sceneType === "interior" || input.sceneType === "exterior" || input.sceneType === "nature"
+      ? input.sceneType
+      : null,
+    timeOfDay: input.timeOfDay === "morning" || input.timeOfDay === "noon" || input.timeOfDay === "night"
+      ? input.timeOfDay
+      : null,
+    weather: input.weather === "sunny" || input.weather === "cloudy" || input.weather === "rainy"
+      ? input.weather
+      : null,
+    referenceStateId: null,
+  };
 }
 
 export const EMPTY_SCENE_FORM: SceneAssetFormState = {
   name: "",
-  sceneType: "",
-  timeOfDay: "",
-  weather: "",
-  environmentPrompt: "",
 };
 
 export function SceneAssetFormFields(props: {
@@ -567,78 +679,39 @@ export function SceneAssetFormFields(props: {
 }) {
   const { value, onChange } = props;
   return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">场景名</span>
-          <Input
-            value={value.name}
-            placeholder="例如：废弃地铁站"
-            onChange={(event) => onChange({ name: event.target.value })}
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">场景类型</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.sceneType}
-            onChange={(event) => onChange({ sceneType: event.target.value })}
-          >
-            <option value="">未设定</option>
-            <option value="interior">室内</option>
-            <option value="exterior">室外</option>
-            <option value="nature">自然</option>
-          </SelectControl>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">时间</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.timeOfDay}
-            onChange={(event) => onChange({ timeOfDay: event.target.value })}
-          >
-            <option value="">未设定</option>
-            <option value="morning">早上</option>
-            <option value="noon">中午</option>
-            <option value="night">晚上</option>
-          </SelectControl>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">天气</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.weather}
-            onChange={(event) => onChange({ weather: event.target.value })}
-          >
-            <option value="">未设定</option>
-            <option value="sunny">晴天</option>
-            <option value="cloudy">阴天</option>
-            <option value="rainy">雨天</option>
-          </SelectControl>
-        </label>
-      </div>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">图片提示词（生成场景图时使用）</span>
-        <Input
-          value={value.environmentPrompt}
-          placeholder="光线、空间布局、材质风格；时间与天气用上面的选项"
-          onChange={(event) => onChange({ environmentPrompt: event.target.value })}
-        />
-      </label>
-    </div>
+    <label className="block space-y-1">
+      <span className="text-sm font-medium">场景名</span>
+      <Input
+        value={value.name}
+        placeholder="例如：废弃地铁站"
+        onChange={(event) => onChange({ name: event.target.value })}
+      />
+    </label>
   );
 }
 
-// 道具表单只留做视频要用的字段（2026-08-19 用户决定：道具就是道具名 + 图片提示词，
-// 类型/持有者/重要度/剧情功能等对生成画面没有作用；数据库旧字段保留，编辑保存时清空）。
+// 道具表单只保留名称；画面提示词属于具体状态，数据库旧字段继续用于兼容读取。
 export interface PropAssetFormState {
   name: string;
-  visualPrompt: string;
+}
+
+export function createInitialPropState(input: {
+  name: string;
+  description?: string | null;
+  visualPrompt?: string | null;
+}): StoryAssetState {
+  const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}初始状态`;
+  return {
+    id: "initial",
+    label: "初始状态",
+    description,
+    imagePrompt: input.visualPrompt?.trim() || description,
+    referenceStateId: null,
+  };
 }
 
 export const EMPTY_PROP_FORM: PropAssetFormState = {
   name: "",
-  visualPrompt: "",
 };
 
 export function PropAssetFormFields(props: {
@@ -647,23 +720,13 @@ export function PropAssetFormFields(props: {
 }) {
   const { value, onChange } = props;
   return (
-    <div className="space-y-3">
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">道具名</span>
-        <Input
-          value={value.name}
-          placeholder="例如：外婆留下的怀表"
-          onChange={(event) => onChange({ name: event.target.value })}
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">图片提示词（生成道具图时使用）</span>
-        <Input
-          value={value.visualPrompt}
-          placeholder="材质、工艺、尺寸、色泽、纹饰"
-          onChange={(event) => onChange({ visualPrompt: event.target.value })}
-        />
-      </label>
-    </div>
+    <label className="block space-y-1">
+      <span className="text-sm font-medium">道具名</span>
+      <Input
+        value={value.name}
+        placeholder="例如：外婆留下的怀表"
+        onChange={(event) => onChange({ name: event.target.value })}
+      />
+    </label>
   );
 }

@@ -79,6 +79,9 @@ interface SceneSettingLite {
   name: string;
   environmentPrompt: string | null;
   summary: string | null;
+  sceneType: string | null;
+  timeOfDay: string | null;
+  weather: string | null;
   /** 场景初始状态图（生成过且成功才有）。 */
   imageUrl: string | null;
 }
@@ -93,17 +96,42 @@ interface PropSettingLite {
 
 function resolveInitialSettingState(
   statesJson: string | null,
-  fallback: { name: string; description?: string | null; imagePrompt?: string | null },
-): { imagePrompt: string; imageUrl: string | null } {
+  fallback: {
+    name: string;
+    description?: string | null;
+    imagePrompt?: string | null;
+    sceneType?: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
+  },
+): {
+  imagePrompt: string;
+  imageUrl: string | null;
+  sceneType?: string | null;
+  timeOfDay?: string | null;
+  weather?: string | null;
+} {
   const fallbackDescription = fallback.description?.trim() || fallback.imagePrompt?.trim() || `${fallback.name}初始状态`;
   const fallbackImagePrompt = fallback.imagePrompt?.trim() || fallbackDescription;
   const initial = normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
     description: fallbackDescription,
     imagePrompt: fallbackImagePrompt,
+    sceneType: fallback.sceneType === "interior" || fallback.sceneType === "exterior" || fallback.sceneType === "nature"
+      ? fallback.sceneType
+      : null,
+    timeOfDay: fallback.timeOfDay === "morning" || fallback.timeOfDay === "noon" || fallback.timeOfDay === "night"
+      ? fallback.timeOfDay
+      : null,
+    weather: fallback.weather === "sunny" || fallback.weather === "cloudy" || fallback.weather === "rainy"
+      ? fallback.weather
+      : null,
   })[0];
   return {
     imagePrompt: initial?.imagePrompt?.trim() || fallbackImagePrompt,
     imageUrl: initial?.image?.status === "done" && initial.image.url?.trim() ? initial.image.url.trim() : null,
+    sceneType: initial?.sceneType ?? null,
+    timeOfDay: initial?.timeOfDay ?? null,
+    weather: initial?.weather ?? null,
   };
 }
 
@@ -296,7 +324,15 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
   const [scenes, props] = await Promise.all([
     prisma.novelScene.findMany({
       where: { novelId },
-      select: { name: true, environmentPrompt: true, summary: true, statesJson: true },
+      select: {
+        name: true,
+        environmentPrompt: true,
+        summary: true,
+        sceneType: true,
+        timeOfDay: true,
+        weather: true,
+        statesJson: true,
+      },
     }),
     prisma.novelProp.findMany({
       where: { novelId },
@@ -309,11 +345,17 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
         name: rest.name,
         description: rest.summary,
         imagePrompt: rest.environmentPrompt,
+        sceneType: rest.sceneType,
+        timeOfDay: rest.timeOfDay,
+        weather: rest.weather,
       });
       return {
         ...rest,
         environmentPrompt: initial.imagePrompt,
         imageUrl: initial.imageUrl ?? null,
+        sceneType: initial.sceneType ?? null,
+        timeOfDay: initial.timeOfDay ?? null,
+        weather: initial.weather ?? null,
       };
     }),
     props: props.map(({ imageData, statesJson, ...rest }) => {
@@ -395,6 +437,14 @@ function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: S
   const scene = matchSceneByName(settings.scenes, shot.location);
   if (scene) {
     const environment = scene.environmentPrompt?.trim() || scene.summary?.trim();
+    const context = [
+      scene.sceneType ? `类型：${scene.sceneType}` : "",
+      scene.timeOfDay ? `时间：${scene.timeOfDay}` : "",
+      scene.weather ? `天气：${scene.weather}` : "",
+    ].filter(Boolean).join("，");
+    if (context) {
+      lines.push(`场景状态：${context}`);
+    }
     if (environment) {
       lines.push(`场景环境：${environment}`);
     }

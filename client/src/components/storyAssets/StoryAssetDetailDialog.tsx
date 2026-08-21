@@ -35,6 +35,9 @@ function StateRow({ state }: { state: StoryAssetStatePresentation }) {
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-medium text-foreground">{state.label}</span>
           {state.ageLabel ? <Badge variant="secondary" className="text-[11px]">{state.ageLabel}</Badge> : null}
+          {state.sceneTypeLabel ? <Badge variant="secondary" className="text-[11px]">{state.sceneTypeLabel}</Badge> : null}
+          {state.timeOfDayLabel ? <Badge variant="secondary" className="text-[11px]">{state.timeOfDayLabel}</Badge> : null}
+          {state.weatherLabel ? <Badge variant="secondary" className="text-[11px]">{state.weatherLabel}</Badge> : null}
           {state.chapterLabel ? <span className="text-xs text-muted-foreground">{state.chapterLabel}</span> : null}
         </div>
         {state.description ? <p className="whitespace-pre-wrap leading-5 text-muted-foreground">{state.description}</p> : null}
@@ -61,7 +64,7 @@ export function StoryAssetDetailDialog({
     <Dialog open={asset !== null} onOpenChange={onOpenChange}>
       {asset ? (
         <AppDialogContent
-          className="max-w-3xl"
+          className="max-w-5xl"
           title={asset.name}
           description={asset.typeLabel}
           bodyClassName="space-y-5"

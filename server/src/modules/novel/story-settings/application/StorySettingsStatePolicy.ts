@@ -5,6 +5,9 @@ import {
   validateStoryAssetStateList,
   type StoryAssetState,
   type StoryAssetStateInput,
+  type StoryAssetSceneType,
+  type StoryAssetTimeOfDay,
+  type StoryAssetWeather,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -46,11 +49,39 @@ export function normalizeCharacterStates(
 
 export function normalizeSceneStates(
   states: StoryAssetStateInput[] | null | undefined,
-  input: { name: string; summary?: string | null; environmentPrompt?: string | null },
+  input: {
+    name: string;
+    summary?: string | null;
+    environmentPrompt?: string | null;
+    sceneType?: string | null;
+    timeOfDay?: string | null;
+    weather?: string | null;
+  },
 ): StoryAssetState[] {
   const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}初始状态`;
   const imagePrompt = input.environmentPrompt?.trim() || description;
-  return normalizeStoryAssetStates(states, { description, imagePrompt });
+  const sceneType: StoryAssetSceneType | null = input.sceneType === "interior"
+    || input.sceneType === "exterior"
+    || input.sceneType === "nature"
+    ? input.sceneType
+    : null;
+  const timeOfDay: StoryAssetTimeOfDay | null = input.timeOfDay === "morning"
+    || input.timeOfDay === "noon"
+    || input.timeOfDay === "night"
+    ? input.timeOfDay
+    : null;
+  const weather: StoryAssetWeather | null = input.weather === "sunny"
+    || input.weather === "cloudy"
+    || input.weather === "rainy"
+    ? input.weather
+    : null;
+  return normalizeStoryAssetStates(states, {
+    description,
+    imagePrompt,
+    sceneType,
+    timeOfDay,
+    weather,
+  });
 }
 
 export function normalizePropStates(

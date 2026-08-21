@@ -42,11 +42,21 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
     kind: "scene",
     assetName: "废弃地铁站",
     baseAppearance: null,
-    state: { label: "黑夜", description: "停电后的站台", imagePrompt: "应急灯红光，一片漆黑" },
+    state: {
+      label: "黑夜",
+      description: "停电后的站台",
+      imagePrompt: "应急灯红光，一片漆黑",
+      sceneType: "exterior",
+      timeOfDay: "night",
+      weather: "rainy",
+    },
     hasReference: false,
   }, []);
   assert.match(scene, /scene state reference image/);
   assert.match(scene, /subject: 废弃地铁站/);
+  assert.match(scene, /scene type: exterior/);
+  assert.match(scene, /time of day: night/);
+  assert.match(scene, /weather: rainy/);
   assert.doesNotMatch(scene, /base appearance: /);
   const prop = buildStateImagePrompt({
     kind: "prop",

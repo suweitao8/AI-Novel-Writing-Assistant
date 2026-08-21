@@ -43,7 +43,10 @@ import {
   CHARACTER_STATE_SHEET_NEGATIVE_PROMPT,
 } from "../../../../services/drama/visual/characterStateSheet";
 import { storySettingsService } from "./StorySettingsService";
-import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
+import {
+  normalizeSceneStates,
+  updateStoryAssetStateJsonWithCas,
+} from "./StorySettingsStatePolicy";
 import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
 
 export type StoryAssetKind = "character" | "scene" | "prop";
@@ -122,7 +125,17 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
   if (kind === "scene") {
     const row = await prisma.novelScene.findUnique({
       where: { id: assetId },
-      select: { id: true, novelId: true, name: true, environmentPrompt: true, summary: true, statesJson: true },
+      select: {
+        id: true,
+        novelId: true,
+        name: true,
+        environmentPrompt: true,
+        summary: true,
+        sceneType: true,
+        timeOfDay: true,
+        weather: true,
+        statesJson: true,
+      },
     });
     if (!row || row.novelId !== novelId) {
       throw new AppError("未找到场景。", 404);
@@ -138,6 +151,15 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
       states: normalizeStoryAssetStates(parsedStates.states, {
         description: row.summary?.trim() || baseAppearance,
         imagePrompt: row.environmentPrompt?.trim() || baseAppearance,
+        sceneType: row.sceneType === "interior" || row.sceneType === "exterior" || row.sceneType === "nature"
+          ? row.sceneType
+          : null,
+        timeOfDay: row.timeOfDay === "morning" || row.timeOfDay === "noon" || row.timeOfDay === "night"
+          ? row.timeOfDay
+          : null,
+        weather: row.weather === "sunny" || row.weather === "cloudy" || row.weather === "rainy"
+          ? row.weather
+          : null,
       }),
       statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
     };
@@ -194,7 +216,7 @@ export function buildStateImagePrompt(
     kind: StoryAssetKind;
     assetName: string;
     baseAppearance: string | null;
-    state: Pick<StoryAssetState, "label" | "description" | "imagePrompt" | "ageGroup">;
+    state: Pick<StoryAssetState, "label" | "description" | "imagePrompt" | "ageGroup" | "sceneType" | "timeOfDay" | "weather">;
     gender?: string | null;
     hasReference: boolean;
   },
@@ -216,6 +238,13 @@ export function buildStateImagePrompt(
     `subject: ${input.assetName}`,
     input.gender ? `gender: ${input.gender}` : "",
     input.state.ageGroup ? `age group: ${input.state.ageGroup}` : "",
+    ...(input.kind === "scene"
+      ? [
+        input.state.sceneType ? `scene type: ${input.state.sceneType}` : "",
+        input.state.timeOfDay ? `time of day: ${input.state.timeOfDay}` : "",
+        input.state.weather ? `weather: ${input.state.weather}` : "",
+      ]
+      : []),
     input.baseAppearance ? `base appearance: ${input.baseAppearance}` : "",
     `state: ${input.state.label}`,
     `state change: ${stateDescription}`,
@@ -309,11 +338,26 @@ export class StoryAssetStateImageService {
         stateId,
         fallbackStates,
         read: async () => {
-          const row = await prisma.novelScene.findUnique({ where: { id: assetId }, select: { statesJson: true } });
+          const row = await prisma.novelScene.findUnique({
+            where: { id: assetId },
+            select: {
+              statesJson: true,
+              name: true,
+              summary: true,
+              environmentPrompt: true,
+              sceneType: true,
+              timeOfDay: true,
+              weather: true,
+            },
+          });
           if (!row) {
             throw new AppError("未找到场景。", 404);
           }
-          return { raw: row.statesJson, fallbackStates };
+          return {
+            raw: row.statesJson,
+            fallbackStates: normalizeSceneStates(parseStoryAssetStatesJson(row.statesJson).states, row),
+            normalize: (states: StoryAssetState[]) => normalizeSceneStates(states, row),
+          };
         },
         write: async (expectedRaw, nextRaw) => {
           const result = await prisma.novelScene.updateMany({

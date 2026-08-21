@@ -27,6 +27,9 @@ export interface StoryAssetStatePresentation {
   imagePrompt: string;
   voicePrompt: string;
   ageLabel: string;
+  sceneTypeLabel: string;
+  timeOfDayLabel: string;
+  weatherLabel: string;
   chapterLabel: string;
   imageUrl: string;
   voiceSampleUrl: string;
@@ -108,6 +111,9 @@ function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresenta
     imagePrompt: clean(state.imagePrompt),
     voicePrompt: clean(state.voicePrompt),
     ageLabel: labelFor(AGE_LABELS, state.ageGroup),
+    sceneTypeLabel: labelFor(SCENE_TYPE_LABELS, state.sceneType),
+    timeOfDayLabel: labelFor(SCENE_TIME_LABELS, state.timeOfDay),
+    weatherLabel: labelFor(SCENE_WEATHER_LABELS, state.weather),
     chapterLabel: state.chapterOrder ? `第 ${state.chapterOrder} 章` : "",
     imageUrl: clean(state.image?.url),
     voiceSampleUrl: clean(state.voice?.sampleAudioUrl),
@@ -148,18 +154,20 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
 
 function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPresentation, "source"> {
   const details: StoryAssetDetailItem[] = [];
+  const sceneStates = asset.states.map((state, index) => index === 0
+    ? {
+      ...state,
+      sceneType: state.sceneType ?? (asset.sceneType === "interior" || asset.sceneType === "exterior" || asset.sceneType === "nature" ? asset.sceneType : null),
+      timeOfDay: state.timeOfDay ?? (asset.timeOfDay === "morning" || asset.timeOfDay === "noon" || asset.timeOfDay === "night" ? asset.timeOfDay : null),
+      weather: state.weather ?? (asset.weather === "sunny" || asset.weather === "cloudy" || asset.weather === "rainy" ? asset.weather : null),
+    }
+    : state);
+  const initialState = sceneStates[0];
   const badges = [
-    labelFor(SCENE_TYPE_LABELS, asset.sceneType),
-    labelFor(SCENE_TIME_LABELS, asset.timeOfDay),
-    labelFor(SCENE_WEATHER_LABELS, asset.weather),
+    labelFor(SCENE_TYPE_LABELS, initialState?.sceneType),
+    labelFor(SCENE_TIME_LABELS, initialState?.timeOfDay),
+    labelFor(SCENE_WEATHER_LABELS, initialState?.weather),
   ].filter(Boolean);
-
-  addDetail(details, "场景类型", labelFor(SCENE_TYPE_LABELS, asset.sceneType));
-  addDetail(details, "时间", labelFor(SCENE_TIME_LABELS, asset.timeOfDay));
-  addDetail(details, "天气", labelFor(SCENE_WEATHER_LABELS, asset.weather));
-  addDetail(details, "场景说明", asset.summary);
-  addDetail(details, "剧情意义", asset.significance);
-  addDetail(details, "图片提示词", asset.environmentPrompt);
 
   return {
     id: asset.id,
@@ -167,16 +175,17 @@ function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPrese
     kind: "scene",
     typeLabel: TYPE_LABELS.scene,
     name: asset.name,
-    summary: clean(asset.summary) || clean(asset.environmentPrompt) || "暂无补充信息",
+    summary: clean(initialState?.description) || clean(asset.summary) || clean(initialState?.imagePrompt) || clean(asset.environmentPrompt) || "暂无补充信息",
     badges,
     details,
-    states: asset.states.map(buildStatePresentation),
+    states: sceneStates.map(buildStatePresentation),
     media: null,
   };
 }
 
 function buildPropPresentation(asset: StorySettingsProp): Omit<StoryAssetPresentation, "source"> {
   const details: StoryAssetDetailItem[] = [];
+  const initialState = asset.states[0];
   const badges = [clean(asset.propType), clean(asset.importance)].filter(Boolean);
 
   addDetail(details, "道具类型", asset.propType);
@@ -185,20 +194,18 @@ function buildPropPresentation(asset: StorySettingsProp): Omit<StoryAssetPresent
   addDetail(details, "道具说明", asset.description);
   addDetail(details, "剧情作用", asset.plotFunction);
   addDetail(details, "首次出现", asset.firstAppearHint);
-  addDetail(details, "图片提示词", asset.visualPrompt);
-
-  const imageUrl = clean(asset.image?.url);
+  const visualPrompt = initialState?.imagePrompt || asset.visualPrompt;
   return {
     id: asset.id,
     updatedAt: asset.updatedAt,
     kind: "prop",
     typeLabel: TYPE_LABELS.prop,
     name: asset.name,
-    summary: clean(asset.visualPrompt) || clean(asset.description) || "暂无补充信息",
+    summary: clean(initialState?.description) || clean(visualPrompt) || clean(asset.description) || "暂无补充信息",
     badges,
     details,
     states: asset.states.map(buildStatePresentation),
-    media: imageUrl ? { url: imageUrl, alt: `${asset.name} 参考图` } : null,
+    media: null,
   };
 }
 
