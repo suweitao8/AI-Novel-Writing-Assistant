@@ -43,3 +43,11 @@ test("角色创建入口预填带身份信息的非空初始状态", () => {
   assert.match(extractDialogSource, /name:\s*item\.name/);
   assert.match(outlineSource, /createInitialCharacterState\(\{[\s\S]*name/);
 });
+
+test("手动创建保存前会把当前身份写入未编辑的默认初始状态", () => {
+  assert.match(charactersSource, /prepareCharacterStatesForSave/);
+  assert.match(charactersSource, /isCreating/);
+  assert.match(charactersSource, /name:\s*form\.name\.trim\(\)/);
+  assert.match(charactersSource, /defaultInitialState\s*=\s*createInitialCharacterState/);
+  assert.match(charactersSource, /JSON\.stringify\(states\[0\]\).*JSON\.stringify\(defaultInitialState/s);
+});

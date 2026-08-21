@@ -48,6 +48,27 @@ const GENDER_LABELS: Record<string, string> = {
   unknown: "未设定",
 };
 
+export function prepareCharacterStatesForSave(
+  states: StoryAssetState[],
+  form: CharacterFormState,
+  isCreating: boolean,
+): StoryAssetState[] {
+  if (!isCreating || states.length === 0) {
+    return states;
+  }
+  const defaultInitialState = createInitialCharacterState({ gender: EMPTY_CHARACTER_FORM.gender });
+  if (JSON.stringify(states[0]) !== JSON.stringify(defaultInitialState)) {
+    return states;
+  }
+  return [
+    createInitialCharacterState({
+      name: form.name.trim(),
+      gender: form.gender || "unknown",
+    }),
+    ...states.slice(1),
+  ];
+}
+
 export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCharactersTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
@@ -89,7 +110,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       const payload = {
         name: form.name.trim(),
         gender: form.gender || undefined,
-        states,
+        states: prepareCharacterStatesForSave(states, form, creating),
       };
       return editing
         ? updateStorySettingsCharacter(novelId, editing.id, {
