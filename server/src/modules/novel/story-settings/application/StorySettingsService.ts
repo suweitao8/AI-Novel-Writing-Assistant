@@ -73,7 +73,7 @@ export interface StorySettingsScene {
   timeOfDay: string | null;
   /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
   weather: string | null;
-  /** 360° 全景参考图（未生成过为 null）。 */
+  /** 兼容旧版场景全景图的状态（产品场景图片以 states 为准）。 */
   image: StoryAssetImageState | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;

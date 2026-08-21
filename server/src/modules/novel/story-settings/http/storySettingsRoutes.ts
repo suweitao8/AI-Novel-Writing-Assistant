@@ -271,7 +271,7 @@ export function registerStorySettingsRoutes(router: Router): void {
     }
   });
 
-  // 生成场景 360° 全景参考图（同步等待完成，状态随场景持久化）
+  // 兼容旧版场景全景图接口（正式场景图片走状态图接口）
   router.post("/:id/settings/scenes/:sceneId/generate-image", validate({ params: sceneParams }), async (req, res, next) => {
     try {
       const data = await storyAssetImageService.generateSceneImage(
@@ -279,13 +279,13 @@ export function registerStorySettingsRoutes(router: Router): void {
         String(req.params.sceneId),
         (req.body as { provider?: string } | undefined)?.provider,
       );
-      res.json({ success: true, data, message: "场景全景图已生成。" } satisfies ApiResponse<typeof data>);
+      res.json({ success: true, data, message: "兼容场景全景图已生成。" } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);
     }
   });
 
-  // 服务场景全景图文件
+  // 服务旧版场景全景图文件
   router.get("/:id/settings/scenes/:sceneId/image", validate({ params: sceneParams }), async (req, res, next) => {
     try {
       const { filePath, mimeType } = await storyAssetImageService.serveSceneImage(String(req.params.id), String(req.params.sceneId));

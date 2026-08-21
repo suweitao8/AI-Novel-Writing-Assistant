@@ -1,8 +1,8 @@
-// 设定资产参考图生成（2026-08-21 起）：漫剧工作室「资产」页签的场景与道具一键生图。
-// 视图口径沿用旧项目（用户 2026-08-21 明确）：场景＝360° 全景（一张横版等距全景覆盖整个空间，
-// 作首帧图参考时空间信息最全）；道具＝45° 三点透视单件视图。角色状态四视图由
+// 兼容旧版设定资产参考图生成：场景全景与道具透视图仍保留接口和落盘文件，避免历史数据失效。
+// 当前漫剧工作室的正式场景图片由 StoryAssetStateImageService 按 statesJson 的状态生成；
+// 道具旧版透视图仍存 NovelProp.imageData（GeneratedImageState JSON），角色状态图由
 // StoryAssetStateImageService 生成并通过本地固定模板合成。
-// 状态存 NovelScene.imageData / NovelProp.imageData（GeneratedImageState JSON），
+// 旧版场景全景状态仍存 NovelScene.imageData（GeneratedImageState JSON），
 // 文件落 generated-images/story-assets/{scenes|props}/<id>/，画风走两层组合
 // （dramaArtStyleResolver：通用质感 + 本小说默认具体风格）。
 import path from "node:path";

@@ -78,7 +78,7 @@ interface SceneSettingLite {
   name: string;
   environmentPrompt: string | null;
   summary: string | null;
-  /** 360° 全景参考图（生成过且成功才有）。 */
+  /** 场景初始状态图（生成过且成功才有）。 */
   imageUrl: string | null;
 }
 
@@ -295,7 +295,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
   const [scenes, props] = await Promise.all([
     prisma.novelScene.findMany({
       where: { novelId },
-      select: { name: true, environmentPrompt: true, summary: true, imageData: true, statesJson: true },
+      select: { name: true, environmentPrompt: true, summary: true, statesJson: true },
     }),
     prisma.novelProp.findMany({
       where: { novelId },
@@ -303,7 +303,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
     }),
   ]);
   return {
-    scenes: scenes.map(({ imageData, statesJson, ...rest }) => {
+    scenes: scenes.map(({ statesJson, ...rest }) => {
       const initial = resolveInitialSettingState(statesJson, {
         name: rest.name,
         description: rest.summary,
@@ -312,7 +312,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
       return {
         ...rest,
         environmentPrompt: initial.imagePrompt,
-        imageUrl: initial.imageUrl ?? parseImageStateSummary(imageData)?.url ?? null,
+        imageUrl: initial.imageUrl ?? null,
       };
     }),
     props: props.map(({ imageData, statesJson, ...rest }) => {
@@ -482,13 +482,13 @@ export class DramaShotKeyframeService {
           });
         }
       }
-      // 场景全景（镜头地点与设定场景同名）与画面里点名的道具，也作为参考图挂给首帧图。
+      // 场景初始状态图（镜头地点与设定场景同名）与画面里点名的道具，也作为参考图挂给首帧图。
       const matchedScene = matchSceneByName(settings.scenes, shot.location);
       if (matchedScene?.imageUrl) {
         refImages.push(matchedScene.imageUrl);
         referenceImages.push({
           kind: "scene",
-          label: `${matchedScene.name} · 场景全景`,
+          label: `${matchedScene.name} · 初始状态图`,
           url: matchedScene.imageUrl,
         });
       }
