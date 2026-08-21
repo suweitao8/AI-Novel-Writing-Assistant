@@ -102,6 +102,7 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
   return [
     "Create ONE production character reference board, not four separate images and not a poster.",
     "FORMAT AND LAYOUT (HARD CONSTRAINT): one clean 16:9 image with four equal-width vertical panels arranged left to right, separated only by subtle equal gutters; each panel contains exactly one view.",
+    "FULL-CELL COMPOSITION (HARD CONSTRAINT): each panel must fill the full height from the top edge to the bottom edge; the two face close-ups must continue through the shoulders and upper chest to the bottom edge with no inset frame, floating crop, empty lower block or large unused blank area.",
     "PANEL 1 — FRONT FACE CLOSE-UP: head and shoulders, face looking straight at the camera, clear facial structure and hairstyle.",
     "PANEL 2 — EXACT 90-DEGREE SIDE FACE CLOSE-UP: head and shoulders, profile looking to the right, clear nose, jawline, ear and hair silhouette.",
     "PANEL 3 — FRONT FULL BODY: the same person facing the camera in a neutral standing pose, complete figure from the top of the head through both shoes, never cropped.",
