@@ -28,7 +28,7 @@ export function getAudioModelProvider(): BuiltinLLMProvider {
   return MODEL_CATEGORY_PROVIDERS.audio;
 }
 
-// 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（OpenCode / Codex），
+// 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（Grok Build / OpenCode / Codex），
 // 用户不需要填写 API Key，计费走订阅而非 API 账户。
 const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["opencode", "grok-cli", "codex", "grok_build"]);
 

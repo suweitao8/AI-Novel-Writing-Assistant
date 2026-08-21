@@ -2,7 +2,10 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { resolveAssetImageProvider } = require("../dist/services/image/assetProviderRouting.js");
-const { buildImageGenerationRequestBody } = require("../dist/services/image/provider.js");
+const {
+  buildImageGenerationRequestBody,
+  generateImagesByProvider,
+} = require("../dist/services/image/provider.js");
 const { getImageModelOptions } = require("../dist/services/settings/ProviderImageSettingsService.js");
 
 test("base character, scene and prop assets use Grok Build without references", () => {
@@ -53,4 +56,30 @@ test("Grok Build rejects reference images before building an edit request", () =
     }),
     /参考图/,
   );
+});
+
+test("Grok Build image requests use the local bearer by default", async () => {
+  const originalFetch = global.fetch;
+  let request;
+  global.fetch = async (url, options) => {
+    request = { url, options };
+    return {
+      ok: true,
+      json: async () => ({ data: [{ b64_json: "AAAA" }] }),
+    };
+  };
+  try {
+    await generateImagesByProvider({
+      sceneType: "character",
+      provider: "grok_build",
+      model: "grok-build-image",
+      prompt: "a base character reference",
+      size: "1536x1024",
+      count: 1,
+    });
+    assert.equal(request.url, "http://127.0.0.1:18767/images/generations");
+    assert.equal(request.options.headers.Authorization, "Bearer grok-bridge-local");
+  } finally {
+    global.fetch = originalFetch;
+  }
 });
