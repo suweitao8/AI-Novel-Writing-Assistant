@@ -25,14 +25,15 @@ test("builds four character state view prompts in stable order", () => {
 
   assert.deepEqual(
     prompts.map((item) => item.id),
-    ["front_portrait", "front_full_body", "side_full_body", "back_full_body"],
+    ["front_portrait", "side_portrait", "front_full_body", "back_full_body"],
   );
   assert.equal(prompts.length, 4);
   assert.ok(prompts.every((item) => item.prompt.includes("游戏资产展示板背景")));
   assert.ok(prompts.every((item) => item.prompt.includes("同一个角色")));
   assert.match(prompts[0].prompt, /正面头像/);
-  assert.match(prompts[1].prompt, /正面全身/);
-  assert.match(prompts[2].prompt, /严格 90 度侧面/);
+  assert.match(prompts[1].prompt, /侧面头像/);
+  assert.match(prompts[1].prompt, /严格 90 度侧脸/);
+  assert.match(prompts[2].prompt, /正面全身/);
   assert.match(prompts[3].prompt, /背面全身/);
 });
 
@@ -56,11 +57,11 @@ test("character state prompts keep the unified cinematic game-rendering directio
   assert.match(prompt, /最终渲染优先级/);
 });
 
-test("character sheet template has one portrait slot and three full-body slots", () => {
+test("character sheet template has two portrait slots followed by two full-body slots", () => {
   assert.deepEqual(CHARACTER_STATE_SHEET_TEMPLATE.size, { width: 1536, height: 1024 });
   assert.deepEqual(
     CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.id),
-    ["front_portrait", "front_full_body", "side_full_body", "back_full_body"],
+    ["front_portrait", "side_portrait", "front_full_body", "back_full_body"],
   );
   assert.equal(
     CHARACTER_STATE_SHEET_TEMPLATE.slots.reduce((sum, slot) => sum + slot.width, 0),

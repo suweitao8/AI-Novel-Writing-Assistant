@@ -26,8 +26,8 @@ test("runs every character view before composing and persists one final done sta
       prompt: "四视图角色状态设计稿",
       viewRequests: [
         { id: "front_portrait", prompt: "头像" },
+        { id: "side_portrait", prompt: "侧面头像" },
         { id: "front_full_body", prompt: "正面全身" },
-        { id: "side_full_body", prompt: "侧面全身" },
         { id: "back_full_body", prompt: "背面全身" },
       ],
       generateView: async ({ id, viewPath, provider, model }) => {
@@ -37,8 +37,8 @@ test("runs every character view before composing and persists one final done sta
       compose: async (viewPaths, finalPath) => {
         assert.deepEqual(Object.keys(viewPaths), [
           "front_portrait",
+          "side_portrait",
           "front_full_body",
-          "side_full_body",
           "back_full_body",
         ]);
         await fs.writeFile(finalPath, "sheet");
@@ -48,8 +48,8 @@ test("runs every character view before composing and persists one final done sta
     assert.equal(calls.length, 4);
     assert.deepEqual(calls.map((item) => item.id), [
       "front_portrait",
+      "side_portrait",
       "front_full_body",
-      "side_full_body",
       "back_full_body",
     ]);
     assert.equal(saved[0].status, "generating");

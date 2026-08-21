@@ -32,15 +32,15 @@ test("builds four character state view prompts in stable order", () => {
     stateImagePrompt: "青年男性大学生",
     styleLines: ["写实动漫风格"],
   });
-  expect(prompts.map((item) => item.id)).toEqual(["front_portrait", "front_full_body", "side_full_body", "back_full_body"]);
-  expect(prompts.every((item) => item.prompt.includes("纯白或浅灰色摄影棚背景"))).toBe(true);
+  expect(prompts.map((item) => item.id)).toEqual(["front_portrait", "side_portrait", "front_full_body", "back_full_body"]);
+  expect(prompts.every((item) => item.prompt.includes("游戏资产展示板背景"))).toBe(true);
   expect(prompts.every((item) => item.prompt.includes("同一个角色"))).toBe(true);
 });
 
-test("character sheet template has one portrait slot and three full-body slots", () => {
+test("character sheet template has two portrait slots and two full-body slots", () => {
   expect(CHARACTER_STATE_SHEET_TEMPLATE.size).toEqual({ width: 1536, height: 1024 });
   expect(CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.id)).toEqual([
-    "front_portrait", "front_full_body", "side_full_body", "back_full_body",
+    "front_portrait", "side_portrait", "front_full_body", "back_full_body",
   ]);
   expect(CHARACTER_STATE_SHEET_TEMPLATE.slots.reduce((sum, slot) => sum + slot.width, 0)).toBe(1536);
 });

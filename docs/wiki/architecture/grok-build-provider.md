@@ -9,7 +9,7 @@
 - 文本槽默认使用本机 Grok CLI 通道，模型为 `grok-cli/grok-4.6`，服务地址为 `http://127.0.0.1:18764/v1`。桥接把一次性 CLI 结果翻译成 OpenAI completion，并必须把 `stream: true` 翻译成兼容 SSE，因为结构化调用链消费的是流式接口。
 - 无参考图的角色设计稿、场景基础图和道具基础图默认使用 `grok_build` 图片通道，模型为 `grok-build-image`，服务地址为 `http://127.0.0.1:18767/v1`。
 - Grok Build 基础图片统一生成并归一化为 1280×720 PNG。图片提示词只允许一次 `image_gen`，并明确禁止 shell、代码、文件编辑和网页工具，避免订阅 CLI 把图片任务变成普通代理任务。
-- Grok Build 图片桥只接收文字提示词，不接收 PSD/模板文件，也不能执行 `/images/edits`；因此“严格四视图”不能靠一次提示词假装完成。角色状态无参考图时由 `StoryAssetStateImageService` 顺序生成四个独立视图，再由本地 Sharp 合成为固定 1536×1024 白底设计稿；视图顺序与槽位是稳定契约，不依赖模型自行排版。
+- Grok Build 图片桥只接收文字提示词，不接收 PSD/模板文件，也不能执行 `/images/edits`；因此“严格四视图”不能靠一次提示词假装完成。角色状态无参考图时由 `StoryAssetStateImageService` 顺序生成四个独立视图（正面头像 → 侧面头像 → 正面全身 → 背面全身），再由本地 Sharp 合成为固定 1536×1024 白底设计稿；视图顺序与槽位是稳定契约，不依赖模型自行排版。
 - 图片能力槽默认切到 `grok_build`；带参考图的状态图、资产图或封面在业务路由层自动回退到兼容参考图的 Codex 图片桥，因为 Grok Build 通道不支持 `/v1/images/edits`。如果调用方误把参考图交给 `grok_build`，服务端会在发 HTTP 请求前改用 Codex，不静默丢参考图。
 - 本地 bridge bearer 是应用内部默认值，不写入数据库，也不要求用户填写 API Key。用户只需保持本机 Grok CLI 登录态有效。
 

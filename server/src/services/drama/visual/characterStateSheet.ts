@@ -9,14 +9,14 @@ export const CHARACTER_STATE_VIEW_SPECS = [
     framing: "正面头像：头肩近景，脸部正对镜头，五官和发型清晰可见",
   },
   {
+    id: "side_portrait",
+    label: "侧面头像",
+    framing: "侧面头像：头肩近景，严格 90 度侧脸，侧面轮廓、五官和发型清晰可见",
+  },
+  {
     id: "front_full_body",
     label: "正面全身",
     framing: "正面全身：正面站立，从头顶到鞋底完整可见，身体比例自然",
-  },
-  {
-    id: "side_full_body",
-    label: "侧面全身",
-    framing: "侧面全身：严格 90 度侧面站立，从头顶到鞋底完整可见，清楚呈现侧面轮廓",
   },
   {
     id: "back_full_body",
@@ -31,8 +31,8 @@ export const CHARACTER_STATE_SHEET_TEMPLATE = {
   size: { width: 1536, height: 1024 },
   slots: [
     { id: "front_portrait", x: 0, width: 512 },
-    { id: "front_full_body", x: 512, width: 341 },
-    { id: "side_full_body", x: 853, width: 341 },
+    { id: "side_portrait", x: 512, width: 341 },
+    { id: "front_full_body", x: 853, width: 341 },
     { id: "back_full_body", x: 1194, width: 342 },
   ],
 } as const;
