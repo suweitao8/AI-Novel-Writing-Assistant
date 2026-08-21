@@ -174,6 +174,35 @@ test("drama video provider registry exposes mock provider", async () => {
   assert.deepEqual(result.raw.refImages, ["https://example.test/character-sheet.png"]);
 });
 
+test("drama video provider registry resolves local ffmpeg as the safe default", () => {
+  const port = require("../dist/services/drama/video/VideoProviderPort.js");
+  const previous = process.env.DRAMA_VIDEO_DEFAULT_PROVIDER;
+  try {
+    delete process.env.DRAMA_VIDEO_DEFAULT_PROVIDER;
+    assert.equal(port.resolveDefaultVideoProvider(), "local_ffmpeg");
+    const providers = port.videoProviderRegistry.listProviders();
+    assert.equal(providers.filter((item) => item.isDefault).length, 1);
+    assert.equal(providers.find((item) => item.provider === "local_ffmpeg")?.isDefault, true);
+  } finally {
+    if (previous === undefined) delete process.env.DRAMA_VIDEO_DEFAULT_PROVIDER;
+    else process.env.DRAMA_VIDEO_DEFAULT_PROVIDER = previous;
+  }
+});
+
+test("drama video provider registry honors a registered override and ignores an unknown override", () => {
+  const port = require("../dist/services/drama/video/VideoProviderPort.js");
+  const previous = process.env.DRAMA_VIDEO_DEFAULT_PROVIDER;
+  try {
+    process.env.DRAMA_VIDEO_DEFAULT_PROVIDER = "mock";
+    assert.equal(port.resolveDefaultVideoProvider(), "mock");
+    process.env.DRAMA_VIDEO_DEFAULT_PROVIDER = "missing-provider";
+    assert.equal(port.resolveDefaultVideoProvider(), "local_ffmpeg");
+  } finally {
+    if (previous === undefined) delete process.env.DRAMA_VIDEO_DEFAULT_PROVIDER;
+    else process.env.DRAMA_VIDEO_DEFAULT_PROVIDER = previous;
+  }
+});
+
 test("drama tts provider registry exposes mock provider", async () => {
   const { ttsProviderRegistry } = require("../dist/services/drama/audio/TTSProviderPort.js");
   const provider = ttsProviderRegistry.resolve("mock");
