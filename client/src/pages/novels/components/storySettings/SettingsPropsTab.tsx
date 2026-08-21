@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ImagePlus, Package, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, ImagePlus, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
   createStorySettingsProp,
@@ -13,10 +13,15 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
+import {
+  buildStoryAssetPresentation,
+  StoryAssetCard,
+  StoryAssetDetailDialog,
+  type StoryAssetPresentation,
+} from "@/components/storyAssets";
 import { AssetStatesEditor, EMPTY_PROP_FORM, PropAssetFormFields, type PropAssetFormState } from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -30,6 +35,7 @@ type PropFormState = PropAssetFormState;
 export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -108,6 +114,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     mutationFn: (propId: string) => deleteStorySettingsProp(novelId, propId),
     onSuccess: async () => {
       toast.success("道具已删除。");
+      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -204,15 +211,15 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
         <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filteredProps.map((prop) => (
-            <Card key={prop.id} className="min-w-0">
-              <CardContent className="space-y-2 py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Package className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate font-medium text-foreground">{prop.name}</span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
+          {filteredProps.map((prop) => {
+            const asset = buildStoryAssetPresentation({ kind: "prop", asset: prop });
+            return (
+              <StoryAssetCard
+                key={prop.id}
+                asset={asset}
+                onOpen={() => setSelectedAsset(asset)}
+                actions={(
+                  <>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(prop)} aria-label="编辑道具">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -220,35 +227,37 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
-                      onClick={() => deleteMutation.mutate(prop.id)}
+                      onClick={() => {
+                        if (window.confirm(`删除道具「${prop.name}」？`)) deleteMutation.mutate(prop.id);
+                      }}
                       disabled={deleteMutation.isPending}
                       aria-label="删除道具"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
-                </div>
-                {prop.visualPrompt ? (
-                  <p className="text-xs leading-5 text-muted-foreground">画面：{prop.visualPrompt}</p>
-                ) : null}
-                {prop.states.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {prop.states.map((state) => (
-                      <span
-                        key={state.id}
-                        className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400"
-                        title={[state.description, state.imagePrompt ? `画面：${state.imagePrompt}` : ""].filter(Boolean).join("\n")}
-                      >
-                        {state.label}{state.chapterOrder ? `·第${state.chapterOrder}章` : ""}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
+                  </>
+                )}
+              />
+            );
+          })}
         </div>
       )}
+
+      <StoryAssetDetailDialog
+        asset={selectedAsset}
+        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
+        onEdit={selectedAsset ? () => {
+          const source = selectedAsset.source as StorySettingsProp;
+          setSelectedAsset(null);
+          openEdit(source);
+        } : undefined}
+        onDelete={() => {
+          if (selectedAsset && window.confirm(`删除道具「${selectedAsset.name}」？`)) {
+            deleteMutation.mutate(selectedAsset.id);
+          }
+        }}
+        deleting={deleteMutation.isPending}
+      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent

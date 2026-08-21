@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Plus, Search } from "lucide-react";
 import {
   createStorySettingsCharacter,
   createStorySettingsProp,
@@ -13,29 +13,23 @@ import {
   type StorySettingsScene,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
-import { Badge } from "@/components/ui/badge";
 import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { createInitialCharacterState } from "@/pages/novels/components/storySettings/assetForms";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
+import {
+  buildStoryAssetPresentation,
+  StoryAssetCard,
+  StoryAssetDetailDialog,
+  type StoryAssetKind,
+  type StoryAssetPresentation,
+} from "@/components/storyAssets";
 
-type AssetType = "character" | "scene" | "prop";
-
-type AssetSource = StorySettingsCharacter | StorySettingsScene | StorySettingsProp;
-
-interface AssetCard {
-  id: string;
-  type: AssetType;
-  name: string;
-  note: string;
-  updatedAt: string;
-  source: AssetSource;
-}
+type AssetType = StoryAssetKind;
 
 interface OutlineSettingsAsideProps {
   novelId: string;
@@ -56,161 +50,7 @@ const TYPE_LABELS: Record<AssetType, string> = {
   prop: "道具",
 };
 
-// 与大纲编辑器里实体高亮的三色一一对应，卡片标签用同一套色调。
-const TYPE_TONES: Record<AssetType, string> = {
-  character: "border-primary/40 bg-primary/10 text-primary",
-  scene: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  prop: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
-};
-
-const GENDER_LABELS: Record<string, string> = { male: "男", female: "女", other: "其他", unknown: "未知" };
-const AGE_LABELS: Record<string, string> = { child: "少年", youth: "青年", middle: "中年", elder: "老年" };
-const SCENE_TYPE_LABELS: Record<string, string> = { interior: "室内", exterior: "室外", nature: "自然" };
-const SCENE_TIME_LABELS: Record<string, string> = { morning: "早上", noon: "中午", night: "晚上" };
-const SCENE_WEATHER_LABELS: Record<string, string> = { sunny: "晴天", cloudy: "阴天", rainy: "雨天" };
-
-function DetailRow({ label, value }: { label: string; value: string | null | undefined }) {
-  const text = value?.trim();
-  if (!text) return null;
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{text}</p>
-    </div>
-  );
-}
-
-function DetailStates({ states, title = "外观状态" }: { states: StoryAssetState[] | undefined; title?: string }) {
-  if (!states?.length) return null;
-  return (
-    <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">{title}（{states.length}）</p>
-      <div className="space-y-1">
-        {states.map((state) => (
-          <div key={state.id} className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs leading-5">
-            {state.image?.url ? (
-              <img
-                src={state.image.url}
-                alt={`${state.label} 状态图`}
-                className="h-12 w-[4.5rem] shrink-0 rounded-md border border-border object-cover"
-              />
-            ) : null}
-            <span className="min-w-0">
-              <span className="font-medium text-foreground">{state.label}</span>
-              {state.ageGroup ? <span className="ml-1 text-muted-foreground">· {AGE_LABELS[state.ageGroup] ?? state.ageGroup}</span> : null}
-              {state.chapterOrder ? <span className="text-muted-foreground">（第 {state.chapterOrder} 章）</span> : null}
-              {state.description ? <span className="block text-muted-foreground">{state.description}</span> : null}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// 资产详情弹窗：完整字段一览（含生图/音色提示词与外观状态）+ 删除入口。
-function AssetDetailDialog(props: {
-  novelId: string;
-  asset: AssetCard | null;
-  onOpenChange: (open: boolean) => void;
-  onDeleted: () => void | Promise<void>;
-}) {
-  const asset = props.asset;
-  const type = asset?.type;
-  const source = asset?.source;
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      if (!asset) return;
-      if (asset.type === "character") {
-        await deleteStorySettingsCharacter(props.novelId, asset.id);
-      } else if (asset.type === "scene") {
-        await deleteStorySettingsScene(props.novelId, asset.id);
-      } else {
-        await deleteStorySettingsProp(props.novelId, asset.id);
-      }
-    },
-    onSuccess: async () => {
-      toast.success(`${TYPE_LABELS[asset?.type ?? "character"]}「${asset?.name ?? ""}」已删除。`);
-      props.onOpenChange(false);
-      await props.onDeleted();
-    },
-    onError: (error) => toast.error("删除失败", { description: error instanceof Error ? error.message : undefined }),
-  });
-
-  return (
-    <Dialog open={asset !== null} onOpenChange={props.onOpenChange}>
-      {asset && source ? (
-        <AppDialogContent
-          title={asset.name}
-          description={TYPE_LABELS[asset.type]}
-          footer={
-            <>
-              <Button
-                variant="destructive"
-                size="sm"
-                disabled={deleteMutation.isPending}
-                onClick={() => {
-                  if (window.confirm(`删除${TYPE_LABELS[asset.type]}「${asset.name}」？此操作不可恢复。`)) {
-                    deleteMutation.mutate();
-                  }
-                }}
-              >
-                {deleteMutation.isPending
-                  ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                  : <Trash2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-                删除
-              </Button>
-              <Button variant="outline" onClick={() => props.onOpenChange(false)}>关闭</Button>
-            </>
-          }
-        >
-          <div className="space-y-4">
-            {type === "character" ? (() => {
-              const character = source as StorySettingsCharacter;
-              return (
-                <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {character.gender ? <Badge variant="secondary">{GENDER_LABELS[character.gender] ?? character.gender}</Badge> : null}
-                    {character.states[0]?.ageGroup ? <Badge variant="secondary">{AGE_LABELS[character.states[0].ageGroup] ?? character.states[0].ageGroup}</Badge> : null}
-                  </div>
-                  <DetailRow label="性格" value={character.personality} />
-                  <DetailRow label="背景" value={character.background} />
-                  <DetailStates states={character.states} title="角色状态" />
-                </>
-              );
-            })() : type === "scene" ? (() => {
-              const scene = source as StorySettingsScene;
-              return (
-                <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {scene.sceneType ? <Badge variant="outline">{SCENE_TYPE_LABELS[scene.sceneType] ?? scene.sceneType}</Badge> : null}
-                    {scene.timeOfDay ? <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge> : null}
-                    {scene.weather ? <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge> : null}
-                  </div>
-                  <DetailRow label="图片提示词" value={scene.environmentPrompt} />
-                  <DetailStates states={scene.states} />
-                </>
-              );
-            })() : (() => {
-              const prop = source as StorySettingsProp;
-              return (
-                <>
-                  {prop.image?.url ? (
-                    <img src={prop.image.url} alt={`${prop.name} 参考图`} className="max-h-56 w-full rounded-lg border border-border object-contain" />
-                  ) : null}
-                  <DetailRow label="图片提示词" value={prop.visualPrompt} />
-                  <DetailStates states={prop.states} />
-                </>
-              );
-            })()}
-          </div>
-        </AppDialogContent>
-      ) : null}
-    </Dialog>
-  );
-}
-
-// 大纲编辑区右侧的设定资产面板：卡片只放类型和名字，点开弹窗看完整信息（图片提示词、
+// 大纲编辑区右侧的设定资产面板：卡片展示统一摘要，点开弹窗看完整信息（图片提示词、
 // 外观状态等）并可删除；工具栏为 左新增 / 中搜索框 / 右搜索按钮，新增走弹窗。
 // 创建走正式设定接口，与「设定」页签共享缓存；名字实时进入大纲高亮名单。
 export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
@@ -223,32 +63,11 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   const [createNote, setCreateNote] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
 
-  const assets = useMemo<AssetCard[]>(() => {
-    const merged: AssetCard[] = [
-      ...props.characters.map((character) => ({
-        id: character.id,
-        type: "character" as const,
-        name: character.name,
-        note: character.personality ?? "",
-        updatedAt: character.updatedAt,
-        source: character,
-      })),
-      ...props.scenes.map((scene) => ({
-        id: scene.id,
-        type: "scene" as const,
-        name: scene.name,
-        note: scene.summary ?? scene.environmentPrompt ?? "",
-        updatedAt: scene.updatedAt,
-        source: scene,
-      })),
-      ...props.props.map((prop) => ({
-        id: prop.id,
-        type: "prop" as const,
-        name: prop.name,
-        note: prop.visualPrompt || prop.description || "",
-        updatedAt: prop.updatedAt,
-        source: prop,
-      })),
+  const assets = useMemo<StoryAssetPresentation[]>(() => {
+    const merged: StoryAssetPresentation[] = [
+      ...props.characters.map((character) => buildStoryAssetPresentation({ kind: "character", asset: character })),
+      ...props.scenes.map((scene) => buildStoryAssetPresentation({ kind: "scene", asset: scene })),
+      ...props.props.map((prop) => buildStoryAssetPresentation({ kind: "prop", asset: prop })),
     ];
     merged.sort((left, right) => (left.updatedAt < right.updatedAt ? 1 : -1));
     return merged;
@@ -262,10 +81,10 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
     ? assets.filter(
       (asset) =>
         asset.name.toLowerCase().includes(normalized)
-        || asset.note.toLowerCase().includes(normalized),
+        || asset.summary.toLowerCase().includes(normalized),
     )
     : (() => {
-        const usageKey = (asset: AssetCard) => `${asset.type}:${asset.name.trim()}`;
+        const usageKey = (asset: StoryAssetPresentation) => `${asset.kind}:${asset.name.trim()}`;
         const order = new Map(props.usage.usedOrderKeys.map((key, index) => [key, index]));
         const tail = props.usage.usedOrderKeys.length;
         return assets
@@ -277,6 +96,30 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   const detailAsset = detailId ? assets.find((asset) => asset.id === detailId) ?? null : null;
 
   const invalidate = () => invalidateStorySettingsCaches(queryClient, props.novelId);
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      if (!detailAsset) return;
+      if (detailAsset.kind === "character") {
+        const character = detailAsset.source as StorySettingsCharacter;
+        await deleteStorySettingsCharacter(props.novelId, character.id);
+      } else if (detailAsset.kind === "scene") {
+        const scene = detailAsset.source as StorySettingsScene;
+        await deleteStorySettingsScene(props.novelId, scene.id);
+      } else {
+        const prop = detailAsset.source as StorySettingsProp;
+        await deleteStorySettingsProp(props.novelId, prop.id);
+      }
+    },
+    onSuccess: async () => {
+      if (detailAsset) {
+        toast.success(`${TYPE_LABELS[detailAsset.kind]}「${detailAsset.name}」已删除。`);
+      }
+      setDetailId(null);
+      await invalidate();
+    },
+    onError: (error) => toast.error("删除失败", { description: error instanceof Error ? error.message : undefined }),
+  });
 
   const createMutation = useMutation({
     mutationFn: async (): Promise<string> => {
@@ -397,33 +240,23 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
               </li>
             )) : null}
             {filtered.map((asset) => (
-              <li key={`${asset.type}-${asset.id}`}>
-                <button
-                  type="button"
-                  className="flex w-full items-center gap-2 rounded-2xl border border-border/70 bg-background p-3 text-left transition-colors hover:border-primary/40"
-                  onClick={() => setDetailId(asset.id)}
-                >
-                  <span
-                    className={cn(
-                      "inline-flex h-5 shrink-0 items-center rounded border px-1.5 text-[10px] font-medium leading-none",
-                      TYPE_TONES[asset.type],
-                    )}
-                  >
-                    {TYPE_LABELS[asset.type]}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{asset.name}</span>
-                </button>
+              <li key={`${asset.kind}-${asset.id}`}>
+                <StoryAssetCard asset={asset} compact onOpen={() => setDetailId(asset.id)} />
               </li>
             ))}
           </ul>
         )}
       </div>
 
-      <AssetDetailDialog
-        novelId={props.novelId}
+      <StoryAssetDetailDialog
         asset={detailAsset}
         onOpenChange={(open) => { if (!open) setDetailId(null); }}
-        onDeleted={invalidate}
+        onDelete={() => {
+          if (detailAsset && window.confirm(`删除${detailAsset.typeLabel}「${detailAsset.name}」？此操作不可恢复。`)) {
+            deleteMutation.mutate();
+          }
+        }}
+        deleting={deleteMutation.isPending}
       />
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>

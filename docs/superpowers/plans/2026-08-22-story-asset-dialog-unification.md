@@ -100,7 +100,7 @@ test("共用详情弹窗使用 AppDialogContent 并提供统一关闭入口", ()
 
 - [ ] **Step 3: Run the new tests and verify the expected RED state**
 
-Run: `node --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js`
+Run: `node --experimental-strip-types --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js`
 
 Expected: FAIL because the presentation module and shared components do not exist yet. Fix only test import/setup errors until the failure is specifically caused by the missing feature.
 
@@ -119,7 +119,7 @@ Use the kind-specific labels already used by the product (`男/女/其他/未设
 
 - [ ] **Step 3: Run the pure tests and verify GREEN**
 
-Run: `node --test client/tests/storyAssetPresentation.test.mjs`
+Run: `node --experimental-strip-types --test client/tests/storyAssetPresentation.test.mjs`
 
 Expected: PASS for all presentation cases.
 
@@ -145,7 +145,7 @@ Export the card, dialog, presentation types, and adapter from `index.ts`. The RE
 
 - [ ] **Step 4: Run shared component contract tests and client typecheck**
 
-Run: `node --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js`
+Run: `node --experimental-strip-types --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js`
 
 Expected: PASS. Then run: `pnpm --filter @ai-novel/client typecheck`.
 
@@ -168,7 +168,7 @@ Keep the existing script usage ordering and missing-asset warning cards. Replace
 
 - [ ] **Step 4: Run the focused source-contract and existing scene-state tests**
 
-Run: `node --test client/tests/storyAssetDialogContracts.test.js client/tests/sceneStateImageContracts.test.js`.
+Run: `node --experimental-strip-types --test client/tests/storyAssetDialogContracts.test.js client/tests/sceneStateImageContracts.test.js`.
 
 Expected: PASS.
 
@@ -193,7 +193,7 @@ The detail edit action closes the detail dialog and calls the existing `openEdit
 
 - [ ] **Step 4: Run the focused contracts and typecheck**
 
-Run: `node --test client/tests/storyAssetDialogContracts.test.js client/tests/storySettingsForms.test.mjs client/tests/sceneStateImageContracts.test.js`.
+Run: `node --experimental-strip-types --test client/tests/storyAssetDialogContracts.test.js client/tests/storySettingsForms.test.mjs client/tests/sceneStateImageContracts.test.js`.
 
 Expected: PASS. Then run: `pnpm --filter @ai-novel/client typecheck`.
 
@@ -217,7 +217,7 @@ Add a date-based release-note entry and update only the latest visible README up
 Run:
 
 ```powershell
-node --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js client/tests/sceneStateImageContracts.test.js client/tests/storySettingsForms.test.mjs
+node --experimental-strip-types --test client/tests/storyAssetPresentation.test.mjs client/tests/storyAssetDialogContracts.test.js client/tests/sceneStateImageContracts.test.js client/tests/storySettingsForms.test.mjs
 pnpm --filter @ai-novel/client typecheck
 pnpm --filter @ai-novel/client build
 git diff --check
@@ -228,4 +228,3 @@ Expected: all tests pass, typecheck/build exit 0, and `git diff --check` reports
 - [ ] **Step 4: Review, commit, merge, and clean up**
 
 Review `git diff` and `git status --short` for only this feature, commit with `git commit -s`, run the project release-note check required before merge, merge the verified branch into `main`, push `origin main`, then remove only this worktree and branch. Preserve all pre-existing main-worktree changes.
-

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Search, Sparkles, Trash2, UserRound } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsCharacter } from "@/api/story/storySettings";
 import {
   createStorySettingsCharacter,
@@ -11,13 +11,17 @@ import {
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
+import {
+  buildStoryAssetPresentation,
+  StoryAssetCard,
+  StoryAssetDetailDialog,
+  type StoryAssetPresentation,
+} from "@/components/storyAssets";
 import {
   AssetStatesEditor,
   CharacterAssetFormFields,
@@ -33,20 +37,6 @@ interface SettingsCharactersTabProps {
 }
 
 type CharacterFormState = CharacterAssetFormState;
-
-const AGE_GROUP_LABELS: Record<string, string> = {
-  child: "少年/儿童",
-  youth: "青年",
-  middle: "中年",
-  elder: "老年",
-};
-
-const GENDER_LABELS: Record<string, string> = {
-  male: "男",
-  female: "女",
-  other: "其他",
-  unknown: "未设定",
-};
 
 export function prepareCharacterStatesForSave(
   states: StoryAssetState[],
@@ -72,6 +62,7 @@ export function prepareCharacterStatesForSave(
 export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCharactersTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CharacterFormState>(EMPTY_CHARACTER_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -159,6 +150,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     mutationFn: (characterId: string) => deleteStorySettingsCharacter(novelId, characterId),
     onSuccess: async () => {
       toast.success("角色已删除。");
+      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -240,21 +232,15 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filteredCharacters.map((character) => (
-            <Card key={character.id} className="min-w-0">
-              <CardContent className="space-y-2 py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <UserRound className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate font-medium text-foreground">{character.name}</span>
-                        {character.gender && character.gender !== "unknown" ? (
-                      <Badge variant="outline" className="shrink-0">{GENDER_LABELS[character.gender] ?? character.gender}</Badge>
-                    ) : null}
-                    {character.states[0]?.ageGroup ? (
-                      <Badge variant="outline" className="shrink-0">{AGE_GROUP_LABELS[character.states[0].ageGroup] ?? character.states[0].ageGroup}</Badge>
-                    ) : null}
-                  </div>
-                  <div className="flex shrink-0 gap-1">
+          {filteredCharacters.map((character) => {
+            const asset = buildStoryAssetPresentation({ kind: "character", asset: character });
+            return (
+              <StoryAssetCard
+                key={character.id}
+                asset={asset}
+                onOpen={() => setSelectedAsset(asset)}
+                actions={(
+                  <>
                     <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(character)} aria-label="编辑角色">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -272,33 +258,29 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
-                </div>
-                {character.states[0]?.description ? (
-                  <p className="text-xs leading-5 text-muted-foreground">初始状态：{character.states[0].description}</p>
-                ) : null}
-                {character.states.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {character.states.map((state) => (
-                      <span
-                        key={state.id}
-                        className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400"
-                        title={[
-                          state.description,
-                          state.imagePrompt ? `画面：${state.imagePrompt}` : "",
-                          state.voicePrompt ? `音色：${state.voicePrompt}` : "",
-                        ].filter(Boolean).join("\n")}
-                      >
-                        {state.label}{state.chapterOrder ? `·第${state.chapterOrder}章` : ""}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
+                  </>
+                )}
+              />
+            );
+          })}
         </div>
       )}
+
+      <StoryAssetDetailDialog
+        asset={selectedAsset}
+        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
+        onEdit={selectedAsset ? () => {
+          const source = selectedAsset.source as StorySettingsCharacter;
+          setSelectedAsset(null);
+          openEdit(source);
+        } : undefined}
+        onDelete={() => {
+          if (selectedAsset && window.confirm(`删除角色「${selectedAsset.name}」？已生成的分镜与配音不受影响。`)) {
+            deleteMutation.mutate(selectedAsset.id);
+          }
+        }}
+        deleting={deleteMutation.isPending}
+      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
