@@ -25,7 +25,7 @@ test("buildStateImagePrompt：角色带状态身份信息与参考图一致性�
     gender: "male",
     state: { label: "重伤", ageGroup: "youth", description: "左臂受伤流血", imagePrompt: "衣服破损，左臂缠着渗血的绷带" },
     hasReference: true,
-  }, ["style: 通用画风", "style: 现代都市"]);
+  }, ["style: 角色画风", "style: 现代都市"]);
   assert.match(prompt, /character state reference image/);
   assert.match(prompt, /subject: 林澈/);
   assert.match(prompt, /gender: male/);
@@ -34,7 +34,7 @@ test("buildStateImagePrompt：角色带状态身份信息与参考图一致性�
   assert.match(prompt, /state change: 左臂受伤流血/);
   assert.match(prompt, /state image prompt: 衣服破损/);
   assert.match(prompt, /keep the same subject identity as the reference image, change only what the state describes/);
-  assert.ok(prompt.startsWith("style: 通用画风"));
+  assert.ok(prompt.startsWith("style: 角色画风"));
 });
 
 test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道具各用主题行", () => {
@@ -77,9 +77,10 @@ test("场景状态提示词会把叙事里的生物改写为环境痕迹", () =>
 test("角色状态图一次生成完整四视图，不再四次独立生图后裁切", () => {
   assert.match(imageServiceSource, /runImageGeneration/);
   assert.match(imageServiceSource, /buildCharacterStateSheetPrompt/);
+  assert.match(imageServiceSource, /buildAssetStylePromptLines\(kind, styleContext\.assets\[kind\]/);
   assert.doesNotMatch(imageServiceSource, /runCompositeImageGeneration/);
   assert.doesNotMatch(imageServiceSource, /buildCharacterStateViewPrompts/);
-  assert.doesNotMatch(imageServiceSource, /buildKeyframeStylePromptLines\(styleContext\.universal, styleContext\.specific\)/);
+  assert.doesNotMatch(imageServiceSource, /styleContext\.universal/);
 });
 
 test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，null 才表示明确不参考", () => {

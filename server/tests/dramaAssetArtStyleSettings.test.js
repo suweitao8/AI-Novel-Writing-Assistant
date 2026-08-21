@@ -8,7 +8,15 @@ const {
   normalizeDramaAssetStylePrompt,
   saveDramaAssetArtStyle,
 } = require("../dist/services/settings/DramaAssetArtStyleSettingsService.js");
+const { resolveDramaArtStyleContext } = require("../dist/services/drama/visual/dramaArtStyleResolver.js");
 const { prisma } = require("../dist/db/prisma.js");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const settingsRoutesSource = fs.readFileSync(
+  path.join(__dirname, "../src/modules/settings/http/settingsRoutes.ts"),
+  "utf8",
+);
 
 test("只接受三个资产类别", () => {
   assert.equal(normalizeDramaAssetStyleKind("character"), "character");
@@ -68,5 +76,39 @@ test("保存单个类别时保留另外两类覆盖", async () => {
   } finally {
     prisma.appSetting.findUnique = originalFindUnique;
     prisma.appSetting.upsert = originalUpsert;
+  }
+});
+
+test("设置路由只暴露三类资产画风接口", () => {
+  assert.match(settingsRoutesSource, /\/drama-asset-styles/);
+  assert.doesNotMatch(settingsRoutesSource, /\/universal-art-style/);
+  assert.match(settingsRoutesSource, /getDramaAssetArtStyleOverrides/);
+  assert.match(settingsRoutesSource, /saveDramaAssetArtStyle/);
+});
+
+test("解析器按类别读取新的覆盖，不读取历史单一画风", async () => {
+  const originalFindUnique = prisma.appSetting.findUnique;
+  const originalWorldFindUnique = prisma.novelSettingsWorld.findUnique;
+  const originalChapterFindMany = prisma.chapter.findMany;
+  try {
+    prisma.appSetting.findUnique = async ({ where }) => {
+      assert.equal(where.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      return {
+        key: where.key,
+        value: JSON.stringify({ characterPrompt: "角色自定义", scenePrompt: "", propPrompt: "道具自定义" }),
+      };
+    };
+    prisma.novelSettingsWorld.findUnique = async () => null;
+    prisma.chapter.findMany = async () => [];
+
+    const context = await resolveDramaArtStyleContext({});
+    assert.equal(context.assets.character.styleInstructions, "角色自定义");
+    assert.match(context.assets.scene.styleInstructions, /影视化三维场景/);
+    assert.equal(context.assets.prop.styleInstructions, "道具自定义");
+    assert.equal(context.specific, null);
+  } finally {
+    prisma.appSetting.findUnique = originalFindUnique;
+    prisma.novelSettingsWorld.findUnique = originalWorldFindUnique;
+    prisma.chapter.findMany = originalChapterFindMany;
   }
 });

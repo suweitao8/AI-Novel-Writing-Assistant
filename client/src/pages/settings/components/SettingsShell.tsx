@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 const items = [
   { to: "/settings", label: "设置总览", icon: SlidersHorizontal, end: true },
   { to: "/settings/models", label: "模型设置", icon: Bot },
-  { to: "/settings/art-style", label: "通用画风", icon: ImagePlus },
+  { to: "/settings/art-style", label: "画风管理", icon: ImagePlus },
   { to: "/settings/director", label: "自动导演", icon: BookOpenCheck },
   { to: "/settings/knowledge", label: "知识库与写法", icon: Database },
   { to: "/settings/appearance", label: "外观与主题", icon: Palette },

@@ -61,6 +61,25 @@
 - **批量任务与进程重启**：drama 批量任务跑在服务进程内（`void runBatchJob()`），ts-node-dev 重启会杀掉进行中的批量——恢复方式是重建同类型批量（已完成镜头自动跳过）。自 2026-08-21 起有两层自动兜底：`runBatchJob` 整体 try/catch，任何未被单镜头捕获的异常都会把任务置 `failed`（不再永久卡 running）；`createEpisodeBatchJob` 入口先跑 `failStaleBatchJobs`（production/batchJobRecovery.ts），把本项目超过 10 分钟仍 pending/running 的 keyframes/videos/tts 任务标记失败并写入提示——与整集装配的 stale 判定同窗口。已知边界：单镜头合法耗时超过 10 分钟且期间未创建新批量时不会被误标（updateJob 每镜头前后都触 updatedAt）；若未来接入极慢图像供应商，需在镜头处理内加心跳更新。本地 ffmpeg provider 的每次合成有 10 分钟超时强杀并落 `.err`，临时图片/音频在所有退出路径统一清理。视频 providerTask 卡 running 时把 DramaVideoPrompt 置 failed 并清 providerTaskId 后重新派发。
 - **美术风格（两层组合 + 全中文，2026-08-21）**：`services/drama/visual/dramaVisualStyles.ts`——通用画风（`DEFAULT_UNIVERSAL_ART_STYLE`，UE5 级 3D 写实质感基线，系统级 AppSetting）+ 6 项题材预设（现代都市/末世废土/东方玄幻/现代诡异/古代年代/民国年代，默认 `realistic`，渲染媒介词不进预设）。注入点：首帧图提示词与角色设计稿提示词（通用→题材顺序，negative 两层合并，解析入口 `dramaArtStyleResolver.ts`）；风格只约束渲染媒介/题材氛围，指令中明确不得覆盖角色外貌/服装/场景描述。**指令全中文**（2026-08-21 用户决定：自定义画风与分镜描述本就是中文，界面与风格内容尽量中文）。**小说侧**：每本书在「设定 · 美术风格」选默认时代风格（预设+自定义一个列表，点选即存 `defaultArtStyle`），自定义时代风格增删改在同一卡片（存 `NovelSettingsWorld`，契约见 architecture/story-settings-hub.md 美术风格节）；**AI 解析不产出画风标记**（v8 起无 styleSwitch，2026-08-20 用户决定），但**用户可在「脚本」页签手动切换画风**（2026-08-21：【画风：名】标记行，切换后后面都用新的、新章节沿用最近一次，解析优先级与粒度见 story-settings-hub.md 画风解析链）。与 styleEngine 的通用画面风格体系仍是两套来源，后续可考虑收敛。
 
+## 资产画风到首帧的注入边界（2026-08-22）
+
+### Background
+
+漫剧生成链同时消费三类参考资产和竖屏首帧。参考资产的固定视图是为了让后续模型识别角色、空间和道具，首帧则必须服务于镜头构图；把参考图版式原样塞进首帧会造成横竖画幅冲突和错误构图。
+
+### Decision
+
+- 角色设计稿和角色状态图使用角色四视图；场景基础图和状态图使用 360° 全景；道具基础图和状态图使用 45° 三点透视。
+- `DramaCharacterImageService` 只取 `assets.character`，`StoryAssetImageService` 按 scene/prop 取对应类别，`StoryAssetStateImageService` 按 `kind` 取对应类别。
+- `DramaShotKeyframeService` 计算 `usedKinds`：有角色引用则加入 character，有地点则加入 scene，镜头文本命中设定道具则加入 prop。首帧只接收这些类别的标签、正向质感和负面约束，保留自身竖屏 9:16 规格。
+- 时代/题材风格仍是独立叠加层，排在资产类别正向画风之后；小说侧的脚本画风切换不改变资产固定规格。
+
+### Failure Modes
+
+- 首帧提示词出现“四视图”“360° 全景”或“45° 透视”，说明调用方误用了资产图构建器，应改用 `buildShotStylePromptLines`。
+- 镜头没有某类资产时仍注入该类负面约束，说明 `usedKinds` 计算过宽；未出现的资产类别不能污染镜头。
+- 资产设置保存成功但新生成图片没有变化，排查 `drama.assetArtStyles` 读取、`resolveDramaArtStyleContext` 返回值和对应调用方，不要再增加第二套设置来源。
+
 ## 设定中心与生成链路的接线（2026-08-19 审计后接线）
 
 设定中心（Character / NovelScene / NovelProp）是漫剧画面与声音的一致性来源，但接线前只有角色真正进链路——场景环境提示词、道具画面提示词、角色音色提示词填了不生效。当前接线规则：

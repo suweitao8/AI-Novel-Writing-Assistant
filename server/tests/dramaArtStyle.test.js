@@ -12,6 +12,7 @@ const {
   buildShotStylePromptLines,
   combineAssetStyleAvoidInstructions,
 } = require("../dist/services/drama/visual/dramaVisualStyles.js");
+const { resolveShotAssetStyleKinds } = require("../dist/services/drama/visual/DramaShotKeyframeService.js");
 
 // 美术风格分层契约（2026-08-22）：资产层按角色/场景/道具分别提供固定规格与渲染质感，
 // 具体层继续提供时代/题材氛围；资产图按 规格→资产画风→具体画风，首帧图只取实际出现的资产类别。
@@ -85,6 +86,32 @@ test("分镜只拼入实际出现的资产类型，不把资产固定规格带�
   assert.match(joined, /道具/);
   assert.doesNotMatch(joined, /360.*全景/);
   assert.doesNotMatch(joined, /四视图|45.*透视/);
+});
+
+test("分镜类别选择只根据当前镜头实际引用的资产", () => {
+  const baseShot = {
+    characterRefs: JSON.stringify(["c1"]),
+    location: "废弃车站",
+    action: "林澈拿起，军刀",
+    dialogue: "",
+    visualPrompt: "",
+    storyboard: { project: { characters: [{ id: "c1", name: "林澈" }] } },
+  };
+  const settings = {
+    scenes: [{ name: "废弃车站" }],
+    props: [{ name: "军刀" }],
+  };
+  assert.deepEqual(resolveShotAssetStyleKinds(baseShot, settings), ["character", "scene", "prop"]);
+  assert.deepEqual(
+    resolveShotAssetStyleKinds(
+      { ...baseShot, characterRefs: "[]", location: "", action: "空镜头" },
+      settings,
+    ),
+    [],
+  );
+  assert.deepEqual(
+    resolveShotAssetStyleKinds({ ...baseShot, characterRefs: "[]", action: "风吹过车站" }, settings), ["scene"],
+  );
 });
 
 test("固定负面约束与自定义正向提示词分离", () => {

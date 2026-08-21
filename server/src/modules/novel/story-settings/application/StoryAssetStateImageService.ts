@@ -6,7 +6,7 @@
  * （同一资产另一个状态的图，典型：新状态参考上一状态保持长相一致只换装/加伤），
  * 不参考则直接生成全新形象——2026-08-20 用户要求的灵活配置在图片侧的消费点。
  *
- * 画风与首帧图/角色设计稿同源：复用 drama 的两层画风解析（通用美术风格 + 本书
+ * 画风与首帧图/角色设计稿同源：复用 drama 的资产类别画风解析（角色/场景/道具 + 本书
  * 具体风格），保证状态图、首帧图、角色设计稿三者画风一致。文件落盘与状态机走
  * image/runtime 的统一 Adapter（与 DramaShotKeyframeService 同一套样板）。
  */
@@ -35,8 +35,8 @@ import {
 import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
 import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
 import {
-  buildCharacterStylePromptLines,
-  combineStyleAvoidInstructions,
+  buildAssetStylePromptLines,
+  combineAssetStyleAvoidInstructions,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
   buildCharacterStateSheetPrompt,
@@ -378,15 +378,15 @@ export class StoryAssetStateImageService {
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
       : null;
 
-    // 状态图与首帧图/角色设计稿同源的两层画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）
+    // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const styleLines = buildCharacterStylePromptLines(styleContext.universal, styleContext.specific);
+    const styleLines = buildAssetStylePromptLines(kind, styleContext.assets[kind], styleContext.specific);
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
       kind === "scene"
         ? "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes"
         : "",
-      combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
+      combineAssetStyleAvoidInstructions(styleContext.assets[kind], styleContext.specific),
     ].filter(Boolean).join(", ");
 
     const adapter: ImageTargetAdapter<StoryAssetStateImage> = {

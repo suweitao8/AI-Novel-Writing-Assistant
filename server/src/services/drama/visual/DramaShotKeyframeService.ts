@@ -16,8 +16,9 @@ import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import {
-  buildKeyframeStylePromptLines,
-  combineStyleAvoidInstructions,
+  buildShotStylePromptLines,
+  combineShotStyleAvoidInstructions,
+  type DramaAssetStyleKind,
 } from "./dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./dramaArtStyleResolver";
 
@@ -368,6 +369,27 @@ function matchPropsInShotText(props: PropSettingLite[], shot: ShotKeyframeSource
   });
 }
 
+/**
+ * 只返回当前镜头实际出现的资产类别：角色引用、地点、镜头文本命中的道具。
+ * 分镜首帧需要这些类别的渲染质感，但不能带入资产参考图的四视图/全景/透视规格。
+ */
+export function resolveShotAssetStyleKinds(
+  shot: ShotKeyframeSource,
+  settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] },
+): DramaAssetStyleKind[] {
+  const kinds: DramaAssetStyleKind[] = [];
+  if (selectReferencedCharacters(shot).length > 0) {
+    kinds.push("character");
+  }
+  if (shot.location?.trim()) {
+    kinds.push("scene");
+  }
+  if (matchPropsInShotText(settings.props, shot).length > 0) {
+    kinds.push("prop");
+  }
+  return kinds;
+}
+
 function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] }): string[] {
   const lines: string[] = [];
   const scene = matchSceneByName(settings.scenes, shot.location);
@@ -442,15 +464,16 @@ export class DramaShotKeyframeService {
       : new Map<string, StoryAssetState[]>();
     // 该镜各角色的生效状态（分镜 LLM 标注 × 设定中心状态名单）
     const activeStatesByName = resolveActiveStatesByName(shot, novelStatesByName);
+    const usedKinds = resolveShotAssetStyleKinds(shot, settings);
     const prompt = buildShotKeyframePrompt(
       shot,
-      buildKeyframeStylePromptLines(styleContext.universal, styleContext.specific),
+      buildShotStylePromptLines(styleContext.assets, usedKinds, styleContext.specific),
       settings,
       activeStatesByName,
     );
     const negativePrompt = [
       "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
-      combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
+      combineShotStyleAvoidInstructions(styleContext.assets, usedKinds, styleContext.specific),
     ].filter(Boolean).join("，");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];
