@@ -33,6 +33,8 @@ test("内置具体风格都是题材叠加层：id 唯一、默认 id 在列、�
 
 test("通用默认是虚幻引擎质感基线、有中文摘要、且不含时代属性", () => {
   assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions.includes("虚幻引擎"));
+  assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions.includes("影视化游戏美术"));
+  assert.match(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions, /电影级.*光/);
   assert.ok(!/末世|民国|仙侠|玄幻|古代|都市|当代/.test(DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions));
   assert.ok(DEFAULT_UNIVERSAL_ART_STYLE.summary.trim().length > 0, "通用画风需要面向 UI 的中文 summary");
 });

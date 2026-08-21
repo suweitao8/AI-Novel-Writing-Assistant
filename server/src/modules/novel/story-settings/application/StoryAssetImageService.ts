@@ -1,7 +1,7 @@
 // 设定资产参考图生成（2026-08-21 起）：漫剧工作室「资产」页签的场景与道具一键生图。
 // 视图口径沿用旧项目（用户 2026-08-21 明确）：场景＝360° 全景（一张横版等距全景覆盖整个空间，
-// 作首帧图参考时空间信息最全）；道具＝45° 三点透视单件视图。角色四视图走分镜项目的
-// DramaCharacterImageService（character sheet），不在这里。
+// 作首帧图参考时空间信息最全）；道具＝45° 三点透视单件视图。角色状态四视图由
+// StoryAssetStateImageService 生成并通过本地固定模板合成。
 // 状态存 NovelScene.imageData / NovelProp.imageData（GeneratedImageState JSON），
 // 文件落 generated-images/story-assets/{scenes|props}/<id>/，画风走两层组合
 // （dramaArtStyleResolver：通用质感 + 本小说默认具体风格）。
@@ -78,7 +78,14 @@ const WEATHER_LIGHT_LINES: Record<string, string> = {
   rainy: "rainy weather, wet reflective surfaces, gloomy light",
 };
 
-function buildScenePanoramaPrompt(scene: {
+function sanitizeSceneEnvironmentDescription(value: string): string {
+  return value
+    .replace(/(?:巨型|大型|带血角|血角|凶猛)*(?:猛兽|怪物|异兽|野兽|动物|生物)/giu, "地面爪痕与破坏痕迹")
+    .replace(/人物|角色|人类|行人|人群/gu, "活动痕迹")
+    .replace(/\b(?:people|person|character|characters|animal|animals|monster|monsters|creature|creatures|beast|beasts|crowd|crowds)\b/giu, "environmental traces");
+}
+
+export function buildScenePanoramaPrompt(scene: {
   name: string;
   environmentPrompt: string | null;
   timeOfDay: string | null;
@@ -89,7 +96,8 @@ function buildScenePanoramaPrompt(scene: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
-    "environment concept art, NO characters or only tiny background figures",
+    "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
+    "living subjects stay off-screen; translate narrative entities into environmental traces such as footprints, claw marks, blood stains, disturbed vegetation and damaged structures",
   ];
   if (scene.timeOfDay && TIME_LIGHT_LINES[scene.timeOfDay]) {
     lines.push(TIME_LIGHT_LINES[scene.timeOfDay]);
@@ -98,7 +106,7 @@ function buildScenePanoramaPrompt(scene: {
     lines.push(WEATHER_LIGHT_LINES[scene.weather]);
   }
   if (scene.environmentPrompt?.trim()) {
-    lines.push(`scene description: ${scene.environmentPrompt.trim()}`);
+    lines.push(`environment-only description: ${sanitizeSceneEnvironmentDescription(scene.environmentPrompt.trim())}`);
   }
   lines.push(...styleLines);
   lines.push("clean composition, no text labels, no watermark, high quality environment art");

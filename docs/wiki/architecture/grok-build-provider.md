@@ -9,17 +9,20 @@
 - 文本槽默认使用本机 Grok CLI 通道，模型为 `grok-cli/grok-4.6`，服务地址为 `http://127.0.0.1:18764/v1`。桥接把一次性 CLI 结果翻译成 OpenAI completion，并必须把 `stream: true` 翻译成兼容 SSE，因为结构化调用链消费的是流式接口。
 - 无参考图的角色设计稿、场景基础图和道具基础图默认使用 `grok_build` 图片通道，模型为 `grok-build-image`，服务地址为 `http://127.0.0.1:18767/v1`。
 - Grok Build 基础图片统一生成并归一化为 1280×720 PNG。图片提示词只允许一次 `image_gen`，并明确禁止 shell、代码、文件编辑和网页工具，避免订阅 CLI 把图片任务变成普通代理任务。
+- Grok Build 图片桥只接收文字提示词，不接收 PSD/模板文件，也不能执行 `/images/edits`；因此“严格四视图”不能靠一次提示词假装完成。角色状态无参考图时由 `StoryAssetStateImageService` 顺序生成四个独立视图（正面头像 → 侧面头像 → 正面全身 → 背面全身），再由本地 Sharp 合成为固定 1536×1024 白底设计稿；视图顺序与槽位是稳定契约，不依赖模型自行排版。
 - 图片能力槽默认切到 `grok_build`；带参考图的状态图、资产图或封面在业务路由层自动回退到兼容参考图的 Codex 图片桥，因为 Grok Build 通道不支持 `/v1/images/edits`。如果调用方误把参考图交给 `grok_build`，服务端会在发 HTTP 请求前改用 Codex，不静默丢参考图。
 - 本地 bridge bearer 是应用内部默认值，不写入数据库，也不要求用户填写 API Key。用户只需保持本机 Grok CLI 登录态有效。
 
 ## 当前规则
 
 - `grok-cli` 默认承担文本，`grok_build` 默认承担无参考图的图片任务（包括角色、场景、道具和无参考图封面）；带参考图的任务由路由自动选择 Codex 兼容通道。
-- `StoryAssetImageService` 的场景与道具首张基础图走 Grok Build；`DramaCharacterImageService` 的角色设计稿走 Grok Build；`StoryAssetStateImageService` 根据是否找到上游状态参考图在 Grok Build 与图片槽位之间选择。
+- `StoryAssetImageService` 的场景与道具首张基础图走 Grok Build；`StoryAssetStateImageService` 的角色状态四视图在无参考图时走 Grok Build + 本地合成，有参考图时四个视图统一走兼容参考图的 Codex 通道。场景提示词必须是空环境：人物、动物、怪物和其他活体只能被转译为爪痕、血迹、破坏植被等环境痕迹。
+- 无参考图资产默认共用“虚幻引擎 5 影视化游戏渲染”作为渲染媒介基线：高模 CG、数字雕刻、PBR 材质、电影级体积光和轮廓光；角色四视图使用中性资产展示板，场景与道具使用游戏内过场式镜头。具体时代/题材只叠加氛围，不得把角色资料中的旧动漫、摄影或背景词误当成新的渲染媒介，也不得改写明确的外貌、服装、道具或环境内容。
 - 老的 `ImageGenerationService` 角色任务同样按参考图资产 ID 选择默认 provider：没有参考图走 Grok Build，有参考图走图片槽位；显式指定 provider 仍保留给用户或上层工作流。
 - 图片 runtime 在重试时先进入 `generating` 并清除旧错误；成功后写入 `done` 时也必须清除 `error`，避免一次失败后的旧提示残留在成功资产上。
 - bridge 启动器只负责本机文本/图片子进程，不负责 API、前端或数据库。`pnpm grok:bridge` 会复用健康的 18764/18767 服务，并等待两个 `/health` 都 ready；`pnpm dev` 会在开发服务启动前执行同一检查。
 - 自动化测试默认使用注入的 executor/generator，避免无意消耗订阅额度；需要验收真实生成时，应明确记录调用样本、耗时、provider、模型和产物尺寸。
+- 角色四视图一次状态生成会产生四次图片调用，真实验收需分别记录四个视图耗时和最终合成尺寸；不能拿单次图片调用的耗时与旧流程直接比较。
 
 ## 故障模式与排查
 
