@@ -17,6 +17,7 @@
 - `grok-cli` 默认承担文本，`grok_build` 默认承担无参考图的图片任务（包括角色、场景、道具和无参考图封面）；带参考图的任务由路由自动选择 Codex 兼容通道。
 - `StoryAssetImageService` 的场景与道具首张基础图走 Grok Build；`DramaCharacterImageService` 的角色设计稿走 Grok Build；`StoryAssetStateImageService` 根据是否找到上游状态参考图在 Grok Build 与图片槽位之间选择。
 - 老的 `ImageGenerationService` 角色任务同样按参考图资产 ID 选择默认 provider：没有参考图走 Grok Build，有参考图走图片槽位；显式指定 provider 仍保留给用户或上层工作流。
+- 图片 runtime 在重试时先进入 `generating` 并清除旧错误；成功后写入 `done` 时也必须清除 `error`，避免一次失败后的旧提示残留在成功资产上。
 - bridge 启动器只负责本机文本/图片子进程，不负责 API、前端或数据库。`pnpm grok:bridge` 会复用健康的 18764/18767 服务，并等待两个 `/health` 都 ready；`pnpm dev` 会在开发服务启动前执行同一检查。
 - 自动化测试默认使用注入的 executor/generator，避免无意消耗订阅额度；需要验收真实生成时，应明确记录调用样本、耗时、provider、模型和产物尺寸。
 

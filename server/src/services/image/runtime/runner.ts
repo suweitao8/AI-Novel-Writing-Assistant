@@ -126,6 +126,8 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       provider,
       generatedAt: new Date().toISOString(),
       history: nextHistory,
+      // 成功重试必须清除上一轮失败留下的错误，避免前端在 done 状态下继续显示旧报错。
+      error: undefined,
       ...(opts.referenceImages && opts.referenceImages.length > 0 ? { referenceImages: opts.referenceImages } : {}),
     };
     const extraDone = adapter.buildExtraDoneState ? adapter.buildExtraDoneState(doneBase) : ({} as Partial<TState>);
