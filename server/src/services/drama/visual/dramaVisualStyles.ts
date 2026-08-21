@@ -241,7 +241,9 @@ export function buildShotStylePromptLines(
   const assets = kinds.map((kind) => styles[kind]);
   const tags = [...assets.map((asset) => asset.styleTag), specific?.styleTag].filter(Boolean).join("，");
   return [
-    `竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧，${tags}`.trim(),
+    tags
+      ? `竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧，${tags}`
+      : "竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧",
     ...assets.map((asset) => asset.styleInstructions),
     ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
   ];
