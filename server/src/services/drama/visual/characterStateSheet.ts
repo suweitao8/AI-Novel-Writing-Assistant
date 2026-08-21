@@ -65,8 +65,9 @@ export const CHARACTER_STATE_SHEET_NEGATIVE_PROMPT = [
   "environment, room, street, scenery, props, weapons",
   "text, labels, numbers, logo, watermark",
   "cropped body, cropped feet, extra limbs, malformed hands or feet",
+  "ugly, unattractive, asymmetrical facial features, gaunt, exhausted, sickly, awkward face",
   "collage, poster, fashion editorial, real photograph, anime illustration",
-  "第二个人、额外人物、多人、重复人物、环境场景、房间、街道、道具堆、文字、标签、水印、裁切身体、多余肢体、畸形手脚",
+  "第二个人、额外人物、多人、重复人物、环境场景、房间、街道、道具堆、文字、标签、水印、裁切身体、多余肢体、畸形手脚、丑陋、低颜值、五官不对称、憔悴、病态、面部比例失衡",
 ].join(", ");
 
 function clean(value: string | null | undefined): string {
@@ -107,6 +108,8 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     "PANEL 4 — BACK FULL BODY: the same person facing away in the same neutral standing pose, complete figure from the back of the head through both shoes, clearly showing the back of the hair and clothing.",
     "The four panels are the required four views in this exact order: front face, side face, front full body, back full body.",
     "IDENTITY LOCK (CRITICAL): all four panels must show the same single person, same face structure, hairline, hairstyle, hair volume, skin tone, age impression, clothing, colors, body proportions and lighting; only the camera angle and framing change.",
+    "LEADING-MAN APPEAL (HARD CONSTRAINT): this is a handsome, commercially appealing leading-man protagonist for a mainstream Chinese manhua and drama audience; use symmetrical facial proportions, clear healthy skin, well-groomed dark hair, a strong clean jawline, a straight nose, expressive attractive eyes, refined masculine features, a confident balanced posture and a lean athletic body. Make him immediately likable and aspirational, not gaunt, exhausted, sickly, awkward, or unattractive.",
+    "末世感只作用于表情、服装磨损和材质细节，不得改变角色的俊朗面部基础、健康状态、面部比例或主角吸引力。",
     referenceLine,
     "角色四视图必须是单一生产参考板；不添加环境故事或其他人物。",
     "CHARACTER DATA (follow this over any generic visual assumption):",

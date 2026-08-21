@@ -84,6 +84,27 @@ test("builds one four-panel sheet prompt instead of four independent view prompt
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /multiple people/);
 });
 
+test("character sheet prompt prioritizes an attractive mainstream drama protagonist", () => {
+  const prompt = buildCharacterStateSheetPrompt({
+    assetName: "叶晨",
+    gender: "male",
+    ageGroup: "youth",
+    appearance: "精瘦结实，深色短发，五官冷硬",
+    stateLabel: "初始形象",
+    stateDescription: "末世幸存者回到大学时期的朴素旧衣",
+    stateImagePrompt: "青年男性大学生，写实动漫风格，纯白背景",
+    styleLines: ["虚幻引擎5级写实3D电影渲染"],
+    hasReference: false,
+  });
+
+  assert.match(prompt, /handsome, commercially appealing leading-man protagonist/i);
+  assert.match(prompt, /symmetrical facial proportions/i);
+  assert.match(prompt, /clear healthy skin/i);
+  assert.match(prompt, /well-groomed/i);
+  assert.match(prompt, /not gaunt, exhausted, sickly, awkward, or unattractive/i);
+  assert.match(prompt, /末世感只作用于表情、服装磨损和材质细节/);
+});
+
 test("character sheet template uses four equal native Grok Build columns", () => {
   assert.deepEqual(CHARACTER_STATE_SHEET_TEMPLATE.size, { width: 1280, height: 720 });
   assert.deepEqual(
