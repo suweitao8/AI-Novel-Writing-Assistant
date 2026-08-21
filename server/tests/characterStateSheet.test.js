@@ -7,6 +7,8 @@ const sharp = require("sharp");
 
 const {
   CHARACTER_STATE_SHEET_TEMPLATE,
+  CHARACTER_STATE_SHEET_NEGATIVE_PROMPT,
+  buildCharacterStateSheetPrompt,
   buildCharacterStateViewPrompts,
   composeCharacterStateSheet,
 } = require("../dist/services/drama/visual/characterStateSheet.js");
@@ -57,19 +59,48 @@ test("character state prompts keep the unified cinematic game-rendering directio
   assert.match(prompt, /最终渲染优先级/);
 });
 
-test("character sheet template has two portrait slots followed by two full-body slots", () => {
-  assert.deepEqual(CHARACTER_STATE_SHEET_TEMPLATE.size, { width: 1536, height: 1024 });
+test("builds one four-panel sheet prompt instead of four independent view prompts", () => {
+  const prompt = buildCharacterStateSheetPrompt({
+    assetName: "叶晨",
+    gender: "male",
+    ageGroup: "youth",
+    appearance: "精瘦结实，深色短发",
+    stateLabel: "初始形象",
+    stateDescription: "穿洗旧衬衫和深色长裤",
+    stateImagePrompt: "青年男性大学生",
+    styleLines: ["虚幻引擎5级写实3D电影渲染"],
+    hasReference: false,
+  });
+
+  assert.match(prompt, /ONE production character reference board/);
+  assert.match(prompt, /four equal-width vertical panels/);
+  assert.match(prompt, /PANEL 1.*front face close-up/is);
+  assert.match(prompt, /PANEL 2.*exact 90-degree side face close-up/is);
+  assert.match(prompt, /PANEL 3.*front full body/is);
+  assert.match(prompt, /PANEL 4.*back full body/is);
+  assert.match(prompt, /same single person/);
+  assert.match(prompt, /不添加环境故事或其他人物/);
+  assert.match(prompt, /not four separate images/);
+  assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /multiple people/);
+});
+
+test("character sheet template uses four equal native Grok Build columns", () => {
+  assert.deepEqual(CHARACTER_STATE_SHEET_TEMPLATE.size, { width: 1280, height: 720 });
   assert.deepEqual(
     CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.id),
     ["front_portrait", "side_portrait", "front_full_body", "back_full_body"],
   );
   assert.equal(
     CHARACTER_STATE_SHEET_TEMPLATE.slots.reduce((sum, slot) => sum + slot.width, 0),
-    1536,
+    1280,
+  );
+  assert.deepEqual(
+    CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.width),
+    [320, 320, 320, 320],
   );
 });
 
-test("composes four view files into a 1536x1024 png", async () => {
+test("composes four view files into a 1280x720 png without changing the panel contract", async () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-novel-four-view-"));
   const viewPaths = {};
   const colors = ["#d11", "#1a5", "#16c", "#a2a"];
@@ -85,8 +116,8 @@ test("composes four view files into a 1536x1024 png", async () => {
     const outputPath = path.join(tempDir, "sheet.png");
     await composeCharacterStateSheet({ viewPaths, outputPath });
     const metadata = await sharp(outputPath).metadata();
-    assert.equal(metadata.width, 1536);
-    assert.equal(metadata.height, 1024);
+    assert.equal(metadata.width, 1280);
+    assert.equal(metadata.height, 720);
     assert.equal(metadata.format, "png");
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });

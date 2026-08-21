@@ -29,12 +29,9 @@ import { AppError } from "../../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import {
   runImageGeneration,
-  runCompositeImageGeneration,
   type ImageTargetAdapter,
   type GeneratedReferenceImageMeta,
 } from "../../../../services/image/runtime";
-import { generateImagesByProvider } from "../../../../services/image/provider";
-import { saveImageToDisk } from "../../../../services/image/runtime/utils";
 import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
 import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
 import {
@@ -42,8 +39,8 @@ import {
   combineStyleAvoidInstructions,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
-  buildCharacterStateViewPrompts,
-  composeCharacterStateSheet,
+  buildCharacterStateSheetPrompt,
+  CHARACTER_STATE_SHEET_NEGATIVE_PROMPT,
 } from "../../../../services/drama/visual/characterStateSheet";
 import { storySettingsService } from "./StorySettingsService";
 import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
@@ -417,7 +414,7 @@ export class StoryAssetStateImageService {
       const stableAppearance = [row.appearance, row.physique, row.attireStyle, row.facePrompt]
         .filter((value): value is string => Boolean(value?.trim()))
         .join("；");
-      const viewPrompts = buildCharacterStateViewPrompts({
+      const sheetPrompt = buildCharacterStateSheetPrompt({
         assetName: row.name,
         gender: row.gender,
         ageGroup: row.ageGroup ?? state.ageGroup,
@@ -431,36 +428,15 @@ export class StoryAssetStateImageService {
       const referenceImages = referenceUrl && referencedLabel
         ? [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta]
         : undefined;
-      const compositePrompt = viewPrompts
-        .map((view) => `${view.label}：${view.prompt}`)
-        .join("\n");
 
-      await runCompositeImageGeneration(adapter, {
+      await runImageGeneration(adapter, {
         provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
-        prompt: compositePrompt,
-        viewRequests: viewPrompts.map((view) => ({
-          id: view.id,
-          prompt: view.prompt,
-          negativePrompt: [view.negativePrompt, negativePrompt].filter(Boolean).join(", "),
-        })),
+        prompt: sheetPrompt,
+        size: IMAGE_SPECS.characterSheet,
+        sceneType: "character",
+        negativePrompt: [CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, negativePrompt].filter(Boolean).join(", "),
         ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceImages ? { referenceImages } : {}),
-        generateView: async ({ prompt: viewPrompt, negativePrompt: viewNegativePrompt, provider, model, viewPath, refImages }) => {
-          const result = await generateImagesByProvider({
-            sceneType: "character",
-            provider,
-            model,
-            prompt: viewPrompt,
-            negativePrompt: viewNegativePrompt,
-            size: IMAGE_SPECS.characterSheet,
-            count: 1,
-            ...(refImages?.length ? { refImages } : {}),
-          });
-          const imageUrl = result.images?.[0]?.url;
-          if (!imageUrl) throw new Error("角色四视图生成结果为空");
-          await saveImageToDisk(imageUrl, viewPath);
-        },
-        compose: (viewPaths, outputPath) => composeCharacterStateSheet({ viewPaths, outputPath }),
       });
     } else {
       const prompt = buildStateImagePrompt(
