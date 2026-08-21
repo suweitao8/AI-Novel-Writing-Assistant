@@ -28,12 +28,32 @@ test("builds four character state view prompts in stable order", () => {
     ["front_portrait", "front_full_body", "side_full_body", "back_full_body"],
   );
   assert.equal(prompts.length, 4);
-  assert.ok(prompts.every((item) => item.prompt.includes("纯白或浅灰色摄影棚背景")));
+  assert.ok(prompts.every((item) => item.prompt.includes("游戏资产展示板背景")));
   assert.ok(prompts.every((item) => item.prompt.includes("同一个角色")));
   assert.match(prompts[0].prompt, /正面头像/);
   assert.match(prompts[1].prompt, /正面全身/);
   assert.match(prompts[2].prompt, /严格 90 度侧面/);
   assert.match(prompts[3].prompt, /背面全身/);
+});
+
+test("character state prompts keep the unified cinematic game-rendering direction", () => {
+  const prompts = buildCharacterStateViewPrompts({
+    assetName: "叶晨",
+    stateLabel: "初始形象",
+    stateDescription: "大学时期的朴素旧衣",
+    stateImagePrompt: "写实动漫风格，纯白背景",
+    styleLines: ["虚幻引擎5级写实3D电影渲染"],
+  });
+
+  const prompt = prompts[0].prompt;
+  assert.match(prompt, /写实动漫风格，纯白背景/);
+  assert.match(prompt, /统一影视化游戏美术方向优先/);
+  assert.match(prompt, /虚幻引擎5/);
+  assert.match(prompt, /高预算动作游戏的影视化3D数字人设定稿/);
+  assert.match(prompt, /黑神话：悟空/);
+  assert.match(prompt, /只参考数字雕刻、材质、光影和镜头质感/);
+  assert.match(prompt, /不得把成片改成平面动漫、插画、真人摄影、摄影棚模特、证件照或普通照片/);
+  assert.match(prompt, /最终渲染优先级/);
 });
 
 test("character sheet template has one portrait slot and three full-body slots", () => {

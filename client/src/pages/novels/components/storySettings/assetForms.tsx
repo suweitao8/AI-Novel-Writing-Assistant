@@ -6,6 +6,7 @@ import {
   generateStoryCharacterStateVoice,
 } from "@/api/story/storySettings";
 import AiButton from "@/components/common/AiButton";
+import { LightboxImage } from "@/components/common/LightboxImage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,6 +94,12 @@ export function createInitialCharacterState(
 
 export function newStateId(): string {
   return `state-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export function buildStateImageSrc(url: string, generatedAt?: string): string {
+  if (!generatedAt) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${encodeURIComponent(generatedAt)}`;
 }
 
 function getStateVoiceMode(states: StoryAssetState[], stateId: string): StoryAssetStateVoiceMode {
@@ -331,7 +338,7 @@ export function AssetStatesEditor(props: {
                   disabled={draft !== null}
                 >
                   {state.image?.url ? (
-                    <img src={state.image.url} alt={`${state.label} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
+                    <img src={buildStateImageSrc(state.image.url, state.image.generatedAt)} alt={`${state.label} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
                   ) : (
                     <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
                       <ImagePlus className="h-4 w-4" aria-hidden="true" />
@@ -390,7 +397,13 @@ export function AssetStatesEditor(props: {
                 <div className="space-y-2">
                   <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
                     {selectedState.image?.url ? (
-                      <img src={selectedState.image.url} alt={`${selectedState.label} 状态图`} className="max-h-64 aspect-[3/2] w-full object-contain" />
+                      <LightboxImage
+                        src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
+                        alt={`${selectedState.label} 状态图`}
+                        fit="contain"
+                        blurBackdrop={false}
+                        className="max-h-64 aspect-[3/2] w-full rounded-lg border-0"
+                      />
                     ) : (
                       <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
                     )}
