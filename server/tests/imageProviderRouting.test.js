@@ -1,7 +1,11 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { resolveAssetImageProvider } = require("../dist/services/image/assetProviderRouting.js");
+const {
+  resolveAssetImageProvider,
+  resolveImageProviderForReferences,
+} = require("../dist/services/image/assetProviderRouting.js");
+const { getImageModelProvider } = require("../dist/llm/modelCategories.js");
 const {
   buildImageGenerationRequestBody,
   generateImagesByProvider,
@@ -14,10 +18,18 @@ test("base character, scene and prop assets use Grok Build without references", 
   assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: false }), "grok_build");
 });
 
-test("reference-backed asset generation stays on the global image provider", () => {
+test("reference-backed asset generation stays on the compatible image provider", () => {
   assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: true }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: true }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: true }), "codex");
+});
+
+test("the image category defaults to Grok Build while references use the compatible fallback", () => {
+  assert.equal(getImageModelProvider(), "grok_build");
+  assert.equal(resolveImageProviderForReferences(false), "grok_build");
+  assert.equal(resolveImageProviderForReferences(true), "codex");
+  assert.equal(resolveImageProviderForReferences(false, "grok_build"), "grok_build");
+  assert.equal(resolveImageProviderForReferences(true, "grok_build"), "codex");
 });
 
 test("Grok Build image settings expose the fixed local image model", () => {

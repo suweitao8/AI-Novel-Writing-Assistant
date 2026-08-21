@@ -10,7 +10,7 @@ import { getProviderEnvModel, PROVIDERS } from "./providers";
 // 产品不再提供按“厂商”维度逐个配置的界面。
 export const MODEL_CATEGORY_PROVIDERS = {
   text: "grok-cli",
-  image: "codex",
+  image: "grok_build",
   audio: "voxcpm2",
 } as const satisfies Record<"text" | "image" | "audio", BuiltinLLMProvider>;
 
