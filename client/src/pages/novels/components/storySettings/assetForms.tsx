@@ -414,7 +414,7 @@ export function AssetStatesEditor(props: {
                       className="h-9 rounded-md border bg-background px-2 text-sm"
                       aria-label="生图参考"
                       value={selectedState.referenceStateId ?? ""}
-                      disabled={!draft}
+                      disabled={!draft || (showVoice && selectedStateIndex === 0)}
                       onChange={(event) => updateDraft({ referenceStateId: event.target.value || null })}
                     >
                       <option value="">不参考，直接生成新形象</option>

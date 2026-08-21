@@ -55,6 +55,22 @@ test("没有当前状态音色时，分镜配音会继承上一状态提示词",
   assert.equal(voice.voicePrompt, "清亮的青年男声");
 });
 
+test("分镜配音会沿多级状态继承最近可用的试听音频", () => {
+  const states = [
+    {
+      id: "s1",
+      label: "初始状态",
+      description: "青年",
+      imagePrompt: "青年",
+      voice: { status: "done", mode: "generate_new", sampleAudioUrl: "data:audio/s1", prompt: "清亮的青年男声" },
+    },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "轻伤" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
+  ];
+  const voice = resolveVoiceForCharacterState({ name: "林澈", voiceId: "base" }, states, "重伤");
+  assert.equal(voice.referenceAudioUrl, "data:audio/s1");
+});
+
 test("分镜状态 JSON 按角色名归一化，未知或空状态不会覆盖音色", () => {
   const stateMap = parseShotCharacterStates(JSON.stringify([
     { name: " 林澈 ", state: " 老年 " },

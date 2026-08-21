@@ -6,6 +6,8 @@ import {
   getDefaultStoryAssetStateVoiceMode,
   normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
+  parseStoryAssetStatesJson,
+  resolveStoryAssetStateAncestors,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
@@ -62,18 +64,18 @@ export function getDefaultStateVoiceMode(
   return getDefaultStoryAssetStateVoiceMode(states, stateId);
 }
 
-/** 只读取当前状态的直接上一状态，避免复用链形成隐式多跳。 */
+/** 沿当前状态的参考链查找最近可用的试听音频，支持连续多个未生成状态。 */
 export function resolvePreviousStateVoice(
   states: StoryAssetState[],
   stateId: string,
 ): PreviousStateVoice | null {
-  const index = states.findIndex((state) => state.id === stateId);
-  const previous = index > 0 ? states[index - 1] : undefined;
-  const sampleAudioUrl = previous?.voice?.sampleAudioUrl?.trim();
-  if (previous?.voice?.status !== "done" || !sampleAudioUrl) {
-    return null;
+  for (const previous of resolveStoryAssetStateAncestors(states, stateId)) {
+    const sampleAudioUrl = previous.voice?.sampleAudioUrl?.trim();
+    if (previous.voice?.status === "done" && sampleAudioUrl) {
+      return { stateId: previous.id, sampleAudioUrl };
+    }
   }
-  return { stateId: previous.id, sampleAudioUrl };
+  return null;
 }
 
 export function buildStateVoiceSynthesisInput(
@@ -89,28 +91,16 @@ export function buildStateVoiceSynthesisInput(
   };
 }
 
-function parseStates(value: string | null | undefined): StoryAssetState[] {
-  if (!value?.trim()) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    return Array.isArray(parsed)
-      ? normalizeStoryAssetStates((parsed as StoryAssetState[]).filter((state) => (
-        typeof state?.id === "string" && typeof state?.label === "string"
-      )))
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 function resolveStateVoicePrompt(
   states: StoryAssetState[],
   stateId: string,
   character: StoryCharacterLegacyFields,
 ): string {
-  const index = states.findIndex((state) => state.id === stateId);
-  for (let cursor = index; cursor >= 0; cursor -= 1) {
-    const state = states[cursor];
+  const current = states.find((state) => state.id === stateId);
+  const candidates = current
+    ? [current, ...resolveStoryAssetStateAncestors(states, stateId)]
+    : [];
+  for (const state of candidates) {
     const prompt = [state?.voicePrompt, state?.voice?.prompt]
       .find((value) => Boolean(value?.trim()))
       ?.trim();
@@ -188,10 +178,11 @@ export class StoryAssetStateVoiceService {
       throw new AppError("没有找到这个角色。", 404);
     }
 
-    const states = normalizeStoryCharacterStates(
-      parseStates(character.statesJson),
-      character,
-    );
+    const parsedStates = parseStoryAssetStatesJson(character.statesJson);
+    if (character.statesJson?.trim() && !parsedStates.canSafelyRewrite) {
+      throw new AppError("状态数据格式异常，已停止覆盖原始状态；请先在设定中心保存一次角色状态。", 409);
+    }
+    const states = normalizeStoryCharacterStates(parsedStates.states, character);
     const state = states.find((item) => item.id === stateId);
     if (!state) {
       throw new AppError("未找到这个角色状态。", 404);

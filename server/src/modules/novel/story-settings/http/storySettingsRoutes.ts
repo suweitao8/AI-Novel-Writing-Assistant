@@ -57,6 +57,11 @@ const assetStateSchema = z.object({
   voice: assetStateVoiceSchema.optional(),
 }).strict();
 
+// 角色图片提示词可省略；服务端会根据状态变化、年龄和性别归一化生成。
+const characterAssetStateSchema = assetStateSchema.extend({
+  imagePrompt: z.string().trim().max(600).optional(),
+});
+
 const characterUpdateSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
   role: z.string().trim().min(1).max(80).optional(),
@@ -69,7 +74,7 @@ const characterUpdateSchema = z.object({
   personality: z.string().trim().max(1200).nullable().optional(),
   appearance: z.string().trim().max(1200).nullable().optional(),
   background: z.string().trim().max(2000).nullable().optional(),
-  states: z.array(assetStateSchema).max(24).optional(),
+  states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 
 const worldMapKindSchema = z.enum(["country", "city", "region", "building", "wild", "other"]);
@@ -153,7 +158,7 @@ const characterCreateSchema = z.object({
   personality: z.string().trim().max(1200).optional(),
   appearance: z.string().trim().max(1200).optional(),
   background: z.string().trim().max(2000).optional(),
-  states: z.array(assetStateSchema).max(24).optional(),
+  states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 
 const sceneCreateSchema = z.object({

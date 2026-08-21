@@ -19,8 +19,8 @@ import type {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
   normalizeStoryCharacterStates,
-  normalizeStoryAssetStates,
-  resolveStoryAssetStateReferenceId,
+  parseStoryAssetStatesJson,
+  resolveStoryAssetStateAncestors,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -30,7 +30,6 @@ import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import { getImageModelProvider } from "../../../../llm/modelCategories";
 import {
   runImageGeneration,
-  safeJsonParse,
   type ImageTargetAdapter,
   type GeneratedReferenceImageMeta,
 } from "../../../../services/image/runtime";
@@ -68,6 +67,7 @@ interface StateAssetRow {
   baseAppearance: string | null;
   statesJson: string | null;
   states?: StoryAssetState[];
+  statesCanSafelyRewrite?: boolean;
   gender?: string | null;
 }
 
@@ -93,13 +93,15 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
       throw new AppError("未找到角色。", 404);
     }
     const legacy: StoryCharacterLegacyFields = row;
+    const parsedStates = parseStoryAssetStatesJson(row.statesJson);
     return {
       id: row.id,
       novelId: row.novelId,
       name: row.name,
       baseAppearance: null,
       statesJson: row.statesJson,
-      states: normalizeStoryCharacterStates(parseAssetStates(row.statesJson), legacy),
+      states: normalizeStoryCharacterStates(parsedStates.states, legacy),
+      statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
       gender: row.gender,
     };
   }
@@ -111,12 +113,14 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
     if (!row || row.novelId !== novelId) {
       throw new AppError("未找到场景。", 404);
     }
+    const parsedStates = parseStoryAssetStatesJson(row.statesJson);
     return {
       id: row.id,
       novelId: row.novelId,
       name: row.name,
       baseAppearance: row.environmentPrompt?.trim() || row.summary?.trim() || null,
       statesJson: row.statesJson,
+      statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
     };
   }
   const row = await prisma.novelProp.findUnique({
@@ -126,21 +130,19 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
   if (!row || row.novelId !== novelId) {
     throw new AppError("未找到道具。", 404);
   }
+  const parsedStates = parseStoryAssetStatesJson(row.statesJson);
   return {
     id: row.id,
     novelId: row.novelId,
     name: row.name,
     baseAppearance: row.visualPrompt?.trim() || row.description?.trim() || null,
     statesJson: row.statesJson,
+    statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
   };
 }
 
 function parseAssetStates(raw: string | null | undefined): StoryAssetState[] {
-  const parsed = safeJsonParse<unknown>(raw, []);
-  if (!Array.isArray(parsed)) {
-    return [];
-  }
-  return normalizeStoryAssetStates((parsed as StoryAssetState[]).filter((state) => typeof state?.id === "string" && typeof state?.label === "string"));
+  return parseStoryAssetStatesJson(raw).states;
 }
 
 /** 只保留状态图契约字段，丢弃 runtime 可能附加的 history 等，保持 statesJson 干净。 */
@@ -191,15 +193,23 @@ export function buildStateImagePrompt(
 }
 
 export function resolveStateReferenceImageUrl(states: StoryAssetState[], state: StoryAssetState): string | null {
-  const referenceStateId = resolveStoryAssetStateReferenceId(states, state);
-  if (!referenceStateId) {
-    return null;
+  return resolveStateReferenceImage(states, state)?.url ?? null;
+}
+
+export function resolveStateReferenceImage(
+  states: StoryAssetState[],
+  state: StoryAssetState,
+): { stateId: string; url: string } | null {
+  const effectiveStates = states.some((item) => item.id === state.id)
+    ? states.map((item) => item.id === state.id ? state : item)
+    : [...states, state];
+  for (const ancestor of resolveStoryAssetStateAncestors(effectiveStates, state.id)) {
+    const url = ancestor.image?.status === "done" ? ancestor.image.url?.trim() : undefined;
+    if (url) {
+      return { stateId: ancestor.id, url };
+    }
   }
-  const referenced = states.find((item) => item.id === referenceStateId);
-  if (!referenced?.image || referenced.image.status !== "done" || !referenced.image.url) {
-    return null;
-  }
-  return referenced.image.url;
+  return null;
 }
 
 export class StoryAssetStateImageService {
@@ -216,8 +226,11 @@ export class StoryAssetStateImageService {
       fallback: StoryAssetState[] = [],
       normalize?: (states: StoryAssetState[]) => StoryAssetState[],
     ): string | null => {
-      const parsed = parseAssetStates(raw);
-      const source = parsed.length > 0 ? parsed : fallback;
+      const parsedResult = parseStoryAssetStatesJson(raw);
+      if (raw?.trim() && !parsedResult.canSafelyRewrite) {
+        throw new AppError("状态数据格式异常，已停止覆盖原始状态；请先在设定中心保存一次角色状态。", 409);
+      }
+      const source = parsedResult.states.length > 0 ? parsedResult.states : fallback;
       const next = (normalize ? normalize(source) : source).map((state) =>
         state.id === stateId ? { ...state, image: pruneStateImage(image) } : state);
       return next.length > 0 ? JSON.stringify(next) : null;
@@ -237,7 +250,8 @@ export class StoryAssetStateImageService {
         },
       });
       const legacy: StoryCharacterLegacyFields = row ?? {};
-      const currentStates = normalizeStoryCharacterStates(parseAssetStates(row?.statesJson), legacy);
+      const parsedStates = parseStoryAssetStatesJson(row?.statesJson);
+      const currentStates = normalizeStoryCharacterStates(parsedStates.states, legacy);
       await prisma.character.update({
         where: { id: assetId },
         data: { statesJson: merged(row?.statesJson, fallbackStates.length ? fallbackStates : currentStates, (states) => normalizeStoryCharacterStates(states, legacy)) },
@@ -257,6 +271,9 @@ export class StoryAssetStateImageService {
     state: StoryAssetState;
   }> {
     const row = await loadStateAsset(novelId, kind, assetId);
+    if (row.statesJson?.trim() && row.statesCanSafelyRewrite === false) {
+      throw new AppError("状态数据格式异常，已停止覆盖原始状态；请先在设定中心保存一次角色状态。", 409);
+    }
     const states = row.states ?? parseAssetStates(row.statesJson);
     const state = states.find((item) => item.id === stateId);
     if (!state) {
@@ -272,8 +289,9 @@ export class StoryAssetStateImageService {
     stateId: string,
   ): Promise<unknown> {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
-    const referenceUrl = resolveStateReferenceImageUrl(states, state);
-    const effectiveReferenceStateId = resolveStoryAssetStateReferenceId(states, state);
+    const resolvedReference = resolveStateReferenceImage(states, state);
+    const referenceUrl = resolvedReference?.url ?? null;
+    const effectiveReferenceStateId = resolvedReference?.stateId ?? null;
     const referencedLabel = referenceUrl
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
       : null;

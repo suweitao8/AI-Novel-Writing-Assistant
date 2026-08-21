@@ -3,6 +3,9 @@ const assert = require("node:assert/strict");
 
 const {
   normalizeStoryCharacterStates,
+  parseStoryAssetStatesJson,
+  resolveStoryAssetStateAncestors,
+  isCharacterInitialStatePreserved,
 } = require("../../shared/dist/types/novelReferenceExtraction.js");
 
 test("旧角色没有状态时会形成带年龄、外貌和音色的初始状态", () => {
@@ -70,4 +73,29 @@ test("明确不参考仍保留 null，缺省参考才继承上一状态", () => 
 
   assert.equal(states[1].referenceStateId, "s1");
   assert.equal(states[2].referenceStateId, null);
+});
+
+test("损坏或含非法条目的状态 JSON 不允许自动回写", () => {
+  assert.equal(parseStoryAssetStatesJson("{bad json").canSafelyRewrite, false);
+  assert.equal(parseStoryAssetStatesJson(JSON.stringify({ id: "s1" })).canSafelyRewrite, false);
+  assert.equal(parseStoryAssetStatesJson(JSON.stringify([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
+    { id: 3, label: "非法" },
+  ])).canSafelyRewrite, false);
+});
+
+test("状态资产继承会沿多级参考链找到最近可用的祖先", () => {
+  const states = normalizeStoryCharacterStates([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "绷带" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "更多绷带" },
+  ], {});
+  assert.deepEqual(resolveStoryAssetStateAncestors(states, "s3").map((state) => state.id), ["s2", "s1"]);
+});
+
+test("角色更新必须保留首个初始状态", () => {
+  const previous = [{ id: "initial", label: "初始状态", description: "青年", imagePrompt: "青年" }];
+  assert.equal(isCharacterInitialStatePreserved(previous, previous), true);
+  assert.equal(isCharacterInitialStatePreserved(previous, [{ id: "next", label: "重伤", description: "重伤", imagePrompt: "重伤" }]), false);
+  assert.equal(isCharacterInitialStatePreserved(previous, [{ id: "next", label: "重伤", description: "重伤", imagePrompt: "重伤" }, ...previous]), false);
 });

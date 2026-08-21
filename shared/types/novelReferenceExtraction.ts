@@ -107,6 +107,84 @@ export function normalizeStoryAssetStates(states: StoryAssetState[]): StoryAsset
   }));
 }
 
+function isStoryAssetStateRecord(value: unknown): value is Pick<StoryAssetState, "id" | "label"> {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const state = value as { id?: unknown; label?: unknown };
+  return typeof state.id === "string" && Boolean(state.id.trim())
+    && typeof state.label === "string" && Boolean(state.label.trim());
+}
+
+export interface StoryAssetStatesJsonParseResult {
+  states: StoryAssetState[];
+  /** 只有 JSON 结构完整且每个状态都有稳定身份时才允许自动回写。 */
+  canSafelyRewrite: boolean;
+}
+
+/**
+ * 解析持久化状态并给出回写安全标记。
+ *
+ * 解析失败时仍返回可供当前请求展示的有效状态，但禁止调用方用归一化结果覆盖原始值，
+ * 避免损坏或手工扩展的 statesJson 在读时迁移中丢失。
+ */
+export function parseStoryAssetStatesJson(raw: string | null | undefined): StoryAssetStatesJsonParseResult {
+  if (!raw?.trim()) {
+    return { states: [], canSafelyRewrite: true };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { states: [], canSafelyRewrite: false };
+  }
+  if (!Array.isArray(parsed)) {
+    return { states: [], canSafelyRewrite: false };
+  }
+  const canSafelyRewrite = parsed.every(isStoryAssetStateRecord);
+  const states = normalizeStoryAssetStates(
+    parsed.filter(isStoryAssetStateRecord) as StoryAssetState[],
+  );
+  return { states, canSafelyRewrite };
+}
+
+/** 返回当前状态沿 referenceStateId/默认上一状态向前的所有祖先，带循环保护。 */
+export function resolveStoryAssetStateAncestors(
+  states: StoryAssetState[],
+  stateId: string,
+): StoryAssetState[] {
+  const current = states.find((state) => state.id === stateId);
+  if (!current) {
+    return [];
+  }
+  const ancestors: StoryAssetState[] = [];
+  const visited = new Set<string>([stateId]);
+  let cursor: StoryAssetState | undefined = current;
+  while (cursor) {
+    const parentId = resolveStoryAssetStateReferenceId(states, cursor);
+    if (!parentId || visited.has(parentId)) {
+      break;
+    }
+    const parent = states.find((state) => state.id === parentId);
+    if (!parent) {
+      break;
+    }
+    ancestors.push(parent);
+    visited.add(parent.id);
+    cursor = parent;
+  }
+  return ancestors;
+}
+
+/** 角色更新必须保留首个状态；旧数据的首状态 id 也不能被客户端替换或移动。 */
+export function isCharacterInitialStatePreserved(
+  previousStates: StoryAssetState[],
+  nextStates: StoryAssetState[],
+): boolean {
+  const initialStateId = previousStates[0]?.id;
+  return !initialStateId || nextStates[0]?.id === initialStateId;
+}
+
 function normalizeStoryAssetAgeGroup(value: unknown): StoryAssetAgeGroup | null {
   return typeof value === "string" && STORY_ASSET_AGE_GROUPS.has(value as StoryAssetAgeGroup)
     ? value as StoryAssetAgeGroup
@@ -186,7 +264,9 @@ export function normalizeStoryCharacterStates(
       ageGroup,
     };
   });
-  return normalizeStoryAssetStates(normalized);
+  return normalizeStoryAssetStates(normalized).map((state, index) => (
+    index === 0 ? { ...state, referenceStateId: null } : state
+  ));
 }
 
 export interface ReferenceExtractItem {

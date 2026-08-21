@@ -8,6 +8,10 @@
  */
 import { prisma } from "../../../db/prisma";
 import type { SourceContentPort } from "./SourceContentPort";
+import {
+  normalizeStoryCharacterStates,
+  parseStoryAssetStatesJson,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import type {
   SourceBundle,
   SourceBeat,
@@ -66,6 +70,7 @@ export class NovelSourceAdapter implements SourceContentPort {
           physique: true,
           attireStyle: true,
           signatureDetail: true,
+          statesJson: true,
         },
       }),
       prisma.novelFactEntry.findMany({
@@ -86,32 +91,33 @@ export class NovelSourceAdapter implements SourceContentPort {
       };
     });
 
-    const normalizeAgeGroup = (value: string | null): SourceCharacter["ageGroup"] => {
+    const normalizeAgeGroup = (value: string | null | undefined): SourceCharacter["ageGroup"] => {
       if (value === "child" || value === "youth" || value === "middle" || value === "elder") {
         return value;
       }
       return undefined;
     };
-    const bundleCharacters: SourceCharacter[] = characters.map((character) => ({
-      name: character.name,
-      gender: character.gender as "male" | "female" | "other" | "unknown" | undefined,
-      ageGroup: normalizeAgeGroup(character.ageGroup),
-      persona: [character.role, character.personality].filter(Boolean).join("｜") || undefined,
-      relations: character.background ?? undefined,
-      // 面部锚点放在视觉提示最前：角色设定图以面部一致性为第一优先级，
-      // 后接整体外貌、体型、着装与标志细节（对齐旧项目 face→appearance 的拼装顺序）。
-      visualHint: [
-        character.facePrompt,
-        character.appearance,
-        character.physique,
-        character.attireStyle,
-        character.signatureDetail,
-      ].filter(Boolean).join("，") || undefined,
-      facePrompt: character.facePrompt?.trim() || undefined,
-      // 设定中心角色的音色提示词直接作为漫剧配音的初始音色（用户在音色面板可再改）
-      voicePrompt: character.voiceTexture?.trim() || undefined,
-      sourceCharacterRef: character.id,
-    }));
+    const bundleCharacters: SourceCharacter[] = characters.map((character) => {
+      const states = normalizeStoryCharacterStates(
+        parseStoryAssetStatesJson(character.statesJson).states,
+        character,
+      );
+      const initialState = states[0];
+      const stateImagePrompt = initialState?.imagePrompt?.trim() || initialState?.description?.trim();
+      const stateVoicePrompt = initialState?.voicePrompt?.trim() || initialState?.voice?.prompt?.trim();
+      return {
+        name: character.name,
+        gender: character.gender as "male" | "female" | "other" | "unknown" | undefined,
+        ageGroup: normalizeAgeGroup(initialState?.ageGroup),
+        persona: [character.role, character.personality].filter(Boolean).join("｜") || undefined,
+        relations: character.background ?? undefined,
+        // 漫剧改编的角色视觉与音色都以设定中心初始状态为源；旧字段已由归一化函数折入初始状态。
+        visualHint: [stateImagePrompt, character.signatureDetail].filter(Boolean).join("，") || undefined,
+        facePrompt: stateImagePrompt || undefined,
+        voicePrompt: stateVoicePrompt || character.voiceTexture?.trim() || undefined,
+        sourceCharacterRef: character.id,
+      };
+    });
 
     const hardFacts: SourceFact[] = factRows.map((row) => ({
       text: row.text,

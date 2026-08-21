@@ -64,8 +64,8 @@ test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，
     resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s1" }),
     "/api/novels/n1/settings/state-images/s1",
   );
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), null);
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), null);
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), "/api/novels/n1/settings/state-images/s1");
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), "/api/novels/n1/settings/state-images/s1");
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s404" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: null }), null);
   assert.equal(
@@ -75,4 +75,13 @@ test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，
     ),
     "/api/novels/n1/settings/state-images/s1",
   );
+});
+
+test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿祖先链查找", () => {
+  const states = [
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常", image: { status: "done", url: "/state/s1" } },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "轻伤" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
+  ];
+  assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
 });

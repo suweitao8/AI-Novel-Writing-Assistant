@@ -5,8 +5,10 @@
 // - ensureSettings 幂等：只补缺失类别；regenerate 按类别重建。
 // - 角色不做删除式重建（保护关系与状态数据），重新生成只会补充缺失角色。
 import {
+  isCharacterInitialStatePreserved,
   normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
+  parseStoryAssetStatesJson,
   type StoryCharacterLegacyFields,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -156,15 +158,7 @@ function normalizeSceneWeather(value: string | null | undefined): string | null 
 }
 
 function parseStates(value: string | null | undefined): StoryAssetState[] {
-  if (!value?.trim()) return [];
-  try {
-    const parsed = JSON.parse(value) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return normalizeStoryAssetStates((parsed as StoryAssetState[]).filter((state) =>
-      typeof state?.id === "string" && typeof state?.label === "string"));
-  } catch {
-    return [];
-  }
+  return parseStoryAssetStatesJson(value).states;
 }
 
 function serializeStates(states: StoryAssetState[] | undefined | null): string | null {
@@ -785,10 +779,11 @@ export class StorySettingsService {
     });
     return Promise.all(rows.map(async (row) => {
       const { statesJson, ...rest } = row;
-      const states = normalizeStoryCharacterStates(parseStates(statesJson), row);
+      const parsed = parseStoryAssetStatesJson(statesJson);
+      const states = normalizeStoryCharacterStates(parsed.states, row);
       const normalizedStatesJson = serializeStates(states);
       // 只做增量归并：旧角色第一次进入设定中心时补上初始状态，保留旧字段作为兼容回退。
-      if (normalizedStatesJson !== (statesJson?.trim() || null)) {
+      if (parsed.canSafelyRewrite && normalizedStatesJson !== (statesJson?.trim() || null)) {
         await prisma.character.update({ where: { id: row.id }, data: { statesJson: normalizedStatesJson } });
       }
       return { ...rest, states, updatedAt: row.updatedAt.toISOString() };
@@ -868,10 +863,15 @@ export class StorySettingsService {
       appearance: input.appearance !== undefined ? input.appearance : row.appearance,
       voiceTexture: input.voiceTexture !== undefined ? input.voiceTexture : row.voiceTexture,
     };
+    const persistedStates = parseStoryAssetStatesJson(row.statesJson);
+    const currentStates = normalizeStoryCharacterStates(persistedStates.states, nextLegacy);
     const states = normalizeStoryCharacterStates(
-      input.states !== undefined ? input.states : parseStates(row.statesJson),
+      input.states !== undefined ? input.states : persistedStates.states,
       nextLegacy,
     );
+    if (input.states !== undefined && !isCharacterInitialStatePreserved(currentStates, states)) {
+      throw new AppError("初始状态不能删除或移动。", 400);
+    }
     const updated = await prisma.character.update({
       where: { id: row.id },
       data: {
@@ -883,7 +883,9 @@ export class StorySettingsService {
         ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
         ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
         ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
-        statesJson: serializeStates(states),
+        ...(input.states !== undefined || persistedStates.canSafelyRewrite
+          ? { statesJson: serializeStates(states) }
+          : {}),
         ...(input.personality !== undefined ? { personality: input.personality } : {}),
         ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
         ...(input.background !== undefined ? { background: input.background } : {}),
@@ -1153,6 +1155,7 @@ export class StorySettingsService {
             physique: character.physique ?? null,
             attireStyle: character.attireStyle ?? null,
             facePrompt: character.facePrompt ?? null,
+            statesJson: serializeStates(normalizeStoryCharacterStates(undefined, character)),
             personality: character.personality,
             appearance: character.appearance ?? null,
             background: character.background ?? null,
