@@ -72,6 +72,8 @@ export default function ExtractApplyDialog(props: {
       name: item.name ?? "",
       gender: character?.gender ?? "unknown",
       states: [createInitialCharacterState({
+        name: item.name,
+        gender: character?.gender ?? "unknown",
         ageGroup: character?.ageGroup as StoryAssetState["ageGroup"],
         description,
         imagePrompt,

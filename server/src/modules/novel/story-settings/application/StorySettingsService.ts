@@ -899,6 +899,7 @@ export class StorySettingsService {
     await requireNovel(novelId);
     assertValidStateInput(input.states);
     const legacy: StoryCharacterLegacyFields = {
+      name: input.name,
       gender: input.gender,
       ageGroup: input.ageGroup,
       physique: input.physique,
@@ -949,6 +950,7 @@ export class StorySettingsService {
         throw new AppError("没有找到这个角色。", 404);
       }
       const nextLegacy: StoryCharacterLegacyFields = {
+        name: input.name !== undefined ? input.name : row.name,
         gender: input.gender !== undefined ? input.gender : row.gender,
         ageGroup: input.ageGroup !== undefined ? input.ageGroup : row.ageGroup,
         physique: input.physique !== undefined ? input.physique : row.physique,

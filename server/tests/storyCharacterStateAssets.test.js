@@ -40,6 +40,14 @@ test("角色已有外貌和音色时默认初始状态优先保留用户字段",
   assert.equal(state.voicePrompt, "低沉清晰的男声");
 });
 
+test("角色归一化没有状态时会把姓名写入默认初始描述", () => {
+  const states = normalizeStoryCharacterStates([], { name: "叶晨", gender: "female" });
+  assert.equal(states.length, 1);
+  assert.match(states[0].description, /叶晨/);
+  assert.match(states[0].description, /女性/);
+  assert.match(states[0].description, /青年/);
+});
+
 test("旧角色没有状态时会形成带年龄、外貌和音色的初始状态", () => {
   const states = normalizeStoryCharacterStates([], {
     gender: "male",

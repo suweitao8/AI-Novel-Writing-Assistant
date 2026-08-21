@@ -288,6 +288,8 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         await createStorySettingsCharacter(props.novelId, {
           name,
           states: [createInitialCharacterState({
+            name,
+            gender: "unknown",
             description: createNote.trim() || "角色初始外观",
             imagePrompt: createNote.trim() || "角色初始外观",
           })],

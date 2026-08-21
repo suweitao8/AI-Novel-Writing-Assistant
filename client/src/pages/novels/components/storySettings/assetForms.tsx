@@ -13,6 +13,7 @@ import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import SelectControl from "@/components/common/SelectControl";
 import {
+  createStoryCharacterInitialState,
   getDefaultStoryAssetStateVoiceMode,
   resolveStoryAssetStateAncestors,
   resolveStoryAssetStateReferenceId,
@@ -67,16 +68,24 @@ export function CharacterAssetFormFields(props: {
 }
 
 export function createInitialCharacterState(
-  input: Partial<StoryAssetState> = {},
+  input: Partial<StoryAssetState> & {
+    name?: string | null;
+    gender?: string | null;
+  } = {},
 ): StoryAssetState {
+  const defaultState = createStoryCharacterInitialState({
+    name: input.name,
+    gender: input.gender,
+    ageGroup: input.ageGroup,
+    appearance: input.description,
+    facePrompt: input.imagePrompt,
+    voiceTexture: input.voicePrompt,
+  });
   return {
-    id: "initial",
-    label: "初始状态",
-    description: input.description ?? "",
-    imagePrompt: input.imagePrompt ?? "",
-    ageGroup: input.ageGroup ?? "youth",
-    referenceStateId: null,
-    ...(input.voicePrompt ? { voicePrompt: input.voicePrompt } : {}),
+    ...defaultState,
+    ...(input.description?.trim() ? { description: input.description.trim() } : {}),
+    ...(input.imagePrompt?.trim() ? { imagePrompt: input.imagePrompt.trim() } : {}),
+    ...(input.voicePrompt?.trim() ? { voicePrompt: input.voicePrompt.trim() } : {}),
     ...(input.image ? { image: input.image } : {}),
     ...(input.voice ? { voice: input.voice } : {}),
   };

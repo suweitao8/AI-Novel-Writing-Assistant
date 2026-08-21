@@ -20,6 +20,7 @@ import { prisma } from "../../db/prisma";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { characterSyncClassificationPrompt } from "../../prompting/prompts/character/characterSync.prompts";
 import { queueRagUpsert } from "../novel/novelCore/novelCoreSupport";
+import { createStoryCharacterInitialState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 const APPLY_TO_NOVEL_FIELDS = ["name", "role", "personality", "background", "development"] as const;
 
@@ -469,17 +470,22 @@ export class CharacterLibrarySyncService {
     const revision = await this.ensureLatestBaseRevision(baseCharacter.id, "base_character_import");
     const draft = baseCharacterToDraft(baseCharacter);
     const modeConfig = this.resolveImportMode(input.mode);
+    const characterName = input.overrides.name ?? draft.name;
 
     const result = await prisma.$transaction(async (tx) => {
       const character = await tx.character.create({
         data: {
           novelId,
           baseCharacterId: baseCharacter.id,
-          name: input.overrides.name ?? draft.name,
+          name: characterName,
           role: input.overrides.role ?? draft.role,
           personality: draft.personality,
           background: draft.background,
           development: draft.development,
+          statesJson: JSON.stringify([createStoryCharacterInitialState({
+            name: characterName,
+            appearance: draft.appearance,
+          })]),
           storyFunction: input.overrides.storyFunction,
           relationToProtagonist: input.overrides.relationToProtagonist,
           currentState: input.overrides.currentState,

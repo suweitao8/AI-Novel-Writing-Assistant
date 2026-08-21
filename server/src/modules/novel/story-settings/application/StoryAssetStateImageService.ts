@@ -242,6 +242,7 @@ export class StoryAssetStateImageService {
             where: { id: assetId },
             select: {
               statesJson: true,
+              name: true,
               gender: true,
               ageGroup: true,
               physique: true,

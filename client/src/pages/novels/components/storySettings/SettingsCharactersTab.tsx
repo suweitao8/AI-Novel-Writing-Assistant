@@ -120,6 +120,8 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         gender: draft.gender || "unknown",
       });
       setStates([createInitialCharacterState({
+        name: draft.name,
+        gender: draft.gender || "unknown",
         ageGroup: draft.ageGroup as StoryAssetState["ageGroup"],
         description: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
         imagePrompt: [draft.facePrompt, draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
@@ -147,7 +149,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_CHARACTER_FORM);
-    setStates([createInitialCharacterState()]);
+    setStates([createInitialCharacterState({ gender: EMPTY_CHARACTER_FORM.gender })]);
     setHint("");
   };
 
@@ -159,7 +161,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       name: character.name,
       gender: character.gender ?? "unknown",
     });
-    setStates(character.states?.length ? character.states : [createInitialCharacterState()]);
+    setStates(character.states?.length
+      ? character.states
+      : [createInitialCharacterState({ name: character.name, gender: character.gender ?? "unknown" })]);
   };
 
   const closeDialog = () => {

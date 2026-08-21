@@ -67,6 +67,7 @@ export async function persistStorySettingsCategories(
           facePrompt: character.facePrompt ?? null,
           voiceTexture: character.voicePrompt ?? null,
           statesJson: serializeStates(normalizeCharacterStates(undefined, {
+            name: character.name,
             gender: character.gender,
             ageGroup: character.ageGroup,
             physique: character.physique,
