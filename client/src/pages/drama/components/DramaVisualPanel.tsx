@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clapperboard, Download, ExternalLink, Film, ImageIcon, RefreshCw, Sparkles } from "lucide-react";
 import {
   estimateDramaEpisodeBatchJob,
   getDramaEpisodeAssembly,
   prepareDramaShotKeyframe,
+  refreshDramaVideoProviderTask,
   startDramaEpisodeAssembly,
   type DramaBatchCostBreakdown,
   type DramaBatchJob,
@@ -45,6 +46,7 @@ export function DramaVisualPanel(props: {
   onRefreshProviderTask: (prompt: DramaVideoPrompt) => void;
   busy: boolean;
 }) {
+  const queryClient = useQueryClient();
   const episodes = props.project.episodes ?? [];
   const selectedEpisode: DramaEpisode | undefined = episodes.find((episode) => episode.order === props.selectedOrder) ?? episodes[0];
   const storyboards = selectedEpisode?.storyboards ?? [];
@@ -86,6 +88,45 @@ export function DramaVisualPanel(props: {
     failed: activeVideoPrompts.filter((prompt) => prompt.status === "failed").length,
     history: videoPrompts.length - activeVideoPrompts.length,
   };
+  const pendingVideoPrompts = activeVideoPrompts.filter(
+    (prompt) => Boolean(prompt.providerTaskId) && (prompt.status === "queued" || prompt.status === "running"),
+  );
+  const pendingVideoTaskSignature = pendingVideoPrompts
+    .map((prompt) => `${prompt.id}:${prompt.providerTaskId}:${prompt.status}`)
+    .join("|");
+  const videoRefreshRunningRef = useRef(false);
+
+  useEffect(() => {
+    if (pendingVideoPrompts.length === 0) {
+      return undefined;
+    }
+    let disposed = false;
+    const refreshPendingVideoTasks = async () => {
+      if (disposed || videoRefreshRunningRef.current) {
+        return;
+      }
+      videoRefreshRunningRef.current = true;
+      try {
+        await Promise.allSettled(
+          pendingVideoPrompts.map((prompt) => refreshDramaVideoProviderTask(prompt.id)),
+        );
+        if (!disposed) {
+          await queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(props.project.id) });
+        }
+      } finally {
+        videoRefreshRunningRef.current = false;
+      }
+    };
+
+    void refreshPendingVideoTasks();
+    const intervalId = window.setInterval(() => {
+      void refreshPendingVideoTasks();
+    }, 2500);
+    return () => {
+      disposed = true;
+      window.clearInterval(intervalId);
+    };
+  }, [pendingVideoTaskSignature, props.project.id, queryClient]);
 
   const startKeyframeGeneration = (shot: DramaShot) => {
     keyframeFlow.start({
@@ -345,17 +386,22 @@ export function DramaVisualPanel(props: {
                     <p className="line-clamp-2 text-sm text-muted-foreground">{prompt.prompt}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    {!prompt.providerTaskId ? (
+                    {prompt.status === "failed" ? (
+                      <Button size="sm" type="button" disabled={props.busy || !isActiveVideoPrompt(prompt)} onClick={() => props.onProviderTask(prompt, props.selectedProvider)}>
+                        <RefreshCw className="h-4 w-4" />
+                        {props.busy ? "重试中..." : "重试视频任务"}
+                      </Button>
+                    ) : !prompt.providerTaskId ? (
                       <Button size="sm" type="button" disabled={props.busy || !isActiveVideoPrompt(prompt)} onClick={() => props.onProviderTask(prompt, props.selectedProvider)}>
                         <Sparkles className="h-4 w-4" />
-                        创建任务
+                        {props.busy ? "创建中..." : "创建任务"}
                       </Button>
-                    ) : (
-                      <Button size="sm" type="button" variant="outline" disabled={props.busy} onClick={() => props.onRefreshProviderTask(prompt)}>
+                    ) : prompt.status === "queued" || prompt.status === "running" ? (
+                      <Button size="sm" type="button" variant="outline" disabled={props.busy || !isActiveVideoPrompt(prompt)} onClick={() => props.onRefreshProviderTask(prompt)}>
                         <RefreshCw className="h-4 w-4" />
-                        刷新状态
+                        {props.busy ? "刷新中..." : "刷新状态"}
                       </Button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
                 <VideoPromptDetails prompt={prompt} compact />
@@ -720,15 +766,24 @@ function VideoPromptDetails({ prompt, compact = false }: { prompt: DramaVideoPro
         {providerResult.status ? <span>视频通道状态：{providerResult.status}</span> : null}
       </div>
       {resultUrl ? (
-        <a
-          className="inline-flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
-          href={resultUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          查看生成结果
-          <ExternalLink className="h-4 w-4" />
-        </a>
+        <>
+          <video
+            className="w-full rounded-md border border-border bg-muted/30"
+            controls
+            preload="metadata"
+            src={resultUrl}
+            aria-label="生成的视频结果"
+          />
+          <a
+            className="inline-flex items-center gap-1 text-sm text-primary underline-offset-4 hover:underline"
+            href={resultUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            查看生成结果
+            <ExternalLink className="h-4 w-4" />
+          </a>
+        </>
       ) : null}
       {prompt.status === "failed" ? (
         <div className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">

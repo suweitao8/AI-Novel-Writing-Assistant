@@ -596,9 +596,12 @@ function StoryboardBootstrapCard(props: {
 
 function VideoSection(props: {
   drama: { projectId: string; videoPromptCount: number; videoReadyCount: number } | null;
-  videoProviders: Array<{ id: string; label: string; kind: string }>;
+  videoProviders: Array<{ id: string; label: string; kind: string; isDefault: boolean }>;
 }) {
   const hasRealProvider = props.videoProviders.some((provider) => provider.id !== "mock");
+  const defaultProvider = props.videoProviders.find((provider) => provider.isDefault)
+    ?? props.videoProviders.find((provider) => provider.id === "local_ffmpeg")
+    ?? props.videoProviders[0];
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-4 p-6">
@@ -609,6 +612,9 @@ function VideoSection(props: {
               value={`${props.drama.videoReadyCount} / ${Math.max(props.drama.videoPromptCount, props.drama.videoReadyCount)}`}
               hint="视频任务已出片"
             />
+            {defaultProvider ? (
+              <div className="text-sm text-muted-foreground">默认视频通道：{defaultProvider.label}</div>
+            ) : null}
             {!hasRealProvider ? (
               <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-amber-700 dark:text-amber-400">
                 当前只有占位视频通道，不会生成真实视频。
