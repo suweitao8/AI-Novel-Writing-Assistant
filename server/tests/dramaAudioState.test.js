@@ -34,6 +34,27 @@ test("分镜角色状态会覆盖对白音色并传入状态试听参考", () =>
   );
 });
 
+test("没有当前状态音色时，分镜配音会继承上一状态提示词", () => {
+  const states = [
+    {
+      id: "s1",
+      label: "初始状态",
+      description: "青年",
+      imagePrompt: "青年",
+      voicePrompt: "清亮的青年男声",
+    },
+    {
+      id: "s2",
+      label: "受伤",
+      description: "战斗后受伤",
+      imagePrompt: "缠着绷带",
+    },
+  ];
+  const voice = resolveVoiceForCharacterState({ name: "林澈", voiceId: "base" }, states, "受伤");
+  assert.equal(voice.emotion, "清亮的青年男声");
+  assert.equal(voice.voicePrompt, "清亮的青年男声");
+});
+
 test("分镜状态 JSON 按角色名归一化，未知或空状态不会覆盖音色", () => {
   const stateMap = parseShotCharacterStates(JSON.stringify([
     { name: " 林澈 ", state: " 老年 " },

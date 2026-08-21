@@ -18,8 +18,10 @@ import type {
   StoryAssetStateImage,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
+  normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
   resolveStoryAssetStateReferenceId,
+  type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../../db/prisma";
@@ -62,26 +64,43 @@ interface StateAssetRow {
   id: string;
   novelId: string;
   name: string;
-  /** 该资产的基础外观描述：角色=面部锚点+外貌，场景=环境提示词，道具=画面提示词 */
+  /** 场景/道具的基础画面描述；角色的外貌全部从当前状态读取。 */
   baseAppearance: string | null;
   statesJson: string | null;
+  states?: StoryAssetState[];
+  gender?: string | null;
 }
 
 async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: string): Promise<StateAssetRow> {
   if (kind === "character") {
     const row = await prisma.character.findUnique({
       where: { id: assetId },
-      select: { id: true, novelId: true, name: true, facePrompt: true, appearance: true, statesJson: true },
+      select: {
+        id: true,
+        novelId: true,
+        name: true,
+        gender: true,
+        ageGroup: true,
+        physique: true,
+        attireStyle: true,
+        facePrompt: true,
+        appearance: true,
+        voiceTexture: true,
+        statesJson: true,
+      },
     });
     if (!row || row.novelId !== novelId) {
       throw new AppError("未找到角色。", 404);
     }
+    const legacy: StoryCharacterLegacyFields = row;
     return {
       id: row.id,
       novelId: row.novelId,
       name: row.name,
-      baseAppearance: [row.facePrompt?.trim(), row.appearance?.trim()].filter(Boolean).join("，") || null,
+      baseAppearance: null,
       statesJson: row.statesJson,
+      states: normalizeStoryCharacterStates(parseAssetStates(row.statesJson), legacy),
+      gender: row.gender,
     };
   }
   if (kind === "scene") {
@@ -142,7 +161,8 @@ export function buildStateImagePrompt(
     kind: StoryAssetKind;
     assetName: string;
     baseAppearance: string | null;
-    state: Pick<StoryAssetState, "label" | "description" | "imagePrompt">;
+    state: Pick<StoryAssetState, "label" | "description" | "imagePrompt" | "ageGroup">;
+    gender?: string | null;
     hasReference: boolean;
   },
   styleLines: string[],
@@ -155,6 +175,8 @@ export function buildStateImagePrompt(
     ...styleLines,
     subjectLine,
     `subject: ${input.assetName}`,
+    input.gender ? `gender: ${input.gender}` : "",
+    input.state.ageGroup ? `age group: ${input.state.ageGroup}` : "",
     input.baseAppearance ? `base appearance: ${input.baseAppearance}` : "",
     `state: ${input.state.label}`,
     `state change: ${input.state.description}`,
@@ -182,15 +204,44 @@ export function resolveStateReferenceImageUrl(states: StoryAssetState[], state: 
 
 export class StoryAssetStateImageService {
   /** 读-改-写回 statesJson：只在目标状态上写 image 字段，不碰其他状态的并发编辑。 */
-  private async writeStateImage(kind: StoryAssetKind, assetId: string, stateId: string, image: StoryAssetStateImage): Promise<void> {
-    const merged = (raw: string | null | undefined): string | null => {
-      const next = parseAssetStates(raw).map((state) =>
+  private async writeStateImage(
+    kind: StoryAssetKind,
+    assetId: string,
+    stateId: string,
+    image: StoryAssetStateImage,
+    fallbackStates: StoryAssetState[] = [],
+  ): Promise<void> {
+    const merged = (
+      raw: string | null | undefined,
+      fallback: StoryAssetState[] = [],
+      normalize?: (states: StoryAssetState[]) => StoryAssetState[],
+    ): string | null => {
+      const parsed = parseAssetStates(raw);
+      const source = parsed.length > 0 ? parsed : fallback;
+      const next = (normalize ? normalize(source) : source).map((state) =>
         state.id === stateId ? { ...state, image: pruneStateImage(image) } : state);
       return next.length > 0 ? JSON.stringify(next) : null;
     };
     if (kind === "character") {
-      const row = await prisma.character.findUnique({ where: { id: assetId }, select: { statesJson: true } });
-      await prisma.character.update({ where: { id: assetId }, data: { statesJson: merged(row?.statesJson) } });
+      const row = await prisma.character.findUnique({
+        where: { id: assetId },
+        select: {
+          statesJson: true,
+          gender: true,
+          ageGroup: true,
+          physique: true,
+          attireStyle: true,
+          facePrompt: true,
+          appearance: true,
+          voiceTexture: true,
+        },
+      });
+      const legacy: StoryCharacterLegacyFields = row ?? {};
+      const currentStates = normalizeStoryCharacterStates(parseAssetStates(row?.statesJson), legacy);
+      await prisma.character.update({
+        where: { id: assetId },
+        data: { statesJson: merged(row?.statesJson, fallbackStates.length ? fallbackStates : currentStates, (states) => normalizeStoryCharacterStates(states, legacy)) },
+      });
     } else if (kind === "scene") {
       const row = await prisma.novelScene.findUnique({ where: { id: assetId }, select: { statesJson: true } });
       await prisma.novelScene.update({ where: { id: assetId }, data: { statesJson: merged(row?.statesJson) } });
@@ -206,7 +257,7 @@ export class StoryAssetStateImageService {
     state: StoryAssetState;
   }> {
     const row = await loadStateAsset(novelId, kind, assetId);
-    const states = parseAssetStates(row.statesJson);
+    const states = row.states ?? parseAssetStates(row.statesJson);
     const state = states.find((item) => item.id === stateId);
     if (!state) {
       throw new AppError("未找到外观状态。", 404);
@@ -235,6 +286,7 @@ export class StoryAssetStateImageService {
         kind,
         assetName: row.name,
         baseAppearance: row.baseAppearance,
+        gender: row.gender,
         state,
         hasReference: Boolean(referenceUrl),
       },
@@ -249,7 +301,7 @@ export class StoryAssetStateImageService {
       kind: `story.asset.state:${stateId}`,
       loadState: async () => state.image ?? { status: "idle" },
       saveState: async (next) => {
-        await this.writeStateImage(kind, assetId, stateId, next);
+        await this.writeStateImage(kind, assetId, stateId, next, states);
       },
       diskPath: (ext) => path.join(stateImageDir(stateId), `image.${ext}`),
       publicUrl: () => stateImageUrl(novelId, stateId),

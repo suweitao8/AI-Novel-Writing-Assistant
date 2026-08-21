@@ -218,7 +218,12 @@ export function resolveVoiceForCharacterState(
   const stateVoice = state.voice?.status === "done" && state.voice.sampleAudioUrl?.trim()
     ? state.voice.sampleAudioUrl.trim()
     : undefined;
-  const statePrompt = state.voice?.prompt?.trim() || state.voicePrompt?.trim() || undefined;
+  const stateIndex = states.findIndex((item) => item.id === state.id);
+  let statePrompt: string | undefined;
+  for (let cursor = stateIndex; cursor >= 0 && !statePrompt; cursor -= 1) {
+    const candidate = states[cursor];
+    statePrompt = candidate?.voice?.prompt?.trim() || candidate?.voicePrompt?.trim() || undefined;
+  }
   if (!stateVoice && !statePrompt) {
     return voice;
   }

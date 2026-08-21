@@ -6,6 +6,7 @@ import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   CharacterAssetFormFields,
+  createInitialCharacterState,
   SceneAssetFormFields,
   PropAssetFormFields,
   EMPTY_CHARACTER_FORM,
@@ -15,7 +16,7 @@ import {
   type SceneAssetFormState,
   type PropAssetFormState,
 } from "@/pages/novels/components/storySettings/assetForms";
-import type { ReferenceExtractCharacter, ReferenceExtractItem } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type { ReferenceExtractCharacter, ReferenceExtractItem, StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 export type ExtractGroup = "characters" | "scenes" | "props" | "worldview";
 
@@ -31,6 +32,10 @@ interface WorldviewFormState {
   description: string;
 }
 
+type CharacterApplyFormState = CharacterAssetFormState & {
+  states: StoryAssetState[];
+};
+
 // 提取建议的应用弹窗：与资产页签的编辑弹窗共用同一套表单（assetForms），
 // 先核对、可修改，点「应用」创建这一条资产——不做批量勾选，每条单独确认。
 export default function ExtractApplyDialog(props: {
@@ -44,7 +49,10 @@ export default function ExtractApplyDialog(props: {
 }) {
   const { group, item } = props;
   const character = group === "characters" ? item as ReferenceExtractCharacter : null;
-  const [characterForm, setCharacterForm] = useState<CharacterAssetFormState>(EMPTY_CHARACTER_FORM);
+  const [characterForm, setCharacterForm] = useState<CharacterApplyFormState>({
+    ...EMPTY_CHARACTER_FORM,
+    states: [createInitialCharacterState()],
+  });
   const [sceneForm, setSceneForm] = useState<SceneAssetFormState>(EMPTY_SCENE_FORM);
   const [propForm, setPropForm] = useState<PropAssetFormState>(EMPTY_PROP_FORM);
   const [worldviewForm, setWorldviewForm] = useState<WorldviewFormState>({ name: "", description: "" });
@@ -55,15 +63,20 @@ export default function ExtractApplyDialog(props: {
       return;
     }
     const extractItem = item as ReferenceExtractItem;
+    const description = [character?.appearance, character?.physique].filter(Boolean).join("；")
+      || extractItem.description
+      || "角色初始外观";
+    const imagePrompt = extractItem.imagePrompt || description;
     setCharacterForm({
       ...EMPTY_CHARACTER_FORM,
       name: item.name ?? "",
-      // 提取给结构化性别/年龄段；外貌体型一个字段（旧结果的 physique 并入）；旧结果没有的字段保持未设定。
       gender: character?.gender ?? "unknown",
-      ageGroup: character?.ageGroup ?? "",
-      appearance: [character?.appearance, character?.physique].filter(Boolean).join("；") || extractItem.description || "",
-      facePrompt: extractItem.imagePrompt ?? "",
-      voiceTexture: character?.voicePrompt ?? "",
+      states: [createInitialCharacterState({
+        ageGroup: character?.ageGroup as StoryAssetState["ageGroup"],
+        description,
+        imagePrompt,
+        ...(character?.voicePrompt ? { voicePrompt: character.voicePrompt } : {}),
+      })],
     });
     setSceneForm({
       ...EMPTY_SCENE_FORM,

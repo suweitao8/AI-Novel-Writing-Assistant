@@ -22,26 +22,17 @@ import {
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
 // 资产是同一种东西，编辑体验也必须一致。
-// 角色表单只保留做视频要用的属性（2026-08-20 起属性从简：姓名/性别/年龄段/外貌体型
-// + 图片提示词 + 音色提示词；2026-08-21 起身份定位移除——参考小说只处理成脚本，
-// 不判断男主女主，随剧情变化的外观走「状态」）。
+// 角色基础表单只保留身份字段；年龄、外貌和音色都属于角色状态，避免同一份设定
+// 在角色表单和状态编辑器里重复填写。
 
 export interface CharacterAssetFormState {
   name: string;
   gender: string;
-  ageGroup: string;
-  appearance: string;
-  facePrompt: string;
-  voiceTexture: string;
 }
 
 export const EMPTY_CHARACTER_FORM: CharacterAssetFormState = {
   name: "",
   gender: "unknown",
-  ageGroup: "",
-  appearance: "",
-  facePrompt: "",
-  voiceTexture: "",
 };
 
 export function CharacterAssetFormFields(props: {
@@ -69,47 +60,25 @@ export function CharacterAssetFormFields(props: {
             <option value="other">其他</option>
           </SelectControl>
         </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">年龄段</span>
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-sm"
-            value={value.ageGroup}
-            onChange={(event) => onChange({ ageGroup: event.target.value })}
-          >
-            <option value="">未设定</option>
-            <option value="child">少年/儿童</option>
-            <option value="youth">青年</option>
-            <option value="middle">中年</option>
-            <option value="elder">老年</option>
-          </SelectControl>
-        </label>
       </div>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">外貌体型</span>
-        <Input
-          value={value.appearance}
-          placeholder="体型、发型发色、五官、穿着、标志性特征，一句话"
-          onChange={(event) => onChange({ appearance: event.target.value })}
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">图片提示词（生成角色图时使用）</span>
-        <Input
-          value={value.facePrompt}
-          placeholder="性别、年龄段、发型发色、眼睛、肤色、体型、服装"
-          onChange={(event) => onChange({ facePrompt: event.target.value })}
-        />
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">音色提示词（配音时使用）</span>
-        <Input
-          value={value.voiceTexture}
-          placeholder="例如：低沉沙哑的青年男声 / 清脆的少女音"
-          onChange={(event) => onChange({ voiceTexture: event.target.value })}
-        />
-      </label>
     </div>
   );
+}
+
+export function createInitialCharacterState(
+  input: Partial<StoryAssetState> = {},
+): StoryAssetState {
+  return {
+    id: "initial",
+    label: "初始状态",
+    description: input.description ?? "",
+    imagePrompt: input.imagePrompt ?? "",
+    ageGroup: input.ageGroup ?? "youth",
+    referenceStateId: null,
+    ...(input.voicePrompt ? { voicePrompt: input.voicePrompt } : {}),
+    ...(input.image ? { image: input.image } : {}),
+    ...(input.voice ? { voice: input.voice } : {}),
+  };
 }
 
 export function newStateId(): string {
@@ -145,6 +114,7 @@ export function AssetStatesEditor(props: {
   const [draft, setDraft] = useState<StoryAssetState | null>(null);
   const [selectedStateId, setSelectedStateId] = useState<string | null>(states[0]?.id ?? null);
   const [voiceModeOverride, setVoiceModeOverride] = useState<StoryAssetStateVoiceMode | null>(null);
+  const [showAdvancedPrompts, setShowAdvancedPrompts] = useState(false);
   // 角色弹窗的总保存仍由外层负责；本地改过状态后先禁止直接生成，避免服务端按旧 statesJson 生图/生音色。
   const [localDirty, setLocalDirty] = useState(false);
   const showVoice = kind === "character";
@@ -197,11 +167,13 @@ export function AssetStatesEditor(props: {
     const id = newStateId();
     setSelectedStateId(id);
     setVoiceModeOverride(null);
+    setShowAdvancedPrompts(false);
     setDraft({
       id,
       label: "",
       description: "",
       imagePrompt: "",
+      ...(showVoice ? { ageGroup: previous?.ageGroup ?? "youth" } : {}),
       referenceStateId: previous?.id ?? null,
     });
   };
@@ -211,6 +183,7 @@ export function AssetStatesEditor(props: {
     setEditingIndex(index);
     setSelectedStateId(state.id);
     setVoiceModeOverride(null);
+    setShowAdvancedPrompts(false);
     setDraft({
       ...state,
       referenceStateId: resolveStoryAssetStateReferenceId(states, state),
@@ -222,7 +195,11 @@ export function AssetStatesEditor(props: {
     setVoiceModeOverride(null);
     setSelectedStateId((current) => states.some((state) => state.id === current) ? current : states[0]?.id ?? null);
   };
-  const draftValid = Boolean(draft?.label.trim() && draft?.description.trim() && draft?.imagePrompt.trim());
+  const draftValid = Boolean(
+    draft?.label.trim()
+      && draft?.description.trim()
+      && (showVoice || draft?.imagePrompt.trim()),
+  );
   const commit = () => {
     if (!draft || !draftValid) {
       return;
@@ -231,8 +208,9 @@ export function AssetStatesEditor(props: {
       id: draft.id,
       label: draft.label.trim(),
       description: draft.description.trim(),
-      imagePrompt: draft.imagePrompt.trim(),
+      imagePrompt: draft.imagePrompt.trim() || draft.description.trim(),
       ...(showVoice && draft.voicePrompt?.trim() ? { voicePrompt: draft.voicePrompt.trim() } : {}),
+      ...(showVoice && draft.ageGroup ? { ageGroup: draft.ageGroup } : {}),
       referenceStateId: draft.referenceStateId ?? null,
       ...(draft.chapterOrder ? { chapterOrder: draft.chapterOrder } : {}),
       ...(draft.image ? { image: draft.image } : {}),
@@ -247,6 +225,10 @@ export function AssetStatesEditor(props: {
     setSelectedStateId(cleaned.id);
   };
   const remove = (index: number) => {
+    if (kind === "character" && index === 0) {
+      toast.error("初始状态不能删除。");
+      return;
+    }
     const removedId = states[index]?.id;
     const nextStates = states
       .filter((_state, position) => position !== index)
@@ -302,7 +284,7 @@ export function AssetStatesEditor(props: {
     <div className="space-y-3 rounded-lg border border-border/70 p-3">
       <div className="flex items-center justify-between">
         <div>
-          <span className="text-sm font-medium">外观状态</span>
+          <span className="text-sm font-medium">{showVoice ? "角色状态" : "外观状态"}</span>
           <span className="ml-2 text-xs text-muted-foreground">选择状态查看图片、描述和生成状态</span>
         </div>
         <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={startCreate} disabled={draft !== null || imageMutation.isPending || voiceMutation.isPending}>
@@ -361,7 +343,7 @@ export function AssetStatesEditor(props: {
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label={`编辑${state.label || "状态"}`} disabled={draft !== null} onClick={() => startEdit(stateIndex)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" aria-label={`删除${state.label || "状态"}`} disabled={draft !== null} onClick={() => remove(stateIndex)}>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" aria-label={kind === "character" && stateIndex === 0 ? "初始状态不能删除" : `删除${state.label || "状态"}`} disabled={draft !== null || (kind === "character" && stateIndex === 0)} onClick={() => remove(stateIndex)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -440,19 +422,52 @@ export function AssetStatesEditor(props: {
                     </SelectControl>
                   </label>
                   <label className="block space-y-1">
-                    <span className="text-xs font-medium">基础描述</span>
-                    <Input value={selectedState.description} placeholder="这个状态下外观发生了什么" disabled={!draft} onChange={(event) => updateDraft({ description: event.target.value })} />
-                  </label>
-                  <label className="block space-y-1">
-                    <span className="text-xs font-medium">图片提示词</span>
-                    <Input value={selectedState.imagePrompt} placeholder="生成该状态图片时使用" disabled={!draft} onChange={(event) => updateDraft({ imagePrompt: event.target.value })} />
+                    <span className="text-xs font-medium">状态变化</span>
+                    <Input value={selectedState.description} placeholder={showVoice ? "例如：战斗后左臂受伤，换成破损外套" : "这个状态下发生了什么变化"} disabled={!draft} onChange={(event) => updateDraft({ description: event.target.value })} />
                   </label>
                   {showVoice ? (
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium">年龄段</span>
+                      <SelectControl
+                        className="h-9 rounded-md border bg-background px-2 text-sm"
+                        aria-label="状态年龄段"
+                        value={selectedState.ageGroup ?? "youth"}
+                        disabled={!draft}
+                        onChange={(event) => updateDraft({ ageGroup: event.target.value as StoryAssetState["ageGroup"] })}
+                      >
+                        <option value="child">少年/儿童</option>
+                        <option value="youth">青年</option>
+                        <option value="middle">中年</option>
+                        <option value="elder">老年</option>
+                      </SelectControl>
+                    </label>
+                  ) : null}
+                  {showVoice ? (
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium">音色变化</span>
+                      <Input
+                        value={selectedState.voicePrompt ?? ""}
+                        placeholder={selectedStateIndex === 0 ? "例如：低沉清晰的青年男声" : "留空则沿用上一状态音色"}
+                        disabled={!draft}
+                        onChange={(event) => updateDraft({ voicePrompt: event.target.value })}
+                      />
+                    </label>
+                  ) : null}
+                  {showVoice ? (
+                    <div className="flex justify-end">
+                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowAdvancedPrompts((current) => !current)}>
+                        {showAdvancedPrompts ? "收起高级提示词" : "高级提示词"}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {(!showVoice || showAdvancedPrompts) ? (
+                    <label className="block space-y-1">
+                      <span className="text-xs font-medium">图片提示词</span>
+                      <Input value={selectedState.imagePrompt} placeholder="留空则按状态变化生成" disabled={!draft} onChange={(event) => updateDraft({ imagePrompt: event.target.value })} />
+                    </label>
+                  ) : null}
+                  {showVoice ? (
                     <>
-                      <label className="block space-y-1">
-                        <span className="text-xs font-medium">音色提示词</span>
-                        <Input value={selectedState.voicePrompt ?? ""} placeholder="留空则使用角色基础音色" disabled={!draft} onChange={(event) => updateDraft({ voicePrompt: event.target.value })} />
-                      </label>
                   <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2.5">
                         <div className="flex items-center justify-between gap-2">
                           <span className="flex items-center gap-1.5 text-xs font-medium"><AudioLines className="h-3.5 w-3.5" />状态音色</span>

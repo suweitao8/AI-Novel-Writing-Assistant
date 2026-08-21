@@ -36,6 +36,27 @@ export interface StoryAssetStateVoice {
   error?: string;
 }
 
+export type StoryAssetAgeGroup = "child" | "youth" | "middle" | "elder";
+
+const STORY_ASSET_AGE_GROUPS = new Set<StoryAssetAgeGroup>(["child", "youth", "middle", "elder"]);
+const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
+  child: "少年/儿童",
+  youth: "青年",
+  middle: "中年",
+  elder: "老年",
+};
+
+/** 角色状态归并时读取的旧角色字段；旧列保留，但不再作为新的编辑入口。 */
+export interface StoryCharacterLegacyFields {
+  gender?: string | null;
+  ageGroup?: string | null;
+  physique?: string | null;
+  attireStyle?: string | null;
+  facePrompt?: string | null;
+  appearance?: string | null;
+  voiceTexture?: string | null;
+}
+
 /** 资产外观状态：同一资产随剧情推进的外观形态（换装/受伤/昼夜/损坏…）。 */
 export interface StoryAssetState {
   id: string;
@@ -47,6 +68,8 @@ export interface StoryAssetState {
   imagePrompt: string;
   /** 该状态的音色提示词（配音用，仅角色有） */
   voicePrompt?: string;
+  /** 角色状态的年龄段；场景/道具状态不使用。 */
+  ageGroup?: StoryAssetAgeGroup;
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
   /**
@@ -82,6 +105,88 @@ export function normalizeStoryAssetStates(states: StoryAssetState[]): StoryAsset
     ...state,
     referenceStateId: resolveStoryAssetStateReferenceId(states, state),
   }));
+}
+
+function normalizeStoryAssetAgeGroup(value: unknown): StoryAssetAgeGroup | null {
+  return typeof value === "string" && STORY_ASSET_AGE_GROUPS.has(value as StoryAssetAgeGroup)
+    ? value as StoryAssetAgeGroup
+    : null;
+}
+
+function compactText(...values: Array<string | null | undefined>): string {
+  return values.map((value) => value?.trim()).filter(Boolean).join("，");
+}
+
+function legacyAppearance(legacy: StoryCharacterLegacyFields): string {
+  return compactText(
+    legacy.appearance,
+    [legacy.physique, legacy.attireStyle].filter((value) => value?.trim()).join("，"),
+  ) || "角色初始外观";
+}
+
+function genderLabel(value: string | null | undefined): string {
+  return value === "male" ? "男性"
+    : value === "female" ? "女性"
+      : value === "other" ? "其他性别"
+        : "";
+}
+
+function stateImagePrompt(
+  state: { imagePrompt?: string | null; description?: string | null; ageGroup?: StoryAssetAgeGroup },
+  legacy: StoryCharacterLegacyFields,
+): string {
+  const age = state.ageGroup ? STORY_ASSET_AGE_LABELS[state.ageGroup] : "";
+  return compactText(
+    state.imagePrompt,
+    compactText(genderLabel(legacy.gender), age),
+    state.description,
+  ) || legacyAppearance(legacy);
+}
+
+/**
+ * 把角色旧的外貌/音色字段归并到状态资产，并补齐状态默认值。
+ * 这是确定性的契约归一化，不会覆盖已有状态的人工提示词或已生成资产。
+ */
+export function normalizeStoryCharacterStates(
+  states: StoryAssetState[] | null | undefined,
+  legacy: StoryCharacterLegacyFields = {},
+): StoryAssetState[] {
+  const source = (states ?? []).filter((state) => (
+    typeof state?.id === "string" && state.id.trim() && typeof state?.label === "string" && state.label.trim()
+  ));
+  const initialAge = normalizeStoryAssetAgeGroup(legacy.ageGroup) ?? "youth";
+  const initialDescription = legacyAppearance(legacy);
+  const initialImagePrompt = compactText(legacy.facePrompt, initialDescription)
+    || compactText(genderLabel(legacy.gender), STORY_ASSET_AGE_LABELS[initialAge], initialDescription);
+  const working = source.length > 0
+    ? source
+    : [{
+      id: "initial",
+      label: "初始状态",
+      description: initialDescription,
+      imagePrompt: initialImagePrompt,
+      ageGroup: initialAge,
+      ...(legacy.voiceTexture?.trim() ? { voicePrompt: legacy.voiceTexture.trim() } : {}),
+      referenceStateId: null,
+    } satisfies StoryAssetState];
+
+  let previousAge = initialAge;
+  const normalized = working.map((state, index) => {
+    const ageGroup = normalizeStoryAssetAgeGroup(state.ageGroup) ?? (index === 0 ? initialAge : previousAge);
+    previousAge = ageGroup;
+    const description = state.description?.trim()
+      || (index === 0 ? initialDescription : working[index - 1]?.description?.trim() || initialDescription);
+    const imagePrompt = state.imagePrompt?.trim()
+      || stateImagePrompt({ description, ageGroup }, legacy);
+    return {
+      ...state,
+      label: state.label.trim(),
+      description,
+      imagePrompt,
+      ageGroup,
+    };
+  });
+  return normalizeStoryAssetStates(normalized);
 }
 
 export interface ReferenceExtractItem {

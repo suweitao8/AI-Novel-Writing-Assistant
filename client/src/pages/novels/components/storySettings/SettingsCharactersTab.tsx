@@ -21,6 +21,7 @@ import { toast } from "@/components/ui/toast";
 import {
   AssetStatesEditor,
   CharacterAssetFormFields,
+  createInitialCharacterState,
   EMPTY_CHARACTER_FORM,
   type CharacterAssetFormState,
 } from "./assetForms";
@@ -65,10 +66,15 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
   const normalized = appliedKeyword.trim().toLowerCase();
   const filteredCharacters = normalized
     ? characters.filter((character) =>
-        [character.name, character.appearance, character.physique, character.attireStyle, character.voiceTexture]
+        [
+          character.name,
+          ...character.states.flatMap((state) => [state.label, state.description, state.imagePrompt, state.voicePrompt ?? ""]),
+        ]
           .filter((text): text is string => Boolean(text))
           .some((text) => text.toLowerCase().includes(normalized)))
     : characters;
+
+  const statesValid = states.length > 0 && states.every((state) => Boolean(state.label.trim() && state.description.trim()));
 
   const invalidate = async () => {
     await Promise.all([
@@ -83,20 +89,11 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       const payload = {
         name: form.name.trim(),
         gender: form.gender || undefined,
-        ageGroup: form.ageGroup || undefined,
-        appearance: form.appearance.trim() || undefined,
-        facePrompt: form.facePrompt.trim() || undefined,
-        voiceTexture: form.voiceTexture.trim() || undefined,
         states,
       };
       return editing
         ? updateStorySettingsCharacter(novelId, editing.id, {
             ...payload,
-            // 旧资料的体型/着装/性格/背景已并入外貌或不再展示，保存时清空避免下次编辑再拼一遍
-            physique: null,
-            attireStyle: null,
-            personality: null,
-            background: null,
           })
         : createStorySettingsCharacter(novelId, payload);
     },
@@ -121,11 +118,12 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       setForm({
         name: draft.name,
         gender: draft.gender || "unknown",
-        ageGroup: draft.ageGroup || "",
-        appearance: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；"),
-        facePrompt: draft.facePrompt ?? "",
-        voiceTexture: "",
       });
+      setStates([createInitialCharacterState({
+        ageGroup: draft.ageGroup as StoryAssetState["ageGroup"],
+        description: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
+        imagePrompt: [draft.facePrompt, draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
+      })]);
       toast.success("草稿已生成，可以直接修改后保存。");
     },
     onError: (error) => {
@@ -148,7 +146,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_CHARACTER_FORM);
-    setStates([]);
+    setStates([createInitialCharacterState()]);
     setHint("");
   };
 
@@ -159,13 +157,8 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setForm({
       name: character.name,
       gender: character.gender ?? "unknown",
-      ageGroup: character.ageGroup ?? "",
-      // 旧资料把体型/着装分开放：编辑时并入外貌体型一个字段（保存后旧字段清空）
-      appearance: [character.appearance, character.physique, character.attireStyle].filter(Boolean).join("；"),
-      facePrompt: character.facePrompt ?? "",
-      voiceTexture: character.voiceTexture ?? "",
     });
-    setStates(character.states ?? []);
+    setStates(character.states?.length ? character.states : [createInitialCharacterState()]);
   };
 
   const closeDialog = () => {
@@ -231,8 +224,8 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                         {character.gender && character.gender !== "unknown" ? (
                       <Badge variant="outline" className="shrink-0">{GENDER_LABELS[character.gender] ?? character.gender}</Badge>
                     ) : null}
-                    {character.ageGroup ? (
-                      <Badge variant="outline" className="shrink-0">{AGE_GROUP_LABELS[character.ageGroup] ?? character.ageGroup}</Badge>
+                    {character.states[0]?.ageGroup ? (
+                      <Badge variant="outline" className="shrink-0">{AGE_GROUP_LABELS[character.states[0].ageGroup] ?? character.states[0].ageGroup}</Badge>
                     ) : null}
                   </div>
                   <div className="flex shrink-0 gap-1">
@@ -255,13 +248,8 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
                     </Button>
                   </div>
                 </div>
-                {character.appearance || character.physique || character.attireStyle ? (
-                  <p className="text-xs leading-5 text-muted-foreground">
-                    外貌体型：{[character.appearance, character.physique, character.attireStyle].filter(Boolean).join("，")}
-                  </p>
-                ) : null}
-                {character.voiceTexture ? (
-                  <p className="text-xs leading-5 text-muted-foreground">音色：{character.voiceTexture}</p>
+                {character.states[0]?.description ? (
+                  <p className="text-xs leading-5 text-muted-foreground">初始状态：{character.states[0].description}</p>
                 ) : null}
                 {character.states.length > 0 ? (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
@@ -296,7 +284,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
           footer={
             <>
               <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim()}>
+              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim() || !statesValid}>
                 {saveMutation.isPending ? "保存中..." : "保存"}
               </Button>
             </>
@@ -329,9 +317,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
               </div>
             ) : null}
             <CharacterAssetFormFields value={form} onChange={updateField} />
-            {editing ? (
-              <AssetStatesEditor states={states} onChange={setStates} kind="character" asset={editing ? { novelId, assetId: editing.id } : undefined} />
-            ) : null}
+            <AssetStatesEditor states={states} onChange={setStates} kind="character" asset={editing ? { novelId, assetId: editing.id } : undefined} />
           </div>
         </AppDialogContent>
       </Dialog>

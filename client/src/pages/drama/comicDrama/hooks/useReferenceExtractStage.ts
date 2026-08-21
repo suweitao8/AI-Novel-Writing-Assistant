@@ -86,7 +86,7 @@ export type ApplyOneInput = {
   group: "characters" | "scenes" | "props" | "worldview";
   index: number;
   form:
-    | (CharacterAssetFormState & { __kind: "character" })
+    | (CharacterAssetFormState & { __kind: "character"; states: StoryAssetState[] })
     | (SceneAssetFormState & { __kind: "scene" })
     | (PropAssetFormState & { __kind: "prop" })
     | { __kind: "worldview"; name: string; description: string };
@@ -150,25 +150,14 @@ export function useReferenceExtractStage(input: {
         if (existingNames.characters.has(form.name.trim())) {
           throw new Error("已有同名角色，不能重复创建。");
         }
-        const imagePrompt = form.facePrompt.trim();
-        const voicePrompt = form.voiceTexture.trim();
-        const states: StoryAssetState[] = imagePrompt
-          ? [{
-            id: newStateId(),
-            label: "初始",
-            description: form.appearance.trim() || imagePrompt,
-            imagePrompt,
-            ...(voicePrompt ? { voicePrompt } : {}),
-            ...chapterTag,
-          }]
-          : [];
+        const states = form.states.map((state, index) => ({
+          ...state,
+          ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
+          ...chapterTag,
+        }));
         await createStorySettingsCharacter(input.novelId, {
           name: form.name.trim(),
           gender: form.gender || undefined,
-          ageGroup: form.ageGroup || undefined,
-          appearance: form.appearance.trim() || undefined,
-          facePrompt: imagePrompt || undefined,
-          voiceTexture: voicePrompt || undefined,
           states,
         });
       } else if (form.__kind === "scene") {

@@ -10,17 +10,19 @@ const {
   resolveStateReferenceImageUrl,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageService.js");
 
-test("buildStateImagePrompt：角色带基础外观与参考图一致性指令", () => {
+test("buildStateImagePrompt：角色带状态身份信息与参考图一致性指令", () => {
   const prompt = buildStateImagePrompt({
     kind: "character",
     assetName: "林澈",
-    baseAppearance: "黑色短发，黑色西装",
-    state: { label: "重伤", description: "左臂受伤流血", imagePrompt: "衣服破损，左臂缠着渗血的绷带" },
+    baseAppearance: null,
+    gender: "male",
+    state: { label: "重伤", ageGroup: "youth", description: "左臂受伤流血", imagePrompt: "衣服破损，左臂缠着渗血的绷带" },
     hasReference: true,
   }, ["style: 通用画风", "style: 现代都市"]);
   assert.match(prompt, /character state reference image/);
   assert.match(prompt, /subject: 林澈/);
-  assert.match(prompt, /base appearance: 黑色短发，黑色西装/);
+  assert.match(prompt, /gender: male/);
+  assert.match(prompt, /age group: youth/);
   assert.match(prompt, /state: 重伤/);
   assert.match(prompt, /state change: 左臂受伤流血/);
   assert.match(prompt, /state image prompt: 衣服破损/);

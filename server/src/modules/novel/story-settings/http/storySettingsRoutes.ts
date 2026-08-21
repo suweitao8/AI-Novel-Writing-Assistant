@@ -49,6 +49,7 @@ const assetStateSchema = z.object({
   description: z.string().trim().min(1).max(200),
   imagePrompt: z.string().trim().min(1).max(600),
   voicePrompt: z.string().trim().max(300).optional(),
+  ageGroup: z.enum(["child", "youth", "middle", "elder"]).optional(),
   chapterOrder: z.number().int().min(0).max(9999).optional(),
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),

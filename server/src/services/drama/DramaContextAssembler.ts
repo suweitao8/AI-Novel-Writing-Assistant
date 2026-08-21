@@ -1,6 +1,9 @@
 import { prisma } from "../../db/prisma";
 import { compactText, safeJsonParse } from "./utils/json";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryCharacterStates,
+  type StoryAssetState,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface BeatLite {
   order: number;
@@ -15,15 +18,25 @@ interface BeatLite {
 export async function loadNovelCharacterStatesByName(novelId: string): Promise<Map<string, StoryAssetState[]>> {
   const rows = await prisma.character.findMany({
     where: { novelId },
-    select: { name: true, statesJson: true },
+    select: {
+      name: true,
+      statesJson: true,
+      gender: true,
+      ageGroup: true,
+      physique: true,
+      attireStyle: true,
+      facePrompt: true,
+      appearance: true,
+      voiceTexture: true,
+    },
   });
   const map = new Map<string, StoryAssetState[]>();
   for (const row of rows) {
-    const states = safeJsonParse<StoryAssetState[]>(row.statesJson, []);
-    const valid = states.filter((state) => typeof state?.label === "string" && state.label.trim());
-    if (valid.length > 0) {
-      map.set(row.name.trim(), valid);
-    }
+    const states = normalizeStoryCharacterStates(
+      safeJsonParse<StoryAssetState[]>(row.statesJson, []),
+      row,
+    );
+    map.set(row.name.trim(), states);
   }
   return map;
 }

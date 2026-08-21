@@ -4,7 +4,9 @@ import type {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
   getDefaultStoryAssetStateVoiceMode,
+  normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
+  type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -31,6 +33,12 @@ export interface StateVoiceCharacterRow {
   name: string;
   voiceTexture: string | null;
   statesJson: string | null;
+  gender?: string | null;
+  ageGroup?: string | null;
+  physique?: string | null;
+  attireStyle?: string | null;
+  facePrompt?: string | null;
+  appearance?: string | null;
 }
 
 export interface StateVoiceGenerationInput {
@@ -95,6 +103,24 @@ function parseStates(value: string | null | undefined): StoryAssetState[] {
   }
 }
 
+function resolveStateVoicePrompt(
+  states: StoryAssetState[],
+  stateId: string,
+  character: StoryCharacterLegacyFields,
+): string {
+  const index = states.findIndex((state) => state.id === stateId);
+  for (let cursor = index; cursor >= 0; cursor -= 1) {
+    const state = states[cursor];
+    const prompt = [state?.voicePrompt, state?.voice?.prompt]
+      .find((value) => Boolean(value?.trim()))
+      ?.trim();
+    if (prompt) {
+      return prompt;
+    }
+  }
+  return character.voiceTexture?.trim() ?? "";
+}
+
 function serializeStates(states: StoryAssetState[]): string | null {
   return states.length > 0 ? JSON.stringify(normalizeStoryAssetStates(states)) : null;
 }
@@ -124,7 +150,19 @@ export class StoryAssetStateVoiceService {
     this.dependencies = {
       findCharacter: async (novelId, characterId) => prisma.character.findFirst({
         where: { id: characterId, novelId },
-        select: { id: true, novelId: true, name: true, voiceTexture: true, statesJson: true },
+        select: {
+          id: true,
+          novelId: true,
+          name: true,
+          voiceTexture: true,
+          statesJson: true,
+          gender: true,
+          ageGroup: true,
+          physique: true,
+          attireStyle: true,
+          facePrompt: true,
+          appearance: true,
+        },
       }),
       updateStates: async (characterId, statesJson) => {
         await prisma.character.update({ where: { id: characterId }, data: { statesJson } });
@@ -150,7 +188,10 @@ export class StoryAssetStateVoiceService {
       throw new AppError("没有找到这个角色。", 404);
     }
 
-    const states = parseStates(character.statesJson);
+    const states = normalizeStoryCharacterStates(
+      parseStates(character.statesJson),
+      character,
+    );
     const state = states.find((item) => item.id === stateId);
     if (!state) {
       throw new AppError("未找到这个角色状态。", 404);
@@ -180,7 +221,7 @@ export class StoryAssetStateVoiceService {
             mode,
             sourceStateId: previous.stateId,
             sampleAudioUrl: previous.sampleAudioUrl,
-            prompt: states.find((candidate) => candidate.id === previous.stateId)?.voice?.prompt,
+            prompt: resolveStateVoicePrompt(states, previous.stateId, character) || undefined,
             generatedAt: nowIso(),
           },
         }
@@ -189,9 +230,13 @@ export class StoryAssetStateVoiceService {
       return this.getUpdatedCharacter(novelId, characterId);
     }
 
-    const synthesisInput = buildStateVoiceSynthesisInput(character, state);
+    const inheritedVoicePrompt = resolveStateVoicePrompt(states, stateId, character);
+    const synthesisInput = buildStateVoiceSynthesisInput(
+      character,
+      inheritedVoicePrompt ? { ...state, voicePrompt: inheritedVoicePrompt } : state,
+    );
     if (!synthesisInput.emotion) {
-      const message = "请先填写角色基础音色或当前状态的音色提示词。";
+      const message = "请先填写初始状态的音色描述或当前状态的音色变化。";
       const failedStates = states.map((item) => item.id === stateId
         ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
         : item);

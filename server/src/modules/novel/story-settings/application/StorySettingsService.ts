@@ -5,7 +5,9 @@
 // - ensureSettings 幂等：只补缺失类别；regenerate 按类别重建。
 // - 角色不做删除式重建（保护关系与状态数据），重新生成只会补充缺失角色。
 import {
+  normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
+  type StoryCharacterLegacyFields,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
@@ -781,10 +783,16 @@ export class StorySettingsService {
         updatedAt: true,
       },
     });
-    return rows.map((row) => {
+    return Promise.all(rows.map(async (row) => {
       const { statesJson, ...rest } = row;
-      return { ...rest, states: parseStates(statesJson), updatedAt: row.updatedAt.toISOString() };
-    });
+      const states = normalizeStoryCharacterStates(parseStates(statesJson), row);
+      const normalizedStatesJson = serializeStates(states);
+      // 只做增量归并：旧角色第一次进入设定中心时补上初始状态，保留旧字段作为兼容回退。
+      if (normalizedStatesJson !== (statesJson?.trim() || null)) {
+        await prisma.character.update({ where: { id: row.id }, data: { statesJson: normalizedStatesJson } });
+      }
+      return { ...rest, states, updatedAt: row.updatedAt.toISOString() };
+    }));
   }
 
   async createCharacter(novelId: string, input: {
@@ -803,6 +811,16 @@ export class StorySettingsService {
     states?: StoryAssetState[];
   }): Promise<StorySettingsCharacter> {
     await requireNovel(novelId);
+    const legacy: StoryCharacterLegacyFields = {
+      gender: input.gender,
+      ageGroup: input.ageGroup,
+      physique: input.physique,
+      attireStyle: input.attireStyle,
+      facePrompt: input.facePrompt,
+      appearance: input.appearance,
+      voiceTexture: input.voiceTexture,
+    };
+    const states = normalizeStoryCharacterStates(input.states, legacy);
     const row = await prisma.character.create({
       data: {
         novelId,
@@ -817,7 +835,7 @@ export class StorySettingsService {
         personality: input.personality ?? null,
         appearance: input.appearance ?? null,
         background: input.background ?? null,
-        statesJson: serializeStates(input.states),
+        statesJson: serializeStates(states),
       },
     });
     return this.projectCharacter(row);
@@ -841,6 +859,19 @@ export class StorySettingsService {
     if (!row) {
       throw new AppError("没有找到这个角色。", 404);
     }
+    const nextLegacy: StoryCharacterLegacyFields = {
+      gender: input.gender !== undefined ? input.gender : row.gender,
+      ageGroup: input.ageGroup !== undefined ? input.ageGroup : row.ageGroup,
+      physique: input.physique !== undefined ? input.physique : row.physique,
+      attireStyle: input.attireStyle !== undefined ? input.attireStyle : row.attireStyle,
+      facePrompt: input.facePrompt !== undefined ? input.facePrompt : row.facePrompt,
+      appearance: input.appearance !== undefined ? input.appearance : row.appearance,
+      voiceTexture: input.voiceTexture !== undefined ? input.voiceTexture : row.voiceTexture,
+    };
+    const states = normalizeStoryCharacterStates(
+      input.states !== undefined ? input.states : parseStates(row.statesJson),
+      nextLegacy,
+    );
     const updated = await prisma.character.update({
       where: { id: row.id },
       data: {
@@ -852,7 +883,7 @@ export class StorySettingsService {
         ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
         ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
         ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
-        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
+        statesJson: serializeStates(states),
         ...(input.personality !== undefined ? { personality: input.personality } : {}),
         ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
         ...(input.background !== undefined ? { background: input.background } : {}),
@@ -1195,6 +1226,7 @@ export class StorySettingsService {
     statesJson?: string | null;
     updatedAt: Date;
   }): StorySettingsCharacter {
+    const states = normalizeStoryCharacterStates(parseStates(row.statesJson), row);
     return {
       id: row.id,
       name: row.name,
@@ -1208,7 +1240,7 @@ export class StorySettingsService {
       personality: row.personality,
       appearance: row.appearance,
       background: row.background,
-      states: parseStates(row.statesJson),
+      states,
       updatedAt: row.updatedAt.toISOString(),
     };
   }

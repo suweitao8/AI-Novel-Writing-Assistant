@@ -256,7 +256,7 @@ function buildCharacterPromptLine(character: CharacterLite, activeState?: StoryA
     character.persona ? `性格：${character.persona}` : "",
     extractVisualDesc(character.visualAnchor) ? `外貌：${extractVisualDesc(character.visualAnchor)}` : "",
     activeState
-      ? `状态：${activeState.label}（${activeState.imagePrompt?.trim() || activeState.description?.trim() || ""}）`
+      ? `状态：${activeState.label}${activeState.ageGroup ? `，年龄段：${activeState.ageGroup}` : ""}（${activeState.imagePrompt?.trim() || activeState.description?.trim() || ""}）`
       : "",
   ].filter(Boolean).join("；");
 }
