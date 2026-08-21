@@ -38,7 +38,15 @@ export interface StoryAssetStateVoice {
 
 export type StoryAssetAgeGroup = "child" | "youth" | "middle" | "elder";
 
+/** 场景状态的结构化环境字段；它们随场景状态变化，不再绑定在场景资产顶层。 */
+export type StoryAssetSceneType = "interior" | "exterior" | "nature";
+export type StoryAssetTimeOfDay = "morning" | "noon" | "night";
+export type StoryAssetWeather = "sunny" | "cloudy" | "rainy";
+
 const STORY_ASSET_AGE_GROUPS = new Set<StoryAssetAgeGroup>(["child", "youth", "middle", "elder"]);
+const STORY_ASSET_SCENE_TYPES = new Set<StoryAssetSceneType>(["interior", "exterior", "nature"]);
+const STORY_ASSET_TIMES_OF_DAY = new Set<StoryAssetTimeOfDay>(["morning", "noon", "night"]);
+const STORY_ASSET_WEATHERS = new Set<StoryAssetWeather>(["sunny", "cloudy", "rainy"]);
 const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
   child: "少年/儿童",
   youth: "青年",
@@ -71,6 +79,12 @@ export interface StoryAssetState {
   voicePrompt?: string;
   /** 角色状态的年龄段；场景/道具状态不使用。 */
   ageGroup?: StoryAssetAgeGroup;
+  /** 场景状态的空间类型；角色/道具状态不使用。 */
+  sceneType?: StoryAssetSceneType | null;
+  /** 场景状态的时间；角色/道具状态不使用。 */
+  timeOfDay?: StoryAssetTimeOfDay | null;
+  /** 场景状态的天气；角色/道具状态不使用。 */
+  weather?: StoryAssetWeather | null;
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
   /**
@@ -101,6 +115,9 @@ export interface StoryAssetStateDefaults {
   description?: string | null;
   imagePrompt?: string | null;
   ageGroup?: StoryAssetAgeGroup | null;
+  sceneType?: StoryAssetSceneType | null;
+  timeOfDay?: StoryAssetTimeOfDay | null;
+  weather?: StoryAssetWeather | null;
   voicePrompt?: string | null;
   chapterOrder?: number;
 }
@@ -117,6 +134,9 @@ export function createStoryAssetInitialState(
     description,
     imagePrompt,
     ...(input.ageGroup ? { ageGroup: input.ageGroup } : {}),
+    ...(input.sceneType !== undefined && input.sceneType !== null ? { sceneType: input.sceneType } : {}),
+    ...(input.timeOfDay !== undefined && input.timeOfDay !== null ? { timeOfDay: input.timeOfDay } : {}),
+    ...(input.weather !== undefined && input.weather !== null ? { weather: input.weather } : {}),
     ...(input.voicePrompt?.trim() ? { voicePrompt: input.voicePrompt.trim() } : {}),
     ...(input.chapterOrder !== undefined ? { chapterOrder: input.chapterOrder } : {}),
     referenceStateId: null,
@@ -161,6 +181,15 @@ export function normalizeStoryAssetStates(
         imagePrompt: typeof state.imagePrompt === "string" && state.imagePrompt.trim()
           ? state.imagePrompt.trim()
           : (index === 0 ? fallbackImagePrompt : description),
+        ...(index === 0 && state.sceneType === undefined && initialState.sceneType !== undefined
+          ? { sceneType: initialState.sceneType }
+          : {}),
+        ...(index === 0 && state.timeOfDay === undefined && initialState.timeOfDay !== undefined
+          ? { timeOfDay: initialState.timeOfDay }
+          : {}),
+        ...(index === 0 && state.weather === undefined && initialState.weather !== undefined
+          ? { weather: initialState.weather }
+          : {}),
       };
     })
     : [createStoryAssetInitialState(initialState)];
@@ -234,6 +263,21 @@ function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput 
   if (state.ageGroup !== undefined && state.ageGroup !== null
     && (typeof state.ageGroup !== "string"
       || !STORY_ASSET_AGE_GROUPS.has(state.ageGroup as StoryAssetAgeGroup))) {
+    return false;
+  }
+  if (state.sceneType !== undefined && state.sceneType !== null
+    && (typeof state.sceneType !== "string"
+      || !STORY_ASSET_SCENE_TYPES.has(state.sceneType as StoryAssetSceneType))) {
+    return false;
+  }
+  if (state.timeOfDay !== undefined && state.timeOfDay !== null
+    && (typeof state.timeOfDay !== "string"
+      || !STORY_ASSET_TIMES_OF_DAY.has(state.timeOfDay as StoryAssetTimeOfDay))) {
+    return false;
+  }
+  if (state.weather !== undefined && state.weather !== null
+    && (typeof state.weather !== "string"
+      || !STORY_ASSET_WEATHERS.has(state.weather as StoryAssetWeather))) {
     return false;
   }
   if (state.chapterOrder !== undefined && state.chapterOrder !== null

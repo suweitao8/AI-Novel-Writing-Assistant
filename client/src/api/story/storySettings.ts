@@ -430,6 +430,8 @@ export interface StoryEntityDraft {
   scene: {
     name: string;
     sceneType: string;
+    timeOfDay?: string | null;
+    weather?: string | null;
     summary: string;
     significance: string;
     environmentPrompt: string;

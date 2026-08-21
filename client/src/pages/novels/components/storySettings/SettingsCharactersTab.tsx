@@ -284,7 +284,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
-          className="max-w-5xl"
+          className="max-w-6xl"
           title={editing ? "编辑角色" : "添加角色"}
           description={editing
             ? "调整角色设定后，后续生成的人物言行会按新设定走。"

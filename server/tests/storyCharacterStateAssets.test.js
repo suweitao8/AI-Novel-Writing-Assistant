@@ -11,6 +11,7 @@ const {
   isCharacterInitialStatePreserved,
   validateStoryAssetStateList,
 } = require("../../shared/dist/types/novelReferenceExtraction.js");
+const { normalizeSceneStates } = require("../dist/modules/novel/story-settings/application/StorySettingsStatePolicy.js");
 
 test("手动角色没有外貌字段时也会生成有内容的初始状态", () => {
   const state = createStoryCharacterInitialState({ name: "叶晨", gender: "male" });
@@ -88,6 +89,36 @@ test("场景和道具没有状态时会形成可直接生成的初始状态", ()
   assert.equal(prop[0].description, "一枚磨损的黄铜怀表");
   assert.equal(prop[0].imagePrompt, "一枚磨损的黄铜怀表");
   assert.equal(createStoryAssetInitialState({ imagePrompt: "" }).referenceStateId, null);
+});
+
+test("场景旧顶层字段会进入初始状态，已有状态只补缺失值", () => {
+  const initial = normalizeSceneStates([], {
+    name: "旧车站",
+    summary: "停电后的站台",
+    environmentPrompt: "冷白月光照进空荡站台",
+    sceneType: "exterior",
+    timeOfDay: "night",
+    weather: "rainy",
+  })[0];
+  assert.equal(initial.sceneType, "exterior");
+  assert.equal(initial.timeOfDay, "night");
+  assert.equal(initial.weather, "rainy");
+
+  const preserved = normalizeSceneStates([{
+    id: "initial",
+    label: "自定义初始",
+    description: "白天的站台",
+    imagePrompt: "明亮站台",
+    sceneType: "interior",
+  }], {
+    name: "旧车站",
+    sceneType: "exterior",
+    timeOfDay: "night",
+    weather: "rainy",
+  })[0];
+  assert.equal(preserved.sceneType, "interior");
+  assert.equal(preserved.timeOfDay, "night");
+  assert.equal(preserved.weather, "rainy");
 });
 
 test("已有状态只补缺省字段，不覆盖人工提示词与已生成资产", () => {
