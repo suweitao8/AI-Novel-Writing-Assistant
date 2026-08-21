@@ -31,6 +31,8 @@
 - 来源素材页应展示最低限度的质量提示：梗概、节拍数量、角色数量和硬事实数量。提示不替代 AI 质量闸，但能避免用户在明显缺素材时继续生成。
 - 来源素材不足时，工作台应提供 AI 补充建议，把缺口转成用户能回答的问题和下一步建议。补充建议属于新手引导层，不应把 `SourceBundle` 的内部字段或质量快照裸露给用户作为任务说明。
 - 视频任务状态必须在项目内可刷新并可汇总查看；provider 状态、任务 id、结果链接、失败提示和重新刷新入口都属于分镜视频生产链，不应要求用户离开短剧工作台查看。
+- 视频默认 provider 的解析顺序固定为：环境变量 DRAMA_VIDEO_DEFAULT_PROVIDER（仅接受已注册 provider）→ local_ffmpeg → mock。local_ffmpeg 是本机首帧图与配音合成真实视频的默认通道，mock 只作为显式联调选择；provider 列表必须返回唯一的 isDefault 标记，单镜、批量和提示词记录都复用同一个解析入口。
+- 视频工作台只对当前非 superseded 提示词中带 providerTaskId 且处于 queued/running 的任务自动轮询，进入 succeeded/failed 后停止；失败原因保留在稳定投影字段中，重试复用当前提示词与参考素材、清空旧结果后重新创建 provider 任务，不重新生成 Prompt 或修改历史版本。
 - `DramaVideoPrompt.providerResult` 只保留 provider 原始回执；工作台展示应优先读取稳定投影字段，例如 `status`、`providerTaskId`、`resultUrl` 和 `failureReason`。这样 provider 返回结构变化时，用户仍能看到一致的视频任务状态、结果链接和失败原因。
 - 视频 provider 仍通过 `VideoProviderPort` 抽象接入；可用 provider 必须由后端注册表暴露给前端，前端只能让用户选择已注册 provider，不能把 provider 名称写死在按钮逻辑里。前端只能把它呈现为短剧项目内的后续生产步骤，不能把短剧工作台变成泛用视频工具。
 - 通用 HTTP 视频通道只在配置 `DRAMA_VIDEO_HTTP_CREATE_URL` 后注册；可选配置包括 `DRAMA_VIDEO_HTTP_STATUS_URL`（支持 `{taskId}` 占位符）、`DRAMA_VIDEO_HTTP_API_KEY`、`DRAMA_VIDEO_HTTP_PROVIDER_ID`、`DRAMA_VIDEO_HTTP_PROVIDER_LABEL`、`DRAMA_VIDEO_HTTP_PROVIDER_DESCRIPTION`、`DRAMA_VIDEO_HTTP_TIMEOUT_MS` 和 `DRAMA_VIDEO_HTTP_SUPPORTS_REF_IMAGES`。外部接口返回的 `taskId` / `providerTaskId` / `id`、`status`、`resultUrl` / `videoUrl` 会被标准化为 `DramaVideoPrompt` 的 provider 任务状态。
