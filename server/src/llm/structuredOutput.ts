@@ -207,6 +207,14 @@ export function resolveStructuredOutputProfile(input: {
       preferredStructuredStrategy: "json_object",
     });
   }
+  if (input.provider === "grok-cli") {
+    return buildProfile({
+      family: "grok-cli",
+      nativeJsonSchema: true,
+      nativeJsonObject: true,
+      preferredStructuredStrategy: "json_schema",
+    });
+  }
   if (input.provider === "minimax" || MINIMAX_HOST_PATTERN.test(host) || model.startsWith("minimax-m2")) {
     return buildProfile({
       family: "minimax",

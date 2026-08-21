@@ -159,7 +159,9 @@ export function buildImageGenerationRequestBody(input: ImageProviderGenerateInpu
     n: input.count,
   };
 
-  if (input.provider === "grok") {
+  if (input.provider === "grok_build") {
+    requestBody.response_format = "b64_json";
+  } else if (input.provider === "grok") {
     const aspectRatio = mapSizeToAspectRatio(input.size);
     if (aspectRatio) {
       requestBody.aspect_ratio = aspectRatio;

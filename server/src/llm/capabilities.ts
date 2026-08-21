@@ -165,8 +165,18 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonObject: true,
       supportsJsonSchema: true,
     },
+    "grok-cli": {
+      // Grok CLI bridge 接收 response_format 并转成 CLI schema/prompt 约束。
+      supportsJsonObject: true,
+      supportsJsonSchema: true,
+    },
     codex: {
       // codex 是图片专用本地通道，不支持文本结构化输出。
+      supportsJsonObject: false,
+      supportsJsonSchema: false,
+    },
+    grok_build: {
+      // Grok Build 是图片专用本地通道，不参与文本结构化输出。
       supportsJsonObject: false,
       supportsJsonSchema: false,
     },

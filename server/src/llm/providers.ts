@@ -14,6 +14,8 @@ export interface ProviderConfig {
   envBaseURLKey?: string;
   envModelKey?: string;
   maxTokens?: number;
+  /** 本机订阅桥接使用的默认 bearer，不是云端 API 密钥。 */
+  defaultApiKey?: string;
   requiresApiKey?: boolean;
   // 部分本地桥接服务（如 VoxCPM2 语音桥）不提供 /models 列表接口；
   // 标记为 false 后模型列表固定使用注册表里的 models。
@@ -152,6 +154,18 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     envBaseURLKey: "OPENCODE_BASE_URL",
     envModelKey: "OPENCODE_MODEL",
   },
+  "grok-cli": {
+    name: "Grok Build 文本",
+    baseURL: "http://127.0.0.1:18764/v1",
+    defaultModel: "grok-cli/grok-4.6",
+    models: ["grok-cli/grok-4.6"],
+    envKey: "GROK_CLI_API_KEY",
+    envBaseURLKey: "GROK_CLI_BASE_URL",
+    envModelKey: "GROK_CLI_MODEL",
+    defaultApiKey: "local-grok-cli",
+    requiresApiKey: false,
+    supportsModelList: false,
+  },
   codex: {
     name: "Codex 图片",
     baseURL: "http://127.0.0.1:18766/v1",
@@ -160,6 +174,18 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     envKey: "CODEX_API_KEY",
     envBaseURLKey: "CODEX_BASE_URL",
     envModelKey: "CODEX_MODEL",
+  },
+  grok_build: {
+    name: "Grok Build 图片",
+    baseURL: "http://127.0.0.1:18767",
+    defaultModel: "grok-build-image",
+    models: ["grok-build-image"],
+    envKey: "GROK_IMAGE_BRIDGE_API_KEY",
+    envBaseURLKey: "GROK_IMAGE_BRIDGE_URL",
+    envModelKey: "GROK_IMAGE_MODEL",
+    defaultApiKey: "grok-bridge-local",
+    requiresApiKey: false,
+    supportsModelList: false,
   },
   voxcpm2: {
     name: "VoxCPM2 语音",
@@ -191,6 +217,13 @@ export function getProviderEnvApiKey(provider: LLMProvider): string | undefined 
   const envKey = PROVIDERS[provider].envKey;
   const value = process.env[envKey];
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+export function getProviderDefaultApiKey(provider: LLMProvider): string | undefined {
+  if (!isBuiltInProvider(provider)) {
+    return undefined;
+  }
+  return PROVIDERS[provider].defaultApiKey;
 }
 
 export function getProviderEnvBaseUrl(provider: LLMProvider): string | undefined {

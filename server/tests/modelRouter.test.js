@@ -70,6 +70,20 @@ test("resolveModel treats legacy 4096 maxTokens as unset", async () => {
   }
 });
 
+test("resolveModel uses the local Grok CLI text slot by default", async () => {
+  const originalFindUnique = prisma.modelRouteConfig.findUnique;
+
+  prisma.modelRouteConfig.findUnique = async () => null;
+
+  try {
+    const resolved = await resolveModel("planner");
+    assert.equal(resolved.provider, "grok-cli");
+    assert.equal(resolved.model, "grok-cli/grok-4.6");
+  } finally {
+    prisma.modelRouteConfig.findUnique = originalFindUnique;
+  }
+});
+
 test("resolveModel preserves route protocol and structured response format preferences", async () => {
   const originalFindUnique = prisma.modelRouteConfig.findUnique;
 

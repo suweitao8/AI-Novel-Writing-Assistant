@@ -9,7 +9,7 @@ import { getProviderEnvModel, PROVIDERS } from "./providers";
 // 槽位的服务地址、API Key、模型均可编辑：更换供应商时修改槽位配置即可，
 // 产品不再提供按“厂商”维度逐个配置的界面。
 export const MODEL_CATEGORY_PROVIDERS = {
-  text: "opencode",
+  text: "grok-cli",
   image: "codex",
   audio: "voxcpm2",
 } as const satisfies Record<"text" | "image" | "audio", BuiltinLLMProvider>;
@@ -30,7 +30,7 @@ export function getAudioModelProvider(): BuiltinLLMProvider {
 
 // 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（OpenCode / Codex），
 // 用户不需要填写 API Key，计费走订阅而非 API 账户。
-const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["opencode", "codex"]);
+const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["opencode", "grok-cli", "codex", "grok_build"]);
 
 export function isLocalSubscriptionProvider(provider: BuiltinLLMProvider): boolean {
   return LOCAL_SUBSCRIPTION_PROVIDERS.has(provider);
