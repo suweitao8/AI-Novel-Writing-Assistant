@@ -48,6 +48,7 @@ const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
 
 /** 角色状态归并时读取的旧角色字段；旧列保留，但不再作为新的编辑入口。 */
 export interface StoryCharacterLegacyFields {
+  name?: string | null;
   gender?: string | null;
   ageGroup?: string | null;
   physique?: string | null;
@@ -393,6 +394,37 @@ function genderLabel(value: string | null | undefined): string {
         : "";
 }
 
+/**
+ * 为角色创建可直接编辑和生成资产的默认首状态。
+ *
+ * 角色创建不能依赖客户端是否传入 states：姓名、性别和已有兼容字段足以
+ * 组成一份稳定的初始状态；AI 草稿提供的更具体字段会在传入时覆盖这些默认值。
+ */
+export function createStoryCharacterInitialState(
+  input: StoryCharacterLegacyFields = {},
+): StoryAssetState {
+  const ageGroup = normalizeStoryAssetAgeGroup(input.ageGroup) ?? "youth";
+  const ageLabel = STORY_ASSET_AGE_LABELS[ageGroup];
+  const identity = compactText(input.name, genderLabel(input.gender), ageLabel);
+  const existingAppearance = compactText(
+    input.appearance,
+    [input.physique, input.attireStyle].filter((value) => value?.trim()).join("，"),
+  );
+  const description = existingAppearance || (identity ? `${identity}的常态外观` : "角色初始外观");
+  const imagePrompt = compactText(input.facePrompt, identity, description) || description;
+  const voicePrompt = input.voiceTexture?.trim()
+    || compactText(genderLabel(input.gender), ageLabel, "自然清晰的说话声音")
+    || "自然清晰的说话声音";
+  return createStoryAssetInitialState({
+    id: "initial",
+    label: "初始状态",
+    description,
+    imagePrompt,
+    ageGroup,
+    voicePrompt,
+  });
+}
+
 function stateImagePrompt(
   state: { imagePrompt?: string | null; description?: string | null; ageGroup?: StoryAssetAgeGroup },
   legacy: StoryCharacterLegacyFields,
@@ -414,25 +446,14 @@ export function normalizeStoryCharacterStates(
   legacy: StoryCharacterLegacyFields = {},
 ): StoryAssetState[] {
   const source = (states ?? []).filter(isStoryAssetStateRecord);
-  const initialAge = normalizeStoryAssetAgeGroup(legacy.ageGroup) ?? "youth";
-  const initialDescription = legacyAppearance(legacy);
-  const identityPrompt = compactText(genderLabel(legacy.gender), STORY_ASSET_AGE_LABELS[initialAge]);
-  const initialImagePrompt = compactText(legacy.facePrompt, identityPrompt, initialDescription)
-    || initialDescription;
-  const initialVoicePrompt = legacy.voiceTexture?.trim()
-    || compactText(identityPrompt, "自然清晰的说话声音")
-    || "自然清晰的说话声音";
+  const defaultInitialState = createStoryCharacterInitialState(legacy);
+  const initialAge = defaultInitialState.ageGroup ?? "youth";
+  const initialDescription = defaultInitialState.description;
+  const initialImagePrompt = defaultInitialState.imagePrompt;
+  const initialVoicePrompt = defaultInitialState.voicePrompt ?? "自然清晰的说话声音";
   const working = source.length > 0
     ? source
-    : [{
-      id: "initial",
-      label: "初始状态",
-      description: initialDescription,
-      imagePrompt: initialImagePrompt,
-      ageGroup: initialAge,
-      voicePrompt: initialVoicePrompt,
-      referenceStateId: null,
-    } satisfies StoryAssetState];
+    : [defaultInitialState];
 
   let previousAge = initialAge;
   const normalized = working.map((state, index) => {

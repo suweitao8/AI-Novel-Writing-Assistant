@@ -48,6 +48,27 @@ const GENDER_LABELS: Record<string, string> = {
   unknown: "未设定",
 };
 
+export function prepareCharacterStatesForSave(
+  states: StoryAssetState[],
+  form: CharacterFormState,
+  isCreating: boolean,
+): StoryAssetState[] {
+  if (!isCreating || states.length === 0) {
+    return states;
+  }
+  const defaultInitialState = createInitialCharacterState({ gender: EMPTY_CHARACTER_FORM.gender });
+  if (JSON.stringify(states[0]) !== JSON.stringify(defaultInitialState)) {
+    return states;
+  }
+  return [
+    createInitialCharacterState({
+      name: form.name.trim(),
+      gender: form.gender || "unknown",
+    }),
+    ...states.slice(1),
+  ];
+}
+
 export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCharactersTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
@@ -89,7 +110,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       const payload = {
         name: form.name.trim(),
         gender: form.gender || undefined,
-        states,
+        states: prepareCharacterStatesForSave(states, form, creating),
       };
       return editing
         ? updateStorySettingsCharacter(novelId, editing.id, {
@@ -120,6 +141,8 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         gender: draft.gender || "unknown",
       });
       setStates([createInitialCharacterState({
+        name: draft.name,
+        gender: draft.gender || "unknown",
         ageGroup: draft.ageGroup as StoryAssetState["ageGroup"],
         description: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
         imagePrompt: [draft.facePrompt, draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
@@ -147,7 +170,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setEditing(null);
     setCreating(true);
     setForm(EMPTY_CHARACTER_FORM);
-    setStates([createInitialCharacterState()]);
+    setStates([createInitialCharacterState({ gender: EMPTY_CHARACTER_FORM.gender })]);
     setHint("");
   };
 
@@ -159,7 +182,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       name: character.name,
       gender: character.gender ?? "unknown",
     });
-    setStates(character.states?.length ? character.states : [createInitialCharacterState()]);
+    setStates(character.states?.length
+      ? character.states
+      : [createInitialCharacterState({ name: character.name, gender: character.gender ?? "unknown" })]);
   };
 
   const closeDialog = () => {

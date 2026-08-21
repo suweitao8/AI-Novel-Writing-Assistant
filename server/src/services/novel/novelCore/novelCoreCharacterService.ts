@@ -14,6 +14,7 @@ import {
   LLMGenerateOptions,
 } from "./novelCoreShared";
 import { serializeCharacterProhibitions } from "../characters/characterHardFacts";
+import { createStoryCharacterInitialState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 export class NovelCoreCharacterService {
   private readonly worldContextGateway = new WorldContextGateway();
@@ -45,6 +46,14 @@ export class NovelCoreCharacterService {
       data: {
         novelId,
         ...data,
+        statesJson: JSON.stringify([createStoryCharacterInitialState({
+          name: payload.name,
+          gender: payload.gender,
+          appearance: payload.appearance,
+          physique: payload.physique,
+          attireStyle: payload.attireStyle,
+          voiceTexture: payload.voiceTexture,
+        })]),
         ...(prohibitions ? { prohibitionsJson: serializeCharacterProhibitions(prohibitions) } : {}),
       },
     });

@@ -181,6 +181,7 @@ export class StoryAssetStateVoiceService {
           where: { id: characterId, novelId },
           select: {
             statesJson: true,
+            name: true,
             gender: true,
             ageGroup: true,
             physique: true,
