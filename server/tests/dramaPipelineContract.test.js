@@ -180,7 +180,7 @@ function installPipelineStubs() {
     dramaProject: {
       findUnique: async () => buildProject(),
     },
-    // 首帧图/立绘生成经 dramaArtStyleResolver 读取通用画风（AppSetting）与小说默认具体风格
+    // 首帧图/立绘生成经 dramaArtStyleResolver 读取三类资产画风（AppSetting）与小说默认具体风格
     // （NovelSettingsWorld）；管线测试不关心风格内容，返回空即用内置默认。
     appSetting: {
       findUnique: async () => null,

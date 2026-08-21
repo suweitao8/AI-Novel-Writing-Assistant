@@ -240,7 +240,7 @@ export default function ScriptTab(props: ScriptTabProps) {
   };
 
   // 切换画风：在脚本末尾追加一条【画风：名】标记——标记对后续内容生效，
-  // 之后的画面/视频生成用新组合（通用画风不变，时代风格换成新选的）。
+  // 之后的画面/视频生成沿用资产画风，时代风格换成新选的。
   const switchEraStyle = (label: string) => {
     if (!label || label === effectiveEraLabel) {
       return;

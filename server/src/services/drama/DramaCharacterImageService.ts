@@ -17,7 +17,7 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
-import { buildCharacterStylePromptLines } from "./visual/dramaVisualStyles";
+import { buildAssetStylePromptLines } from "./visual/dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./visual/dramaArtStyleResolver";
 import { buildCharacterStateSheetPrompt } from "./visual/characterStateSheet";
 import { GROK_BUILD_IMAGE_PROVIDER } from "../image/assetProviderRouting";
@@ -198,7 +198,7 @@ export class DramaCharacterImageService {
     });
     const prompt = buildDramaCharacterSheetPrompt(
       character,
-      buildCharacterStylePromptLines(styleContext.universal, styleContext.specific),
+      buildAssetStylePromptLines("character", styleContext.assets.character, styleContext.specific),
     );
 
     const adapter: ImageTargetAdapter<CharacterSheetData> = {

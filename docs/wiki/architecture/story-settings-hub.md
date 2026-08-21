@@ -37,6 +37,30 @@
 - **道具表单从简（2026-08-19 用户决定）**：道具就是 道具名 + 画面提示词（visualPrompt）两个字段——道具类型/持有者/重要度/剧情功能/首次登场提示对生成画面没有作用，全部移出表单、卡片、漫剧资产详情弹窗与提取应用弹窗。客户端-only 收敛：DB 与 API 契约不动（propType/importance 服务端缺省，仍可被 storySettingsBundle 批量生成填充）；编辑保存时把 description/plotFunction/ownerCharacterId/firstAppearHint 置 null 清空，propType/importance 不传保留旧值。预填折叠规则：编辑/AI 草稿/提取应用都是 `visualPrompt || description`——旧数据只写外观描述时带进画面提示词，不丢内容。漫剧大纲快捷新建里道具的一句说明直接作为 visualPrompt 落库。小说写作注入（storySettingsPromptText）对 null 字段本来就有容错，旧道具已保存的剧情功能在下次编辑保存后从注入文本中消失，属预期。
 - **角色删除**：`DELETE /novels/:id/settings/characters/:characterId`。设定资产可直接删；被写作链路（状态账本/关系/时间线等 FK）引用的角色删除会被数据库拒绝（P2003 → 409 明确报错），不做级联删除。
 - **场景表单＝场景名/场景类型/时间/天气/图片提示词（2026-08-21 用户决定）**：时间（`NovelScene.timeOfDay`，morning/noon/night）与天气（`weather`，sunny/cloudy/rainy）是结构化枚举列（20260821120000 双迁移目录，additive），影响场景图的光线与氛围——生图提示词已接线（见下条资产参考图）。「氛围/环境描述」（summary）与「故事作用」（significance）移出表单与详情（DB 列保留、旧数据仍在返回值里，AI 设定包仍会生成）。**提示词统一命名「图片提示词」**：角色 facePrompt/场景 environmentPrompt/道具 visualPrompt 的字段名不动，UI 标签（表单/详情/状态编辑器）全部一致；提取（reference_parse@v6）的场景条目同步产出结构化 timeOfDay/weather，imagePrompt 的措辞三处统一。
+
+## 漫剧资产画风与状态图接线（2026-08-22）
+
+### Background
+
+设定中心的状态系统记录资产随剧情发生的外观变化；状态图片不是普通插画，而是下一次生图和分镜首帧使用的参考资产。因此状态图必须继承所属资产类别的视图规格，不能统一套用角色模板。
+
+### Decision
+
+- 角色基础信息只保留姓名和性别；年龄、样貌、图片提示词与音色相关内容继续放在角色状态里。角色创建由状态工厂自动生成首个初始状态，后续状态由用户手动添加并可选择继承上一个状态。
+- `StoryAssetStateImageService.generateStateImage` 根据 `kind` 选择 `styleContext.assets[kind]`：角色走四视图 sheet，场景走 360° 全景，道具走 45° 三点透视。
+- 状态变化描述和参考状态链只影响当前状态内容与一致性；不能改变所属类别的固定规格，也不能把角色状态变成场景或道具图。
+- 系统画风设置只保存三类正向覆盖，状态图、基础资产图和分镜首帧都从同一个解析上下文读取，避免页面保存后只有某一个入口生效。
+
+### Current Rule
+
+- 场景状态继续执行空环境规则，叙事中的人物、动物和怪物改写为环境痕迹；这条规则与场景画风的固定负面约束一起进入生成。
+- 状态图写回仍使用 `statesJson` 条件更新和状态链参考解析，画风改造不得削弱既有并发保护、初始状态保护或图片保留规则。
+- 设定中心页面负责编辑状态内容；画风管理页面负责三类资产的正向质感。两者不互相复制字段。
+
+### Failure Modes
+
+- 只修改状态编辑器而不更新生成服务，会出现状态图仍使用旧类别画风；任何新资产类别必须从状态生成入口验证。
+- 直接把状态描述拼成可覆盖格式的自由提示词，会允许用户把四视图/全景/透视改成另一类资产；格式要求必须留在服务端固定配置。
 - **资产参考图生成（2026-08-21 起，视图口径沿用旧项目）**：**场景＝360° 等距全景**（`IMAGE_SPECS.scenePanorama` 横版；提示词=全景构图语言 + 图片提示词 + timeOfDay/weather 映射的光线描述 + 两层画风；严格不出现人物、动物、怪物或其他活体）、**道具＝45° 三点透视单件视图**（`IMAGE_SPECS.characterAsset`）；**角色状态四视图**由 `StoryAssetStateImageService` 通过一次完整 sheet 请求生成四等宽面板，角色基础设计稿仍由其原有角色资产服务维护。状态存 `NovelScene.imageData`/`NovelProp.imageData`（GeneratedImageState JSON，20260821140000 双迁移），文件落 `generated-images/story-assets/{scenes|props}/<id>/`；服务 `StoryAssetImageService`，路由 `POST /novels/:id/settings/{scenes|props}/:assetId/generate-image`（同步等待）+ `GET …/image`（文件服务）；入口在资产页签编辑弹窗（可重新生成覆盖），脚本页右侧详情弹窗展示。角色/场景/道具状态编辑统一使用 `AssetStatesEditor` 的左列表右详情布局，列表独立滚动、图片使用 16:9 原生横版区域，避免空状态把详情栏撑出大块空白。**首帧图参考链**：`DramaShotKeyframeService` 挂角色设计稿的同时，按 `shot.location` 与场景名精确匹配挂场景全景、按画面文本断词匹配挂道具视图（meta kind=scene/asset）——都只在开启参考图时挂。
 - **统一渲染媒介基线（2026-08-21）**：角色、场景、道具的无参考图生成都使用同一套虚幻引擎 5 影视化游戏资产方向。角色四视图只改变视角槽位，不把“摄影棚模特/普通照片”当作展示媒介；场景保持空环境约束，道具保持单体资产约束。角色状态四视图额外以漫剧主角的商业审美为硬约束：对称五官、清爽健康、利落发型、挺拔精瘦和面部吸引力优先，末世感只落在表情、服装磨损与材质细节上，避免把主角生成成憔悴或不讨喜的形象。时代风格只负责现代、末世、玄幻等氛围叠加，不能覆盖明确的资产内容。状态图缩略图使用 `generatedAt` 版本参数，点击图片进入独立大图预览，避免浏览器继续显示旧文件。
 

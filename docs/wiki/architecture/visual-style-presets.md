@@ -45,3 +45,38 @@
 - 道具/武器等角色资产：单张 3/4 透视图；服装类资产保留正面/侧面/背面多视图。
 
 提示词实现在各自 service 的 prompt builder（`ComicCharacterImageService` / `DramaCharacterImageService` / `ComicSceneService` / `ComicCharacterAssetService`）；尺寸一律取 `server/src/services/image/imageSpecs.ts` 的 `IMAGE_SPECS`（见《生图规格规范》页），全景用 3:2 横版承载（gpt-image 最宽 1536x1024）。
+
+## 漫剧资产画风拆分（2026-08-22 当前规则）
+
+### Background
+
+漫剧的角色、场景和道具虽然共享渲染质感，但参考图用途不同：角色需要锁定人物造型，场景需要覆盖完整空间，道具需要展示单件结构。把三者放进一个“通用画风”会让固定视图要求互相污染，也会让设置页出现角色专用字段却宣称适用于全部画面的问题。
+
+### Decision
+
+- 漫剧资产画风只由 `server/src/services/drama/visual/dramaVisualStyles.ts` 的三类默认配置提供：`character`、`scene`、`prop`。
+- 角色资产和角色状态图固定为横向四视图：头部正面、头部侧面、全身正面、全身背面。
+- 场景资产和场景状态图固定为横向 360° 全景，覆盖前方、左右两侧、后方和地平线。
+- 道具资产和道具状态图固定为横向单件 45° 三点透视图。
+- `formatInstructions` 与 `avoidInstructions` 是系统固定约束；设置页只允许编辑该类别的 `styleInstructions` 正向补充。负面约束按类别隔离，场景和道具不继承角色人体结构禁区。
+- `drama.assetArtStyles` 只保存三类正向覆盖。历史系统画风记录保留在数据库中但不进入新的解析器、页面或生成链。
+
+### Current Rule
+
+- 资产图/状态图按 `buildAssetStylePromptLines(kind, asset, specific)` 组装：固定规格 → 类别标签 → 类别正向画风 → 小说时代/题材风格。
+- 分镜首帧按镜头实际出现的角色、地点和道具选择类别，只注入类别标签、正向画风和对应负面约束；固定四视图、360° 全景、45° 透视只属于参考资产，不进入竖屏首帧提示词。
+- 统一解析入口 `resolveDramaArtStyleContext` 返回 `assets.character/scene/prop` 与 `specific`。时代风格仍按脚本标记、项目选择、小说默认、内置默认的原顺序解析。
+- 设置入口是 `/settings/art-style` 的“画风管理”页，GET `/api/settings/drama-asset-styles` 返回三张卡，PUT `/api/settings/drama-asset-styles/:kind` 只更新一个类别。保存一个类别不能覆盖其他类别。
+
+### Failure Modes
+
+- 将 `assets.character` 传给场景或道具生成，会把错误的固定格式和人体禁区带入提示词；调用方必须按 `kind` 选择资产。
+- 将整个资产集合的格式说明传给分镜，会把四视图或全景要求错误地带入首帧；分镜只能使用 `buildShotStylePromptLines`。
+- 新增资产类别时必须同时补默认规格、正向风格、负面约束、设置卡片、生成调用方和 focused tests，不能只增加一个 UI 选项。
+
+### Related Modules
+
+- `server/src/services/settings/DramaAssetArtStyleSettingsService.ts`
+- `server/src/services/drama/visual/dramaArtStyleResolver.ts`
+- `server/src/services/drama/visual/DramaShotKeyframeService.ts`
+- `client/src/pages/settings/views/ArtStyleSettingsPage.tsx`

@@ -1,44 +1,79 @@
-// 漫剧美术风格：两层组合体系（2026-08-21 起）。
-// 1. 通用画风（universal）：所有画面共用的渲染质感基线——UE5 级 3D 写实、电影化光影，
-//    不含任何时代/题材属性（现代、末世、玄幻都由本书画风叠加）。系统级设置，存 AppSetting
-//    （drama.universalArtStyle），留空用内置默认；设置页「通用画风」可改。
+// 漫剧美术风格：资产类别层 + 本书题材层（2026-08-22 起）。
+// 1. 资产类别层（character/scene/prop）：分别负责角色、场景、道具的固定参考图规格、
+//    渲染质感和类别专属禁区。固定规格只进入对应资产图，不进入分镜首帧图。
 // 2. 本书画风（specific）：题材与氛围叠加层——内置预设（现代都市/末世废土/东方玄幻…）或
 //    小说自定义（NovelSettingsWorld.artStylesJson，如 现代↔末世 切换）。只写题材氛围，
-//    不写渲染媒介（媒介由通用画风决定），且不得覆盖角色/场景的明确描述。
+//    排在资产类别层之后，且不得覆盖角色/场景/道具的明确描述。
 // 风格指令自 2026-08-21 起统一用中文书写（用户要求，自定义画风路径本就是中文，
 // 分镜/场景描述也是中文，管道已按中文提示词运转）。
-// 两层组合后注入：镜头首帧图（DramaShotKeyframeService）与角色设计稿/立绘（DramaCharacterImageService），
-// 解析入口见 dramaArtStyleResolver.ts。
+// 资产图、状态图和镜头首帧图都通过 dramaArtStyleResolver.ts 解析后注入。
 // 历史注：v1 预设把「渲染媒介」和「时代题材」混在一条里（动漫/写实末日/写实古装…），同一本小说
-// 想在 现代↔末世 切换时只能整条换、画质跟着跳；用户 2026-08-21 拆成两层后媒介恒定、题材可切。
+// 想在 现代↔末世 切换时只能整条换、画质跟着跳；现在三类资产各自保持媒介与规格稳定、题材可切。
 
-/** 通用画风：渲染质感基线，不含时代/题材属性。 */
-export interface DramaUniversalArtStyle {
+/** 资产画风类别的稳定顺序，同时也是设置页三张卡片的展示顺序。 */
+export const DRAMA_ASSET_STYLE_KINDS = ["character", "scene", "prop"] as const;
+
+export type DramaAssetStyleKind = (typeof DRAMA_ASSET_STYLE_KINDS)[number];
+
+/** 角色、场景、道具各自的固定规格与渲染质感。 */
+export interface DramaAssetVisualStyle {
+  kind: DramaAssetStyleKind;
   label: string;
   /** 面向用户的一句话中文摘要（UI 展示用，不进提示词）。 */
   summary: string;
-  /** 渲染媒介与质感的正向指令（中文，直接拼入图片提示词）。 */
+  /** 资产参考图必须遵守的固定规格（只进入资产图和状态图）。 */
+  formatInstructions: string;
+  /** 当前类别可编辑的正向渲染质感指令（中文，直接拼入图片提示词）。 */
   styleInstructions: string;
-  /** 风格禁区（中文，拼入 negative prompt）。 */
+  /** 当前类别固定的风格禁区（中文，拼入 negative prompt，不在 UI 中编辑）。 */
   avoidInstructions: string;
   /** 短风格标签（中文短语，强化模型对质感基线的识别）。 */
   styleTag: string;
 }
 
-export const DEFAULT_UNIVERSAL_ART_STYLE: DramaUniversalArtStyle = {
-  label: "通用画风（默认）",
-  summary: "影视化 3D 游戏渲染：虚幻引擎级材质、电影化光影，全部画面共用",
-  styleInstructions:
-    "统一影视化游戏美术方向：所有角色、场景、道具都以虚幻引擎5实时渲染的高模CG资产呈现，像高预算东方动作游戏的游戏内过场或角色资产展示图，而不是现实相机拍摄的照片。采用数字雕刻的面部与服装模型、基于物理的材质、真实的皮肤发丝织物金属微细节、电影级体积光与轮廓光、反射与阴影、胶片调色、空间层次、克制景深和8K大片成片质感。整体参考《黑神话：悟空》《凡人修仙传》这类高预算东方游戏和影视美术，只参考数字雕刻、材质、光影和镜头质感，不复制具体角色、服饰或场景。角色四视图使用中性浅灰资产展示板与统一转台光，呈现经过数字雕刻的游戏角色模型，不要摄影棚模特、证件照、商品目录或真人照片感觉；场景与道具使用真实的UE5游戏镜头和可见材质细节。此风格只作用于渲染媒介、材质、光照与成片质感；不得据此推断或改变五官、年龄、性别、身材比例、服装、道具、环境或背景。始终遵循明确写出的角色描述、参考图与场景描述，不得覆盖。",
-  avoidInstructions:
-    "禁止：平面2D动画、卡通、插画、赛璐璐上色、手绘油画风。不要普通真人摄影棚肖像照、摄影棚模特、证件照、商品目录、手机照片、旅游照片或相机写真感。不要低多边形游戏素材感、塑料玩具质感、蜡像质感。不要过度磨皮、HDR过度处理、堆砌装饰。不要人体结构错误、多肢、畸形手。不要水印、签名或文字。",
-  styleTag: "虚幻引擎5影视化游戏渲染，电影级3D资产质感",
+export const DEFAULT_DRAMA_ASSET_STYLES: Record<DramaAssetStyleKind, DramaAssetVisualStyle> = {
+  character: {
+    kind: "character",
+    label: "角色画风",
+    summary: "角色资产采用统一的横向四视图设计稿，保持人物造型连续",
+    formatInstructions:
+      "固定输出横向角色四视图设计稿：同一角色依次展示头部正面、头部侧面、全身正面、全身背面，四个视图保持比例、服装、发型和配饰一致，使用中性浅灰展示背景与统一光线。",
+    styleInstructions:
+      "影视化三维游戏美术质感：高精度数字雕刻、真实材质、细腻皮肤发丝织物和金属细节、电影级轮廓光与体积光、自然阴影、克制景深、统一色彩与高画质成片。",
+    avoidInstructions:
+      "禁止：平面2D动画、卡通、插画、赛璐璐上色、手绘油画风；不要真人摄影、证件照、商品目录；不要人体结构错误、多肢、畸形手、视图之间造型不一致；不要水印、签名或文字。",
+    styleTag: "角色资产影视化三维游戏渲染，电影级材质质感",
+  },
+  scene: {
+    kind: "scene",
+    label: "场景画风",
+    summary: "场景资产采用覆盖完整空间的横向 360° 全景图",
+    formatInstructions:
+      "固定输出横向 360° 场景全景图：完整覆盖空间前方、左右两侧、后方与地平线，保持地面、墙面、天花和光照连续，不出现人物主体，不裁切关键环境信息。",
+    styleInstructions:
+      "影视化三维场景美术质感：高精度环境建模、真实材质与空间层次、清晰的建筑和自然细节、电影级光照与阴影、自然的大气透视、统一色彩和高画质全景成片。",
+    avoidInstructions:
+      "禁止：平面2D动画、卡通、插画、赛璐璐上色、手绘油画风；不要摄影照片拼接感、低多边形素材感、塑料或蜡质表面、空间断裂、重复接缝、裁切环境；不要水印、签名或文字。",
+    styleTag: "场景资产影视化三维环境渲染，连续全景空间质感",
+  },
+  prop: {
+    kind: "prop",
+    label: "道具画风",
+    summary: "道具资产采用单件居中的横向 45° 三点透视图",
+    formatInstructions:
+      "固定输出横向单件道具 45° 三点透视图：道具居中且完整可见，展示正面、侧面和顶部关系，保持比例、材质和结构清晰，使用中性背景与统一光线，不叠加人物或场景陈列。",
+    styleInstructions:
+      "影视化三维道具美术质感：高精度硬表面或软材质建模、真实材质细节、清晰结构与磨损层次、电影级轮廓光和柔和阴影、克制反射、统一色彩与高画质资产展示成片。",
+    avoidInstructions:
+      "禁止：平面2D动画、卡通、插画、赛璐璐上色、手绘油画风；不要商品目录或普通产品摄影感、低多边形素材感、塑料或蜡质表面、结构模糊、重复道具、杂乱陈列；不要水印、签名或文字。",
+    styleTag: "道具资产影视化三维渲染，电影级材质与结构质感",
+  },
 };
 
 /** 本书画风（题材/氛围叠加层）：内置预设与小说自定义风格的公共形状。 */
 export interface DramaSpecificStyle {
   label: string;
-  /** 题材氛围指令（中文，直接拼入图片提示词、排在通用画风之后）。 */
+  /** 题材氛围指令（中文，直接拼入图片提示词、排在资产画风之后）。 */
   styleInstructions: string;
   /** 风格禁区（中文，拼入 negative prompt），自定义风格可缺省。 */
   avoidInstructions?: string;
@@ -53,7 +88,7 @@ export interface DramaVisualStylePreset extends DramaSpecificStyle {
   styleFamily: "animation" | "live_action";
 }
 
-// 本书画风预设：只写题材与氛围，渲染媒介一律交给通用画风；
+// 本书画风预设：只写题材与氛围，渲染媒介一律交给资产类别层；
 // 全部预设都必须遵循画面里明确写出的时代/地点/服饰描述，不擅自加料。
 export const DRAMA_VISUAL_STYLE_PRESETS: DramaVisualStylePreset[] = [
   {
@@ -181,36 +216,58 @@ export function matchDramaEraStyle(
   return custom && custom.styleInstructions ? custom : null;
 }
 
-// 首帧图提示词的风格片段：通用质感基线在前、题材氛围在后。
-export function buildKeyframeStylePromptLines(
-  universal: DramaUniversalArtStyle,
+/** 资产图/状态图的风格片段：固定规格、资产标签、资产正向画风、题材氛围。 */
+export function buildAssetStylePromptLines(
+  kind: DramaAssetStyleKind,
+  asset: DramaAssetVisualStyle,
   specific: DramaSpecificStyle | null,
 ): string[] {
-  const tags = [universal.styleTag, specific?.styleTag].filter(Boolean).join("，");
+  const tags = [asset.styleTag, specific?.styleTag].filter(Boolean).join("，");
+  const label = asset.kind === kind ? asset.label : `${asset.label}（${kind}）`;
   return [
-    `竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧，${tags}`,
-    universal.styleInstructions,
-    ...(specific ? [specific.styleInstructions] : []),
+    `资产类型：${label}。${asset.formatInstructions} ${tags}`.trim(),
+    asset.styleInstructions,
+    ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
   ];
 }
 
-// 角色设计稿/立绘提示词的风格片段。
-export function buildCharacterStylePromptLines(
-  universal: DramaUniversalArtStyle,
+/** 分镜首帧的风格片段：只取镜头实际使用的资产类别，不带资产参考图固定规格。 */
+export function buildShotStylePromptLines(
+  styles: Record<DramaAssetStyleKind, DramaAssetVisualStyle>,
+  usedKinds: readonly DramaAssetStyleKind[],
   specific: DramaSpecificStyle | null,
 ): string[] {
-  const tags = [universal.styleTag, specific?.styleTag].filter(Boolean).join("，");
+  const kinds = DRAMA_ASSET_STYLE_KINDS.filter((kind) => usedKinds.includes(kind));
+  const assets = kinds.map((kind) => styles[kind]);
+  const tags = [...assets.map((asset) => asset.styleTag), specific?.styleTag].filter(Boolean).join("，");
   return [
-    `${tags}，电影级画质，8K 细节`,
-    universal.styleInstructions,
-    ...(specific ? [specific.styleInstructions] : []),
+    tags
+      ? `竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧，${tags}`
+      : "竖屏 9:16 短剧首帧图，作为图生视频的决定性第一帧",
+    ...assets.map((asset) => asset.styleInstructions),
+    ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
   ];
 }
 
-// negative prompt 的风格禁区：通用 + 本书画风两层合并。
-export function combineStyleAvoidInstructions(
-  universal: DramaUniversalArtStyle,
+/** 单个资产图/状态图的风格禁区：资产类别固定约束 + 本书画风约束。 */
+export function combineAssetStyleAvoidInstructions(
+  asset: DramaAssetVisualStyle,
   specific: DramaSpecificStyle | null,
 ): string {
-  return [universal.avoidInstructions, specific?.avoidInstructions].filter(Boolean).join(" ");
+  return [asset.avoidInstructions, specific?.avoidInstructions].filter(Boolean).join(" ");
+}
+
+/** 多类资产同时进入分镜时合并对应禁区，避免不相关类别的约束污染首帧。 */
+export function combineShotStyleAvoidInstructions(
+  styles: Record<DramaAssetStyleKind, DramaAssetVisualStyle>,
+  usedKinds: readonly DramaAssetStyleKind[],
+  specific: DramaSpecificStyle | null,
+): string {
+  const kinds = DRAMA_ASSET_STYLE_KINDS.filter((kind) => usedKinds.includes(kind));
+  return [
+    ...kinds.map((kind) => styles[kind].avoidInstructions),
+    specific?.avoidInstructions,
+  ]
+    .filter(Boolean)
+    .join(" ");
 }

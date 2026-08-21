@@ -4,17 +4,15 @@ import { Link } from "react-router-dom";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import type { DramaVisualStyle } from "@/api/media/drama";
 import { getStorySettingsWorld, updateStorySettingsWorld } from "@/api/story/storySettings";
-import { getUniversalArtStyle } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
-// 「设定 · 美术风格」工作面：通用画风（系统级渲染质感，一行摘要 + 到设置页修改）
+// 「设定 · 美术风格」工作面：显示三类资产画风规范入口
 // + 时代风格（题材/氛围——内置预设与本书自定义合成一个点选列表，选中即默认时代风格），
-// 两层组合后用于立绘/首帧图/视频生成。章节脚本里可随时【画风：名】切换（切换后后面
-// 都用新的、新章节沿用最近一次），脚本标记优先于这里选的默认值（解析链见 dramaArtStyleResolver）。
+// 章节脚本里可随时【画风：名】切换，脚本标记优先于这里选的默认值。
 interface ArtStylePanelProps {
   novelId: string;
   /** 内置风格预设（GET /drama/visual-styles），第一项是内置默认风格。 */
@@ -40,11 +38,6 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
     queryKey: queryKeys.novels.storySettingsWorld(props.novelId),
     queryFn: () => getStorySettingsWorld(props.novelId),
   });
-  const universalQuery = useQuery({
-    queryKey: queryKeys.settings.universalArtStyle,
-    queryFn: getUniversalArtStyle,
-  });
-  const universal = universalQuery.data?.data;
   const world = worldQuery.data?.data;
   const savedCustoms = world?.artStyles ?? [];
   const builtinDefaultId = props.styleOptions[0]?.id ?? null;
@@ -123,13 +116,13 @@ export default function ArtStylePanel(props: ArtStylePanelProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-        <span className="shrink-0 text-muted-foreground">通用画风</span>
-        <span className="min-w-0 text-foreground">{universal ? universal.summary : "正在读取…"}</span>
+        <span className="shrink-0 text-muted-foreground">资产画风</span>
+        <span className="min-w-0 text-foreground">角色四视图 · 场景 360° 全景 · 道具 45° 透视</span>
         <Link
           to="/settings/art-style"
           className="shrink-0 text-xs text-primary underline-offset-4 hover:underline"
         >
-          修改
+          管理
         </Link>
       </div>
 

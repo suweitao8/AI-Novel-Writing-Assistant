@@ -1,0 +1,114 @@
+const assert = require("node:assert/strict");
+const { test } = require("node:test");
+const {
+  DRAMA_ASSET_ART_STYLE_SETTING_KEY,
+  getDramaAssetArtStyleOverrides,
+  normalizeDramaAssetStyleKind,
+  parseDramaAssetArtStylePayload,
+  normalizeDramaAssetStylePrompt,
+  saveDramaAssetArtStyle,
+} = require("../dist/services/settings/DramaAssetArtStyleSettingsService.js");
+const { resolveDramaArtStyleContext } = require("../dist/services/drama/visual/dramaArtStyleResolver.js");
+const { prisma } = require("../dist/db/prisma.js");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const settingsRoutesSource = fs.readFileSync(
+  path.join(__dirname, "../src/modules/settings/http/settingsRoutes.ts"),
+  "utf8",
+);
+
+test("只接受三个资产类别", () => {
+  assert.equal(normalizeDramaAssetStyleKind("character"), "character");
+  assert.equal(normalizeDramaAssetStyleKind("scene"), "scene");
+  assert.equal(normalizeDramaAssetStyleKind("prop"), "prop");
+  assert.equal(normalizeDramaAssetStyleKind("universal"), null);
+  assert.equal(normalizeDramaAssetStyleKind(" CHARACTER "), "character");
+  assert.equal(normalizeDramaAssetStyleKind(null), null);
+});
+
+test("损坏配置回落为空的三类覆盖", () => {
+  assert.deepEqual(parseDramaAssetArtStylePayload("损坏"), {
+    characterPrompt: "",
+    scenePrompt: "",
+    propPrompt: "",
+  });
+  assert.deepEqual(parseDramaAssetArtStylePayload(JSON.stringify({ characterPrompt: "角色质感" })), {
+    characterPrompt: "角色质感",
+    scenePrompt: "",
+    propPrompt: "",
+  });
+});
+
+test("每类提示词独立限制为 2000 字符", () => {
+  assert.equal(normalizeDramaAssetStylePrompt("  角色质感  "), "角色质感");
+  assert.equal(normalizeDramaAssetStylePrompt("x".repeat(2100)).length, 2000);
+  assert.equal(normalizeDramaAssetStylePrompt(42), "");
+});
+
+test("保存单个类别时保留另外两类覆盖", async () => {
+  const originalFindUnique = prisma.appSetting.findUnique;
+  const originalUpsert = prisma.appSetting.upsert;
+  let storedValue = JSON.stringify({
+    characterPrompt: "角色自定义",
+    scenePrompt: "",
+    propPrompt: "道具自定义",
+  });
+  try {
+    prisma.appSetting.findUnique = async ({ where }) => {
+      assert.equal(where.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      return { key: where.key, value: storedValue };
+    };
+    prisma.appSetting.upsert = async ({ where, create, update }) => {
+      assert.equal(where.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      assert.equal(create.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      storedValue = update.value;
+      return { key: where.key, value: storedValue };
+    };
+
+    const result = await saveDramaAssetArtStyle("scene", { prompt: "  场景自定义  " });
+    assert.deepEqual(result, {
+      characterPrompt: "角色自定义",
+      scenePrompt: "场景自定义",
+      propPrompt: "道具自定义",
+    });
+    assert.deepEqual(await getDramaAssetArtStyleOverrides(), result);
+  } finally {
+    prisma.appSetting.findUnique = originalFindUnique;
+    prisma.appSetting.upsert = originalUpsert;
+  }
+});
+
+test("设置路由只暴露三类资产画风接口", () => {
+  assert.match(settingsRoutesSource, /\/drama-asset-styles/);
+  assert.doesNotMatch(settingsRoutesSource, /\/universal-art-style/);
+  assert.match(settingsRoutesSource, /getDramaAssetArtStyleOverrides/);
+  assert.match(settingsRoutesSource, /saveDramaAssetArtStyle/);
+});
+
+test("解析器按类别读取新的覆盖，不读取历史单一画风", async () => {
+  const originalFindUnique = prisma.appSetting.findUnique;
+  const originalWorldFindUnique = prisma.novelSettingsWorld.findUnique;
+  const originalChapterFindMany = prisma.chapter.findMany;
+  try {
+    prisma.appSetting.findUnique = async ({ where }) => {
+      assert.equal(where.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      return {
+        key: where.key,
+        value: JSON.stringify({ characterPrompt: "角色自定义", scenePrompt: "", propPrompt: "道具自定义" }),
+      };
+    };
+    prisma.novelSettingsWorld.findUnique = async () => null;
+    prisma.chapter.findMany = async () => [];
+
+    const context = await resolveDramaArtStyleContext({});
+    assert.equal(context.assets.character.styleInstructions, "角色自定义");
+    assert.match(context.assets.scene.styleInstructions, /影视化三维场景/);
+    assert.equal(context.assets.prop.styleInstructions, "道具自定义");
+    assert.equal(context.specific, null);
+  } finally {
+    prisma.appSetting.findUnique = originalFindUnique;
+    prisma.novelSettingsWorld.findUnique = originalWorldFindUnique;
+    prisma.chapter.findMany = originalChapterFindMany;
+  }
+});

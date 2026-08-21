@@ -396,21 +396,32 @@ export async function testLLMConnection(payload: {
   return data;
 }
 
-export interface UniversalArtStyleSettings {
-  /** 自定义通用画风提示词；空串表示使用内置默认。 */
-  prompt: string;
-  /** 内置默认提示词（供预览与恢复默认）。 */
-  defaultPrompt: string;
-  /** 面向用户的一句话摘要：未自定义时是内置摘要，自定义时是自定义内容开头。 */
+export type DramaAssetStyleKind = "character" | "scene" | "prop";
+
+export interface DramaAssetArtStyleSetting {
+  kind: DramaAssetStyleKind;
+  label: string;
   summary: string;
+  prompt: string;
+  defaultPrompt: string;
+  formatInstructions: string;
+  fixedAvoidInstructions: string;
+  customized: boolean;
 }
 
-export async function getUniversalArtStyle() {
-  const { data } = await apiClient.get<ApiResponse<UniversalArtStyleSettings>>("/settings/universal-art-style");
+export interface DramaAssetArtStyleSettingsData {
+  styles: DramaAssetArtStyleSetting[];
+}
+
+export async function getDramaAssetArtStyles() {
+  const { data } = await apiClient.get<ApiResponse<DramaAssetArtStyleSettingsData>>("/settings/drama-asset-styles");
   return data;
 }
 
-export async function updateUniversalArtStyle(payload: { prompt: string }) {
-  const { data } = await apiClient.put<ApiResponse<UniversalArtStyleSettings>>("/settings/universal-art-style", payload);
+export async function updateDramaAssetArtStyle(kind: DramaAssetStyleKind, payload: { prompt: string }) {
+  const { data } = await apiClient.put<ApiResponse<{ setting: DramaAssetArtStyleSetting }>>(
+    `/settings/drama-asset-styles/${kind}`,
+    payload,
+  );
   return data;
 }

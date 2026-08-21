@@ -45,10 +45,14 @@ import {
   saveStyleEngineRuntimeSettings,
 } from "../../../services/settings/StyleEngineRuntimeSettingsService";
 import {
-  getGlobalArtStyleSettings,
-  saveGlobalArtStyleSettings,
-} from "../../../services/settings/GlobalArtStyleSettingsService";
-import { DEFAULT_UNIVERSAL_ART_STYLE } from "../../../services/drama/visual/dramaVisualStyles";
+  getDramaAssetArtStyleOverrides,
+  saveDramaAssetArtStyle,
+} from "../../../services/settings/DramaAssetArtStyleSettingsService";
+import {
+  DEFAULT_DRAMA_ASSET_STYLES,
+  DRAMA_ASSET_STYLE_KINDS,
+  type DramaAssetStyleKind,
+} from "../../../services/drama/visual/dramaVisualStyles";
 import { registerCustomProviderRoutes } from "./customProviderRoutes";
 import { registerLLMSelectionRoutes } from "./llmSelectionRoutes";
 import { probeAudioSpeechChannel } from "../../../services/audio/speechProvider";
@@ -323,45 +327,74 @@ router.put(
   },
 );
 
-/** 通用画风：所有漫剧画面共用的渲染质感基线（题材画风在每本书的美术风格里选）。 */
-router.get("/universal-art-style", async (_req, res, next) => {
-  try {
-    const settings = await getGlobalArtStyleSettings();
-    const data = {
-      ...settings,
-      defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions,
-      summary: settings.prompt ? settings.prompt.slice(0, 80) : DEFAULT_UNIVERSAL_ART_STYLE.summary,
+interface DramaAssetArtStyleSetting {
+  kind: DramaAssetStyleKind;
+  label: string;
+  summary: string;
+  prompt: string;
+  defaultPrompt: string;
+  formatInstructions: string;
+  fixedAvoidInstructions: string;
+  customized: boolean;
+}
+
+function buildDramaAssetArtStyleSettings(
+  overrides: Awaited<ReturnType<typeof getDramaAssetArtStyleOverrides>>,
+): DramaAssetArtStyleSetting[] {
+  return DRAMA_ASSET_STYLE_KINDS.map((kind) => {
+    const style = DEFAULT_DRAMA_ASSET_STYLES[kind];
+    const field = `${kind}Prompt` as "characterPrompt" | "scenePrompt" | "propPrompt";
+    const prompt = overrides[field] || style.styleInstructions;
+    return {
+      kind,
+      label: style.label,
+      summary: style.summary,
+      prompt,
+      defaultPrompt: style.styleInstructions,
+      formatInstructions: style.formatInstructions,
+      fixedAvoidInstructions: style.avoidInstructions,
+      customized: Boolean(overrides[field]),
     };
+  });
+}
+
+const dramaAssetArtStyleKindSchema = z.enum(DRAMA_ASSET_STYLE_KINDS);
+const dramaAssetArtStyleUpdateSchema = z.object({
+  prompt: z.string().max(2000),
+});
+
+router.get("/drama-asset-styles", async (_req, res, next) => {
+  try {
+    const overrides = await getDramaAssetArtStyleOverrides();
+    const data = { styles: buildDramaAssetArtStyleSettings(overrides) };
     res.status(200).json({
       success: true,
       data,
-      message: "通用画风读取成功。",
+      message: "画风设置读取成功。",
     } satisfies ApiResponse<typeof data>);
   } catch (error) {
     next(error);
   }
 });
 
-const universalArtStyleUpdateSchema = z.object({
-  prompt: z.string().max(2000).optional(),
-});
-
 router.put(
-  "/universal-art-style",
-  validate({ body: universalArtStyleUpdateSchema }),
+  "/drama-asset-styles/:kind",
+  validate({ params: z.object({ kind: dramaAssetArtStyleKindSchema }), body: dramaAssetArtStyleUpdateSchema }),
   async (req, res, next) => {
     try {
-      const body = req.body as z.infer<typeof universalArtStyleUpdateSchema>;
-      const settings = await saveGlobalArtStyleSettings(body);
-      const data = {
-        ...settings,
-        defaultPrompt: DEFAULT_UNIVERSAL_ART_STYLE.styleInstructions,
-        summary: settings.prompt ? settings.prompt.slice(0, 80) : DEFAULT_UNIVERSAL_ART_STYLE.summary,
-      };
+      const kind = req.params.kind as DramaAssetStyleKind;
+      const body = req.body as z.infer<typeof dramaAssetArtStyleUpdateSchema>;
+      const overrides = await saveDramaAssetArtStyle(kind, body);
+      const setting = buildDramaAssetArtStyleSettings(overrides).find((item) => item.kind === kind);
+      if (!setting) {
+        next(new AppError("未找到对应的资产画风。", 404));
+        return;
+      }
+      const data = { setting };
       res.status(200).json({
         success: true,
         data,
-        message: settings.prompt ? "通用画风已保存。" : "通用画风已恢复默认。",
+        message: body.prompt.trim() ? `${setting.label}已保存。` : `${setting.label}已恢复默认。`,
       } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);

@@ -1,28 +1,30 @@
-// 漫剧画面风格的统一解析入口：把「通用画风（系统级）+ 时代风格（题材层）」
-// 组合成生成侧可直接使用的两层上下文。首帧图与角色立绘都从这里取风格，保证两边一致。
+// 漫剧画面风格的统一解析入口：把「三类资产画风（系统级）+ 时代风格（题材层）」
+// 组合成生成侧可直接使用的上下文。资产图、状态图与首帧图都从这里取风格，保证一致。
 //
 // 时代风格解析优先级（2026-08-21 用户决定：脚本切换是主入口，切换后后面都用新的）：
 //   1. 章节脚本【画风：名】标记——从最新章节往前找最近一次标记（新章节无标记=沿用上一次）
 //   2. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
 //   3. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
-//   4. 都没有 → 只用通用画风
+//   4. 都没有 → 只用三类资产默认画风
 // 自定义风格名的提示词存在 NovelSettingsWorld.artStylesJson（[{label,prompt}]，身份=label）；
 // 解析逻辑与 StorySettingsService.parseArtStyles 同语义（本模块不 import 小说侧服务，避免
 // 跨模块深依赖，两边契约由 tests/dramaArtStyle.test.js 与 story-settings 测试共同锁定）。
 import { prisma } from "../../../db/prisma";
-import { getGlobalArtStyleSettings } from "../../settings/GlobalArtStyleSettingsService";
+import { getDramaAssetArtStyleOverrides } from "../../settings/DramaAssetArtStyleSettingsService";
 import {
+  DEFAULT_DRAMA_ASSET_STYLES,
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
-  DEFAULT_UNIVERSAL_ART_STYLE,
+  DRAMA_ASSET_STYLE_KINDS,
   DRAMA_VISUAL_STYLE_PRESETS,
   extractLastEraStyleMarker,
   matchDramaEraStyle,
+  type DramaAssetStyleKind,
+  type DramaAssetVisualStyle,
   type DramaSpecificStyle,
-  type DramaUniversalArtStyle,
 } from "./dramaVisualStyles";
 
 export interface ResolvedDramaArtStyle {
-  universal: DramaUniversalArtStyle;
+  assets: Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
   specific: DramaSpecificStyle | null;
 }
 
@@ -99,11 +101,14 @@ async function loadNovelScriptEraStyleKey(novelId: string): Promise<string | nul
 }
 
 export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInput): Promise<ResolvedDramaArtStyle> {
-  const universal: DramaUniversalArtStyle = { ...DEFAULT_UNIVERSAL_ART_STYLE };
-  const setting = await getGlobalArtStyleSettings();
-  if (setting.prompt) {
-    universal.styleInstructions = setting.prompt;
-  }
+  const overrides = await getDramaAssetArtStyleOverrides();
+  const assets = Object.fromEntries(
+    DRAMA_ASSET_STYLE_KINDS.map((kind) => {
+      const style = DEFAULT_DRAMA_ASSET_STYLES[kind];
+      const prompt = overrides[`${kind}Prompt` as "characterPrompt" | "scenePrompt" | "propPrompt"];
+      return [kind, { ...style, styleInstructions: prompt || style.styleInstructions }];
+    }),
+  ) as Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
 
   const novelId = input.sourceRef?.trim() || null;
   const novelArtStyles = novelId
@@ -114,19 +119,19 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
   if (scriptKey) {
     const specific = matchDramaEraStyle(scriptKey, novelArtStyles.artStyles);
     if (specific) {
-      return { universal, specific };
+      return { assets, specific };
     }
   }
 
   const chosen = input.visualStyle?.trim();
   if (chosen) {
-    return { universal, specific: matchSpecificStyle(chosen, novelArtStyles.artStyles) };
+    return { assets, specific: matchSpecificStyle(chosen, novelArtStyles.artStyles) };
   }
 
   if (!novelArtStyles.defaultArtStyle) {
-    return { universal, specific: null };
+    return { assets, specific: null };
   }
-  return { universal, specific: matchSpecificStyle(novelArtStyles.defaultArtStyle, novelArtStyles.artStyles) };
+  return { assets, specific: matchSpecificStyle(novelArtStyles.defaultArtStyle, novelArtStyles.artStyles) };
 }
 
 // 当前生效时代风格的总览（供「脚本」页签显示与切换）：source 说明它来自哪里——

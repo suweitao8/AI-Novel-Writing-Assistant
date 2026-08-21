@@ -3,8 +3,8 @@
 // 作首帧图参考时空间信息最全）；道具＝45° 三点透视单件视图。角色状态四视图由
 // StoryAssetStateImageService 生成并通过本地固定模板合成。
 // 状态存 NovelScene.imageData / NovelProp.imageData（GeneratedImageState JSON），
-// 文件落 generated-images/story-assets/{scenes|props}/<id>/，画风走两层组合
-// （dramaArtStyleResolver：通用质感 + 本小说默认具体风格）。
+// 文件落 generated-images/story-assets/{scenes|props}/<id>/，画风按资产类别组合
+// （dramaArtStyleResolver：场景/道具质感 + 本小说默认具体风格）。
 import path from "node:path";
 import fs from "node:fs/promises";
 import { prisma } from "../../../../db/prisma";
@@ -13,7 +13,10 @@ import { runImageGeneration, safeJsonParse, parseImageStateSummary, type Generat
 import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
-import { combineStyleAvoidInstructions } from "../../../../services/drama/visual/dramaVisualStyles";
+import {
+  buildAssetStylePromptLines,
+  combineAssetStyleAvoidInstructions,
+} from "../../../../services/drama/visual/dramaVisualStyles";
 import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
 
 const SCENE_DIR = "scenes";
@@ -61,9 +64,12 @@ async function resolveAssetFile(kind: "scene" | "prop", assetId: string, base: s
   return null;
 }
 
-function buildStyleLines(universal: { styleTag: string; styleInstructions: string }, specific: { styleTag?: string; styleInstructions: string } | null): string[] {
-  const tags = [universal.styleTag, specific?.styleTag].filter(Boolean).join(", ");
-  return [tags, universal.styleInstructions, ...(specific ? [specific.styleInstructions] : [])];
+function buildStyleLines(
+  kind: "scene" | "prop",
+  asset: Parameters<typeof buildAssetStylePromptLines>[1],
+  specific: Parameters<typeof buildAssetStylePromptLines>[2],
+): string[] {
+  return buildAssetStylePromptLines(kind, asset, specific);
 }
 
 // 时间/天气 → 光线描述（结构化字段转生图语言；两项都未设定时不加，交给图片提示词本身）。
@@ -135,7 +141,7 @@ export class StoryAssetImageService {
       throw new AppError("没有找到这个场景。", 404);
     }
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const prompt = buildScenePanoramaPrompt(scene, buildStyleLines(styleContext.universal, styleContext.specific));
+    const prompt = buildScenePanoramaPrompt(scene, buildStyleLines("scene", styleContext.assets.scene, styleContext.specific));
     const adapter: ImageTargetAdapter<GeneratedImageState> = {
       kind: `story.scene:${sceneId}`,
       loadState: async () => safeJsonParse<GeneratedImageState>(scene.imageData, { status: "idle" }),
@@ -150,7 +156,7 @@ export class StoryAssetImageService {
       provider: provider ?? resolveAssetImageProvider({ kind: "scene", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.scenePanorama,
-      negativePrompt: combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
+      negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.scene, styleContext.specific),
     });
     const row = await prisma.novelScene.findUnique({ where: { id: sceneId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);
@@ -163,7 +169,7 @@ export class StoryAssetImageService {
       throw new AppError("没有找到这个道具。", 404);
     }
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const prompt = buildPropViewPrompt(prop, buildStyleLines(styleContext.universal, styleContext.specific));
+    const prompt = buildPropViewPrompt(prop, buildStyleLines("prop", styleContext.assets.prop, styleContext.specific));
     const adapter: ImageTargetAdapter<GeneratedImageState> = {
       kind: `story.prop:${propId}`,
       loadState: async () => safeJsonParse<GeneratedImageState>(prop.imageData, { status: "idle" }),
@@ -178,7 +184,7 @@ export class StoryAssetImageService {
       provider: provider ?? resolveAssetImageProvider({ kind: "prop", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.characterAsset,
-      negativePrompt: combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
+      negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.prop, styleContext.specific),
     });
     const row = await prisma.novelProp.findUnique({ where: { id: propId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);
