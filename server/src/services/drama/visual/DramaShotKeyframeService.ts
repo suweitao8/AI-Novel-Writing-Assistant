@@ -2,7 +2,11 @@ import { getImageModelProvider } from "../../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryAssetStates,
+  parseStoryAssetStatesJson,
+  type StoryAssetState,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
@@ -84,6 +88,22 @@ interface PropSettingLite {
   description: string | null;
   /** 45° 透视参考图（生成过且成功才有）。 */
   imageUrl: string | null;
+}
+
+function resolveInitialSettingState(
+  statesJson: string | null,
+  fallback: { name: string; description?: string | null; imagePrompt?: string | null },
+): { imagePrompt: string; imageUrl: string | null } {
+  const fallbackDescription = fallback.description?.trim() || fallback.imagePrompt?.trim() || `${fallback.name}初始状态`;
+  const fallbackImagePrompt = fallback.imagePrompt?.trim() || fallbackDescription;
+  const initial = normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
+    description: fallbackDescription,
+    imagePrompt: fallbackImagePrompt,
+  })[0];
+  return {
+    imagePrompt: initial?.imagePrompt?.trim() || fallbackImagePrompt,
+    imageUrl: initial?.image?.status === "done" && initial.image.url?.trim() ? initial.image.url.trim() : null,
+  };
 }
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
@@ -275,16 +295,38 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
   const [scenes, props] = await Promise.all([
     prisma.novelScene.findMany({
       where: { novelId },
-      select: { name: true, environmentPrompt: true, summary: true, imageData: true },
+      select: { name: true, environmentPrompt: true, summary: true, imageData: true, statesJson: true },
     }),
     prisma.novelProp.findMany({
       where: { novelId },
-      select: { name: true, visualPrompt: true, description: true, imageData: true },
+      select: { name: true, visualPrompt: true, description: true, imageData: true, statesJson: true },
     }),
   ]);
   return {
-    scenes: scenes.map(({ imageData, ...rest }) => ({ ...rest, imageUrl: parseImageStateSummary(imageData)?.url ?? null })),
-    props: props.map(({ imageData, ...rest }) => ({ ...rest, imageUrl: parseImageStateSummary(imageData)?.url ?? null })),
+    scenes: scenes.map(({ imageData, statesJson, ...rest }) => {
+      const initial = resolveInitialSettingState(statesJson, {
+        name: rest.name,
+        description: rest.summary,
+        imagePrompt: rest.environmentPrompt,
+      });
+      return {
+        ...rest,
+        environmentPrompt: initial.imagePrompt,
+        imageUrl: initial.imageUrl ?? parseImageStateSummary(imageData)?.url ?? null,
+      };
+    }),
+    props: props.map(({ imageData, statesJson, ...rest }) => {
+      const initial = resolveInitialSettingState(statesJson, {
+        name: rest.name,
+        description: rest.description,
+        imagePrompt: rest.visualPrompt,
+      });
+      return {
+        ...rest,
+        visualPrompt: initial.imagePrompt,
+        imageUrl: initial.imageUrl ?? parseImageStateSummary(imageData)?.url ?? null,
+      };
+    }),
   };
 }
 

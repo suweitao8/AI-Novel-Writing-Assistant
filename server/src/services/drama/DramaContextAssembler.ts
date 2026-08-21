@@ -2,6 +2,7 @@ import { prisma } from "../../db/prisma";
 import { compactText, safeJsonParse } from "./utils/json";
 import {
   normalizeStoryCharacterStates,
+  parseStoryAssetStatesJson,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -33,7 +34,7 @@ export async function loadNovelCharacterStatesByName(novelId: string): Promise<M
   const map = new Map<string, StoryAssetState[]>();
   for (const row of rows) {
     const states = normalizeStoryCharacterStates(
-      safeJsonParse<StoryAssetState[]>(row.statesJson, []),
+      parseStoryAssetStatesJson(row.statesJson).states,
       row,
     );
     map.set(row.name.trim(), states);
@@ -43,7 +44,21 @@ export async function loadNovelCharacterStatesByName(novelId: string): Promise<M
 
 function formatStateLabels(states: StoryAssetState[]): string {
   return states
-    .map((state) => (state.chapterOrder ? `${state.label.trim()}（第${state.chapterOrder}章）` : state.label.trim()))
+    .map((state) => {
+      const details = [
+        state.chapterOrder ? `第${state.chapterOrder}章` : "",
+        state.ageGroup ? `年龄段：${state.ageGroup}` : "",
+        state.imagePrompt?.trim() || state.description?.trim()
+          ? `画面：${compactText(state.imagePrompt || state.description, 180)}`
+          : "",
+        state.voicePrompt?.trim() || state.voice?.prompt?.trim()
+          ? `音色：${compactText(state.voicePrompt || state.voice?.prompt, 120)}`
+          : "",
+      ].filter(Boolean);
+      return details.length > 0
+        ? `${state.label.trim()}（${details.join("；")}）`
+        : state.label.trim();
+    })
     .join("；");
 }
 

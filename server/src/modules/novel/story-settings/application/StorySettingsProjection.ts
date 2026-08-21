@@ -1,0 +1,116 @@
+import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
+import { normalizeCharacterStates, normalizePropStates, normalizeSceneStates, parseStates } from "./StorySettingsStatePolicy";
+
+/** 设定中心实体 DTO 投影；投影阶段也要保证返回的状态数组可直接进入生成链。 */
+
+export function projectCharacter(row: {
+  id: string;
+  name: string;
+  role: string;
+  gender: string | null;
+  ageGroup: string | null;
+  physique: string | null;
+  attireStyle: string | null;
+  facePrompt: string | null;
+  voiceTexture?: string | null;
+  personality: string | null;
+  appearance: string | null;
+  background: string | null;
+  statesJson?: string | null;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    gender: row.gender,
+    ageGroup: row.ageGroup,
+    physique: row.physique,
+    attireStyle: row.attireStyle,
+    facePrompt: row.facePrompt,
+    voiceTexture: row.voiceTexture ?? null,
+    personality: row.personality,
+    appearance: row.appearance,
+    background: row.background,
+    states: normalizeCharacterStates(parseStates(row.statesJson), row),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function projectScene(row: {
+  id: string;
+  name: string;
+  sceneType: string | null;
+  summary: string | null;
+  environmentPrompt: string | null;
+  significance: string | null;
+  timeOfDay: string | null;
+  weather: string | null;
+  imageData?: string | null;
+  mapNodeId: string | null;
+  mapUnmappable: boolean;
+  sortOrder: number;
+  source: string;
+  statesJson?: string | null;
+  updatedAt: Date;
+}) {
+  return {
+    id: row.id,
+    name: row.name,
+    sceneType: row.sceneType,
+    summary: row.summary,
+    environmentPrompt: row.environmentPrompt,
+    significance: row.significance,
+    timeOfDay: row.timeOfDay ?? null,
+    weather: row.weather ?? null,
+    image: parseStoryAssetImage(row.imageData),
+    mapNodeId: row.mapNodeId,
+    mapUnmappable: row.mapUnmappable,
+    sortOrder: row.sortOrder,
+    source: row.source,
+    states: normalizeSceneStates(parseStates(row.statesJson), row),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export function projectProp(
+  row: {
+    id: string;
+    name: string;
+    propType: string;
+    description: string | null;
+    plotFunction: string | null;
+    visualPrompt: string | null;
+    ownerCharacterId: string | null;
+    importance: string;
+    firstAppearHint: string | null;
+    imageData?: string | null;
+    sortOrder: number;
+    source: string;
+    statesJson?: string | null;
+    updatedAt: Date;
+  },
+  ownerCharacterName: string | null,
+) {
+  return {
+    id: row.id,
+    name: row.name,
+    propType: row.propType,
+    description: row.description,
+    plotFunction: row.plotFunction,
+    visualPrompt: row.visualPrompt,
+    ownerCharacterId: row.ownerCharacterId,
+    ownerCharacterName,
+    importance: row.importance,
+    firstAppearHint: row.firstAppearHint,
+    image: parseStoryAssetImage(row.imageData),
+    sortOrder: row.sortOrder,
+    source: row.source,
+    states: normalizePropStates(parseStates(row.statesJson), row),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+export type StorySettingsProjectedState = StoryAssetState;
+export type StorySettingsProjectedImage = StoryAssetImageState;

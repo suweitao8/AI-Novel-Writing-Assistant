@@ -9,6 +9,13 @@ const {
   buildStateImagePrompt,
   resolveStateReferenceImageUrl,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageService.js");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const imageServiceSource = fs.readFileSync(
+  path.join(__dirname, "../src/modules/novel/story-settings/application/StoryAssetStateImageService.ts"),
+  "utf8",
+);
 
 test("buildStateImagePrompt：角色带状态身份信息与参考图一致性指令", () => {
   const prompt = buildStateImagePrompt({
@@ -84,4 +91,10 @@ test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿
     { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
   ];
   assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
+});
+
+test("场景和道具状态图写回时会保留无状态旧资产的初始状态", () => {
+  assert.match(imageServiceSource, /normalizeStoryAssetStates/);
+  assert.match(imageServiceSource, /updateStoryAssetStateJsonWithCas/);
+  assert.match(imageServiceSource, /statesJson: expectedRaw/);
 });

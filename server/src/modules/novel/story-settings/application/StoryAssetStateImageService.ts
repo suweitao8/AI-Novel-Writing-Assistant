@@ -19,6 +19,7 @@ import type {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
   normalizeStoryCharacterStates,
+  normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
   resolveStoryAssetStateAncestors,
   type StoryCharacterLegacyFields,
@@ -40,6 +41,7 @@ import {
   combineStyleAvoidInstructions,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import { storySettingsService } from "./StorySettingsService";
+import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
@@ -114,12 +116,17 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
       throw new AppError("未找到场景。", 404);
     }
     const parsedStates = parseStoryAssetStatesJson(row.statesJson);
+    const baseAppearance = row.environmentPrompt?.trim() || row.summary?.trim() || `${row.name}初始状态`;
     return {
       id: row.id,
       novelId: row.novelId,
       name: row.name,
       baseAppearance: row.environmentPrompt?.trim() || row.summary?.trim() || null,
       statesJson: row.statesJson,
+      states: normalizeStoryAssetStates(parsedStates.states, {
+        description: row.summary?.trim() || baseAppearance,
+        imagePrompt: row.environmentPrompt?.trim() || baseAppearance,
+      }),
       statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
     };
   }
@@ -131,12 +138,17 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
     throw new AppError("未找到道具。", 404);
   }
   const parsedStates = parseStoryAssetStatesJson(row.statesJson);
+  const baseAppearance = row.visualPrompt?.trim() || row.description?.trim() || `${row.name}初始状态`;
   return {
     id: row.id,
     novelId: row.novelId,
     name: row.name,
     baseAppearance: row.visualPrompt?.trim() || row.description?.trim() || null,
     statesJson: row.statesJson,
+    states: normalizeStoryAssetStates(parsedStates.states, {
+      description: row.description?.trim() || baseAppearance,
+      imagePrompt: row.visualPrompt?.trim() || baseAppearance,
+    }),
     statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
   };
 }
@@ -221,47 +233,84 @@ export class StoryAssetStateImageService {
     image: StoryAssetStateImage,
     fallbackStates: StoryAssetState[] = [],
   ): Promise<void> {
-    const merged = (
-      raw: string | null | undefined,
-      fallback: StoryAssetState[] = [],
-      normalize?: (states: StoryAssetState[]) => StoryAssetState[],
-    ): string | null => {
-      const parsedResult = parseStoryAssetStatesJson(raw);
-      if (raw?.trim() && !parsedResult.canSafelyRewrite) {
-        throw new AppError("状态数据格式异常，已停止覆盖原始状态；请先在设定中心保存一次角色状态。", 409);
-      }
-      const source = parsedResult.states.length > 0 ? parsedResult.states : fallback;
-      const next = (normalize ? normalize(source) : source).map((state) =>
-        state.id === stateId ? { ...state, image: pruneStateImage(image) } : state);
-      return next.length > 0 ? JSON.stringify(next) : null;
-    };
     if (kind === "character") {
-      const row = await prisma.character.findUnique({
-        where: { id: assetId },
-        select: {
-          statesJson: true,
-          gender: true,
-          ageGroup: true,
-          physique: true,
-          attireStyle: true,
-          facePrompt: true,
-          appearance: true,
-          voiceTexture: true,
+      await updateStoryAssetStateJsonWithCas({
+        stateId,
+        fallbackStates,
+        read: async () => {
+          const row = await prisma.character.findUnique({
+            where: { id: assetId },
+            select: {
+              statesJson: true,
+              gender: true,
+              ageGroup: true,
+              physique: true,
+              attireStyle: true,
+              facePrompt: true,
+              appearance: true,
+              voiceTexture: true,
+            },
+          });
+          if (!row) {
+            throw new AppError("未找到角色。", 404);
+          }
+          const legacy: StoryCharacterLegacyFields = row;
+          const parsedStates = parseStoryAssetStatesJson(row.statesJson);
+          return {
+            raw: row.statesJson,
+            fallbackStates: normalizeStoryCharacterStates(parsedStates.states, legacy),
+            normalize: (states: StoryAssetState[]) => normalizeStoryCharacterStates(states, legacy),
+          };
         },
-      });
-      const legacy: StoryCharacterLegacyFields = row ?? {};
-      const parsedStates = parseStoryAssetStatesJson(row?.statesJson);
-      const currentStates = normalizeStoryCharacterStates(parsedStates.states, legacy);
-      await prisma.character.update({
-        where: { id: assetId },
-        data: { statesJson: merged(row?.statesJson, fallbackStates.length ? fallbackStates : currentStates, (states) => normalizeStoryCharacterStates(states, legacy)) },
+        write: async (expectedRaw, nextRaw) => {
+          const result = await prisma.character.updateMany({
+            where: { id: assetId, statesJson: expectedRaw },
+            data: { statesJson: nextRaw },
+          });
+          return result.count === 1;
+        },
+        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
       });
     } else if (kind === "scene") {
-      const row = await prisma.novelScene.findUnique({ where: { id: assetId }, select: { statesJson: true } });
-      await prisma.novelScene.update({ where: { id: assetId }, data: { statesJson: merged(row?.statesJson) } });
+      await updateStoryAssetStateJsonWithCas({
+        stateId,
+        fallbackStates,
+        read: async () => {
+          const row = await prisma.novelScene.findUnique({ where: { id: assetId }, select: { statesJson: true } });
+          if (!row) {
+            throw new AppError("未找到场景。", 404);
+          }
+          return { raw: row.statesJson, fallbackStates };
+        },
+        write: async (expectedRaw, nextRaw) => {
+          const result = await prisma.novelScene.updateMany({
+            where: { id: assetId, statesJson: expectedRaw },
+            data: { statesJson: nextRaw },
+          });
+          return result.count === 1;
+        },
+        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
+      });
     } else {
-      const row = await prisma.novelProp.findUnique({ where: { id: assetId }, select: { statesJson: true } });
-      await prisma.novelProp.update({ where: { id: assetId }, data: { statesJson: merged(row?.statesJson) } });
+      await updateStoryAssetStateJsonWithCas({
+        stateId,
+        fallbackStates,
+        read: async () => {
+          const row = await prisma.novelProp.findUnique({ where: { id: assetId }, select: { statesJson: true } });
+          if (!row) {
+            throw new AppError("未找到道具。", 404);
+          }
+          return { raw: row.statesJson, fallbackStates };
+        },
+        write: async (expectedRaw, nextRaw) => {
+          const result = await prisma.novelProp.updateMany({
+            where: { id: assetId, statesJson: expectedRaw },
+            data: { statesJson: nextRaw },
+          });
+          return result.count === 1;
+        },
+        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
+      });
     }
   }
 

@@ -2,10 +2,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  createStoryAssetInitialState,
   normalizeStoryCharacterStates,
+  normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
   resolveStoryAssetStateAncestors,
   isCharacterInitialStatePreserved,
+  validateStoryAssetStateList,
 } = require("../../shared/dist/types/novelReferenceExtraction.js");
 
 test("旧角色没有状态时会形成带年龄、外貌和音色的初始状态", () => {
@@ -21,9 +24,33 @@ test("旧角色没有状态时会形成带年龄、外貌和音色的初始状�
   assert.equal(states[0].label, "初始状态");
   assert.equal(states[0].ageGroup, "youth");
   assert.equal(states[0].description, "黑色短发，左眉有疤");
+  assert.match(states[0].imagePrompt, /男性/);
   assert.match(states[0].imagePrompt, /清瘦脸型/);
   assert.equal(states[0].voicePrompt, "低沉清晰的青年男声");
   assert.equal(states[0].referenceStateId, null);
+});
+
+test("场景和道具没有状态时会形成可直接生成的初始状态", () => {
+  const scene = normalizeStoryAssetStates([], {
+    description: "停电后的旧车站",
+    imagePrompt: "冷白月光照进空荡站台",
+  });
+  const prop = normalizeStoryAssetStates([], {
+    description: "一枚磨损的黄铜怀表",
+  });
+
+  assert.deepEqual(scene, [{
+    id: "initial",
+    label: "初始状态",
+    description: "停电后的旧车站",
+    imagePrompt: "冷白月光照进空荡站台",
+    referenceStateId: null,
+  }]);
+  assert.equal(prop[0].id, "initial");
+  assert.equal(prop[0].label, "初始状态");
+  assert.equal(prop[0].description, "一枚磨损的黄铜怀表");
+  assert.equal(prop[0].imagePrompt, "一枚磨损的黄铜怀表");
+  assert.equal(createStoryAssetInitialState({ imagePrompt: "" }).referenceStateId, null);
 });
 
 test("已有状态只补缺省字段，不覆盖人工提示词与已生成资产", () => {
@@ -82,6 +109,48 @@ test("损坏或含非法条目的状态 JSON 不允许自动回写", () => {
     { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
     { id: 3, label: "非法" },
   ])).canSafelyRewrite, false);
+  assert.equal(parseStoryAssetStatesJson(JSON.stringify([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
+    { id: "s1", label: "重复", description: "重复", imagePrompt: "重复" },
+  ])).canSafelyRewrite, false);
+  assert.doesNotThrow(() => parseStoryAssetStatesJson(JSON.stringify([
+    { id: "s1", label: "初始", description: 42, imagePrompt: "正常" },
+    { id: "s2", label: "换装", description: "制服", imagePrompt: "制服", image: { status: "done", url: 7 } },
+  ])));
+  assert.equal(parseStoryAssetStatesJson(JSON.stringify([
+    { id: "s1", label: "初始", description: 42, imagePrompt: "正常" },
+  ])).canSafelyRewrite, false);
+  assert.equal(parseStoryAssetStatesJson(JSON.stringify([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常", referenceStateId: "missing" },
+  ])).canSafelyRewrite, false);
+});
+
+test("状态列表拒绝重复 ID 和悬空参考，避免写入不可解析的状态链", () => {
+  assert.match(validateStoryAssetStateList([
+    { id: "s1", referenceStateId: null },
+    { id: "s1", referenceStateId: null },
+  ]) ?? "", /重复/);
+  assert.match(validateStoryAssetStateList([
+    { id: "s1", referenceStateId: null },
+    { id: "s2", referenceStateId: "missing" },
+  ]) ?? "", /不存在/);
+  assert.equal(validateStoryAssetStateList([
+    { id: "s1", referenceStateId: null },
+    { id: "s2", referenceStateId: "s1" },
+  ]), null);
+  assert.match(validateStoryAssetStateList([
+    { id: "s1", referenceStateId: "s2" },
+    { id: "s2", referenceStateId: null },
+  ]) ?? "", /初始状态/);
+});
+
+test("不存在的参考状态会被清理，避免生成链指向悬空状态", () => {
+  const states = normalizeStoryAssetStates([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
+    { id: "s2", label: "换装", description: "制服", imagePrompt: "制服", referenceStateId: "missing" },
+  ]);
+
+  assert.equal(states[1].referenceStateId, null);
 });
 
 test("状态资产继承会沿多级参考链找到最近可用的祖先", () => {

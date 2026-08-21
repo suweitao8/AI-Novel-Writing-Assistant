@@ -20,6 +20,7 @@ import {
   storySettingsService,
   type StorySettingsCharacter,
 } from "./StorySettingsService";
+import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
 
 /** 与 DramaVoiceDesignService 共用的固定试听短句。 */
 export const STATE_VOICE_SAMPLE_TEXT = "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。";
@@ -52,7 +53,8 @@ export interface StateVoiceGenerationInput {
 
 interface StateVoiceServiceDependencies {
   findCharacter: (novelId: string, characterId: string) => Promise<StateVoiceCharacterRow | null>;
-  updateStates: (characterId: string, statesJson: string | null) => Promise<void>;
+  /** 测试或外部适配器可注入整包保存；生产默认走目标状态 CAS 写入。 */
+  updateStates?: (characterId: string, statesJson: string | null) => Promise<void>;
   listCharacters: (novelId: string) => Promise<StorySettingsCharacter[]>;
   synthesize: (input: StateVoiceGenerationInput) => Promise<AudioSpeechResult>;
 }
@@ -154,17 +156,63 @@ export class StoryAssetStateVoiceService {
           appearance: true,
         },
       }),
-      updateStates: async (characterId, statesJson) => {
-        await prisma.character.update({ where: { id: characterId }, data: { statesJson } });
-      },
       listCharacters: (novelId) => storySettingsService.listCharacters(novelId),
       synthesize: (input) => synthesizeAudioSpeech(input),
       ...dependencies,
     };
   }
 
-  private async saveStates(characterId: string, states: StoryAssetState[]): Promise<void> {
-    await this.dependencies.updateStates(characterId, serializeStates(states));
+  private async saveStates(
+    novelId: string,
+    characterId: string,
+    stateId: string,
+    states: StoryAssetState[],
+  ): Promise<void> {
+    if (this.dependencies.updateStates) {
+      await this.dependencies.updateStates(characterId, serializeStates(states));
+      return;
+    }
+    const targetVoice = states.find((state) => state.id === stateId)?.voice;
+    await updateStoryAssetStateJsonWithCas({
+      stateId,
+      fallbackStates: states,
+      read: async () => {
+        const row = await prisma.character.findFirst({
+          where: { id: characterId, novelId },
+          select: {
+            statesJson: true,
+            gender: true,
+            ageGroup: true,
+            physique: true,
+            attireStyle: true,
+            facePrompt: true,
+            appearance: true,
+            voiceTexture: true,
+          },
+        });
+        if (!row) {
+          throw new AppError("没有找到这个角色。", 404);
+        }
+        const legacy: StoryCharacterLegacyFields = row;
+        const parsedStates = parseStoryAssetStatesJson(row.statesJson);
+        return {
+          raw: row.statesJson,
+          fallbackStates: normalizeStoryCharacterStates(parsedStates.states, legacy),
+          normalize: (currentStates: StoryAssetState[]) => normalizeStoryCharacterStates(currentStates, legacy),
+        };
+      },
+      write: async (expectedRaw, nextRaw) => {
+        const result = await prisma.character.updateMany({
+          where: { id: characterId, novelId, statesJson: expectedRaw },
+          data: { statesJson: nextRaw },
+        });
+        return result.count === 1;
+      },
+      patch: (state) => ({
+        ...state,
+        voice: targetVoice,
+      }),
+    });
   }
 
   async generateStateVoice(
@@ -201,7 +249,7 @@ export class StoryAssetStateVoiceService {
         const failedStates = states.map((item) => item.id === stateId
           ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
           : item);
-        await this.saveStates(characterId, failedStates);
+        await this.saveStates(novelId, characterId, stateId, failedStates);
         throw new AppError(message, 400);
       }
       const reusedStates = states.map((item) => item.id === stateId
@@ -217,7 +265,7 @@ export class StoryAssetStateVoiceService {
           },
         }
         : item);
-      await this.saveStates(characterId, reusedStates);
+      await this.saveStates(novelId, characterId, stateId, reusedStates);
       return this.getUpdatedCharacter(novelId, characterId);
     }
 
@@ -231,7 +279,7 @@ export class StoryAssetStateVoiceService {
       const failedStates = states.map((item) => item.id === stateId
         ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
         : item);
-      await this.saveStates(characterId, failedStates);
+      await this.saveStates(novelId, characterId, stateId, failedStates);
       throw new AppError(message, 400);
     }
 
@@ -248,7 +296,7 @@ export class StoryAssetStateVoiceService {
         },
       }
       : item);
-    await this.saveStates(characterId, generatingStates);
+    await this.saveStates(novelId, characterId, stateId, generatingStates);
 
     try {
       const result = await this.dependencies.synthesize(synthesisInput);
@@ -265,13 +313,13 @@ export class StoryAssetStateVoiceService {
           },
         }
         : item);
-      await this.saveStates(characterId, completedStates);
+      await this.saveStates(novelId, characterId, stateId, completedStates);
     } catch (error) {
       const message = error instanceof Error ? error.message : "音色生成失败。";
       const failedStates = generatingStates.map((item) => item.id === stateId
         ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
         : item);
-      await this.saveStates(characterId, failedStates);
+      await this.saveStates(novelId, characterId, stateId, failedStates);
       throw error;
     }
 

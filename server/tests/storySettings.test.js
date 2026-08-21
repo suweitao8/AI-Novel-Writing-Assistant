@@ -10,7 +10,7 @@ test("story settings bundle schema accepts a valid bundle", () => {
   const { storySettingsBundlePrompt } = require("../dist/prompting/prompts/novel/storySettings.prompts.js");
   const bundle = {
     characters: [
-      { name: "林月", role: "主角", personality: "外冷内热，行动果断", appearance: "短发，深色风衣", background: "前刑警，因一桩旧案离职" },
+      { name: "林月", role: "主角", personality: "外冷内热，行动果断", appearance: "短发，深色风衣", voicePrompt: "清晰克制的青年女声", background: "前刑警，因一桩旧案离职" },
     ],
     scenes: [
       { name: "废弃地铁站", summary: "冷白灯管，滴水声", significance: "第一幕冲突爆发地", mapLocationName: "旧城地铁站" },
@@ -37,6 +37,7 @@ test("story settings bundle schema accepts a valid bundle", () => {
   };
   const parsed = storySettingsBundlePrompt.outputSchema.parse(bundle);
   assert.equal(parsed.characters.length, 1);
+  assert.equal(parsed.characters[0].voicePrompt, "清晰克制的青年女声");
 
   const validated = storySettingsBundlePrompt.postValidate(
     parsed,

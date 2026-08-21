@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import SelectControl from "@/components/common/SelectControl";
 import {
   getDefaultStoryAssetStateVoiceMode,
+  resolveStoryAssetStateAncestors,
   resolveStoryAssetStateReferenceId,
   type StoryAssetState,
   type StoryAssetStateVoiceMode,
@@ -90,9 +91,9 @@ function getStateVoiceMode(states: StoryAssetState[], stateId: string): StoryAss
   if (defaultMode === "generate_new") {
     return defaultMode;
   }
-  const index = states.findIndex((state) => state.id === stateId);
-  const previous = index > 0 ? states[index - 1] : undefined;
-  return previous?.voice?.status === "done" && Boolean(previous.voice.sampleAudioUrl?.trim())
+  const previous = resolveStoryAssetStateAncestors(states, stateId)
+    .find((state) => state.voice?.status === "done" && Boolean(state.voice.sampleAudioUrl?.trim()));
+  return previous
     ? "reuse_previous"
     : "generate_new";
 }
@@ -225,7 +226,7 @@ export function AssetStatesEditor(props: {
     setSelectedStateId(cleaned.id);
   };
   const remove = (index: number) => {
-    if (kind === "character" && index === 0) {
+    if (index === 0) {
       toast.error("初始状态不能删除。");
       return;
     }
@@ -241,9 +242,10 @@ export function AssetStatesEditor(props: {
   const selectedState = draft ?? states.find((state) => state.id === selectedStateId) ?? states[0] ?? null;
   const referenceOptions = states.filter((state) => state.id !== selectedState?.id);
   const selectedStateIndex = selectedState ? states.findIndex((state) => state.id === selectedState.id) : -1;
+  const voiceStates = selectedState && selectedStateIndex < 0 ? [...states, selectedState] : states;
   const voiceMode: StoryAssetStateVoiceMode = voiceModeOverride
     ?? selectedState?.voice?.mode
-    ?? (selectedState ? getStateVoiceMode(states, selectedState.id) : "generate_new");
+    ?? (selectedState ? getStateVoiceMode(voiceStates, selectedState.id) : "generate_new");
   const isUnsavedDraft = draft !== null && editingIndex === null;
   const generationDisabled = !asset || localDirty || draft !== null || imageMutation.isPending || voiceMutation.isPending;
   const referenceLabel = selectedState?.referenceStateId
@@ -343,7 +345,7 @@ export function AssetStatesEditor(props: {
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label={`编辑${state.label || "状态"}`} disabled={draft !== null} onClick={() => startEdit(stateIndex)}>
                     <Pencil className="h-3 w-3" />
                   </Button>
-                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" aria-label={kind === "character" && stateIndex === 0 ? "初始状态不能删除" : `删除${state.label || "状态"}`} disabled={draft !== null || (kind === "character" && stateIndex === 0)} onClick={() => remove(stateIndex)}>
+                  <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-destructive" aria-label={stateIndex === 0 ? "初始状态不能删除" : `删除${state.label || "状态"}`} disabled={draft !== null || stateIndex === 0} onClick={() => remove(stateIndex)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
                 </div>
@@ -414,7 +416,7 @@ export function AssetStatesEditor(props: {
                       className="h-9 rounded-md border bg-background px-2 text-sm"
                       aria-label="生图参考"
                       value={selectedState.referenceStateId ?? ""}
-                      disabled={!draft || (showVoice && selectedStateIndex === 0)}
+                      disabled={!draft || selectedStateIndex === 0}
                       onChange={(event) => updateDraft({ referenceStateId: event.target.value || null })}
                     >
                       <option value="">不参考，直接生成新形象</option>

@@ -123,6 +123,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
         ageGroup: draft.ageGroup as StoryAssetState["ageGroup"],
         description: [draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
         imagePrompt: [draft.facePrompt, draft.appearance, draft.physique, draft.attireStyle].filter(Boolean).join("；") || "角色初始外观",
+        ...(draft.voicePrompt ? { voicePrompt: draft.voicePrompt } : {}),
       })]);
       toast.success("草稿已生成，可以直接修改后保存。");
     },

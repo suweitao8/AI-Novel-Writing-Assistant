@@ -5,12 +5,11 @@
 // - ensureSettings 幂等：只补缺失类别；regenerate 按类别重建。
 // - 角色不做删除式重建（保护关系与状态数据），重新生成只会补充缺失角色。
 import {
-  isCharacterInitialStatePreserved,
-  normalizeStoryCharacterStates,
-  normalizeStoryAssetStates,
-  parseStoryAssetStatesJson,
-  type StoryCharacterLegacyFields,
+  isStoryAssetInitialStatePreserved,
+  validateStoryAssetStateList,
   type StoryAssetState,
+  type StoryAssetStateInput,
+  type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -25,8 +24,29 @@ import { WorldContextGateway } from "../../../../services/novel/worldContext/Wor
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../../services/drama/visual/dramaVisualStyles";
 import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
+import {
+  canSafelyRewriteStates,
+  normalizeCharacterStates,
+  normalizePropStates,
+  normalizeSceneStates,
+  parseStates,
+  preserveStoryAssetRuntimeAssets,
+  serializeStates,
+} from "./StorySettingsStatePolicy";
+import { projectCharacter, projectProp, projectScene } from "./StorySettingsProjection";
+import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
+
+function assertValidStateInput(states: StoryAssetStateInput[] | undefined): void {
+  if (states === undefined) {
+    return;
+  }
+  const error = validateStoryAssetStateList(states);
+  if (error) {
+    throw new AppError(error, 400);
+  }
+}
 
 export interface StoryEntityDraft {
   character: StoryEntityGenerateOutput["character"];
@@ -155,16 +175,6 @@ function normalizeSceneTimeOfDay(value: string | null | undefined): string | nul
 function normalizeSceneWeather(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed && SCENE_WEATHER_VALUES.has(trimmed) ? trimmed : null;
-}
-
-function parseStates(value: string | null | undefined): StoryAssetState[] {
-  return parseStoryAssetStatesJson(value).states;
-}
-
-function serializeStates(states: StoryAssetState[] | undefined | null): string | null {
-  if (!states) return null;
-  const cleaned = states.filter((state) => state.id?.trim() && state.label?.trim());
-  return cleaned.length > 0 ? JSON.stringify(normalizeStoryAssetStates(cleaned)) : null;
 }
 
 function parseJsonArray(value: string | null | undefined): string[] {
@@ -534,22 +544,34 @@ export class StorySettingsService {
       where: { novelId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      sceneType: row.sceneType,
-      summary: row.summary,
-      environmentPrompt: row.environmentPrompt,
-      significance: row.significance,
-      timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
-      weather: normalizeSceneWeather(row.weather),
-      image: parseStoryAssetImage(row.imageData),
-      mapNodeId: row.mapNodeId,
-      mapUnmappable: row.mapUnmappable,
-      sortOrder: row.sortOrder,
-      source: row.source,
-      states: parseStates(row.statesJson),
-      updatedAt: row.updatedAt.toISOString(),
+    return Promise.all(rows.map(async (row) => {
+      const states = normalizeSceneStates(parseStates(row.statesJson), row);
+      if (canSafelyRewriteStates(row.statesJson)) {
+        const normalizedStatesJson = serializeStates(states);
+        if (normalizedStatesJson !== (row.statesJson?.trim() || null)) {
+          await prisma.novelScene.updateMany({
+            where: { id: row.id, statesJson: row.statesJson },
+            data: { statesJson: normalizedStatesJson },
+          });
+        }
+      }
+      return {
+        id: row.id,
+        name: row.name,
+        sceneType: row.sceneType,
+        summary: row.summary,
+        environmentPrompt: row.environmentPrompt,
+        significance: row.significance,
+        timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
+        weather: normalizeSceneWeather(row.weather),
+        image: parseStoryAssetImage(row.imageData),
+        mapNodeId: row.mapNodeId,
+        mapUnmappable: row.mapUnmappable,
+        sortOrder: row.sortOrder,
+        source: row.source,
+        states,
+        updatedAt: row.updatedAt.toISOString(),
+      };
     }));
   }
 
@@ -562,14 +584,16 @@ export class StorySettingsService {
     timeOfDay?: string | null;
     weather?: string | null;
     mapNodeId?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsScene> {
     await requireNovel(novelId);
+    assertValidStateInput(input.states);
     const maxOrder = await prisma.novelScene.findFirst({
       where: { novelId },
       orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     });
+    const states = normalizeSceneStates(input.states, input);
     const row = await prisma.novelScene.create({
       data: {
         novelId,
@@ -581,12 +605,12 @@ export class StorySettingsService {
         timeOfDay: normalizeSceneTimeOfDay(input.timeOfDay),
         weather: normalizeSceneWeather(input.weather),
         mapNodeId: input.mapNodeId ?? null,
-        statesJson: serializeStates(input.states),
+        statesJson: serializeStates(states),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
     });
-    return this.projectScene(row);
+    return projectScene(row);
   }
 
   async updateScene(novelId: string, sceneId: string, input: {
@@ -598,27 +622,52 @@ export class StorySettingsService {
     timeOfDay?: string | null;
     weather?: string | null;
     mapNodeId?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsScene> {
-    const row = await prisma.novelScene.findFirst({ where: { id: sceneId, novelId } });
-    if (!row) {
-      throw new AppError("没有找到这个场景。", 404);
+    assertValidStateInput(input.states);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const row = await prisma.novelScene.findFirst({ where: { id: sceneId, novelId } });
+      if (!row) {
+        throw new AppError("没有找到这个场景。", 404);
+      }
+      const parsedStates = parseStates(row.statesJson);
+      const previousStates = normalizeSceneStates(parsedStates, row);
+      const nextStates = input.states !== undefined
+        ? normalizeSceneStates(input.states, { ...row, ...input })
+        : normalizeSceneStates(parsedStates, { ...row, ...input });
+      const states = input.states !== undefined
+        ? preserveStoryAssetRuntimeAssets(previousStates, nextStates)
+        : nextStates;
+      if (input.states !== undefined && !isStoryAssetInitialStatePreserved(previousStates, states)) {
+        throw new AppError("初始状态不能删除或移动。", 400);
+      }
+      const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
+        ? serializeStates(states)
+        : undefined;
+      const result = await prisma.novelScene.updateMany({
+        where: { id: row.id, novelId, statesJson: row.statesJson },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.sceneType !== undefined ? { sceneType: input.sceneType } : {}),
+          ...(input.summary !== undefined ? { summary: input.summary } : {}),
+          ...(input.environmentPrompt !== undefined ? { environmentPrompt: input.environmentPrompt } : {}),
+          ...(input.significance !== undefined ? { significance: input.significance } : {}),
+          ...(input.timeOfDay !== undefined ? { timeOfDay: normalizeSceneTimeOfDay(input.timeOfDay) } : {}),
+          ...(input.weather !== undefined ? { weather: normalizeSceneWeather(input.weather) } : {}),
+          ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
+          ...(statesJson !== undefined ? { statesJson } : {}),
+        },
+      });
+      if (result.count !== 1) {
+        continue;
+      }
+      const updated = await prisma.novelScene.findUnique({ where: { id: row.id } });
+      if (!updated) {
+        throw new AppError("场景更新后无法读取。", 500);
+      }
+      return projectScene(updated);
     }
-    const updated = await prisma.novelScene.update({
-      where: { id: row.id },
-      data: {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.sceneType !== undefined ? { sceneType: input.sceneType } : {}),
-        ...(input.summary !== undefined ? { summary: input.summary } : {}),
-        ...(input.environmentPrompt !== undefined ? { environmentPrompt: input.environmentPrompt } : {}),
-        ...(input.significance !== undefined ? { significance: input.significance } : {}),
-        ...(input.timeOfDay !== undefined ? { timeOfDay: normalizeSceneTimeOfDay(input.timeOfDay) } : {}),
-        ...(input.weather !== undefined ? { weather: normalizeSceneWeather(input.weather) } : {}),
-        ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
-        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
-      },
-    });
-    return this.projectScene(updated);
+    throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
 
   async deleteScene(novelId: string, sceneId: string): Promise<void> {
@@ -644,24 +693,36 @@ export class StorySettingsService {
       }),
     ]);
     const characterNames = new Map(characters.map((character) => [character.id, character.name]));
-    return rows.map((row) => ({
-      id: row.id,
-      name: row.name,
-      propType: row.propType,
-      description: row.description,
-      plotFunction: row.plotFunction,
-      visualPrompt: row.visualPrompt,
-      ownerCharacterId: row.ownerCharacterId,
-      ownerCharacterName: row.ownerCharacterId
-        ? characterNames.get(row.ownerCharacterId) ?? null
-        : null,
-      importance: row.importance,
-      firstAppearHint: row.firstAppearHint,
-      image: parseStoryAssetImage(row.imageData),
-      sortOrder: row.sortOrder,
-      source: row.source,
-      states: parseStates(row.statesJson),
-      updatedAt: row.updatedAt.toISOString(),
+    return Promise.all(rows.map(async (row) => {
+      const states = normalizePropStates(parseStates(row.statesJson), row);
+      if (canSafelyRewriteStates(row.statesJson)) {
+        const normalizedStatesJson = serializeStates(states);
+        if (normalizedStatesJson !== (row.statesJson?.trim() || null)) {
+          await prisma.novelProp.updateMany({
+            where: { id: row.id, statesJson: row.statesJson },
+            data: { statesJson: normalizedStatesJson },
+          });
+        }
+      }
+      return {
+        id: row.id,
+        name: row.name,
+        propType: row.propType,
+        description: row.description,
+        plotFunction: row.plotFunction,
+        visualPrompt: row.visualPrompt,
+        ownerCharacterId: row.ownerCharacterId,
+        ownerCharacterName: row.ownerCharacterId
+          ? characterNames.get(row.ownerCharacterId) ?? null
+          : null,
+        importance: row.importance,
+        firstAppearHint: row.firstAppearHint,
+        image: parseStoryAssetImage(row.imageData),
+        sortOrder: row.sortOrder,
+        source: row.source,
+        states,
+        updatedAt: row.updatedAt.toISOString(),
+      };
     }));
   }
 
@@ -674,14 +735,16 @@ export class StorySettingsService {
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsProp> {
     await requireNovel(novelId);
+    assertValidStateInput(input.states);
     const maxOrder = await prisma.novelProp.findFirst({
       where: { novelId },
       orderBy: { sortOrder: "desc" },
       select: { sortOrder: true },
     });
+    const states = normalizePropStates(input.states, input);
     const row = await prisma.novelProp.create({
       data: {
         novelId,
@@ -693,7 +756,7 @@ export class StorySettingsService {
         ownerCharacterId: input.ownerCharacterId ?? null,
         importance: input.importance ?? "major",
         firstAppearHint: input.firstAppearHint ?? null,
-        statesJson: serializeStates(input.states),
+        statesJson: serializeStates(states),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
@@ -704,7 +767,7 @@ export class StorySettingsService {
         select: { name: true },
       }))?.name ?? null
       : null;
-    return this.projectProp(row, ownerName);
+    return projectProp(row, ownerName);
   }
 
   async updateProp(novelId: string, propId: string, input: {
@@ -716,33 +779,58 @@ export class StorySettingsService {
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsProp> {
-    const row = await prisma.novelProp.findFirst({ where: { id: propId, novelId } });
-    if (!row) {
-      throw new AppError("没有找到这个道具。", 404);
+    assertValidStateInput(input.states);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const row = await prisma.novelProp.findFirst({ where: { id: propId, novelId } });
+      if (!row) {
+        throw new AppError("没有找到这个道具。", 404);
+      }
+      const parsedStates = parseStates(row.statesJson);
+      const previousStates = normalizePropStates(parsedStates, row);
+      const nextStates = input.states !== undefined
+        ? normalizePropStates(input.states, { ...row, ...input })
+        : normalizePropStates(parsedStates, { ...row, ...input });
+      const states = input.states !== undefined
+        ? preserveStoryAssetRuntimeAssets(previousStates, nextStates)
+        : nextStates;
+      if (input.states !== undefined && !isStoryAssetInitialStatePreserved(previousStates, states)) {
+        throw new AppError("初始状态不能删除或移动。", 400);
+      }
+      const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
+        ? serializeStates(states)
+        : undefined;
+      const result = await prisma.novelProp.updateMany({
+        where: { id: row.id, novelId, statesJson: row.statesJson },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.propType !== undefined ? { propType: input.propType ?? "object" } : {}),
+          ...(input.description !== undefined ? { description: input.description } : {}),
+          ...(input.plotFunction !== undefined ? { plotFunction: input.plotFunction } : {}),
+          ...(input.visualPrompt !== undefined ? { visualPrompt: input.visualPrompt } : {}),
+          ...(input.ownerCharacterId !== undefined ? { ownerCharacterId: input.ownerCharacterId } : {}),
+          ...(input.importance !== undefined ? { importance: input.importance } : {}),
+          ...(input.firstAppearHint !== undefined ? { firstAppearHint: input.firstAppearHint } : {}),
+          ...(statesJson !== undefined ? { statesJson } : {}),
+        },
+      });
+      if (result.count !== 1) {
+        continue;
+      }
+      const updated = await prisma.novelProp.findUnique({ where: { id: row.id } });
+      if (!updated) {
+        throw new AppError("道具更新后无法读取。", 500);
+      }
+      const ownerName = updated.ownerCharacterId
+        ? (await prisma.character.findUnique({
+          where: { id: updated.ownerCharacterId },
+          select: { name: true },
+        }))?.name ?? null
+        : null;
+      return projectProp(updated, ownerName);
     }
-    const updated = await prisma.novelProp.update({
-      where: { id: row.id },
-      data: {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.propType !== undefined ? { propType: input.propType ?? "object" } : {}),
-        ...(input.description !== undefined ? { description: input.description } : {}),
-        ...(input.plotFunction !== undefined ? { plotFunction: input.plotFunction } : {}),
-        ...(input.visualPrompt !== undefined ? { visualPrompt: input.visualPrompt } : {}),
-        ...(input.ownerCharacterId !== undefined ? { ownerCharacterId: input.ownerCharacterId } : {}),
-        ...(input.importance !== undefined ? { importance: input.importance } : {}),
-        ...(input.firstAppearHint !== undefined ? { firstAppearHint: input.firstAppearHint } : {}),
-        ...(input.states !== undefined ? { statesJson: serializeStates(input.states) } : {}),
-      },
-    });
-    const ownerName = updated.ownerCharacterId
-      ? (await prisma.character.findUnique({
-        where: { id: updated.ownerCharacterId },
-        select: { name: true },
-      }))?.name ?? null
-      : null;
-    return this.projectProp(updated, ownerName);
+    throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
 
   async deleteProp(novelId: string, propId: string): Promise<void> {
@@ -779,12 +867,15 @@ export class StorySettingsService {
     });
     return Promise.all(rows.map(async (row) => {
       const { statesJson, ...rest } = row;
-      const parsed = parseStoryAssetStatesJson(statesJson);
-      const states = normalizeStoryCharacterStates(parsed.states, row);
+      const parsedStates = parseStates(statesJson);
+      const states = normalizeCharacterStates(parsedStates, row);
       const normalizedStatesJson = serializeStates(states);
       // 只做增量归并：旧角色第一次进入设定中心时补上初始状态，保留旧字段作为兼容回退。
-      if (parsed.canSafelyRewrite && normalizedStatesJson !== (statesJson?.trim() || null)) {
-        await prisma.character.update({ where: { id: row.id }, data: { statesJson: normalizedStatesJson } });
+      if (canSafelyRewriteStates(statesJson) && normalizedStatesJson !== (statesJson?.trim() || null)) {
+        await prisma.character.updateMany({
+          where: { id: row.id, statesJson },
+          data: { statesJson: normalizedStatesJson },
+        });
       }
       return { ...rest, states, updatedAt: row.updatedAt.toISOString() };
     }));
@@ -803,9 +894,10 @@ export class StorySettingsService {
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsCharacter> {
     await requireNovel(novelId);
+    assertValidStateInput(input.states);
     const legacy: StoryCharacterLegacyFields = {
       gender: input.gender,
       ageGroup: input.ageGroup,
@@ -815,7 +907,7 @@ export class StorySettingsService {
       appearance: input.appearance,
       voiceTexture: input.voiceTexture,
     };
-    const states = normalizeStoryCharacterStates(input.states, legacy);
+    const states = normalizeCharacterStates(input.states, legacy);
     const row = await prisma.character.create({
       data: {
         novelId,
@@ -833,7 +925,7 @@ export class StorySettingsService {
         statesJson: serializeStates(states),
       },
     });
-    return this.projectCharacter(row);
+    return projectCharacter(row);
   }
 
   async updateCharacter(novelId: string, characterId: string, input: {
@@ -848,50 +940,65 @@ export class StorySettingsService {
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   }): Promise<StorySettingsCharacter> {
-    const row = await prisma.character.findFirst({ where: { id: characterId, novelId } });
-    if (!row) {
-      throw new AppError("没有找到这个角色。", 404);
+    assertValidStateInput(input.states);
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const row = await prisma.character.findFirst({ where: { id: characterId, novelId } });
+      if (!row) {
+        throw new AppError("没有找到这个角色。", 404);
+      }
+      const nextLegacy: StoryCharacterLegacyFields = {
+        gender: input.gender !== undefined ? input.gender : row.gender,
+        ageGroup: input.ageGroup !== undefined ? input.ageGroup : row.ageGroup,
+        physique: input.physique !== undefined ? input.physique : row.physique,
+        attireStyle: input.attireStyle !== undefined ? input.attireStyle : row.attireStyle,
+        facePrompt: input.facePrompt !== undefined ? input.facePrompt : row.facePrompt,
+        appearance: input.appearance !== undefined ? input.appearance : row.appearance,
+        voiceTexture: input.voiceTexture !== undefined ? input.voiceTexture : row.voiceTexture,
+      };
+      const persistedStates = parseStates(row.statesJson);
+      const currentStates = normalizeCharacterStates(persistedStates, nextLegacy);
+      const nextStates = normalizeCharacterStates(
+        input.states !== undefined ? input.states : persistedStates,
+        nextLegacy,
+      );
+      const states = input.states !== undefined
+        ? preserveStoryAssetRuntimeAssets(currentStates, nextStates)
+        : nextStates;
+      if (input.states !== undefined && !isStoryAssetInitialStatePreserved(currentStates, states)) {
+        throw new AppError("初始状态不能删除或移动。", 400);
+      }
+      const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
+        ? serializeStates(states)
+        : undefined;
+      const result = await prisma.character.updateMany({
+        where: { id: row.id, novelId, statesJson: row.statesJson },
+        data: {
+          ...(input.name !== undefined ? { name: input.name } : {}),
+          ...(input.role !== undefined ? { role: input.role } : {}),
+          ...(input.gender !== undefined ? { gender: normalizeCharacterGender(input.gender) } : {}),
+          ...(input.ageGroup !== undefined ? { ageGroup: normalizeCharacterAgeGroup(input.ageGroup) } : {}),
+          ...(input.physique !== undefined ? { physique: input.physique } : {}),
+          ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
+          ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
+          ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
+          ...(statesJson !== undefined ? { statesJson } : {}),
+          ...(input.personality !== undefined ? { personality: input.personality } : {}),
+          ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
+          ...(input.background !== undefined ? { background: input.background } : {}),
+        },
+      });
+      if (result.count !== 1) {
+        continue;
+      }
+      const updated = await prisma.character.findFirst({ where: { id: row.id, novelId } });
+      if (!updated) {
+        throw new AppError("角色更新后无法读取。", 500);
+      }
+      return projectCharacter(updated);
     }
-    const nextLegacy: StoryCharacterLegacyFields = {
-      gender: input.gender !== undefined ? input.gender : row.gender,
-      ageGroup: input.ageGroup !== undefined ? input.ageGroup : row.ageGroup,
-      physique: input.physique !== undefined ? input.physique : row.physique,
-      attireStyle: input.attireStyle !== undefined ? input.attireStyle : row.attireStyle,
-      facePrompt: input.facePrompt !== undefined ? input.facePrompt : row.facePrompt,
-      appearance: input.appearance !== undefined ? input.appearance : row.appearance,
-      voiceTexture: input.voiceTexture !== undefined ? input.voiceTexture : row.voiceTexture,
-    };
-    const persistedStates = parseStoryAssetStatesJson(row.statesJson);
-    const currentStates = normalizeStoryCharacterStates(persistedStates.states, nextLegacy);
-    const states = normalizeStoryCharacterStates(
-      input.states !== undefined ? input.states : persistedStates.states,
-      nextLegacy,
-    );
-    if (input.states !== undefined && !isCharacterInitialStatePreserved(currentStates, states)) {
-      throw new AppError("初始状态不能删除或移动。", 400);
-    }
-    const updated = await prisma.character.update({
-      where: { id: row.id },
-      data: {
-        ...(input.name !== undefined ? { name: input.name } : {}),
-        ...(input.role !== undefined ? { role: input.role } : {}),
-        ...(input.gender !== undefined ? { gender: normalizeCharacterGender(input.gender) } : {}),
-        ...(input.ageGroup !== undefined ? { ageGroup: normalizeCharacterAgeGroup(input.ageGroup) } : {}),
-        ...(input.physique !== undefined ? { physique: input.physique } : {}),
-        ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),
-        ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
-        ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
-        ...(input.states !== undefined || persistedStates.canSafelyRewrite
-          ? { statesJson: serializeStates(states) }
-          : {}),
-        ...(input.personality !== undefined ? { personality: input.personality } : {}),
-        ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
-        ...(input.background !== undefined ? { background: input.background } : {}),
-      },
-    });
-    return this.projectCharacter(updated);
+    throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
 
   async deleteCharacter(novelId: string, characterId: string): Promise<void> {
@@ -1023,7 +1130,7 @@ export class StorySettingsService {
     }
 
     const bundle = await this.generateBundle(novel, novelId);
-    await this.persistCategories(novelId, bundle, missing, { replace: false });
+    await persistStorySettingsCategories(novelId, bundle, missing, { replace: false });
     return { generated: missing };
   }
 
@@ -1031,7 +1138,7 @@ export class StorySettingsService {
   async regenerate(novelId: string, category: StorySettingsCategory): Promise<void> {
     const novel = await requireNovel(novelId);
     const bundle = await this.generateBundle(novel, novelId);
-    await this.persistCategories(novelId, bundle, [category], { replace: true });
+    await persistStorySettingsCategories(novelId, bundle, [category], { replace: true });
   }
 
   // 短篇确认：清除 settings_ready 检查点并重新排队；生产任务的调度由路由层触发（避免模块循环依赖）。
@@ -1105,222 +1212,6 @@ export class StorySettingsService {
     return generated.output;
   }
 
-  private async persistCategories(
-    novelId: string,
-    bundle: StorySettingsBundleOutput,
-    categories: StorySettingsCategory[],
-    options: { replace: boolean },
-  ): Promise<void> {
-    const locationIdByName = new Map(bundle.world.mapLocations.map((location) => [location.name, location.id]));
-
-    if (categories.includes("world")) {
-      await prisma.novelSettingsWorld.upsert({
-        where: { novelId },
-        create: {
-          novelId,
-          premise: bundle.world.premise,
-          era: bundle.world.era,
-          toneRulesJson: JSON.stringify(bundle.world.toneRules),
-          keySettingsJson: JSON.stringify(bundle.world.keySettings),
-          mapJson: JSON.stringify({ nodes: bundle.world.mapLocations, edges: bundle.world.mapEdges }),
-          source: "ai",
-        },
-        update: {
-          premise: bundle.world.premise,
-          era: bundle.world.era,
-          toneRulesJson: JSON.stringify(bundle.world.toneRules),
-          keySettingsJson: JSON.stringify(bundle.world.keySettings),
-          mapJson: JSON.stringify({ nodes: bundle.world.mapLocations, edges: bundle.world.mapEdges }),
-          source: "ai",
-        },
-      });
-    }
-
-    if (categories.includes("characters")) {
-      const existingNames = new Set(
-        (await prisma.character.findMany({
-          where: { novelId },
-          select: { name: true },
-        })).map((character) => character.name),
-      );
-      const newCharacters = bundle.characters.filter((character) => !existingNames.has(character.name));
-      if (newCharacters.length > 0) {
-        await prisma.character.createMany({
-          data: newCharacters.map((character) => ({
-            novelId,
-            name: character.name,
-            role: character.role,
-            gender: character.gender ?? "unknown",
-            ageGroup: character.ageGroup ?? null,
-            physique: character.physique ?? null,
-            attireStyle: character.attireStyle ?? null,
-            facePrompt: character.facePrompt ?? null,
-            statesJson: serializeStates(normalizeStoryCharacterStates(undefined, character)),
-            personality: character.personality,
-            appearance: character.appearance ?? null,
-            background: character.background ?? null,
-          })),
-        });
-      }
-    }
-
-    if (categories.includes("scenes")) {
-      if (options.replace) {
-        await prisma.novelScene.deleteMany({ where: { novelId } });
-      }
-      await prisma.novelScene.createMany({
-        data: bundle.scenes.map((scene, index) => ({
-          novelId,
-          name: scene.name,
-          sceneType: scene.sceneType ?? null,
-          summary: scene.summary,
-          environmentPrompt: scene.environmentPrompt ?? null,
-          significance: scene.significance,
-          mapNodeId: locationIdByName.get(scene.mapLocationName) ?? null,
-          sortOrder: index + 1,
-          source: "ai",
-        })),
-      });
-    }
-
-    if (categories.includes("props")) {
-      if (options.replace) {
-        await prisma.novelProp.deleteMany({ where: { novelId } });
-      }
-      const characterIdByName = new Map(
-        (await prisma.character.findMany({
-          where: { novelId },
-          select: { id: true, name: true },
-        })).map((character) => [character.name, character.id] as const),
-      );
-      await prisma.novelProp.createMany({
-        data: bundle.props.map((prop, index) => ({
-          novelId,
-          name: prop.name,
-          propType: prop.propType ?? "object",
-          description: prop.description,
-          plotFunction: prop.plotFunction,
-          visualPrompt: prop.visualPrompt ?? null,
-          ownerCharacterId: prop.ownerCharacterName
-            ? characterIdByName.get(prop.ownerCharacterName) ?? null
-            : null,
-          importance: prop.importance,
-          firstAppearHint: prop.firstAppearHint ?? null,
-          sortOrder: index + 1,
-          source: "ai",
-        })),
-      });
-    }
-  }
-
-  private projectCharacter(row: {
-    id: string;
-    name: string;
-    role: string;
-    gender: string | null;
-    ageGroup: string | null;
-    physique: string | null;
-    attireStyle: string | null;
-    facePrompt: string | null;
-    voiceTexture?: string | null;
-    personality: string | null;
-    appearance: string | null;
-    background: string | null;
-    statesJson?: string | null;
-    updatedAt: Date;
-  }): StorySettingsCharacter {
-    const states = normalizeStoryCharacterStates(parseStates(row.statesJson), row);
-    return {
-      id: row.id,
-      name: row.name,
-      role: row.role,
-      gender: row.gender,
-      ageGroup: row.ageGroup,
-      physique: row.physique,
-      attireStyle: row.attireStyle,
-      facePrompt: row.facePrompt,
-      voiceTexture: row.voiceTexture ?? null,
-      personality: row.personality,
-      appearance: row.appearance,
-      background: row.background,
-      states,
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  }
-
-  private projectScene(row: {
-    id: string;
-    name: string;
-    sceneType: string | null;
-    summary: string | null;
-    environmentPrompt: string | null;
-    significance: string | null;
-    timeOfDay?: string | null;
-    weather?: string | null;
-    imageData?: string | null;
-    mapNodeId: string | null;
-    mapUnmappable: boolean;
-    sortOrder: number;
-    source: string;
-    statesJson?: string | null;
-    updatedAt: Date;
-  }): StorySettingsScene {
-    return {
-      id: row.id,
-      name: row.name,
-      sceneType: row.sceneType,
-      summary: row.summary,
-      environmentPrompt: row.environmentPrompt,
-      significance: row.significance,
-      timeOfDay: normalizeSceneTimeOfDay(row.timeOfDay),
-      weather: normalizeSceneWeather(row.weather),
-      image: parseStoryAssetImage(row.imageData),
-      mapNodeId: row.mapNodeId,
-      mapUnmappable: row.mapUnmappable,
-      sortOrder: row.sortOrder,
-      source: row.source,
-      states: parseStates(row.statesJson),
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  }
-
-  private projectProp(
-    row: {
-      id: string;
-      name: string;
-      propType: string;
-      description: string | null;
-      plotFunction: string | null;
-      visualPrompt: string | null;
-      ownerCharacterId: string | null;
-      importance: string;
-      firstAppearHint: string | null;
-      imageData?: string | null;
-      sortOrder: number;
-      source: string;
-      statesJson?: string | null;
-      updatedAt: Date;
-    },
-    ownerCharacterName: string | null,
-  ): StorySettingsProp {
-    return {
-      id: row.id,
-      name: row.name,
-      propType: row.propType,
-      description: row.description,
-      plotFunction: row.plotFunction,
-      visualPrompt: row.visualPrompt,
-      ownerCharacterId: row.ownerCharacterId,
-      ownerCharacterName,
-      importance: row.importance,
-      firstAppearHint: row.firstAppearHint,
-      image: parseStoryAssetImage(row.imageData),
-      sortOrder: row.sortOrder,
-      source: row.source,
-      states: parseStates(row.statesJson),
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  }
 }
 
 export const storySettingsService = new StorySettingsService();
