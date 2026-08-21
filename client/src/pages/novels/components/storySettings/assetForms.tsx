@@ -7,7 +7,6 @@ import {
 } from "@/api/story/storySettings";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
@@ -131,7 +130,6 @@ export function AssetStatesEditor(props: {
   const [draft, setDraft] = useState<StoryAssetState | null>(null);
   const [selectedStateId, setSelectedStateId] = useState<string | null>(states[0]?.id ?? null);
   const [voiceModeOverride, setVoiceModeOverride] = useState<StoryAssetStateVoiceMode | null>(null);
-  const [showAdvancedPrompts, setShowAdvancedPrompts] = useState(false);
   // 角色弹窗的总保存仍由外层负责；本地改过状态后先禁止直接生成，避免服务端按旧 statesJson 生图/生音色。
   const [localDirty, setLocalDirty] = useState(false);
   const showVoice = kind === "character";
@@ -186,7 +184,6 @@ export function AssetStatesEditor(props: {
     const id = newStateId();
     setSelectedStateId(id);
     setVoiceModeOverride(null);
-    setShowAdvancedPrompts(false);
     setDraft({
       id,
       label: "",
@@ -207,7 +204,6 @@ export function AssetStatesEditor(props: {
     setEditingIndex(index);
     setSelectedStateId(state.id);
     setVoiceModeOverride(null);
-    setShowAdvancedPrompts(false);
     setDraft({
       ...state,
       referenceStateId: resolveStoryAssetStateReferenceId(states, state),
@@ -274,25 +270,7 @@ export function AssetStatesEditor(props: {
   const voiceMode: StoryAssetStateVoiceMode = voiceModeOverride
     ?? selectedState?.voice?.mode
     ?? (selectedState ? getStateVoiceMode(voiceStates, selectedState.id) : "generate_new");
-  const isUnsavedDraft = draft !== null && editingIndex === null;
   const generationDisabled = !asset || localDirty || draft !== null || imageMutation.isPending || voiceMutation.isPending;
-  const referenceLabel = selectedState?.referenceStateId
-    ? states.find((state) => state.id === selectedState.referenceStateId)?.label ?? "已删除状态"
-    : "不参考";
-  const statusLabel = selectedState?.image?.status === "done"
-    ? "已生成"
-    : selectedState?.image?.status === "generating"
-      ? "生成中"
-      : selectedState?.image?.status === "error"
-        ? "生成失败"
-        : "未生成";
-  const voiceStatusLabel = selectedState?.voice?.status === "done"
-    ? "已生成"
-    : selectedState?.voice?.status === "generating"
-      ? "生成中"
-      : selectedState?.voice?.status === "error"
-        ? "生成失败"
-        : "未生成";
 
   const updateDraft = (patch: Partial<StoryAssetState>) => {
     setDraft((current) => current ? { ...current, ...patch } : current);
@@ -315,7 +293,6 @@ export function AssetStatesEditor(props: {
       <div className="flex items-center justify-between">
         <div>
           <span className="text-sm font-medium">{stateTitle}</span>
-          <span className="ml-2 text-xs text-muted-foreground">选择状态查看图片、描述和生成状态</span>
         </div>
         <Button type="button" variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={startCreate} disabled={draft !== null || imageMutation.isPending || voiceMutation.isPending}>
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
@@ -331,7 +308,6 @@ export function AssetStatesEditor(props: {
           {states.map((state) => {
             const isSelected = state.id === selectedStateId && !draft;
             const stateIndex = states.findIndex((item) => item.id === state.id);
-            const effectiveReferenceId = resolveStoryAssetStateReferenceId(states, state);
             return (
               <div key={state.id} className="flex items-start gap-1">
                 <button
@@ -352,27 +328,9 @@ export function AssetStatesEditor(props: {
                   {state.image?.url ? (
                     <img src={buildStateImageSrc(state.image.url, state.image.generatedAt)} alt={`${state.label} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
                   ) : (
-                    <div className="flex h-10 w-14 shrink-0 items-center justify-center rounded-md border border-dashed border-border text-muted-foreground">
-                      <ImagePlus className="h-4 w-4" aria-hidden="true" />
-                    </div>
+                    <div className="h-10 w-14 shrink-0 rounded-md border border-dashed border-border bg-muted/20" aria-label={`${state.label || "状态"}尚未生成图片`} />
                   )}
-                  <span className="min-w-0 space-y-1">
-                    <span className="flex flex-wrap items-center gap-1.5 text-sm font-medium text-foreground">
-                      <span className="truncate">{state.label || "未命名状态"}</span>
-                      {state.chapterOrder ? <span className="text-[11px] text-muted-foreground">第{state.chapterOrder}章</span> : null}
-                    </span>
-                    <span className="flex flex-wrap gap-1">
-                      <Badge variant={state.image?.status === "done" ? "secondary" : "outline"} className="px-1.5 py-0 text-[10px]">图：{state.image?.status === "done" ? "已生成" : "待生成"}</Badge>
-                      {showVoice ? <Badge variant={state.voice?.status === "done" ? "secondary" : "outline"} className="px-1.5 py-0 text-[10px]">音：{state.voice?.status === "done" ? "已生成" : "待生成"}</Badge> : null}
-                      <span className="max-w-full truncate text-[10px] text-muted-foreground">参考：{effectiveReferenceId ? states.find((item) => item.id === effectiveReferenceId)?.label ?? "已删除" : "不参考"}</span>
-                      {showScene && (state.sceneType || state.timeOfDay || state.weather) ? (
-                        <span className="max-w-full truncate text-[10px] text-muted-foreground">
-                          {sceneStateMetaLabel(state)}
-                        </span>
-                      ) : null}
-                    </span>
-                    <span className="block truncate text-xs text-muted-foreground">{state.description || "填写状态描述"}</span>
-                  </span>
+                  <span className="min-w-0 truncate text-sm font-medium text-foreground">{state.label || "未命名状态"}</span>
                 </button>
                 <div className="flex shrink-0 flex-col gap-0.5 pt-1">
                   <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label={`编辑${state.label || "状态"}`} disabled={draft !== null} onClick={() => startEdit(stateIndex)}>
@@ -385,33 +343,13 @@ export function AssetStatesEditor(props: {
               </div>
             );
           })}
-          {draft && isUnsavedDraft ? (
-            <div className="rounded-md border border-dashed border-primary/50 bg-background px-2 py-2 text-xs text-primary">正在编辑新状态</div>
-          ) : null}
         </div>
 
         <div className="self-start min-w-0 rounded-lg border border-border/60 bg-background p-3">
           {selectedState ? (
             <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="truncate text-sm font-semibold">{selectedState.label || "未命名状态"}</h4>
-                    {draft ? <Badge variant="outline">编辑中</Badge> : null}
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">参考：{referenceLabel}</p>
-                </div>
-                <div className="flex shrink-0 gap-1.5">
-                  {!draft ? (
-                    <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => startEdit(selectedStateIndex)} disabled={selectedStateIndex < 0 || imageMutation.isPending || voiceMutation.isPending}>
-                      <Pencil className="mr-1.5 h-3.5 w-3.5" />编辑状态
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)]">
-                <div className="space-y-2">
+              <div className="space-y-4">
+                <section className="space-y-2" aria-label="状态图片">
                   <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
                     {selectedState.image?.url ? (
                       <LightboxImage
@@ -422,13 +360,19 @@ export function AssetStatesEditor(props: {
                         className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
                       />
                     ) : (
-                      <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
+                      <div
+                        className="aspect-[3/2] max-h-[28rem] w-full rounded-lg bg-muted/10"
+                        role="img"
+                        aria-label={`${selectedState.label || "状态"}尚未生成图片`}
+                      />
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Badge variant={selectedState.image?.status === "done" ? "secondary" : selectedState.image?.status === "error" ? "destructive" : "outline"}>
-                      图片：{statusLabel}
-                    </Badge>
+                  <div className="flex justify-end gap-2">
+                    {!draft ? (
+                      <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => startEdit(selectedStateIndex)} disabled={selectedStateIndex < 0 || imageMutation.isPending || voiceMutation.isPending}>
+                        <Pencil className="mr-1.5 h-3.5 w-3.5" />编辑状态
+                      </Button>
+                    ) : null}
                     <AiButton
                       type="button"
                       variant="outline"
@@ -442,9 +386,11 @@ export function AssetStatesEditor(props: {
                     </AiButton>
                   </div>
                   {selectedState.image?.error ? <p className="text-xs text-destructive">{selectedState.image.error}</p> : null}
-                </div>
+                </section>
 
-                <div className="space-y-2.5">
+                <section className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3" aria-label="图片设定">
+                  <h5 className="text-xs font-semibold text-foreground">图片设定</h5>
+                  <div className="grid gap-3 md:grid-cols-2">
                   <label className="block space-y-1">
                     <span className="text-xs font-medium">状态名</span>
                     <Input value={selectedState.label} placeholder="例如：警察制服 / 重伤 / 黑夜" disabled={!draft} onChange={(event) => updateDraft({ label: event.target.value })} />
@@ -532,9 +478,19 @@ export function AssetStatesEditor(props: {
                       </SelectControl>
                     </label>
                   ) : null}
-                  {showVoice ? (
+                  <label className="block space-y-1 md:col-span-2">
+                    <span className="text-xs font-medium">图片提示词</span>
+                    <Input value={selectedState.imagePrompt} placeholder="留空则按状态变化生成" disabled={!draft} onChange={(event) => updateDraft({ imagePrompt: event.target.value })} />
+                  </label>
+                  </div>
+                </section>
+                {showVoice ? (
+                  <section className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-3" aria-label="状态音色">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                      <AudioLines className="h-3.5 w-3.5" />音色
+                    </div>
                     <label className="block space-y-1">
-                      <span className="text-xs font-medium">音色变化</span>
+                      <span className="text-xs font-medium">音色提示词</span>
                       <Input
                         value={selectedState.voicePrompt ?? ""}
                         placeholder={selectedStateIndex === 0 ? "例如：低沉清晰的青年男声" : "留空则沿用上一状态音色"}
@@ -542,57 +498,37 @@ export function AssetStatesEditor(props: {
                         onChange={(event) => updateDraft({ voicePrompt: event.target.value })}
                       />
                     </label>
-                  ) : null}
-                  {showVoice ? (
-                    <div className="flex justify-end">
-                      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setShowAdvancedPrompts((current) => !current)}>
-                        {showAdvancedPrompts ? "收起高级提示词" : "高级提示词"}
-                      </Button>
-                    </div>
-                  ) : null}
-                  {(!showVoice || showAdvancedPrompts) ? (
                     <label className="block space-y-1">
-                      <span className="text-xs font-medium">图片提示词</span>
-                      <Input value={selectedState.imagePrompt} placeholder="留空则按状态变化生成" disabled={!draft} onChange={(event) => updateDraft({ imagePrompt: event.target.value })} />
+                      <span className="text-xs font-medium">处理方式</span>
+                      <SelectControl
+                        className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                        aria-label="状态音色处理方式"
+                        value={voiceMode}
+                        disabled={localDirty || imageMutation.isPending || voiceMutation.isPending}
+                        onChange={(event) => changeVoiceMode(event.target.value as StoryAssetStateVoiceMode)}
+                      >
+                        <option value="reuse_previous">沿用上一状态音色</option>
+                        <option value="generate_new">生成新的音色</option>
+                      </SelectControl>
                     </label>
-                  ) : null}
-                  {showVoice ? (
-                    <>
-                  <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="flex items-center gap-1.5 text-xs font-medium"><AudioLines className="h-3.5 w-3.5" />状态音色</span>
-                          <Badge variant={selectedState.voice?.status === "done" ? "secondary" : selectedState.voice?.status === "error" ? "destructive" : "outline"}>{voiceStatusLabel}</Badge>
-                        </div>
-                        <SelectControl
-                          className="h-9 rounded-md border bg-background px-2 text-sm"
-                          aria-label="状态音色处理方式"
-                          value={voiceMode}
-                          disabled={localDirty || imageMutation.isPending || voiceMutation.isPending}
-                          onChange={(event) => changeVoiceMode(event.target.value as StoryAssetStateVoiceMode)}
-                        >
-                          <option value="reuse_previous">沿用上一状态音色</option>
-                          <option value="generate_new">生成新的音色</option>
-                        </SelectControl>
-                        {selectedState.voice?.sampleAudioUrl ? <audio controls preload="none" src={selectedState.voice.sampleAudioUrl} className="h-8 w-full" /> : null}
-                        <div className="flex justify-end">
-                          <AiButton
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={generationDisabled}
-                            title={localDirty ? "保存角色后再生成状态音色" : undefined}
-                            onClick={() => voiceMutation.mutate({ stateId: selectedState.id, mode: voiceMode })}
-                          >
-                            {voiceMutation.isPending && voiceMutation.variables?.stateId === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic2 className="h-3.5 w-3.5" />}
-                            {voiceMutation.isPending && voiceMutation.variables?.stateId === selectedState.id ? "处理中..." : voiceMode === "reuse_previous" ? "沿用上一状态音色" : "生成新音色"}
-                          </AiButton>
-                        </div>
-                        {selectedState.voice?.error ? <p className="text-xs text-destructive">{selectedState.voice.error}</p> : null}
-                      </div>
-                    </>
-                  ) : null}
+                    {selectedState.voice?.sampleAudioUrl ? <audio controls preload="none" src={selectedState.voice.sampleAudioUrl} className="h-8 w-full" /> : null}
+                    <div className="flex justify-end">
+                      <AiButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={generationDisabled}
+                        title={localDirty ? "保存角色后再生成状态音色" : undefined}
+                        onClick={() => voiceMutation.mutate({ stateId: selectedState.id, mode: voiceMode })}
+                      >
+                        {voiceMutation.isPending && voiceMutation.variables?.stateId === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic2 className="h-3.5 w-3.5" />}
+                        {voiceMutation.isPending && voiceMutation.variables?.stateId === selectedState.id ? "处理中..." : voiceMode === "reuse_previous" ? "沿用上一状态音色" : "生成新音色"}
+                      </AiButton>
+                    </div>
+                    {selectedState.voice?.error ? <p className="text-xs text-destructive">{selectedState.voice.error}</p> : null}
+                  </section>
+                ) : null}
                 </div>
-              </div>
 
               {draft ? (
                 <div className="flex justify-end gap-2 border-t border-border/60 pt-3">
@@ -613,32 +549,6 @@ export function AssetStatesEditor(props: {
 
 export interface SceneAssetFormState {
   name: string;
-}
-
-const SCENE_STATE_TYPE_LABELS: Record<string, string> = {
-  interior: "室内",
-  exterior: "室外",
-  nature: "自然",
-};
-
-const SCENE_STATE_TIME_LABELS: Record<string, string> = {
-  morning: "早上",
-  noon: "中午",
-  night: "晚上",
-};
-
-const SCENE_STATE_WEATHER_LABELS: Record<string, string> = {
-  sunny: "晴天",
-  cloudy: "阴天",
-  rainy: "雨天",
-};
-
-function sceneStateMetaLabel(state: StoryAssetState): string {
-  return [
-    state.sceneType ? SCENE_STATE_TYPE_LABELS[state.sceneType] : null,
-    state.timeOfDay ? SCENE_STATE_TIME_LABELS[state.timeOfDay] : null,
-    state.weather ? SCENE_STATE_WEATHER_LABELS[state.weather] : null,
-  ].filter(Boolean).join(" · ");
 }
 
 export function createInitialSceneState(input: {
