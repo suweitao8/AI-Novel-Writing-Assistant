@@ -12,7 +12,6 @@
  */
 import fs from "fs/promises";
 import path from "path";
-import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type {
   StoryAssetState,
   StoryAssetStateImage,
@@ -28,7 +27,6 @@ import {
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
-import { getImageModelProvider } from "../../../../llm/modelCategories";
 import {
   runImageGeneration,
   type ImageTargetAdapter,
@@ -42,11 +40,11 @@ import {
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import { storySettingsService } from "./StorySettingsService";
 import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
+import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
 const STATE_IMAGES_DIR = "story-state-images";
-const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 const STATE_IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],
@@ -386,7 +384,7 @@ export class StoryAssetStateImageService {
     };
 
     await runImageGeneration(adapter, {
-      provider: DEFAULT_PROVIDER,
+      provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
       prompt,
       size: IMAGE_SPECS.characterAsset,
       negativePrompt,

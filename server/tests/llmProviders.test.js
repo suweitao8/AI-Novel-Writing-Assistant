@@ -31,6 +31,21 @@ test("local Grok Build providers are registered as subscription-backed channels"
   assert.equal(getTextModelProvider(), "grok-cli");
 });
 
+test("local Grok Build client options use the bridge bearer by default", async () => {
+  setProviderSecretCache("grok-cli", {
+    model: "grok-cli/grok-4.6",
+    baseURL: "http://127.0.0.1:18764/v1",
+    reasoningEnabled: true,
+  });
+  try {
+    const resolved = await resolveLLMClientOptions("grok-cli");
+    assert.equal(resolved.apiKey, "local-grok-cli");
+    assert.equal(resolved.baseURL, "http://127.0.0.1:18764/v1");
+  } finally {
+    setProviderSecretCache("grok-cli", null);
+  }
+});
+
 test("new provider defaults are present in their model fallback lists", () => {
   for (const provider of ["kimi", "minimax", "glm", "qwen", "gemini", "ollama"]) {
     assert.ok(

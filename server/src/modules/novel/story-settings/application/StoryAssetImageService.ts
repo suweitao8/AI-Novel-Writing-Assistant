@@ -14,6 +14,7 @@ import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
 import { combineStyleAvoidInstructions } from "../../../../services/drama/visual/dramaVisualStyles";
+import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
 
 const SCENE_DIR = "scenes";
 const PROP_DIR = "props";
@@ -138,7 +139,7 @@ export class StoryAssetImageService {
       cleanupOtherExts: (keepExt) => removeOldFiles(assetDir("scene", sceneId), "scene-panorama", keepExt),
     };
     await runImageGeneration(adapter, {
-      provider,
+      provider: provider ?? resolveAssetImageProvider({ kind: "scene", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.scenePanorama,
       negativePrompt: combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
@@ -166,7 +167,7 @@ export class StoryAssetImageService {
       cleanupOtherExts: (keepExt) => removeOldFiles(assetDir("prop", propId), "prop-view", keepExt),
     };
     await runImageGeneration(adapter, {
-      provider,
+      provider: provider ?? resolveAssetImageProvider({ kind: "prop", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.characterAsset,
       negativePrompt: combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),

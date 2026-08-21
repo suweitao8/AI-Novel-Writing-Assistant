@@ -39,3 +39,18 @@ test("Grok Build request body stays within its prompt-only image contract", () =
     response_format: "b64_json",
   });
 });
+
+test("Grok Build rejects reference images before building an edit request", () => {
+  assert.throws(
+    () => buildImageGenerationRequestBody({
+      sceneType: "character",
+      provider: "grok_build",
+      model: "grok-build-image",
+      prompt: "keep the same character",
+      size: "1536x1024",
+      count: 1,
+      refImages: ["data:image/png;base64,AAAA"],
+    }),
+    /参考图/,
+  );
+});
