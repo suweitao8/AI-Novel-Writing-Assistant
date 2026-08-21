@@ -238,6 +238,7 @@ export interface DramaVideoProvider {
   supportsRefImages: boolean;
   costPerSecond?: number;
   currency?: string;
+  isDefault: boolean;
 }
 
 export interface DramaTTSProvider {
@@ -546,9 +547,9 @@ export async function prepareDramaShotKeyframe(
   return data;
 }
 
-export async function createDramaVideoProviderTask(videoPromptId: string, provider = "mock") {
+export async function createDramaVideoProviderTask(videoPromptId: string, provider?: string) {
   const { data } = await apiClient.post<ApiResponse<unknown>>(`/drama/video-prompts/${videoPromptId}/provider-task`, {
-    provider,
+    ...(provider ? { provider } : {}),
   });
   return data;
 }

@@ -442,7 +442,7 @@ export default function DramaProjectPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<DramaTab>("source");
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
-  const [selectedVideoProvider, setSelectedVideoProvider] = useState("mock");
+  const [selectedVideoProvider, setSelectedVideoProvider] = useState("");
 
   const projectQuery = useQuery({
     queryKey: queryKeys.drama.project(id ?? "none"),
@@ -467,9 +467,24 @@ export default function DramaProjectPage() {
   const project = projectQuery.data?.data;
   const videoProviders = videoProvidersQuery.data?.data ?? [];
   const ttsProviders = ttsProvidersQuery.data?.data ?? [];
+  useEffect(() => {
+    if (selectedVideoProvider || videoProviders.length === 0) {
+      return;
+    }
+    setSelectedVideoProvider(
+      videoProviders.find((provider) => provider.isDefault)?.provider
+        ?? videoProviders.find((provider) => provider.provider === "local_ffmpeg")?.provider
+        ?? videoProviders[0]?.provider
+        ?? "mock",
+    );
+  }, [selectedVideoProvider, videoProviders]);
+  const defaultVideoProvider = videoProviders.find((provider) => provider.isDefault)?.provider;
   const activeVideoProvider = videoProviders.some((provider) => provider.provider === selectedVideoProvider)
     ? selectedVideoProvider
-    : videoProviders[0]?.provider ?? "mock";
+    : defaultVideoProvider
+      ?? videoProviders.find((provider) => provider.provider === "local_ffmpeg")?.provider
+      ?? videoProviders[0]?.provider
+      ?? "mock";
   const selectedOrderValue = useMemo(() => {
     if (selectedOrder) {
       return selectedOrder;
