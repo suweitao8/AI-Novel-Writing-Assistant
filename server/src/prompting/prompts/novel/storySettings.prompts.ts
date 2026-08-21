@@ -18,6 +18,8 @@ const characterSchema = z.object({
   attireStyle: z.string().min(2).max(200).optional(),
   // 纯面部特征锚点（用于角色立绘）：[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]，禁止包含服装。
   facePrompt: z.string().min(8).max(300).optional(),
+  // 初始状态的音色提示词，作为角色第一次配音的稳定基准。
+  voicePrompt: z.string().min(2).max(160).optional(),
   background: z.string().min(4).max(400).optional(),
 }).strict();
 
@@ -136,7 +138,7 @@ export const storySettingsBundlePrompt: PromptAsset<
     new SystemMessage([
       "你是中文小说的设定主编，负责在动笔之前把故事的地基打牢：人物、地点、关键道具和世界观。",
       "设定要服务于故事而不是炫技：每一项都必须能在正文中被用到、被看见，服务于主角的冲突与变化。",
-      "角色：给出姓名、性别、年龄段（child/youth/middle/elder）、身份定位、体型、性格（含说话方式与行动倾向）、外貌、默认着装、背景与面部锚点。facePrompt 按「[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]」模板写纯面部特征，禁止包含服装，用于角色立绘生成。主角必须有清晰的欲望与阻力；配角要有明确的剧情功能，不写没有用途的路人。姓名随机起，符合题材与世界观气质，不要与已有角色重名。",
+      "角色：给出姓名、性别、年龄段（child/youth/middle/elder）、身份定位、体型、性格（含说话方式与行动倾向）、外貌、默认着装、背景、面部锚点与初始状态音色提示词。facePrompt 按「[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]」模板写纯面部特征，禁止包含服装，用于角色立绘生成；voicePrompt 用中文描述音高、音质、说话气质，用于初始状态配音。主角必须有清晰的欲望与阻力；配角要有明确的剧情功能，不写没有用途的路人。姓名随机起，符合题材与世界观气质，不要与已有角色重名。",
       "场景（地点场景）：故事实际发生的地方。每个场景写清类型（interior 室内/exterior 室外/nature 自然）、环境氛围与它在故事中的作用（为什么故事要在这里发生），并给出 environmentPrompt：一段 220～320 字的完整空间环境描述，覆盖正面/左侧/右侧/背面的可见布局、光源与材质风格，不含人物与临时道具，缺失的信息要合理补全。场景必须挂在地图地点上。",
       "关键道具：推动剧情或承载伏笔的具体物品。写清类型（weapon/accessory/artifact/document/furniture/object）、外观来历、剧情功能（用于什么转折/伏笔）、持有者与重要度，并给出 visualPrompt：80～120 字的固有外观描述，必须包含材质、工艺、尺寸、色泽、纹饰，不含人物、使用场景与临时状态。不要罗列无关紧要的日常物品。",
       "世界观：一段前提（这个世界的基本图景与核心张力）、时代背景、基调规则（不超过 6 条）、2～8 条关键设定（力量体系/社会规则/核心禁忌等，每条独立成段并可回看）。",
@@ -176,6 +178,7 @@ const entityDraftSchema = z.object({
     appearance: z.string().min(4).max(300),
     attireStyle: z.string().min(2).max(200),
     facePrompt: z.string().min(8).max(300),
+    voicePrompt: z.string().min(2).max(160).optional(),
     background: z.string().min(4).max(400),
   }).strict().nullable(),
   scene: z.object({
@@ -247,7 +250,7 @@ export const storyEntityGeneratePrompt: PromptAsset<
     new SystemMessage([
       "你是中文小说的设定助手，负责按用户的一句话提示现场生成一个完整的设定实体草稿。",
       "用户提示可能很具体（「男大学生」）也可能很模糊或为空；提示里明确的约束（性别、年龄段、职业、身份、风格）必须遵守，没提到的信息由你合理发明，不要反问。",
-      "角色：随机起一个符合题材与世界气质的中文姓名（不与已有角色重名）；给出性别、年龄段（child/youth/middle/elder）、身份定位、体型、性格（含说话方式与行动倾向）、外貌、默认着装、背景。",
+      "角色：随机起一个符合题材与世界气质的中文姓名（不与已有角色重名）；给出性别、年龄段（child/youth/middle/elder）、身份定位、体型、性格（含说话方式与行动倾向）、外貌、默认着装、背景，并给出初始状态的 voicePrompt（中文，描述音高、音质、说话气质）。",
       "角色的 facePrompt 是角色立绘的面部锚点，必须按「[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]」模板写纯面部特征，禁止出现任何服装信息。",
       "场景：给出场景名、类型（interior 室内/exterior 室外/nature 自然）、氛围概述、故事作用，以及 environmentPrompt——一段 220～320 字的完整空间环境描述，覆盖正面/左侧/右侧/背面的可见布局、光源与材质风格，不含人物与临时道具；缺失的信息要合理补全，不要写「未提及」。",
       "道具：给出名称、类型（weapon 兵器/accessory 饰品/artifact 法器·神器/document 文书/furniture 家具/object 其他)、外观来历、剧情功能、重要度，以及 visualPrompt——80～120 字的固有外观描述，必须包含材质、工艺、尺寸、色泽、纹饰，不含人物、使用场景与临时状态。",

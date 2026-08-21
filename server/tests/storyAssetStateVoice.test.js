@@ -22,6 +22,15 @@ test("沿用音色只接受上一状态已完成试听", () => {
   assert.equal(resolvePreviousStateVoice([{ id: "s1" }, { id: "s2" }], "s2"), null);
 });
 
+test("多级状态复用音色时会找到最近可用的祖先试听", () => {
+  const states = [
+    { id: "s1", label: "初始", voice: { status: "done", mode: "generate_new", sampleAudioUrl: "data:audio/s1" } },
+    { id: "s2", label: "受伤" },
+    { id: "s3", label: "重伤" },
+  ];
+  assert.deepEqual(resolvePreviousStateVoice(states, "s3"), { stateId: "s1", sampleAudioUrl: "data:audio/s1" });
+});
+
 test("生成新音色优先使用状态提示词并传递角色名", () => {
   assert.deepEqual(buildStateVoiceSynthesisInput({ name: "林澈", voiceTexture: "基础低沉" }, {
     id: "s2", voicePrompt: "老年沙哑", description: "白发",
@@ -34,6 +43,63 @@ test("生成新音色优先使用状态提示词并传递角色名", () => {
   assert.equal(buildStateVoiceSynthesisInput({ name: "林澈", voiceTexture: "基础低沉" }, {
     id: "s2", description: "白发",
   }).emotion, "基础低沉");
+});
+
+test("生成新音色会沿用上一状态的音色描述", async () => {
+  let statesJson = JSON.stringify([
+    {
+      id: "s1",
+      label: "初始状态",
+      description: "青年",
+      imagePrompt: "青年",
+      voicePrompt: "清亮的青年男声",
+    },
+    {
+      id: "s2",
+      label: "受伤",
+      description: "战斗后受伤",
+      imagePrompt: "缠着绷带",
+    },
+  ]);
+  const calls = [];
+  const service = new StoryAssetStateVoiceService({
+    findCharacter: async () => ({
+      id: "c1",
+      novelId: "n1",
+      name: "林澈",
+      voiceTexture: null,
+      statesJson,
+    }),
+    updateStates: async (_characterId, nextStatesJson) => { statesJson = nextStatesJson; },
+    listCharacters: async () => [{
+      id: "c1",
+      name: "林澈",
+      gender: null,
+      ageGroup: null,
+      physique: null,
+      attireStyle: null,
+      facePrompt: null,
+      voiceTexture: null,
+      personality: null,
+      appearance: null,
+      background: null,
+      states: JSON.parse(statesJson),
+      updatedAt: new Date().toISOString(),
+    }],
+    synthesize: async (input) => {
+      calls.push(input);
+      return {
+        audioDataBase64: "YQ==",
+        contentType: "audio/mpeg",
+        byteLength: 1,
+        dataUrl: "data:audio/mpeg;base64,YQ==",
+      };
+    },
+  });
+
+  await service.generateStateVoice("n1", "c1", "s2", "generate_new");
+
+  assert.equal(calls[0].emotion, "清亮的青年男声");
 });
 
 test("生成新音色只更新目标状态并保留已有图片", async () => {

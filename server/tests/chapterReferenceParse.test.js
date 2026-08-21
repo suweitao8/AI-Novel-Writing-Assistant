@@ -1,5 +1,12 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+
+const serviceSource = fs.readFileSync(
+  path.join(__dirname, "../src/modules/novel/planning/application/ChapterReferenceParseService.ts"),
+  "utf8",
+);
 
 // 参考解析合并契约（2026-08-20 起 reference_draft/reference_extract 合并为
 // novel.chapter.reference_parse@v1）：一次调用同时产出 segments（分镜式初稿，
@@ -195,4 +202,9 @@ test("serializeDraftSegments 切换行顺序：场景 → 角色状态 → 分�
   const emptyScene = serializeDraftSegments([makeSegment({ scene: "" }), makeSegment({ scene: "" })]);
   assert.ok(!emptyScene.includes("【场景"));
   assert.ok(emptyScene.startsWith("分镜："));
+});
+
+test("参考解析给模型的角色状态名单会包含缺失数据的初始状态", () => {
+  assert.match(serviceSource, /parseStoryAssetStatesJson/);
+  assert.match(serviceSource, /normalizeStoryCharacterStates/);
 });

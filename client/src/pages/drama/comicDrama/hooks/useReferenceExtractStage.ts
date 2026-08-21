@@ -25,7 +25,6 @@ import type {
   SceneAssetFormState,
   PropAssetFormState,
 } from "@/pages/novels/components/storySettings/assetForms";
-import { newStateId } from "@/pages/novels/components/storySettings/assetForms";
 
 // 「提取」页签：展示「解析」产出并随章节持久化的设定建议（Chapter.referenceExtractionJson）。
 // 每条建议点开弹窗核对、可修改（与资产页签共用 assetForms 表单），点「应用」单个创建——
@@ -86,7 +85,7 @@ export type ApplyOneInput = {
   group: "characters" | "scenes" | "props" | "worldview";
   index: number;
   form:
-    | (CharacterAssetFormState & { __kind: "character" })
+    | (CharacterAssetFormState & { __kind: "character"; states: StoryAssetState[] })
     | (SceneAssetFormState & { __kind: "scene" })
     | (PropAssetFormState & { __kind: "prop" })
     | { __kind: "worldview"; name: string; description: string };
@@ -150,25 +149,14 @@ export function useReferenceExtractStage(input: {
         if (existingNames.characters.has(form.name.trim())) {
           throw new Error("已有同名角色，不能重复创建。");
         }
-        const imagePrompt = form.facePrompt.trim();
-        const voicePrompt = form.voiceTexture.trim();
-        const states: StoryAssetState[] = imagePrompt
-          ? [{
-            id: newStateId(),
-            label: "初始",
-            description: form.appearance.trim() || imagePrompt,
-            imagePrompt,
-            ...(voicePrompt ? { voicePrompt } : {}),
-            ...chapterTag,
-          }]
-          : [];
+        const states = form.states.map((state, index) => ({
+          ...state,
+          ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
+          ...chapterTag,
+        }));
         await createStorySettingsCharacter(input.novelId, {
           name: form.name.trim(),
           gender: form.gender || undefined,
-          ageGroup: form.ageGroup || undefined,
-          appearance: form.appearance.trim() || undefined,
-          facePrompt: imagePrompt || undefined,
-          voiceTexture: voicePrompt || undefined,
           states,
         });
       } else if (form.__kind === "scene") {
@@ -176,27 +164,25 @@ export function useReferenceExtractStage(input: {
           throw new Error("已有同名场景，不能重复创建。");
         }
         const imagePrompt = form.environmentPrompt.trim();
+        const initialPrompt = imagePrompt || `${form.name.trim()}初始状态`;
         await createStorySettingsScene(input.novelId, {
           name: form.name.trim(),
           sceneType: (form.sceneType || undefined) as "interior" | "exterior" | "nature" | undefined,
           environmentPrompt: imagePrompt || undefined,
           timeOfDay: (form.timeOfDay || undefined) as "morning" | "noon" | "night" | undefined,
           weather: (form.weather || undefined) as "sunny" | "cloudy" | "rainy" | undefined,
-          states: imagePrompt
-            ? [{ id: newStateId(), label: "初始", description: imagePrompt, imagePrompt, ...chapterTag }]
-            : [],
+          states: [{ id: "initial", label: "初始状态", description: initialPrompt, imagePrompt: initialPrompt, ...chapterTag }],
         });
       } else if (form.__kind === "prop") {
         if (existingNames.props.has(form.name.trim())) {
           throw new Error("已有同名道具，不能重复创建。");
         }
         const imagePrompt = form.visualPrompt.trim();
+        const initialPrompt = imagePrompt || `${form.name.trim()}初始状态`;
         await createStorySettingsProp(input.novelId, {
           name: form.name.trim(),
           visualPrompt: imagePrompt || undefined,
-          states: imagePrompt
-            ? [{ id: newStateId(), label: "初始", description: imagePrompt, imagePrompt, ...chapterTag }]
-            : [],
+          states: [{ id: "initial", label: "初始状态", description: initialPrompt, imagePrompt: initialPrompt, ...chapterTag }],
         });
       } else {
         const worldResponse = await getStorySettingsWorld(input.novelId);

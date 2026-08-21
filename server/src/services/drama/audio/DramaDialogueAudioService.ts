@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { resolveStoryAssetStateAncestors } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
@@ -215,10 +216,13 @@ export function resolveVoiceForCharacterState(
   if (!state) {
     return voice;
   }
-  const stateVoice = state.voice?.status === "done" && state.voice.sampleAudioUrl?.trim()
-    ? state.voice.sampleAudioUrl.trim()
-    : undefined;
-  const statePrompt = state.voice?.prompt?.trim() || state.voicePrompt?.trim() || undefined;
+  const candidates = [state, ...resolveStoryAssetStateAncestors(states, state.id)];
+  const stateVoice = candidates
+    .find((candidate) => candidate.voice?.status === "done" && candidate.voice.sampleAudioUrl?.trim())
+    ?.voice?.sampleAudioUrl?.trim();
+  const statePrompt = candidates
+    .map((candidate) => candidate.voice?.prompt?.trim() || candidate.voicePrompt?.trim())
+    .find(Boolean);
   if (!stateVoice && !statePrompt) {
     return voice;
   }

@@ -1,6 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type {
   StoryAssetState,
+  StoryAssetStateInput,
   StoryAssetStateVoiceMode,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { apiClient } from "../client";
@@ -158,7 +159,7 @@ export async function createStorySettingsScene(
     timeOfDay?: string;
     weather?: string;
     mapNodeId?: string;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsScene>>(
@@ -180,7 +181,7 @@ export async function updateStorySettingsScene(
     timeOfDay?: string | null;
     weather?: string | null;
     mapNodeId?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsScene>>(
@@ -231,7 +232,7 @@ export async function createStorySettingsProp(
     ownerCharacterId?: string;
     importance?: string;
     firstAppearHint?: string;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsProp>>(
@@ -253,7 +254,7 @@ export async function updateStorySettingsProp(
     ownerCharacterId?: string | null;
     importance?: string;
     firstAppearHint?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsProp>>(
@@ -292,7 +293,7 @@ export async function updateStorySettingsCharacter(
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsCharacter>>(
@@ -425,6 +426,7 @@ export interface StoryEntityDraft {
     appearance: string;
     attireStyle: string;
     facePrompt: string;
+    voicePrompt?: string;
     background: string;
   } | null;
   scene: {
@@ -471,7 +473,7 @@ export async function createStorySettingsCharacter(
     personality?: string;
     appearance?: string;
     background?: string;
-    states?: StoryAssetState[];
+    states?: StoryAssetStateInput[];
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter>>(

@@ -49,12 +49,18 @@ const assetStateSchema = z.object({
   description: z.string().trim().min(1).max(200),
   imagePrompt: z.string().trim().min(1).max(600),
   voicePrompt: z.string().trim().max(300).optional(),
+  ageGroup: z.enum(["child", "youth", "middle", "elder"]).optional(),
   chapterOrder: z.number().int().min(0).max(9999).optional(),
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),
   image: assetStateImageSchema.optional(),
   voice: assetStateVoiceSchema.optional(),
 }).strict();
+
+// 角色图片提示词可省略；服务端会根据状态变化、年龄和性别归一化生成。
+const characterAssetStateSchema = assetStateSchema.extend({
+  imagePrompt: z.string().trim().max(600).optional(),
+});
 
 const characterUpdateSchema = z.object({
   name: z.string().trim().min(1).max(60).optional(),
@@ -68,7 +74,7 @@ const characterUpdateSchema = z.object({
   personality: z.string().trim().max(1200).nullable().optional(),
   appearance: z.string().trim().max(1200).nullable().optional(),
   background: z.string().trim().max(2000).nullable().optional(),
-  states: z.array(assetStateSchema).max(24).optional(),
+  states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 
 const worldMapKindSchema = z.enum(["country", "city", "region", "building", "wild", "other"]);
@@ -152,7 +158,7 @@ const characterCreateSchema = z.object({
   personality: z.string().trim().max(1200).optional(),
   appearance: z.string().trim().max(1200).optional(),
   background: z.string().trim().max(2000).optional(),
-  states: z.array(assetStateSchema).max(24).optional(),
+  states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 
 const sceneCreateSchema = z.object({

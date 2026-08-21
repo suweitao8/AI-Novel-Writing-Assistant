@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { createInitialCharacterState } from "@/pages/novels/components/storySettings/assetForms";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 
 type AssetType = "character" | "scene" | "prop";
@@ -79,11 +80,11 @@ function DetailRow({ label, value }: { label: string; value: string | null | und
   );
 }
 
-function DetailStates({ states }: { states: StoryAssetState[] | undefined }) {
+function DetailStates({ states, title = "外观状态" }: { states: StoryAssetState[] | undefined; title?: string }) {
   if (!states?.length) return null;
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-muted-foreground">外观状态（{states.length}）</p>
+      <p className="text-xs text-muted-foreground">{title}（{states.length}）</p>
       <div className="space-y-1">
         {states.map((state) => (
           <div key={state.id} className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-1.5 text-xs leading-5">
@@ -96,6 +97,7 @@ function DetailStates({ states }: { states: StoryAssetState[] | undefined }) {
             ) : null}
             <span className="min-w-0">
               <span className="font-medium text-foreground">{state.label}</span>
+              {state.ageGroup ? <span className="ml-1 text-muted-foreground">· {AGE_LABELS[state.ageGroup] ?? state.ageGroup}</span> : null}
               {state.chapterOrder ? <span className="text-muted-foreground">（第 {state.chapterOrder} 章）</span> : null}
               {state.description ? <span className="block text-muted-foreground">{state.description}</span> : null}
             </span>
@@ -169,14 +171,11 @@ function AssetDetailDialog(props: {
                 <>
                   <div className="flex flex-wrap gap-1.5">
                     {character.gender ? <Badge variant="secondary">{GENDER_LABELS[character.gender] ?? character.gender}</Badge> : null}
-                    {character.ageGroup ? <Badge variant="secondary">{AGE_LABELS[character.ageGroup] ?? character.ageGroup}</Badge> : null}
+                    {character.states[0]?.ageGroup ? <Badge variant="secondary">{AGE_LABELS[character.states[0].ageGroup] ?? character.states[0].ageGroup}</Badge> : null}
                   </div>
                   <DetailRow label="性格" value={character.personality} />
-                  <DetailRow label="外貌" value={character.appearance} />
-                  <DetailRow label="图片提示词" value={character.facePrompt} />
-                  <DetailRow label="音色提示词" value={character.voiceTexture} />
                   <DetailRow label="背景" value={character.background} />
-                  <DetailStates states={character.states} />
+                  <DetailStates states={character.states} title="角色状态" />
                 </>
               );
             })() : type === "scene" ? (() => {
@@ -288,7 +287,10 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       if (createType === "character") {
         await createStorySettingsCharacter(props.novelId, {
           name,
-          personality: createNote.trim() || undefined,
+          states: [createInitialCharacterState({
+            description: createNote.trim() || "角色初始外观",
+            imagePrompt: createNote.trim() || "角色初始外观",
+          })],
         });
       } else if (createType === "scene") {
         await createStorySettingsScene(props.novelId, {
@@ -468,12 +470,12 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium" htmlFor="asset-create-note">一句话说明（可选）</label>
+              <label className="text-sm font-medium" htmlFor="asset-create-note">{createType === "character" ? "初始状态说明（可选）" : "一句话说明（可选）"}</label>
               <Input
                 id="asset-create-note"
                 value={createNote}
                 maxLength={120}
-                placeholder="性格、用途或一句补充"
+                placeholder={createType === "character" ? "例如：青年，黑色短发，穿深色战斗服" : "性格、用途或一句补充"}
                 onChange={(event) => setCreateNote(event.target.value)}
               />
             </div>

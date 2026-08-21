@@ -10,6 +10,11 @@ import { AppError } from "../../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import { chapterReferenceParsePrompt } from "../../../../prompting/prompts/novel/chapterReferenceParse.prompts";
 import type { ChapterReferenceParsePayload } from "@ai-novel/shared/types/novelChapterReferenceParse";
+import {
+  normalizeStoryCharacterStates,
+  parseStoryAssetStatesJson,
+  type StoryCharacterLegacyFields,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 const REFERENCE_TEXT_MIN_LENGTH = 50;
 const REFERENCE_TEXT_MAX_LENGTH = 20000;
@@ -57,19 +62,14 @@ export function serializeDraftSegments(
 }
 
 // 角色已登记的外观状态行（「李火旺：正常、重伤、癫狂」），供初稿按既有状态名切换。
-function parseCharacterStateLine(name: string, statesJson: string | null): string | null {
-  if (!statesJson?.trim()) return null;
-  try {
-    const parsed = JSON.parse(statesJson) as unknown;
-    if (!Array.isArray(parsed)) return null;
-    const labels = parsed
-      .map((item) => (item && typeof item === "object" ? String((item as { label?: unknown }).label ?? "").trim() : ""))
-      .filter(Boolean)
-      .slice(0, 8);
-    return labels.length > 0 ? `${name}：${labels.join("、")}` : null;
-  } catch {
-    return null;
-  }
+function parseCharacterStateLine(
+  name: string,
+  statesJson: string | null,
+  legacy: StoryCharacterLegacyFields,
+): string | null {
+  const states = normalizeStoryCharacterStates(parseStoryAssetStatesJson(statesJson).states, legacy);
+  const labels = states.map((state) => state.label.trim()).filter(Boolean).slice(0, 8);
+  return labels.length > 0 ? `${name}：${labels.join("、")}` : null;
 }
 
 export class ChapterReferenceParseService {
@@ -93,7 +93,17 @@ export class ChapterReferenceParseService {
       }),
       prisma.character.findMany({
         where: { novelId },
-        select: { name: true, statesJson: true },
+        select: {
+          name: true,
+          statesJson: true,
+          gender: true,
+          ageGroup: true,
+          physique: true,
+          attireStyle: true,
+          facePrompt: true,
+          appearance: true,
+          voiceTexture: true,
+        },
         orderBy: { createdAt: "asc" },
         take: 20,
       }),
@@ -113,7 +123,7 @@ export class ChapterReferenceParseService {
     }
     const existingScenes = sceneRows.map((row) => row.name).filter(Boolean);
     const characterStates = characterRows
-      .map((row) => parseCharacterStateLine(row.name, row.statesJson))
+      .map((row) => parseCharacterStateLine(row.name, row.statesJson, row))
       .filter((line): line is string => line !== null);
     const generated = await runStructuredPrompt({
       asset: chapterReferenceParsePrompt,

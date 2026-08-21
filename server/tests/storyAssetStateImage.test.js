@@ -9,18 +9,27 @@ const {
   buildStateImagePrompt,
   resolveStateReferenceImageUrl,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageService.js");
+const fs = require("node:fs");
+const path = require("node:path");
 
-test("buildStateImagePrompt：角色带基础外观与参考图一致性指令", () => {
+const imageServiceSource = fs.readFileSync(
+  path.join(__dirname, "../src/modules/novel/story-settings/application/StoryAssetStateImageService.ts"),
+  "utf8",
+);
+
+test("buildStateImagePrompt：角色带状态身份信息与参考图一致性指令", () => {
   const prompt = buildStateImagePrompt({
     kind: "character",
     assetName: "林澈",
-    baseAppearance: "黑色短发，黑色西装",
-    state: { label: "重伤", description: "左臂受伤流血", imagePrompt: "衣服破损，左臂缠着渗血的绷带" },
+    baseAppearance: null,
+    gender: "male",
+    state: { label: "重伤", ageGroup: "youth", description: "左臂受伤流血", imagePrompt: "衣服破损，左臂缠着渗血的绷带" },
     hasReference: true,
   }, ["style: 通用画风", "style: 现代都市"]);
   assert.match(prompt, /character state reference image/);
   assert.match(prompt, /subject: 林澈/);
-  assert.match(prompt, /base appearance: 黑色短发，黑色西装/);
+  assert.match(prompt, /gender: male/);
+  assert.match(prompt, /age group: youth/);
   assert.match(prompt, /state: 重伤/);
   assert.match(prompt, /state change: 左臂受伤流血/);
   assert.match(prompt, /state image prompt: 衣服破损/);
@@ -62,8 +71,8 @@ test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，
     resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s1" }),
     "/api/novels/n1/settings/state-images/s1",
   );
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), null);
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), null);
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), "/api/novels/n1/settings/state-images/s1");
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), "/api/novels/n1/settings/state-images/s1");
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s404" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: null }), null);
   assert.equal(
@@ -73,4 +82,19 @@ test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，
     ),
     "/api/novels/n1/settings/state-images/s1",
   );
+});
+
+test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿祖先链查找", () => {
+  const states = [
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常", image: { status: "done", url: "/state/s1" } },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "轻伤" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
+  ];
+  assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
+});
+
+test("场景和道具状态图写回时会保留无状态旧资产的初始状态", () => {
+  assert.match(imageServiceSource, /normalizeStoryAssetStates/);
+  assert.match(imageServiceSource, /updateStoryAssetStateJsonWithCas/);
+  assert.match(imageServiceSource, /statesJson: expectedRaw/);
 });

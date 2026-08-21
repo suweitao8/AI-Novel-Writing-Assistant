@@ -1,6 +1,10 @@
 import { prisma } from "../../db/prisma";
 import { compactText, safeJsonParse } from "./utils/json";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryCharacterStates,
+  parseStoryAssetStatesJson,
+  type StoryAssetState,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 interface BeatLite {
   order: number;
@@ -15,22 +19,46 @@ interface BeatLite {
 export async function loadNovelCharacterStatesByName(novelId: string): Promise<Map<string, StoryAssetState[]>> {
   const rows = await prisma.character.findMany({
     where: { novelId },
-    select: { name: true, statesJson: true },
+    select: {
+      name: true,
+      statesJson: true,
+      gender: true,
+      ageGroup: true,
+      physique: true,
+      attireStyle: true,
+      facePrompt: true,
+      appearance: true,
+      voiceTexture: true,
+    },
   });
   const map = new Map<string, StoryAssetState[]>();
   for (const row of rows) {
-    const states = safeJsonParse<StoryAssetState[]>(row.statesJson, []);
-    const valid = states.filter((state) => typeof state?.label === "string" && state.label.trim());
-    if (valid.length > 0) {
-      map.set(row.name.trim(), valid);
-    }
+    const states = normalizeStoryCharacterStates(
+      parseStoryAssetStatesJson(row.statesJson).states,
+      row,
+    );
+    map.set(row.name.trim(), states);
   }
   return map;
 }
 
 function formatStateLabels(states: StoryAssetState[]): string {
   return states
-    .map((state) => (state.chapterOrder ? `${state.label.trim()}（第${state.chapterOrder}章）` : state.label.trim()))
+    .map((state) => {
+      const details = [
+        state.chapterOrder ? `第${state.chapterOrder}章` : "",
+        state.ageGroup ? `年龄段：${state.ageGroup}` : "",
+        state.imagePrompt?.trim() || state.description?.trim()
+          ? `画面：${compactText(state.imagePrompt || state.description, 180)}`
+          : "",
+        state.voicePrompt?.trim() || state.voice?.prompt?.trim()
+          ? `音色：${compactText(state.voicePrompt || state.voice?.prompt, 120)}`
+          : "",
+      ].filter(Boolean);
+      return details.length > 0
+        ? `${state.label.trim()}（${details.join("；")}）`
+        : state.label.trim();
+    })
     .join("；");
 }
 

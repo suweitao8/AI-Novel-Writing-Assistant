@@ -36,6 +36,27 @@ export interface StoryAssetStateVoice {
   error?: string;
 }
 
+export type StoryAssetAgeGroup = "child" | "youth" | "middle" | "elder";
+
+const STORY_ASSET_AGE_GROUPS = new Set<StoryAssetAgeGroup>(["child", "youth", "middle", "elder"]);
+const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
+  child: "少年/儿童",
+  youth: "青年",
+  middle: "中年",
+  elder: "老年",
+};
+
+/** 角色状态归并时读取的旧角色字段；旧列保留，但不再作为新的编辑入口。 */
+export interface StoryCharacterLegacyFields {
+  gender?: string | null;
+  ageGroup?: string | null;
+  physique?: string | null;
+  attireStyle?: string | null;
+  facePrompt?: string | null;
+  appearance?: string | null;
+  voiceTexture?: string | null;
+}
+
 /** 资产外观状态：同一资产随剧情推进的外观形态（换装/受伤/昼夜/损坏…）。 */
 export interface StoryAssetState {
   id: string;
@@ -47,6 +68,8 @@ export interface StoryAssetState {
   imagePrompt: string;
   /** 该状态的音色提示词（配音用，仅角色有） */
   voicePrompt?: string;
+  /** 角色状态的年龄段；场景/道具状态不使用。 */
+  ageGroup?: StoryAssetAgeGroup;
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
   /**
@@ -62,6 +85,44 @@ export interface StoryAssetState {
 }
 
 /**
+ * 状态写入载荷：提示词可由服务端按状态变化补齐，归一化后的 StoryAssetState
+ * 才保证 description/imagePrompt 一定是可直接消费的字符串。
+ */
+export type StoryAssetStateInput = Omit<StoryAssetState, "description" | "imagePrompt"> & {
+  description?: string | null;
+  imagePrompt?: string | null;
+};
+
+/** 创建资产初始状态时可从旧字段或提取结果带入的默认值。 */
+export interface StoryAssetStateDefaults {
+  id?: string;
+  label?: string;
+  description?: string | null;
+  imagePrompt?: string | null;
+  ageGroup?: StoryAssetAgeGroup | null;
+  voicePrompt?: string | null;
+  chapterOrder?: number;
+}
+
+/** 所有角色、场景、道具都必须至少有一个可供后续生成使用的初始状态。 */
+export function createStoryAssetInitialState(
+  input: StoryAssetStateDefaults = {},
+): StoryAssetState {
+  const description = input.description?.trim() || "资产初始状态";
+  const imagePrompt = input.imagePrompt?.trim() || description;
+  return {
+    id: input.id?.trim() || "initial",
+    label: input.label?.trim() || "初始状态",
+    description,
+    imagePrompt,
+    ...(input.ageGroup ? { ageGroup: input.ageGroup } : {}),
+    ...(input.voicePrompt?.trim() ? { voicePrompt: input.voicePrompt.trim() } : {}),
+    ...(input.chapterOrder !== undefined ? { chapterOrder: input.chapterOrder } : {}),
+    referenceStateId: null,
+  };
+}
+
+/**
  * 旧状态数据没有 referenceStateId 时的兼容规则：默认引用上一状态；首状态没有上游，
  * 用 null 表示不参考。显式 null 永远保留，代表用户主动选择了不参考。
  */
@@ -70,18 +131,332 @@ export function resolveStoryAssetStateReferenceId(
   state: Pick<StoryAssetState, "id" | "referenceStateId">,
 ): string | null {
   if (state.referenceStateId !== undefined) {
-    return state.referenceStateId;
+    return state.referenceStateId && states.some((item) => item.id === state.referenceStateId)
+      ? state.referenceStateId
+      : null;
   }
   const index = states.findIndex((item) => item.id === state.id);
   return index > 0 ? states[index - 1]?.id ?? null : null;
 }
 
 /** 读写 statesJson 前统一补齐旧数据的默认参考值，不改变显式取消参考。 */
-export function normalizeStoryAssetStates(states: StoryAssetState[]): StoryAssetState[] {
-  return states.map((state) => ({
+export function normalizeStoryAssetStates(
+  states: StoryAssetStateInput[] | null | undefined,
+  initialState: StoryAssetStateDefaults = {},
+): StoryAssetState[] {
+  const source = (states ?? []).filter(isStoryAssetStateRecord);
+  const fallbackDescription = initialState.description?.trim() || "资产初始状态";
+  const fallbackImagePrompt = initialState.imagePrompt?.trim() || fallbackDescription;
+  const working = source.length > 0
+    ? source.map((state, index) => {
+      const description = typeof state.description === "string" && state.description.trim()
+        ? state.description.trim()
+        : (index === 0 ? fallbackDescription : "状态变化");
+      return {
+        ...state,
+        id: state.id.trim(),
+        label: state.label.trim(),
+        description,
+        imagePrompt: typeof state.imagePrompt === "string" && state.imagePrompt.trim()
+          ? state.imagePrompt.trim()
+          : (index === 0 ? fallbackImagePrompt : description),
+      };
+    })
+    : [createStoryAssetInitialState(initialState)];
+  return working.map((state, index) => ({
     ...state,
-    referenceStateId: resolveStoryAssetStateReferenceId(states, state),
+    referenceStateId: index === 0 ? null : resolveStoryAssetStateReferenceId(working, state),
   }));
+}
+
+const STORY_ASSET_IMAGE_STATUSES = new Set<StoryAssetStateImage["status"]>([
+  "idle",
+  "generating",
+  "done",
+  "error",
+]);
+const STORY_ASSET_VOICE_MODES = new Set<StoryAssetStateVoiceMode>([
+  "reuse_previous",
+  "generate_new",
+]);
+
+function isNullableString(value: unknown): value is string | null | undefined {
+  return value === undefined || value === null || typeof value === "string";
+}
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function isStoryAssetStateImageRecord(value: unknown): boolean {
+  if (!isPlainRecord(value)) {
+    return false;
+  }
+  return typeof value.status === "string"
+    && STORY_ASSET_IMAGE_STATUSES.has(value.status as StoryAssetStateImage["status"])
+    && isNullableString(value.url)
+    && isNullableString(value.prompt)
+    && isNullableString(value.provider)
+    && isNullableString(value.generatedAt)
+    && isNullableString(value.error);
+}
+
+function isStoryAssetStateVoiceRecord(value: unknown): boolean {
+  if (!isPlainRecord(value)) {
+    return false;
+  }
+  return typeof value.status === "string"
+    && STORY_ASSET_IMAGE_STATUSES.has(value.status as StoryAssetStateVoice["status"])
+    && typeof value.mode === "string"
+    && STORY_ASSET_VOICE_MODES.has(value.mode as StoryAssetStateVoiceMode)
+    && isNullableString(value.sourceStateId)
+    && isNullableString(value.sampleAudioUrl)
+    && isNullableString(value.prompt)
+    && isNullableString(value.generatedAt)
+    && isNullableString(value.error);
+}
+
+function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const state = value as Record<string, unknown>;
+  if (typeof state.id !== "string" || !state.id.trim()
+    || typeof state.label !== "string" || !state.label.trim()) {
+    return false;
+  }
+  if (!isNullableString(state.description)
+    || !isNullableString(state.imagePrompt)
+    || !isNullableString(state.voicePrompt)) {
+    return false;
+  }
+  if (state.ageGroup !== undefined && state.ageGroup !== null
+    && (typeof state.ageGroup !== "string"
+      || !STORY_ASSET_AGE_GROUPS.has(state.ageGroup as StoryAssetAgeGroup))) {
+    return false;
+  }
+  if (state.chapterOrder !== undefined && state.chapterOrder !== null
+    && (typeof state.chapterOrder !== "number" || !Number.isInteger(state.chapterOrder))) {
+    return false;
+  }
+  if (state.referenceStateId !== undefined && state.referenceStateId !== null
+    && typeof state.referenceStateId !== "string") {
+    return false;
+  }
+  if (state.image !== undefined && !isStoryAssetStateImageRecord(state.image)) {
+    return false;
+  }
+  if (state.voice !== undefined && !isStoryAssetStateVoiceRecord(state.voice)) {
+    return false;
+  }
+  return true;
+}
+
+export interface StoryAssetStatesJsonParseResult {
+  states: StoryAssetState[];
+  /** 只有 JSON 结构完整且每个状态都有稳定身份时才允许自动回写。 */
+  canSafelyRewrite: boolean;
+}
+
+/**
+ * 校验状态身份与参考关系。状态列表是一个小型有向链，重复 ID 或悬空引用会让
+ * 图片/音色继承在不同入口得到不同结果，因此服务端写入前必须拒绝它们。
+ */
+export function validateStoryAssetStateList(
+  states: Array<Pick<StoryAssetStateInput, "id" | "referenceStateId">>,
+): string | null {
+  const ids = new Set<string>();
+  for (const state of states) {
+    const id = typeof state.id === "string" ? state.id.trim() : "";
+    if (!id) {
+      return "状态 ID 不能为空。";
+    }
+    if (ids.has(id)) {
+      return "状态 ID 不能重复。";
+    }
+    ids.add(id);
+  }
+  for (const state of states) {
+    const referenceStateId = typeof state.referenceStateId === "string"
+      ? state.referenceStateId.trim()
+      : state.referenceStateId;
+    if (referenceStateId && !ids.has(referenceStateId)) {
+      return "状态引用的目标不存在。";
+    }
+  }
+  const initialReferenceStateId = states[0]?.referenceStateId;
+  if (typeof initialReferenceStateId === "string" && initialReferenceStateId.trim()) {
+    return "初始状态不能引用其他状态。";
+  }
+  return null;
+}
+
+/**
+ * 解析持久化状态并给出回写安全标记。
+ *
+ * 解析失败时仍返回可供当前请求展示的有效状态，但禁止调用方用归一化结果覆盖原始值，
+ * 避免损坏或手工扩展的 statesJson 在读时迁移中丢失。
+ */
+export function parseStoryAssetStatesJson(raw: string | null | undefined): StoryAssetStatesJsonParseResult {
+  if (!raw?.trim()) {
+    return { states: [], canSafelyRewrite: true };
+  }
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { states: [], canSafelyRewrite: false };
+  }
+  if (!Array.isArray(parsed)) {
+    return { states: [], canSafelyRewrite: false };
+  }
+  const validStates = parsed.filter(isStoryAssetStateRecord);
+  const seenIds = new Set<string>();
+  const uniqueStates = validStates.filter((item) => {
+    const normalizedId = item.id.trim();
+    if (seenIds.has(normalizedId)) {
+      return false;
+    }
+    seenIds.add(normalizedId);
+    return true;
+  });
+  const canSafelyRewrite = validStates.length === parsed.length
+    && uniqueStates.length === parsed.length
+    && validateStoryAssetStateList(validStates) === null;
+  const states = normalizeStoryAssetStates(
+    uniqueStates,
+  );
+  return { states, canSafelyRewrite };
+}
+
+/** 返回当前状态沿 referenceStateId/默认上一状态向前的所有祖先，带循环保护。 */
+export function resolveStoryAssetStateAncestors(
+  states: StoryAssetState[],
+  stateId: string,
+): StoryAssetState[] {
+  const current = states.find((state) => state.id === stateId);
+  if (!current) {
+    return [];
+  }
+  const ancestors: StoryAssetState[] = [];
+  const visited = new Set<string>([stateId]);
+  let cursor: StoryAssetState | undefined = current;
+  while (cursor) {
+    const parentId = resolveStoryAssetStateReferenceId(states, cursor);
+    if (!parentId || visited.has(parentId)) {
+      break;
+    }
+    const parent = states.find((state) => state.id === parentId);
+    if (!parent) {
+      break;
+    }
+    ancestors.push(parent);
+    visited.add(parent.id);
+    cursor = parent;
+  }
+  return ancestors;
+}
+
+/** 资产更新必须保留首个状态；旧数据的首状态 id 也不能被客户端替换或移动。 */
+export function isStoryAssetInitialStatePreserved(
+  previousStates: StoryAssetState[],
+  nextStates: StoryAssetState[],
+): boolean {
+  const initialStateId = previousStates[0]?.id;
+  return !initialStateId || nextStates[0]?.id === initialStateId;
+}
+
+/** 兼容旧调用方；角色、场景、道具都遵循同一条初始状态不变规则。 */
+export const isCharacterInitialStatePreserved = isStoryAssetInitialStatePreserved;
+
+function normalizeStoryAssetAgeGroup(value: unknown): StoryAssetAgeGroup | null {
+  return typeof value === "string" && STORY_ASSET_AGE_GROUPS.has(value as StoryAssetAgeGroup)
+    ? value as StoryAssetAgeGroup
+    : null;
+}
+
+function compactText(...values: Array<string | null | undefined>): string {
+  return values.map((value) => value?.trim()).filter(Boolean).join("，");
+}
+
+function legacyAppearance(legacy: StoryCharacterLegacyFields): string {
+  return compactText(
+    legacy.appearance,
+    [legacy.physique, legacy.attireStyle].filter((value) => value?.trim()).join("，"),
+  ) || "角色初始外观";
+}
+
+function genderLabel(value: string | null | undefined): string {
+  return value === "male" ? "男性"
+    : value === "female" ? "女性"
+      : value === "other" ? "其他性别"
+        : "";
+}
+
+function stateImagePrompt(
+  state: { imagePrompt?: string | null; description?: string | null; ageGroup?: StoryAssetAgeGroup },
+  legacy: StoryCharacterLegacyFields,
+): string {
+  const age = state.ageGroup ? STORY_ASSET_AGE_LABELS[state.ageGroup] : "";
+  return compactText(
+    state.imagePrompt,
+    compactText(genderLabel(legacy.gender), age),
+    state.description,
+  ) || legacyAppearance(legacy);
+}
+
+/**
+ * 把角色旧的外貌/音色字段归并到状态资产，并补齐状态默认值。
+ * 这是确定性的契约归一化，不会覆盖已有状态的人工提示词或已生成资产。
+ */
+export function normalizeStoryCharacterStates(
+  states: StoryAssetStateInput[] | null | undefined,
+  legacy: StoryCharacterLegacyFields = {},
+): StoryAssetState[] {
+  const source = (states ?? []).filter(isStoryAssetStateRecord);
+  const initialAge = normalizeStoryAssetAgeGroup(legacy.ageGroup) ?? "youth";
+  const initialDescription = legacyAppearance(legacy);
+  const identityPrompt = compactText(genderLabel(legacy.gender), STORY_ASSET_AGE_LABELS[initialAge]);
+  const initialImagePrompt = compactText(legacy.facePrompt, identityPrompt, initialDescription)
+    || initialDescription;
+  const initialVoicePrompt = legacy.voiceTexture?.trim()
+    || compactText(identityPrompt, "自然清晰的说话声音")
+    || "自然清晰的说话声音";
+  const working = source.length > 0
+    ? source
+    : [{
+      id: "initial",
+      label: "初始状态",
+      description: initialDescription,
+      imagePrompt: initialImagePrompt,
+      ageGroup: initialAge,
+      voicePrompt: initialVoicePrompt,
+      referenceStateId: null,
+    } satisfies StoryAssetState];
+
+  let previousAge = initialAge;
+  const normalized = working.map((state, index) => {
+    const ageGroup = normalizeStoryAssetAgeGroup(state.ageGroup) ?? (index === 0 ? initialAge : previousAge);
+    previousAge = ageGroup;
+    const description = state.description?.trim()
+      || (index === 0 ? initialDescription : working[index - 1]?.description?.trim() || initialDescription);
+    const imagePrompt = state.imagePrompt?.trim()
+      || stateImagePrompt({ description, ageGroup }, legacy);
+    const normalizedState = {
+      ...state,
+      label: state.label.trim(),
+      description,
+      imagePrompt,
+      ageGroup,
+    };
+    if (!normalizedState.voicePrompt?.trim() && !normalizedState.voice?.prompt?.trim() && index === 0) {
+      normalizedState.voicePrompt = initialVoicePrompt;
+    }
+    return normalizedState;
+  });
+  return normalizeStoryAssetStates(normalized).map((state, index) => (
+    index === 0 ? { ...state, referenceStateId: null } : state
+  ));
 }
 
 export interface ReferenceExtractItem {
