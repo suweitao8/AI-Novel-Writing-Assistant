@@ -1,11 +1,10 @@
 import { memo } from "react";
-import { ChevronRight } from "lucide-react";
 import type { NodeProps } from "@xyflow/react";
 import { cn } from "@/lib/utils";
 import { polygonCenter, polygonPointsAttribute, terrainTone } from "./mapData";
 
-// React Flow 画布的自定义节点：地点/国家/城市卡片 与 地形背景层。
-// 节点数据只带渲染所需字段；交互（点击进入/选中编辑、拖动坐标）由 MapFlowCanvas 回调上抛。
+// React Flow 画布的自定义节点：场景地点卡片 与 地形背景层。
+// 节点数据只带渲染所需字段；交互（选中编辑、拖动坐标）由 MapFlowCanvas 回调上抛。
 
 export type MapNodeKind = string;
 
@@ -13,14 +12,11 @@ export interface MapCardNodeData extends Record<string, unknown> {
   name: string;
   kind: MapNodeKind;
   summary: string;
-  childLabel: string | null;
-  childCount: number;
 }
 
 // kind 的卡片视觉语义（与 mapData.KIND_TONES 同一套调色板）：
-// 国家=violet、城市=primary（主题主色）、区域=emerald、地点=amber、其余=muted。
+// 城市=primary（主题主色）、区域=emerald、地点=amber、其余=muted。
 const CARD_TONES: Record<string, { bar: string; dot: string }> = {
-  country: { bar: "bg-violet-500/70", dot: "bg-violet-500" },
   city: { bar: "bg-primary/70", dot: "bg-primary" },
   region: { bar: "bg-emerald-500/70", dot: "bg-emerald-500" },
   building: { bar: "bg-amber-500/70", dot: "bg-amber-500" },
@@ -34,7 +30,6 @@ export function cardTone(kind: string) {
 
 // 小地图节点配色（MiniMap 的 nodeColor 需要 CSS 色值，不走 tailwind 类名）。
 export const MINIMAP_NODE_COLORS: Record<string, string> = {
-  country: "rgba(139, 92, 246, 0.9)",
   city: "rgba(59, 130, 246, 0.85)",
   region: "rgba(16, 185, 129, 0.85)",
   building: "rgba(245, 158, 11, 0.85)",
@@ -63,12 +58,6 @@ export const MapCardNode = memo(function MapCardNode({ data, selected }: NodePro
         {card.summary ? (
           <p className="line-clamp-2 text-[11px] leading-4 text-muted-foreground">{card.summary}</p>
         ) : null}
-        {card.childLabel ? (
-          <p className="flex items-center gap-0.5 pt-0.5 text-[11px] text-muted-foreground">
-            {card.childLabel}（{card.childCount}）
-            <ChevronRight className="h-3 w-3" aria-hidden="true" />
-          </p>
-        ) : null}
       </div>
     </div>
   );
@@ -79,16 +68,10 @@ export interface TerrainNodeData extends Record<string, unknown> {
 }
 
 // 地形背景层：占满整张基准画布的 SVG 多边形组，不可拖动；点击选中后可在画布下方编辑/删除单个地形。
-export const TerrainLayerNode = memo(function TerrainLayerNode({ data, selected }: NodeProps) {
+export const TerrainLayerNode = memo(function TerrainLayerNode({ data }: NodeProps) {
   const { terrain } = data as TerrainNodeData;
   return (
-    <div
-      className={cn(
-        "h-full w-full",
-        selected ? "ring-1 ring-inset ring-ring/40" : undefined,
-      )}
-      style={{ pointerEvents: "none" }}
-    >
+    <div className="h-full w-full" style={{ pointerEvents: "none" }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-full w-full">
         {terrain.map((item) => {
           const tone = terrainTone(item.type);

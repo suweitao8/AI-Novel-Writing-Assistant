@@ -336,15 +336,13 @@ export async function updateStorySettingsWorld(
   return data;
 }
 
-// AI 场景标注结果：已放到地图上的场景（含国家/城市归属）与无法定位的场景。
+// AI 场景标注结果：已摆到单层地图上的场景与无法定位的场景。
 export interface WorldMapAnnotationResult {
   map: WorldMapData;
   assignments: Array<{
     sceneId: string;
     sceneName: string;
     nodeId: string;
-    countryName: string;
-    cityName: string;
   }>;
   unplaceable: Array<{
     sceneId: string;
@@ -353,8 +351,8 @@ export interface WorldMapAnnotationResult {
   }>;
 }
 
-// AI 生成/标注地图（直接落库）：空地图时依据书名/世界观生成基础的国家+城市结构；
-// 有未标注场景时把场景放置到地图上，无法定位的标记后下次跳过。
+// AI 标注地图（直接落库）：把还没放上画布的场景资产按相互位置关系摆到地图上，
+// 地图还没有地形时顺便生成地形分区；无法定位的标记后下次跳过。
 export async function annotateWorldMap(novelId: string) {
   const { data } = await apiClient.post<ApiResponse<WorldMapAnnotationResult>>(
     `/novels/${encodeURIComponent(novelId)}/settings/world/map-annotate`,
