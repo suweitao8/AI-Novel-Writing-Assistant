@@ -29,15 +29,22 @@ import { AppError } from "../../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import {
   runImageGeneration,
+  runCompositeImageGeneration,
   type ImageTargetAdapter,
   type GeneratedReferenceImageMeta,
 } from "../../../../services/image/runtime";
+import { generateImagesByProvider } from "../../../../services/image/provider";
+import { saveImageToDisk } from "../../../../services/image/runtime/utils";
 import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
 import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
 import {
-  buildKeyframeStylePromptLines,
+  buildCharacterStylePromptLines,
   combineStyleAvoidInstructions,
 } from "../../../../services/drama/visual/dramaVisualStyles";
+import {
+  buildCharacterStateViewPrompts,
+  composeCharacterStateSheet,
+} from "../../../../services/drama/visual/characterStateSheet";
 import { storySettingsService } from "./StorySettingsService";
 import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
 import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
@@ -69,6 +76,11 @@ interface StateAssetRow {
   states?: StoryAssetState[];
   statesCanSafelyRewrite?: boolean;
   gender?: string | null;
+  ageGroup?: string | null;
+  appearance?: string | null;
+  physique?: string | null;
+  attireStyle?: string | null;
+  facePrompt?: string | null;
 }
 
 async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: string): Promise<StateAssetRow> {
@@ -103,6 +115,11 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
       states: normalizeStoryCharacterStates(parsedStates.states, legacy),
       statesCanSafelyRewrite: parsedStates.canSafelyRewrite,
       gender: row.gender,
+      ageGroup: row.ageGroup,
+      appearance: row.appearance,
+      physique: row.physique,
+      attireStyle: row.attireStyle,
+      facePrompt: row.facePrompt,
     };
   }
   if (kind === "scene") {
@@ -167,6 +184,13 @@ function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
   };
 }
 
+function sanitizeSceneStateDescription(value: string): string {
+  return value
+    .replace(/(?:巨型|大型|带血角|血角|凶猛)*(?:猛兽|怪物|异兽|野兽|动物|生物)/giu, "地面爪痕与破坏痕迹")
+    .replace(/人物|角色|人类|行人|人群/gu, "活动痕迹")
+    .replace(/\b(?:people|person|character|characters|animal|animals|monster|monsters|creature|creatures|beast|beasts|crowd|crowds)\b/giu, "environmental traces");
+}
+
 /** 组装状态图提示词（纯函数，契约锁定在 tests/storyAssetStateImage.test.js）。 */
 export function buildStateImagePrompt(
   input: {
@@ -179,6 +203,12 @@ export function buildStateImagePrompt(
   },
   styleLines: string[],
 ): string {
+  const stateDescription = input.kind === "scene"
+    ? sanitizeSceneStateDescription(input.state.description)
+    : input.state.description;
+  const stateImagePrompt = input.kind === "scene"
+    ? sanitizeSceneStateDescription(input.state.imagePrompt)
+    : input.state.imagePrompt;
   const subjectLine =
     input.kind === "character" ? "character state reference image"
       : input.kind === "scene" ? "scene state reference image"
@@ -191,11 +221,18 @@ export function buildStateImagePrompt(
     input.state.ageGroup ? `age group: ${input.state.ageGroup}` : "",
     input.baseAppearance ? `base appearance: ${input.baseAppearance}` : "",
     `state: ${input.state.label}`,
-    `state change: ${input.state.description}`,
-    `state image prompt: ${input.state.imagePrompt}`,
+    `state change: ${stateDescription}`,
+    `state image prompt: ${stateImagePrompt}`,
     input.hasReference
       ? "keep the same subject identity as the reference image, change only what the state describes"
       : "",
+    ...(input.kind === "scene"
+      ? [
+        "pure empty environment reference",
+        "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
+        "narrative living subjects remain off-screen and may appear only as environmental traces",
+      ]
+      : []),
     "clean composition, strong subject focus",
     "no text, no watermark, no subtitles, no logo",
   ];
@@ -346,20 +383,12 @@ export class StoryAssetStateImageService {
 
     // 状态图与首帧图/角色设计稿同源的两层画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const styleLines = buildKeyframeStylePromptLines(styleContext.universal, styleContext.specific);
-    const prompt = buildStateImagePrompt(
-      {
-        kind,
-        assetName: row.name,
-        baseAppearance: row.baseAppearance,
-        gender: row.gender,
-        state,
-        hasReference: Boolean(referenceUrl),
-      },
-      styleLines,
-    );
+    const styleLines = buildCharacterStylePromptLines(styleContext.universal, styleContext.specific);
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
+      kind === "scene"
+        ? "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes"
+        : "",
       combineStyleAvoidInstructions(styleContext.universal, styleContext.specific),
     ].filter(Boolean).join(", ");
 
@@ -384,16 +413,78 @@ export class StoryAssetStateImageService {
       },
     };
 
-    await runImageGeneration(adapter, {
-      provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
-      prompt,
-      size: IMAGE_SPECS.characterAsset,
-      negativePrompt,
-      ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
-      ...(referenceUrl && referencedLabel
-        ? { referenceImages: [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta] }
-        : {}),
-    });
+    if (kind === "character") {
+      const stableAppearance = [row.appearance, row.physique, row.attireStyle, row.facePrompt]
+        .filter((value): value is string => Boolean(value?.trim()))
+        .join("；");
+      const viewPrompts = buildCharacterStateViewPrompts({
+        assetName: row.name,
+        gender: row.gender,
+        ageGroup: row.ageGroup ?? state.ageGroup,
+        appearance: stableAppearance || row.baseAppearance,
+        stateLabel: state.label,
+        stateDescription: state.description,
+        stateImagePrompt: state.imagePrompt,
+        styleLines,
+        hasReference: Boolean(referenceUrl),
+      });
+      const referenceImages = referenceUrl && referencedLabel
+        ? [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta]
+        : undefined;
+      const compositePrompt = viewPrompts
+        .map((view) => `${view.label}：${view.prompt}`)
+        .join("\n");
+
+      await runCompositeImageGeneration(adapter, {
+        provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
+        prompt: compositePrompt,
+        viewRequests: viewPrompts.map((view) => ({
+          id: view.id,
+          prompt: view.prompt,
+          negativePrompt: [view.negativePrompt, negativePrompt].filter(Boolean).join(", "),
+        })),
+        ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
+        ...(referenceImages ? { referenceImages } : {}),
+        generateView: async ({ prompt: viewPrompt, negativePrompt: viewNegativePrompt, provider, model, viewPath, refImages }) => {
+          const result = await generateImagesByProvider({
+            sceneType: "character",
+            provider,
+            model,
+            prompt: viewPrompt,
+            negativePrompt: viewNegativePrompt,
+            size: IMAGE_SPECS.characterSheet,
+            count: 1,
+            ...(refImages?.length ? { refImages } : {}),
+          });
+          const imageUrl = result.images?.[0]?.url;
+          if (!imageUrl) throw new Error("角色四视图生成结果为空");
+          await saveImageToDisk(imageUrl, viewPath);
+        },
+        compose: (viewPaths, outputPath) => composeCharacterStateSheet({ viewPaths, outputPath }),
+      });
+    } else {
+      const prompt = buildStateImagePrompt(
+        {
+          kind,
+          assetName: row.name,
+          baseAppearance: row.baseAppearance,
+          gender: row.gender,
+          state,
+          hasReference: Boolean(referenceUrl),
+        },
+        styleLines,
+      );
+      await runImageGeneration(adapter, {
+        provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
+        prompt,
+        size: IMAGE_SPECS.characterAsset,
+        negativePrompt,
+        ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
+        ...(referenceUrl && referencedLabel
+          ? { referenceImages: [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta] }
+          : {}),
+      });
+    }
 
     // 返回更新后的资产 DTO（与列表接口同形），前端直接刷新缓存与本地编辑态
     if (kind === "character") {

@@ -302,8 +302,8 @@ export function AssetStatesEditor(props: {
           <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
         </Button>
       </div>
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.42fr)]">
-        <div className="min-w-0 space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2">
+      <div className="grid items-start gap-3 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.42fr)]">
+        <div className="self-start min-w-0 max-h-[26rem] overflow-y-auto space-y-1.5 rounded-lg border border-border/60 bg-muted/20 p-2">
           {states.length === 0 && !draft ? (
             <div className="flex min-h-28 items-center justify-center rounded-md border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
               还没有状态
@@ -366,7 +366,7 @@ export function AssetStatesEditor(props: {
           ) : null}
         </div>
 
-        <div className="min-w-0 rounded-lg border border-border/60 bg-background p-3">
+        <div className="self-start min-w-0 rounded-lg border border-border/60 bg-background p-3">
           {selectedState ? (
             <div className="space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -388,11 +388,11 @@ export function AssetStatesEditor(props: {
 
               <div className="grid gap-3 md:grid-cols-[minmax(0,1.04fr)_minmax(0,0.96fr)]">
                 <div className="space-y-2">
-                  <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/20">
+                  <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
                     {selectedState.image?.url ? (
-                      <img src={selectedState.image.url} alt={`${selectedState.label} 状态图`} className="aspect-video w-full object-cover" />
+                      <img src={selectedState.image.url} alt={`${selectedState.label} 状态图`} className="max-h-64 aspect-[3/2] w-full object-contain" />
                     ) : (
-                      <div className="flex aspect-video items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
+                      <div className="flex min-h-28 items-center justify-center text-xs text-muted-foreground">暂无状态图</div>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-2">

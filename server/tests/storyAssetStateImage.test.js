@@ -60,6 +60,26 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.doesNotMatch(prop, /keep the same subject identity/);
 });
 
+test("场景状态提示词会把叙事里的生物改写为环境痕迹", () => {
+  const prompt = buildStateImagePrompt({
+    kind: "scene",
+    assetName: "荒原猎场",
+    baseAppearance: null,
+    state: { label: "血雾", description: "怪物出没后的荒原", imagePrompt: "远处有猛兽轮廓" },
+    hasReference: false,
+  }, []);
+  assert.match(prompt, /pure empty environment reference/);
+  assert.match(prompt, /environmental traces/);
+  assert.doesNotMatch(prompt, /猛兽/);
+  assert.doesNotMatch(prompt, /怪物/);
+});
+
+test("角色状态图走四视图合成，不再把竖屏首帧提示词当作角色设计稿", () => {
+  assert.match(imageServiceSource, /runCompositeImageGeneration/);
+  assert.match(imageServiceSource, /buildCharacterStateViewPrompts/);
+  assert.doesNotMatch(imageServiceSource, /buildKeyframeStylePromptLines\(styleContext\.universal, styleContext\.specific\)/);
+});
+
 test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，null 才表示明确不参考", () => {
   const states = [
     { id: "s1", label: "初始", description: "", imagePrompt: "", image: { status: "done", url: "/api/novels/n1/settings/state-images/s1" } },
