@@ -227,6 +227,10 @@ class VideoProviderRegistry {
     this.providers.set(provider.provider, provider);
   }
 
+  has(provider: string): boolean {
+    return this.providers.has(provider);
+  }
+
   resolve(provider: string): VideoProviderPort {
     const resolved = this.providers.get(provider);
     if (!resolved) {
@@ -242,7 +246,9 @@ class VideoProviderRegistry {
     supportsRefImages: boolean;
     costPerSecond: number;
     currency: string;
+    isDefault: boolean;
   }> {
+    const defaultProvider = resolveDefaultVideoProvider();
     return [...this.providers.values()].map((provider) => ({
       provider: provider.provider,
       label: provider.label ?? provider.provider,
@@ -250,11 +256,24 @@ class VideoProviderRegistry {
       supportsRefImages: provider.supportsRefImages ?? false,
       costPerSecond: provider.costPerSecond ?? 0,
       currency: provider.currency ?? readCostCurrency(),
+      isDefault: provider.provider === defaultProvider,
     }));
   }
 }
 
 export const videoProviderRegistry = new VideoProviderRegistry();
+
+export function resolveDefaultVideoProvider(): string {
+  const configured = process.env.DRAMA_VIDEO_DEFAULT_PROVIDER?.trim();
+  if (configured && videoProviderRegistry.has(configured)) {
+    return configured;
+  }
+  if (videoProviderRegistry.has("local_ffmpeg")) {
+    return "local_ffmpeg";
+  }
+  return "mock";
+}
+
 videoProviderRegistry.register(new MockVideoProvider());
 videoProviderRegistry.register(new LocalFfmpegVideoProvider());
 
