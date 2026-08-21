@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { z } = require("zod");
 const { PROVIDERS, SUPPORTED_PROVIDERS } = require("../dist/llm/providers.js");
+const { getTextModelProvider } = require("../dist/llm/modelCategories.js");
 const {
   getJsonCapability,
   getModelParameterCompatibility,
@@ -17,6 +18,31 @@ const {
 test("supported providers include kimi, minimax, glm, qwen, gemini and ollama", () => {
   for (const provider of ["kimi", "minimax", "glm", "qwen", "gemini", "ollama"]) {
     assert.ok(SUPPORTED_PROVIDERS.includes(provider), `${provider} should be available`);
+  }
+});
+
+test("local Grok Build providers are registered as subscription-backed channels", () => {
+  assert.ok(SUPPORTED_PROVIDERS.includes("grok-cli"));
+  assert.ok(SUPPORTED_PROVIDERS.includes("grok_build"));
+  assert.equal(PROVIDERS["grok-cli"].requiresApiKey, false);
+  assert.equal(PROVIDERS["grok-cli"].defaultModel, "grok-cli/grok-4.6");
+  assert.equal(PROVIDERS.grok_build.requiresApiKey, false);
+  assert.equal(PROVIDERS.grok_build.defaultModel, "grok-build-image");
+  assert.equal(getTextModelProvider(), "grok-cli");
+});
+
+test("local Grok Build client options use the bridge bearer by default", async () => {
+  setProviderSecretCache("grok-cli", {
+    model: "grok-cli/grok-4.6",
+    baseURL: "http://127.0.0.1:18764/v1",
+    reasoningEnabled: true,
+  });
+  try {
+    const resolved = await resolveLLMClientOptions("grok-cli");
+    assert.equal(resolved.apiKey, "local-grok-cli");
+    assert.equal(resolved.baseURL, "http://127.0.0.1:18764/v1");
+  } finally {
+    setProviderSecretCache("grok-cli", null);
   }
 });
 

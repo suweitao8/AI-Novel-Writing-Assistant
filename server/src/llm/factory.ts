@@ -20,6 +20,7 @@ import { getTextModelProvider } from "../llm/modelCategories";
 import { resolveModel, toStructuredOutputStrategy, type TaskType } from "./modelRouter";
 import {
   getProviderEnvApiKey,
+  getProviderDefaultApiKey,
   getProviderEnvModel,
   isBuiltInProvider,
   providerRequiresApiKey,
@@ -249,7 +250,8 @@ export async function resolveLLMClientOptions(
     : dbSecret?.displayName ?? resolvedProvider;
   const apiKey = normalizeOptionalText(options.apiKey)
     ?? dbSecret?.key
-    ?? getProviderEnvApiKey(resolvedProvider);
+    ?? getProviderEnvApiKey(resolvedProvider)
+    ?? getProviderDefaultApiKey(resolvedProvider);
 
   if (!apiKey && providerRequiresApiKey(resolvedProvider)) {
     throw new Error(`未配置 ${providerName} 的 API Key。`);

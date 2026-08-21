@@ -11,7 +11,9 @@ export const LLM_PROVIDERS = [
   "gemini",
   "ollama",
   "opencode",
+  "grok-cli",
   "codex",
+  "grok_build",
   "voxcpm2",
 ] as const;
 

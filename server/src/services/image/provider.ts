@@ -6,6 +6,7 @@ import { prisma } from "../../db/prisma";
 import { imageGenerationConfig } from "../../config/imageGeneration";
 import {
   getProviderDefaultBaseUrl,
+  getProviderDefaultApiKey,
   getProviderEnvApiKey,
   getProviderEnvBaseUrl,
   providerRequiresApiKey,
@@ -71,7 +72,7 @@ async function resolveProviderSecret(provider: LLMProvider): Promise<ProviderSec
     }
   }
 
-  const finalApiKey = savedApiKey ?? getProviderEnvApiKey(provider);
+  const finalApiKey = savedApiKey ?? getProviderEnvApiKey(provider) ?? getProviderDefaultApiKey(provider);
   if (providerRequiresApiKey(provider) && !finalApiKey) {
     throw new Error(`Provider ${provider} API key is not configured.`);
   }
@@ -153,13 +154,16 @@ function normalizeOptionalEnum<T extends string>(value: T | undefined, skipValue
 }
 
 export function buildImageGenerationRequestBody(input: ImageProviderGenerateInput): Record<string, unknown> {
+  assertImageProviderReferenceSupport(input);
   const requestBody: Record<string, unknown> = {
     model: input.model,
     prompt: buildPrompt(input.prompt, input.negativePrompt),
     n: input.count,
   };
 
-  if (input.provider === "grok") {
+  if (input.provider === "grok_build") {
+    requestBody.response_format = "b64_json";
+  } else if (input.provider === "grok") {
     const aspectRatio = mapSizeToAspectRatio(input.size);
     if (aspectRatio) {
       requestBody.aspect_ratio = aspectRatio;
@@ -196,6 +200,15 @@ export function buildImageGenerationRequestBody(input: ImageProviderGenerateInpu
   }
 
   return requestBody;
+}
+
+export function assertImageProviderReferenceSupport(input: ImageProviderGenerateInput): void {
+  if (
+    input.provider === "grok_build"
+    && ((input.refImages?.length ?? 0) > 0 || (input.refImagePaths?.length ?? 0) > 0)
+  ) {
+    throw new Error("Grok Build 图片通道不支持参考图，请切换到 Codex 图片通道。");
+  }
 }
 
 export function isImageProviderSupported(provider: LLMProvider): boolean {
@@ -278,6 +291,7 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
   if (!isImageProviderSupported(input.provider)) {
     throw new Error(`Provider ${input.provider} does not support image generation currently.`);
   }
+  assertImageProviderReferenceSupport(input);
 
   const { apiKey, baseURL } = await resolveProviderSecret(input.provider);
   const controller = new AbortController();

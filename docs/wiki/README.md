@@ -17,6 +17,7 @@ Wiki 不记录单次提交改了什么，也不替代 release notes。它只记�
 
 - [模块边界与文档治理](./architecture/module-boundaries.md)
 - [当前模型选择与厂商默认模型边界](./architecture/model-selection.md)
+- [Grok Build 本地订阅通道与基础资产路由](./architecture/grok-build-provider.md)
 - [配置项归属与可见性规范](./architecture/configuration-conventions.md)
 
 ### Workflows

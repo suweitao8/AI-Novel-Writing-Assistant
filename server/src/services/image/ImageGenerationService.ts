@@ -1,4 +1,5 @@
 import { getImageModelProvider } from "../../llm/modelCategories";
+import { resolveAssetImageProvider } from "./assetProviderRouting";
 import {
   DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT,
   DEFAULT_NOVEL_COVER_STYLE_PRESET,
@@ -164,7 +165,11 @@ export class ImageGenerationService {
   private processing = false;
 
   async createCharacterTask(input: CharacterImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? getImageModelProvider();
+    const referenceImageAssetIds = normalizeReferenceImageAssetIds(input.referenceImageAssetIds);
+    const provider: LLMProvider = input.provider ?? resolveAssetImageProvider({
+      kind: "character",
+      hasReference: referenceImageAssetIds.length > 0,
+    });
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }
@@ -192,7 +197,7 @@ export class ImageGenerationService {
         prompt,
         negativePrompt: input.negativePrompt?.trim() || null,
         stylePreset: effectiveStylePreset?.trim() || null,
-        referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
+        referenceImageAssetIdsJson: JSON.stringify(referenceImageAssetIds),
         size: input.size ?? "1024x1024",
         imageCount: input.count ?? 1,
         seed: input.seed,
@@ -209,7 +214,11 @@ export class ImageGenerationService {
   }
 
   async createBookAnalysisCharacterTask(input: BookAnalysisCharacterImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? getImageModelProvider();
+    const referenceImageAssetIds = normalizeReferenceImageAssetIds(input.referenceImageAssetIds);
+    const provider: LLMProvider = input.provider ?? resolveAssetImageProvider({
+      kind: "character",
+      hasReference: referenceImageAssetIds.length > 0,
+    });
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }
@@ -241,7 +250,7 @@ export class ImageGenerationService {
         prompt,
         negativePrompt: input.negativePrompt?.trim() || null,
         stylePreset: effectiveStylePreset?.trim() || null,
-        referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
+        referenceImageAssetIdsJson: JSON.stringify(referenceImageAssetIds),
         size: input.size ?? "1024x1024",
         imageCount: input.count ?? 1,
         seed: input.seed,
