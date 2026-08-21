@@ -4,7 +4,6 @@ const http = require("node:http");
 const { randomUUID } = require("node:crypto");
 const {
   DEFAULT_GROK_CLI_API_KEY,
-  DEFAULT_GROK_CLI_BASE_URL,
   DEFAULT_GROK_CLI_MODEL,
   DEFAULT_GROK_CLI_TIMEOUT_SECONDS,
   extractOutputSchema,
@@ -271,7 +270,7 @@ function main() {
   const args = parseArgs(process.argv);
   const server = createGrokCliBridgeServer(args);
   server.listen(args.port, args.host, () => {
-    console.log(`[grok-cli-bridge] listening on ${DEFAULT_GROK_CLI_BASE_URL} model=${args.model}`);
+    console.log(`[grok-cli-bridge] listening on http://${args.host}:${args.port}/v1 model=${args.model}`);
   });
 }
 
