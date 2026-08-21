@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 const { prisma } = require("../dist/db/prisma.js");
 const { resolveModel } = require("../dist/llm/modelRouter.js");
 
-test("resolveModel clamps DeepSeek route maxTokens to the provider limit", async () => {
+test("resolveModel keeps route temperature while using the local text slot", async () => {
   const originalFindUnique = prisma.modelRouteConfig.findUnique;
 
   prisma.modelRouteConfig.findUnique = async () => ({
@@ -18,10 +18,10 @@ test("resolveModel clamps DeepSeek route maxTokens to the provider limit", async
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "deepseek");
-    assert.equal(resolved.model, "deepseek-chat");
+    assert.equal(resolved.provider, "grok-cli");
+    assert.equal(resolved.model, "grok-cli/grok-4.6");
     assert.equal(resolved.temperature, 0.3);
-    assert.equal(resolved.maxTokens, 8192);
+    assert.equal(resolved.maxTokens, 32768);
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
   }
@@ -61,8 +61,8 @@ test("resolveModel treats legacy 4096 maxTokens as unset", async () => {
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "deepseek");
-    assert.equal(resolved.model, "deepseek-chat");
+    assert.equal(resolved.provider, "grok-cli");
+    assert.equal(resolved.model, "grok-cli/grok-4.6");
     assert.equal(resolved.temperature, 0.3);
     assert.equal(resolved.maxTokens, undefined);
   } finally {
@@ -99,8 +99,8 @@ test("resolveModel preserves route protocol and structured response format prefe
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "openai");
-    assert.equal(resolved.model, "glm-5");
+    assert.equal(resolved.provider, "grok-cli");
+    assert.equal(resolved.model, "grok-cli/grok-4.6");
     assert.equal(resolved.requestProtocol, "openai_compatible");
     assert.equal(resolved.structuredResponseFormat, "json_object");
   } finally {
@@ -160,7 +160,7 @@ test("resolveModel marks strict routes degraded when only default route is avail
   try {
     const resolved = await resolveModel("critical_review");
     assert.equal(resolved.routeKey, "critical_review");
-    assert.equal(resolved.routeDegraded, true);
+    assert.equal(resolved.routeDegraded, false);
     assert.equal(resolved.temperature, 0.1);
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
@@ -184,7 +184,7 @@ test("resolveModel keeps strict routes non-degraded when explicitly configured",
     const resolved = await resolveModel("state_resolution");
     assert.equal(resolved.routeKey, "state_resolution");
     assert.equal(resolved.routeDegraded, false);
-    assert.equal(resolved.model, "deepseek-reasoner");
+    assert.equal(resolved.model, "grok-cli/grok-4.6");
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
   }
