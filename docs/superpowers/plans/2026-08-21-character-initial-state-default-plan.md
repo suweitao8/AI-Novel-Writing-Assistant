@@ -255,4 +255,3 @@ Expected: every command exits 0; existing client build warnings are informationa
 git add README.md docs/wiki/architecture/story-settings-hub.md docs/releases/release-notes.md
 git commit -s -m "docs: record default character initial state"
 ```
-
