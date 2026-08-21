@@ -79,6 +79,7 @@ test("builds one four-panel sheet prompt instead of four independent view prompt
   assert.match(prompt, /PANEL 3.*front full body/is);
   assert.match(prompt, /PANEL 4.*back full body/is);
   assert.match(prompt, /same single person/);
+  assert.match(prompt, /each panel must fill the full height/);
   assert.match(prompt, /不添加环境故事或其他人物/);
   assert.match(prompt, /not four separate images/);
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /multiple people/);

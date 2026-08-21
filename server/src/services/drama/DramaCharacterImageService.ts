@@ -1,7 +1,8 @@
 /**
  * DramaCharacterImageService
- * 为短剧角色生成「角色设计稿」：一张横版图同时包含面部特写 + 正/侧/背三视图，四个视图合称四视图（沿用旧项目约定）。
- * 对齐行业标准角色参考图规范，一次生成、全视角一致、作为视频生成的视觉锚点。
+ * 为短剧角色生成「角色设计稿」：一张原生 16:9 横版图按固定顺序包含
+ * 面部正面、面部 90° 侧面、全身正面、全身背面四个视图。
+ * 对齐角色状态图的统一生产板契约，一次生成、全视角一致、作为视频生成的视觉锚点。
  *
  * 设计原则：
  * - 仅依赖平台级图片能力（provider.ts），不导入 novel 业务服务。
@@ -18,6 +19,7 @@ import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
 import { buildCharacterStylePromptLines } from "./visual/dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./visual/dramaArtStyleResolver";
+import { buildCharacterStateSheetPrompt } from "./visual/characterStateSheet";
 import { GROK_BUILD_IMAGE_PROVIDER } from "../image/assetProviderRouting";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,36 +148,32 @@ function extractVisualDesc(visualAnchor: string | null | undefined): string {
 }
 
 /**
- * 构建「角色设计稿」提示词：
- * 单张图四个视角（沿用旧项目口径，2026-08-21 用户明确）：头部正面、头部侧面、正面全身、背面全身。
+ * 短剧角色模块的适配层：所有角色设计稿都复用角色状态图的单次四栏生产板提示词。
+ *
+ * 这里不能再维护一套“含四个视角”的自由描述，否则不同入口会让模型自行改变
+ * 版式、视角顺序和人物审美，最终保存出不同契约的参考图。
  */
-function buildCharacterSheetPrompt(character: {
+export function buildDramaCharacterSheetPrompt(character: {
   name: string;
   archetype?: string | null;
   persona?: string | null;
   visualAnchor?: string | null;
 }, styleLines: string[]): string {
   const visualDesc = extractVisualDesc(character.visualAnchor);
+  const roleContext = [
+    character.archetype ? `角色定位：${character.archetype}` : "",
+    character.persona ? `性格特质：${character.persona}` : "",
+  ].filter(Boolean).join("；");
 
-  const lines: string[] = [
-    // 四视图布局沿用旧项目口径（2026-08-21 用户明确）：头部正面、头部侧面、正面全身、背面全身。
-    "专业角色设计参考图，单张图片，含四个视角",
-    "头部特写 正面视角（五官细节清晰，表情自然）",
-    "头部特写 侧面视角（90度侧脸）",
-    "全身 正面视角（站立，全身可见）",
-    "全身 背面视角（同款服装与发型，从背后看）",
-    "四个视角必须是同一个角色：服装、发型与配色完全一致",
-    "白色背景，干净的摄影棚布光，不要文字或水印",
-    ...styleLines,
-  ];
-
-  if (character.archetype) lines.push(`角色定位：${character.archetype}`);
-  if (character.persona) lines.push(`性格特质：${character.persona}`);
-  if (visualDesc) lines.push(`外貌：${visualDesc}`);
-
-  lines.push("专业戏服设计");
-
-  return lines.join(", ");
+  return buildCharacterStateSheetPrompt({
+    assetName: character.name,
+    appearance: visualDesc || null,
+    stateLabel: "初始形象",
+    stateDescription: roleContext || "角色基础形象",
+    stateImagePrompt: visualDesc || roleContext || "角色基础形象",
+    styleLines,
+    hasReference: false,
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -198,7 +196,7 @@ export class DramaCharacterImageService {
       visualStyle: character.project?.visualStyle ?? null,
       sourceRef: character.project?.sourceRef ?? null,
     });
-    const prompt = buildCharacterSheetPrompt(
+    const prompt = buildDramaCharacterSheetPrompt(
       character,
       buildCharacterStylePromptLines(styleContext.universal, styleContext.specific),
     );
