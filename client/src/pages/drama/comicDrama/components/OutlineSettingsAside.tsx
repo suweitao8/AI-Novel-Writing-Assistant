@@ -187,9 +187,6 @@ function AssetDetailDialog(props: {
                     {scene.timeOfDay ? <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge> : null}
                     {scene.weather ? <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge> : null}
                   </div>
-                  {scene.image?.url ? (
-                    <img src={scene.image.url} alt={`${scene.name} 全景图`} className="w-full rounded-lg border border-border" />
-                  ) : null}
                   <DetailRow label="图片提示词" value={scene.environmentPrompt} />
                   <DetailStates states={scene.states} />
                 </>

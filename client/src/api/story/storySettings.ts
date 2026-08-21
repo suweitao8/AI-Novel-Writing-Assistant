@@ -8,7 +8,7 @@ import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
-/** 资产参考图的精简状态（场景=360° 全景，道具=45° 透视）。 */
+/** 资产旧版参考图的兼容状态；角色、场景和道具的正式图片都在 states 中。 */
 export interface StoryAssetImage {
   status: string;
   url?: string;
@@ -33,7 +33,7 @@ export interface StorySettingsScene {
   timeOfDay: string | null;
   /** 场景天气（sunny/cloudy/rainy；null=未设定）——影响场景图氛围 */
   weather: string | null;
-  /** 360° 全景参考图（未生成过为 null）。 */
+  /** 旧版场景全景图的兼容状态；场景正式图片从 states 读取。 */
   image: StoryAssetImage | null;
   mapNodeId: string | null;
   mapUnmappable: boolean;
@@ -205,7 +205,7 @@ export async function getStorySettingsProps(novelId: string) {
   return data;
 }
 
-/** 生成场景 360° 全景参考图（同步等待完成，返回最新图片状态）。 */
+/** 兼容旧版场景全景图生成接口；场景正式生图请使用状态图接口。 */
 export async function generateStorySceneImage(novelId: string, sceneId: string) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsScene["image"]>>(
     `/novels/${encodeURIComponent(novelId)}/settings/scenes/${encodeURIComponent(sceneId)}/generate-image`,

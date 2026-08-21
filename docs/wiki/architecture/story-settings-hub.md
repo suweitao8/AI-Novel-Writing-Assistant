@@ -61,7 +61,8 @@
 
 - 只修改状态编辑器而不更新生成服务，会出现状态图仍使用旧类别画风；任何新资产类别必须从状态生成入口验证。
 - 直接把状态描述拼成可覆盖格式的自由提示词，会允许用户把四视图/全景/透视改成另一类资产；格式要求必须留在服务端固定配置。
-- **资产参考图生成（2026-08-21 起，视图口径沿用旧项目）**：**场景＝360° 等距全景**（`IMAGE_SPECS.scenePanorama` 横版；提示词=全景构图语言 + 图片提示词 + timeOfDay/weather 映射的光线描述 + 两层画风；严格不出现人物、动物、怪物或其他活体）、**道具＝45° 三点透视单件视图**（`IMAGE_SPECS.characterAsset`）；**角色状态四视图**由 `StoryAssetStateImageService` 通过一次完整 sheet 请求生成四等宽面板，角色基础设计稿仍由其原有角色资产服务维护。状态存 `NovelScene.imageData`/`NovelProp.imageData`（GeneratedImageState JSON，20260821140000 双迁移），文件落 `generated-images/story-assets/{scenes|props}/<id>/`；服务 `StoryAssetImageService`，路由 `POST /novels/:id/settings/{scenes|props}/:assetId/generate-image`（同步等待）+ `GET …/image`（文件服务）；入口在资产页签编辑弹窗（可重新生成覆盖），脚本页右侧详情弹窗展示。角色/场景/道具状态编辑统一使用 `AssetStatesEditor` 的左列表右详情布局，列表独立滚动、图片使用 16:9 原生横版区域，避免空状态把详情栏撑出大块空白。**首帧图参考链**：`DramaShotKeyframeService` 挂角色设计稿的同时，按 `shot.location` 与场景名精确匹配挂场景全景、按画面文本断词匹配挂道具视图（meta kind=scene/asset）——都只在开启参考图时挂。
+- **旧版资产参考图兼容**：场景 360° 全景与道具 45° 透视图的旧接口、历史文件和 `imageData` 继续保留，避免旧数据失效；新的场景图片入口统一走状态图，首帧只读取场景初始状态图。三类状态图仍按 `StoryAssetStateImageService` 的类别规格生成：角色为四视图 sheet、场景为 360° 空环境全景、道具为 45° 单件透视。
+- **资产参考图与状态图边界（2026-08-22）**：角色、场景、道具的正式图片都归属于 `statesJson` 的具体状态，三类资产统一使用 `AssetStatesEditor` 的左状态列表右详情布局；每个状态独立保存描述、图片提示词和状态图，右侧只展示当前选中状态的主图。场景的旧版 360° 全景图仍保留在 `NovelScene.imageData`、磁盘文件和兼容接口中，但不再作为场景编辑器或大纲详情的主图，也不参与首帧参考回落。`DramaShotKeyframeService` 只在场景初始状态图已生成时挂载它，未生成时仅注入环境提示词；道具旧版 45° 透视图仍由 `NovelProp.imageData` 兼容服务维护。状态图文件落 `generated-images/story-state-images/<stateId>/image.<ext>`，状态图生成路由为 `POST /novels/:id/settings/{characters|scenes|props}/:assetId/states/:stateId/generate-image`。
 - **统一渲染媒介基线（2026-08-21）**：角色、场景、道具的无参考图生成都使用同一套虚幻引擎 5 影视化游戏资产方向。角色四视图只改变视角槽位，不把“摄影棚模特/普通照片”当作展示媒介；场景保持空环境约束，道具保持单体资产约束。角色状态四视图额外以漫剧主角的商业审美为硬约束：对称五官、清爽健康、利落发型、挺拔精瘦和面部吸引力优先，末世感只落在表情、服装磨损与材质细节上，避免把主角生成成憔悴或不讨喜的形象。时代风格只负责现代、末世、玄幻等氛围叠加，不能覆盖明确的资产内容。状态图缩略图使用 `generatedAt` 版本参数，点击图片进入独立大图预览，避免浏览器继续显示旧文件。
 
 ### 写作上下文注入（核心）

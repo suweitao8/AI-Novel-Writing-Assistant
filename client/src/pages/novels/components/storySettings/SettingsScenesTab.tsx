@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, ImagePlus, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsScene } from "@/api/story/storySettings";
 import {
   createStorySettingsScene,
   deleteStorySettingsScene,
   generateStoryEntityDraft,
-  generateStorySceneImage,
   getStorySettingsScenes,
   updateStorySettingsScene,
 } from "@/api/story/storySettings";
@@ -103,25 +102,6 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     },
     onError: (error) => {
       toast.error("场景保存失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
-
-  // 360° 全景参考图：同步生成，完成后就地展示；也可重新生成覆盖。
-  const imageMutation = useMutation({
-    mutationFn: () => {
-      if (!editing) {
-        throw new Error("请先保存场景再生成全景图。");
-      }
-      return generateStorySceneImage(novelId, editing.id);
-    },
-    onSuccess: async (result) => {
-      const image = result.data ?? null;
-      setEditing((prev) => (prev ? { ...prev, image } : prev));
-      await invalidate();
-      toast.success("场景全景图已生成。");
-    },
-    onError: (error) => {
-      toast.error("场景全景图生成失败。", { description: error instanceof Error ? error.message : undefined });
     },
   });
 
@@ -323,22 +303,6 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
               </div>
             ) : null}
             <SceneAssetFormFields value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} />
-            {editing ? (
-              <div className="space-y-2 rounded-lg border border-border bg-muted/20 p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">360° 全景参考图</span>
-                  <Button size="sm" variant="outline" onClick={() => imageMutation.mutate()} disabled={imageMutation.isPending}>
-                    {imageMutation.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <ImagePlus className="mr-1 h-4 w-4" />}
-                    {imageMutation.isPending ? "生成中..." : editing.image?.url ? "重新生成" : "生成全景图"}
-                  </Button>
-                </div>
-                {editing.image?.url ? (
-                  <img src={editing.image.url} alt={`${editing.name} 全景图`} className="w-full rounded-lg border border-border" />
-                ) : (
-                  <p className="text-xs leading-5 text-muted-foreground">还没有全景图。生成后，分镜首帧图会把它作为这个场景的画面参考。</p>
-                )}
-              </div>
-            ) : null}
             {editing ? (
               <AssetStatesEditor states={states} onChange={setStates} kind="scene" asset={{ novelId, assetId: editing.id }} />
             ) : null}
