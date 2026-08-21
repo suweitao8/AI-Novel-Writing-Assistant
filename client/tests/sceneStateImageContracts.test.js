@@ -15,5 +15,6 @@ test("场景编辑器只通过状态编辑器展示和生成状态图片", () =>
 test("大纲侧场景详情只展示场景状态图片", () => {
   assert.doesNotMatch(outlineSource, /scene\.image\?\.url/);
   assert.doesNotMatch(outlineSource, /全景图/);
-  assert.match(outlineSource, /<DetailStates states=\{scene\.states\}/);
+  assert.match(outlineSource, /StoryAssetDetailDialog/);
+  assert.match(outlineSource, /buildStoryAssetPresentation/);
 });

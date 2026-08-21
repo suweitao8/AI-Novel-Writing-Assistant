@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, MapPin, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsScene } from "@/api/story/storySettings";
 import {
   createStorySettingsScene,
@@ -11,13 +11,17 @@ import {
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import { toast } from "@/components/ui/toast";
+import {
+  buildStoryAssetPresentation,
+  StoryAssetCard,
+  StoryAssetDetailDialog,
+  type StoryAssetPresentation,
+} from "@/components/storyAssets";
 import { AssetStatesEditor, EMPTY_SCENE_FORM, SceneAssetFormFields, type SceneAssetFormState } from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -28,27 +32,10 @@ interface SettingsScenesTabProps {
 
 type SceneFormState = SceneAssetFormState;
 
-const SCENE_TYPE_LABELS: Record<string, string> = {
-  interior: "室内",
-  exterior: "室外",
-  nature: "自然",
-};
-
-const SCENE_TIME_LABELS: Record<string, string> = {
-  morning: "早上",
-  noon: "中午",
-  night: "晚上",
-};
-
-const SCENE_WEATHER_LABELS: Record<string, string> = {
-  sunny: "晴天",
-  cloudy: "阴天",
-  rainy: "雨天",
-};
-
 export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenesTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
+  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<SceneFormState>(EMPTY_SCENE_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -109,6 +96,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     mutationFn: (sceneId: string) => deleteStorySettingsScene(novelId, sceneId),
     onSuccess: async () => {
       toast.success("场景已删除。");
+      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -209,15 +197,15 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
         <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {filteredScenes.map((scene) => (
-            <Card key={scene.id} className="min-w-0">
-              <CardContent className="space-y-2 py-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate font-medium text-foreground">{scene.name}</span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1">
+          {filteredScenes.map((scene) => {
+            const asset = buildStoryAssetPresentation({ kind: "scene", asset: scene });
+            return (
+              <StoryAssetCard
+                key={scene.id}
+                asset={asset}
+                onOpen={() => setSelectedAsset(asset)}
+                actions={(
+                  <>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(scene)} aria-label="编辑场景">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -225,44 +213,37 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 text-destructive"
-                      onClick={() => deleteMutation.mutate(scene.id)}
+                      onClick={() => {
+                        if (window.confirm(`删除场景「${scene.name}」？`)) deleteMutation.mutate(scene.id);
+                      }}
                       disabled={deleteMutation.isPending}
                       aria-label="删除场景"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
-                  </div>
-                </div>
-                {scene.sceneType ? (
-                  <Badge variant="outline">{SCENE_TYPE_LABELS[scene.sceneType] ?? scene.sceneType}</Badge>
-                ) : null}
-                {scene.timeOfDay ? (
-                  <Badge variant="outline">{SCENE_TIME_LABELS[scene.timeOfDay] ?? scene.timeOfDay}</Badge>
-                ) : null}
-                {scene.weather ? (
-                  <Badge variant="outline">{SCENE_WEATHER_LABELS[scene.weather] ?? scene.weather}</Badge>
-                ) : null}
-                {scene.environmentPrompt ? (
-                  <p className="text-xs leading-5 text-muted-foreground">图片提示词：{scene.environmentPrompt}</p>
-                ) : null}
-                {scene.states.length > 0 ? (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    {scene.states.map((state) => (
-                      <span
-                        key={state.id}
-                        className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-600 dark:text-amber-400"
-                        title={[state.description, state.imagePrompt ? `画面：${state.imagePrompt}` : ""].filter(Boolean).join("\n")}
-                      >
-                        {state.label}{state.chapterOrder ? `·第${state.chapterOrder}章` : ""}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          ))}
+                  </>
+                )}
+              />
+            );
+          })}
         </div>
       )}
+
+      <StoryAssetDetailDialog
+        asset={selectedAsset}
+        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
+        onEdit={selectedAsset ? () => {
+          const source = selectedAsset.source as StorySettingsScene;
+          setSelectedAsset(null);
+          openEdit(source);
+        } : undefined}
+        onDelete={() => {
+          if (selectedAsset && window.confirm(`删除场景「${selectedAsset.name}」？`)) {
+            deleteMutation.mutate(selectedAsset.id);
+          }
+        }}
+        deleting={deleteMutation.isPending}
+      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
