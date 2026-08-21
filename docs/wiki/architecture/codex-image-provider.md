@@ -10,11 +10,12 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - **该供应商只用于图片**：桥上没有 `/v1/chat/completions`，文本任务路由到 codex 会得到明确 404；`capabilities.ts` 中 codex 的 JSON 能力声明为全 false。
 - 图片模型走 `ProviderImageSettingsService` 的既有通道：`ImageModelProvider` 增加 `codex`，选项 `gpt-image-2`，env 读取 `CODEX_IMAGE_MODEL`，持久化在 `AppSetting`（key `provider.imageModel.codex`）。
 - 桥接实现为仓库内零依赖 Node 脚本（`scripts/codex-image-bridge.cjs`），从 mydrama 的 Python 桥移植，协议一致；启动器 `scripts/start-codex-image-bridge.cjs` 对应 `pnpm codex:image`。
-- 选择 Codex 而不是 Grok 桥的原因：Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality` 与参考图（multipart `/images/edits`），与本项目封面 / 角色立绘场景完全匹配；mydrama 的 Grok 桥输出固定 16:9 横版，不适合封面。Grok 桥如需接入可按同一模式扩展。
+- Codex 桥保留为参考图兼容通道：它支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality` 与参考图（multipart `/images/edits`）。当前无参考图的角色、场景、道具和封面默认走 Grok Build；带参考图的任务才由路由回退到 Codex。Grok Build 固定输出 16:9 横版，因此仍不承担参考图编辑与需要其他画幅的请求。
 
 ## 当前规则
 
 - 端口约定：`18766` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）。
+- 业务路由只有在请求包含参考图时才选择该桥；无参考图请求默认使用 `grok_build`，不要在新调用点把 Codex 写成无条件默认值。
 - 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, response_format}`，`size` 会被翻译成宽高比与目标尺寸写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。

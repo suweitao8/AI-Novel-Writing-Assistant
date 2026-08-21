@@ -7,7 +7,7 @@
 ## 决策
 
 - 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型。
-- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=grok-cli`（Grok Build 文本本地桥）、`image=codex`（兼容参考图的图片本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音桥）。无参考图的角色、场景、道具基础资产由业务路由单独使用 `grok_build` 图片桥。
+- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=grok-cli`（Grok Build 文本本地桥）、`image=grok_build`（Grok Build 图片本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音桥）。带参考图的图片任务由业务路由自动回退到兼容 `/images/edits` 的 Codex 图片桥。
 - 槽位的服务地址、API Key、模型均可编辑；更换供应商时修改槽位配置即可，产品不再提供按厂商维度逐个配置的界面。
 - 所有任务路由统一解析到文本槽：`resolveModel` 的 provider/model 一律来自文本槽当前配置，路由行仅保留温度与结构化协议偏好，避免历史路由把任务钉在已不再使用的供应商上。
 
@@ -16,7 +16,7 @@
 - `resolveModel(taskType)`：provider 固定为文本槽；model 来自 `resolveTextModelId()`（已保存配置 > 环境变量 > 注册表默认值）；温度优先取 `modelRouteConfig` 行，缺省用 `TASK_ROUTE_DEFAULTS` 的任务级默认温度。
 - `factory.resolveLLMClientOptions` 在未显式指定 provider 时回退文本槽，禁止回退任何固定厂商。
 - 运行时全部调用点同样禁止固定厂商默认值（如 `?? "deepseek"`、`fallbackProvider: "deepseek"`）：未显式指定供应商时一律回退 `getTextModelProvider()`。新增代码遵循同一规则，否则会出现“未配置 DeepSeek 的 API Key”一类错误。
-- 图片生成类调用点（封面、角色立绘、漫画分格/场景、剧照等）同理回退图片槽 `getImageModelProvider()`；文本类与图片类默认值不可混用。
+- 图片生成类调用点（封面、角色立绘、漫画分格/场景、剧照等）无参考图时回退图片槽 `getImageModelProvider()`；带参考图时由 `resolveImageProviderForReferences` 自动选择兼容参考图的 Codex；文本类与图片类默认值不可混用。
 - 存量数据里遗留的 provider 值（如拆书记录中的 deepseek）不再被文字任务读取；重新入队时会回写为文本槽当前供应商。
 - 知识库向量（RAG embedding）是独立通道，有专属设置面与默认供应商，不属于文本/图片槽管辖。
 - `/api/settings/model-categories` 返回三槽状态；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
@@ -33,7 +33,7 @@
 
 - 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
 - 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
-- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 基础图片 / 18766 Codex 参考图图片 / 18761 音频）时连通测试失败；执行 `pnpm grok:bridge` 启动 Grok Build 两个通道，参考图图片桥仍可执行 `pnpm codex:image`，音频桥见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
+- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 18761 音频）时连通测试失败；执行 `pnpm grok:bridge` 启动 Grok Build 两个通道，参考图图片桥仍可执行 `pnpm codex:image`，音频桥见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 
 ## 相关模块
 

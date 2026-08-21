@@ -1,4 +1,3 @@
-import { getImageModelProvider } from "../../../llm/modelCategories";
 import { Readable } from "node:stream";
 import { buildDefaultCharacterImageSourceDescription } from "@ai-novel/shared/imagePrompt";
 import type { ImageAsset, ImageGenerationTask } from "@ai-novel/shared/types/image";
@@ -9,6 +8,7 @@ import { AppError } from "../../../middleware/errorHandler";
 import { characterLibrarySyncService } from "../../character/CharacterLibrarySyncService";
 import { imageGenerationService } from "../../image/ImageGenerationService";
 import { buildImageAssetPublicUrl, persistGeneratedImageAsset, resolveImageAssetFile } from "../../image/imageAssetStorage";
+import { resolveImageProviderForReferences } from "../../image/assetProviderRouting";
 
 export interface BookAnalysisCharacterImagePreview {
   kind: string;
@@ -221,7 +221,7 @@ export class BookAnalysisCharacterMediaService {
       prompt: buildSourcePrompt(character),
       negativePrompt: DEFAULT_NEGATIVE_PROMPT,
       referenceImages: [],
-      provider: input.provider ?? getImageModelProvider(),
+      provider: input.provider ?? resolveImageProviderForReferences(false),
       size: "1024x1024",
     };
   }
@@ -282,7 +282,7 @@ export class BookAnalysisCharacterMediaService {
         url: buildImageAssetPublicUrl(asset.id),
         assetId: asset.id,
       })),
-      provider: input.provider ?? getImageModelProvider(),
+      provider: input.provider ?? resolveImageProviderForReferences(referenceImages.length > 0),
       size: "1024x1024",
     };
   }
@@ -327,7 +327,10 @@ export class BookAnalysisCharacterMediaService {
           prompt,
           negativePrompt: input.overrides?.negativePromptOverride?.trim() || DEFAULT_NEGATIVE_PROMPT,
           stylePreset: input.stylePreset?.trim() || "同一角色章节形象演变图",
-          provider: (input.overrides?.providerOverride as LLMProvider | undefined) ?? input.provider ?? getImageModelProvider(),
+          provider: resolveImageProviderForReferences(
+            referenceImages.length > 0,
+            (input.overrides?.providerOverride as LLMProvider | undefined) ?? input.provider,
+          ),
           size: input.overrides?.sizeOverride ?? "1024x1024",
           source: "appearance_snapshot",
           chapterIndex: snapshot.chapterIndex,

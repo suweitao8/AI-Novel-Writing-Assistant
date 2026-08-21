@@ -1,5 +1,4 @@
-import { getImageModelProvider } from "../../llm/modelCategories";
-import { resolveAssetImageProvider } from "./assetProviderRouting";
+import { resolveAssetImageProvider, resolveImageProviderForReferences } from "./assetProviderRouting";
 import {
   DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT,
   DEFAULT_NOVEL_COVER_STYLE_PRESET,
@@ -267,7 +266,11 @@ export class ImageGenerationService {
   }
 
   async createNovelCoverTask(input: NovelCoverImageGenerationRequest): Promise<ImageGenerationTask> {
-    const provider: LLMProvider = input.provider ?? getImageModelProvider();
+    const referenceImageAssetIds = normalizeReferenceImageAssetIds(input.referenceImageAssetIds);
+    const provider: LLMProvider = resolveImageProviderForReferences(
+      referenceImageAssetIds.length > 0,
+      input.provider,
+    );
     if (!isImageProviderSupported(provider)) {
       throw new AppError(`Provider ${provider} is not supported for image generation yet.`, 400);
     }
@@ -293,7 +296,7 @@ export class ImageGenerationService {
         prompt,
         negativePrompt: mergeNovelCoverNegativePrompt(input.negativePrompt),
         stylePreset: effectiveStylePreset,
-        referenceImageAssetIdsJson: JSON.stringify(normalizeReferenceImageAssetIds(input.referenceImageAssetIds)),
+        referenceImageAssetIdsJson: JSON.stringify(referenceImageAssetIds),
         size: input.size ?? DEFAULT_NOVEL_COVER_IMAGE_SIZE,
         imageCount: input.count ?? DEFAULT_NOVEL_COVER_IMAGE_COUNT,
         seed: input.seed,

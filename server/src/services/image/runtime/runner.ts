@@ -20,6 +20,7 @@ import {
   resolveImageModel,
 } from "../provider";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
+import { resolveImageProviderForReferences } from "../assetProviderRouting";
 
 import {
   DEFAULT_RUNTIME_PROVIDER,
@@ -57,7 +58,11 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
   opts: RunImageGenerationOptions,
 ): Promise<TState> {
   // 1. provider 解析 + 校验
-  const provider = (opts.provider as LLMProvider | undefined) ?? DEFAULT_RUNTIME_PROVIDER;
+  const requestedProvider = (opts.provider as LLMProvider | undefined) ?? DEFAULT_RUNTIME_PROVIDER;
+  const provider = resolveImageProviderForReferences(
+    Boolean(opts.refImagePaths?.length || opts.refImages?.length),
+    requestedProvider,
+  );
   if (!isImageProviderSupported(provider)) {
     throw new AppError(`图片 Provider ${provider} 暂不支持。`, 400);
   }
