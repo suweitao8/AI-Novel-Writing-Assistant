@@ -1,15 +1,17 @@
-// 地图应用服务：AI 场景标注（三层地图：世界=国家 → 国家=城市 → 城市=具体地点）与人工编辑后地图的保存。
+// 地图应用服务：AI 场景标注（单层平面地图：场景资产按相互位置关系摆到画布上）与人工编辑后地图的保存。
 // 地图存储在 NovelSettingsWorld.mapJson：
 // { overview, scaleKm, terrain:[{id,type,label,points}], nodes:[{id,name,kind,summary,x,y,tier?}],
 //   edges:[{fromId,toId,label}], childMaps:{[nodeId]: 同构内部地图} }。
-// 层级语义按深度约定：根图 nodes=国家（kind=country）、国家 childMap nodes=城市（kind=city）、城市 childMap nodes=地点（kind=building，关联 NovelScene.mapNodeId）。
-// 地形（平地/山/水）是程序化多边形，AI 不生成地形也不生图；childMaps 深度上限三级（世界→国家→城市）。
+// 当前地图是单层画布：只使用根图 nodes/terrain；childMaps 是旧版国家→城市层级数据的兼容字段，
+// 读取时不展开、不再写入新内容（旧数据随用户删除节点逐步清理）。
 // 边界说明：
-// - node id 必须稳定：AI 标注按名称对齐已有国家/城市/地点沿用原节点，NovelScene.mapNodeId 的引用因此不丢；
+// - 场景是否「已放上地图」以根图节点判定：NovelScene.mapNodeId 指向根图存在节点才算已放置；
+//   旧层级数据里挂在 childMaps 内部节点上的场景视为未放置（下次标注会重新摆到根图，自愈迁移）。
+// - node id 必须稳定：AI 标注按名称对齐已有地点沿用原节点，NovelScene.mapNodeId 的引用因此不丢；
 //   保存时被删除的节点会把引用它的场景挂点清空（不删场景本身）。
-// - 坐标是 0-100 平面百分比，前端渲染成 SVG 并允许拖拽；旧数据（bundle 写入的无坐标节点）x/y 为 null，
+// - 坐标是 0-100 平面百分比，前端 React Flow 渲染并允许拖拽；旧数据（bundle 写入的无坐标节点）x/y 为 null，
 //   渲染回落环形布局，兼容不迁移。
-// - 场景标注只新增节点，不改动已有节点/地形/childMaps 结构；无法定位的场景写 NovelScene.mapUnmappable=true，下次跳过。
+// - 场景标注只新增节点，不改动已有节点/地形/坐标；无法定位的场景写 NovelScene.mapUnmappable=true，下次跳过。
 import { randomUUID } from "node:crypto";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -23,10 +25,10 @@ const NODE_COUNT_MAX = 48;
 const EDGE_COUNT_MAX = 48;
 const TERRAIN_COUNT_MAX = 24;
 const TERRAIN_VERTEX_MAX = 24;
-// AI 场景标注会按 国家→城市→地点 建树，上限按「每图」计：世界图 32 国、每国 32 城、每城 48 地点。
+// childMaps 只做旧数据兼容：深度与数量上限保留，防止异常数据无限嵌套。
 const CHILD_MAP_COUNT_MAX = 32;
-// 世界(0) → 国家(1) → 城市(2)：超过三级的内部地图丢弃，防止无限嵌套。
 const CHILD_MAP_DEPTH_MAX = 3;
+// country 是旧版层级数据的 kind，读取兼容但不再产生新节点。
 const NODE_KINDS = new Set(["country", "city", "region", "building", "wild", "other"]);
 const NODE_TIERS = new Set(["capital", "city", "town", "landmark"]);
 const TERRAIN_TYPES = new Set(["plain", "mountain", "water"]);
@@ -68,8 +70,6 @@ export interface WorldMapAssignment {
   sceneId: string;
   sceneName: string;
   nodeId: string;
-  countryName: string;
-  cityName: string;
 }
 
 export interface WorldMapUnplaceable {
@@ -101,7 +101,7 @@ function parseJsonObjectSafe(value: string | null | undefined): Record<string, u
   }
 }
 
-// 世界观关键设定条目（章节解析累积）：作为 AI 生成基础地图的世界观依据传入。
+// 世界观关键设定条目（章节解析累积）：作为 AI 摆放场景与命名地形的世界观依据传入。
 function parseKeySettings(value: string | null | undefined): Array<{ title: string; content: string }> {
   try {
     const parsed = JSON.parse(value || "[]");
@@ -209,7 +209,7 @@ export function normalizeWorldMap(raw: unknown, depth = 0): WorldMapData {
     }
   }
 
-  // 内部地图只挂在真实存在的节点上，超出深度上限或数量的丢弃（静默兜底）。
+  // 旧层级 childMaps 只在挂点真实存在时保留（兼容读取），超出深度/数量上限的丢弃（静默兜底）。
   const childMaps: Record<string, WorldMapData> = {};
   if (depth < CHILD_MAP_DEPTH_MAX - 1 && source.childMaps && typeof source.childMaps === "object") {
     for (const [key, value] of Object.entries(source.childMaps as Record<string, unknown>)) {
@@ -222,47 +222,23 @@ export function normalizeWorldMap(raw: unknown, depth = 0): WorldMapData {
   return { overview, scaleKm, terrain, nodes, edges, childMaps };
 }
 
-// 把现有地图折叠成 prompt 输入的国家→城市树（地点只数数量，不逐个传，控制上下文体积）。
-export function summarizeCountries(map: WorldMapData): Array<{ name: string; cities: Array<{ name: string; placeCount: number }> }> {
-  return map.nodes.map((country) => {
-    const countryMap = map.childMaps?.[country.id];
-    const cities = countryMap
-      ? countryMap.nodes.map((city) => ({
-        name: city.name,
-        placeCount: (countryMap.childMaps?.[city.id]?.nodes ?? []).length,
-      }))
-      : [];
-    return { name: country.name, cities };
-  });
-}
-
 function cloneMap(map: WorldMapData): WorldMapData {
   return JSON.parse(JSON.stringify(map)) as WorldMapData;
 }
 
-function childMapOf(map: WorldMapData, nodeId: string, scaleKm: number | null): WorldMapData {
-  if (!map.childMaps) map.childMaps = {};
-  let child = map.childMaps[nodeId];
-  if (!child) {
-    child = { overview: "", scaleKm, terrain: [], nodes: [], edges: [], childMaps: {} };
-    map.childMaps[nodeId] = child;
-  }
-  return child;
-}
-
-// AI 标注合并（纯函数，可测）：只新增国家/城市/地点节点，已有节点（含人工坐标）一律不动；
-// 城市/地点按名称对齐——同名沿用已有节点，避免重复建点。
+// AI 标注合并（纯函数，可测）：只新增地点节点，已有节点（含人工坐标）一律不动；
+// 地点按名称对齐——同名沿用已有节点，避免重复建点。
 export function mergeAnnotation(
   existing: WorldMapData,
   annotation: WorldMapAnnotateOutput,
-  pendingScenes: Array<{ id: string; name: string }>,
+  pendingScenes: Array<{ id: string; name: string; summary?: string }>,
 ): WorldMapAnnotationResult {
   const map = cloneMap(existing);
   const assignments: WorldMapAssignment[] = [];
   const unplaceable: WorldMapUnplaceable[] = [];
   const sceneByName = new Map(pendingScenes.map((scene) => [scene.name.trim(), scene]));
 
-  // 生成模式的地形分区：只追加到世界层（已有地形不动；标注模式下 AI 不输出地形）。
+  // 地形分区：只在地图还没有地形时由 AI 输出（postValidate 保证），这里只追加。
   for (const draft of annotation.terrain ?? []) {
     const points = draft.points
       .map((point) => ({ x: clampCoordinate(point.x), y: clampCoordinate(point.y) }))
@@ -276,77 +252,28 @@ export function mergeAnnotation(
     });
   }
 
-  const countryByName = new Map(map.nodes.map((node) => [node.name.trim(), node]));
-  for (const draft of annotation.newCountries) {
-    const name = draft.name.trim();
-    if (countryByName.has(name)) continue;
-    const node: WorldMapNode = {
-      id: randomUUID(),
-      name,
-      kind: "country",
-      summary: draft.summary?.trim().slice(0, 200) ?? "",
-      x: clampCoordinate(draft.x),
-      y: clampCoordinate(draft.y),
-      tier: null,
-    };
-    map.nodes.push(node);
-    countryByName.set(name, node);
-  }
-
-  const cityRefByName = new Map<string, WorldMapNode>();
-  for (const draft of annotation.newCities) {
-    const country = countryByName.get(draft.countryName.trim());
-    if (!country) continue;
-    const countryMap = childMapOf(map, country.id, map.scaleKm ? 100 : null);
-    const name = draft.name.trim();
-    const existingCity = countryMap.nodes.find((node) => node.name.trim() === name);
-    if (existingCity) {
-      cityRefByName.set(`${country.name.trim()}\u0000${name}`, existingCity);
-      continue;
-    }
-    const node: WorldMapNode = {
-      id: randomUUID(),
-      name,
-      kind: "city",
-      summary: draft.summary?.trim().slice(0, 200) ?? "",
-      x: clampCoordinate(draft.x),
-      y: clampCoordinate(draft.y),
-      tier: null,
-    };
-    countryMap.nodes.push(node);
-    cityRefByName.set(`${country.name.trim()}\u0000${name}`, node);
-  }
-
   for (const placement of annotation.placements) {
     const scene = sceneByName.get(placement.sceneName.trim());
-    const country = countryByName.get(placement.countryName.trim());
-    if (!scene || !country) continue;
-    const countryMap = childMapOf(map, country.id, map.scaleKm ? 100 : null);
-    const cityName = placement.cityName.trim();
-    const city = countryMap.nodes.find((node) => node.name.trim() === cityName)
-      ?? cityRefByName.get(`${country.name.trim()}\u0000${cityName}`);
-    if (!city) continue;
-    const cityMap = childMapOf(countryMap, city.id, 20);
+    if (!scene) continue;
+    const name = placement.sceneName.trim().slice(0, 40);
     // 同名地点沿用已有节点（不覆盖人工坐标）；场景挂点指向该节点。
-    let place = cityMap.nodes.find((node) => node.name.trim() === placement.sceneName.trim());
+    let place = map.nodes.find((node) => node.name.trim() === name);
     if (!place) {
       place = {
         id: randomUUID(),
-        name: placement.sceneName.trim().slice(0, 40),
-        kind: "building",
-        summary: "",
+        name,
+        kind: placement.kind ?? "region",
+        summary: scene.summary?.trim().slice(0, 200) ?? "",
         x: clampCoordinate(placement.x),
         y: clampCoordinate(placement.y),
         tier: null,
       };
-      cityMap.nodes.push(place);
+      map.nodes.push(place);
     }
     assignments.push({
       sceneId: scene.id,
       sceneName: scene.name,
       nodeId: place.id,
-      countryName: country.name,
-      cityName: city.name,
     });
   }
 
@@ -360,9 +287,10 @@ export function mergeAnnotation(
 }
 
 export class WorldMapService {
-  // AI 生成/标注地图（直接落库）：有未标注场景→逐个放置（可新建国家/城市）；
-  // 空地图且无场景→依据书名/世界观前提/关键设定生成基础的国家+城市结构；
-  // 已有内容且无待标注场景→400（此时只有人工编辑一种途径）。已标注与 unmappable 的不重复处理。
+  // AI 标注地图（直接落库）：把还没放上画布的场景按相互位置关系摆到单层地图上；
+  // 地图还没有地形时顺便生成地形分区。场景是否「已放置」按根图节点判定——旧层级数据里
+  // 挂在 childMaps 内部节点上的场景视为未放置，会重新摆到根图（自愈迁移）。
+  // 没有场景资产 / 所有场景都已放置（或标记无法定位）时 400。
   async annotateWorldMap(
     novelId: string,
     options: { taskId?: string } = {},
@@ -381,19 +309,26 @@ export class WorldMapService {
     }
 
     const existingMap = normalizeWorldMap(parseJsonObjectSafe(worldRow?.mapJson));
+    const rootIds = new Set(existingMap.nodes.map((node) => node.id));
     const pendingScenes = sceneRows
-      .filter((row) => !row.mapNodeId && !row.mapUnmappable)
+      .filter((row) => !row.mapUnmappable && (!row.mapNodeId || !rootIds.has(row.mapNodeId)))
       .map((row) => ({
         id: row.id,
         name: row.name.trim().slice(0, 60),
         summary: (row.summary ?? "").trim().slice(0, 200),
       }));
-    const existingCountries = summarizeCountries(existingMap);
-    if (pendingScenes.length === 0 && existingCountries.length > 0) {
-      throw new AppError("地图已有内容，也没有待标注的场景；需要调整请直接在画布上编辑。", 400);
+    if (pendingScenes.length === 0) {
+      throw new AppError(
+        sceneRows.length === 0
+          ? "还没有场景资产，先在「解析 → 提取」里应用场景，再生成地图。"
+          : "所有场景都已放到地图上；新增场景后再点「生成地图」。",
+        400,
+      );
     }
-    // 空地图（哪怕也没有场景）也放行：AI 依据书名/世界观前提/关键设定生成一张基础地图。
 
+    const existingNodes = existingMap.nodes
+      .filter((node) => node.x !== null && node.y !== null)
+      .map((node) => ({ name: node.name, x: node.x as number, y: node.y as number }));
     const premise = worldRow?.premise?.trim() || undefined;
     const keySettings = parseKeySettings(worldRow?.keySettingsJson);
     const generated = await runStructuredPrompt({
@@ -403,7 +338,8 @@ export class WorldMapService {
         premise,
         era: worldRow?.era?.trim() || undefined,
         keySettings: keySettings.length > 0 ? keySettings : undefined,
-        existingCountries: existingCountries.length > 0 ? existingCountries : undefined,
+        existingNodes: existingNodes.length > 0 ? existingNodes : undefined,
+        terrainEmpty: existingMap.terrain.length === 0,
         scenes: pendingScenes,
       },
       options: {
@@ -411,7 +347,7 @@ export class WorldMapService {
         taskId: options.taskId,
         stage: "world_map_annotate",
         entrypoint: "drama_studio",
-        temperature: pendingScenes.length > 0 ? 0.4 : 0.7,
+        temperature: 0.4,
       },
     });
 

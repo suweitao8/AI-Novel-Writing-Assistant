@@ -16,7 +16,6 @@ import "@xyflow/react/dist/style.css";
 import type { CSSProperties } from "react";
 import type { WorldMapData, WorldMapTerrain } from "@/api/story/storySettings";
 import { cn } from "@/lib/utils";
-import { edgeDistanceKm } from "./mapData";
 import {
   MapCardNode,
   MINIMAP_NODE_COLORS,
@@ -24,7 +23,7 @@ import {
 } from "./MapFlowNodes";
 
 // 地图画布（React Flow 版，沿用旧项目 mydrama 画布的体验）：
-// 点阵背景 + 滚轮缩放 + 拖拽平移 + 右下小地图，节点是卡片、连线带公里数标注。
+// 点阵背景 + 滚轮缩放 + 拖拽平移 + 右下小地图（带地名），节点是场景地点卡片。
 // 数据模型不变：坐标仍是 0-100 平面百分比，这里按基准画布边长换算成 React Flow 像素坐标，
 // 拖动结束再把像素坐标换回百分比上抛（node.origin [0.5,0.5] 让节点 position 即中心点）。
 
@@ -53,11 +52,8 @@ function pointInTerrainPolygon(px: number, py: number, points: WorldMapTerrain["
 
 interface MapFlowCanvasProps {
   map: WorldMapData;
-  // 层级语义：有 childLevelLabel 时点卡片=进入下级（由上层决定），否则点卡片=选中编辑。
-  childLevelLabel: string | null;
   selectedNodeId: string | null;
-  levelScaleKm: number | null;
-  // 当前级搜索：非空时名字不匹配的卡片淡出。
+  // 搜索：非空时名字不匹配的卡片淡出。
   filterQuery?: string;
   className?: string;
   onNodeMove: (nodeId: string, x: number, y: number) => void;
@@ -74,7 +70,7 @@ export default function MapFlowCanvas(props: MapFlowCanvasProps) {
 }
 
 function MapFlowCanvasInner(props: MapFlowCanvasProps) {
-  const { map, levelScaleKm } = props;
+  const { map } = props;
   const { screenToFlowPosition } = useReactFlow();
 
   const hasTerrain = (map.terrain ?? []).length > 0;
@@ -109,8 +105,6 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
           name: node.name,
           kind: node.kind,
           summary: node.summary,
-          childLabel: props.childLevelLabel,
-          childCount: map.childMaps?.[node.id]?.nodes.length ?? 0,
         },
         selected: props.selectedNodeId === node.id,
         zIndex: 1,
@@ -119,24 +113,19 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
     });
     return list;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, hasTerrain, props.childLevelLabel, props.selectedNodeId, query]);
+  }, [map, hasTerrain, props.selectedNodeId, query]);
 
+  // 连线是旧版编辑数据，AI 不再产出；仅兼容渲染。
   const edges = useMemo<Edge[]>(() => {
     const nodeById = new Map((map.nodes ?? []).map((node) => [node.id, node]));
     return (map.edges ?? []).map((edge, index) => {
       const from = nodeById.get(edge.fromId);
       const to = nodeById.get(edge.toId);
-      const km = from && to && from.x !== null && from.y !== null && to.x !== null && to.y !== null && levelScaleKm !== null
-        ? edgeDistanceKm({ x: from.x, y: from.y }, { x: to.x, y: to.y }, levelScaleKm)
-        : null;
-      const label = edge.label
-        ? km !== null ? `${edge.label} · ${km}km` : edge.label
-        : km !== null ? `${km}km` : undefined;
       return {
         id: `edge-${edge.fromId}-${edge.toId}-${index}`,
         source: edge.fromId,
         target: edge.toId,
-        label,
+        label: edge.label || undefined,
         type: "default",
         style: {
           stroke: "hsl(var(--muted-foreground) / 0.45)",
@@ -151,7 +140,7 @@ function MapFlowCanvasInner(props: MapFlowCanvasProps) {
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map.edges, map.nodes, levelScaleKm, query]);
+  }, [map.edges, map.nodes, query]);
 
   const handleNodeClick = useCallback<NodeMouseHandler>((_event, node) => {
     if (node.id === "__terrain__") return;

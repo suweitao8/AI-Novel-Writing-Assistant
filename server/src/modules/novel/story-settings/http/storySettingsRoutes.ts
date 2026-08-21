@@ -426,7 +426,7 @@ export function registerStorySettingsRoutes(router: Router): void {
     }
   });
 
-  // AI 场景标注：把未标注的场景资产放进三层地图（直接落库），无法定位的场景标记 unmappable。
+  // AI 场景标注：把未放置的场景资产摆到单层地图上（直接落库），无法定位的场景标记 unmappable。
   router.post("/:id/settings/world/map-annotate", validate({ params: novelParams }), async (req, res, next) => {
     try {
       const data = await worldMapService.annotateWorldMap(String(req.params.id));

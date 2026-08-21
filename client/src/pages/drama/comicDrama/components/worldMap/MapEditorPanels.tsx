@@ -1,26 +1,24 @@
-import type { WorldMapData, WorldMapNode, WorldMapTerrain } from "@/api/story/storySettings";
+import type { WorldMapNode, WorldMapTerrain } from "@/api/story/storySettings";
 import { Trash2 } from "lucide-react";
 import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { TERRAIN_TYPES, terrainTone } from "./mapData";
+import { KIND_TONES, TERRAIN_TYPES, terrainTone } from "./mapData";
 
-// 地图编辑卡：选中节点（名称/说明/删除/进入下级）与选中地形（名字/类型/删除），显示在画布下方。
+// 地图编辑卡：选中地点（名称/类型/说明/删除）与选中地形（名字/类型/删除），显示在画布下方。
 
 export function NodeEditorCard(props: {
   node: WorldMapNode;
-  childLevelLabel: string | null;
   onPatch: (patch: Partial<WorldMapNode>) => void;
   onDelete: () => void;
-  onOpenChildMap: () => void;
 }) {
   return (
     <Card className="min-w-0">
       <CardContent className="space-y-3 p-3 sm:p-4">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium">编辑{props.childLevelLabel ? props.childLevelLabel === "城市" ? "国家" : "城市" : "地点"}</p>
+          <p className="text-sm font-medium">编辑地点</p>
           <Button
             variant="ghost"
             size="sm"
@@ -30,14 +28,28 @@ export function NodeEditorCard(props: {
             删除
           </Button>
         </div>
-        <label className="block space-y-1">
-          <span className="text-xs text-muted-foreground">名称</span>
-          <Input
-            value={props.node.name}
-            placeholder={props.childLevelLabel === "城市" ? "例如：大梁国" : props.childLevelLabel === "地点" ? "例如：云京城" : "例如：林家老宅"}
-            onChange={(event) => props.onPatch({ name: event.target.value })}
-          />
-        </label>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <label className="block space-y-1">
+            <span className="text-xs text-muted-foreground">名称</span>
+            <Input
+              value={props.node.name}
+              placeholder="例如：林家老宅"
+              onChange={(event) => props.onPatch({ name: event.target.value })}
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs text-muted-foreground">类型</span>
+            <SelectControl
+              className="h-9 rounded-md border bg-background px-2 text-sm"
+              value={KIND_TONES[props.node.kind] ? props.node.kind : "other"}
+              onChange={(event) => props.onPatch({ kind: event.target.value })}
+            >
+              {Object.entries(KIND_TONES).map(([value, tone]) => (
+                <option key={value} value={value}>{tone.label}</option>
+              ))}
+            </SelectControl>
+          </label>
+        </div>
         <label className="block space-y-1">
           <span className="text-xs text-muted-foreground">说明</span>
           <textarea
@@ -48,11 +60,6 @@ export function NodeEditorCard(props: {
             onChange={(event) => props.onPatch({ summary: event.target.value })}
           />
         </label>
-        {props.childLevelLabel ? (
-          <Button variant="outline" size="sm" className="w-full" onClick={props.onOpenChildMap}>
-            进入{props.childLevelLabel}分布
-          </Button>
-        ) : null}
       </CardContent>
     </Card>
   );
@@ -83,7 +90,7 @@ export function TerrainEditorCard(props: {
           <span className="text-xs text-muted-foreground">名字</span>
           <Input
             value={props.terrain.label}
-            placeholder="如：北境雪原"
+            placeholder="如：望海湾"
             onChange={(event) => props.onPatch({ label: event.target.value })}
           />
         </label>
