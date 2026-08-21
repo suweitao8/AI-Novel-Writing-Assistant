@@ -89,7 +89,7 @@ test("Grok Build image requests use the local bearer by default", async () => {
       size: "1536x1024",
       count: 1,
     });
-    assert.equal(request.url, "http://127.0.0.1:18767/images/generations");
+    assert.equal(request.url, "http://127.0.0.1:18767/v1/images/generations");
     assert.equal(request.options.headers.Authorization, "Bearer grok-bridge-local");
   } finally {
     global.fetch = originalFetch;

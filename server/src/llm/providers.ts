@@ -177,7 +177,7 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
   },
   grok_build: {
     name: "Grok Build 图片",
-    baseURL: "http://127.0.0.1:18767",
+    baseURL: "http://127.0.0.1:18767/v1",
     defaultModel: "grok-build-image",
     models: ["grok-build-image"],
     envKey: "GROK_IMAGE_BRIDGE_API_KEY",

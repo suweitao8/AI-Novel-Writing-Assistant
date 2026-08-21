@@ -7,7 +7,7 @@
 ## 决策
 
 - 文本槽默认使用本机 Grok CLI 通道，模型为 `grok-cli/grok-4.6`，服务地址为 `http://127.0.0.1:18764/v1`。桥接把一次性 CLI 结果翻译成 OpenAI completion，并必须把 `stream: true` 翻译成兼容 SSE，因为结构化调用链消费的是流式接口。
-- 无参考图的角色设计稿、场景基础图和道具基础图默认使用 `grok_build` 图片通道，模型为 `grok-build-image`，服务地址为 `http://127.0.0.1:18767`。
+- 无参考图的角色设计稿、场景基础图和道具基础图默认使用 `grok_build` 图片通道，模型为 `grok-build-image`，服务地址为 `http://127.0.0.1:18767/v1`。
 - Grok Build 基础图片统一生成并归一化为 1280×720 PNG。图片提示词只允许一次 `image_gen`，并明确禁止 shell、代码、文件编辑和网页工具，避免订阅 CLI 把图片任务变成普通代理任务。
 - 图片能力槽默认切到 `grok_build`；带参考图的状态图、资产图或封面在业务路由层自动回退到兼容参考图的 Codex 图片桥，因为 Grok Build 通道不支持 `/v1/images/edits`。如果调用方误把参考图交给 `grok_build`，服务端会在发 HTTP 请求前改用 Codex，不静默丢参考图。
 - 本地 bridge bearer 是应用内部默认值，不写入数据库，也不要求用户填写 API Key。用户只需保持本机 Grok CLI 登录态有效。

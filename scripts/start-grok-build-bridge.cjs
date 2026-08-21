@@ -146,7 +146,7 @@ async function main() {
 
   console.log("Grok Build 文本与图片通道已就绪。");
   console.log(`  文本模型：${args.textModel} → http://127.0.0.1:${args.textPort}/v1`);
-  console.log(`  图片模型：${args.imageModel} → http://127.0.0.1:${args.imagePort}`);
+  console.log(`  图片模型：${args.imageModel} → http://127.0.0.1:${args.imagePort}/v1`);
   console.log(`  运行日志：${logsDir}`);
 }
 
