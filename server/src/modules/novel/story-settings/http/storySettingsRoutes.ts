@@ -520,6 +520,22 @@ export function registerStorySettingsRoutes(router: Router): void {
 
   // 状态图片生成：按状态的 referenceStateId 配置取同一资产另一状态的图当参考；
   // 返回更新后的资产（与列表接口同形），前端据此刷新缓存与编辑弹窗里的缩略图。
+  // 终止接口（cancel-image，2026-08-23 用户要求）：生成中可手动停止——中止在跑的
+  // 请求并写回可重试的 error 态，服务重启残留的僵尸 generating 也一并修复。
+  router.post(
+    "/:id/settings/characters/:characterId/states/:stateId/cancel-image",
+    validate({ params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, characterId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.cancelStateImage(id, "character", characterId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   router.post(
     "/:id/settings/characters/:characterId/states/:stateId/generate-image",
     validate({ params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }) }),
@@ -561,12 +577,40 @@ export function registerStorySettingsRoutes(router: Router): void {
   );
 
   router.post(
+    "/:id/settings/scenes/:sceneId/states/:stateId/cancel-image",
+    validate({ params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, sceneId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.cancelStateImage(id, "scene", sceneId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
     "/:id/settings/scenes/:sceneId/states/:stateId/generate-image",
     validate({ params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }) }),
     async (req, res, next) => {
       try {
         const { id, sceneId, stateId } = req.params as Record<string, string>;
         const data = await storyAssetStateImageService.generateStateImage(id, "scene", sceneId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/props/:propId/states/:stateId/cancel-image",
+    validate({ params: z.object({ id: novelParams.shape.id, propId: propParams.shape.propId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, propId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.cancelStateImage(id, "prop", propId, stateId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

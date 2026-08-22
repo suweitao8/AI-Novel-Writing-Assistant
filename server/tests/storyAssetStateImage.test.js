@@ -159,3 +159,45 @@ test("场景和道具状态图写回时会保留无状态旧资产的初始状�
   assert.match(imageServiceSource, /updateStoryAssetStateJsonWithCas/);
   assert.match(imageServiceSource, /statesJson: expectedRaw/);
 });
+
+// 生成中可手动终止（2026-08-23 用户要求）：代理切错、生成卡住时要能停掉重来，
+// 不等 15 分钟超时；服务重启残留的僵尸 generating 也要能被终止接口直接修复。
+test("状态图生成可终止：in-flight AbortController + cancel 路由 + 僵尸 generating 改写", () => {
+  const routesSource = fs.readFileSync(
+    path.join(__dirname, "../src/modules/novel/story-settings/http/storySettingsRoutes.ts"),
+    "utf8",
+  );
+  const runnerSource = fs.readFileSync(
+    path.join(__dirname, "../src/services/image/runtime/runner.ts"),
+    "utf8",
+  );
+  const providerSource = fs.readFileSync(
+    path.join(__dirname, "../src/services/image/provider.ts"),
+    "utf8",
+  );
+
+  // 服务：在跑的生成注册进 inFlightGenerations 并把 signal 穿透到 runner；
+  // cancelStateImage 中止在跑请求，无在跑请求的 generating 直接改写为 error。
+  assert.match(imageServiceSource, /inFlightGenerations/);
+  assert.match(imageServiceSource, /async cancelStateImage/);
+  assert.match(imageServiceSource, /flight\.controller\.abort\(\)/);
+  assert.match(imageServiceSource, /IMAGE_GENERATION_CANCELLED_MESSAGE/);
+  const signalMatches = imageServiceSource.match(/signal: controller\.signal/g) ?? [];
+  assert.equal(signalMatches.length, 2);
+
+  // 路由：三类资产各有 cancel-image。
+  for (const kind of ["characters/:characterId", "scenes/:sceneId", "props/:propId"]) {
+    assert.match(routesSource, new RegExp(`/${kind}/states/:stateId/cancel-image`));
+  }
+  const cancelRouteMatches = routesSource.match(/cancelStateImage/g) ?? [];
+  assert.equal(cancelRouteMatches.length, 3);
+
+  // runner：终止时不走失败分支，写回 error 态并正常返回。
+  assert.match(runnerSource, /IMAGE_GENERATION_CANCELLED_MESSAGE = "已终止生成，可重新生成。"/);
+  assert.match(runnerSource, /opts\.signal\?\.aborted/);
+  assert.match(runnerSource, /signal: opts\.signal/);
+
+  // provider：外部信号联动内部控制器，立即断开请求（本地桥收到断开会杀 codex）。
+  assert.match(providerSource, /addEventListener\("abort", onExternalAbort\)/);
+  assert.match(providerSource, /removeEventListener\("abort", onExternalAbort\)/);
+});

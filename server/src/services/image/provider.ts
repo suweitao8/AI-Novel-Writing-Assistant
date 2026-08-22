@@ -303,6 +303,14 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
   const { apiKey, baseURL } = await resolveProviderSecret(input.provider);
   const controller = new AbortController();
   const timeoutMs = imageGenerationConfig.httpTimeoutMs;
+  // 外部终止信号联动：手动终止时立即断开请求（本地桥收到断开会同步杀掉 codex 进程），
+  // 不用等超时兜底。
+  const externalSignal = input.signal;
+  const onExternalAbort = () => controller.abort(new Error("Image generation cancelled."));
+  if (externalSignal?.aborted) {
+    onExternalAbort();
+  }
+  externalSignal?.addEventListener("abort", onExternalAbort);
   const timeout = setTimeout(
     () => controller.abort(new Error(`Image generation request timed out after ${timeoutMs}ms.`)),
     timeoutMs,
@@ -348,5 +356,6 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
     };
   } finally {
     clearTimeout(timeout);
+    externalSignal?.removeEventListener("abort", onExternalAbort);
   }
 }

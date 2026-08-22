@@ -29,6 +29,7 @@ import { AppError } from "../../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import {
   runImageGeneration,
+  IMAGE_GENERATION_CANCELLED_MESSAGE,
   type ImageTargetAdapter,
   type GeneratedReferenceImageMeta,
 } from "../../../../services/image/runtime";
@@ -447,11 +448,69 @@ export class StoryAssetStateImageService {
     return { row, states, state };
   }
 
+  /** 进行中的状态图生成：key=`${kind}:${stateId}`。终止接口按它中止在跑的请求；
+   * 进程内无记录但状态是 generating 的视为僵尸（服务重启残留），直接改写为 error。 */
+  private readonly inFlightGenerations = new Map<string, { controller: AbortController; done: Promise<unknown> }>();
+
   async generateStateImage(
     novelId: string,
     kind: StoryAssetKind,
     assetId: string,
     stateId: string,
+  ): Promise<unknown> {
+    // 生成中可手动终止（2026-08-23 用户要求：代理切错等场景生成卡住时停掉重来，不等超时）。
+    const controller = new AbortController();
+    const done = this.runStateImageGeneration(novelId, kind, assetId, stateId, controller);
+    this.inFlightGenerations.set(`${kind}:${stateId}`, { controller, done });
+    try {
+      return await done;
+    } finally {
+      this.inFlightGenerations.delete(`${kind}:${stateId}`);
+    }
+  }
+
+  /** 终止状态图生成：中止在跑的请求并等 error 态写回；无在跑请求但状态是 generating
+   * （重启残留/别的实例）时直接改写为 error。返回更新后的资产 DTO（与生成接口同形）。 */
+  async cancelStateImage(
+    novelId: string,
+    kind: StoryAssetKind,
+    assetId: string,
+    stateId: string,
+  ): Promise<unknown> {
+    const flight = this.inFlightGenerations.get(`${kind}:${stateId}`);
+    if (flight) {
+      flight.controller.abort();
+      await flight.done.catch(() => {});
+    } else {
+      const { states, state } = await this.findState(novelId, kind, assetId, stateId);
+      if (state.image?.status === "generating") {
+        await this.writeStateImage(
+          kind,
+          assetId,
+          stateId,
+          { ...state.image, status: "error", error: IMAGE_GENERATION_CANCELLED_MESSAGE },
+          states,
+        );
+      }
+    }
+    if (kind === "character") {
+      const list = await storySettingsService.listCharacters(novelId);
+      return list.find((item) => item.id === assetId) ?? null;
+    }
+    if (kind === "scene") {
+      const list = await storySettingsService.listScenes(novelId);
+      return list.find((item) => item.id === assetId) ?? null;
+    }
+    const list = await storySettingsService.listProps(novelId);
+    return list.find((item) => item.id === assetId) ?? null;
+  }
+
+  private async runStateImageGeneration(
+    novelId: string,
+    kind: StoryAssetKind,
+    assetId: string,
+    stateId: string,
+    controller: AbortController,
   ): Promise<unknown> {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
     const resolvedReference = resolveStateReferenceImage(states, state);
@@ -533,6 +592,7 @@ export class StoryAssetStateImageService {
         size: IMAGE_SPECS.characterSheet,
         sceneType: "character",
         negativePrompt: [CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, negativePrompt].filter(Boolean).join(", "),
+        signal: controller.signal,
         ...TRANSPARENT_IMAGE_OPTIONS,
         ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceImages ? { referenceImages } : {}),
@@ -555,12 +615,19 @@ export class StoryAssetStateImageService {
         // 场景按全景规格出图（等距柱状 360°），道具沿用通用资产图规格。
         size: kind === "scene" ? IMAGE_SPECS.scenePanorama : IMAGE_SPECS.characterAsset,
         negativePrompt,
+        signal: controller.signal,
         ...(kind === "prop" ? TRANSPARENT_IMAGE_OPTIONS : {}),
         ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceUrl && referencedLabel
           ? { referenceImages: [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta] }
           : {}),
       });
+    }
+
+    // 手动终止：runner 已把状态写为 error 并正常返回——这里改抛终止提示，
+    // 让仍在等待的生成请求得到明确的「已终止」反馈而不是成功。
+    if (controller.signal.aborted) {
+      throw new AppError(IMAGE_GENERATION_CANCELLED_MESSAGE, 400);
     }
 
     // 返回更新后的资产 DTO（与列表接口同形），前端直接刷新缓存与本地编辑态

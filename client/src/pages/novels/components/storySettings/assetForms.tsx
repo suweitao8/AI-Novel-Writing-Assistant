@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
+import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2 } from "lucide-react";
 import {
+  cancelStoryAssetStateImage,
   generateStoryAssetStateImage,
   generateStoryCharacterStateVoice,
   getStorySettingsCharacters,
@@ -304,6 +305,22 @@ export function AssetStatesEditor(props: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "状态图生成失败，请重试。"),
   });
 
+  // 终止生成中的状态图（代理切错、生成卡住时停掉重来，不等超时）。
+  const cancelImageMutation = useMutation({
+    mutationFn: async (stateId: string) => {
+      if (!asset) {
+        throw new Error("资产还未保存。");
+      }
+      return cancelStoryAssetStateImage(asset.novelId, kind, asset.assetId, stateId);
+    },
+    onSuccess: async (response) => {
+      onChange(response.data?.states ?? []);
+      await invalidateSettings();
+      toast.success("已终止生成，可重新生成。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "终止生成失败，请重试。"),
+  });
+
   const voiceMutation = useMutation({
     mutationFn: async (stateId: string) => {
       if (!asset || kind !== "character") {
@@ -410,10 +427,11 @@ export function AssetStatesEditor(props: {
       && state.voice?.status === "done"
       && Boolean(state.voice.sampleAudioUrl?.trim()))
     : [];
-  const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
+  const anyPending = imageMutation.isPending || cancelImageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
   const generationDisabled = !asset || anyPending;
   // 服务端仍在生成（弹窗重开/轮询读到的 generating 态）：按钮显示生成中并禁用重复触发。
   const serverImageGenerating = selectedState?.image?.status === "generating";
+  const imageGenerating = (imageMutation.isPending && imageMutation.variables === selectedStateId) || Boolean(serverImageGenerating);
   const serverVoiceGenerating = selectedState?.voice?.status === "generating";
 
   return (
@@ -536,9 +554,23 @@ export function AssetStatesEditor(props: {
                   title={!asset ? "先保存资产，再生成状态图" : undefined}
                   onClick={() => imageMutation.mutate(selectedState.id)}
                 >
-                  {(imageMutation.isPending && imageMutation.variables === selectedState.id) || serverImageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                  {(imageMutation.isPending && imageMutation.variables === selectedState.id) || serverImageGenerating ? "生成中..." : selectedState.image?.url ? "重新生成图片" : "生成图片"}
+                  {imageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                  {imageGenerating ? "生成中..." : selectedState.image?.url ? "重新生成图片" : "生成图片"}
                 </AiButton>
+                {imageGenerating ? (
+                  <AiButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    disabled={cancelImageMutation.isPending || !asset}
+                    title="停止本次生成，可重新发起"
+                    onClick={() => cancelImageMutation.mutate(selectedState.id)}
+                  >
+                    {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? "终止中..." : "终止"}
+                  </AiButton>
+                ) : null}
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">初始状态是基础形象，直接生成。</p> : null}
               {selectedState.image?.error ? <p className="text-xs text-destructive">{selectedState.image.error}</p> : null}
