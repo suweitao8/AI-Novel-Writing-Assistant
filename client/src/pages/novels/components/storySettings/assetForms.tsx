@@ -41,6 +41,10 @@ export interface CharacterAssetFormState {
   gender: string;
 }
 
+// 状态未选时代风格时的默认值：与服务端内置默认预设一致（DRAMA_VISUAL_STYLE_PRESETS 的
+// realistic 预设，label「现代都市」）；空值在生成状态图时也按这个预设出图。
+const DEFAULT_ERA_STYLE_LABEL = "现代都市";
+
 export const EMPTY_CHARACTER_FORM: CharacterAssetFormState = {
   name: "",
   gender: "unknown",
@@ -65,7 +69,6 @@ export function CharacterAssetFormFields(props: {
             value={value.gender}
             onChange={(event) => onChange({ gender: event.target.value })}
           >
-            <option value="unknown">未设定</option>
             <option value="male">男</option>
             <option value="female">女</option>
             <option value="other">其他</option>
@@ -232,7 +235,8 @@ export function AssetStatesEditor(props: {
     }
   }, [watchQuery.data, asset, localDirty, states, onChange]);
 
-  // 时代风格选项：内置预设 + 本书自定义画风（值用 label，与脚本画风标记同一命名空间）。
+  // 时代风格选项：内置预设 + 本书自定义画风（值用 label，与脚本画风标记同一命名空间）；
+  // 未选时默认「现代都市」（与服务端生成时的空值兜底一致）。
   const visualStylesQuery = useQuery({
     queryKey: queryKeys.drama.visualStyles,
     queryFn: getDramaVisualStyles,
@@ -571,12 +575,15 @@ export function AssetStatesEditor(props: {
                 <SelectControl
                   className="h-9 w-full rounded-md border bg-background px-2 text-sm"
                   aria-label="状态时代风格"
-                  value={selectedState.eraStyle ?? ""}
+                  value={selectedState.eraStyle?.trim() || DEFAULT_ERA_STYLE_LABEL}
                   disabled={anyPending}
                   onChange={(event) => updateState(selectedState.id, { eraStyle: event.target.value || null })}
                 >
-                  <option value="">自动（按剧情判定）</option>
-                  {[...eraStyleOptions, ...(selectedState.eraStyle && !eraStyleOptions.includes(selectedState.eraStyle) ? [selectedState.eraStyle] : [])].map((label) => (
+                  {[...new Set([
+                    DEFAULT_ERA_STYLE_LABEL,
+                    ...eraStyleOptions,
+                    ...(selectedState.eraStyle && selectedState.eraStyle !== DEFAULT_ERA_STYLE_LABEL ? [selectedState.eraStyle] : []),
+                  ])].map((label) => (
                     <option key={label} value={label}>{label}</option>
                   ))}
                 </SelectControl>
