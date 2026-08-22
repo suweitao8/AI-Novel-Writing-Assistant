@@ -526,13 +526,15 @@ export function registerStorySettingsRoutes(router: Router): void {
       }),
       body: z.object({
         mode: z.enum(["reuse_previous", "generate_new"]).optional(),
+        // 选取音色：显式指定复用哪个状态的音色（不填则按参考链找上一状态）
+        sourceStateId: z.string().trim().min(1).optional(),
       }).strict(),
     }),
     async (req, res, next) => {
       try {
         const { id, characterId, stateId } = req.params as Record<string, string>;
-        const mode = (req.body as { mode?: "reuse_previous" | "generate_new" }).mode;
-        const data = await storyAssetStateVoiceService.generateStateVoice(id, characterId, stateId, mode);
+        const body = req.body as { mode?: "reuse_previous" | "generate_new"; sourceStateId?: string };
+        const data = await storyAssetStateVoiceService.generateStateVoice(id, characterId, stateId, body.mode, body.sourceStateId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

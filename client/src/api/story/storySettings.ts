@@ -399,16 +399,17 @@ export async function generateStoryAssetStateImage(
   return data;
 }
 
-/** 生成或复用角色某个外观状态的音色试听，返回更新后的角色。 */
+/** 生成或复用角色某个外观状态的音色试听，返回更新后的角色。sourceStateId=选取音色时显式指定来源状态。 */
 export async function generateStoryCharacterStateVoice(
   novelId: string,
   characterId: string,
   stateId: string,
   mode?: StoryAssetStateVoiceMode,
+  sourceStateId?: string,
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter>>(
     `/novels/${encodeURIComponent(novelId)}/settings/characters/${encodeURIComponent(characterId)}/states/${encodeURIComponent(stateId)}/generate-voice`,
-    mode ? { mode } : {},
+    { ...(mode ? { mode } : {}), ...(sourceStateId ? { sourceStateId } : {}) },
   );
   return data;
 }
