@@ -6,7 +6,8 @@
 //      双穿/时代推进的书同一资产在不同时代各有一套状态，用户给状态选定的风格
 //      是最高优先级，直接采用不再判定；状态未选时调用方兜底内置「现代都市」
 //      预设（DEFAULT_DRAMA_VISUAL_STYLE_ID，2026-08-22 用户要求：不按剧情自动判定）；
-//      悬空引用（风格已删）回落 1-4 链
+//      悬空引用（风格已删）默认回落 1-4 链，但提供 pinnedMissFallbackStyle 的调用方
+//      （状态图）改为固定回落该兜底——设定处的时代风格完全不影响状态图（同日用户要求）
 //   1. 【本次生成带剧情上下文时】AI 按剧情文本判定——故事有时代推进，
 //      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 2-4 链
 //      （当前只有分镜首帧 DramaShotKeyframeService 传剧情上下文；状态图已固定走第 0 层）
@@ -53,6 +54,11 @@ export interface ResolveDramaArtStyleInput {
   /** 本次生成点显式指定的时代风格（内置预设 id/label 或自定义风格名）：命中可选风格时
    *  直接采用（跳过剧情判定与全局链）；悬空引用回落常规链。 */
   pinnedStyle?: string | null;
+  /** pinnedStyle 悬空（匹配不到可选风格，如自定义风格已删）时的兜底风格：提供后不再
+   *  回落脚本标记/项目/小说默认链——需要时代风格完全由生成点自己决定的调用方用
+   *  （状态图：状态自选 eraStyle，空值与悬空都固定「现代都市」，设定处的时代风格
+   *  不影响状态图，2026-08-22 用户要求）。 */
+  pinnedMissFallbackStyle?: string | null;
   /** 提供时由 AI 按剧情文本从可选风格里选本段所处的时代风格，覆盖全局链结果。 */
   scriptJudge?: DramaScriptStyleJudgeInput | null;
   /** 判定函数注入（测试用）；缺省走真实 LLM 判定。 */
@@ -140,12 +146,20 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
     : { artStyles: [] as DramaSpecificStyle[], defaultArtStyle: null };
 
   // 用户给生成点显式选定的时代风格（状态图的自选字段）：直接采用，不再判定。
-  // 匹配不到可选风格（如自定义风格已删）时按悬空引用处理，回落常规链。
+  // 匹配不到可选风格（如自定义风格已删）时按悬空引用处理：提供了 pinnedMissFallbackStyle
+  // 就用它兜底（不再看脚本标记/项目/小说默认——状态图要求时代风格只由状态自己决定），
+  // 否则回落常规链。
   const pinned = input.pinnedStyle?.trim();
   if (pinned) {
     const pinnedSpecific = matchDramaEraStyle(pinned, novelArtStyles.artStyles);
     if (pinnedSpecific) {
       return { assets, specific: pinnedSpecific };
+    }
+    if (input.pinnedMissFallbackStyle?.trim()) {
+      const fallbackSpecific = matchDramaEraStyle(input.pinnedMissFallbackStyle, novelArtStyles.artStyles);
+      if (fallbackSpecific) {
+        return { assets, specific: fallbackSpecific };
+      }
     }
   }
 
