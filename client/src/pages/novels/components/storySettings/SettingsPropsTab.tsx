@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
   createStorySettingsProp,
@@ -18,8 +18,6 @@ import { toast } from "@/components/ui/toast";
 import {
   buildStoryAssetPresentation,
   StoryAssetCard,
-  StoryAssetDetailDialog,
-  type StoryAssetPresentation,
 } from "@/components/storyAssets";
 import {
   AssetStatesEditor,
@@ -61,7 +59,6 @@ function preparePropStatesForSave(
 export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -130,7 +127,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     mutationFn: (propId: string) => deleteStorySettingsProp(novelId, propId),
     onSuccess: async () => {
       toast.success("道具已删除。");
-      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -230,12 +226,9 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
               <StoryAssetCard
                 key={prop.id}
                 asset={asset}
-                onOpen={() => setSelectedAsset(asset)}
+                onOpen={() => openEdit(prop)}
                 actions={(
                   <>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(prop)} aria-label="编辑道具">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -255,22 +248,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
           })}
         </div>
       )}
-
-      <StoryAssetDetailDialog
-        asset={selectedAsset}
-        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
-        onEdit={selectedAsset ? () => {
-          const source = selectedAsset.source as StorySettingsProp;
-          setSelectedAsset(null);
-          openEdit(source);
-        } : undefined}
-        onDelete={() => {
-          if (selectedAsset && window.confirm(`删除道具「${selectedAsset.name}」？`)) {
-            deleteMutation.mutate(selectedAsset.id);
-          }
-        }}
-        deleting={deleteMutation.isPending}
-      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
