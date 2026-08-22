@@ -31,7 +31,6 @@ import SettingsCharactersTab from "@/pages/novels/components/storySettings/Setti
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
-import ArtStylePanel from "@/pages/drama/comicDrama/components/ArtStylePanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
 import ChapterManageDialog from "@/pages/drama/comicDrama/components/ChapterManageDialog";
@@ -45,15 +44,16 @@ import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useRefere
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·美术风格·通用）。
+// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·通用）。
 type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→视频（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
 type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
-// 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 美术风格 / 通用（参考小说与项目配置）。
-type SettingsTab = "world" | "map" | "style" | "general";
+// 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
+// 画风不在本项目内维护：资产画风与时代画风库在独立的「画风管理」页（/art-style），切时代风格在「脚本」页签顶部。
+type SettingsTab = "world" | "map" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
   current: "当前",
@@ -78,7 +78,6 @@ const ASSET_TAB_LABELS: Record<AssetTab, string> = {
 const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   world: "世界观",
   map: "地图",
-  style: "美术风格",
   general: "通用",
 };
 
@@ -112,7 +111,8 @@ export default function ComicDramaStudioPage() {
     enabled: Boolean(novelId),
   });
   const settingsOverview = settingsOverviewQuery.data?.data ?? null;
-  // 小说级默认美术风格：创建分镜项目与首帧图的基准画风来源（「设定 · 美术风格」页签维护）。
+  // 小说级默认画风（NovelSettingsWorld.defaultArtStyle）：历史遗留数据，项目内已无编辑入口，
+  // 仅作为创建分镜项目时 visualStyle 的兜底（解析链的兜底层之一）。
   const worldSettingsQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsWorld(novelId),
     queryFn: () => getStorySettingsWorld(novelId),
@@ -332,7 +332,6 @@ export default function ComicDramaStudioPage() {
                 <TabsList>
                   <TabsTrigger value="world">{SETTINGS_TAB_LABELS.world}</TabsTrigger>
                   <TabsTrigger value="map">{SETTINGS_TAB_LABELS.map}</TabsTrigger>
-                  <TabsTrigger value="style">{SETTINGS_TAB_LABELS.style}</TabsTrigger>
                   <TabsTrigger value="general">{SETTINGS_TAB_LABELS.general}</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -393,10 +392,6 @@ export default function ComicDramaStudioPage() {
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
               <WorldMapPanel novelId={novelId} onChanged={invalidateStorySettings} />
             </section>
-          ) : settingsTab === "style" ? (
-            <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-              <ArtStylePanel />
-            </section>
           ) : (
             <>
               <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
@@ -445,7 +440,7 @@ function SubTabRow(props: { children: ReactNode }) {
   );
 }
 
-// 分镜管线共享状态：美术风格选择（「设定 · 美术风格」页签维护默认）、创建分镜项目、章节自动同步。
+// 分镜管线共享状态：画风选项（全局画风库，供「脚本」页签切换）、创建分镜项目、章节自动同步。
 // 顶栏按钮与内容区共用同一份 mutation，避免两处状态漂移。
 function useStoryboardStage(input: {
   novelId: string;
@@ -511,7 +506,7 @@ function useStoryboardStage(input: {
   return { styleOptions, effectiveStyleId, createMutation, syncMutation };
 }
 
-// 「设定 · 通用」页签：项目级配置。整本画风在「美术风格」页签设置，这里看分镜项目状态。
+// 「设定 · 通用」页签：项目级配置，看分镜项目状态。
 function ProjectSettingsSection(props: {
   drama: ComicDramaLinkStats | null;
 }) {
@@ -527,9 +522,6 @@ function ProjectSettingsSection(props: {
             <span>还没有分镜项目。</span>
           )}
         </div>
-        <p className="text-xs leading-5 text-muted-foreground">
-          整本画面与视频的画风在「美术风格」页签设置，改选默认风格后新生成的画面就会用新画风。
-        </p>
       </CardContent>
     </Card>
   );
