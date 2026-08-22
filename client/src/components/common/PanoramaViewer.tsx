@@ -239,7 +239,10 @@ export default function PanoramaViewer(props: {
       }
       gl.deleteBuffer(buffer);
       gl.deleteProgram(program);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      // 注意：这里不能调 WEBGL_lose_context().loseContext()——React StrictMode 开发模式
+      // 会双挂载 effect，杀掉上下文后第二次挂载拿到的是死上下文（着色器校验全失败），
+      // 再降级 Canvas 2D 时同一个 canvas 元素又拿不到第二种类型的上下文 → 静态图。
+      // 上下文交给页面生命周期回收即可。
     };
   }, [mode, src]);
 
@@ -389,6 +392,9 @@ export default function PanoramaViewer(props: {
   }
   return (
     <canvas
+      // 模式切换时必须换新元素：一个 canvas 只能持有一种上下文类型，
+      // WebGL 失败后降级 2D 若复用旧 canvas 会拿到 null 上下文。
+      key={mode}
       ref={canvasRef}
       role="img"
       aria-label={alt}
