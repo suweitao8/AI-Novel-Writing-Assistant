@@ -33,7 +33,7 @@ import {
   preserveStoryAssetRuntimeAssets,
   serializeStates,
 } from "./StorySettingsStatePolicy";
-import { projectCharacter, projectProp, projectScene } from "./StorySettingsProjection";
+import { projectCharacter, projectProp, projectScene, parseCharacterAliases, serializeCharacterAliases } from "./StorySettingsProjection";
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
@@ -107,6 +107,8 @@ export interface StorySettingsCharacter {
   name: string;
   role: string;
   gender: string | null;
+  /** 别名/昵称（如 哥哥、晨哥）——解析与匹配按别名归一到本名。 */
+  aliases: string[];
   ageGroup: string | null;
   physique: string | null;
   attireStyle: string | null;
@@ -862,11 +864,12 @@ export class StorySettingsService {
         appearance: true,
         background: true,
         statesJson: true,
+        aliasesJson: true,
         updatedAt: true,
       },
     });
     return Promise.all(rows.map(async (row) => {
-      const { statesJson, ...rest } = row;
+      const { statesJson, aliasesJson, ...rest } = row;
       const parsedStates = parseStates(statesJson);
       const states = normalizeCharacterStates(parsedStates, row);
       const normalizedStatesJson = serializeStates(states);
@@ -877,7 +880,12 @@ export class StorySettingsService {
           data: { statesJson: normalizedStatesJson },
         });
       }
-      return { ...rest, states, updatedAt: row.updatedAt.toISOString() };
+      return {
+        ...rest,
+        aliases: parseCharacterAliases(aliasesJson, row.name),
+        states,
+        updatedAt: row.updatedAt.toISOString(),
+      };
     }));
   }
 
@@ -894,6 +902,8 @@ export class StorySettingsService {
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
+    /** 别名/昵称列表；传 null/空数组清空。 */
+    aliases?: string[] | null;
     states?: StoryAssetStateInput[];
   }): Promise<StorySettingsCharacter> {
     await requireNovel(novelId);
@@ -923,6 +933,7 @@ export class StorySettingsService {
         personality: input.personality ?? null,
         appearance: input.appearance ?? null,
         background: input.background ?? null,
+        aliasesJson: serializeCharacterAliases(input.aliases, input.name),
         statesJson: serializeStates(states),
       },
     });
@@ -941,6 +952,8 @@ export class StorySettingsService {
     personality?: string | null;
     appearance?: string | null;
     background?: string | null;
+    /** 别名/昵称列表；传 null/空数组清空。 */
+    aliases?: string[] | null;
     states?: StoryAssetStateInput[];
   }): Promise<StorySettingsCharacter> {
     assertValidStateInput(input.states);
@@ -986,6 +999,9 @@ export class StorySettingsService {
           ...(input.facePrompt !== undefined ? { facePrompt: input.facePrompt } : {}),
           ...(input.voiceTexture !== undefined ? { voiceTexture: input.voiceTexture } : {}),
           ...(statesJson !== undefined ? { statesJson } : {}),
+          ...(input.aliases !== undefined
+            ? { aliasesJson: serializeCharacterAliases(input.aliases, input.name !== undefined ? input.name : row.name) }
+            : {}),
           ...(input.personality !== undefined ? { personality: input.personality } : {}),
           ...(input.appearance !== undefined ? { appearance: input.appearance } : {}),
           ...(input.background !== undefined ? { background: input.background } : {}),

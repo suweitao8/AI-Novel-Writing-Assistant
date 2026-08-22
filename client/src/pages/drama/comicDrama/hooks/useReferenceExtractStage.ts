@@ -20,10 +20,11 @@ import type {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
-import type {
-  CharacterAssetFormState,
-  SceneAssetFormState,
-  PropAssetFormState,
+import {
+  parseCharacterAliasInput,
+  type CharacterAssetFormState,
+  type SceneAssetFormState,
+  type PropAssetFormState,
 } from "@/pages/novels/components/storySettings/assetForms";
 
 // 「提取」页签：展示「解析」产出并随章节持久化的设定建议（Chapter.referenceExtractionJson）。
@@ -157,6 +158,7 @@ export function useReferenceExtractStage(input: {
         await createStorySettingsCharacter(input.novelId, {
           name: form.name.trim(),
           gender: form.gender || undefined,
+          aliases: parseCharacterAliasInput(form.aliases),
           states,
         });
       } else if (form.__kind === "scene") {

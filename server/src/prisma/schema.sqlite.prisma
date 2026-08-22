@@ -850,6 +850,8 @@ model Character {
   // 外观状态列表 JSON：[{ id,label,description,imagePrompt,voicePrompt?,chapterOrder? }]（初始 + 换装/受伤等变化态）
   statesJson      String?
   voiceTexture    String?
+  // 角色别名/昵称 JSON：["哥哥","晨哥"]——小说原文用称呼指代角色，解析与匹配按别名归一到本名。
+  aliasesJson     String?
   presenceImpression String?
   arcStart        String?
   arcMidpoint     String?

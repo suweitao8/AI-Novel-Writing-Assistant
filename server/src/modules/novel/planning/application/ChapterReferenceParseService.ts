@@ -10,6 +10,7 @@ import { AppError } from "../../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
 import { chapterReferenceParsePrompt } from "../../../../prompting/prompts/novel/chapterReferenceParse.prompts";
 import type { ChapterReferenceParsePayload } from "@ai-novel/shared/types/novelChapterReferenceParse";
+import { parseCharacterAliases } from "../../story-settings/application/StorySettingsProjection";
 import {
   normalizeStoryCharacterStates,
   parseStoryAssetStatesJson,
@@ -96,6 +97,7 @@ export class ChapterReferenceParseService {
         select: {
           name: true,
           statesJson: true,
+          aliasesJson: true,
           gender: true,
           ageGroup: true,
           physique: true,
@@ -125,6 +127,13 @@ export class ChapterReferenceParseService {
     const characterStates = characterRows
       .map((row) => parseCharacterStateLine(row.name, row.statesJson, row))
       .filter((line): line is string => line !== null);
+    // 角色别名名单（「叶晨：哥哥、晨哥」）：原文用称呼指代角色时按名单归一成本名。
+    const characterAliases = characterRows
+      .map((row) => {
+        const aliases = parseCharacterAliases(row.aliasesJson, row.name);
+        return aliases.length > 0 ? `${row.name}：${aliases.join("、")}` : null;
+      })
+      .filter((line): line is string => line !== null);
     const generated = await runStructuredPrompt({
       asset: chapterReferenceParsePrompt,
       promptInput: {
@@ -134,6 +143,7 @@ export class ChapterReferenceParseService {
         referenceText: text,
         existingScenes: existingScenes.length > 0 ? existingScenes : undefined,
         characterStates: characterStates.length > 0 ? characterStates : undefined,
+        characterAliases: characterAliases.length > 0 ? characterAliases : undefined,
       },
       options: {
         novelId,

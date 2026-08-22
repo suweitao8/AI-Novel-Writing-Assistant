@@ -62,6 +62,35 @@ function formatStateLabels(states: StoryAssetState[]): string {
     .join("；");
 }
 
+/**
+ * novel_import 项目：按名字读设定中心角色的别名（如 哥哥、晨哥）。
+ * charactersDigest 拼成「别名：」名单喂给分镜 LLM——原文用称呼指代角色时按名单归一成本名输出。
+ * 解析在本地做（与 statesJson 同风格），不 import novel 模块，保持 drama 边界自洽。
+ */
+export async function loadNovelCharacterAliasesByName(novelId: string): Promise<Map<string, string[]>> {
+  const rows = await prisma.character.findMany({
+    where: { novelId },
+    select: { name: true, aliasesJson: true },
+  });
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    const raw = safeJsonParse<unknown[]>(row.aliasesJson, []);
+    const seen = new Set<string>();
+    for (const item of Array.isArray(raw) ? raw : []) {
+      if (typeof item === "string") {
+        const trimmed = item.trim();
+        if (trimmed && trimmed !== row.name) {
+          seen.add(trimmed);
+        }
+      }
+    }
+    if (seen.size > 0) {
+      map.set(row.name.trim(), [...seen]);
+    }
+  }
+  return map;
+}
+
 export class DramaContextAssembler {
   async buildEpisodeContext(projectId: string, episodeOrder: number) {
     // 防御：即使调用方传入字符串型 order 也能正确匹配
@@ -120,6 +149,9 @@ export class DramaContextAssembler {
     const novelStatesByName = project.source === "novel_import" && project.sourceRef?.trim()
       ? await loadNovelCharacterStatesByName(project.sourceRef.trim())
       : new Map<string, StoryAssetState[]>();
+    const novelAliasesByName = project.source === "novel_import" && project.sourceRef?.trim()
+      ? await loadNovelCharacterAliasesByName(project.sourceRef.trim())
+      : new Map<string, string[]>();
 
     return {
       project,
@@ -161,6 +193,9 @@ export class DramaContextAssembler {
           character.visualAnchor ? `视觉：${compactText(character.visualAnchor, 160)}` : "",
           novelStatesByName.get(character.name.trim())?.length
             ? `状态：${formatStateLabels(novelStatesByName.get(character.name.trim()) ?? [])}`
+            : "",
+          novelAliasesByName.get(character.name.trim())?.length
+            ? `别名：${(novelAliasesByName.get(character.name.trim()) ?? []).join("、")}（原文用这些称呼指该角色，输出一律用本名）`
             : "",
           refImageUrls.length > 0 ? `参考图：[${refImageUrls.join("，")}]（请保持人物视觉一致性）` : "",
           character.relations ? `关系：${compactText(character.relations, 160)}` : "",
