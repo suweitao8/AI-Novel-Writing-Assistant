@@ -33,7 +33,10 @@ import {
   type GeneratedReferenceImageMeta,
 } from "../../../../services/image/runtime";
 import { IMAGE_SPECS } from "../../../../services/image/imageSpecs";
-import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/dramaArtStyleResolver";
+import {
+  resolveDramaArtStyleContext,
+  type DramaScriptStyleJudgeInput,
+} from "../../../../services/drama/visual/dramaArtStyleResolver";
 import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
@@ -203,6 +206,39 @@ function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
     ...(image.provider ? { provider: image.provider } : {}),
     ...(image.generatedAt ? { generatedAt: image.generatedAt } : {}),
     ...(image.error ? { error: image.error } : {}),
+  };
+}
+
+/** 状态图生成的时代风格按剧情判定（2026-08-22 用户要求）：
+ * 找到这个状态所处的章节脚本，交给 AI 判断该故事节点的时代氛围（开篇现代、章末末世这类推进）。
+ * 章节定位：状态自带的章节标记 > 资产名首次出现的章节 > 第一章；找不到脚本就不判定（回落全局风格链）。 */
+async function resolveStateScriptJudge(
+  novelId: string,
+  kind: StoryAssetKind,
+  assetName: string,
+  state: Pick<StoryAssetState, "label" | "chapterOrder">,
+): Promise<DramaScriptStyleJudgeInput | null> {
+  const chapters = await prisma.chapter.findMany({
+    where: { novelId },
+    orderBy: { order: "asc" },
+    select: { order: true, expectation: true },
+  });
+  if (chapters.length === 0) {
+    return null;
+  }
+  let chapter = typeof state.chapterOrder === "number"
+    ? chapters.find((item) => item.order === state.chapterOrder)
+    : undefined;
+  if (!chapter) {
+    chapter = chapters.find((item) => item.expectation?.includes(assetName));
+  }
+  const excerpt = (chapter ?? chapters[0]).expectation?.trim().slice(0, 3000) ?? "";
+  if (!excerpt) {
+    return null;
+  }
+  return {
+    target: `${assetName} · ${state.label} ${kind === "character" ? "状态图" : kind === "scene" ? "场景状态图" : "道具状态图"}`,
+    scriptExcerpt: excerpt,
   };
 }
 
@@ -450,8 +486,13 @@ export class StoryAssetStateImageService {
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
       : null;
 
-    // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）
-    const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
+    // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）；
+    // 时代风格按该状态所处章节的剧情判定（开篇现代、章末才进末世这类推进不再被全局默认带偏）。
+    const styleContext = await resolveDramaArtStyleContext({
+      visualStyle: null,
+      sourceRef: novelId,
+      scriptJudge: await resolveStateScriptJudge(novelId, kind, row.name, state),
+    });
     const styleLines = buildAssetStylePromptLines(kind, styleContext.assets[kind], styleContext.specific);
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
