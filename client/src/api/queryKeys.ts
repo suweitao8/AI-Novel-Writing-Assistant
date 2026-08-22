@@ -103,6 +103,7 @@ export const queryKeys = {
     visualStyles: ["drama", "visual-styles"] as const,
     episodeAssembly: (id: string, order: number) => ["drama", "episode-assembly", id, order] as const,
     eraStyle: (novelId: string) => ["drama", "era-style", novelId] as const,
+    eraStyles: ["drama", "era-styles"] as const,
   },
   storyModes: {
     all: ["story-modes"] as const,

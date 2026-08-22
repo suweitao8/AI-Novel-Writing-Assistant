@@ -15,7 +15,10 @@
 //   3. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
 //   4. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
 //   5. 都没有 → 只用三类资产默认画风
-// 自定义风格名的提示词存在 NovelSettingsWorld.artStylesJson（[{label,prompt}]，身份=label）；
+// 时代画风库（2026-08-22 用户要求改为全局）：内置预设（dramaVisualStyles.ts）+ 全局自定义
+// （AppSetting drama.eraStyles，eraStyleLibrary.ts，画风管理页维护）。小说/漫剧项目只引用名字，
+// 不再各自定义。旧的书内自定义（NovelSettingsWorld.artStylesJson，管理入口已移除）保留只读
+// 兼容：匹配时并入（同名时全局自定义优先），defaultArtStyle 仍按书读取（旧数据链路层）；
 // 解析逻辑与 StorySettingsService.parseArtStyles 同语义（本模块不 import 小说侧服务，避免
 // 跨模块深依赖，两边契约由 tests/dramaArtStyle.test.js 与 story-settings 测试共同锁定）。
 import { prisma } from "../../../db/prisma";
@@ -32,6 +35,7 @@ import {
   type DramaSpecificStyle,
 } from "./dramaVisualStyles";
 import { judgeEraStyle, type JudgeEraStyleFn } from "./eraStyleJudge";
+import { getDramaEraStyleCustoms } from "./eraStyleLibrary";
 
 export interface ResolvedDramaArtStyle {
   assets: Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
@@ -105,6 +109,22 @@ async function loadNovelArtStyles(novelId: string): Promise<NovelArtStylesRecord
   return { artStyles, defaultArtStyle: row.defaultArtStyle?.trim() || null };
 }
 
+/** 时代画风匹配清单（2026-08-22 用户要求改为全局库）：全局自定义（AppSetting drama.eraStyles）
+ *  + 旧的书内自定义（NovelSettingsWorld.artStylesJson，管理入口已移除，保留只读兼容；
+ *  同名时全局自定义优先）。defaultArtStyle 仍按书读取（旧数据链路层）。 */
+async function loadEraStyleRecord(novelId: string | null): Promise<NovelArtStylesRecord> {
+  const globalCustoms = await getDramaEraStyleCustoms();
+  const novel = novelId ? await loadNovelArtStyles(novelId) : { artStyles: [] as DramaSpecificStyle[], defaultArtStyle: null };
+  const merged = new Map<string, DramaSpecificStyle>();
+  for (const style of novel.artStyles) {
+    merged.set(style.label, style);
+  }
+  for (const custom of globalCustoms) {
+    merged.set(custom.label, { label: custom.label, styleInstructions: custom.prompt });
+  }
+  return { artStyles: [...merged.values()], defaultArtStyle: novel.defaultArtStyle };
+}
+
 function matchSpecificStyle(
   chosen: string,
   artStyles: DramaSpecificStyle[],
@@ -141,9 +161,7 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
   ) as Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
 
   const novelId = input.sourceRef?.trim() || null;
-  const novelArtStyles = novelId
-    ? await loadNovelArtStyles(novelId)
-    : { artStyles: [] as DramaSpecificStyle[], defaultArtStyle: null };
+  const novelArtStyles = await loadEraStyleRecord(novelId);
 
   // 用户给生成点显式选定的时代风格（状态图的自选字段）：直接采用，不再判定。
   // 匹配不到可选风格（如自定义风格已删）时按悬空引用处理：提供了 pinnedMissFallbackStyle
@@ -234,7 +252,7 @@ export interface DramaEraStyleOverview {
 }
 
 export async function resolveNovelEraStyleOverview(novelId: string): Promise<DramaEraStyleOverview> {
-  const novelArtStyles = await loadNovelArtStyles(novelId);
+  const novelArtStyles = await loadEraStyleRecord(novelId);
   const scriptKey = await loadNovelScriptEraStyleKey(novelId);
   if (scriptKey) {
     const matched = matchDramaEraStyle(scriptKey, novelArtStyles.artStyles);

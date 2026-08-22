@@ -18,7 +18,6 @@ import {
   assembleDramaSourceBundle,
   createDramaProject,
   getDramaVisualStyles,
-  setDramaVisualStyle,
 } from "@/api/media/drama";
 import { getStorySettingsOverview, getStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
@@ -396,18 +395,7 @@ export default function ComicDramaStudioPage() {
             </section>
           ) : settingsTab === "style" ? (
             <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-              <ArtStylePanel
-                novelId={novelId}
-                styleOptions={storyboard.styleOptions}
-                onApplyProjectStyle={(styleId) => {
-                  // 已有分镜项目时默认具体风格同步生效；只推送内置预设 id——自定义风格名不推送，
-                  // 生成侧（dramaArtStyleResolver）会回落到小说默认风格解析自定义提示词。
-                  if (overview?.drama && storyboard.styleOptions.some((style) => style.id === styleId)) {
-                    storyboard.styleMutation.mutate(styleId);
-                  }
-                }}
-                onChanged={invalidateStorySettings}
-              />
+              <ArtStylePanel />
             </section>
           ) : (
             <>
@@ -473,11 +461,11 @@ function useStoryboardStage(input: {
   });
   const styleOptions = stylesQuery.data?.data ?? [];
   // 生效优先级：已有分镜项目的风格 > 小说默认风格 > 内置默认（预设列表第一项）。
-  // 分镜项目的 visualStyle 只认内置预设 id——小说默认是自定义风格名时退到内置默认。
-  const novelDefaultIsPreset = Boolean(input.novelDefaultStyleId)
+  // 项目画风引用全局时代画风库：内置预设 id 或全局自定义风格名（2026-08-22 起都认）。
+  const novelDefaultIsKnown = Boolean(input.novelDefaultStyleId)
     && styleOptions.some((style) => style.id === input.novelDefaultStyleId);
   const effectiveStyleId = input.drama?.visualStyle
-    || (novelDefaultIsPreset ? input.novelDefaultStyleId : null)
+    || (novelDefaultIsKnown ? input.novelDefaultStyleId : null)
     || styleOptions[0]?.id
     || "unreal_cinematic_3d";
   const invalidate = async () => {
@@ -507,20 +495,6 @@ function useStoryboardStage(input: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "创建分镜项目失败，请重试。"),
   });
 
-  const styleMutation = useMutation({
-    mutationFn: (styleId: string) => {
-      if (!input.drama) {
-        throw new Error("还没有分镜项目。");
-      }
-      return setDramaVisualStyle(input.drama.projectId, styleId);
-    },
-    onSuccess: async () => {
-      await invalidate();
-      toast.success("美术风格已更新，之后生成的首帧图与角色图会使用新风格。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "更新风格失败，请重试。"),
-  });
-
   const syncMutation = useMutation({
     mutationFn: () => {
       if (!input.drama) {
@@ -534,7 +508,7 @@ function useStoryboardStage(input: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "同步小说内容到分镜失败，请重试。"),
   });
 
-  return { styleOptions, effectiveStyleId, styleMutation, createMutation, syncMutation };
+  return { styleOptions, effectiveStyleId, createMutation, syncMutation };
 }
 
 // 「设定 · 通用」页签：项目级配置。整本画风在「美术风格」页签设置，这里看分镜项目状态。

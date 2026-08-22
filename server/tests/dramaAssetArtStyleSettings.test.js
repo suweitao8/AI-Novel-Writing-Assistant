@@ -92,7 +92,10 @@ test("解析器按类别读取新的覆盖，不读取历史单一画风", async
   const originalChapterFindMany = prisma.chapter.findMany;
   try {
     prisma.appSetting.findUnique = async ({ where }) => {
-      assert.equal(where.key, DRAMA_ASSET_ART_STYLE_SETTING_KEY);
+      // 解析器除资产画风覆盖外还会查全局时代画风库（drama.eraStyles），按 key 分发。
+      if (where.key !== DRAMA_ASSET_ART_STYLE_SETTING_KEY) {
+        return null;
+      }
       return {
         key: where.key,
         value: JSON.stringify({ characterPrompt: "角色自定义", scenePrompt: "", propPrompt: "道具自定义" }),

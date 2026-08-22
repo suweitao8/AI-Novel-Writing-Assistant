@@ -7,7 +7,6 @@ import {
   getStorySettingsCharacters,
   getStorySettingsProps,
   getStorySettingsScenes,
-  getStorySettingsWorld,
   tweakStoryStateImagePrompt,
   updateStorySettingsCharacter,
   updateStorySettingsProp,
@@ -235,21 +234,17 @@ export function AssetStatesEditor(props: {
     }
   }, [watchQuery.data, asset, localDirty, states, onChange]);
 
-  // 时代风格选项：内置预设 + 本书自定义画风（值用 label，与脚本画风标记同一命名空间）；
+  // 时代风格选项：全局时代画风库（GET /drama/visual-styles 返回内置预设 + 全局自定义，
+  // 2026-08-22 起不再读本书 artStyles）；值用 label，与脚本画风标记同一命名空间；
   // 未选时默认「现代都市」（与服务端生成时的空值兜底一致）。
   const visualStylesQuery = useQuery({
     queryKey: queryKeys.drama.visualStyles,
     queryFn: getDramaVisualStyles,
   });
-  const worldQuery = useQuery({
-    queryKey: queryKeys.novels.storySettingsWorld(novelId),
-    queryFn: () => getStorySettingsWorld(novelId),
-  });
-  const eraStyleOptions = useMemo(() => {
-    const presets = (visualStylesQuery.data?.data ?? []).map((style) => style.label);
-    const customs = (worldQuery.data?.data?.artStyles ?? []).map((style) => style.label);
-    return [...new Set([...presets, ...customs])].filter(Boolean);
-  }, [visualStylesQuery.data, worldQuery.data]);
+  const eraStyleOptions = useMemo(
+    () => (visualStylesQuery.data?.data ?? []).map((style) => style.label).filter(Boolean),
+    [visualStylesQuery.data],
+  );
 
   const invalidateSettings = async () => {
     if (!asset) {

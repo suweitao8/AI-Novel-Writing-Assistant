@@ -14,6 +14,7 @@ import { dramaExportService } from "../../../services/drama/DramaExportService";
 import { dramaGuidanceService } from "../../../services/drama/guidance/DramaGuidanceService";
 import { dramaProjectService } from "../../../services/drama/DramaProjectService";
 import { resolveNovelEraStyleOverview } from "../../../services/drama/visual/dramaArtStyleResolver";
+import { getDramaEraStyleCustoms, saveDramaEraStyleLibrary } from "../../../services/drama/visual/eraStyleLibrary";
 import { getSharedNovelServices } from "../../../services/novel/application/sharedNovelServices";
 import { dramaQualityGate } from "../../../services/drama/DramaQualityGate";
 import { dramaRepairService } from "../../../services/drama/DramaRepairService";
@@ -224,13 +225,64 @@ router.get("/studio/:novelId/overview", validate({ params: studioOverviewParamsS
   }
 });
 
-/** GET /api/drama/visual-styles — 画面风格预设列表 */
-router.get("/visual-styles", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: DRAMA_VISUAL_STYLE_PRESETS,
-    message: "Visual styles loaded.",
-  } satisfies ApiResponse<typeof DRAMA_VISUAL_STYLE_PRESETS>);
+/** GET /api/drama/visual-styles — 时代画风选项：内置预设 + 全局自定义（2026-08-22 起自定义并入）。 */
+router.get("/visual-styles", async (_req, res, next) => {
+  try {
+    const customs = await getDramaEraStyleCustoms();
+    const data = [
+      ...DRAMA_VISUAL_STYLE_PRESETS,
+      ...customs.map((style) => ({
+        id: style.label,
+        label: style.label,
+        summary: style.prompt.slice(0, 40),
+        styleTag: "",
+        styleFamily: "custom" as const,
+      })),
+    ];
+    res.status(200).json({
+      success: true,
+      data,
+      message: "Visual styles loaded.",
+    } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** GET /api/drama/era-styles — 全局自定义时代画风清单（画风管理页编辑用，含完整提示词）。 */
+router.get("/era-styles", async (_req, res, next) => {
+  try {
+    const customs = await getDramaEraStyleCustoms();
+    res.status(200).json({
+      success: true,
+      data: { styles: customs },
+      message: "时代画风读取成功。",
+    } satisfies ApiResponse<{ styles: typeof customs }>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+const eraStyleLibrarySaveSchema = z.object({
+  styles: z.array(z.object({
+    label: z.string().trim().min(1).max(20),
+    prompt: z.string().trim().min(1).max(500),
+  }).strict()).max(24),
+}).strict();
+
+/** PUT /api/drama/era-styles — 保存整份全局自定义时代画风（全量替换；内置预设不可改）。 */
+router.put("/era-styles", validate({ body: eraStyleLibrarySaveSchema }), async (req, res, next) => {
+  try {
+    const { styles } = req.body as z.infer<typeof eraStyleLibrarySaveSchema>;
+    const customs = await saveDramaEraStyleLibrary(styles);
+    res.status(200).json({
+      success: true,
+      data: { styles: customs },
+      message: "时代画风已保存。",
+    } satisfies ApiResponse<{ styles: typeof customs }>);
+  } catch (error) {
+    next(error);
+  }
 });
 
 /** GET /api/drama/era-style/:novelId — 小说当前生效的时代风格（脚本标记 > 小说默认 > 内置） */
@@ -258,9 +310,13 @@ router.post("/projects/:id/visual-style", validate({ params: idParamsSchema, bod
     const { id } = req.params as z.infer<typeof idParamsSchema>;
     const { styleId } = req.body as z.infer<typeof visualStyleUpdateSchema>;
     const normalized = styleId?.trim() || null;
+    // 项目画风引用全局时代画风库：内置预设 id 或全局自定义风格名（2026-08-22 起）。
     if (normalized && !DRAMA_VISUAL_STYLE_PRESETS.some((preset) => preset.id === normalized)) {
-      res.status(400).json({ success: false, message: "未知的画面风格。" });
-      return;
+      const customs = await getDramaEraStyleCustoms();
+      if (!customs.some((style) => style.label === normalized)) {
+        res.status(400).json({ success: false, message: "未知的画面风格。" });
+        return;
+      }
     }
     const project = await prisma.dramaProject.update({
       where: { id },

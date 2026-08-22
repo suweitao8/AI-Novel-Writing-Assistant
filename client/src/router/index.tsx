@@ -35,7 +35,7 @@ const ModelsSettingsPage = lazy(() => import("@/pages/settings/views/ModelsSetti
 const DirectorSettingsPage = lazy(() => import("@/pages/settings/views/DirectorSettingsPage"));
 const KnowledgeSettingsPage = lazy(() => import("@/pages/settings/views/KnowledgeSettingsPage"));
 const AppearanceSettingsPage = lazy(() => import("@/pages/settings/views/AppearanceSettingsPage"));
-const ArtStyleSettingsPage = lazy(() => import("@/pages/settings/views/ArtStyleSettingsPage"));
+const ArtStyleLibraryPage = lazy(() => import("@/pages/artStyle/ArtStyleLibraryPage"));
 const WorldList = lazy(() => import("@/pages/worlds/WorldList"));
 const WorldGenerator = lazy(() => import("@/pages/worlds/WorldGenerator"));
 const WorldWorkspace = lazy(() => import("@/pages/worlds/WorldWorkspace"));
@@ -81,7 +81,8 @@ const routes: RouteObject[] = [
       { path: "settings/director", element: <DirectorSettingsPage /> },
       { path: "settings/knowledge", element: <KnowledgeSettingsPage /> },
       { path: "settings/appearance", element: <AppearanceSettingsPage /> },
-      { path: "settings/art-style", element: <ArtStyleSettingsPage /> },
+      { path: "settings/art-style", element: <Navigate to="/art-style" replace /> },
+      { path: "art-style", element: <ArtStyleLibraryPage /> },
       { path: "settings", element: <SettingsOverviewPage /> },
       { path: "worlds", element: <WorldList /> },
       {

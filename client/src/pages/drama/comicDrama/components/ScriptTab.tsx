@@ -5,7 +5,6 @@ import {
   getStorySettingsCharacters,
   getStorySettingsProps,
   getStorySettingsScenes,
-  getStorySettingsWorld,
 } from "@/api/story/storySettings";
 import { getDramaEraStyle, type DramaVisualStyle } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
@@ -85,11 +84,6 @@ export default function ScriptTab(props: ScriptTabProps) {
     queryFn: () => getStorySettingsProps(novelId),
     enabled: Boolean(novelId),
   });
-  const worldQuery = useQuery({
-    queryKey: queryKeys.novels.storySettingsWorld(novelId),
-    queryFn: () => getStorySettingsWorld(novelId),
-    enabled: Boolean(novelId),
-  });
   const eraStyleQuery = useQuery({
     queryKey: queryKeys.drama.eraStyle(novelId),
     queryFn: () => getDramaEraStyle(novelId),
@@ -98,15 +92,12 @@ export default function ScriptTab(props: ScriptTabProps) {
   const characters = charactersQuery.data?.data ?? [];
   const scenes = scenesQuery.data?.data ?? [];
   const propList = propsQuery.data?.data ?? [];
-  const customEraStyles = worldQuery.data?.data?.artStyles ?? [];
   const eraStyleInfo = eraStyleQuery.data?.data ?? null;
-  // 画风选项：内置预设 + 本书自定义（值用 label——脚本标记里写的就是它）。
+  // 画风选项：全局时代画风库（内置预设 + 全局自定义；GET /drama/visual-styles 一并返回，
+  // 2026-08-22 起不再读本书 artStyles）。值用 label——脚本标记里写的就是它。
   const eraStyleOptions = useMemo(
-    () => [
-      ...props.styleOptions.map((style) => style.label),
-      ...customEraStyles.map((style) => style.label),
-    ].filter((label, index, all) => label && all.indexOf(label) === index),
-    [props.styleOptions, customEraStyles],
+    () => props.styleOptions.map((style) => style.label).filter(Boolean),
+    [props.styleOptions],
   );
 
   const items = useMemo(() => parseScriptItems(workspace.expectationText), [workspace.expectationText]);
