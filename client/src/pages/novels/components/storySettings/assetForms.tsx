@@ -111,6 +111,8 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
 // 2026-08-22 用户决定的交互：
 // - 所有字段行内直接可编辑，改完点「保存状态」落库；点「生成图片/生成音色」会先把
 //   未保存的修改自动保存再生成，不用来回点；
+// - 状态字段只有 状态名+年龄段（场景为类型/时间/天气）与图片提示词——状态名已能表达
+//   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
 //   把任意其他状态已生成的音色直接拿来用——不再有「沿用上一状态」的隐式模式；
@@ -150,19 +152,23 @@ export function AssetStatesEditor(props: {
     await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(asset.novelId) });
   };
 
-  /** 保存前归一：trim；图片提示词留空按状态变化兜底；每个状态都要有名字和说明。 */
+  /** 保存前归一：trim；说明与图片提示词留空按状态名兜底；每个状态都要有状态名。 */
   const normalizeStatesForSave = (source: StoryAssetState[]): StoryAssetState[] => {
-    const invalid = source.find((state) => !state.label.trim() || !state.description.trim());
+    const invalid = source.find((state) => !state.label.trim());
     if (invalid) {
-      throw new Error(`状态「${invalid.label.trim() || "未命名"}」还缺名字或说明。`);
+      throw new Error(`状态「${invalid.label.trim() || "未命名"}」还缺状态名。`);
     }
-    return source.map((state) => ({
-      ...state,
-      label: state.label.trim(),
-      description: state.description.trim(),
-      imagePrompt: state.imagePrompt.trim() || state.description.trim(),
-      ...(state.voicePrompt?.trim() ? { voicePrompt: state.voicePrompt.trim() } : {}),
-    }));
+    return source.map((state) => {
+      const label = state.label.trim();
+      const description = state.description.trim() || label;
+      return {
+        ...state,
+        label,
+        description,
+        imagePrompt: state.imagePrompt.trim() || description,
+        ...(state.voicePrompt?.trim() ? { voicePrompt: state.voicePrompt.trim() } : {}),
+      };
+    });
   };
 
   const persistStates = async (next: StoryAssetState[]): Promise<StoryAssetState[]> => {
@@ -415,10 +421,6 @@ export function AssetStatesEditor(props: {
                 <span className="text-xs font-medium">状态名</span>
                 <Input value={selectedState.label} placeholder="例如：警察制服 / 重伤 / 黑夜" onChange={(event) => updateState(selectedState.id, { label: event.target.value })} />
               </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-medium">状态变化</span>
-                <Input value={selectedState.description} placeholder={showVoice ? "例如：战斗后左臂受伤，换成破损外套" : "这个状态下发生了什么变化"} onChange={(event) => updateState(selectedState.id, { description: event.target.value })} />
-              </label>
               {showVoice ? (
                 <label className="block space-y-1">
                   <span className="text-xs font-medium">年龄段</span>
@@ -486,7 +488,7 @@ export function AssetStatesEditor(props: {
                 <Textarea
                   rows={3}
                   value={selectedState.imagePrompt}
-                  placeholder="留空则按状态变化生成；内容较长时可换行写"
+                  placeholder="留空则按状态名生成；内容较长时可换行写"
                   onChange={(event) => updateState(selectedState.id, { imagePrompt: event.target.value })}
                 />
               </label>

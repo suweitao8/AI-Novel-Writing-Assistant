@@ -171,8 +171,15 @@ export default function ExtractApplyDialog(props: {
       {item ? (
         <AppDialogContent
           className="max-w-6xl"
-          title={item.name || `应用${GROUP_LABELS[group]}`}
-          description={GROUP_LABELS[group]}
+          title={(
+            <span className="flex min-w-0 flex-wrap items-center gap-2">
+              <span className="min-w-0 truncate">{item.name || `应用${GROUP_LABELS[group]}`}</span>
+              {props.existing ? (
+                <Badge className="shrink-0 bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">已存在</Badge>
+              ) : null}
+              <Badge variant="outline" className="shrink-0">{GROUP_LABELS[group]}</Badge>
+            </span>
+          )}
           footer={
             <>
               <Button variant="outline" onClick={() => props.onOpenChange(false)} disabled={props.pending}>取消</Button>
@@ -184,12 +191,6 @@ export default function ExtractApplyDialog(props: {
           }
         >
           <div className="space-y-3">
-            {props.existing ? (
-              <p className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">已存在</Badge>
-                同名{GROUP_LABELS[group]}已存在，这里编辑的就是已有{GROUP_LABELS[group]}，点「保存」更新它。
-              </p>
-            ) : null}
             {group === "characters" ? (
               <>
                 <CharacterAssetFormFields value={characterForm} onChange={(patch) => setCharacterForm((prev) => ({ ...prev, ...patch }))} />
