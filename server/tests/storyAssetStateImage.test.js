@@ -107,6 +107,15 @@ test("角色状态图一次生成完整四视图，不再四次独立生图后�
   assert.doesNotMatch(imageServiceSource, /styleContext\.universal/);
 });
 
+test("状态图时代风格：eraStyle 未选时兜底内置「现代都市」预设，不再按剧情判定", () => {
+  // 2026-08-22 用户要求：状态下拉不提供「自动」，空值固定按内置默认预设（realistic=现代都市）出图；
+  // 剧情判定链（scriptJudge/era_style_judge）只保留给分镜首帧（DramaShotKeyframeService）。
+  assert.match(imageServiceSource, /pinnedStyle:\s*state\.eraStyle\?\.trim\(\)\s*\|\|\s*DEFAULT_DRAMA_VISUAL_STYLE_ID/);
+  assert.doesNotMatch(imageServiceSource, /scriptJudge/);
+  assert.doesNotMatch(imageServiceSource, /resolveStateScriptJudge/);
+  assert.doesNotMatch(imageServiceSource, /prisma\.chapter\.findMany/);
+});
+
 test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，null 才表示明确不参考", () => {
   const states = [
     { id: "s1", label: "初始", description: "", imagePrompt: "", image: { status: "done", url: "/api/novels/n1/settings/state-images/s1" } },

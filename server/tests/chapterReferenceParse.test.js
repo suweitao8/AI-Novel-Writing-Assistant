@@ -60,11 +60,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v11 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v11");
+test("prompt 资产为 reference_parse@v12 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v12");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v11",
+    "novel.chapter.reference_parse@v12",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -102,7 +102,8 @@ test("角色结构化字段：性别枚举、年龄段可空、外貌体型合�
     characters: [makeCharacter({ role: "男主" })],
   })));
 
-  // 缺省回落：看不出性别→unknown、推不出年龄→null（旧提取结构也能并入解析）
+  // 缺省回落：性别缺省→other、推不出年龄→null（旧提取结构也能并入解析）。
+  // v12 起性别只有 male/female/other（怪物等非人与看不出男女的都归 other），unknown 拒绝。
   const legacy = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
     characters: [{
       name: "老周",
@@ -111,11 +112,14 @@ test("角色结构化字段：性别枚举、年龄段可空、外貌体型合�
       voicePrompt: "沙哑的老年男声，慢悠悠。",
     }],
   }));
-  assert.equal(legacy.characters[0].gender, "unknown");
+  assert.equal(legacy.characters[0].gender, "other");
   assert.equal(legacy.characters[0].ageGroup, null);
 
   assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(
     makeParsePayload({ characters: [makeCharacter({ gender: "男的" })] }),
+  ));
+  assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(
+    makeParsePayload({ characters: [makeCharacter({ gender: "unknown" })] }),
   ));
   assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(
     makeParsePayload({ characters: [makeCharacter({ ageGroup: "22岁" })] }),

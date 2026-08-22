@@ -25,6 +25,9 @@
 // 也不写：时代氛围由系统按「时代风格」选择注入，直接写进提示词会与注入的风格打架
 //（用户实测旧提示词带「写实动漫风格，纯白背景」残留）。postValidate 对三类资产的
 // imagePrompt 做确定性噪音剥离（shared/utils/imagePromptPurity），模型漏写也能兜住。
+// v12（2026-08-22）：gender 收敛为 male/female/other 三值（用户要求：性别要么男要么女
+// 要么其他——怪物等非人角色归 other，看不出男女的也归 other，不再输出 unknown；设定
+// 表单的下拉同步只剩三项，存量 unknown 数据仍被存储与路由枚举容忍）。
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
@@ -63,7 +66,7 @@ const chapterReferenceParseSchema = z.object({
   segments: z.array(referenceParseSegmentSchema).min(8).max(18),
   characters: z.array(z.object({
     name: z.string().min(1).max(20),
-    gender: z.enum(["male", "female", "other", "unknown"]).default("unknown"),
+    gender: z.enum(["male", "female", "other"]).default("other"),
     ageGroup: z.enum(["child", "youth", "middle", "elder"]).nullable().default(null),
     appearance: z.string().min(2).max(200),
     imagePrompt: z.string().min(2).max(300),
@@ -143,7 +146,7 @@ function validateChapterReferenceParse(output: ChapterReferenceParseOutput): Cha
 
 export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromptInput, ChapterReferenceParseOutput> = {
   id: "novel.chapter.reference_parse",
-  version: "v11",
+  version: "v12",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -167,7 +170,7 @@ export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromp
       "【第二部分设定建议＝characters/scenes/props/worldview】供用户确认后创建为项目设定，原则是宁多勿漏：建议列表由用户逐条挑选确认，漏提比多提更影响使用。只提取原文明确出现或可直接推断的内容，不虚构；名字保留原文写法。",
       "characters＝出场角色（凡是原文里有名字或有台词的角色都要提取，含只出现一次的有名配角）。只要原文里有人物，characters 绝不能是空数组，且必须覆盖 segments 里出现过的全部说话角色与 storyboard 里点名出现的角色。只登记做视频要用的字段（外貌体型、画面与音色提示词），不判断剧情定位：",
       "- name＝原文人名。",
-      "- gender/ageGroup 是结构化字段，应用时会分别填进设定的性别、年龄段：gender 按 male/female/other/unknown 输出（原文可推断就给准确值，完全看不出才用 unknown）；ageGroup 按 child（少年/儿童）/youth（青年）/middle（中年）/elder（老年）输出，原文写不出年龄段就填 null。",
+      "- gender/ageGroup 是结构化字段，应用时会分别填进设定的性别、年龄段：gender 按 male/female/other 输出（原文可推断就给准确值；怪物等非人角色与看不出男女的用 other，不输出 unknown）；ageGroup 按 child（少年/儿童）/youth（青年）/middle（中年）/elder（老年）输出，原文写不出年龄段就填 null。",
       "- appearance＝外貌体型一句话：体型（高瘦/娇小/壮实/魁梧）、发型发色、五官特点、穿着、标志性特征——性别与年龄段已在结构化字段里，不在此重复（2026-08-20 起 physique/personality 不再单列：做视频只关注画面与音色提示词，属性从简）。",
       "- imagePrompt＝图片提示词（角色形象，中文，80～150 字）：只写「这个人长什么样」——性别年龄段、发型发色、五官特点（脸型/眼睛/肤色，如 黑色短发、瓜子脸、丹凤眼）、体型、服装配饰、气质神态，照着就能画出这个人。画风、背景、视图、时代氛围一律由系统统一管理，提示词里禁止出现：画风/风格/渲染类词（写实、动漫、CG、3D、虚幻引擎、高清等），背景类词（纯白背景、白底、透明背景等），视图/构图规格（全身像、四视图、特写、正面等），时代/画风氛围词（末世风格、末世感、玄幻氛围这类——生成时按所选时代风格自动注入，写了反而互相打架）；也不要写动作场景。",
       "- voicePrompt＝音色提示词（中文，30～60 字）：音高（低沉/清亮）、音质（沙哑/柔/冷）、说话气质（如 急躁少年音/疲惫沙哑的中年男声），按角色身份与言行推测。",
