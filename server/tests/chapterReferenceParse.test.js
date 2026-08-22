@@ -60,11 +60,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v10 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v10");
+test("prompt 资产为 reference_parse@v11 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v11");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v10",
+    "novel.chapter.reference_parse@v11",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -209,7 +209,7 @@ test("参考解析给模型的角色状态名单会包含缺失数据的初始�
   assert.match(serviceSource, /normalizeStoryCharacterStates/);
 });
 
-test("图片提示词只写纯内容描述：系统指令明确禁止画风/背景/视图词", () => {
+test("图片提示词只写纯内容描述：系统指令明确禁止画风/背景/视图/时代氛围词", () => {
   const rendered = chapterReferenceParsePrompt.render({
     chapterTitle: "测试",
     chapterOrder: 1,
@@ -218,8 +218,29 @@ test("图片提示词只写纯内容描述：系统指令明确禁止画风/背�
     existingScenes: [],
   });
   const text = rendered.map((message) => String(message.content)).join(" ");
-  assert.match(text, /画风、背景、视图一律由系统统一管理/);
+  assert.match(text, /画风、背景、视图、时代氛围一律由系统统一管理/);
   assert.match(text, /纯白背景/);
   assert.match(text, /四视图/);
   assert.match(text, /禁止出现画风\/风格\/渲染类词/);
+  assert.match(text, /时代\/画风氛围词/);
+});
+
+test("postValidate 出口剥离三类资产图片提示词里的画风/背景/视图/时代氛围词", () => {
+  const output = chapterReferenceParsePrompt.postValidate(makeParsePayload({
+    characters: [makeCharacter({
+      imagePrompt: "全身像，年轻男性大学生，约二十出头，深色短发，眉眼冷硬锐利，穿着洗旧的简单衬衫与深色长裤，写实动漫风格，纯白背景。",
+    })],
+    scenes: [{ name: "叶城大学宿舍", description: "四人间宿舍。", imagePrompt: "宿舍内部，360度全景，末世废土风格的破败走廊。", timeOfDay: null, weather: null }],
+    props: [{ name: "旧军刀", description: "末世前留下的军刀。", imagePrompt: "碳钢刀身带缺口与锈迹，木质刀柄缠旧布条，45度透视。" }],
+  }));
+  assert.equal(
+    output.characters[0].imagePrompt,
+    "年轻男性大学生，约二十出头，深色短发，眉眼冷硬锐利，穿着洗旧的简单衬衫与深色长裤",
+  );
+  assert.ok(!output.scenes[0].imagePrompt.includes("360"));
+  assert.ok(!output.scenes[0].imagePrompt.includes("末世"));
+  assert.ok(output.scenes[0].imagePrompt.includes("破败走廊"));
+  // 内容词不受伤害：来历保留在 description，提示词里的内容短语照常保留。
+  assert.ok(output.props[0].imagePrompt.includes("碳钢刀身"));
+  assert.ok(!output.props[0].imagePrompt.includes("透视"));
 });
