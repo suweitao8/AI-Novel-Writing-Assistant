@@ -24,7 +24,6 @@ import type {
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
-  parseCharacterAliasInput,
   type CharacterAssetFormState,
   type SceneAssetFormState,
   type PropAssetFormState,
@@ -157,7 +156,6 @@ export function useReferenceExtractStage(input: {
           await updateStorySettingsCharacter(input.novelId, existingId, {
             name: form.name.trim(),
             gender: form.gender || undefined,
-            aliases: parseCharacterAliasInput(form.aliases),
             states: form.states.map((state) => ({ ...state })),
           });
         } else {
@@ -172,7 +170,6 @@ export function useReferenceExtractStage(input: {
           await createStorySettingsCharacter(input.novelId, {
             name: form.name.trim(),
             gender: form.gender || undefined,
-            aliases: parseCharacterAliasInput(form.aliases),
             states,
           });
         }
