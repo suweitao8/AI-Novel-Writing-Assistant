@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
 import {
   generateStoryAssetStateImage,
   generateStoryCharacterStateVoice,
+  getStorySettingsCharacters,
+  getStorySettingsProps,
+  getStorySettingsScenes,
   tweakStoryStateImagePrompt,
   updateStorySettingsCharacter,
   updateStorySettingsProp,
@@ -120,6 +123,8 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
 //   把任意其他状态已生成的音色直接拿来用——不再有「沿用上一状态」的隐式模式；
 // - 图片/音色提示词较长，用多行文本；「添加状态」在列表底部；区块不加标题。
+// - 生成在服务端完成，关掉弹窗也不会中断：编辑器挂着资产列表查询——打开弹窗即取
+//   最新结果，仍有 generating 状态时轮询到完成；用户未保存的修改不会被同步覆盖。
 export function AssetStatesEditor(props: {
   states: StoryAssetState[];
   onChange: (states: StoryAssetState[]) => void;
@@ -151,6 +156,52 @@ export function AssetStatesEditor(props: {
   useEffect(() => {
     setPromptTweak("");
   }, [selectedStateId]);
+
+  // 后台生成跟进：生成是服务端在请求内完成的——弹窗关掉后服务端仍会跑完并落库
+  //（断连不中断，2026-08-22 实测确认）。这里挂同一份资产列表查询：每次打开弹窗先取
+  // 最新数据（拿到已生成完的图片/音色），有状态还在 generating 时每 3 秒轮询；
+  // 表单干净（没有未保存修改）时把服务端状态同步回来。用户未保存的修改永远优先。
+  const anyServerGenerating = states.some((state) => state.image?.status === "generating" || state.voice?.status === "generating");
+  const watchQueryKey = asset
+    ? (kind === "character"
+      ? queryKeys.novels.storySettingsCharacters(asset.novelId)
+      : kind === "scene"
+        ? queryKeys.novels.storySettingsScenes(asset.novelId)
+        : queryKeys.novels.storySettingsProps(asset.novelId))
+    : null;
+  const watchQuery = useQuery({
+    queryKey: watchQueryKey ?? ["novels", "story-settings", novelId, kind, "watch"],
+    queryFn: async () => {
+      if (!asset) {
+        return null;
+      }
+      return kind === "character"
+        ? getStorySettingsCharacters(asset.novelId)
+        : kind === "scene"
+          ? getStorySettingsScenes(asset.novelId)
+          : getStorySettingsProps(asset.novelId);
+    },
+    enabled: Boolean(asset),
+    refetchInterval: anyServerGenerating ? 3000 : false,
+  });
+
+  useEffect(() => {
+    if (!asset || localDirty) {
+      return;
+    }
+    const rows = watchQuery.data?.data;
+    if (!Array.isArray(rows)) {
+      return;
+    }
+    const serverStates = (rows as Array<{ id: string; states?: StoryAssetState[] }>)
+      .find((row) => row.id === asset.assetId)?.states;
+    if (!serverStates?.length) {
+      return;
+    }
+    if (JSON.stringify(serverStates) !== JSON.stringify(states)) {
+      onChange(serverStates);
+    }
+  }, [watchQuery.data, asset, localDirty, states, onChange]);
 
   const invalidateSettings = async () => {
     if (!asset) {
@@ -345,6 +396,9 @@ export function AssetStatesEditor(props: {
     : [];
   const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || saveMutation.isPending || promptTweakMutation.isPending;
   const generationDisabled = !asset || anyPending;
+  // 服务端仍在生成（弹窗重开/轮询读到的 generating 态）：按钮显示生成中并禁用重复触发。
+  const serverImageGenerating = selectedState?.image?.status === "generating";
+  const serverVoiceGenerating = selectedState?.voice?.status === "generating";
 
   return (
     <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
@@ -441,12 +495,12 @@ export function AssetStatesEditor(props: {
                   variant="outline"
                   size="sm"
                   className="h-8"
-                  disabled={generationDisabled}
+                  disabled={generationDisabled || serverImageGenerating}
                   title={!asset ? "先保存资产，再生成状态图" : undefined}
                   onClick={() => imageMutation.mutate(selectedState.id)}
                 >
-                  {imageMutation.isPending && imageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                  {imageMutation.isPending && imageMutation.variables === selectedState.id ? "生成中..." : selectedState.image?.url ? "重新生成图片" : "生成图片"}
+                  {(imageMutation.isPending && imageMutation.variables === selectedState.id) || serverImageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                  {(imageMutation.isPending && imageMutation.variables === selectedState.id) || serverImageGenerating ? "生成中..." : selectedState.image?.url ? "重新生成图片" : "生成图片"}
                 </AiButton>
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">初始状态是基础形象，直接生成。</p> : null}
@@ -588,11 +642,11 @@ export function AssetStatesEditor(props: {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={generationDisabled}
+                    disabled={generationDisabled || serverVoiceGenerating}
                     onClick={() => voiceMutation.mutate(selectedState.id)}
                   >
-                    {voiceMutation.isPending && voiceMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic2 className="h-3.5 w-3.5" />}
-                    {voiceMutation.isPending && voiceMutation.variables === selectedState.id ? "生成中..." : "生成音色"}
+                    {(voiceMutation.isPending && voiceMutation.variables === selectedState.id) || serverVoiceGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mic2 className="h-3.5 w-3.5" />}
+                    {(voiceMutation.isPending && voiceMutation.variables === selectedState.id) || serverVoiceGenerating ? "生成中..." : "生成音色"}
                   </AiButton>
                 </div>
                 {voicePickerOpen ? (
