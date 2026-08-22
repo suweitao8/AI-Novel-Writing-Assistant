@@ -38,7 +38,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterDetailOutline.prompts").chapterDetailOutlinePrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_parse@v12",
+    key: "novel.chapter.reference_parse@v13",
     load: () => require("../prompts/novel/chapterReferenceParse.prompts").chapterReferenceParsePrompt as UnknownPromptAsset,
   },
     {
@@ -146,7 +146,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/character/characterSync.prompts").characterSyncClassificationPrompt as UnknownPromptAsset,
   },
   {
-    key: "image.character.prompt_optimize@v1",
+    key: "image.character.prompt_optimize@v2",
     load: () => require("../prompts/image/image.prompts").imageCharacterPromptOptimizePrompt as UnknownPromptAsset,
   },
   {

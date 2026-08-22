@@ -113,6 +113,10 @@ test("character sheet prompt keeps appeal but forbids the generic template face"
   assert.match(prompt, /invent specific memorable traits that fit the character's identity/i);
   assert.match(prompt, /Never render the generic influencer \/ idol-drama template face/i);
   assert.match(prompt, /must never share the same face/i);
+  // 2026-08-23：穿搭同口径——按角色资料的性格/年龄/身份渲染与设计，不给全员同一套默认装。
+  assert.match(prompt, /STYLING \(HARD CONSTRAINT\)/);
+  assert.match(prompt, /design clothing and grooming that fit the character's personality, age and identity/);
+  assert.match(prompt, /should not share the same default outfit/);
   assert.doesNotMatch(prompt, /LEADING-MAN APPEAL/);
   assert.doesNotMatch(prompt, /symmetrical facial proportions/);
   assert.doesNotMatch(prompt, /straight nose/);
