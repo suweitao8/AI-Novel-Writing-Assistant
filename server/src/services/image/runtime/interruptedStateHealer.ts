@@ -100,6 +100,31 @@ const HEAL_TARGETS: HealTarget[] = [
       .then((rows) => rows.map((row) => ({ id: row.id, raw: row.keyframeData }))),
     saveHealed: (id, raw) => prisma.dramaShot.update({ where: { id }, data: { keyframeData: raw } }),
   },
+  // 设定中心的外观状态图（角色/场景/道具共用 statesJson，状态数组里每个状态有自己的 image
+  // 状态机）：2026-08-23 用户实测——生成中服务重载后叶晨的状态永远停在 generating，前端一直
+  // 「生成中」且没有重试入口；statesJson 解析失败时 healJsonString 返回 null 自动跳过，
+  // 不会碰 canSafelyRewrite=false 的脏数据。
+  {
+    name: "characterStates",
+    findInterrupted: () => prisma.character
+      .findMany({ where: { statesJson: { contains: GENERATING_MARKER } }, select: { id: true, statesJson: true } })
+      .then((rows) => rows.map((row) => ({ id: row.id, raw: row.statesJson }))),
+    saveHealed: (id, raw) => prisma.character.update({ where: { id }, data: { statesJson: raw } }),
+  },
+  {
+    name: "novelSceneStates",
+    findInterrupted: () => prisma.novelScene
+      .findMany({ where: { statesJson: { contains: GENERATING_MARKER } }, select: { id: true, statesJson: true } })
+      .then((rows) => rows.map((row) => ({ id: row.id, raw: row.statesJson }))),
+    saveHealed: (id, raw) => prisma.novelScene.update({ where: { id }, data: { statesJson: raw } }),
+  },
+  {
+    name: "novelPropStates",
+    findInterrupted: () => prisma.novelProp
+      .findMany({ where: { statesJson: { contains: GENERATING_MARKER } }, select: { id: true, statesJson: true } })
+      .then((rows) => rows.map((row) => ({ id: row.id, raw: row.statesJson }))),
+    saveHealed: (id, raw) => prisma.novelProp.update({ where: { id }, data: { statesJson: raw } }),
+  },
 ];
 
 export async function healInterruptedImageGenerationStates(): Promise<void> {
