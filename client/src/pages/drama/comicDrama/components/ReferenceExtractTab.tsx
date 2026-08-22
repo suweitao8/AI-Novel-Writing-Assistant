@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { buildStoryAssetPresentation, type StoryAssetPresentation } from "@/components/storyAssets";
+import { buildStateImageSrc, type StoryAssetSource } from "@/components/storyAssets";
 import type { ReferenceExtractCharacter } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { ApplyOneInput, ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import ExtractApplyDialog, { type ExtractGroup } from "@/pages/drama/comicDrama/components/ExtractApplyDialog";
@@ -24,8 +24,8 @@ const GROUP_ICONS: Record<ExtractGroup, string> = {
 };
 
 // 漫剧工作室「当前 · 提取」页签：「解析」产出并随章节保存的设定建议。
-// 点卡片打开应用弹窗——先核对、可修改（与资产页签同一套表单），点「应用」单个创建；
-// 同名资产标「已存在」拦截重复创建。
+// 点卡片打开弹窗核对（与资产页签同一套表单）：新建议点「应用」单个创建；
+// 同名已存在的建议直接载入已有资产编辑（状态列表可见已生成的图），点「保存」更新已有资产。
 export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
   const { stage } = props;
   const { extraction } = stage;
@@ -50,23 +50,28 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return stage.existingNames[group].has(name.trim());
   };
 
-  // 已存在同名资产：取它的完整展示数据——卡片缩略图取第一个已生成的状态图，
-  // 应用弹窗直接展示已有资产的全部内容（基础信息、外观状态与图片/音色）。
-  const existingAssetFor = (group: ExtractGroup, name: string): StoryAssetPresentation | null => {
+  // 已存在同名资产：取它的原始数据交给弹窗载入编辑；卡片缩略图用第一个已生成的状态图。
+  const existingSourceFor = (group: ExtractGroup, name: string): StoryAssetSource | null => {
     const trimmed = name.trim();
     if (group === "characters") {
-      const asset = stage.existingAssets.characters.find((candidate) => candidate.name.trim() === trimmed);
-      return asset ? buildStoryAssetPresentation({ kind: "character", asset }) : null;
+      return stage.existingAssets.characters.find((candidate) => candidate.name.trim() === trimmed) ?? null;
     }
     if (group === "scenes") {
-      const asset = stage.existingAssets.scenes.find((candidate) => candidate.name.trim() === trimmed);
-      return asset ? buildStoryAssetPresentation({ kind: "scene", asset }) : null;
+      return stage.existingAssets.scenes.find((candidate) => candidate.name.trim() === trimmed) ?? null;
     }
     if (group === "props") {
-      const asset = stage.existingAssets.props.find((candidate) => candidate.name.trim() === trimmed);
-      return asset ? buildStoryAssetPresentation({ kind: "prop", asset }) : null;
+      return stage.existingAssets.props.find((candidate) => candidate.name.trim() === trimmed) ?? null;
     }
     return null;
+  };
+
+  const existingThumbFor = (source: StoryAssetSource | null): string => {
+    const state = source?.states.find((candidate) => candidate.image?.status === "done" && candidate.image.url?.trim());
+    const url = state?.image?.url?.trim();
+    if (!state || !url) {
+      return "";
+    }
+    return buildStateImageSrc(url, state.image?.generatedAt ?? undefined);
   };
 
   const renderGroup = (title: string, group: ExtractGroup) => {
@@ -87,9 +92,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const existing = existingFor(group, item.name);
-            const existingImage = existing
-              ? existingAssetFor(group, item.name)?.states.find((state) => state.imageUrl)?.imageUrl ?? ""
-              : "";
+            const existingImage = existing ? existingThumbFor(existingSourceFor(group, item.name)) : "";
             return (
               <button
                 key={`${group}:${index}`}
@@ -127,6 +130,8 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     );
   };
 
+  const targetSource = targetItem && target ? existingSourceFor(target.group, targetItem.name) : null;
+
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-5 p-4 sm:p-6">
@@ -138,8 +143,9 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           open={target !== null}
           group={target?.group ?? "characters"}
           item={targetItem}
-          existing={targetItem && target ? existingFor(target.group, targetItem.name) : false}
-          existingAsset={targetItem && target ? existingAssetFor(target.group, targetItem.name) : null}
+          novelId={stage.novelId}
+          existing={Boolean(targetSource)}
+          existingAsset={targetSource}
           pending={stage.applyOneMutation.isPending}
           onOpenChange={(open) => { if (!open) setTarget(null); }}
           onApply={(form) => {
@@ -154,6 +160,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               group: current.group,
               index: current.index,
               form: { ...(form as Record<string, unknown>), __kind: kind } as ApplyOneInput["form"],
+              existingId: targetSource?.id,
             });
             setTarget(null);
           }}
