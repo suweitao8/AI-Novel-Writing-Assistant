@@ -60,16 +60,38 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v12 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v12");
+test("prompt 资产为 reference_parse@v13 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v13");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v12",
+    "novel.chapter.reference_parse@v13",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
     1,
   );
+});
+
+test("角色长相与穿搭按性格/年龄/身份各自设计，不同角色明显区分（2026-08-23 用户要求）", () => {
+  const messages = chapterReferenceParsePrompt.render({
+    novelTitle: "测试书",
+    chapterTitle: "第一章",
+    chapterOrder: 1,
+    referenceText: "测试文本",
+  });
+  const systemText = String(messages[0].content);
+  // 长相：按性格/年龄/身份推测，脸给具体特征，好看按戏份伸缩、不许难看、不许全员同一张脸。
+  assert.match(systemText, /长相与穿搭按角色各自设计/);
+  assert.match(systemText, /禁止都长成同一张标准帅哥\/美女脸/);
+  assert.match(systemText, /按角色在原文里表现出的性格、年龄与身份/);
+  assert.match(systemText, /好看程度按戏份伸缩/);
+  assert.match(systemText, /任何角色都不要难看/);
+  // 穿搭：按性格与身份设计有风格的搭配，男女都有路线锚点，全书角色错开。
+  assert.match(systemText, /地雷系（黑紫暗色、蕾丝蝴蝶结、厚底鞋、双马尾或挑染）/);
+  assert.match(systemText, /乖巧系（浅色连衣裙\/白裙、针织衫、柔顺直发）/);
+  assert.match(systemText, /机能、运动、商务通勤、学院、工装、街头、复古/);
+  assert.match(systemText, /与本书其他角色错开/);
+  assert.match(systemText, /不写「穿着时尚」这类空话/);
 });
 
 test("segments 契约：scene 必填、无风格字段（画风不进初稿）、状态切换可缺省", () => {
