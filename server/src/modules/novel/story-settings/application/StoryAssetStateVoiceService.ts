@@ -164,6 +164,7 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
+// 与路由 zod（assetStateVoiceSchema.error max 600）对齐：写入的超限错误会让资产无法再保存。
 function buildVoiceErrorState(
   current: StoryAssetState | undefined,
   mode: StoryAssetStateVoiceMode,
@@ -173,7 +174,7 @@ function buildVoiceErrorState(
     ...(current?.voice ?? {}),
     status: "error",
     mode,
-    error: message,
+    error: message.length > 600 ? `${message.slice(0, 599)}…` : message,
     generatedAt: nowIso(),
   };
 }

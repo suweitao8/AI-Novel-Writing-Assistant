@@ -197,15 +197,24 @@ function parseAssetStates(raw: string | null | undefined): StoryAssetState[] {
   return parseStoryAssetStatesJson(raw).states;
 }
 
+// 写入上限与路由 zod（assetStateImageSchema）对齐：服务端写入的字段必须能被
+// 客户端原样带回保存，超限会让整个资产无法再保存（用户实测 image.prompt 超 2400 被拦）。
+const STATE_IMAGE_PROMPT_MAX = 6000;
+const STATE_IMAGE_ERROR_MAX = 600;
+
+function clampText(value: string, max: number): string {
+  return value.length > max ? `${value.slice(0, max - 1)}…` : value;
+}
+
 /** 只保留状态图契约字段，丢弃 runtime 可能附加的 history 等，保持 statesJson 干净。 */
 function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
   return {
     status: image.status,
     ...(image.url ? { url: image.url } : {}),
-    ...(image.prompt ? { prompt: image.prompt } : {}),
+    ...(image.prompt ? { prompt: clampText(image.prompt, STATE_IMAGE_PROMPT_MAX) } : {}),
     ...(image.provider ? { provider: image.provider } : {}),
     ...(image.generatedAt ? { generatedAt: image.generatedAt } : {}),
-    ...(image.error ? { error: image.error } : {}),
+    ...(image.error ? { error: clampText(image.error, STATE_IMAGE_ERROR_MAX) } : {}),
   };
 }
 

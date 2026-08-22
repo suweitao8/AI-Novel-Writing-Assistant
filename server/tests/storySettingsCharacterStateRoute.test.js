@@ -40,6 +40,24 @@ test("角色状态请求契约允许年龄段并保留状态资产字段", () =>
   assert.match(routeSource, /states:\s*z\.array\(characterAssetStateSchema\)\.max\(24\)\.optional\(\)/);
 });
 
+test("状态图产物字段能被客户端原样带回：image.prompt 上限容得下完整生图提示词且写入侧同步截断", () => {
+  // 服务端写入的必然要能被路由接受（用户实测：四视图单次生图的完整提示词超 2400，
+  // 生成成功后编辑弹窗一保存就被 zod 拦死，整个资产无法再保存）。
+  assert.match(routeSource, /prompt:\s*z\.string\(\)\.max\(6000\)\.optional\(\)/);
+  const imageServiceSource = fs.readFileSync(
+    path.join(__dirname, "../src/modules/novel/story-settings/application/StoryAssetStateImageService.ts"),
+    "utf8",
+  );
+  assert.match(imageServiceSource, /STATE_IMAGE_PROMPT_MAX = 6000/);
+  assert.match(imageServiceSource, /clampText\(image\.prompt, STATE_IMAGE_PROMPT_MAX\)/);
+  assert.match(imageServiceSource, /clampText\(image\.error, STATE_IMAGE_ERROR_MAX\)/);
+  const voiceServiceSource = fs.readFileSync(
+    path.join(__dirname, "../src/modules/novel/story-settings/application/StoryAssetStateVoiceService.ts"),
+    "utf8",
+  );
+  assert.match(voiceServiceSource, /message\.length > 600 \? `\$\{message\.slice\(0, 599\)\}…` : message/);
+});
+
 test("角色服务以状态归一化结果作为角色状态来源", () => {
   assert.match(statePolicySource, /normalizeStoryCharacterStates/);
   assert.match(serviceSource, /statesJson:\s*serializeStates/);
