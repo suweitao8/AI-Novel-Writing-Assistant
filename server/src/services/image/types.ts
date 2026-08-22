@@ -102,6 +102,8 @@ export interface ImageProviderGenerateInput {
   refImages?: string[];
   /** 参考图本地文件路径列表；优先于 refImages，通过 multipart/form-data 上传，避免 base64 膨胀 */
   refImagePaths?: string[];
+  /** 外部终止信号：abort 时立即中断底层 HTTP 请求（手动终止生成用，不等超时） */
+  signal?: AbortSignal;
 }
 
 export interface GeneratedImage {

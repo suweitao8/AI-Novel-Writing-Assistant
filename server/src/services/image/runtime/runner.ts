@@ -34,6 +34,9 @@ import { describeError, inferExtension, saveImageToDisk } from "./utils";
 
 const DEFAULT_HISTORY_MAX = 5;
 
+/** 手动终止生成时写入状态机的错误信息（前端据此恢复「重新生成」入口）。 */
+export const IMAGE_GENERATION_CANCELLED_MESSAGE = "已终止生成，可重新生成。";
+
 /** 默认归档当前 done 状态为历史条目 */
 function defaultArchive<TState extends GeneratedImageState>(current: TState): GeneratedImageHistoryItem | null {
   if (current.status !== "done") return null;
@@ -107,6 +110,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       ...(opts.outputFormat ? { outputFormat: opts.outputFormat } : {}),
       ...(opts.refImagePaths && opts.refImagePaths.length > 0 ? { refImagePaths: opts.refImagePaths } : {}),
       ...(opts.refImages && opts.refImages.length > 0 ? { refImages: opts.refImages } : {}),
+      ...(opts.signal ? { signal: opts.signal } : {}),
     });
 
     const imageUrl = result.images?.[0]?.url;
@@ -137,6 +141,20 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     await adapter.saveState(doneState);
     return doneState;
   } catch (err) {
+    // 手动终止：写入 error 态（恢复重试入口）后正常返回，不让调用方走失败分支。
+    if (opts.signal?.aborted) {
+      console.log(`[image.runtime] cancelled kind=${adapter.kind} provider=${provider}`);
+      const cancelledState = {
+        ...existing,
+        status: "error",
+        provider,
+        version: nextVersion,
+        error: IMAGE_GENERATION_CANCELLED_MESSAGE,
+        history: nextHistory,
+      } as TState;
+      await adapter.saveState(cancelledState);
+      return cancelledState;
+    }
     const errMsg = describeError(err);
     console.error(`[image.runtime] error kind=${adapter.kind} provider=${provider}:`, errMsg);
     const errorState = {

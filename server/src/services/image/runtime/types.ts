@@ -106,6 +106,12 @@ export interface RunImageGenerationOptions {
   background?: ImageBackground;
   /** 输出格式（透明底必须 png）；未设置走 provider 默认 */
   outputFormat?: ImageOutputFormat;
+  /**
+   * 外部中止信号（2026-08-23 用户要求「生成中可终止」）：abort 时立刻中断底层 HTTP 请求
+   * （本地桥收到断开会同步杀掉 codex 进程），runner 把状态写为 error 并友好返回，
+   * 不再等满超时——代理切错、生成卡住时用户可以停掉重来。
+   */
+  signal?: AbortSignal;
 }
 
 export const DEFAULT_RUNTIME_PROVIDER: LLMProvider = getImageModelProvider();
