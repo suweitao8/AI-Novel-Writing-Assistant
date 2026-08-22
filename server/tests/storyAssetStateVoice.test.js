@@ -213,3 +213,69 @@ test("复用上一状态音色不调用合成服务", async () => {
   assert.equal(savedStates[1].voice.sampleAudioUrl, "data:audio/s1");
   assert.equal(savedStates[1].voice.mode, "reuse_previous");
 });
+
+test("选取音色：显式指定来源状态，不按参考链取上一状态", async () => {
+  let statesJson = JSON.stringify([
+    {
+      id: "s1",
+      label: "初始",
+      description: "正常",
+      imagePrompt: "正面",
+      voice: { status: "done", mode: "generate_new", sampleAudioUrl: "data:audio/s1", prompt: "青年清亮" },
+    },
+    { id: "s2", label: "换装", description: "制服", imagePrompt: "制服" },
+    {
+      id: "s3",
+      label: "受伤",
+      description: "左臂受伤",
+      imagePrompt: "受伤",
+      // 参考链上一状态（s2）没有音色；选取时显式跳过它取 s1
+      voice: { status: "done", mode: "generate_new", sampleAudioUrl: "data:audio/s3old", prompt: "旧音色" },
+    },
+    { id: "s4", label: "重伤", description: "重伤卧床", imagePrompt: "重伤" },
+  ]);
+  let synthesizeCalls = 0;
+  const service = new StoryAssetStateVoiceService({
+    findCharacter: async () => ({ id: "c1", novelId: "n1", name: "林澈", voiceTexture: null, statesJson }),
+    updateStates: async (_characterId, nextStatesJson) => { statesJson = nextStatesJson; },
+    listCharacters: async () => [{
+      id: "c1",
+      name: "林澈",
+      gender: null,
+      ageGroup: null,
+      physique: null,
+      attireStyle: null,
+      facePrompt: null,
+      voiceTexture: null,
+      personality: null,
+      appearance: null,
+      background: null,
+      states: JSON.parse(statesJson),
+      updatedAt: new Date().toISOString(),
+    }],
+    synthesize: async () => {
+      synthesizeCalls += 1;
+      throw new Error("不应调用合成");
+    },
+  });
+
+  await service.generateStateVoice("n1", "c1", "s4", "reuse_previous", "s1");
+
+  const savedStates = JSON.parse(statesJson);
+  assert.equal(synthesizeCalls, 0);
+  assert.equal(savedStates[3].voice.sourceStateId, "s1");
+  assert.equal(savedStates[3].voice.sampleAudioUrl, "data:audio/s1");
+  assert.equal(savedStates[3].voice.mode, "reuse_previous");
+
+  // 选取自己 → 400
+  await assert.rejects(
+    () => service.generateStateVoice("n1", "c1", "s4", "reuse_previous", "s4"),
+    /不能选取当前状态/,
+  );
+
+  // 选取还没有音色的状态 → 明确报错
+  await assert.rejects(
+    () => service.generateStateVoice("n1", "c1", "s4", "reuse_previous", "s2"),
+    /还没有已生成的音色/,
+  );
+});

@@ -221,6 +221,7 @@ export class StoryAssetStateVoiceService {
     characterId: string,
     stateId: string,
     requestedMode?: StoryAssetStateVoiceMode,
+    sourceStateId?: string,
   ): Promise<StorySettingsCharacter> {
     const character = await this.dependencies.findCharacter(novelId, characterId);
     if (!character) {
@@ -244,6 +245,42 @@ export class StoryAssetStateVoiceService {
         : "generate_new"
     );
     if (mode === "reuse_previous") {
+      // 选取音色（2026-08-22 用户决定）：显式指定用哪个状态的音色，不再隐式沿用参考链上一状态。
+      // 显式选取就是显式——所选状态没有可用音色时直接报错，不静默回落别的状态。
+      if (sourceStateId?.trim()) {
+        const picked = states.find((item) => item.id === sourceStateId.trim());
+        if (picked?.id === stateId) {
+          throw new AppError("不能选取当前状态自己的音色。", 400);
+        }
+        const sampleAudioUrl = picked?.voice?.status === "done"
+          ? picked.voice.sampleAudioUrl?.trim()
+          : "";
+        if (!picked || !sampleAudioUrl) {
+          const message = picked
+            ? "所选状态还没有已生成的音色，请先为它生成音色。"
+            : "所选状态不存在，请重新选取。";
+          const failedStates = states.map((item) => item.id === stateId
+            ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
+            : item);
+          await this.saveStates(novelId, characterId, stateId, failedStates);
+          throw new AppError(message, 400);
+        }
+        const reusedStates = states.map((item) => item.id === stateId
+          ? {
+            ...item,
+            voice: {
+              status: "done" as const,
+              mode,
+              sourceStateId: picked.id,
+              sampleAudioUrl,
+              prompt: resolveStateVoicePrompt(states, picked.id, character) || undefined,
+              generatedAt: nowIso(),
+            },
+          }
+          : item);
+        await this.saveStates(novelId, characterId, stateId, reusedStates);
+        return this.getUpdatedCharacter(novelId, characterId);
+      }
       const previous = resolvePreviousStateVoice(states, stateId);
       if (!previous) {
         const message = "上一状态还没有可复用的已生成音色，请先生成新的音色。";
