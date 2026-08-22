@@ -25,6 +25,7 @@ import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNo
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
   type CharacterAssetFormState,
+  normalizeStatesForSave,
   type SceneAssetFormState,
   type PropAssetFormState,
 } from "@/pages/novels/components/storySettings/assetForms";
@@ -156,17 +157,17 @@ export function useReferenceExtractStage(input: {
           await updateStorySettingsCharacter(input.novelId, existingId, {
             name: form.name.trim(),
             gender: form.gender || undefined,
-            states: form.states.map((state) => ({ ...state })),
+            states: normalizeStatesForSave(form.states),
           });
         } else {
           if (existingNames.characters.has(form.name.trim())) {
             throw new Error("已有同名角色，不能重复创建。");
           }
-          const states = form.states.map((state, index) => ({
+          const states = normalizeStatesForSave(form.states.map((state, index) => ({
             ...state,
             ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
             ...chapterTag,
-          }));
+          })));
           await createStorySettingsCharacter(input.novelId, {
             name: form.name.trim(),
             gender: form.gender || undefined,
@@ -177,7 +178,7 @@ export function useReferenceExtractStage(input: {
         if (existingId) {
           await updateStorySettingsScene(input.novelId, existingId, {
             name: form.name.trim(),
-            states: form.states.map((state) => ({ ...state })),
+            states: normalizeStatesForSave(form.states),
           });
         } else {
           if (existingNames.scenes.has(form.name.trim())) {
@@ -193,18 +194,18 @@ export function useReferenceExtractStage(input: {
             environmentPrompt: imagePrompt || undefined,
             timeOfDay: initial?.timeOfDay ?? undefined,
             weather: initial?.weather ?? undefined,
-            states: form.states.map((state, stateIndex) => ({
+            states: normalizeStatesForSave(form.states.map((state, stateIndex) => ({
               ...state,
               ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
               ...chapterTag,
-            })),
+            }))),
           });
         }
       } else if (form.__kind === "prop") {
         if (existingId) {
           await updateStorySettingsProp(input.novelId, existingId, {
             name: form.name.trim(),
-            states: form.states.map((state) => ({ ...state })),
+            states: normalizeStatesForSave(form.states),
           });
         } else {
           if (existingNames.props.has(form.name.trim())) {
@@ -215,11 +216,11 @@ export function useReferenceExtractStage(input: {
           await createStorySettingsProp(input.novelId, {
             name: form.name.trim(),
             visualPrompt: imagePrompt || undefined,
-            states: form.states.map((state, stateIndex) => ({
+            states: normalizeStatesForSave(form.states.map((state, stateIndex) => ({
               ...state,
               ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
               ...chapterTag,
-            })),
+            }))),
           });
         }
       } else {

@@ -273,6 +273,14 @@ export function buildStateImagePrompt(
         "fully transparent background, genuine PNG alpha channel",
         "no backdrop color, no solid fill, no checkerboard pattern, no studio floor, no ground shadow",
         "clean composition, strong subject focus",
+        // 道具只渲染道具本身（2026-08-22 用户要求）：描述/提示词里提到的周围环境与
+        // 其它物品（抹布、木板等）只是上下文，不是画面内容。
+        ...(input.kind === "prop"
+          ? [
+            "render exactly one prop: the subject itself, alone, nothing else in frame",
+            "other objects, surfaces or scenery mentioned in the state description or image prompt are context metadata only and must not appear",
+          ]
+          : []),
       ]),
     // 旧数据的状态提示词可能带画风/背景/视图词：这里声明它们只是内容描述的一部分，
     // 渲染方向、背景与画幅一律以上方规则为准，不因提示词里的旧词改变。
@@ -449,7 +457,9 @@ export class StoryAssetStateImageService {
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
       kind === "scene"
         ? "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes"
-        : "",
+        : kind === "prop"
+          ? "other objects, multiple objects, extra props, hands, holding, table, cloth, fabric, rag, wooden board, background scenery"
+          : "",
       combineAssetStyleAvoidInstructions(styleContext.assets[kind], styleContext.specific),
     ].filter(Boolean).join(", ");
 

@@ -112,10 +112,31 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
   return label || "未命名状态";
 }
 
+/** 保存前归一：trim；说明与图片提示词留空按状态名兜底；每个状态都要有状态名。
+ * 状态不再单独保存（2026-08-22 用户决定统一由弹窗「保存」落库），编辑弹窗与提取
+ * 应用弹窗的保存都要走这份归一，保证各处校验与兜底一致。 */
+export function normalizeStatesForSave(source: StoryAssetState[]): StoryAssetState[] {
+  const invalid = source.find((state) => !state.label.trim());
+  if (invalid) {
+    throw new Error(`状态「${invalid.label.trim() || "未命名"}」还缺状态名。`);
+  }
+  return source.map((state) => {
+    const label = state.label.trim();
+    const description = state.description.trim() || label;
+    return {
+      ...state,
+      label,
+      description,
+      imagePrompt: state.imagePrompt.trim() || description,
+      ...(state.voicePrompt?.trim() ? { voicePrompt: state.voicePrompt.trim() } : {}),
+    };
+  });
+}
+
 // 状态编辑器（角色/场景/道具编辑弹窗共用）：左列状态列表 + 右侧当前状态直接编辑。
 // 2026-08-22 用户决定的交互：
-// - 所有字段行内直接可编辑，改完点「保存状态」落库；点「生成图片/生成音色」会先把
-//   未保存的修改自动保存再生成，不用来回点；
+// - 所有字段行内直接可编辑，统一由弹窗「保存」一次落库（状态不单独保存，2026-08-22
+//   用户决定）；点「生成图片/生成音色」会先把未保存的状态自动存好再生成；
 // - 状态字段只有 状态名+年龄段（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
@@ -220,24 +241,7 @@ export function AssetStatesEditor(props: {
     await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsOverview(asset.novelId) });
   };
 
-  /** 保存前归一：trim；说明与图片提示词留空按状态名兜底；每个状态都要有状态名。 */
-  const normalizeStatesForSave = (source: StoryAssetState[]): StoryAssetState[] => {
-    const invalid = source.find((state) => !state.label.trim());
-    if (invalid) {
-      throw new Error(`状态「${invalid.label.trim() || "未命名"}」还缺状态名。`);
-    }
-    return source.map((state) => {
-      const label = state.label.trim();
-      const description = state.description.trim() || label;
-      return {
-        ...state,
-        label,
-        description,
-        imagePrompt: state.imagePrompt.trim() || description,
-        ...(state.voicePrompt?.trim() ? { voicePrompt: state.voicePrompt.trim() } : {}),
-      };
-    });
-  };
+  /** 保存前归一见模块级 normalizeStatesForSave（弹窗「保存」统一落库）。 */
 
   const persistStates = async (next: StoryAssetState[]): Promise<StoryAssetState[]> => {
     if (!asset) {
@@ -255,7 +259,8 @@ export function AssetStatesEditor(props: {
     return response.data?.states ?? next;
   };
 
-  /** 生成前的统一动作：有未保存修改就先自动保存（服务端按最新 statesJson 取参考/提示词）。 */
+  /** 生成前的统一动作：有未保存修改就先自动保存（服务端按最新 statesJson 取参考/提示词）。
+   * 保存入口只有弹窗的「保存」——这里只是生成前的自动落库，不影响用户继续编辑。 */
   const flushLocalEdits = async () => {
     if (!localDirty) {
       return;
@@ -263,17 +268,6 @@ export function AssetStatesEditor(props: {
     const saved = await persistStates(normalizeStatesForSave(states));
     onChange(saved);
   };
-
-  const saveMutation = useMutation({
-    mutationFn: async () => persistStates(normalizeStatesForSave(states)),
-    onSuccess: async (saved) => {
-      onChange(saved);
-      setLocalDirty(false);
-      await invalidateSettings();
-      toast.success("状态已保存。");
-    },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "状态保存失败，请重试。"),
-  });
 
   const imageMutation = useMutation({
     mutationFn: async (stateId: string) => {
@@ -398,7 +392,7 @@ export function AssetStatesEditor(props: {
       && state.voice?.status === "done"
       && Boolean(state.voice.sampleAudioUrl?.trim()))
     : [];
-  const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || saveMutation.isPending || promptTweakMutation.isPending;
+  const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
   const generationDisabled = !asset || anyPending;
   // 服务端仍在生成（弹窗重开/轮询读到的 generating 态）：按钮显示生成中并禁用重复触发。
   const serverImageGenerating = selectedState?.image?.status === "generating";
@@ -697,21 +691,9 @@ export function AssetStatesEditor(props: {
               </section>
             ) : null}
 
-            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-              {asset ? (
-                <>
-                  <p className="text-xs text-muted-foreground">
-                    {localDirty ? "状态已修改，点「保存状态」生效；直接点生成也会先自动保存。" : "修改状态后记得保存。"}
-                  </p>
-                  <Button type="button" size="sm" onClick={() => saveMutation.mutate()} disabled={!localDirty || anyPending}>
-                    {saveMutation.isPending ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
-                    {saveMutation.isPending ? "保存中..." : "保存状态"}
-                  </Button>
-                </>
-              ) : (
-                <p className="text-xs text-muted-foreground">保存资产后，这里可以生成图片{showVoice ? "和音色" : ""}。</p>
-              )}
-            </div>
+            {!asset ? (
+              <p className="border-t border-border/60 pt-3 text-xs text-muted-foreground">保存资产后，这里可以生成图片{showVoice ? "和音色" : ""}。</p>
+            ) : null}
           </>
         ) : (
           <div className="flex min-h-64 items-center justify-center px-4 text-center text-sm text-muted-foreground">
