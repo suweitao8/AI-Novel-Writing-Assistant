@@ -91,6 +91,13 @@ function clean(value: string | null | undefined): string {
   return typeof value === "string" ? value.trim() : "";
 }
 
+/** 状态图按内容寻址覆盖存储、URL 固定，展示时带 generatedAt 破缓存，重新生成后才能立刻换图。 */
+export function buildStateImageSrc(url: string, generatedAt?: string): string {
+  if (!generatedAt) return url;
+  const separator = url.includes("?") ? "&" : "?";
+  return `${url}${separator}v=${encodeURIComponent(generatedAt)}`;
+}
+
 function addDetail(details: StoryAssetDetailItem[], label: string, value: string | null | undefined): void {
   const text = clean(value);
   if (text) {
@@ -115,7 +122,7 @@ function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresenta
     timeOfDayLabel: labelFor(SCENE_TIME_LABELS, state.timeOfDay),
     weatherLabel: labelFor(SCENE_WEATHER_LABELS, state.weather),
     chapterLabel: state.chapterOrder ? `第 ${state.chapterOrder} 章` : "",
-    imageUrl: clean(state.image?.url),
+    imageUrl: state.image?.url ? buildStateImageSrc(state.image.url, state.image.generatedAt ?? undefined) : "",
     voiceSampleUrl: clean(state.voice?.sampleAudioUrl),
   };
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { buildStateImageSrc } from "@/components/storyAssets";
 import type { ReferenceExtractCharacter } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { ApplyOneInput, ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import ExtractApplyDialog, { type ExtractGroup } from "@/pages/drama/comicDrama/components/ExtractApplyDialog";
@@ -49,6 +50,20 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return stage.existingNames[group].has(name.trim());
   };
 
+  // 已存在资产当前形象的缩略图：同名资产第一个已生成的状态图；没有生成过就回退图标。
+  const existingImageFor = (group: ExtractGroup, name: string): string => {
+    if (group === "worldview") {
+      return "";
+    }
+    const asset = stage.existingAssets[group].find((candidate) => candidate.name.trim() === name.trim());
+    const state = asset?.states.find((candidate) => candidate.image?.status === "done" && candidate.image.url?.trim());
+    const url = state?.image?.url?.trim();
+    if (!state || !url) {
+      return "";
+    }
+    return buildStateImageSrc(url, state.image?.generatedAt ?? undefined);
+  };
+
   const renderGroup = (title: string, group: ExtractGroup) => {
     const items = extraction[group];
     if (items.length === 0) {
@@ -67,6 +82,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const existing = existingFor(group, item.name);
+            const existingImage = existing ? existingImageFor(group, item.name) : "";
             return (
               <button
                 key={`${group}:${index}`}
@@ -80,7 +96,11 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
                 )}
               >
                 <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  <span aria-hidden="true">{GROUP_ICONS[group]}</span>
+                  {existingImage ? (
+                    <img src={existingImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-border object-cover" />
+                  ) : (
+                    <span aria-hidden="true">{GROUP_ICONS[group]}</span>
+                  )}
                   <span className="truncate text-sm font-semibold text-foreground">{item.name}</span>
                   {group === "characters" && character?.role ? (
                     <Badge variant="outline" className="shrink-0">{character.role}</Badge>
@@ -112,6 +132,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           group={target?.group ?? "characters"}
           item={targetItem}
           existing={targetItem && target ? existingFor(target.group, targetItem.name) : false}
+          existingPreview={targetItem && target ? { imageUrl: existingImageFor(target.group, targetItem.name) } : null}
           pending={stage.applyOneMutation.isPending}
           onOpenChange={(open) => { if (!open) setTarget(null); }}
           onApply={(form) => {

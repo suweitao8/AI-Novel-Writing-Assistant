@@ -222,6 +222,7 @@ export function useReferenceExtractStage(input: {
   return {
     extraction,
     existingNames,
+    existingAssets: { characters, scenes, props },
     applyOneMutation,
     totalItems,
   };

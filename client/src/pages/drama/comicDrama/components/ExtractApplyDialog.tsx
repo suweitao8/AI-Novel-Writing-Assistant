@@ -54,6 +54,8 @@ export default function ExtractApplyDialog(props: {
   group: ExtractGroup;
   item: ReferenceExtractCharacter | ReferenceExtractItem | { name: string; description: string } | null;
   existing: boolean;
+  /** 已有同名资产的当前形象（第一个已生成的状态图）；没有生成过则为 null */
+  existingPreview?: { imageUrl: string } | null;
   pending: boolean;
   onApply: (form: object) => void;
   onOpenChange: (open: boolean) => void;
@@ -154,10 +156,19 @@ export default function ExtractApplyDialog(props: {
         >
           <div className="space-y-3">
             {props.existing ? (
-              <p className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
-                <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">已存在</Badge>
-                已有同名{GROUP_LABELS[group]}，不会重复创建；可以改名后应用。
-              </p>
+              <div className="flex items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
+                {props.existingPreview?.imageUrl ? (
+                  <img
+                    src={props.existingPreview.imageUrl}
+                    alt={`已有同名${GROUP_LABELS[group]}的当前形象`}
+                    className="h-14 w-14 shrink-0 rounded-md border border-border object-cover"
+                  />
+                ) : null}
+                <p className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <Badge className="bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">已存在</Badge>
+                  已有同名{GROUP_LABELS[group]}，不会重复创建；可以改名后应用。
+                </p>
+              </div>
             ) : null}
             {group === "characters" ? (
               <>
