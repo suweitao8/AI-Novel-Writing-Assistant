@@ -279,3 +279,115 @@ test("选取音色：显式指定来源状态，不按参考链取上一状态",
     /还没有已生成的音色/,
   );
 });
+
+test("音色描述为空时按角色形象 AI 估算兜底，不回填状态表单", async () => {
+  let statesJson = JSON.stringify([
+    { id: "s1", label: "初始状态", description: "青年", imagePrompt: "青年" },
+  ]);
+  const calls = [];
+  const estimates = [];
+  const service = new StoryAssetStateVoiceService({
+    findCharacter: async () => ({
+      id: "c1",
+      novelId: "n1",
+      name: "林澈",
+      voiceTexture: null,
+      statesJson,
+      gender: "male",
+      ageGroup: "youth",
+      facePrompt: "青年男性大学生，清爽短发",
+    }),
+    updateStates: async (_characterId, nextStatesJson) => { statesJson = nextStatesJson; },
+    listCharacters: async () => [{
+      id: "c1",
+      name: "林澈",
+      gender: "male",
+      ageGroup: "youth",
+      physique: null,
+      attireStyle: null,
+      facePrompt: null,
+      voiceTexture: null,
+      personality: null,
+      appearance: null,
+      background: null,
+      states: JSON.parse(statesJson),
+      updatedAt: new Date().toISOString(),
+    }],
+    synthesize: async (input) => {
+      calls.push(input);
+      return {
+        audioDataBase64: "YQ==",
+        contentType: "audio/mpeg",
+        byteLength: 1,
+        dataUrl: "data:audio/mpeg;base64,YQ==",
+      };
+    },
+    estimateVoiceProfile: async (character, state) => {
+      estimates.push({ character, state });
+      return "青年男性，嗓音清亮干净，语速平缓，像身边同学自然说话";
+    },
+  });
+
+  await service.generateStateVoice("n1", "c1", "s1", "generate_new");
+
+  // 估算依据带上了角色形象档案。
+  assert.equal(estimates.length, 1);
+  assert.equal(estimates[0].character.facePrompt, "青年男性大学生，清爽短发");
+  assert.equal(estimates[0].state.label, "初始状态");
+  // 合成与落库都用估算出的描述。
+  assert.match(calls[0].emotion, /青年男性，嗓音清亮干净/);
+  const saved = JSON.parse(statesJson);
+  assert.equal(saved[0].voice.status, "done");
+  assert.match(saved[0].voice.prompt, /青年男性，嗓音清亮干净/);
+  // 表单字段保持共享归一化预填的通用占位（估算不回填表单——用户显式填写永远优先）。
+  assert.equal(saved[0].voicePrompt, "男性，青年，自然清晰的说话声音");
+});
+
+test("通用占位音色在估算失败时仍可兜底合成（保持旧行为）", async () => {
+  // 初始状态由共享归一化预填「男性，青年，自然清晰的说话声音」这类占位；估算失败不阻塞合成。
+  let statesJson = JSON.stringify([
+    { id: "s1", label: "初始状态", description: "青年", imagePrompt: "青年" },
+  ]);
+  const calls = [];
+  const service = new StoryAssetStateVoiceService({
+    findCharacter: async () => ({
+      id: "c1", novelId: "n1", name: "林澈", voiceTexture: null, statesJson,
+      gender: "male", ageGroup: "youth",
+    }),
+    updateStates: async (_characterId, nextStatesJson) => { statesJson = nextStatesJson; },
+    listCharacters: async () => [{
+      id: "c1",
+      name: "林澈",
+      gender: "male",
+      ageGroup: "youth",
+      physique: null,
+      attireStyle: null,
+      facePrompt: null,
+      voiceTexture: null,
+      personality: null,
+      appearance: null,
+      background: null,
+      states: JSON.parse(statesJson),
+      updatedAt: new Date().toISOString(),
+    }],
+    synthesize: async (input) => {
+      calls.push(input);
+      return {
+        audioDataBase64: "YQ==",
+        contentType: "audio/mpeg",
+        byteLength: 1,
+        dataUrl: "data:audio/mpeg;base64,YQ==",
+      };
+    },
+    estimateVoiceProfile: async () => {
+      throw new Error("估算服务不可用");
+    },
+  });
+
+  await service.generateStateVoice("n1", "c1", "s1", "generate_new");
+
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].emotion, /自然清晰的说话声音/);
+  const saved = JSON.parse(statesJson);
+  assert.equal(saved[0].voice.status, "done");
+});
