@@ -109,7 +109,32 @@ test("character sheet prompt prioritizes an attractive mainstream drama protagon
   assert.match(prompt, /clear healthy skin/i);
   assert.match(prompt, /well-groomed/i);
   assert.match(prompt, /not gaunt, exhausted, sickly, awkward, or unattractive/i);
-  assert.match(prompt, /末世感只作用于表情、服装磨损和材质细节/);
+  // 2026-08-22：模板不再写死末世氛围（与状态自选时代风格打架，现代状态图被带出脏衣服）——
+  // 服装默认干净如新，只有角色资料/状态明确描写才呈现破损；时代风格由 styleLines 注入。
+  assert.doesNotMatch(prompt, /末世感/);
+  assert.match(prompt, /服装、发型与配饰默认保持干净整洁、状态如新/);
+  assert.match(prompt, /只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现/);
+  assert.match(prompt, /时代风格不得自行添加磨损或破败/);
+});
+
+test("reference image anchors identity only; wear and era atmosphere are not carried over", () => {
+  const prompt = buildCharacterStateSheetPrompt({
+    assetName: "叶晨",
+    gender: "male",
+    ageGroup: "youth",
+    appearance: "精瘦结实，深色短发",
+    stateLabel: "现代日常",
+    stateDescription: "大学生日常便装",
+    stateImagePrompt: "青年男性大学生",
+    styleLines: ["资产类型：角色画风", "当代现代都市氛围"],
+    hasReference: true,
+  });
+
+  assert.match(prompt, /identity anchor/);
+  assert.match(prompt, /preserve the same face, hair, body proportions and clothing design/);
+  // 换时代风格后参考旧末世图重新生成：旧图的脏污磨损与时代氛围不得进新图。
+  assert.match(prompt, /never carry over dirt, wear, damage or era atmosphere from the reference image/);
+  assert.match(prompt, /clothing condition follows the character data, style direction and current state/);
 });
 
 test("character sheet template uses four equal native Grok Build columns", () => {

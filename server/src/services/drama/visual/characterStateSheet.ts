@@ -96,8 +96,10 @@ function buildCharacterDataLines(input: CharacterStateSheetPromptInput): string[
  */
 export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptInput): string {
   const styleLines = (input.styleLines ?? []).map(clean).filter(Boolean);
+  // 参考图只锁身份（脸/发型/比例/服装设计），磨损脏污与时代氛围不得从旧图带进新图：
+  // 换时代风格后重新生成，画面状态必须跟当前角色资料与风格方向走（2026-08-22 用户实测旧末世图把脏衣服带进现代状态）。
   const referenceLine = input.hasReference
-    ? "If a reference image is supplied, use it as the identity anchor; preserve the same face, hair, body proportions and clothing, changing only the state details explicitly described below."
+    ? "If a reference image is supplied, use it as the identity anchor; preserve the same face, hair, body proportions and clothing design, changing only the state details explicitly described below; never carry over dirt, wear, damage or era atmosphere from the reference image — clothing condition follows the character data, style direction and current state."
     : "Generate exactly one character from the structured character data below; do not invent another person or narrative subject.";
 
   return [
@@ -111,7 +113,7 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     "The four panels are the required four views in this exact order: front face, side face, front full body, back full body.",
     "IDENTITY LOCK (CRITICAL): all four panels must show the same single person, same face structure, hairline, hairstyle, hair volume, skin tone, age impression, clothing, colors, body proportions and lighting; only the camera angle and framing change.",
     "LEADING-MAN APPEAL (HARD CONSTRAINT): this is a handsome, commercially appealing leading-man protagonist for a mainstream Chinese manhua and drama audience; use symmetrical facial proportions, clear healthy skin, well-groomed dark hair, a strong clean jawline, a straight nose, expressive attractive eyes, refined masculine features, a confident balanced posture and a lean athletic body. Make him immediately likable and aspirational, not gaunt, exhausted, sickly, awkward, or unattractive.",
-    "末世感只作用于表情、服装磨损和材质细节，不得改变角色的俊朗面部基础、健康状态、面部比例或主角吸引力。",
+    "服装、发型与配饰默认保持干净整洁、状态如新；只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现，时代风格不得自行添加磨损或破败，也不得改变角色的俊朗面部基础、健康状态、面部比例或主角吸引力。",
     referenceLine,
     "角色四视图必须是单一生产参考板；不添加环境故事或其他人物。",
     "CHARACTER DATA (follow this over any generic visual assumption):",

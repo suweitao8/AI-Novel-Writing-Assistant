@@ -34,6 +34,8 @@ test("buildStateImagePrompt：角色带状态身份信息与参考图一致性�
   assert.match(prompt, /state change: 左臂受伤流血/);
   assert.match(prompt, /state image prompt: 衣服破损/);
   assert.match(prompt, /keep the same subject identity as the reference image, change only what the state describes/);
+  // 参考图只锁身份：旧图的磨损脏污不得带进新图（除非状态本身描写）。
+  assert.match(prompt, /do not carry over wear, dirt or damage from the reference image unless the state describes it/);
   assert.ok(prompt.startsWith("style: 角色画风"));
 });
 
@@ -111,6 +113,9 @@ test("状态图时代风格：eraStyle 未选时兜底内置「现代都市」�
   // 2026-08-22 用户要求：状态下拉不提供「自动」，空值固定按内置默认预设（realistic=现代都市）出图；
   // 剧情判定链（scriptJudge/era_style_judge）只保留给分镜首帧（DramaShotKeyframeService）。
   assert.match(imageServiceSource, /pinnedStyle:\s*state\.eraStyle\?\.trim\(\)\s*\|\|\s*DEFAULT_DRAMA_VISUAL_STYLE_ID/);
+  // 悬空引用（自定义风格已删）也固定回落「现代都市」：设定处的时代风格（脚本标记/小说默认）
+  // 完全不影响状态图（同日用户实测怀疑设定默认风格仍被使用，要求彻底去掉这条影响）。
+  assert.match(imageServiceSource, /pinnedMissFallbackStyle:\s*DEFAULT_DRAMA_VISUAL_STYLE_ID/);
   assert.doesNotMatch(imageServiceSource, /scriptJudge/);
   assert.doesNotMatch(imageServiceSource, /resolveStateScriptJudge/);
   assert.doesNotMatch(imageServiceSource, /prisma\.chapter\.findMany/);

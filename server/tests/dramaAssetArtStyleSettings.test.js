@@ -175,3 +175,21 @@ test("pinnedStyle 悬空引用（风格已删）时回落常规链，不阻断�
     restore();
   }
 });
+
+test("pinnedMissFallbackStyle：悬空引用固定回落兜底风格，不再看脚本标记/小说默认", async () => {
+  // 状态图（2026-08-22 用户要求彻底隔离）：设定处的时代风格（脚本【画风】标记、小说默认）
+  // 不影响状态图——eraStyle 悬空时直接回落调用方给的兜底（内置现代都市）。
+  const restore = mockEraStyleChain();
+  try {
+    const context = await resolveDramaArtStyleContext({
+      sourceRef: "novel-1",
+      pinnedStyle: "已被删除的风格",
+      pinnedMissFallbackStyle: "现代都市",
+      scriptJudge: { target: "叶竹 · 初始状态 状态图", scriptExcerpt: "城市已成废墟" },
+      judgeFn: async () => null,
+    });
+    assert.equal(context.specific?.label, "现代都市");
+  } finally {
+    restore();
+  }
+});

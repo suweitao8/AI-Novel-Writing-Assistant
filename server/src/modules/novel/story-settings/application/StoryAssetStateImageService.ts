@@ -265,7 +265,9 @@ export function buildStateImagePrompt(
     `state change: ${stateDescription}`,
     `state image prompt: ${stateImagePrompt}`,
     input.hasReference
-      ? "keep the same subject identity as the reference image, change only what the state describes"
+      // 参考图只锁身份：磨损脏污与时代氛围不得从旧图带进新图（除非状态本身描写），
+      // 换时代风格后重新生成要跟当前风格走（2026-08-22 用户实测旧末世参考把画面带偏）。
+      ? "keep the same subject identity as the reference image, change only what the state describes; do not carry over wear, dirt or damage from the reference image unless the state describes it"
       : "",
     ...(input.kind === "scene"
       ? [
@@ -465,11 +467,14 @@ export class StoryAssetStateImageService {
     // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）。
     // 时代风格：状态自带 eraStyle（双穿/时代推进的书不同状态各处一个时代）；
     // 未选时默认内置「现代都市」预设（2026-08-22 用户要求：下拉不提供「自动」，不按剧情判定——
-    // 需要其他时代直接在状态上选）。剧情判定链只保留给分镜首帧（DramaShotKeyframeService）。
+    // 需要其他时代直接在状态上选）。悬空引用（自定义风格已删）也固定回落「现代都市」：
+    // 设定处的时代风格（脚本标记/小说默认）完全不影响状态图（同日用户要求彻底去掉这条影响）。
+    // 剧情判定链只保留给分镜首帧（DramaShotKeyframeService）。
     const styleContext = await resolveDramaArtStyleContext({
       visualStyle: null,
       sourceRef: novelId,
       pinnedStyle: state.eraStyle?.trim() || DEFAULT_DRAMA_VISUAL_STYLE_ID,
+      pinnedMissFallbackStyle: DEFAULT_DRAMA_VISUAL_STYLE_ID,
     });
     const styleLines = buildAssetStylePromptLines(kind, styleContext.assets[kind], styleContext.specific);
     const negativePrompt = [
