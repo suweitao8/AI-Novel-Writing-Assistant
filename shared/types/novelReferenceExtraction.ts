@@ -424,6 +424,13 @@ function compactText(...values: Array<string | null | undefined>): string {
   return values.map((value) => value?.trim()).filter(Boolean).join("，");
 }
 
+/**
+ * 角色初始状态音色描述的通用占位尾缀（如「男性，青年，自然清晰的说话声音」）。
+ * 它只是表单预填的兜底文案：合成音色时服务端把它视为「未真正描述」，
+ * 改用 AI 按角色形象估算更贴合的音色（StoryAssetStateVoiceService）。
+ */
+export const GENERIC_CHARACTER_VOICE_PROMPT_TAIL = "自然清晰的说话声音";
+
 function legacyAppearance(legacy: StoryCharacterLegacyFields): string {
   return compactText(
     legacy.appearance,
@@ -457,8 +464,8 @@ export function createStoryCharacterInitialState(
   const description = existingAppearance || (identity ? `${identity}的常态外观` : "角色初始外观");
   const imagePrompt = compactText(input.facePrompt, identity, description) || description;
   const voicePrompt = input.voiceTexture?.trim()
-    || compactText(genderLabel(input.gender), ageLabel, "自然清晰的说话声音")
-    || "自然清晰的说话声音";
+    || compactText(genderLabel(input.gender), ageLabel, GENERIC_CHARACTER_VOICE_PROMPT_TAIL)
+    || GENERIC_CHARACTER_VOICE_PROMPT_TAIL;
   return createStoryAssetInitialState({
     id: "initial",
     label: "初始状态",
@@ -494,7 +501,7 @@ export function normalizeStoryCharacterStates(
   const initialAge = defaultInitialState.ageGroup ?? "youth";
   const initialDescription = defaultInitialState.description;
   const initialImagePrompt = defaultInitialState.imagePrompt;
-  const initialVoicePrompt = defaultInitialState.voicePrompt ?? "自然清晰的说话声音";
+  const initialVoicePrompt = defaultInitialState.voicePrompt ?? GENERIC_CHARACTER_VOICE_PROMPT_TAIL;
   const working = source.length > 0
     ? source
     : [defaultInitialState];

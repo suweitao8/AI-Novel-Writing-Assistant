@@ -3,6 +3,7 @@ import type {
   StoryAssetStateVoiceMode,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
+  GENERIC_CHARACTER_VOICE_PROMPT_TAIL,
   getDefaultStoryAssetStateVoiceMode,
   normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
@@ -12,6 +13,11 @@ import {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
+import { runStructuredPrompt } from "../../../../prompting/core/promptRunner";
+import {
+  characterVoiceProfilePrompt,
+  type CharacterVoiceProfilePromptInput,
+} from "../../../../prompting/prompts/novel/characterVoiceProfile.prompts";
 import {
   synthesizeAudioSpeech,
   type AudioSpeechResult,
@@ -51,12 +57,49 @@ export interface StateVoiceGenerationInput {
   emotion: string;
 }
 
+/** 按角色形象估算音色描述（空描述时的 AI 兜底）；生产实现走 novel.character.voice_profile@v1。 */
+export type EstimateVoiceProfile = (
+  character: StateVoiceCharacterRow,
+  state: Pick<StoryAssetState, "label" | "description" | "imagePrompt" | "ageGroup">,
+) => Promise<string>;
+
 interface StateVoiceServiceDependencies {
   findCharacter: (novelId: string, characterId: string) => Promise<StateVoiceCharacterRow | null>;
   /** 测试或外部适配器可注入整包保存；生产默认走目标状态 CAS 写入。 */
   updateStates?: (characterId: string, statesJson: string | null) => Promise<void>;
   listCharacters: (novelId: string) => Promise<StorySettingsCharacter[]>;
   synthesize: (input: StateVoiceGenerationInput) => Promise<AudioSpeechResult>;
+  estimateVoiceProfile?: EstimateVoiceProfile;
+}
+
+async function estimateVoiceProfileByAi(
+  novelId: string,
+  character: StateVoiceCharacterRow,
+  state: Pick<StoryAssetState, "label" | "description" | "imagePrompt" | "ageGroup">,
+): Promise<string> {
+  const promptInput: CharacterVoiceProfilePromptInput = {
+    name: character.name,
+    gender: character.gender?.trim() || undefined,
+    ageGroup: character.ageGroup?.trim() || state.ageGroup?.trim() || undefined,
+    appearance: character.appearance?.trim() || undefined,
+    physique: character.physique?.trim() || undefined,
+    attireStyle: character.attireStyle?.trim() || undefined,
+    facePrompt: character.facePrompt?.trim() || undefined,
+    stateLabel: state.label?.trim() || undefined,
+    stateDescription: state.description?.trim() || undefined,
+    stateImagePrompt: state.imagePrompt?.trim() || undefined,
+  };
+  const generated = await runStructuredPrompt({
+    asset: characterVoiceProfilePrompt,
+    promptInput,
+    options: {
+      novelId,
+      stage: "state_voice_profile",
+      entrypoint: "drama_studio",
+      temperature: 0.3,
+    },
+  });
+  return generated.output.voiceProfile.trim();
 }
 
 export function getDefaultStateVoiceMode(
@@ -158,6 +201,7 @@ export class StoryAssetStateVoiceService {
       }),
       listCharacters: (novelId) => storySettingsService.listCharacters(novelId),
       synthesize: (input) => synthesizeAudioSpeech(input),
+      estimateVoiceProfile: (character, state) => estimateVoiceProfileByAi(character.novelId, character, state),
       ...dependencies,
     };
   }
@@ -308,17 +352,31 @@ export class StoryAssetStateVoiceService {
     }
 
     const inheritedVoicePrompt = resolveStateVoicePrompt(states, stateId, character);
-    const synthesisInput = buildStateVoiceSynthesisInput(
+    let synthesisInput = buildStateVoiceSynthesisInput(
       character,
       inheritedVoicePrompt ? { ...state, voicePrompt: inheritedVoicePrompt } : state,
     );
-    if (!synthesisInput.emotion) {
-      const message = "请先填写初始状态的音色描述或当前状态的音色变化。";
-      const failedStates = states.map((item) => item.id === stateId
-        ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
-        : item);
-      await this.saveStates(novelId, characterId, stateId, failedStates);
-      throw new AppError(message, 400);
+    const emotionIsGeneric = synthesisInput.emotion.includes(GENERIC_CHARACTER_VOICE_PROMPT_TAIL);
+    if (!synthesisInput.emotion || emotionIsGeneric) {
+      // 音色描述缺失（或只是表单预填的通用占位）时按角色形象 AI 估算（2026-08-22 用户要求）；
+      // 估算结果只写进本次生成（voice.prompt），不回填状态表单——用户显式填写永远优先。
+      try {
+        const estimated = await this.dependencies.estimateVoiceProfile?.(character, state);
+        if (estimated) {
+          synthesisInput = { ...synthesisInput, emotion: estimated };
+        }
+      } catch (error) {
+        console.error("[state-voice] 音色描述估算失败：", error instanceof Error ? error.message : error);
+      }
+      // 估算失败：通用占位仍然可用（保持旧行为继续合成），只有真正为空才要求补写。
+      if (!synthesisInput.emotion) {
+        const message = "没能按角色形象推断出音色描述，请先填写初始状态的音色描述或当前状态的音色变化。";
+        const failedStates = states.map((item) => item.id === stateId
+          ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
+          : item);
+        await this.saveStates(novelId, characterId, stateId, failedStates);
+        throw new AppError(message, 400);
+      }
     }
 
     const generatingStates = states.map((item) => item.id === stateId
