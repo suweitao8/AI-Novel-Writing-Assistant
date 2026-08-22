@@ -9,7 +9,7 @@
  * 不替代 ImageGenerationService（小说封面 + 老 character image 走两表模型，范式不同）。
  */
 import { getImageModelProvider } from "../../../llm/modelCategories";
-import type { ImageSize } from "../types";
+import type { ImageBackground, ImageOutputFormat, ImageSize } from "../types";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 
 // ─── 状态 ─────────────────────────────────────────────────────────────────────
@@ -102,6 +102,10 @@ export interface RunImageGenerationOptions {
   referenceImages?: GeneratedReferenceImageMeta[];
   /** sceneType 透传给底层 provider（不同 provider 有不同默认） */
   sceneType?: "character" | "novel_cover" | "chapter_illustration";
+  /** 背景（transparent=透明底资产参考图；仅支持背景参数的 provider 生效，提示词会同步要求） */
+  background?: ImageBackground;
+  /** 输出格式（透明底必须 png）；未设置走 provider 默认 */
+  outputFormat?: ImageOutputFormat;
 }
 
 export const DEFAULT_RUNTIME_PROVIDER: LLMProvider = getImageModelProvider();

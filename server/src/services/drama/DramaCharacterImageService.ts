@@ -20,7 +20,10 @@ import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../i
 import { buildAssetStylePromptLines } from "./visual/dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./visual/dramaArtStyleResolver";
 import { buildCharacterStateSheetPrompt } from "./visual/characterStateSheet";
-import { GROK_BUILD_IMAGE_PROVIDER } from "../image/assetProviderRouting";
+import {
+  REFERENCE_IMAGE_PROVIDER,
+  TRANSPARENT_IMAGE_OPTIONS,
+} from "../image/assetProviderRouting";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -75,7 +78,7 @@ export interface ThreeViewItem {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DRAMA_IMAGES_DIR = "drama-characters";
-const DEFAULT_PROVIDER = GROK_BUILD_IMAGE_PROVIDER;
+const DEFAULT_PROVIDER = REFERENCE_IMAGE_PROVIDER;
 const IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],
@@ -257,6 +260,7 @@ export class DramaCharacterImageService {
       prompt: overrides?.promptOverride ?? ctx.prompt,
       size: overrides?.sizeOverride ?? ctx.size,
       sceneType: "character",
+      ...TRANSPARENT_IMAGE_OPTIONS,
       referenceImages: ctx.referenceImages.length > 0 ? ctx.referenceImages : undefined,
     });
   }

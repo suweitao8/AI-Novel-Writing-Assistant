@@ -30,7 +30,7 @@ test("builds four character state view prompts in stable order", () => {
     ["front_portrait", "side_portrait", "front_full_body", "back_full_body"],
   );
   assert.equal(prompts.length, 4);
-  assert.ok(prompts.every((item) => item.prompt.includes("游戏资产展示板背景")));
+  assert.ok(prompts.every((item) => item.prompt.includes("全透明背景")));
   assert.ok(prompts.every((item) => item.prompt.includes("同一个角色")));
   assert.match(prompts[0].prompt, /正面头像/);
   assert.match(prompts[1].prompt, /侧面头像/);
@@ -82,7 +82,13 @@ test("builds one four-panel sheet prompt instead of four independent view prompt
   assert.match(prompt, /each panel must fill the full height/);
   assert.match(prompt, /不添加环境故事或其他人物/);
   assert.match(prompt, /not four separate images/);
+  // 2026-08-22：角色参考板统一透明底（PNG alpha），负面词同步禁止实底/棋盘格。
+  assert.match(prompt, /fully transparent background/i);
+  assert.match(prompt, /genuine PNG alpha channel/i);
+  assert.doesNotMatch(prompt, /light-grey or white production-board background/);
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /multiple people/);
+  assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /opaque background/);
+  assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /checkerboard/);
 });
 
 test("character sheet prompt prioritizes an attractive mainstream drama protagonist", () => {

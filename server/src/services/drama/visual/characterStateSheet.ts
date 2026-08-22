@@ -63,6 +63,7 @@ export interface CharacterStateViewPrompt {
 export const CHARACTER_STATE_SHEET_NEGATIVE_PROMPT = [
   "multiple people, extra person, duplicate character, duplicate face",
   "environment, room, street, scenery, props, weapons",
+  "opaque background, solid backdrop, colored background, checkerboard pattern, studio floor, ground plane",
   "text, labels, numbers, logo, watermark",
   "cropped body, cropped feet, extra limbs, malformed hands or feet",
   "ugly, unattractive, asymmetrical facial features, gaunt, exhausted, sickly, awkward face",
@@ -119,7 +120,8 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     ...styleLines,
     "RENDERING: high-budget Unreal Engine 5 cinematic game character asset, sculpted digital-human materials, detailed skin, hair and fabric, controlled neutral turntable lighting, premium Chinese fantasy game production quality; use the style direction only for rendering medium, materials and light, never to change the explicit character data.",
     "Legacy medium words inside the character data, such as 写实动漫风格, are metadata only; they must not turn this production board into a flat illustration, anime image, real photograph or fashion portrait.",
-    "BACKGROUND: one plain light-grey or white production-board background across all four panels; no scenery, room, street, furniture, floor props, weapons, effects or narrative environment.",
+    "BACKGROUND (HARD CONSTRAINT): the entire board sits on a fully transparent background — a genuine PNG alpha channel, no backdrop color, no solid fill, no checkerboard pattern, no gradient and no floor/ground plane; only the four figure panels and their subtle gutters remain visible.",
+    "The transparent background must not be faked with white, grey or any scene; nothing may be drawn behind the character in any panel.",
     "Do not put more than one view in any panel. Do not merge the face panels. Do not add panel labels, numbers or text.",
     `AVOID: ${CHARACTER_STATE_SHEET_NEGATIVE_PROMPT}`,
   ].filter(Boolean).join("\n");
@@ -143,7 +145,7 @@ export function buildCharacterStateViewPrompts(
     : "只根据以上结构化角色资料生成，不添加环境故事或其他人物。";
   const common = [
     "专业角色四视图设计参考图中的单个视图",
-    "纯白或浅灰色游戏资产展示板背景，统一中性转台光，无摄影棚布景、无房间、无街道、无相机写真感",
+    "全透明背景（PNG 透明通道，无背景色、无棋盘格、无地面与投影），统一中性转台光，无摄影棚布景、无房间、无街道、无相机写真感",
     "同一个角色、同一张脸、同一套服装、同一发型、同一体型比例",
     referenceLine,
     "统一影视化游戏美术方向优先：角色、场景、道具都必须呈现虚幻引擎5级高预算游戏过场的高模CG材质与电影级光影；角色资产采用经过数字雕刻的游戏角色模型和高预算动作游戏的影视化3D数字人设定稿质感，整体渲染参考《黑神话：悟空》《凡人修仙传》这类高预算东方游戏和影视美术，只参考数字雕刻、材质、光影和镜头质感，不复制具体角色、服饰或场景；角色资料中的旧风格词只补充人物内容，不得把成片改成平面动漫、插画、真人摄影、摄影棚模特、证件照或普通照片",

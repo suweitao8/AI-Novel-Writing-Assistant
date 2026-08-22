@@ -18,6 +18,7 @@
 - 生图服务**必须从 `IMAGE_SPECS` 取值**，不允许在服务内再硬编码尺寸字符串；新增生图场景先在 imageSpecs 里加 Key 再引用。
 - 所有值必须在 `IMAGE_SIZES` 白名单（`services/image/types.ts`）内；provider 层把 size 映射为比例（如 1536x1024→3:2）传给对应通道。
 - Grok Build 的图片桥会按 16:9 提示词生成并把最终文件归一化为 1280x720；因此角色四视图的 16:9 板式由 `characterStateSheet` 的提示词契约锁定，不能只看通用请求尺寸或把它误当成 PSD 输入。
+- **透明底资产参考图（2026-08-22）**：角色四视图/状态图与道具图统一透明背景 PNG（`TRANSPARENT_IMAGE_OPTIONS`：background=transparent + output_format=png，仅 Codex 通道），提示词同步要求真 alpha 通道、禁止实底/棋盘格/地面；场景全景与一切阅读消费类图片（首帧、封面、分格）保持不透明。
 - **改规格必须同步 UI 展示比例**：前端 `GeneratedImageCard` 有 `aspectRatio`（square/portrait/landscape），资产卡已传 landscape。
 - 头像类（`ImageGenerationService` 的 character / book_analysis_character sceneType 默认 1024x1024）保持方图——展示位是圆形/方形头像框，不进 IMAGE_SPECS（它们是通用服务的调用方默认值，不是设计规范）。
 
