@@ -24,10 +24,13 @@ const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 // 资产外观状态：初始 + 换装/受伤/昼夜/损坏等变化态（生图/配音提示词随状态走）。
 // image 是「生成图」按钮写入的产物（服务端生成后随 statesJson 持久化），客户端
 // 保存时原样带回——schema 必须放行，否则编辑弹窗一保存就把已生成的图丢掉。
+// prompt 上限要容得下服务端生成的完整生图提示词（角色四视图单次生图模板
+// 固定文案就 2500+ 字，加角色资料与风格行可达 5000+）；写入侧 pruneStateImage
+// 同步截断到同一上限，保证「服务端写入的必然能被客户端带回」。
 const assetStateImageSchema = z.object({
   status: z.enum(["idle", "generating", "done", "error"]),
   url: z.string().max(600).optional(),
-  prompt: z.string().max(2400).optional(),
+  prompt: z.string().max(6000).optional(),
   provider: z.string().max(60).optional(),
   generatedAt: z.string().max(60).optional(),
   error: z.string().max(600).optional(),
