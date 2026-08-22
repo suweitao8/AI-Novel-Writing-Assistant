@@ -55,6 +55,8 @@ const assetStateSchema = z.object({
   sceneType: z.enum(["interior", "exterior", "nature"]).nullable().optional(),
   timeOfDay: z.enum(["morning", "noon", "night"]).nullable().optional(),
   weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
+  // 状态所处的时代风格（内置预设 label 或自定义风格名；空＝按剧情自动判定），生成状态图时最优先。
+  eraStyle: z.string().trim().max(40).nullable().optional(),
   chapterOrder: z.number().int().min(0).max(9999).optional(),
   // 生图参考：用同一资产的哪个状态的图当参考（空＝不参考直接生成）
   referenceStateId: z.string().trim().max(60).nullable().optional(),

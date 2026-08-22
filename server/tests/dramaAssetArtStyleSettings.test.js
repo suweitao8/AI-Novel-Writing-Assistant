@@ -112,3 +112,66 @@ test("解析器按类别读取新的覆盖，不读取历史单一画风", async
     prisma.chapter.findMany = originalChapterFindMany;
   }
 });
+
+// 状态自选时代风格（2026-08-22 用户要求）：双穿/时代推进的书同一资产在不同时代各有一套状态，
+// 状态的 eraStyle 是用户显式选择，解析时直接采用（跳过剧情判定与全局链）。
+function mockEraStyleChain() {
+  const originalFindUnique = prisma.appSetting.findUnique;
+  const originalWorldFindUnique = prisma.novelSettingsWorld.findUnique;
+  const originalChapterFindMany = prisma.chapter.findMany;
+  prisma.appSetting.findUnique = async () => null;
+  prisma.novelSettingsWorld.findUnique = async () => ({
+    artStylesJson: JSON.stringify([{ label: "末世爆发后", prompt: "城市废墟，植物疯长" }]),
+    defaultArtStyle: "末世废土",
+  });
+  prisma.chapter.findMany = async () => [
+    { order: 1, expectation: "【画风：末世废土】\n旁白：城市已成废墟。" },
+  ];
+  return () => {
+    prisma.appSetting.findUnique = originalFindUnique;
+    prisma.novelSettingsWorld.findUnique = originalWorldFindUnique;
+    prisma.chapter.findMany = originalChapterFindMany;
+  };
+}
+
+test("pinnedStyle 命中可选风格时直接采用，不再按剧情判定", async () => {
+  const restore = mockEraStyleChain();
+  try {
+    let judgeCalled = false;
+    const context = await resolveDramaArtStyleContext({
+      sourceRef: "novel-1",
+      pinnedStyle: "现代都市",
+      scriptJudge: { target: "叶竹 · 初始状态 状态图", scriptExcerpt: "大学宿舍的日常清晨" },
+      judgeFn: async () => {
+        judgeCalled = true;
+        return null;
+      },
+    });
+    assert.equal(context.specific?.label, "现代都市");
+    assert.equal(judgeCalled, false);
+
+    // 自定义风格名同样可被状态选中。
+    const customContext = await resolveDramaArtStyleContext({
+      sourceRef: "novel-1",
+      pinnedStyle: "末世爆发后",
+    });
+    assert.equal(customContext.specific?.label, "末世爆发后");
+  } finally {
+    restore();
+  }
+});
+
+test("pinnedStyle 悬空引用（风格已删）时回落常规链，不阻断生成", async () => {
+  const restore = mockEraStyleChain();
+  try {
+    const context = await resolveDramaArtStyleContext({
+      sourceRef: "novel-1",
+      pinnedStyle: "已被删除的风格",
+      scriptJudge: { target: "叶竹 · 初始状态 状态图", scriptExcerpt: "城市已成废墟" },
+      judgeFn: async () => null,
+    });
+    assert.equal(context.specific?.label, "末世废土");
+  } finally {
+    restore();
+  }
+});

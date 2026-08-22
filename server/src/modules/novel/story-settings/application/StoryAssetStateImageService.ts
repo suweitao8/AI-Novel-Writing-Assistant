@@ -486,11 +486,13 @@ export class StoryAssetStateImageService {
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
       : null;
 
-    // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）；
-    // 时代风格按该状态所处章节的剧情判定（开篇现代、章末才进末世这类推进不再被全局默认带偏）。
+    // 状态图与首帧图/角色设计稿同源的资产类别画风（无分镜项目，visualStyle 恒空，走小说默认具体风格）。
+    // 时代风格：状态自带 eraStyle（双穿/时代推进的书不同状态各处一个时代）最优先；
+    // 没选则按该状态所处章节的剧情判定（开篇现代、章末才进末世这类推进不再被全局默认带偏）。
     const styleContext = await resolveDramaArtStyleContext({
       visualStyle: null,
       sourceRef: novelId,
+      pinnedStyle: state.eraStyle ?? null,
       scriptJudge: await resolveStateScriptJudge(novelId, kind, row.name, state),
     });
     const styleLines = buildAssetStylePromptLines(kind, styleContext.assets[kind], styleContext.specific);
