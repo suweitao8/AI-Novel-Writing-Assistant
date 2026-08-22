@@ -4,6 +4,41 @@ import { normalizeCharacterStates, normalizePropStates, normalizeSceneStates, pa
 
 /** 设定中心实体 DTO 投影；投影阶段也要保证返回的状态数组可直接进入生成链。 */
 
+/** 角色别名归一：去空白、去重、剔除与本名相同的项；空列表存 null。 */
+export function normalizeCharacterAliases(raw: unknown, name?: string): string[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  for (const item of raw) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const trimmed = item.trim();
+    if (!trimmed || trimmed === name) {
+      continue;
+    }
+    seen.add(trimmed);
+  }
+  return [...seen];
+}
+
+export function parseCharacterAliases(aliasesJson: string | null | undefined, name?: string): string[] {
+  if (!aliasesJson?.trim()) {
+    return [];
+  }
+  try {
+    return normalizeCharacterAliases(JSON.parse(aliasesJson), name);
+  } catch {
+    return [];
+  }
+}
+
+export function serializeCharacterAliases(aliases: string[] | null | undefined, name?: string): string | null {
+  const normalized = normalizeCharacterAliases(aliases, name);
+  return normalized.length > 0 ? JSON.stringify(normalized) : null;
+}
+
 export function projectCharacter(row: {
   id: string;
   name: string;
@@ -18,6 +53,7 @@ export function projectCharacter(row: {
   appearance: string | null;
   background: string | null;
   statesJson?: string | null;
+  aliasesJson?: string | null;
   updatedAt: Date;
 }) {
   return {
@@ -33,6 +69,7 @@ export function projectCharacter(row: {
     personality: row.personality,
     appearance: row.appearance,
     background: row.background,
+    aliases: parseCharacterAliases(row.aliasesJson, row.name),
     states: normalizeCharacterStates(parseStates(row.statesJson), row),
     updatedAt: row.updatedAt.toISOString(),
   };

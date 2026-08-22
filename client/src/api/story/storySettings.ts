@@ -68,6 +68,8 @@ export interface StorySettingsCharacter {
   /** 剧情定位已不在表单/提取里维护（2026-08-21）；仅旧数据与 AI 设定包仍会带值。 */
   role?: string;
   gender: string | null;
+  /** 别名/昵称（如 哥哥、晨哥）——解析与匹配按别名归一到本名。 */
+  aliases: string[];
   ageGroup: string | null;
   physique: string | null;
   attireStyle: string | null;
@@ -285,6 +287,7 @@ export async function updateStorySettingsCharacter(
     name?: string;
     role?: string;
     gender?: string | null;
+    aliases?: string[] | null;
     ageGroup?: string | null;
     physique?: string | null;
     attireStyle?: string | null;
@@ -465,6 +468,7 @@ export async function createStorySettingsCharacter(
     name: string;
     role?: string;
     gender?: string;
+    aliases?: string[];
     ageGroup?: string;
     physique?: string;
     attireStyle?: string;

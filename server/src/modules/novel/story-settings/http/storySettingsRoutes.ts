@@ -78,6 +78,8 @@ const characterUpdateSchema = z.object({
   personality: z.string().trim().max(1200).nullable().optional(),
   appearance: z.string().trim().max(1200).nullable().optional(),
   background: z.string().trim().max(2000).nullable().optional(),
+  // 别名/昵称列表（如 哥哥、晨哥）：解析与匹配按别名归一到本名；null/空数组清空。
+  aliases: z.array(z.string().trim().min(1).max(40)).max(12).nullable().optional(),
   states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 
@@ -162,6 +164,7 @@ const characterCreateSchema = z.object({
   personality: z.string().trim().max(1200).optional(),
   appearance: z.string().trim().max(1200).optional(),
   background: z.string().trim().max(2000).optional(),
+  aliases: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
   states: z.array(characterAssetStateSchema).max(24).optional(),
 });
 

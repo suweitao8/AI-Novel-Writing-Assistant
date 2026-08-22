@@ -30,12 +30,31 @@ import {
 export interface CharacterAssetFormState {
   name: string;
   gender: string;
+  /** 别名/昵称输入（顿号/逗号分隔，如「哥哥，晨哥」）；提交时归一为数组。 */
+  aliases: string;
 }
 
 export const EMPTY_CHARACTER_FORM: CharacterAssetFormState = {
   name: "",
   gender: "unknown",
+  aliases: "",
 };
+
+/** 表单别名的输入输出互转：输入按顿号/逗号/空格分隔，输出用顿号展示。 */
+export function parseCharacterAliasInput(text: string): string[] {
+  const seen = new Set<string>();
+  for (const part of text.split(/[、，,;；\s]+/u)) {
+    const trimmed = part.trim();
+    if (trimmed) {
+      seen.add(trimmed);
+    }
+  }
+  return [...seen];
+}
+
+export function formatCharacterAliasList(aliases: string[] | null | undefined): string {
+  return (aliases ?? []).filter(Boolean).join("、");
+}
 
 export function CharacterAssetFormFields(props: {
   value: CharacterAssetFormState;
@@ -63,6 +82,14 @@ export function CharacterAssetFormFields(props: {
           </SelectControl>
         </label>
       </div>
+      <label className="block space-y-1">
+        <span className="text-sm font-medium">别名</span>
+        <Input
+          value={value.aliases}
+          placeholder="如：哥哥、晨哥（原文里对TA的其他称呼，多个用顿号分隔）"
+          onChange={(event) => onChange({ aliases: event.target.value })}
+        />
+      </label>
     </div>
   );
 }
