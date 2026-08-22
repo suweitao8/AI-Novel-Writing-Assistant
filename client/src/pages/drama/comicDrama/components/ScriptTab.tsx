@@ -31,7 +31,7 @@ interface ScriptTabProps {
   novelId: string;
   workspace: NovelChapterWorkspace;
   onOpenChapterManage: () => void;
-  /** 内置时代风格预设（与美术风格面板同源，供画风切换选择）。 */
+  /** 全局画风清单（GET /drama/visual-styles：内置预设+全局自定义，供画风切换选择）。 */
   styleOptions: DramaVisualStyle[];
 }
 
