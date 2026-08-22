@@ -136,9 +136,6 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
   ].filter(Boolean);
 
   addDetail(details, "性别", labelFor(GENDER_LABELS, asset.gender));
-  if (asset.aliases?.length) {
-    addDetail(details, "别名", asset.aliases.join("、"));
-  }
   addDetail(details, "剧情定位", asset.role);
   addDetail(details, "体型", asset.physique);
   addDetail(details, "服装风格", asset.attireStyle);

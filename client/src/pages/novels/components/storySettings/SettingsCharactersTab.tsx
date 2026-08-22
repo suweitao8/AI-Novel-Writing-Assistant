@@ -27,8 +27,6 @@ import {
   CharacterAssetFormFields,
   createInitialCharacterState,
   EMPTY_CHARACTER_FORM,
-  formatCharacterAliasList,
-  parseCharacterAliasInput,
   type CharacterAssetFormState,
 } from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -103,7 +101,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       const payload = {
         name: form.name.trim(),
         gender: form.gender || undefined,
-        aliases: parseCharacterAliasInput(form.aliases),
         states: prepareCharacterStatesForSave(states, form, creating),
       };
       return editing
@@ -133,7 +130,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       setForm({
         name: draft.name,
         gender: draft.gender || "unknown",
-        aliases: "",
       });
       setStates([createInitialCharacterState({
         name: draft.name,
@@ -177,7 +173,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     setForm({
       name: character.name,
       gender: character.gender ?? "unknown",
-      aliases: formatCharacterAliasList(character.aliases),
     });
     setStates(character.states?.length
       ? character.states

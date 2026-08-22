@@ -47,7 +47,7 @@
 
 ### Decision
 
-- 角色基础信息为姓名、性别与别名（aliases，2026-08-22 起）；年龄、样貌、图片提示词与音色相关内容继续放在角色状态里。**别名契约**：`Character.aliasesJson`（JSON 数组，如 `["哥哥","晨哥"]`，null=未设置）；写入经 `normalizeCharacterAliases`（去空白/去重/剔除与本名相同项）；创建与更新 API 均收 `aliases: string[]`（null/空数组清空，上限 12 条、单条 40 字）。消费方：参考解析（reference_parse@v8 的 characterAliases 名单——原文用称呼指代角色时归一成本名输出，别名不作为输出名）、分镜 charactersDigest（`别名：…（输出一律用本名）` 行，DramaContextAssembler.loadNovelCharacterAliasesByName，drama 侧本地解析不 import novel 模块）、脚本页签正文高亮与使用识别（别名映射回本名资产，ScriptTab canonicalByAlias）。角色创建由状态工厂自动生成首个初始状态，后续状态由用户手动添加并可选择继承上一个状态。
+- 角色基础信息为姓名与性别（2026-08-22 用户决定：**别名 UI 当天移除——用不到别名**，当天早上加的「别名」表单项/详情展示/脚本别名匹配与高亮全部下线，客户端不再读写 aliases）；年龄、样貌、图片提示词与音色相关内容继续放在角色状态里。**别名数据契约（服务端保留兼容，前端已无入口）**：`Character.aliasesJson`（JSON 数组，如 `["哥哥","晨哥"]`，null=未设置）与 `normalizeCharacterAliases`（去空白/去重/剔除与本名相同项）仍在服务端生效；创建/更新 API 的 `aliases` 参数可选，**更新省略即保留原值、显式传 null/空数组才清空**（上限 12 条、单条 40 字），客户端现在一律省略；参考解析（reference_parse@v8 的 characterAliases 名单输入）与分镜 charactersDigest（`别名：…（输出一律用本名）` 行，DramaContextAssembler.loadNovelCharacterAliasesByName，drama 侧本地解析不 import novel 模块）继续对历史已存别名数据生效。若将来重新启用别名，恢复客户端表单与 ScriptTab 匹配即可，服务端链路无需改动。角色创建由状态工厂自动生成首个初始状态，后续状态由用户手动添加并可选择继承上一个状态。
 - `StoryAssetStateImageService.generateStateImage` 根据 `kind` 选择 `styleContext.assets[kind]`：角色走四视图 sheet，场景走 360° 全景，道具走 45° 三点透视。
 - 状态变化描述和参考状态链只影响当前状态内容与一致性；不能改变所属类别的固定规格，也不能把角色状态变成场景或道具图。
 - 系统画风设置只保存三类正向覆盖，状态图、基础资产图和分镜首帧都从同一个解析上下文读取，避免页面保存后只有某一个入口生效。

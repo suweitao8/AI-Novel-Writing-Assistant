@@ -17,7 +17,6 @@ import {
   EMPTY_CHARACTER_FORM,
   EMPTY_SCENE_FORM,
   EMPTY_PROP_FORM,
-  formatCharacterAliasList,
   type CharacterAssetFormState,
   type SceneAssetFormState,
   type PropAssetFormState,
@@ -94,7 +93,6 @@ export default function ExtractApplyDialog(props: {
         ...EMPTY_CHARACTER_FORM,
         name: source.name,
         gender: (group === "characters" ? characterSource.gender : null) ?? "unknown",
-        aliases: group === "characters" ? formatCharacterAliasList(characterSource.aliases) : "",
         states,
       });
       setSceneForm({ ...EMPTY_SCENE_FORM, name: source.name, states });

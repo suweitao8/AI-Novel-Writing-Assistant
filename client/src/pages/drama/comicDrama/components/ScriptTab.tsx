@@ -132,21 +132,6 @@ export default function ScriptTab(props: ScriptTabProps) {
   // - 已有资产名出现在正文任意位置（断词匹配，与正文高亮同口径）也算用到。
   const scriptUsage = useMemo(() => {
     const knownCharacters = new Set(characters.map((character) => character.name.trim()));
-    // 别名→本名映射：说话人/状态行写别名也算命中本名资产（提示语引导用本名，这里是兜底识别）。
-    const canonicalByAlias = new Map<string, string>();
-    for (const character of characters) {
-      const canonical = character.name.trim();
-      for (const alias of character.aliases ?? []) {
-        const trimmed = alias.trim();
-        if (trimmed && trimmed !== canonical && !canonicalByAlias.has(trimmed)) {
-          canonicalByAlias.set(trimmed, canonical);
-        }
-      }
-    }
-    const resolveCharacterName = (raw: string): string => {
-      const trimmed = raw.trim();
-      return canonicalByAlias.get(trimmed) ?? trimmed;
-    };
     const knownScenes = new Set(scenes.map((scene) => scene.name.trim()));
     const usedOrderKeys: string[] = [];
     const usedKeys = new Set<string>();
@@ -168,7 +153,7 @@ export default function ScriptTab(props: ScriptTabProps) {
           missingScenes.push(name);
         }
       } else if (item.kind === "line") {
-        const name = resolveCharacterName(item.speaker);
+        const name = item.speaker.trim();
         if (!name || name === "旁白") continue;
         if (knownCharacters.has(name)) {
           pushUsed(`character:${name}`);
@@ -176,7 +161,7 @@ export default function ScriptTab(props: ScriptTabProps) {
           missingCharacters.push(name);
         }
       } else if (item.kind === "state") {
-        const name = resolveCharacterName(item.name);
+        const name = item.name.trim();
         if (!name) continue;
         if (knownCharacters.has(name)) {
           pushUsed(`character:${name}`);
@@ -200,7 +185,7 @@ export default function ScriptTab(props: ScriptTabProps) {
       }
       return found;
     };
-    const mentionedCharacters = mentionedIn(characters.flatMap((character) => [character.name, ...(character.aliases ?? [])]));
+    const mentionedCharacters = mentionedIn(characters.map((character) => character.name));
     const mentionedScenes = mentionedIn(scenes.map((scene) => scene.name));
     const mentionedProps = mentionedIn(propList.map((prop) => prop.name));
     for (const character of characters) {
@@ -225,8 +210,7 @@ export default function ScriptTab(props: ScriptTabProps) {
   }, [items, characters, scenes, propList, workspace.expectationText]);
 
   const entityNames = useMemo(() => ({
-    // 角色高亮包含别名（别名与本名同色），场景与道具只高亮本名。
-    characters: characters.flatMap((character) => [character.name, ...(character.aliases ?? [])]),
+    characters: characters.map((character) => character.name),
     scenes: scenes.map((scene) => scene.name),
     props: propList.map((prop) => prop.name),
   }), [characters, scenes, propList]);
