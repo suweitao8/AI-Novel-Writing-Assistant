@@ -53,6 +53,7 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
     hasReference: false,
   }, []);
   assert.match(scene, /scene state reference image/);
+  assert.match(scene, /2:1 aspect ratio/);
   assert.match(scene, /subject: 废弃地铁站/);
   assert.match(scene, /scene type: exterior/);
   assert.match(scene, /time of day: night/);

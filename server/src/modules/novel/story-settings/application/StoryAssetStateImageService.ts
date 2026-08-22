@@ -295,7 +295,7 @@ export function buildStateImagePrompt(
       ? [
         // 场景状态图必须是 360° 等距柱状全景（2026-08-22 用户要求，可在前端全景预览里旋转查看）；
         // 措辞沿用旧版全景接口验证过的口径（StoryAssetImageService.generateSceneImage）。
-        "360-degree equirectangular panorama of the empty scene environment",
+        "360-degree equirectangular panorama of the empty scene environment, standard 2:1 aspect ratio, seamless horizontal wrap-around",
         "seamless horizontal wrap-around view of the whole space",
         "consistent palette, materials, architecture and lighting across the entire panorama",
         "horizon roughly centered vertically, one continuous full-view image, no borders, no split panels, no collage",

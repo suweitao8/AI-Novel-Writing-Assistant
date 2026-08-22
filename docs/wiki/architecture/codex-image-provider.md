@@ -15,7 +15,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 ## 当前规则
 
 - 端口约定：`18766` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）。
-- 业务路由规则（2026-08-22 起）：`resolveAssetImageProvider` 里 kind=character/prop（资产参考图）无条件走 Codex；kind=scene 与无参考图封面默认 `grok_build`，带参考图回退 Codex。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
+- 业务路由规则（2026-08-22/23 起）：`resolveAssetImageProvider` 里 kind=character/prop（透明底）/kind=scene（2:1 全景）无条件走 Codex；无参考图封面默认 `grok_build`，带参考图回退 Codex。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
 - 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI（应用侧参考图必须传本地文件路径——JSON 生成路径不解析 `input_image_url`，传 URL 会静默丢参考）。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。

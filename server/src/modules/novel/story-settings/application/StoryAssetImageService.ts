@@ -102,7 +102,7 @@ export function buildScenePanoramaPrompt(scene: {
 }, styleLines: string[]): string {
   const lines: string[] = [
     `360-degree panorama of the scene: ${scene.name}`,
-    "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
+    "seamless horizontal wrap-around view of the whole space, equirectangular panorama in standard 2:1 aspect ratio",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
     "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",

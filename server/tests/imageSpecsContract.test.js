@@ -6,9 +6,9 @@ const assert = require("node:assert/strict");
 
 const { IMAGE_SPECS } = require("../dist/services/image/imageSpecs.js");
 
-test("设计参考类生图固定横版（四视图/场景全景/角色资产）", () => {
+test("设计参考类生图固定横版；场景全景是 2:1 等距柱状（2026-08-23 用户要求）", () => {
   assert.equal(IMAGE_SPECS.characterSheet, "1536x1024");
-  assert.equal(IMAGE_SPECS.scenePanorama, "1536x1024");
+  assert.equal(IMAGE_SPECS.scenePanorama, "2048x1024");
   assert.equal(IMAGE_SPECS.characterAsset, "1536x1024");
 });
 
