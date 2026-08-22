@@ -8,6 +8,9 @@ import {
   getStorySettingsProps,
   getStorySettingsScenes,
   getStorySettingsWorld,
+  updateStorySettingsCharacter,
+  updateStorySettingsProp,
+  updateStorySettingsScene,
   updateStorySettingsWorld,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
@@ -28,9 +31,9 @@ import {
 } from "@/pages/novels/components/storySettings/assetForms";
 
 // 「提取」页签：展示「解析」产出并随章节持久化的设定建议（Chapter.referenceExtractionJson）。
-// 每条建议点开弹窗核对、可修改（与资产页签共用 assetForms 表单），点「应用」单个创建——
-// 不做批量勾选，用户要逐条看过、改好才应用。同名资产不重复创建（已存在时应用按钮拦截）；
-// 外观状态不在这里生成（用户手动管理），只在首次创建时把画面/音色提示词记为初始状态。
+// 每条建议点开弹窗核对、可修改（与资产页签共用 assetForms 表单）：新建议点「应用」单个创建；
+// 同名已存在的建议直接载入已有资产编辑（状态列表可见已生成的图/音色），点「保存」更新该资产。
+// 两种路径成功后建议都从列表移除；新建议的初始状态由画面/音色提示词生成，不做批量勾选。
 
 const EMPTY_EXTRACTION: ReferenceExtractionPayload = { characters: [], scenes: [], props: [], worldview: [] };
 
@@ -85,6 +88,8 @@ export function normalizeExtraction(raw: unknown): ReferenceExtractionPayload {
 export type ApplyOneInput = {
   group: "characters" | "scenes" | "props" | "worldview";
   index: number;
+  /** 已存在同名资产时传其 id：保存改为更新该资产（含已有状态与图/音色），否则创建新资产 */
+  existingId?: string;
   form:
     | (CharacterAssetFormState & { __kind: "character"; states: StoryAssetState[] })
     | (SceneAssetFormState & { __kind: "scene"; states: StoryAssetState[] })
@@ -142,60 +147,84 @@ export function useReferenceExtractStage(input: {
   };
 
   const applyOneMutation = useMutation({
-    mutationFn: async (payload: ApplyOneInput): Promise<{ group: string }> => {
-      const { group, index, form } = payload;
+    mutationFn: async (payload: ApplyOneInput): Promise<{ group: string; updated: boolean }> => {
+      const { group, index, existingId, form } = payload;
       const chapterTag = chapterOrder ? { chapterOrder } : {};
 
       if (form.__kind === "character") {
-        if (existingNames.characters.has(form.name.trim())) {
-          throw new Error("已有同名角色，不能重复创建。");
+        if (existingId) {
+          // 已存在：更新已有资产本身；状态原样带回（保住已生成的图/音色），不改章节标记。
+          await updateStorySettingsCharacter(input.novelId, existingId, {
+            name: form.name.trim(),
+            gender: form.gender || undefined,
+            aliases: parseCharacterAliasInput(form.aliases),
+            states: form.states.map((state) => ({ ...state })),
+          });
+        } else {
+          if (existingNames.characters.has(form.name.trim())) {
+            throw new Error("已有同名角色，不能重复创建。");
+          }
+          const states = form.states.map((state, index) => ({
+            ...state,
+            ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
+            ...chapterTag,
+          }));
+          await createStorySettingsCharacter(input.novelId, {
+            name: form.name.trim(),
+            gender: form.gender || undefined,
+            aliases: parseCharacterAliasInput(form.aliases),
+            states,
+          });
         }
-        const states = form.states.map((state, index) => ({
-          ...state,
-          ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
-          ...chapterTag,
-        }));
-        await createStorySettingsCharacter(input.novelId, {
-          name: form.name.trim(),
-          gender: form.gender || undefined,
-          aliases: parseCharacterAliasInput(form.aliases),
-          states,
-        });
       } else if (form.__kind === "scene") {
-        if (existingNames.scenes.has(form.name.trim())) {
-          throw new Error("已有同名场景，不能重复创建。");
+        if (existingId) {
+          await updateStorySettingsScene(input.novelId, existingId, {
+            name: form.name.trim(),
+            states: form.states.map((state) => ({ ...state })),
+          });
+        } else {
+          if (existingNames.scenes.has(form.name.trim())) {
+            throw new Error("已有同名场景，不能重复创建。");
+          }
+          const initial = form.states[0];
+          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
+          const initialDescription = initial?.description?.trim() || imagePrompt;
+          await createStorySettingsScene(input.novelId, {
+            name: form.name.trim(),
+            sceneType: initial?.sceneType ?? undefined,
+            summary: initialDescription,
+            environmentPrompt: imagePrompt || undefined,
+            timeOfDay: initial?.timeOfDay ?? undefined,
+            weather: initial?.weather ?? undefined,
+            states: form.states.map((state, stateIndex) => ({
+              ...state,
+              ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+              ...chapterTag,
+            })),
+          });
         }
-        const initial = form.states[0];
-        const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
-        const initialDescription = initial?.description?.trim() || imagePrompt;
-        await createStorySettingsScene(input.novelId, {
-          name: form.name.trim(),
-          sceneType: initial?.sceneType ?? undefined,
-          summary: initialDescription,
-          environmentPrompt: imagePrompt || undefined,
-          timeOfDay: initial?.timeOfDay ?? undefined,
-          weather: initial?.weather ?? undefined,
-          states: form.states.map((state, stateIndex) => ({
-            ...state,
-            ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
-            ...chapterTag,
-          })),
-        });
       } else if (form.__kind === "prop") {
-        if (existingNames.props.has(form.name.trim())) {
-          throw new Error("已有同名道具，不能重复创建。");
+        if (existingId) {
+          await updateStorySettingsProp(input.novelId, existingId, {
+            name: form.name.trim(),
+            states: form.states.map((state) => ({ ...state })),
+          });
+        } else {
+          if (existingNames.props.has(form.name.trim())) {
+            throw new Error("已有同名道具，不能重复创建。");
+          }
+          const initial = form.states[0];
+          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
+          await createStorySettingsProp(input.novelId, {
+            name: form.name.trim(),
+            visualPrompt: imagePrompt || undefined,
+            states: form.states.map((state, stateIndex) => ({
+              ...state,
+              ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+              ...chapterTag,
+            })),
+          });
         }
-        const initial = form.states[0];
-        const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
-        await createStorySettingsProp(input.novelId, {
-          name: form.name.trim(),
-          visualPrompt: imagePrompt || undefined,
-          states: form.states.map((state, stateIndex) => ({
-            ...state,
-            ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
-            ...chapterTag,
-          })),
-        });
       } else {
         const worldResponse = await getStorySettingsWorld(input.novelId);
         const existingSettings = worldResponse.data?.keySettings ?? [];
@@ -208,18 +237,19 @@ export function useReferenceExtractStage(input: {
       }
 
       removeAppliedItem(group, index);
-      return { group };
+      return { group, updated: Boolean(existingId) };
     },
-    onSuccess: async ({ group }) => {
+    onSuccess: async ({ group, updated }) => {
       await invalidateStorySettingsCaches(queryClient, input.novelId);
-      toast.success(`${GROUP_LABELS[group] ?? "资产"}已应用。`);
+      toast.success(updated ? `${GROUP_LABELS[group] ?? "资产"}已保存更新。` : `${GROUP_LABELS[group] ?? "资产"}已应用。`);
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "应用失败，请重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "保存失败，请重试。"),
   });
 
   const totalItems = extraction.characters.length + extraction.scenes.length + extraction.props.length + extraction.worldview.length;
 
   return {
+    novelId: input.novelId,
     extraction,
     existingNames,
     existingAssets: { characters, scenes, props },
