@@ -345,11 +345,32 @@ export interface DramaVisualStyle {
   label: string;
   summary: string;
   styleTag: string;
-  styleFamily: "animation" | "live_action";
+  /** custom=全局自定义时代画风（id 即风格名）。 */
+  styleFamily: "animation" | "live_action" | "custom";
 }
 
 export async function getDramaVisualStyles() {
   const { data } = await apiClient.get<ApiResponse<DramaVisualStyle[]>>("/drama/visual-styles");
+  return data;
+}
+
+/** 全局自定义时代画风（画风管理页编辑，全部小说与漫剧项目共用）。 */
+export interface DramaEraStyleCustom {
+  label: string;
+  prompt: string;
+}
+
+export interface DramaEraStyleLibraryData {
+  styles: DramaEraStyleCustom[];
+}
+
+export async function getDramaEraStyles() {
+  const { data } = await apiClient.get<ApiResponse<DramaEraStyleLibraryData>>("/drama/era-styles");
+  return data;
+}
+
+export async function saveDramaEraStyles(styles: DramaEraStyleCustom[]) {
+  const { data } = await apiClient.put<ApiResponse<DramaEraStyleLibraryData>>("/drama/era-styles", { styles });
   return data;
 }
 
