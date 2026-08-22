@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { buildStateImageSrc } from "@/components/storyAssets";
+import { buildStoryAssetPresentation, type StoryAssetPresentation } from "@/components/storyAssets";
 import type { ReferenceExtractCharacter } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { ApplyOneInput, ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import ExtractApplyDialog, { type ExtractGroup } from "@/pages/drama/comicDrama/components/ExtractApplyDialog";
@@ -50,18 +50,23 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return stage.existingNames[group].has(name.trim());
   };
 
-  // 已存在资产当前形象的缩略图：同名资产第一个已生成的状态图；没有生成过就回退图标。
-  const existingImageFor = (group: ExtractGroup, name: string): string => {
-    if (group === "worldview") {
-      return "";
+  // 已存在同名资产：取它的完整展示数据——卡片缩略图取第一个已生成的状态图，
+  // 应用弹窗直接展示已有资产的全部内容（基础信息、外观状态与图片/音色）。
+  const existingAssetFor = (group: ExtractGroup, name: string): StoryAssetPresentation | null => {
+    const trimmed = name.trim();
+    if (group === "characters") {
+      const asset = stage.existingAssets.characters.find((candidate) => candidate.name.trim() === trimmed);
+      return asset ? buildStoryAssetPresentation({ kind: "character", asset }) : null;
     }
-    const asset = stage.existingAssets[group].find((candidate) => candidate.name.trim() === name.trim());
-    const state = asset?.states.find((candidate) => candidate.image?.status === "done" && candidate.image.url?.trim());
-    const url = state?.image?.url?.trim();
-    if (!state || !url) {
-      return "";
+    if (group === "scenes") {
+      const asset = stage.existingAssets.scenes.find((candidate) => candidate.name.trim() === trimmed);
+      return asset ? buildStoryAssetPresentation({ kind: "scene", asset }) : null;
     }
-    return buildStateImageSrc(url, state.image?.generatedAt ?? undefined);
+    if (group === "props") {
+      const asset = stage.existingAssets.props.find((candidate) => candidate.name.trim() === trimmed);
+      return asset ? buildStoryAssetPresentation({ kind: "prop", asset }) : null;
+    }
+    return null;
   };
 
   const renderGroup = (title: string, group: ExtractGroup) => {
@@ -82,7 +87,9 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const existing = existingFor(group, item.name);
-            const existingImage = existing ? existingImageFor(group, item.name) : "";
+            const existingImage = existing
+              ? existingAssetFor(group, item.name)?.states.find((state) => state.imageUrl)?.imageUrl ?? ""
+              : "";
             return (
               <button
                 key={`${group}:${index}`}
@@ -132,7 +139,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           group={target?.group ?? "characters"}
           item={targetItem}
           existing={targetItem && target ? existingFor(target.group, targetItem.name) : false}
-          existingPreview={targetItem && target ? { imageUrl: existingImageFor(target.group, targetItem.name) } : null}
+          existingAsset={targetItem && target ? existingAssetFor(target.group, targetItem.name) : null}
           pending={stage.applyOneMutation.isPending}
           onOpenChange={(open) => { if (!open) setTarget(null); }}
           onApply={(form) => {
