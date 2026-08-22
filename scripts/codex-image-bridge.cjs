@@ -192,12 +192,19 @@ async function generateCodexImage(input) {
   if (!executable) {
     throw new Error("未找到 codex CLI，请设置 CODEX_IMAGE_EXECUTABLE 或把 codex 加入 PATH");
   }
+  // 上游服务端有自己的 HTTP 超时（默认 900s，与服务端配置对齐）：客户端断开后
+  // 必须立刻杀掉 codex 进程，否则它会把 15 分钟预算跑完——白烧订阅额度，
+  // 还占着并发槽，让后续请求排队（表现为前端一直「生成中」直到超时）。
+  if (input.signal?.aborted) {
+    throw new Error("client_closed");
+  }
   const workdir = input.workdir;
   await fsp.mkdir(workdir, { recursive: true });
   for (const ref of input.referencePaths) {
     await fsp.access(ref);
   }
 
+  let onClientAbort = null;
   const isolatedHome = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-image-home-"));
   try {
     // Codex 仍然从 CODEX_HOME 读取登录态；只复制鉴权需要的两个文件。
@@ -250,6 +257,11 @@ async function generateCodexImage(input) {
     let stderr = "";
     child.stdout.on("data", (chunk) => { stdout += chunk.toString("utf8"); });
     child.stderr.on("data", (chunk) => { stderr += chunk.toString("utf8"); });
+    const onAbortHandler = () => killProcessTree(child);
+    onClientAbort = onAbortHandler;
+    if (input.signal) {
+      input.signal.addEventListener("abort", onAbortHandler);
+    }
 
     const startedMs = Date.now();
     const exitCode = await new Promise((resolve, reject) => {
@@ -285,6 +297,9 @@ async function generateCodexImage(input) {
     }
     return await fsp.readFile(generated);
   } finally {
+    if (input.signal && onClientAbort) {
+      input.signal.removeEventListener("abort", onClientAbort);
+    }
     fsp.rm(isolatedHome, { recursive: true, force: true }).catch(() => {});
   }
 }
@@ -394,7 +409,7 @@ async function main() {
   const executable = resolveCodexExecutable();
   const executableAvailable = Boolean(executable);
 
-  async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references }) {
+  async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, signal }) {
     const workdir = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-image-bridge-"));
     try {
       const referencePaths = [];
@@ -415,6 +430,7 @@ async function main() {
         transparent,
         agentModel: args.agentModel,
         timeoutMs: args.timeoutSeconds * 1000,
+        signal,
       }));
     } finally {
       fsp.rm(workdir, { recursive: true, force: true }).catch(() => {});
@@ -456,6 +472,11 @@ async function main() {
         sendJson(401, { error: { message: "invalid_api_key" } });
         return;
       }
+      // 客户端断开（上游服务端超时或取消）即终止本次生成：释放 codex 进程与并发槽，
+      // 避免被放弃的请求继续烧订阅额度、阻塞后续请求。
+      const clientAbort = new AbortController();
+      res.once("close", () => clientAbort.abort());
+      const startedAt = Date.now();
       readRawBody(req, MAX_REQUEST_BYTES)
         .then(async (rawBody) => {
           const contentType = req.headers["content-type"] || "";
@@ -484,16 +505,24 @@ async function main() {
 
           const images = [];
           for (let index = 0; index < count; index += 1) {
-            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references });
+            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, signal: clientAbort.signal });
             images.push(toDataItem(imageBytes, responseFormat));
           }
+          console.log(`[codex-image-bridge] done ${pathname} in ${Date.now() - startedAt}ms`);
           return { status: 200, payload: { created: Math.floor(Date.now() / 1000), data: images } };
         })
-        .then((response) => sendJson(response.status, response.payload))
+        .then((response) => {
+          if (!res.destroyed) {
+            sendJson(response.status, response.payload);
+          }
+        })
         .catch((error) => {
           const message = error.message || "invalid_request";
           const status = message === "request_too_large" || message === "invalid_content_length" ? 413 : 502;
-          sendJson(status, { error: { message: `codex_generation_failed: ${message}`, type: status === 502 ? "server_error" : "invalid_request_error" } });
+          console.error(`[codex-image-bridge] failed ${pathname} in ${Date.now() - startedAt}ms: ${message}`);
+          if (!res.destroyed) {
+            sendJson(status, { error: { message: `codex_generation_failed: ${message}`, type: status === 502 ? "server_error" : "invalid_request_error" } });
+          }
         });
       return;
     }

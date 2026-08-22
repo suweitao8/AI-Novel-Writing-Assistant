@@ -66,9 +66,9 @@ export const CHARACTER_STATE_SHEET_NEGATIVE_PROMPT = [
   "opaque background, solid backdrop, colored background, checkerboard pattern, studio floor, ground plane",
   "text, labels, numbers, logo, watermark",
   "cropped body, cropped feet, extra limbs, malformed hands or feet",
-  "ugly, unattractive, asymmetrical facial features, gaunt, exhausted, sickly, awkward face",
+  "ugly, gaunt, exhausted, sickly, awkward face, generic template face, generic influencer face",
   "collage, poster, fashion editorial, real photograph, anime illustration",
-  "第二个人、额外人物、多人、重复人物、环境场景、房间、街道、道具堆、文字、标签、水印、裁切身体、多余肢体、畸形手脚、丑陋、低颜值、五官不对称、憔悴、病态、面部比例失衡",
+  "第二个人、额外人物、多人、重复人物、环境场景、房间、街道、道具堆、文字、标签、水印、裁切身体、多余肢体、畸形手脚、丑陋、憔悴、病态、面部比例失衡、网红脸、大众模板脸",
 ].join(", ");
 
 function clean(value: string | null | undefined): string {
@@ -112,8 +112,11 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     "PANEL 4 — BACK FULL BODY: the same person facing away in the same neutral standing pose, complete figure from the back of the head through both shoes, clearly showing the back of the hair and clothing.",
     "The four panels are the required four views in this exact order: front face, side face, front full body, back full body.",
     "IDENTITY LOCK (CRITICAL): all four panels must show the same single person, same face structure, hairline, hairstyle, hair volume, skin tone, age impression, clothing, colors, body proportions and lighting; only the camera angle and framing change.",
-    "LEADING-MAN APPEAL (HARD CONSTRAINT): this is a handsome, commercially appealing leading-man protagonist for a mainstream Chinese manhua and drama audience; use symmetrical facial proportions, clear healthy skin, well-groomed dark hair, a strong clean jawline, a straight nose, expressive attractive eyes, refined masculine features, a confident balanced posture and a lean athletic body. Make him immediately likable and aspirational, not gaunt, exhausted, sickly, awkward, or unattractive.",
-    "服装、发型与配饰默认保持干净整洁、状态如新；只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现，时代风格不得自行添加磨损或破败，也不得改变角色的俊朗面部基础、健康状态、面部比例或主角吸引力。",
+    // 好看但要有辨识度（2026-08-23 用户要求）：旧版「统一帅气男主脸」硬约束（对称五官+直鼻梁+
+    // 干净下颌线）把所有角色画成了同一张 3D 动画网红脸。好看程度改为按角色资料的身份与重要性伸缩，
+    // 长相必须来自角色资料自己的特征，资料不足时也要给出贴合身份的记忆点特征，角色之间不能撞脸。
+    "APPEAL WITH DISTINCT IDENTITY (HARD CONSTRAINT): make the character attractive and camera-ready at a level that matches their identity and story importance in the character data — protagonists and key characters should be notably good-looking, ordinary supporting characters stay pleasant but unglamorous. Build the good looks from this character's OWN facial features in the character data (face shape, brow shape, eye shape, nose bridge and tip, jawline, lip shape, hairline, skin tone) and keep any described marks such as moles, scars or freckles; when the data gives few facial details, invent specific memorable traits that fit the character's identity. Never render the generic influencer / idol-drama template face — no default pointed V-jaw plus straight narrow nose plus uniform double-eyelid big eyes unless the character data actually describes it. Two different characters of this project must never share the same face. Keep the character healthy and well-groomed, not gaunt, exhausted or sickly.",
+    "服装、发型与配饰默认保持干净整洁、状态如新；只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现，时代风格不得自行添加磨损或破败。长相的好看程度按角色资料与身份呈现，脸部特征与辨识度必须来自角色资料本身：不得改成统一的网红模板脸，也不得改变角色的面部特征、健康状态与长相辨识度。",
     referenceLine,
     "角色四视图必须是单一生产参考板；不添加环境故事或其他人物。",
     "CHARACTER DATA (follow this over any generic visual assumption):",
