@@ -293,7 +293,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
               </div>
             ) : null}
             <SceneAssetFormFields value={form} onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))} />
-            <AssetStatesEditor states={states} onChange={setStates} kind="scene" asset={editing ? { novelId, assetId: editing.id } : undefined} />
+            <AssetStatesEditor states={states} onChange={setStates} kind="scene" novelId={novelId} assetName={form.name || undefined} asset={editing ? { novelId, assetId: editing.id } : undefined} />
           </div>
         </AppDialogContent>
       </Dialog>

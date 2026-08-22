@@ -402,6 +402,24 @@ export async function generateStoryAssetStateImage(
   return data;
 }
 
+/** 按小改动指令让 AI 微调状态图片提示词（纯文本改写，不落库，结果写回表单由用户保存）。 */
+export async function tweakStoryStateImagePrompt(
+  novelId: string,
+  payload: {
+    kind: StoryAssetKind;
+    assetName?: string;
+    stateLabel?: string;
+    imagePrompt?: string;
+    instruction: string;
+  },
+) {
+  const { data } = await apiClient.post<ApiResponse<{ imagePrompt: string }>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/state-image-prompt/tweak`,
+    payload,
+  );
+  return data;
+}
+
 /** 生成或复用角色某个外观状态的音色试听，返回更新后的角色。sourceStateId=选取音色时显式指定来源状态。 */
 export async function generateStoryCharacterStateVoice(
   novelId: string,

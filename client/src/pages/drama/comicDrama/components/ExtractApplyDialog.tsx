@@ -194,17 +194,17 @@ export default function ExtractApplyDialog(props: {
             {group === "characters" ? (
               <>
                 <CharacterAssetFormFields value={characterForm} onChange={(patch) => setCharacterForm((prev) => ({ ...prev, ...patch }))} />
-                <AssetStatesEditor states={characterForm.states} onChange={(states) => setCharacterForm((prev) => ({ ...prev, states }))} kind="character" asset={editorAsset} />
+                <AssetStatesEditor states={characterForm.states} onChange={(states) => setCharacterForm((prev) => ({ ...prev, states }))} kind="character" novelId={props.novelId} assetName={characterForm.name || undefined} asset={editorAsset} />
               </>
             ) : group === "scenes" ? (
               <>
                 <SceneAssetFormFields value={sceneForm} onChange={(patch) => setSceneForm((prev) => ({ ...prev, ...patch }))} />
-                <AssetStatesEditor states={sceneForm.states} onChange={(states) => setSceneForm((prev) => ({ ...prev, states }))} kind="scene" asset={editorAsset} />
+                <AssetStatesEditor states={sceneForm.states} onChange={(states) => setSceneForm((prev) => ({ ...prev, states }))} kind="scene" novelId={props.novelId} assetName={sceneForm.name || undefined} asset={editorAsset} />
               </>
             ) : group === "props" ? (
               <>
                 <PropAssetFormFields value={propForm} onChange={(patch) => setPropForm((prev) => ({ ...prev, ...patch }))} />
-                <AssetStatesEditor states={propForm.states} onChange={(states) => setPropForm((prev) => ({ ...prev, states }))} kind="prop" asset={editorAsset} />
+                <AssetStatesEditor states={propForm.states} onChange={(states) => setPropForm((prev) => ({ ...prev, states }))} kind="prop" novelId={props.novelId} assetName={propForm.name || undefined} asset={editorAsset} />
               </>
             ) : (
               <div className="space-y-3">

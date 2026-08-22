@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
 import {
   generateStoryAssetStateImage,
   generateStoryCharacterStateVoice,
+  tweakStoryStateImagePrompt,
   updateStorySettingsCharacter,
   updateStorySettingsProp,
   updateStorySettingsScene,
@@ -114,6 +115,8 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
 // - 状态字段只有 状态名+年龄段（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
+// - 图片提示词可 AI 微调：复用旧状态提示词时，写一句要改的地方（如「去掉身上的
+//   伤」）即可，AI 只改指令涉及的部分；改完随状态一起保存，不单独落库；
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
 //   把任意其他状态已生成的音色直接拿来用——不再有「沿用上一状态」的隐式模式；
 // - 图片/音色提示词较长，用多行文本；「添加状态」在列表底部；区块不加标题。
@@ -121,14 +124,19 @@ export function AssetStatesEditor(props: {
   states: StoryAssetState[];
   onChange: (states: StoryAssetState[]) => void;
   kind: "character" | "scene" | "prop";
+  /** 提示词微调等 AI 接口按小说走，资产还没保存（没有 id）也能用。 */
+  novelId: string;
+  /** 资产名（角色名/场景名/道具名），给提示词微调当上下文；新建未命名可省略。 */
+  assetName?: string;
   /** 编辑已有资产时传入；生成与保存需要它调用接口（新建未保存的资产还没有 id） */
   asset?: { novelId: string; assetId: string };
 }) {
-  const { states, onChange, kind, asset } = props;
+  const { states, onChange, kind, novelId, assetName, asset } = props;
   const queryClient = useQueryClient();
   const [selectedStateId, setSelectedStateId] = useState<string | null>(states[0]?.id ?? null);
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [localDirty, setLocalDirty] = useState(false);
+  const [promptTweak, setPromptTweak] = useState("");
   const showVoice = kind === "character";
   const showScene = kind === "scene";
 
@@ -138,6 +146,11 @@ export function AssetStatesEditor(props: {
     }
     setSelectedStateId(states[0]?.id ?? null);
   }, [selectedStateId, states]);
+
+  // 微调指令只对当前选中的状态生效，切状态即清空。
+  useEffect(() => {
+    setPromptTweak("");
+  }, [selectedStateId]);
 
   const invalidateSettings = async () => {
     if (!asset) {
@@ -265,6 +278,30 @@ export function AssetStatesEditor(props: {
     setLocalDirty(true);
   };
 
+  // 提示词微调：AI 只改指令涉及的部分，结果写回当前状态的图片提示词（随状态一起保存）。
+  const promptTweakMutation = useMutation({
+    mutationFn: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
+      const state = states.find((item) => item.id === stateId);
+      const response = await tweakStoryStateImagePrompt(novelId, {
+        kind,
+        assetName,
+        stateLabel: state?.label?.trim() || undefined,
+        imagePrompt: state?.imagePrompt?.trim() || undefined,
+        instruction,
+      });
+      return response.data?.imagePrompt ?? "";
+    },
+    onSuccess: (imagePrompt, variables) => {
+      if (!imagePrompt) {
+        toast.error("没能改写出新的图片提示词，请换个说法再试。");
+        return;
+      }
+      updateState(variables.stateId, { imagePrompt });
+      setPromptTweak("");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "提示词改写失败，请重试。"),
+  });
+
   const addState = () => {
     const previous = states[states.length - 1];
     const id = newStateId();
@@ -306,7 +343,7 @@ export function AssetStatesEditor(props: {
       && state.voice?.status === "done"
       && Boolean(state.voice.sampleAudioUrl?.trim()))
     : [];
-  const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || saveMutation.isPending;
+  const anyPending = imageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || saveMutation.isPending || promptTweakMutation.isPending;
   const generationDisabled = !asset || anyPending;
 
   return (
@@ -492,6 +529,37 @@ export function AssetStatesEditor(props: {
                   onChange={(event) => updateState(selectedState.id, { imagePrompt: event.target.value })}
                 />
               </label>
+              <div className="flex items-center gap-2 md:col-span-2">
+                <Input
+                  value={promptTweak}
+                  className="h-8 text-xs"
+                  placeholder={kind === "character"
+                    ? "要改哪里？如：去掉身上的伤、换成黑色外套"
+                    : kind === "scene"
+                      ? "要改哪里？如：改成夜晚下雨"
+                      : "要改哪里？如：表面加一道裂痕"}
+                  disabled={anyPending}
+                  onChange={(event) => setPromptTweak(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" && promptTweak.trim() && !anyPending) {
+                      event.preventDefault();
+                      promptTweakMutation.mutate({ stateId: selectedState.id, instruction: promptTweak.trim() });
+                    }
+                  }}
+                />
+                <AiButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 shrink-0"
+                  disabled={!promptTweak.trim() || anyPending}
+                  title="按上面这句小改动，让 AI 改写图片提示词"
+                  onClick={() => promptTweakMutation.mutate({ stateId: selectedState.id, instruction: promptTweak.trim() })}
+                >
+                  {promptTweakMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                  {promptTweakMutation.isPending ? "改写中..." : "改写"}
+                </AiButton>
+              </div>
             </section>
 
             {showVoice ? (

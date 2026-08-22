@@ -669,4 +669,8 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     key: "novel.character.voice_profile@v1",
     load: () => require("../prompts/novel/characterVoiceProfile.prompts").characterVoiceProfilePrompt as UnknownPromptAsset,
   },
+  {
+    key: "novel.state_image_prompt.tweak@v1",
+    load: () => require("../prompts/novel/stateImagePromptTweak.prompts").stateImagePromptTweakPrompt as UnknownPromptAsset,
+  },
 ];

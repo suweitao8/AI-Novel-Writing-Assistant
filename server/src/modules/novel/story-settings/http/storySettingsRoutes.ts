@@ -9,6 +9,7 @@ import {
 } from "../application/StorySettingsService";
 import { storyAssetStateImageService } from "../application/StoryAssetStateImageService";
 import { storyAssetStateVoiceService } from "../application/StoryAssetStateVoiceService";
+import { storyStateImagePromptService } from "../application/StoryStateImagePromptService";
 import { worldMapService } from "../application/WorldMapService";
 import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
@@ -227,6 +228,15 @@ const ensureSchema = z.object({
 const regenerateSchema = z.object({
   category: categorySchema,
 });
+
+// 图片提示词微调：纯文本改写，不依赖已保存的资产（新建未落库也能用）。
+const stateImagePromptTweakSchema = z.object({
+  kind: z.enum(["character", "scene", "prop"]),
+  assetName: z.string().trim().max(60).optional(),
+  stateLabel: z.string().trim().max(60).optional(),
+  imagePrompt: z.string().trim().max(600).optional(),
+  instruction: z.string().trim().min(1).max(300),
+}).strict();
 
 export function registerStorySettingsRoutes(router: Router): void {
   router.get("/:id/settings/overview", validate({ params: novelParams }), async (req, res, next) => {
@@ -566,6 +576,20 @@ export function registerStorySettingsRoutes(router: Router): void {
       try {
         const { id, propId, stateId } = req.params as Record<string, string>;
         const data = await storyAssetStateImageService.generateStateImage(id, "prop", propId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /** POST /api/novels/:id/settings/state-image-prompt/tweak —— 按小改动指令 AI 微调状态图片提示词 */
+  router.post(
+    "/:id/settings/state-image-prompt/tweak",
+    validate({ params: novelParams, body: stateImagePromptTweakSchema }),
+    async (req, res, next) => {
+      try {
+        const data = await storyStateImagePromptService.tweakStateImagePrompt(String(req.params.id), req.body);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

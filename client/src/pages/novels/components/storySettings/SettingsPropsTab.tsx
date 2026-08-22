@@ -292,7 +292,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
               value={form}
               onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
             />
-            <AssetStatesEditor states={states} onChange={setStates} kind="prop" asset={editing ? { novelId, assetId: editing.id } : undefined} />
+            <AssetStatesEditor states={states} onChange={setStates} kind="prop" novelId={novelId} assetName={form.name || undefined} asset={editing ? { novelId, assetId: editing.id } : undefined} />
           </div>
         </AppDialogContent>
       </Dialog>
