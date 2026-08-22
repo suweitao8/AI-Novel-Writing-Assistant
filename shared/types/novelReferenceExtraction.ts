@@ -4,6 +4,8 @@
 // v5 起角色带结构化 gender/ageGroup/physique（应用时直接预填设定表单）；
 // v3 的 stateLabel/stateNote 提取时已不再生成，仅为已持久化的旧结果保留。
 
+import { stripAssetImagePromptNoise } from "../utils/imagePromptPurity.js";
+
 /** 资产状态生成图：状态编辑器点「生成图」后写入；按 referenceStateId 取另一状态的图当参考。 */
 export interface StoryAssetStateImage {
   status: "idle" | "generating" | "done" | "error";
@@ -134,7 +136,8 @@ export function createStoryAssetInitialState(
   input: StoryAssetStateDefaults = {},
 ): StoryAssetState {
   const description = input.description?.trim() || "资产初始状态";
-  const imagePrompt = input.imagePrompt?.trim() || description;
+  // 初始提示词可能来自旧角色字段（facePrompt/environmentPrompt…），同样过纯度剥离。
+  const imagePrompt = stripAssetImagePromptNoise(input.imagePrompt ?? "") || description;
   return {
     id: input.id?.trim() || "initial",
     label: input.label?.trim() || "初始状态",
@@ -175,7 +178,9 @@ export function normalizeStoryAssetStates(
 ): StoryAssetState[] {
   const source = (states ?? []).filter(isStoryAssetStateRecord);
   const fallbackDescription = initialState.description?.trim() || "资产初始状态";
-  const fallbackImagePrompt = initialState.imagePrompt?.trim() || fallbackDescription;
+  // 图片提示词读/写都过纯度剥离：旧版解析写进去的画风/背景/视图/时代氛围词在这里
+  // 自愈掉（存量 statesJson 在下次保存时落库为干净文本），生成链拿到的始终是纯内容。
+  const fallbackImagePrompt = stripAssetImagePromptNoise(initialState.imagePrompt ?? "") || fallbackDescription;
   const working = source.length > 0
     ? source.map((state, index) => {
       const description = typeof state.description === "string" && state.description.trim()
@@ -186,8 +191,8 @@ export function normalizeStoryAssetStates(
         id: state.id.trim(),
         label: state.label.trim(),
         description,
-        imagePrompt: typeof state.imagePrompt === "string" && state.imagePrompt.trim()
-          ? state.imagePrompt.trim()
+        imagePrompt: typeof state.imagePrompt === "string"
+          ? stripAssetImagePromptNoise(state.imagePrompt) || (index === 0 ? fallbackImagePrompt : description)
           : (index === 0 ? fallbackImagePrompt : description),
         ...(index === 0 && state.sceneType === undefined && initialState.sceneType !== undefined
           ? { sceneType: initialState.sceneType }

@@ -12,10 +12,10 @@ const { hasRegisteredPromptAsset } = require("../dist/prompting/registry.js");
 
 test("stateImagePromptTweak 已注册且为结构化输出", () => {
   assert.equal(stateImagePromptTweakPrompt.id, "novel.state_image_prompt.tweak");
-  assert.equal(stateImagePromptTweakPrompt.version, "v1");
+  assert.equal(stateImagePromptTweakPrompt.version, "v2");
   assert.equal(stateImagePromptTweakPrompt.mode, "structured");
-  assert.ok(promptAssetLoaderEntries.some((entry) => entry.key === "novel.state_image_prompt.tweak@v1"));
-  assert.ok(hasRegisteredPromptAsset("novel.state_image_prompt.tweak", "v1"));
+  assert.ok(promptAssetLoaderEntries.some((entry) => entry.key === "novel.state_image_prompt.tweak@v2"));
+  assert.ok(hasRegisteredPromptAsset("novel.state_image_prompt.tweak", "v2"));
 });
 
 test("输出 schema：imagePrompt 4～600 字，多余字段拒绝", () => {
@@ -46,4 +46,11 @@ test("render 携带当前提示词与指令，系统消息要求轻微修改", (
 test("postValidate 拒绝过短输出", () => {
   assert.throws(() => stateImagePromptTweakPrompt.postValidate({ imagePrompt: "太短" }));
   assert.doesNotThrow(() => stateImagePromptTweakPrompt.postValidate({ imagePrompt: "青年男性全身像，脸上无伤" }));
+});
+
+test("postValidate 出口剥离画风/背景/视图/时代氛围词（v2）", () => {
+  const output = stateImagePromptTweakPrompt.postValidate({
+    imagePrompt: "青年男性，黑色短发，深色夹克，脸上无伤，写实动漫风格，纯白背景",
+  });
+  assert.equal(output.imagePrompt, "青年男性，黑色短发，深色夹克，脸上无伤");
 });

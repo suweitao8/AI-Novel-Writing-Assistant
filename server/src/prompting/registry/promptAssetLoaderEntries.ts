@@ -38,7 +38,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/chapterDetailOutline.prompts").chapterDetailOutlinePrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.chapter.reference_parse@v10",
+    key: "novel.chapter.reference_parse@v11",
     load: () => require("../prompts/novel/chapterReferenceParse.prompts").chapterReferenceParsePrompt as UnknownPromptAsset,
   },
     {
@@ -674,7 +674,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/characterVoiceProfile.prompts").characterVoiceProfilePrompt as UnknownPromptAsset,
   },
   {
-    key: "novel.state_image_prompt.tweak@v1",
+    key: "novel.state_image_prompt.tweak@v2",
     load: () => require("../prompts/novel/stateImagePromptTweak.prompts").stateImagePromptTweakPrompt as UnknownPromptAsset,
   },
 ];
