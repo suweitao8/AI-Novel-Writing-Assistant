@@ -666,6 +666,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/world/world.prompts").worldAxiomSuggestionPrompt as UnknownPromptAsset,
   },
   {
+    key: "drama.visual.era_style_judge@v1",
+    load: () => require("../prompts/drama/eraStyleJudge.prompts").eraStyleJudgePrompt as UnknownPromptAsset,
+  },
+  {
     key: "novel.character.voice_profile@v1",
     load: () => require("../prompts/novel/characterVoiceProfile.prompts").characterVoiceProfilePrompt as UnknownPromptAsset,
   },

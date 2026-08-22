@@ -1,7 +1,9 @@
 // 漫剧画面风格的统一解析入口：把「三类资产画风（系统级）+ 时代风格（题材层）」
 // 组合成生成侧可直接使用的上下文。资产图、状态图与首帧图都从这里取风格，保证一致。
 //
-// 时代风格解析优先级（2026-08-21 用户决定：脚本切换是主入口，切换后后面都用新的）：
+// 时代风格解析优先级：
+//   0. 【本次生成带剧情上下文时】AI 按剧情文本判定（2026-08-22 用户要求）——故事有时代推进，
+//      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 1-4 链
 //   1. 章节脚本【画风：名】标记——从最新章节往前找最近一次标记（新章节无标记=沿用上一次）
 //   2. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
 //   3. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
@@ -22,10 +24,19 @@ import {
   type DramaAssetVisualStyle,
   type DramaSpecificStyle,
 } from "./dramaVisualStyles";
+import { judgeEraStyle, type JudgeEraStyleFn } from "./eraStyleJudge";
 
 export interface ResolvedDramaArtStyle {
   assets: Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
   specific: DramaSpecificStyle | null;
+}
+
+/** 按剧情判定时代风格的上下文（2026-08-22 用户要求）：带剧情文本的生成点用。 */
+export interface DramaScriptStyleJudgeInput {
+  /** 本次生成对象描述（如「叶竹 · 初始状态 状态图」「第12镜 首帧（叶城大学宿舍）」）。 */
+  target: string;
+  /** 该故事节点附近的剧情文本（章节脚本 / 集正文与镜头画面台词）。 */
+  scriptExcerpt: string;
 }
 
 export interface ResolveDramaArtStyleInput {
@@ -33,6 +44,10 @@ export interface ResolveDramaArtStyleInput {
   visualStyle?: string | null;
   /** 分镜项目的小说引用（DramaProject.sourceRef，source=novel_import 时为 novelId）。 */
   sourceRef?: string | null;
+  /** 提供时由 AI 按剧情文本从可选风格里选本段所处的时代风格，覆盖全局链结果。 */
+  scriptJudge?: DramaScriptStyleJudgeInput | null;
+  /** 判定函数注入（测试用）；缺省走真实 LLM 判定。 */
+  judgeFn?: JudgeEraStyleFn;
 }
 
 interface NovelArtStylesRecord {
@@ -119,19 +134,62 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
   if (scriptKey) {
     const specific = matchDramaEraStyle(scriptKey, novelArtStyles.artStyles);
     if (specific) {
-      return { assets, specific };
+      return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, scriptKey, novelArtStyles.artStyles) };
     }
   }
 
   const chosen = input.visualStyle?.trim();
   if (chosen) {
-    return { assets, specific: matchSpecificStyle(chosen, novelArtStyles.artStyles) };
+    return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, chosen, novelArtStyles.artStyles) };
   }
 
   if (!novelArtStyles.defaultArtStyle) {
-    return { assets, specific: null };
+    return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, null, novelArtStyles.artStyles) };
   }
-  return { assets, specific: matchSpecificStyle(novelArtStyles.defaultArtStyle, novelArtStyles.artStyles) };
+  return {
+    assets,
+    specific: await resolveSpecificWithScriptJudge(input, novelId, novelArtStyles.defaultArtStyle, novelArtStyles.artStyles),
+  };
+}
+
+// 全局链解析出 specific 后，若本次生成带剧情上下文，交给 AI 按剧情文本重判：
+// 判定命中可选风格则覆盖；失败/未提供上下文时原样返回（判定是增强不是门槛）。
+async function resolveSpecificWithScriptJudge(
+  input: ResolveDramaArtStyleInput,
+  novelId: string | null,
+  chainKey: string | null,
+  customStyles: DramaSpecificStyle[],
+): Promise<DramaSpecificStyle | null> {
+  const chainSpecific = chainKey ? matchDramaEraStyle(chainKey, customStyles) : null;
+  const excerpt = input.scriptJudge?.scriptExcerpt?.trim();
+  if (!excerpt) {
+    return chainSpecific;
+  }
+  const availableStyles = [
+    ...DRAMA_VISUAL_STYLE_PRESETS.map((preset) => ({ key: preset.id, label: preset.label, summary: preset.summary })),
+    ...customStyles.map((style) => ({
+      key: style.label,
+      label: style.label,
+      summary: style.styleInstructions.slice(0, 80),
+    })),
+  ];
+  const judge = input.judgeFn ?? judgeEraStyle;
+  const judged = await judge({
+    ...(novelId ? { novelId } : {}),
+    target: input.scriptJudge?.target ?? "",
+    scriptExcerpt: excerpt,
+    availableStyles,
+    defaultKey: chainKey,
+  });
+  if (!judged) {
+    return chainSpecific;
+  }
+  const judgedSpecific = matchDramaEraStyle(judged.styleKey, customStyles);
+  if (judgedSpecific) {
+    console.log(`[era-style-judge] ${input.scriptJudge?.target ?? ""} → ${judged.styleKey}（${judged.reason}）`);
+    return judgedSpecific;
+  }
+  return chainSpecific;
 }
 
 // 当前生效时代风格的总览（供「脚本」页签显示与切换）：source 说明它来自哪里——

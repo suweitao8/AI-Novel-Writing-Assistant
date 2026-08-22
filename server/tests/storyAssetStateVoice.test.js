@@ -35,7 +35,7 @@ test("生成新音色优先使用状态提示词并传递角色名", () => {
   assert.deepEqual(buildStateVoiceSynthesisInput({ name: "林澈", voiceTexture: "基础低沉" }, {
     id: "s2", voicePrompt: "老年沙哑", description: "白发",
   }), {
-    text: "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。",
+    text: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
     audioType: "dialogue",
     speaker: "林澈",
     emotion: "老年沙哑",

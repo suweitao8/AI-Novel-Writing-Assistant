@@ -459,6 +459,39 @@ function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: S
   return lines;
 }
 
+/** 镜头的剧情上下文：本镜地点/画面/台词最优先（判定「当下」），再补所在集正文的窗口。 */
+function buildShotScriptJudge(shot: {
+  order: number;
+  location: string | null;
+  action: string;
+  dialogue: string | null;
+  visualPrompt?: string | null;
+  storyboard: { episode?: { order: number; content: string | null } | null };
+}): { target: string; scriptExcerpt: string } | null {
+  const localLines = [
+    shot.location ? `地点：${shot.location}` : "",
+    `画面内容：${shot.action}`,
+    shot.dialogue ? `台词：${shot.dialogue}` : "",
+    shot.visualPrompt?.trim() ? `画面提示词：${shot.visualPrompt.trim()}` : "",
+  ].filter(Boolean);
+  const episodeText = shot.storyboard.episode?.content?.trim() ?? "";
+  const episodeWindow = episodeText.length > 2400
+    ? `${episodeText.slice(0, 1600)}……${episodeText.slice(-600)}`
+    : episodeText;
+  const excerpt = [
+    ...localLines,
+    episodeWindow ? `本集正文：${episodeWindow}` : "",
+  ].filter(Boolean).join("\n").slice(0, 3000);
+  if (!excerpt.trim()) {
+    return null;
+  }
+  const episodeNo = shot.storyboard.episode?.order;
+  return {
+    target: `第${episodeNo ? `${episodeNo}集 ` : ""}第${shot.order}镜 首帧${shot.location ? `（${shot.location}）` : ""}`,
+    scriptExcerpt: excerpt,
+  };
+}
+
 function buildShotKeyframePrompt(
   shot: ShotKeyframeSource,
   styleLines: string[],
@@ -496,6 +529,7 @@ export class DramaShotKeyframeService {
         storyboard: {
           include: {
             project: { include: { characters: true } },
+            episode: { select: { order: true, content: true } },
           },
         },
       },
@@ -504,9 +538,12 @@ export class DramaShotKeyframeService {
       throw new AppError(`未找到短剧镜头：${shotId}`, 404);
     }
 
+    // 时代风格逐镜判定（2026-08-22 用户要求）：镜头画面/台词 + 所在集正文作为剧情上下文，
+    // AI 判断这一镜处于什么时代（切换场景时可能需要切换风格），失败回落全局链。
     const styleContext = await resolveDramaArtStyleContext({
       visualStyle: shot.storyboard.project.visualStyle,
       sourceRef: shot.storyboard.project.sourceRef,
+      scriptJudge: buildShotScriptJudge(shot),
     });
     const settings = await resolveNovelSettingSources(shot.storyboard.project);
     const novelStatesByName = shot.storyboard.project.source === "novel_import" && shot.storyboard.project.sourceRef?.trim()
