@@ -17,7 +17,10 @@ import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
 } from "../../../../services/drama/visual/dramaVisualStyles";
-import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
+import {
+  resolveAssetImageProvider,
+  TRANSPARENT_IMAGE_OPTIONS,
+} from "../../../../services/image/assetProviderRouting";
 
 const SCENE_DIR = "scenes";
 const PROP_DIR = "props";
@@ -123,7 +126,8 @@ function buildPropViewPrompt(prop: { name: string; visualPrompt: string | null }
   const lines: string[] = [
     `single prop design reference: ${prop.name}`,
     "one object only, centered, 45-degree three-quarter perspective view",
-    "clear silhouette with material, texture and color detail, neutral studio background",
+    "clear silhouette with material, texture and color detail",
+    "fully transparent background, genuine PNG alpha channel, no backdrop color, no checkerboard pattern, no studio floor",
   ];
   if (prop.visualPrompt?.trim()) {
     lines.push(`prop description: ${prop.visualPrompt.trim()}`);
@@ -185,6 +189,7 @@ export class StoryAssetImageService {
       prompt,
       size: IMAGE_SPECS.characterAsset,
       negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.prop, styleContext.specific),
+      ...TRANSPARENT_IMAGE_OPTIONS,
     });
     const row = await prisma.novelProp.findUnique({ where: { id: propId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);

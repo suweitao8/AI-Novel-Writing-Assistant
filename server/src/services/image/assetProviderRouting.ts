@@ -1,10 +1,24 @@
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { getImageModelProvider } from "../../llm/modelCategories";
+import type { ImageBackground, ImageOutputFormat } from "./types";
 
 export type BaseAssetImageKind = "character" | "scene" | "prop";
 
 export const GROK_BUILD_IMAGE_PROVIDER = "grok_build" as const;
 export const REFERENCE_IMAGE_PROVIDER = "codex" as const;
+
+/**
+ * 角色/道具参考图统一透明底（2026-08-22 用户决定）：底图要能直接叠进分镜首帧，
+ * 透明 PNG 是唯一好用的形态，而透明背景只有 Codex 图片通道（订阅额度）做得稳定。
+ * 这两类资产参考图不再按「有无参考图」分流，一律走 Codex；场景全景仍按原路由。
+ */
+export const TRANSPARENT_BACKGROUND_KINDS: ReadonlySet<BaseAssetImageKind> = new Set(["character", "prop"]);
+
+/** 透明底资产参考图的生成参数（PNG 才有 alpha 通道）。 */
+export const TRANSPARENT_IMAGE_OPTIONS: { background: ImageBackground; outputFormat: ImageOutputFormat } = {
+  background: "transparent",
+  outputFormat: "png",
+};
 
 /**
  * Grok Build is the default image channel, but its prompt-only bridge cannot
@@ -28,5 +42,8 @@ export function resolveAssetImageProvider(input: {
   kind: BaseAssetImageKind;
   hasReference: boolean;
 }): LLMProvider {
+  if (TRANSPARENT_BACKGROUND_KINDS.has(input.kind)) {
+    return REFERENCE_IMAGE_PROVIDER;
+  }
   return resolveImageProviderForReferences(input.hasReference, getImageModelProvider());
 }

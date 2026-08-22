@@ -47,7 +47,10 @@ import {
   normalizeSceneStates,
   updateStoryAssetStateJsonWithCas,
 } from "./StorySettingsStatePolicy";
-import { resolveAssetImageProvider } from "../../../../services/image/assetProviderRouting";
+import {
+  resolveAssetImageProvider,
+  TRANSPARENT_IMAGE_OPTIONS,
+} from "../../../../services/image/assetProviderRouting";
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
@@ -258,7 +261,11 @@ export function buildStateImagePrompt(
         "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
         "narrative living subjects remain off-screen and may appear only as environmental traces",
       ]
-      : []),
+      : [
+        // 角色/道具参考图统一透明底（2026-08-22）：底图要能直接叠进分镜首帧。
+        "fully transparent background, genuine PNG alpha channel",
+        "no backdrop color, no solid fill, no checkerboard pattern, no studio floor, no ground shadow",
+      ]),
     "clean composition, strong subject focus",
     "no text, no watermark, no subtitles, no logo",
   ];
@@ -417,6 +424,9 @@ export class StoryAssetStateImageService {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
     const resolvedReference = resolveStateReferenceImage(states, state);
     const referenceUrl = resolvedReference?.url ?? null;
+    // 参考图优先传本地文件（provider 走 multipart /images/edits）：codex 桥的 JSON 生成路径
+    // 不解析 input_image_url，传 URL 会静默丢参考；本地文件是唯一可靠形态。
+    const referenceFile = resolvedReference ? await this.resolveStateImagePath(resolvedReference.stateId) : null;
     const effectiveReferenceStateId = resolvedReference?.stateId ?? null;
     const referencedLabel = referenceUrl
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
@@ -479,7 +489,8 @@ export class StoryAssetStateImageService {
         size: IMAGE_SPECS.characterSheet,
         sceneType: "character",
         negativePrompt: [CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, negativePrompt].filter(Boolean).join(", "),
-        ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
+        ...TRANSPARENT_IMAGE_OPTIONS,
+        ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceImages ? { referenceImages } : {}),
       });
     } else {
@@ -499,7 +510,8 @@ export class StoryAssetStateImageService {
         prompt,
         size: IMAGE_SPECS.characterAsset,
         negativePrompt,
-        ...(referenceUrl ? { refImages: [referenceUrl] } : {}),
+        ...(kind === "prop" ? TRANSPARENT_IMAGE_OPTIONS : {}),
+        ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceUrl && referencedLabel
           ? { referenceImages: [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta] }
           : {}),

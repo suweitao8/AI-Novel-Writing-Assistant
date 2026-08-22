@@ -140,11 +140,18 @@ function buildAgentPrompt(input) {
     ? "Use the attached reference images as identity and design references; preserve the relevant subjects while following the visual brief."
     : "There are no reference images; construct the scene from the visual brief.";
   const qualityText = input.quality ? `Quality target: ${input.quality}.` : "Use the highest practical quality.";
+  // OpenAI Images 兼容参数里只有 transparent 需要桥接翻译：CLI 的图片工具没有 background 字段，
+  // 透明底靠 agent prompt 明确要求真 alpha 通道的 PNG（2026-08-22：角色/道具资产参考图统一透明底）。
+  const transparentInstruction = input.transparent
+    ? "The background must be fully transparent: deliver a PNG with a genuine alpha channel, "
+      + "no backdrop color, no solid fill, no checkerboard pattern, no gradient background and no "
+      + "ground/floor plane; keep only the requested subjects with clean anti-aliased edges. "
+    : "";
   return (
     "Use the built-in image_generation tool exactly once. Generate exactly one final image "
     + "and do not return a textual substitute, code, or a second variation. "
     + `The final image must use aspect ratio ${input.aspectRatio} and target size ${input.imageSize}. `
-    + `${qualityText} ${referenceInstruction}\n\n`
+    + `${qualityText} ${transparentInstruction}${referenceInstruction}\n\n`
     + "Visual brief:\n"
     + String(input.prompt || "").trim()
   ).trim();
@@ -387,7 +394,7 @@ async function main() {
   const executable = resolveCodexExecutable();
   const executableAvailable = Boolean(executable);
 
-  async function generateOne({ prompt, aspectRatio, imageSize, quality, references }) {
+  async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references }) {
     const workdir = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-image-bridge-"));
     try {
       const referencePaths = [];
@@ -405,6 +412,7 @@ async function main() {
         aspectRatio,
         imageSize,
         quality,
+        transparent,
         agentModel: args.agentModel,
         timeoutMs: args.timeoutSeconds * 1000,
       }));
@@ -469,13 +477,14 @@ async function main() {
           ).trim();
           const imageSize = String(fields.image_size || fields.size || "1K").trim();
           const quality = String(fields.quality || "").trim();
+          const transparent = String(fields.background || "").trim().toLowerCase() === "transparent";
           const responseFormat = String(fields.response_format || "b64_json");
           const count = Math.max(1, Math.min(Number(fields.n || 1) || 1, 4));
           console.log(`[codex-image-bridge] ${pathname} prompt_len=${prompt.length} refs=${references.length} n=${count} aspect=${aspectRatio}`);
 
           const images = [];
           for (let index = 0; index < count; index += 1) {
-            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, references });
+            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references });
             images.push(toDataItem(imageBytes, responseFormat));
           }
           return { status: 200, payload: { created: Math.floor(Date.now() / 1000), data: images } };

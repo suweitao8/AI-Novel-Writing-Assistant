@@ -10,13 +10,13 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - **该供应商只用于图片**：桥上没有 `/v1/chat/completions`，文本任务路由到 codex 会得到明确 404；`capabilities.ts` 中 codex 的 JSON 能力声明为全 false。
 - 图片模型走 `ProviderImageSettingsService` 的既有通道：`ImageModelProvider` 增加 `codex`，选项 `gpt-image-2`，env 读取 `CODEX_IMAGE_MODEL`，持久化在 `AppSetting`（key `provider.imageModel.codex`）。
 - 桥接实现为仓库内零依赖 Node 脚本（`scripts/codex-image-bridge.cjs`），从 mydrama 的 Python 桥移植，协议一致；启动器 `scripts/start-codex-image-bridge.cjs` 对应 `pnpm codex:image`。
-- Codex 桥保留为参考图兼容通道：它支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality` 与参考图（multipart `/images/edits`）。当前无参考图的角色、场景、道具和封面默认走 Grok Build；带参考图的任务才由路由回退到 Codex。Grok Build 固定输出 16:9 横版，因此仍不承担参考图编辑与需要其他画幅的请求。
+- Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality`、参考图（multipart `/images/edits`）与透明背景。**2026-08-22 起角色与道具的资产参考图（状态图/四视图/道具透视图）一律走 Codex 并要求透明底**：CLI 图片工具没有 `background` 字段，桥把 `background=transparent` 翻译成 agent prompt 硬约束（真 alpha 通道 PNG，禁止实底/棋盘格/地面），应用侧提示词与 `TRANSPARENT_IMAGE_OPTIONS`（background=transparent + output_format=png）双保险。Grok Build 固定输出 16:9 横版且不支持透明底与参考图编辑，仍只承担场景全景与无参考图封面。
 
 ## 当前规则
 
 - 端口约定：`18766` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）。
-- 业务路由只有在请求包含参考图时才选择该桥；无参考图请求默认使用 `grok_build`，不要在新调用点把 Codex 写成无条件默认值。
-- 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, response_format}`，`size` 会被翻译成宽高比与目标尺寸写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI。
+- 业务路由规则（2026-08-22 起）：`resolveAssetImageProvider` 里 kind=character/prop（资产参考图）无条件走 Codex；kind=scene 与无参考图封面默认 `grok_build`，带参考图回退 Codex。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
+- 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI（应用侧参考图必须传本地文件路径——JSON 生成路径不解析 `input_image_url`，传 URL 会静默丢参考）。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。
 - 应用侧图片请求超时（`IMAGE_GENERATION_HTTP_TIMEOUT_MS`，默认 300 秒）需要覆盖本地生成时长，本地开发建议设 900000。

@@ -12,10 +12,29 @@ const {
 } = require("../dist/services/image/provider.js");
 const { getImageModelOptions } = require("../dist/services/settings/ProviderImageSettingsService.js");
 
-test("base character, scene and prop assets use Grok Build without references", () => {
-  assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: false }), "grok_build");
+test("character and prop asset references stay on Codex for transparent output; scenes default to Grok Build", () => {
+  // 2026-08-22：角色/道具参考图统一透明底，只有 Codex 通道稳定支持，不再按有无参考图分流。
+  assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: false }), "codex");
+  assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: true }), "codex");
+  assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: false }), "codex");
+  assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: true }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: false }), "grok_build");
-  assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: false }), "grok_build");
+  assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: true }), "codex");
+});
+
+test("Codex request body carries transparent background and png output format", () => {
+  const body = buildImageGenerationRequestBody({
+    sceneType: "character",
+    provider: "codex",
+    model: "gpt-image-2",
+    prompt: "transparent character board",
+    size: "1536x1024",
+    count: 1,
+    background: "transparent",
+    outputFormat: "png",
+  });
+  assert.equal(body.background, "transparent");
+  assert.equal(body.output_format, "png");
 });
 
 test("reference-backed asset generation stays on the compatible image provider", () => {

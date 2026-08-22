@@ -103,6 +103,8 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       ...(opts.negativePrompt ? { negativePrompt: opts.negativePrompt } : {}),
       size: opts.size ?? DEFAULT_RUNTIME_SIZE,
       count: opts.count ?? 1,
+      ...(opts.background ? { background: opts.background } : {}),
+      ...(opts.outputFormat ? { outputFormat: opts.outputFormat } : {}),
       ...(opts.refImagePaths && opts.refImagePaths.length > 0 ? { refImagePaths: opts.refImagePaths } : {}),
       ...(opts.refImages && opts.refImages.length > 0 ? { refImages: opts.refImages } : {}),
     });

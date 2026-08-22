@@ -253,6 +253,13 @@ async function generateWithFileRef(
   form.append("n", String(input.count));
   if (input.provider !== "grok") {
     form.append("size", input.size);
+    // 透明底等输出要求在 edits 路径同样透传（gpt-image 系 API 支持）。
+    if (input.background && input.background !== "auto") {
+      form.append("background", input.background);
+    }
+    if (input.outputFormat) {
+      form.append("output_format", input.outputFormat);
+    }
   }
   // 将文件以 image 字段上传，OpenAI /images/edits 兼容格式
   form.append("image", blob, path.basename(refImagePath));
