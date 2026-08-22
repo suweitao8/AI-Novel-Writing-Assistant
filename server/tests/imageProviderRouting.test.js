@@ -12,13 +12,14 @@ const {
 } = require("../dist/services/image/provider.js");
 const { getImageModelOptions } = require("../dist/services/settings/ProviderImageSettingsService.js");
 
-test("character and prop asset references stay on Codex for transparent output; scenes default to Grok Build", () => {
+test("character and prop asset references stay on Codex for transparent output; scenes too for 2:1 panoramas", () => {
   // 2026-08-22：角色/道具参考图统一透明底，只有 Codex 通道稳定支持，不再按有无参考图分流。
+  // 2026-08-23：场景全景要 2:1 等距柱状比例，grok_build 固定 1280x720 出不了，同样统一 Codex。
   assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: false }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "character", hasReference: true }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: false }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "prop", hasReference: true }), "codex");
-  assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: false }), "grok_build");
+  assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: false }), "codex");
   assert.equal(resolveAssetImageProvider({ kind: "scene", hasReference: true }), "codex");
 });
 

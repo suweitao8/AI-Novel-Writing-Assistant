@@ -45,5 +45,10 @@ export function resolveAssetImageProvider(input: {
   if (TRANSPARENT_BACKGROUND_KINDS.has(input.kind)) {
     return REFERENCE_IMAGE_PROVIDER;
   }
+  // 场景全景要 2:1 等距柱状比例（2026-08-23 用户要求）：grok_build 固定输出 1280x720，
+  // 只有 Codex 能按任意宽高比出图，场景图与角色/道具一样统一走 Codex 订阅通道。
+  if (input.kind === "scene") {
+    return REFERENCE_IMAGE_PROVIDER;
+  }
   return resolveImageProviderForReferences(input.hasReference, getImageModelProvider());
 }
