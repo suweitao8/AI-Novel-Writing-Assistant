@@ -133,7 +133,7 @@ function validateChapterReferenceParse(output: ChapterReferenceParseOutput): Cha
 
 export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromptInput, ChapterReferenceParseOutput> = {
   id: "novel.chapter.reference_parse",
-  version: "v9",
+  version: "v10",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -162,7 +162,7 @@ export const chapterReferenceParsePrompt: PromptAsset<ChapterReferenceParsePromp
       "- imagePrompt＝图片提示词（角色形象，中文，80～150 字）：只写「这个人长什么样」——性别年龄段、发型发色、五官特点（脸型/眼睛/肤色，如 黑色短发、瓜子脸、丹凤眼）、体型、服装配饰、气质神态，照着就能画出这个人。画风、背景、视图一律由系统统一管理，提示词里禁止出现：画风/风格/渲染类词（写实、动漫、CG、3D、虚幻引擎、高清等），背景类词（纯白背景、白底、透明背景等），视图/构图规格（全身像、四视图、特写、正面等）；也不要写动作场景。",
       "- voicePrompt＝音色提示词（中文，30～60 字）：音高（低沉/清亮）、音质（沙哑/柔/冷）、说话气质（如 急躁少年音/疲惫沙哑的中年男声），按角色身份与言行推测。",
       "scenes＝场景地点（每个独立空间都算）：name＝具体地点名——与 segments 里用的 scene 名逐字一致，带归属或特征限定（如 叶城大学宿舍，不写 卧室 这类通用词，一般 4～12 字），已有的 existingScenes 名单优先沿用；description＝环境特征一句话（列表摘要用）；timeOfDay/weather 是结构化字段：时间按 morning（早上）/noon（中午）/night（晚上）输出、天气按 sunny（晴天）/cloudy（阴天）/rainy（雨天）输出——按这个场景在原文里的常态推断（一个场景多次出现就按主要时段），原文写不出就填 null；imagePrompt＝图片提示词（场景环境，中文，60～120 字）：光线、空间结构、材质与氛围——时间与天气已走结构化字段，不在此重复；画风由系统统一管理，禁止出现画风/风格/渲染类词（写实、动漫、CG、3D 等）与画幅/构图规格（全景、360 度等）。",
-      "props＝重要道具（武器/信物/关键物品，路人杂物不算）：name＝物品名；description＝用途与来历一句话；imagePrompt＝图片提示词（道具实物，中文，40～80 字）：只写物件本身的材质、颜色、造型、磨损与细节；背景与画风由系统统一管理，禁止出现背景类词（中性背景、白底等）、画风/风格类词与视图规格（45 度透视等）。",
+      "props＝重要道具（武器/信物/关键物品，路人杂物不算）：name＝物品名；description＝用途与来历一句话；imagePrompt＝图片提示词（道具实物，中文，40～80 字）：只写这一件道具本身——材质、颜色、造型比例、工艺细节、磨损痕迹、表面文字图案等，写具体写满，它是成图的唯一主体；道具周围的环境与其它物品（抹布、桌面、地面、附近杂物等）一律不写，它们属于场景；背景与画风由系统统一管理，禁止出现背景类词（中性背景、白底等）、画风/风格类词与视图规格（45 度透视等）。",
       "worldview＝世界观条目：力量体系、金手指/系统、势力组织、关键规则、时代背景等（name＝条目名，description＝一句话说明），不需要提示词。",
       "每类上限：characters 16、scenes 16、props 12、worldview 16；原文里确实没有的类别返回空数组。外观状态不在解析环节生成（用户手动管理），提示词一律写资产当前的初始形象。",
       "严禁把「示例文本」等占位内容原样输出——每一条都必须来自原文。所有内容用中文。只输出严格 JSON。",

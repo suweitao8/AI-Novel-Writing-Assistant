@@ -25,6 +25,7 @@ import {
   CharacterAssetFormFields,
   createInitialCharacterState,
   EMPTY_CHARACTER_FORM,
+  normalizeStatesForSave,
   type CharacterAssetFormState,
 } from "./assetForms";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -98,7 +99,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       const payload = {
         name: form.name.trim(),
         gender: form.gender || undefined,
-        states: prepareCharacterStatesForSave(states, form, creating),
+        states: normalizeStatesForSave(prepareCharacterStatesForSave(states, form, creating)),
       };
       return editing
         ? updateStorySettingsCharacter(novelId, editing.id, {

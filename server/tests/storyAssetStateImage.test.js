@@ -77,6 +77,10 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.doesNotMatch(scene, /fully transparent background/);
   // 旧提示词里的风格/背景/视图词只是内容描述，不改变渲染方向与背景规则。
   assert.match(prop, /metadata only/);
+  // 2026-08-22：道具只渲染道具本身，描述/提示词里的其它物品与环境不进画面。
+  assert.match(prop, /render exactly one prop/);
+  assert.match(prop, /other objects, surfaces or scenery mentioned in the state description or image prompt are context metadata only/);
+  assert.doesNotMatch(scene, /render exactly one prop/);
 });
 
 test("场景状态提示词会把叙事里的生物改写为环境痕迹", () => {

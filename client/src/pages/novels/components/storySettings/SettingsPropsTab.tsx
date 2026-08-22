@@ -23,6 +23,7 @@ import {
   AssetStatesEditor,
   createInitialPropState,
   EMPTY_PROP_FORM,
+  normalizeStatesForSave,
   PropAssetFormFields,
   type PropAssetFormState,
 } from "./assetForms";
@@ -94,7 +95,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
   const saveMutation = useMutation({
     mutationFn: () => {
       const name = form.name.trim();
-      const savedStates = preparePropStatesForSave(states, form, creating);
+      const savedStates = normalizeStatesForSave(preparePropStatesForSave(states, form, creating));
       const initial = savedStates[0];
       return editing
         ? updateStorySettingsProp(novelId, editing.id, {

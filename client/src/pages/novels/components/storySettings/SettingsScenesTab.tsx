@@ -23,6 +23,7 @@ import {
   AssetStatesEditor,
   createInitialSceneState,
   EMPTY_SCENE_FORM,
+  normalizeStatesForSave,
   SceneAssetFormFields,
   type SceneAssetFormState,
 } from "./assetForms";
@@ -93,7 +94,7 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const savedStates = prepareSceneStatesForSave(states, form, creating);
+      const savedStates = normalizeStatesForSave(prepareSceneStatesForSave(states, form, creating));
       const initial = savedStates[0];
       const compatibilityFields = {
         sceneType: initial?.sceneType ?? null,
