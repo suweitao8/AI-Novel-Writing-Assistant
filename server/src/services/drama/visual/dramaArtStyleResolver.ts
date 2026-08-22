@@ -2,12 +2,15 @@
 // 组合成生成侧可直接使用的上下文。资产图、状态图与首帧图都从这里取风格，保证一致。
 //
 // 时代风格解析优先级：
-//   0. 【本次生成带剧情上下文时】AI 按剧情文本判定（2026-08-22 用户要求）——故事有时代推进，
-//      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 1-4 链
-//   1. 章节脚本【画风：名】标记——从最新章节往前找最近一次标记（新章节无标记=沿用上一次）
-//   2. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
-//   3. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
-//   4. 都没有 → 只用三类资产默认画风
+//   0. 本次生成点显式指定的时代风格（pinnedStyle）——状态图的自选风格字段。
+//      双穿/时代推进的书同一资产在不同时代各有一套状态，用户给状态选定的风格
+//      是最高优先级，直接采用不再判定；悬空引用（风格已删）回落 1-4 链
+//   1. 【本次生成带剧情上下文时】AI 按剧情文本判定（2026-08-22 用户要求）——故事有时代推进，
+//      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 2-4 链
+//   2. 章节脚本【画风：名】标记——从最新章节往前找最近一次标记（新章节无标记=沿用上一次）
+//   3. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
+//   4. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
+//   5. 都没有 → 只用三类资产默认画风
 // 自定义风格名的提示词存在 NovelSettingsWorld.artStylesJson（[{label,prompt}]，身份=label）；
 // 解析逻辑与 StorySettingsService.parseArtStyles 同语义（本模块不 import 小说侧服务，避免
 // 跨模块深依赖，两边契约由 tests/dramaArtStyle.test.js 与 story-settings 测试共同锁定）。
@@ -44,6 +47,9 @@ export interface ResolveDramaArtStyleInput {
   visualStyle?: string | null;
   /** 分镜项目的小说引用（DramaProject.sourceRef，source=novel_import 时为 novelId）。 */
   sourceRef?: string | null;
+  /** 本次生成点显式指定的时代风格（内置预设 id/label 或自定义风格名）：命中可选风格时
+   *  直接采用（跳过剧情判定与全局链）；悬空引用回落常规链。 */
+  pinnedStyle?: string | null;
   /** 提供时由 AI 按剧情文本从可选风格里选本段所处的时代风格，覆盖全局链结果。 */
   scriptJudge?: DramaScriptStyleJudgeInput | null;
   /** 判定函数注入（测试用）；缺省走真实 LLM 判定。 */
@@ -129,6 +135,16 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
   const novelArtStyles = novelId
     ? await loadNovelArtStyles(novelId)
     : { artStyles: [] as DramaSpecificStyle[], defaultArtStyle: null };
+
+  // 用户给生成点显式选定的时代风格（状态图的自选字段）：直接采用，不再判定。
+  // 匹配不到可选风格（如自定义风格已删）时按悬空引用处理，回落常规链。
+  const pinned = input.pinnedStyle?.trim();
+  if (pinned) {
+    const pinnedSpecific = matchDramaEraStyle(pinned, novelArtStyles.artStyles);
+    if (pinnedSpecific) {
+      return { assets, specific: pinnedSpecific };
+    }
+  }
 
   const scriptKey = novelId ? await loadNovelScriptEraStyleKey(novelId) : null;
   if (scriptKey) {

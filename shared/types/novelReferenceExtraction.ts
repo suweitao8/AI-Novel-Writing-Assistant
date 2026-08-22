@@ -85,6 +85,12 @@ export interface StoryAssetState {
   timeOfDay?: StoryAssetTimeOfDay | null;
   /** 场景状态的天气；角色/道具状态不使用。 */
   weather?: StoryAssetWeather | null;
+  /**
+   * 该状态所处的时代风格（内置预设 label 或本书自定义风格名）：时代推进/双穿的书
+   * 同一资产在不同时代各有一套状态（如 现代 形态与 玄幻 形态），生成状态图时
+   * 优先用它定时代氛围；空＝按该状态所处剧情自动判定。
+   */
+  eraStyle?: string | null;
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
   /**
@@ -118,6 +124,7 @@ export interface StoryAssetStateDefaults {
   sceneType?: StoryAssetSceneType | null;
   timeOfDay?: StoryAssetTimeOfDay | null;
   weather?: StoryAssetWeather | null;
+  eraStyle?: string | null;
   voicePrompt?: string | null;
   chapterOrder?: number;
 }
@@ -137,6 +144,7 @@ export function createStoryAssetInitialState(
     ...(input.sceneType !== undefined && input.sceneType !== null ? { sceneType: input.sceneType } : {}),
     ...(input.timeOfDay !== undefined && input.timeOfDay !== null ? { timeOfDay: input.timeOfDay } : {}),
     ...(input.weather !== undefined && input.weather !== null ? { weather: input.weather } : {}),
+    ...(input.eraStyle?.trim() ? { eraStyle: input.eraStyle.trim() } : {}),
     ...(input.voicePrompt?.trim() ? { voicePrompt: input.voicePrompt.trim() } : {}),
     ...(input.chapterOrder !== undefined ? { chapterOrder: input.chapterOrder } : {}),
     referenceStateId: null,
@@ -278,6 +286,9 @@ function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput 
   if (state.weather !== undefined && state.weather !== null
     && (typeof state.weather !== "string"
       || !STORY_ASSET_WEATHERS.has(state.weather as StoryAssetWeather))) {
+    return false;
+  }
+  if (!isNullableString(state.eraStyle)) {
     return false;
   }
   if (state.chapterOrder !== undefined && state.chapterOrder !== null

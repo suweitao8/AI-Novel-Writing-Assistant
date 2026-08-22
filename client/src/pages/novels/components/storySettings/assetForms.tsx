@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Trash2, Wand2 } from "lucide-react";
 import {
@@ -7,11 +7,13 @@ import {
   getStorySettingsCharacters,
   getStorySettingsProps,
   getStorySettingsScenes,
+  getStorySettingsWorld,
   tweakStoryStateImagePrompt,
   updateStorySettingsCharacter,
   updateStorySettingsProp,
   updateStorySettingsScene,
 } from "@/api/story/storySettings";
+import { getDramaVisualStyles } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
@@ -229,6 +231,21 @@ export function AssetStatesEditor(props: {
       onChange(serverStates);
     }
   }, [watchQuery.data, asset, localDirty, states, onChange]);
+
+  // 时代风格选项：内置预设 + 本书自定义画风（值用 label，与脚本画风标记同一命名空间）。
+  const visualStylesQuery = useQuery({
+    queryKey: queryKeys.drama.visualStyles,
+    queryFn: getDramaVisualStyles,
+  });
+  const worldQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsWorld(novelId),
+    queryFn: () => getStorySettingsWorld(novelId),
+  });
+  const eraStyleOptions = useMemo(() => {
+    const presets = (visualStylesQuery.data?.data ?? []).map((style) => style.label);
+    const customs = (worldQuery.data?.data?.artStyles ?? []).map((style) => style.label);
+    return [...new Set([...presets, ...customs])].filter(Boolean);
+  }, [visualStylesQuery.data, worldQuery.data]);
 
   const invalidateSettings = async () => {
     if (!asset) {
@@ -549,6 +566,21 @@ export function AssetStatesEditor(props: {
                   </SelectControl>
                 </label>
               ) : null}
+              <label className="block space-y-1">
+                <span className="text-xs font-medium">时代风格</span>
+                <SelectControl
+                  className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                  aria-label="状态时代风格"
+                  value={selectedState.eraStyle ?? ""}
+                  disabled={anyPending}
+                  onChange={(event) => updateState(selectedState.id, { eraStyle: event.target.value || null })}
+                >
+                  <option value="">自动（按剧情判定）</option>
+                  {[...eraStyleOptions, ...(selectedState.eraStyle && !eraStyleOptions.includes(selectedState.eraStyle) ? [selectedState.eraStyle] : [])].map((label) => (
+                    <option key={label} value={label}>{label}</option>
+                  ))}
+                </SelectControl>
+              </label>
               {showScene ? (
                 <div className="grid grid-cols-3 gap-2 md:col-span-2">
                   <label className="block min-w-0 space-y-1">
