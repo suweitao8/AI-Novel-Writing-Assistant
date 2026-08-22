@@ -4,6 +4,7 @@ export {
   type StoryAssetDetailDialogProps,
 } from "./StoryAssetDetailDialog";
 export {
+  buildStateImageSrc,
   buildStoryAssetPresentation,
   type StoryAssetDetailItem,
   type StoryAssetKind,

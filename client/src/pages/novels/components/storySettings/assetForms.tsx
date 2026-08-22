@@ -11,6 +11,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
+import { buildStateImageSrc } from "@/components/storyAssets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -123,11 +124,7 @@ export function newStateId(): string {
   return `state-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function buildStateImageSrc(url: string, generatedAt?: string): string {
-  if (!generatedAt) return url;
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}v=${encodeURIComponent(generatedAt)}`;
-}
+export { buildStateImageSrc };
 
 function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string {
   const label = state.label?.trim();
