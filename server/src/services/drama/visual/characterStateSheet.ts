@@ -119,7 +119,7 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     styleLines.length > 0 ? "PROJECT RENDERING DIRECTION:" : "",
     ...styleLines,
     "RENDERING: high-budget Unreal Engine 5 cinematic game character asset, sculpted digital-human materials, detailed skin, hair and fabric, controlled neutral turntable lighting, premium Chinese fantasy game production quality; use the style direction only for rendering medium, materials and light, never to change the explicit character data.",
-    "Legacy medium words inside the character data, such as 写实动漫风格, are metadata only; they must not turn this production board into a flat illustration, anime image, real photograph or fashion portrait.",
+    "Legacy medium or background words inside the character data (写实动漫风格, 纯白背景, 白底 etc.) are metadata only: they must not turn this board into a flat illustration, anime image or photograph, and they can never override the transparent-background constraint above.",
     "BACKGROUND (HARD CONSTRAINT): the entire board sits on a fully transparent background — a genuine PNG alpha channel, no backdrop color, no solid fill, no checkerboard pattern, no gradient and no floor/ground plane; only the four figure panels and their subtle gutters remain visible.",
     "The transparent background must not be faked with white, grey or any scene; nothing may be drawn behind the character in any panel.",
     "Do not put more than one view in any panel. Do not merge the face panels. Do not add panel labels, numbers or text.",

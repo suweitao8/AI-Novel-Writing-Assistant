@@ -60,11 +60,11 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v8 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v8");
+test("prompt 资产为 reference_parse@v9 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v9");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v8",
+    "novel.chapter.reference_parse@v9",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
@@ -207,4 +207,19 @@ test("serializeDraftSegments 切换行顺序：场景 → 角色状态 → 分�
 test("参考解析给模型的角色状态名单会包含缺失数据的初始状态", () => {
   assert.match(serviceSource, /parseStoryAssetStatesJson/);
   assert.match(serviceSource, /normalizeStoryCharacterStates/);
+});
+
+test("图片提示词只写纯内容描述：系统指令明确禁止画风/背景/视图词", () => {
+  const rendered = chapterReferenceParsePrompt.render({
+    chapterTitle: "测试",
+    chapterOrder: 1,
+    referenceText: "正文",
+    existingCharacters: [],
+    existingScenes: [],
+  });
+  const text = rendered.map((message) => String(message.content)).join(" ");
+  assert.match(text, /画风、背景、视图一律由系统统一管理/);
+  assert.match(text, /纯白背景/);
+  assert.match(text, /四视图/);
+  assert.match(text, /禁止出现画风\/风格\/渲染类词/);
 });

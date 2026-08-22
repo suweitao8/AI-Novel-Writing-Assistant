@@ -71,6 +71,8 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 2026-08-22：角色/道具参考图统一透明底；场景全景保持不透明。
   assert.match(prop, /fully transparent background, genuine PNG alpha channel/);
   assert.doesNotMatch(scene, /fully transparent background/);
+  // 旧提示词里的风格/背景/视图词只是内容描述，不改变渲染方向与背景规则。
+  assert.match(prop, /metadata only/);
 });
 
 test("场景状态提示词会把叙事里的生物改写为环境痕迹", () => {
