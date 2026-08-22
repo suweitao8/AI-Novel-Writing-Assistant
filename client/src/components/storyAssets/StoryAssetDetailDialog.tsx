@@ -44,7 +44,7 @@ function StateRow({ state }: { state: StoryAssetStatePresentation }) {
         {state.imagePrompt ? <DetailRow label="画面提示词" value={state.imagePrompt} /> : null}
         {state.voicePrompt ? <DetailRow label="音色提示词" value={state.voicePrompt} /> : null}
         {state.voiceSampleUrl ? (
-          <audio controls preload="none" className="h-8 max-w-full" aria-label={`${state.label} 音色试听`}>
+          <audio controls preload="metadata" className="h-8 max-w-full" aria-label={`${state.label} 音色试听`}>
             <source src={state.voiceSampleUrl} />
           </audio>
         ) : null}
