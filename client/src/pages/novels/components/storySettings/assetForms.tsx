@@ -166,6 +166,8 @@ export function AssetStatesEditor(props: {
   const [localDirty, setLocalDirty] = useState(false);
   const [promptTweak, setPromptTweak] = useState("");
   const [sceneFlatView, setSceneFlatView] = useState(false);
+  // 图片区比例跟随资产画幅：场景 360° 全景是 2:1（等距柱状标准），角色/道具设计图是 3:2。
+  const stateImageAspect = kind === "scene" ? "aspect-[2/1]" : "aspect-[3/2]";
   const showVoice = kind === "character";
   const showScene = kind === "scene";
 
@@ -462,7 +464,7 @@ export function AssetStatesEditor(props: {
                     <PanoramaViewer
                       src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
                       alt={`${getAssetStateLabel(selectedState, selectedIndex)} 360° 全景`}
-                      className="aspect-[3/2] max-h-[28rem] w-full"
+                      className={`${stateImageAspect} max-h-[28rem] w-full`}
                     />
                   ) : (
                     <LightboxImage
@@ -470,12 +472,12 @@ export function AssetStatesEditor(props: {
                       alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
                       fit="contain"
                       blurBackdrop={false}
-                      className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
+                      className={`${stateImageAspect} max-h-[28rem] w-full rounded-lg border-0`}
                     />
                   )
                 ) : (
                   <div
-                    className="aspect-[3/2] max-h-[28rem] w-full rounded-lg bg-muted/10"
+                    className={`${stateImageAspect} max-h-[28rem] w-full rounded-lg bg-muted/10`}
                     role="img"
                     aria-label={`${getAssetStateLabel(selectedState, selectedIndex)}尚未生成图片`}
                   />
