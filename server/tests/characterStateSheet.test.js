@@ -91,7 +91,7 @@ test("builds one four-panel sheet prompt instead of four independent view prompt
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /checkerboard/);
 });
 
-test("character sheet prompt prioritizes an attractive mainstream drama protagonist", () => {
+test("character sheet prompt keeps appeal but forbids the generic template face", () => {
   const prompt = buildCharacterStateSheetPrompt({
     assetName: "叶晨",
     gender: "male",
@@ -104,17 +104,30 @@ test("character sheet prompt prioritizes an attractive mainstream drama protagon
     hasReference: false,
   });
 
-  assert.match(prompt, /handsome, commercially appealing leading-man protagonist/i);
-  assert.match(prompt, /symmetrical facial proportions/i);
-  assert.match(prompt, /clear healthy skin/i);
-  assert.match(prompt, /well-groomed/i);
-  assert.match(prompt, /not gaunt, exhausted, sickly, awkward, or unattractive/i);
+  // 2026-08-23：好看程度按角色身份伸缩、长相必须来自角色资料自身特征——旧版
+  // 「统一帅气男主脸」硬约束（对称五官+直鼻梁+干净下颌线）把所有角色画成同一张
+  // 3D 动画网红脸（用户实测反馈），已整体替换。
+  assert.match(prompt, /APPEAL WITH DISTINCT IDENTITY/i);
+  assert.match(prompt, /matches their identity and story importance/i);
+  assert.match(prompt, /OWN facial features in the character data/i);
+  assert.match(prompt, /invent specific memorable traits that fit the character's identity/i);
+  assert.match(prompt, /Never render the generic influencer \/ idol-drama template face/i);
+  assert.match(prompt, /must never share the same face/i);
+  assert.doesNotMatch(prompt, /LEADING-MAN APPEAL/);
+  assert.doesNotMatch(prompt, /symmetrical facial proportions/);
+  assert.doesNotMatch(prompt, /straight nose/);
+  assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /generic influencer face/);
+  assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /网红脸/);
+  assert.doesNotMatch(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /asymmetrical facial features/);
   // 2026-08-22：模板不再写死末世氛围（与状态自选时代风格打架，现代状态图被带出脏衣服）——
   // 服装默认干净如新，只有角色资料/状态明确描写才呈现破损；时代风格由 styleLines 注入。
   assert.doesNotMatch(prompt, /末世感/);
   assert.match(prompt, /服装、发型与配饰默认保持干净整洁、状态如新/);
   assert.match(prompt, /只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现/);
   assert.match(prompt, /时代风格不得自行添加磨损或破败/);
+  // 2026-08-23：状态与时代变化只换装不换脸，辨识度跨状态保持。
+  assert.match(prompt, /不得改成统一的网红模板脸/);
+  assert.match(prompt, /长相辨识度/);
 });
 
 test("reference image anchors identity only; wear and era atmosphere are not carried over", () => {
