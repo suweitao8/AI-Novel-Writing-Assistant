@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsScene } from "@/api/story/storySettings";
 import {
   createStorySettingsScene,
@@ -18,8 +18,6 @@ import { toast } from "@/components/ui/toast";
 import {
   buildStoryAssetPresentation,
   StoryAssetCard,
-  StoryAssetDetailDialog,
-  type StoryAssetPresentation,
 } from "@/components/storyAssets";
 import {
   AssetStatesEditor,
@@ -61,7 +59,6 @@ function prepareSceneStatesForSave(
 export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenesTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<SceneFormState>(EMPTY_SCENE_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -136,7 +133,6 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
     mutationFn: (sceneId: string) => deleteStorySettingsScene(novelId, sceneId),
     onSuccess: async () => {
       toast.success("场景已删除。");
-      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -234,12 +230,9 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
               <StoryAssetCard
                 key={scene.id}
                 asset={asset}
-                onOpen={() => setSelectedAsset(asset)}
+                onOpen={() => openEdit(scene)}
                 actions={(
                   <>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(scene)} aria-label="编辑场景">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -259,22 +252,6 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
           })}
         </div>
       )}
-
-      <StoryAssetDetailDialog
-        asset={selectedAsset}
-        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
-        onEdit={selectedAsset ? () => {
-          const source = selectedAsset.source as StorySettingsScene;
-          setSelectedAsset(null);
-          openEdit(source);
-        } : undefined}
-        onDelete={() => {
-          if (selectedAsset && window.confirm(`删除场景「${selectedAsset.name}」？`)) {
-            deleteMutation.mutate(selectedAsset.id);
-          }
-        }}
-        deleting={deleteMutation.isPending}
-      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import type { StorySettingsCharacter } from "@/api/story/storySettings";
 import {
   createStorySettingsCharacter,
@@ -19,8 +19,6 @@ import { toast } from "@/components/ui/toast";
 import {
   buildStoryAssetPresentation,
   StoryAssetCard,
-  StoryAssetDetailDialog,
-  type StoryAssetPresentation,
 } from "@/components/storyAssets";
 import {
   AssetStatesEditor,
@@ -62,7 +60,6 @@ export function prepareCharacterStatesForSave(
 export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCharactersTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsCharacter | null>(null);
-  const [selectedAsset, setSelectedAsset] = useState<StoryAssetPresentation | null>(null);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<CharacterFormState>(EMPTY_CHARACTER_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -150,7 +147,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
     mutationFn: (characterId: string) => deleteStorySettingsCharacter(novelId, characterId),
     onSuccess: async () => {
       toast.success("角色已删除。");
-      setSelectedAsset(null);
       await invalidate();
     },
     onError: (error) => {
@@ -238,12 +234,9 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
               <StoryAssetCard
                 key={character.id}
                 asset={asset}
-                onOpen={() => setSelectedAsset(asset)}
+                onOpen={() => openEdit(character)}
                 actions={(
                   <>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => openEdit(character)} aria-label="编辑角色">
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -265,22 +258,6 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
           })}
         </div>
       )}
-
-      <StoryAssetDetailDialog
-        asset={selectedAsset}
-        onOpenChange={(open) => { if (!open) setSelectedAsset(null); }}
-        onEdit={selectedAsset ? () => {
-          const source = selectedAsset.source as StorySettingsCharacter;
-          setSelectedAsset(null);
-          openEdit(source);
-        } : undefined}
-        onDelete={() => {
-          if (selectedAsset && window.confirm(`删除角色「${selectedAsset.name}」？已生成的分镜与配音不受影响。`)) {
-            deleteMutation.mutate(selectedAsset.id);
-          }
-        }}
-        deleting={deleteMutation.isPending}
-      />
 
       <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
         <AppDialogContent
