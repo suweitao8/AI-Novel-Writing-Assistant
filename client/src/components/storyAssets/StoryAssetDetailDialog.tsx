@@ -53,6 +53,42 @@ function StateRow({ state }: { state: StoryAssetStatePresentation }) {
   );
 }
 
+/** 资产详情正文（徽标 + 基础信息 + 外观状态）：详情弹窗与漫剧提取弹窗的「已存在资产」展示共用。 */
+export function StoryAssetDetailBody({ asset }: { asset: StoryAssetPresentation }) {
+  return (
+    <>
+      <div className="flex flex-wrap gap-1.5">
+        {asset.badges.map((badge) => <Badge key={badge} variant="secondary">{badge}</Badge>)}
+        <Badge variant="outline">{asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}</Badge>
+      </div>
+
+      {asset.media ? (
+        <div className="rounded-lg border border-border bg-muted/20 p-2">
+          <img src={asset.media.url} alt={asset.media.alt} className="max-h-64 w-full rounded-md object-contain" />
+        </div>
+      ) : null}
+
+      {asset.details.length > 0 ? (
+        <section className="space-y-3" aria-label="资产基础信息">
+          <h3 className="text-sm font-semibold text-foreground">基础信息</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {asset.details.map((detail) => <DetailRow key={`${detail.label}-${detail.value}`} {...detail} />)}
+          </div>
+        </section>
+      ) : null}
+
+      <section className="space-y-3" aria-label="资产状态">
+        <h3 className="text-sm font-semibold text-foreground">外观状态</h3>
+        {asset.states.length > 0 ? (
+          <div className="space-y-2">{asset.states.map((state) => <StateRow key={state.id} state={state} />)}</div>
+        ) : (
+          <p className="rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">暂无状态信息</p>
+        )}
+      </section>
+    </>
+  );
+}
+
 export function StoryAssetDetailDialog({
   asset,
   onOpenChange,
@@ -86,34 +122,7 @@ export function StoryAssetDetailDialog({
           )}
           footerClassName="gap-2"
         >
-          <div className="flex flex-wrap gap-1.5">
-            {asset.badges.map((badge) => <Badge key={badge} variant="secondary">{badge}</Badge>)}
-            <Badge variant="outline">{asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}</Badge>
-          </div>
-
-          {asset.media ? (
-            <div className="rounded-lg border border-border bg-muted/20 p-2">
-              <img src={asset.media.url} alt={asset.media.alt} className="max-h-64 w-full rounded-md object-contain" />
-            </div>
-          ) : null}
-
-          {asset.details.length > 0 ? (
-            <section className="space-y-3" aria-label="资产基础信息">
-              <h3 className="text-sm font-semibold text-foreground">基础信息</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {asset.details.map((detail) => <DetailRow key={`${detail.label}-${detail.value}`} {...detail} />)}
-              </div>
-            </section>
-          ) : null}
-
-          <section className="space-y-3" aria-label="资产状态">
-            <h3 className="text-sm font-semibold text-foreground">外观状态</h3>
-            {asset.states.length > 0 ? (
-              <div className="space-y-2">{asset.states.map((state) => <StateRow key={state.id} state={state} />)}</div>
-            ) : (
-              <p className="rounded-lg border border-dashed border-border px-3 py-4 text-sm text-muted-foreground">暂无状态信息</p>
-            )}
-          </section>
+          <StoryAssetDetailBody asset={asset} />
         </AppDialogContent>
       ) : null}
     </Dialog>

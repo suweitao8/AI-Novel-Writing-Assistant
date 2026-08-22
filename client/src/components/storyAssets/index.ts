@@ -1,5 +1,6 @@
 export { StoryAssetCard, type StoryAssetCardProps } from "./StoryAssetCard";
 export {
+  StoryAssetDetailBody,
   StoryAssetDetailDialog,
   type StoryAssetDetailDialogProps,
 } from "./StoryAssetDetailDialog";
