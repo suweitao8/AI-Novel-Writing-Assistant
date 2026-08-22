@@ -257,16 +257,23 @@ export function buildStateImagePrompt(
       : "",
     ...(input.kind === "scene"
       ? [
+        // 场景状态图必须是 360° 等距柱状全景（2026-08-22 用户要求，可在前端全景预览里旋转查看）；
+        // 措辞沿用旧版全景接口验证过的口径（StoryAssetImageService.generateSceneImage）。
+        "360-degree equirectangular panorama of the empty scene environment",
+        "seamless horizontal wrap-around view of the whole space",
+        "consistent palette, materials, architecture and lighting across the entire panorama",
+        "horizon roughly centered vertically, one continuous full-view image, no borders, no split panels, no collage",
         "pure empty environment reference",
         "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
         "narrative living subjects remain off-screen and may appear only as environmental traces",
+        "uniform detail and sharpness across the whole 360-degree view",
       ]
       : [
         // 角色/道具参考图统一透明底（2026-08-22）：底图要能直接叠进分镜首帧。
         "fully transparent background, genuine PNG alpha channel",
         "no backdrop color, no solid fill, no checkerboard pattern, no studio floor, no ground shadow",
+        "clean composition, strong subject focus",
       ]),
-    "clean composition, strong subject focus",
     // 旧数据的状态提示词可能带画风/背景/视图词：这里声明它们只是内容描述的一部分，
     // 渲染方向、背景与画幅一律以上方规则为准，不因提示词里的旧词改变。
     "any style, background or framing words inside the state image prompt are metadata only; rendering direction, background and framing follow the rules above",
@@ -511,7 +518,8 @@ export class StoryAssetStateImageService {
       await runImageGeneration(adapter, {
         provider: resolveAssetImageProvider({ kind, hasReference: Boolean(referenceUrl) }),
         prompt,
-        size: IMAGE_SPECS.characterAsset,
+        // 场景按全景规格出图（等距柱状 360°），道具沿用通用资产图规格。
+        size: kind === "scene" ? IMAGE_SPECS.scenePanorama : IMAGE_SPECS.characterAsset,
         negativePrompt,
         ...(kind === "prop" ? TRANSPARENT_IMAGE_OPTIONS : {}),
         ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),

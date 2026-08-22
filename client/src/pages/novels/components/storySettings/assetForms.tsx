@@ -15,6 +15,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
+import PanoramaViewer from "@/components/common/PanoramaViewer";
 import { buildStateImageSrc } from "@/components/storyAssets";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +119,7 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
 // - 状态字段只有 状态名+年龄段（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
+//   场景状态图是 360° 等距柱状全景，默认拖拽环视预览，可切平面图；
 // - 图片提示词可 AI 微调：复用旧状态提示词时，写一句要改的地方（如「去掉身上的
 //   伤」）即可，AI 只改指令涉及的部分；改完随状态一起保存，不单独落库；
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
@@ -142,6 +144,7 @@ export function AssetStatesEditor(props: {
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
   const [localDirty, setLocalDirty] = useState(false);
   const [promptTweak, setPromptTweak] = useState("");
+  const [sceneFlatView, setSceneFlatView] = useState(false);
   const showVoice = kind === "character";
   const showScene = kind === "scene";
 
@@ -152,9 +155,10 @@ export function AssetStatesEditor(props: {
     setSelectedStateId(states[0]?.id ?? null);
   }, [selectedStateId, states]);
 
-  // 微调指令只对当前选中的状态生效，切状态即清空。
+  // 微调指令与全景/平面切换只对当前选中的状态生效，切状态即复位。
   useEffect(() => {
     setPromptTweak("");
+    setSceneFlatView(false);
   }, [selectedStateId]);
 
   // 后台生成跟进：生成是服务端在请求内完成的——弹窗关掉后服务端仍会跑完并落库
@@ -457,15 +461,24 @@ export function AssetStatesEditor(props: {
         {selectedState ? (
           <>
             <section className="space-y-2" aria-label="状态图片">
-              <div className="overflow-hidden rounded-lg border border-border/60 bg-muted/10">
+              <div className="relative overflow-hidden rounded-lg border border-border/60 bg-muted/10">
                 {selectedState.image?.url ? (
-                  <LightboxImage
-                    src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
-                    alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
-                    fit="contain"
-                    blurBackdrop={false}
-                    className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
-                  />
+                  kind === "scene" && !sceneFlatView ? (
+                    // 场景状态图是 360° 等距柱状全景：默认全景预览（拖拽环视/滚轮缩放），可切平面图。
+                    <PanoramaViewer
+                      src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
+                      alt={`${getAssetStateLabel(selectedState, selectedIndex)} 360° 全景`}
+                      className="aspect-[3/2] max-h-[28rem] w-full"
+                    />
+                  ) : (
+                    <LightboxImage
+                      src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
+                      alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
+                      fit="contain"
+                      blurBackdrop={false}
+                      className="aspect-[3/2] max-h-[28rem] w-full rounded-lg border-0"
+                    />
+                  )
                 ) : (
                   <div
                     className="aspect-[3/2] max-h-[28rem] w-full rounded-lg bg-muted/10"
@@ -473,6 +486,18 @@ export function AssetStatesEditor(props: {
                     aria-label={`${getAssetStateLabel(selectedState, selectedIndex)}尚未生成图片`}
                   />
                 )}
+                {kind === "scene" && selectedState.image?.url ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    className="absolute bottom-2 right-2 h-7 px-2 text-xs shadow-sm"
+                    disabled={anyPending}
+                    onClick={() => setSceneFlatView((flat) => !flat)}
+                  >
+                    {sceneFlatView ? "360° 预览" : "平面图"}
+                  </Button>
+                ) : null}
               </div>
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <label className="min-w-40 flex-1 space-y-1">

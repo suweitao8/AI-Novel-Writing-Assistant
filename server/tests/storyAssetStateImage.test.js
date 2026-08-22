@@ -58,6 +58,10 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /time of day: night/);
   assert.match(scene, /weather: rainy/);
   assert.doesNotMatch(scene, /base appearance: /);
+  // 2026-08-22：场景状态图必须是 360° 等距柱状全景（前端有全景预览），不再按主体构图。
+  assert.match(scene, /360-degree equirectangular panorama/);
+  assert.match(scene, /seamless horizontal wrap-around view/);
+  assert.doesNotMatch(scene, /strong subject focus/);
   const prop = buildStateImagePrompt({
     kind: "prop",
     assetName: "军刀",
