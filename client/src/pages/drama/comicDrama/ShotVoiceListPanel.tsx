@@ -453,7 +453,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
                   {segment.text}
                 </span>
                 {segment.status === "ready" && segment.audioUrl ? (
-                  <audio controls preload="none" src={segment.audioUrl} className="h-7 w-44 shrink-0 sm:w-56" />
+                  <audio controls preload="metadata" src={segment.audioUrl} className="h-7 w-44 shrink-0 sm:w-56" />
                 ) : (
                   <span className="shrink-0 text-[10px] text-muted-foreground">
                     {segment.status === "stale" ? "需重配" : "未生成"}

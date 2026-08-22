@@ -126,7 +126,7 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
         </Button>
       </div>
       {narratorQuery.data?.sampleAudioUrl ? (
-        <audio controls preload="none" src={narratorQuery.data.sampleAudioUrl} className="h-8 w-full" />
+        <audio controls preload="metadata" src={narratorQuery.data.sampleAudioUrl} className="h-8 w-full" />
       ) : null}
       <p className="text-xs leading-5 text-muted-foreground">
         分镜台词里没有说话人的行会用旁白音色配音；改过描述后，已有旁白会标记为「已过期」，需要重新配音。
@@ -201,7 +201,7 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
         </AiButton>
       </div>
       {profile.sampleAudioUrl ? (
-        <audio controls preload="none" src={profile.sampleAudioUrl} className="h-8 w-full" />
+        <audio controls preload="metadata" src={profile.sampleAudioUrl} className="h-8 w-full" />
       ) : null}
     </div>
   );

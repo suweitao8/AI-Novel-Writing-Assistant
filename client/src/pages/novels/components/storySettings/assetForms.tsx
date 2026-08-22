@@ -545,7 +545,7 @@ export function AssetStatesEditor(props: {
                     <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setVoicePickerOpen(false)}>取消</Button>
                   </div>
                 ) : null}
-                {selectedState.voice?.sampleAudioUrl ? <audio controls preload="none" src={selectedState.voice.sampleAudioUrl} className="h-8 w-full" /> : null}
+                {selectedState.voice?.sampleAudioUrl ? <audio controls preload="metadata" src={selectedState.voice.sampleAudioUrl} className="h-8 w-full" /> : null}
                 {selectedState.voice?.error ? <p className="text-xs text-destructive">{selectedState.voice.error}</p> : null}
               </section>
             ) : null}
