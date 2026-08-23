@@ -18,7 +18,7 @@ const entries = [
   { to: "/settings/models", title: "模型设置", description: "配置文本模型与图片模型，并检查连接状态。", icon: Bot },
   { to: "/settings/director", title: "自动导演", description: "安排问题处理、确认偏好与提醒方式。", icon: BookOpenCheck },
   { to: "/settings/knowledge", title: "知识库与写法", description: "让资料和写法偏好参与后续创作。", icon: Database },
-  { to: "/settings/narrator-voice", title: "旁白音色", description: "试听并设置整个项目统一使用的旁白音色。", icon: AudioLines },
+  { to: "/settings/narrator-voice", title: "旁白音色", description: "试听并设置整个应用统一使用的旁白音色。", icon: AudioLines },
 ];
 
 export default function SettingsOverviewPage() {

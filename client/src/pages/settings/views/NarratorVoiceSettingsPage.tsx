@@ -59,11 +59,11 @@ export default function NarratorVoiceSettingsPage() {
   const canSubmit = draft.trim().length >= 4 && !isBusy;
 
   return (
-    <SettingsShell title="旁白音色" description="试听并设置整个项目统一使用的旁白音色。">
+    <SettingsShell title="旁白音色" description="试听并设置整个应用统一使用的旁白音色。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base"><AudioLines className="h-4 w-4" />系统旁白音色</CardTitle>
-          <CardDescription>所有旁白台词使用这里的描述和试听样本。</CardDescription>
+          <CardDescription>所有漫剧项目的旁白台词使用这里的描述和试听样本。</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {narratorVoiceQuery.isLoading ? (
