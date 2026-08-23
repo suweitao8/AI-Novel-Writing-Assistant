@@ -33,6 +33,17 @@ test("状态生图和首帧接线读取场景状态元数据", () => {
   assert.match(keyframeService, /weather/);
 });
 
+test("身上状态标签契约：类型守卫 + 角色专用路由白名单 + 生图接线（2026-08-23）", () => {
+  // shared：字段类型 + 白名单守卫（守卫不认 wearTags 的话整个状态会被 normalize 过滤掉）。
+  assert.match(stateTypes, /wearTags\?: StoryAssetWearTag\[\]/);
+  assert.match(stateTypes, /STORY_ASSET_WEAR_TAGS\.has\(tag as StoryAssetWearTag\)/);
+  assert.match(stateTypes, /STORY_ASSET_WEAR_TAG_OPTIONS/);
+  // 路由：wearTags 只在角色状态 schema 上（场景/道具不吃这个字段）。
+  assert.match(routes, /characterAssetStateSchema = assetStateSchema\.extend\(\{[\s\S]*wearTags: z\.array\(z\.enum\(\["blood", "stain", "dust", "mud", "worn", "torn", "wound", "soot"\]\)\)/);
+  // 生图：状态图角色分支把 wearTags 传进四视图模板（模板负责短语渲染与未知值丢弃）。
+  assert.match(imageService, /wearTags: state\.wearTags/);
+});
+
 test("场景 AI 草稿契约允许初始状态需要的时间和天气", () => {
   assert.match(prompt, /timeOfDay/);
   assert.match(prompt, /weather/);
