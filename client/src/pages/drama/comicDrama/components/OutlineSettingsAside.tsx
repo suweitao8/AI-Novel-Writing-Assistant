@@ -62,6 +62,8 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   const [createName, setCreateName] = useState("");
   const [createNote, setCreateNote] = useState("");
   const [detailId, setDetailId] = useState<string | null>(null);
+  // 删除二次确认（2026-08-23 用户要求）：先弹确认框，确认后才真正删除。
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const assets = useMemo<StoryAssetPresentation[]>(() => {
     const merged: StoryAssetPresentation[] = [
@@ -116,6 +118,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         toast.success(`${TYPE_LABELS[detailAsset.kind]}「${detailAsset.name}」已删除。`);
       }
       setDetailId(null);
+      setDeleteConfirmOpen(false);
       await invalidate();
     },
     onError: (error) => toast.error("删除失败", { description: error instanceof Error ? error.message : undefined }),
@@ -252,12 +255,33 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         asset={detailAsset}
         onOpenChange={(open) => { if (!open) setDetailId(null); }}
         onDelete={() => {
-          if (detailAsset && window.confirm(`删除${detailAsset.typeLabel}「${detailAsset.name}」？此操作不可恢复。`)) {
-            deleteMutation.mutate();
+          if (detailAsset) {
+            setDeleteConfirmOpen(true);
           }
         }}
         deleting={deleteMutation.isPending}
       />
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AppDialogContent
+          title={detailAsset ? `删除${detailAsset.typeLabel}「${detailAsset.name}」` : "删除"}
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={deleteMutation.isPending}>取消</Button>
+              <Button
+                variant="destructive"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate()}
+              >
+                {deleteMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                删除
+              </Button>
+            </>
+          }
+        >
+          <p className="text-sm leading-6 text-muted-foreground">删除后不可恢复，已生成的状态图与音色会一起删除。</p>
+        </AppDialogContent>
+      </Dialog>
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <AppDialogContent

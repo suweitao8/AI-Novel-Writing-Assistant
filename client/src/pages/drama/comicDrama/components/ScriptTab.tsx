@@ -20,6 +20,7 @@ import SelectControl from "@/components/common/SelectControl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 
@@ -205,6 +206,20 @@ export default function ScriptTab(props: ScriptTabProps) {
     setEditing(null);
   };
 
+  // 行删除二次确认（2026-08-23 用户要求）：场景/状态/分镜/台词删错一拍就丢内容，
+  // 统一先弹确认，确认后才真正删（走原 removeItem + 自动保存）。
+  const [removeTargetIndex, setRemoveTargetIndex] = useState<number | null>(null);
+  const removeTargetItem = removeTargetIndex !== null ? items[removeTargetIndex] ?? null : null;
+  const requestRemove = (index: number) => {
+    setRemoveTargetIndex(index);
+  };
+  const confirmRemove = () => {
+    if (removeTargetIndex !== null) {
+      removeItem(removeTargetIndex);
+    }
+    setRemoveTargetIndex(null);
+  };
+
   const moveItem = (index: number, direction: -1 | 1) => {
     const target = index + direction;
     if (target < 0 || target >= items.length) {
@@ -384,14 +399,16 @@ export default function ScriptTab(props: ScriptTabProps) {
                         total={items.length}
                         editing={editing}
                         matched={scriptUsage.knownScenes.has(item.scene.trim())}
+                        sceneStates={scenesByName.get(item.scene.trim())?.states.map((state) => state.label).filter(Boolean) ?? []}
+                        sceneStateValue={scenePanelByIndex.get(index)?.sceneState ?? null}
+                        onSwitchSceneState={(nextState) => switchPanelState(index, { kind: "sceneState" }, nextState)}
                         onEdit={setEditing}
                         onUpdate={updateItem}
-                        onRemove={removeItem}
+                        onRemove={requestRemove}
                         onMove={moveItem}
                       />
                       <SceneStatePanel
                         panel={scenePanelByIndex.get(index) ?? null}
-                        sceneStates={scenesByName.get(item.scene.trim())?.states.map((state) => state.label).filter(Boolean) ?? []}
                         characterStatesByName={charactersByName}
                         onSwitch={(target, nextState) => switchPanelState(index, target, nextState)}
                       />
@@ -405,7 +422,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       matched={scriptUsage.knownScenes.has(item.scene.trim())}
                       onEdit={setEditing}
                       onUpdate={updateItem}
-                      onRemove={removeItem}
+                      onRemove={requestRemove}
                       onMove={moveItem}
                     />
                   ) : item.kind === "state" ? (
@@ -417,7 +434,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       matched={scriptUsage.knownCharacters.has(item.name.trim())}
                       onEdit={setEditing}
                       onUpdate={updateItem}
-                      onRemove={removeItem}
+                      onRemove={requestRemove}
                       onMove={moveItem}
                     />
                   ) : item.kind === "shot" ? (
@@ -428,7 +445,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       editing={editing}
                       onEdit={setEditing}
                       onUpdate={updateItem}
-                      onRemove={removeItem}
+                      onRemove={requestRemove}
                       onMove={moveItem}
                       onAddLine={addLineAfter}
                     />
@@ -440,7 +457,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       editing={editing}
                       onEdit={setEditing}
                       onUpdate={updateItem}
-                      onRemove={removeItem}
+                      onRemove={requestRemove}
                       onMove={moveItem}
                       entityNames={entityNames}
                       speakerKnown={scriptUsage.knownCharacters.has(item.speaker.trim())}
@@ -453,7 +470,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       editing={editing}
                       onEdit={setEditing}
                       onUpdate={updateItem}
-                      onRemove={removeItem}
+                      onRemove={requestRemove}
                       onMove={moveItem}
                     />
                   )}
@@ -489,8 +506,38 @@ export default function ScriptTab(props: ScriptTabProps) {
           missing: scriptUsage.missing,
         }}
       />
+
+      <Dialog open={removeTargetIndex !== null} onOpenChange={(open) => { if (!open) setRemoveTargetIndex(null); }}>
+        <AppDialogContent
+          title="删除这一行"
+          footer={
+            <>
+              <Button variant="outline" onClick={() => setRemoveTargetIndex(null)}>取消</Button>
+              <Button variant="destructive" onClick={confirmRemove}>删除</Button>
+            </>
+          }
+        >
+          <p className="text-sm leading-6 text-muted-foreground">
+            删除「{removePreviewText(removeTargetItem)}」这一行？删除后立即保存，不可撤销。
+          </p>
+        </AppDialogContent>
+      </Dialog>
     </div>
   );
+}
+
+// 确认弹窗里给这一行的内容摘要（截短），让用户知道删的是哪一行。
+function removePreviewText(item: ScriptItem | null): string {
+  if (!item) {
+    return "";
+  }
+  const raw = item.kind === "scene" ? `场景：${item.scene}`
+    : item.kind === "sceneState" ? `场景状态：${item.scene} → ${item.state}`
+    : item.kind === "state" ? `角色状态：${item.name} → ${item.state}`
+    : item.kind === "shot" ? `分镜：${item.storyboard}`
+    : item.kind === "line" ? `${item.speaker}：${item.text}`
+    : item.text;
+  return raw.length > 30 ? `${raw.slice(0, 30)}…` : raw;
 }
 
 // —— 行骨架：悬停出现 上移/下移/删除；内容区域点击进入编辑。 ——
@@ -645,14 +692,13 @@ function escapeRegExp(value: string): string {
 
 // —— 四类行 ——
 
-// 场景切换行下的状态面板：场景用哪个状态出图、每个出场角色用哪个形象状态，
-// 全部下拉可切。选中的值写进脚本标记行（【场景状态：…】/【角色状态：…】），
-// 没写标记时沿用上一次使用的状态（展示值回落资产默认状态）。
+// 场景切换行下的状态面板：这个场景里出场的角色各用哪个形象状态，下拉可切。
+// 场景自己的状态下拉在场景行内（SceneRow），这里只列角色；一行三个、名字全显
+// （2026-08-23 用户要求）。选中的值写进【角色状态：…】标记行，未写标记＝沿用上一次。
 function SceneStatePanel(props: {
   panel: SceneStatePanelData | null;
-  sceneStates: string[];
   characterStatesByName: Map<string, { states: Array<{ label: string }> }>;
-  onSwitch: (target: { kind: "sceneState" } | { kind: "state"; name: string }, nextState: string) => void;
+  onSwitch: (target: { kind: "state"; name: string }, nextState: string) => void;
 }) {
   const { panel } = props;
   if (!panel) {
@@ -666,34 +712,16 @@ function SceneStatePanel(props: {
       return { name: entry.name, options, value: entry.state && options.includes(entry.state) ? entry.state : options[0] };
     })
     .filter((row) => row.options.length > 0);
-  const sceneValue = panel.sceneState && props.sceneStates.includes(panel.sceneState)
-    ? panel.sceneState
-    : props.sceneStates[0];
-  if (props.sceneStates.length === 0 && characterRows.length === 0) {
+  if (characterRows.length === 0) {
     return null;
   }
   return (
-    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
-      {props.sceneStates.length > 0 ? (
-        <label className="inline-flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">场景状态</span>
-          <SelectControl
-            className="h-7 max-w-36 rounded-md border border-border bg-background px-1.5 text-xs"
-            value={sceneValue}
-            onChange={(event) => props.onSwitch({ kind: "sceneState" }, event.target.value)}
-            aria-label={`切换${panel.sceneName}的场景状态`}
-          >
-            {props.sceneStates.map((label) => (
-              <option key={label} value={label}>{label}</option>
-            ))}
-          </SelectControl>
-        </label>
-      ) : null}
+    <div className="mt-1 grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 sm:grid-cols-3">
       {characterRows.map((row) => (
-        <label key={row.name} className="inline-flex min-w-0 items-center gap-1.5">
-          <span className="max-w-28 truncate text-xs font-medium text-foreground">{row.name}</span>
+        <label key={row.name} className="flex min-w-0 items-center gap-1.5">
+          <span className="shrink-0 text-xs font-medium text-foreground">{row.name}</span>
           <SelectControl
-            className="h-7 max-w-36 rounded-md border border-border bg-background px-1.5 text-xs"
+            className="h-7 min-w-0 flex-1 rounded-md border border-border bg-background px-1.5 text-xs"
             value={row.value}
             onChange={(event) => props.onSwitch({ kind: "state", name: row.name }, event.target.value)}
             aria-label={`切换${row.name}在本场景的形象`}
@@ -711,21 +739,28 @@ function SceneStatePanel(props: {
 function SceneRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "scene" }>;
   matched: boolean;
+  /** 场景资产的状态名（设定里有这个场景才有）；场景自己的状态直接在场景行内切换。 */
+  sceneStates: string[];
+  sceneStateValue: string | null;
+  onSwitchSceneState: (state: string) => void;
   onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
 }) {
   const active = props.editing?.index === props.index && props.editing?.field === "value";
+  const sceneStateValue = props.sceneStateValue && props.sceneStates.includes(props.sceneStateValue)
+    ? props.sceneStateValue
+    : props.sceneStates[0];
   return (
-    <div className="group flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
+    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
       <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景</Badge>
       <EditableValue
         active={active}
         value={props.item.scene}
         placeholder="场景名，如 客厅"
         className={props.matched
-          ? "text-sm font-semibold text-emerald-700 dark:text-emerald-400"
-          : "text-sm font-semibold text-orange-600 dark:text-orange-400"}
+          ? "w-auto min-w-24 text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+          : "w-auto min-w-24 text-sm font-semibold text-orange-600 dark:text-orange-400"}
         title={props.matched ? undefined : "设定里还没有这个场景，可在右侧面板创建"}
-        inputClassName="h-8 flex-1"
+        inputClassName="h-8 w-40"
         onCommit={(next) => {
           const value = next.trim();
           if (value) {
@@ -735,6 +770,18 @@ function SceneRow(props: RowBaseProps & {
         onCancel={() => props.onEdit(null)}
         onActivate={() => props.onEdit({ index: props.index, field: "value" })}
       />
+      {props.sceneStates.length > 0 ? (
+        <SelectControl
+          className="h-7 max-w-36 rounded-md border border-emerald-500/30 bg-background px-1.5 text-xs"
+          value={sceneStateValue}
+          onChange={(event) => props.onSwitchSceneState(event.target.value)}
+          aria-label={`切换${props.item.scene}的场景状态`}
+        >
+          {props.sceneStates.map((label) => (
+            <option key={label} value={label}>{label}</option>
+          ))}
+        </SelectControl>
+      ) : null}
       <RowActions {...props} />
     </div>
   );
@@ -914,8 +961,11 @@ function LineRow(props: RowBaseProps & {
   const moodActive = props.editing?.index === props.index && props.editing?.field === "mood";
   const textActive = props.editing?.index === props.index && props.editing?.field === "text";
   const isNarrator = props.item.speaker === "旁白";
+  // 角色台词淡蓝底＋蓝色说话人徽标，与素底旁白一眼区分（2026-08-23 用户要求）。
   return (
-    <div className={`group flex flex-wrap items-center gap-2 rounded-xl px-3 py-1.5 ${isNarrator ? "" : "bg-blue-400/[0.08]"}`}>
+    <div className={`group flex flex-wrap items-center gap-2 rounded-xl border-l-2 px-3 py-1.5 ${
+      isNarrator ? "border-l-transparent" : "border-l-sky-500/60 bg-sky-500/15"
+    }`}>
       <EditableValue
         active={speakerActive}
         value={props.item.speaker}
@@ -928,7 +978,11 @@ function LineRow(props: RowBaseProps & {
       >
         <Badge
           variant={isNarrator ? "outline" : "secondary"}
-          className={!isNarrator && !props.speakerKnown ? "bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 dark:text-orange-400" : undefined}
+          className={!isNarrator
+            ? props.speakerKnown
+              ? "bg-sky-500/15 text-sky-700 hover:bg-sky-500/25 dark:text-sky-300"
+              : "bg-orange-500/15 text-orange-600 hover:bg-orange-500/25 dark:text-orange-400"
+            : undefined}
           title={!isNarrator && !props.speakerKnown ? "设定里还没有这个角色，可在右侧创建" : undefined}
         >
           {props.item.speaker || "旁白"}
