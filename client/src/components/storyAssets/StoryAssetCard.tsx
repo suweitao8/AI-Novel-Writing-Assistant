@@ -7,6 +7,7 @@ import type { StoryAssetPresentation } from "./storyAssetPresentation";
 export interface StoryAssetCardProps {
   asset: StoryAssetPresentation;
   compact?: boolean;
+  showDefaultStateImage?: boolean;
   onOpen: () => void;
   actions?: ReactNode;
   className?: string;
@@ -29,11 +30,25 @@ const KIND_TONES: Record<StoryAssetPresentation["kind"], { card: string; badge: 
   },
 };
 
-export function StoryAssetCard({ asset, compact = false, onOpen, actions, className }: StoryAssetCardProps) {
+export function StoryAssetCard({
+  asset,
+  compact = false,
+  showDefaultStateImage = false,
+  onOpen,
+  actions,
+  className,
+}: StoryAssetCardProps) {
   const tone = KIND_TONES[asset.kind];
+  const defaultStateImage = asset.states[0]?.imageUrl ?? "";
+  const summary = showDefaultStateImage ? null : asset.summary;
   return (
     <Card className={cn("min-w-0", tone.card, className)}>
-      <CardContent className={cn("space-y-2", compact ? "p-3" : "py-4")}>
+      <CardContent
+        className={cn(
+          showDefaultStateImage ? "p-2.5" : "space-y-2",
+          !showDefaultStateImage && (compact ? "p-3" : "py-4"),
+        )}
+      >
         <div className="flex items-start gap-2">
           <button
             type="button"
@@ -41,21 +56,42 @@ export function StoryAssetCard({ asset, compact = false, onOpen, actions, classN
             onClick={onOpen}
             aria-label={`查看${asset.typeLabel}「${asset.name}」详情`}
           >
-            <span className="flex min-w-0 items-start gap-2">
-              <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
-              <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
-            </span>
-            <p className={cn("mt-2 text-xs leading-5 text-muted-foreground", compact ? "line-clamp-2" : "line-clamp-3")}>
-              {asset.summary}
-            </p>
-            <span className="mt-2 flex flex-wrap items-center gap-1.5">
-              {asset.badges.map((badge) => (
-                <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
-              ))}
-              <Badge variant="secondary" className="text-[11px]">
-                {asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}
-              </Badge>
-            </span>
+            {showDefaultStateImage ? (
+              <>
+                <div className="aspect-video overflow-hidden rounded-xl border border-border/70 bg-muted/25">
+                  {defaultStateImage ? (
+                    <img
+                      src={defaultStateImage}
+                      alt={`${asset.name}默认状态`}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : null}
+                </div>
+                <span className="mt-2 block truncate font-medium text-foreground">{asset.name}</span>
+              </>
+            ) : (
+              <>
+                <span className="flex min-w-0 items-start gap-2">
+                  <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
+                  <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
+                </span>
+                {summary ? (
+                  <p className={cn("mt-2 text-xs leading-5 text-muted-foreground", compact ? "line-clamp-2" : "line-clamp-3")}>
+                    {summary}
+                  </p>
+                ) : null}
+                <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {asset.badges.map((badge) => (
+                    <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
+                  ))}
+                  <Badge variant="secondary" className="text-[11px]">
+                    {asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}
+                  </Badge>
+                </span>
+              </>
+            )}
           </button>
           {actions ? (
             <div className="flex shrink-0 items-center gap-1" onClick={(event) => event.stopPropagation()}>
