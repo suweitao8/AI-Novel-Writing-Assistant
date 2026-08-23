@@ -12,6 +12,10 @@ import { parseBlockingSketchData } from "../visual/DramaShotBlockingSketchContra
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
 import { runWithConcurrency } from "./batchConcurrency";
 import { failStaleBatchJobs } from "./batchJobRecovery";
+import {
+  DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY,
+  normalizeDramaKeyframeBatchConcurrency,
+} from "./dramaBatchConcurrency";
 
 export type DramaBatchJobType = "keyframes" | "videos" | "tts";
 export type DramaBatchJobStatus = "pending" | "running" | "paused" | "done" | "failed";
@@ -96,8 +100,8 @@ type BatchProcessResult = {
 
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
 const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
-/** 图片服务是外部重请求，和现有批量音频/漫画流程保持 3 路有界并发。 */
-export const DRAMA_KEYFRAME_BATCH_CONCURRENCY = 3;
+/** 图片桥当前安全上限为 4 路，保留该导出供现有契约和调用方使用。 */
+export const DRAMA_KEYFRAME_BATCH_CONCURRENCY = DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY;
 // progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
 const MAX_PROGRESS_ERRORS = 50;
 
@@ -248,7 +252,9 @@ export class DramaBatchOrchestrator {
       failedShotIds: [],
       provider: prepared.provider,
       targetShotIds: prepared.targetShotIds,
-      concurrency: input.type === "keyframes" ? DRAMA_KEYFRAME_BATCH_CONCURRENCY : undefined,
+      concurrency: input.type === "keyframes"
+        ? DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY
+        : undefined,
       errors: [],
       useCharacterRefImages: input.useCharacterRefImages ?? true,
       force: input.force ?? false,
@@ -344,7 +350,7 @@ export class DramaBatchOrchestrator {
         failedShotIds: [],
         errors: [],
         concurrency: job.type === "keyframes"
-          ? progress.concurrency ?? DRAMA_KEYFRAME_BATCH_CONCURRENCY
+          ? normalizeDramaKeyframeBatchConcurrency(progress.concurrency)
           : undefined,
         cost: progress.cost ? { ...progress.cost, actual: 0, actualUnits: {} } : undefined,
       });
@@ -379,7 +385,11 @@ export class DramaBatchOrchestrator {
       };
 
       if (job.type === "keyframes") {
-        await runWithConcurrency(shots, DRAMA_KEYFRAME_BATCH_CONCURRENCY, processShotAt);
+        await runWithConcurrency(
+          shots,
+          normalizeDramaKeyframeBatchConcurrency(nextProgress.concurrency),
+          processShotAt,
+        );
       } else {
         for (const shot of shots) {
           await processShotAt(shot);

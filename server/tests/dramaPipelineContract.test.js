@@ -498,6 +498,7 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(finishedKeyframes.status, "done");
   assert.equal(keyframeProgress.total, 1);
   assert.equal(keyframeProgress.done, 1);
+  assert.equal(keyframeProgress.concurrency, 4);
   assert.equal(keyframeProgress.cost.estimated, 1.25);
   assert.equal(keyframeProgress.cost.actual, 1.25);
   assert.equal(state.keyframeInput.sceneType, "chapter_illustration");
