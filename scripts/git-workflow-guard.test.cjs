@@ -38,7 +38,17 @@ function installTestHooks(directory) {
     path.join(repoRoot, "scripts", "git-workflow-guard.cjs"),
     path.join(directory, "scripts", "git-workflow-guard.cjs"),
   );
-  assert.equal(runGit(directory, ["config", "core.hooksPath", hooksPath]).status, 0);
+  fs.copyFileSync(
+    path.join(repoRoot, "scripts", "install-git-hooks.cjs"),
+    path.join(directory, "scripts", "install-git-hooks.cjs"),
+  );
+  const installer = spawnSync(process.execPath, [path.join(directory, "scripts", "install-git-hooks.cjs")], {
+    cwd: directory,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  assert.equal(installer.status, 0, installer.stderr || installer.stdout);
+  assert.equal(runGit(directory, ["config", "--get", "merge.ff"]).stdout.trim(), "false");
 }
 
 function writeAndStage(directory, fileName, contents) {
@@ -86,8 +96,9 @@ test("a merge commit on main is allowed, but a second direct commit is still blo
   assert.equal(runGit(directory, ["commit", "-m", "feature commit"]).status, 0);
   assert.equal(runGit(directory, ["switch", "main"]).status, 0);
 
-  const merge = runGit(directory, ["merge", "--no-ff", "--no-edit", "codex/merge-test"]);
+  const merge = runGit(directory, ["merge", "--no-edit", "codex/merge-test"]);
   assert.equal(merge.status, 0, merge.stderr || merge.stdout);
+  assert.equal(runGit(directory, ["rev-list", "--parents", "-n", "1", "HEAD"]).stdout.trim().split(/\s+/).length, 3);
 
   writeAndStage(directory, "main-change.txt", "still protected\n");
   const blocked = runGit(directory, ["commit", "-m", "direct main commit after merge"]);

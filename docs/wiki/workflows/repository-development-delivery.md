@@ -12,6 +12,7 @@
 
 - 先检查工作区范围和并行 worktree，所有变更统一选择同级隔离 worktree。
 - 新 checkout 或新环境先运行 `pnpm setup:git-hooks`，确认本地 `core.hooksPath` 指向仓库内的 `.githooks`。
+- 安装脚本同时设置 `merge.ff=false`；普通 `git merge` 必须留下 merge commit，不能把 feature 分支 fast-forward 到 `main`。
 - 完成实现后运行与范围匹配的聚焦验证；配置或忽略规则要验证实际路径是否被规则命中。
 - 用 `git commit -s` 提交完整单元；代码 worktree 还必须合并回 `main`。
 - `main` 上的直接 commit、amend、cherry-pick、revert 和 rebase 会被 hook 拒绝；只有显式 merge 产生的 merge commit 可以写入 `main`。

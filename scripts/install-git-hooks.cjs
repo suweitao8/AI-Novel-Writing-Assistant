@@ -22,5 +22,6 @@ if (!fs.existsSync(hooksPath) || !fs.existsSync(guardScript)) {
 }
 
 runGit(["config", "--local", "core.hooksPath", hooksPath]);
+runGit(["config", "--local", "merge.ff", "false"]);
 console.log(`[git-workflow-guard] installed repository hooks at ${hooksPath}`);
-console.log("[git-workflow-guard] direct commits and pushes from main are now protected");
+console.log("[git-workflow-guard] direct commits, fast-forward merges, and pushes from main are now protected");
