@@ -33,9 +33,12 @@ test("buildStateImagePrompt：角色带状态身份信息与参考图一致性�
   assert.match(prompt, /state: 重伤/);
   assert.match(prompt, /state change: 左臂受伤流血/);
   assert.match(prompt, /state image prompt: 衣服破损/);
-  assert.match(prompt, /keep the same subject identity as the reference image, change only what the state describes/);
-  // 参考图只锁身份：旧图的磨损脏污不得带进新图（除非状态本身描写）。
-  assert.match(prompt, /do not carry over wear, dirt or damage from the reference image unless the state describes it/);
+  assert.match(prompt, /keep the same subject identity as the reference image/);
+  // 参考图只锁主体身份：时代观感跟当前风格方向走——风格不同就要大胆转变环境，
+  // 干净日常风格里旧图的磨损脏污不得带入（除非风格或状态本身描写）。
+  assert.match(prompt, /the era look follows the current style direction/);
+  assert.match(prompt, /transform the environment boldly to fully express the new style/);
+  assert.match(prompt, /do not carry over wear, dirt or damage from the reference image unless the style direction or the state describes it/);
   assert.ok(prompt.startsWith("style: 角色画风"));
 });
 
