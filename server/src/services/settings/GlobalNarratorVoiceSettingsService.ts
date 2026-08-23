@@ -6,9 +6,13 @@ import {
   type AudioSpeechInput,
   type AudioSpeechResult,
 } from "../audio/speechProvider";
+import { VOICE_PREVIEW_SAMPLE_TEXT } from "../audio/voicePreviewSample";
 
 export const GLOBAL_NARRATOR_VOICE_SETTING_KEY = "drama.globalNarratorVoice";
-export const GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT = "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。";
+/** 兼容现有调用方；实际文本由 audio/voicePreviewSample 统一维护。 */
+export const GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT = VOICE_PREVIEW_SAMPLE_TEXT;
+export const DEFAULT_GLOBAL_NARRATOR_VOICE_DESCRIPTION =
+  "成年女声旁白，普通话自然清楚，温和沉稳地叙述；不做情绪表演，不使用播音员或主持人的腔调。";
 
 export type GlobalNarratorVoiceSource = "legacy" | "generated" | "manual";
 
@@ -94,6 +98,21 @@ export function hasGlobalNarratorVoice(state: GlobalNarratorVoiceState): boolean
   return Boolean(state.description || state.sampleAudioUrl);
 }
 
+/**
+ * 旧版旁白可能把小说正文或短句写入 sampleText。
+ * 文本与音频不一致时隐藏旧音频，保留描述供用户重新生成标准试听样本。
+ */
+function withoutIncompatibleNarratorSample(state: GlobalNarratorVoiceState): GlobalNarratorVoiceState {
+  if (!state.sampleAudioUrl || state.sampleText === GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT) {
+    return state;
+  }
+  const next = { ...state };
+  delete next.sampleAudioUrl;
+  delete next.sampleText;
+  delete next.sampleSha256;
+  return next;
+}
+
 export function hashNarratorSample(sampleAudioUrl: string): string {
   const dataUrlMatch = /^data:[^;,]+;base64,(.*)$/s.exec(sampleAudioUrl.trim());
   const bytes = dataUrlMatch ? Buffer.from(dataUrlMatch[1] ?? "", "base64") : sampleAudioUrl;
@@ -107,7 +126,7 @@ export class GlobalNarratorVoiceSettingsService {
     const currentRecord = await this.getAppSettingStore().findUnique({
       where: { key: GLOBAL_NARRATOR_VOICE_SETTING_KEY },
     });
-    const current = parseGlobalNarratorVoice(currentRecord?.value);
+    const current = withoutIncompatibleNarratorSample(parseGlobalNarratorVoice(currentRecord?.value));
     if (hasGlobalNarratorVoice(current)) {
       return current;
     }
@@ -118,10 +137,10 @@ export class GlobalNarratorVoiceSettingsService {
       select: { narratorVoiceData: true },
     });
     const migrated = legacyProjects
-      .map((legacy) => parseGlobalNarratorVoice(legacy.narratorVoiceData))
+      .map((legacy) => withoutIncompatibleNarratorSample(parseGlobalNarratorVoice(legacy.narratorVoiceData)))
       .find(hasGlobalNarratorVoice) ?? {};
     if (!hasGlobalNarratorVoice(migrated)) {
-      return current;
+      return { description: DEFAULT_GLOBAL_NARRATOR_VOICE_DESCRIPTION };
     }
 
     const next: GlobalNarratorVoiceState = {

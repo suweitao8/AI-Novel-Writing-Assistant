@@ -37,6 +37,7 @@ test("系统设置优先于旧项目旁白字段", async () => {
   const store = createStore({
     "drama.globalNarratorVoice": JSON.stringify({
       description: "系统男声",
+      sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
       sampleAudioUrl: "data:audio/mp3;base64:global",
     }),
   });
@@ -49,6 +50,7 @@ test("系统设置优先于旧项目旁白字段", async () => {
   const service = createService({ appSettingStore: store, legacyProject: legacy });
   assert.deepEqual(await service.get(), {
     description: "系统男声",
+    sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
     sampleAudioUrl: "data:audio/mp3;base64:global",
   });
   assert.equal(store.upserts.length, 0);
@@ -59,6 +61,7 @@ test("没有系统设置时迁移第一个有效旧项目并保留其字段", as
   const legacy = {
     narratorVoiceData: JSON.stringify({
       description: "旧项目男声",
+      sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
       sampleAudioUrl: "data:audio/mp3;base64:old",
     }),
   };
@@ -75,7 +78,11 @@ test("旧项目首条旁白无效时继续寻找下一个有效样本", async ()
     appSettingStore: store,
     legacyProjects: [
       { narratorVoiceData: "not-json" },
-      { narratorVoiceData: JSON.stringify({ description: "第二个旧声", sampleAudioUrl: "data:audio/mp3;base64:valid" }) },
+      { narratorVoiceData: JSON.stringify({
+        description: "第二个旧声",
+        sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
+        sampleAudioUrl: "data:audio/mp3;base64:valid",
+      }) },
     ],
   });
   const result = await service.get();
@@ -83,10 +90,31 @@ test("旧项目首条旁白无效时继续寻找下一个有效样本", async ()
   assert.equal(result.sampleAudioUrl, "data:audio/mp3;base64:valid");
 });
 
+test("空旁白设置默认提供女性自然叙述描述", async () => {
+  const service = createService();
+  assert.deepEqual(await service.get(), {
+    description: "成年女声旁白，普通话自然清楚，温和沉稳地叙述；不做情绪表演，不使用播音员或主持人的腔调。",
+  });
+});
+
+test("旧小说原文试听样本不会继续返回给播放器", async () => {
+  const store = createStore({
+    "drama.globalNarratorVoice": JSON.stringify({
+      description: "旧旁白描述",
+      sampleText: "天色已经暗下来，房间里很安静。",
+      sampleAudioUrl: "data:audio/mp3;base64:old",
+      sampleSha256: "old-hash",
+    }),
+  });
+  const service = createService({ appSettingStore: store });
+  assert.deepEqual(await service.get(), { description: "旧旁白描述" });
+});
+
 test("保存描述会更新时间但不会丢失已有参考音频", async () => {
   const store = createStore({
     "drama.globalNarratorVoice": JSON.stringify({
       description: "旧描述",
+      sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
       sampleAudioUrl: "data:audio/mp3;base64:sample",
     }),
   });
@@ -109,6 +137,13 @@ test("生成试听会以旁白样句和描述调用语音服务并替换全局�
   const result = await service.design("成年男声，平直叙述");
   assert.equal(calls[0].audioType, "narration");
   assert.equal(calls[0].emotion, "成年男声，平直叙述");
-  assert.match(calls[0].text, /音色/);
+  assert.equal(
+    calls[0].text,
+    "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
+  );
   assert.equal(result.sampleAudioUrl, "data:audio/mp3;base64:new");
+  assert.equal(
+    result.sampleText,
+    "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
+  );
 });

@@ -169,16 +169,22 @@ function findConnectionCause(error: unknown, depth = 0): {
   const record = error as {
     code?: unknown;
     host?: unknown;
+    address?: unknown;
     port?: unknown;
     cause?: unknown;
   };
+  const host = typeof record.host === "string" && record.host.trim()
+    ? record.host
+    : typeof record.address === "string" && record.address.trim()
+      ? record.address
+      : undefined;
   if (
     (typeof record.code === "string" && record.code.trim())
-    || (typeof record.host === "string" && record.host.trim())
+    || host
   ) {
     return {
       code: typeof record.code === "string" ? record.code : undefined,
-      host: typeof record.host === "string" ? record.host : undefined,
+      host,
       port: typeof record.port === "number" || typeof record.port === "string" ? record.port : undefined,
     };
   }
