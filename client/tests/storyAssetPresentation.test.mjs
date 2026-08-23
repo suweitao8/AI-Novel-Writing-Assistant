@@ -67,7 +67,7 @@ test("默认状态优先于状态数组中的其他状态，并保留缓存版�
   assert.deepEqual(view.preview, {
     url: "/default.png?v=2026-08-23T12%3A00%3A00.000Z",
     alt: "默认优先角色默认状态预览",
-    mode: "character-top-left-grid",
+    mode: "character-left-square",
   });
 });
 

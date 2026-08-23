@@ -3,6 +3,9 @@ import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StoryAssetPreviewSource } from "./storyAssetPresentation";
 
+// 1536x1024 角色四视图板：取最左 1/4（384px）内的 y=224..608，输出 384x384 方形头像。
+const CHARACTER_PREVIEW_CROP_TOP = "-58.3333%";
+
 export interface StoryAssetPreviewProps {
   preview: StoryAssetPreviewSource | null;
   className?: string;
@@ -35,19 +38,18 @@ export function StoryAssetPreview({ preview, className }: StoryAssetPreviewProps
     return <PreviewFallback label={preview?.alt ?? "暂无预览图"} className={className} />;
   }
 
-  if (preview.mode === "character-top-left-grid") {
+  if (preview.mode === "character-left-square") {
     return (
       <div className={cn("relative aspect-square overflow-hidden rounded-xl border border-border/70 bg-muted/25", className)}>
-        <div className="absolute inset-0 overflow-hidden">
-          <img
-            src={preview.url}
-            alt={preview.alt}
-            loading="lazy"
-            decoding="async"
-            className="absolute left-0 top-1/2 h-auto w-[400%] max-w-none -translate-y-1/2"
-            onError={() => setHasError(true)}
-          />
-        </div>
+        <img
+          src={preview.url}
+          alt={preview.alt}
+          loading="lazy"
+          decoding="async"
+          className="absolute left-0 h-auto w-[400%] max-w-none"
+          style={{ top: CHARACTER_PREVIEW_CROP_TOP }}
+          onError={() => setHasError(true)}
+        />
       </div>
     );
   }
