@@ -507,12 +507,11 @@ function buildShotKeyframePrompt(
     buildCharacterPromptLine(character, activeStatesByName.get(character.name.trim())));
   const lines = [
     ...styleLines,
-    "图生视频的决定性单帧首图",
+    "静态画面：整镜保持这一张横屏首帧图，不设计运镜",
     "构图干净，主体突出",
     shot.location ? `地点：${shot.location}` : "",
     ...buildSettingPromptLines(shot, settings),
     shot.shotSize ? `景别：${shot.shotSize}` : "",
-    shot.cameraMove ? `运镜意图：${shot.cameraMove}` : "",
     `画面内容：${shot.action}`,
     shot.dialogue ? `台词语境（不要渲染字幕）：${shot.dialogue}` : "",
     shot.visualPrompt ? `画面提示词：${shot.visualPrompt}` : "",

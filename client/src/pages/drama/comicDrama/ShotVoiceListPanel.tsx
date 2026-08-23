@@ -49,6 +49,18 @@ function parseKeyframe(raw: string | null | undefined): KeyframeState {
   }
 }
 
+function formatDurationSec(value: number | null | undefined): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  const rounded = Math.round(value * 100) / 100;
+  return `${rounded.toFixed(2).replace(/\.?0+$/, "")} 秒`;
+}
+
+function audioSegmentLabel(segment: DramaAudioSegment): string {
+  return segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白";
+}
+
 // 轮询宽限窗：任务派发后服务端可能稍晚才把状态翻成 generating（异步任务），
 // 只看当前状态会漏掉「首次轮询前已完成」的窗口，导致结果永远不刷新。
 const POLL_GRACE_MS = 30_000;
@@ -375,11 +387,15 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
 }) {
   const { shot, segments } = props;
   const keyframe = parseKeyframe(shot.keyframeData);
-  const readyCount = segments.filter((segment) => segment.status === "ready").length;
-  const pendingCount = segments.length - readyCount;
-  const shouldForceRegenerate = pendingCount === 0;
+  const pendingCount = segments.filter((segment) => segment.status !== "ready" || !segment.audioUrl).length;
+  const shouldForceRegenerate = segments.length > 0 && pendingCount === 0;
   const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
-  const shotMeta = [shot.shotSize, shot.cameraMove, shot.durationSec != null ? `${shot.durationSec} 秒` : null]
+  const readyVoiceSegments = segments.filter((segment) => segment.status === "ready" && Boolean(segment.audioUrl));
+  const voiceDurationSec = readyVoiceSegments.length === segments.length
+    ? readyVoiceSegments.reduce((total, segment) => total + (segment.durationSec ?? 0), 0)
+    : 0;
+  const shotDurationSec = voiceDurationSec > 0 ? voiceDurationSec : shot.durationSec;
+  const shotMeta = [shot.shotSize, formatDurationSec(shotDurationSec)]
     .filter(Boolean)
     .join(" · ");
 
@@ -418,69 +434,73 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           {shotMeta ? <span className="text-[11px] text-muted-foreground">{shotMeta}</span> : null}
         </div>
 
-        {segments.length === 0 && (
-          shot.dialogue || shot.action ? (
-            <p className="line-clamp-2 text-sm leading-6 text-foreground">
-              {shot.dialogue ? `「${shot.dialogue}」` : shot.action}
-            </p>
-          ) : null
-        )}
+        {segments.length > 0 ? (
+          <div className="space-y-0.5">
+            {segments.map((segment) => (
+              <p key={`${segment.shotId}-${segment.lineIndex}`} className="line-clamp-2 text-sm leading-6 text-foreground">
+                <span className="font-medium text-muted-foreground">{audioSegmentLabel(segment)}：</span>
+                {segment.text}
+              </p>
+            ))}
+          </div>
+        ) : shot.dialogue || shot.action ? (
+          <p className="line-clamp-2 text-sm leading-6 text-foreground">
+            {shot.dialogue ? `「${shot.dialogue}」` : shot.action}
+          </p>
+        ) : null}
 
         {segments.length > 0 ? (
-          <div className="mt-2 rounded-lg border border-border/60 bg-muted/10 p-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-medium text-muted-foreground">音频</span>
-              <span className={cn("text-[11px]", pendingCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
-                配音 {readyCount}/{segments.length}
-              </span>
-              <AiButton
-                type="button"
-                variant="outline"
-                size="sm"
-                className="ml-auto h-8 shrink-0 px-2.5 text-xs"
-                disabled={props.regenerating}
-                onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
-                title={`${audioActionLabel}这一镜的配音`}
-              >
-                {props.regenerating ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-                ) : shouldForceRegenerate ? (
-                  <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
-                ) : (
-                  <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
-                )}
-                {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
-              </AiButton>
-            </div>
-            <div className="mt-1.5 space-y-1">
-              {segments.map((segment) => (
-                <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
-                  <SegmentStatusDot status={segment.status} />
-                  <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                    {segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}
-                    {segment.type === "dialogue" && segment.emotion ? (
-                      <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
-                    ) : null}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={segment.text}>
-                    {segment.text}
-                  </span>
-                  {segment.status === "ready" && segment.audioUrl ? (
-                    <audio
-                      controls
-                      preload="metadata"
-                      src={segment.audioUrl}
-                      aria-label={`${segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}试听`}
-                      className="h-7 w-44 shrink-0 sm:w-56"
-                    />
-                  ) : (
-                    <span className="shrink-0 text-[10px] text-muted-foreground">
-                      {segment.status === "stale" ? "需重配" : "未生成"}
+          <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 flex-1 space-y-1.5">
+              {segments.map((segment) => {
+                const durationLabel = segment.status === "ready" ? formatDurationSec(segment.durationSec) : null;
+                return (
+                  <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
+                    <SegmentStatusDot status={segment.status} />
+                    <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                      {audioSegmentLabel(segment)}
+                      {segment.type === "dialogue" && segment.emotion ? (
+                        <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
+                      ) : null}
                     </span>
-                  )}
-                </div>
-              ))}
+                    {segment.status === "ready" && segment.audioUrl ? (
+                      <audio
+                        controls
+                        preload="metadata"
+                        src={segment.audioUrl}
+                        aria-label={`${audioSegmentLabel(segment)}试听`}
+                        className="h-7 min-w-0 flex-1"
+                      />
+                    ) : (
+                      <span className="min-w-0 flex-1 text-[10px] text-muted-foreground">
+                        {segment.status === "stale" ? "需重配" : "未生成"}
+                      </span>
+                    )}
+                    {durationLabel ? (
+                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{durationLabel}</span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
+            <AiButton
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-8 shrink-0 self-start px-2.5 text-xs sm:self-center"
+              disabled={props.regenerating}
+              onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
+              title={`${audioActionLabel}这一镜的配音`}
+            >
+              {props.regenerating ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
+              ) : shouldForceRegenerate ? (
+                <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
+              ) : (
+                <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
+              )}
+              {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
+            </AiButton>
           </div>
         ) : null}
       </div>

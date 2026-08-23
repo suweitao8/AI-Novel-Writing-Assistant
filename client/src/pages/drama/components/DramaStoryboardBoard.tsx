@@ -205,7 +205,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                   />
                   <span className="font-medium">镜头 {shot.order}</span>
                   {shot.shotSize ? <Badge variant="secondary">{shot.shotSize}</Badge> : null}
-                  {shot.cameraMove ? <Badge variant="outline">{shot.cameraMove}</Badge> : null}
                   {shot.durationSec ? <span className="ml-auto text-xs text-muted-foreground">{shot.durationSec}s</span> : null}
                 </label>
 
@@ -406,7 +405,7 @@ function ShotPreviewDialog(props: {
   const history = [...(props.keyframe.history ?? [])].sort((left, right) => right.version - left.version);
   const [keyframeLightboxOpen, setKeyframeLightboxOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState({ action: "", dialogue: "", shotSize: "", cameraMove: "", location: "", durationSec: "" });
+  const [draft, setDraft] = useState({ action: "", dialogue: "", shotSize: "", location: "", durationSec: "" });
   const queryClient = useQueryClient();
 
   const startEditing = () => {
@@ -415,7 +414,6 @@ function ShotPreviewDialog(props: {
       action: shot.action ?? "",
       dialogue: shot.dialogue ?? "",
       shotSize: shot.shotSize ?? "",
-      cameraMove: shot.cameraMove ?? "",
       location: shot.location ?? "",
       durationSec: shot.durationSec != null ? String(shot.durationSec) : "",
     });
@@ -430,7 +428,6 @@ function ShotPreviewDialog(props: {
         action: draft.action.trim(),
         dialogue: draft.dialogue.trim(),
         shotSize: draft.shotSize.trim(),
-        cameraMove: draft.cameraMove.trim(),
         location: draft.location.trim(),
         ...(durationSec !== undefined && Number.isFinite(durationSec) ? { durationSec } : {}),
       });
@@ -450,7 +447,7 @@ function ShotPreviewDialog(props: {
         <DialogHeader>
           <DialogTitle>镜头 {shot?.order ?? ""} · {shot?.shotSize || "景别待定"}</DialogTitle>
           <DialogDescription>
-            {[shot?.cameraMove, shot?.durationSec ? `${shot.durationSec} 秒` : null, shot?.location]
+            {[shot?.durationSec ? `${shot.durationSec} 秒` : null, shot?.location]
               .filter(Boolean)
               .join(" · ") || "查看画面与提示词详情。"}
           </DialogDescription>
@@ -504,22 +501,13 @@ function ShotPreviewDialog(props: {
                     className="min-h-14 w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">景别</label>
                     <Input
                       value={draft.shotSize}
                       onChange={(event) => setDraft((current) => ({ ...current, shotSize: event.target.value }))}
                       placeholder="如：近景"
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">运镜</label>
-                    <Input
-                      value={draft.cameraMove}
-                      onChange={(event) => setDraft((current) => ({ ...current, cameraMove: event.target.value }))}
-                      placeholder="如：缓推"
                       className="h-8 text-xs"
                     />
                   </div>

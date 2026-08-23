@@ -113,7 +113,6 @@ export class DramaVideoPromptService {
         shotJson: JSON.stringify({
           order: shot.order,
           shotSize: shot.shotSize,
-          cameraMove: shot.cameraMove,
           durationSec: shot.durationSec,
           location: shot.location,
           action: shot.action,

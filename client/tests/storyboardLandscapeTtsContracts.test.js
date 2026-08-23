@@ -51,8 +51,23 @@ test("每个分镜行都能试听，并按当前状态生成或重新生成本�
 test("分镜行把配音操作集中到音频区，并隐藏已由音频段展示的重复文本", () => {
   const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
 
-  assert.match(panelSource, />音频<\/span>/);
-  assert.match(panelSource, /segments\.length === 0 && \(/);
+  assert.doesNotMatch(panelSource, />音频<\/span>/);
+  assert.match(panelSource, /segments\.length > 0 \?/);
   assert.doesNotMatch(panelSource, /\{segments\.length > 0 \? \([\s\S]*?\{shot\.dialogue \|\| shot\.action \?/);
-  assert.match(panelSource, /音频[\s\S]*?audioActionLabel[\s\S]*?<audio[\s\S]*?controls[\s\S]*?preload="metadata"/);
+  assert.match(panelSource, /audioActionLabel[\s\S]*?<audio[\s\S]*?controls[\s\S]*?preload="metadata"/);
+});
+
+test("分镜配音行把正文与试听控制分层，并用真实配音时长标注镜头", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
+
+  assert.match(panelSource, /function formatDurationSec\(/);
+  assert.match(panelSource, /const voiceDurationSec = readyVoiceSegments\.length === segments\.length/);
+  assert.match(panelSource, /formatDurationSec\(shotDurationSec\)/);
+  assert.match(panelSource, /formatDurationSec\(segment\.durationSec\)/);
+  assert.match(panelSource, /sm:flex-row/);
+  assert.doesNotMatch(panelSource, />音频<\/span>/);
+  assert.doesNotMatch(panelSource, /配音 \{readyCount\}\/\{segments\.length\}/);
+  assert.doesNotMatch(panelSource, /shot\.cameraMove/);
+  assert.doesNotMatch(boardSource, /cameraMove|运镜/);
 });

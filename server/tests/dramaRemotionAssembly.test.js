@@ -45,7 +45,7 @@ test("Remotion assembly renders a landscape timeline and muxes normalized audio"
     shots: [{
       shotId: "shot-1",
       order: 1,
-      durationSec: 2,
+      durationSec: 8,
       imagePath: null,
       detail: "夜色中的街道",
       audioLines: [{ text: "向前走。", speaker: "旁白", durationSec: 2, sourcePath: audioSource }],
