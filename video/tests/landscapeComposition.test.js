@@ -29,3 +29,14 @@ test("scene props carry a deterministic frame range and landscape media source",
   assert.match(composition, /Sequence/);
   assert.match(composition, /useVideoConfig/);
 });
+
+test("subtitle layer uses the old-project blurred shadow without a black panel", () => {
+  const composition = read("src/DramaEpisodeVideo.tsx");
+  const subtitleLayer = composition.slice(composition.indexOf("function SubtitleLayer"));
+
+  assert.match(subtitleLayer, /fontFamily:\s*['"][^\n]*SimHei, [^\n]*Microsoft YaHei/);
+  assert.match(subtitleLayer, /textShadow:\s*[`\"']0 4px 12px rgba\(0,0,0,\.9\)/);
+  assert.doesNotMatch(subtitleLayer, /backgroundColor:\s*[`\"']rgba\(0, 0, 0/);
+  assert.doesNotMatch(subtitleLayer, /borderRadius:/);
+  assert.doesNotMatch(subtitleLayer, /padding:\s*[`\"]12px 24px/);
+});
