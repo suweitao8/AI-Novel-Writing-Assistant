@@ -44,7 +44,7 @@ export function StoryAssetPreview({ preview, className }: StoryAssetPreviewProps
             alt={preview.alt}
             loading="lazy"
             decoding="async"
-            className="absolute left-0 top-0 h-[200%] w-[400%] max-w-none object-fill"
+            className="absolute left-0 top-1/2 h-auto w-[400%] max-w-none -translate-y-1/2"
             onError={() => setHasError(true)}
           />
         </div>

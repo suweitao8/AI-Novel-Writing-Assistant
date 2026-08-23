@@ -1,6 +1,7 @@
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
 import { normalizeCharacterStates, normalizePropStates, normalizeSceneStates, parseStates } from "./StorySettingsStatePolicy";
+import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
 
 /** 设定中心实体 DTO 投影；投影阶段也要保证返回的状态数组可直接进入生成链。 */
 
@@ -55,7 +56,7 @@ export function projectCharacter(row: {
   statesJson?: string | null;
   aliasesJson?: string | null;
   updatedAt: Date;
-}) {
+}, novelId: string) {
   return {
     id: row.id,
     name: row.name,
@@ -70,7 +71,7 @@ export function projectCharacter(row: {
     appearance: row.appearance,
     background: row.background,
     aliases: parseCharacterAliases(row.aliasesJson, row.name),
-    states: normalizeCharacterStates(parseStates(row.statesJson), row),
+    states: scopeStateImageUrls(normalizeCharacterStates(parseStates(row.statesJson), row), novelId, "character", row.id),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -91,7 +92,7 @@ export function projectScene(row: {
   source: string;
   statesJson?: string | null;
   updatedAt: Date;
-}) {
+}, novelId: string) {
   return {
     id: row.id,
     name: row.name,
@@ -106,7 +107,7 @@ export function projectScene(row: {
     mapUnmappable: row.mapUnmappable,
     sortOrder: row.sortOrder,
     source: row.source,
-    states: normalizeSceneStates(parseStates(row.statesJson), row),
+    states: scopeStateImageUrls(normalizeSceneStates(parseStates(row.statesJson), row), novelId, "scene", row.id),
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -129,6 +130,7 @@ export function projectProp(
     updatedAt: Date;
   },
   ownerCharacterName: string | null,
+  novelId: string,
 ) {
   return {
     id: row.id,
@@ -144,7 +146,7 @@ export function projectProp(
     image: parseStoryAssetImage(row.imageData),
     sortOrder: row.sortOrder,
     source: row.source,
-    states: normalizePropStates(parseStates(row.statesJson), row),
+    states: scopeStateImageUrls(normalizePropStates(parseStates(row.statesJson), row), novelId, "prop", row.id),
     updatedAt: row.updatedAt.toISOString(),
   };
 }

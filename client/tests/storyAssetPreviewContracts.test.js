@@ -12,7 +12,10 @@ test("story asset preview keeps the three crop modes and fallback states", () =>
   assert.match(presentation, /center-square/);
   assert.match(presentation, /label\.trim\(\) === "默认"/);
   assert.match(preview, /w-\[400%\]/);
-  assert.match(preview, /h-\[200%\]/);
+  assert.match(preview, /h-auto/);
+  assert.match(preview, /top-1\/2/);
+  assert.match(preview, /-translate-y-1\/2/);
+  assert.doesNotMatch(preview, /h-\[200%\]/);
   assert.match(preview, /aspect-square/);
   assert.match(preview, /object-center/);
   assert.match(preview, /暂无预览图/);

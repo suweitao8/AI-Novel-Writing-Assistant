@@ -26,7 +26,6 @@ import {
 
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
-import { resolveGeneratedImagesRoot } from "../../../../runtime/appPaths";
 import {
   runImageGeneration,
   IMAGE_GENERATION_CANCELLED_MESSAGE,
@@ -55,23 +54,21 @@ import {
   resolveAssetImageProvider,
   TRANSPARENT_IMAGE_OPTIONS,
 } from "../../../../services/image/assetProviderRouting";
+import {
+  legacyStateImageDir,
+  stateImageDir,
+  stateImageUrl,
+  type StoryAssetKind,
+} from "./StoryAssetStateImageStorage";
 
-export type StoryAssetKind = "character" | "scene" | "prop";
-
-const STATE_IMAGES_DIR = "story-state-images";
 const STATE_IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],
   ["webp", "image/webp"],
 ];
 
-function stateImageDir(stateId: string): string {
-  return path.join(resolveGeneratedImagesRoot(), STATE_IMAGES_DIR, stateId);
-}
-
-export function stateImageUrl(novelId: string, stateId: string): string {
-  return `/api/novels/${novelId}/settings/state-images/${stateId}`;
-}
+export type { StoryAssetKind } from "./StoryAssetStateImageStorage";
+export { stateImageUrl } from "./StoryAssetStateImageStorage";
 
 interface StateAssetRow {
   id: string;
@@ -449,7 +446,7 @@ export class StoryAssetStateImageService {
     return { row, states, state };
   }
 
-  /** 进行中的状态图生成：key=`${kind}:${stateId}`。终止接口按它中止在跑的请求；
+  /** 进行中的状态图生成：key=`${kind}:${assetId}:${stateId}`。终止接口按它中止在跑的请求；
    * 进程内无记录但状态是 generating 的视为僵尸（服务重启残留），直接改写为 error。 */
   private readonly inFlightGenerations = new Map<string, { controller: AbortController; done: Promise<unknown> }>();
 
@@ -462,11 +459,11 @@ export class StoryAssetStateImageService {
     // 生成中可手动终止（2026-08-23 用户要求：代理切错等场景生成卡住时停掉重来，不等超时）。
     const controller = new AbortController();
     const done = this.runStateImageGeneration(novelId, kind, assetId, stateId, controller);
-    this.inFlightGenerations.set(`${kind}:${stateId}`, { controller, done });
+    this.inFlightGenerations.set(`${kind}:${assetId}:${stateId}`, { controller, done });
     try {
       return await done;
     } finally {
-      this.inFlightGenerations.delete(`${kind}:${stateId}`);
+      this.inFlightGenerations.delete(`${kind}:${assetId}:${stateId}`);
     }
   }
 
@@ -478,7 +475,7 @@ export class StoryAssetStateImageService {
     assetId: string,
     stateId: string,
   ): Promise<unknown> {
-    const flight = this.inFlightGenerations.get(`${kind}:${stateId}`);
+    const flight = this.inFlightGenerations.get(`${kind}:${assetId}:${stateId}`);
     if (flight) {
       flight.controller.abort();
       await flight.done.catch(() => {});
@@ -515,10 +512,14 @@ export class StoryAssetStateImageService {
   ): Promise<unknown> {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
     const resolvedReference = resolveStateReferenceImage(states, state);
-    const referenceUrl = resolvedReference?.url ?? null;
     // 参考图优先传本地文件（provider 走 multipart /images/edits）：codex 桥的 JSON 生成路径
     // 不解析 input_image_url，传 URL 会静默丢参考；本地文件是唯一可靠形态。
-    const referenceFile = resolvedReference ? await this.resolveStateImagePath(resolvedReference.stateId) : null;
+    const referenceFile = resolvedReference
+      ? await this.resolveStateImagePath(novelId, kind, assetId, resolvedReference.stateId)
+      : null;
+    const referenceUrl = referenceFile && resolvedReference
+      ? stateImageUrl(novelId, kind, assetId, resolvedReference.stateId)
+      : null;
     const effectiveReferenceStateId = resolvedReference?.stateId ?? null;
     const referencedLabel = referenceUrl
       ? states.find((item) => item.id === effectiveReferenceStateId)?.label ?? "参考状态"
@@ -553,14 +554,14 @@ export class StoryAssetStateImageService {
       saveState: async (next) => {
         await this.writeStateImage(kind, assetId, stateId, next, states);
       },
-      diskPath: (ext) => path.join(stateImageDir(stateId), `image.${ext}`),
-      publicUrl: () => stateImageUrl(novelId, stateId),
+      diskPath: (ext) => path.join(stateImageDir(novelId, kind, assetId, stateId), `image.${ext}`),
+      publicUrl: () => stateImageUrl(novelId, kind, assetId, stateId),
       cleanupOtherExts: async (keepExt) => {
         await Promise.all(STATE_IMAGE_EXTS
           .filter(([ext]) => ext !== keepExt)
           .map(async ([ext]) => {
             try {
-              await fs.unlink(path.join(stateImageDir(stateId), `image.${ext}`));
+              await fs.unlink(path.join(stateImageDir(novelId, kind, assetId, stateId), `image.${ext}`));
             } catch {
               // 不存在即无需清理
             }
@@ -645,20 +646,60 @@ export class StoryAssetStateImageService {
     return list.find((item) => item.id === assetId) ?? null;
   }
 
-  /** 服务图片文件（路由直接流式返回；与 drama 首帧图的 serve 形状一致）。 */
-  async resolveStateImagePath(stateId: string): Promise<{ filePath: string; mimeType: string } | null> {
+  private async resolveImageFile(directory: string): Promise<{
+    filePath: string;
+    mimeType: string;
+    mtimeMs: number;
+  } | null> {
     for (const [ext, mimeType] of STATE_IMAGE_EXTS) {
-      const filePath = path.join(stateImageDir(stateId), `image.${ext}`);
+      const filePath = path.join(directory, `image.${ext}`);
       try {
         const stat = await fs.stat(filePath);
         if (stat.isFile()) {
-          return { filePath, mimeType };
+          return { filePath, mimeType, mtimeMs: stat.mtimeMs };
         }
       } catch {
         // 换下一个扩展名
       }
     }
     return null;
+  }
+
+  /**
+   * 服务资产归属明确的图片文件。新路径优先；旧数据没有迁移时，只有
+   * 文件修改时间仍与该状态的 generatedAt 接近才允许回落到旧目录，避免
+   * 把另一个资产后来写入的同名 initial 图片错误展示出来。
+   */
+  async resolveStateImagePath(
+    novelId: string,
+    kind: StoryAssetKind,
+    assetId: string,
+    stateId: string,
+  ): Promise<{ filePath: string; mimeType: string } | null> {
+    const scoped = await this.resolveImageFile(stateImageDir(novelId, kind, assetId, stateId));
+    if (scoped) {
+      return { filePath: scoped.filePath, mimeType: scoped.mimeType };
+    }
+
+    const legacy = await this.resolveImageFile(legacyStateImageDir(stateId));
+    if (!legacy) {
+      return null;
+    }
+    const row = await loadStateAsset(novelId, kind, assetId);
+    const generatedAt = row.states?.find((state) => state.id === stateId)?.image?.generatedAt;
+    const generatedAtMs = generatedAt ? Date.parse(generatedAt) : Number.NaN;
+    const legacyFileIsStale = Number.isFinite(generatedAtMs)
+      && legacy.mtimeMs > generatedAtMs + 5 * 60 * 1000;
+    if (legacyFileIsStale) {
+      return null;
+    }
+    return { filePath: legacy.filePath, mimeType: legacy.mimeType };
+  }
+
+  /** 兼容仍保存旧 URL 的调用方；新的资产 DTO 不再返回这个 URL。 */
+  async resolveLegacyStateImagePath(stateId: string): Promise<{ filePath: string; mimeType: string } | null> {
+    const legacy = await this.resolveImageFile(legacyStateImageDir(stateId));
+    return legacy ? { filePath: legacy.filePath, mimeType: legacy.mimeType } : null;
   }
 }
 
