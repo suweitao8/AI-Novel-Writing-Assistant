@@ -199,6 +199,7 @@ This project is a pure web product: all development targets the website (`client
 
 - The main workspace always stays on `main`: never switch its branch and never create branches inside it. The only repository state changes allowed there are resolving an explicit merge of a verified branch and pushing the resulting `main`; documentation and rule-file changes also use an isolated `codex/*` worktree.
 - Session development happens in an isolated worktree with its own dedicated branch: create the worktree as a sibling directory of the repo via `git worktree add` — never inside the repo, because workspace globs and tooling scans would pick it up — and do all implementation, verification, and commits inside that worktree.
+- Prefer `pnpm workflow:worktree <task>` for new work. It requires a clean `main`, creates a sibling `codex/<task>` worktree, and installs the tracked hooks automatically.
 - Once the work passes its focused verification, merge the branch back into `main`, push to the remote, then remove the worktree and delete its branch in the same step. Never delete a worktree or branch that still holds unmerged, unfinished changes.
 - `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is worktree branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
 
@@ -209,6 +210,12 @@ This project is a pure web product: all development targets the website (`client
 - Unless the user explicitly limits the request to diagnosis, review, a local-only edit, or stopping before delivery, complete the full chain: inspect scope, implement, run focused verification, commit with `git commit -s`, merge/promote to `main` when a worktree was used, push explicitly with `git push origin main`, and verify the final status and remote ref.
 - A local edit or local commit is an intermediate state, not completion. Do not report the task as finished while the intended repository change remains uncommitted, unmerged, or unpushed. For ignore-rule changes, verify each affected path with `git check-ignore -v --no-index <path>` before closing the task.
 - Ask a blocking question only when a required fact cannot be determined from the repository or artifacts, the next action is destructive, the action would expand beyond the requested scope, or another session owns a conflicting state. Routine execution-method choices are not askable items.
+
+### Workflow Entry Commands
+
+- Run `pnpm check:workspace-integrity` before development. A `main` checkout with any tracked or untracked non-ignored change, an unfinished `MERGE_HEAD`, missing tracked hooks, or `merge.ff` not set to `false` must stop with an actionable error; continue development only in a sibling `codex/*` worktree.
+- Use `pnpm workflow:integrate codex/<task> --push` from the clean `main` workspace after focused verification. The command serializes integrations with a repository-level lock, verifies the source worktree is clean, prepares a `--no-ff --no-commit` merge, signs the merge commit, and pushes only `origin/main`. Add `--verify "<command>"` for a required focused check.
+- Do not manually bypass a held integration lock or leave `MERGE_HEAD` for another session. A conflict or verification failure is aborted by the integration entry point so `main` returns to its pre-integration clean state.
 
 ### Remote And Multi-Session Discipline
 
@@ -233,6 +240,8 @@ This project is a pure web product: all development targets the website (`client
 - Never switch to another port when a dev port is occupied, and never change `PORT` values as a conflict workaround — silent port drift is what breaks the client `/api` proxy and running sessions.
 - If a port is occupied, stop the occupying process and restart on the same port. The server dev script already kills this repo's stale dev processes before starting (`server/scripts/stop-stale-dev-server.cjs`); for other occupants run `netstat -ano | findstr :3100` (or `:5173`), confirm it is a disposable stale dev process, then `taskkill /PID <pid> /F` and start again on the same port.
 - If the port is held by an unrelated long-lived service rather than a stale dev process, report it to the user instead of killing blindly or switching ports.
+- `pnpm dev:raw` runs `scripts/dev-service-supervisor.cjs`: a failed child is restarted with bounded exponential backoff, but once a child exhausts retries the supervisor terminates the whole development group and does not restart the terminated siblings. This prevents a surviving Vite process from presenting an endless service-connection screen.
+- When the page remains on “正在连接本地创作服务”, check `Get-NetTCPConnection -State Listen -LocalPort 3100,5174`, then request `http://127.0.0.1:3100/api/health` and inspect the latest `.logs/*/*-dev.log`; do not change ports or use Prisma `--accept-data-loss` as a recovery shortcut.
 
 ## Prompt Governance
 
