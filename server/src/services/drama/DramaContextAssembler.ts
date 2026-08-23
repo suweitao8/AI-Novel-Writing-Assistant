@@ -13,7 +13,7 @@ interface BeatLite {
 
 /**
  * novel_import 项目：按名字读设定中心角色的外观状态（含 image/chapterOrder 等完整字段）。
- * charactersDigest 拼成「状态：」名单喂给分镜 LLM（drama.storyboard@v4 据此标
+ * charactersDigest 拼成「状态：」名单喂给分镜 LLM（drama.storyboard@v5 据此标
  * characterStates）；首帧图服务也用它把镜头状态标注解析成状态对象（切形象与参考图）。
  */
 export async function loadNovelCharacterStatesByName(novelId: string): Promise<Map<string, StoryAssetState[]>> {

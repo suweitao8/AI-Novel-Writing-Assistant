@@ -145,7 +145,7 @@ export class DramaVideoPromptService {
           provider: resolveDefaultVideoProvider(),
           prompt: output.prompt,
           negativePrompt: output.negativePrompt ?? null,
-          // 分镜视频统一走横屏时间轴；模型返回的旧画幅不能覆盖产品画幅契约。
+          // 视频生产合同固定为横屏 16:9；schema 已限制模型输出，落库和 provider 请求再做一次边界收敛。
           aspectRatio: "16:9",
           durationSec: output.durationSec ?? shot.durationSec,
           status: "prompted",
@@ -182,7 +182,7 @@ export class DramaVideoPromptService {
     const request: VideoGenerationRequest = {
       prompt: videoPrompt.prompt,
       negativePrompt: videoPrompt.negativePrompt,
-      aspectRatio: videoPrompt.aspectRatio,
+      aspectRatio: "16:9",
       durationSec: videoPrompt.durationSec,
     };
     if (refImages.length) {

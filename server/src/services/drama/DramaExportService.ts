@@ -1,5 +1,6 @@
 import { prisma } from "../../db/prisma";
 import { safeJsonParse } from "./utils/json";
+import { getDramaRenderProfile } from "./video/renderProfile";
 
 export type DramaProjectExportFormat = "markdown" | "json";
 export type DramaEpisodeExportFormat = "srt" | "timeline-json";
@@ -298,7 +299,9 @@ export class DramaExportService {
         },
         canvas: {
           aspectRatio: "16:9",
-          fps: 30,
+          width: getDramaRenderProfile().width,
+          height: getDramaRenderProfile().height,
+          fps: getDramaRenderProfile().fps,
         },
         tracks: {
           video: videoTrack,

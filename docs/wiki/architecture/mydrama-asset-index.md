@@ -14,17 +14,17 @@
 | 音色描述生成（design 模式） | `seedance2_i2v/character_voice_generation.py`、`services/global_narrator_voice.py` | `DramaVoiceDesignService`（角色音色 + 项目旁白） | 描述→固定样句试听，不克隆 |
 | sha 过期判定 | `voice_audio_records.py`（voice sha + text sha → missing/stale/current） | `DialogueAudioItem.textHash/voiceKey` + `DramaAudioSegmentsService` | 思路搬移，实现简化 |
 | 批量只补缺失 | `generate_seedance2_dialogue_audio_for_voice`（skipped_existing） | batch-jobs tts `force` 语义 + 行级复用 | |
-| I2V 时长适配 | `video_composer.py:697` adjust_video_duration | `DramaEpisodeAssemblyService.buildVideoClipFilter` | 三级策略（裁剪/≤1.5x setpts 变速/>1.5x tpad 冻结末帧）并入逐镜归一化命令 |
-| 整集合成骨架 | `video_composer.py` compose_episode（逐镜片段→concat demuxer；drawtext 片头片尾卡带字体回退） | `DramaEpisodeAssemblyService`（full_episode 任务，见 `docs/wiki/workflows/comic-drama-episode-assembly.md`） | 音频驱动时长 + 统一规格后 `-c copy` 拼接；卡片失败退纯黑卡一并保留 |
-| Ken Burns 四效果轮换 | `video_composer.py:63` KenBurnsEffect | `DramaEpisodeAssemblyService.kenBurnsFilter` | pan 方向改用 zoompan `on` 帧计数渐进（修正旧项目常量偏移写法）；预放大取 2x 而非 8000 |
+| I2V 时长适配 | `video_composer.py:697` adjust_video_duration | `DramaRemotionEpisodeAssembler`（见 `docs/wiki/workflows/comic-drama-episode-assembly.md`） | 现在按配音总时长构建 Remotion 场景；旧逐镜变速/冻结策略不再作为整集合成主链路 |
+| 整集合成骨架 | `video_composer.py` compose_episode（旧逐镜片段→concat demuxer） | `DramaEpisodeAssemblyService` + `DramaRemotionEpisodeAssembler` + `video/` | 已收敛为 Remotion 单一画面时间轴；ffmpeg 仅做 WAV 规范化、AAC mux 和 ffprobe 校验，默认 1280x720/24fps，可切换 1920x1080/24fps |
+| Ken Burns 四效果轮换 | `video_composer.py:63` KenBurnsEffect | Remotion Composition（当前使用首帧铺满画面；动效可在 Composition 内扩展） | 不再由 ffmpeg 逐镜生成中间片段，避免整集 concat 的编码边界漂移 |
 | 音频驱动时间轴 | `export/narrated_timeline.py` build_narrated_timeline（beat 时长=ffprobe 实测） | `DramaEpisodeAssemblyService.buildShotPlan` | 「一行台词=一段音频=一条字幕，绝不二次切分」契约落地 |
 | 中文字幕断句/换行 | `narrated_timeline.py:167/71` split_narration_into_sentences / wrap_subtitle_text | `services/drama/video/subtitleText.ts` | 引号保护断句、超长再切、短碎片回并；换行不改文字 |
-| 硬字幕 | `video_composer.py:488` add_subtitles（subtitles 滤镜 + force_style） | `DramaEpisodeAssemblyService`（burnSubtitles 选项） | SRT 直接烧录，竖屏参数 FontSize=44/MarginV=140 |
+| 硬字幕 | `video_composer.py:488` add_subtitles（subtitles 滤镜 + force_style） | `DramaRemotionEpisodeAssembler` + `video/src/DramaEpisodeVideo.tsx` | `burnSubtitles=true` 时由 Remotion 在横屏画面内渲染；关闭时仍生成同一份 SRT |
 | SRT 产物 | `export/episode_export.py` format_srt_time/build_srt_content | assembly 生成 `.srt` + `GET /api/drama/subtitle-files/:fileId` | 素材 zip 打包未搬（见待搬 2） |
 
 ## 本项目现状对照（2026-08-19）
 
-漫剧链路已具备：小说 → 章节管理 → 分镜（`DramaStoryboard`/`DramaShot`）→ 首帧（`keyframeData`）→ 配音（`dialogueAudioData` + VoiceStagePanel）→ 逐镜视频（`DramaVideoPrompt.resultUrl`，LocalFfmpeg/Http/Mock 三 Provider）→ **整集合成**（full_episode：逐镜归一化拼接 + 时长适配 + 字幕烧录 + SRT，见 `docs/wiki/workflows/comic-drama-episode-assembly.md`）。
+漫剧链路已具备：小说 → 章节管理 → 分镜（`DramaStoryboard`/`DramaShot`）→ 横屏首帧（`keyframeData`）→ 配音（`dialogueAudioData` + VoiceStagePanel）→ 逐镜素材（`DramaVideoPrompt.resultUrl`，LocalFfmpeg/Http/Mock 三 Provider）→ **整集合成**（full_episode：Remotion 横屏时间轴 + 音频 mux + 字幕/SRT，见 `docs/wiki/workflows/comic-drama-episode-assembly.md`）。
 
 与 mydrama 相比剩余缺口：首尾帧过渡提示词（I2V 接入后需要）、整集素材 zip 打包、BGM 混音（旧项目也不成熟）。
 

@@ -61,7 +61,7 @@ interface ShotKeyframeSource {
   action: string;
   dialogue?: string | null;
   characterRefs?: string | null;
-  /** 分镜 LLM 标注的每镜角色状态 JSON（[{name,state}]，drama.storyboard@v4 起） */
+  /** 分镜 LLM 标注的每镜角色状态 JSON（[{name,state}]，drama.storyboard@v5 起） */
   characterStates?: string | null;
   visualPrompt?: string | null;
   storyboard: {

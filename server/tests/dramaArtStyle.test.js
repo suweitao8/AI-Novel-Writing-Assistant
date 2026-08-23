@@ -80,6 +80,7 @@ test("分镜只拼入实际出现的资产类型，不把资产固定规格带�
     null,
   );
   const joined = lines.join(" ");
+  assert.match(lines[0], /横屏|16:9/);
   assert.match(joined, /角色/);
   assert.match(joined, /道具/);
   assert.doesNotMatch(joined, /360.*全景/);

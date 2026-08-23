@@ -265,7 +265,7 @@ export interface DramaBatchProgress {
   useCharacterRefImages?: boolean;
   cost?: DramaBatchCostBreakdown;
   /** full_episode 整集合成任务专用：阶段与产物 */
-  phase?: "prepare" | "clips" | "concat" | "subtitles" | "done";
+  phase?: "prepare" | "audio" | "render" | "mux" | "done";
   videoUrl?: string;
   srtUrl?: string;
   durationSec?: number;
@@ -653,6 +653,7 @@ export interface DramaAssembledVideoData {
 export interface DramaEpisodeAssemblyStatus {
   episodeId: string;
   order: number;
+  renderProfile?: { id: "720p" | "1080p"; width: number; height: number; fps: number };
   shotCount: number;
   clips: { withVideoClip: number; withKeyframeOnly: number; withoutVisual: number };
   withoutAudioShotCount: number;

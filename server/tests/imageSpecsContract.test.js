@@ -12,8 +12,8 @@ test("设计参考类生图固定横版；场景全景是 2:1 等距柱状（202
   assert.equal(IMAGE_SPECS.characterAsset, "1536x1024");
 });
 
-test("阅读消费类生图固定竖版（漫剧首帧/分格兜底/封面）", () => {
-  assert.equal(IMAGE_SPECS.dramaKeyframe, "1024x1536");
+test("漫剧首帧与成片统一横版；封面仍保持竖版", () => {
+  assert.equal(IMAGE_SPECS.dramaKeyframe, "1536x864");
   assert.equal(IMAGE_SPECS.comicPanelFallback, "1024x1536");
   assert.equal(IMAGE_SPECS.novelCover, "1024x1536");
 });

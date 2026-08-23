@@ -1,39 +1,29 @@
-import fs from "fs/promises";
-import os from "os";
-import path from "path";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { dramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { resolveGeneratedVideosRoot } from "./LocalFfmpegVideoProvider";
 import {
+  DramaRemotionEpisodeAssembler,
+  type DramaAssemblyAudioLine,
+  type DramaAssemblyShot,
+} from "./DramaRemotionEpisodeAssembler";
+import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
+import {
   assertFfmpegAvailable,
   ensureDir,
-  escapeFilterPath,
   ffprobeDuration,
-  resolveDrawtextFontFile,
   resolveFfmpegBin,
   runVideoProcess,
 } from "./ffmpegUtils";
-import { splitNarrationIntoSentences, wrapSubtitleText } from "./subtitleText";
+import { splitNarrationIntoSentences } from "./subtitleText";
 
-// 漫剧整集合成（移植自 mydrama generators/video_composer.py + export/narrated_timeline.py）。
-// 契约：
-// - 时间轴由音频驱动：一行台词 = 一段音频 = 一条字幕，绝不二次切分文本。
-// - 每个镜头先归一化为统一的 1920x1080/30fps/H.264+AAC 片段（时长精确对齐该镜音频总时长），
-//   再用 concat demuxer 无损拼接；视频片段过长裁剪、缺口 ≤1.5x 变速补齐、>1.5x 冻结末帧。
-// - 无视频片段的镜头退化为 首帧图 + Ken Burns 推拉（四效果按镜序轮换）；再退化为纯色卡。
-// - 产物 mp4 + srt 落在 storage/generated-videos/，结果记录在 DramaEpisode.assembledVideoData。
+// 漫剧整集合成：Remotion 负责唯一的画面时间轴，ffmpeg 只负责音频规范化、最终封装与探测。
+// 这样每一镜的画面不再经过逐镜编码再 concat，成片合同也由 profile + ffprobe 在出口处校验。
 
-const WIDTH = 1920;
-const HEIGHT = 1080;
-const FPS = 30;
-const SUBTITLE_WRAP_CHARS = 18;
-const SUBTITLE_FORCE_STYLE = "FontSize=44,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,MarginV=140";
-const TITLE_CARD_SEC = 3;
-const END_CARD_SEC = 2;
-const DURATION_TOLERANCE_SEC = 0.1;
-const SPEED_STRETCH_LIMIT = 1.5;
 const STALE_JOB_MS = 10 * 60_000;
 
 export interface DramaAssembledVideoData {
@@ -54,20 +44,9 @@ export interface DramaEpisodeAssemblyOptions {
   includeEndCard?: boolean;
 }
 
-interface AssemblyAudioLine {
-  text: string;
-  speaker?: string;
-  durationSec: number;
-}
-
-interface AssemblyShotPlan {
+interface AssemblyShotPlan extends DramaAssemblyShot {
   shotId: string;
   order: number;
-  visualKind: "video" | "keyframe" | "card";
-  videoClipPath: string | null;
-  keyframePath: string | null;
-  audioLines: AssemblyAudioLine[];
-  audioInput: { kind: "file"; path: string } | { kind: "concat"; listPath: string } | null;
   targetDurationSec: number;
 }
 
@@ -78,7 +57,7 @@ interface AssemblyJobProgress {
   skipped: number;
   failedShotIds: string[];
   errors: Array<{ shotId: string; message: string }>;
-  phase: "prepare" | "clips" | "concat" | "subtitles" | "done";
+  phase: "prepare" | "audio" | "render" | "mux" | "done";
   provider?: string;
   videoUrl?: string;
   srtUrl?: string;
@@ -86,89 +65,20 @@ interface AssemblyJobProgress {
   error?: string;
 }
 
-interface SubtitleCue {
-  startSec: number;
-  endSec: number;
-  text: string;
-}
-
 interface ShotLike {
   id: string;
   order: number;
   durationSec?: number | null;
   dialogue?: string | null;
+  action?: string | null;
+  location?: string | null;
   keyframeData?: string | null;
   dialogueAudioData?: string | null;
 }
 
-function dataUrlToBuffer(dataUrl: string): Buffer | null {
-  const match = /^data:[^;]+;base64,(.+)$/s.exec(dataUrl.trim());
-  return match ? Buffer.from(match[1]!, "base64") : null;
-}
-
-function toPosix(filePath: string): string {
-  return filePath.replace(/\\/g, "/");
-}
-
-function concatListContent(filePaths: string[]): string {
-  return filePaths.map((filePath) => `file '${toPosix(filePath).replace(/'/g, "'\\''")}'`).join("\n");
-}
-
-function normalizeDurationSec(value: number | null | undefined, fallback: number): number {
-  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : fallback;
-}
-
-function formatSrtTime(totalSeconds: number): string {
-  const totalMs = Math.max(0, Math.round(totalSeconds * 1000));
-  const hours = Math.floor(totalMs / 3_600_000);
-  const minutes = Math.floor((totalMs % 3_600_000) / 60_000);
-  const seconds = Math.floor((totalMs % 60_000) / 1000);
-  const ms = totalMs % 1000;
-  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")},${String(ms).padStart(3, "0")}`;
-}
-
-function buildSrt(cues: SubtitleCue[]): string {
-  return cues.map((cue, index) => [
-    String(index + 1),
-    `${formatSrtTime(cue.startSec)} --> ${formatSrtTime(cue.endSec)}`,
-    wrapSubtitleText(cue.text, SUBTITLE_WRAP_CHARS),
-    "",
-  ].join("\n")).join("\n");
-}
-
-/** Ken Burns 四效果按镜序轮换（移植自 mydrama KenBurnsEffect；pan 方向用 on 帧计数渐进，修正旧项目常量偏移的实现）。 */
-function kenBurnsFilter(effectIndex: number, durationSec: number): string {
-  const frames = Math.max(FPS, Math.round(durationSec * FPS));
-  const base = `scale=${WIDTH * 2}:${HEIGHT * 2}:force_original_aspect_ratio=increase,crop=${WIDTH * 2}:${HEIGHT * 2}`;
-  const tail = `s=${WIDTH}x${HEIGHT}:fps=${FPS}`;
-  switch (effectIndex % 4) {
-    case 0:
-      return `${base},zoompan=z='min(zoom+0.001,1.2)':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':${tail}`;
-    case 1:
-      return `${base},zoompan=z='if(lte(zoom,1.0),1.2,max(1.001,zoom-0.001))':d=${frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':${tail}`;
-    case 2:
-      return `${base},zoompan=z=1.1:d=${frames}:x='iw/2-(iw/zoom/2)+(on/${frames})*(iw-iw/zoom)*0.5':y='ih/2-(ih/zoom/2)':${tail}`;
-    default:
-      return `${base},zoompan=z=1.1:d=${frames}:x='iw/2-(iw/zoom/2)-(on/${frames})*(iw-iw/zoom)*0.5':y='ih/2-(ih/zoom/2)':${tail}`;
-  }
-}
-
-function buildVideoClipFilter(probedDurationSec: number, targetDurationSec: number): string {
-  const normalize = `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT}`;
-  const tail = `fps=${FPS},setsar=1,format=yuv420p`;
-  if (probedDurationSec > 0 && targetDurationSec > probedDurationSec + DURATION_TOLERANCE_SEC) {
-    const stretchRatio = targetDurationSec / probedDurationSec;
-    if (stretchRatio <= SPEED_STRETCH_LIMIT) {
-      return `${normalize},setpts=${stretchRatio.toFixed(4)}*PTS,${tail}`;
-    }
-    const freezeSec = targetDurationSec - probedDurationSec;
-    return `${normalize},tpad=stop_mode=clone:stop_duration=${freezeSec.toFixed(3)},${tail}`;
-  }
-  return `${normalize},${tail}`;
-}
-
 export class DramaEpisodeAssemblyService {
   private readonly runningJobs = new Set<string>();
+  private readonly assembler = new DramaRemotionEpisodeAssembler();
 
   async getAssemblyStatus(projectId: string, order: number) {
     const episode = await this.loadEpisode(projectId, order);
@@ -204,6 +114,7 @@ export class DramaEpisodeAssemblyService {
     return {
       episodeId: episode.id,
       order,
+      renderProfile: getDramaRenderProfile(),
       shotCount: shots.length,
       clips: { withVideoClip, withKeyframeOnly, withoutVisual },
       withoutAudioShotCount: withoutAudio,
@@ -230,14 +141,14 @@ export class DramaEpisodeAssemblyService {
     }
 
     const progress: AssemblyJobProgress = {
-      total: shots.length,
+      total: shots.length + (options.includeTitleCard === false ? 0 : 1) + (options.includeEndCard === false ? 0 : 1),
       done: 0,
       failed: 0,
       skipped: 0,
       failedShotIds: [],
       errors: [],
       phase: "prepare",
-      provider: "local_ffmpeg",
+      provider: "remotion",
     };
     const job = await prisma.dramaBatchJob.create({
       data: {
@@ -274,148 +185,83 @@ export class DramaEpisodeAssemblyService {
       await ensureDir(workDir);
       const warnings: string[] = [];
       const plans: AssemblyShotPlan[] = [];
-      for (const shot of shots) {
-        plans.push(await this.buildShotPlan(shot, plans.length, workDir, warnings));
-      }
-
+      const total = shots.length + (options.includeTitleCard ? 1 : 0) + (options.includeEndCard ? 1 : 0);
       const progress: AssemblyJobProgress = {
-        total: plans.length + (options.includeTitleCard ? 1 : 0) + (options.includeEndCard ? 1 : 0),
+        total,
         done: 0,
         failed: 0,
         skipped: 0,
         failedShotIds: [],
         errors: [],
-        phase: "clips",
-        provider: "local_ffmpeg",
+        phase: "prepare",
+        provider: "remotion",
       };
       await this.updateJob(jobId, progress);
-
-      const clipPaths: string[] = [];
-      let cursor = 0;
-      const cues: SubtitleCue[] = [];
-
-      if (options.includeTitleCard) {
-        const cardPath = path.join(workDir, "card-title.mp4");
-        await this.buildTextCard({
-          text: `${episode.project.title} · 第 ${order} 集`,
-          durationSec: TITLE_CARD_SEC,
-          fontSize: 72,
-          outputPath: cardPath,
-        });
-        clipPaths.push(cardPath);
-        cursor += TITLE_CARD_SEC;
+      for (const shot of shots) {
+        plans.push(await this.buildShotPlan(shot, plans.length, workDir, warnings));
         progress.done += 1;
         await this.updateJob(jobId, progress);
       }
 
-      for (const plan of plans) {
-        const clipPath = path.join(workDir, `shot-${String(plan.order).padStart(4, "0")}.mp4`);
-        try {
-          await this.buildShotClip(plan, clipPath);
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          progress.failed += 1;
-          progress.failedShotIds.push(plan.shotId);
-          progress.errors.push({ shotId: plan.shotId, message });
-          warnings.push(`镜头 ${plan.order} 合成失败，已用占位画面补齐：${message.slice(0, 120)}`);
-          try {
-            await this.buildShotClip(
-              { ...plan, visualKind: "card", videoClipPath: null, keyframePath: null },
-              clipPath,
-            );
-          } catch {
-            await this.buildSilentCard(clipPath, plan.targetDurationSec);
-            warnings.push(`镜头 ${plan.order} 的配音无法混入成片，已降级为静音占位。`);
-          }
-        }
-        clipPaths.push(clipPath);
-        const shotStart = cursor;
-        for (const line of plan.audioLines) {
-          cues.push({
-            startSec: shotStart,
-            endSec: shotStart + line.durationSec,
-            text: line.speaker?.trim() ? `${line.speaker.trim()}：${line.text}` : line.text,
-          });
-          cursor += line.durationSec;
-        }
-        if (!plan.audioLines.length) {
-          cursor += plan.targetDurationSec;
-        }
-        progress.done += 1;
-        await this.updateJob(jobId, progress);
-      }
-
-      if (options.includeEndCard) {
-        const cardPath = path.join(workDir, "card-end.mp4");
-        await this.buildTextCard({
-          text: "敬请期待下集",
-          durationSec: END_CARD_SEC,
-          fontSize: 56,
-          outputPath: cardPath,
-        });
-        clipPaths.push(cardPath);
-        cursor += END_CARD_SEC;
-        progress.done += 1;
-        await this.updateJob(jobId, progress);
-      }
-
-      progress.phase = "concat";
+      progress.phase = "audio";
       await this.updateJob(jobId, progress);
-      const concatPath = path.join(workDir, "concat-list.txt");
-      await fs.writeFile(concatPath, concatListContent(clipPaths), "utf8");
-      const roughCutPath = path.join(workDir, "rough-cut.mp4");
-      await this.runFfmpeg([
-        "-y", "-f", "concat", "-safe", "0", "-i", concatPath,
-        "-c", "copy", "-movflags", "+faststart",
-        roughCutPath,
-      ]);
 
-      const srtBody = buildSrt(cues);
       const finalFileId = `ep_${episode.id}_${Date.now()}`;
       const outputRoot = resolveGeneratedVideosRoot();
       await ensureDir(outputRoot);
       const finalVideoPath = path.join(outputRoot, `${finalFileId}.mp4`);
       const finalSrtPath = path.join(outputRoot, `${finalFileId}.srt`);
+      const profile = getDramaRenderProfile();
 
-      if (options.burnSubtitles && cues.length > 0) {
-        progress.phase = "subtitles";
-        await this.updateJob(jobId, progress);
-        const tmpSrtPath = path.join(workDir, "burn.srt");
-        await fs.writeFile(tmpSrtPath, srtBody, "utf8");
-        const burnStyle = `subtitles='${escapeFilterPath(tmpSrtPath)}':force_style='${SUBTITLE_FORCE_STYLE}'`;
-        await this.runFfmpeg(["-y", "-i", roughCutPath, "-vf", burnStyle, "-c:a", "copy", "-movflags", "+faststart", finalVideoPath]);
-      } else {
-        await fs.copyFile(roughCutPath, finalVideoPath);
-      }
-      await fs.writeFile(finalSrtPath, srtBody, "utf8");
-      const durationSec = await ffprobeDuration(finalVideoPath);
+      const result = await this.assembler.assemble({
+        jobId,
+        episodeTitle: episode.project.title,
+        episodeOrder: order,
+        profile,
+        shots: plans,
+        includeTitleCard: options.includeTitleCard,
+        includeEndCard: options.includeEndCard,
+        showSubtitles: options.burnSubtitles,
+        outputPath: finalVideoPath,
+        srtPath: finalSrtPath,
+        workDir,
+        warnings,
+        onPhase: async (phase) => {
+          progress.phase = phase;
+          if (phase === "render") {
+            progress.done = Math.max(progress.done, Math.min(total - 1, Math.ceil(total * 0.75)));
+          } else if (phase === "mux") {
+            progress.done = Math.max(progress.done, Math.min(total - 1, Math.ceil(total * 0.9)));
+          }
+          await this.updateJob(jobId, progress);
+        },
+      });
 
       const assembled: DramaAssembledVideoData = {
         status: "done",
         videoUrl: `/api/drama/video-files/${finalFileId}`,
         srtUrl: `/api/drama/subtitle-files/${finalFileId}`,
-        durationSec: durationSec ?? Math.round(cursor * 10) / 10,
+        durationSec: result.durationSec,
         shotCount: plans.length,
-        burnedSubtitles: options.burnSubtitles && cues.length > 0,
+        burnedSubtitles: options.burnSubtitles,
         generatedAt: new Date().toISOString(),
-        warnings,
+        warnings: result.warnings,
       };
       await this.writeAssembled(episode.id, assembled);
 
       progress.phase = "done";
+      progress.done = total;
       progress.videoUrl = assembled.videoUrl;
       progress.srtUrl = assembled.srtUrl;
       progress.durationSec = assembled.durationSec;
       await this.updateJob(jobId, progress);
-      await prisma.dramaBatchJob.update({
-        where: { id: jobId },
-        data: { status: progress.failed > 0 ? "failed" : "done" },
-      });
+      // 缺首帧、缺配音或其它可恢复素材问题只进入 warnings，不得把可播放成片标成 failed。
+      await prisma.dramaBatchJob.update({ where: { id: jobId }, data: { status: "done" } });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       await prisma.dramaBatchJob.update({
         where: { id: jobId },
-        data: { status: "failed", progress: JSON.stringify({ phase: "concat", error: message.slice(0, 500) }) },
+        data: { status: "failed", progress: JSON.stringify({ phase: "mux", error: message.slice(0, 500) }) },
       }).catch(() => undefined);
       const episode = await prisma.dramaEpisode.findUnique({ where: { projectId_order: { projectId, order } } });
       if (episode) {
@@ -446,47 +292,36 @@ export class DramaEpisodeAssemblyService {
       .filter((item) => item && typeof item.text === "string" && item.text.trim() && typeof item.audioUrl === "string" && item.audioUrl.startsWith("data:"))
       .sort((a, b) => (a.lineIndex ?? 0) - (b.lineIndex ?? 0));
 
-    const audioPaths: string[] = [];
-    const audioLines: AssemblyAudioLine[] = [];
+    const audioLines: DramaAssemblyAudioLine[] = [];
     for (let lineIndex = 0; lineIndex < audioItems.length; lineIndex += 1) {
       const item = audioItems[lineIndex]!;
       const buffer = dataUrlToBuffer(item.audioUrl!);
       if (!buffer?.length) {
         continue;
       }
-      const audioPath = path.join(workDir, `audio-${index}-${lineIndex}.mp3`);
+      const ext = audioFileExtensionFromDataUrl(item.audioUrl!);
+      const audioPath = path.join(workDir, `audio-${index}-${lineIndex}.${ext}`);
       await fs.writeFile(audioPath, buffer);
       const probed = await ffprobeDuration(audioPath);
       const durationSec = normalizeDurationSec(
         probed ?? item.durationSec,
         Math.max(1.5, Math.ceil((item.text?.length ?? 6) / 4)),
       );
-      audioPaths.push(audioPath);
       audioLines.push({
         text: item.text!,
         speaker: item.speaker?.trim() || undefined,
         durationSec: Math.round(durationSec * 100) / 100,
+        sourcePath: audioPath,
       });
-    }
-
-    let audioInput: AssemblyShotPlan["audioInput"] = null;
-    if (audioPaths.length === 1) {
-      audioInput = { kind: "file", path: audioPaths[0]! };
-    } else if (audioPaths.length > 1) {
-      const listPath = path.join(workDir, `audio-${index}-list.txt`);
-      await fs.writeFile(listPath, concatListContent(audioPaths), "utf8");
-      audioInput = { kind: "concat", listPath };
     }
 
     const audioTotal = audioLines.reduce((sum, line) => sum + line.durationSec, 0);
     const noAudioTarget = normalizeDurationSec(shot.durationSec, 3);
-    let targetDurationSec = audioLines.length
+    const targetDurationSec = audioLines.length
       ? Math.max(1, Math.round(audioTotal * 100) / 100)
       : noAudioTarget;
 
-    const visual = await this.resolveVisualSource(shot, index, workDir, warnings);
-
-    // 无音频时按台词行/断句拆分字幕，按字数权重分配时长（有音频时一行音频一条字幕）。
+    // 无音频时仍保留脚本字幕，但音轨由整合器生成同长度静音 WAV。
     if (!audioLines.length) {
       const lines = (shot.dialogue ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
         .flatMap((line) => (line.length > 42 ? splitNarrationIntoSentences(line) : [line]));
@@ -504,15 +339,22 @@ export class DramaEpisodeAssemblyService {
       }
     }
 
+    const imagePath = await this.resolveVisualSource(shot, index, workDir, warnings);
+    if (!imagePath) {
+      warnings.push(`镜头 ${shot.order} 没有可用首帧图，Remotion 将使用占位画面。`);
+    }
+    if (!audioLines.some((line) => line.sourcePath)) {
+      warnings.push(`镜头 ${shot.order} 没有可用配音，Remotion 成片将使用静音音轨。`);
+    }
+
     return {
       shotId: shot.id,
       order: shot.order,
-      visualKind: visual.visualKind,
-      videoClipPath: visual.videoClipPath,
-      keyframePath: visual.keyframePath,
-      audioLines,
-      audioInput,
+      durationSec: targetDurationSec,
       targetDurationSec,
+      imagePath,
+      detail: [shot.location?.trim(), shot.action?.trim()].filter(Boolean).join(" · ").slice(0, 180) || undefined,
+      audioLines,
     };
   }
 
@@ -521,7 +363,13 @@ export class DramaEpisodeAssemblyService {
     index: number,
     workDir: string,
     warnings: string[],
-  ): Promise<Pick<AssemblyShotPlan, "visualKind" | "videoClipPath" | "keyframePath">> {
+  ): Promise<string | null> {
+    const keyframe = await dramaShotKeyframeService.resolveExistingKeyframePath(shot.id);
+    if (keyframe) {
+      return keyframe.filePath;
+    }
+
+    // 兼容已有本地视频结果：只取第一帧作为 Remotion 的镜头底图，最终画面编码仍由 Remotion 完成。
     const prompt = await prisma.dramaVideoPrompt.findFirst({
       where: { shotId: shot.id, status: { not: "superseded" } },
       orderBy: [{ version: "desc" }, { createdAt: "desc" }],
@@ -533,119 +381,24 @@ export class DramaEpisodeAssemblyService {
         const localPath = path.join(resolveGeneratedVideosRoot(), `${localMatch[1]}.mp4`);
         try {
           await fs.access(localPath);
-          return { visualKind: "video", videoClipPath: localPath, keyframePath: null };
+          return this.extractVideoFrame(localPath, path.join(workDir, `source-frame-${index}.png`));
         } catch {
-          warnings.push(`镜头 ${shot.order} 的视频片段文件已丢失，改用首帧图。`);
-        }
-      } else if (/^https?:\/\//.test(resultUrl)) {
-        try {
-          const response = await fetch(resultUrl, { signal: AbortSignal.timeout(120_000) });
-          if (response.ok) {
-            const buffer = Buffer.from(await response.arrayBuffer());
-            const downloadPath = path.join(workDir, `source-${index}.mp4`);
-            await fs.writeFile(downloadPath, buffer);
-            return { visualKind: "video", videoClipPath: downloadPath, keyframePath: null };
-          }
-        } catch {
-          warnings.push(`镜头 ${shot.order} 的视频片段下载失败，改用首帧图。`);
+          warnings.push(`镜头 ${shot.order} 的已有视频片段文件已丢失。`);
         }
       }
     }
-    const keyframe = await dramaShotKeyframeService.resolveExistingKeyframePath(shot.id);
-    if (keyframe) {
-      return { visualKind: "keyframe", videoClipPath: null, keyframePath: keyframe.filePath };
-    }
-    warnings.push(`镜头 ${shot.order} 没有首帧图和视频片段，使用占位画面。`);
-    return { visualKind: "card", videoClipPath: null, keyframePath: null };
+    return null;
   }
 
-  private async buildShotClip(plan: AssemblyShotPlan, outputPath: string): Promise<void> {
-    const args: string[] = ["-y"];
-    let videoFilter: string;
-
-    if (plan.visualKind === "video" && plan.videoClipPath) {
-      const probed = (await ffprobeDuration(plan.videoClipPath)) ?? 0;
-      videoFilter = buildVideoClipFilter(probed, plan.targetDurationSec);
-      args.push("-i", plan.videoClipPath);
-    } else if (plan.visualKind === "keyframe" && plan.keyframePath) {
-      videoFilter = kenBurnsFilter(plan.order - 1, plan.targetDurationSec);
-      args.push("-loop", "1", "-i", plan.keyframePath);
-    } else {
-      videoFilter = `null`;
-      args.push(
-        "-f", "lavfi",
-        "-i", `color=c=0x101418:s=${WIDTH}x${HEIGHT}:r=${FPS}:d=${plan.targetDurationSec.toFixed(3)}`,
-      );
-    }
-
-    if (plan.audioInput?.kind === "concat") {
-      args.push("-f", "concat", "-safe", "0", "-i", plan.audioInput.listPath);
-    } else if (plan.audioInput?.kind === "file") {
-      args.push("-i", plan.audioInput.path);
-    } else {
-      args.push("-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100");
-    }
-
-    args.push(
-      "-map", "0:v:0",
-      "-map", "1:a:0",
-      "-vf", videoFilter,
-      "-af", "apad",
-      "-c:v", "libx264", "-preset", "veryfast", "-b:v", "2400k",
-      "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
-      "-t", plan.targetDurationSec.toFixed(3),
-      outputPath,
-    );
-    await this.runFfmpeg(args);
-  }
-
-  private async buildSilentCard(outputPath: string, durationSec: number): Promise<void> {
-    const duration = Math.max(1, durationSec).toFixed(3);
-    await this.runFfmpeg([
+  private async extractVideoFrame(inputPath: string, outputPath: string): Promise<string | null> {
+    const result = await runVideoProcess(resolveFfmpegBin(), [
       "-y",
-      "-f", "lavfi", "-i", `color=c=0x101418:s=${WIDTH}x${HEIGHT}:r=${FPS}:d=${duration}`,
-      "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
-      "-map", "0:v:0",
-      "-map", "1:a:0",
-      "-vf", "null",
-      "-af", "apad",
-      "-c:v", "libx264", "-preset", "veryfast", "-b:v", "2400k",
-      "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
-      "-t", duration,
+      "-i", inputPath,
+      "-frames:v", "1",
+      "-vf", "scale=1536:864:force_original_aspect_ratio=increase,crop=1536:864",
       outputPath,
     ]);
-  }
-
-  private async buildTextCard(input: { text: string; durationSec: number; fontSize: number; outputPath: string }): Promise<void> {
-    const fontFile = resolveDrawtextFontFile();
-    const duration = input.durationSec.toFixed(3);
-    const videoArgs = ["-f", "lavfi", "-i", `color=c=black:s=${WIDTH}x${HEIGHT}:r=${FPS}:d=${duration}`];
-    let drawtext = "";
-    if (fontFile) {
-      const textFile = `${input.outputPath}.txt`;
-      await fs.writeFile(textFile, input.text.replace(/\s+/g, " ").trim() || "未命名", "utf8");
-      drawtext = `,drawtext=textfile='${escapeFilterPath(textFile)}':fontfile='${escapeFilterPath(fontFile)}':fontcolor=white:fontsize=${input.fontSize}:x=(w-text_w)/2:y=(h-text_h)/2`;
-    }
-    await this.runFfmpeg([
-      "-y",
-      ...videoArgs,
-      "-f", "lavfi", "-i", `anullsrc=channel_layout=stereo:sample_rate=44100`,
-      "-map", "0:v:0",
-      "-map", "1:a:0",
-      "-vf", `null${drawtext}`,
-      "-af", "apad",
-      "-c:v", "libx264", "-preset", "veryfast", "-b:v", "2400k",
-      "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
-      "-t", duration,
-      input.outputPath,
-    ]);
-  }
-
-  private async runFfmpeg(args: string[]): Promise<void> {
-    const result = await runVideoProcess(resolveFfmpegBin(), args);
-    if (result.code !== 0) {
-      throw new Error(`ffmpeg 失败（退出码 ${result.code}）：${result.stderrTail.slice(-400)}`);
-    }
+    return result.code === 0 ? outputPath : null;
   }
 
   private async loadEpisode(projectId: string, order: number) {
@@ -710,11 +463,20 @@ export class DramaEpisodeAssemblyService {
         where: { id: job.id },
         data: {
           status: "failed",
-          progress: JSON.stringify({ phase: "concat", error: "服务重启导致合成中断，请重新合成。" }),
+          progress: JSON.stringify({ phase: "mux", error: "服务重启导致合成中断，请重新合成。" }),
         },
       }).catch(() => undefined);
     }
   }
+}
+
+function dataUrlToBuffer(dataUrl: string): Buffer | null {
+  const match = /^data:[^;]+;base64,(.+)$/s.exec(dataUrl.trim());
+  return match ? Buffer.from(match[1]!, "base64") : null;
+}
+
+function normalizeDurationSec(value: number | null | undefined, fallback: number): number {
+  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : fallback;
 }
 
 export const dramaEpisodeAssemblyService = new DramaEpisodeAssemblyService();

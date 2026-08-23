@@ -21,8 +21,8 @@ export const IMAGE_SPECS = {
   scenePanorama: "2048x1024" as ImageSize,
   /** 服装/武器等角色资产设计参考图：横版（旧项目道具参考图固定 16:9 横屏） */
   characterAsset: "1536x1024" as ImageSize,
-  /** 漫剧分镜首帧：横版 3:2，供横屏视频时间轴使用 */
-  dramaKeyframe: "1536x1024" as ImageSize,
+  /** 漫剧分镜首帧：横版 16:9，与视频成片画布一致 */
+  dramaKeyframe: "1536x864" as ImageSize,
   /** 漫画分格兜底画幅（正式值跟随漫画模板的 imageSize）：竖版 */
   comicPanelFallback: "1024x1536" as ImageSize,
   /** 小说封面：竖版（与 shared 常量保持同源） */

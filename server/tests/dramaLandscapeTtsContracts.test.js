@@ -15,7 +15,7 @@ test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   const localVideo = read("services/drama/video/LocalFfmpegVideoProvider.ts");
   const exportService = read("services/drama/DramaExportService.ts");
 
-  assert.match(imageSpecs, /dramaKeyframe:\s*"1536x1024"/);
+  assert.match(imageSpecs, /dramaKeyframe:\s*"1536x864"/);
   assert.match(visualStyles, /横屏影视化分镜首帧图/);
   assert.doesNotMatch(visualStyles, /竖屏 9:16 短剧首帧图/);
   assert.match(prompts, /dramaStoryboardPrompt[\s\S]*?version:\s*"v5"/);
@@ -24,8 +24,9 @@ test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   assert.match(videoPromptService, /aspectRatio:\s*"16:9"/);
   assert.match(keyframeService, /size: IMAGE_SPECS\.dramaKeyframe/);
   assert.doesNotMatch(keyframeService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
-  assert.match(assemblyService, /const WIDTH = 1920;[\s\S]*?const HEIGHT = 1080;/);
-  assert.match(localVideo, /const width = 1920;[\s\S]*?const height = 1080;/);
+  assert.match(assemblyService, /DramaRemotionEpisodeAssembler/);
+  assert.match(assemblyService, /getDramaRenderProfile/);
+  assert.match(localVideo, /getDramaRenderProfile/);
   assert.match(exportService, /aspectRatio:\s*"16:9"/);
 });
 

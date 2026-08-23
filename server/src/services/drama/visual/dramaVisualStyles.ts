@@ -224,8 +224,8 @@ export function buildShotStylePromptLines(
   const tags = [...assets.map((asset) => asset.styleTag), specific?.styleTag].filter(Boolean).join("，");
   return [
     tags
-      ? `横屏影视化分镜首帧图（优先 16:9 电影构图），作为图生视频的决定性第一帧，${tags}`
-      : "横屏影视化分镜首帧图（优先 16:9 电影构图），作为图生视频的决定性第一帧",
+      ? `横屏影视化分镜首帧图（横屏 16:9 电影构图），作为图生视频的决定性第一帧，${tags}`
+      : "横屏影视化分镜首帧图（横屏 16:9 电影构图），作为图生视频的决定性第一帧",
     ...assets.map((asset) => asset.styleInstructions),
     ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
   ];

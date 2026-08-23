@@ -3,6 +3,7 @@ packages:
   - server
   - site
   - shared
+  - video
 injectWorkspacePackages: true
 allowBuilds:
   '@prisma/engines': true
