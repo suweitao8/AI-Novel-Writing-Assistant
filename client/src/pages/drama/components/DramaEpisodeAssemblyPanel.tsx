@@ -160,7 +160,7 @@ export function DramaEpisodeAssemblyResultPanel(props: {
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>共 {controller.status.shotCount} 个镜头</span>
             {controller.clips?.withVideoClip ? <span>视频片段 {controller.clips.withVideoClip}</span> : null}
-            {controller.clips?.withKeyframeOnly ? <span>首帧图兜底 {controller.clips.withKeyframeOnly}</span> : null}
+            {controller.clips?.withKeyframeOnly ? <span>分镜画面兜底 {controller.clips.withKeyframeOnly}</span> : null}
             {controller.clips?.withoutVisual ? <span>占位画面 {controller.clips.withoutVisual}</span> : null}
             {controller.status.withoutAudioShotCount ? <span>缺配音 {controller.status.withoutAudioShotCount}（将静音）</span> : null}
           </div>

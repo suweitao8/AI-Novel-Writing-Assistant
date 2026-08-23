@@ -66,7 +66,7 @@ function audioSegmentLabel(segment: DramaAudioSegment): string {
 const POLL_GRACE_MS = 30_000;
 
 // 一行 = 一个分镜 + 它的配音：分镜与配音强相关，合并成一个列表逐镜对照。
-// 深度操作（圈选批量、宫格预览、视频提示词、导出）仍在独立分镜工作台。
+// 深度操作（圈选批量、宫格预览、导出）仍在独立分镜工作台。
 export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
@@ -171,10 +171,10 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     mutationFn: (input: { shotIds?: string[]; failedShotIds?: string[] }) =>
       createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "keyframes", ...input }),
     onSuccess: () => {
-      toast.success("首帧任务已开始，完成后每一行会显示画面。");
+      toast.success("分镜画面任务已开始，完成后每一行会显示画面。");
       invalidateAll();
     },
-    onError: (error: Error) => toast.error("创建首帧任务失败", { description: error.message }),
+    onError: (error: Error) => toast.error("创建分镜画面任务失败", { description: error.message }),
   });
 
   const keyframeOneMutation = useMutation({
@@ -182,10 +182,10 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     onMutate: (shotId) => setKeyframeShotId(shotId),
     onSuccess: () => {
       lastTaskActivityAtRef.current = Date.now();
-      toast.success("首帧任务已开始。");
+      toast.success("分镜画面任务已开始。");
       invalidateAll();
     },
-    onError: (error: Error) => toast.error("生成首帧失败", { description: error.message }),
+    onError: (error: Error) => toast.error("生成分镜画面失败", { description: error.message }),
     onSettled: () => setKeyframeShotId(null),
   });
 
@@ -262,7 +262,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
                 })}
               >
                 <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                生成缺失首帧（{keyframeSummary.missing}）
+                生成缺失画面（{keyframeSummary.missing}）
               </Button>
             ) : null}
             <Button
@@ -321,7 +321,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {storyboard ? (
           <span>
-            共 {shots.length} 镜 · 首帧 {keyframeSummary.done}/{shots.length}
+            共 {shots.length} 镜 · 画面 {keyframeSummary.done}/{shots.length}
             {keyframeSummary.generating > 0 ? `（生成中 ${keyframeSummary.generating}）` : ""}
           </span>
         ) : null}
@@ -401,10 +401,10 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
 
   return (
     <div className="flex gap-3 rounded-xl border border-border bg-background p-3 transition hover:border-primary/30">
-      {/* 首帧缩略图：就绪可放大，未生成可就地点生成 */}
+      {/* 分镜画面缩略图：就绪可放大，未生成可就地点生成 */}
       <div className="w-32 shrink-0 sm:w-40">
         {keyframe.status === "done" && keyframe.url ? (
-          <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜首帧`} className="aspect-video w-full" fit="cover" />
+          <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜画面`} className="aspect-video w-full" fit="cover" />
         ) : props.keyframeBusy ? (
           <button
             type="button"
@@ -418,11 +418,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           <button
             type="button"
             onClick={() => props.onGenerateKeyframe(shot.id)}
-            title="生成这一镜的首帧图"
+            title="生成这一镜的分镜画面"
             className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
           >
             <ImageIcon className="h-4 w-4" aria-hidden="true" />
-            生成首帧
+            生成画面
           </button>
         )}
       </div>

@@ -1,14 +1,14 @@
 import {
   CheckCircle2,
   Download,
+  Film,
   Layers3,
   ListVideo,
   RefreshCw,
   Sparkles,
-  Video,
   Wand2,
 } from "lucide-react";
-import type { DramaEpisode, DramaProjectDetail, DramaShot, DramaVideoPrompt } from "@/api/media/drama";
+import type { DramaEpisode, DramaProjectDetail } from "@/api/media/drama";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +21,7 @@ type NextStepKind =
   | "review"
   | "repair"
   | "storyboard"
-  | "videoPrompt"
-  | "providerTask"
+  | "assembly"
   | "export";
 
 interface NextStep {
@@ -31,10 +30,8 @@ interface NextStep {
   description: string;
   button: string;
   tab: "source" | "strategy" | "episodes" | "visual" | "export";
-  icon: "source" | "strategy" | "outline" | "script" | "review" | "repair" | "video" | "export";
+  icon: "source" | "strategy" | "outline" | "script" | "review" | "repair" | "storyboard" | "assembly" | "export";
   episodeOrder?: number;
-  shot?: DramaShot;
-  videoPrompt?: DramaVideoPrompt;
 }
 
 function firstEpisodeWithoutScript(episodes: DramaEpisode[]): DramaEpisode | undefined {
@@ -55,40 +52,17 @@ function firstEpisodeWithoutStoryboard(episodes: DramaEpisode[]): DramaEpisode |
   return episodes.find((episode) => Boolean(episode.content?.trim()) && (episode.storyboards?.length ?? 0) === 0);
 }
 
-function firstShotWithoutVideoPrompt(episodes: DramaEpisode[], videoPrompts: DramaVideoPrompt[]): {
-  episode: DramaEpisode;
-  shot: DramaShot;
-} | undefined {
-  const promptedShotIds = new Set(videoPrompts.filter(isActiveVideoPrompt).map((prompt) => prompt.shotId).filter(Boolean));
-  for (const episode of episodes) {
-    for (const storyboard of episode.storyboards ?? []) {
-      for (const shot of storyboard.shots ?? []) {
-        if (!promptedShotIds.has(shot.id)) {
-          return { episode, shot };
-        }
-      }
-    }
-  }
-  return undefined;
-}
-
-function firstPromptWithoutProviderTask(videoPrompts: DramaVideoPrompt[]): DramaVideoPrompt | undefined {
-  return videoPrompts.find((prompt) => isActiveVideoPrompt(prompt) && !prompt.providerTaskId);
-}
-
-function isActiveVideoPrompt(prompt: DramaVideoPrompt): boolean {
-  return prompt.status !== "superseded";
+function firstEpisodeWithStoryboard(episodes: DramaEpisode[]): DramaEpisode | undefined {
+  return episodes.find((episode) => (episode.storyboards?.length ?? 0) > 0);
 }
 
 function buildNextStep(project: DramaProjectDetail): NextStep {
   const episodes = project.episodes ?? [];
-  const videoPrompts = (project.videoPrompts ?? []).filter(isActiveVideoPrompt);
   const repairable = firstRepairableEpisode(episodes);
   const unreviewed = firstEpisodeWithoutReview(episodes);
   const unscripted = firstEpisodeWithoutScript(episodes);
   const unstagedStoryboard = firstEpisodeWithoutStoryboard(episodes);
-  const shotWithoutPrompt = firstShotWithoutVideoPrompt(episodes, videoPrompts);
-  const promptWithoutTask = firstPromptWithoutProviderTask(videoPrompts);
+  const firstAssembledEpisode = firstEpisodeWithStoryboard(episodes);
 
   if (!project.sourceBundle) {
     return {
@@ -135,7 +109,7 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
     return {
       kind: "repair",
       title: `下一步：修复第 ${repairable.order} 集质量问题`,
-      description: "按已有质量建议修复，避免问题进入分镜和视频提示词。",
+      description: "按已有质量建议修复，保证分镜画面与配音素材稳定。",
       button: "修复台本",
       tab: "episodes",
       icon: "repair",
@@ -160,31 +134,19 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
       description: "把已通过检查的台本拆成可拍摄镜头，保留角色视觉锚点和动作重点。",
       button: "生成分镜",
       tab: "visual",
-      icon: "video",
+      icon: "storyboard",
       episodeOrder: unstagedStoryboard.order,
     };
   }
-  if (shotWithoutPrompt) {
+  if (firstAssembledEpisode) {
     return {
-      kind: "videoPrompt",
-      title: `下一步：生成第 ${shotWithoutPrompt.episode.order} 集视频提示词`,
-      description: "把一个分镜镜头转换成横屏 16:9 视频生成提示词，保留角色、动作和镜头语言。",
-      button: "生成视频提示词",
+      kind: "assembly",
+      title: `下一步：制作第 ${firstAssembledEpisode.order} 集成片`,
+      description: "进入成片工作台，生成静态分镜画面、配音和字幕。",
+      button: "打开成片工作台",
       tab: "visual",
-      icon: "video",
-      episodeOrder: shotWithoutPrompt.episode.order,
-      shot: shotWithoutPrompt.shot,
-    };
-  }
-  if (promptWithoutTask) {
-    return {
-      kind: "providerTask",
-      title: "下一步：创建视频生成任务",
-      description: "把已生成的视频提示词提交给当前 provider，后续可在分镜视频页刷新状态。",
-      button: "创建视频任务",
-      tab: "visual",
-      icon: "video",
-      videoPrompt: promptWithoutTask,
+      icon: "assembly",
+      episodeOrder: firstAssembledEpisode.order,
     };
   }
   return {
@@ -205,7 +167,8 @@ function StepIcon({ icon }: { icon: NextStep["icon"] }) {
   if (icon === "script") return <Wand2 className={className} />;
   if (icon === "review") return <CheckCircle2 className={className} />;
   if (icon === "repair") return <RefreshCw className={className} />;
-  if (icon === "video") return <Video className={className} />;
+  if (icon === "storyboard") return <Film className={className} />;
+  if (icon === "assembly") return <Film className={className} />;
   return <Download className={className} />;
 }
 
@@ -221,8 +184,6 @@ export function DramaNextStepPanel(props: {
   onReviewEpisode: (order: number) => void;
   onRepairEpisode: (order: number) => void;
   onGenerateStoryboard: (order: number) => void;
-  onGenerateVideoPrompt: (shot: DramaShot) => void;
-  onCreateProviderTask: (prompt: DramaVideoPrompt) => void;
   onExportMarkdown: () => void;
 }) {
   const step = buildNextStep(props.project);
@@ -238,8 +199,6 @@ export function DramaNextStepPanel(props: {
     if (step.kind === "review" && step.episodeOrder) props.onReviewEpisode(step.episodeOrder);
     if (step.kind === "repair" && step.episodeOrder) props.onRepairEpisode(step.episodeOrder);
     if (step.kind === "storyboard" && step.episodeOrder) props.onGenerateStoryboard(step.episodeOrder);
-    if (step.kind === "videoPrompt" && step.shot) props.onGenerateVideoPrompt(step.shot);
-    if (step.kind === "providerTask" && step.videoPrompt) props.onCreateProviderTask(step.videoPrompt);
     if (step.kind === "export") props.onExportMarkdown();
   };
 
@@ -262,7 +221,7 @@ export function DramaNextStepPanel(props: {
         <span>已整理素材：{props.project.sourceBundle ? "是" : "否"}</span>
         <span>策略：{props.project.strategy ? "已生成" : "未生成"}</span>
         <span>分集：{props.project.episodes?.length ?? 0} 集</span>
-        <span>当前视频提示词：{(props.project.videoPrompts ?? []).filter(isActiveVideoPrompt).length} 条</span>
+        <span>已准备分镜：{props.project.episodes?.filter((episode) => (episode.storyboards?.length ?? 0) > 0).length ?? 0}/{props.project.episodes?.length ?? 0} 集</span>
       </CardContent>
     </Card>
   );

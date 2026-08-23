@@ -245,7 +245,7 @@ function CharacterImagesBlock(props: {
         {sheet.status === "done" && (
           <>
             <Badge variant="outline">v{sheet.version ?? 1}</Badge>
-            <span className="text-xs text-muted-foreground">视频生成将自动引用此图作为角色参考</span>
+            <span className="text-xs text-muted-foreground">生成分镜画面时会自动引用这张角色参考图</span>
           </>
         )}
         {sheet.history?.length ? <Badge variant="secondary">{sheet.history.length} 个历史版本</Badge> : null}
@@ -377,7 +377,7 @@ function CharacterAssetEditor(props: {
             <textarea
               className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
               value={draft.visualAnchor}
-              placeholder="外貌、发型、服装、随身物、常用色彩；后续分镜和视频提示词会沿用。"
+              placeholder="外貌、发型、服装、随身物、常用色彩；后续分镜画面会沿用。"
               onChange={(event) => setDraft((current) => ({ ...current, visualAnchor: event.target.value }))}
             />
           </label>
@@ -389,7 +389,7 @@ function CharacterAssetEditor(props: {
             <textarea
               className="min-h-24 w-full rounded-md border bg-background px-3 py-2 text-sm"
               value={draft.voiceAnchor}
-              placeholder="语速、音色、表情习惯、情绪爆发方式；用于台词和视频表演一致。"
+              placeholder="语速、音色、表情习惯、情绪爆发方式；用于台词表演一致。"
               onChange={(event) => setDraft((current) => ({ ...current, voiceAnchor: event.target.value }))}
             />
           </label>
@@ -452,7 +452,7 @@ export function DramaCharactersPanel(props: {
       <Card className="rounded-lg">
         <CardHeader>
           <CardTitle className="text-lg">短剧角色资产</CardTitle>
-          <CardDescription>角色资产会进入台本、分镜和视频提示词，优先保证观众识别、造型一致和台词可拍。</CardDescription>
+          <CardDescription>角色资产会进入台本、分镜画面和配音，优先保证观众识别、造型一致和台词可拍。</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <SelectControl

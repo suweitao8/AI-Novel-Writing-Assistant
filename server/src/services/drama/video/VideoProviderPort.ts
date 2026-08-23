@@ -4,7 +4,7 @@ export interface VideoGenerationRequest {
   aspectRatio: string;
   durationSec?: number | null;
   refImages?: string[];
-  // 本地合成通道使用的私有输入：台词配音（dataUrl）与首帧图本地路径。
+  // 本地合成通道使用的私有输入：台词配音（dataUrl）与静态分镜画面本地路径。
   // HTTP 通道转发前会剥离这些字段。
   audioDataUrls?: string[];
   localImagePaths?: string[];

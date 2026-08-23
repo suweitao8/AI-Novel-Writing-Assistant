@@ -6,9 +6,8 @@ import { resolveServerRoot } from "../../../runtime/appPaths";
 import type { VideoGenerationRequest, VideoGenerationResult, VideoProviderPort } from "./VideoProviderPort";
 import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
 
-// 本地 ffmpeg 视频通道：把镜头首帧图 + 台词配音合成为真实的 mp4 片段。
-// 以配音时长为时间线（无配音时用 durationSec 静音占位），循环单张首帧图，
-// 输出横屏 16:9 H.264；镜头不做推拉、平移或其它运镜。
+// 本地 ffmpeg 视频通道：把静态分镜画面 + 台词配音合成为真实的 mp4 片段。
+// 画面按配音时长保持静止（无配音时用 durationSec 静音占位），输出横屏 16:9 H.264。
 // 任务为本地异步进程：createTask 派生 ffmpeg 后立即返回 running，getTask 检查产物文件。
 
 const VIDEOS_DIR_NAME = "generated-videos";
@@ -143,7 +142,7 @@ function buildFfmpegArgs(input: {
   if (input.imagePath) {
     args.push("-loop", "1", "-framerate", String(fps), "-i", input.imagePath, "-t", String(duration));
   } else {
-    // 没有首帧图时用纯色底板，保证视频仍然产出。
+    // 没有分镜画面时用纯色底板，保证视频仍然产出。
     args.push(
       "-f", "lavfi",
       "-i", `color=c=0x101418:s=${width}x${height}:r=${fps}:d=${duration}`,
@@ -173,7 +172,7 @@ function buildFfmpegArgs(input: {
 export class LocalFfmpegVideoProvider implements VideoProviderPort {
   readonly provider = "local_ffmpeg";
   readonly label = "本地合成通道";
-  readonly description = "用本机 ffmpeg 把镜头首帧图与配音合成为静态横屏视频片段，不需要外部视频服务。";
+  readonly description = "用本机 ffmpeg 把静态分镜画面与配音合成为横屏成片片段，不需要外部视频服务。";
   readonly supportsRefImages = true;
   readonly costPerSecond = 0;
   readonly currency = process.env.DRAMA_COST_CURRENCY?.trim() || "CNY";

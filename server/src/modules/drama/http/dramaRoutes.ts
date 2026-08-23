@@ -1062,7 +1062,7 @@ router.get("/shot-images/:shotId/keyframe", validate({ params: shotImageParamsSc
     const { shotId } = req.params as z.infer<typeof shotImageParamsSchema>;
     const resolved = await dramaShotKeyframeService.resolveExistingKeyframePath(shotId);
     if (!resolved) {
-      res.status(404).json({ success: false, message: "镜头首帧图尚未生成。" });
+      res.status(404).json({ success: false, message: "镜头分镜画面尚未生成。" });
       return;
     }
     res.setHeader("Content-Type", resolved.mimeType);
@@ -1080,7 +1080,7 @@ router.get("/shot-images/:shotId/keyframe/:version", validate({ params: shotImag
     const numericVersion = Number(version.replace(/^v/i, ""));
     const resolved = await dramaShotKeyframeService.resolveArchivedKeyframePath(shotId, numericVersion);
     if (!resolved) {
-      res.status(404).json({ success: false, message: "镜头首帧历史版本尚未生成。" });
+      res.status(404).json({ success: false, message: "镜头分镜画面历史版本尚未生成。" });
       return;
     }
     res.setHeader("Content-Type", resolved.mimeType);

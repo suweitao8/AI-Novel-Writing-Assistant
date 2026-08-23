@@ -1,11 +1,11 @@
 # 漫剧工作流（Comic Drama）
 
-漫剧 = 从写小说到动态漫视频的完整流水线：写小说 → 影视分镜 → 配音 → 视频合成。本文记录该工作流的模块边界、数据契约与编排决策。设计文档见 `docs/superpowers/specs/2026-08-19-comic-drama-studio-design.md` 与 `2026-08-19-blank-novel-creation-design.md`。
+漫剧 = 从写小说到静态分镜成片的完整流水线：写小说 → 影视分镜 → 配音 → 成片合成。本文记录该工作流的模块边界、数据契约与编排决策。设计文档见 `docs/superpowers/specs/2026-08-19-comic-drama-studio-design.md` 与 `2026-08-19-blank-novel-creation-design.md`。
 
 ## 背景 / 决策
 
 - 用户需要第四种创作形态：漫剧不是"写小说的另一种模式"，而是一条以小说为起点、以视频为终点的生产流水线。漫剧项目必须与普通小说隔离管理（只出现在漫剧列表）。
-- 分镜采用**影视分镜镜头**（drama shots：横屏首帧图 + 台词 + 时长）而不是漫画分格：镜头以静态首帧配合配音合成，直接衔接字幕与成片时间轴。
+- 分镜采用**影视分镜镜头**（drama shots：静态分镜画面 + 台词 + 时长）而不是漫画分格：镜头数据直接衔接配音、字幕与成片时间轴，画面本身不做图生视频或运镜动画。
 - 生产节奏是**边写边做**：小说有成稿即可开始分镜/配音/视频，后续章节通过来源重新装配同步。
 - 实现策略是**编排复用而不是重写**：小说阶段复用空白小说工作台（设定中心 + 大纲细纲 + 自动导演链），分镜之后复用 drama bounded context 的既有管线。studio 层负责阶段投影与跨阶段编排入口，具体分镜、资产同步和视频合成仍复用 drama 服务，不复制业务逻辑。
 
@@ -22,7 +22,7 @@
 - 服务端投影：`server/src/services/drama/studio/ComicDramaStudioService.ts` + `/api/drama/studio/links`（批量阶段统计，供列表卡片）与 `/api/drama/studio/:novelId/overview`（单项目完整阶段视图）。前端只消费这一层，不自行拼装 Novel 与 DramaProject。
 - 脚本到分镜桥接：漫剧工作台脚本的持久化来源是 `Chapter.expectation`，而既有 `DramaStoryboardService` 只消费 `DramaEpisode.content`；`POST /api/drama/studio/:novelId/chapters/:order/storyboard` 是两者之间唯一的当前章节入口。服务端先校验选中章节的 `expectation` 非空，再复用或创建该小说的 `source="novel_import"` 项目、同步来源资产、只 upsert 当前 `order` 的 `DramaEpisode`，最后调用既有分镜生成器。空脚本不会创建项目；重复点击只更新当前集脚本并重新生成该集分镜，不会批量生成其他章节。
 - 工作台按钮契约：脚本页和没有项目时的分镜空状态都只显示「生成」，按钮使用当前选中章节的序号；脚本仍在保存、保存失败、或为空时禁用。已有分镜的表格右侧显示「合成」，调用 `GET/POST /projects/:id/episodes/:order/assembly`，按当前集轮询任务、展示进度和成片，不把合成动作误当成逐镜视频生成。
-- 当前实现约束：分镜工具行的操作按钮统一靠右；首帧与视频合成使用横屏规格（首帧 `IMAGE_SPECS.dramaKeyframe=1536x1024`，整集输出 `1920x1080` / `16:9`），镜头画面保持静态首帧，不使用运镜。配音不由页面选择 provider，批量与单镜头入口都解析系统设置里的音频模型槽位；每镜时长优先使用已生成音频段的真实时长总和。
+- 当前实现约束：分镜工具行的操作按钮统一靠右；静态分镜画面与成片使用横屏规格（画面 `IMAGE_SPECS.dramaKeyframe=1536x864`，整集输出 `1920x1080` / `16:9`）。配音不由页面选择 provider，批量与单镜头入口都解析系统设置里的音频模型槽位；每镜时长优先使用已生成音频段的真实时长总和。
 - 前端：`client/src/pages/drama/comicDrama/`——`ComicDramaListPage`（/drama，横版卡片 + 四阶段徽章）、`ComicDramaStudioPage`（/drama/studio/:novelId，四阶段工作流页）、`ComicDramaCreateDialog`（作品名 + 可选想法 + 拖拽/点击上传 txt 参考小说 → 创建后直达工作室；拖入文件自动按文件名填作品名，弹窗只保留字段不放解释文案。上传的参考正文两路存储：提交时入知识库挂 `referenceKnowledgeDocumentId`（取消创建不留孤儿文档），同时截断到 20000 字写入项目级参考源槽位 `drama-studio-reference:${novelId}:source`）。新建第 N 章时 `findReferenceChapterTitle` 从参考源按标题行确定性解析「第N章/回/节 标题」（中文数字到 9999、全篇无「第N章」式时退回「N、/N.」编号式），预填章节标题；无参考源或未匹配到则留空）。
 - 工作室顶栏统一承载：返回按钮（图标）+项目名、居中的项目级主 tab（当前/资产/设定；「资产」页签=角色/场景/道具，「设定」页签=世界观+世界地图+美术风格+通用——世界观=`WorldSettingsPanel` 只读条目列表（2026-08-21 用户决定：漫剧侧不编辑世界观——条目唯一来源是章节解析提取应用（keySettings，上限 200 条），只保留删除误提取；无 AI 生成/基础设定/保存按钮。premise/era 数据仍在库中供其他 AI 流程读取，小说侧 `SettingsWorldTab` 保持完整编辑不动）；地图=`WorldMapPanel` 单层场景画布（2026-08-21 用户决定：不分国家/城市层级——一张平面画布，节点=场景资产，「生成地图」把未放置的场景交给 AI 按相互位置关系摆上来，无法定位的标记后跳过；地图还没有地形时顺便生成平原/山地/水域分区；改动 1.5s 防抖自动保存；画布为 React Flow（MapFlowCanvas：点阵背景/滚轮缩放/拖拽平移/带地名小地图/卡片节点，搬自旧项目 mydrama 的画布体验，坐标数据仍是 0-100 百分比），支持按场景名搜索淡出过滤；「生成地图」入口在顶栏与空画布中央（map-annotate@v4），数据契约见 architecture/story-settings-hub.md）；美术风格=`ArtStylePanel`（**两层组合**：顶部一行「通用画风：{中文摘要}＋修改链接」（系统级渲染质感基线，入口 设置·通用画风，不在面板展示提示词原文），「时代风格」一张卡=预设与自定义合成一个点选列表（点选即存 defaultArtStyle=默认时代风格，封面/立绘/首帧图与视频=通用+题材两层拼提示词），卡片下半部为「自定义时代风格」增删改（身份=风格名，改名时引用跟新名走、删除被引用的自定义风格由服务端自动回落内置默认），存储契约见 story-settings-hub.md 美术风格一节）；**脚本内画风切换已移除（2026-08-23 用户决定：时代风格由资产状态自带——角色/场景/道具的状态各自选风格，脚本不定义章节画风）**：「脚本」页签顶部画风下拉与【画风】标记行编辑入口移除，生成侧解析优先级=状态自选>（首帧）剧情判定>项目选择>小说默认>内置（契约见 story-settings-hub.md 画风解析链），历史【画风：…】行按未知标记保留为文本；通用=参考小说卡片（`ReferenceNovelCard`）+分镜项目状态；三个项目级页签下各有自己的居中子页签条（`SubTabRow`：与「当前」章级子 tab 同款三栏网格，子页签居中、右侧放当前子页签自己的工具（参考=引用+解析、脚本=自动保存状态、视频=打开视频工作台，其余子页签暂无）；「资产」的子页签带数量角标，数据来自 `getStorySettingsOverview`）。「资产」由 studio 页直接组合 `SettingsCharactersTab`/`SettingsScenesTab`/`SettingsPropsTab`（不套 `StorySettingsTabs`，避免把世界观一起带进资产），世界观组件 `SettingsWorldTab` 归「设定」页签；改动统一走页面级 `invalidateStorySettings` 失效全部设定缓存。与「当前」的章级子 tab（参考/提取/脚本/分镜/视频，全部作用于当前章），返回=图标+项目名的整体 Link（弱化样式：无高亮、无悬停/点击效果，点任意部分回 /drama）。右侧放当前页签的操作按钮（当前=当前章按钮（无图标，如「1 · 重生」，点开章节管理弹窗）+紧邻的「新增」图标按钮（快速新建下一章，AI 写作中禁用；`CreateChapterDialog` 为独立组件（只有标题一个输入，按新建序号自动预填参考小说对应章节标题），页头与章节管理面板共用）+AI 写作进度；分镜/视频子页签不在顶栏放按钮，视频工作台入口在「视频」子页签行右侧）。「当前」按「当前章」创作：`useNovelChapterWorkspace`（comicDrama/hooks）持有当前章（默认第一个无正文章，否则最后一章）、本章脚本 expectation（1.2s 防抖静默自动保存、失焦/切页签/切章即冲保存、空白铺 20 行）与本章节拍 beats 草稿；切章时先落库上一章再重置。「分镜」子页签内嵌 `ShotVoiceListPanel`（comicDrama/ShotVoiceListPanel.tsx）：**一行=一个分镜+它的配音段**（左侧首帧缩略图/生成入口，右侧镜头号/景别运镜时长/台词摘要 + 该镜配音段逐行状态点与播放器 + 行内重配），配音段按 `shotId` 归组强关联；工具行=集选择/语音服务/生成缺失首帧/生成缺失配音/全部重配/音色设置（折叠面板复用 `VoiceStagePanel.tsx` 导出的 Narrator/CharacterVoiceCard）；有 tts 或首帧任务时 3s/2.5s 轮询。深度操作（圈选批量、宫格预览、视频提示词、导出、管线下一步）经行内链接跳独立分镜工作台 `/drama/projects/:id`；无分镜项目时引导卡内嵌「从成稿生成分镜」。**章节自动同步**：页面在切换当前章或进入分镜子页签时静默调用 `assembleDramaSourceBundle`（幂等：upsert 内容包、重建角色与初始事实，纯 DB 操作无 LLM），去掉了手动「同步最新章节」按钮；同步成功不弹 toast、失败仍报错。工室内不再提供自动导演接管入口（章节管理弹窗无页脚），启动接管走小说侧简易书架。「参考」页签的参考正文编辑器是 `LineNumberedTextarea`，基于开源 CodeMirror 6（`@uiw/react-codemirror` + `@codemirror/view`，client 直接依赖）：行号固定编辑器最左侧且只读、软换行、当前行/行号高亮、minRows 换算 minHeight、maxLength 在 onChange 截断；纯文本编辑器（脚本的着色/实体高亮已随列表化进入 ScriptTab 行内，该组件不再有 storyboardMode）。不要再用「透明 textarea + 排版镜像」方案重写该组件——对齐维护成本高，已废弃。脚本页签右侧的 `OutlineSettingsAside` 复用 createStorySettingsCharacter/Scene/Prop 与 queryKeys.novels.storySettings*（与资产页签共享缓存，创建后互相同步）；卡片只显示类型徽章+名字，点开与「资产」页签**同一个可编辑可保存的弹窗** `StoryAssetEditDialog`（2026-08-23 用户要求：所有入口同一界面——字段/外观状态可直接改并保存，弹窗底部「删除」走二次确认弹窗）。`StoryAssetCard` 按类型着色（角色蓝/场景绿/道具黄，与脚本实体高亮同色系，2026-08-23 用户要求：列表不要统一白底）。面板 lg:sticky 固定右栏、max-h 视口高度内部滚动，卡片按脚本使用情况排列（2026-08-21 用户要求，名字精确对应）：无搜索词时**只显示本章脚本用到的资产**——顺序=脚本里首次出现（场景行/台词说话人/角色状态行按名字精确匹配已有资产；已有资产名出现在正文任意位置也算用到，与正文高亮同口径），没用到的隐藏；用到但设定里还没有的名字（场景/角色）在下方以橙红警告卡提示「脚本里用到了，但还没有生成设定」并附一键创建（预填名字，建好后警告自动消失）。有搜索词时检索全库（找旧资产的入口）。ScriptTab 行内对应标注（2026-08-21 用户要求：不加文字标记、不占空间）：场景行/角色状态行的名字未匹配资产时**名字文字本身变橙色**（text-orange-600，有对应恢复行默认色，提示语只放 title 悬停），台词说话人徽标未匹配时变橙（旁白不判定）；正文实体高亮（EntityHighlightedText）只高亮已有资产名。新增走弹窗（类型/角色定位/名称/一句话说明）。空白章节的 expectation 仍由 useNovelChapterWorkspace 铺 20 行换行（trim 后判空不触发自动保存；列表视图解析为空列表并显示引导文案），修改走静默自动保存（成功不弹 toast、失败仍报错）。
 
@@ -98,9 +98,28 @@
 - **状态→分镜→首帧接线（2026-08-19 打通，drama.storyboard@v5）**：`DramaContextAssembler.charactersDigest` 为 novel_import 项目按名字附上设定中心角色的「状态：」名单（label+章号，`loadNovelCharacterStatesByName` 导出共用）；分镜 LLM 在外观变化后的镜头上标 `characterStates: [{name, state}]`（postValidate 强制状态角色必须在 characterRefs 里），持久化到 `DramaShot.characterStates`（JSON 列）。首帧图 `DramaShotKeyframeService`：镜头状态标注 × 状态名单（label 精确匹配，匹配不到回落默认形象）→ 提示词角色行加 `current state: label（imagePrompt||description）`；开角色参考图时**状态图优先于设计稿**（状态 image 为 done 且有 url 时用状态图，否则回落 portraitData）。视频提示词的 shotJson 也带 characterStates。分镜板角色徽标显示「名字·状态」（琥珀色）。**注意**：台本本身不保留脚本里的【角色状态】标记——状态切换点由分镜 LLM 依据台本叙事判断，这是理解任务，不做正则解析兜底。
 - **仍断链（后续工作）**：分镜的道具没有结构化引用（靠文本匹配，道具名与镜头描述写法不一致时静默不生效）；状态未同步到配音侧（状态音色 voicePrompt 尚未进入 DramaCharacter.voiceProfile 的逐镜切换）。
 
+## 静态分镜画面与成片边界（2026-08-23）
+
+### Background
+
+漫剧成片的观看体验是“屏幕内保持一张分镜画面，同时播放旁白或角色对白并显示字幕”。因此每个镜头的产品产物是静态横屏图片，不存在新的“首帧”概念，也不进入图生视频 provider 流程。
+
+### Decision
+
+- 前端工作台统一使用“分镜画面/画面”和“成片”语义；不显示视频提示词、视频 provider 选择、逐镜视频任务或 Ken Burns 运镜入口。
+- `DramaShot.keyframeData`、`keyframes` 批量任务类型、旧 `/keyframe` 接口和视频提示词/provider API 暂时保留为历史数据与兼容层，不能据此重新添加新的 I2V UI。
+- 成片链路是 `脚本 → 分镜 → 静态画面 → 旁白/对白 → 字幕 → 横屏 MP4/SRT`。Remotion 按镜头时长保持画面，字幕与音频按时间线推进；本地 ffmpeg 只做静态图片循环、音频规范化和封装。
+- 缺少画面或配音时记录可恢复 warning 并使用占位画面/静音继续装配，只有运行时安全或数据完整性故障才阻断成片任务。
+
+### Related Modules
+
+- 前端：`client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx`、`client/src/pages/drama/components/DramaStoryboardBoard.tsx`、`client/src/pages/drama/components/DramaEpisodeAssemblyPanel.tsx`。
+- 服务端：`server/src/services/drama/video/DramaEpisodeAssemblyService.ts`、`LocalFfmpegVideoProvider.ts`、`server/src/modules/drama/http/dramaRoutes.ts`。
+- 渲染：`video/src/DramaEpisodeVideo.tsx` 与 `video/` workspace 的横屏 Composition。
+
 ## 失败模式 / 注意事项
 
-- 视频通道是可插拔 port（`VideoProviderPort`），默认 mock **不会生成真实视频**：studio 视频阶段必须保留"未配置真实通道"的提示，不能让用户误以为出片失败是 bug。
+- 历史视频 provider 是可插拔兼容 port，但当前 studio 成片阶段不依赖 provider 选择；成片是否可用以静态画面、配音和字幕装配结果为准。
 - `ComicDramaStudioService` 的 links 统计自 2026-08-21 起走分组聚合 + 无载荷计数（episode/storyboard/videoPrompt 各一次 groupBy、每项目 3 个 `dramaShot.count`），**绝不 select `keyframeData`/`dialogueAudioData` 载荷列**；就绪计数语义 = 字段非空（写入方只写 JSON.stringify 结果或 null，无空串，与旧的 trim() 判定等价）。
 - 漫剧小说仍可经 `/novels/:id/simple` 深链访问（书架行为一致）；不要在书架路径上做漫剧特判。
 - 与 drama 模块的边界：studio 只读投影；任何对 drama 管线行为的修改仍应发生在 `services/drama/` 原有服务里，不要把管线逻辑写进 studio 层。
