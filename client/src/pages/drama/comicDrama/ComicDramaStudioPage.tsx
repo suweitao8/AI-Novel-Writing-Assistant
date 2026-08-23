@@ -272,6 +272,11 @@ export default function ComicDramaStudioPage() {
                         : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
                       解析
                     </Button>
+                    {referenceStage.parseElapsedLabel ? (
+                      <span className="text-xs text-muted-foreground">{referenceStage.parseElapsedLabel}</span>
+                    ) : referenceStage.lastParseDurationLabel ? (
+                      <span className="text-xs text-muted-foreground">上次解析 {referenceStage.lastParseDurationLabel}</span>
+                    ) : null}
                   </>
                 ) : currentTab === "script" ? (
                   chapterWorkspace.savePending ? (

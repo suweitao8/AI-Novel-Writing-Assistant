@@ -78,11 +78,18 @@ export function normalizeExtraction(raw: unknown): ReferenceExtractionPayload {
       imagePrompt: typeof character.imagePrompt === "string" ? character.imagePrompt : "",
       voicePrompt: typeof character.voicePrompt === "string" ? character.voicePrompt : "",
     }));
+  // parseDurationMs 是随提取结果持久化的解析耗时元数据（非 AI 产出），读取时原样保留。
+  const parseDurationMs = typeof source.parseDurationMs === "number"
+    && Number.isFinite(source.parseDurationMs)
+    && source.parseDurationMs > 0
+    ? Math.round(source.parseDurationMs)
+    : undefined;
   return {
     characters,
     scenes: items(source.scenes),
     props: items(source.props),
     worldview: items(source.worldview).map((item) => ({ name: item.name, description: item.description })),
+    ...(parseDurationMs ? { parseDurationMs } : {}),
   };
 }
 
