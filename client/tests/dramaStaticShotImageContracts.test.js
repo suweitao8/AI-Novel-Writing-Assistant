@@ -9,7 +9,7 @@ test("分镜工作台以静态分镜画面作为唯一视觉产物入口", () =>
   const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
   const visualSource = read("pages/drama/components/DramaVisualPanel.tsx");
 
-  assert.match(listSource, /生成缺失画面/);
+  assert.match(listSource, /生成画面/);
   assert.match(listSource, /共 \{shots\.length\} 镜 · 画面/);
   assert.doesNotMatch(listSource, /首帧/);
   assert.doesNotMatch(boardSource, /首帧|视频提示词|onVideoPrompt/);
@@ -23,7 +23,7 @@ test("成片阶段只保留静态画面、配音和字幕装配", () => {
   const assemblySource = read("pages/drama/components/DramaEpisodeAssemblyPanel.tsx");
   const listSource = read("pages/drama/comicDrama/ComicDramaListPage.tsx");
 
-  assert.match(studioSource, /video:\s*"成片"/);
+  assert.match(studioSource, /video:\s*"视频"/);
   assert.match(studioSource, /DramaEpisodeAssemblyPanel/);
   assert.doesNotMatch(studioSource, /视频提示词|videoProviders/);
   assert.doesNotMatch(nextStepSource, /videoPrompt|providerTask|视频提示词|DramaVideoPrompt/);

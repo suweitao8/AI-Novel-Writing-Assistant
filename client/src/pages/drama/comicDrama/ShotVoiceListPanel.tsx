@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Volume2,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import {
   createDramaEpisodeBatchJob,
@@ -26,7 +27,6 @@ import { LightboxImage } from "@/components/common/LightboxImage";
 import ShotBlockingSketchDialog from "./components/ShotBlockingSketchDialog";
 import {
   DramaEpisodeAssemblyButton,
-  DramaEpisodeAssemblyResultPanel,
   useDramaEpisodeAssembly,
 } from "../components/DramaEpisodeAssemblyPanel";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,7 @@ interface ShotVoiceListPanelProps {
   novelId: string;
   projectId: string;
   chapterOrder: number | null;
+  toolbarTarget: HTMLDivElement | null;
 }
 
 type KeyframeState = { status?: string; url?: string; error?: string };
@@ -117,7 +118,7 @@ const POLL_GRACE_MS = 30_000;
 
 // 一行 = 一个分镜 + 它的配音：分镜与配音强相关，合并成一个列表逐镜对照。
 // 深度操作（圈选批量、宫格预览、导出）仍在独立分镜工作台。
-export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }: ShotVoiceListPanelProps) {
+export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, toolbarTarget }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
@@ -338,40 +339,42 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }:
     mutateRegenerate({ shot, force });
   }, [mutateRegenerate]);
 
-  return (
-    <div className="space-y-3">
-      {/* 工具行：当前章节的三个批量操作 */}
-      <div className="flex flex-wrap items-center gap-2">
-        {storyboard ? (
-          <div className="ml-auto flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy || keyframeSummary.generating > 0 || keyframeSummary.missing === 0}
-              onClick={() => keyframeBatchMutation.mutate({ shotIds: keyframeTargetShotIds })}
-            >
-              <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-              生成分镜{keyframeSummary.missing > 0 ? `（${keyframeSummary.missing}）` : ""}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => ttsBatchMutation.mutate(shouldForceTts)}
-              disabled={busy || jobRunning || !canRunTts}
-            >
-              {jobRunning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-              {jobRunning ? `${shouldForceTts ? "重新配音" : "生成配音"}中...` : shouldForceTts ? "重新配音" : "生成配音"}
-            </Button>
-            <DramaEpisodeAssemblyButton
-              controller={assemblyController}
-              hasShots={shots.length > 0}
-              buttonLabel="合成"
-              doneButtonLabel="合成"
-            />
-          </div>
-        ) : null}
-      </div>
+  const storyboardToolbar = storyboard && toolbarTarget
+    ? createPortal(
+        <>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy || keyframeSummary.generating > 0 || keyframeSummary.missing === 0}
+            onClick={() => keyframeBatchMutation.mutate({ shotIds: keyframeTargetShotIds })}
+          >
+            生成分镜
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => ttsBatchMutation.mutate(shouldForceTts)}
+            disabled={busy || jobRunning || !canRunTts}
+          >
+            {jobRunning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
+            {jobRunning ? `${shouldForceTts ? "重新配音" : "生成配音"}中...` : shouldForceTts ? "重新配音" : "生成配音"}
+          </Button>
+          <DramaEpisodeAssemblyButton
+            controller={assemblyController}
+            hasShots={shots.length > 0}
+            buttonLabel="合成"
+            doneButtonLabel="合成"
+          />
+        </>,
+        toolbarTarget,
+      )
+    : null;
 
-      {keyframeBatchJob && keyframeBatchJob.status !== "done" ? (
+  return (
+    <>
+      {storyboardToolbar}
+      <div className="space-y-3">
+
+        {keyframeBatchJob && keyframeBatchJob.status !== "done" ? (
         <div
           role={keyframeBatchActive ? "status" : "alert"}
           aria-live="polite"
@@ -392,7 +395,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }:
             <span>失败 {(keyframeBatchProgress.failedShotIds ?? []).length} 个，可点击上方按钮重试</span>
           ) : null}
         </div>
-      ) : null}
+        ) : null}
 
       {/* 状态摘要 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -445,16 +448,10 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }:
               onBlockingSketchSaved={invalidateAll}
             />
           ))}
-          <DramaEpisodeAssemblyResultPanel
-            controller={assemblyController}
-            hasShots={shots.length > 0}
-            buttonLabel="合成"
-            doneButtonLabel="合成"
-            showActionButton={false}
-          />
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 
