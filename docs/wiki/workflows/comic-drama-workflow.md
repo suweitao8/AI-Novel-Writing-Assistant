@@ -117,6 +117,33 @@
 - 服务端：`server/src/services/drama/video/DramaEpisodeAssemblyService.ts`、`LocalFfmpegVideoProvider.ts`、`server/src/modules/drama/http/dramaRoutes.ts`。
 - 渲染：`video/src/DramaEpisodeVideo.tsx` 与 `video/` workspace 的横屏 Composition。
 
+## 批量分镜画面生成的并发与状态反馈
+
+### Background
+
+分镜画面是外部图片服务的重请求。批量入口如果逐镜串行处理，用户会长时间看不到变化；如果前端只等待后端把单个镜头写成 `generating`，任务创建成功和画面状态之间还会出现无反馈窗口。
+
+### Decision
+
+- `keyframes` 批量任务使用 3 路有界 worker 并发；并发上限固定在编排层，不把一次批量任务直接展开成无限请求。这个上限与现有批量音频/漫画图片流程保持一致，后续如接入供应商级限流，只调整编排层上限。
+- 每个镜头的 `keyframeData.status` 是镜头级状态的权威来源：`generating` 表示请求已进入生成，`done` 表示图片可用，错误状态恢复为可重试的缺失画面。
+- `DramaBatchJob.progress` 的写入必须串行排队。图片请求可以并发，但完成计数、失败镜头列表和费用累计不能由并发写入互相覆盖。
+- 分镜列表在批量请求创建前先对目标镜头做乐观标记，立即显示高亮的「生成中」缩略图；后端任务状态和镜头数据刷新后，以服务端结果收敛。任务创建失败或结束后，乐观标记只保留仍为 `generating` 的镜头。
+- 批量任务为 `failed` 时保留失败数量和可重试入口；失败是镜头级可恢复状态，不应让用户误以为按钮没有作用，也不应阻断其他镜头的完成结果。
+
+### Failure Modes
+
+- 只能看到按钮 toast、镜头缩略图没有变化：检查 `ShotVoiceListPanel` 的乐观目标集合、项目查询失效和 30 秒轮询宽限窗。
+- 批量进度出现回退或完成数减少：检查是否绕过进度写入队列，直接从并发 worker 调用 `updateJob`。
+- 供应商出现大量超时或限流：先保持每批 3 路上限并检查 provider 侧配额，不要通过无限扩大前端请求数量规避问题。
+
+### Related Modules
+
+- `server/src/services/drama/production/DramaBatchOrchestrator.ts`
+- `server/src/services/drama/production/batchConcurrency.ts`
+- `client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx`
+- `client/src/api/media/drama.ts` 的 `DramaBatchProgress`
+
 ## 失败模式 / 注意事项
 
 - 历史视频 provider 是可插拔兼容 port，但当前 studio 成片阶段不依赖 provider 选择；成片是否可用以静态画面、配音和字幕装配结果为准。

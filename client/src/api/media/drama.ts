@@ -261,6 +261,7 @@ export interface DramaBatchProgress {
   provider?: string;
   targetShotIds?: string[];
   currentShotId?: string;
+  concurrency?: number;
   errors?: Array<{ shotId: string; message: string }>;
   useCharacterRefImages?: boolean;
   cost?: DramaBatchCostBreakdown;

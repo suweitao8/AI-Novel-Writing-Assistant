@@ -9,6 +9,7 @@ import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
 import { ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
+import { runWithConcurrency } from "./batchConcurrency";
 import { failStaleBatchJobs } from "./batchJobRecovery";
 
 export type DramaBatchJobType = "keyframes" | "videos" | "tts";
@@ -23,6 +24,7 @@ export interface DramaBatchProgress {
   provider?: string;
   targetShotIds?: string[];
   currentShotId?: string;
+  concurrency?: number;
   errors?: Array<{ shotId: string; message: string }>;
   useCharacterRefImages?: boolean;
   /** tts 重配模式：true=忽略已有配音全部重合成；false=只补缺失 */
@@ -92,6 +94,8 @@ type BatchProcessResult = {
 
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
 const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
+/** 图片服务是外部重请求，和现有批量音频/漫画流程保持 3 路有界并发。 */
+export const DRAMA_KEYFRAME_BATCH_CONCURRENCY = 3;
 // progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
 const MAX_PROGRESS_ERRORS = 50;
 
@@ -192,6 +196,7 @@ function normalizeProgress(input: Partial<DramaBatchProgress>): DramaBatchProgre
     provider: input.provider,
     targetShotIds: input.targetShotIds,
     currentShotId: input.currentShotId,
+    concurrency: input.concurrency,
     errors: input.errors ?? [],
     useCharacterRefImages: input.useCharacterRefImages,
     force: input.force,
@@ -228,6 +233,7 @@ export class DramaBatchOrchestrator {
       failedShotIds: [],
       provider: prepared.provider,
       targetShotIds: prepared.targetShotIds,
+      concurrency: input.type === "keyframes" ? DRAMA_KEYFRAME_BATCH_CONCURRENCY : undefined,
       errors: [],
       useCharacterRefImages: input.useCharacterRefImages ?? true,
       force: input.force ?? false,
@@ -270,6 +276,13 @@ export class DramaBatchOrchestrator {
     }
     this.runningJobs.add(jobId);
     let lastProgress: DramaBatchProgress | null = null;
+    let progressWriteChain: Promise<unknown> = Promise.resolve();
+    const enqueueProgressWrite = (status: DramaBatchJobStatus, progress: DramaBatchProgress) => {
+      const snapshot = cloneProgress(progress);
+      const write = progressWriteChain.then(() => this.updateJob(jobId, status, snapshot));
+      progressWriteChain = write.then(() => undefined, () => undefined);
+      return write;
+    };
     try {
       const job = await prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
       if (!job) {
@@ -315,14 +328,20 @@ export class DramaBatchOrchestrator {
         skipped: 0,
         failedShotIds: [],
         errors: [],
+        concurrency: job.type === "keyframes"
+          ? progress.concurrency ?? DRAMA_KEYFRAME_BATCH_CONCURRENCY
+          : undefined,
         cost: progress.cost ? { ...progress.cost, actual: 0, actualUnits: {} } : undefined,
       });
       lastProgress = nextProgress;
-      await this.updateJob(jobId, "running", nextProgress);
+      await enqueueProgressWrite("running", nextProgress);
 
-      for (const shot of shots) {
-        nextProgress.currentShotId = shot.id;
-        await this.updateJob(jobId, "running", nextProgress);
+      const processShotAt = async (shot: BatchShot) => {
+        // 并发图片任务不再伪造单一 currentShotId；每个镜头自己的 keyframeData
+        // 是前端显示生成中状态的权威来源。
+        if (job.type !== "keyframes") {
+          nextProgress.currentShotId = shot.id;
+        }
         try {
           const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, shot, promptByShot.get(shot.id), nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
           if (result.status === "skipped") {
@@ -341,11 +360,19 @@ export class DramaBatchOrchestrator {
             error instanceof Error ? error.message : String(error),
           );
         }
-        await this.updateJob(jobId, "running", nextProgress);
+        await enqueueProgressWrite("running", nextProgress);
+      };
+
+      if (job.type === "keyframes") {
+        await runWithConcurrency(shots, DRAMA_KEYFRAME_BATCH_CONCURRENCY, processShotAt);
+      } else {
+        for (const shot of shots) {
+          await processShotAt(shot);
+        }
       }
 
       nextProgress.currentShotId = undefined;
-      return this.updateJob(jobId, nextProgress.failed > 0 ? "failed" : "done", nextProgress);
+      return enqueueProgressWrite(nextProgress.failed > 0 ? "failed" : "done", nextProgress);
     } catch (error) {
       // 任何未被单镜头捕获的异常都必须终止任务，不能让任务永久停留在 running。
       const message = error instanceof Error ? error.message : String(error);
@@ -353,6 +380,7 @@ export class DramaBatchOrchestrator {
         ? { ...lastProgress, currentShotId: undefined }
         : normalizeProgress({ total: 0, failed: 1 });
       appendProgressError(failedProgress, "", message);
+      await progressWriteChain.catch(() => undefined);
       await this.updateJob(jobId, "failed", failedProgress).catch(() => undefined);
       throw error;
     } finally {
@@ -577,6 +605,23 @@ export class DramaBatchOrchestrator {
       },
     });
   }
+}
+
+function cloneProgress(progress: DramaBatchProgress): DramaBatchProgress {
+  return normalizeProgress({
+    ...progress,
+    failedShotIds: [...progress.failedShotIds],
+    targetShotIds: progress.targetShotIds ? [...progress.targetShotIds] : undefined,
+    errors: progress.errors ? [...progress.errors] : [],
+    cost: progress.cost
+      ? {
+          ...progress.cost,
+          estimatedUnits: { ...progress.cost.estimatedUnits },
+          actualUnits: { ...progress.cost.actualUnits },
+          unit: { ...progress.cost.unit },
+        }
+      : undefined,
+  });
 }
 
 export const dramaBatchOrchestrator = new DramaBatchOrchestrator();
