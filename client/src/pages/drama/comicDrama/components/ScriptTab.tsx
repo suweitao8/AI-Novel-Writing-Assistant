@@ -16,6 +16,7 @@ import {
 } from "@ai-novel/shared/utils/scriptDocument";
 import OutlineSettingsAside from "@/pages/drama/comicDrama/components/OutlineSettingsAside";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { collectScriptAssetUsage } from "@/pages/drama/comicDrama/components/scriptAssetUsage";
 import SelectControl from "@/components/common/SelectControl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,99 +113,10 @@ export default function ScriptTab(props: ScriptTabProps) {
   // - 右侧面板只显示脚本用到的资产（按首次出现排序），用到了但没有对应资产的
   //   名字进 missing，以橙红警告卡提示「未生成，需要手动创建」——建好后自动消失；
   // - 已有资产名出现在正文任意位置（断词匹配，与正文高亮同口径）也算用到。
-  const scriptUsage = useMemo(() => {
-    const knownCharacters = new Set(characters.map((character) => character.name.trim()));
-    const knownScenes = new Set(scenes.map((scene) => scene.name.trim()));
-    const usedOrderKeys: string[] = [];
-    const usedKeys = new Set<string>();
-    const missingScenes: string[] = [];
-    const missingCharacters: string[] = [];
-    const pushUsed = (key: string) => {
-      if (!usedKeys.has(key)) {
-        usedKeys.add(key);
-        usedOrderKeys.push(key);
-      }
-    };
-    const assetKindsByName = new Map<string, Array<"character" | "scene" | "prop">>();
-    const registerAssetNames = (kind: "character" | "scene" | "prop", names: string[]) => {
-      for (const rawName of names) {
-        const name = rawName.trim();
-        if (!name) continue;
-        const kinds = assetKindsByName.get(name) ?? [];
-        if (!kinds.includes(kind)) kinds.push(kind);
-        assetKindsByName.set(name, kinds);
-      }
-    };
-    registerAssetNames("character", characters.map((character) => character.name));
-    registerAssetNames("scene", scenes.map((scene) => scene.name));
-    registerAssetNames("prop", propList.map((prop) => prop.name));
-    const mentionNames = [...assetKindsByName.keys()]
-      .filter((name) => name.length >= 2)
-      .sort((left, right) => right.length - left.length);
-    const mentionPattern = mentionNames.length > 0
-      ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${mentionNames.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu")
-      : null;
-    const pushMentionedAssets = (sourceText: string) => {
-      if (!mentionPattern || !sourceText) return;
-      for (const match of sourceText.matchAll(mentionPattern)) {
-        for (const kind of assetKindsByName.get(match[0]) ?? []) {
-          pushUsed(`${kind}:${match[0]}`);
-        }
-      }
-    };
-    const pushStructuredAsset = (kind: "character" | "scene", rawName: string) => {
-      const name = rawName.trim();
-      if (name && assetKindsByName.get(name)?.includes(kind)) {
-        pushUsed(`${kind}:${name}`);
-      }
-    };
-    for (const item of items) {
-      let sourceText = "";
-      if (item.kind === "scene") {
-        const name = item.scene.trim();
-        sourceText = name;
-        if (knownScenes.has(name)) {
-          pushStructuredAsset("scene", name);
-        } else if (!missingScenes.includes(name)) {
-          if (name) missingScenes.push(name);
-        }
-      } else if (item.kind === "sceneState") {
-        sourceText = `${item.scene} ${item.state}`;
-        pushStructuredAsset("scene", item.scene);
-      } else if (item.kind === "line") {
-        const name = item.speaker.trim();
-        sourceText = `${name} ${item.mood} ${item.text}`;
-        if (name && name !== "旁白" && knownCharacters.has(name)) {
-          pushStructuredAsset("character", name);
-        } else if (name && name !== "旁白" && !missingCharacters.includes(name)) {
-          missingCharacters.push(name);
-        }
-      } else if (item.kind === "state") {
-        const name = item.name.trim();
-        sourceText = `${name} ${item.state}`;
-        if (name && knownCharacters.has(name)) {
-          pushStructuredAsset("character", name);
-        } else if (name && !missingCharacters.includes(name)) {
-          missingCharacters.push(name);
-        }
-      } else if (item.kind === "shot") {
-        sourceText = `${item.shot} ${item.storyboard}`;
-      } else {
-        sourceText = item.text;
-      }
-      pushMentionedAssets(sourceText);
-    }
-    return {
-      knownCharacters,
-      knownScenes,
-      usedOrderKeys,
-      usedKeys,
-      missing: [
-        ...missingScenes.map((name) => ({ type: "scene" as const, name })),
-        ...missingCharacters.map((name) => ({ type: "character" as const, name })),
-      ],
-    };
-  }, [items, characters, scenes, propList]);
+  const scriptUsage = useMemo(
+    () => collectScriptAssetUsage({ items, characters, scenes, props: propList }),
+    [items, characters, scenes, propList],
+  );
 
   const entityNames = useMemo(() => ({
     characters: characters.map((character) => character.name),
