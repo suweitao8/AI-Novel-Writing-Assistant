@@ -410,26 +410,21 @@ export function AssetStatesEditor(props: {
     const template = templateStateId ? states.find((state) => state.id === templateStateId) ?? null : null;
     const previous = states[states.length - 1];
     const id = newStateId();
-    // 基于所选状态创建（2026-08-23 用户要求）：挑最接近新状态的旧状态当模板，内容属性
-    // （描述/图片提示词/时代风格/年龄段/场景结构化字段）全部复制过来再二次修改；图片与音色是
-    // 旧状态的生成产物，不复制。新状态的生图参考直接指向模板状态：生成时以模板的图锁定
-    // 同一形象，只改新状态的差异（与「跨时代新状态参考上一状态」同一套参考链）。
-    const nextState = template
-      ? {
-        id,
-        label: "",
-        description: template.description ?? "",
-        imagePrompt: template.imagePrompt ?? "",
-        ...(template.eraStyle ? { eraStyle: template.eraStyle } : {}),
-        ...(showVoice ? { ageGroup: template.ageGroup ?? previous?.ageGroup ?? "youth" } : {}),
-        ...(showScene ? {
-          sceneType: template.sceneType ?? null,
-          timeOfDay: template.timeOfDay ?? null,
-          weather: template.weather ?? null,
-        } : {}),
-        referenceStateId: template.id,
+    // 基于所选状态创建（2026-08-23 用户要求，同日二次调整为全量复制）：挑最接近新状态的
+    // 旧状态当模板，全部属性原封不动复制过来——描述/图片提示词/音色提示词/时代风格/年龄段
+    // （或场景的时间天气），已生成的图片与音色也直接拿来用（URL 指向模板的文件，重新生成时
+    // 才会写自己的）。状态名在模板名后加数字（初始形象→初始形象2→初始形象3…），生图参考
+    // 指向模板状态：重新生成时以模板的图锁定同一形象，只画状态差异。
+    let nextState: StoryAssetState;
+    if (template) {
+      const baseLabel = template.label?.trim() || "状态";
+      let label = `${baseLabel}2`;
+      for (let suffix = 2; states.some((state) => state.label === label); suffix += 1) {
+        label = `${baseLabel}${suffix}`;
       }
-      : {
+      nextState = { ...template, id, label, referenceStateId: template.id };
+    } else {
+      nextState = {
         id,
         label: "",
         description: "",
@@ -442,6 +437,7 @@ export function AssetStatesEditor(props: {
         } : {}),
         referenceStateId: previous?.id ?? null,
       };
+    }
     onChange([...states, nextState]);
     setLocalDirty(true);
     setSelectedStateId(id);
