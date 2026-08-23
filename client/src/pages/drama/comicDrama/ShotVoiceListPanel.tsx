@@ -6,6 +6,7 @@ import {
   Loader2,
   RefreshCw,
   Settings2,
+  Volume2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -187,11 +188,10 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   });
 
   const regenerateMutation = useMutation({
-    mutationFn: (shot: DramaShot) => {
-      // 服务端按文本/音色指纹复用未变化的行，这里不强制整镜重配（force 只留给「全部重新配音」）。
-      return regenerateDramaShotAudio(projectId, shot.id, { force: false });
+    mutationFn: ({ shot, force }: { shot: DramaShot; force: boolean }) => {
+      return regenerateDramaShotAudio(projectId, shot.id, { force });
     },
-    onMutate: (shot) => setRegeneratingShotId(shot.id),
+    onMutate: ({ shot }) => setRegeneratingShotId(shot.id),
     onSuccess: () => {
       toast.success("这一镜的配音已更新");
       invalidateAll();
@@ -214,8 +214,8 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   const handleGenerateKeyframe = useCallback((shotId: string) => {
     mutateKeyframeOne(shotId);
   }, [mutateKeyframeOne]);
-  const handleRegenerate = useCallback((shot: DramaShot) => {
-    mutateRegenerate(shot);
+  const handleRegenerate = useCallback((shot: DramaShot, force: boolean) => {
+    mutateRegenerate({ shot, force });
   }, [mutateRegenerate]);
 
   return (
@@ -370,12 +370,14 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   keyframeBusy: boolean;
   regenerating: boolean;
   onGenerateKeyframe: (shotId: string) => void;
-  onRegenerate: (shot: DramaShot) => void;
+  onRegenerate: (shot: DramaShot, force: boolean) => void;
 }) {
   const { shot, segments } = props;
   const keyframe = parseKeyframe(shot.keyframeData);
   const readyCount = segments.filter((segment) => segment.status === "ready").length;
   const pendingCount = segments.length - readyCount;
+  const shouldForceRegenerate = pendingCount === 0;
+  const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
   const shotMeta = [shot.shotSize, shot.cameraMove, shot.durationSec != null ? `${shot.durationSec} 秒` : null]
     .filter(Boolean)
     .join(" · ");
@@ -427,11 +429,17 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               size="sm"
               className="ml-auto h-7 px-2 text-xs"
               disabled={props.regenerating}
-              onClick={() => props.onRegenerate(shot)}
-              title="未变化的行会自动复用已有音频"
+              onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
+              title={`${audioActionLabel}这一镜的配音`}
             >
-              {props.regenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />}
-              重配此镜
+              {props.regenerating ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
+              ) : shouldForceRegenerate ? (
+                <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
+              ) : (
+                <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
+              )}
+              {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
             </Button>
           ) : null}
         </div>
