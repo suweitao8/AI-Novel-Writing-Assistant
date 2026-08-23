@@ -4,10 +4,11 @@ import os from "os";
 import path from "path";
 import { resolveServerRoot } from "../../../runtime/appPaths";
 import type { VideoGenerationRequest, VideoGenerationResult, VideoProviderPort } from "./VideoProviderPort";
+import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
 
 // 本地 ffmpeg 视频通道：把镜头首帧图 + 台词配音合成为真实的 mp4 片段。
 // 参考旧项目（supertale）的合成方式：循环首帧图 + Ken Burns 缓慢推拉（zoompan），
-// 以配音时长为时间线（无配音时用 durationSec 静音占位），输出竖屏 1080x1920 H.264。
+// 以配音时长为时间线（无配音时用 durationSec 静音占位），输出横屏 16:9 H.264。
 // 任务为本地异步进程：createTask 派生 ffmpeg 后立即返回 running，getTask 检查产物文件。
 
 const VIDEOS_DIR_NAME = "generated-videos";
@@ -102,8 +103,7 @@ async function writeAudioInputs(
       continue;
     }
     // 扩展名按 dataUrl 的 mime 推断（VoxCPM 桥接返回 audio/wav），给 ffmpeg 正确的探测提示。
-    const mimeMatch = /^data:([^;]+);/.exec(dataUrl);
-    const ext = mimeMatch?.[1].includes("wav") ? "wav" : mimeMatch?.[1].includes("mpeg") ? "mp3" : "bin";
+    const ext = audioFileExtensionFromDataUrl(dataUrl);
     const tempPath = path.join(os.tmpdir(), `cd-audio-${taskId}-${index}.${ext}`);
     await fs.writeFile(tempPath, buffer);
     audioPaths.push(tempPath);
@@ -129,9 +129,10 @@ function buildFfmpegArgs(input: {
   durationSec: number;
   outputPath: string;
 }): string[] {
-  const width = 1080;
-  const height = 1920;
-  const fps = DEFAULT_FPS;
+  const profile = getDramaRenderProfile();
+  const width = profile.width;
+  const height = profile.height;
+  const fps = profile.fps || DEFAULT_FPS;
   const duration = Math.max(1, Math.round(input.durationSec));
   const filterChain = [
     `scale=${width * 2}:${height * 2}:force_original_aspect_ratio=increase`,

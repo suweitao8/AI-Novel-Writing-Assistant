@@ -145,7 +145,7 @@ export class DramaVideoPromptService {
           provider: resolveDefaultVideoProvider(),
           prompt: output.prompt,
           negativePrompt: output.negativePrompt ?? null,
-          aspectRatio: output.aspectRatio || "9:16",
+          aspectRatio: output.aspectRatio || "16:9",
           durationSec: output.durationSec ?? shot.durationSec,
           status: "prompted",
           version,

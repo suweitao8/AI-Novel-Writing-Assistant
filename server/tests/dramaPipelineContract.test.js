@@ -378,9 +378,9 @@ function installPipelineStubs() {
         if (asset.id === "drama.video.prompt") {
           return {
             output: {
-              prompt: "9:16 vertical drama, modern company lobby, restrained young man in black suit being blocked by security, tense close shot",
+              prompt: "16:9 landscape drama, modern company lobby, restrained young man in black suit being blocked by security, tense close shot",
               negativePrompt: "low quality, blurry, extra fingers",
-              aspectRatio: "9:16",
+              aspectRatio: "16:9",
               durationSec: 5,
             },
           };
@@ -488,7 +488,7 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(keyframeProgress.cost.estimated, 1.25);
   assert.equal(keyframeProgress.cost.actual, 1.25);
   assert.equal(state.keyframeInput.sceneType, "chapter_illustration");
-  assert.equal(state.keyframeInput.size, "1024x1536");
+  assert.equal(state.keyframeInput.size, "1536x864");
   assert.match(state.shots[0].keyframeData, /shot-images/);
 
   const videoEstimate = await batchOrchestrator.estimateEpisodeBatchJob(
@@ -521,8 +521,8 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(videoProgress.cost.actual, 2);
 
   const prompt = state.videoPrompts[0];
-  assert.equal(prompt.aspectRatio, "9:16");
-  assert.match(prompt.prompt, /vertical drama/);
+  assert.equal(prompt.aspectRatio, "16:9");
+  assert.match(prompt.prompt, /landscape drama/);
   assert.equal(prompt.provider, "mock");
   assert.match(prompt.providerTaskId, /^mock_/);
   assert.equal(prompt.status, "queued");
@@ -568,6 +568,8 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(timeline.filename, "逆袭短剧-E1-timeline.json");
   const timelineBody = JSON.parse(timeline.body);
   assert.equal(timelineBody.format, "ai-novel.drama.timeline.v1");
+  assert.equal(timelineBody.canvas.aspectRatio, "16:9");
+  assert.equal(timelineBody.canvas.fps, 24);
   assert.equal(timelineBody.episode.order, 1);
   assert.equal(timelineBody.tracks.video[0].shotOrder, 1);
   assert.equal(timelineBody.tracks.video[0].status, "queued");

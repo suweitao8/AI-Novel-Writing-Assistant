@@ -6,7 +6,7 @@ import type { ImageSize } from "./types";
  *
  * 画幅规范沿用旧项目 mydrama 的约定：
  * - 设计参考类（角色四视图、场景全景、服装/武器资产）固定**横版**——横向并排多视图时空间信息最全；
- * - 阅读消费类（漫剧分镜首帧、漫画分格兜底、小说封面）固定**竖版**——竖屏阅读与封面装帧形态；
+ * - 漫剧分镜首帧固定**横版**——成片时间轴统一为 16:9；漫画分格与小说封面仍保持竖版；
  * - 头像类（角色头像、拆书角色形象）用方图——展示位是圆形/方形头像框。
  *
  * 各生图服务必须从这里取值，不允许在服务内再硬编码尺寸；
@@ -20,8 +20,8 @@ export const IMAGE_SPECS = {
   scenePanorama: "2048x1024" as ImageSize,
   /** 服装/武器等角色资产设计参考图：横版（旧项目道具参考图固定 16:9 横屏） */
   characterAsset: "1536x1024" as ImageSize,
-  /** 漫剧分镜首帧：竖版 2:3 */
-  dramaKeyframe: "1024x1536" as ImageSize,
+  /** 漫剧分镜首帧：横版 16:9，与视频成片画布一致 */
+  dramaKeyframe: "1536x864" as ImageSize,
   /** 漫画分格兜底画幅（正式值跟随漫画模板的 imageSize）：竖版 */
   comicPanelFallback: "1024x1536" as ImageSize,
   /** 小说封面：竖版（与 shared 常量保持同源） */
