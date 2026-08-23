@@ -11,6 +11,10 @@ const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
+export const BLOCKING_SKETCH_CAPTURE_SIZE = {
+  width: 1280,
+  height: 720,
+} as const;
 const DEFAULT_CAMERA: DramaShotBlockingSketch3DCamera = {
   azim: -45,
   elev: -12,
@@ -85,6 +89,7 @@ export interface Blocking3dViewer {
   resetCamera: () => void;
   setCameraState: (camera: DramaShotBlockingSketch3DCamera) => void;
   getCameraState: () => DramaShotBlockingSketch3DCamera;
+  setInteractionEnabled: (enabled: boolean) => void;
   setBackground: (url: string | null) => Promise<void>;
   exportLayout: () => {
     schemaVersion: 1;
@@ -107,14 +112,18 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
+  const numberOr = (value: unknown, fallback: number): number => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
   return {
-    azim: clamp(Number(input.azim) || 0, -180, 180),
-    elev: clamp(Number(input.elev) || 0, -89, 89),
-    distance: clamp(Number(input.distance) || DEFAULT_CAMERA.distance, 0.25, 100),
+    azim: clamp(numberOr(input.azim, 0), -180, 180),
+    elev: clamp(numberOr(input.elev, 0), -89, 89),
+    distance: clamp(numberOr(input.distance, DEFAULT_CAMERA.distance), 0.25, 100),
     focalPoint: [
-      clamp(Number(input.focalPoint?.[0]) || 0, -100, 100),
-      clamp(Number(input.focalPoint?.[1]) || 0.8, -100, 100),
-      clamp(Number(input.focalPoint?.[2]) || 0, -100, 100),
+      clamp(numberOr(input.focalPoint?.[0], 0), -100, 100),
+      clamp(numberOr(input.focalPoint?.[1], 0.8), -100, 100),
+      clamp(numberOr(input.focalPoint?.[2], 0), -100, 100),
     ],
   };
 }
@@ -301,6 +310,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
   };
   let destroyed = false;
+  let interactionEnabled = true;
   let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
   let keyboardInput = new Set<string>();
   const changeListeners = new Set<() => void>();
@@ -362,7 +372,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
 
   const onPointerDown = (event: PointerEvent) => {
-    if (destroyed) return;
+    if (destroyed || !interactionEnabled) return;
     canvas.focus();
     const hit = event.button === 0 ? pickActor(event.clientX, event.clientY) : null;
     if (hit) select(hit);
@@ -379,7 +389,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (!dragState || event.pointerId !== dragState.pointerId) return;
+    if (!interactionEnabled || !dragState || event.pointerId !== dragState.pointerId) return;
     const dx = event.clientX - dragState.x;
     const dy = event.clientY - dragState.y;
     dragState.x = event.clientX;
@@ -424,6 +434,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
 
   const onWheel = (event: WheelEvent) => {
+    if (!interactionEnabled) return;
     event.preventDefault();
     cameraState.distance = clamp(cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92), 0.25, 100);
     syncCamera();
@@ -432,7 +443,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   const onContextMenu = (event: MouseEvent) => event.preventDefault();
   const onKeyDown = (event: KeyboardEvent) => {
-    if (document.activeElement !== canvas) return;
+    if (!interactionEnabled || document.activeElement !== canvas) return;
     keyboardInput.add(event.key.toLowerCase());
     if (["w", "a", "s", "d", "q", "e", " "].includes(event.key.toLowerCase())) event.preventDefault();
   };
@@ -543,6 +554,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     setStatus("3D 摆位台已就绪");
   } catch (error) {
     resizeObserver.disconnect();
+    canvas.removeEventListener("pointerdown", onPointerDown);
+    canvas.removeEventListener("pointermove", onPointerMove);
+    canvas.removeEventListener("pointerup", onPointerUp);
+    canvas.removeEventListener("wheel", onWheel);
+    canvas.removeEventListener("contextmenu", onContextMenu);
+    window.removeEventListener("keydown", onKeyDown);
+    window.removeEventListener("keyup", onKeyUp);
+    window.removeEventListener("blur", onBlur);
     app.destroy();
     throw error instanceof Error ? error : new Error(String(error));
   }
@@ -714,6 +733,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     getCameraState() {
       return { ...cameraState, focalPoint: [...cameraState.focalPoint] };
     },
+    setInteractionEnabled(enabled) {
+      interactionEnabled = enabled;
+      if (!enabled) {
+        dragState = null;
+        keyboardInput = new Set();
+      }
+    },
     async setBackground(url) {
       if (backgroundEntity) {
         backgroundEntity.destroy();
@@ -731,7 +757,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       material.emissive = new pc.Color(1, 1, 1);
       material.emissiveMap = backgroundAsset.resource as pc.Texture;
       material.update();
-      backgroundEntity = createPlane(app, "blocking3d-background", [0, 3.8, -7], [14, 7, 1], material, [90, 0, 0]);
+      backgroundEntity = createPlane(app, "blocking3d-background", [0, 3.8, -7], [14, 1, 7], material, [90, 0, 0]);
       setStatus("3D 摆位台已就绪");
     },
     exportLayout() {
@@ -767,12 +793,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       emitSelection();
     },
     capturePng() {
-      const dataUrl = canvas.toDataURL("image/png");
-      const base64 = dataUrl.split(",", 2)[1] ?? "";
-      const binary = window.atob(base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-      return new Blob([bytes], { type: "image/png" });
+      app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
+      app.render();
+      try {
+        const dataUrl = canvas.toDataURL("image/png");
+        const base64 = dataUrl.split(",", 2)[1] ?? "";
+        const binary = window.atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+        return new Blob([bytes], { type: "image/png" });
+      } finally {
+        resize();
+        app.render();
+      }
     },
     destroy() {
       if (destroyed) return;
@@ -795,6 +828,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
   };
 
-  if (options.backgroundUrl) await viewer.setBackground(options.backgroundUrl);
-  return viewer;
+  try {
+    if (options.backgroundUrl) await viewer.setBackground(options.backgroundUrl);
+    return viewer;
+  } catch (error) {
+    viewer.destroy();
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 }

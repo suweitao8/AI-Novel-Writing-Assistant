@@ -25,6 +25,8 @@ test("3D 摆位页面保存快照并继续上传 PNG 参考图", () => {
   assert.match(pageSource, /layout3d/);
   assert.match(pageSource, /uploadDramaShotBlockingSketchPng/);
   assert.match(pageSource, /confirmDramaShotBlockingSketch/);
+  assert.match(pageSource, /setInteractionEnabled\(false\)/);
+  assert.match(pageSource, /queryKeys\.drama\.project/);
   assert.match(mathSource, /prone/);
 });
 
@@ -33,6 +35,8 @@ test("3D 摆位 runtime 提供代理模型、姿势、相机和导出能力", ()
   assert.match(viewerSource, /UAL1_Standard\.glb/);
   assert.match(viewerSource, /setSelectedPose/);
   assert.match(viewerSource, /setCameraState/);
+  assert.match(viewerSource, /BLOCKING_SKETCH_CAPTURE_SIZE/);
+  assert.match(viewerSource, /setInteractionEnabled/);
   assert.match(viewerSource, /capturePng/);
 });
 
