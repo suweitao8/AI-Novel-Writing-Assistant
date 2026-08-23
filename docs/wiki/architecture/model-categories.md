@@ -33,7 +33,7 @@
 
 - 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
 - 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
-- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 18761 音频）时连通测试失败；执行 `pnpm grok:bridge` 启动 Grok Build 两个通道，参考图图片桥仍可执行 `pnpm codex:image`，音频桥见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
+- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 18761 音频）时连通测试失败；`pnpm dev` 会自动启动三类开发依赖，单独启动服务端时分别执行 `pnpm grok:bridge`、`pnpm codex:image`、`pnpm voxcpm2:bridge`。音频桥的正式实现与健康校验见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 
 ## 相关模块
 

@@ -1,11 +1,12 @@
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { synthesizeAudioSpeech } from "../../audio/speechProvider";
+import { VOICE_PREVIEW_SAMPLE_TEXT } from "../../audio/voicePreviewSample";
 import { globalNarratorVoiceSettingsService } from "../../settings/GlobalNarratorVoiceSettingsService";
 import { readCharacterVoice } from "./DramaDialogueAudioService";
 
-/** 音色试听固定样句（搬自 mydrama design 模式：用固定样句 + 描述控制生成参考音） */
-export const DRAMA_VOICE_SAMPLE_TEXT = "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。";
+/** 兼容现有调用方；实际文本由 audio/voicePreviewSample 统一维护。 */
+export const DRAMA_VOICE_SAMPLE_TEXT = VOICE_PREVIEW_SAMPLE_TEXT;
 
 export interface CharacterVoiceDesignResult {
   characterId: string;
