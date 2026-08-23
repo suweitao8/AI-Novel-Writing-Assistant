@@ -1,4 +1,5 @@
 export { StoryAssetCard, type StoryAssetCardProps } from "./StoryAssetCard";
+export { StoryAssetPreview, type StoryAssetPreviewProps } from "./StoryAssetPreview";
 export {
   buildStateImageSrc,
   buildStoryAssetPresentation,
@@ -6,6 +7,8 @@ export {
   type StoryAssetKind,
   type StoryAssetInput,
   type StoryAssetPresentation,
+  type StoryAssetPreviewMode,
+  type StoryAssetPreviewSource,
   type StoryAssetSource,
   type StoryAssetStatePresentation,
 } from "./storyAssetPresentation";

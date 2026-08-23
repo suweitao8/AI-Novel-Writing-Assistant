@@ -8,6 +8,14 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
+export type StoryAssetPreviewMode = "character-top-left-grid" | "center-square";
+
+export interface StoryAssetPreviewSource {
+  url: string;
+  alt: string;
+  mode: StoryAssetPreviewMode;
+}
+
 export type StoryAssetSource = StorySettingsCharacter | StorySettingsScene | StorySettingsProp;
 
 export type StoryAssetInput =
@@ -45,7 +53,7 @@ export interface StoryAssetPresentation {
   badges: string[];
   details: StoryAssetDetailItem[];
   states: StoryAssetStatePresentation[];
-  media: { url: string; alt: string } | null;
+  preview: StoryAssetPreviewSource | null;
   source: StoryAssetSource;
 }
 
@@ -110,6 +118,22 @@ function labelFor(mapping: Record<string, string>, value: string | null | undefi
   return text ? (mapping[text] ?? text) : "";
 }
 
+function buildStoryAssetPreview(
+  kind: StoryAssetKind,
+  name: string,
+  states: StoryAssetStatePresentation[],
+): StoryAssetPreviewSource | null {
+  const defaultState = states.find((state) => state.label.trim() === "默认") ?? states[0];
+  if (!defaultState?.imageUrl) {
+    return null;
+  }
+  return {
+    url: defaultState.imageUrl,
+    alt: `${name}默认状态预览`,
+    mode: kind === "character" ? "character-top-left-grid" : "center-square",
+  };
+}
+
 function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresentation {
   return {
     id: state.id,
@@ -130,6 +154,7 @@ function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresenta
 function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAssetPresentation, "source"> {
   const details: StoryAssetDetailItem[] = [];
   const initialState = asset.states[0];
+  const states = asset.states.map(buildStatePresentation);
   const badges = [
     labelFor(GENDER_LABELS, asset.gender),
     labelFor(AGE_LABELS, initialState?.ageGroup ?? asset.ageGroup),
@@ -154,8 +179,8 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
     summary: clean(initialState?.description) || clean(asset.personality) || "暂无补充信息",
     badges,
     details,
-    states: asset.states.map(buildStatePresentation),
-    media: null,
+    states,
+    preview: buildStoryAssetPreview("character", asset.name, states),
   };
 }
 
@@ -170,6 +195,7 @@ function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPrese
     }
     : state);
   const initialState = sceneStates[0];
+  const states = sceneStates.map(buildStatePresentation);
   const badges = [
     labelFor(SCENE_TYPE_LABELS, initialState?.sceneType),
     labelFor(SCENE_TIME_LABELS, initialState?.timeOfDay),
@@ -185,14 +211,15 @@ function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPrese
     summary: clean(initialState?.description) || clean(asset.summary) || clean(initialState?.imagePrompt) || clean(asset.environmentPrompt) || "暂无补充信息",
     badges,
     details,
-    states: sceneStates.map(buildStatePresentation),
-    media: null,
+    states,
+    preview: buildStoryAssetPreview("scene", asset.name, states),
   };
 }
 
 function buildPropPresentation(asset: StorySettingsProp): Omit<StoryAssetPresentation, "source"> {
   const details: StoryAssetDetailItem[] = [];
   const initialState = asset.states[0];
+  const states = asset.states.map(buildStatePresentation);
   const badges = [clean(asset.propType), clean(asset.importance)].filter(Boolean);
 
   addDetail(details, "道具类型", asset.propType);
@@ -211,8 +238,8 @@ function buildPropPresentation(asset: StorySettingsProp): Omit<StoryAssetPresent
     summary: clean(initialState?.description) || clean(visualPrompt) || clean(asset.description) || "暂无补充信息",
     badges,
     details,
-    states: asset.states.map(buildStatePresentation),
-    media: null,
+    states,
+    preview: buildStoryAssetPreview("prop", asset.name, states),
   };
 }
 

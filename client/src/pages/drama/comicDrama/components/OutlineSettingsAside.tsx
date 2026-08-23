@@ -50,7 +50,7 @@ const TYPE_LABELS: Record<AssetType, string> = {
   prop: "道具",
 };
 
-// 大纲编辑区右侧的设定资产面板：卡片优先展示默认状态图与资产名，点开与「资产」页签同一个
+// 大纲编辑区右侧的设定资产面板：卡片统一展示默认状态图与资产信息，点开与「资产」页签同一个
 // 可编辑可保存的弹窗（StoryAssetEditDialog，弹窗底部可删除，删除走二次确认）；
 // 工具栏为 左新增 / 中搜索框 / 右搜索按钮，新增走弹窗。
 // 创建走正式设定接口，与「设定」页签共享缓存；名字实时进入大纲高亮名单。
@@ -248,7 +248,6 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
                 <StoryAssetCard
                   asset={asset}
                   compact
-                  showDefaultStateImage
                   onOpen={() => setDetailId(asset.id)}
                 />
               </li>

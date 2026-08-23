@@ -36,8 +36,39 @@ test("角色、场景、道具都输出统一卡片模型和详情字段", () =>
   assert.equal(prop.typeLabel, "道具");
   assert.equal(character.details.some((item) => item.label === "性别" && item.value === "男"), true);
   assert.equal(scene.states[0].imagePrompt, "冷色灯光");
-  assert.equal(prop.media, null);
+  assert.deepEqual(prop.preview, {
+    url: "/watch.png",
+    alt: "怀表默认状态预览",
+    mode: "center-square",
+  });
   assert.equal(prop.states[0].imageUrl, "/watch.png");
+});
+
+test("默认状态优先于状态数组中的其他状态，并保留缓存版本参数", () => {
+  const view = buildStoryAssetPresentation({
+    kind: "character",
+    asset: {
+      id: "c-default",
+      name: "默认优先角色",
+      gender: "female",
+      states: [
+        { id: "hurt", label: "受伤", description: "受伤", imagePrompt: "伤痕", image: { url: "/hurt.png" } },
+        {
+          id: "default",
+          label: "默认",
+          description: "基础形象",
+          imagePrompt: "基础形象",
+          image: { url: "/default.png", generatedAt: "2026-08-23T12:00:00.000Z" },
+        },
+      ],
+    },
+  });
+
+  assert.deepEqual(view.preview, {
+    url: "/default.png?v=2026-08-23T12%3A00%3A00.000Z",
+    alt: "默认优先角色默认状态预览",
+    mode: "character-top-left-grid",
+  });
 });
 
 test("详情字段会过滤空值并保留状态图片与音色信息", () => {
