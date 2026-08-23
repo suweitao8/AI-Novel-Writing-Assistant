@@ -8,6 +8,7 @@ import morgan from "morgan";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { ensureRuntimeDatabaseReady } from "./db/runtimeMigrations";
 import { healInterruptedImageGenerationStates } from "./services/image/runtime/interruptedStateHealer";
+import { recoverInterruptedDramaBatchJobs } from "./services/drama/production/batchJobRecovery";
 import { errorHandler } from "./middleware/errorHandler";
 import { loadProviderApiKeys } from "./llm/factory";
 import astrologyRouter from "./modules/astrology/http/astrologyRoutes";
@@ -313,6 +314,12 @@ export async function startServer(options?: ServerStartOptions): Promise<Started
   void healInterruptedImageGenerationStates().catch((error) => {
     console.warn("[server] failed to heal interrupted image generation states.", error);
   });
+  try {
+    // 恢复必须在开始监听端口前完成：否则新请求创建的任务可能被启动清理误判为上一进程遗留任务。
+    await recoverInterruptedDramaBatchJobs();
+  } catch (error) {
+    console.warn("[server] failed to recover interrupted drama batch jobs.", error);
+  }
 
   const ragCompatibilityReport = await initializeRagSettingsCompatibility();
   if (

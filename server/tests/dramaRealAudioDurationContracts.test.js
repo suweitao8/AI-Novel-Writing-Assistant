@@ -23,7 +23,8 @@ test("旧 provider 或模拟音频不能继续被投影为 ready", () => {
   assert.match(dialogueService, /existing\?\.provider === provider/);
   assert.match(dialogueService, /prev\.provider === provider/);
   assert.doesNotMatch(batchOrchestrator, /hasDoneDialogueAudio\(raw\)/);
-  assert.match(batchOrchestrator, /hasDoneDialogueAudio\([^)]*DEFAULT_TTS_PROVIDER\)/);
+  assert.match(batchOrchestrator, /loadCurrentAudioReadyShotIds/);
+  assert.match(batchOrchestrator, /currentAudioReadyShotIds\?\.has\(shot\.id\)/);
 });
 
 test("合成时间轴只使用 ffprobe 实测音频时长，不回退文字长度估算", () => {

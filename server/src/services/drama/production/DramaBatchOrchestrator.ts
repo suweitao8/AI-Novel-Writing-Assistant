@@ -6,7 +6,8 @@ import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { DramaVideoPromptService } from "../DramaVideoPromptService";
 import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
-import { isRealTTSProvider, ttsProviderRegistry } from "../audio/TTSProviderPort";
+import { dramaAudioSegmentsService } from "../audio/DramaAudioSegmentsService";
+import { ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { parseBlockingSketchData } from "../visual/DramaShotBlockingSketchContracts";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
@@ -76,7 +77,6 @@ interface BatchShot {
   dialogue?: string | null;
   keyframeData?: string | null;
   blockingSketchData?: string | null;
-  dialogueAudioData?: string | null;
 }
 
 interface BatchEpisode {
@@ -151,20 +151,6 @@ function isDraftBlockingSketch(raw: string | null | undefined): boolean {
   return parseBlockingSketchData(raw)?.status === "draft";
 }
 
-function hasDoneDialogueAudio(raw: string | null | undefined, provider: string): boolean {
-  const parsed = safeJsonParse<{
-    status?: string;
-    provider?: string;
-    items?: Array<{ audioUrl?: string; provider?: string }>;
-  }>(raw, {});
-  return isRealTTSProvider(provider)
-    && parsed.status === "done"
-    && parsed.provider === provider
-    && Array.isArray(parsed.items)
-    && parsed.items.length > 0
-    && parsed.items.every((item) => item.provider === provider && item.audioUrl?.startsWith("data:"));
-}
-
 function isActiveVideoPrompt(prompt: BatchVideoPrompt): boolean {
   return prompt.status !== "superseded";
 }
@@ -229,6 +215,7 @@ function readProgress(raw: string | null | undefined): DramaBatchProgress {
 
 export class DramaBatchOrchestrator {
   private readonly runningJobs = new Set<string>();
+  private readonly createJobLocks = new Map<string, Promise<string>>();
 
   constructor(
     private readonly keyframeService = new DramaShotKeyframeService(),
@@ -242,38 +229,92 @@ export class DramaBatchOrchestrator {
     input: CreateEpisodeBatchJobInput,
     options: CreateEpisodeBatchJobOptions = {},
   ) {
+    const lockKey = `${projectId}:${order}:${input.type}`;
+    const inFlight = this.createJobLocks.get(lockKey);
+    if (inFlight) {
+      const jobId = await inFlight;
+      const existing = await prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
+      if (!existing) {
+        throw new AppError("批量任务创建已完成，但任务记录无法读取，请重试。", 500);
+      }
+      return existing;
+    }
+
+    const creation = this.createEpisodeBatchJobInternal(projectId, order, input, options);
+    const creationId = creation.then((job) => job.id);
+    this.createJobLocks.set(lockKey, creationId);
+    try {
+      return await creation;
+    } finally {
+      if (this.createJobLocks.get(lockKey) === creationId) {
+        this.createJobLocks.delete(lockKey);
+      }
+    }
+  }
+
+  private async createEpisodeBatchJobInternal(
+    projectId: string,
+    order: number,
+    input: CreateEpisodeBatchJobInput,
+    options: CreateEpisodeBatchJobOptions,
+  ) {
     await failStaleBatchJobs(projectId);
     const prepared = await this.prepareEpisodeBatchJob(projectId, order, input);
-    const progress = normalizeProgress({
-      total: prepared.targetShotIds.length,
-      done: 0,
-      failed: 0,
-      skipped: 0,
-      failedShotIds: [],
-      provider: prepared.provider,
-      targetShotIds: prepared.targetShotIds,
-      concurrency: input.type === "keyframes"
-        ? DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY
-        : undefined,
-      errors: [],
-      useCharacterRefImages: input.useCharacterRefImages ?? true,
-      force: input.force ?? false,
-      cost: prepared.cost,
-    });
-    const job = await prisma.dramaBatchJob.create({
-      data: {
-        projectId,
-        episodeId: prepared.episode.id,
-        type: input.type,
-        status: "pending",
-        progress: JSON.stringify(progress),
-      },
+    const shouldAutoStart = options.autoStart ?? true;
+    const result = await prisma.$transaction(async (tx) => {
+      // 锁住集记录再检查/创建任务。内存 Map 只能覆盖单进程，集行锁才可以让多个
+      // API 实例在同一集同一类型的任务创建上串行化。
+      if (typeof tx.$executeRaw === "function") {
+        await tx.$executeRaw`
+          UPDATE "DramaEpisode"
+          SET "updatedAt" = "updatedAt"
+          WHERE "id" = ${prepared.episode.id}
+        `;
+      }
+      const activeJob = await tx.dramaBatchJob.findFirst({
+        where: {
+          projectId,
+          episodeId: prepared.episode.id,
+          type: input.type,
+          status: { in: ["pending", "running"] },
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      });
+      if (activeJob) {
+        return { job: activeJob, shouldAutoStart };
+      }
+      const progress = normalizeProgress({
+        total: prepared.targetShotIds.length,
+        done: 0,
+        failed: 0,
+        skipped: 0,
+        failedShotIds: [],
+        provider: prepared.provider,
+        targetShotIds: prepared.targetShotIds,
+        concurrency: input.type === "keyframes"
+          ? DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY
+          : undefined,
+        errors: [],
+        useCharacterRefImages: input.useCharacterRefImages ?? true,
+        force: input.force ?? false,
+        cost: prepared.cost,
+      });
+      const job = await tx.dramaBatchJob.create({
+        data: {
+          projectId,
+          episodeId: prepared.episode.id,
+          type: input.type,
+          status: "pending",
+          progress: JSON.stringify(progress),
+        },
+      });
+      return { job, shouldAutoStart };
     });
 
-    if (options.autoStart ?? true) {
-      void this.runBatchJob(job.id).catch(() => undefined);
+    if (result.shouldAutoStart) {
+      void this.runBatchJob(result.job.id).catch(() => undefined);
     }
-    return job;
+    return result.job;
   }
 
   async estimateEpisodeBatchJob(
@@ -334,6 +375,9 @@ export class DramaBatchOrchestrator {
       const targetSet = new Set(progress.targetShotIds ?? []);
       const shots = (episode.storyboards[0]?.shots ?? [])
         .filter((shot) => targetSet.size === 0 || targetSet.has(shot.id));
+      const currentAudioReadyShotIds = job.type === "tts"
+        ? await this.loadCurrentAudioReadyShotIds(job.projectId, episode.order, shots)
+        : new Set<string>();
       // 避免逐镜头回查 dramaVideoPrompt：按 version 倒序取每镜头最新一条未废弃记录。
       const promptByShot = new Map<string, BatchVideoPrompt>();
       for (const prompt of episode.videoPrompts ?? []) {
@@ -364,7 +408,16 @@ export class DramaBatchOrchestrator {
           nextProgress.currentShotId = shot.id;
         }
         try {
-          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, shot, promptByShot.get(shot.id), nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
+          const result = await this.processShot(
+            job.type as DramaBatchJobType,
+            job.projectId,
+            shot,
+            promptByShot.get(shot.id),
+            nextProgress.provider,
+            nextProgress.useCharacterRefImages ?? false,
+            nextProgress.force ?? false,
+            currentAudioReadyShotIds,
+          );
           if (result.status === "skipped") {
             nextProgress.skipped += 1;
           }
@@ -421,8 +474,8 @@ export class DramaBatchOrchestrator {
     return "processed";
   }
 
-  private async processTtsShot(shot: BatchShot, force = false): Promise<BatchProcessResult> {
-    if (!force && hasDoneDialogueAudio(shot.dialogueAudioData, DEFAULT_TTS_PROVIDER)) {
+  private async processTtsShot(shot: BatchShot, force = false, currentAudioReady = false): Promise<BatchProcessResult> {
+    if (!force && currentAudioReady) {
       return { status: "skipped" };
     }
     const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, DEFAULT_TTS_PROVIDER, { force });
@@ -464,6 +517,7 @@ export class DramaBatchOrchestrator {
     provider?: string,
     useCharacterRefImages = true,
     force = false,
+    currentAudioReadyShotIds?: ReadonlySet<string>,
   ): Promise<BatchProcessResult> {
     if (type === "keyframes") {
       const status = await this.processKeyframeShot(shot, provider, useCharacterRefImages);
@@ -472,12 +526,40 @@ export class DramaBatchOrchestrator {
         : { status };
     }
     if (type === "tts") {
-      return this.processTtsShot(shot, force);
+      return this.processTtsShot(shot, force, currentAudioReadyShotIds?.has(shot.id) === true);
     }
     const status = await this.processVideoShot(projectId, shot.id, cachedVideoPrompt, provider);
     return status === "processed"
       ? { status, costUnits: { seconds: normalizeDurationSec(shot.durationSec), shots: 1 } }
       : { status };
+  }
+
+  private async loadCurrentAudioReadyShotIds(
+    projectId: string,
+    episodeOrder: number,
+    shots: BatchShot[],
+  ): Promise<Set<string>> {
+    const segments = await dramaAudioSegmentsService.listEpisodeAudioSegments(projectId, episodeOrder);
+    const counts = new Map<string, { total: number; ready: number }>();
+    for (const segment of segments) {
+      const current = counts.get(segment.shotId) ?? { total: 0, ready: 0 };
+      current.total += 1;
+      if (segment.status === "ready") {
+        current.ready += 1;
+      }
+      counts.set(segment.shotId, current);
+    }
+    return new Set(
+      shots
+        .filter((shot) => {
+          if (!shot.dialogue?.trim()) {
+            return true;
+          }
+          const count = counts.get(shot.id);
+          return Boolean(count && count.total > 0 && count.total === count.ready);
+        })
+        .map((shot) => shot.id),
+    );
   }
 
   private defaultProviderForType(type: DramaBatchJobType): string {
@@ -530,11 +612,21 @@ export class DramaBatchOrchestrator {
     const provider = input.type === "tts"
       ? this.defaultProviderForType("tts")
       : input.provider?.trim() || this.defaultProviderForType(input.type);
+    const currentAudioReadyShotIds = input.type === "tts"
+      ? await this.loadCurrentAudioReadyShotIds(projectId, order, targetShots)
+      : undefined;
     return {
       episode,
       provider,
       targetShotIds: targetShots.map((shot) => shot.id),
-      cost: this.estimateCost(input.type, provider, targetShots, episode.videoPrompts ?? [], input.force ?? false),
+      cost: this.estimateCost(
+        input.type,
+        provider,
+        targetShots,
+        episode.videoPrompts ?? [],
+        input.force ?? false,
+        currentAudioReadyShotIds,
+      ),
     };
   }
 
@@ -544,6 +636,7 @@ export class DramaBatchOrchestrator {
     shots: BatchShot[],
     videoPrompts: BatchVideoPrompt[],
     force = false,
+    currentAudioReadyShotIds?: ReadonlySet<string>,
   ): DramaBatchCostBreakdown {
     const unit = this.resolveCostUnit(type, provider);
     const latestPromptByShot = new Map<string, BatchVideoPrompt>();
@@ -569,7 +662,7 @@ export class DramaBatchOrchestrator {
     } else {
       const billableShots = force
         ? shots
-        : shots.filter((shot) => !hasDoneDialogueAudio(shot.dialogueAudioData, DEFAULT_TTS_PROVIDER));
+        : shots.filter((shot) => !currentAudioReadyShotIds?.has(shot.id));
       estimatedUnits = {
         shots: billableShots.length,
       };

@@ -23,6 +23,8 @@ test("整集合成只使用真实配音时长建立镜头时间轴", () => {
 
   assert.match(assembler, /const audioDuration = shot\.audioLines\.reduce\(\(sum, line\) => sum \+ line\.durationSec, 0\)/);
   assert.match(assembler, /没有真实配音时长，无法建立时间轴/);
-  assert.match(assembler, /const durationSec = Math\.round\(audioDuration \* 100\) \/ 100/);
+  assert.match(assembler, /durationSec = Math\.round\(audioDuration \* 100\) \/ 100/);
+  assert.match(assembler, /shot\.audioLines\.length === 0/);
+  assert.match(assembler, /shot\.durationSec/);
   assert.doesNotMatch(assembler, /normalizeDurationSec\(shot\.durationSec/);
 });

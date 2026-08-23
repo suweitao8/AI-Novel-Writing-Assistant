@@ -67,6 +67,12 @@ function installOrchestratorStubs() {
         jobs.push(job);
         return job;
       },
+      findFirst: async ({ where = {} } = {}) => jobs.find((job) =>
+        (!where.projectId || job.projectId === where.projectId)
+        && (!where.episodeId || job.episodeId === where.episodeId)
+        && (!where.type || job.type === where.type)
+        && (!where.status?.in || where.status.in.includes(job.status)),
+      ) ?? null,
       findUnique: async ({ where }) => jobs.find((job) => job.id === where.id) ?? null,
       update: async ({ where, data }) => {
         const job = jobs.find((item) => item.id === where.id);
@@ -75,6 +81,10 @@ function installOrchestratorStubs() {
       },
     },
   };
+  prisma.$transaction = async (callback) => callback({
+    dramaBatchJob: prisma.dramaBatchJob,
+    $executeRaw: async () => 0,
+  });
 
   mockModule("../dist/db/prisma.js", { prisma });
   mockModule("../dist/llm/modelCategories.js", {

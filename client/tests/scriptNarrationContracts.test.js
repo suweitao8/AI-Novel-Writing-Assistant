@@ -21,5 +21,5 @@ test("旁白行不显示或编辑语气控件", () => {
 test("章节载入时会把旧旁白语气规范化并静默保存", () => {
   assert.match(chapterWorkspaceSource, /normalizeNarratorMoodInScript/);
   assert.match(chapterWorkspaceSource, /const normalizedExpectation\s*=\s*normalizeNarratorMoodInScript\(expectation\)/);
-  assert.match(chapterWorkspaceSource, /saveExpectationMutation\.mutate\(\{[\s\S]*normalizedExpectation[\s\S]*silent:\s*true/);
+  assert.match(chapterWorkspaceSource, /dispatchQueuedExpectation\(\{[\s\S]*normalizedExpectation[\s\S]*\}\)/);
 });

@@ -8,7 +8,7 @@ import {
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
-import { stateImageUrl } from "../../../modules/novel/story-settings/application/StoryAssetStateImageStorage";
+import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { safeJsonParse } from "../utils/json";

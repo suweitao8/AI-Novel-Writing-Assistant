@@ -137,7 +137,12 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
       if (inTaskGraceWindow()) {
         return 3000;
       }
-      const hasTtsJob = (project.batchJobs ?? []).some((job) => job.type === "tts" && (job.status === "pending" || job.status === "running"));
+      const currentEpisodeId = (project.episodes ?? []).find((episode) => episode.order === activeOrder)?.id;
+      const hasTtsJob = (project.batchJobs ?? []).some((job) =>
+        job.episodeId === currentEpisodeId
+        && job.type === "tts"
+        && (job.status === "pending" || job.status === "running"),
+      );
       const hasKeyframeWork = (project.episodes ?? []).some((episode) =>
         (episode.storyboards ?? []).some((board) =>
           (board.shots ?? []).some((shot) => parseKeyframe(shot.keyframeData).status === "generating"),
@@ -158,8 +163,12 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   }, [activeEpisode?.id]);
 
   const ttsJob = useMemo(() => {
-    return (project?.batchJobs ?? []).find((job) => job.type === "tts" && (job.status === "pending" || job.status === "running")) ?? null;
-  }, [project]);
+    return (project?.batchJobs ?? []).find((job) =>
+      job.episodeId === activeEpisode?.id
+      && job.type === "tts"
+      && (job.status === "pending" || job.status === "running"),
+    ) ?? null;
+  }, [activeEpisode?.id, project?.batchJobs]);
   const jobRunning = Boolean(ttsJob);
 
   const keyframeBatchJob = useMemo(() => {

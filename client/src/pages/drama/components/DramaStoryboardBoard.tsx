@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ImageIcon, LayoutGrid, Loader2, Maximize2 } from "lucide-react";
 import type { DramaShot, DramaShotKeyframeData, DramaStoryboard } from "@/api/media/drama";
@@ -76,8 +76,22 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
   const shots = props.storyboard.shots ?? [];
   const [zoom, setZoom] = useState<BoardZoom>("comfortable");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const selectionStoryboardIdRef = useRef(props.storyboard.id);
   const [previewShot, setPreviewShot] = useState<DramaShot | null>(null);
   const [gridPreviewOpen, setGridPreviewOpen] = useState(false);
+
+  useEffect(() => {
+    if (selectionStoryboardIdRef.current !== props.storyboard.id) {
+      selectionStoryboardIdRef.current = props.storyboard.id;
+      setSelectedIds(new Set());
+      return;
+    }
+    const currentShotIds = new Set(shots.map((shot) => shot.id));
+    setSelectedIds((current) => {
+      const next = new Set([...current].filter((shotId) => currentShotIds.has(shotId)));
+      return next.size === current.size ? current : next;
+    });
+  }, [props.storyboard.id, shots]);
 
   const shotsWithState = useMemo(
     () => shots.map((shot) => ({ shot, keyframe: parseKeyframe(shot.keyframeData) })),

@@ -215,21 +215,21 @@ test("drama video provider registry honors a registered override and ignores an 
   }
 });
 
-test("drama tts provider registry exposes mock provider", async () => {
+test("drama tts provider registry exposes mock provider as a non-generating placeholder", async () => {
   const { ttsProviderRegistry } = require("../dist/services/drama/audio/TTSProviderPort.js");
   const provider = ttsProviderRegistry.resolve("mock");
   const providers = ttsProviderRegistry.listProviders();
   assert.equal(providers.some((item) => item.provider === "mock"), true);
   assert.equal(providers.find((item) => item.provider === "mock")?.costPerSecond, 0);
-  const result = await provider.synthesize({
-    text: "你也配进去？",
-    voiceId: "lin-voice",
-    speed: 1.05,
-    emotion: "tense",
-  });
-  assert.match(result.audioUrl, /^data:audio\/wav;base64,/);
-  assert.equal(result.durationSec, 2);
-  assert.equal(result.raw.voiceId, "lin-voice");
+  await assert.rejects(
+    provider.synthesize({
+      text: "你也配进去？",
+      voiceId: "lin-voice",
+      speed: 1.05,
+      emotion: "tense",
+    }),
+    /不生成真实语音/,
+  );
 });
 
 test("http drama video provider maps create and status responses", async () => {

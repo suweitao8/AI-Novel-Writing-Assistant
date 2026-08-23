@@ -9,7 +9,7 @@ import {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../db/prisma";
-import { stateImageUrl } from "../../../modules/novel/story-settings/application/StoryAssetStateImageStorage";
+import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { filterImageGenerationReferences, parseImageStateSummary, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";

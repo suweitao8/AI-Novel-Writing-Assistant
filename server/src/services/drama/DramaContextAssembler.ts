@@ -1,5 +1,5 @@
 import { prisma } from "../../db/prisma";
-import { scopeStateImageUrls } from "../../modules/novel/story-settings/application/StoryAssetStateImageStorage";
+import { scopeStateImageUrls } from "../../platform/assets/StoryAssetStateImageStorage";
 import { compactText, safeJsonParse } from "./utils/json";
 import {
   normalizeStoryCharacterStates,
