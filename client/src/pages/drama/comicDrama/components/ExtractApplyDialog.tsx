@@ -128,6 +128,7 @@ export default function ExtractApplyDialog(props: {
         name: item.name ?? "",
         summary: extractItem.description,
         environmentPrompt: extractItem.imagePrompt,
+        sceneType: extractItem.sceneType,
         timeOfDay: extractItem.timeOfDay,
         weather: extractItem.weather,
         ...eraStylePatch,

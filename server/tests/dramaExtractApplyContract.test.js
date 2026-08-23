@@ -45,3 +45,9 @@ test("世界观同名条目应用改为更新内容，不再抛「不能重复�
   assert.match(stage, /existingSettings\.map\(\(entry, index\) => \(index === matchIndex \? \{ title, content \} : entry\)\)/);
   assert.doesNotMatch(stage, /已有同名世界观条目，不能重复创建/);
 });
+
+test("场景建议应用带场景类型：弹窗把提取的 sceneType 透传给初始状态（v15）", () => {
+  assert.match(dialog, /sceneType: extractItem\.sceneType/);
+  // createInitialSceneState 只认三个枚举值（非法值归 null，输入校验守卫）。
+  assert.match(assetForms, /input\.sceneType === "interior" \|\| input\.sceneType === "exterior" \|\| input\.sceneType === "nature"/);
+});

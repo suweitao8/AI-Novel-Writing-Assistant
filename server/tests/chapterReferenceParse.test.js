@@ -60,16 +60,29 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v14 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v14");
+test("prompt 资产为 reference_parse@v15 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v15");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v14",
+    "novel.chapter.reference_parse@v15",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
     1,
   );
+});
+
+test("场景条目输出 sceneType 结构化字段（2026-08-23 用户要求：应用后场景类型不能是空的）", () => {
+  const messages = chapterReferenceParsePrompt.render({
+    novelTitle: "测试书",
+    chapterTitle: "第一章",
+    chapterOrder: 1,
+    referenceText: "测试文本",
+  });
+  const systemText = String(messages[0].content);
+  // 与 timeOfDay/weather 同一套规则：枚举值 + 原文推断 + 推不出 null。
+  assert.match(systemText, /sceneType\/timeOfDay\/weather 是结构化字段/);
+  assert.match(systemText, /类型按 interior（室内）\/exterior（室外，如 街道、楼顶、庭院）\/nature（自然风光，如 旷野、森林、海边）输出/);
 });
 
 test("道具提取按复用度过滤：通用日常物品不收（2026-08-23 用户要求）", () => {
@@ -162,19 +175,25 @@ test("角色结构化字段：性别枚举、年龄段可空、外貌体型合�
     makeParsePayload({ characters: [makeCharacter({ ageGroup: "22岁" })] }),
   ));
 
-  // v6 起场景条目带结构化时间/天气（枚举，缺省 null；非法值 strict 拒绝）
+  // v6 起场景条目带结构化时间/天气（枚举，缺省 null；非法值 strict 拒绝）；
+  // v15 起再带 sceneType（interior/exterior/nature，同规则）。
   const withScene = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
-    scenes: [{ name: "废弃地铁站", description: "停运的地下站台，灯管忽明忽暗。", imagePrompt: "昏暗的停运站台，湿滑轨道，闪烁灯管。", timeOfDay: "night", weather: "rainy" }],
+    scenes: [{ name: "废弃地铁站", description: "停运的地下站台，灯管忽明忽暗。", imagePrompt: "昏暗的停运站台，湿滑轨道，闪烁灯管。", sceneType: "interior", timeOfDay: "night", weather: "rainy" }],
   }));
+  assert.equal(withScene.scenes[0].sceneType, "interior");
   assert.equal(withScene.scenes[0].timeOfDay, "night");
   assert.equal(withScene.scenes[0].weather, "rainy");
   const sceneDefaults = chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
     scenes: [{ name: "客厅", description: "普通居民楼客厅。", imagePrompt: "白天，居民楼客厅。" }],
   }));
+  assert.equal(sceneDefaults.scenes[0].sceneType, null);
   assert.equal(sceneDefaults.scenes[0].timeOfDay, null);
   assert.equal(sceneDefaults.scenes[0].weather, null);
   assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
     scenes: [{ name: "海边", description: "清晨的海滩。", imagePrompt: "清晨海滩。", timeOfDay: "清晨" }],
+  })));
+  assert.throws(() => chapterReferenceParsePrompt.outputSchema.parse(makeParsePayload({
+    scenes: [{ name: "海边", description: "清晨的海滩。", imagePrompt: "清晨海滩。", sceneType: "海边" }],
   })));
 });
 
