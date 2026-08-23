@@ -658,4 +658,7 @@ export interface ReferenceExtractionPayload {
   scenes: ReferenceExtractItem[];
   props: ReferenceExtractItem[];
   worldview: Array<{ name: string; description: string }>;
+  /** 上一次「解析」的耗时（毫秒）。前端在解析成功落库时写入，随提取结果一起持久化在章节上；
+   * 读取经 normalizeExtraction 保留，用于展示「上次解析用时」。AI 不产出该字段。 */
+  parseDurationMs?: number;
 }

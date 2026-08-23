@@ -5,7 +5,7 @@ import { previewChapterReferenceParse, updateNovelChapter } from "@/api/novel/ch
 import { toast } from "@/components/ui/toast";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { splitReferenceChapters } from "@/pages/drama/comicDrama/hooks/referenceChapters";
-import { normalizeExtraction } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
+import { normalizeExtraction, parseReferenceExtraction } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 
 export { collectReferenceChapterTitles } from "@/pages/drama/comicDrama/hooks/referenceChapters";
 
@@ -111,15 +111,19 @@ export function useReferenceDraftStage(input: {
   // 落库放在 mutationFn 里而不是 onSuccess：解析要跑几十秒，期间离开页面组件
   // 卸载后回调不再执行，放回调里的保存会凭空丢（已踩：提取结果消失）。
   // 脚本整章覆盖是既定行为（2026-08-21 用户决定：重新解析即对现有结果不满意，结果一到即重写）。
+  // 耗时（2026-08-23 用户要求）：进行中按秒实时显示已等多久；完成后把本次用时写进
+  // 提取结果（parseDurationMs）随章节持久化，刷新/换章回来仍能看到「上次解析」用时。
   const parseMutation = useMutation({
     mutationFn: async () => {
       if (!chapter) {
         throw new Error("还没有章节。");
       }
+      const startedAt = Date.now();
       const parseResponse = await previewChapterReferenceParse(input.novelId, chapter.id, trimmedReference);
       const draftText = parseResponse.data?.draftText ?? "";
       const extraction = normalizeExtraction(parseResponse.data?.extraction ?? null);
-      const extractionJson = JSON.stringify(extraction);
+      const parseDurationMs = Math.max(1, Date.now() - startedAt);
+      const extractionJson = JSON.stringify({ ...extraction, parseDurationMs });
       const hasDraft = draftText.trim().length > 0;
       try {
         await updateNovelChapter(input.novelId, chapter.id, {
@@ -130,22 +134,23 @@ export function useReferenceDraftStage(input: {
         throw new Error(`解析完成，但保存结果失败：${error instanceof Error ? error.message : "请重试。"}`);
       }
       await workspace.refreshChapters();
-      return { draftText, extractionJson, extraction, hasDraft };
+      return { draftText, extractionJson, extraction: { ...extraction, parseDurationMs }, hasDraft, parseDurationMs };
     },
-    onSuccess: ({ draftText, extractionJson, extraction, hasDraft }) => {
+    onSuccess: ({ draftText, extractionJson, extraction, hasDraft, parseDurationMs }) => {
       workspace.syncReferenceExtraction(extractionJson);
       if (hasDraft) {
         // expectation 已随上面的合并 PUT 落库：只同步展示与已派发标记，不再触发第二次保存。
         workspace.syncExpectationText(draftText);
       }
       const extractSummary = `角色 ${extraction.characters.length}、场景 ${extraction.scenes.length}、道具 ${extraction.props.length}、世界观 ${extraction.worldview.length}`;
+      const durationLabel = formatDurationMs(parseDurationMs);
 
       if (!hasDraft) {
-        toast.error(`AI 没有生成脚本；提取完成：${extractSummary}。`);
+        toast.error(`AI 没有生成脚本（用时 ${durationLabel}）；提取完成：${extractSummary}。`);
         return;
       }
       const shotCount = draftText.split(/\r?\n/).filter((line) => /^[ \t]*分镜[：:]/.test(line)).length;
-      toast.success(`已重写本章脚本（${shotCount} 个分镜）；提取：${extractSummary}。`);
+      toast.success(`已重写本章脚本（${shotCount} 个分镜，用时 ${durationLabel}）；提取：${extractSummary}。`);
       input.onApplied();
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "解析失败，请重试。"),
@@ -157,17 +162,61 @@ export function useReferenceDraftStage(input: {
       ? "还没有参考内容。"
       : null;
 
+  // 解析进行中的实时已等秒数：mutation 挂起期间每秒跳一次，结束即停（组件常驻页级 hook，
+  // 切换子页签不重置；重新解析自动从 0 重新计）。
+  const [parseElapsedSeconds, setParseElapsedSeconds] = useState(0);
+  const parsePending = parseMutation.isPending;
+  useEffect(() => {
+    if (!parsePending) {
+      return;
+    }
+    const startedAt = Date.now();
+    setParseElapsedSeconds(0);
+    const timer = setInterval(() => {
+      setParseElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [parsePending]);
+
+  // 「上次解析」用时：从章节已保存的提取结果里读（parseDurationMs），刷新/换章后仍在。
+  const lastParseDurationLabel = useMemo(
+    () => formatDurationMs(parseReferenceExtraction(workspace.referenceExtractionJson).parseDurationMs),
+    [workspace.referenceExtractionJson],
+  );
+
   return {
     referenceText,
     setReferenceText,
     parseMutation,
     parseDisabledReason,
+    // 解析计时：进行中显示已等秒数，完成后显示上次解析用时
+    parseElapsedLabel: parsePending ? `解析中 ${formatSeconds(parseElapsedSeconds)}` : null,
+    lastParseDurationLabel,
     // 「引用」参考小说对应章节
     hasReferenceDoc,
     injectReferenceSource,
     injectDisabled,
     injectTitle,
   };
+}
+
+/** 秒数 → 「12 秒 / 1 分 23 秒」；毫秒先行取整，<1s 记 1 秒（解析不存在亚秒完成）。
+ * 与 assetForms 生成计时、AICockpit 耗时同一格式。 */
+export function formatSeconds(totalSeconds: number): string {
+  const seconds = Math.max(0, Math.round(totalSeconds));
+  if (seconds < 60) {
+    return `${seconds} 秒`;
+  }
+  const minutes = Math.floor(seconds / 60);
+  const restSeconds = seconds % 60;
+  return restSeconds > 0 ? `${minutes} 分 ${restSeconds} 秒` : `${minutes} 分`;
+}
+
+export function formatDurationMs(value: unknown): string | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    return null;
+  }
+  return formatSeconds(value / 1000);
 }
 
 export type ReferenceDraftStage = ReturnType<typeof useReferenceDraftStage>;
