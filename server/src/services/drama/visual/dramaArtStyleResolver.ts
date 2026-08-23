@@ -6,15 +6,17 @@
 //      双穿/时代推进的书同一资产在不同时代各有一套状态，用户给状态选定的风格
 //      是最高优先级，直接采用不再判定；状态未选时调用方兜底内置「现代都市」
 //      预设（DEFAULT_DRAMA_VISUAL_STYLE_ID，2026-08-22 用户要求：不按剧情自动判定）；
-//      悬空引用（风格已删）默认回落 1-4 链，但提供 pinnedMissFallbackStyle 的调用方
+//      悬空引用（风格已删）默认回落 1-3 链，但提供 pinnedMissFallbackStyle 的调用方
 //      （状态图）改为固定回落该兜底——设定处的时代风格完全不影响状态图（同日用户要求）
 //   1. 【本次生成带剧情上下文时】AI 按剧情文本判定——故事有时代推进，
-//      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 2-4 链
+//      开篇可能仍是崩溃前的现代、章末才进末世，全局风格不能一刀切；判定失败回落 2-3 链
 //      （当前只有分镜首帧 DramaShotKeyframeService 传剧情上下文；状态图已固定走第 0 层）
-//   2. 章节脚本【画风：名】标记——从最新章节往前找最近一次标记（新章节无标记=沿用上一次）
-//   3. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
-//   4. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
-//   5. 都没有 → 只用三类资产默认画风
+//   2. DramaProject.visualStyle（手动选择/创建时写入；内置预设 id 或自定义风格名）
+//   3. 小说默认时代风格（NovelSettingsWorld.defaultArtStyle；预设 id 或自定义风格名）
+//   都没有 → 只用三类资产默认画风
+// 章节脚本【画风：名】标记层已于 2026-08-23 移除（用户决定：时代风格由资产状态自带——
+// 角色/场景/道具的状态各自选风格，脚本不再定义章节画风；脚本页签的画风下拉与
+// 【画风】标记行编辑一并移除，存量【画风】行在脚本文档里按未知标记原样保留为文本）。
 // 时代画风库（2026-08-22 用户要求改为全局）：内置预设（dramaVisualStyles.ts）+ 全局自定义
 // （AppSetting drama.eraStyles，eraStyleLibrary.ts，画风管理页维护）。小说/漫剧项目只引用名字，
 // 不再各自定义。旧的书内自定义（NovelSettingsWorld.artStylesJson，管理入口已移除）保留只读
@@ -28,7 +30,6 @@ import {
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
   DRAMA_ASSET_STYLE_KINDS,
   DRAMA_VISUAL_STYLE_PRESETS,
-  extractLastEraStyleMarker,
   matchDramaEraStyle,
   type DramaAssetStyleKind,
   type DramaAssetVisualStyle,
@@ -132,24 +133,6 @@ function matchSpecificStyle(
   return matchDramaEraStyle(chosen, artStyles);
 }
 
-// 小说当前的脚本画风：从最新章节往前找最近一次【画风：名】标记。
-// 章节脚本标记是用户在「脚本」页签切换画风时写入的（标记对后续内容生效），
-// 所以「最新章节的最后一个标记」就是小说当前推进到的时代风格。
-async function loadNovelScriptEraStyleKey(novelId: string): Promise<string | null> {
-  const chapters = await prisma.chapter.findMany({
-    where: { novelId },
-    orderBy: { order: "desc" },
-    select: { expectation: true },
-  });
-  for (const chapter of chapters) {
-    const marker = extractLastEraStyleMarker(chapter.expectation);
-    if (marker) {
-      return marker;
-    }
-  }
-  return null;
-}
-
 export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInput): Promise<ResolvedDramaArtStyle> {
   const overrides = await getDramaAssetArtStyleOverrides();
   const assets = Object.fromEntries(
@@ -178,14 +161,6 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
       if (fallbackSpecific) {
         return { assets, specific: fallbackSpecific };
       }
-    }
-  }
-
-  const scriptKey = novelId ? await loadNovelScriptEraStyleKey(novelId) : null;
-  if (scriptKey) {
-    const specific = matchDramaEraStyle(scriptKey, novelArtStyles.artStyles);
-    if (specific) {
-      return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, scriptKey, novelArtStyles.artStyles) };
     }
   }
 
@@ -243,23 +218,16 @@ async function resolveSpecificWithScriptJudge(
   return chainSpecific;
 }
 
-// 当前生效时代风格的总览（供「脚本」页签显示与切换）：source 说明它来自哪里——
-// script=章节脚本标记（切换后生效）、novel-default=小说默认、builtin=内置默认。
+// 当前生效时代风格的总览（提取应用预填等用途）：source 说明它来自哪里——
+// novel-default=小说默认、builtin=内置默认（脚本标记层已于 2026-08-23 移除）。
 export interface DramaEraStyleOverview {
   key: string;
   label: string;
-  source: "script" | "novel-default" | "builtin";
+  source: "novel-default" | "builtin";
 }
 
 export async function resolveNovelEraStyleOverview(novelId: string): Promise<DramaEraStyleOverview> {
   const novelArtStyles = await loadEraStyleRecord(novelId);
-  const scriptKey = await loadNovelScriptEraStyleKey(novelId);
-  if (scriptKey) {
-    const matched = matchDramaEraStyle(scriptKey, novelArtStyles.artStyles);
-    if (matched) {
-      return { key: scriptKey, label: matched.label, source: "script" };
-    }
-  }
   if (novelArtStyles.defaultArtStyle) {
     const matched = matchDramaEraStyle(novelArtStyles.defaultArtStyle, novelArtStyles.artStyles);
     if (matched) {

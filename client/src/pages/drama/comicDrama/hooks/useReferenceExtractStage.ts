@@ -148,7 +148,7 @@ export function useReferenceExtractStage(input: {
     worldview: new Set(worldKeySettings.map((entry) => entry.title.trim())),
   }), [characters, scenes, props, worldKeySettings]);
 
-  // 本书当前生效的时代风格（脚本【画风】标记 > 小说默认 > 内置默认，与生图判定同一条链）：
+  // 本书当前生效的时代风格（小说默认 > 内置默认；脚本不再定义画风，时代风格由资产状态自带）：
   // 提取应用创建的新资产状态默认带它（2026-08-23 用户要求：末世书新建的血角兽不该落
   // 「现代都市」）——弹窗里可见可改，应用落库时再兜底一次。
   const eraStyleQuery = useQuery({

@@ -8,11 +8,13 @@ const stage = read("client/src/pages/drama/comicDrama/hooks/useReferenceExtractS
 const tab = read("client/src/pages/drama/comicDrama/components/ReferenceExtractTab.tsx");
 const dialog = read("client/src/pages/drama/comicDrama/components/ExtractApplyDialog.tsx");
 const assetForms = read("client/src/pages/novels/components/storySettings/assetForms.tsx");
+const scriptTab = read("client/src/pages/drama/comicDrama/components/ScriptTab.tsx");
+const resolver = read("server/src/services/drama/visual/dramaArtStyleResolver.ts");
 
 // 2026-08-23 用户实测两个问题（漫剧「提取」应用链路）：
 // ① 末世书从提取应用新建的角色（血角兽）时代风格落「现代都市」——创建路径没写 eraStyle，
 //    生成时兜底现代都市。修复：应用创建的新状态预填本书当前生效时代风格（getDramaEraStyle
-//    同一条链：脚本【画风】标记 > 小说默认 > 内置默认），弹窗可见可改、落库再兜底一次。
+//    同一条链：小说默认 > 内置默认；脚本【画风】标记层同日移除），弹窗可见可改、落库再兜底一次。
 // ② 世界观条目应用后不亮「已存在」——existingNames 只覆盖角色/场景/道具。修复：世界观按
 //    关键设定条目标题比对亮徽标；同名条目重复应用改为更新内容，不再报错拦人。
 // 契约全部在客户端源码上锁定（服务端对提取应用无对应结构化端点）。
@@ -50,4 +52,13 @@ test("场景建议应用带场景类型：弹窗把提取的 sceneType 透传给
   assert.match(dialog, /sceneType: extractItem\.sceneType/);
   // createInitialSceneState 只认三个枚举值（非法值归 null，输入校验守卫）。
   assert.match(assetForms, /input\.sceneType === "interior" \|\| input\.sceneType === "exterior" \|\| input\.sceneType === "nature"/);
+});
+
+test("脚本不再定义画风（2026-08-23 用户决定：时代风格由资产状态自带）", () => {
+  // 脚本页签：无画风下拉/切换函数/画风添加按钮/StyleRow。
+  assert.doesNotMatch(scriptTab, /switchEraStyle|StyleRow|eraStyleOptions|aria-label="切换本章画风"/);
+  assert.doesNotMatch(scriptTab, /kind: "style"/);
+  // 解析链：脚本【画风】标记层移除，只走 状态自选 > (剧情判定) > 项目 > 小说默认 > 内置。
+  assert.doesNotMatch(resolver, /loadNovelScriptEraStyleKey|extractLastEraStyleMarker/);
+  assert.doesNotMatch(resolver, /source: "script"/);
 });

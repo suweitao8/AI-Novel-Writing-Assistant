@@ -52,7 +52,7 @@ type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
-// 画风不在本项目内维护：资产画风与时代画风库在独立的「画风管理」页（/art-style），切时代风格在「脚本」页签顶部。
+// 画风不在本项目内维护：资产画风与时代画风库在独立的「画风管理」页（/art-style）；时代风格由各资产状态自带，脚本不再定义章节画风。
 type SettingsTab = "world" | "map" | "general";
 
 const STAGE_LABELS: Record<StudioStage, string> = {
@@ -359,7 +359,6 @@ export default function ComicDramaStudioPage() {
               novelId={novelId}
               workspace={chapterWorkspace}
               onOpenChapterManage={() => setChapterManageOpen(true)}
-              styleOptions={storyboard.styleOptions}
             />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (
@@ -445,7 +444,7 @@ function SubTabRow(props: { children: ReactNode }) {
   );
 }
 
-// 分镜管线共享状态：画风选项（全局画风库，供「脚本」页签切换）、创建分镜项目、章节自动同步。
+// 分镜管线共享状态：画风选项（全局画风库，供创建分镜项目选默认风格）、创建分镜项目、章节自动同步。
 // 顶栏按钮与内容区共用同一份 mutation，避免两处状态漂移。
 function useStoryboardStage(input: {
   novelId: string;

@@ -5,8 +5,6 @@ const {
   DEFAULT_DRAMA_ASSET_STYLES,
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
   DRAMA_VISUAL_STYLE_PRESETS,
-  DRAMA_ERA_STYLE_MARKER_PATTERN,
-  extractLastEraStyleMarker,
   matchDramaEraStyle,
   buildAssetStylePromptLines,
   buildShotStylePromptLines,
@@ -158,23 +156,8 @@ test("自定义具体风格只有中文提示词也能组合", () => {
   assert.ok(lines[0].includes(DEFAULT_DRAMA_ASSET_STYLES.prop.styleTag));
 });
 
-// 脚本画风标记（2026-08-21 用户决定：时代风格可在章节脚本里切换，切换后后面都用新的）
-test("脚本画风标记：取最后一条，容忍全角/半角冒号与首尾空格，旧【风格】行不匹配", () => {
-  assert.ok(DRAMA_ERA_STYLE_MARKER_PATTERN.test("【画风：末世废土】"));
-  assert.ok(DRAMA_ERA_STYLE_MARKER_PATTERN.test("  【画风: 现代都市 】 "));
-  assert.ok(!DRAMA_ERA_STYLE_MARKER_PATTERN.test("【风格：写实末日】"));
-  const script = [
-    "【场景：街道】",
-    "分镜：全景，雨夜街口",
-    "【画风：现代都市】",
-    "旁白：末世前夜。",
-    "【画风：末世废土】",
-    "分镜：中景，废墟生火",
-  ].join("\n");
-  assert.equal(extractLastEraStyleMarker(script), "末世废土");
-  assert.equal(extractLastEraStyleMarker("没有标记的脚本"), null);
-  assert.equal(extractLastEraStyleMarker(null), null);
-});
+// 脚本画风标记层已移除（2026-08-23 用户决定：时代风格由资产状态自带，脚本不定义画风），
+// extractLastEraStyleMarker/DRAMA_ERA_STYLE_MARKER_PATTERN 随之删除。
 
 test("时代风格匹配：预设 id、预设 label、自定义风格名都能命中；悬空引用回落 null", () => {
   const customs = [{ label: "末世爆发后", styleInstructions: "城市废墟，植物疯长" }];
