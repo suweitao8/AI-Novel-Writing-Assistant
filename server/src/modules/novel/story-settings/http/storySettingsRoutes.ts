@@ -68,8 +68,10 @@ const assetStateSchema = z.object({
 }).strict();
 
 // 角色图片提示词可省略；服务端会根据状态变化、年龄和性别归一化生成。
+// 身上状态标签（血迹/污渍/尘土…）为角色状态专用：勾选即在该状态的状态图里如实呈现。
 const characterAssetStateSchema = assetStateSchema.extend({
   imagePrompt: z.string().trim().max(600).optional(),
+  wearTags: z.array(z.enum(["blood", "stain", "dust", "mud", "worn", "torn", "wound", "soot"])).max(8).optional(),
 });
 
 const characterUpdateSchema = z.object({

@@ -27,7 +27,9 @@ import { cn } from "@/lib/utils";
 import SelectControl from "@/components/common/SelectControl";
 import {
   createStoryCharacterInitialState,
+  STORY_ASSET_WEAR_TAG_OPTIONS,
   type StoryAssetState,
+  type StoryAssetWearTag,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
@@ -690,6 +692,35 @@ export function AssetStatesEditor(props: {
                   ))}
                 </SelectControl>
               </label>
+              {showVoice ? (
+                <div className="space-y-1.5 md:col-span-2">
+                  <span className="text-xs font-medium">身上状态</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {STORY_ASSET_WEAR_TAG_OPTIONS.map((tag) => {
+                      const active = (selectedState.wearTags ?? []).includes(tag.id);
+                      return (
+                        <Button
+                          key={tag.id}
+                          type="button"
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          className={cn("h-7 rounded-full px-3 text-xs", active && "font-medium")}
+                          aria-pressed={active}
+                          disabled={anyPending}
+                          onClick={() => {
+                            const next = active
+                              ? (selectedState.wearTags ?? []).filter((item) => item !== tag.id)
+                              : [...(selectedState.wearTags ?? []), tag.id as StoryAssetWearTag];
+                            updateState(selectedState.id, { wearTags: next.length > 0 ? next : undefined });
+                          }}
+                        >
+                          {tag.label}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
               {showScene ? (
                 <div className="grid grid-cols-3 gap-2 md:col-span-2">
                   <label className="block min-w-0 space-y-1">

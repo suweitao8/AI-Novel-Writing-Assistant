@@ -202,3 +202,40 @@ test("composes four view files into a 1280x720 png without changing the panel co
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test("身上状态标签如实进提示词，不勾不出现（2026-08-23 污渍/血迹跟状态走）", () => {
+  const withWear = buildCharacterStateSheetPrompt({
+    assetName: "叶晨",
+    gender: "male",
+    ageGroup: "youth",
+    appearance: "精瘦，深色短发",
+    stateLabel: "战后",
+    stateDescription: "刚经历恶战",
+    stateImagePrompt: "青年男性",
+    wearTags: ["blood", "dust", "not_a_tag"],
+  });
+  // 勾选的标签按短语画在角色身上（body condition 行在 CHARACTER DATA 里，优先级高于通用假设）；
+  // 未知标签是脏输入，直接丢弃而不是报错。
+  assert.match(withWear, /body condition \(render exactly as described\): 衣物与皮肤上有明显的血迹、血污；衣物、头发与皮肤上蒙着明显的尘土/);
+  assert.doesNotMatch(withWear, /not_a_tag/);
+
+  const clean = buildCharacterStateSheetPrompt({
+    assetName: "叶晨",
+    stateLabel: "初始形象",
+    stateDescription: "日常便装",
+    stateImagePrompt: "青年男性",
+    wearTags: [],
+  });
+  // 没勾任何标签＝干净整洁，不出现 body condition 行（干净默认由模板规则行保证）。
+  assert.doesNotMatch(clean, /body condition/);
+
+  // 旧四视图单格路径同口径（身上状态中文行）。
+  const viewPrompts = buildCharacterStateViewPrompts({
+    assetName: "叶晨",
+    stateLabel: "战后",
+    stateDescription: "刚经历恶战",
+    stateImagePrompt: "青年男性",
+    wearTags: ["blood"],
+  });
+  assert.match(viewPrompts[0].prompt, /身上状态（如实呈现）：衣物与皮肤上有明显的血迹、血污/);
+});

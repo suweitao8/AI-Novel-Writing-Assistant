@@ -45,10 +45,32 @@ export type StoryAssetSceneType = "interior" | "exterior" | "nature";
 export type StoryAssetTimeOfDay = "morning" | "noon" | "night";
 export type StoryAssetWeather = "sunny" | "cloudy" | "rainy";
 
+/**
+ * 角色状态的通用「身上状态」标签（2026-08-23 用户要求）：污渍/血迹/尘土这类画面细节
+ * 从时代风格里拆出来，跟外观状态走——勾选即在该状态的状态图里如实呈现，不勾默认
+ * 干净整洁（任何时代风格都不自动弄脏角色，详见角色四视图模板规则）。
+ */
+export type StoryAssetWearTag = "blood" | "stain" | "dust" | "mud" | "worn" | "torn" | "wound" | "soot";
+
+/** 身上状态标签的编辑器选项（label 即用户可见文案；画面短语由服务端生图模板维护）。 */
+export const STORY_ASSET_WEAR_TAG_OPTIONS: ReadonlyArray<{ id: StoryAssetWearTag; label: string }> = [
+  { id: "blood", label: "血迹" },
+  { id: "stain", label: "污渍" },
+  { id: "dust", label: "尘土" },
+  { id: "mud", label: "泥泞" },
+  { id: "worn", label: "磨损" },
+  { id: "torn", label: "破损" },
+  { id: "wound", label: "伤痕" },
+  { id: "soot", label: "烟熏" },
+];
+
 const STORY_ASSET_AGE_GROUPS = new Set<StoryAssetAgeGroup>(["child", "youth", "middle", "elder"]);
 const STORY_ASSET_SCENE_TYPES = new Set<StoryAssetSceneType>(["interior", "exterior", "nature"]);
 const STORY_ASSET_TIMES_OF_DAY = new Set<StoryAssetTimeOfDay>(["morning", "noon", "night"]);
 const STORY_ASSET_WEATHERS = new Set<StoryAssetWeather>(["sunny", "cloudy", "rainy"]);
+const STORY_ASSET_WEAR_TAGS = new Set<StoryAssetWearTag>([
+  "blood", "stain", "dust", "mud", "worn", "torn", "wound", "soot",
+]);
 const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
   child: "少年/儿童",
   youth: "青年",
@@ -93,6 +115,11 @@ export interface StoryAssetState {
    * 优先用它定时代氛围；空＝按该状态所处剧情自动判定。
    */
   eraStyle?: string | null;
+  /**
+   * 角色状态的「身上状态」标签（血迹/污渍/尘土…，仅角色状态使用；场景/道具不使用）：
+   * 勾选的标签在状态图里如实呈现；缺省或空数组＝干净整洁。
+   */
+  wearTags?: StoryAssetWearTag[];
   /** 来自第几章（初始状态可空） */
   chapterOrder?: number;
   /**
@@ -294,6 +321,11 @@ function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput 
     return false;
   }
   if (!isNullableString(state.eraStyle)) {
+    return false;
+  }
+  if (state.wearTags !== undefined
+    && (!Array.isArray(state.wearTags)
+      || state.wearTags.some((tag) => typeof tag !== "string" || !STORY_ASSET_WEAR_TAGS.has(tag as StoryAssetWearTag)))) {
     return false;
   }
   if (state.chapterOrder !== undefined && state.chapterOrder !== null

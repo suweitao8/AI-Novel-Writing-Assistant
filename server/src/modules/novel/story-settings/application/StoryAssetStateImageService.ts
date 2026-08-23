@@ -582,6 +582,7 @@ export class StoryAssetStateImageService {
         stateImagePrompt: state.imagePrompt,
         styleLines,
         hasReference: Boolean(referenceUrl),
+        wearTags: state.wearTags,
       });
       const referenceImages = referenceUrl && referencedLabel
         ? [{ kind: "asset", label: `${referencedLabel} · 状态参考图`, url: referenceUrl } as GeneratedReferenceImageMeta]
