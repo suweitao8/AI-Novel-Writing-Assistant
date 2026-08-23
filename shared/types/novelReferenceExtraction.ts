@@ -618,6 +618,8 @@ export interface ReferenceExtractItem {
   description: string;
   /** 图片提示词（角色/场景/道具统一命名；场景=环境画面，道具=实物画面） */
   imagePrompt?: string;
+  /** 场景类型（interior=室内/exterior=室外/nature=自然；v15 起场景条目结构化输出，原文推不出为 null；道具无此字段） */
+  sceneType?: "interior" | "exterior" | "nature" | null;
   /** 场景时间（morning/noon/night；v6 起场景条目结构化输出，原文看不出为 null；道具无此字段） */
   timeOfDay?: "morning" | "noon" | "night" | null;
   /** 场景天气（sunny/cloudy/rainy；仅场景条目） */
