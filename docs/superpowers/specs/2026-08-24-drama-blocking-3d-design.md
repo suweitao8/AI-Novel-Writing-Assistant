@@ -67,4 +67,3 @@ layout3d?: {
 - 前端：client typecheck/build；PlayCanvas viewer 的初始化、代理模型加载、快照恢复和销毁通过 focused tests 覆盖。
 - 后端：blocking sketch route/service/keyframe tests 证明 3D 字段可保存、确认和继续作为 PNG 参考图。
 - 运行态：在当前本地工作台进入独立 3D 页面，实际加入角色、切换坐姿/躺姿/趴姿、移动相机、保存并确认，再返回分镜页检查状态。
-

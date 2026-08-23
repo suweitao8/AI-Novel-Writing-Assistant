@@ -36,4 +36,3 @@
 - 运行 client focused tests/typecheck/build，server focused tests/typecheck；必要时运行全量相关测试。
 - 在当前本地浏览器实际进入独立页面，加载第一镜角色，切换坐着/躺着/趴着，移动角色与相机，保存、确认、返回并检查分镜状态。
 - 提交独立分支，合并到 main，推送 `origin main`，确认最终工作树和远端 ref。
-
