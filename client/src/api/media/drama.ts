@@ -374,11 +374,12 @@ export async function saveDramaEraStyles(styles: DramaEraStyleCustom[]) {
   return data;
 }
 
-/** 小说当前生效的时代风格：script=章节脚本标记，novel-default=小说默认，builtin=内置默认。 */
+/** 小说当前生效的时代风格：novel-default=小说默认，builtin=内置默认（脚本标记层已移除，
+ *  时代风格由资产状态自带）。 */
 export interface DramaEraStyleInfo {
   key: string;
   label: string;
-  source: "script" | "novel-default" | "builtin";
+  source: "novel-default" | "builtin";
 }
 
 export async function getDramaEraStyle(novelId: string) {

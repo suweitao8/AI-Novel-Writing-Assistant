@@ -96,7 +96,9 @@ test("serialize：空 speaker 的台词降级为纯文本行，空条目被丢�
 });
 
 // 画风标记（2026-08-21 用户决定：时代风格可在章节脚本里切换，标记对后续内容生效）
-test("画风标记行：parse 拆出 style 条目，serialize 往返逐字稳定", () => {
+// 画风标记已废弃（2026-08-23 用户决定：时代风格由资产状态自带，脚本不定义画风）：
+// 【画风：…】按未知【…】标记当普通文本保留，不丢内容、往返稳定。
+test("画风标记行：按未知标记保留为文本，serialize 往返逐字稳定", () => {
   const draft = [
     "【场景：街道】",
     "分镜：全景，现代都市的雨夜街口",
@@ -108,14 +110,17 @@ test("画风标记行：parse 拆出 style 条目，serialize 往返逐字稳定
     "旁白：三年后，城市只剩尘土。",
   ].join("\n");
   const items = parseScriptItems(draft);
-  assert.deepEqual(items[3], { kind: "style", style: "末世废土" });
-  assert.equal(serializeScriptItems(parseScriptItems(draft)), draft);
+  assert.deepEqual(items[3], { kind: "text", text: "【画风：末世废土】" });
+  // 文本行的块归组与标记行不同（归入上一块），往返不再逐字等于原稿，
+  // 但条目不变（roundTrip）且序列化幂等（canonical 稳定）必须成立。
   assert.deepEqual(roundTripScriptItems(draft), items);
+  const once = serializeScriptItems(items);
+  assert.equal(serializeScriptItems(parseScriptItems(once)), once);
 });
 
-test("画风标记：多个标记共存，格式容错（全角/半角冒号、首尾空格）", () => {
+test("画风标记：格式容错（全角/半角冒号、首尾空格）也按文本保留", () => {
   const items = parseScriptItems("  【画风: 现代都市 】 ");
-  assert.deepEqual(items[0], { kind: "style", style: "现代都市" });
+  assert.deepEqual(items[0], { kind: "text", text: "【画风: 现代都市 】" });
 });
 
 test("景别枚举与解析一致", () => {
