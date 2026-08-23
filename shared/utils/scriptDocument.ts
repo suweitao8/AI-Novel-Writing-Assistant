@@ -28,6 +28,24 @@ const STATE_PATTERN = /^[ \t]*【角色状态[：:]\s*([^：:】]+?)[：:]([^：
 const SHOT_PATTERN = /^[ \t]*分镜[：:]\s*(大远景|远景|全景|中景|近景|特写)[，,]\s*(.+)$/;
 const SPEAKER_PATTERN = /^[ \t]*([^\s：:（(]{1,20})(?:[（(]([^）)]{0,20})[)）])?[：:]\s*(.+)$/;
 
+/**
+ * 只清理旧脚本里的旁白括注，保留其他行、空行、角色语气和原有换行。
+ * 这是章节载入时的一次性兼容修复，不做整篇脚本重排。
+ */
+export function normalizeNarratorMoodInScript(text: string): string {
+  const newline = text.includes("\r\n") ? "\r\n" : "\n";
+  return text.split(/\r\n|\n/).map((rawLine) => {
+    const line = rawLine.trim();
+    const speaker = SPEAKER_PATTERN.exec(line);
+    if (!speaker || speaker[1].trim() !== "旁白" || !(speaker[2] ?? "").trim()) {
+      return rawLine;
+    }
+    const leading = rawLine.slice(0, rawLine.length - rawLine.trimStart().length);
+    const trailing = rawLine.slice(rawLine.trimEnd().length);
+    return `${leading}旁白：${speaker[3].trim()}${trailing}`;
+  }).join(newline);
+}
+
 export function parseScriptItems(text: string): ScriptItem[] {
   const items: ScriptItem[] = [];
   for (const rawLine of text.split(/\r?\n/)) {
@@ -62,10 +80,12 @@ export function parseScriptItems(text: string): ScriptItem[] {
     }
     const speaker = SPEAKER_PATTERN.exec(line);
     if (speaker) {
+      const speakerName = speaker[1].trim();
       items.push({
         kind: "line",
-        speaker: speaker[1],
-        mood: (speaker[2] ?? "").trim(),
+        speaker: speakerName,
+        // 旁白没有角色语气；兼容旧脚本里的括注，但不把它带进结构化数据。
+        mood: speakerName === "旁白" ? "" : (speaker[2] ?? "").trim(),
         text: speaker[3].trim(),
       });
       continue;
@@ -98,7 +118,8 @@ export function serializeScriptItems(items: ScriptItem[]): string {
       isMarkerOrShot = true;
     } else if (item.kind === "line") {
       const speaker = item.speaker.trim();
-      const mood = item.mood.trim();
+      // 旁白没有语气字段：即使旧数据残留括注，保存时也要清掉，避免再次回到界面。
+      const mood = speaker === "旁白" ? "" : item.mood.trim();
       const text = item.text.trim();
       if (!text) {
         // 没有内容的台词行（只剩说话人）没有意义，直接丢弃。

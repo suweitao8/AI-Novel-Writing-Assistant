@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Chapter } from "@ai-novel/shared/types/novel";
+import { normalizeNarratorMoodInScript } from "@ai-novel/shared/utils/scriptDocument";
 import { getNovelChapters, updateNovelChapter } from "@/api/novel/chapters";
 import { toast } from "@/components/ui/toast";
 
@@ -249,10 +250,17 @@ export function useNovelChapterWorkspace(novelId: string) {
     }
     loadedChapterRef.current = currentChapter.id;
     const expectation = currentChapter.expectation ?? "";
-    setExpectationText(expectation.trim() ? expectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
+    const normalizedExpectation = normalizeNarratorMoodInScript(expectation);
+    const loadedExpectation = normalizedExpectation.trim() ? normalizedExpectation : expectation;
+    setExpectationText(loadedExpectation.trim() ? loadedExpectation : "\n".repeat(DEFAULT_LINE_COUNT - 1));
     setReferenceTextState(currentChapter.referenceText ?? "");
     lastDispatchedExpectationRef.current = null;
     lastDispatchedReferenceRef.current = null;
+    if (normalizedExpectation !== expectation && normalizedExpectation.trim()) {
+      // 旧旁白括注在载入时就落回干净脚本，用户不需要先编辑或切换页面才触发保存。
+      lastDispatchedExpectationRef.current = { chapterId: currentChapter.id, text: normalizedExpectation };
+      saveExpectationMutation.mutate({ chapterId: currentChapter.id, text: normalizedExpectation, silent: true });
+    }
   }, [currentChapter]);
 
   return {

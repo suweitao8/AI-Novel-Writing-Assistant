@@ -862,7 +862,13 @@ function LineRow(props: RowBaseProps & {
         placeholder="旁白"
         className="w-auto"
         inputClassName="h-8 w-24"
-        onCommit={(next) => props.onUpdate(props.index, { speaker: next.trim() })}
+        onCommit={(next) => {
+          const speaker = next.trim();
+          props.onUpdate(props.index, {
+            speaker,
+            ...(speaker === "旁白" ? { mood: "" } : {}),
+          });
+        }}
         onCancel={() => props.onEdit(null)}
         onActivate={() => props.onEdit({ index: props.index, field: "speaker" })}
       >
@@ -878,18 +884,20 @@ function LineRow(props: RowBaseProps & {
           {props.item.speaker || "旁白"}
         </Badge>
       </EditableValue>
-      <EditableValue
-        active={moodActive}
-        value={props.item.mood}
-        placeholder="语气"
-        className="w-auto text-xs text-muted-foreground"
-        inputClassName="h-8 w-24"
-        onCommit={(next) => props.onUpdate(props.index, { mood: next.trim() })}
-        onCancel={() => props.onEdit(null)}
-        onActivate={() => props.onEdit({ index: props.index, field: "mood" })}
-      >
-        {props.item.mood ? <span>（{props.item.mood}）</span> : <span className="text-muted-foreground/50">（语气）</span>}
-      </EditableValue>
+      {!isNarrator ? (
+        <EditableValue
+          active={moodActive}
+          value={props.item.mood}
+          placeholder="语气"
+          className="w-auto text-xs text-muted-foreground"
+          inputClassName="h-8 w-24"
+          onCommit={(next) => props.onUpdate(props.index, { mood: next.trim() })}
+          onCancel={() => props.onEdit(null)}
+          onActivate={() => props.onEdit({ index: props.index, field: "mood" })}
+        >
+          {props.item.mood ? <span>（{props.item.mood}）</span> : <span className="text-muted-foreground/50">（语气）</span>}
+        </EditableValue>
+      ) : null}
       <EditableValue
         active={textActive}
         value={props.item.text}

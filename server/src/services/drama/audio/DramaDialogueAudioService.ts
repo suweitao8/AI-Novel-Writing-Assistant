@@ -8,7 +8,7 @@ import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { ttsProviderRegistry } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
-/** 台词行类型：有说话人=对白，无说话人=旁白（搬自 mydrama 的 narration/dialogue 语义） */
+/** 台词行类型：旁白标记或无说话人=旁白，其余有说话人=对白（搬自 mydrama 的 narration/dialogue 语义） */
 export type DialogueLineType = "dialogue" | "narration";
 
 export interface DialogueAudioItem {
@@ -77,18 +77,29 @@ export function parseDialogueLines(raw: string | null | undefined): DialogueLine
       if (!match) {
         return { lineIndex: index, type: "narration" as DialogueLineType, text: line };
       }
-      let speaker = (match[1] ?? "").trim();
+      const rawSpeaker = (match[1] ?? "").trim();
+      let speaker = rawSpeaker;
       let emotion: string | undefined;
       const emotionMatch = SPEAKER_EMOTION_PATTERN.exec(speaker);
       if (emotionMatch) {
         speaker = (emotionMatch[1] ?? "").trim();
         emotion = (emotionMatch[2] ?? "").trim() || undefined;
       }
+      const text = match[2]?.trim() || line;
+      if (speaker === "旁白") {
+        // 兼容旧格式「旁白（语气）：内容」，旁白不携带行内语气，也不作为对白展示。
+        return {
+          lineIndex: index,
+          type: "narration" as DialogueLineType,
+          speaker: "旁白",
+          text,
+        };
+      }
       return {
         lineIndex: index,
         type: "dialogue" as DialogueLineType,
-        speaker: speaker || match[1]?.trim(),
-        text: match[2]?.trim() || line,
+        speaker: speaker || rawSpeaker,
+        text,
         emotion,
       };
     })

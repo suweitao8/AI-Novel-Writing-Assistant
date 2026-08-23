@@ -6,7 +6,7 @@
 
 ## mydrama 原始设计（搬移依据）
 
-- **旁白/对白二分**：每条台词行有说话人是「对白」（角色音色），没有说话人是「旁白」（项目旁白音色）。mydrama 用 beat.audio_type 表达，本项目用台词行是否匹配 `说话人：` 前缀表达。
+- **旁白/对白二分**：带 `旁白` 标记或没有说话人前缀的是「旁白」（项目旁白音色），其余有角色名的是「对白」（角色音色）。mydrama 用 beat.audio_type 表达，本项目由 `parseDialogueLines` 统一归类；历史格式 `旁白（语气）：内容` 也必须归为旁白并丢弃行内语气。
 - **一行一分段**：显示层按「行」组织（mydrama 的 AudioSegment），每行三态：可播放 / 已过期 / 未生成。过期判定来自生成时快照与当前状态的对比（mydrama 用 voice sha + text sha，本项目用 textHash + voiceKey）。
 - **音色描述生成（design 模式）**：不克隆音频，用一句文字描述（年龄/性别/语气/节奏）作为情绪控制提示，让 VoxCPM2 用固定样句合成一段参考音。角色与旁白共用同一套「描述→试听」流程。
 - **批量只补缺失**：Generate missing / Redo all 两种批量模式；重配时未变化的行复用已有音频，不做全量重合成。
@@ -15,7 +15,7 @@
 
 ### 数据契约
 
-- `DramaShot.dialogue`（JSON 前的原始文本）：每行 `说话人：台词` 或无前缀旁白行，由 `DramaDialogueAudioService.parseDialogueLines` 解析。
+- `DramaShot.dialogue`（JSON 前的原始文本）：每行 `角色名（语气）：台词`、`旁白：内容` 或无前缀旁白行，由 `DramaDialogueAudioService.parseDialogueLines` 解析；只有角色对白产生 `emotion`，旁白不显示也不透传行内语气。
 - `DramaShot.dialogueAudioData`（JSON）：
   - `items[].type`：`dialogue | narration`；
   - `items[].textHash`：生成时该行文本的 sha256 前 16 位；
