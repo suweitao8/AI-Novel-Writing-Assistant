@@ -3,8 +3,8 @@ import { ImageOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StoryAssetPreviewSource } from "./storyAssetPresentation";
 
-// 1536x1024 角色四视图板：取最左 1/4（384px）内的 y=224..608，输出 384x384 方形头像。
-const CHARACTER_PREVIEW_CROP_TOP = "-58.3333%";
+// 1536x864 角色四视图板：取最左 1/4（384px）内居中的 y=240..624，输出 384x384 方形头像。
+const CHARACTER_PREVIEW_CROP_TOP = "-62.5%";
 
 export interface StoryAssetPreviewProps {
   preview: StoryAssetPreviewSource | null;

@@ -139,7 +139,7 @@ function buildPropViewPrompt(prop: { name: string; visualPrompt: string | null }
 
 export class StoryAssetImageService {
   /** 生成场景 360° 全景参考图（同步等待完成，状态随 NovelScene.imageData 持久化）。 */
-  async generateSceneImage(novelId: string, sceneId: string, provider?: string): Promise<StoryAssetImageState | null> {
+  async generateSceneImage(novelId: string, sceneId: string, _provider?: string): Promise<StoryAssetImageState | null> {
     const scene = await prisma.novelScene.findFirst({ where: { id: sceneId, novelId } });
     if (!scene) {
       throw new AppError("没有找到这个场景。", 404);
@@ -157,7 +157,8 @@ export class StoryAssetImageService {
       cleanupOtherExts: (keepExt) => removeOldFiles(assetDir("scene", sceneId), "scene-panorama", keepExt),
     };
     await runImageGeneration(adapter, {
-      provider: provider ?? resolveAssetImageProvider({ kind: "scene", hasReference: false }),
+      // 场景全景固定走支持 2:1 的兼容通道，不能被页面 provider 覆盖回 16:9 通道。
+      provider: resolveAssetImageProvider({ kind: "scene", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.scenePanorama,
       negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.scene, styleContext.specific),

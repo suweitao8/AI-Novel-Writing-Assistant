@@ -258,7 +258,8 @@ export class DramaCharacterImageService {
     return runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      // 角色设计稿属于固定 16:9 资产，确认弹窗不能把它改回其他画幅。
+      size: IMAGE_SPECS.characterSheet,
       sceneType: "character",
       ...TRANSPARENT_IMAGE_OPTIONS,
       referenceImages: ctx.referenceImages.length > 0 ? ctx.referenceImages : undefined,

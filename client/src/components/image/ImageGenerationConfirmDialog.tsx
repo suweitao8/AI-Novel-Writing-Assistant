@@ -3,7 +3,7 @@
  *
  * 用于所有生图入口（角色四视图/表情稿/资产/场景 360° 全景/格子图/Drama 角色/Drama 关键帧）
  * 在真正消耗 token 前展示：即将发送的 prompt + 参考图素材 + 模型/尺寸；
- * 用户可临时修改 prompt / provider / size，确认后才发起生图。
+ * 通用入口可临时修改 prompt / provider / size；Drama 角色与分镜固定为 16:9，场景全景固定为 2:1/Codex。
  */
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -20,7 +20,9 @@ import SelectControl from "@/components/common/SelectControl";
 const SIZE_OPTIONS = [
   { value: "1024x1024", label: "1024×1024（方形 1:1）" },
   { value: "1024x1536", label: "1024×1536（竖版 2:3，漫画/角色）" },
-  { value: "1536x1024", label: "1536×1024（横版 3:2，四视图/表情稿/场景全景）" },
+  { value: "1536x864", label: "1536×864（横版 16:9，角色/道具/分镜）" },
+  { value: "2048x1024", label: "2048×1024（全景 2:1，场景）" },
+  { value: "1536x1024", label: "1536×1024（横版 3:2，漫画项目自定义画幅）" },
 ];
 
 const REF_KIND_LABEL: Record<string, string> = {
@@ -70,6 +72,15 @@ export function ImageGenerationConfirmDialog({
   const [promptAssistLoading, setPromptAssistLoading] = useState<PromptAssistAction | null>(null);
   const [promptAssistResult, setPromptAssistResult] = useState<ImagePromptAssistResult | null>(null);
   const [promptAssistError, setPromptAssistError] = useState("");
+  const fixedImageSize = preview?.kind.startsWith("comic.scene:")
+    ? "2048x1024"
+    : preview?.kind.startsWith("drama.")
+      || preview?.kind.startsWith("comic.character.sheet:")
+      || preview?.kind.startsWith("comic.character.expression:")
+      || preview?.kind.startsWith("comic.character-asset:")
+      ? "1536x864"
+      : null;
+  const fixedImageProvider = preview?.kind.startsWith("comic.scene:") ? "codex" : null;
 
   // 弹窗重新打开或 preview 变更时，重置编辑态为预览默认值
   useEffect(() => {
@@ -78,14 +89,14 @@ export function ImageGenerationConfirmDialog({
       setNegativePrompt(preview.negativePrompt ?? "");
       setOptimizationInstruction("");
       setIncludedReferenceImageUrls(preview.referenceImages.map((ref) => ref.url));
-      setProvider(preview.provider);
-      setSize(preview.size);
+      setProvider(fixedImageProvider ?? preview.provider);
+      setSize(fixedImageSize ?? preview.size);
       setPromptAssistAction(null);
       setPromptAssistLoading(null);
       setPromptAssistResult(null);
       setPromptAssistError("");
     }
-  }, [preview]);
+  }, [fixedImageProvider, fixedImageSize, preview]);
 
   // 可用 provider 列表（图像生成 + 已配置）
   const { data: providerOptions = [] } = useQuery({
@@ -99,6 +110,10 @@ export function ImageGenerationConfirmDialog({
 
   // 当前 provider 不在可用列表里时，临时追加为选项（不丢失数据）
   const providerChoices = useMemo(() => {
+    if (fixedImageProvider) {
+      const fixedOption = providerOptions.find((p) => p.value === fixedImageProvider);
+      return fixedOption ? [fixedOption] : [{ value: fixedImageProvider, label: fixedImageProvider }];
+    }
     if (!provider) return providerOptions;
     if (providerOptions.some((p) => p.value === provider)) return providerOptions;
     return [...providerOptions, { value: provider, label: provider }];
@@ -106,14 +121,16 @@ export function ImageGenerationConfirmDialog({
 
   // size 也保证当前值在列表里
   const sizeChoices = useMemo(() => {
-    if (!size) return SIZE_OPTIONS;
-    if (SIZE_OPTIONS.some((s) => s.value === size)) return SIZE_OPTIONS;
-    return [...SIZE_OPTIONS, { value: size, label: size }];
-  }, [size]);
+    if (fixedImageSize) return SIZE_OPTIONS.filter((option) => option.value === fixedImageSize);
+    const baseOptions = SIZE_OPTIONS;
+    if (!size) return baseOptions;
+    if (baseOptions.some((s) => s.value === size)) return baseOptions;
+    return [...baseOptions, { value: size, label: size }];
+  }, [fixedImageSize, size]);
 
   const promptDirty = preview ? prompt.trim() !== preview.prompt.trim() : false;
   const negativePromptDirty = preview ? negativePrompt.trim() !== (preview.negativePrompt ?? "").trim() : false;
-  const providerDirty = preview ? provider !== preview.provider : false;
+  const providerDirty = preview && !fixedImageProvider ? provider !== preview.provider : false;
   const sizeDirty = preview ? size !== preview.size : false;
   const referenceImages = useMemo(
     () => preview?.referenceImages.filter((ref) => includedReferenceImageUrls.includes(ref.url)) ?? [],
@@ -474,7 +491,7 @@ export function ImageGenerationConfirmDialog({
                     setProvider(e.target.value);
                     clearPromptAssistResult();
                   }}
-                  disabled={submitting || !!promptAssistLoading}
+                  disabled={submitting || !!promptAssistLoading || !!fixedImageProvider}
                 >
                   {providerChoices.length === 0 ? (
                     <option value="">无可用图片服务，请先在系统设置配置</option>

@@ -6,10 +6,19 @@ const assert = require("node:assert/strict");
 
 const { IMAGE_SPECS } = require("../dist/services/image/imageSpecs.js");
 
-test("设计参考类生图固定横版；场景全景是 2:1 等距柱状（2026-08-23 用户要求）", () => {
-  assert.equal(IMAGE_SPECS.characterSheet, "1536x1024");
+test("角色、道具和分镜统一严格 16:9；场景全景保留 2:1 等距柱状", () => {
+  assert.equal(IMAGE_SPECS.characterSheet, "1536x864");
   assert.equal(IMAGE_SPECS.scenePanorama, "2048x1024");
-  assert.equal(IMAGE_SPECS.characterAsset, "1536x1024");
+  assert.equal(IMAGE_SPECS.characterAsset, "1536x864");
+  assert.equal(IMAGE_SPECS.dramaKeyframe, "1536x864");
+
+  const parseSize = (value) => value.split("x").map(Number);
+  for (const key of ["characterSheet", "characterAsset", "dramaKeyframe"]) {
+    const [width, height] = parseSize(IMAGE_SPECS[key]);
+    assert.equal(width / height, 16 / 9, `${key} 必须是严格 16:9`);
+  }
+  const [panoramaWidth, panoramaHeight] = parseSize(IMAGE_SPECS.scenePanorama);
+  assert.equal(panoramaWidth / panoramaHeight, 2, "scenePanorama 必须是严格 2:1");
 });
 
 test("漫剧首帧与成片统一横版；封面仍保持竖版", () => {

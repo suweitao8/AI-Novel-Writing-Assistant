@@ -8,6 +8,7 @@ const read = (relativePath) => fs.readFileSync(path.resolve(__dirname, "..", "sr
 test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   const imageSpecs = read("services/image/imageSpecs.ts");
   const visualStyles = read("services/drama/visual/dramaVisualStyles.ts");
+  const characterService = read("services/drama/DramaCharacterImageService.ts");
   const prompts = read("prompting/prompts/drama/drama.prompts.ts");
   const videoPromptService = read("services/drama/DramaVideoPromptService.ts");
   const keyframeService = read("services/drama/visual/DramaShotKeyframeService.ts");
@@ -22,6 +23,8 @@ test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   assert.match(prompts, /dramaVideoPromptOutputSchema[\s\S]*?default\("16:9"\)/);
   assert.match(prompts, /dramaVideoPromptPrompt[\s\S]*?version:\s*"v2"/);
   assert.match(videoPromptService, /aspectRatio:\s*"16:9"/);
+  assert.match(characterService, /size: IMAGE_SPECS\.characterSheet/);
+  assert.doesNotMatch(characterService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
   assert.match(keyframeService, /size: IMAGE_SPECS\.dramaKeyframe/);
   assert.doesNotMatch(keyframeService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
   assert.match(assemblyService, /DramaRemotionEpisodeAssembler/);

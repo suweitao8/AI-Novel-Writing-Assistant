@@ -194,8 +194,8 @@ export function AssetStatesEditor(props: {
   const [sceneFlatView, setSceneFlatView] = useState(false);
   // 添加状态的模板选择（null=未在添加；空串=空白创建；其他=作为模板的状态 id）。
   const [addFromStateId, setAddFromStateId] = useState<string | null>(null);
-  // 图片区比例跟随资产画幅：场景 360° 全景是 2:1（等距柱状标准），角色/道具设计图是 3:2。
-  const stateImageAspect = kind === "scene" ? "aspect-[2/1]" : "aspect-[3/2]";
+  // 图片区比例跟随资产画幅：场景 360° 全景是 2:1（等距柱状标准），角色/道具设计图严格 16:9。
+  const stateImageAspect = kind === "scene" ? "aspect-[2/1]" : "aspect-video";
   const showVoice = kind === "character";
   const showScene = kind === "scene";
 

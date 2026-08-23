@@ -17,12 +17,13 @@ test("drama character sheets reuse the canonical four-panel production board con
   );
 
   assert.match(prompt, /ONE production character reference board/);
+  assert.match(prompt, /one clean 16:9 image/);
   assert.match(prompt, /four equal-width vertical panels/);
   assert.match(prompt, /PANEL 1.*front face close-up/is);
   assert.match(prompt, /PANEL 2.*exact 90-degree side face close-up/is);
   assert.match(prompt, /PANEL 3.*front full body/is);
   assert.match(prompt, /PANEL 4.*back full body/is);
-  assert.match(prompt, /handsome, commercially appealing leading-man protagonist/i);
+  assert.match(prompt, /APPEAL WITH DISTINCT IDENTITY \(HARD CONSTRAINT\)/i);
   assert.match(prompt, /青年男性，深色短发，精瘦结实，五官俊朗/);
   assert.match(prompt, /虚幻引擎5级写实3D电影渲染/);
   assert.doesNotMatch(prompt, /摄影棚布光/);
