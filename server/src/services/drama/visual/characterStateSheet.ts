@@ -98,9 +98,10 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
   const styleLines = (input.styleLines ?? []).map(clean).filter(Boolean);
   // 参考图只锁身份（脸/发型/比例），服装材质与时代氛围跟当前风格方向走：换时代风格（如 现代都市→末世废土）
   // 重新生成时画面要有明显转变，不能照抄参考图的旧时代样式（2026-08-23 用户要求大改观感）；
+  // 角色身上的脏旧（磨损/污渍/血渍）跟状态走、不跟时代风格走（同日二次拆分）；
   // 透明底随参考图保留（参考图编辑路径容易丢 alpha，这里显式锁住）。
   const referenceLine = input.hasReference
-    ? "If a reference image is supplied, use it ONLY as an identity anchor: preserve the same face, hairstyle and body proportions. The reference's outfit, materials, wear and era atmosphere are the PREVIOUS look, not constraints — when the current style direction differs from the reference's look, boldly redesign clothing, accessories, materials and atmosphere to fully express the new style direction (for example switching from a modern urban look to a post-apocalyptic wasteland look must be a dramatic, clearly visible transformation); when the style direction is unchanged, keep the reference's clothing design and change only the state details described below. The output must keep the same fully transparent background as the reference: a genuine PNG alpha channel, no backdrop color, no solid fill."
+    ? "If a reference image is supplied, use it ONLY as an identity anchor: preserve the same face, hairstyle and body proportions. The reference's outfit, materials, wear and era atmosphere are the PREVIOUS look, not constraints — when the current style direction differs from the reference's look, boldly redesign clothing, accessories, materials and atmosphere to fully express the new style direction (for example switching from a modern urban look to a post-apocalyptic wasteland look must be a dramatic, clearly visible transformation); when the style direction is unchanged, keep the reference's clothing design and change only the state details described below. Whether the character is clean or shows wear, dirt, blood or damage follows ONLY the character data and the current state description, never the style direction. The output must keep the same fully transparent background as the reference: a genuine PNG alpha channel, no backdrop color, no solid fill."
     : "Generate exactly one character from the structured character data below; do not invent another person or narrative subject.";
 
   return [
@@ -118,10 +119,11 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     // 长相必须来自角色资料自己的特征，资料不足时也要给出贴合身份的记忆点特征，角色之间不能撞脸。
     "APPEAL WITH DISTINCT IDENTITY (HARD CONSTRAINT): make the character attractive and camera-ready at a level that matches their identity and story importance in the character data — protagonists and key characters should be notably good-looking, ordinary supporting characters stay pleasant but unglamorous. Build the good looks from this character's OWN facial features in the character data (face shape, brow shape, eye shape, nose bridge and tip, jawline, lip shape, hairline, skin tone) and keep any described marks such as moles, scars or freckles; when the data gives few facial details, invent specific memorable traits that fit the character's identity. Never render the generic influencer / idol-drama template face — no default pointed V-jaw plus straight narrow nose plus uniform double-eyelid big eyes unless the character data actually describes it. Two different characters of this project must never share the same face. Keep the character healthy and well-groomed, not gaunt, exhausted or sickly.",
     "STYLING (HARD CONSTRAINT): render the outfit, hairstyle and accessories described in the character data exactly and completely; when the data gives few outfit details, design clothing and grooming that fit the character's personality, age and identity instead of a generic uniform look — different characters of this project should not share the same default outfit.",
-    // 服装状态跟时代风格走（2026-08-23 修正）：旧版「时代风格不得自行添加磨损或破败」把末世废土等
-    // 风格该有的破败质感也压掉了（用户实测切末世废土画面毫无变化）。干净如新只适用于现代都市等
-    // 日常风格；风格自带的时代质感（磨损/锈蚀/风化…）必须充分呈现。
-    "服装、发型与配饰的画面状态跟当前时代风格方向走：末世废土、古代年代等风格自带的磨损、锈蚀、风化与时代质感要按风格充分呈现；现代都市等日常风格默认保持干净整洁、状态如新，只有角色资料或当前状态明确描写破损、污渍、尘土时才出现。长相的好看程度按角色资料与身份呈现，脸部特征与辨识度必须来自角色资料本身：不得改成统一的网红模板脸，也不得改变角色的面部特征、健康状态与长相辨识度。",
+    // 角色身上的脏旧与时代风格解耦（2026-08-23 二次修正）：污渍/血渍/尘土/破损是通用的角色
+    // 状态属性——战斗后带血、末世逃亡带尘土都建对应的外观状态去描述，任何时代风格都不自动把
+    // 角色弄脏（否则末世书所有角色无条件全身脏旧，干净状态做不出来）。时代风格只负责时代氛围
+    // 与服装设计方向（换时代仍要明显转变，见 referenceLine）。
+    "时代风格只决定时代氛围与服装设计方向：换时代风格时服装的款式、材质与配色要按新时代明显重新设计，不能照搬旧时代样式。角色身上是否干净、是否有磨损、污渍、血渍、尘土、伤痕，只由角色资料与当前状态描写决定——状态没写就默认干净整洁、状态如新，任何时代风格都不自动给角色添加污渍或破败。长相的好看程度按角色资料与身份呈现，脸部特征与辨识度必须来自角色资料本身：不得改成统一的网红模板脸，也不得改变角色的面部特征、健康状态与长相辨识度。",
     referenceLine,
     "角色四视图必须是单一生产参考板；不添加环境故事或其他人物。",
     "CHARACTER DATA (follow this over any generic visual assumption):",

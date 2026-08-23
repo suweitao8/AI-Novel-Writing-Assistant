@@ -137,6 +137,17 @@ test("negative 禁区合并资产层与具体层；无具体风格时只有资�
   );
 });
 
+test("末世废土预设的破败脏旧只施加在环境上，不自动施加到角色（2026-08-23 拆分）", () => {
+  // 污渍/血渍/磨损是通用的角色状态属性：战斗后带血、逃亡带尘土由外观状态描述，
+  // 时代风格不再把末世书所有角色无条件弄脏（预设文本直接进角色/分镜提示词，必须自带边界）。
+  const preset = DRAMA_VISUAL_STYLE_PRESETS.find((item) => item.id === "post_apocalyptic");
+  assert.match(preset.styleInstructions, /施加在场景与道具等环境上，不自动施加到角色身上/);
+  assert.match(preset.styleInstructions, /角色身上是否有污渍、血渍、磨损、尘土，只由角色资料与当前状态描写决定/);
+  assert.match(preset.avoidInstructions, /不主动给角色添加污渍与破败/);
+  // 环境层的末世质感仍然保留（场景该破败还是要破败），只是不再无差别扩散到角色。
+  assert.match(preset.styleInstructions, /开裂的混凝土、锈蚀金属/);
+});
+
 test("自定义具体风格只有中文提示词也能组合", () => {
   const custom = { label: "现代诡异", styleInstructions: "雾气浓重，色调诡异压抑" };
   const lines = buildAssetStylePromptLines("prop", DEFAULT_DRAMA_ASSET_STYLES.prop, custom);
