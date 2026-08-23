@@ -9,6 +9,8 @@ import { stripAssetImagePromptNoise } from "../utils/imagePromptPurity.js";
 /** 资产状态生成图：状态编辑器点「生成图」后写入；按 referenceStateId 取另一状态的图当参考。 */
 export interface StoryAssetStateImage {
   status: "idle" | "generating" | "done" | "error";
+  /** 当前可读取的不可变制品；缺失时仅表示旧数据尚未迁移。 */
+  artifactId?: string;
   url?: string;
   prompt?: string;
   provider?: string;
@@ -303,6 +305,7 @@ function isStoryAssetStateImageRecord(value: unknown): boolean {
   }
   return typeof value.status === "string"
     && STORY_ASSET_IMAGE_STATUSES.has(value.status as StoryAssetStateImage["status"])
+    && isNullableString(value.artifactId)
     && isNullableString(value.url)
     && isNullableString(value.prompt)
     && isNullableString(value.provider)

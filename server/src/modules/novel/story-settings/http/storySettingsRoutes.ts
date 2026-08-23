@@ -35,6 +35,7 @@ const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 // 同步截断到同一上限，保证「服务端写入的必然能被客户端带回」。
 const assetStateImageSchema = z.object({
   status: z.enum(["idle", "generating", "done", "error"]),
+  artifactId: z.string().trim().max(160).optional(),
   url: z.string().max(600).optional(),
   prompt: z.string().max(6000).optional(),
   provider: z.string().max(60).optional(),
@@ -673,7 +674,8 @@ export function registerStorySettingsRoutes(router: Router): void {
           return;
         }
         res.setHeader("Content-Type", resolved.mimeType);
-        res.setHeader("Cache-Control", "public, max-age=86400");
+        // URL 稳定但当前 artifactId 会变化，不能缓存旧 generation 一整天。
+        res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
         fs.createReadStream(resolved.filePath).pipe(res);
       } catch (error) {
         next(error);
@@ -681,21 +683,16 @@ export function registerStorySettingsRoutes(router: Router): void {
     },
   );
 
-  /** GET /api/novels/:id/settings/state-images/:stateId —— 旧状态图 URL 兼容入口 */
+  /** GET /api/novels/:id/settings/state-images/:stateId —— 旧 URL 仅保留为迁移提示，不再返回共享文件 */
   router.get(
     "/:id/settings/state-images/:stateId",
     validate({ params: z.object({ id: novelParams.shape.id, stateId: z.string().trim().min(1) }) }),
     async (req, res, next) => {
       try {
-        const { stateId } = req.params as Record<string, string>;
-        const resolved = await storyAssetStateImageService.resolveLegacyStateImagePath(stateId);
-        if (!resolved) {
-          res.status(404).json({ success: false, message: "该状态还没有生成图片。" });
-          return;
-        }
-        res.setHeader("Content-Type", resolved.mimeType);
-        res.setHeader("Cache-Control", "public, max-age=86400");
-        fs.createReadStream(resolved.filePath).pipe(res);
+        res.status(410).json({
+          success: false,
+          message: "该图片链接已失效，请通过资产所属的状态图片链接访问。",
+        });
       } catch (error) {
         next(error);
       }

@@ -12,6 +12,7 @@
  */
 import fs from "fs/promises";
 import path from "path";
+import type { Prisma } from "@prisma/client";
 import type {
   StoryAssetState,
   StoryAssetStateImage,
@@ -56,10 +57,21 @@ import {
 } from "../../../../services/image/assetProviderRouting";
 import {
   legacyStateImageDir,
-  stateImageDir,
   stateImageUrl,
   type StoryAssetKind,
 } from "./StoryAssetStateImageStorage";
+import {
+  StoryAssetImageArtifactStore,
+  type StoryAssetImageArtifactLocation,
+  type StoryAssetImageArtifactMetadata,
+  type StoryAssetImageExtension,
+  type StoryAssetImageMimeType,
+} from "./StoryAssetImageArtifactStore";
+import {
+  StoryAssetImageGenerationLock,
+  buildStoryAssetImageTargetKey,
+  type StoryAssetImageArtifactRecord,
+} from "./StoryAssetImageGenerationLock";
 
 const STATE_IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
@@ -85,6 +97,132 @@ interface StateAssetRow {
   physique?: string | null;
   attireStyle?: string | null;
   facePrompt?: string | null;
+}
+
+interface StoryAssetImageCommitContext {
+  artifact: StoryAssetImageArtifactRecord;
+  targetKey: string;
+  metadata: StoryAssetImageArtifactMetadata;
+}
+
+interface StoryAssetImageLeaseGuard {
+  artifactId: string;
+  targetKey: string;
+}
+
+const storyAssetImageArtifactStore = new StoryAssetImageArtifactStore();
+const storyAssetImageGenerationLock = new StoryAssetImageGenerationLock();
+
+function normalizeStateImageExtension(value: string): StoryAssetImageExtension {
+  if (value === "jpeg") {
+    return "jpg";
+  }
+  if (value === "png" || value === "jpg" || value === "webp") {
+    return value;
+  }
+  throw new AppError(`不支持的状态图格式：${value}`, 500);
+}
+
+function mimeTypeForStateImageExtension(extension: StoryAssetImageExtension): StoryAssetImageMimeType {
+  if (extension === "png") {
+    return "image/png";
+  }
+  if (extension === "webp") {
+    return "image/webp";
+  }
+  return "image/jpeg";
+}
+
+async function updateStateJsonAndCommitArtifact(
+  tx: Prisma.TransactionClient,
+  kind: StoryAssetKind,
+  assetId: string,
+  expectedRaw: string | null,
+  nextRaw: string,
+  commit: StoryAssetImageCommitContext,
+): Promise<boolean> {
+  const result = kind === "character"
+    ? await tx.character.updateMany({
+      where: { id: assetId, statesJson: expectedRaw },
+      data: { statesJson: nextRaw },
+    })
+    : kind === "scene"
+      ? await tx.novelScene.updateMany({
+        where: { id: assetId, statesJson: expectedRaw },
+        data: { statesJson: nextRaw },
+      })
+      : await tx.novelProp.updateMany({
+        where: { id: assetId, statesJson: expectedRaw },
+        data: { statesJson: nextRaw },
+      });
+  if (result.count !== 1) {
+    return false;
+  }
+
+  const artifactResult = await tx.storyAssetImageArtifact.updateMany({
+    where: {
+      id: commit.artifact.id,
+      status: "staging",
+      activeLockKey: commit.targetKey,
+      leaseExpiresAt: { gt: new Date() },
+    },
+    data: {
+      status: "committed",
+      activeLockKey: null,
+      leaseExpiresAt: null,
+      storageKey: commit.metadata.storageKey,
+      mimeType: commit.metadata.mimeType,
+      extension: commit.metadata.extension,
+      sha256: commit.metadata.sha256,
+      byteSize: commit.metadata.byteSize,
+    },
+  });
+  if (artifactResult.count !== 1) {
+    throw new AppError("图片制品提交锁已失效，请重新生成。", 409);
+  }
+  return true;
+}
+
+/**
+ * 生成中的中间状态也必须被当前 lease fencing。先在同一事务里条件触碰
+ * staging artifact，再更新 statesJson；lease 被回收后旧任务无法再写 generating/error。
+ */
+async function updateStateJsonWithArtifactLease(
+  tx: Prisma.TransactionClient,
+  kind: StoryAssetKind,
+  assetId: string,
+  expectedRaw: string | null,
+  nextRaw: string,
+  guard: StoryAssetImageLeaseGuard,
+): Promise<boolean> {
+  const leaseResult = await tx.storyAssetImageArtifact.updateMany({
+    where: {
+      id: guard.artifactId,
+      status: "staging",
+      activeLockKey: guard.targetKey,
+      leaseExpiresAt: { gt: new Date() },
+    },
+    data: { updatedAt: new Date() },
+  });
+  if (leaseResult.count !== 1) {
+    throw new AppError("图片制品提交锁已失效，请重新生成。", 409);
+  }
+
+  const result = kind === "character"
+    ? await tx.character.updateMany({
+      where: { id: assetId, statesJson: expectedRaw },
+      data: { statesJson: nextRaw },
+    })
+    : kind === "scene"
+      ? await tx.novelScene.updateMany({
+        where: { id: assetId, statesJson: expectedRaw },
+        data: { statesJson: nextRaw },
+      })
+      : await tx.novelProp.updateMany({
+        where: { id: assetId, statesJson: expectedRaw },
+        data: { statesJson: nextRaw },
+      });
+  return result.count === 1;
 }
 
 async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: string): Promise<StateAssetRow> {
@@ -208,6 +346,7 @@ function clampText(value: string, max: number): string {
 function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
   return {
     status: image.status,
+    ...(image.artifactId ? { artifactId: image.artifactId } : {}),
     ...(image.url ? { url: image.url } : {}),
     ...(image.prompt ? { prompt: clampText(image.prompt, STATE_IMAGE_PROMPT_MAX) } : {}),
     ...(image.provider ? { provider: image.provider } : {}),
@@ -331,6 +470,8 @@ export class StoryAssetStateImageService {
     stateId: string,
     image: StoryAssetStateImage,
     fallbackStates: StoryAssetState[] = [],
+    artifactCommit?: StoryAssetImageCommitContext,
+    artifactLeaseGuard?: StoryAssetImageLeaseGuard,
   ): Promise<void> {
     if (kind === "character") {
       await updateStoryAssetStateJsonWithCas({
@@ -363,6 +504,26 @@ export class StoryAssetStateImageService {
           };
         },
         write: async (expectedRaw, nextRaw) => {
+          if (artifactCommit) {
+            return prisma.$transaction((tx) => updateStateJsonAndCommitArtifact(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactCommit,
+            ));
+          }
+          if (artifactLeaseGuard) {
+            return prisma.$transaction((tx) => updateStateJsonWithArtifactLease(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactLeaseGuard,
+            ));
+          }
           const result = await prisma.character.updateMany({
             where: { id: assetId, statesJson: expectedRaw },
             data: { statesJson: nextRaw },
@@ -398,6 +559,26 @@ export class StoryAssetStateImageService {
           };
         },
         write: async (expectedRaw, nextRaw) => {
+          if (artifactCommit) {
+            return prisma.$transaction((tx) => updateStateJsonAndCommitArtifact(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactCommit,
+            ));
+          }
+          if (artifactLeaseGuard) {
+            return prisma.$transaction((tx) => updateStateJsonWithArtifactLease(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactLeaseGuard,
+            ));
+          }
           const result = await prisma.novelScene.updateMany({
             where: { id: assetId, statesJson: expectedRaw },
             data: { statesJson: nextRaw },
@@ -418,6 +599,26 @@ export class StoryAssetStateImageService {
           return { raw: row.statesJson, fallbackStates };
         },
         write: async (expectedRaw, nextRaw) => {
+          if (artifactCommit) {
+            return prisma.$transaction((tx) => updateStateJsonAndCommitArtifact(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactCommit,
+            ));
+          }
+          if (artifactLeaseGuard) {
+            return prisma.$transaction((tx) => updateStateJsonWithArtifactLease(
+              tx,
+              kind,
+              assetId,
+              expectedRaw,
+              nextRaw,
+              artifactLeaseGuard,
+            ));
+          }
           const result = await prisma.novelProp.updateMany({
             where: { id: assetId, statesJson: expectedRaw },
             data: { statesJson: nextRaw },
@@ -446,7 +647,7 @@ export class StoryAssetStateImageService {
     return { row, states, state };
   }
 
-  /** 进行中的状态图生成：key=`${kind}:${assetId}:${stateId}`。终止接口按它中止在跑的请求；
+  /** 进行中的状态图生成：key=`${novelId}:${kind}:${assetId}:${stateId}`。终止接口按它中止在跑的请求；
    * 进程内无记录但状态是 generating 的视为僵尸（服务重启残留），直接改写为 error。 */
   private readonly inFlightGenerations = new Map<string, { controller: AbortController; done: Promise<unknown> }>();
 
@@ -459,11 +660,12 @@ export class StoryAssetStateImageService {
     // 生成中可手动终止（2026-08-23 用户要求：代理切错等场景生成卡住时停掉重来，不等超时）。
     const controller = new AbortController();
     const done = this.runStateImageGeneration(novelId, kind, assetId, stateId, controller);
-    this.inFlightGenerations.set(`${kind}:${assetId}:${stateId}`, { controller, done });
+    const flightKey = `${novelId}:${kind}:${assetId}:${stateId}`;
+    this.inFlightGenerations.set(flightKey, { controller, done });
     try {
       return await done;
     } finally {
-      this.inFlightGenerations.delete(`${kind}:${assetId}:${stateId}`);
+      this.inFlightGenerations.delete(flightKey);
     }
   }
 
@@ -475,20 +677,47 @@ export class StoryAssetStateImageService {
     assetId: string,
     stateId: string,
   ): Promise<unknown> {
-    const flight = this.inFlightGenerations.get(`${kind}:${assetId}:${stateId}`);
+    const flight = this.inFlightGenerations.get(`${novelId}:${kind}:${assetId}:${stateId}`);
     if (flight) {
       flight.controller.abort();
       await flight.done.catch(() => {});
     } else {
       const { states, state } = await this.findState(novelId, kind, assetId, stateId);
       if (state.image?.status === "generating") {
-        await this.writeStateImage(
-          kind,
-          assetId,
-          stateId,
-          { ...state.image, status: "error", error: IMAGE_GENERATION_CANCELLED_MESSAGE },
-          states,
-        );
+        const targetKey = buildStoryAssetImageTargetKey({ novelId, kind, assetId, stateId });
+        const stagingArtifact = await prisma.storyAssetImageArtifact.findFirst({
+          where: {
+            novelId,
+            kind,
+            assetId,
+            stateId,
+            status: "staging",
+            activeLockKey: targetKey,
+            leaseExpiresAt: { gt: new Date() },
+          },
+          orderBy: { updatedAt: "desc" },
+        });
+        // 跨进程取消只允许 fencing 当前 staging 制品；找不到有效 lease 时，
+        // 不凭一份过期的 generating 快照去覆盖后来提交的制品指针。
+        if (stagingArtifact) {
+          await this.writeStateImage(
+            kind,
+            assetId,
+            stateId,
+            { ...state.image, status: "error", error: IMAGE_GENERATION_CANCELLED_MESSAGE },
+            states,
+            undefined,
+            { artifactId: stagingArtifact.id, targetKey },
+          );
+          await prisma.storyAssetImageArtifact.updateMany({
+            where: {
+              id: stagingArtifact.id,
+              status: "staging",
+              activeLockKey: targetKey,
+            },
+            data: { activeLockKey: null, leaseExpiresAt: null, status: "orphaned" },
+          });
+        }
       }
     }
     if (kind === "character") {
@@ -548,24 +777,97 @@ export class StoryAssetStateImageService {
       combineAssetStyleAvoidInstructions(styleContext.assets[kind], styleContext.specific),
     ].filter(Boolean).join(", ");
 
+    let artifactLease: Awaited<ReturnType<StoryAssetImageGenerationLock["acquire"]>> | null = null;
+    let artifactLocation: StoryAssetImageArtifactLocation | null = null;
+    let artifactCommitted = false;
+
     const adapter: ImageTargetAdapter<StoryAssetStateImage> = {
       kind: `story.asset.state:${stateId}`,
       loadState: async () => state.image ?? { status: "idle" },
       saveState: async (next) => {
-        await this.writeStateImage(kind, assetId, stateId, next, states);
+        await this.writeStateImage(
+          kind,
+          assetId,
+          stateId,
+          next,
+          states,
+          undefined,
+          artifactLease && !artifactCommitted
+            ? { artifactId: artifactLease.artifact.id, targetKey: artifactLease.targetKey }
+            : undefined,
+        );
       },
-      diskPath: (ext) => path.join(stateImageDir(novelId, kind, assetId, stateId), `image.${ext}`),
+      diskPath: () => {
+        throw new Error("故事资产状态图必须通过不可变制品会话写入");
+      },
       publicUrl: () => stateImageUrl(novelId, kind, assetId, stateId),
-      cleanupOtherExts: async (keepExt) => {
-        await Promise.all(STATE_IMAGE_EXTS
-          .filter(([ext]) => ext !== keepExt)
-          .map(async ([ext]) => {
-            try {
-              await fs.unlink(path.join(stateImageDir(novelId, kind, assetId, stateId), `image.${ext}`));
-            } catch {
-              // 不存在即无需清理
+      beginArtifact: async () => {
+        artifactLease = await storyAssetImageGenerationLock.acquire({
+          novelId,
+          kind,
+          assetId,
+          stateId,
+        });
+        return {
+          diskPath: (ext: string) => {
+            if (!artifactLease) {
+              throw new AppError("图片制品锁未建立。", 409);
             }
-          }));
+            const extension = normalizeStateImageExtension(ext);
+            artifactLocation = storyAssetImageArtifactStore.buildLocation({
+              novelId,
+              kind,
+              assetId,
+              stateId,
+              generationId: artifactLease.artifact.generationId,
+              extension,
+            });
+            return artifactLocation.tempPath;
+          },
+          commit: async ({ doneState }) => {
+            if (!artifactLease || !artifactLocation) {
+              throw new AppError("图片制品路径未建立。", 409);
+            }
+            const metadata = await storyAssetImageArtifactStore.finalizePartFile(
+              artifactLocation,
+              mimeTypeForStateImageExtension(artifactLocation.extension),
+            );
+            await this.writeStateImage(
+              kind,
+              assetId,
+              stateId,
+              {
+                ...doneState,
+                artifactId: artifactLease.artifact.id,
+                url: stateImageUrl(novelId, kind, assetId, stateId),
+              },
+              states,
+              {
+                artifact: artifactLease.artifact,
+                targetKey: artifactLease.targetKey,
+                metadata,
+              },
+            );
+            artifactCommitted = true;
+          },
+          renew: async () => {
+            await artifactLease?.renew();
+          },
+          renewalIntervalMs: artifactLease.renewalIntervalMs,
+          abort: async () => {
+            if (artifactCommitted) {
+              return;
+            }
+            if (artifactLocation) {
+              try {
+                await fs.unlink(artifactLocation.tempPath);
+              } catch {
+                // 临时文件不存在时无需清理。
+              }
+            }
+            await artifactLease?.release();
+          },
+        };
       },
     };
 
@@ -666,9 +968,8 @@ export class StoryAssetStateImageService {
   }
 
   /**
-   * 服务资产归属明确的图片文件。新路径优先；旧数据没有迁移时，只有
-   * 文件修改时间仍与该状态的 generatedAt 接近才允许回落到旧目录，避免
-   * 把另一个资产后来写入的同名 initial 图片错误展示出来。
+   * 只按当前状态的 artifactId 解析图片，并再次校验资产所有权和文件 hash。
+   * legacy 目录由独立审计/迁移入口读取；正常资产接口绝不按 stateId 猜图。
    */
   async resolveStateImagePath(
     novelId: string,
@@ -676,24 +977,58 @@ export class StoryAssetStateImageService {
     assetId: string,
     stateId: string,
   ): Promise<{ filePath: string; mimeType: string } | null> {
-    const scoped = await this.resolveImageFile(stateImageDir(novelId, kind, assetId, stateId));
-    if (scoped) {
-      return { filePath: scoped.filePath, mimeType: scoped.mimeType };
+    const row = await loadStateAsset(novelId, kind, assetId);
+    const stateImage = row.states?.find((state) => state.id === stateId)?.image;
+    const artifactId = stateImage?.artifactId?.trim();
+    if (!artifactId) {
+      return null;
     }
 
-    const legacy = await this.resolveImageFile(legacyStateImageDir(stateId));
-    if (!legacy) {
+    const artifact = await prisma.storyAssetImageArtifact.findFirst({
+      where: {
+        id: artifactId,
+        novelId,
+        kind,
+        assetId,
+        stateId,
+        status: "committed",
+      },
+      select: {
+        storageKey: true,
+        sha256: true,
+        byteSize: true,
+        mimeType: true,
+        extension: true,
+      },
+    });
+    if (!artifact || !artifact.extension || !artifact.mimeType) {
       return null;
     }
-    const row = await loadStateAsset(novelId, kind, assetId);
-    const generatedAt = row.states?.find((state) => state.id === stateId)?.image?.generatedAt;
-    const generatedAtMs = generatedAt ? Date.parse(generatedAt) : Number.NaN;
-    const legacyFileIsStale = Number.isFinite(generatedAtMs)
-      && legacy.mtimeMs > generatedAtMs + 5 * 60 * 1000;
-    if (legacyFileIsStale) {
+
+    const extension = artifact.extension === "png" || artifact.extension === "jpg" || artifact.extension === "webp"
+      ? artifact.extension
+      : null;
+    const mimeType = artifact.mimeType === "image/png"
+      || artifact.mimeType === "image/jpeg"
+      || artifact.mimeType === "image/webp"
+      ? artifact.mimeType
+      : null;
+    if (!extension || !mimeType) {
       return null;
     }
-    return { filePath: legacy.filePath, mimeType: legacy.mimeType };
+
+    const finalPath = storyAssetImageArtifactStore.resolveStorageKeyPath(artifact.storageKey);
+    const verification = await storyAssetImageArtifactStore.verifyCurrentArtifact({
+      storageKey: artifact.storageKey,
+      finalPath,
+      sha256: artifact.sha256,
+      byteSize: artifact.byteSize,
+      mimeType,
+      extension,
+    });
+    return verification.valid
+      ? { filePath: verification.finalPath, mimeType: verification.mimeType }
+      : null;
   }
 
   /** 兼容仍保存旧 URL 的调用方；新的资产 DTO 不再返回这个 URL。 */

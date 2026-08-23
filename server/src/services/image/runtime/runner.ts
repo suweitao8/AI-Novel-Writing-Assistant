@@ -5,7 +5,7 @@
  *
  * 流程：
  *   provider 解析/校验 → model 解析 → loadState → 归档历史/递增 version
- *   → save generating → generateImagesByProvider → 落盘 → cleanupOtherExts
+ *   → begin artifact/lease → save generating → generateImagesByProvider → 落盘 → cleanupOtherExts
  *   → save done（写 url/prompt/provider/generatedAt/history/referenceImages 等）
  *   catch → save error
  *
@@ -28,6 +28,7 @@ import {
   DEFAULT_RUNTIME_SIZE,
   type GeneratedImageHistoryItem,
   type GeneratedImageState,
+  type ImageArtifactSession,
   type ImageTargetAdapter,
   type RunImageGenerationOptions,
 } from "./types";
@@ -85,7 +86,8 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     ? readVersion(existing) + 1
     : Math.max(1, readVersion(existing) || 1);
 
-  // 4. 标 generating
+  // 4. 创建本次制品会话并标 generating。必须先拿到制品 lease，抢锁失败不能
+  // 把其他任务正在使用的旧状态改成 error。
   const generatingState = {
     ...existing,
     status: "generating",
@@ -95,10 +97,22 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     // 清掉上一轮 error 信息，避免误展示
     error: undefined,
   } as TState;
-  await adapter.saveState(generatingState);
-
-  // 5. 调 provider + 落盘
+  let artifactSession: ImageArtifactSession<TState> | null = null;
+  let generatingStateSaved = false;
+  let renewalTimer: ReturnType<typeof setInterval> | null = null;
   try {
+    artifactSession = adapter.beginArtifact ? await adapter.beginArtifact() : null;
+    await adapter.saveState(generatingState);
+    generatingStateSaved = true;
+    if (artifactSession?.renew) {
+      renewalTimer = setInterval(() => {
+        void artifactSession?.renew?.().catch((error) => {
+          console.error(`[image.runtime] artifact lease renewal failed kind=${adapter.kind}:`, describeError(error));
+        });
+      }, Math.max(1_000, artifactSession.renewalIntervalMs ?? 60_000));
+    }
+
+    // 5. 调 provider + generation-specific 落盘
     const result = await generateImagesByProvider({
       sceneType: opts.sceneType ?? "chapter_illustration",
       provider,
@@ -118,15 +132,15 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     if (!imageUrl) throw new Error("图片生成结果为空");
 
     const ext = inferExtension(imageUrl);
-    const destPath = adapter.diskPath(ext);
+    const destPath = artifactSession ? artifactSession.diskPath(ext) : adapter.diskPath(ext);
     // 请求了透明底（PNG）但结果没有 alpha 通道时做确定性抠底：codex edits（带参考图）
     // 路径实测会把透明底压平成不透明纯色底，提示词救不回来（2026-08-23）。
     const rawBytes = await resolveImageBytes(imageUrl);
     const finalBytes = opts.background === "transparent" && opts.outputFormat === "png"
       ? await ensureTransparentBackground(rawBytes)
       : rawBytes;
-    await writeImageBytes(destPath, finalBytes);
-    if (adapter.cleanupOtherExts) await adapter.cleanupOtherExts(ext);
+    await writeImageBytes(destPath, finalBytes, artifactSession ? { exclusive: true } : {});
+    if (!artifactSession && adapter.cleanupOtherExts) await adapter.cleanupOtherExts(ext);
 
     console.log(`[image.runtime] done kind=${adapter.kind} provider=${provider} model=${model} -> ${path.basename(destPath)}`);
 
@@ -145,10 +159,19 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     };
     const extraDone = adapter.buildExtraDoneState ? adapter.buildExtraDoneState(doneBase) : ({} as Partial<TState>);
     const doneState = { ...existing, ...doneBase, ...extraDone } as TState;
-    await adapter.saveState(doneState);
+    if (artifactSession) {
+      await artifactSession.commit({ ext, bytes: finalBytes, doneState });
+    } else {
+      await adapter.saveState(doneState);
+    }
     return doneState;
   } catch (err) {
+    if (!generatingStateSaved) {
+      await artifactSession?.abort().catch(() => {});
+      throw err;
+    }
     // 手动终止：写入 error 态（恢复重试入口）后正常返回，不让调用方走失败分支。
+    let errorStateWritten = false;
     if (opts.signal?.aborted) {
       console.log(`[image.runtime] cancelled kind=${adapter.kind} provider=${provider}`);
       const cancelledState = {
@@ -159,7 +182,16 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
         error: IMAGE_GENERATION_CANCELLED_MESSAGE,
         history: nextHistory,
       } as TState;
-      await adapter.saveState(cancelledState);
+      try {
+        await adapter.saveState(cancelledState);
+        errorStateWritten = true;
+      } catch (stateError) {
+        console.error(`[image.runtime] cancelled state was not written kind=${adapter.kind}:`, describeError(stateError));
+      }
+      await artifactSession?.abort().catch(() => {});
+      if (artifactSession && !errorStateWritten) {
+        throw err;
+      }
       return cancelledState;
     }
     const errMsg = describeError(err);
@@ -172,7 +204,21 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       error: errMsg,
       history: nextHistory,
     } as TState;
-    await adapter.saveState(errorState);
+    try {
+      await adapter.saveState(errorState);
+      errorStateWritten = true;
+    } catch (stateError) {
+      // lease 失效时禁止旧任务回写错误，避免覆盖新任务的当前 artifactId。
+      console.error(`[image.runtime] error state was not written kind=${adapter.kind}:`, describeError(stateError));
+    }
+    await artifactSession?.abort().catch(() => {});
+    if (artifactSession && !errorStateWritten) {
+      throw err;
+    }
     throw err;
+  } finally {
+    if (renewalTimer) {
+      clearInterval(renewalTimer);
+    }
   }
 }

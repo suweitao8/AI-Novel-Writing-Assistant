@@ -443,6 +443,7 @@ model Novel {
   settingsWorld      NovelSettingsWorld?
   storyScenes        NovelScene[]
   storyProps         NovelProp[]
+  storyAssetImageArtifacts StoryAssetImageArtifact[]
   creationStudioConfirmations CreationStudioConfirmation[]
   createdAt          DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
@@ -594,6 +595,33 @@ model NovelProp {
   updatedAt        DateTime @updatedAt
 
   @@index([novelId, sortOrder])
+}
+
+// 故事资产状态图片的不可变制品：文件历史与当前 statesJson 指针分离，避免同名状态互相覆盖。
+model StoryAssetImageArtifact {
+  id               String   @id @default(cuid())
+  novelId          String
+  kind             String
+  assetId          String
+  stateId          String
+  generationId     String
+  storageKey       String   @unique
+  status           String   @default("staging")
+  activeLockKey    String?  @unique
+  leaseExpiresAt   DateTime?
+  version          Int      @default(1)
+  mimeType         String?
+  extension        String?
+  sha256           String?
+  byteSize         Int?
+  sourceArtifactId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  novel            Novel    @relation(fields: [novelId], references: [id], onDelete: Cascade)
+
+  @@index([novelId, kind, assetId, stateId])
+  @@index([novelId, status])
 }
 
 // 设定中心：本书世界观摘要（前提/时代/基调/关键设定/地图节点）。
