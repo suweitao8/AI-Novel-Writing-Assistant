@@ -160,13 +160,6 @@ export class DramaEpisodeAssemblyService {
     await this.failStaleJobs(episode.id);
     const renderProfile = await getConfiguredDramaRenderProfile();
 
-    const running = await prisma.dramaBatchJob.findFirst({
-      where: { episodeId: episode.id, type: "full_episode", status: { in: ["pending", "running"] } },
-    });
-    if (running) {
-      throw new AppError("整集合成正在进行中，请等待完成后再试。", 409);
-    }
-
     const progress: AssemblyJobProgress = {
       total: shots.length + (options.includeTitleCard === false ? 0 : 1) + (options.includeEndCard === false ? 0 : 1),
       done: 0,
@@ -177,15 +170,37 @@ export class DramaEpisodeAssemblyService {
       phase: "prepare",
       provider: "remotion",
     };
-    const job = await prisma.dramaBatchJob.create({
-      data: {
-        projectId,
-        episodeId: episode.id,
-        type: "full_episode",
-        status: "running",
-        progress: JSON.stringify(progress),
-      },
+    const result = await prisma.$transaction(async (tx) => {
+      // 与批量任务创建使用同一套集行锁，跨进程点击“合成”也只能创建一个活动任务。
+      if (typeof tx.$executeRaw === "function") {
+        await tx.$executeRaw`
+          UPDATE "DramaEpisode"
+          SET "updatedAt" = "updatedAt"
+          WHERE "id" = ${episode.id}
+        `;
+      }
+      const running = await tx.dramaBatchJob.findFirst({
+        where: { episodeId: episode.id, type: "full_episode", status: { in: ["pending", "running"] } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      });
+      if (running) {
+        return { job: running, created: false };
+      }
+      const job = await tx.dramaBatchJob.create({
+        data: {
+          projectId,
+          episodeId: episode.id,
+          type: "full_episode",
+          status: "running",
+          progress: JSON.stringify(progress),
+        },
+      });
+      return { job, created: true };
     });
+    if (!result.created) {
+      return result.job;
+    }
+    const job = result.job;
     await this.writeAssembled(episode.id, { status: "assembling", generatedAt: new Date().toISOString() });
     void this.runAssemblyJob(job.id, projectId, order, {
       burnSubtitles: options.burnSubtitles ?? true,
@@ -379,11 +394,20 @@ export class DramaEpisodeAssemblyService {
       });
     }
 
-    if (audioSegments.length === 0 || audioLines.length !== audioSegments.length) {
-      throw new Error(`镜头 ${shot.order} 没有可测量的真实配音时长，请先生成配音。`);
+    let targetDurationSec: number;
+    if (audioSegments.length === 0 && !shot.dialogue?.trim()) {
+      const silentDuration = Number(shot.durationSec);
+      if (!Number.isFinite(silentDuration) || silentDuration <= 0) {
+        throw new Error(`镜头 ${shot.order} 没有旁白或对白，且未设置静音镜头时长。`);
+      }
+      targetDurationSec = Math.round(silentDuration * 100) / 100;
+    } else {
+      if (audioSegments.length === 0 || audioLines.length !== audioSegments.length) {
+        throw new Error(`镜头 ${shot.order} 没有可测量的真实配音时长，请先生成配音。`);
+      }
+      const audioTotal = audioLines.reduce((sum, line) => sum + line.durationSec, 0);
+      targetDurationSec = Math.round(audioTotal * 100) / 100;
     }
-    const audioTotal = audioLines.reduce((sum, line) => sum + line.durationSec, 0);
-    const targetDurationSec = Math.round(audioTotal * 100) / 100;
 
     const imagePath = await this.resolveVisualSource(shot, index, workDir, warnings);
     if (!imagePath) {

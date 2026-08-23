@@ -173,12 +173,31 @@ function installPipelineStubs() {
         return { count };
       },
     },
+    dramaBatchJob: {
+      create: async ({ data }) => {
+        const created = {
+          id: `batch_job_${state.batchJobs.length + 1}`,
+          createdAt: new Date("2026-06-10T00:00:00.000Z"),
+          updatedAt: new Date("2026-06-10T00:00:00.000Z"),
+          ...data,
+        };
+        state.batchJobs.push(created);
+        return created;
+      },
+      findFirst: async ({ where = {} } = {}) => state.batchJobs.find((job) =>
+        (!where.projectId || job.projectId === where.projectId)
+        && (!where.episodeId || job.episodeId === where.episodeId)
+        && (!where.type || job.type === where.type)
+        && (!where.status?.in || where.status.in.includes(job.status)),
+      ) ?? null,
+    },
   };
 
   const prisma = {
     $transaction: async (callback) => callback(tx),
     dramaProject: {
       findUnique: async () => buildProject(),
+      findMany: async () => [],
     },
     // 首帧图/立绘生成经 dramaArtStyleResolver 读取三类资产画风（AppSetting）与小说默认具体风格
     // （NovelSettingsWorld）；管线测试不关心风格内容，返回空即用内置默认。
@@ -207,7 +226,14 @@ function installPipelineStubs() {
       },
       findFirst: async ({ where = {} } = {}) => {
         if (where.projectId === "project_1" && where.order === state.episode.order) {
-          return { content: state.episode.content };
+          return {
+            ...state.episode,
+            project: buildProject(),
+            storyboards: state.storyboards.map((storyboard) => ({
+              ...storyboard,
+              shots: state.shots.filter((shot) => shot.storyboardId === storyboard.id),
+            })),
+          };
         }
         return null;
       },
@@ -286,6 +312,12 @@ function installPipelineStubs() {
         state.batchJobs.push(created);
         return created;
       },
+      findFirst: async ({ where = {} } = {}) => state.batchJobs.find((job) =>
+        (!where.projectId || job.projectId === where.projectId)
+        && (!where.episodeId || job.episodeId === where.episodeId)
+        && (!where.type || job.type === where.type)
+        && (!where.status?.in || where.status.in.includes(job.status)),
+      ) ?? null,
       findUnique: async ({ where }) => state.batchJobs.find((job) => job.id === where.id) ?? null,
       // 入口 stale 清扫（batchJobRecovery.failStaleBatchJobs）：按项目查遗留任务。
       findMany: async ({ where = {} } = {}) => state.batchJobs.filter((job) =>
@@ -560,7 +592,7 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(ttsProgress.done, 1);
   assert.equal(ttsProgress.cost.estimated, 0);
   assert.equal(ttsProgress.cost.actual, 0);
-  assert.equal(ttsProgress.cost.actualUnits.seconds, 2);
+  assert.equal(ttsProgress.cost.actualUnits.seconds, undefined);
   const audioData = JSON.parse(state.shots[0].dialogueAudioData);
   assert.equal(audioData.status, "done");
   assert.equal(audioData.items[0].speaker, "林澈");

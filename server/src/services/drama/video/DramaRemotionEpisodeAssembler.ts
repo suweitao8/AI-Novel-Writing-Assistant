@@ -380,10 +380,19 @@ function buildAssemblySegments(input: DramaRemotionEpisodeAssemblyInput): Assemb
   }
   for (const shot of input.shots) {
     const audioDuration = shot.audioLines.reduce((sum, line) => sum + line.durationSec, 0);
-    if (!Number.isFinite(audioDuration) || audioDuration <= 0) {
-      throw new Error(`镜头 ${shot.order} 没有真实配音时长，无法建立时间轴。`);
+    let durationSec: number;
+    if (shot.audioLines.length === 0) {
+      const silentDuration = Number(shot.durationSec);
+      if (!Number.isFinite(silentDuration) || silentDuration <= 0) {
+        throw new Error(`镜头 ${shot.order} 没有旁白或对白，且未设置静音镜头时长。`);
+      }
+      durationSec = Math.round(silentDuration * 100) / 100;
+    } else {
+      if (!Number.isFinite(audioDuration) || audioDuration <= 0) {
+        throw new Error(`镜头 ${shot.order} 没有真实配音时长，无法建立时间轴。`);
+      }
+      durationSec = Math.round(audioDuration * 100) / 100;
     }
-    const durationSec = Math.round(audioDuration * 100) / 100;
     segments.push({
       id: `shot-${shot.order}-${shot.shotId}`,
       kind: "shot",
