@@ -200,6 +200,14 @@ This project is a pure web product: all development targets the website (`client
 - Once the work passes its focused verification, merge the branch back into `main`, push to the remote, then remove the worktree and delete its branch in the same step. Never delete a worktree or branch that still holds unmerged, unfinished changes.
 - `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is worktree branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
 
+### Closed-Loop Delivery Contract
+
+- When the user states a concrete desired repository state and scope — for example, “add this path to `.gitignore`” — treat it as an implementation request, even if it is phrased as a question about what should happen. Do not downgrade a clear target to an explanation or recommendation.
+- Select the delivery path from the changed files: code/product changes use a sibling worktree and dedicated `codex/` branch; documentation and rule-file-only changes may use the main-workspace exception above. Do not ask the user to authorize each routine implementation, verification, commit, merge, push, or cleanup step individually.
+- Unless the user explicitly limits the request to diagnosis, review, a local-only edit, or stopping before delivery, complete the full chain: inspect scope, implement, run focused verification, commit with `git commit -s`, merge/promote to `main` when a worktree was used, push explicitly with `git push origin main`, and verify the final status and remote ref.
+- A local edit or local commit is an intermediate state, not completion. Do not report the task as finished while the intended repository change remains uncommitted, unmerged, or unpushed. For ignore-rule changes, verify each affected path with `git check-ignore -v --no-index <path>` before closing the task.
+- Ask a blocking question only when a required fact cannot be determined from the repository or artifacts, the next action is destructive, the action would expand beyond the requested scope, or another session owns a conflicting state. Routine execution-method choices are not askable items.
+
 ### Remote And Multi-Session Discipline
 
 - The remote only ever carries `main` (plus `beta` while a release candidate is being integrated). Never push a session/worktree branch to the remote: once such a branch is merged, it is spent and must be deleted locally, not published.
