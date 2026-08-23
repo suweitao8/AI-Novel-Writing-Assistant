@@ -12,6 +12,7 @@
     "check:workspace-integrity": "node scripts/workspace-integrity-guard.cjs startup",
     "setup:git-hooks": "node scripts/install-git-hooks.cjs",
     "workflow:worktree": "node scripts/create-codex-worktree.cjs",
+    "workflow:integrate": "node scripts/integrate-codex-worktree.cjs",
     "test:git-workflow": "node --test scripts/git-workflow-guard.test.cjs",
     "opencode:bridge": "node scripts/start-opencode-go-bridge.cjs",
     "codex:image": "node scripts/start-codex-image-bridge.cjs",
