@@ -28,6 +28,7 @@ import {
   type StoryAssetKind,
   type StoryAssetPresentation,
 } from "@/components/storyAssets";
+import { compareStoryAssetKinds, compareStoryAssetUpdatedAt } from "./assetOrdering";
 
 type AssetType = StoryAssetKind;
 
@@ -72,7 +73,9 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
       ...props.scenes.map((scene) => buildStoryAssetPresentation({ kind: "scene", asset: scene })),
       ...props.props.map((prop) => buildStoryAssetPresentation({ kind: "prop", asset: prop })),
     ];
-    merged.sort((left, right) => (left.updatedAt < right.updatedAt ? 1 : -1));
+    merged.sort((left, right) =>
+      compareStoryAssetKinds(left.kind, right.kind)
+      || compareStoryAssetUpdatedAt(left.updatedAt, right.updatedAt));
     return merged;
   }, [props.characters, props.scenes, props.props]);
 
@@ -93,9 +96,12 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         return assets
           .filter((asset) => props.usage.usedKeys.has(usageKey(asset)))
           .sort((left, right) =>
-            (order.get(usageKey(left)) ?? tail) - (order.get(usageKey(right)) ?? tail)
-            || (left.updatedAt < right.updatedAt ? 1 : -1));
+            compareStoryAssetKinds(left.kind, right.kind)
+            || (order.get(usageKey(left)) ?? tail) - (order.get(usageKey(right)) ?? tail)
+            || compareStoryAssetUpdatedAt(left.updatedAt, right.updatedAt));
       })();
+  const sortedMissing = [...props.usage.missing].sort((left, right) =>
+    compareStoryAssetKinds(left.type, right.type));
   const detailAsset = detailId ? assets.find((asset) => asset.id === detailId) ?? null : null;
 
   const invalidate = () => invalidateStorySettingsCaches(queryClient, props.novelId);
@@ -212,7 +218,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
           <div className="flex h-full min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
         ) : (
           <ul className="space-y-2">
-            {!normalized ? props.usage.missing.map((missing) => (
+            {!normalized ? sortedMissing.map((missing) => (
               <li key={`missing-${missing.type}-${missing.name}`}>
                 <div className="w-full rounded-2xl border border-orange-500/50 bg-orange-500/10 p-3">
                   <div className="flex items-center gap-2">

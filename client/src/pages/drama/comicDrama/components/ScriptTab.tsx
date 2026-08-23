@@ -16,6 +16,7 @@ import {
 } from "@ai-novel/shared/utils/scriptDocument";
 import OutlineSettingsAside from "@/pages/drama/comicDrama/components/OutlineSettingsAside";
 import type { NovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
+import { collectScriptAssetUsage } from "@/pages/drama/comicDrama/components/scriptAssetUsage";
 import SelectControl from "@/components/common/SelectControl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,84 +113,10 @@ export default function ScriptTab(props: ScriptTabProps) {
   // - 右侧面板只显示脚本用到的资产（按首次出现排序），用到了但没有对应资产的
   //   名字进 missing，以橙红警告卡提示「未生成，需要手动创建」——建好后自动消失；
   // - 已有资产名出现在正文任意位置（断词匹配，与正文高亮同口径）也算用到。
-  const scriptUsage = useMemo(() => {
-    const knownCharacters = new Set(characters.map((character) => character.name.trim()));
-    const knownScenes = new Set(scenes.map((scene) => scene.name.trim()));
-    const usedOrderKeys: string[] = [];
-    const usedKeys = new Set<string>();
-    const missingScenes: string[] = [];
-    const missingCharacters: string[] = [];
-    const pushUsed = (key: string) => {
-      if (!usedKeys.has(key)) {
-        usedKeys.add(key);
-        usedOrderKeys.push(key);
-      }
-    };
-    for (const item of items) {
-      if (item.kind === "scene") {
-        const name = item.scene.trim();
-        if (!name) continue;
-        if (knownScenes.has(name)) {
-          pushUsed(`scene:${name}`);
-        } else if (!missingScenes.includes(name)) {
-          missingScenes.push(name);
-        }
-      } else if (item.kind === "line") {
-        const name = item.speaker.trim();
-        if (!name || name === "旁白") continue;
-        if (knownCharacters.has(name)) {
-          pushUsed(`character:${name}`);
-        } else if (!missingCharacters.includes(name)) {
-          missingCharacters.push(name);
-        }
-      } else if (item.kind === "state") {
-        const name = item.name.trim();
-        if (!name) continue;
-        if (knownCharacters.has(name)) {
-          pushUsed(`character:${name}`);
-        } else if (!missingCharacters.includes(name)) {
-          missingCharacters.push(name);
-        }
-      }
-    }
-    const text = workspace.expectationText;
-    // 每类资产一个交替正则一次全文扫描（长名优先 + 断词边界），等价于逐名 test 但只扫三遍。
-    const mentionedIn = (names: string[]) => {
-      const unique = [...new Set(names.map((name) => name.trim()).filter((name) => name.length >= 2))]
-        .sort((left, right) => right.length - left.length);
-      if (unique.length === 0) {
-        return new Set<string>();
-      }
-      const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu");
-      const found = new Set<string>();
-      for (const match of text.matchAll(pattern)) {
-        found.add(match[0]);
-      }
-      return found;
-    };
-    const mentionedCharacters = mentionedIn(characters.map((character) => character.name));
-    const mentionedScenes = mentionedIn(scenes.map((scene) => scene.name));
-    const mentionedProps = mentionedIn(propList.map((prop) => prop.name));
-    for (const character of characters) {
-      if (mentionedCharacters.has(character.name.trim())) usedKeys.add(`character:${character.name.trim()}`);
-    }
-    for (const scene of scenes) {
-      if (mentionedScenes.has(scene.name.trim())) usedKeys.add(`scene:${scene.name.trim()}`);
-    }
-    for (const prop of propList) {
-      if (mentionedProps.has(prop.name.trim())) usedKeys.add(`prop:${prop.name.trim()}`);
-    }
-    return {
-      knownCharacters,
-      knownScenes,
-      usedOrderKeys,
-      usedKeys,
-      missing: [
-        ...missingScenes.map((name) => ({ type: "scene" as const, name })),
-        ...missingCharacters.map((name) => ({ type: "character" as const, name })),
-      ],
-    };
-  }, [items, characters, scenes, propList, workspace.expectationText]);
+  const scriptUsage = useMemo(
+    () => collectScriptAssetUsage({ items, characters, scenes, props: propList }),
+    [items, characters, scenes, propList],
+  );
 
   const entityNames = useMemo(() => ({
     characters: characters.map((character) => character.name),
