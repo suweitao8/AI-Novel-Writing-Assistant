@@ -28,7 +28,7 @@ import {
   type StoryAssetKind,
   type StoryAssetPresentation,
 } from "@/components/storyAssets";
-import { compareStoryAssetKinds } from "./assetOrdering";
+import { compareStoryAssetKinds, compareStoryAssetUpdatedAt } from "./assetOrdering";
 
 type AssetType = StoryAssetKind;
 
@@ -75,7 +75,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
     ];
     merged.sort((left, right) =>
       compareStoryAssetKinds(left.kind, right.kind)
-      || (left.updatedAt < right.updatedAt ? 1 : -1));
+      || compareStoryAssetUpdatedAt(left.updatedAt, right.updatedAt));
     return merged;
   }, [props.characters, props.scenes, props.props]);
 
@@ -98,7 +98,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
           .sort((left, right) =>
             compareStoryAssetKinds(left.kind, right.kind)
             || (order.get(usageKey(left)) ?? tail) - (order.get(usageKey(right)) ?? tail)
-            || (left.updatedAt < right.updatedAt ? 1 : -1));
+            || compareStoryAssetUpdatedAt(left.updatedAt, right.updatedAt));
       })();
   const sortedMissing = [...props.usage.missing].sort((left, right) =>
     compareStoryAssetKinds(left.type, right.type));

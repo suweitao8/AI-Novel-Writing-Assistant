@@ -11,3 +11,8 @@ export function compareStoryAssetKinds(left: string, right: string): number {
   const rightOrder = STORY_ASSET_KIND_ORDER[right as StoryAssetKind] ?? Number.MAX_SAFE_INTEGER;
   return leftOrder - rightOrder;
 }
+
+export function compareStoryAssetUpdatedAt(left: string, right: string): number {
+  if (left === right) return 0;
+  return left < right ? 1 : -1;
+}

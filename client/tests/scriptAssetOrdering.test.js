@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { parseScriptItems } from "../../shared/utils/scriptDocument.ts";
-import { compareStoryAssetKinds } from "../src/pages/drama/comicDrama/components/assetOrdering.ts";
+import {
+  compareStoryAssetKinds,
+  compareStoryAssetUpdatedAt,
+} from "../src/pages/drama/comicDrama/components/assetOrdering.ts";
 import { collectScriptAssetUsage } from "../src/pages/drama/comicDrama/components/scriptAssetUsage.ts";
 
 const asideSource = readFileSync(
@@ -54,13 +57,21 @@ test("脚本资产使用顺序覆盖混合引用和单字符资产", () => {
     "prop:钥",
     "character:林川",
   ]);
+
+  const missingStateUsage = collectScriptAssetUsage({
+    items: parseScriptItems("【场景状态：废墟：夜】"),
+    characters: [],
+    scenes: [],
+    props: [],
+  });
+  assert.deepEqual(missingStateUsage.missing, [{ type: "scene", name: "废墟" }]);
 });
 
 test("右侧资产列表在更新时间和脚本使用顺序之前应用类型排序", () => {
   assert.match(asideSource, /compareStoryAssetKinds\(left\.kind, right\.kind\)/);
   assert.match(
     asideSource,
-    /compareStoryAssetKinds\(left\.kind, right\.kind\)[\s\S]*?\|\|\s*\(left\.updatedAt/,
+    /compareStoryAssetKinds\(left\.kind, right\.kind\)[\s\S]*?\|\|\s*compareStoryAssetUpdatedAt/,
   );
   assert.match(
     asideSource,
@@ -70,4 +81,5 @@ test("右侧资产列表在更新时间和脚本使用顺序之前应用类型�
   assert.match(scriptTabSource, /collectScriptAssetUsage\(\{ items, characters, scenes, props: propList \}\)/);
   assert.match(usageSource, /for \(const item of input\.items\)[\s\S]*?pushMentionedAssets\(sourceText\);/);
   assert.match(usageSource, /const mentionNames = \[\.\.\.assetKindsByName\.keys\(\)\]/);
+  assert.equal(compareStoryAssetUpdatedAt("2026-08-23T00:00:00Z", "2026-08-23T00:00:00Z"), 0);
 });

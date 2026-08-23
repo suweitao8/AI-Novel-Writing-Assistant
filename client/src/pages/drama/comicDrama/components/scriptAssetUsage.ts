@@ -79,8 +79,13 @@ export function collectScriptAssetUsage(input: ScriptAssetUsageInput): ScriptAss
         missingScenes.push(name);
       }
     } else if (item.kind === "sceneState") {
-      sourceText = `${item.scene} ${item.state}`;
-      pushStructuredAsset("scene", item.scene);
+      const name = item.scene.trim();
+      sourceText = `${name} ${item.state}`;
+      if (knownScenes.has(name)) {
+        pushStructuredAsset("scene", name);
+      } else if (name && !missingScenes.includes(name)) {
+        missingScenes.push(name);
+      }
     } else if (item.kind === "line") {
       const name = item.speaker.trim();
       sourceText = `${name} ${item.mood} ${item.text}`;
