@@ -1,11 +1,19 @@
 const fs = require("fs");
 const path = require("path");
+const { assertStartupIntegrity } = require("./workspace-integrity-guard.cjs");
 
 // 启动前的依赖完整性防呆检查：面向从源码运行的使用者（含非专业开发者）。
 // 只做直接依赖的存在性检查（pnpm 会为每个 workspace 包创建 node_modules 符号链接），
 // 不做版本比对——版本漂移由 pnpm-lock.yaml 保证，这里只拦截"拉了新代码忘了装依赖"。
 
 const ROOT = path.resolve(__dirname, "..");
+
+try {
+  assertStartupIntegrity({ cwd: ROOT });
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}
 
 const WORKSPACE_PACKAGES = [
   { name: "根目录", dir: "." },

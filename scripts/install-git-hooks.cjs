@@ -16,12 +16,13 @@ function runGit(args) {
 const repoRoot = path.resolve(runGit(["rev-parse", "--show-toplevel"]));
 const hooksPath = path.join(repoRoot, ".githooks");
 const guardScript = path.join(repoRoot, "scripts", "git-workflow-guard.cjs");
+const preMergeCommitHook = path.join(hooksPath, "pre-merge-commit");
 
-if (!fs.existsSync(hooksPath) || !fs.existsSync(guardScript)) {
+if (!fs.existsSync(hooksPath) || !fs.existsSync(guardScript) || !fs.existsSync(preMergeCommitHook)) {
   throw new Error("The tracked Git workflow guard files are missing from this checkout.");
 }
 
 runGit(["config", "--local", "core.hooksPath", hooksPath]);
 runGit(["config", "--local", "merge.ff", "false"]);
 console.log(`[git-workflow-guard] installed repository hooks at ${hooksPath}`);
-console.log("[git-workflow-guard] direct commits, fast-forward merges, and pushes from main are now protected");
+console.log("[git-workflow-guard] direct commits, non-codex merges, shared contract drift, fast-forward merges, and pushes from main are now protected");

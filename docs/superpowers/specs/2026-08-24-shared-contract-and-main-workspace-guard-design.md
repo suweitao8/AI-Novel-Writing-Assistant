@@ -18,7 +18,7 @@
 
 - `scripts/workspace-integrity-guard.cjs`：只负责主工作区未提交的 `shared/` 变更和关键运行时依赖文件完整性检查，可供启动脚本和 Git 守卫复用。
 - `scripts/git-workflow-guard.cjs`：只负责 Git 分支、提交、暂存变更和推送历史策略；调用完整性守卫而不重复解析工作树状态。
-- `.githooks/pre-merge-commit`：确保主分支的合并在写入提交前验证合并来源。
+- `.githooks/pre-merge-commit`：拒绝 main 上的自动合并提交，强制先以 `--no-commit` 准备合并；随后的 `pre-commit` 能可靠读取 `MERGE_HEAD` 并验证来源。
 - `scripts/check-deps.cjs`：启动前调用完整性守卫，因此不完整依赖或主工作区 `shared/` 被误删时给出明确失败，而不是让 Vite 静态加载页无限停留。
 - `scripts/*.test.cjs`：在临时 Git 仓库中验证阻断和允许路径。
 - `docs/wiki/architecture/shared-contract-boundary.md`：记录长期边界和故障诊断路径。
