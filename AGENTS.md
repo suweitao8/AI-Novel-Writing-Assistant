@@ -174,9 +174,11 @@ These areas have the highest priority for wiki accumulation:
 ## Autonomous Execution Rules
 
 - Once a design document is committed and pushed, treat it as implementation authorization: proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Workflow.
+- A committed design document is treated as approved by default. Do not wait for a user review, ask whether to start, or ask the user to choose an execution method; stop only when the user explicitly requests a plan-only result, a pause, or a scope change.
 - Do not ask the user to review a design document, confirm whether implementation should start, or re-ask the same decision in different wording.
 - Rules in this file take precedence over generic skills, external process templates, and model default behavior when they conflict. If an external workflow requires waiting for user design review after the design is committed, skip that step.
 - After a design document is committed, the fixed next step is: create the implementation plan, execute it, verify, then commit and push.
+- Design documents, implementation plans, wiki entries, rule-file changes, and code all belong to the same isolated `codex/*` worktree workflow; never create a development commit for any of them while `main` is checked out.
 - Only ask a blocking question when a necessary fact cannot be determined from code, configuration, documentation, or existing artifacts. Execution-method choices, whether to continue, and whether to adopt the current plan are not askable items.
 
 ## Verification Reuse Rules
@@ -195,7 +197,7 @@ This project is a pure web product: all development targets the website (`client
 
 ### Branching
 
-- The main workspace always stays on `main`: never switch its branch and never create branches inside it. The only writes allowed in the main workspace are merging verified branches, pushing to the remote, and documentation/rule-file-only commits.
+- The main workspace always stays on `main`: never switch its branch and never create branches inside it. The only repository state changes allowed there are resolving an explicit merge of a verified branch and pushing the resulting `main`; documentation and rule-file changes also use an isolated `codex/*` worktree.
 - Session development happens in an isolated worktree with its own dedicated branch: create the worktree as a sibling directory of the repo via `git worktree add` — never inside the repo, because workspace globs and tooling scans would pick it up — and do all implementation, verification, and commits inside that worktree.
 - Once the work passes its focused verification, merge the branch back into `main`, push to the remote, then remove the worktree and delete its branch in the same step. Never delete a worktree or branch that still holds unmerged, unfinished changes.
 - `beta` is an optional pre-release integration lane, not a mandatory step. Use it only when a release candidate needs combined integration or regression verification before release; the path is worktree branches -> `beta` -> verify -> merge into `main`, and keep `beta` aligned with `main` after promotion. Do not use `beta` for unfinished experiments.
@@ -203,7 +205,7 @@ This project is a pure web product: all development targets the website (`client
 ### Closed-Loop Delivery Contract
 
 - When the user states a concrete desired repository state and scope — for example, “add this path to `.gitignore`” — treat it as an implementation request, even if it is phrased as a question about what should happen. Do not downgrade a clear target to an explanation or recommendation.
-- Select the delivery path from the changed files: code/product changes use a sibling worktree and dedicated `codex/` branch; documentation and rule-file-only changes may use the main-workspace exception above. Do not ask the user to authorize each routine implementation, verification, commit, merge, push, or cleanup step individually.
+- Select the delivery path from the changed files: every change, including documentation and rule-file-only changes, uses a sibling worktree and dedicated `codex/` branch. The main workspace is reserved for integration and push; do not ask the user to authorize each routine implementation, verification, commit, merge, push, or cleanup step individually.
 - Unless the user explicitly limits the request to diagnosis, review, a local-only edit, or stopping before delivery, complete the full chain: inspect scope, implement, run focused verification, commit with `git commit -s`, merge/promote to `main` when a worktree was used, push explicitly with `git push origin main`, and verify the final status and remote ref.
 - A local edit or local commit is an intermediate state, not completion. Do not report the task as finished while the intended repository change remains uncommitted, unmerged, or unpushed. For ignore-rule changes, verify each affected path with `git check-ignore -v --no-index <path>` before closing the task.
 - Ask a blocking question only when a required fact cannot be determined from the repository or artifacts, the next action is destructive, the action would expand beyond the requested scope, or another session owns a conflicting state. Routine execution-method choices are not askable items.
@@ -219,6 +221,8 @@ This project is a pure web product: all development targets the website (`client
 ### Commits
 
 - Commit after each coherent, completed unit of work. Before committing, confirm the working tree contains only that unit's intended changes and that verification matching the change scope has passed, or document the remaining verification gap explicitly.
+- Never run a direct `git commit`, `git commit --amend`, `git cherry-pick`, `git revert`, or `git rebase` while `main` is checked out. A commit created on `main` must be the merge commit of an explicit verified-branch integration with an active `MERGE_HEAD`; the tracked hooks enforce this boundary and must not be bypassed with `--no-verify`.
+- After cloning or attaching a new checkout, run `pnpm setup:git-hooks`. The repository guard covers `pre-commit`, `pre-merge-commit`, `pre-applypatch`, `pre-rebase`, and `pre-push`; if `core.hooksPath` is missing or points outside this repository's tracked `.githooks`, repair it before development continues.
 - Before committing, exclude secrets, credentials, local-only configuration, generated artifacts, and test output from the staged scope. If a credentials or secrets file is already tracked, switch it to local-only ignore and keep the local copy on this machine; never commit credential content or credential updates.
 - For changes with user-visible impact, update release notes in the same step (see Release Notes Workflow); if the diff is purely internal, state explicitly that release notes were intentionally skipped.
 - Before ending a session, check `git status --short` and `git worktree list --porcelain`; clean up isolated worktrees created in this session that are fully merged and run `git worktree prune` where needed. Never delete the active workspace or anyone's unmerged, unfinished changes.
