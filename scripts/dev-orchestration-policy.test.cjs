@@ -6,6 +6,9 @@ const { spawnSync } = require("node:child_process");
 const { assertSupervisorStartupIntegrity, runServiceGroup } = require("./dev-service-supervisor.cjs");
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+const serverPackageJson = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "server", "package.json"), "utf8"),
+);
 
 function runGit(cwd, args) {
   const result = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
@@ -36,6 +39,11 @@ test("dev:raw delegates to the service supervisor instead of raw concurrently", 
   const script = packageJson.scripts?.["dev:raw"] ?? "";
   assert.match(script, /node scripts[\\/]dev-service-supervisor\.cjs/);
   assert.doesNotMatch(script, /concurrently/);
+});
+
+test("direct API development startup ensures the VoxCPM2 bridge first", () => {
+  const script = serverPackageJson.scripts?.["dev:api"] ?? "";
+  assert.match(script, /start-voxcpm2-bridge\.cjs/);
 });
 
 test("service supervisor restarts children independently and stops the group after persistent failure", async () => {
