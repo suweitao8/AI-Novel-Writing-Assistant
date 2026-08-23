@@ -168,6 +168,7 @@ export const queryKeys = {
     rag: ["settings", "rag"] as const,
     ragEmbeddingModels: (provider: string) => ["settings", "rag", "embedding-models", provider] as const,
     styleEngineRuntime: ["settings", "style-engine-runtime"] as const,
+    dramaVideoRenderProfile: ["settings", "drama-video-render-profile"] as const,
     dramaAssetArtStyles: ["settings", "drama-asset-styles"] as const,
     narratorVoice: ["settings", "narrator-voice"] as const,
     autoDirectorChannels: ["settings", "auto-director-channels"] as const,

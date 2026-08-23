@@ -9,7 +9,7 @@
 - **音频驱动一切**：每个镜头的目标时长 = 该镜全部台词音频的 ffprobe 实测时长之和（无配音时用 `shot.durationSec`，再退 3s）。字幕时间轴与镜头片段共用同一份时长，保证永不漂移。
 - **一行台词 = 一段音频 = 一条字幕**：不二次切分文本。有音频时字幕逐行对齐音频；无音频的镜头按台词断句后按字数权重分配时长。
 - **静态首帧画面**：镜头使用首帧图循环填充自己的时间段，不能添加推拉、平移或其它运镜；Remotion 与本地 ffmpeg 通道必须保持同一静态画面合同。
-- **统一画面合同**：开发默认 profile 为 1280x720 / 24fps；发布 profile 可切换为 1920x1080 / 24fps。两个 profile 都必须通过横屏 16:9 校验，项目不再产生竖屏成片。
+- **统一画面合同**：默认 profile 为 1280x720 / 24fps；用户可在「系统设置 → 设置总览 → 视频输出」切换为 1920x1080 / 24fps。两个 profile 都必须通过横屏 16:9 校验，项目不再产生竖屏成片。
 - **Remotion 单一画面出口**：整合器先建立连续场景和字幕帧范围，再由 `DramaEpisodeVideo` 一次渲染无声 H.264 画面；不再逐镜编码后用 concat demuxer 拼视频。
 - **音频与画面解耦但共用时长**：ffmpeg 只把每行配音规范化为 44100Hz、双声道 PCM WAV，拼成整集音频并在最后一步与 Remotion 画面封装为 AAC；没有配音的镜头用同长度静音 WAV。
 - **画面降级链**：优先用首帧图；没有首帧图时使用已有本地视频的第一帧；仍缺素材则由 Remotion 渲染深色占位卡。合成本身不触发任何 AI 生成，缺素材只进入 warnings，不阻断可播放成片。
@@ -18,10 +18,12 @@
 ## 当前规则
 
 - 入口：视频工作台（DramaProjectPage 分镜与视频页签）底部「整集合成」卡片。
+- 分辨率设置：`GET/PUT /api/settings/drama-video-render-profile` 读写全局 `AppSetting` key `drama.videoRenderProfile`，可选 `720p`（1280×720）和 `1080p`（1920×1080）；数据库设置优先于 `DRAMA_VIDEO_PROFILE`，未保存时默认为 720P。
 - 路由：
   - `GET /api/drama/projects/:id/episodes/:order/assembly` — 素材就绪度（视频片段/首帧兜底/占位/缺配音计数）+ 最近成片 + 进行中任务。
   - `POST /api/drama/projects/:id/episodes/:order/assembly` — 启动合成，body `{burnSubtitles?, includeTitleCard?, includeEndCard?}`（默认全 true）。
   - `GET /api/drama/subtitle-files/:fileId` — 下载 SRT。
+- 分辨率快照：整集合成在启动任务时读取一次 profile，任务期间切换设置不会改变正在运行的任务；本地 FFmpeg 视频任务在创建时读取 profile，timeline JSON 导出在导出请求时读取 profile。设置只影响后续输出，历史视频不重渲染。
 - 任务模型：复用 `DramaBatchJob`，`type="full_episode"`；progress JSON 在通用字段（total/done/failed/errors）外增加 `phase`（prepare/audio/render/mux/done）与产物字段 `videoUrl/srtUrl/durationSec/error`。客户端轮询 assembly 状态端点（2.5s）而非 project 轮询。
 - 产物：`storage/generated-videos/ep_{episodeId}_{ts}.mp4` + 同名 `.srt`；每次合成都产生新 fileId，历史产物保留不覆盖。
 - 结果记录：`DramaEpisode.assembledVideoData` JSON `{status: assembling|done|error, videoUrl, srtUrl, durationSec, shotCount, burnedSubtitles, generatedAt, warnings[]}`；warnings 是逐镜降级明细，合成仍然算完成。
@@ -38,6 +40,7 @@
 | `server/src/services/drama/video/DramaRemotionEpisodeAssembler.ts` | 场景/字幕时间轴、音频 WAV 规范化、Remotion 渲染、最终 mux、ffprobe 出口校验 |
 | `server/src/services/drama/video/DramaRemotionRenderer.ts` | 隔离 `video/` workspace，复制临时 public 素材并调用 Remotion Composition |
 | `server/src/services/drama/video/renderProfile.ts` | 720p/1080p profile 与横屏 16:9 合同 |
+| `server/src/services/settings/DramaVideoRenderProfileSettingsService.ts` | 全局分辨率设置的 AppSetting 持久化、环境变量回退和 profile 快照 |
 | `server/src/services/drama/video/ffmpegUtils.ts` | ffmpeg/ffprobe 子进程、时长探测和 ffmpeg 可用性断言 |
 | `server/src/services/drama/video/subtitleText.ts` | 字幕断句与换行（纯文本逻辑，可单测） |
 | `server/src/modules/drama/http/dramaRoutes.ts` | assembly GET/POST + subtitle-files 路由 |
@@ -52,6 +55,7 @@
 - **配音比脚本时长长**：镜头场景时长取配音总时长，Remotion 场景和字幕一起延长，不再依赖逐镜视频片段的变速/冻结策略。
 - **本地片段文件丢失**：该镜退化为首帧图或占位卡，进 warnings，不阻断整集。
 - **Remotion 或 ffprobe 合同失败**：无法确认最终 MP4 为目标横屏规格时，整集任务失败并保留错误，不把不符合规格的文件标成可播放成片。
+- **分辨率设置不可用**：设置表缺失时读取回退到环境变量/720P；数据库中的非法 profile 或保存失败会返回明确错误，不会静默生成未知尺寸的视频。
 
 ## 当前明确不在主链路的能力
 

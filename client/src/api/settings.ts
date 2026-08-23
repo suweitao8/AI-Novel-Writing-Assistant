@@ -99,6 +99,20 @@ export interface StyleEngineRuntimeSettingsStatus {
   maxStyleExtractionTimeoutMs: number;
 }
 
+export type DramaVideoRenderProfileId = "720p" | "1080p";
+
+export interface DramaVideoRenderProfile {
+  id: DramaVideoRenderProfileId;
+  width: number;
+  height: number;
+  fps: 24;
+}
+
+export interface DramaVideoRenderProfileSettings {
+  profile: DramaVideoRenderProfile;
+  options: DramaVideoRenderProfile[];
+}
+
 export interface LLMSelectionSettings {
   provider: LLMProvider;
   model: string;
@@ -263,6 +277,13 @@ export async function getRagEmbeddingModels(provider: EmbeddingProvider) {
 
 export async function getStyleEngineRuntimeSettings() {
   const { data } = await apiClient.get<ApiResponse<StyleEngineRuntimeSettingsStatus>>("/settings/style-engine-runtime");
+  return data;
+}
+
+export async function getDramaVideoRenderProfileSettings() {
+  const { data } = await apiClient.get<ApiResponse<DramaVideoRenderProfileSettings>>(
+    "/settings/drama-video-render-profile",
+  );
   return data;
 }
 
@@ -445,6 +466,16 @@ export interface DramaAssetArtStyleSettingsData {
 
 export async function getDramaAssetArtStyles() {
   const { data } = await apiClient.get<ApiResponse<DramaAssetArtStyleSettingsData>>("/settings/drama-asset-styles");
+  return data;
+}
+
+export async function saveDramaVideoRenderProfileSettings(payload: {
+  profile: DramaVideoRenderProfileId;
+}) {
+  const { data } = await apiClient.put<ApiResponse<DramaVideoRenderProfileSettings>>(
+    "/settings/drama-video-render-profile",
+    payload,
+  );
   return data;
 }
 

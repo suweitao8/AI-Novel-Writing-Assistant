@@ -1,6 +1,6 @@
 import { prisma } from "../../db/prisma";
 import { safeJsonParse } from "./utils/json";
-import { getDramaRenderProfile } from "./video/renderProfile";
+import { getConfiguredDramaRenderProfile } from "../settings/DramaVideoRenderProfileSettingsService";
 
 export type DramaProjectExportFormat = "markdown" | "json";
 export type DramaEpisodeExportFormat = "srt" | "timeline-json";
@@ -287,6 +287,7 @@ export class DramaExportService {
     }
 
     if (format === "timeline-json") {
+      const renderProfile = await getConfiguredDramaRenderProfile();
       const timeline = {
         format: "ai-novel.drama.timeline.v1",
         exportType: "rough_cut_timeline",
@@ -299,9 +300,9 @@ export class DramaExportService {
         },
         canvas: {
           aspectRatio: "16:9",
-          width: getDramaRenderProfile().width,
-          height: getDramaRenderProfile().height,
-          fps: getDramaRenderProfile().fps,
+          width: renderProfile.width,
+          height: renderProfile.height,
+          fps: renderProfile.fps,
         },
         tracks: {
           video: videoTrack,

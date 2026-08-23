@@ -54,6 +54,10 @@ import {
   type DramaAssetStyleKind,
 } from "../../../services/drama/visual/dramaVisualStyles";
 import { globalNarratorVoiceSettingsService } from "../../../services/settings/GlobalNarratorVoiceSettingsService";
+import {
+  getDramaVideoRenderProfileSettings,
+  saveDramaVideoRenderProfile,
+} from "../../../services/settings/DramaVideoRenderProfileSettingsService";
 import { registerCustomProviderRoutes } from "./customProviderRoutes";
 import { registerLLMSelectionRoutes } from "./llmSelectionRoutes";
 import { probeAudioSpeechChannel } from "../../../services/audio/speechProvider";
@@ -124,6 +128,10 @@ const styleEngineRuntimeSettingsSchema = z.object({
     .int()
     .min(MIN_STYLE_EXTRACTION_TIMEOUT_MS)
     .max(MAX_STYLE_EXTRACTION_TIMEOUT_MS),
+});
+
+const dramaVideoRenderProfileSettingsSchema = z.object({
+  profile: z.enum(["720p", "1080p"]),
 });
 
 type APIKeyRecordLike = {
@@ -321,6 +329,37 @@ router.put(
         success: true,
         data,
         message: "写法引擎运行设置保存成功。",
+      } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get("/drama-video-render-profile", async (_req, res, next) => {
+  try {
+    const data = await getDramaVideoRenderProfileSettings();
+    res.status(200).json({
+      success: true,
+      data,
+      message: "视频输出设置读取成功。",
+    } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put(
+  "/drama-video-render-profile",
+  validate({ body: dramaVideoRenderProfileSettingsSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof dramaVideoRenderProfileSettingsSchema>;
+      const data = await saveDramaVideoRenderProfile(body.profile);
+      res.status(200).json({
+        success: true,
+        data,
+        message: "视频输出设置已保存。",
       } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);
