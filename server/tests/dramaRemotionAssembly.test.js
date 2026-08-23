@@ -86,3 +86,68 @@ test("local visual/audio degradation remains a completed assembly with warnings"
   assert.equal(resolveAssemblyJobStatus({ renderSucceeded: true, muxSucceeded: true, probePassed: true, warningCount: 3 }), "done");
   assert.equal(resolveAssemblyJobStatus({ renderSucceeded: false, muxSucceeded: false, probePassed: false }), "failed");
 });
+
+test("independent audio segments are normalized concurrently before ordered concat", async () => {
+  const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "drama-audio-concurrency-test-"));
+  const outputPath = path.join(workDir, "episode.mp4");
+  const srtPath = path.join(workDir, "episode.srt");
+  const audioSource = path.join(workDir, "line.wav");
+  await fs.writeFile(audioSource, "fixture");
+  const normalizedOutputs = [];
+  let concatList = "";
+  let activeNormalizations = 0;
+  let maxActiveNormalizations = 0;
+  const runFfmpeg = async (args) => {
+    const output = args.at(-1);
+    const isNormalization = args.includes("-c:a") && args.includes("pcm_s16le")
+      && !args.some((arg) => arg.includes("normalized-audio-list.txt"));
+    if (isNormalization) {
+      activeNormalizations += 1;
+      maxActiveNormalizations = Math.max(maxActiveNormalizations, activeNormalizations);
+      await new Promise((resolve) => setTimeout(resolve, 8));
+      activeNormalizations -= 1;
+      normalizedOutputs.push(output);
+    }
+    const concatListPath = args.find((arg) => arg.includes("normalized-audio-list.txt"));
+    if (concatListPath) {
+      concatList = await fs.readFile(concatListPath, "utf8");
+    }
+    await fs.writeFile(output, "generated");
+  };
+  const renderer = {
+    render: async (input) => {
+      await fs.writeFile(input.outputPath, "silent-video");
+      return { outputPath: input.outputPath, durationInFrames: input.timeline.durationInFrames };
+    },
+  };
+  const probe = async () => ({
+    durationSec: 4,
+    video: { codecName: "h264", width: 1280, height: 720, fps: 24 },
+    audio: { codecName: "aac", sampleRate: 44100, channels: 2 },
+  });
+
+  await new DramaRemotionEpisodeAssembler({ renderer, runFfmpeg, probe }).assemble({
+    jobId: "concurrent-audio",
+    episodeTitle: "并发测试",
+    episodeOrder: 1,
+    profile: getDramaRenderProfile({ DRAMA_VIDEO_PROFILE: "720p" }),
+    shots: [0, 1, 2].map((order) => ({
+      shotId: `shot-${order}`,
+      order,
+      durationSec: 1,
+      imagePath: null,
+      audioLines: [{ text: `第 ${order} 句`, durationSec: 1, sourcePath: audioSource }],
+    })),
+    includeTitleCard: true,
+    includeEndCard: true,
+    showSubtitles: true,
+    outputPath,
+    srtPath,
+    workDir,
+  });
+
+  assert.ok(maxActiveNormalizations > 1, "independent audio segments should overlap");
+  assert.equal(normalizedOutputs.length, 5, "title, three shots, and end card must all be normalized");
+  assert.match(concatList, /audio-segment-0000\.wav[\s\S]*audio-segment-0001\.wav[\s\S]*audio-segment-0002\.wav[\s\S]*audio-segment-0003\.wav[\s\S]*audio-segment-0004\.wav/);
+  await fs.rm(workDir, { recursive: true, force: true });
+});

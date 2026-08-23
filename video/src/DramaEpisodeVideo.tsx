@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   AbsoluteFill,
   Img,
@@ -8,6 +8,7 @@ import {
   useVideoConfig,
 } from "remotion";
 import type { DramaEpisodeVideoProps, DramaVideoScene, DramaVideoSubtitle } from "./types";
+import { buildDramaSubtitleLookup, findActiveSubtitle } from "./subtitleLookup";
 
 export const DramaEpisodeVideo: React.FC<DramaEpisodeVideoProps> = (props) => (
   <AbsoluteFill style={{ backgroundColor: props.backgroundColor }}>
@@ -70,9 +71,8 @@ function SceneLayer({ scene }: { scene: DramaVideoScene }) {
 function SubtitleLayer({ subtitles }: { subtitles: DramaVideoSubtitle[] }) {
   const frame = useCurrentFrame();
   const { width, height } = useVideoConfig();
-  const active = subtitles.find((subtitle) =>
-    frame >= subtitle.startFrame && frame < subtitle.startFrame + subtitle.durationInFrames,
-  );
+  const lookup = useMemo(() => buildDramaSubtitleLookup(subtitles), [subtitles]);
+  const active = findActiveSubtitle(lookup, frame);
   if (!active) return null;
   const isNarration = active.type === "narration" || !active.speaker?.trim() || active.speaker.trim() === "旁白";
 

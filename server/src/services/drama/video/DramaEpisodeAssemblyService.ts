@@ -23,6 +23,14 @@ import {
   resolveFfmpegBin,
   runVideoProcess,
 } from "./ffmpegUtils";
+import {
+  mapDramaVideoTasksInOrder,
+  resolveDramaVideoPreparationConcurrency,
+} from "./videoProcessingConcurrency";
+import {
+  DramaAssemblyProgressTracker,
+  type DramaAssemblyProgressState,
+} from "./assemblyJobProgress";
 
 // 漫剧整集合成：Remotion 负责唯一的画面时间轴，ffmpeg 只负责音频规范化、最终封装与探测。
 // 这样每一镜的画面不再经过逐镜编码再 concat，成片合同也由 profile + ffprobe 在出口处校验。
@@ -53,14 +61,13 @@ interface AssemblyShotPlan extends DramaAssemblyShot {
   targetDurationSec: number;
 }
 
-interface AssemblyJobProgress {
+interface AssemblyJobProgress extends DramaAssemblyProgressState {
   total: number;
   done: number;
   failed: number;
   skipped: number;
   failedShotIds: string[];
   errors: Array<{ shotId: string; message: string }>;
-  phase: "prepare" | "audio" | "render" | "mux" | "done";
   provider?: string;
   videoUrl?: string;
   srtUrl?: string;
@@ -195,6 +202,8 @@ export class DramaEpisodeAssemblyService {
     }
     this.runningJobs.add(jobId);
     const workDir = path.join(os.tmpdir(), `cd-asm-${jobId.replace(/[^a-zA-Z0-9_-]/g, "")}`);
+    let progress: AssemblyJobProgress | undefined;
+    let progressTracker: DramaAssemblyProgressTracker<AssemblyJobProgress> | undefined;
     try {
       const episode = await this.loadEpisode(projectId, order);
       const shots = episode.storyboards[0]?.shots ?? [];
@@ -202,7 +211,7 @@ export class DramaEpisodeAssemblyService {
       const warnings: string[] = [];
       const plans: AssemblyShotPlan[] = [];
       const total = shots.length + (options.includeTitleCard ? 1 : 0) + (options.includeEndCard ? 1 : 0);
-      const progress: AssemblyJobProgress = {
+      progress = {
         total,
         done: 0,
         failed: 0,
@@ -212,15 +221,22 @@ export class DramaEpisodeAssemblyService {
         phase: "prepare",
         provider: "remotion",
       };
-      await this.updateJob(jobId, progress);
-      for (const shot of shots) {
-        plans.push(await this.buildShotPlan(shot, plans.length, workDir, warnings));
-        progress.done += 1;
-        await this.updateJob(jobId, progress);
-      }
-
-      progress.phase = "audio";
-      await this.updateJob(jobId, progress);
+      progressTracker = new DramaAssemblyProgressTracker(progress, (snapshot) => this.updateJob(jobId, snapshot));
+      await progressTracker.enqueue();
+      const preparedPlans = await mapDramaVideoTasksInOrder(
+        shots,
+        resolveDramaVideoPreparationConcurrency(),
+        async (shot, index) => {
+          const plan = await this.buildShotPlan(shot, index, workDir, warnings);
+          if (!progress) {
+            throw new Error("整集合成进度未初始化。");
+          }
+          progressTracker?.incrementDone();
+          return plan;
+        },
+      );
+      plans.push(...preparedPlans);
+      await progressTracker.flush();
 
       const finalFileId = `ep_${episode.id}_${Date.now()}`;
       const outputRoot = resolveGeneratedVideosRoot();
@@ -242,13 +258,16 @@ export class DramaEpisodeAssemblyService {
         workDir,
         warnings,
         onPhase: async (phase) => {
-          progress.phase = phase;
+          await progressTracker?.transition(phase);
+          if (!progress) {
+            return;
+          }
           if (phase === "render") {
             progress.done = Math.max(progress.done, Math.min(total - 1, Math.ceil(total * 0.75)));
           } else if (phase === "mux") {
             progress.done = Math.max(progress.done, Math.min(total - 1, Math.ceil(total * 0.9)));
           }
-          await this.updateJob(jobId, progress);
+          await progressTracker?.enqueue();
         },
       });
 
@@ -264,19 +283,30 @@ export class DramaEpisodeAssemblyService {
       };
       await this.writeAssembled(episode.id, assembled);
 
+      await progressTracker?.transition("done");
+      progressTracker?.finish();
       progress.phase = "done";
       progress.done = total;
       progress.videoUrl = assembled.videoUrl;
       progress.srtUrl = assembled.srtUrl;
       progress.durationSec = assembled.durationSec;
-      await this.updateJob(jobId, progress);
+      await progressTracker?.enqueue();
       // 缺分镜画面、缺配音或其它可恢复素材问题只进入 warnings，不得把可播放成片标成 failed。
       await prisma.dramaBatchJob.update({ where: { id: jobId }, data: { status: "done" } });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (progress) {
+        progressTracker?.finish();
+        progress.error = message.slice(0, 500);
+        await progressTracker?.enqueue();
+      }
+      await progressTracker?.flush();
       await prisma.dramaBatchJob.update({
         where: { id: jobId },
-        data: { status: "failed", progress: JSON.stringify({ phase: "mux", error: message.slice(0, 500) }) },
+        data: {
+          status: "failed",
+          progress: JSON.stringify(progress ?? { phase: "mux", error: message.slice(0, 500) }),
+        },
       }).catch(() => undefined);
       const episode = await prisma.dramaEpisode.findUnique({ where: { projectId_order: { projectId, order } } });
       if (episode) {
