@@ -12,9 +12,27 @@ export interface StoryAssetCardProps {
   className?: string;
 }
 
+// 类型配色（2026-08-23 用户要求：资产卡不要统一白色，按类型区分）：
+// 与脚本页的实体色一致——角色蓝、场景绿、道具黄；卡片边框与徽标同色系淡染。
+const KIND_TONES: Record<StoryAssetPresentation["kind"], { card: string; badge: string }> = {
+  character: {
+    card: "border-sky-500/30 bg-sky-500/[0.06]",
+    badge: "border-sky-500/40 bg-sky-500/15 text-sky-700 dark:text-sky-300",
+  },
+  scene: {
+    card: "border-emerald-500/30 bg-emerald-500/[0.06]",
+    badge: "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  },
+  prop: {
+    card: "border-amber-500/30 bg-amber-500/[0.06]",
+    badge: "border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  },
+};
+
 export function StoryAssetCard({ asset, compact = false, onOpen, actions, className }: StoryAssetCardProps) {
+  const tone = KIND_TONES[asset.kind];
   return (
-    <Card className={cn("min-w-0", className)}>
+    <Card className={cn("min-w-0", tone.card, className)}>
       <CardContent className={cn("space-y-2", compact ? "p-3" : "py-4")}>
         <div className="flex items-start gap-2">
           <button
@@ -24,7 +42,7 @@ export function StoryAssetCard({ asset, compact = false, onOpen, actions, classN
             aria-label={`查看${asset.typeLabel}「${asset.name}」详情`}
           >
             <span className="flex min-w-0 items-start gap-2">
-              <Badge variant="outline" className="shrink-0">{asset.typeLabel}</Badge>
+              <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
               <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
             </span>
             <p className={cn("mt-2 text-xs leading-5 text-muted-foreground", compact ? "line-clamp-2" : "line-clamp-3")}>
