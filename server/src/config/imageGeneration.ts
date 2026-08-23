@@ -1,7 +1,8 @@
-// 默认超时须覆盖 codex 桥（scripts/codex-image-bridge.cjs）900s 的生成预算：
-// 角色/场景/道具资产图全走 codex 订阅通道，复杂四视图经常超过 5 分钟，
-// 服务端若提前断开，桥里的 codex 进程仍在跑（浪费额度、占并发槽），前端只见超时。
-export const DEFAULT_IMAGE_GENERATION_HTTP_TIMEOUT_MS = 900_000;
+// 默认超时 3 分钟（2026-08-23 用户决定，同日从 900s 收紧）：超过 3 分钟大概率是环境问题
+// （代理断开、桥挂了），快速失败比干等好；断开时本地 codex 桥会同步杀掉 codex 进程，
+// 不浪费订阅额度也不占并发槽（scripts/codex-image-bridge.cjs 客户端断开即终止）。
+// 需要更长等待可设 IMAGE_GENERATION_HTTP_TIMEOUT_MS（上限 900s）。
+export const DEFAULT_IMAGE_GENERATION_HTTP_TIMEOUT_MS = 180_000;
 export const MIN_IMAGE_GENERATION_HTTP_TIMEOUT_MS = 30_000;
 export const MAX_IMAGE_GENERATION_HTTP_TIMEOUT_MS = 900_000;
 

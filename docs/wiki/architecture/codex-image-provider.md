@@ -19,7 +19,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI（应用侧参考图必须传本地文件路径——JSON 生成路径不解析 `input_image_url`，传 URL 会静默丢参考）。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。
-- **应用侧超时必须 ≥ 桥预算（2026-08-23 教训）**：`IMAGE_GENERATION_HTTP_TIMEOUT_MS` 默认已从 300 秒上调到 900 秒（`server/src/config/imageGeneration.ts`）。角色四视图这类复杂资产图经 codex 通道经常超过 5 分钟；此前服务端 5 分钟就断开报错，而桥里的 codex 进程会把 900 秒预算跑完——白烧订阅额度、占住并发槽，重试请求排队叠加，前端表现为「一直在生成中然后超时」。
+- **应用侧超时（2026-08-23 同日二次调整：默认 180 秒快速失败）**：`IMAGE_GENERATION_HTTP_TIMEOUT_MS` 默认 3 分钟（`server/src/config/imageGeneration.ts`）。当天历程：300s → 900s（对齐桥预算，等慢图）→ 用户实测后决定收回 180s——超过 3 分钟大概率是环境问题（代理断开、桥异常），快速失败优于干等；因为桥已支持「客户端断开即杀 codex」（下一条），提前断开**不再**白烧订阅额度或占并发槽，900s 时代的教训已由断开终止根治。前端「生成中」实时显示已耗时，用户也可随时点「终止」。需要更长等待设 `IMAGE_GENERATION_HTTP_TIMEOUT_MS`（上限 900s）。
 - **桥跟随客户端断开终止（2026-08-23）**：HTTP 客户端断开（服务端超时/取消）即 kill 本次 codex 进程并释放并发槽，不再为无人等待的请求跑满预算；每次请求在桥日志里记录 `done/failed ... in <ms>` 耗时行，排查慢请求先看这里（`%LOCALAPPDATA%\AINovel\codex-image-bridge\logs`）。
 
 ## 失败模式

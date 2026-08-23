@@ -37,13 +37,13 @@ function withEnv(overrides, run) {
     });
 }
 
-test("image generation timeout defaults to 900 seconds to cover the codex bridge budget", { concurrency: false }, async () => {
+test("image generation timeout defaults to 180 seconds (fast fail on broken environments)", { concurrency: false }, async () => {
   await withEnv({
     LLM_REQUEST_TIMEOUT_MS: undefined,
     IMAGE_GENERATION_HTTP_TIMEOUT_MS: undefined,
   }, async () => {
     const { imageGenerationConfig } = loadModule();
-    assert.equal(imageGenerationConfig.httpTimeoutMs, 900_000);
+    assert.equal(imageGenerationConfig.httpTimeoutMs, 180_000);
   });
 });
 
@@ -57,13 +57,13 @@ test("image generation timeout honors explicit env override", { concurrency: fal
   });
 });
 
-test("image generation timeout falls back to the 900s default floor even with a smaller global timeout", { concurrency: false }, async () => {
+test("image generation timeout uses larger global timeout fallback when image override is unset", { concurrency: false }, async () => {
   await withEnv({
     LLM_REQUEST_TIMEOUT_MS: "300000",
     IMAGE_GENERATION_HTTP_TIMEOUT_MS: undefined,
   }, async () => {
     const { imageGenerationConfig } = loadModule();
-    assert.equal(imageGenerationConfig.httpTimeoutMs, 900_000);
+    assert.equal(imageGenerationConfig.httpTimeoutMs, 300_000);
   });
 });
 

@@ -117,6 +117,24 @@ function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string 
   return label || "未命名状态";
 }
 
+/** 生成中的实时耗时（2026-08-23 用户要求）：挂载即开始计秒，让用户看得到已经等了多久、
+ * 判断是不是环境问题卡住（服务端 3 分钟自动超时，也可随时点「终止」）。 */
+function GeneratingElapsedLabel() {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    const startedAt = Date.now();
+    setElapsedSeconds(0);
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startedAt) / 1000)));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const formatted = elapsedSeconds < 60
+    ? `${elapsedSeconds} 秒`
+    : `${Math.floor(elapsedSeconds / 60)} 分 ${elapsedSeconds % 60} 秒`;
+  return <>生成中 {formatted}</>;
+}
+
 /** 保存前归一：trim；说明与图片提示词留空按状态名兜底；每个状态都要有状态名。
  * 状态不再单独保存（2026-08-22 用户决定统一由弹窗「保存」落库），编辑弹窗与提取
  * 应用弹窗的保存都要走这份归一，保证各处校验与兜底一致。 */
@@ -555,7 +573,7 @@ export function AssetStatesEditor(props: {
                   onClick={() => imageMutation.mutate(selectedState.id)}
                 >
                   {imageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                  {imageGenerating ? "生成中..." : selectedState.image?.url ? "重新生成图片" : "生成图片"}
+                  {imageGenerating ? <GeneratingElapsedLabel /> : selectedState.image?.url ? "重新生成图片" : "生成图片"}
                 </AiButton>
                 {imageGenerating ? (
                   <AiButton
