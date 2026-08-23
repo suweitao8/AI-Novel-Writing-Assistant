@@ -6,6 +6,7 @@ import type { StorySettingsCharacter, StorySettingsProp, StorySettingsScene } fr
 import {
   buildStoryAssetPresentation,
   StoryAssetPreview,
+  type StoryAssetPresentation,
   type StoryAssetSource,
 } from "@/components/storyAssets";
 import type { ReferenceExtractCharacter } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -60,19 +61,19 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return null;
   };
 
-  const existingPreviewFor = (group: ExtractGroup, name: string) => {
+  const existingPresentationFor = (group: ExtractGroup, name: string): StoryAssetPresentation | null => {
     const source = existingSourceFor(group, name);
     if (!source) {
       return null;
     }
     if (group === "characters") {
-      return buildStoryAssetPresentation({ kind: "character", asset: source as StorySettingsCharacter }).preview;
+      return buildStoryAssetPresentation({ kind: "character", asset: source as StorySettingsCharacter });
     }
     if (group === "scenes") {
-      return buildStoryAssetPresentation({ kind: "scene", asset: source as StorySettingsScene }).preview;
+      return buildStoryAssetPresentation({ kind: "scene", asset: source as StorySettingsScene });
     }
     if (group === "props") {
-      return buildStoryAssetPresentation({ kind: "prop", asset: source as StorySettingsProp }).preview;
+      return buildStoryAssetPresentation({ kind: "prop", asset: source as StorySettingsProp });
     }
     return null;
   };
@@ -95,7 +96,10 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const existing = existingFor(group, item.name);
-            const existingPreview = existing ? existingPreviewFor(group, item.name) : null;
+            const existingPresentation = existing ? existingPresentationFor(group, item.name) : null;
+            const defaultState = existingPresentation
+              ? existingPresentation.states.find((state) => state.label.trim() === "默认") ?? existingPresentation.states[0]
+              : null;
             return (
               <button
                 key={`${group}:${index}`}
@@ -109,7 +113,11 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
                 )}
               >
                 {group !== "worldview" ? (
-                  <StoryAssetPreview preview={existingPreview} className="w-20 shrink-0 sm:w-24" />
+                  <StoryAssetPreview
+                    preview={existingPresentation?.preview ?? null}
+                    status={defaultState?.imageStatus}
+                    className="w-20 shrink-0 sm:w-24"
+                  />
                 ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 flex-wrap items-center gap-1.5">

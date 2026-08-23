@@ -271,6 +271,14 @@ export interface DramaBatchProgress {
   srtUrl?: string;
   durationSec?: number;
   error?: string;
+  /** full_episode 各阶段的运行耗时，用于定位本地合成瓶颈。 */
+  timings?: {
+    prepareMs?: number;
+    audioMs?: number;
+    renderMs?: number;
+    muxMs?: number;
+    totalMs?: number;
+  };
 }
 
 export interface DramaBatchCostUnits {

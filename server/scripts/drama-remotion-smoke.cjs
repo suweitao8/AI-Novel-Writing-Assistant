@@ -23,7 +23,7 @@ async function run() {
       "-frames:v", "1", imagePath,
     ]);
 
-    const profile = getDramaRenderProfile({ DRAMA_VIDEO_PROFILE: "720p" });
+    const profile = getDramaRenderProfile({ DRAMA_VIDEO_PROFILE: process.env.DRAMA_VIDEO_PROFILE });
     const result = await new DramaRemotionEpisodeAssembler().assemble({
       jobId: "smoke-720p",
       episodeTitle: "Remotion 横屏验收",
@@ -45,8 +45,8 @@ async function run() {
       workDir,
     });
 
-    assert.equal(result.probe.video.width, 1280);
-    assert.equal(result.probe.video.height, 720);
+    assert.equal(result.probe.video.width, profile.width);
+    assert.equal(result.probe.video.height, profile.height);
     assert.equal(result.probe.video.fps, 24);
     assert.equal(result.probe.video.codecName, "h264");
     assert.equal(result.probe.audio.codecName, "aac");
@@ -56,6 +56,7 @@ async function run() {
       status: "SMOKE_OK",
       outputPath,
       durationSec: result.durationSec,
+      profile: profile.id,
       video: result.probe.video,
       audio: result.probe.audio,
     }));

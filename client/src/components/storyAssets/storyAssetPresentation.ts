@@ -4,11 +4,15 @@ import type {
   StorySettingsScene,
 } from "@/api/story/storySettings";
 
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type {
+  StoryAssetState,
+  StoryAssetStateImage,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
 export type StoryAssetPreviewMode = "character-left-square" | "center-square";
+export type StoryAssetImageStatus = StoryAssetStateImage["status"];
 
 export interface StoryAssetPreviewSource {
   url: string;
@@ -40,6 +44,8 @@ export interface StoryAssetStatePresentation {
   weatherLabel: string;
   chapterLabel: string;
   imageUrl: string;
+  imageStatus: StoryAssetImageStatus | null;
+  imageError: string;
   voiceSampleUrl: string;
 }
 
@@ -147,6 +153,8 @@ function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresenta
     weatherLabel: labelFor(SCENE_WEATHER_LABELS, state.weather),
     chapterLabel: state.chapterOrder ? `第 ${state.chapterOrder} 章` : "",
     imageUrl: state.image?.url ? buildStateImageSrc(state.image.url, state.image.generatedAt ?? undefined) : "",
+    imageStatus: state.image?.status ?? null,
+    imageError: clean(state.image?.error),
     voiceSampleUrl: clean(state.voice?.sampleAudioUrl),
   };
 }

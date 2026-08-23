@@ -6,14 +6,15 @@
 
 ## 决策
 
-- **音频驱动一切**：每个镜头的目标时长 = 该镜全部台词音频的 ffprobe 实测时长之和（无配音时用 `shot.durationSec`，再退 3s）。字幕时间轴与镜头片段共用同一份时长，保证永不漂移。
-- **一行台词 = 一段音频 = 一条字幕**：不二次切分文本。有音频时字幕逐行对齐音频；无音频的镜头按台词断句后按字数权重分配时长。
+- **音频驱动一切**：每个镜头的目标时长 = 该镜全部台词音频的 ffprobe 实测时长之和。没有可测量的真实配音时，整集合成拒绝建立伪时长时间轴；字幕时间轴与镜头片段共用同一份时长，保证永不漂移。
+- **一行台词 = 一段音频 = 一条字幕**：不二次切分文本。字幕逐行对齐真实音频，不使用字数估算生成伪时长。
 - **静态首帧画面**：镜头使用首帧图循环填充自己的时间段，不能添加推拉、平移或其它运镜；Remotion 与本地 ffmpeg 通道必须保持同一静态画面合同。
 - **统一画面合同**：默认 profile 为 1280x720 / 24fps；用户可在「系统设置 → 设置总览 → 视频输出」切换为 1920x1080 / 24fps。两个 profile 都必须通过横屏 16:9 校验，项目不再产生竖屏成片。
 - **Remotion 单一画面出口**：整合器先建立连续场景和字幕帧范围，再由 `DramaEpisodeVideo` 一次渲染无声 H.264 画面；不再逐镜编码后用 concat demuxer 拼视频。
 - **音频与画面解耦但共用时长**：ffmpeg 只把每行配音规范化为 44100Hz、双声道 PCM WAV，拼成整集音频并在最后一步与 Remotion 画面封装为 AAC；没有配音的镜头用同长度静音 WAV。
 - **画面降级链**：优先用首帧图；没有首帧图时使用已有本地视频的第一帧；仍缺素材则由 Remotion 渲染深色占位卡。合成本身不触发任何 AI 生成，缺素材只进入 warnings，不阻断可播放成片。
 - **出口校验**：最终 MP4 必须存在 H.264 视频流、AAC 音频流、profile 分辨率和 24fps；ffprobe 校验失败才把整集任务标为 failed。
+- **受控并发只在独立准备阶段使用**：镜头素材准备、分段 WAV 规范化和 Remotion public 素材复制可分别受控并发；输出数组和 concat 清单始终按镜头/分段原始顺序。最终音轨 concat、Remotion 整集渲染、mux 与 ffprobe 保持串行，避免时间轴变化和资源争抢。
 
 ## 当前规则
 
@@ -24,7 +25,8 @@
   - `POST /api/drama/projects/:id/episodes/:order/assembly` — 启动合成，body `{burnSubtitles?, includeTitleCard?, includeEndCard?}`（默认全 true）。
   - `GET /api/drama/subtitle-files/:fileId` — 下载 SRT。
 - 分辨率快照：整集合成在启动任务时读取一次 profile，任务期间切换设置不会改变正在运行的任务；本地 FFmpeg 视频任务在创建时读取 profile，timeline JSON 导出在导出请求时读取 profile。设置只影响后续输出，历史视频不重渲染。
-- 任务模型：复用 `DramaBatchJob`，`type="full_episode"`；progress JSON 在通用字段（total/done/failed/errors）外增加 `phase`（prepare/audio/render/mux/done）与产物字段 `videoUrl/srtUrl/durationSec/error`。客户端轮询 assembly 状态端点（2.5s）而非 project 轮询。
+- 任务模型：复用 `DramaBatchJob`，`type="full_episode"`；progress JSON 在通用字段（total/done/failed/errors）外增加 `phase`（prepare/audio/render/mux/done）、`timings`（各阶段与总毫秒耗时）与产物字段 `videoUrl/srtUrl/durationSec/error`。客户端轮询 assembly 状态端点（2.5s）而非 project 轮询。
+- 并发配置：镜头/音频预处理默认 3 (`DRAMA_VIDEO_PREPARATION_CONCURRENCY`)，Remotion public 素材复制默认 4 (`DRAMA_VIDEO_MEDIA_COPY_CONCURRENCY`)，均限制在 1–8。Remotion 画面渲染默认 4 worker (`DRAMA_REMOTION_CONCURRENCY`)，同样限制在 1–8；资源紧张机器可显式调低。
 - 产物：`storage/generated-videos/ep_{episodeId}_{ts}.mp4` + 同名 `.srt`；每次合成都产生新 fileId，历史产物保留不覆盖。
 - 结果记录：`DramaEpisode.assembledVideoData` JSON `{status: assembling|done|error, videoUrl, srtUrl, durationSec, shotCount, burnedSubtitles, generatedAt, warnings[]}`；warnings 是逐镜降级明细，合成仍然算完成。
 - 片头卡 3s（剧名 · 第 N 集）、片尾卡 2s（敬请期待下集）由 Remotion 直接渲染，不依赖本机字体探测。
@@ -37,12 +39,14 @@
 | 模块 | 职责 |
 |---|---|
 | `server/src/services/drama/video/DramaEpisodeAssemblyService.ts` | Prisma 任务入口：素材计划、状态投影、结果落库与可恢复告警 |
+| `server/src/services/drama/video/assemblyJobProgress.ts` | 并发准备阶段的进度快照串行写入、阶段耗时和失败前已完成耗时保留 |
 | `server/src/services/drama/video/DramaRemotionEpisodeAssembler.ts` | 场景/字幕时间轴、音频 WAV 规范化、Remotion 渲染、最终 mux、ffprobe 出口校验 |
 | `server/src/services/drama/video/DramaRemotionRenderer.ts` | 隔离 `video/` workspace，复制临时 public 素材并调用 Remotion Composition |
 | `server/src/services/drama/video/renderProfile.ts` | 720p/1080p profile 与横屏 16:9 合同 |
 | `server/src/services/settings/DramaVideoRenderProfileSettingsService.ts` | 全局分辨率设置的 AppSetting 持久化、环境变量回退和 profile 快照 |
 | `server/src/services/drama/video/ffmpegUtils.ts` | ffmpeg/ffprobe 子进程、时长探测和 ffmpeg 可用性断言 |
 | `server/src/services/drama/video/subtitleText.ts` | 字幕断句与换行（纯文本逻辑，可单测） |
+| `video/src/subtitleLookup.ts` | 字幕 active cue 的区间索引；兼容重叠 cue 时原先的首个激活项优先语义 |
 | `server/src/modules/drama/http/dramaRoutes.ts` | assembly GET/POST + subtitle-files 路由 |
 | `client/src/pages/drama/components/DramaVisualPanel.tsx` `AssemblySection` | 就绪度统计、选项、进度（phase 标签）、成片播放、SRT 下载、重新合成 |
 | `client/src/api/drama.ts` | `DramaAssembledVideoData` / `DramaEpisodeAssemblyStatus` 类型与两个 API |

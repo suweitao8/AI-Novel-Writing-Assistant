@@ -5,6 +5,10 @@ import path from "node:path";
 import { resolveServerRoot } from "../../../runtime/appPaths";
 import type { DramaRenderProfile } from "./renderProfile";
 import type { DramaVideoTimeline } from "./dramaVideoTimeline";
+import {
+  mapDramaVideoTasksInOrder,
+  resolveDramaVideoMediaCopyConcurrency,
+} from "./videoProcessingConcurrency";
 
 export interface DramaRemotionPublicFile {
   sourcePath: string;
@@ -43,11 +47,15 @@ export class DramaRemotionRenderer {
   async render(input: DramaRemotionRenderInput): Promise<DramaRemotionRenderResult> {
     const publicDir = await fs.mkdtemp(path.join(os.tmpdir(), `drama-remotion-${sanitize(input.jobId)}-`));
     try {
-      for (const file of input.publicFiles) {
-        const targetPath = resolvePublicPath(publicDir, file.publicPath);
-        await fs.mkdir(path.dirname(targetPath), { recursive: true });
-        await fs.copyFile(file.sourcePath, targetPath);
-      }
+      await mapDramaVideoTasksInOrder(
+        input.publicFiles,
+        resolveDramaVideoMediaCopyConcurrency(),
+        async (file) => {
+          const targetPath = resolvePublicPath(publicDir, file.publicPath);
+          await fs.mkdir(path.dirname(targetPath), { recursive: true });
+          await fs.copyFile(file.sourcePath, targetPath);
+        },
+      );
 
       const propsPath = path.join(publicDir, "props.json");
       await fs.writeFile(propsPath, JSON.stringify({
