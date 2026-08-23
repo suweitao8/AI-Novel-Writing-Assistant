@@ -25,6 +25,18 @@ test("drama prompt assets are registered", () => {
   }
 });
 
+test("drama video prompt contract is fixed to landscape 16:9", () => {
+  const { dramaVideoPromptOutputSchema, dramaVideoPromptPrompt } = require("../dist/prompting/prompts/drama/drama.prompts.js");
+  assert.equal(dramaVideoPromptOutputSchema.parse({ prompt: "横屏镜头" }).aspectRatio, "16:9");
+  assert.throws(
+    () => dramaVideoPromptOutputSchema.parse({ prompt: "竖屏镜头", aspectRatio: "9:16" }),
+    /16:9|Invalid input/,
+  );
+  const rendered = dramaVideoPromptPrompt.render({ shotJson: "{}", charactersDigest: "" });
+  assert.match(rendered[0].content, /16:9/);
+  assert.doesNotMatch(rendered[0].content, /9:16/);
+});
+
 test("drama.storyboard v4 每镜可标角色状态，且状态角色必须在 characterRefs 里", () => {
   const { dramaStoryboardOutputSchema } = require("../dist/prompting/prompts/drama/drama.prompts.js");
   const parsed = dramaStoryboardOutputSchema.parse({
@@ -423,5 +435,17 @@ test("drama migrations include pipeline tables for sqlite and postgres", () => {
     assert.match(sql, /version/);
     assert.match(sql, /supersededById/);
     assert.match(sql, /DramaVideoPrompt_projectId_shotId_version_idx/);
+  }
+  const sqliteLandscapeSql = fs.readFileSync(
+    path.join(root, "migrations.sqlite", "20260823120000_landscape_drama_video_defaults", "migration.sql"),
+    "utf8",
+  );
+  const postgresLandscapeSql = fs.readFileSync(
+    path.join(root, "migrations", "20260823120000_landscape_drama_video_defaults", "migration.sql"),
+    "utf8",
+  );
+  for (const sql of [sqliteLandscapeSql, postgresLandscapeSql]) {
+    assert.match(sql, /horizontal_16_9/);
+    assert.match(sql, /16:9/);
   }
 });

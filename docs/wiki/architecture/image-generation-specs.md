@@ -11,7 +11,7 @@
 | `characterSheet` | 角色四视图/表情稿（漫画与漫剧） | 1536x1024 请求；Grok Build 归一化为 1280x720 | 横版：四视图按固定顺序并排，最终产物为 16:9 |
 | `scenePanorama` | 场景 360° 全景参考图（状态图与旧版全景） | 2048x1024 请求（2:1 等距柱状） | 2:1 是 equirectangular 标准比例；只有 Codex 通道支持该比例，场景图统一走 Codex（2026-08-23 用户要求） |
 | `characterAsset` | 服装/武器等角色资产设计参考图 | 1536x1024 | 横版：旧项目道具参考图固定横屏 |
-| `dramaKeyframe` | 漫剧分镜首帧 | 1024x1536 | 竖版 2:3：竖屏阅读形态 |
+| `dramaKeyframe` | 漫剧分镜首帧 | 1536x864 | 横版 16:9：服务于横屏视频镜头 |
 | `comicPanelFallback` | 漫画分格兜底画幅 | 1024x1536 | 竖版：正式值跟随漫画模板 imageSize |
 | `novelCover` | 小说封面 | 1024x1536 | 竖版：与 `shared/types/image.ts` 常量同源 |
 

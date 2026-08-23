@@ -16,6 +16,7 @@ test("Remotion root exposes the landscape DramaEpisodeVideo composition", () => 
   assert.match(root, /width:\s*1280/);
   assert.match(root, /height:\s*720/);
   assert.match(root, /fps:\s*24/);
+  assert.match(root, /landscape 16:9/);
 });
 
 test("scene props carry a deterministic frame range and landscape media source", () => {

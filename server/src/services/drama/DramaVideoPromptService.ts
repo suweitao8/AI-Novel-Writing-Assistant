@@ -145,7 +145,8 @@ export class DramaVideoPromptService {
           provider: resolveDefaultVideoProvider(),
           prompt: output.prompt,
           negativePrompt: output.negativePrompt ?? null,
-          aspectRatio: output.aspectRatio || "16:9",
+          // 视频生产合同固定为横屏 16:9；schema 已限制模型输出，落库和 provider 请求再做一次边界收敛。
+          aspectRatio: "16:9",
           durationSec: output.durationSec ?? shot.durationSec,
           status: "prompted",
           version,
@@ -181,7 +182,7 @@ export class DramaVideoPromptService {
     const request: VideoGenerationRequest = {
       prompt: videoPrompt.prompt,
       negativePrompt: videoPrompt.negativePrompt,
-      aspectRatio: videoPrompt.aspectRatio,
+      aspectRatio: "16:9",
       durationSec: videoPrompt.durationSec,
     };
     if (refImages.length) {

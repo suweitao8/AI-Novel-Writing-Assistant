@@ -64,7 +64,7 @@
 ### Current Rule
 
 - 资产图/状态图按 `buildAssetStylePromptLines(kind, asset, specific)` 组装：固定规格 → 类别标签 → 类别正向画风 → 小说时代/题材风格。
-- 分镜首帧按镜头实际出现的角色、地点和道具选择类别，只注入类别标签、正向画风和对应负面约束；固定四视图、360° 全景、45° 透视只属于参考资产，不进入竖屏首帧提示词。
+- 分镜首帧按镜头实际出现的角色、地点和道具选择类别，只注入类别标签、正向画风和对应负面约束；固定四视图、360° 全景、45° 透视只属于参考资产，不进入横屏视频首帧提示词。
 - 统一解析入口 `resolveDramaArtStyleContext` 返回 `assets.character/scene/prop` 与 `specific`。时代风格仍按脚本标记、项目选择、小说默认、内置默认的原顺序解析。
 - 设置入口是 `/settings/art-style` 的“画风管理”页，GET `/api/settings/drama-asset-styles` 返回三张卡，PUT `/api/settings/drama-asset-styles/:kind` 只更新一个类别。保存一个类别不能覆盖其他类别。
 

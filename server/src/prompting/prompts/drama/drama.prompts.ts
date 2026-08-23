@@ -79,7 +79,7 @@ export const dramaTrackRecommendationPrompt: PromptAsset<
   outputSchema: dramaTrackRecommendationOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏付费短剧选题策划，负责帮创作新手从故事素材中选择最适合的短剧赛道。",
+      "你是短剧选题策划，负责帮创作新手从故事素材中选择最适合的短剧赛道。",
       "必须根据故事核心冲突、主角处境、爽点兑现方式和付费短剧赛道规则作判断。",
       "只能从给定赛道目录中选择 recommendedTrack 和 alternatives.track。",
       "只输出符合 schema 的 JSON，不要 Markdown。",
@@ -142,7 +142,7 @@ export const dramaSourceSupplementPrompt: PromptAsset<
   outputSchema: dramaSourceSupplementOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧素材诊断助手，负责判断 SourceBundle 是否足够进入策略、分集和台本生成。",
+      "你是短剧素材诊断助手，负责判断 SourceBundle 是否足够进入策略、分集和台本生成。",
       "你的输出要帮助创作新手补齐最关键的信息，问题必须具体、易回答、能直接改善后续生成。",
       "不要把普通小瑕疵说成阻断；只有素材严重不足或需要重整内容包时才建议 rebuild_source_bundle。",
       "只输出符合 schema 的 JSON，不要 Markdown。",
@@ -185,7 +185,7 @@ export const dramaOriginalSourcePrompt: PromptAsset<
   outputSchema: dramaSourceBundleOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏付费短剧策划，负责把原创灵感整理为可进入短剧产线的标准内容包。",
+      "你是短剧策划，负责把原创灵感整理为可进入短剧产线的标准内容包。",
       "必须用 AI 结构化理解补齐主线、角色、关键节拍和硬事实。",
       "只输出符合 schema 的 JSON，不要 Markdown。",
     ].join("\n")),
@@ -223,7 +223,7 @@ export const dramaTextImportSourcePrompt: PromptAsset<
   outputSchema: dramaSourceBundleOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧改编策划，负责把导入文本解析成与来源无关的 SourceBundle。",
+      "你是短剧改编策划，负责把导入文本解析成与来源无关的 SourceBundle。",
       "要保留核心人物、冲突、反转、硬事实和可改编节拍，避免逐字复述。",
       "只输出符合 schema 的 JSON，不要 Markdown。",
     ].join("\n")),
@@ -288,7 +288,7 @@ export const dramaStrategyPrompt: PromptAsset<
   outputSchema: dramaStrategyOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是顶尖的竖屏付费短剧操盘人，擅长把一个故事改编成高完播、高付费转化的短剧。",
+      "你是顶尖的短剧操盘人，擅长把一个故事改编成高完播、高付费转化的短剧。",
       "你的任务是基于内容梗概与赛道法则，产出这部短剧的改编策略。",
       "只输出符合 schema 的严格 JSON，不要 Markdown、解释或代码块。",
     ].join("\n")),
@@ -303,7 +303,7 @@ export const dramaStrategyPrompt: PromptAsset<
       `【免费引流】前 ${input.freeEpisodes} 集`,
       `【首付费点】第 ${input.firstPaywallAt} 集`,
       "",
-      "请输出这部竖屏付费短剧的改编策略 JSON。",
+      "请输出这部短剧的改编策略 JSON。",
       "paywallPlan.firstPaywallAt 必须在第 8-15 集之间，并结合素材确定首付费点。",
       "paywallPlan.intensityCurve 要把免费引流、付费前蓄憋屈、首付费强卡点和后续连续付费卡点拆成可执行区间。",
     ].join("\n")),
@@ -352,7 +352,7 @@ export const dramaEpisodeOutlinePrompt: PromptAsset<
   outputSchema: dramaEpisodeOutlineOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是顶尖的竖屏付费短剧编剧，负责把故事切成强钩子、强卡点的分集结构。",
+      "你是顶尖的短剧编剧，负责把故事切成强钩子、强卡点的分集结构。",
       "每集必须包含黄金3秒钩子、主钩子类型、核心冲突、集尾卡点、情绪净值和源映射。",
       "只输出符合 schema 的严格 JSON，不要 Markdown、解释或代码块。",
     ].join("\n")),
@@ -404,7 +404,7 @@ export const dramaScriptPrompt: PromptAsset<DramaScriptPromptInput, DramaScriptO
   outputSchema: dramaScriptOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏付费短剧台本编剧。输出必须可拍、对白密集、冲突推进快。",
+      "你是短剧台本编剧。输出必须可拍、对白密集、冲突推进快。",
       "台本要包含角色名、动作提示和对白；不要写小说化大段心理描写。",
       "开场 3 秒必须有冲突/悬念/反差，结尾必须有强卡点。",
       "只输出符合 schema 的 JSON。",
@@ -479,7 +479,7 @@ export const dramaQualityPrompt: PromptAsset<DramaQualityPromptInput, DramaQuali
   outputSchema: dramaQualityOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏付费短剧质量闸，检查台本是否适合高完播和付费转化。",
+      "你是短剧质量闸，检查台本是否适合高完播和付费转化。",
       "重点检查黄金3秒、信息密度、付费卡点、情绪曲线、时长、事实一致和角色一致。",
       "本地质量问题应给出可修复建议；只有无可用内容或严重事实冲突才 blocked。",
       "只输出符合 schema 的 JSON。",
@@ -515,7 +515,7 @@ export const dramaCompliancePrompt: PromptAsset<DramaCompliancePromptInput, Dram
   outputSchema: dramaComplianceOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧平台合规预检员，负责在台本进入拍摄或视频生成前发现高频驳回风险。",
+      "你是短剧平台合规预检员，负责在台本进入拍摄或视频生成前发现高频驳回风险。",
       "检查范围包括但不限于：暴力血腥过度呈现、医疗误导、封建迷信宣称、低俗擦边、违法犯罪教学、广告法绝对化用语、未成年人不当内容、危险行为模仿。",
       "level=pass 表示未发现明显平台驳回风险；level=warn 表示可继续但建议改写；level=block 表示进入生产前必须修复。",
       "只输出符合 schema 的 JSON，不要 Markdown。",
@@ -545,7 +545,7 @@ export const dramaRepairPrompt: PromptAsset<{
   outputSchema: dramaScriptOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧台本修复编剧。基于明确修复指令重写这一集台本。",
+      "你是短剧台本修复编剧。基于明确修复指令重写这一集台本。",
       "保持本集大纲目标不变，修复钩子、卡点、时长、事实或角色问题。",
       "只输出符合 schema 的 JSON。",
     ].join("\n")),
@@ -616,7 +616,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
   postValidate: validateDramaStoryboard,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
+      "你是横屏漫剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
       "每个镜头必须能服务冲突推进，避免空镜和环境铺陈。",
       "action 写这一镜的画面：出现的角色一律用「角色视觉锚点」里的角色全名，台本里用「妹妹」「大哥」「老板」等称谓的，换成对应角色的全名再写——后续按名字给镜头挂角色参考图，称谓对不上角色就画不出对应形象。",
       "action 里要写清每个角色的位置与姿态（站/坐/躺/蹲、面向哪边、在画面中的方位）；同一地点内相邻镜头的位置要连贯，角色起身/坐下/躺下/走动等位置变化必须写明，不要让人物在镜头之间无故换位。",
@@ -635,7 +635,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
 export const dramaVideoPromptOutputSchema = z.object({
   prompt: z.string().trim().min(1),
   negativePrompt: z.string().trim().optional(),
-  aspectRatio: z.string().trim().default("9:16"),
+  aspectRatio: z.literal("16:9").default("16:9"),
   durationSec: z.number().int().min(1).max(30).optional(),
 });
 
@@ -654,8 +654,8 @@ export const dramaVideoPromptPrompt: PromptAsset<{
   outputSchema: dramaVideoPromptOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏 AI 视频提示词导演。把单个短剧镜头转成视频生成提示词。",
-      "提示词必须保留角色视觉锚点、动作、情绪、镜头语言和 9:16 竖屏构图。",
+      "你是横屏 AI 视频提示词导演。把单个漫剧镜头转成视频生成提示词。",
+      "提示词必须保留角色视觉锚点、动作、情绪、镜头语言和 16:9 横屏构图。",
       "只输出符合 schema 的 JSON。",
     ].join("\n")),
     new HumanMessage([

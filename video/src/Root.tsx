@@ -25,11 +25,16 @@ export const RemotionRoot: FC = () => (
     height={defaultProps.height}
     calculateMetadata={({ props }) => {
       const next = props as unknown as DramaEpisodeVideoProps;
+      const width = next.width ?? defaultProps.width;
+      const height = next.height ?? defaultProps.height;
+      if (width * 9 !== height * 16) {
+        throw new Error(`DramaEpisodeVideo only supports landscape 16:9 output, received ${width}x${height}`);
+      }
       return {
         durationInFrames: Math.max(1, Math.round(next.durationInFrames ?? defaultProps.durationInFrames)),
         fps: next.fps ?? defaultProps.fps,
-        width: next.width ?? defaultProps.width,
-        height: next.height ?? defaultProps.height,
+        width,
+        height,
         props: { ...defaultProps, ...next },
       };
     }}

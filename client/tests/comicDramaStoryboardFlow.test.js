@@ -23,9 +23,9 @@ test("storyboard page exposes generation and episode assembly actions", () => {
 
   assert.match(panelSource, /DramaEpisodeAssemblyPanel/);
   assert.match(panelSource, /生成/);
-  assert.doesNotMatch(panelSource, /生成分镜/);
   assert.match(assemblySource, /getDramaEpisodeAssembly/);
   assert.match(assemblySource, /startDramaEpisodeAssembly/);
+  assert.match(assemblySource, /横屏 16:9/);
   assert.match(assemblySource, /合成/);
   assert.match(assemblySource, /assembled\?\.status === "done"/);
 });

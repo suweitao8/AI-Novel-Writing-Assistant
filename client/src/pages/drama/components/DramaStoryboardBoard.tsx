@@ -81,7 +81,8 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewShot, setPreviewShot] = useState<DramaShot | null>(null);
   const [gridPreviewOpen, setGridPreviewOpen] = useState(false);
-  const isVertical = props.orientation.startsWith("vertical");
+  // 漫剧视频统一输出横屏 16:9；orientation 仅保留为历史项目兼容字段。
+  const isVertical = false;
 
   const shotsWithState = useMemo(
     () => shots.map((shot) => ({ shot, keyframe: parseKeyframe(shot.keyframeData) })),

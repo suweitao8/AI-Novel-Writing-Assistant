@@ -4,7 +4,7 @@
 
 ## 背景
 
-短剧创作模块的目标不是给小说详情页增加一个下游改编按钮，而是提供独立的竖屏付费短剧创作链路。小说只是内容来源之一，原创灵感和外部文本也必须能进入同一条短剧产线。
+短剧创作模块的目标不是给小说详情页增加一个下游改编按钮，而是提供独立的横屏漫剧创作链路。小说只是内容来源之一，原创灵感和外部文本也必须能进入同一条短剧产线。
 
 如果短剧能力直接调用小说业务服务，后续会出现三个问题：
 
@@ -46,7 +46,7 @@ Provider 替换不得影响：
 - 分镜模型。
 - 角色视觉锚点。
 
-当前默认 provider 由 `VideoProviderPort` 统一解析：优先使用已注册的 `DRAMA_VIDEO_DEFAULT_PROVIDER`，否则使用已注册的 `local_ffmpeg`，最后才回退到 `mock`。`local_ffmpeg` 负责使用首帧图和配音合成本地真实视频；`mock` 只用于显式联调，不应成为业务入口散落的硬编码默认值。接入新的真实 provider 时应新增 adapter，不应把供应商字段写入核心策略或分镜规则。
+当前默认 provider 由 `VideoProviderPort` 统一解析：优先使用已注册的 `DRAMA_VIDEO_DEFAULT_PROVIDER`，否则使用已注册的 `local_ffmpeg`，最后才回退到 `mock`。`local_ffmpeg` 负责使用首帧图和配音生成横屏 16:9 本地视频素材；整集合成由 Remotion Composition 统一完成，`mock` 只用于显式联调，不应成为业务入口散落的硬编码默认值。接入新的真实 provider 时应新增 adapter，不应把供应商字段写入核心策略或分镜规则。
 
 视频任务创建与状态查询必须保持异步 provider 边界：前端只轮询当前提示词的 queued/running 任务，终态由 provider 回执投影为 succeeded/failed；失败重试沿用同一提示词和参考素材，更新 providerTaskId 并清除旧的 resultUrl/failureReason，不重新生成 Prompt，也不让历史 superseded 记录重新进入生产链。
 

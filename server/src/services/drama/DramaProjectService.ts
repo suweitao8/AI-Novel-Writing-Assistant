@@ -43,6 +43,7 @@ export class DramaProjectService {
         sourceInput: input.rawText ?? input.inspiration ?? null,
         track: input.track ?? null,
         theme: input.theme ?? null,
+        orientation: "horizontal_16_9",
         targetEpisodes: input.targetEpisodes ?? 80,
         visualStyle: input.visualStyle ?? null,
         status: "draft",

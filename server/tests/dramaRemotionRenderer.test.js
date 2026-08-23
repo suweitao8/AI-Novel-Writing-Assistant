@@ -6,7 +6,20 @@ const path = require("node:path");
 
 const { getDramaRenderProfile } = require("../dist/services/drama/video/renderProfile.js");
 const { buildDramaVideoTimeline } = require("../dist/services/drama/video/dramaVideoTimeline.js");
-const { DramaRemotionRenderer } = require("../dist/services/drama/video/DramaRemotionRenderer.js");
+const { DramaRemotionRenderer, resolveRemotionProcess } = require("../dist/services/drama/video/DramaRemotionRenderer.js");
+
+test("Windows Remotion runner invokes pnpm through cmd.exe", () => {
+  const processSpec = resolveRemotionProcess(["exec", "remotion", "--version"]);
+  if (process.platform === "win32") {
+    assert.equal(processSpec.command.toLowerCase(), "pnpm.cmd");
+    assert.equal(processSpec.shell, true);
+    const pathSpec = resolveRemotionProcess(["render", "C:\\temp\\remotion-video.mp4"]);
+    assert.equal(pathSpec.args.at(-1), "C:\\temp\\remotion-video.mp4");
+  } else {
+    assert.equal(processSpec.command, "pnpm");
+    assert.deepEqual(processSpec.args, ["exec", "remotion", "--version"]);
+  }
+});
 
 test("drama timeline converts contiguous seconds into landscape frame ranges", () => {
   const timeline = buildDramaVideoTimeline({
@@ -45,8 +58,10 @@ test("renderer writes props, copies public media, and invokes the landscape comp
     videoPackageRoot: path.join(workRoot, "video"),
     runRemotion: async (args, cwd) => {
       calls.push({ args, cwd });
-      const propsPath = args[args.indexOf("--props") + 1];
-      const publicDir = args[args.indexOf("--public-dir") + 1];
+      const propsArg = args.find((arg) => arg.startsWith("--props="));
+      const publicDirArg = args.find((arg) => arg.startsWith("--public-dir="));
+      const propsPath = propsArg.slice("--props=".length);
+      const publicDir = publicDirArg.slice("--public-dir=".length);
       propsSnapshot = JSON.parse(await fs.readFile(propsPath, "utf8"));
       publicFileSnapshot = await fs.readFile(path.join(publicDir, "images/shot-1.png"), "utf8");
     },
@@ -71,6 +86,7 @@ test("renderer writes props, copies public media, and invokes the landscape comp
   assert.equal(calls[0].cwd, path.join(workRoot, "video"));
   assert.deepEqual(calls[0].args.slice(0, 4), ["exec", "remotion", "render", "src/index.tsx"]);
   assert.ok(calls[0].args.includes("DramaEpisodeVideo"));
+  assert.ok(calls[0].args.some((arg) => arg.startsWith("--props=")));
   assert.deepEqual({ width: propsSnapshot.width, height: propsSnapshot.height, fps: propsSnapshot.fps }, { width: 1280, height: 720, fps: 24 });
   assert.equal(propsSnapshot.scenes[0].image, "images/shot-1.png");
   assert.equal(publicFileSnapshot, "fixture");

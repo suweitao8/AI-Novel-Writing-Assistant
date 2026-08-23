@@ -1,7 +1,7 @@
 /**
- * 竖屏付费短剧节奏引擎（P1 核心 · 平台护城河）
+ * 短剧节奏引擎（P1 核心 · 平台护城河）
  *
- * 把竖屏付费短剧的真实创作法则落成确定性、可配置的规则集：
+ * 把短剧的真实创作法则落成确定性、可配置的规则集：
  * 钩子类型库 / 赛道模板库 / 付费卡点策略 / 情绪曲线目标。
  *
  * 这是来源无关的纯领域知识，不依赖 LLM、不依赖任何外部模块，
@@ -158,7 +158,7 @@ export interface PaywallStrategy {
   paywallCadence: number;
 }
 
-/** 竖屏付费短剧默认卡点策略 */
+/** 短剧默认卡点策略 */
 export const DEFAULT_PAYWALL_STRATEGY: PaywallStrategy = {
   freeEpisodes: 10,
   firstPaywallAt: 12,

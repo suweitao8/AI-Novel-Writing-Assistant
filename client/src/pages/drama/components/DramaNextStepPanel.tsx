@@ -168,7 +168,7 @@ function buildNextStep(project: DramaProjectDetail): NextStep {
     return {
       kind: "videoPrompt",
       title: `下一步：生成第 ${shotWithoutPrompt.episode.order} 集视频提示词`,
-      description: "把一个分镜镜头转换成竖屏视频生成提示词，保留角色、动作和镜头语言。",
+      description: "把一个分镜镜头转换成横屏 16:9 视频生成提示词，保留角色、动作和镜头语言。",
       button: "生成视频提示词",
       tab: "visual",
       icon: "video",

@@ -15,9 +15,9 @@ import { toast } from "@/components/ui/toast";
 
 const ASSEMBLY_PHASE_LABELS: Record<string, string> = {
   prepare: "准备素材",
-  clips: "逐镜合成",
-  concat: "拼接整集",
-  subtitles: "烧录字幕",
+  audio: "规范化配音",
+  render: "生成画面",
+  mux: "封装成片",
   done: "已完成",
 };
 
@@ -70,14 +70,16 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
   const done = Math.max(0, progress?.done ?? 0);
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   const clips = status?.clips;
+  const renderProfile = status?.renderProfile ?? { width: 1280, height: 720 };
 
   return (
     <Card className="rounded-lg">
       <CardHeader>
         <CardTitle className="text-lg">整集合成</CardTitle>
-        <CardDescription>把本集镜头拼接成一支成片，并生成配套字幕。</CardDescription>
+        <CardDescription>生成横屏 16:9 成片和配套字幕。</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
+        <div className="text-xs text-muted-foreground">当前输出：横屏 16:9 · {renderProfile.width}×{renderProfile.height}</div>
         {status && props.hasShots ? (
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span>共 {status.shotCount} 个镜头</span>
@@ -148,7 +150,7 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
 
         {!running && assembled?.status === "done" && assembled.videoUrl ? (
           <div className="space-y-3">
-            <video controls preload="metadata" src={assembled.videoUrl} className="mx-auto w-full max-w-sm rounded-md border" />
+            <video controls preload="metadata" src={assembled.videoUrl} className="mx-auto aspect-video w-full max-w-3xl rounded-md border object-contain" />
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               <span>时长 {formatAsmDuration(assembled.durationSec)}</span>
               {assembled.shotCount ? <span>{assembled.shotCount} 个镜头</span> : null}

@@ -69,10 +69,8 @@ export class DramaRemotionRenderer {
         "src/index.tsx",
         "DramaEpisodeVideo",
         input.outputPath,
-        "--props",
-        propsPath,
-        "--public-dir",
-        publicDir,
+        `--props=${propsPath}`,
+        `--public-dir=${publicDir}`,
       ], this.videoPackageRoot);
 
       return {
@@ -99,9 +97,14 @@ function sanitize(value: string): string {
 }
 
 async function runRemotionCommand(args: string[], cwd: string): Promise<void> {
-  const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  const processSpec = resolveRemotionProcess(args);
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(command, args, { cwd, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(processSpec.command, processSpec.args, {
+      cwd,
+      env: process.env,
+      shell: processSpec.shell,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stderr = "";
     const timer = setTimeout(() => {
       child.kill();
@@ -125,3 +128,11 @@ async function runRemotionCommand(args: string[], cwd: string): Promise<void> {
   });
 }
 
+export function resolveRemotionProcess(args: string[]): { command: string; args: string[]; shell: boolean } {
+  if (process.platform !== "win32") {
+    return { command: "pnpm", args, shell: false };
+  }
+  // pnpm is distributed as a .cmd shim on Windows; Node cannot spawn that file
+  // without a shell, while shell=true lets cmd.exe preserve paths with spaces.
+  return { command: "pnpm.cmd", args, shell: true };
+}
