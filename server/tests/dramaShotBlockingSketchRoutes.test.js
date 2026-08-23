@@ -23,3 +23,9 @@ test("草图元数据通过 Zod 校验，PNG 图片使用原始请求流上传",
   assert.match(source, /uploadSketchPng/);
   assert.match(source, /confirmSketch/);
 });
+
+test("草图路由显式校验 PlayCanvas 3D 快照", () => {
+  assert.match(source, /blockingSketch3dLayoutSchema/);
+  assert.match(source, /layout3d: blockingSketch3dLayoutSchema\.optional\(\)/);
+  assert.match(source, /blockingSketch3dPoseSchema/);
+});

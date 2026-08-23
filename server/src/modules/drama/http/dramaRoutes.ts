@@ -80,6 +80,59 @@ const blockingSketchActorSchema = z.object({
   zIndex: z.number().int().min(0).max(99),
 });
 
+const blockingSketch3dPoseSchema = z.enum([
+  "standing",
+  "talking",
+  "arms_crossed",
+  "sitting",
+  "crouching",
+  "kneeling",
+  "lying",
+  "prone",
+  "walking",
+  "running",
+  "pointing",
+  "holding",
+  "interacting",
+  "fighting",
+  "sword",
+]);
+
+const blockingSketch3dCameraSchema = z.object({
+  azim: z.number().min(-180).max(180),
+  elev: z.number().min(-89).max(89),
+  distance: z.number().min(0.25).max(100),
+  focalPoint: z.tuple([
+    z.number().min(-100).max(100),
+    z.number().min(-100).max(100),
+    z.number().min(-100).max(100),
+  ]),
+});
+
+const blockingSketch3dActorSchema = z.object({
+  characterName: z.string().trim().min(1).max(120),
+  position: z.tuple([
+    z.number().min(-100).max(100),
+    z.number().min(0).max(50),
+    z.number().min(-100).max(100),
+  ]),
+  yawDeg: z.number().min(-180).max(180),
+  scale: z.tuple([
+    z.number().min(0.1).max(10),
+    z.number().min(0.1).max(10),
+    z.number().min(0.1).max(10),
+  ]),
+  pose: blockingSketch3dPoseSchema,
+  actionPlaying: z.boolean(),
+});
+
+const blockingSketch3dLayoutSchema = z.object({
+  schemaVersion: z.literal(1),
+  engine: z.literal("playcanvas"),
+  camera: blockingSketch3dCameraSchema,
+  actors: z.array(blockingSketch3dActorSchema).max(12),
+});
+
 const blockingSketchDataSchema = z.object({
   status: z.enum(["draft", "confirmed"]),
   version: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
@@ -87,6 +140,7 @@ const blockingSketchDataSchema = z.object({
   generatedAt: z.string().trim().min(1).max(100).optional(),
   scene: blockingSketchSceneSchema,
   actors: z.array(blockingSketchActorSchema).max(12),
+  layout3d: blockingSketch3dLayoutSchema.optional(),
 });
 
 const blockingSketchSaveSchema = z.object({

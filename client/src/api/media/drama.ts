@@ -174,6 +174,46 @@ export interface DramaShotBlockingSketchActor {
   zIndex: number;
 }
 
+export type DramaShotBlockingSketchPose =
+  | "standing"
+  | "talking"
+  | "arms_crossed"
+  | "sitting"
+  | "crouching"
+  | "kneeling"
+  | "lying"
+  | "prone"
+  | "walking"
+  | "running"
+  | "pointing"
+  | "holding"
+  | "interacting"
+  | "fighting"
+  | "sword";
+
+export interface DramaShotBlockingSketch3DCamera {
+  azim: number;
+  elev: number;
+  distance: number;
+  focalPoint: [number, number, number];
+}
+
+export interface DramaShotBlockingSketch3DActor {
+  characterName: string;
+  position: [number, number, number];
+  yawDeg: number;
+  scale: [number, number, number];
+  pose: DramaShotBlockingSketchPose;
+  actionPlaying: boolean;
+}
+
+export interface DramaShotBlockingSketch3DLayout {
+  schemaVersion: 1;
+  engine: "playcanvas";
+  camera: DramaShotBlockingSketch3DCamera;
+  actors: DramaShotBlockingSketch3DActor[];
+}
+
 export interface DramaShotBlockingSketchData {
   status: "draft" | "confirmed";
   version: number;
@@ -181,6 +221,7 @@ export interface DramaShotBlockingSketchData {
   generatedAt?: string;
   scene: DramaShotBlockingSketchScene;
   actors: DramaShotBlockingSketchActor[];
+  layout3d?: DramaShotBlockingSketch3DLayout;
 }
 
 export interface DramaShotBlockingSketchEditorContext {

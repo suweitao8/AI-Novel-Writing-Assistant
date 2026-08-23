@@ -16,6 +16,7 @@ const NarrativeFormNovelEditRoute = lazy(() => import("@/pages/novels/NarrativeF
 const NovelChapterEdit = lazy(() => import("@/pages/novels/NovelChapterEdit"));
 const ComicDramaListPage = lazy(() => import("@/pages/drama/comicDrama/ComicDramaListPage"));
 const ComicDramaStudioPage = lazy(() => import("@/pages/drama/comicDrama/ComicDramaStudioPage"));
+const DramaBlocking3DPage = lazy(() => import("@/pages/drama/comicDrama/DramaBlocking3DPage"));
 const DramaProjectPage = lazy(() => import("@/pages/drama/DramaProjectPage"));
 const ComicWorkspacePage = lazy(() => import("@/pages/comic/ComicWorkspacePage"));
 const ComicProjectPage = lazy(() => import("@/pages/comic/ComicProjectPage"));
@@ -60,6 +61,7 @@ const routes: RouteObject[] = [
       { path: "novels/:id/chapters/:chapterId", element: <NovelChapterEdit /> },
       { path: "drama", element: <ComicDramaListPage /> },
       { path: "drama/studio/:novelId", element: <ComicDramaStudioPage /> },
+      { path: "drama/projects/:id/shots/:shotId/blocking-3d", element: <DramaBlocking3DPage /> },
       { path: "drama/projects/:id", element: <DramaProjectPage /> },
       { path: "comic", element: <ComicWorkspacePage /> },
       { path: "comic/projects/:id", element: <ComicProjectPage /> },

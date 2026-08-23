@@ -61,3 +61,79 @@ test("已有草图 JSON 只接受已知状态，空数据保持兼容", () => {
   assert.equal(parseBlockingSketchData(JSON.stringify({ ...validSketch, status: "unknown" })), null);
   assert.equal(parseBlockingSketchData(JSON.stringify(validSketch))?.scene.yawDeg, 25);
 });
+
+test("3D 摆位快照与旧草图字段一起保存，并保留坐着/躺着/趴着姿势", () => {
+  const input = {
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: {
+        azim: 10,
+        elev: -15,
+        distance: 4,
+        focalPoint: [1, 0, -2],
+      },
+      actors: [
+        {
+          characterName: "沈烬",
+          position: [2.5, 0, -1.5],
+          yawDeg: 35,
+          scale: [1.4, 1.4, 1.4],
+          pose: "sitting",
+          actionPlaying: false,
+        },
+        {
+          characterName: "血角兽",
+          position: [-1, 0, 0.5],
+          yawDeg: -20,
+          scale: [1, 1, 1],
+          pose: "prone",
+          actionPlaying: true,
+        },
+      ],
+    },
+  };
+  assert.deepEqual(normalizeBlockingSketchData(input), input);
+});
+
+test("3D 摆位快照拒绝越界位置和未知姿势", () => {
+  assert.throws(
+    () => normalizeBlockingSketchData({
+      ...validSketch,
+      layout3d: {
+        schemaVersion: 1,
+        engine: "playcanvas",
+        camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+        actors: [{
+          characterName: "沈烬",
+          position: [0, -1, 0],
+          yawDeg: 0,
+          scale: [1, 1, 1],
+          pose: "standing",
+          actionPlaying: true,
+        }],
+      },
+    }),
+    /高度/,
+  );
+  assert.throws(
+    () => normalizeBlockingSketchData({
+      ...validSketch,
+      layout3d: {
+        schemaVersion: 1,
+        engine: "playcanvas",
+        camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+        actors: [{
+          characterName: "沈烬",
+          position: [0, 0, 0],
+          yawDeg: 0,
+          scale: [1, 1, 1],
+          pose: "unknown",
+          actionPlaying: true,
+        }],
+      },
+    }),
+    /姿势/,
+  );
+});
