@@ -158,26 +158,26 @@ export default function ScriptTab(props: ScriptTabProps) {
       const unique = [...new Set(names.map((name) => name.trim()).filter((name) => name.length >= 2))]
         .sort((left, right) => right.length - left.length);
       if (unique.length === 0) {
-        return new Set<string>();
+        return [];
       }
       const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu");
-      const found = new Set<string>();
+      const found: string[] = [];
       for (const match of text.matchAll(pattern)) {
-        found.add(match[0]);
+        if (!found.includes(match[0])) found.push(match[0]);
       }
       return found;
     };
     const mentionedCharacters = mentionedIn(characters.map((character) => character.name));
     const mentionedScenes = mentionedIn(scenes.map((scene) => scene.name));
     const mentionedProps = mentionedIn(propList.map((prop) => prop.name));
-    for (const character of characters) {
-      if (mentionedCharacters.has(character.name.trim())) usedKeys.add(`character:${character.name.trim()}`);
+    for (const name of mentionedCharacters) {
+      pushUsed(`character:${name.trim()}`);
     }
-    for (const scene of scenes) {
-      if (mentionedScenes.has(scene.name.trim())) usedKeys.add(`scene:${scene.name.trim()}`);
+    for (const name of mentionedScenes) {
+      pushUsed(`scene:${name.trim()}`);
     }
-    for (const prop of propList) {
-      if (mentionedProps.has(prop.name.trim())) usedKeys.add(`prop:${prop.name.trim()}`);
+    for (const name of mentionedProps) {
+      pushUsed(`prop:${name.trim()}`);
     }
     return {
       knownCharacters,
