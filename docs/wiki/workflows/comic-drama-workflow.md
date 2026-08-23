@@ -123,6 +123,30 @@
 - 服务端：`server/src/services/drama/video/DramaEpisodeAssemblyService.ts`、`LocalFfmpegVideoProvider.ts`、`server/src/modules/drama/http/dramaRoutes.ts`。
 - 渲染：`video/src/DramaEpisodeVideo.tsx` 与 `video/` workspace 的横屏 Composition。
 
+## 分镜摆位草图与首帧构图（2026-08-24）
+
+### Background
+
+静态分镜画面需要稳定复现“谁站在哪里、从哪个方向看”的构图。仅用角色和场景参考图生成时，模型会改变角色相对位置，连续镜头难以保持空间关系。
+
+### Decision
+
+- 每个 `DramaShot` 独立保存一份 1280×720 的摆位草图数据和 PNG。草图以本镜匹配场景的默认 2:1 全景图为背景，角色取本镜已引用状态的四视图正面全身区域；用户可以调整场景视角，以及角色的位置、大小、左右翻转和前后层级。
+- 保存草图只形成草稿，上传 PNG 并确认后才成为可用于生图的构图依据。草稿不能发起单镜画面生成，批量生成会跳过草稿镜头且不纳入图片成本。
+- 已确认的草图作为画面生成的第一张锁定参考图，并在提示词中明确要求保持场景视角、角色位置、相对大小、朝向和前后关系。确认对话框不得移除该参考图；重新生成分镜画面也复用它。
+- 摆位草图是 2D 构图控制层，不替代旧项目的 3D 导演/控制帧能力。它的目标是让用户快速锁定静态分镜构图，而不是建立可运动的三维场景。
+
+### Failure Modes
+
+- 没有可用场景全景图时不能保存草图，避免用普通场景图伪装 360° 构图。
+- 数据标记为已确认但 PNG 缺失时，生成服务必须拒绝使用该草图，要求重新保存并确认，不能静默回退成未锁定构图。
+- 任何批量逻辑都不得把草稿草图当作普通缺图镜头提交给图片 provider。
+
+### Related Modules
+
+- 前端：`ShotBlockingSketchDialog.tsx`、`ShotVoiceListPanel.tsx`、`ImageGenerationConfirmDialog.tsx`。
+- 服务端：`DramaShotBlockingSketchService.ts`、`DramaShotKeyframeService.ts`、`DramaBatchOrchestrator.ts`、`dramaRoutes.ts`。
+
 ## 批量分镜画面生成的并发与状态反馈
 
 ### Background

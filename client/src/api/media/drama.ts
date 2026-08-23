@@ -153,6 +153,53 @@ export interface DramaShotKeyframeData {
   history?: DramaGenerationHistoryItem[];
 }
 
+export interface DramaShotBlockingSketchScene {
+  assetId: string;
+  stateId: string;
+  imageUrl: string;
+  yawDeg: number;
+  pitchDeg: number;
+  fovDeg: number;
+}
+
+export interface DramaShotBlockingSketchActor {
+  characterName: string;
+  assetId?: string;
+  stateId?: string;
+  imageUrl?: string;
+  x: number;
+  y: number;
+  scale: number;
+  flipX: boolean;
+  zIndex: number;
+}
+
+export interface DramaShotBlockingSketchData {
+  status: "draft" | "confirmed";
+  version: number;
+  url?: string;
+  generatedAt?: string;
+  scene: DramaShotBlockingSketchScene;
+  actors: DramaShotBlockingSketchActor[];
+}
+
+export interface DramaShotBlockingSketchEditorContext {
+  sketch: DramaShotBlockingSketchData | null;
+  scene: {
+    name: string;
+    assetId: string;
+    stateId: string;
+    imageUrl: string;
+  } | null;
+  actors: Array<{
+    characterName: string;
+    assetId?: string;
+    stateId?: string;
+    imageUrl?: string;
+    sourceImageKind: "state_sheet" | "portrait" | "placeholder";
+  }>;
+}
+
 export interface DramaDialogueAudioItem {
   lineIndex: number;
   speaker?: string;
@@ -199,6 +246,7 @@ export interface DramaShot {
   characterStates?: string | null;
   visualPrompt?: string | null;
   keyframeData?: string | null;
+  blockingSketchData?: string | null;
   dialogueAudioData?: string | null;
 }
 
@@ -556,6 +604,42 @@ export async function updateDramaShot(
   }>,
 ) {
   const { data } = await apiClient.put<ApiResponse<DramaShot>>(`/drama/projects/${id}/shots/${shotId}`, payload);
+  return data;
+}
+
+export async function getDramaShotBlockingSketch(id: string, shotId: string) {
+  const { data } = await apiClient.get<ApiResponse<DramaShotBlockingSketchEditorContext>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch`,
+  );
+  return data;
+}
+
+export async function saveDramaShotBlockingSketch(
+  id: string,
+  shotId: string,
+  data: DramaShotBlockingSketchData,
+) {
+  const response = await apiClient.put<ApiResponse<DramaShotBlockingSketchData>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch`,
+    { data },
+  );
+  return response.data;
+}
+
+export async function uploadDramaShotBlockingSketchPng(id: string, shotId: string, png: Blob) {
+  const { data } = await apiClient.post<ApiResponse<DramaShotBlockingSketchData>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch/image`,
+    png,
+    { headers: { "Content-Type": "image/png" } },
+  );
+  return data;
+}
+
+export async function confirmDramaShotBlockingSketch(id: string, shotId: string) {
+  const { data } = await apiClient.post<ApiResponse<DramaShotBlockingSketchData>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch/confirm`,
+    {},
+  );
   return data;
 }
 

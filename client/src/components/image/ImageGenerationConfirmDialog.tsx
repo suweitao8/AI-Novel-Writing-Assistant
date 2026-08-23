@@ -32,6 +32,7 @@ const REF_KIND_LABEL: Record<string, string> = {
   book_analysis_character_base: "基础形象",
   asset: "资产",
   scene: "场景全景",
+  layout_sketch: "摆位草图",
 };
 
 const REF_KIND_COLOR: Record<string, string> = {
@@ -41,6 +42,7 @@ const REF_KIND_COLOR: Record<string, string> = {
   book_analysis_character_base: "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-700 dark:bg-sky-900/20 dark:text-sky-300",
   asset: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-300",
   scene: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
+  layout_sketch: "border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-700 dark:bg-violet-900/20 dark:text-violet-300",
 };
 
 type PromptAssistAction = "explain" | "optimize";
@@ -265,23 +267,28 @@ export function ImageGenerationConfirmDialog({
                   {referenceImages.map((ref, i) => {
                     const kindStyle = REF_KIND_COLOR[ref.kind] ?? REF_KIND_COLOR.asset;
                     const kindLabel = REF_KIND_LABEL[ref.kind] ?? ref.kind;
+                    const isLockedReference = ref.kind === "layout_sketch";
                     return (
                       <div
                         key={`${ref.url}-${i}`}
                         className="group relative flex flex-col overflow-hidden rounded border bg-background transition-colors hover:border-primary"
                       >
-                        <button
-                          type="button"
-                          className="absolute right-1 top-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border bg-background/95 text-muted-foreground shadow-sm hover:text-destructive"
-                          title="本次不发送这张参考图"
-                          onClick={() => {
-                            setIncludedReferenceImageUrls((urls) => urls.filter((url) => url !== ref.url));
-                            clearPromptAssistResult();
-                          }}
-                          disabled={submitting || !!promptAssistLoading}
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                        {!isLockedReference ? (
+                          <button
+                            type="button"
+                            className="absolute right-1 top-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full border bg-background/95 text-muted-foreground shadow-sm hover:text-destructive"
+                            title="本次不发送这张参考图"
+                            onClick={() => {
+                              setIncludedReferenceImageUrls((urls) => urls.filter((url) => url !== ref.url));
+                              clearPromptAssistResult();
+                            }}
+                            disabled={submitting || !!promptAssistLoading}
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <span className="absolute right-1 top-1 z-10 rounded-full border bg-background/95 px-1.5 py-0.5 text-[9px] text-muted-foreground shadow-sm">锁定</span>
+                        )}
                         {/* 高度固定 h-32，宽度按图片比例自适应 */}
                         <a
                           href={resolveImageAssetUrl(ref.url)}

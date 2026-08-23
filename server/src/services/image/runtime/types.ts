@@ -26,8 +26,8 @@ export interface GeneratedImageHistoryItem {
 
 /** 生成的参考素材元数据（成功生图后写入，供前端弹窗溯源） */
 export interface GeneratedReferenceImageMeta {
-  /** character_sheet=四视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景360全景 */
-  kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene";
+  /** character_sheet=四视图 | character_expression=表情稿 | character_face=面部裁剪 | asset=角色资产 | scene=场景360全景 | layout_sketch=镜头摆位草图 */
+  kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene" | "layout_sketch";
   /** 人类可读标签 */
   label: string;
   /** HTTP URL */

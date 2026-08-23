@@ -8,11 +8,12 @@ const read = (relativePath) => fs.readFileSync(path.resolve(__dirname, "..", "sr
 test("静态首帧合成不再应用运镜或 Ken Burns 动效", () => {
   const localVideo = read("services/drama/video/LocalFfmpegVideoProvider.ts");
   const keyframeService = read("services/drama/visual/DramaShotKeyframeService.ts");
+  const keyframePrompt = read("prompting/prompts/drama/shotKeyframe.prompts.ts");
   const videoPromptService = read("services/drama/DramaVideoPromptService.ts");
 
   assert.doesNotMatch(localVideo, /zoompan|Ken Burns|缓慢推拉/);
   assert.match(localVideo, /scale=\$\{width \* 2\}:\$\{height \* 2\}/);
-  assert.match(keyframeService, /静态画面/);
+  assert.match(keyframePrompt, /静态画面/);
   assert.doesNotMatch(keyframeService, /shot\.cameraMove \? `运镜意图/);
   assert.doesNotMatch(videoPromptService, /cameraMove: shot\.cameraMove/);
 });

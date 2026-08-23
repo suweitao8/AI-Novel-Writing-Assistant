@@ -30,6 +30,7 @@ import { dramaVoiceDesignService } from "../../../services/drama/audio/DramaVoic
 import { rhythmEngine } from "../../../services/drama/engine/rhythmEngine";
 import { dramaBatchOrchestrator } from "../../../services/drama/production/DramaBatchOrchestrator";
 import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaShotKeyframeService";
+import { dramaShotBlockingSketchService } from "../../../services/drama/visual/DramaShotBlockingSketchService";
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../services/drama/visual/dramaVisualStyles";
 import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVideoProvider";
 import { dramaEpisodeAssemblyService } from "../../../services/drama/video/DramaEpisodeAssemblyService";
@@ -57,6 +58,40 @@ const imageProviderBodySchema = z
     excludedReferenceImageUrls: z.array(z.string().trim().min(1).max(1000)).max(24).optional(),
   })
   .optional();
+
+const blockingSketchSceneSchema = z.object({
+  assetId: z.string().trim().min(1).max(120),
+  stateId: z.string().trim().min(1).max(120),
+  imageUrl: z.string().trim().min(1).max(1200),
+  yawDeg: z.number().min(-180).max(180),
+  pitchDeg: z.number().min(-60).max(60),
+  fovDeg: z.number().min(40).max(100),
+});
+
+const blockingSketchActorSchema = z.object({
+  characterName: z.string().trim().min(1).max(120),
+  assetId: z.string().trim().min(1).max(120).optional(),
+  stateId: z.string().trim().min(1).max(120).optional(),
+  imageUrl: z.string().trim().min(1).max(1200).optional(),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  scale: z.number().min(0.08).max(2),
+  flipX: z.boolean(),
+  zIndex: z.number().int().min(0).max(99),
+});
+
+const blockingSketchDataSchema = z.object({
+  status: z.enum(["draft", "confirmed"]),
+  version: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
+  url: z.string().trim().min(1).max(1200).optional(),
+  generatedAt: z.string().trim().min(1).max(100).optional(),
+  scene: blockingSketchSceneSchema,
+  actors: z.array(blockingSketchActorSchema).max(12),
+});
+
+const blockingSketchSaveSchema = z.object({
+  data: blockingSketchDataSchema,
+});
 
 const batchJobBodySchema = z.object({
   type: z.enum(["keyframes", "videos", "tts"]),
@@ -848,6 +883,53 @@ router.put("/projects/:id/shots/:shotId", validate({ params: shotParamsSchema, b
   }
 });
 
+router.get("/projects/:id/shots/:shotId/blocking-sketch", validate({ params: shotParamsSchema }), async (req, res, next) => {
+  try {
+    const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+    const data = await dramaShotBlockingSketchService.getEditorContext(id, shotId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.put(
+  "/projects/:id/shots/:shotId/blocking-sketch",
+  validate({ params: shotParamsSchema, body: blockingSketchSaveSchema }),
+  async (req, res, next) => {
+    try {
+      const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+      const { data: sketch } = req.body as z.infer<typeof blockingSketchSaveSchema>;
+      const data = await dramaShotBlockingSketchService.saveSketch(id, shotId, sketch);
+      res.status(200).json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post("/projects/:id/shots/:shotId/blocking-sketch/image", validate({ params: shotParamsSchema }), async (req, res, next) => {
+  try {
+    const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+    const chunks: Buffer[] = [];
+    for await (const chunk of req) chunks.push(chunk as Buffer);
+    const data = await dramaShotBlockingSketchService.uploadSketchPng(id, shotId, Buffer.concat(chunks));
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/projects/:id/shots/:shotId/blocking-sketch/confirm", validate({ params: shotParamsSchema }), async (req, res, next) => {
+  try {
+    const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+    const data = await dramaShotBlockingSketchService.confirmSketch(id, shotId);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    next(error);
+  }
+});
+
 router.post("/projects/:id/shots/:shotId/keyframe/prepare", validate({ params: shotParamsSchema, body: imageProviderBodySchema }), async (req, res, next) => {
   try {
     const { shotId } = req.params as z.infer<typeof shotParamsSchema>;
@@ -1063,6 +1145,23 @@ router.get("/shot-images/:shotId/keyframe", validate({ params: shotImageParamsSc
     const resolved = await dramaShotKeyframeService.resolveExistingKeyframePath(shotId);
     if (!resolved) {
       res.status(404).json({ success: false, message: "镜头分镜画面尚未生成。" });
+      return;
+    }
+    res.setHeader("Content-Type", resolved.mimeType);
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    fs.createReadStream(resolved.filePath).pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/** GET /api/drama/shot-images/:shotId/blocking-sketch */
+router.get("/shot-images/:shotId/blocking-sketch", validate({ params: shotImageParamsSchema }), async (req, res, next) => {
+  try {
+    const { shotId } = req.params as z.infer<typeof shotImageParamsSchema>;
+    const resolved = await dramaShotBlockingSketchService.resolveExistingBlockingSketchPath(shotId);
+    if (!resolved) {
+      res.status(404).json({ success: false, message: "镜头摆位草图尚未生成。" });
       return;
     }
     res.setHeader("Content-Type", resolved.mimeType);

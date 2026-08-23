@@ -8,6 +8,7 @@ import { DramaVideoPromptService } from "../DramaVideoPromptService";
 import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
 import { isRealTTSProvider, ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
+import { parseBlockingSketchData } from "../visual/DramaShotBlockingSketchContracts";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
 import { runWithConcurrency } from "./batchConcurrency";
 import { failStaleBatchJobs } from "./batchJobRecovery";
@@ -70,6 +71,7 @@ interface BatchShot {
   durationSec?: number | null;
   dialogue?: string | null;
   keyframeData?: string | null;
+  blockingSketchData?: string | null;
   dialogueAudioData?: string | null;
 }
 
@@ -139,6 +141,10 @@ function readImageCostPerImage(provider: string): number {
 function hasDoneKeyframe(raw: string | null | undefined): boolean {
   const parsed = safeJsonParse<{ status?: string; url?: string }>(raw, {});
   return parsed.status === "done" && typeof parsed.url === "string" && parsed.url.trim().length > 0;
+}
+
+function isDraftBlockingSketch(raw: string | null | undefined): boolean {
+  return parseBlockingSketchData(raw)?.status === "draft";
 }
 
 function hasDoneDialogueAudio(raw: string | null | undefined, provider: string): boolean {
@@ -398,7 +404,7 @@ export class DramaBatchOrchestrator {
   }
 
   private async processKeyframeShot(shot: BatchShot, provider?: string, useCharacterRefImages = true): Promise<"processed" | "skipped"> {
-    if (hasDoneKeyframe(shot.keyframeData)) {
+    if (hasDoneKeyframe(shot.keyframeData) || isDraftBlockingSketch(shot.blockingSketchData)) {
       return "skipped";
     }
     await this.keyframeService.generateKeyframe(shot.id, (provider || DEFAULT_IMAGE_PROVIDER) as LLMProvider, useCharacterRefImages);
@@ -539,7 +545,7 @@ export class DramaBatchOrchestrator {
 
     let estimatedUnits: DramaBatchCostUnits = {};
     if (type === "keyframes") {
-      const billableShots = shots.filter((shot) => !hasDoneKeyframe(shot.keyframeData));
+      const billableShots = shots.filter((shot) => !hasDoneKeyframe(shot.keyframeData) && !isDraftBlockingSketch(shot.blockingSketchData));
       estimatedUnits = { images: billableShots.length, shots: billableShots.length };
     } else if (type === "videos") {
       const billableShots = shots.filter((shot) => {

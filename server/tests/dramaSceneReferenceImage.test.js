@@ -8,8 +8,8 @@ const source = readFileSync(
 );
 
 test("首帧场景参考图只来自初始状态图片", () => {
-  assert.match(source, /scenes: scenes\.map\(\(\{ statesJson, \.\.\.rest \}\) => \{[\s\S]*?imageUrl: initial\.imageUrl \?\? null/);
-  assert.doesNotMatch(source, /scenes: scenes\.map\(\(\{ imageData, statesJson, \.\.\.rest \}\) => \{[\s\S]*?parseImageStateSummary\(imageData\)/);
+  assert.match(source, /scenes: scenes\.map\(\(\{ id, statesJson, \.\.\.rest \}\) => \{[\s\S]*?imageUrl: initial\.imageUrl \?\? null/);
+  assert.doesNotMatch(source, /scenes: scenes\.map\(\(\{ id, imageData, statesJson, \.\.\.rest \}\) => \{[\s\S]*?parseImageStateSummary\(imageData\)/);
   assert.match(source, /初始状态图/);
   assert.doesNotMatch(source, /label: `\$\{matchedScene\.name\} · 场景全景`/);
 });
