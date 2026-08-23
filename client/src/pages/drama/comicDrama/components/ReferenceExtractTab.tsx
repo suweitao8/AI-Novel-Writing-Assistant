@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { buildStateImageSrc, type StoryAssetSource } from "@/components/storyAssets";
+import {
+  buildStoryAssetPresentation,
+  StoryAssetPreview,
+  type StoryAssetSource,
+} from "@/components/storyAssets";
 import type { ReferenceExtractCharacter } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { ApplyOneInput, ReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import ExtractApplyDialog, { type ExtractGroup } from "@/pages/drama/comicDrama/components/ExtractApplyDialog";
@@ -47,7 +51,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
   const existingFor = (group: ExtractGroup, name: string) =>
     stage.existingNames[group].has(name.trim());
 
-  // 已存在同名资产：取它的原始数据交给弹窗载入编辑；卡片缩略图用第一个已生成的状态图。
+  // 已存在同名资产：取它的原始数据交给弹窗载入编辑；卡片预览遵循统一默认状态规则。
   const existingSourceFor = (group: ExtractGroup, name: string): StoryAssetSource | null => {
     const trimmed = name.trim();
     if (group === "characters") {
@@ -62,13 +66,20 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
     return null;
   };
 
-  const existingThumbFor = (source: StoryAssetSource | null): string => {
-    const state = source?.states.find((candidate) => candidate.image?.status === "done" && candidate.image.url?.trim());
-    const url = state?.image?.url?.trim();
-    if (!state || !url) {
-      return "";
+  const existingPreviewFor = (group: ExtractGroup, name: string) => {
+    if (group === "characters") {
+      const source = stage.existingAssets.characters.find((candidate) => candidate.name.trim() === name.trim());
+      return source ? buildStoryAssetPresentation({ kind: "character", asset: source }).preview : null;
     }
-    return buildStateImageSrc(url, state.image?.generatedAt ?? undefined);
+    if (group === "scenes") {
+      const source = stage.existingAssets.scenes.find((candidate) => candidate.name.trim() === name.trim());
+      return source ? buildStoryAssetPresentation({ kind: "scene", asset: source }).preview : null;
+    }
+    if (group === "props") {
+      const source = stage.existingAssets.props.find((candidate) => candidate.name.trim() === name.trim());
+      return source ? buildStoryAssetPresentation({ kind: "prop", asset: source }).preview : null;
+    }
+    return null;
   };
 
   const renderGroup = (title: string, group: ExtractGroup) => {
@@ -89,36 +100,38 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
               ? [character.appearance, character.personality].filter(Boolean).join("；") || item.description
               : item.description;
             const existing = existingFor(group, item.name);
-            const existingImage = existing ? existingThumbFor(existingSourceFor(group, item.name)) : "";
+            const existingPreview = existing ? existingPreviewFor(group, item.name) : null;
             return (
               <button
                 key={`${group}:${index}`}
                 type="button"
                 onClick={() => setTarget({ group, index })}
                 className={cn(
-                  "min-w-0 rounded-xl border p-3.5 text-left transition-colors",
+                  "flex min-w-0 items-start gap-3 rounded-xl border p-3.5 text-left transition-colors",
                   existing
                     ? "border-border/70 bg-muted/30"
                     : "border-border/70 bg-background hover:border-primary/40",
                 )}
               >
-                <span className="flex min-w-0 flex-wrap items-center gap-1.5">
-                  {existingImage ? (
-                    <img src={existingImage} alt="" className="h-8 w-8 shrink-0 rounded-md border border-border object-cover" />
-                  ) : (
-                    <span aria-hidden="true">{GROUP_ICONS[group]}</span>
-                  )}
-                  <span className="truncate text-sm font-semibold text-foreground">{item.name}</span>
-                  {group === "characters" && character?.role ? (
-                    <Badge variant="outline" className="shrink-0">{character.role}</Badge>
-                  ) : null}
-                  {existing ? (
-                    <Badge className="shrink-0 bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">
-                      已存在
-                    </Badge>
-                  ) : null}
+                {group === "worldview" ? (
+                  <span aria-hidden="true" className="mt-1 shrink-0 text-base">{GROUP_ICONS[group]}</span>
+                ) : (
+                  <StoryAssetPreview preview={existingPreview} className="w-20 shrink-0 sm:w-24" />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="flex min-w-0 flex-wrap items-center gap-1.5">
+                    <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
+                    {group === "characters" && character?.role ? (
+                      <Badge variant="outline" className="shrink-0">{character.role}</Badge>
+                    ) : null}
+                    {existing ? (
+                      <Badge className="shrink-0 bg-amber-500/15 text-amber-600 hover:bg-amber-500/25 dark:text-amber-400">
+                        已存在
+                      </Badge>
+                    ) : null}
+                  </span>
+                  <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{body}</span>
                 </span>
-                <span className="mt-1.5 block text-xs leading-5 text-muted-foreground">{body}</span>
               </button>
             );
           })}
