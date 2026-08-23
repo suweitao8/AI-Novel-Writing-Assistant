@@ -11,6 +11,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - 图片模型走 `ProviderImageSettingsService` 的既有通道：`ImageModelProvider` 增加 `codex`，选项 `gpt-image-2`，env 读取 `CODEX_IMAGE_MODEL`，持久化在 `AppSetting`（key `provider.imageModel.codex`）。
 - 桥接实现为仓库内零依赖 Node 脚本（`scripts/codex-image-bridge.cjs`），从 mydrama 的 Python 桥移植，协议一致；启动器 `scripts/start-codex-image-bridge.cjs` 对应 `pnpm codex:image`。
 - Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality`、参考图（multipart `/images/edits`）与透明背景。**2026-08-22 起角色与道具的资产参考图（状态图/四视图/道具透视图）一律走 Codex 并要求透明底**：CLI 图片工具没有 `background` 字段，桥把 `background=transparent` 翻译成 agent prompt 硬约束（真 alpha 通道 PNG，禁止实底/棋盘格/地面），应用侧提示词与 `TRANSPARENT_IMAGE_OPTIONS`（background=transparent + output_format=png）双保险。Grok Build 固定输出 16:9 横版且不支持透明底与参考图编辑，仍只承担场景全景与无参考图封面。
+- **edits（带参考图）路径会把透明底压平（2026-08-23 实测确认）**：提示词透明指令在纯生成路径有效（产出带 alpha），但 edits 路径（`-i` 参考附件）实测稳定返回 3 通道不透明纯色底 PNG，提示词救不回来。兜底是服务端确定性抠底 `server/src/services/image/backgroundKeying.ts` 的 `ensureTransparentBackground`：runner 落盘前（`resolveImageBytes` → 抠底 → `writeImageBytes`）对「请求了 background=transparent 且 outputFormat=png 且结果无 alpha」的图，采样四边主色（4bit 量化分桶，占比 ≥50% 才算纯色底——风景/场景底不碰），从边缘洪水填充与主色欧氏距离 ≤30 的连通像素置 alpha=0，主体保留；两个安全阀：边缘无主色原样返回、抠掉比例 >92% 原样返回（防整图纯色抠成空图）。契约锁定在 server/tests/backgroundKeying.test.js（含真实压平图验证口径：背景抠掉、四面板主体保留）。已带 alpha 的图直接原样返回不做二次处理。
 
 ## 当前规则
 
