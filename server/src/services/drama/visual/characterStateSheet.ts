@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+import { CHARACTER_IMAGE_ETHNICITY_CONSTRAINT } from "@ai-novel/shared/imagePrompt";
 
 export const CHARACTER_STATE_VIEW_SPECS = [
   {
@@ -143,6 +144,7 @@ export function buildCharacterStateSheetPrompt(input: CharacterStateSheetPromptI
     "PANEL 4 — BACK FULL BODY: the same person facing away in the same neutral standing pose, complete figure from the back of the head through both shoes, clearly showing the back of the hair and clothing.",
     "The four panels are the required four views in this exact order: front face, side face, front full body, back full body.",
     "IDENTITY LOCK (CRITICAL): all four panels must show the same single person, same face structure, hairline, hairstyle, hair volume, skin tone, age impression, clothing, colors, body proportions and lighting; only the camera angle and framing change.",
+    CHARACTER_IMAGE_ETHNICITY_CONSTRAINT,
     // 好看但要有辨识度（2026-08-23 用户要求）：旧版「统一帅气男主脸」硬约束（对称五官+直鼻梁+
     // 干净下颌线）把所有角色画成了同一张 3D 动画网红脸。好看程度改为按角色资料的身份与重要性伸缩，
     // 长相必须来自角色资料自己的特征，资料不足时也要给出贴合身份的记忆点特征，角色之间不能撞脸。
@@ -190,6 +192,7 @@ export function buildCharacterStateViewPrompts(
     "专业角色四视图设计参考图中的单个视图",
     "全透明背景（PNG 透明通道，无背景色、无棋盘格、无地面与投影），统一中性转台光，无摄影棚布景、无房间、无街道、无相机写真感",
     "同一个角色、同一张脸、同一套服装、同一发型、同一体型比例",
+    CHARACTER_IMAGE_ETHNICITY_CONSTRAINT,
     referenceLine,
     "统一影视化游戏美术方向优先：角色、场景、道具都必须呈现虚幻引擎5级高预算游戏过场的高模CG材质与电影级光影；角色资产采用经过数字雕刻的游戏角色模型和高预算动作游戏的影视化3D数字人设定稿质感，整体渲染参考《黑神话：悟空》《凡人修仙传》这类高预算东方游戏和影视美术，只参考数字雕刻、材质、光影和镜头质感，不复制具体角色、服饰或场景；角色资料中的旧风格词只补充人物内容，不得把成片改成平面动漫、插画、真人摄影、摄影棚模特、证件照或普通照片",
     ...identityLines,

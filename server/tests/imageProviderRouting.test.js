@@ -11,6 +11,7 @@ const {
   generateImagesByProvider,
 } = require("../dist/services/image/provider.js");
 const { getImageModelOptions } = require("../dist/services/settings/ProviderImageSettingsService.js");
+const { appendCharacterImageEthnicityConstraint } = require("@ai-novel/shared/imagePrompt");
 
 test("character and prop asset references stay on Codex for transparent output; scenes too for 2:1 panoramas", () => {
   // 2026-08-22：角色/道具参考图统一透明底，只有 Codex 通道稳定支持，不再按有无参考图分流。
@@ -69,7 +70,7 @@ test("Grok Build request body stays within its prompt-only image contract", () =
   });
   assert.deepEqual(body, {
     model: "grok-build-image",
-    prompt: "cinematic character reference",
+    prompt: appendCharacterImageEthnicityConstraint("cinematic character reference"),
     n: 1,
     response_format: "b64_json",
   });
