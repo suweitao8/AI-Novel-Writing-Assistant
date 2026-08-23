@@ -126,12 +126,16 @@ export class VolumeChapterSyncService {
       }
       for (const item of plan.updates) {
         item.chapter.chapterId = item.chapterId;
+        // 规划摘要为空时不得覆写章节现有 expectation（2026-08-23 数据丢失事故）：
+        // expectation 同时承载漫剧脚本初稿，空值（purpose/summary 都没写）直接落库
+        // 会把整章脚本清空；规划值非空才写入。
+        const planExpectation = item.chapter.purpose?.trim() || item.chapter.summary?.trim() || "";
         await tx.chapter.updateMany({
           where: { id: item.chapterId, novelId },
           data: {
             title: item.chapter.title,
             order: item.chapter.chapterOrder,
-            expectation: item.chapter.purpose?.trim() || item.chapter.summary,
+            ...(planExpectation ? { expectation: planExpectation } : {}),
             targetWordCount: item.chapter.targetWordCount ?? null,
             conflictLevel: item.chapter.conflictLevel ?? null,
             revealLevel: item.chapter.revealLevel ?? null,

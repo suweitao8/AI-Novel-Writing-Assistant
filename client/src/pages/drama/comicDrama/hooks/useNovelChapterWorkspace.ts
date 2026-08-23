@@ -166,6 +166,12 @@ export function useNovelChapterWorkspace(novelId: string) {
     if (!currentChapter || expectationText.trim() === (currentChapter.expectation ?? "").trim()) {
       return;
     }
+    // 空白文本不得覆盖服务端已有脚本（2026-08-23 数据丢失事故）：编辑器加载空脚本时会铺
+    // 19 行占位空行，若这份占位状态被自动保存/冲保存 PUT 回去，整章脚本就被清成空行。
+    // 真要清空整章属于罕见操作（代价是重新粘贴），远好于静默丢稿。
+    if (!expectationText.trim() && (currentChapter.expectation ?? "").trim()) {
+      return;
+    }
     const snapshot = { chapterId: currentChapter.id, text: expectationText };
     if (savePending) {
       pendingExpectationFlushRef.current = snapshot;
@@ -206,6 +212,10 @@ export function useNovelChapterWorkspace(novelId: string) {
   const referenceSavePending = saveReferenceMutation.isPending;
   const flushReferenceSave = () => {
     if (!currentChapter || referenceText === (currentChapter.referenceText ?? "")) {
+      return;
+    }
+    // 同上：空白参考文本不得覆盖服务端已有参考内容（事故中参考文本同样被清空过）。
+    if (!referenceText.trim() && (currentChapter.referenceText ?? "").trim()) {
       return;
     }
     const snapshot = { chapterId: currentChapter.id, text: referenceText };
