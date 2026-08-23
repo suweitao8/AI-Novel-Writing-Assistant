@@ -1,0 +1,124 @@
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AudioLines, Loader2, Save, WandSparkles } from "lucide-react";
+import {
+  designGlobalNarratorVoice,
+  getGlobalNarratorVoice,
+  saveGlobalNarratorVoiceDescription,
+} from "@/api/settings";
+import { queryKeys } from "@/api/queryKeys";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/components/ui/toast";
+import { SettingsShell } from "../components/SettingsShell";
+
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error && error.message.trim() ? error.message : fallback;
+}
+
+export default function NarratorVoiceSettingsPage() {
+  const queryClient = useQueryClient();
+  const narratorVoiceQuery = useQuery({
+    queryKey: queryKeys.settings.narratorVoice,
+    queryFn: getGlobalNarratorVoice,
+  });
+  const [draft, setDraft] = useState("");
+  const hasEditedDraft = useRef(false);
+
+  useEffect(() => {
+    if (!hasEditedDraft.current && narratorVoiceQuery.data?.data) {
+      setDraft(narratorVoiceQuery.data.data.description ?? "");
+    }
+  }, [narratorVoiceQuery.data?.data]);
+
+  const saveMutation = useMutation({
+    mutationFn: () => saveGlobalNarratorVoiceDescription(draft),
+    onSuccess: (response) => {
+      hasEditedDraft.current = false;
+      setDraft(response.data?.description ?? "");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settings.narratorVoice });
+      toast.success("旁白音色描述已保存。");
+    },
+    onError: (error) => toast.error(errorMessage(error, "保存旁白音色失败，请重试。")),
+  });
+
+  const designMutation = useMutation({
+    mutationFn: () => designGlobalNarratorVoice(draft),
+    onSuccess: (response) => {
+      hasEditedDraft.current = false;
+      setDraft(response.data?.description ?? "");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.settings.narratorVoice });
+      toast.success("旁白试听已生成。");
+    },
+    onError: (error) => toast.error(errorMessage(error, "生成旁白试听失败，请重试。")),
+  });
+
+  const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
+  const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
+  const canSubmit = draft.trim().length >= 4 && !isBusy;
+
+  return (
+    <SettingsShell title="旁白音色" description="试听并设置整个项目统一使用的旁白音色。">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base"><AudioLines className="h-4 w-4" />系统旁白音色</CardTitle>
+          <CardDescription>所有旁白台词使用这里的描述和试听样本。</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {narratorVoiceQuery.isLoading ? (
+            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">正在读取旁白音色...</div>
+          ) : narratorVoiceQuery.isError ? (
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+              {errorMessage(narratorVoiceQuery.error, "读取旁白音色失败，请刷新后重试。")}
+            </div>
+          ) : null}
+
+          <label className="block space-y-2 text-sm font-medium" htmlFor="global-narrator-voice-description">
+            <span>音色描述</span>
+            <Textarea
+              id="global-narrator-voice-description"
+              value={draft}
+              onChange={(event) => {
+                hasEditedDraft.current = true;
+                setDraft(event.target.value);
+              }}
+              placeholder="例如：成年男声旁白，普通话自然清楚，平直直接地叙述。"
+              rows={4}
+              disabled={narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending}
+            />
+          </label>
+
+          {voice?.sampleAudioUrl ? (
+            <div className="space-y-2 rounded-md border bg-muted/20 p-4">
+              <p className="text-sm font-medium">当前试听样本</p>
+              <audio controls preload="metadata" className="w-full" src={voice.sampleAudioUrl}>
+                当前浏览器不支持音频播放。
+              </audio>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canSubmit}
+              onClick={() => saveMutation.mutate()}
+            >
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saveMutation.isPending ? "保存中..." : "保存描述"}
+            </Button>
+            <Button
+              type="button"
+              disabled={!canSubmit}
+              onClick={() => designMutation.mutate()}
+            >
+              {designMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
+              {designMutation.isPending ? "生成中..." : voice?.sampleAudioUrl ? "重新生成并试听" : "生成并试听"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </SettingsShell>
+  );
+}

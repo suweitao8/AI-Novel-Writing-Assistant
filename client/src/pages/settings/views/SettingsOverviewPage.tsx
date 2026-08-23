@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpenCheck, Bot, Database } from "lucide-react";
+import { ArrowRight, AudioLines, BookOpenCheck, Bot, Database } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   getModelCategories,
+  getGlobalNarratorVoice,
   getRagSettings,
   getStyleEngineRuntimeSettings,
 } from "@/api/settings";
@@ -17,12 +18,14 @@ const entries = [
   { to: "/settings/models", title: "模型设置", description: "配置文本模型与图片模型，并检查连接状态。", icon: Bot },
   { to: "/settings/director", title: "自动导演", description: "安排问题处理、确认偏好与提醒方式。", icon: BookOpenCheck },
   { to: "/settings/knowledge", title: "知识库与写法", description: "让资料和写法偏好参与后续创作。", icon: Database },
+  { to: "/settings/narrator-voice", title: "旁白音色", description: "试听并设置整个项目统一使用的旁白音色。", icon: AudioLines },
 ];
 
 export default function SettingsOverviewPage() {
   const categoriesQuery = useQuery({ queryKey: queryKeys.settings.modelCategories, queryFn: getModelCategories });
   const ragQuery = useQuery({ queryKey: queryKeys.settings.rag, queryFn: getRagSettings });
   const styleQuery = useQuery({ queryKey: queryKeys.settings.styleEngineRuntime, queryFn: getStyleEngineRuntimeSettings });
+  const narratorVoiceQuery = useQuery({ queryKey: queryKeys.settings.narratorVoice, queryFn: getGlobalNarratorVoice });
   const items = useMemo(() => buildSettingsReadinessItems({
     categories: categoriesQuery.data?.data,
     ragSettings: ragQuery.data?.data,
@@ -32,6 +35,7 @@ export default function SettingsOverviewPage() {
   const categories = categoriesQuery.data?.data;
   const textReady = Boolean(categories?.text?.isConfigured && categories.text.currentModel);
   const rag = ragQuery.data?.data;
+  const narratorVoice = narratorVoiceQuery.data?.data;
 
   return (
     <SettingsShell title="系统设置" description="查看创作环境状态，并进入需要调整的设置。">
@@ -44,6 +48,8 @@ export default function SettingsOverviewPage() {
               : "尚未配置可用的文本模型"
             : title === "知识库与写法"
               ? rag?.enabled ? `资料检索已开启 · ${rag.embeddingModel || "未选择向量模型"}` : "可选增强，暂不影响开始创作"
+              : title === "旁白音色"
+                ? narratorVoice?.sampleAudioUrl ? "已配置试听样本" : narratorVoice?.description ? "已填写音色描述" : "尚未设置旁白音色"
               : "设置确认偏好、问题处理和通知方式";
           return (
             <Card key={to} className="min-w-0">

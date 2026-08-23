@@ -53,6 +53,7 @@ import {
   DRAMA_ASSET_STYLE_KINDS,
   type DramaAssetStyleKind,
 } from "../../../services/drama/visual/dramaVisualStyles";
+import { globalNarratorVoiceSettingsService } from "../../../services/settings/GlobalNarratorVoiceSettingsService";
 import { registerCustomProviderRoutes } from "./customProviderRoutes";
 import { registerLLMSelectionRoutes } from "./llmSelectionRoutes";
 import { probeAudioSpeechChannel } from "../../../services/audio/speechProvider";
@@ -362,6 +363,59 @@ const dramaAssetArtStyleKindSchema = z.enum(DRAMA_ASSET_STYLE_KINDS);
 const dramaAssetArtStyleUpdateSchema = z.object({
   prompt: z.string().max(2000),
 });
+
+const narratorVoiceUpdateSchema = z.object({
+  description: z.string().trim().min(4).max(1000),
+});
+
+router.get("/narrator-voice", async (_req, res, next) => {
+  try {
+    const data = await globalNarratorVoiceSettingsService.get();
+    res.status(200).json({
+      success: true,
+      data,
+      message: "系统旁白音色读取成功。",
+    } satisfies ApiResponse<typeof data>);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch(
+  "/narrator-voice",
+  validate({ body: narratorVoiceUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
+      const data = await globalNarratorVoiceSettingsService.updateDescription(body.description);
+      res.status(200).json({
+        success: true,
+        data,
+        message: "系统旁白音色描述已保存。",
+      } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/narrator-voice/design",
+  validate({ body: narratorVoiceUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
+      const data = await globalNarratorVoiceSettingsService.design(body.description);
+      res.status(200).json({
+        success: true,
+        data,
+        message: "系统旁白音色试听已生成。",
+      } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 router.get("/drama-asset-styles", async (_req, res, next) => {
   try {
