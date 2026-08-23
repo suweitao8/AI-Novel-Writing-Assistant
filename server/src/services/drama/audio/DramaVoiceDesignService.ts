@@ -89,6 +89,10 @@ export class DramaVoiceDesignService {
   }
 
   async designNarratorVoice(projectId: string, description: string): Promise<NarratorVoiceState> {
+    const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
+    if (!project) {
+      throw new AppError(`未找到项目：${projectId}`, 404);
+    }
     return toNarratorVoiceState(await globalNarratorVoiceSettingsService.design(description));
   }
 }

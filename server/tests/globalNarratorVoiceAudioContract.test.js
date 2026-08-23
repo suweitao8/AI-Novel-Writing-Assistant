@@ -28,3 +28,11 @@ test("分段投影读取同一份系统旁白设置", () => {
   assert.match(segmentsService, /globalNarratorVoiceSettingsService\.get\(\)/);
   assert.match(segmentsService, /narratorSampleAudioUrl/);
 });
+
+test("兼容项目级旁白接口仍校验项目存在", () => {
+  const voiceDesignService = read("services/drama/audio/DramaVoiceDesignService.ts");
+  assert.match(
+    voiceDesignService,
+    /async designNarratorVoice\([\s\S]*?prisma\.dramaProject\.findUnique\([\s\S]*?if \(!project\)/,
+  );
+});

@@ -385,7 +385,7 @@ export class DramaDialogueAudioService {
               ? narratorVoice.description
               : (item.emotion || voice?.emotion || voice?.voicePrompt),
             speaker: isNarrationLine ? "旁白" : item.speaker,
-                referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
+            referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
           },
         };
       });
