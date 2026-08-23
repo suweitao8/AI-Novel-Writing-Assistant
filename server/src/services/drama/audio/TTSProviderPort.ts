@@ -26,8 +26,6 @@ export interface TTSProviderPort {
   synthesize(input: TTSGenerationRequest): Promise<TTSGenerationResult>;
 }
 
-const SILENT_WAV_DATA_URL = "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
-
 export class MockTTSProvider implements TTSProviderPort {
   readonly provider = "mock";
   readonly label = "模拟配音通道";
@@ -35,13 +33,13 @@ export class MockTTSProvider implements TTSProviderPort {
   readonly costPerSecond = normalizeCostValue(process.env.DRAMA_TTS_MOCK_COST_PER_SECOND);
   readonly currency = readCostCurrency();
 
-  async synthesize(input: TTSGenerationRequest): Promise<TTSGenerationResult> {
-    return {
-      audioUrl: SILENT_WAV_DATA_URL,
-      durationSec: Math.max(1, Math.ceil(input.text.length / 5)),
-      raw: input,
-    };
+  async synthesize(_input: TTSGenerationRequest): Promise<TTSGenerationResult> {
+    throw new Error("模拟配音通道不生成真实语音，请使用系统音频模型。 ");
   }
+}
+
+export function isRealTTSProvider(provider: string | null | undefined): boolean {
+  return typeof provider === "string" && provider.trim().length > 0 && provider.trim() !== "mock";
 }
 
 function normalizeTimeoutMs(value: unknown): number {

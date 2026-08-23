@@ -39,7 +39,11 @@ test("配音界面不再提供页面级通道选择", () => {
 test("每个分镜行都能试听，并按当前状态生成或重新生成本镜配音", () => {
   const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
 
-  assert.match(panelSource, /<audio[\s\S]*?controls[\s\S]*?preload="metadata"/);
+  assert.match(panelSource, /AudioSegmentPlayer/);
+  assert.match(panelSource, /<audio[\s\S]*?preload="metadata"/);
+  assert.match(panelSource, /type="range"/);
+  assert.match(panelSource, /currentTime/);
+  assert.match(panelSource, /duration/);
   assert.match(panelSource, /生成配音/);
   assert.match(panelSource, /重新生成/);
   assert.match(panelSource, /onClick=\{\(\) => props\.onRegenerate\(shot, shouldForceRegenerate\)\}/);
@@ -54,17 +58,20 @@ test("分镜行把配音操作集中到音频区，并隐藏已由音频段展�
   assert.doesNotMatch(panelSource, />音频<\/span>/);
   assert.match(panelSource, /segments\.length > 0 \?/);
   assert.doesNotMatch(panelSource, /\{segments\.length > 0 \? \([\s\S]*?\{shot\.dialogue \|\| shot\.action \?/);
-  assert.match(panelSource, /audioActionLabel[\s\S]*?<audio[\s\S]*?controls[\s\S]*?preload="metadata"/);
+  assert.match(panelSource, /AudioSegmentPlayer/);
+  assert.match(panelSource, /audioActionLabel/);
+  assert.match(panelSource, /<audio[\s\S]*?preload="metadata"/);
 });
 
-test("分镜配音行把正文与试听控制分层，并用真实配音时长标注镜头", () => {
+test("分镜配音行只在播放器内显示真实当前与总时长，不重复显示分镜时长", () => {
   const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
   const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
 
-  assert.match(panelSource, /function formatDurationSec\(/);
-  assert.match(panelSource, /const voiceDurationSec = readyVoiceSegments\.length === segments\.length/);
-  assert.match(panelSource, /formatDurationSec\(shotDurationSec\)/);
-  assert.match(panelSource, /formatDurationSec\(segment\.durationSec\)/);
+  assert.doesNotMatch(panelSource, /function formatDurationSec\(/);
+  assert.doesNotMatch(panelSource, /voiceDurationSec|shotDurationSec/);
+  assert.match(panelSource, /const shotMeta = \[shot\.shotSize\]/);
+  assert.match(panelSource, /formatAudioTime\(currentTime\)[\s\S]*formatAudioTime\(duration\)/);
+  assert.doesNotMatch(panelSource, /segment\.durationSec/);
   assert.match(panelSource, /sm:flex-row/);
   assert.doesNotMatch(panelSource, />音频<\/span>/);
   assert.doesNotMatch(panelSource, /配音 \{readyCount\}\/\{segments\.length\}/);

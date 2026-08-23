@@ -1,6 +1,7 @@
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import {
@@ -15,6 +16,7 @@ import {
   type DialogueAudioData,
   type DialogueLineType,
 } from "./DramaDialogueAudioService";
+import { isRealTTSProvider } from "./TTSProviderPort";
 
 /** 分段状态：ready=可直接播放；stale=文本或音色已变化需重配；missing=尚未生成 */
 export type DramaAudioSegmentStatus = "ready" | "stale" | "missing";
@@ -62,6 +64,7 @@ export class DramaAudioSegmentsService {
     }
     const voiceMap = buildVoiceMap(episode.project.characters);
     const narratorVoice = readNarratorVoiceData(episode.project.narratorVoiceData);
+    const expectedProvider = getAudioModelProvider();
     const novelStatesByName = episode.project.source === "novel_import"
       && episode.project.sourceRef?.trim()
       ? await loadNovelCharacterStatesByName(episode.project.sourceRef.trim())
@@ -94,7 +97,12 @@ export class DramaAudioSegmentsService {
           lineEmotion: line.emotion,
         });
         let status: DramaAudioSegmentStatus = "missing";
-        if (item?.audioUrl?.startsWith("data:")) {
+        if (
+          item?.audioUrl?.startsWith("data:")
+          && audioData?.provider === expectedProvider
+          && item.provider === expectedProvider
+          && isRealTTSProvider(expectedProvider)
+        ) {
           status = item.textHash === textHash && item.voiceKey === voiceKey ? "ready" : "stale";
         }
         segments.push({
