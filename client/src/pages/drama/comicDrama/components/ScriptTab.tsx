@@ -405,7 +405,7 @@ export default function ScriptTab(props: ScriptTabProps) {
               {visibleItems.map(({ item, index }) => (
                 <li key={index}>
                   {item.kind === "scene" ? (
-                    <>
+                    <div className="overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/10">
                       <SceneRow
                         item={item}
                         index={index}
@@ -425,7 +425,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                         characterStatesByName={charactersByName}
                         onSwitch={(target, nextState) => switchPanelState(index, target, nextState)}
                       />
-                    </>
+                    </div>
                   ) : item.kind === "shot" ? (
                     <ShotRow
                       item={item}
@@ -702,7 +702,7 @@ function SceneStatePanel(props: {
     return null;
   }
   return (
-    <div className="mt-1 grid grid-cols-1 gap-1.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-1.5 border-t border-emerald-500/20 bg-transparent px-3 py-2 sm:grid-cols-3">
       {characterRows.map((row) => (
         <label key={row.name} className="flex min-w-0 items-center gap-1.5">
           <span className="shrink-0 text-xs font-medium text-foreground">{row.name}</span>
@@ -736,7 +736,7 @@ function SceneRow(props: RowBaseProps & {
     ? props.sceneStateValue
     : props.sceneStates[0];
   return (
-    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
+    <div className="group flex flex-wrap items-center gap-2 px-3 py-2">
       <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景</Badge>
       <EditableValue
         active={active}
