@@ -1,10 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import {
+  getCanvasPanoramaOffsetY,
+  updateCanvasPanoramaOffsetX,
+  updatePanoramaPitch,
+  updatePanoramaYaw,
+} from "@/components/common/panoramaInteraction";
 
 // 360° 全景预览（无第三方依赖），按环境能力降级：
 // 1) WebGL：把等距柱状全景图贴到球面内壁，透视正确的拖拽环视 + 滚轮缩放；
 // 2) Canvas 2D（2026-08-23：内嵌 webview 常无 WebGL——实测用户环境 canvas 数为 0、
-//    静态回退导致完全不能拖）：水平拖拽环视（左右无缝循环）+ 垂直小幅平移 + 滚轮缩放，
+//    静态回退导致完全不能拖）：水平拖拽环视（左右无缝循环）+ ±60° 俯仰限幅 + 滚轮缩放，
 //    不是透视投影但保留「拖拽看一圈」的核心体验；
 // 3) 连 2D 都没有：退回静态平面图。
 // 场景状态图的生成契约就是等距柱状全景（见 StoryAssetStateImageService.buildStateImagePrompt 的 scene 分支）。
@@ -200,8 +206,8 @@ export default function PanoramaViewer(props: {
         return;
       }
       const scale = view.fov / Math.max(1, canvas.clientHeight);
-      view.yaw -= (event.clientX - lastX) * scale;
-      view.pitch = Math.max(-1.45, Math.min(1.45, view.pitch + (event.clientY - lastY) * scale));
+      view.yaw = updatePanoramaYaw(view.yaw, event.clientX - lastX, scale);
+      view.pitch = updatePanoramaPitch(view.pitch, event.clientY - lastY, scale);
       lastX = event.clientX;
       lastY = event.clientY;
       dirty = true;
@@ -247,7 +253,7 @@ export default function PanoramaViewer(props: {
   }, [mode, src]);
 
   // ── Canvas 2D 环视回退（无 WebGL 的内嵌 webview） ─────────────────────────
-  // 等距柱状全景按水平偏移绘制、左右无缝循环；滚轮纵向缩放；垂直小幅平移。
+  // 等距柱状全景按水平偏移绘制、左右无缝循环；滚轮缩放；垂直拖拽统一限幅在 ±60°。
   useEffect(() => {
     if (mode !== "canvas2d") {
       return;
@@ -269,8 +275,8 @@ export default function PanoramaViewer(props: {
     let width = 1;
     let height = 1;
     // 视口状态：zoom=可见高度占整图高度的比例（越小看得越远）；offsetX 用源像素单位水平循环；
-    // offsetY 上下平移（0=垂直居中）。
-    const view = { zoom: 1, offsetX: 0, offsetY: 0 };
+    // pitch 用弧度表示俯仰角（0=垂直居中）。
+    const view = { zoom: 1, offsetX: 0, pitch: 0 };
 
     loadImage(src).then((loaded) => {
       if (disposed) {
@@ -306,9 +312,8 @@ export default function PanoramaViewer(props: {
       // 可见窗口（源像素）：高度 = 整图高度 / zoom，宽度按视口宽高比推——保证画面不变形。
       const srcH = imgH / view.zoom;
       const srcW = Math.min(imgW, srcH * (width / height));
-      // 垂直窗口中心：默认居中，clamp 在图内。
-      const maxOffsetY = (imgH - srcH) / 2;
-      const centerY = imgH / 2 + Math.max(-maxOffsetY, Math.min(maxOffsetY, view.offsetY));
+      // 垂直窗口中心：由统一俯仰角换算，并限制在图像可裁剪范围内。
+      const centerY = imgH / 2 + getCanvasPanoramaOffsetY(view.pitch, imgH, srcH);
       const sy = Math.max(0, Math.min(imgH - srcH, centerY - srcH / 2));
       // 水平起点做无缝循环（负偏移也归一到 [0, imgW)）。
       const sx = ((view.offsetX % imgW) + imgW) % imgW;
@@ -348,10 +353,11 @@ export default function PanoramaViewer(props: {
       const imgH = image.naturalHeight || 1;
       const srcH = imgH / view.zoom;
       const srcW = Math.min(image.naturalWidth || 1, srcH * (width / height));
-      // 屏幕像素 → 源像素比例，拖动 1:1 跟手；水平方向与视觉一致（往左拖看右边）。
+      // 屏幕像素 → 源像素比例，拖动 1:1 跟手；水平拖拽方向与视角方向一致。
       const pxPerScreen = srcW / Math.max(1, canvas.clientWidth);
-      view.offsetX -= (event.clientX - lastX) * pxPerScreen;
-      view.offsetY += (event.clientY - lastY) * pxPerScreen;
+      view.offsetX = updateCanvasPanoramaOffsetX(view.offsetX, event.clientX - lastX, pxPerScreen);
+      const pitchScale = (Math.PI / 2) / Math.max(1, canvas.clientHeight);
+      view.pitch = updatePanoramaPitch(view.pitch, event.clientY - lastY, pitchScale);
       lastX = event.clientX;
       lastY = event.clientY;
       dirty = true;
