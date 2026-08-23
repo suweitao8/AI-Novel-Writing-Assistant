@@ -83,7 +83,7 @@ export default function NarratorVoiceSettingsPage() {
                 hasEditedDraft.current = true;
                 setDraft(event.target.value);
               }}
-              placeholder="例如：成年男声旁白，普通话自然清楚，平直直接地叙述。"
+              placeholder="例如：成年女声旁白，普通话自然清楚，温和沉稳地叙述。"
               rows={4}
               disabled={narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending}
             />

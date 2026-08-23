@@ -22,14 +22,15 @@ import {
   synthesizeAudioSpeech,
   type AudioSpeechResult,
 } from "../../../../services/audio/speechProvider";
+import { VOICE_PREVIEW_SAMPLE_TEXT } from "../../../../services/audio/voicePreviewSample";
 import {
   storySettingsService,
   type StorySettingsCharacter,
 } from "./StorySettingsService";
 import { updateStoryAssetStateJsonWithCas } from "./StorySettingsStatePolicy";
 
-/** 与 DramaVoiceDesignService 共用的固定试听短句（沿用旧项目 mydrama 的参考文本口径，吐字更清楚）。 */
-export const STATE_VOICE_SAMPLE_TEXT = "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。";
+/** 兼容现有调用方；实际文本由 audio/voicePreviewSample 统一维护。 */
+export const STATE_VOICE_SAMPLE_TEXT = VOICE_PREVIEW_SAMPLE_TEXT;
 
 export interface PreviousStateVoice {
   stateId: string;
