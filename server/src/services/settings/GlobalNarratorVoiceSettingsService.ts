@@ -31,11 +31,11 @@ interface AppSettingStore {
 }
 
 interface LegacyProjectStore {
-  findFirst(args: {
+  findMany(args: {
     where: { narratorVoiceData: { not: null } };
     orderBy: { updatedAt: "asc" };
     select: { narratorVoiceData: true };
-  }): Promise<{ narratorVoiceData: string | null } | null>;
+  }): Promise<Array<{ narratorVoiceData: string | null }>>;
 }
 
 interface GlobalNarratorVoiceSettingsServiceDeps {
@@ -112,12 +112,14 @@ export class GlobalNarratorVoiceSettingsService {
       return current;
     }
 
-    const legacy = await this.getLegacyProjectStore().findFirst({
+    const legacyProjects = await this.getLegacyProjectStore().findMany({
       where: { narratorVoiceData: { not: null } },
       orderBy: { updatedAt: "asc" },
       select: { narratorVoiceData: true },
     });
-    const migrated = parseGlobalNarratorVoice(legacy?.narratorVoiceData);
+    const migrated = legacyProjects
+      .map((legacy) => parseGlobalNarratorVoice(legacy.narratorVoiceData))
+      .find(hasGlobalNarratorVoice) ?? {};
     if (!hasGlobalNarratorVoice(migrated)) {
       return current;
     }

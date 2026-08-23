@@ -24,8 +24,8 @@ function createService(overrides = {}) {
   return new GlobalNarratorVoiceSettingsService({
     appSettingStore: overrides.appSettingStore ?? createStore(),
     legacyProjectStore: {
-      async findFirst() {
-        return overrides.legacyProject ?? null;
+      async findMany() {
+        return overrides.legacyProjects ?? (overrides.legacyProject ? [overrides.legacyProject] : []);
       },
     },
     synthesize: overrides.synthesize ?? (async () => ({ dataUrl: "data:audio/mp3;base64:generated" })),
@@ -67,6 +67,20 @@ test("没有系统设置时迁移第一个有效旧项目并保留其字段", as
   assert.equal(result.description, "旧项目男声");
   assert.equal(result.sampleAudioUrl, "data:audio/mp3;base64:old");
   assert.match(store.upserts[0].create.value, /旧项目男声/);
+});
+
+test("旧项目首条旁白无效时继续寻找下一个有效样本", async () => {
+  const store = createStore();
+  const service = createService({
+    appSettingStore: store,
+    legacyProjects: [
+      { narratorVoiceData: "not-json" },
+      { narratorVoiceData: JSON.stringify({ description: "第二个旧声", sampleAudioUrl: "data:audio/mp3;base64:valid" }) },
+    ],
+  });
+  const result = await service.get();
+  assert.equal(result.description, "第二个旧声");
+  assert.equal(result.sampleAudioUrl, "data:audio/mp3;base64:valid");
 });
 
 test("保存描述会更新时间但不会丢失已有参考音频", async () => {
