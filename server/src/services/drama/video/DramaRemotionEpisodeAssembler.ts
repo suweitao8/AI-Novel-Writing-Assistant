@@ -367,10 +367,11 @@ function buildAssemblySegments(input: DramaRemotionEpisodeAssemblyInput): Assemb
   }
   for (const shot of input.shots) {
     const audioDuration = shot.audioLines.reduce((sum, line) => sum + normalizeDurationSec(line.durationSec, 1), 0);
+    const durationSec = audioDuration > 0 ? Math.max(1, audioDuration) : normalizeDurationSec(shot.durationSec, 1);
     segments.push({
       id: `shot-${shot.order}-${shot.shotId}`,
       kind: "shot",
-      durationSec: Math.max(1, shot.durationSec, audioDuration),
+      durationSec,
       imagePath: shot.imagePath ?? undefined,
       title: `镜头 ${shot.order}`,
       detail: shot.detail,
