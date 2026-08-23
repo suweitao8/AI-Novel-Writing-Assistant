@@ -19,6 +19,7 @@ import {
 import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegment } from "@/api/media/comicDrama";
 import { queryKeys } from "@/api/queryKeys";
 import SelectControl from "@/components/common/SelectControl";
+import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
 import { CharacterVoiceCard, NarratorVoiceCard, SegmentStatusDot } from "./VoiceStagePanel";
 import {
@@ -415,64 +416,71 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-xs font-semibold tabular-nums text-foreground">第 {shot.order} 镜</span>
           {shotMeta ? <span className="text-[11px] text-muted-foreground">{shotMeta}</span> : null}
-          {segments.length > 0 ? (
-            <span className={cn("text-[11px]", pendingCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
-              配音 {readyCount}/{segments.length}
-            </span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">无台词行</span>
-          )}
-          {segments.length > 0 ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="ml-auto h-7 px-2 text-xs"
-              disabled={props.regenerating}
-              onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
-              title={`${audioActionLabel}这一镜的配音`}
-            >
-              {props.regenerating ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-              ) : shouldForceRegenerate ? (
-                <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
-              ) : (
-                <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
-              )}
-              {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
-            </Button>
-          ) : null}
         </div>
 
-        {shot.dialogue || shot.action ? (
-          <p className="line-clamp-2 text-sm leading-6 text-foreground">
-            {shot.dialogue ? `「${shot.dialogue}」` : shot.action}
-          </p>
-        ) : null}
+        {segments.length === 0 && (
+          shot.dialogue || shot.action ? (
+            <p className="line-clamp-2 text-sm leading-6 text-foreground">
+              {shot.dialogue ? `「${shot.dialogue}」` : shot.action}
+            </p>
+          ) : null
+        )}
 
         {segments.length > 0 ? (
-          <div className="space-y-1">
-            {segments.map((segment) => (
-              <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
-                <SegmentStatusDot status={segment.status} />
-                <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                  {segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}
-                  {segment.type === "dialogue" && segment.emotion ? (
-                    <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
-                  ) : null}
-                </span>
-                <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={segment.text}>
-                  {segment.text}
-                </span>
-                {segment.status === "ready" && segment.audioUrl ? (
-                  <audio controls preload="metadata" src={segment.audioUrl} className="h-7 w-44 shrink-0 sm:w-56" />
+          <div className="mt-2 rounded-lg border border-border/60 bg-muted/10 p-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[11px] font-medium text-muted-foreground">音频</span>
+              <span className={cn("text-[11px]", pendingCount > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400")}>
+                配音 {readyCount}/{segments.length}
+              </span>
+              <AiButton
+                type="button"
+                variant="outline"
+                size="sm"
+                className="ml-auto h-8 shrink-0 px-2.5 text-xs"
+                disabled={props.regenerating}
+                onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
+                title={`${audioActionLabel}这一镜的配音`}
+              >
+                {props.regenerating ? (
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
+                ) : shouldForceRegenerate ? (
+                  <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
                 ) : (
-                  <span className="shrink-0 text-[10px] text-muted-foreground">
-                    {segment.status === "stale" ? "需重配" : "未生成"}
-                  </span>
+                  <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
                 )}
-              </div>
-            ))}
+                {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
+              </AiButton>
+            </div>
+            <div className="mt-1.5 space-y-1">
+              {segments.map((segment) => (
+                <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
+                  <SegmentStatusDot status={segment.status} />
+                  <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
+                    {segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}
+                    {segment.type === "dialogue" && segment.emotion ? (
+                      <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
+                    ) : null}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground" title={segment.text}>
+                    {segment.text}
+                  </span>
+                  {segment.status === "ready" && segment.audioUrl ? (
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={segment.audioUrl}
+                      aria-label={`${segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白"}试听`}
+                      className="h-7 w-44 shrink-0 sm:w-56"
+                    />
+                  ) : (
+                    <span className="shrink-0 text-[10px] text-muted-foreground">
+                      {segment.status === "stale" ? "需重配" : "未生成"}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         ) : null}
       </div>
