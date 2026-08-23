@@ -7,7 +7,6 @@ import {
   Pause,
   Play,
   RefreshCw,
-  Settings2,
   Volume2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -20,10 +19,9 @@ import {
 } from "@/api/media/drama";
 import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegment } from "@/api/media/comicDrama";
 import { queryKeys } from "@/api/queryKeys";
-import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
-import { CharacterVoiceCard, NarratorVoiceCard, SegmentStatusDot } from "./VoiceStagePanel";
+import { SegmentStatusDot } from "./VoiceStagePanel";
 import {
   DramaEpisodeAssemblyButton,
   DramaEpisodeAssemblyResultPanel,
@@ -31,11 +29,11 @@ import {
 } from "../components/DramaEpisodeAssemblyPanel";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 
 interface ShotVoiceListPanelProps {
   novelId: string;
   projectId: string;
+  chapterOrder: number | null;
 }
 
 type KeyframeState = { status?: string; url?: string; error?: string };
@@ -69,12 +67,10 @@ const POLL_GRACE_MS = 30_000;
 
 // 一行 = 一个分镜 + 它的配音：分镜与配音强相关，合并成一个列表逐镜对照。
 // 深度操作（圈选批量、宫格预览、导出）仍在独立分镜工作台。
-export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceListPanelProps) {
+export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
-  const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
-  const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
   const lastTaskActivityAtRef = useRef(0);
   const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;
 
@@ -100,8 +96,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   });
   const project = projectQuery.data?.data;
   const episodes = project?.episodes ?? [];
-  const characters = project?.characters ?? [];
-  const activeOrder = selectedOrder ?? episodes[0]?.order ?? null;
+  const activeOrder = chapterOrder;
   const activeEpisode = episodes.find((episode) => episode.order === activeOrder) ?? null;
   const storyboard = activeEpisode?.storyboards?.[0] ?? null;
   const shots = useMemo(() => storyboard?.shots ?? [], [storyboard]);
@@ -151,6 +146,12 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
     }
     return { total: shots.length, done, generating, missing: shots.length - done - generating };
   }, [shots]);
+  const hasDialogue = useMemo(
+    () => shots.some((shot) => Boolean(shot.dialogue?.trim())),
+    [shots],
+  );
+  const shouldForceTts = summary.total > 0 && summary.pending === 0;
+  const canRunTts = shouldForceTts || summary.pending > 0 || (summary.total === 0 && hasDialogue);
 
   const invalidateAll = () => {
     if (activeOrder !== null) {
@@ -235,53 +236,30 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
 
   return (
     <div className="space-y-3">
-      {/* 工具行：集 / 批量操作 / 音色设置 */}
+      {/* 工具行：当前章节的三个批量操作 */}
       <div className="flex flex-wrap items-center gap-2">
-        <SelectControl
-          className="h-9 min-w-[130px] rounded-md border bg-background px-2 text-sm"
-          value={activeOrder === null ? "" : String(activeOrder)}
-          onChange={(event) => setSelectedOrder(Number(event.target.value) || null)}
-          disabled={episodes.length === 0}
-        >
-          {episodes.length === 0 ? <option value="">还没有分集</option> : null}
-          {episodes.map((episode) => (
-            <option key={episode.id} value={episode.order}>
-              第 {episode.order} 集{episode.title ? ` · ${episode.title}` : ""}
-            </option>
-          ))}
-        </SelectControl>
         {storyboard ? (
           <div className="ml-auto flex flex-wrap gap-2">
-            {keyframeSummary.missing > 0 ? (
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={busy || keyframeSummary.generating > 0}
-                onClick={() => keyframeBatchMutation.mutate({
-                  shotIds: shots
-                    .filter((shot) => !["done", "generating"].includes(parseKeyframe(shot.keyframeData).status ?? ""))
-                    .map((shot) => shot.id),
-                })}
-              >
-                <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-                生成缺失画面（{keyframeSummary.missing}）
-              </Button>
-            ) : null}
-            <Button
-              size="sm"
-              onClick={() => ttsBatchMutation.mutate(false)}
-              disabled={busy || jobRunning || summary.pending === 0}
-            >
-              {jobRunning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-              生成缺失配音（{summary.pending} 行）
-            </Button>
             <Button
               size="sm"
               variant="outline"
-              onClick={() => ttsBatchMutation.mutate(true)}
-              disabled={busy || jobRunning || summary.total === 0}
+              disabled={busy || keyframeSummary.generating > 0 || keyframeSummary.missing === 0}
+              onClick={() => keyframeBatchMutation.mutate({
+                shotIds: shots
+                  .filter((shot) => !["done", "generating"].includes(parseKeyframe(shot.keyframeData).status ?? ""))
+                  .map((shot) => shot.id),
+              })}
             >
-              全部重新配音
+              <ImageIcon className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              生成分镜{keyframeSummary.missing > 0 ? `（${keyframeSummary.missing}）` : ""}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => ttsBatchMutation.mutate(shouldForceTts)}
+              disabled={busy || jobRunning || !canRunTts}
+            >
+              {jobRunning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
+              {jobRunning ? `${shouldForceTts ? "重新配音" : "生成配音"}中...` : shouldForceTts ? "重新配音" : "生成配音"}
             </Button>
             <DramaEpisodeAssemblyButton
               controller={assemblyController}
@@ -291,33 +269,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
             />
           </div>
         ) : null}
-        <Button
-          size="sm"
-          variant="ghost"
-          className={cn(voiceSettingsOpen && "text-primary")}
-          onClick={() => setVoiceSettingsOpen((open) => !open)}
-        >
-          <Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />音色设置
-        </Button>
       </div>
-
-      {voiceSettingsOpen ? (
-        <div className="grid gap-3 rounded-2xl border border-border bg-muted/10 p-3 lg:grid-cols-2">
-          <NarratorVoiceCard projectId={projectId} />
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-foreground">角色音色</p>
-            {characters.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border bg-muted/20 px-3 py-4 text-xs text-muted-foreground">
-                还没有角色，分镜生成后会从小说带出。
-              </p>
-            ) : (
-              characters.map((character) => (
-                <CharacterVoiceCard key={character.id} projectId={projectId} character={character} />
-              ))
-            )}
-          </div>
-        </div>
-      ) : null}
 
       {/* 状态摘要 */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -343,12 +295,16 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center text-sm text-muted-foreground">
           还没有分集。先在完整分镜工作台生成分集大纲。
         </div>
+      ) : activeOrder === null ? (
+        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center text-sm text-muted-foreground">
+          请先在右上方选择章节。
+        </div>
       ) : !storyboard ? (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center">
           <p className="text-sm text-muted-foreground">第 {activeOrder} 集还没有分镜。</p>
           <Button className="mt-3" size="sm" disabled={busy} onClick={() => storyboardMutation.mutate()}>
             {storyboardMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Clapperboard className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            生成
+            生成分镜
           </Button>
         </div>
       ) : (

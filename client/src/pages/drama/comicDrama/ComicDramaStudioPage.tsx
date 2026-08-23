@@ -380,7 +380,11 @@ export default function ComicDramaStudioPage() {
             />
           ) : currentTab === "storyboard" ? (
             overview.drama ? (
-              <ShotVoiceListPanel novelId={novelId} projectId={overview.drama.projectId} />
+              <ShotVoiceListPanel
+                novelId={novelId}
+                projectId={overview.drama.projectId}
+                chapterOrder={chapterWorkspace.currentChapter?.order ?? null}
+              />
             ) : (
               <StoryboardBootstrapCard
                 canGenerate={storyboard.scriptReady}
