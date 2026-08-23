@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ImageIcon, LayoutGrid, Loader2, Maximize2, Video } from "lucide-react";
-import type { DramaShot, DramaShotKeyframeData, DramaStoryboard, DramaVideoPrompt } from "@/api/media/drama";
+import { ImageIcon, LayoutGrid, Loader2, Maximize2 } from "lucide-react";
+import type { DramaShot, DramaShotKeyframeData, DramaStoryboard } from "@/api/media/drama";
 import { updateDramaShot } from "@/api/media/drama";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
@@ -21,9 +21,7 @@ interface DramaStoryboardBoardProps {
   keyframePending: boolean;
   imageProviderReady: boolean;
   batchActive: boolean;
-  promptsByShot: Map<string, DramaVideoPrompt>;
   onGenerateKeyframe: (shot: DramaShot) => void;
-  onVideoPrompt: (shot: DramaShot) => void;
   onBatchKeyframes: (shotIds: string[]) => void;
 }
 
@@ -172,7 +170,7 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
             onClick={() => props.onBatchKeyframes([...selectedIds])}
           >
             <ImageIcon className="h-4 w-4" />
-            生成所选首帧
+            生成所选画面
           </AiButton>
         </div>
       </div>
@@ -184,7 +182,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
       ) : (
         <div className={cn("grid gap-3", gridClassName)}>
           {shotsWithState.map(({ shot, keyframe }) => {
-            const prompt = props.promptsByShot.get(shot.id);
             const characters = parseCharacterRefs(shot.characterRefs);
             const selected = selectedIds.has(shot.id);
             return (
@@ -243,7 +240,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                   {shot.dialogue ? (
                     <p className="line-clamp-1 text-xs text-muted-foreground">「{shot.dialogue}」</p>
                   ) : null}
-                  {prompt ? <Badge variant="outline" className="w-fit">提示词 v{prompt.version ?? 1}</Badge> : null}
                   <div className="mt-auto flex flex-wrap gap-2 pt-1">
                     <Button
                       size="sm"
@@ -257,11 +253,7 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                       ) : (
                         <ImageIcon className="h-4 w-4" />
                       )}
-                      {keyframe.status === "done" ? "重生成首帧" : keyframe.status === "generating" ? "生成中" : "生成首帧"}
-                    </Button>
-                    <Button size="sm" type="button" variant="outline" disabled={props.busy} onClick={() => props.onVideoPrompt(shot)}>
-                      <Video className="h-4 w-4" />
-                      视频提示词
+                      {keyframe.status === "done" ? "重生成画面" : keyframe.status === "generating" ? "生成中" : "生成画面"}
                     </Button>
                   </div>
                 </div>
@@ -287,22 +279,16 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
           }
         }}
         generateDisabled={previewShot ? generateDisabled(parseKeyframe(previewShot.keyframeData)) : true}
-        onVideoPrompt={() => {
-          if (previewShot) {
-            props.onVideoPrompt(previewShot);
-          }
-        }}
-        videoPromptDisabled={props.busy}
       />
 
       <Dialog open={gridPreviewOpen} onOpenChange={setGridPreviewOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>宫格预览</DialogTitle>
-            <DialogDescription>已生成首帧的镜头总览，点击任意一页可以放大查看。</DialogDescription>
+            <DialogDescription>已生成分镜画面的镜头总览，点击任意一页可以放大查看。</DialogDescription>
           </DialogHeader>
           {doneShots.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">暂无可预览的首帧图。</div>
+            <div className="py-6 text-center text-sm text-muted-foreground">暂无可预览的画面图。</div>
           ) : (
             <div className="grid max-h-[65vh] grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4 md:grid-cols-5">
               {doneShots.map(({ shot, keyframe }) => (
@@ -317,7 +303,7 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                 >
                   <img
                     src={keyframe.url}
-                    alt={`镜头 ${shot.order} 首帧`}
+                    alt={`镜头 ${shot.order} 画面`}
                     className="aspect-video w-full object-cover"
                   />
                   <span className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-[11px] text-foreground">
@@ -345,10 +331,10 @@ function ShotKeyframeArea(props: {
 
   if (keyframe.status === "done" && keyframe.url) {
     return (
-      <button type="button" className="group relative block w-full" onClick={props.onPreview} aria-label={`放大查看镜头 ${props.shot.order} 首帧`}>
+      <button type="button" className="group relative block w-full" onClick={props.onPreview} aria-label={`放大查看镜头 ${props.shot.order} 画面`}>
         <img
           src={keyframe.url}
-          alt={`镜头 ${props.shot.order} 首帧`}
+          alt={`镜头 ${props.shot.order} 画面`}
           className={cn("w-full object-cover", aspectClass)}
         />
         <span className="absolute left-2 top-2 rounded bg-background/85 px-1.5 py-0.5 text-[11px] font-medium text-foreground">
@@ -365,7 +351,7 @@ function ShotKeyframeArea(props: {
     return (
       <div className={cn("flex w-full flex-col items-center justify-center gap-2 bg-muted/40 text-xs text-muted-foreground", aspectClass)}>
         <Loader2 className="h-5 w-5 animate-spin text-primary" />
-        <span>首帧生成中</span>
+        <span>画面生成中</span>
       </div>
     );
   }
@@ -373,7 +359,7 @@ function ShotKeyframeArea(props: {
   if (keyframe.status === "error") {
     return (
       <div className={cn("flex w-full flex-col items-center justify-center gap-2 border-destructive/30 bg-destructive/5 px-3 text-center", aspectClass)}>
-        <span className="text-xs font-medium text-destructive">首帧生成失败</span>
+        <span className="text-xs font-medium text-destructive">画面生成失败</span>
         {keyframe.error ? <span className="line-clamp-2 text-[11px] text-destructive/80">{keyframe.error}</span> : null}
         <Button size="sm" type="button" variant="outline" disabled={props.generateDisabled} onClick={props.onGenerate}>
           重试
@@ -385,7 +371,7 @@ function ShotKeyframeArea(props: {
   return (
     <div className={cn("flex w-full flex-col items-center justify-center gap-2 border-dashed bg-muted/20 text-xs text-muted-foreground", aspectClass)}>
       <ImageIcon className="h-5 w-5 opacity-60" />
-      <span>未生成首帧</span>
+      <span>未生成画面</span>
     </div>
   );
 }
@@ -398,8 +384,6 @@ function ShotPreviewDialog(props: {
   onOpenChange: (open: boolean) => void;
   onGenerate: () => void;
   generateDisabled: boolean;
-  onVideoPrompt: () => void;
-  videoPromptDisabled: boolean;
 }) {
   const shot = props.shot;
   const characters = shot ? parseCharacterRefs(shot.characterRefs) : [];
@@ -467,13 +451,13 @@ function ShotPreviewDialog(props: {
               >
                 <img
                   src={props.keyframe.url}
-                  alt={`镜头 ${shot.order} 首帧`}
+                  alt={`镜头 ${shot.order} 画面`}
                   className="max-h-[60vh] w-full rounded-md border object-contain"
                 />
               </button>
             ) : (
               <div className="flex h-40 items-center justify-center rounded-md border border-dashed text-xs text-muted-foreground">
-                {props.keyframe.status === "generating" ? "首帧生成中" : props.keyframe.status === "error" ? "首帧生成失败" : "尚未生成首帧"}
+                {props.keyframe.status === "generating" ? "画面生成中" : props.keyframe.status === "error" ? "画面生成失败" : "尚未生成画面"}
               </div>
             )}
 
@@ -581,7 +565,7 @@ function ShotPreviewDialog(props: {
 
             {history.length > 0 ? (
               <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="text-muted-foreground">历史首帧：</span>
+                <span className="text-muted-foreground">历史画面：</span>
                 {history.map((item) => item.url ? (
                   <a
                     key={`${item.version}-${item.url}`}
@@ -607,11 +591,7 @@ function ShotPreviewDialog(props: {
                 onClick={props.onGenerate}
               >
                 <ImageIcon className="h-4 w-4" />
-                {props.keyframe.status === "done" ? "重生成首帧" : "生成首帧"}
-              </Button>
-              <Button type="button" variant="outline" disabled={props.videoPromptDisabled} onClick={props.onVideoPrompt}>
-                <Video className="h-4 w-4" />
-                视频提示词
+                {props.keyframe.status === "done" ? "重生成画面" : "生成画面"}
               </Button>
             </div>
           </div>
@@ -620,7 +600,7 @@ function ShotPreviewDialog(props: {
           <LightboxOverlay
             open={keyframeLightboxOpen}
             src={props.keyframe.url}
-            alt={`镜头 ${shot?.order ?? ""} 首帧`}
+            alt={`镜头 ${shot?.order ?? ""} 画面`}
             caption={`${shot?.shotSize || ""}${shot?.durationSec ? ` · ${shot.durationSec} 秒` : ""}`}
             onClose={() => setKeyframeLightboxOpen(false)}
           />

@@ -255,7 +255,7 @@ export class DramaEpisodeAssemblyService {
       progress.srtUrl = assembled.srtUrl;
       progress.durationSec = assembled.durationSec;
       await this.updateJob(jobId, progress);
-      // 缺首帧、缺配音或其它可恢复素材问题只进入 warnings，不得把可播放成片标成 failed。
+      // 缺分镜画面、缺配音或其它可恢复素材问题只进入 warnings，不得把可播放成片标成 failed。
       await prisma.dramaBatchJob.update({ where: { id: jobId }, data: { status: "done" } });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -341,7 +341,7 @@ export class DramaEpisodeAssemblyService {
 
     const imagePath = await this.resolveVisualSource(shot, index, workDir, warnings);
     if (!imagePath) {
-      warnings.push(`镜头 ${shot.order} 没有可用首帧图，Remotion 将使用占位画面。`);
+      warnings.push(`镜头 ${shot.order} 没有可用分镜画面，Remotion 将使用占位画面。`);
     }
     if (!audioLines.some((line) => line.sourcePath)) {
       warnings.push(`镜头 ${shot.order} 没有可用配音，Remotion 成片将使用静音音轨。`);

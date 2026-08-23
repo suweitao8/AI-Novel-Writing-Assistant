@@ -19,7 +19,7 @@ import ComicDramaCreateDialog from "./ComicDramaCreateDialog";
 
 const COMIC_DRAMA_PAGE_SIZE = 24;
 
-// 漫剧项目的四个阶段：小说是根，分镜/配音/视频依次推进。
+// 漫剧项目的四个阶段：小说是根，分镜画面/配音/成片依次推进。
 type StageState = "pending" | "active" | "done";
 
 function novelStageState(task: { status: string } | null | undefined): StageState {
@@ -54,7 +54,7 @@ export default function ComicDramaListPage() {
   });
 
   const handleDelete = (novelId: string, title: string) => {
-    if (window.confirm(`确认删除《${title}》吗？小说正文与已生成的分镜、配音、视频数据会一并删除。`)) {
+    if (window.confirm(`确认删除《${title}》吗？小说正文与已生成的分镜画面、配音、成片数据会一并删除。`)) {
       deleteMutation.mutate(novelId);
     }
   };
@@ -65,7 +65,7 @@ export default function ComicDramaListPage() {
         <div className="min-w-0">
           <h1 className="text-3xl font-semibold tracking-normal">漫剧列表</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            每个漫剧项目都是一条完整的工作流：先写小说，再生成分镜和配音，最后合成动态漫视频。
+            每个漫剧项目都是一条完整的工作流：先写小说，再生成静态分镜画面和配音，最后合成漫剧成片。
           </p>
         </div>
         <Button size="lg" onClick={() => setCreateOpen(true)}>
@@ -86,7 +86,7 @@ export default function ComicDramaListPage() {
           </span>
           <h2 className="mt-5 text-lg font-semibold text-foreground">从一个书名开始你的第一部漫剧</h2>
           <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            只需要起一个名字。AI 会帮你把小说写出来，之后自动衔接分镜、配音和视频合成。
+            只需要起一个名字。AI 会帮你把小说写出来，之后自动衔接分镜画面、配音和成片合成。
           </p>
           <div className="mt-6">
             <Button size="lg" onClick={() => setCreateOpen(true)}>
@@ -148,7 +148,7 @@ function ComicDramaCard(props: {
   const novelStage = novelStageState(novel.latestAutoDirectorTask);
   const storyboardStage: StageState = !link ? "pending" : link.shotCount > 0 ? "done" : "active";
   const voiceStage: StageState = !link ? "pending" : link.audioReadyCount > 0 ? "done" : link.shotCount > 0 ? "active" : "pending";
-  const videoStage: StageState = !link ? "pending" : link.videoReadyCount > 0 ? "done" : link.audioReadyCount > 0 ? "active" : "pending";
+  const assemblyStage: StageState = !link ? "pending" : link.videoReadyCount > 0 ? "done" : link.audioReadyCount > 0 ? "active" : "pending";
   const chapterCount = novel._count?.chapters ?? 0;
   const wordCount = novel.totalWordCount ?? 0;
 
@@ -171,11 +171,11 @@ function ComicDramaCard(props: {
               <StageBadge label="小说" state={novelStage} />
               <StageBadge label="分镜" state={storyboardStage} />
               <StageBadge label="配音" state={voiceStage} />
-              <StageBadge label="视频" state={videoStage} />
+              <StageBadge label="成片" state={assemblyStage} />
             </div>
             <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">
               {link
-                ? `分镜 ${link.shotCount} · 首帧 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 视频 ${link.videoReadyCount}`
+                 ? `分镜 ${link.shotCount} · 画面 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 成片 ${link.videoReadyCount}`
                 : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
             </span>
           </CardContent>

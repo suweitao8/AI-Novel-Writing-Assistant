@@ -27,6 +27,9 @@ test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   assert.match(assemblyService, /DramaRemotionEpisodeAssembler/);
   assert.match(assemblyService, /getDramaRenderProfile/);
   assert.match(localVideo, /getDramaRenderProfile/);
+  assert.doesNotMatch(localVideo, /zoompan|Ken Burns/);
+  assert.match(localVideo, /-loop/);
+  assert.match(localVideo, /-vf/);
   assert.match(exportService, /aspectRatio:\s*"16:9"/);
 });
 

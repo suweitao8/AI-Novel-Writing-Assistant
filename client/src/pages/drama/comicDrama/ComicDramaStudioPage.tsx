@@ -39,6 +39,7 @@ import ScriptTab from "@/pages/drama/comicDrama/components/ScriptTab";
 import ReferenceExtractTab from "@/pages/drama/comicDrama/components/ReferenceExtractTab";
 import ReferenceTab from "@/pages/drama/comicDrama/components/ReferenceTab";
 import ShotVoiceListPanel from "@/pages/drama/comicDrama/ShotVoiceListPanel";
+import { DramaEpisodeAssemblyPanel } from "@/pages/drama/components/DramaEpisodeAssemblyPanel";
 import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/drama/comicDrama/hooks/useNovelChapterWorkspace";
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
@@ -46,7 +47,7 @@ import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySet
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·通用）。
 type StudioStage = "current" | "assets" | "settings";
-// 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→视频（脚本是本章的线性分镜脚本，
+// 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
 type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
@@ -66,7 +67,7 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   extract: "提取",
   script: "脚本",
   storyboard: "分镜",
-  video: "视频",
+  video: "成片",
 };
 
 const ASSET_TAB_LABELS: Record<AssetTab, string> = {
@@ -83,7 +84,7 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
 
 // 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
 // 每个页签下方都有自己的居中子页签条、操作按钮靠右。
-// 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（脚本/分镜/视频）
+// 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（脚本/分镜/成片）
 // 全部随当前章更新；「解析」按参考文本生成本章脚本与设定提取。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
@@ -315,7 +316,7 @@ export default function ComicDramaStudioPage() {
                 ) : currentTab === "video" && overview.drama ? (
                   <Button size="sm" asChild>
                     <Link to={`/drama/projects/${overview.drama.projectId}`}>
-                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开视频工作台
+                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开成片工作台
                     </Link>
                   </Button>
                 ) : null}
@@ -388,7 +389,7 @@ export default function ComicDramaStudioPage() {
               />
             )
           ) : (
-            <VideoSection drama={overview.drama} videoProviders={overview.videoProviders} />
+            <VideoSection drama={overview.drama} order={chapterWorkspace.currentChapter?.order ?? 1} />
           )}
         </TabsContent>
 
@@ -577,37 +578,41 @@ function StoryboardBootstrapCard(props: {
 
 
 function VideoSection(props: {
-  drama: { projectId: string; videoPromptCount: number; videoReadyCount: number } | null;
-  videoProviders: Array<{ id: string; label: string; kind: string; isDefault: boolean }>;
+  drama: { projectId: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number } | null;
+  order: number;
 }) {
-  const hasRealProvider = props.videoProviders.some((provider) => provider.id !== "mock");
-  const defaultProvider = props.videoProviders.find((provider) => provider.isDefault)
-    ?? props.videoProviders.find((provider) => provider.id === "local_ffmpeg")
-    ?? props.videoProviders[0];
-  return (
-    <Card className="rounded-3xl">
-      <CardContent className="space-y-4 p-6">
-        {props.drama ? (
-          <>
-            <StageMetric
-              label="已生成视频"
-              value={`${props.drama.videoReadyCount} / ${Math.max(props.drama.videoPromptCount, props.drama.videoReadyCount)}`}
-              hint="视频任务已出片"
-            />
-            {defaultProvider ? (
-              <div className="text-sm text-muted-foreground">默认视频通道：{defaultProvider.label}</div>
-            ) : null}
-            {!hasRealProvider ? (
-              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm leading-6 text-amber-700 dark:text-amber-400">
-                当前只有占位视频通道，不会生成真实视频。
-              </div>
-            ) : null}
-          </>
-        ) : (
+  if (!props.drama) {
+    return (
+      <Card className="rounded-3xl">
+        <CardContent className="p-6">
           <p className="text-sm leading-6 text-muted-foreground">还没有分镜项目。</p>
-        )}
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 md:grid-cols-2">
+        <StageMetric
+          label="分镜画面"
+          value={`${props.drama.keyframeReadyCount} / ${props.drama.shotCount}`}
+          hint="静态横屏画面"
+        />
+        <StageMetric
+          label="配音"
+          value={`${props.drama.audioReadyCount} / ${props.drama.shotCount}`}
+          hint="旁白与角色对白"
+        />
+      </div>
+      <DramaEpisodeAssemblyPanel
+        projectId={props.drama.projectId}
+        order={props.order}
+        hasShots={props.drama.shotCount > 0}
+        busy={false}
+        buttonLabel="合成成片"
+        doneButtonLabel="重新合成"
+      />
+    </div>
   );
 }
 

@@ -13,7 +13,6 @@ import {
   assembleDramaSourceBundle,
   checkDramaProjectCompliance,
   createDramaEpisodeBatchJob,
-  createDramaVideoProviderTask,
   downloadDramaEpisodeExport,
   downloadDramaExport,
   generateDramaEpisodeScript,
@@ -21,13 +20,10 @@ import {
   generateDramaStoryboard,
   generateDramaStrategy,
   generateDramaShotKeyframe,
-  generateDramaVideoPrompt,
   getDramaProject,
   importDramaCharacterFromLibrary,
   listDramaCharacterLibrary,
-  listDramaVideoProviders,
   repairDramaEpisode,
-  refreshDramaVideoProviderTask,
   reviewDramaEpisode,
   saveDramaCharacterToLibrary,
   type DramaBatchCostBreakdown,
@@ -58,7 +54,7 @@ const TABS: Array<{ key: DramaTab; label: string }> = [
   { key: "episodes", label: "分集台本" },
   { key: "quality", label: "质量问题" },
   { key: "characters", label: "角色" },
-  { key: "visual", label: "分镜视频" },
+  { key: "visual", label: "分镜与成片" },
   { key: "export", label: "导出" },
 ];
 
@@ -409,15 +405,12 @@ function EpisodesPanel(props: {
   );
 }
 
-// 首帧生成中 / 批量任务进行中 / 视频任务排队或运行中时，项目页保持轮询刷新。
+// 分镜画面生成中或批量任务进行中时，项目页保持轮询刷新。
 function hasActiveDramaVisualWork(project: DramaProjectDetail | undefined): boolean {
   if (!project) {
     return false;
   }
   if ((project.batchJobs ?? []).some((job) => job.status === "pending" || job.status === "running")) {
-    return true;
-  }
-  if ((project.videoPrompts ?? []).some((prompt) => prompt.status === "queued" || prompt.status === "running")) {
     return true;
   }
   return (project.episodes ?? []).some((episode) =>
@@ -439,7 +432,6 @@ export default function DramaProjectPage() {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<DramaTab>("source");
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
-  const [selectedVideoProvider, setSelectedVideoProvider] = useState("");
 
   const projectQuery = useQuery({
     queryKey: queryKeys.drama.project(id ?? "none"),
@@ -452,30 +444,7 @@ export default function DramaProjectPage() {
     queryFn: () => listDramaCharacterLibrary(id),
     enabled: Boolean(id),
   });
-  const videoProvidersQuery = useQuery({
-    queryKey: queryKeys.drama.videoProviders,
-    queryFn: listDramaVideoProviders,
-  });
   const project = projectQuery.data?.data;
-  const videoProviders = videoProvidersQuery.data?.data ?? [];
-  useEffect(() => {
-    if (selectedVideoProvider || videoProviders.length === 0) {
-      return;
-    }
-    setSelectedVideoProvider(
-      videoProviders.find((provider) => provider.isDefault)?.provider
-        ?? videoProviders.find((provider) => provider.provider === "local_ffmpeg")?.provider
-        ?? videoProviders[0]?.provider
-        ?? "mock",
-    );
-  }, [selectedVideoProvider, videoProviders]);
-  const defaultVideoProvider = videoProviders.find((provider) => provider.isDefault)?.provider;
-  const activeVideoProvider = videoProviders.some((provider) => provider.provider === selectedVideoProvider)
-    ? selectedVideoProvider
-    : defaultVideoProvider
-      ?? videoProviders.find((provider) => provider.provider === "local_ffmpeg")?.provider
-      ?? videoProviders[0]?.provider
-      ?? "mock";
   const selectedOrderValue = useMemo(() => {
     if (selectedOrder) {
       return selectedOrder;
@@ -586,7 +555,7 @@ export default function DramaProjectPage() {
             ) : null}
           </div>
           <p className="text-sm text-muted-foreground">
-            按“素材 → 策略 → 分集 → 台本 → 质量 → 分镜视频”的顺序推进这部短剧。
+            按“素材 → 策略 → 分集 → 台本 → 质量 → 分镜与成片”的顺序推进这部短剧。
           </p>
         </div>
         <Button type="button" variant="outline" disabled={projectQuery.isFetching} onClick={() => void projectQuery.refetch()}>
@@ -609,8 +578,6 @@ export default function DramaProjectPage() {
         onReviewEpisode={(order) => runAction(() => reviewDramaEpisode(project.id, order), `第 ${order} 集质量检查完成。`)}
         onRepairEpisode={(order) => runAction(() => repairDramaEpisode(project.id, order), `第 ${order} 集已按质量建议修复。`)}
         onGenerateStoryboard={(order) => runAction(() => generateDramaStoryboard(project.id, order), `第 ${order} 集分镜已生成。`)}
-        onGenerateVideoPrompt={(shot) => runAction(() => generateDramaVideoPrompt(project.id, shot.id), `镜头 ${shot.order} 的视频提示词已生成。`)}
-        onCreateProviderTask={(prompt) => runAction(() => createDramaVideoProviderTask(prompt.id, activeVideoProvider), "视频任务已创建。")}
         onExportMarkdown={() => void handleExport("markdown")}
       />
 
@@ -696,13 +663,7 @@ export default function DramaProjectPage() {
           busy={actionMutation.isPending}
           onStoryboard={(order) => runAction(() => generateDramaStoryboard(project.id, order), `第 ${order} 集分镜已生成。`)}
           onBatchJob={(order, input) => runAction(() => createDramaEpisodeBatchJob(project.id, order, input), "批量任务已创建。")}
-          onKeyframe={(shot, provider, useCharacterRefImages, overrides) => runAction(() => generateDramaShotKeyframe(project.id, shot.id, provider, useCharacterRefImages, overrides), `镜头 ${shot.order} 的首帧图已生成。`)}
-          onVideoPrompt={(shot) => runAction(() => generateDramaVideoPrompt(project.id, shot.id), `镜头 ${shot.order} 的视频提示词已生成。`)}
-          videoProviders={videoProviders}
-          selectedProvider={activeVideoProvider}
-          onSelectProvider={setSelectedVideoProvider}
-          onProviderTask={(prompt, provider) => runAction(() => createDramaVideoProviderTask(prompt.id, provider), "视频任务已创建。")}
-          onRefreshProviderTask={(prompt) => runAction(() => refreshDramaVideoProviderTask(prompt.id), "视频任务状态已刷新。")}
+          onKeyframe={(shot, provider, useCharacterRefImages, overrides) => runAction(() => generateDramaShotKeyframe(project.id, shot.id, provider, useCharacterRefImages, overrides), `镜头 ${shot.order} 的分镜画面已生成。`)}
         />
       ) : null}
       {activeTab === "export" ? (
