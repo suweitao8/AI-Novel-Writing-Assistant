@@ -10,6 +10,9 @@ export const MAX_DRAMA_KEYFRAME_BATCH_CONCURRENCY = 4;
 export const DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY = MAX_DRAMA_KEYFRAME_BATCH_CONCURRENCY;
 
 export function normalizeDramaKeyframeBatchConcurrency(value: unknown): number {
+  if (value === null || (typeof value === "string" && value.trim() === "")) {
+    return DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY;
+  }
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
     return DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY;

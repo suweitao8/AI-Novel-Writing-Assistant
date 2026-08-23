@@ -13,6 +13,10 @@ test("关键帧批量默认使用图片桥安全上限 4 路", () => {
   assert.equal(MAX_DRAMA_KEYFRAME_BATCH_CONCURRENCY, 4);
   assert.equal(MIN_DRAMA_KEYFRAME_BATCH_CONCURRENCY, 1);
   assert.equal(normalizeDramaKeyframeBatchConcurrency(undefined), 4);
+  assert.equal(normalizeDramaKeyframeBatchConcurrency(null), 4);
+  assert.equal(normalizeDramaKeyframeBatchConcurrency(""), 4);
+  assert.equal(normalizeDramaKeyframeBatchConcurrency(Number.NaN), 4);
+  assert.equal(normalizeDramaKeyframeBatchConcurrency(Number.POSITIVE_INFINITY), 4);
 });
 
 test("关键帧批量并发值始终被裁剪到 1-4 的整数", () => {
