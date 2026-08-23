@@ -34,9 +34,17 @@ export async function resolveImageBytes(imageUrl: string): Promise<Buffer> {
   return Buffer.from(await resp.arrayBuffer());
 }
 
-/** 把图片字节写到磁盘（自动建目录）。 */
-export async function writeImageBytes(destPath: string, bytes: Buffer): Promise<void> {
+/** 把图片字节写到磁盘（自动建目录）；制品临时文件使用独占创建，旧适配器仍可覆盖固定路径。 */
+export async function writeImageBytes(
+  destPath: string,
+  bytes: Buffer,
+  options: { exclusive?: boolean } = {},
+): Promise<void> {
   await fs.mkdir(path.dirname(destPath), { recursive: true });
+  if (options.exclusive) {
+    await fs.writeFile(destPath, bytes, { flag: "wx" });
+    return;
+  }
   await fs.writeFile(destPath, bytes);
 }
 

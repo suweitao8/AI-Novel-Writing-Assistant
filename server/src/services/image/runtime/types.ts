@@ -49,6 +49,20 @@ export interface GeneratedImageState {
   referenceImages?: GeneratedReferenceImageMeta[];
 }
 
+/**
+ * 不可变图片制品的本次生成会话。session 自己持有 generation-specific
+ * 临时路径，并在 done 状态提交时负责原子改名和业务事务提交。
+ */
+export interface ImageArtifactSession<TState extends GeneratedImageState = GeneratedImageState> {
+  diskPath(ext: string): string;
+  commit(input: { ext: string; bytes: Buffer; doneState: TState }): Promise<void>;
+  abort(): Promise<void>;
+  /** 长生成期间续租；未实现时由 runtime 使用一次性 lease。 */
+  renew?(): Promise<void>;
+  /** 续租间隔，默认 60 秒。 */
+  renewalIntervalMs?: number;
+}
+
 // ─── Adapter 接口 ────────────────────────────────────────────────────────────
 
 /**
@@ -66,6 +80,8 @@ export interface ImageTargetAdapter<TState extends GeneratedImageState = Generat
   saveState(state: TState): Promise<void>;
   /** 计算落盘绝对路径（已知扩展名） */
   diskPath(ext: string): string;
+  /** 为本次生成创建不可变制品会话；不提供时沿用旧的固定路径适配器。 */
+  beginArtifact?(): Promise<ImageArtifactSession<TState>>;
   /** 返回 HTTP 可访问的 URL（写入 state.url） */
   publicUrl(): string;
   /** 删除同目录其他扩展名的旧文件（用于覆盖式生成）；可选 */
