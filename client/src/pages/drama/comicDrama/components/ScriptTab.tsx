@@ -391,7 +391,7 @@ export default function ScriptTab(props: ScriptTabProps) {
   }
 
   return (
-    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
       <Card className="rounded-3xl">
         <CardContent className="p-4 sm:p-6">
           {visibleItems.length === 0 ? (
