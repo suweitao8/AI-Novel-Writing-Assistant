@@ -3,8 +3,11 @@
 "use strict";
 
 const { execFileSync } = require("node:child_process");
+const { assertMainWorkspaceSharedIntegrity } = require("./workspace-integrity-guard.cjs");
 
 const PROTECTED_BRANCH = "main";
+const CODEX_BRANCH_PREFIX = "codex/";
+const SHARED_CONTRACT_BRANCH = /^codex\/shared-[a-z0-9][a-z0-9-]*$/;
 const ZERO_SHA = /^0{40}$/;
 
 function currentBranch() {
@@ -30,6 +33,13 @@ function hasGitRef(ref) {
   }
 }
 
+function gitOutput(args) {
+  return execFileSync("git", args, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+}
+
 function isProtectedBranch(branch = currentBranch()) {
   return branch === PROTECTED_BRANCH;
 }
@@ -38,19 +48,68 @@ function fail(message) {
   throw new Error(`[git-workflow-guard] ${message}`);
 }
 
+function stagedSharedChanges() {
+  const output = gitOutput(["diff", "--cached", "--name-status", "--find-renames", "--", "shared"]);
+  if (!output) {
+    return [];
+  }
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [status, ...paths] = line.split("\t");
+    return { status, paths };
+  });
+}
+
+function assertStagedSharedChangesAllowed() {
+  const changes = stagedSharedChanges();
+  if (changes.length === 0) {
+    return;
+  }
+
+  const branch = currentBranch();
+  if (!SHARED_CONTRACT_BRANCH.test(branch)) {
+    fail(
+      "shared changes require a dedicated codex/shared-<topic> worktree branch. Do not fold cross-client/server contracts into an ordinary feature branch.",
+    );
+  }
+
+  if (changes.some((change) => change.status.includes("D"))) {
+    fail(
+      "deleting tracked files under shared is blocked. Perform a separately reviewed contract migration instead of removing shared files in a normal development commit.",
+    );
+  }
+}
+
+function localBranchesContaining(commit) {
+  return gitOutput(["branch", "--format=%(refname:short)", "--contains", commit])
+    .split(/\r?\n/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+}
+
+function assertMergeSourceIsCodexBranch(commit) {
+  const branches = localBranchesContaining(commit);
+  if (branches.some((branch) => branch.startsWith(CODEX_BRANCH_PREFIX))) {
+    return;
+  }
+  fail(
+    "blocked main merge because its source is not a local codex/* branch. Complete feature work in a codex/* worktree before integrating it into main.",
+  );
+}
+
 function assertCommitAllowed() {
   const branch = currentBranch();
   if (!isProtectedBranch(branch)) {
+    assertStagedSharedChangesAllowed();
     return;
   }
 
-  if (hasGitRef("MERGE_HEAD")) {
-    return;
+  if (!hasGitRef("MERGE_HEAD")) {
+    fail(
+      "blocked direct commit on protected branch 'main'. Create or use a sibling codex/* worktree, commit there, and merge the verified branch from main.",
+    );
   }
 
-  fail(
-    "blocked direct commit on protected branch 'main'. Create or use a sibling codex/* worktree, commit there, and merge the verified branch from main.",
-  );
+  assertMergeSourceIsCodexBranch(gitOutput(["rev-parse", "MERGE_HEAD"]));
 }
 
 function assertMergeCommitAllowed() {
@@ -58,6 +117,9 @@ function assertMergeCommitAllowed() {
   if (!isProtectedBranch(branch)) {
     return;
   }
+  fail(
+    "blocked automatic merge commit on protected branch 'main'. Use 'git merge --no-ff --no-commit codex/<task>', review the prepared merge, then run 'git commit' so the pre-commit hook can verify MERGE_HEAD.",
+  );
 }
 
 function assertRebaseAllowed() {
@@ -100,6 +162,7 @@ function assertMainHistoryOnlyContainsMerges(remoteSha, localSha) {
         "blocked push because new main history contains a direct commit. Integrate changes with an explicit merge commit from a verified codex/* branch.",
       );
     }
+    assertMergeSourceIsCodexBranch(parents[2]);
   }
 }
 
@@ -125,6 +188,8 @@ function assertPushAllowed(input) {
     if (branch !== PROTECTED_BRANCH) {
       fail("blocked push of main from a non-main worktree. Run the integration push from the main workspace.");
     }
+
+    assertMainWorkspaceSharedIntegrity();
 
     if (ZERO_SHA.test(localSha)) {
       fail("blocked deletion of protected branch 'main'.");
@@ -179,4 +244,7 @@ module.exports = {
   assertMainHistoryOnlyContainsMerges,
   assertPushAllowed,
   assertRebaseAllowed,
+  assertStagedSharedChangesAllowed,
+  assertMergeSourceIsCodexBranch,
+  SHARED_CONTRACT_BRANCH,
 };
