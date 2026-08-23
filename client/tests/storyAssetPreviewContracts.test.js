@@ -14,7 +14,8 @@ test("story asset preview keeps the crop modes and fallback states", () => {
   assert.match(preview, /w-\[400%\]/);
   assert.match(preview, /h-auto/);
   assert.match(preview, /CHARACTER_PREVIEW_CROP_TOP/);
-  assert.match(preview, /-58\.3333%/);
+  assert.match(preview, /-62\.5%/);
+  assert.doesNotMatch(preview, /-58\.3333%/);
   assert.doesNotMatch(preview, /top-1\/2/);
   assert.doesNotMatch(preview, /-translate-y-1\/2/);
   assert.doesNotMatch(preview, /h-\[200%\]/);

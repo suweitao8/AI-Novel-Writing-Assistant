@@ -7,7 +7,6 @@
  * 图片存储：generated-images/comic-scenes/{sceneId}/scene-sheet.{ext}
  * HTTP 端点：/api/comic/scenes/:sceneId/image
  */
-import { getImageModelProvider } from "../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 
@@ -16,8 +15,8 @@ import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
-import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { resolveComicStyleKeywords } from "./comicStylePrompt";
+import { REFERENCE_IMAGE_PROVIDER } from "../image/assetProviderRouting";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -60,7 +59,6 @@ export interface UpdateSceneInput {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const SCENES_DIR = "comic-scenes";
-const DEFAULT_PROVIDER: LLMProvider = getImageModelProvider();
 const IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
   ["jpg", "image/jpeg"],
@@ -242,28 +240,30 @@ export class ComicSceneService {
     };
   }
 
-  async prepareSceneSheet(sceneId: string, provider?: string): Promise<import("../image/runtime").ImageGenerationPreview> {
+  async prepareSceneSheet(sceneId: string, _provider?: string): Promise<import("../image/runtime").ImageGenerationPreview> {
     const ctx = await this.buildSceneGenerationContext(sceneId);
     return {
       kind: ctx.adapter.kind,
       title: ctx.title,
       prompt: ctx.prompt,
       referenceImages: [],
-      provider: provider ?? getImageModelProvider(),
+      // 2:1 全景只能交给支持任意宽高比的 Codex 通道。
+      provider: REFERENCE_IMAGE_PROVIDER,
       size: ctx.size,
     };
   }
 
   async generateSceneSheet(
     sceneId: string,
-    provider?: string,
+    _provider?: string,
     overrides?: import("../image/runtime").ImageGenerationOverrides,
   ): Promise<void> {
     const ctx = await this.buildSceneGenerationContext(sceneId);
     await runImageGeneration(ctx.adapter, {
-      provider: overrides?.providerOverride ?? provider,
+      // 场景全景固定走 Codex，避免 Grok Build 的 1280x720 输出破坏 2:1。
+      provider: REFERENCE_IMAGE_PROVIDER,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      size: IMAGE_SPECS.scenePanorama,
     });
   }
 

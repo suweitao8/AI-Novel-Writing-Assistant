@@ -59,7 +59,7 @@
 漫剧已在真实环境完成从小说到分镜、首帧、配音和视频素材的链路验证；整集合成的目标合同是横屏 16:9（开发默认 1280×720/24fps，发布可切换 1920×1080/24fps），由 Remotion 统一制作成片。沉淀的运行知识：
 
 - **文本通道**：本机 Grok Build 文本桥（18764），默认使用已登录的 Grok Build 订阅；结构化调用需要 bridge 提供 OpenAI 兼容 SSE，配置在模型设置的文本模型槽位。
-- **基础资产图片通道**：没有参考图的角色设计稿、场景基础图和道具基础图走 Grok Build 图片桥（18767），统一输出 1280×720 横版图；服务启动前执行 `pnpm grok:bridge`，已运行的 bridge 会复用。
+- **基础资产图片通道**：角色/道具透明底和场景 2:1 全景统一走 Codex 图片通道；Grok Build 图片桥（18767）只服务不需要透明底或 2:1 的通用图片，固定输出 1280×720 横版图。服务启动前执行 `pnpm grok:bridge`，已运行的 bridge 会复用。
 - **参考图图片通道**：带参考图的状态图、首帧图和封面由路由自动回退到兼容参考图的 Codex 图片桥（18766），因为 Grok Build 图片桥只承担无参考图任务，不支持 `/images/edits`。这不是链路故障，不能通过静默丢掉参考图来规避；没有参考图的图片任务统一使用 Grok Build（18767）。
 - **语音通道**：VoxCPM2 桥接服务 `D:\Github\VoxCPM\openai_speech_server.py`（FastAPI，OpenAI /v1/audio/speech 兼容，默认 18761）。启动：`cd D:\Github\VoxCPM && .venv/Scripts/python.exe openai_speech_server.py`。CPU 上约 0.8s/字，先知预热情境下可用；项目 venv 无 CUDA torch，装 CUDA 版可提速。**台词情绪链路**：分镜台词行约定「角色名（语气）：台词」（`drama.storyboard@v3` 生成时写入，初稿解析 `novel.chapter.reference_parse@v4` 的 mood 同源语义；v3 起两处都要求角色用本名、禁「妹妹」等称谓，drama.storyboard 的 action 另需写明位置姿态且同地点相邻镜头位置连贯，characterRefs 列画面可见角色全名——首帧图按 characterRefs 名字挂角色参考图）；`parseDialogueLines` 把（语气）拆成独立 `emotion` 字段、角色名保持干净用于匹配角色音色；配音时逐行 emotion 经 VoxCPM provider 透传为 `metadata.emotion_prompt`（`should_use_prompt_for_emotion: true`），行内语气优先于角色默认情绪（voice.emotion/voicePrompt），旁白行（含「旁白：」前缀行）用旁白音色描述；`buildDialogueVoiceKey` 把行内语气纳入音色指纹——语气变化会使已有音频判 stale 需重配。
 - **视频素材通道**：`LocalFfmpegVideoProvider`（provider id `local_ffmpeg`）——首帧图+台词配音 → 横屏 16:9 H.264/AAC 镜头素材，产物在 `server/storage/generated-videos/{taskId}.mp4`，经 `GET /api/drama/video-files/:taskId` 提供。ffmpeg 需在 PATH。整集合成由 `video/` workspace 的 Remotion Composition 完成，ffmpeg 只做音频规范化、最终封装和 ffprobe 校验。
@@ -76,7 +76,7 @@
 
 ### Decision
 
-- 角色设计稿和角色状态图使用角色四视图；场景基础图和状态图使用 360° 全景；道具基础图和状态图使用 45° 三点透视。
+- 角色设计稿和角色状态图使用角色四视图（1536×864，严格 16:9）；场景基础图和状态图使用 360° 全景（2048×1024，严格 2:1）；道具基础图和状态图使用 45° 三点透视（1536×864，严格 16:9）。
 - `DramaCharacterImageService` 只取 `assets.character`，`StoryAssetImageService` 按 scene/prop 取对应类别，`StoryAssetStateImageService` 按 `kind` 取对应类别。
 - `DramaShotKeyframeService` 计算 `usedKinds`：有角色引用则加入 character，有地点则加入 scene，镜头文本命中设定道具则加入 prop。首帧只接收这些类别的标签、正向质感和负面约束，使用 `1536x864` 横屏图像规格。
 - 时代/题材风格仍是独立叠加层，排在资产类别正向画风之后；小说侧的脚本画风切换不改变资产固定规格。

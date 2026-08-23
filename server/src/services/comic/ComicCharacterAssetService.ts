@@ -344,7 +344,8 @@ export class ComicCharacterAssetService {
     await runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      // 角色/道具资产统一严格 16:9，页面覆盖不能改回其他画幅。
+      size: IMAGE_SPECS.characterAsset,
       refImagePaths: refs.refImagePaths,
       referenceImages: refs.referenceImages && refs.referenceImages.length > 0 ? refs.referenceImages : undefined,
     });

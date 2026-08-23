@@ -258,7 +258,7 @@ function buildExpressionPrompt(character: {
   const lines: string[] = [];
   if (genderLock) lines.push(genderLock);
   lines.push(
-    "professional manga character expression sheet, single 1536x1024 horizontal image",
+    "professional manga character expression sheet, single strict 16:9 horizontal image",
     "six evenly spaced portrait busts in one row, same character, same hairstyle, same costume, same color palette",
     "expressions from left to right: neutral calm, happy smile, angry glare, sad sorrow, surprised shock, cold indifferent",
     "front-facing face and upper shoulders, high facial consistency, clean white background, no text labels, no watermark",
@@ -416,7 +416,8 @@ export class ComicCharacterImageService {
     return runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      // 角色四视图/表情稿属于固定 16:9 资产，页面覆盖不能改回其他画幅。
+      size: IMAGE_SPECS.characterSheet,
       sceneType: "character",
       refImagePaths: refs.refImagePaths,
       referenceImages: refs.referenceImages && refs.referenceImages.length > 0 ? refs.referenceImages : undefined,
@@ -512,7 +513,8 @@ export class ComicCharacterImageService {
     return runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      // 表情稿与角色四视图共用严格 16:9 规格。
+      size: IMAGE_SPECS.characterSheet,
       sceneType: "character",
       refImagePaths: refs.refImagePaths,
       referenceImages: refs.referenceImages && refs.referenceImages.length > 0 ? refs.referenceImages : undefined,
