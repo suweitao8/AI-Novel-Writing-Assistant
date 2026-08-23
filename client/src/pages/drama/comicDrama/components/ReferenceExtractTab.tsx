@@ -44,12 +44,8 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
 
   const targetItem = target ? extraction[target.group][target.index] ?? null : null;
 
-  const existingFor = (group: ExtractGroup, name: string) => {
-    if (group === "worldview") {
-      return false;
-    }
-    return stage.existingNames[group].has(name.trim());
-  };
+  const existingFor = (group: ExtractGroup, name: string) =>
+    stage.existingNames[group].has(name.trim());
 
   // 已存在同名资产：取它的原始数据交给弹窗载入编辑；卡片缩略图用第一个已生成的状态图。
   const existingSourceFor = (group: ExtractGroup, name: string): StoryAssetSource | null => {
@@ -148,6 +144,7 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
           existing={Boolean(targetSource)}
           existingAsset={targetSource}
           pending={stage.applyOneMutation.isPending}
+          defaultEraStyle={stage.defaultEraStyle}
           onOpenChange={(open) => { if (!open) setTarget(null); }}
           onApply={(form) => {
             const current = target;

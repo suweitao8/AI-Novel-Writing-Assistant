@@ -61,6 +61,8 @@ export default function ExtractApplyDialog(props: {
   /** 已有同名资产的原始数据；已存在时表单直接载入它编辑 */
   existingAsset?: StoryAssetSource | null;
   pending: boolean;
+  /** 本书当前生效的时代风格：新建议的初始状态预填它（弹窗里可改），避免新建状态落到「现代都市」 */
+  defaultEraStyle?: string | null;
   onApply: (form: object) => void;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -104,6 +106,7 @@ export default function ExtractApplyDialog(props: {
       || extractItem.description
       || "角色初始外观";
     const imagePrompt = extractItem.imagePrompt || description;
+    const eraStylePatch = props.defaultEraStyle?.trim() ? { eraStyle: props.defaultEraStyle.trim() } : {};
     setCharacterForm({
       ...EMPTY_CHARACTER_FORM,
       name: item.name ?? "",
@@ -115,6 +118,7 @@ export default function ExtractApplyDialog(props: {
         description,
         imagePrompt,
         ...(character?.voicePrompt ? { voicePrompt: character.voicePrompt } : {}),
+        ...eraStylePatch,
       })],
     });
     setSceneForm({
@@ -126,6 +130,7 @@ export default function ExtractApplyDialog(props: {
         environmentPrompt: extractItem.imagePrompt,
         timeOfDay: extractItem.timeOfDay,
         weather: extractItem.weather,
+        ...eraStylePatch,
       })],
     });
     setPropForm({
@@ -135,10 +140,11 @@ export default function ExtractApplyDialog(props: {
         name: item.name ?? "",
         description: extractItem.description,
         visualPrompt: extractItem.imagePrompt,
+        ...eraStylePatch,
       })],
     });
     setWorldviewForm({ name: item.name ?? "", description: extractItem.description ?? "" });
-  }, [props.open, item, props.existing, props.existingAsset, group, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
+  }, [props.open, item, props.existing, props.existingAsset, props.defaultEraStyle, group, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
 
   const formValid = group === "characters"
     ? characterForm.name.trim() !== ""

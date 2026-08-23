@@ -14,6 +14,7 @@ import {
   updateStorySettingsWorld,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
+import { getDramaEraStyle } from "@/api/media/drama";
 import { toast } from "@/components/ui/toast";
 import type {
   ReferenceExtractionPayload,
@@ -130,14 +131,32 @@ export function useReferenceExtractStage(input: {
     queryKey: queryKeys.novels.storySettingsProps(input.novelId),
     queryFn: () => getStorySettingsProps(input.novelId),
   });
+  const worldQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsWorld(input.novelId),
+    queryFn: () => getStorySettingsWorld(input.novelId),
+  });
   const characters = charactersQuery.data?.data ?? [];
   const scenes = scenesQuery.data?.data ?? [];
   const props = propsQuery.data?.data ?? [];
+  const worldKeySettings = worldQuery.data?.data?.keySettings ?? [];
   const existingNames = useMemo(() => ({
     characters: new Set(characters.map((item) => item.name.trim())),
     scenes: new Set(scenes.map((item) => item.name.trim())),
     props: new Set(props.map((item) => item.name.trim())),
-  }), [characters, scenes, props]);
+    // 世界观条目没有独立资产，按关键设定条目标题比对（2026-08-23 用户要求：应用过的
+    // 世界观也要亮「已存在」，不然不知道哪些已经写进设定）。
+    worldview: new Set(worldKeySettings.map((entry) => entry.title.trim())),
+  }), [characters, scenes, props, worldKeySettings]);
+
+  // 本书当前生效的时代风格（脚本【画风】标记 > 小说默认 > 内置默认，与生图判定同一条链）：
+  // 提取应用创建的新资产状态默认带它（2026-08-23 用户要求：末世书新建的血角兽不该落
+  // 「现代都市」）——弹窗里可见可改，应用落库时再兜底一次。
+  const eraStyleQuery = useQuery({
+    queryKey: queryKeys.drama.eraStyle(input.novelId),
+    queryFn: () => getDramaEraStyle(input.novelId),
+    staleTime: 5 * 60 * 1000,
+  });
+  const defaultEraStyle = eraStyleQuery.data?.data?.label?.trim() || null;
 
   const chapterOrder = chapter?.order;
 
@@ -145,6 +164,11 @@ export function useReferenceExtractStage(input: {
     mutationFn: async (payload: ApplyOneInput): Promise<{ group: string; updated: boolean }> => {
       const { group, existingId, form } = payload;
       const chapterTag = chapterOrder ? { chapterOrder } : {};
+      // 新建资产的状态没选时代风格时带上本书当前生效风格（只影响创建路径；更新已有资产不碰）。
+      const withDefaultEraStyle = (states: StoryAssetState[]): StoryAssetState[] =>
+        defaultEraStyle
+          ? states.map((state) => state.eraStyle?.trim() ? state : { ...state, eraStyle: defaultEraStyle })
+          : states;
 
       if (form.__kind === "character") {
         if (existingId) {
@@ -158,7 +182,7 @@ export function useReferenceExtractStage(input: {
           if (existingNames.characters.has(form.name.trim())) {
             throw new Error("已有同名角色，不能重复创建。");
           }
-          const states = normalizeStatesForSave(form.states.map((state, index) => ({
+          const states = normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, index) => ({
             ...state,
             ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
             ...chapterTag,
@@ -189,7 +213,7 @@ export function useReferenceExtractStage(input: {
             environmentPrompt: imagePrompt || undefined,
             timeOfDay: initial?.timeOfDay ?? undefined,
             weather: initial?.weather ?? undefined,
-            states: normalizeStatesForSave(form.states.map((state, stateIndex) => ({
+            states: normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, stateIndex) => ({
               ...state,
               ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
               ...chapterTag,
@@ -211,7 +235,7 @@ export function useReferenceExtractStage(input: {
           await createStorySettingsProp(input.novelId, {
             name: form.name.trim(),
             visualPrompt: imagePrompt || undefined,
-            states: normalizeStatesForSave(form.states.map((state, stateIndex) => ({
+            states: normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, stateIndex) => ({
               ...state,
               ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
               ...chapterTag,
@@ -219,14 +243,18 @@ export function useReferenceExtractStage(input: {
           });
         }
       } else {
+        // 世界观条目没有独立资产：同名条目存在就更新内容，不存在才追加（旧版同名直接
+        // 报错，用户重复点「应用」会被拦——已存在徽标已标清，重复应用按更新处理）。
         const worldResponse = await getStorySettingsWorld(input.novelId);
         const existingSettings = worldResponse.data?.keySettings ?? [];
-        if (existingSettings.some((entry) => entry.title.trim() === form.name.trim())) {
-          throw new Error("已有同名世界观条目，不能重复创建。");
-        }
-        await updateStorySettingsWorld(input.novelId, {
-          keySettings: [...existingSettings, { title: form.name.trim(), content: form.description.trim() }],
-        });
+        const title = form.name.trim();
+        const content = form.description.trim();
+        const matchIndex = existingSettings.findIndex((entry) => entry.title.trim() === title);
+        const keySettings = matchIndex >= 0
+          ? existingSettings.map((entry, index) => (index === matchIndex ? { title, content } : entry))
+          : [...existingSettings, { title, content }];
+        await updateStorySettingsWorld(input.novelId, { keySettings });
+        return { group, updated: matchIndex >= 0 };
       }
 
       // 应用成功后建议保留在列表：资产名单缓存刷新后卡片自动亮「已存在」徽标，
@@ -249,6 +277,8 @@ export function useReferenceExtractStage(input: {
     existingAssets: { characters, scenes, props },
     applyOneMutation,
     totalItems,
+    // 本书当前生效时代风格：新建议弹窗预填新状态的「时代风格」，应用创建即随状态落库
+    defaultEraStyle,
   };
 }
 
