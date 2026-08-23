@@ -11,6 +11,7 @@
 - 根目录 `pnpm dev` / `pnpm dev:log` 会先执行 `pnpm voxcpm2:bridge`：复用已通过 `/health` 与 `/v1/models` 双重校验的正式桥，未运行时按 `VOXCPM2_ROOT`、`VOXCPM2_BRIDGE_PYTHON` 启动它，并等待模型加载完成。这样开发服务器不会在音频桥尚未就绪时先对外提供“可生成”页面。
 - **声音设计走 `(control)` 指令前缀（2026-08-22 修复，对齐 mydrama 验证过的口径）**：对白/独白 control = `「{speaker}的中文声音；{emotion_prompt}」`，emotion 缺省时兜底「自然口语化、像真实人物交流，不要播音腔，不要新闻播报感」；旁白 control = emotion 或「以自然、清晰、连贯的中文旁白语气朗读」；最终喂给模型的是 `({control}){text}`（VoxCPM2 的 instruct 声音设计格式）。`metadata.audio_url`（base64 data URL 或宿主机路径）解码后走 `reference_wav_path` 参考克隆。**禁止回到「把角色名拼进正文（`名字说：`）」的做法**——那会让模型凭空乱猜音色，实测产出极低沉的机械怪声；也禁止丢掉 `emotion_prompt` 不传。
 - 合成入口唯一化：`server/src/services/audio/speechProvider.ts` 的 `synthesizeAudioSpeech`。任何新音频消费方（朗读、有声书等）都必须走这个入口，不要在业务代码里直接 fetch 桥接地址。
+- 响度统一也放在这个公共出口：对桥接返回的 PCM16 WAV 只统计高于 -40 dBFS 的有效语音样本，将 RMS 归一到约 -18 dBFS，并把峰值限制在 -1 dBFS 以内；非 WAV 音频保持原样。VoxCPM2 的 `normalize=true` 只做文字规范化，不能替代这层音频响度处理。
 
 ## 当前规则
 
@@ -51,6 +52,7 @@
 - 合成返回 502 `VoxCPM2 ...`：worker 侧生成失败（显存不足、参考音频损坏等），错误信息会透传给调用方。
 - 请求中文文本出现 `utf-8 codec can't decode` 类错误：调用侧把文本按非 UTF-8 编码发出（例如 Windows shell 直接内联中文 JSON），需确保请求体以 UTF-8 编码发送。
 - 空音频：`speechProvider` 校验字节为空并抛错，不会把空文件当成功结果。
+- 旁白比角色试听明显小：先检查生成结果的有效语音响度；如果两条链路都经过同一个 `synthesizeAudioSpeech`，公共出口会自动统一 PCM16 WAV。历史上已经保存的旧样本不会被静默改写，重新生成后才会使用统一响度。
 
 ## 相关模块
 
