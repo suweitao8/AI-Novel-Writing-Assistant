@@ -266,9 +266,10 @@ export function buildStateImagePrompt(
     `state change: ${stateDescription}`,
     `state image prompt: ${stateImagePrompt}`,
     input.hasReference
-      // 参考图只锁身份：磨损脏污与时代氛围不得从旧图带进新图（除非状态本身描写），
-      // 换时代风格后重新生成要跟当前风格走（2026-08-22 用户实测旧末世参考把画面带偏）。
-      ? "keep the same subject identity as the reference image, change only what the state describes; do not carry over wear, dirt or damage from the reference image unless the state describes it"
+      // 参考图只锁主体身份：时代观感跟当前风格方向走——换时代风格（如 现代都市→末世废土）
+      // 重新生成时环境要有明显转变，不能照抄参考图的旧时代样式（2026-08-23 用户要求）；
+      // 干净日常风格里旧图的脏污磨损仍不得带入。
+      ? "keep the same subject identity as the reference image; the era look follows the current style direction — when it differs from the reference's look, transform the environment boldly to fully express the new style, and do not carry over wear, dirt or damage from the reference image unless the style direction or the state describes it"
       : "",
     ...(input.kind === "scene"
       ? [

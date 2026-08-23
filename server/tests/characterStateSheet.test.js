@@ -123,18 +123,22 @@ test("character sheet prompt keeps appeal but forbids the generic template face"
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /generic influencer face/);
   assert.match(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /网红脸/);
   assert.doesNotMatch(CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, /asymmetrical facial features/);
-  // 2026-08-22：模板不再写死末世氛围（与状态自选时代风格打架，现代状态图被带出脏衣服）——
-  // 服装默认干净如新，只有角色资料/状态明确描写才呈现破损；时代风格由 styleLines 注入。
+  // 2026-08-22→23 演进：模板不写死末世氛围（现代状态图曾被带出脏衣服），但旧版
+  // 「时代风格不得自行添加磨损或破败」又把末世废土等风格该有的破败质感压掉了（用户实测
+  // 切末世废土画面毫无变化）——现行规则：服装状态跟时代风格方向走，风格自带的时代质感
+  // 充分呈现，干净如新只属于现代都市等日常风格。
   assert.doesNotMatch(prompt, /末世感/);
-  assert.match(prompt, /服装、发型与配饰默认保持干净整洁、状态如新/);
-  assert.match(prompt, /只有角色资料或当前状态明确描写破损、污渍、尘土时才呈现/);
-  assert.match(prompt, /时代风格不得自行添加磨损或破败/);
+  assert.match(prompt, /服装、发型与配饰的画面状态跟当前时代风格方向走/);
+  assert.match(prompt, /末世废土、古代年代等风格自带的磨损、锈蚀、风化与时代质感要按风格充分呈现/);
+  assert.match(prompt, /现代都市等日常风格默认保持干净整洁、状态如新/);
+  assert.match(prompt, /只有角色资料或当前状态明确描写破损、污渍、尘土时才出现/);
+  assert.doesNotMatch(prompt, /时代风格不得自行添加磨损或破败/);
   // 2026-08-23：状态与时代变化只换装不换脸，辨识度跨状态保持。
   assert.match(prompt, /不得改成统一的网红模板脸/);
   assert.match(prompt, /长相辨识度/);
 });
 
-test("reference image anchors identity only; wear and era atmosphere are not carried over", () => {
+test("reference image anchors identity only; era switching transforms the look boldly", () => {
   const prompt = buildCharacterStateSheetPrompt({
     assetName: "叶晨",
     gender: "male",
@@ -147,11 +151,16 @@ test("reference image anchors identity only; wear and era atmosphere are not car
     hasReference: true,
   });
 
-  assert.match(prompt, /identity anchor/);
-  assert.match(prompt, /preserve the same face, hair, body proportions and clothing design/);
-  // 换时代风格后参考旧末世图重新生成：旧图的脏污磨损与时代氛围不得进新图。
-  assert.match(prompt, /never carry over dirt, wear, damage or era atmosphere from the reference image/);
-  assert.match(prompt, /clothing condition follows the character data, style direction and current state/);
+  // 2026-08-23：参考图只锁身份（脸/发型/比例）；服装材质与时代氛围跟当前风格方向走——
+  // 风格不同（现代都市→末世废土）时要有戏剧性的明显转变，不照抄参考图的旧时代样式；
+  // 透明底随参考图保留（编辑路径容易丢 alpha）。
+  assert.match(prompt, /use it ONLY as an identity anchor/);
+  assert.match(prompt, /preserve the same face, hairstyle and body proportions/);
+  assert.match(prompt, /boldly redesign clothing, accessories, materials and atmosphere/);
+  assert.match(prompt, /dramatic, clearly visible transformation/);
+  assert.match(prompt, /when the style direction is unchanged, keep the reference's clothing design/);
+  assert.match(prompt, /keep the same fully transparent background as the reference/);
+  assert.match(prompt, /genuine PNG alpha channel/);
 });
 
 test("character sheet template uses four equal native Grok Build columns", () => {
