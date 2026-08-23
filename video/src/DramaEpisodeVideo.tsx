@@ -80,15 +80,12 @@ function SubtitleLayer({ subtitles }: { subtitles: DramaVideoSubtitle[] }) {
       <div
         style={{
           maxWidth: width * 0.82,
-          padding: "12px 24px",
-          borderRadius: 14,
-          backgroundColor: "rgba(0, 0, 0, 0.68)",
           color: "#fff",
           textAlign: "center",
-          fontFamily: "Arial, sans-serif",
+          fontFamily: 'SimHei, "Microsoft YaHei", sans-serif',
           fontSize: Math.max(24, Math.round(width * 0.025)),
           lineHeight: 1.45,
-          textShadow: "0 2px 8px rgba(0,0,0,0.85)",
+          textShadow: "0 4px 12px rgba(0,0,0,.9)",
         }}
       >
         {active.speaker ? <span style={{ color: "#ffd580", marginRight: 10 }}>{active.speaker}：</span> : null}
