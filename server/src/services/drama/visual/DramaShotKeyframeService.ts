@@ -111,7 +111,7 @@ function resolveInitialSettingState(
   timeOfDay?: string | null;
   weather?: string | null;
 } {
-  const fallbackDescription = fallback.description?.trim() || fallback.imagePrompt?.trim() || `${fallback.name}初始状态`;
+  const fallbackDescription = fallback.description?.trim() || fallback.imagePrompt?.trim() || `${fallback.name}默认状态`;
   const fallbackImagePrompt = fallback.imagePrompt?.trim() || fallbackDescription;
   const initial = normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
     description: fallbackDescription,
@@ -598,7 +598,7 @@ export class DramaShotKeyframeService {
         refImages.push(matchedScene.imageUrl);
         referenceImages.push({
           kind: "scene",
-          label: `${matchedScene.name} · 初始状态图`,
+          label: `${matchedScene.name} · 默认状态图`,
           url: matchedScene.imageUrl,
         });
       }

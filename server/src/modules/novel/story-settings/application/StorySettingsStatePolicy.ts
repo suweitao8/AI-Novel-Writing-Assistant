@@ -58,7 +58,7 @@ export function normalizeSceneStates(
     weather?: string | null;
   },
 ): StoryAssetState[] {
-  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}初始状态`;
+  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}默认状态`;
   const imagePrompt = input.environmentPrompt?.trim() || description;
   const sceneType: StoryAssetSceneType | null = input.sceneType === "interior"
     || input.sceneType === "exterior"
@@ -88,7 +88,7 @@ export function normalizePropStates(
   states: StoryAssetStateInput[] | null | undefined,
   input: { name: string; description?: string | null; visualPrompt?: string | null },
 ): StoryAssetState[] {
-  const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}初始状态`;
+  const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}默认状态`;
   const imagePrompt = input.visualPrompt?.trim() || description;
   return normalizeStoryAssetStates(states, { description, imagePrompt });
 }

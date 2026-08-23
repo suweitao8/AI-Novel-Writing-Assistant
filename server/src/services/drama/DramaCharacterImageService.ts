@@ -171,7 +171,7 @@ export function buildDramaCharacterSheetPrompt(character: {
   return buildCharacterStateSheetPrompt({
     assetName: character.name,
     appearance: visualDesc || null,
-    stateLabel: "初始形象",
+    stateLabel: "默认",
     stateDescription: roleContext || "角色基础形象",
     stateImagePrompt: visualDesc || roleContext || "角色基础形象",
     styleLines,

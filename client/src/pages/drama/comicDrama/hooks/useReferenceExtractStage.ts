@@ -184,7 +184,7 @@ export function useReferenceExtractStage(input: {
           }
           const states = normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, index) => ({
             ...state,
-            ...(index === 0 ? { id: "initial", label: "初始状态" } : {}),
+            ...(index === 0 ? { id: "initial", label: "默认" } : {}),
             ...chapterTag,
           })));
           await createStorySettingsCharacter(input.novelId, {
@@ -204,7 +204,7 @@ export function useReferenceExtractStage(input: {
             throw new Error("已有同名场景，不能重复创建。");
           }
           const initial = form.states[0];
-          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
+          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}默认状态`;
           const initialDescription = initial?.description?.trim() || imagePrompt;
           await createStorySettingsScene(input.novelId, {
             name: form.name.trim(),
@@ -215,7 +215,7 @@ export function useReferenceExtractStage(input: {
             weather: initial?.weather ?? undefined,
             states: normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, stateIndex) => ({
               ...state,
-              ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+              ...(stateIndex === 0 ? { id: "initial", label: "默认" } : {}),
               ...chapterTag,
             }))),
           });
@@ -231,13 +231,13 @@ export function useReferenceExtractStage(input: {
             throw new Error("已有同名道具，不能重复创建。");
           }
           const initial = form.states[0];
-          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}初始状态`;
+          const imagePrompt = initial?.imagePrompt?.trim() || `${form.name.trim()}默认状态`;
           await createStorySettingsProp(input.novelId, {
             name: form.name.trim(),
             visualPrompt: imagePrompt || undefined,
             states: normalizeStatesForSave(withDefaultEraStyle(form.states).map((state, stateIndex) => ({
               ...state,
-              ...(stateIndex === 0 ? { id: "initial", label: "初始状态" } : {}),
+              ...(stateIndex === 0 ? { id: "initial", label: "默认" } : {}),
               ...chapterTag,
             }))),
           });

@@ -14,7 +14,7 @@ const eraStyleJudgeSchema = z.object({
 }).strict();
 
 export interface EraStyleJudgePromptInput {
-  /** 本次生成对象（如「叶竹 · 初始状态 状态图」「第12镜 首帧（叶城大学宿舍）」）。 */
+  /** 本次生成对象（如「叶竹 · 默认 状态图」「第12镜 首帧（叶城大学宿舍）」）。 */
   target: string;
   /** 该故事节点附近的剧情文本（章节脚本 / 集正文与镜头画面台词）。 */
   scriptExcerpt: string;

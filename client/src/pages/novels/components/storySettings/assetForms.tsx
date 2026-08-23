@@ -114,8 +114,8 @@ export { buildStateImageSrc };
 
 function getAssetStateLabel(state: StoryAssetState, stateIndex: number): string {
   const label = state.label?.trim();
-  if (stateIndex === 0 && (label === "初始形象" || label === "初始状态")) {
-    return "初始";
+  if (stateIndex === 0 && (label === "默认" || label === "初始形象" || label === "初始状态")) {
+    return "默认";
   }
   return label || "未命名状态";
 }
@@ -449,7 +449,7 @@ export function AssetStatesEditor(props: {
 
   const removeState = (index: number) => {
     if (index === 0) {
-      toast.error("初始状态不能删除。");
+      toast.error("默认状态不能删除。");
       return;
     }
     const removedId = states[index]?.id;
@@ -513,7 +513,7 @@ export function AssetStatesEditor(props: {
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-                aria-label={stateIndex === 0 ? "初始状态不能删除" : `删除${stateLabel}`}
+                aria-label={stateIndex === 0 ? "默认状态不能删除" : `删除${stateLabel}`}
                 disabled={anyPending || stateIndex === 0}
                 onClick={() => removeState(stateIndex)}
               >
@@ -650,7 +650,7 @@ export function AssetStatesEditor(props: {
                   </AiButton>
                 ) : null}
               </div>
-              {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">初始状态是基础形象，直接生成。</p> : null}
+              {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">默认状态是基础形象，直接生成。</p> : null}
               {selectedState.image?.error ? <p className="text-xs text-destructive">{selectedState.image.error}</p> : null}
             </section>
 
@@ -893,11 +893,11 @@ export function createInitialSceneState(input: {
   environmentPrompt?: string | null;
   eraStyle?: string | null;
 }): StoryAssetState {
-  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}初始状态`;
+  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}默认状态`;
   const imagePrompt = input.environmentPrompt?.trim() || description;
   return {
     id: "initial",
-    label: "初始状态",
+    label: "默认",
     description,
     imagePrompt,
     sceneType: input.sceneType === "interior" || input.sceneType === "exterior" || input.sceneType === "nature"
@@ -946,10 +946,10 @@ export function createInitialPropState(input: {
   visualPrompt?: string | null;
   eraStyle?: string | null;
 }): StoryAssetState {
-  const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}初始状态`;
+  const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}默认状态`;
   return {
     id: "initial",
-    label: "初始状态",
+    label: "默认",
     description,
     imagePrompt: input.visualPrompt?.trim() || description,
     referenceStateId: null,

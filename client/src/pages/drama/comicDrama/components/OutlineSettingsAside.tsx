@@ -130,8 +130,8 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
           states: [createInitialCharacterState({
             name,
             gender: "unknown",
-            description: createNote.trim() || "角色初始外观",
-            imagePrompt: createNote.trim() || "角色初始外观",
+            description: createNote.trim() || "角色默认外观",
+            imagePrompt: createNote.trim() || "角色默认外观",
           })],
         });
       } else if (createType === "scene") {
@@ -302,7 +302,7 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium" htmlFor="asset-create-note">{createType === "character" ? "初始状态说明（可选）" : "一句话说明（可选）"}</label>
+              <label className="text-sm font-medium" htmlFor="asset-create-note">{createType === "character" ? "默认状态说明（可选）" : "一句话说明（可选）"}</label>
               <Input
                 id="asset-create-note"
                 value={createNote}

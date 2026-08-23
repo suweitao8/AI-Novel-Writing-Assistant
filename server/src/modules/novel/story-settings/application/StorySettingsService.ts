@@ -641,7 +641,7 @@ export class StorySettingsService {
         ? preserveStoryAssetRuntimeAssets(previousStates, nextStates)
         : nextStates;
       if (input.states !== undefined && !isStoryAssetInitialStatePreserved(previousStates, states)) {
-        throw new AppError("初始状态不能删除或移动。", 400);
+        throw new AppError("默认状态不能删除或移动。", 400);
       }
       const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
         ? serializeStates(states)
@@ -798,7 +798,7 @@ export class StorySettingsService {
         ? preserveStoryAssetRuntimeAssets(previousStates, nextStates)
         : nextStates;
       if (input.states !== undefined && !isStoryAssetInitialStatePreserved(previousStates, states)) {
-        throw new AppError("初始状态不能删除或移动。", 400);
+        throw new AppError("默认状态不能删除或移动。", 400);
       }
       const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
         ? serializeStates(states)
@@ -982,7 +982,7 @@ export class StorySettingsService {
         ? preserveStoryAssetRuntimeAssets(currentStates, nextStates)
         : nextStates;
       if (input.states !== undefined && !isStoryAssetInitialStatePreserved(currentStates, states)) {
-        throw new AppError("初始状态不能删除或移动。", 400);
+        throw new AppError("默认状态不能删除或移动。", 400);
       }
       const statesJson = input.states !== undefined || canSafelyRewriteStates(row.statesJson)
         ? serializeStates(states)

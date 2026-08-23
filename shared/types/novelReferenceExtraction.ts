@@ -187,16 +187,16 @@ export interface StoryAssetStateDefaults {
   chapterOrder?: number;
 }
 
-/** 所有角色、场景、道具都必须至少有一个可供后续生成使用的初始状态。 */
+/** 所有角色、场景、道具都必须至少有一个可供后续生成使用的默认状态。 */
 export function createStoryAssetInitialState(
   input: StoryAssetStateDefaults = {},
 ): StoryAssetState {
-  const description = input.description?.trim() || "资产初始状态";
+  const description = input.description?.trim() || "资产默认状态";
   // 初始提示词可能来自旧角色字段（facePrompt/environmentPrompt…），同样过纯度剥离。
   const imagePrompt = stripAssetImagePromptNoise(input.imagePrompt ?? "") || description;
   return {
     id: input.id?.trim() || "initial",
-    label: input.label?.trim() || "初始状态",
+    label: input.label?.trim() || "默认",
     description,
     imagePrompt,
     ...(input.ageGroup ? { ageGroup: input.ageGroup } : {}),
@@ -233,7 +233,12 @@ export function normalizeStoryAssetStates(
   initialState: StoryAssetStateDefaults = {},
 ): StoryAssetState[] {
   const source = (states ?? []).filter(isStoryAssetStateRecord);
-  const fallbackDescription = initialState.description?.trim() || "资产初始状态";
+  const fallbackDescription = initialState.description?.trim() || "资产默认状态";
+  // 首状态标签历史曾叫「初始状态/初始形象」（2026-08-23 起统一叫「默认」）：读取时
+  // 就地归一，存量 statesJson 在下次保存时落库为新名，与新创建的资产一致。
+  const LEGACY_INITIAL_STATE_LABELS = new Set(["初始状态", "初始形象"]);
+  const canonicalizeInitialStateLabel = (label: string, index: number) =>
+    index === 0 && LEGACY_INITIAL_STATE_LABELS.has(label.trim()) ? "默认" : label.trim();
   // 图片提示词读/写都过纯度剥离：旧版解析写进去的画风/背景/视图/时代氛围词在这里
   // 自愈掉（存量 statesJson 在下次保存时落库为干净文本），生成链拿到的始终是纯内容。
   const fallbackImagePrompt = stripAssetImagePromptNoise(initialState.imagePrompt ?? "") || fallbackDescription;
@@ -249,7 +254,7 @@ export function normalizeStoryAssetStates(
       return {
         ...stateWithoutWearTags,
         id: state.id.trim(),
-        label: state.label.trim(),
+        label: canonicalizeInitialStateLabel(state.label, index),
         description,
         imagePrompt: typeof state.imagePrompt === "string"
           ? stripAssetImagePromptNoise(state.imagePrompt) || (index === 0 ? fallbackImagePrompt : description)
@@ -543,14 +548,14 @@ export function createStoryCharacterInitialState(
     input.appearance,
     [input.physique, input.attireStyle].filter((value) => value?.trim()).join("，"),
   );
-  const description = existingAppearance || (identity ? `${identity}的常态外观` : "角色初始外观");
+  const description = existingAppearance || (identity ? `${identity}的常态外观` : "角色默认外观");
   const imagePrompt = compactText(input.facePrompt, identity, description) || description;
   const voicePrompt = input.voiceTexture?.trim()
     || compactText(genderLabel(input.gender), ageLabel, GENERIC_CHARACTER_VOICE_PROMPT_TAIL)
     || GENERIC_CHARACTER_VOICE_PROMPT_TAIL;
   return createStoryAssetInitialState({
     id: "initial",
-    label: "初始状态",
+    label: "默认",
     description,
     imagePrompt,
     ageGroup,

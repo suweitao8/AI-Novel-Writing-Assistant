@@ -148,7 +148,7 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
       throw new AppError("未找到场景。", 404);
     }
     const parsedStates = parseStoryAssetStatesJson(row.statesJson);
-    const baseAppearance = row.environmentPrompt?.trim() || row.summary?.trim() || `${row.name}初始状态`;
+    const baseAppearance = row.environmentPrompt?.trim() || row.summary?.trim() || `${row.name}默认状态`;
     return {
       id: row.id,
       novelId: row.novelId,
@@ -179,7 +179,7 @@ async function loadStateAsset(novelId: string, kind: StoryAssetKind, assetId: st
     throw new AppError("未找到道具。", 404);
   }
   const parsedStates = parseStoryAssetStatesJson(row.statesJson);
-  const baseAppearance = row.visualPrompt?.trim() || row.description?.trim() || `${row.name}初始状态`;
+  const baseAppearance = row.visualPrompt?.trim() || row.description?.trim() || `${row.name}默认状态`;
   return {
     id: row.id,
     novelId: row.novelId,
