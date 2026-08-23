@@ -26,6 +26,24 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   assert.doesNotMatch(assemblySource, /合成整集|重新合成整集/);
 });
 
+test("视频阶段按设置、进度、预览和信息分组，并使用清晰的设置文案", () => {
+  const assemblySource = read("pages/drama/components/DramaEpisodeAssemblyPanel.tsx");
+
+  assert.match(assemblySource, /合成设置/);
+  assert.match(assemblySource, /字幕写入视频/);
+  assert.match(assemblySource, /片头和片尾/);
+  assert.match(assemblySource, /合成进度/);
+  assert.match(assemblySource, /视频预览/);
+  assert.match(assemblySource, /视频信息/);
+  assert.doesNotMatch(assemblySource, /max-w-3xl/);
+});
+
+test("漫剧视频页不再跳转到旧视频工作台", () => {
+  const studioSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
+
+  assert.doesNotMatch(studioSource, /打开视频工作台/);
+});
+
 test("分镜批量操作位于上层页签操作槽，并使用简洁的生成分镜文案", () => {
   const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
   const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
