@@ -48,7 +48,10 @@ test("Remotion assembly renders a landscape timeline and muxes normalized audio"
       durationSec: 8,
       imagePath: null,
       detail: "夜色中的街道",
-      audioLines: [{ text: "向前走。", speaker: "旁白", durationSec: 2, sourcePath: audioSource }],
+      audioLines: [
+        { text: "向前走。", speaker: "旁白", type: "narration", durationSec: 2, sourcePath: audioSource },
+        { text: "停下。", speaker: "林澈", type: "dialogue", durationSec: 2, sourcePath: audioSource },
+      ],
     }],
     includeTitleCard: true,
     includeEndCard: true,
@@ -63,14 +66,19 @@ test("Remotion assembly renders a landscape timeline and muxes normalized audio"
   assert.equal(renderCalls[0].profile.height, 720);
   assert.equal(renderCalls[0].profile.fps, 24);
   assert.deepEqual(renderCalls[0].timeline.scenes.map((scene) => scene.kind), ["title", "shot", "end"]);
-  assert.equal(renderCalls[0].timeline.scenes[1].durationInFrames, 48);
+  assert.equal(renderCalls[0].timeline.scenes[1].durationInFrames, 96);
   assert.equal(renderCalls[0].timeline.subtitles[0].startFrame, 72);
   assert.equal(renderCalls[0].timeline.subtitles[0].durationInFrames, 48);
+  assert.equal(renderCalls[0].timeline.subtitles[0].type, "narration");
+  assert.equal(renderCalls[0].timeline.subtitles[1].type, "dialogue");
   assert.ok(ffmpegCalls.some((args) => args.includes("pcm_s16le")), "audio must be normalized to PCM WAV");
   assert.ok(ffmpegCalls.some((args) => args.includes("-c:v") && args.includes("copy")), "final mux must copy Remotion video");
   assert.equal(result.outputPath, outputPath);
   assert.equal(result.durationSec, 7);
-  assert.match(await fs.readFile(srtPath, "utf8"), /旁白：向前走/);
+  const srt = await fs.readFile(srtPath, "utf8");
+  assert.match(srt, /向前走/);
+  assert.doesNotMatch(srt, /旁白：/);
+  assert.match(srt, /林澈：停下/);
 });
 
 test("local visual/audio degradation remains a completed assembly with warnings", () => {

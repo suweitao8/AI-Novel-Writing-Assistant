@@ -6,7 +6,11 @@ import {
   type DramaRemotionRenderInput,
   type DramaRemotionRenderResult,
 } from "./DramaRemotionRenderer";
-import { buildDramaVideoTimeline, type DramaVideoTimeline } from "./dramaVideoTimeline";
+import {
+  buildDramaVideoTimeline,
+  type DramaSubtitleType,
+  type DramaVideoTimeline,
+} from "./dramaVideoTimeline";
 import { resolveFfmpegBin, resolveFfprobeBin, runVideoProcess } from "./ffmpegUtils";
 import { wrapSubtitleText } from "./subtitleText";
 
@@ -17,6 +21,7 @@ const END_CARD_SEC = 2;
 export interface DramaAssemblyAudioLine {
   text: string;
   speaker?: string;
+  type?: DramaSubtitleType;
   durationSec: number;
   sourcePath?: string | null;
 }
@@ -96,6 +101,7 @@ interface SubtitleCue {
   endSec: number;
   text: string;
   speaker?: string;
+  type?: DramaSubtitleType;
 }
 
 export class DramaRemotionEpisodeAssembler {
@@ -404,7 +410,13 @@ function buildSceneCursor(segments: AssemblySegment[]): number[] {
 }
 
 function alignSubtitlesToSceneCursor(segments: AssemblySegment[], sceneCursor: number[]) {
-  const subtitles: Array<{ startSec: number; endSec: number; text: string; speaker?: string }> = [];
+  const subtitles: Array<{
+    startSec: number;
+    endSec: number;
+    text: string;
+    speaker?: string;
+    type?: DramaSubtitleType;
+  }> = [];
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index]!;
     if (segment.kind !== "shot") {
@@ -420,6 +432,7 @@ function alignSubtitlesToSceneCursor(segments: AssemblySegment[], sceneCursor: n
           endSec: Math.min(sceneCursor[index]! + segment.durationSec, lineCursor + durationSec),
           text,
           speaker: line.speaker?.trim() || undefined,
+          type: line.type,
         });
       }
       lineCursor += durationSec;
@@ -448,9 +461,17 @@ function buildSrt(cues: SubtitleCue[]): string {
   return cues.map((cue, index) => [
     String(index + 1),
     `${formatSrtTime(cue.startSec)} --> ${formatSrtTime(cue.endSec)}`,
-    wrapSubtitleText(cue.speaker ? `${cue.speaker}：${cue.text}` : cue.text, SUBTITLE_WRAP_CHARS),
+    wrapSubtitleText(
+      shouldIncludeSubtitleSpeaker(cue) ? `${cue.speaker}：${cue.text}` : cue.text,
+      SUBTITLE_WRAP_CHARS,
+    ),
     "",
   ].join("\n")).join("\n");
+}
+
+function shouldIncludeSubtitleSpeaker(cue: SubtitleCue): boolean {
+  const speaker = cue.speaker?.trim();
+  return Boolean(speaker && cue.type !== "narration" && speaker !== "旁白");
 }
 
 function formatSrtTime(totalSeconds: number): string {

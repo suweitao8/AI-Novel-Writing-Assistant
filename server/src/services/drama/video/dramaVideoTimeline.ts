@@ -7,11 +7,14 @@ export interface DramaTimelineSceneInput {
   detail?: string;
 }
 
+export type DramaSubtitleType = "dialogue" | "narration";
+
 export interface DramaTimelineSubtitleInput {
   startSec: number;
   endSec: number;
   text: string;
   speaker?: string;
+  type?: DramaSubtitleType;
 }
 
 export interface DramaVideoTimelineScene {
@@ -29,6 +32,7 @@ export interface DramaVideoTimelineSubtitle {
   durationInFrames: number;
   text: string;
   speaker?: string;
+  type?: DramaSubtitleType;
 }
 
 export interface DramaVideoTimeline {
@@ -72,6 +76,7 @@ export function buildDramaVideoTimeline(input: {
         durationInFrames: endFrame - startFrame,
         text: subtitle.text,
         speaker: subtitle.speaker,
+        type: subtitle.type,
       } satisfies DramaVideoTimelineSubtitle;
     });
 

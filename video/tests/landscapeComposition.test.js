@@ -40,3 +40,12 @@ test("subtitle layer uses the old-project blurred shadow without a black panel",
   assert.doesNotMatch(subtitleLayer, /borderRadius:/);
   assert.doesNotMatch(subtitleLayer, /padding:\s*[`\"]12px 24px/);
 });
+
+test("narration subtitles omit the speaker label while dialogue subtitles keep it", () => {
+  const composition = read("src/DramaEpisodeVideo.tsx");
+  const subtitleLayer = composition.slice(composition.indexOf("function SubtitleLayer"));
+
+  assert.match(subtitleLayer, /active\.type === "narration"/);
+  assert.match(subtitleLayer, /!isNarration/);
+  assert.match(subtitleLayer, /active\.speaker/);
+});
