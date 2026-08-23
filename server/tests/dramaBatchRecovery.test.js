@@ -27,3 +27,25 @@ test("drama batch creation returns an existing active job instead of duplicating
   assert.match(source, /status:\s*\{\s*in:\s*\["pending",\s*"running"\]/);
   assert.match(source, /return activeJob/);
 });
+
+test("tts batch skipping uses the current audio segment projection", () => {
+  const source = fs.readFileSync(
+    path.join(SERVER_ROOT, "src/services/drama/production/DramaBatchOrchestrator.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /dramaAudioSegmentsService\.listEpisodeAudioSegments/);
+  assert.match(source, /currentAudioReadyShotIds/);
+  assert.match(source, /processTtsShot\(shot, force, currentAudioReady/);
+});
+
+test("full episode assembly start is serialized per episode", () => {
+  const source = fs.readFileSync(
+    path.join(SERVER_ROOT, "src/services/drama/video/DramaEpisodeAssemblyService.ts"),
+    "utf8",
+  );
+
+  assert.match(source, /assemblyStartLocks/);
+  assert.match(source, /startAssemblyInternal/);
+  assert.match(source, /type:\s*"full_episode"/);
+});

@@ -6,6 +6,7 @@ import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { DramaVideoPromptService } from "../DramaVideoPromptService";
 import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
+import { dramaAudioSegmentsService } from "../audio/DramaAudioSegmentsService";
 import { isRealTTSProvider, ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { parseBlockingSketchData } from "../visual/DramaShotBlockingSketchContracts";
@@ -373,6 +374,9 @@ export class DramaBatchOrchestrator {
       const targetSet = new Set(progress.targetShotIds ?? []);
       const shots = (episode.storyboards[0]?.shots ?? [])
         .filter((shot) => targetSet.size === 0 || targetSet.has(shot.id));
+      const currentAudioReadyShotIds = job.type === "tts"
+        ? await this.loadCurrentAudioReadyShotIds(job.projectId, episode.order, shots)
+        : new Set<string>();
       // 避免逐镜头回查 dramaVideoPrompt：按 version 倒序取每镜头最新一条未废弃记录。
       const promptByShot = new Map<string, BatchVideoPrompt>();
       for (const prompt of episode.videoPrompts ?? []) {
@@ -403,7 +407,16 @@ export class DramaBatchOrchestrator {
           nextProgress.currentShotId = shot.id;
         }
         try {
-          const result = await this.processShot(job.type as DramaBatchJobType, job.projectId, shot, promptByShot.get(shot.id), nextProgress.provider, nextProgress.useCharacterRefImages ?? false, nextProgress.force ?? false);
+          const result = await this.processShot(
+            job.type as DramaBatchJobType,
+            job.projectId,
+            shot,
+            promptByShot.get(shot.id),
+            nextProgress.provider,
+            nextProgress.useCharacterRefImages ?? false,
+            nextProgress.force ?? false,
+            currentAudioReadyShotIds,
+          );
           if (result.status === "skipped") {
             nextProgress.skipped += 1;
           }
@@ -456,8 +469,8 @@ export class DramaBatchOrchestrator {
     return "processed";
   }
 
-  private async processTtsShot(shot: BatchShot, force = false): Promise<BatchProcessResult> {
-    if (!force && hasDoneDialogueAudio(shot.dialogueAudioData, DEFAULT_TTS_PROVIDER)) {
+  private async processTtsShot(shot: BatchShot, force = false, currentAudioReady = false): Promise<BatchProcessResult> {
+    if (!force && currentAudioReady) {
       return { status: "skipped" };
     }
     const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, DEFAULT_TTS_PROVIDER, { force });
@@ -499,6 +512,7 @@ export class DramaBatchOrchestrator {
     provider?: string,
     useCharacterRefImages = true,
     force = false,
+    currentAudioReadyShotIds?: ReadonlySet<string>,
   ): Promise<BatchProcessResult> {
     if (type === "keyframes") {
       const status = await this.processKeyframeShot(shot, provider, useCharacterRefImages);
@@ -507,12 +521,40 @@ export class DramaBatchOrchestrator {
         : { status };
     }
     if (type === "tts") {
-      return this.processTtsShot(shot, force);
+      return this.processTtsShot(shot, force, currentAudioReadyShotIds?.has(shot.id) === true);
     }
     const status = await this.processVideoShot(projectId, shot.id, cachedVideoPrompt, provider);
     return status === "processed"
       ? { status, costUnits: { seconds: normalizeDurationSec(shot.durationSec), shots: 1 } }
       : { status };
+  }
+
+  private async loadCurrentAudioReadyShotIds(
+    projectId: string,
+    episodeOrder: number,
+    shots: BatchShot[],
+  ): Promise<Set<string>> {
+    const segments = await dramaAudioSegmentsService.listEpisodeAudioSegments(projectId, episodeOrder);
+    const counts = new Map<string, { total: number; ready: number }>();
+    for (const segment of segments) {
+      const current = counts.get(segment.shotId) ?? { total: 0, ready: 0 };
+      current.total += 1;
+      if (segment.status === "ready") {
+        current.ready += 1;
+      }
+      counts.set(segment.shotId, current);
+    }
+    return new Set(
+      shots
+        .filter((shot) => {
+          if (!shot.dialogue?.trim()) {
+            return true;
+          }
+          const count = counts.get(shot.id);
+          return Boolean(count && count.total > 0 && count.total === count.ready);
+        })
+        .map((shot) => shot.id),
+    );
   }
 
   private defaultProviderForType(type: DramaBatchJobType): string {

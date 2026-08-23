@@ -89,6 +89,7 @@ interface ShotLike {
 
 export class DramaEpisodeAssemblyService {
   private readonly runningJobs = new Set<string>();
+  private readonly assemblyStartLocks = new Map<string, Promise<string>>();
   private readonly assembler = new DramaRemotionEpisodeAssembler();
 
   async getAssemblyStatus(projectId: string, order: number) {
@@ -122,6 +123,30 @@ export class DramaEpisodeAssemblyService {
   }
 
   async startAssembly(projectId: string, order: number, options: DramaEpisodeAssemblyOptions = {}) {
+    const lockKey = `${projectId}:${order}`;
+    const inFlight = this.assemblyStartLocks.get(lockKey);
+    if (inFlight) {
+      const jobId = await inFlight;
+      const existing = await prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
+      if (!existing) {
+        throw new AppError("整集合成任务已创建，但任务记录无法读取，请重试。", 500);
+      }
+      return existing;
+    }
+
+    const creation = this.startAssemblyInternal(projectId, order, options);
+    const creationId = creation.then((job) => job.id);
+    this.assemblyStartLocks.set(lockKey, creationId);
+    try {
+      return await creation;
+    } finally {
+      if (this.assemblyStartLocks.get(lockKey) === creationId) {
+        this.assemblyStartLocks.delete(lockKey);
+      }
+    }
+  }
+
+  private async startAssemblyInternal(projectId: string, order: number, options: DramaEpisodeAssemblyOptions = {}) {
     const episode = await this.loadEpisode(projectId, order);
     const shots = episode.storyboards[0]?.shots ?? [];
     if (!shots.length) {
