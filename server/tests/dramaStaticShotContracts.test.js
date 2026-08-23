@@ -17,12 +17,11 @@ test("静态首帧合成不再应用运镜或 Ken Burns 动效", () => {
   assert.doesNotMatch(videoPromptService, /cameraMove: shot\.cameraMove/);
 });
 
-test("整集合成优先使用配音总时长作为镜头时间轴", () => {
+test("整集合成只使用真实配音时长建立镜头时间轴", () => {
   const assembler = read("services/drama/video/DramaRemotionEpisodeAssembler.ts");
 
-  assert.match(
-    assembler,
-    /const durationSec = audioDuration > 0 \? Math\.max\(1, audioDuration\) : normalizeDurationSec\(shot\.durationSec, 1\)/,
-  );
-  assert.doesNotMatch(assembler, /Math\.max\(1, shot\.durationSec, audioDuration\)/);
+  assert.match(assembler, /const audioDuration = shot\.audioLines\.reduce\(\(sum, line\) => sum \+ line\.durationSec, 0\)/);
+  assert.match(assembler, /没有真实配音时长，无法建立时间轴/);
+  assert.match(assembler, /const durationSec = Math\.round\(audioDuration \* 100\) \/ 100/);
+  assert.doesNotMatch(assembler, /normalizeDurationSec\(shot\.durationSec/);
 });

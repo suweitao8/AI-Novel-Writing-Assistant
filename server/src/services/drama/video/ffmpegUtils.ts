@@ -49,7 +49,7 @@ export function runVideoProcess(
   });
 }
 
-/** ffprobe 实测媒体时长（秒）；探测失败返回 null，由调用方回退到估算值。 */
+/** ffprobe 实测媒体时长（秒）；探测失败返回 null，由调用方决定是否可以继续。 */
 export async function ffprobeDuration(filePath: string): Promise<number | null> {
   try {
     const result = await runVideoProcess(resolveFfprobeBin(), [

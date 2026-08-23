@@ -6,7 +6,7 @@ import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { DramaVideoPromptService } from "../DramaVideoPromptService";
 import { DramaDialogueAudioService } from "../audio/DramaDialogueAudioService";
-import { ttsProviderRegistry } from "../audio/TTSProviderPort";
+import { isRealTTSProvider, ttsProviderRegistry } from "../audio/TTSProviderPort";
 import { DramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../video/VideoProviderPort";
 import { runWithConcurrency } from "./batchConcurrency";
@@ -141,9 +141,18 @@ function hasDoneKeyframe(raw: string | null | undefined): boolean {
   return parsed.status === "done" && typeof parsed.url === "string" && parsed.url.trim().length > 0;
 }
 
-function hasDoneDialogueAudio(raw: string | null | undefined): boolean {
-  const parsed = safeJsonParse<{ status?: string; items?: unknown[] }>(raw, {});
-  return parsed.status === "done" && Array.isArray(parsed.items) && parsed.items.length > 0;
+function hasDoneDialogueAudio(raw: string | null | undefined, provider: string): boolean {
+  const parsed = safeJsonParse<{
+    status?: string;
+    provider?: string;
+    items?: Array<{ audioUrl?: string; provider?: string }>;
+  }>(raw, {});
+  return isRealTTSProvider(provider)
+    && parsed.status === "done"
+    && parsed.provider === provider
+    && Array.isArray(parsed.items)
+    && parsed.items.length > 0
+    && parsed.items.every((item) => item.provider === provider && item.audioUrl?.startsWith("data:"));
 }
 
 function isActiveVideoPrompt(prompt: BatchVideoPrompt): boolean {
@@ -397,12 +406,12 @@ export class DramaBatchOrchestrator {
   }
 
   private async processTtsShot(shot: BatchShot, force = false): Promise<BatchProcessResult> {
-    if (!force && hasDoneDialogueAudio(shot.dialogueAudioData)) {
+    if (!force && hasDoneDialogueAudio(shot.dialogueAudioData, DEFAULT_TTS_PROVIDER)) {
       return { status: "skipped" };
     }
     const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, DEFAULT_TTS_PROVIDER, { force });
     const seconds = (data.items ?? []).reduce((sum, item) => {
-      return sum + normalizeDurationSec(item.durationSec, Math.max(1, Math.ceil(item.text.length / 5)));
+      return sum + (Number.isFinite(item.durationSec) && Number(item.durationSec) > 0 ? Number(item.durationSec) : 0);
     }, 0);
     return {
       status: "processed",
@@ -544,9 +553,8 @@ export class DramaBatchOrchestrator {
     } else {
       const billableShots = force
         ? shots
-        : shots.filter((shot) => !hasDoneDialogueAudio(shot.dialogueAudioData));
+        : shots.filter((shot) => !hasDoneDialogueAudio(shot.dialogueAudioData, DEFAULT_TTS_PROVIDER));
       estimatedUnits = {
-        seconds: billableShots.reduce((sum, shot) => sum + normalizeDurationSec(shot.durationSec), 0),
         shots: billableShots.length,
       };
     }

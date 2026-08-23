@@ -1,9 +1,11 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clapperboard,
   ImageIcon,
   Loader2,
+  Pause,
+  Play,
   RefreshCw,
   Settings2,
   Volume2,
@@ -88,16 +90,16 @@ function batchStatusLabel(status: DramaBatchJob["status"]): string {
   return labels[status] ?? status;
 }
 
-function formatDurationSec(value: number | null | undefined): string | null {
-  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
-    return null;
-  }
-  const rounded = Math.round(value * 100) / 100;
-  return `${rounded.toFixed(2).replace(/\.?0+$/, "")} 秒`;
-}
-
 function audioSegmentLabel(segment: DramaAudioSegment): string {
   return segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白";
+}
+
+function formatAudioTime(value: number): string {
+  if (!Number.isFinite(value) || value < 0) {
+    return "--:--";
+  }
+  const wholeSeconds = Math.floor(value);
+  return `${Math.floor(wholeSeconds / 60)}:${String(wholeSeconds % 60).padStart(2, "0")}`;
 }
 
 // 轮询宽限窗：任务派发后服务端可能稍晚才把状态翻成 generating（异步任务），
@@ -489,6 +491,98 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
 
 const EMPTY_SEGMENTS: DramaAudioSegment[] = [];
 
+function AudioSegmentPlayer({ src, label }: { src: string; label: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+    const onLoadedMetadata = () => {
+      setDuration(Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : 0);
+    };
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onEnded = () => {
+      setCurrentTime(audio.duration);
+      setPlaying(false);
+    };
+    const onPause = () => setPlaying(false);
+
+    audio.addEventListener("loadedmetadata", onLoadedMetadata);
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("pause", onPause);
+    audio.load();
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaying(false);
+
+    return () => {
+      audio.pause();
+      audio.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("pause", onPause);
+    };
+  }, [src]);
+
+  const togglePlayback = () => {
+    const audio = audioRef.current;
+    if (!audio) {
+      return;
+    }
+    if (audio.paused) {
+      void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else {
+      audio.pause();
+    }
+  };
+
+  const seek = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextTime = Number(event.currentTarget.value);
+    const audio = audioRef.current;
+    if (!audio || !Number.isFinite(nextTime)) {
+      return;
+    }
+    audio.currentTime = nextTime;
+    setCurrentTime(nextTime);
+  };
+
+  return (
+    <div className="flex min-w-0 flex-1 items-center gap-2">
+      <button
+        type="button"
+        onClick={togglePlayback}
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={`${playing ? "暂停" : "播放"}${label}`}
+        title={`${playing ? "暂停" : "播放"}${label}`}
+      >
+        {playing ? <Pause className="h-3.5 w-3.5" aria-hidden="true" /> : <Play className="h-3.5 w-3.5" aria-hidden="true" />}
+      </button>
+      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground" aria-live="off">
+        {formatAudioTime(currentTime)} / {formatAudioTime(duration)}
+      </span>
+      <input
+        type="range"
+        min={0}
+        max={duration > 0 ? duration : 0}
+        step={0.01}
+        value={duration > 0 ? Math.min(currentTime, duration) : 0}
+        onChange={seek}
+        disabled={duration <= 0}
+        aria-label={`${label}进度`}
+        aria-valuetext={`${formatAudioTime(currentTime)} / ${formatAudioTime(duration)}`}
+        className="h-1.5 min-w-0 flex-1 accent-primary disabled:cursor-not-allowed disabled:opacity-50"
+      />
+      <audio ref={audioRef} preload="metadata" src={src} aria-label={`${label}音频`} className="sr-only" />
+    </div>
+  );
+}
+
 const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   shot: DramaShot;
   segments: DramaAudioSegment[];
@@ -502,12 +596,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const pendingCount = segments.filter((segment) => segment.status !== "ready" || !segment.audioUrl).length;
   const shouldForceRegenerate = segments.length > 0 && pendingCount === 0;
   const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
-  const readyVoiceSegments = segments.filter((segment) => segment.status === "ready" && Boolean(segment.audioUrl));
-  const voiceDurationSec = readyVoiceSegments.length === segments.length
-    ? readyVoiceSegments.reduce((total, segment) => total + (segment.durationSec ?? 0), 0)
-    : 0;
-  const shotDurationSec = voiceDurationSec > 0 ? voiceDurationSec : shot.durationSec;
-  const shotMeta = [shot.shotSize, formatDurationSec(shotDurationSec)]
+  const shotMeta = [shot.shotSize]
     .filter(Boolean)
     .join(" · ");
 
@@ -568,7 +657,6 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-2 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1 space-y-1.5">
               {segments.map((segment) => {
-                const durationLabel = segment.status === "ready" ? formatDurationSec(segment.durationSec) : null;
                 return (
                   <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
                     <SegmentStatusDot status={segment.status} />
@@ -579,21 +667,12 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
                       ) : null}
                     </span>
                     {segment.status === "ready" && segment.audioUrl ? (
-                      <audio
-                        controls
-                        preload="metadata"
-                        src={segment.audioUrl}
-                        aria-label={`${audioSegmentLabel(segment)}试听`}
-                        className="h-7 min-w-0 flex-1"
-                      />
+                      <AudioSegmentPlayer src={segment.audioUrl} label={`${audioSegmentLabel(segment)}试听`} />
                     ) : (
                       <span className="min-w-0 flex-1 text-[10px] text-muted-foreground">
                         {segment.status === "stale" ? "需重配" : "未生成"}
                       </span>
                     )}
-                    {durationLabel ? (
-                      <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">{durationLabel}</span>
-                    ) : null}
                   </div>
                 );
               })}

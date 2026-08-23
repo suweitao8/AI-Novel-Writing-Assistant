@@ -2,8 +2,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { prisma } from "../../../db/prisma";
+import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
+import { isRealTTSProvider } from "../audio/TTSProviderPort";
 import { dramaShotKeyframeService } from "../visual/DramaShotKeyframeService";
 import { resolveGeneratedVideosRoot } from "./LocalFfmpegVideoProvider";
 import {
@@ -20,7 +22,6 @@ import {
   resolveFfmpegBin,
   runVideoProcess,
 } from "./ffmpegUtils";
-import { splitNarrationIntoSentences } from "./subtitleText";
 
 // 漫剧整集合成：Remotion 负责唯一的画面时间轴，ffmpeg 只负责音频规范化、最终封装与探测。
 // 这样每一镜的画面不再经过逐镜编码再 concat，成片合同也由 profile + ffprobe 在出口处校验。
@@ -99,8 +100,18 @@ export class DramaEpisodeAssemblyService {
       } else {
         withoutVisual += 1;
       }
-      const audio = safeJsonParse<{ status?: string; items?: unknown[] }>(shot.dialogueAudioData, {});
-      if (audio.status !== "done" || !audio.items?.length) {
+      const audio = safeJsonParse<{
+        status?: string;
+        provider?: string;
+        items?: Array<{ audioUrl?: string; provider?: string }>;
+      }>(shot.dialogueAudioData, {});
+      const expectedProvider = getAudioModelProvider();
+      const hasRealAudio = audio.status === "done"
+        && audio.provider === expectedProvider
+        && isRealTTSProvider(expectedProvider)
+        && Boolean(audio.items?.length)
+        && audio.items?.every((item) => item.provider === expectedProvider && item.audioUrl?.startsWith("data:"));
+      if (!hasRealAudio) {
         withoutAudio += 1;
       }
     }
@@ -287,6 +298,7 @@ export class DramaEpisodeAssemblyService {
   ): Promise<AssemblyShotPlan> {
     const audio = safeJsonParse<{
       status?: string;
+      provider?: string;
       items?: Array<{
         lineIndex?: number;
         speaker?: string;
@@ -294,10 +306,23 @@ export class DramaEpisodeAssemblyService {
         text?: string;
         audioUrl?: string;
         durationSec?: number;
+        provider?: string;
       }>;
     }>(shot.dialogueAudioData, {});
-    const audioItems = (audio.status === "done" ? audio.items ?? [] : [])
-      .filter((item) => item && typeof item.text === "string" && item.text.trim() && typeof item.audioUrl === "string" && item.audioUrl.startsWith("data:"))
+    const expectedProvider = getAudioModelProvider();
+    const audioItems = (
+      audio.status === "done"
+      && audio.provider === expectedProvider
+      && isRealTTSProvider(expectedProvider)
+        ? audio.items ?? []
+        : []
+    )
+      .filter((item) => item
+        && item.provider === expectedProvider
+        && typeof item.text === "string"
+        && item.text.trim()
+        && typeof item.audioUrl === "string"
+        && item.audioUrl.startsWith("data:"))
       .sort((a, b) => (a.lineIndex ?? 0) - (b.lineIndex ?? 0));
 
     const audioLines: DramaAssemblyAudioLine[] = [];
@@ -311,50 +336,29 @@ export class DramaEpisodeAssemblyService {
       const audioPath = path.join(workDir, `audio-${index}-${lineIndex}.${ext}`);
       await fs.writeFile(audioPath, buffer);
       const probed = await ffprobeDuration(audioPath);
-      const durationSec = normalizeDurationSec(
-        probed ?? item.durationSec,
-        Math.max(1.5, Math.ceil((item.text?.length ?? 6) / 4)),
-      );
+      if (!probed) {
+        await fs.unlink(audioPath).catch(() => undefined);
+        continue;
+      }
       const speaker = item.speaker?.trim() || undefined;
       audioLines.push({
         text: item.text!,
         speaker,
         type: item.type ?? (speaker && speaker !== "旁白" ? "dialogue" : "narration"),
-        durationSec: Math.round(durationSec * 100) / 100,
+        durationSec: Math.round(probed * 100) / 100,
         sourcePath: audioPath,
       });
     }
 
-    const audioTotal = audioLines.reduce((sum, line) => sum + line.durationSec, 0);
-    const noAudioTarget = normalizeDurationSec(shot.durationSec, 3);
-    const targetDurationSec = audioLines.length
-      ? Math.max(1, Math.round(audioTotal * 100) / 100)
-      : noAudioTarget;
-
-    // 无音频时仍保留脚本字幕，但音轨由整合器生成同长度静音 WAV。
-    if (!audioLines.length) {
-      const lines = (shot.dialogue ?? "").split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-        .flatMap((line) => (line.length > 42 ? splitNarrationIntoSentences(line) : [line]));
-      if (lines.length) {
-        const totalWeight = lines.reduce((sum, line) => sum + Math.max(1, line.length), 0);
-        let remaining = targetDurationSec;
-        lines.forEach((line, lineIndex) => {
-          const isLast = lineIndex === lines.length - 1;
-          const durationSec = isLast
-            ? Math.max(0.8, remaining)
-            : Math.round((targetDurationSec * Math.max(1, line.length) / totalWeight) * 100) / 100;
-          remaining -= durationSec;
-          audioLines.push({ text: line, durationSec });
-        });
-      }
+    if (audioItems.length === 0 || audioLines.length !== audioItems.length) {
+      throw new Error(`镜头 ${shot.order} 没有可测量的真实配音时长，请先生成配音。`);
     }
+    const audioTotal = audioLines.reduce((sum, line) => sum + line.durationSec, 0);
+    const targetDurationSec = Math.round(audioTotal * 100) / 100;
 
     const imagePath = await this.resolveVisualSource(shot, index, workDir, warnings);
     if (!imagePath) {
       warnings.push(`镜头 ${shot.order} 没有可用分镜画面，Remotion 将使用占位画面。`);
-    }
-    if (!audioLines.some((line) => line.sourcePath)) {
-      warnings.push(`镜头 ${shot.order} 没有可用配音，Remotion 成片将使用静音音轨。`);
     }
 
     return {
@@ -483,10 +487,6 @@ export class DramaEpisodeAssemblyService {
 function dataUrlToBuffer(dataUrl: string): Buffer | null {
   const match = /^data:[^;]+;base64,(.+)$/s.exec(dataUrl.trim());
   return match ? Buffer.from(match[1]!, "base64") : null;
-}
-
-function normalizeDurationSec(value: number | null | undefined, fallback: number): number {
-  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : fallback;
 }
 
 export const dramaEpisodeAssemblyService = new DramaEpisodeAssemblyService();
