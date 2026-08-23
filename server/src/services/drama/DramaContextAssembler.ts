@@ -1,4 +1,5 @@
 import { prisma } from "../../db/prisma";
+import { scopeStateImageUrls } from "../../modules/novel/story-settings/application/StoryAssetStateImageStorage";
 import { compactText, safeJsonParse } from "./utils/json";
 import {
   normalizeStoryCharacterStates,
@@ -20,6 +21,7 @@ export async function loadNovelCharacterStatesByName(novelId: string): Promise<M
   const rows = await prisma.character.findMany({
     where: { novelId },
     select: {
+      id: true,
       name: true,
       statesJson: true,
       gender: true,
@@ -33,9 +35,11 @@ export async function loadNovelCharacterStatesByName(novelId: string): Promise<M
   });
   const map = new Map<string, StoryAssetState[]>();
   for (const row of rows) {
-    const states = normalizeStoryCharacterStates(
-      parseStoryAssetStatesJson(row.statesJson).states,
-      row,
+    const states = scopeStateImageUrls(
+      normalizeStoryCharacterStates(parseStoryAssetStatesJson(row.statesJson).states, row),
+      novelId,
+      "character",
+      row.id,
     );
     map.set(row.name.trim(), states);
   }

@@ -18,6 +18,12 @@ const novelParams = z.object({ id: z.string().trim().min(1) });
 const sceneParams = z.object({ id: z.string().trim().min(1), sceneId: z.string().trim().min(1) });
 const propParams = z.object({ id: z.string().trim().min(1), propId: z.string().trim().min(1) });
 const characterParams = z.object({ id: z.string().trim().min(1), characterId: z.string().trim().min(1) });
+const stateImageParams = z.object({
+  id: z.string().trim().min(1),
+  kind: z.enum(["character", "scene", "prop"]),
+  assetId: z.string().trim().min(1),
+  stateId: z.string().trim().min(1),
+});
 
 const categorySchema = z.enum(["characters", "scenes", "props", "world"]);
 
@@ -649,14 +655,40 @@ export function registerStorySettingsRoutes(router: Router): void {
     },
   );
 
-  /** GET /api/novels/:id/settings/state-images/:stateId —— 状态图文件（长缓存，内容寻址靠覆盖清理） */
+  /** GET /api/novels/:id/settings/state-images/:kind/:assetId/:stateId —— 资产归属明确的状态图文件 */
+  router.get(
+    "/:id/settings/state-images/:kind/:assetId/:stateId",
+    validate({ params: stateImageParams }),
+    async (req, res, next) => {
+      try {
+        const { id, kind, assetId, stateId } = req.params as {
+          id: string;
+          kind: "character" | "scene" | "prop";
+          assetId: string;
+          stateId: string;
+        };
+        const resolved = await storyAssetStateImageService.resolveStateImagePath(id, kind, assetId, stateId);
+        if (!resolved) {
+          res.status(404).json({ success: false, message: "该状态还没有生成图片。" });
+          return;
+        }
+        res.setHeader("Content-Type", resolved.mimeType);
+        res.setHeader("Cache-Control", "public, max-age=86400");
+        fs.createReadStream(resolved.filePath).pipe(res);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /** GET /api/novels/:id/settings/state-images/:stateId —— 旧状态图 URL 兼容入口 */
   router.get(
     "/:id/settings/state-images/:stateId",
     validate({ params: z.object({ id: novelParams.shape.id, stateId: z.string().trim().min(1) }) }),
     async (req, res, next) => {
       try {
         const { stateId } = req.params as Record<string, string>;
-        const resolved = await storyAssetStateImageService.resolveStateImagePath(stateId);
+        const resolved = await storyAssetStateImageService.resolveLegacyStateImagePath(stateId);
         if (!resolved) {
           res.status(404).json({ success: false, message: "该状态还没有生成图片。" });
           return;

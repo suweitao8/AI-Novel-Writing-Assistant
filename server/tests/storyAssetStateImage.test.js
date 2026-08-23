@@ -8,7 +8,12 @@ const assert = require("node:assert/strict");
 const {
   buildStateImagePrompt,
   resolveStateReferenceImageUrl,
+  stateImageUrl,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageService.js");
+const {
+  scopeStateImageUrls,
+  stateImageDir,
+} = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageStorage.js");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -155,6 +160,39 @@ test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿
     { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
   ];
   assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
+});
+
+test("状态图 URL 必须包含资产归属，避免不同资产复用 initial 状态时互相覆盖", () => {
+  const characterA = stateImageUrl("n1", "character", "c1", "initial");
+  const characterB = stateImageUrl("n1", "character", "c2", "initial");
+  assert.equal(characterA, "/api/novels/n1/settings/state-images/character/c1/initial");
+  assert.notEqual(characterA, characterB);
+  assert.notEqual(
+    stateImageDir("n1", "character", "c1", "initial"),
+    stateImageDir("n1", "character", "c2", "initial"),
+  );
+  const scopedState = scopeStateImageUrls([
+    { id: "initial", label: "默认", description: "默认", imagePrompt: "默认", image: { status: "done", url: "/legacy" } },
+  ], "n1", "character", "c1");
+  assert.equal(scopedState[0].image.url, characterA);
+
+  const routesSource = fs.readFileSync(
+    path.join(__dirname, "../src/modules/novel/story-settings/http/storySettingsRoutes.ts"),
+    "utf8",
+  );
+  assert.match(routesSource, /state-images\/:kind\/:assetId\/:stateId/);
+
+  const dramaContextSource = fs.readFileSync(
+    path.join(__dirname, "../src/services/drama/DramaContextAssembler.ts"),
+    "utf8",
+  );
+  const keyframeSource = fs.readFileSync(
+    path.join(__dirname, "../src/services/drama/visual/DramaShotKeyframeService.ts"),
+    "utf8",
+  );
+  assert.match(dramaContextSource, /scopeStateImageUrls/);
+  assert.match(keyframeSource, /stateImageUrl\(novelId, "scene"/);
+  assert.match(keyframeSource, /stateImageUrl\(novelId, "prop"/);
 });
 
 test("场景和道具状态图写回时会保留无状态旧资产的初始状态", () => {

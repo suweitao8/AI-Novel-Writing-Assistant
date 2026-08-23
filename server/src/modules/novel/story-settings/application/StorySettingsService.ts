@@ -35,6 +35,7 @@ import {
 } from "./StorySettingsStatePolicy";
 import { projectCharacter, projectProp, projectScene, parseCharacterAliases, serializeCharacterAliases } from "./StorySettingsProjection";
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
+import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
@@ -571,7 +572,7 @@ export class StorySettingsService {
         mapUnmappable: row.mapUnmappable,
         sortOrder: row.sortOrder,
         source: row.source,
-        states,
+        states: scopeStateImageUrls(states, novelId, "scene", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -612,7 +613,7 @@ export class StorySettingsService {
         source: "manual",
       },
     });
-    return projectScene(row);
+    return projectScene(row, novelId);
   }
 
   async updateScene(novelId: string, sceneId: string, input: {
@@ -667,7 +668,7 @@ export class StorySettingsService {
       if (!updated) {
         throw new AppError("场景更新后无法读取。", 500);
       }
-      return projectScene(updated);
+      return projectScene(updated, novelId);
     }
     throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
@@ -722,7 +723,7 @@ export class StorySettingsService {
         image: parseStoryAssetImage(row.imageData),
         sortOrder: row.sortOrder,
         source: row.source,
-        states,
+        states: scopeStateImageUrls(states, novelId, "prop", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -769,7 +770,7 @@ export class StorySettingsService {
         select: { name: true },
       }))?.name ?? null
       : null;
-    return projectProp(row, ownerName);
+    return projectProp(row, ownerName, novelId);
   }
 
   async updateProp(novelId: string, propId: string, input: {
@@ -830,7 +831,7 @@ export class StorySettingsService {
           select: { name: true },
         }))?.name ?? null
         : null;
-      return projectProp(updated, ownerName);
+      return projectProp(updated, ownerName, novelId);
     }
     throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
@@ -883,7 +884,7 @@ export class StorySettingsService {
       return {
         ...rest,
         aliases: parseCharacterAliases(aliasesJson, row.name),
-        states,
+        states: scopeStateImageUrls(states, novelId, "character", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -937,7 +938,7 @@ export class StorySettingsService {
         statesJson: serializeStates(states),
       },
     });
-    return projectCharacter(row);
+    return projectCharacter(row, novelId);
   }
 
   async updateCharacter(novelId: string, characterId: string, input: {
@@ -1014,7 +1015,7 @@ export class StorySettingsService {
       if (!updated) {
         throw new AppError("角色更新后无法读取。", 500);
       }
-      return projectCharacter(updated);
+      return projectCharacter(updated, novelId);
     }
     throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }

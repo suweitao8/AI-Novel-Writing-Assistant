@@ -9,6 +9,7 @@ import {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 import { prisma } from "../../../db/prisma";
+import { stateImageUrl } from "../../../modules/novel/story-settings/application/StoryAssetStateImageStorage";
 import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import { filterImageGenerationReferences, parseImageStateSummary, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
@@ -104,6 +105,7 @@ function resolveInitialSettingState(
     timeOfDay?: string | null;
     weather?: string | null;
   },
+  imageUrlForState?: (stateId: string) => string,
 ): {
   imagePrompt: string;
   imageUrl: string | null;
@@ -128,7 +130,9 @@ function resolveInitialSettingState(
   })[0];
   return {
     imagePrompt: initial?.imagePrompt?.trim() || fallbackImagePrompt,
-    imageUrl: initial?.image?.status === "done" && initial.image.url?.trim() ? initial.image.url.trim() : null,
+    imageUrl: initial?.image?.status === "done" && initial.image.url?.trim()
+      ? imageUrlForState?.(initial.id) ?? initial.image.url.trim()
+      : null,
     sceneType: initial?.sceneType ?? null,
     timeOfDay: initial?.timeOfDay ?? null,
     weather: initial?.weather ?? null,
@@ -325,6 +329,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
     prisma.novelScene.findMany({
       where: { novelId },
       select: {
+        id: true,
         name: true,
         environmentPrompt: true,
         summary: true,
@@ -336,11 +341,11 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
     }),
     prisma.novelProp.findMany({
       where: { novelId },
-      select: { name: true, visualPrompt: true, description: true, imageData: true, statesJson: true },
+      select: { id: true, name: true, visualPrompt: true, description: true, imageData: true, statesJson: true },
     }),
   ]);
   return {
-    scenes: scenes.map(({ statesJson, ...rest }) => {
+    scenes: scenes.map(({ id, statesJson, ...rest }) => {
       const initial = resolveInitialSettingState(statesJson, {
         name: rest.name,
         description: rest.summary,
@@ -348,7 +353,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
         sceneType: rest.sceneType,
         timeOfDay: rest.timeOfDay,
         weather: rest.weather,
-      });
+      }, (stateId) => stateImageUrl(novelId, "scene", id, stateId));
       return {
         ...rest,
         environmentPrompt: initial.imagePrompt,
@@ -358,12 +363,12 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
         weather: initial.weather ?? null,
       };
     }),
-    props: props.map(({ imageData, statesJson, ...rest }) => {
+    props: props.map(({ id, imageData, statesJson, ...rest }) => {
       const initial = resolveInitialSettingState(statesJson, {
         name: rest.name,
         description: rest.description,
         imagePrompt: rest.visualPrompt,
-      });
+      }, (stateId) => stateImageUrl(novelId, "prop", id, stateId));
       return {
         ...rest,
         visualPrompt: initial.imagePrompt,
