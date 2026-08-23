@@ -125,6 +125,36 @@ export interface PendingReviewAutoPromotionSettings {
   acknowledgementText: string;
 }
 
+export interface GlobalNarratorVoiceState {
+  description?: string;
+  sampleAudioUrl?: string;
+  sampleText?: string;
+  sampleSha256?: string;
+  source?: "legacy" | "generated" | "manual";
+  updatedAt?: string;
+}
+
+export async function getGlobalNarratorVoice() {
+  const { data } = await apiClient.get<ApiResponse<GlobalNarratorVoiceState>>("/settings/narrator-voice");
+  return data;
+}
+
+export async function saveGlobalNarratorVoiceDescription(description: string) {
+  const { data } = await apiClient.patch<ApiResponse<GlobalNarratorVoiceState>>(
+    "/settings/narrator-voice",
+    { description },
+  );
+  return data;
+}
+
+export async function designGlobalNarratorVoice(description: string) {
+  const { data } = await apiClient.post<ApiResponse<GlobalNarratorVoiceState>>(
+    "/settings/narrator-voice/design",
+    { description },
+  );
+  return data;
+}
+
 export async function getAPIKeySettings() {
   const { data } = await apiClient.get<ApiResponse<APIKeyStatus[]>>("/settings/api-keys");
   return data;

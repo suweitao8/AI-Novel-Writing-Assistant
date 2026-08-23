@@ -78,3 +78,16 @@ test("分镜配音行只在播放器内显示真实当前与总时长，不重�
   assert.doesNotMatch(panelSource, /shot\.cameraMove/);
   assert.doesNotMatch(boardSource, /cameraMove|运镜/);
 });
+
+test("分镜工具栏使用父级章节并收敛为三个批量入口", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
+
+  assert.match(panelSource, /chapterOrder/);
+  assert.doesNotMatch(panelSource, /SelectControl|selectedOrder|音色设置/);
+  assert.match(panelSource, /生成分镜/);
+  assert.match(panelSource, /生成配音/);
+  assert.match(panelSource, /重新配音/);
+  assert.match(panelSource, /DramaEpisodeAssemblyButton/);
+  assert.match(pageSource, /<ShotVoiceListPanel[\s\S]*chapterOrder=/);
+});

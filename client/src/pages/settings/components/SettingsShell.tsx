@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { BookOpenCheck, Bot, Database, Palette, SlidersHorizontal } from "lucide-react";
+import { AudioLines, BookOpenCheck, Bot, Database, Palette, SlidersHorizontal } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,7 @@ const items = [
   { to: "/settings/models", label: "模型设置", icon: Bot },
   { to: "/settings/director", label: "自动导演", icon: BookOpenCheck },
   { to: "/settings/knowledge", label: "知识库与写法", icon: Database },
+  { to: "/settings/narrator-voice", label: "旁白音色", icon: AudioLines },
   { to: "/settings/appearance", label: "外观与主题", icon: Palette },
 ];
 
