@@ -30,6 +30,7 @@ import AiButton from "@/components/common/AiButton";
 import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
+import AutoStoryAssetImageGeneration from "@/pages/novels/components/storySettings/AutoStoryAssetImageGeneration";
 import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
@@ -213,6 +214,7 @@ export default function ComicDramaStudioPage() {
 
   return (
     <div className="space-y-4">
+      <AutoStoryAssetImageGeneration novelId={novelId} />
       <Tabs value={stage} onValueChange={(value) => setStage(value as StudioStage)}>
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-col gap-2.5 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5">

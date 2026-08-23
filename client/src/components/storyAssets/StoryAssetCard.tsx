@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LoaderCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ export function StoryAssetCard({
   className,
 }: StoryAssetCardProps) {
   const tone = KIND_TONES[asset.kind];
+  const defaultState = asset.states.find((state) => state.label.trim() === "默认") ?? asset.states[0];
+  const imageStatus = defaultState?.imageStatus ?? null;
   return (
     <Card className={cn("min-w-0", tone.card, className)}>
       <CardContent className={cn("p-3", compact && "p-2.5")}>
@@ -50,6 +53,7 @@ export function StoryAssetCard({
           >
             <StoryAssetPreview
               preview={asset.preview}
+              status={imageStatus}
               className={cn("w-24 shrink-0", !compact && "sm:w-36")}
             />
             <span className="min-w-0 flex-1 py-1">
@@ -64,6 +68,16 @@ export function StoryAssetCard({
                 {asset.badges.map((badge) => (
                   <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
                 ))}
+                {imageStatus === "generating" ? (
+                  <Badge variant="outline" className="gap-1 border-primary/50 bg-primary/10 text-[11px] text-primary">
+                    <LoaderCircle aria-hidden="true" className="h-3 w-3 animate-spin" />
+                    生成中
+                  </Badge>
+                ) : imageStatus === "error" ? (
+                  <Badge variant="outline" title={defaultState?.imageError || undefined} className="border-destructive/50 bg-destructive/10 text-[11px] text-destructive">
+                    生成失败
+                  </Badge>
+                ) : null}
                 <Badge variant="secondary" className="text-[11px]">
                   {asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}
                 </Badge>
