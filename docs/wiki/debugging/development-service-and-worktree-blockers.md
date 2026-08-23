@@ -60,4 +60,3 @@ pnpm check:workspace-integrity
 
 - `docs/superpowers/specs/2026-08-24-development-workflow-resilience-design.md`
 - `docs/superpowers/plans/2026-08-24-development-workflow-resilience.md`
-
