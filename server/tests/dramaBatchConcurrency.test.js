@@ -21,3 +21,22 @@ test("bounded batch worker never exceeds the configured concurrency", async () =
   assert.deepEqual(visited.sort((left, right) => left - right), items);
   assert.equal(active, 0);
 });
+
+test("image batch worker can use the four-lane bridge limit without losing items", async () => {
+  const items = Array.from({ length: 8 }, (_, index) => index);
+  const visited = [];
+  let active = 0;
+  let maxActive = 0;
+
+  await runWithConcurrency(items, 4, async (item) => {
+    active += 1;
+    maxActive = Math.max(maxActive, active);
+    await new Promise((resolve) => setTimeout(resolve, item % 2 === 0 ? 8 : 2));
+    visited.push(item);
+    active -= 1;
+  });
+
+  assert.equal(maxActive, 4);
+  assert.deepEqual(visited.sort((left, right) => left - right), items);
+  assert.equal(active, 0);
+});

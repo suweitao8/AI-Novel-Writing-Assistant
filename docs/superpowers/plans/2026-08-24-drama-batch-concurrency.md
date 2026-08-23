@@ -157,7 +157,7 @@ node --test server/tests/dramaBatchImageConcurrency.test.js server/tests/dramaBa
 
 ```powershell
 pnpm --filter @ai-novel/client exec tsc --noEmit
-pnpm --filter @ai-novel/client exec vitest run tests/dramaShotBatchFeedback.test.js
+node --test client/tests/dramaShotBatchFeedback.test.js
 ```
 
 预期：类型检查和契约测试均 PASS。按项目规则不默认启动浏览器；UI 实际操作由用户验收。
@@ -203,7 +203,7 @@ node --test server/tests/dramaBatchImageConcurrency.test.js server/tests/dramaBa
 
 ```powershell
 pnpm --filter @ai-novel/client exec tsc --noEmit
-pnpm --filter @ai-novel/client exec vitest run tests/dramaShotBatchFeedback.test.js
+node --test client/tests/dramaShotBatchFeedback.test.js
 ```
 
 - [ ] **Step 3: 做静态运行时检查**

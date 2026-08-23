@@ -304,6 +304,7 @@ function BatchJobStatus(props: {
         <span>{done}/{total}</span>
         {progress.skipped ? <span>已跳过 {progress.skipped}</span> : null}
         {progress.failed ? <span>失败 {progress.failed}</span> : null}
+        {progress.concurrency ? <span>并发 {progress.concurrency} 路</span> : null}
         {progress.provider ? <span>通道：{progress.provider}</span> : null}
         {progress.cost ? <span>预计：{formatCost(progress.cost, progress.cost.estimated)}</span> : null}
         {progress.cost ? <span>实际：{formatCost(progress.cost, progress.cost.actual)}</span> : null}
