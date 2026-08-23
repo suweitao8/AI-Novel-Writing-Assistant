@@ -102,6 +102,7 @@ export function createInitialCharacterState(
     ...(input.voicePrompt?.trim() ? { voicePrompt: input.voicePrompt.trim() } : {}),
     ...(input.image ? { image: input.image } : {}),
     ...(input.voice ? { voice: input.voice } : {}),
+    ...(input.eraStyle?.trim() ? { eraStyle: input.eraStyle.trim() } : {}),
   };
 }
 
@@ -890,6 +891,7 @@ export function createInitialSceneState(input: {
   weather?: string | null;
   summary?: string | null;
   environmentPrompt?: string | null;
+  eraStyle?: string | null;
 }): StoryAssetState {
   const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}初始状态`;
   const imagePrompt = input.environmentPrompt?.trim() || description;
@@ -908,6 +910,7 @@ export function createInitialSceneState(input: {
       ? input.weather
       : null,
     referenceStateId: null,
+    ...(input.eraStyle?.trim() ? { eraStyle: input.eraStyle.trim() } : {}),
   };
 }
 
@@ -941,6 +944,7 @@ export function createInitialPropState(input: {
   name: string;
   description?: string | null;
   visualPrompt?: string | null;
+  eraStyle?: string | null;
 }): StoryAssetState {
   const description = input.description?.trim() || input.visualPrompt?.trim() || `${input.name.trim()}初始状态`;
   return {
@@ -949,6 +953,7 @@ export function createInitialPropState(input: {
     description,
     imagePrompt: input.visualPrompt?.trim() || description,
     referenceStateId: null,
+    ...(input.eraStyle?.trim() ? { eraStyle: input.eraStyle.trim() } : {}),
   };
 }
 
