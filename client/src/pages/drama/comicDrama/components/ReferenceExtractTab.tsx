@@ -21,13 +21,6 @@ interface OpenTarget {
   index: number;
 }
 
-const GROUP_ICONS: Record<ExtractGroup, string> = {
-  characters: "👤",
-  scenes: "📍",
-  props: "📦",
-  worldview: "🌍",
-};
-
 // 漫剧工作室「当前 · 提取」页签：「解析」产出并随章节保存的设定建议。
 // 点卡片打开弹窗核对（与资产页签同一套表单）：新建议点「应用」单个创建；
 // 同名已存在的建议直接载入已有资产编辑（状态列表可见已生成的图），点「保存」更新已有资产。
@@ -115,11 +108,9 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
                     : "border-border/70 bg-background hover:border-primary/40",
                 )}
               >
-                {group === "worldview" ? (
-                  <span aria-hidden="true" className="mt-1 shrink-0 text-base">{GROUP_ICONS[group]}</span>
-                ) : (
+                {group !== "worldview" ? (
                   <StoryAssetPreview preview={existingPreview} className="w-20 shrink-0 sm:w-24" />
-                )}
+                ) : null}
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <span className="min-w-0 truncate text-sm font-semibold text-foreground">{item.name}</span>
