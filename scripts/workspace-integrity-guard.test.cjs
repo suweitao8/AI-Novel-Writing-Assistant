@@ -7,6 +7,7 @@ const { spawnSync } = require("node:child_process");
 
 const {
   assertClientRuntimeIntegrity,
+  assertDevelopmentWorkspaceIntegrity,
   assertMainWorkspaceSharedIntegrity,
   assertStartupIntegrity,
 } = require("./workspace-integrity-guard.cjs");
@@ -22,6 +23,9 @@ function createRepository() {
   runGit(directory, ["init", "-b", "main"]);
   runGit(directory, ["config", "user.name", "Workspace Guard Test"]);
   runGit(directory, ["config", "user.email", "workspace-guard@example.invalid"]);
+  fs.mkdirSync(path.join(directory, ".githooks"), { recursive: true });
+  runGit(directory, ["config", "core.hooksPath", path.join(directory, ".githooks")]);
+  runGit(directory, ["config", "merge.ff", "false"]);
   return directory;
 }
 
@@ -33,7 +37,8 @@ function writeFile(directory, fileName, contents) {
 
 function createInitialCommit(directory) {
   writeFile(directory, "shared/types/example.ts", "export type Example = string;\n");
-  runGit(directory, ["add", "shared/types/example.ts"]);
+  writeFile(directory, ".gitignore", "client/node_modules/\n");
+  runGit(directory, ["add", "shared/types/example.ts", ".gitignore"]);
   runGit(directory, ["commit", "-m", "initial shared contract"]);
 }
 
@@ -76,6 +81,74 @@ test("feature worktree does not reject its own shared edit", (t) => {
   assert.doesNotThrow(() => assertMainWorkspaceSharedIntegrity({ cwd: directory }));
 });
 
+test("main workspace rejects tracked edits outside shared before development starts", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+  writeFile(directory, "client/App.tsx", "export default function App() { return null; }\n");
+  runGit(directory, ["add", "client/App.tsx"]);
+
+  assert.throws(
+    () => assertDevelopmentWorkspaceIntegrity({ cwd: directory }),
+    /main workspace contains uncommitted development changes[\s\S]*client\/App\.tsx/i,
+  );
+});
+
+test("main workspace rejects untracked files before development starts", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+  writeFile(directory, "notes-from-parallel-session.txt", "keep this out of main\n");
+
+  assert.throws(
+    () => assertDevelopmentWorkspaceIntegrity({ cwd: directory }),
+    /main workspace contains uncommitted development changes[\s\S]*notes-from-parallel-session\.txt/i,
+  );
+});
+
+test("feature worktree permits its own dirty development files", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+  runGit(directory, ["switch", "-c", "codex/workflow-test"]);
+  writeFile(directory, "client/App.tsx", "export default function App() { return null; }\n");
+
+  assert.doesNotThrow(() => assertDevelopmentWorkspaceIntegrity({ cwd: directory }));
+});
+
+test("main workspace rejects an unfinished merge before development starts", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+  const mergeHeadPath = runGit(directory, ["rev-parse", "--git-path", "MERGE_HEAD"]).trim();
+  fs.writeFileSync(path.isAbsolute(mergeHeadPath) ? mergeHeadPath : path.join(directory, mergeHeadPath), `${"0".repeat(40)}\n`);
+
+  assert.throws(
+    () => assertDevelopmentWorkspaceIntegrity({ cwd: directory }),
+    /unfinished merge|MERGE_HEAD/i,
+  );
+});
+
+test("main workspace rejects a checkout with hooks pointed outside tracked .githooks", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+  runGit(directory, ["config", "core.hooksPath", path.join(directory, "untrusted-hooks")]);
+
+  assert.throws(
+    () => assertDevelopmentWorkspaceIntegrity({ cwd: directory }),
+    /core\.hooksPath|tracked \.githooks/i,
+  );
+});
+
+test("clean main workspace passes the development integrity gate", (t) => {
+  const directory = createRepository();
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  createInitialCommit(directory);
+
+  assert.doesNotThrow(() => assertDevelopmentWorkspaceIntegrity({ cwd: directory }));
+});
+
 test("startup integrity check reports a missing Vite refresh runtime", (t) => {
   const directory = createRepository();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -100,6 +173,7 @@ test("dependency preflight reports a missing Vite refresh runtime before startin
   const directory = createRepository();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
   createInitialCommit(directory);
+  runGit(directory, ["switch", "-c", "codex/dependency-preflight-test"]);
   writeFile(directory, "package.json", JSON.stringify({ name: "fixture", private: true }));
   writeFile(directory, "shared/package.json", JSON.stringify({ name: "shared" }));
   writeFile(directory, "server/package.json", JSON.stringify({ name: "server" }));
