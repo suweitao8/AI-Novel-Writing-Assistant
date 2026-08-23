@@ -40,6 +40,27 @@ export interface BuildNovelCoverImagePromptInput {
 export const DEFAULT_NOVEL_COVER_STYLE_PRESET = "电影感插画，强氛围，高辨识度，适合网文封面主画面";
 export const DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT = "乱码，错误书名，重复文字，副标题，作者名，宣传语，水印，logo，低清晰度，模糊，畸形，多余肢体";
 
+/**
+ * All human-character image entrypoints share this identity constraint.
+ * Keep the marker stable so the provider boundary can append it idempotently
+ * to direct prompts and retries without duplicating the instruction.
+ */
+export const CHARACTER_IMAGE_ETHNICITY_CONSTRAINT = [
+  "HUMAN CHARACTER ETHNICITY LOCK (HARD CONSTRAINT): for every human character, render a Chinese / East Asian person with natural East Asian facial identity; do not default to a white, Caucasian, European or other Western-looking face when the character data is incomplete.",
+  "人类角色族裔硬约束：只要主体是人类角色，就必须呈现中国人或东亚人的人物形象，不得因为资料缺少面部细节而默认生成欧美、白人或欧洲面孔。",
+  "Preserve the character data's explicit hair color, skin tone, facial details, clothing, era and rendering direction while applying this identity anchor; an explicitly non-human creature remains non-human and must not be turned into a human ethnic type.",
+].join(" ");
+
+const CHARACTER_IMAGE_ETHNICITY_MARKER = "HUMAN CHARACTER ETHNICITY LOCK (HARD CONSTRAINT)";
+
+export function appendCharacterImageEthnicityConstraint(prompt: string): string {
+  const normalized = prompt.trim();
+  if (normalized.includes(CHARACTER_IMAGE_ETHNICITY_MARKER)) {
+    return normalized;
+  }
+  return [normalized, CHARACTER_IMAGE_ETHNICITY_CONSTRAINT].filter(Boolean).join("\n\n");
+}
+
 function joinLabelValues(label: string, values: Array<string | null | undefined>): string {
   const normalized = values
     .map((value) => value?.trim())
@@ -76,7 +97,7 @@ export function buildCharacterImagePrompt(input: BuildCharacterImagePromptInput)
     `Appearance: ${input.character.appearance ?? "Not specified"}`,
     `Background: ${input.character.background}`,
   ];
-  return blocks.filter(Boolean).join("\n");
+  return appendCharacterImageEthnicityConstraint(blocks.filter(Boolean).join("\n"));
 }
 
 export function buildDefaultNovelCoverSourceDescription(novel: NovelCoverImagePromptNovelContext): string {

@@ -121,6 +121,7 @@ Expected: the helper and legacy prompt assertions pass; builder/provider wiring 
 - Modify: `server/src/services/comic/ComicCharacterImageService.ts`
 - Modify: `server/src/services/image/ImageGenerationService.ts`
 - Modify: `server/src/prompting/prompts/image/image.prompts.ts`
+- Modify: `server/src/prompting/registry/promptAssetLoaderEntries.ts`
 - Test: `server/tests/characterImageEthnicityPrompt.test.js`
 
 - [ ] **Step 1: Add the shared constraint to the canonical state sheet**
@@ -137,7 +138,7 @@ In `ImageGenerationService.createCharacterTask` and `createBookAnalysisCharacter
 
 - [ ] **Step 4: Protect the AI prompt optimizer from removing the rule**
 
-In `image.character.prompt_optimize@v2`, add a rule that human character output must remain Chinese/East Asian and that the optimizer must not remove the identity constraint.
+In `image.character.prompt_optimize@v3`, add a rule that human character output must remain Chinese/East Asian and that the optimizer must not remove the identity constraint; update the registry loader key to the same `@v3` version.
 
 - [ ] **Step 5: Rebuild and run the builder tests**
 
@@ -156,6 +157,7 @@ Expected: all new builder assertions and existing character/state prompt tests p
 **Files:**
 - Modify: `server/src/services/image/provider.ts`
 - Test: `server/tests/characterImageEthnicityPrompt.test.js`
+- Test: `server/tests/imageProviderRouting.test.js`
 
 - [ ] **Step 1: Make `buildPrompt` scene-type aware**
 
@@ -172,7 +174,7 @@ Run:
 ```powershell
 pnpm --filter @ai-novel/shared build
 pnpm --filter @ai-novel/server build
-node --test server/tests/characterImageEthnicityPrompt.test.js
+node --test server/tests/characterImageEthnicityPrompt.test.js server/tests/imageProviderRouting.test.js
 ```
 
 Expected: 4/4 new tests pass, including JSON request behavior and the two-path provider wiring assertion.
@@ -181,12 +183,13 @@ Expected: 4/4 new tests pass, including JSON request behavior and the two-path p
 
 **Files:**
 - Modify: `docs/wiki/workflows/comic-character-asset-pipeline.md` (only if the existing page lacks this durable rule)
+- Modify: `docs/wiki/architecture/story-settings-hub.md` (record the same boundary for novel state images)
 - Modify: `docs/releases/release-notes.md`
 - Modify: `README.md`
 
 - [ ] **Step 1: Update the workflow wiki with the stable boundary**
 
-Document that all human-character asset prompts use the shared Chinese/East Asian identity contract and that provider enforcement covers direct prompts and retries; keep non-human assets and scene-only generation out of the rule. If the existing page already contains an equivalent durable rule, leave it unchanged and record that no wiki edit was necessary.
+Document in both the comic asset pipeline and story settings hub that all human-character asset prompts use the shared Chinese/East Asian identity contract and that provider enforcement covers direct prompts and retries; keep non-human assets and scene-only generation out of the rule. If either page already contains an equivalent durable rule, leave that page unchanged and record that no wiki edit was necessary.
 
 - [ ] **Step 2: Run final verification**
 
@@ -196,6 +199,7 @@ Run:
 pnpm --filter @ai-novel/shared build
 pnpm --filter @ai-novel/server build
 node --test server/tests/characterImageEthnicityPrompt.test.js server/tests/storyAssetStateImage.test.js server/tests/dramaCharacterImage.test.js server/tests/comicCharacterBridge.test.js
+node --test server/tests/imageProviderRouting.test.js
 pnpm --filter @ai-novel/server typecheck
 git diff --check
 ```
@@ -207,7 +211,7 @@ Expected: all listed tests pass, server typecheck exits 0, and `git diff --check
 Review `git status --short` and stage only the shared prompt, server prompt/provider changes, tests, wiki/release surfaces, and this plan if it was not already committed. Commit with:
 
 ```powershell
-git add shared/imagePrompt.ts server/src/services/drama/visual/characterStateSheet.ts server/src/services/comic/ComicCharacterImageService.ts server/src/services/image/ImageGenerationService.ts server/src/services/image/provider.ts server/src/prompting/prompts/image/image.prompts.ts server/tests/characterImageEthnicityPrompt.test.js docs/wiki/workflows/comic-character-asset-pipeline.md docs/releases/release-notes.md README.md
+git add shared/imagePrompt.ts server/src/services/drama/visual/characterStateSheet.ts server/src/services/comic/ComicCharacterImageService.ts server/src/services/image/ImageGenerationService.ts server/src/services/image/provider.ts server/src/prompting/prompts/image/image.prompts.ts server/src/prompting/registry/promptAssetLoaderEntries.ts server/tests/characterImageEthnicityPrompt.test.js server/tests/imageProviderRouting.test.js docs/wiki/architecture/story-settings-hub.md docs/wiki/workflows/comic-character-asset-pipeline.md docs/releases/release-notes.md README.md
 git commit -s -m "feat: enforce Asian character image identity"
 ```
 

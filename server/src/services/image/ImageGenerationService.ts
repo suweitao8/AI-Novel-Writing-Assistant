@@ -1,5 +1,6 @@
 import { resolveAssetImageProvider, resolveImageProviderForReferences } from "./assetProviderRouting";
 import {
+  appendCharacterImageEthnicityConstraint,
   DEFAULT_NOVEL_COVER_NEGATIVE_PROMPT,
   DEFAULT_NOVEL_COVER_STYLE_PRESET,
   buildNovelCoverTitleInstruction,
@@ -183,9 +184,11 @@ export class ImageGenerationService {
     const model = await resolveImageModel(provider, input.model);
     const stylePromptText = await visualStyleService.resolveStylePromptText(input.styleKey);
     const effectiveStylePreset = stylePromptText ?? input.stylePreset;
-    const prompt = input.promptMode === "direct"
-      ? input.prompt.trim()
-      : buildCharacterPrompt(input.prompt, effectiveStylePreset, character);
+    const prompt = appendCharacterImageEthnicityConstraint(
+      input.promptMode === "direct"
+        ? input.prompt.trim()
+        : buildCharacterPrompt(input.prompt, effectiveStylePreset, character),
+    );
     const task = await prisma.imageGenerationTask.create({
       data: {
         sceneType: "character",
@@ -235,9 +238,11 @@ export class ImageGenerationService {
     const model = await resolveImageModel(provider, input.model);
     const stylePromptText = await visualStyleService.resolveStylePromptText(input.styleKey);
     const effectiveStylePreset = stylePromptText ?? input.stylePreset;
-    const prompt = input.promptMode === "direct"
-      ? input.prompt.trim()
-      : buildBookAnalysisCharacterPrompt(input.prompt, effectiveStylePreset, character);
+    const prompt = appendCharacterImageEthnicityConstraint(
+      input.promptMode === "direct"
+        ? input.prompt.trim()
+        : buildBookAnalysisCharacterPrompt(input.prompt, effectiveStylePreset, character),
+    );
     const task = await prisma.imageGenerationTask.create({
       data: {
         sceneType: "book_analysis_character",

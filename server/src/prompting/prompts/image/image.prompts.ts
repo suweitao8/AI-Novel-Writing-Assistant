@@ -170,7 +170,7 @@ export const imageCharacterPromptOptimizePrompt: PromptAsset<
   string
 > = {
   id: "image.character.prompt_optimize",
-  version: "v2",
+  version: "v3",
   taskType: "planner",
   mode: "text",
   language: "zh",
@@ -192,6 +192,7 @@ export const imageCharacterPromptOptimizePrompt: PromptAsset<
       "4. 输出必须更适合角色形象图生成，而不是小说介绍、人物小传或分析文字。",
       "5. 如果给了风格预设，要自然融入 prompt，而不是单独解释它。",
       "6. 外貌与穿搭要有这个角色自己的辨识度：用户没写长相细节时，按性格、年龄和角色定位补全具体五官特征（脸型/眉眼/鼻型/下颌等给具体值，可加痣、疤、眼镜等小标记）；穿搭按性格与身份设计有风格的搭配并写具体到单品与配色（如 地雷系暗色蕾丝蝴蝶结、乖巧浅色连衣裙、机能风、通勤简约、学院、街头等），让不同角色不撞脸、不撞穿搭；整体保持耐看，主角类角色偏好看，但不要写成千人一面的网红脸。",
+      "7. 人类角色必须保持中国人或东亚人的人物形象；不得在资料不足时默认补成欧美、白人或欧洲面孔，并且不能删除已有的人类角色族裔硬约束；明确的非人角色保留非人设定。",
       "",
       "语言要求：",
       input.outputLanguage === "en"

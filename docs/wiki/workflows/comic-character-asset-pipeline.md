@@ -32,6 +32,10 @@
 
 `expression` 由结构化 LLM 分格输出决定，可选值为 `neutral`、`happy`、`angry`、`sad`、`surprised`、`cold`。不要用固定关键词或正则从对白文本后处理推断表情；如果表情选择不准，应调整 Prompt Schema、提示词或结构化输出约束。
 
+### Human Character Identity
+
+所有人类角色的三视图、表情稿、状态图和旧版角色图共用 `shared/imagePrompt.ts` 的中国/东亚人物身份约束：资料缺少面部细节时，图片模型不得把角色默认补成欧美或白人面孔；角色资料明确的发色、肤色、服装、时代和渲染方向仍需保留。约束同时进入角色 prompt builder 和 provider 最终请求边界，因此 direct prompt、参考图编辑和历史任务重试也不能绕过它。怪物、动物等明确非人角色保持非人设定，场景与道具请求不注入该约束。
+
 ## Reference Injection
 
 单角色格优先注入完整三视图。多人同框格优先注入每个角色的面部裁切图，降低参考图噪声。若对应表情稿已生成，再追加该角色当前 `expression` 的表情裁切图。

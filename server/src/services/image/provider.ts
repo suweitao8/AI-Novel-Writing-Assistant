@@ -24,6 +24,7 @@ import type {
   ImageProviderGenerateResult,
   ImageQuality,
 } from "./types";
+import { appendCharacterImageEthnicityConstraint } from "@ai-novel/shared/imagePrompt";
 
 function normalizeBaseUrl(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -138,8 +139,14 @@ function parseImagesFromPayload(payload: unknown): Array<{
   return images;
 }
 
-function buildPrompt(prompt: string, negativePrompt?: string): string {
-  const cleanPrompt = prompt.trim();
+function buildPrompt(
+  prompt: string,
+  negativePrompt?: string,
+  sceneType?: ImageProviderGenerateInput["sceneType"],
+): string {
+  const cleanPrompt = sceneType === "character" || sceneType === "book_analysis_character"
+    ? appendCharacterImageEthnicityConstraint(prompt)
+    : prompt.trim();
   const cleanNegativePrompt = negativePrompt?.trim();
   if (!cleanNegativePrompt) {
     return cleanPrompt;
@@ -158,7 +165,7 @@ export function buildImageGenerationRequestBody(input: ImageProviderGenerateInpu
   assertImageProviderReferenceSupport(input);
   const requestBody: Record<string, unknown> = {
     model: input.model,
-    prompt: buildPrompt(input.prompt, input.negativePrompt),
+    prompt: buildPrompt(input.prompt, input.negativePrompt, input.sceneType),
     n: input.count,
   };
 
@@ -250,7 +257,7 @@ async function generateWithFileRef(
 
   const form = new FormData();
   form.append("model", input.model);
-  form.append("prompt", buildPrompt(input.prompt, input.negativePrompt));
+  form.append("prompt", buildPrompt(input.prompt, input.negativePrompt, input.sceneType));
   form.append("n", String(input.count));
   if (input.provider !== "grok") {
     form.append("size", input.size);

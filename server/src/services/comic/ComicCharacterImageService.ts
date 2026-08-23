@@ -22,6 +22,10 @@ import {
   safeJsonParse,
   type ImageTargetAdapter,
 } from "../image/runtime";
+import {
+  appendCharacterImageEthnicityConstraint,
+  CHARACTER_IMAGE_ETHNICITY_CONSTRAINT,
+} from "@ai-novel/shared/imagePrompt";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { buildGenderLockPrompt, resolveComicStyleKeywords } from "./comicStylePrompt";
 
@@ -171,6 +175,7 @@ function buildSheetPrompt(character: {
   const lines: string[] = [];
   if (genderLock) lines.push(genderLock);
   lines.push(
+    CHARACTER_IMAGE_ETHNICITY_CONSTRAINT,
     "professional character design reference sheet, single image",
     "LEFT THIRD: close-up portrait of the character's face (frontal view, detailed facial features, natural expression)",
     "RIGHT TWO-THIRDS: full-body character turnaround showing three views side by side — front view, side view (90-degree profile), back view",
@@ -236,14 +241,14 @@ function buildTunedSheetPrompt(
   lockAppearance: boolean,
   appearanceOverride?: string,
 ): string {
-  const trimmedPrompt = prompt.trim();
-  if (!lockAppearance) return trimmedPrompt;
+  const constrainedPrompt = appendCharacterImageEthnicityConstraint(prompt);
+  if (!lockAppearance) return constrainedPrompt;
 
   const visualDesc = appearanceOverride?.trim() || extractVisualDesc(character.visualAnchor);
-  if (!visualDesc || trimmedPrompt.includes(visualDesc)) return trimmedPrompt;
+  if (!visualDesc || constrainedPrompt.includes(visualDesc)) return constrainedPrompt;
 
   const appearanceLock = buildAppearanceLockPrompt(character, appearanceOverride);
-  return appearanceLock ? `${trimmedPrompt}\n\n${appearanceLock}` : trimmedPrompt;
+  return appearanceLock ? `${constrainedPrompt}\n\n${appearanceLock}` : constrainedPrompt;
 }
 
 function buildExpressionPrompt(character: {
@@ -258,6 +263,7 @@ function buildExpressionPrompt(character: {
   const lines: string[] = [];
   if (genderLock) lines.push(genderLock);
   lines.push(
+    CHARACTER_IMAGE_ETHNICITY_CONSTRAINT,
     "professional manga character expression sheet, single strict 16:9 horizontal image",
     "six evenly spaced portrait busts in one row, same character, same hairstyle, same costume, same color palette",
     "expressions from left to right: neutral calm, happy smile, angry glare, sad sorrow, surprised shock, cold indifferent",
