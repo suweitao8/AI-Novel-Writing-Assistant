@@ -118,6 +118,7 @@ export function useReferenceDraftStage(input: {
       if (!chapter) {
         throw new Error("还没有章节。");
       }
+      await workspace.flushExpectationSave();
       const startedAt = Date.now();
       const parseResponse = await previewChapterReferenceParse(input.novelId, chapter.id, trimmedReference);
       const draftText = parseResponse.data?.draftText ?? "";

@@ -8,6 +8,7 @@ import morgan from "morgan";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { ensureRuntimeDatabaseReady } from "./db/runtimeMigrations";
 import { healInterruptedImageGenerationStates } from "./services/image/runtime/interruptedStateHealer";
+import { recoverInterruptedDramaBatchJobs } from "./services/drama/production/batchJobRecovery";
 import { errorHandler } from "./middleware/errorHandler";
 import { loadProviderApiKeys } from "./llm/factory";
 import astrologyRouter from "./modules/astrology/http/astrologyRoutes";
@@ -312,6 +313,9 @@ export async function startServer(options?: ServerStartOptions): Promise<Started
   await ensureRuntimeDatabaseReady();
   void healInterruptedImageGenerationStates().catch((error) => {
     console.warn("[server] failed to heal interrupted image generation states.", error);
+  });
+  void recoverInterruptedDramaBatchJobs().catch((error) => {
+    console.warn("[server] failed to recover interrupted drama batch jobs.", error);
   });
 
   const ragCompatibilityReport = await initializeRagSettingsCompatibility();

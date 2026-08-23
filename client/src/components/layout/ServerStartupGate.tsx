@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { LoaderCircle, RefreshCw } from "lucide-react";
 import { API_BASE_URL } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { probeStartupHealth } from "./startupHealth";
 
 interface ServerStartupGateProps {
   children: ReactNode;
@@ -10,29 +11,18 @@ interface ServerStartupGateProps {
 type StartupStatus = "checking" | "ready" | "waiting";
 
 const STARTUP_CHECK_INTERVAL_MS = 1000;
-const STARTUP_WAIT_THRESHOLD_MS = 1200;
+const STARTUP_WAIT_THRESHOLD_MS = 2500;
 
 function shouldUseStartupGate(): boolean {
   return import.meta.env.DEV;
 }
 
-async function checkServerReady(signal: AbortSignal): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
-      cache: "no-store",
-      signal,
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 function ServerStartupScreen(props: {
   status: StartupStatus;
+  diagnostic?: string;
   onRetry: () => void;
 }) {
-  const { status, onRetry } = props;
+  const { status, diagnostic, onRetry } = props;
   const waiting = status === "waiting";
 
   return (
@@ -43,8 +33,13 @@ function ServerStartupScreen(props: {
         </div>
         <h1 className="mt-5 text-xl font-semibold text-foreground">正在连接本地创作服务</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
-          页面已准备好，系统会在服务可用后自动进入工作台。
+          {waiting ? "本地创作服务尚未响应，系统仍在自动重试。" : "正在等待本地创作服务响应。"}
         </p>
+        {waiting && diagnostic ? (
+          <p className="mt-2 text-xs text-muted-foreground" role="status">
+            {diagnostic}
+          </p>
+        ) : null}
         {waiting ? (
           <div className="mt-6">
             <Button type="button" variant="outline" size="sm" onClick={onRetry}>
@@ -61,6 +56,7 @@ function ServerStartupScreen(props: {
 export default function ServerStartupGate({ children }: ServerStartupGateProps) {
   const enabled = useMemo(() => shouldUseStartupGate(), []);
   const [status, setStatus] = useState<StartupStatus>(enabled ? "checking" : "ready");
+  const [diagnostic, setDiagnostic] = useState<string>();
   const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
@@ -77,12 +73,15 @@ export default function ServerStartupGate({ children }: ServerStartupGateProps) 
     }, STARTUP_WAIT_THRESHOLD_MS);
 
     async function probe() {
-      const ready = await checkServerReady(abortController.signal);
+      const result = await probeStartupHealth(`${API_BASE_URL}/health`, abortController.signal);
       if (abortController.signal.aborted) {
         return;
       }
-      if (ready) {
+      if (result.ready) {
         setStatus("ready");
+        setDiagnostic(undefined);
+      } else if (result.diagnostic) {
+        setDiagnostic(result.diagnostic);
       }
     }
 
@@ -111,8 +110,10 @@ export default function ServerStartupGate({ children }: ServerStartupGateProps) 
       status={status}
       onRetry={() => {
         setStatus("checking");
+        setDiagnostic(undefined);
         setRetryToken((current) => current + 1);
       }}
+      diagnostic={diagnostic}
     />
   );
 }

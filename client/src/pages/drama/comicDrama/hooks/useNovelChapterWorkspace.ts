@@ -29,7 +29,8 @@ export function useNovelChapterWorkspace(novelId: string) {
 
   // 冲保存排队：保存请求在途时又有新编辑（或切章/卸载冲保存），
   // 在途请求带的是旧文本，直接跳过会丢字——排队快照，请求落定后补存一次。
-  const pendingExpectationFlushRef = useRef<DispatchedText | null>(null);
+  // 所有初稿保存串行执行：解析必须能等待此前已派发的自动保存，避免旧快照在解析结果之后回写。
+  const expectationSaveChainRef = useRef<Promise<void>>(Promise.resolve());
   const pendingReferenceFlushRef = useRef<DispatchedText | null>(null);
   // 最近一次已派发内容：解析结果整章写入后等服务端缓存追上的窗口里，
   // 避免「dirty 仍为 true」触发第二次内容完全相同的 PUT；保存失败时会清掉，恢复可重试。
@@ -73,9 +74,15 @@ export function useNovelChapterWorkspace(novelId: string) {
       ? extractionOverride.json
       : chapterExtractionJson;
 
-  const dispatchQueuedExpectation = (queued: DispatchedText) => {
+  const dispatchQueuedExpectation = (queued: DispatchedText): Promise<void> => {
     lastDispatchedExpectationRef.current = queued;
-    saveExpectationMutation.mutate({ chapterId: queued.chapterId, text: queued.text, silent: true });
+    const request = expectationSaveChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        await saveExpectationMutation.mutateAsync({ chapterId: queued.chapterId, text: queued.text, silent: true });
+      });
+    expectationSaveChainRef.current = request.catch(() => undefined);
+    return request;
   };
 
   const saveExpectationMutation = useMutation({
@@ -90,19 +97,14 @@ export function useNovelChapterWorkspace(novelId: string) {
     onError: (error, input) => {
       // 保存失败要恢复「未保存」语义（清掉已派发标记，dirty 重新可见、可重试）；
       // 同一内容反复重试只提示一次，避免失败循环刷屏。
-      lastDispatchedExpectationRef.current = null;
+      if (sameDispatchedText(lastDispatchedExpectationRef.current, input.chapterId, input.text)) {
+        lastDispatchedExpectationRef.current = null;
+      }
       const prev = lastErroredExpectationRef.current;
       const sameFailure = sameDispatchedText(prev, input.chapterId, input.text);
       lastErroredExpectationRef.current = { chapterId: input.chapterId, text: input.text };
       if (!sameFailure) {
         toast.error(error instanceof Error ? error.message : "保存初稿失败，请重试。");
-      }
-    },
-    onSettled: (_data, _error, input) => {
-      const queued = pendingExpectationFlushRef.current;
-      pendingExpectationFlushRef.current = null;
-      if (queued && !sameDispatchedText({ chapterId: input.chapterId, text: input.text }, queued.chapterId, queued.text)) {
-        dispatchQueuedExpectation(queued);
       }
     },
   });
@@ -163,26 +165,21 @@ export function useNovelChapterWorkspace(novelId: string) {
     && !sameDispatchedText(lastDispatchedExpectationRef.current, currentChapter?.id ?? "", expectationText);
 
   const savePending = saveExpectationMutation.isPending;
-  const flushExpectationSave = () => {
+  const flushExpectationSave = (): Promise<void> => {
     if (!currentChapter || expectationText.trim() === (currentChapter.expectation ?? "").trim()) {
-      return;
+      return Promise.resolve();
     }
     // 空白文本不得覆盖服务端已有脚本（2026-08-23 数据丢失事故）：编辑器加载空脚本时会铺
     // 19 行占位空行，若这份占位状态被自动保存/冲保存 PUT 回去，整章脚本就被清成空行。
     // 真要清空整章属于罕见操作（代价是重新粘贴），远好于静默丢稿。
     if (!expectationText.trim() && (currentChapter.expectation ?? "").trim()) {
-      return;
+      return Promise.resolve();
     }
     const snapshot = { chapterId: currentChapter.id, text: expectationText };
-    if (savePending) {
-      pendingExpectationFlushRef.current = snapshot;
-      return;
-    }
     if (sameDispatchedText(lastDispatchedExpectationRef.current, snapshot.chapterId, snapshot.text)) {
-      return;
+      return expectationSaveChainRef.current;
     }
-    lastDispatchedExpectationRef.current = snapshot;
-    saveExpectationMutation.mutate({ ...snapshot, silent: true });
+    return dispatchQueuedExpectation(snapshot);
   };
 
   // 「参考」页签解析结果写入初稿：替换编辑器文本并立即静默落库，
@@ -193,8 +190,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     }
     setExpectationText(text);
     if (!sameDispatchedText(lastDispatchedExpectationRef.current, currentChapter.id, text)) {
-      lastDispatchedExpectationRef.current = { chapterId: currentChapter.id, text };
-      saveExpectationMutation.mutate({ chapterId: currentChapter.id, text, silent: true });
+      void dispatchQueuedExpectation({ chapterId: currentChapter.id, text }).catch(() => undefined);
     }
   };
 
@@ -236,7 +232,7 @@ export function useNovelChapterWorkspace(novelId: string) {
 
   const switchChapter = (chapter: Chapter) => {
     if (currentChapter && currentChapter.id !== chapter.id) {
-      flushExpectationSave();
+      void flushExpectationSave().catch(() => undefined);
       flushReferenceSave();
     }
     setCurrentChapterId(chapter.id);
@@ -258,8 +254,7 @@ export function useNovelChapterWorkspace(novelId: string) {
     lastDispatchedReferenceRef.current = null;
     if (normalizedExpectation !== expectation && normalizedExpectation.trim()) {
       // 旧旁白括注在载入时就落回干净脚本，用户不需要先编辑或切换页面才触发保存。
-      lastDispatchedExpectationRef.current = { chapterId: currentChapter.id, text: normalizedExpectation };
-      saveExpectationMutation.mutate({ chapterId: currentChapter.id, text: normalizedExpectation, silent: true });
+      void dispatchQueuedExpectation({ chapterId: currentChapter.id, text: normalizedExpectation }).catch(() => undefined);
     }
   }, [currentChapter]);
 

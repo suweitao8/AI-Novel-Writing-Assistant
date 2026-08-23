@@ -225,6 +225,7 @@ function readProgress(raw: string | null | undefined): DramaBatchProgress {
 
 export class DramaBatchOrchestrator {
   private readonly runningJobs = new Set<string>();
+  private readonly createJobLocks = new Map<string, Promise<string>>();
 
   constructor(
     private readonly keyframeService = new DramaShotKeyframeService(),
@@ -238,8 +239,52 @@ export class DramaBatchOrchestrator {
     input: CreateEpisodeBatchJobInput,
     options: CreateEpisodeBatchJobOptions = {},
   ) {
+    const lockKey = `${projectId}:${order}:${input.type}`;
+    const inFlight = this.createJobLocks.get(lockKey);
+    if (inFlight) {
+      const jobId = await inFlight;
+      const existing = await prisma.dramaBatchJob.findUnique({ where: { id: jobId } });
+      if (!existing) {
+        throw new AppError("批量任务创建已完成，但任务记录无法读取，请重试。", 500);
+      }
+      return existing;
+    }
+
+    const creation = this.createEpisodeBatchJobInternal(projectId, order, input, options);
+    const creationId = creation.then((job) => job.id);
+    this.createJobLocks.set(lockKey, creationId);
+    try {
+      return await creation;
+    } finally {
+      if (this.createJobLocks.get(lockKey) === creationId) {
+        this.createJobLocks.delete(lockKey);
+      }
+    }
+  }
+
+  private async createEpisodeBatchJobInternal(
+    projectId: string,
+    order: number,
+    input: CreateEpisodeBatchJobInput,
+    options: CreateEpisodeBatchJobOptions,
+  ) {
     await failStaleBatchJobs(projectId);
     const prepared = await this.prepareEpisodeBatchJob(projectId, order, input);
+    const activeJob = await prisma.dramaBatchJob.findFirst({
+      where: {
+        projectId,
+        episodeId: prepared.episode.id,
+        type: input.type,
+        status: { in: ["pending", "running"] },
+      },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    });
+    if (activeJob) {
+      if (options.autoStart ?? true) {
+        void this.runBatchJob(activeJob.id).catch(() => undefined);
+      }
+      return activeJob;
+    }
     const progress = normalizeProgress({
       total: prepared.targetShotIds.length,
       done: 0,
