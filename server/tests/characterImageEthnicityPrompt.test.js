@@ -48,8 +48,10 @@ test("provider appends the constraint only to character scene types", () => {
   const character = buildImageGenerationRequestBody({ ...base, sceneType: "character" });
   const bookAnalysis = buildImageGenerationRequestBody({ ...base, sceneType: "book_analysis_character" });
   const scene = buildImageGenerationRequestBody({ ...base, sceneType: "chapter_illustration" });
+  const creature = buildImageGenerationRequestBody({ ...base, prompt: "明确的非人怪物设计", sceneType: "character" });
   assert.match(String(character.prompt), /中国|Chinese|East Asian/);
   assert.match(String(bookAnalysis.prompt), /中国|Chinese|East Asian/);
+  assert.match(String(creature.prompt), /explicitly non-human creature remains non-human/);
   assert.doesNotMatch(String(scene.prompt), /HUMAN CHARACTER ETHNICITY LOCK/);
 });
 

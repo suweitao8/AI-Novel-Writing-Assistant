@@ -156,8 +156,10 @@ Expected: all new builder assertions and existing character/state prompt tests p
 
 **Files:**
 - Modify: `server/src/services/image/provider.ts`
+- Modify: `server/src/services/image/runtime/runner.ts`
 - Test: `server/tests/characterImageEthnicityPrompt.test.js`
 - Test: `server/tests/imageProviderRouting.test.js`
+- Test: `server/tests/imageRuntimeState.test.js`
 
 - [ ] **Step 1: Make `buildPrompt` scene-type aware**
 
@@ -167,6 +169,8 @@ Change its signature to `(prompt, negativePrompt, sceneType)`. For `character` a
 
 Pass `input.sceneType` at both `buildImageGenerationRequestBody` and `generateWithFileRef` call sites. Do not add the rule to negative prompts or to scene/prop requests.
 
+Persist the same effective character prompt in the shared runtime runner so custom prompt overrides cannot leave saved image history different from the request sent to the provider.
+
 - [ ] **Step 3: Run the provider behavior and source contract tests**
 
 Run:
@@ -175,9 +179,10 @@ Run:
 pnpm --filter @ai-novel/shared build
 pnpm --filter @ai-novel/server build
 node --test server/tests/characterImageEthnicityPrompt.test.js server/tests/imageProviderRouting.test.js
+node --test server/tests/imageRuntimeState.test.js
 ```
 
-Expected: 4/4 new tests pass, including JSON request behavior and the two-path provider wiring assertion.
+Expected: the new prompt/provider/runtime tests pass, including JSON request behavior, the two-path provider wiring assertion, and persisted runtime prompt parity.
 
 ### Task 5: Durable documentation and delivery verification
 
@@ -198,8 +203,7 @@ Run:
 ```powershell
 pnpm --filter @ai-novel/shared build
 pnpm --filter @ai-novel/server build
-node --test server/tests/characterImageEthnicityPrompt.test.js server/tests/storyAssetStateImage.test.js server/tests/dramaCharacterImage.test.js server/tests/comicCharacterBridge.test.js
-node --test server/tests/imageProviderRouting.test.js
+node --test server/tests/characterImageEthnicityPrompt.test.js server/tests/storyAssetStateImage.test.js server/tests/dramaCharacterImage.test.js server/tests/comicCharacterBridge.test.js server/tests/imageProviderRouting.test.js server/tests/imageRuntimeState.test.js
 pnpm --filter @ai-novel/server typecheck
 git diff --check
 ```
@@ -211,7 +215,7 @@ Expected: all listed tests pass, server typecheck exits 0, and `git diff --check
 Review `git status --short` and stage only the shared prompt, server prompt/provider changes, tests, wiki/release surfaces, and this plan if it was not already committed. Commit with:
 
 ```powershell
-git add shared/imagePrompt.ts server/src/services/drama/visual/characterStateSheet.ts server/src/services/comic/ComicCharacterImageService.ts server/src/services/image/ImageGenerationService.ts server/src/services/image/provider.ts server/src/prompting/prompts/image/image.prompts.ts server/src/prompting/registry/promptAssetLoaderEntries.ts server/tests/characterImageEthnicityPrompt.test.js server/tests/imageProviderRouting.test.js docs/wiki/architecture/story-settings-hub.md docs/wiki/workflows/comic-character-asset-pipeline.md docs/releases/release-notes.md README.md
+git add shared/imagePrompt.ts server/src/services/drama/visual/characterStateSheet.ts server/src/services/comic/ComicCharacterImageService.ts server/src/services/image/ImageGenerationService.ts server/src/services/image/provider.ts server/src/services/image/runtime/runner.ts server/src/prompting/prompts/image/image.prompts.ts server/src/prompting/registry/promptAssetLoaderEntries.ts server/tests/characterImageEthnicityPrompt.test.js server/tests/imageProviderRouting.test.js server/tests/imageRuntimeState.test.js docs/wiki/architecture/story-settings-hub.md docs/wiki/workflows/comic-character-asset-pipeline.md docs/releases/release-notes.md README.md
 git commit -s -m "feat: enforce Asian character image identity"
 ```
 

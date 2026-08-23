@@ -20,6 +20,7 @@ import {
   resolveImageModel,
 } from "../provider";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
+import { appendCharacterImageEthnicityConstraint } from "@ai-novel/shared/imagePrompt";
 import { resolveImageProviderForReferences } from "../assetProviderRouting";
 import { ensureTransparentBackground } from "../backgroundKeying";
 
@@ -85,6 +86,10 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
   const nextVersion = existing.status === "done"
     ? readVersion(existing) + 1
     : Math.max(1, readVersion(existing) || 1);
+  const sceneType = opts.sceneType ?? "chapter_illustration";
+  const effectivePrompt = sceneType === "character"
+    ? appendCharacterImageEthnicityConstraint(opts.prompt)
+    : opts.prompt;
 
   // 4. 创建本次制品会话并标 generating。必须先拿到制品 lease，抢锁失败不能
   // 把其他任务正在使用的旧状态改成 error。
@@ -93,6 +98,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     status: "generating",
     provider,
     version: nextVersion,
+    prompt: effectivePrompt,
     history: nextHistory,
     // 清掉上一轮 error 信息，避免误展示
     error: undefined,
@@ -114,10 +120,10 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
 
     // 5. 调 provider + generation-specific 落盘
     const result = await generateImagesByProvider({
-      sceneType: opts.sceneType ?? "chapter_illustration",
+      sceneType,
       provider,
       model,
-      prompt: opts.prompt,
+      prompt: effectivePrompt,
       ...(opts.negativePrompt ? { negativePrompt: opts.negativePrompt } : {}),
       size: opts.size ?? DEFAULT_RUNTIME_SIZE,
       count: opts.count ?? 1,
@@ -149,7 +155,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       status: "done",
       version: nextVersion,
       url: adapter.publicUrl(),
-      prompt: opts.prompt,
+      prompt: effectivePrompt,
       provider,
       generatedAt: new Date().toISOString(),
       history: nextHistory,
