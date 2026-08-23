@@ -56,7 +56,7 @@ const CHARACTER_IMAGE_ETHNICITY_MARKER = "HUMAN CHARACTER ETHNICITY LOCK (HARD C
 export function appendCharacterImageEthnicityConstraint(prompt: string): string {
   const normalized = prompt.trim();
   if (normalized.includes(CHARACTER_IMAGE_ETHNICITY_MARKER)) {
-    return normalized;
+    return prompt;
   }
   return [normalized, CHARACTER_IMAGE_ETHNICITY_CONSTRAINT].filter(Boolean).join("\n\n");
 }

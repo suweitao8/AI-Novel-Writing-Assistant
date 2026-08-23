@@ -21,6 +21,8 @@ test("shared ethnicity constraint is non-empty and idempotent", () => {
   assert.match(CHARACTER_IMAGE_ETHNICITY_CONSTRAINT, /中国|Chinese/);
   const once = appendCharacterImageEthnicityConstraint("画一个角色");
   assert.equal(appendCharacterImageEthnicityConstraint(once), once);
+  const padded = `  ${once}  `;
+  assert.equal(appendCharacterImageEthnicityConstraint(padded), padded);
 });
 
 test("character state and legacy character prompts expose the identity constraint", () => {
