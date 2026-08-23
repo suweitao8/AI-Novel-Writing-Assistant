@@ -189,6 +189,8 @@ export function AssetStatesEditor(props: {
   const [localDirty, setLocalDirty] = useState(false);
   const [promptTweak, setPromptTweak] = useState("");
   const [sceneFlatView, setSceneFlatView] = useState(false);
+  // 添加状态的模板选择（null=未在添加；空串=空白创建；其他=作为模板的状态 id）。
+  const [addFromStateId, setAddFromStateId] = useState<string | null>(null);
   // 图片区比例跟随资产画幅：场景 360° 全景是 2:1（等距柱状标准），角色/道具设计图是 3:2。
   const stateImageAspect = kind === "scene" ? "aspect-[2/1]" : "aspect-[3/2]";
   const showVoice = kind === "character";
@@ -404,22 +406,43 @@ export function AssetStatesEditor(props: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "提示词改写失败，请重试。"),
   });
 
-  const addState = () => {
+  const addState = (templateStateId: string | null) => {
+    const template = templateStateId ? states.find((state) => state.id === templateStateId) ?? null : null;
     const previous = states[states.length - 1];
     const id = newStateId();
-    onChange([...states, {
-      id,
-      label: "",
-      description: "",
-      imagePrompt: "",
-      ...(showVoice ? { ageGroup: previous?.ageGroup ?? "youth" } : {}),
-      ...(showScene ? {
-        sceneType: previous?.sceneType ?? null,
-        timeOfDay: previous?.timeOfDay ?? null,
-        weather: previous?.weather ?? null,
-      } : {}),
-      referenceStateId: previous?.id ?? null,
-    }]);
+    // 基于所选状态创建（2026-08-23 用户要求）：挑最接近新状态的旧状态当模板，内容属性
+    // （描述/图片提示词/时代风格/年龄段/场景结构化字段）全部复制过来再二次修改；图片与音色是
+    // 旧状态的生成产物，不复制。新状态的生图参考直接指向模板状态：生成时以模板的图锁定
+    // 同一形象，只改新状态的差异（与「跨时代新状态参考上一状态」同一套参考链）。
+    const nextState = template
+      ? {
+        id,
+        label: "",
+        description: template.description ?? "",
+        imagePrompt: template.imagePrompt ?? "",
+        ...(template.eraStyle ? { eraStyle: template.eraStyle } : {}),
+        ...(showVoice ? { ageGroup: template.ageGroup ?? previous?.ageGroup ?? "youth" } : {}),
+        ...(showScene ? {
+          sceneType: template.sceneType ?? null,
+          timeOfDay: template.timeOfDay ?? null,
+          weather: template.weather ?? null,
+        } : {}),
+        referenceStateId: template.id,
+      }
+      : {
+        id,
+        label: "",
+        description: "",
+        imagePrompt: "",
+        ...(showVoice ? { ageGroup: previous?.ageGroup ?? "youth" } : {}),
+        ...(showScene ? {
+          sceneType: previous?.sceneType ?? null,
+          timeOfDay: previous?.timeOfDay ?? null,
+          weather: previous?.weather ?? null,
+        } : {}),
+        referenceStateId: previous?.id ?? null,
+      };
+    onChange([...states, nextState]);
     setLocalDirty(true);
     setSelectedStateId(id);
     setVoicePickerOpen(false);
@@ -500,9 +523,47 @@ export function AssetStatesEditor(props: {
             </div>
           );
         })}
-        <Button type="button" variant="outline" size="sm" className="mt-1 w-full" onClick={addState} disabled={anyPending}>
-          <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
-        </Button>
+        {addFromStateId !== null ? (
+          <div className="mt-1 space-y-1.5 rounded-md border border-border bg-background p-2">
+            <SelectControl
+              className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+              aria-label="基于哪个状态创建新状态"
+              value={addFromStateId}
+              onChange={(event) => setAddFromStateId(event.target.value)}
+            >
+              <option value="">空白状态（不复制内容）</option>
+              {states.map((state, index) => (
+                <option key={state.id} value={state.id}>复制「{getAssetStateLabel(state, index)}」</option>
+              ))}
+            </SelectControl>
+            <div className="flex gap-1.5">
+              <Button
+                type="button"
+                size="sm"
+                className="flex-1"
+                disabled={anyPending}
+                onClick={() => {
+                  addState(addFromStateId || null);
+                  setAddFromStateId(null);
+                }}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />创建状态
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => setAddFromStateId(null)}>取消</Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-1 w-full"
+            disabled={anyPending}
+            onClick={() => setAddFromStateId(states[states.length - 1]?.id ?? "")}
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" aria-hidden="true" />添加状态
+          </Button>
+        )}
       </div>
 
       <div className="min-w-0 flex-1 space-y-3 rounded-lg border border-border/60 bg-background p-3">
