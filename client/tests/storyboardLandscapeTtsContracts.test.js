@@ -9,8 +9,9 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   const assemblySource = read("pages/drama/components/DramaEpisodeAssemblyPanel.tsx");
 
   assert.match(panelSource, /DramaEpisodeAssemblyButton/);
-  assert.match(panelSource, /DramaEpisodeAssemblyResultPanel/);
-  assert.match(panelSource, /className="ml-auto flex flex-wrap gap-2"/);
+  assert.match(panelSource, /createPortal/);
+  assert.match(panelSource, /toolbarTarget/);
+  assert.doesNotMatch(panelSource, /DramaEpisodeAssemblyResultPanel/);
   assert.match(panelSource, /aspect-video/);
   assert.match(panelSource, /w-32 shrink-0 space-y-1\.5 sm:w-40/);
   assert.doesNotMatch(panelSource, /listDramaTTSProviders|providersQuery|const \[provider,/);
@@ -23,6 +24,18 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   assert.match(assemblySource, /export function DramaEpisodeAssemblyButton/);
   assert.match(assemblySource, /export function DramaEpisodeAssemblyResultPanel/);
   assert.doesNotMatch(assemblySource, /合成整集|重新合成整集/);
+});
+
+test("分镜批量操作位于上层页签操作槽，并使用简洁的生成分镜文案", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
+
+  assert.match(pageSource, /video: "视频"/);
+  assert.match(pageSource, /storyboardToolbarTarget/);
+  assert.match(pageSource, /toolbarTarget=\{storyboardToolbarTarget\}/);
+  assert.match(panelSource, /createPortal\([\s\S]*生成分镜/);
+  assert.doesNotMatch(panelSource, /生成分镜\$\{keyframeSummary\.missing/);
+  assert.doesNotMatch(panelSource, /<ImageIcon className="mr-1\.5 h-3\.5 w-3\.5"/);
 });
 
 test("配音界面不再提供页面级通道选择", () => {

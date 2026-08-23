@@ -68,7 +68,7 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   extract: "提取",
   script: "脚本",
   storyboard: "分镜",
-  video: "成片",
+  video: "视频",
 };
 
 const ASSET_TAB_LABELS: Record<AssetTab, string> = {
@@ -94,6 +94,7 @@ export default function ComicDramaStudioPage() {
   const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
   const [assetTab, setAssetTab] = useState<AssetTab>("characters");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
+  const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [createChapterOpen, setCreateChapterOpen] = useState(false);
 
@@ -251,7 +252,10 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
+              <div
+                ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+                className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end"
+              >
                 {currentTab === "reference" ? (
                   <>
                     {chapterWorkspace.referenceSavePending ? (
@@ -318,7 +322,7 @@ export default function ComicDramaStudioPage() {
                 ) : currentTab === "video" && overview.drama ? (
                   <Button size="sm" asChild>
                     <Link to={`/drama/projects/${overview.drama.projectId}`}>
-                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开成片工作台
+                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开视频工作台
                     </Link>
                   </Button>
                 ) : null}
@@ -386,6 +390,7 @@ export default function ComicDramaStudioPage() {
                 novelId={novelId}
                 projectId={overview.drama.projectId}
                 chapterOrder={chapterWorkspace.currentChapter?.order ?? null}
+                toolbarTarget={storyboardToolbarTarget}
               />
             ) : (
               <StoryboardBootstrapCard
