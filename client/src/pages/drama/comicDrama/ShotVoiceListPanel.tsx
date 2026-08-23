@@ -23,7 +23,6 @@ import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegmen
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
-import { SegmentStatusDot } from "./VoiceStagePanel";
 import ShotBlockingSketchDialog from "./components/ShotBlockingSketchDialog";
 import {
   DramaEpisodeAssemblyButton,
@@ -567,6 +566,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const keyframe = parseKeyframe(shot.keyframeData);
   const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
   const [blockingSketchOpen, setBlockingSketchOpen] = useState(false);
+  const readySegments = segments.filter(
+    (segment): segment is DramaAudioSegment & { status: "ready"; audioUrl: string } =>
+      segment.status === "ready" && Boolean(segment.audioUrl),
+  );
+  const hasReadyAudio = readySegments.length > 0;
   const pendingCount = segments.filter((segment) => segment.status !== "ready" || !segment.audioUrl).length;
   const shouldForceRegenerate = segments.length > 0 && pendingCount === 0;
   const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
@@ -645,34 +649,33 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
         ) : null}
 
         {segments.length > 0 ? (
-          <div className="mt-2 flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-2 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex-1 space-y-1.5">
-              {segments.map((segment) => {
-                return (
+          <div className={cn(
+            "mt-2 flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-2",
+            hasReadyAudio ? "sm:flex-row sm:items-center" : "justify-end",
+          )}>
+            {hasReadyAudio ? (
+              <div className="min-w-0 flex-1 space-y-1.5">
+                {readySegments.map((segment) => (
                   <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
-                    <SegmentStatusDot status={segment.status} />
                     <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
                       {audioSegmentLabel(segment)}
                       {segment.type === "dialogue" && segment.emotion ? (
                         <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
                       ) : null}
                     </span>
-                    {segment.status === "ready" && segment.audioUrl ? (
-                      <AudioSegmentPlayer src={segment.audioUrl} label={`${audioSegmentLabel(segment)}试听`} />
-                    ) : (
-                      <span className="min-w-0 flex-1 text-[10px] text-muted-foreground">
-                        {segment.status === "stale" ? "需重配" : "未生成"}
-                      </span>
-                    )}
+                    <AudioSegmentPlayer src={segment.audioUrl} label={`${audioSegmentLabel(segment)}试听`} />
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            ) : null}
             <AiButton
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 shrink-0 self-start px-2.5 text-xs sm:self-center"
+              className={cn(
+                "h-8 shrink-0 self-start px-2.5 text-xs sm:self-center",
+                !hasReadyAudio && "ml-auto",
+              )}
               disabled={props.regenerating}
               onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
               title={`${audioActionLabel}这一镜的配音`}

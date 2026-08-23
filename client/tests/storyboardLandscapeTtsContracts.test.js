@@ -12,7 +12,7 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   assert.match(panelSource, /DramaEpisodeAssemblyResultPanel/);
   assert.match(panelSource, /className="ml-auto flex flex-wrap gap-2"/);
   assert.match(panelSource, /aspect-video/);
-  assert.match(panelSource, /w-32 shrink-0 sm:w-40/);
+  assert.match(panelSource, /w-32 shrink-0 space-y-1\.5 sm:w-40/);
   assert.doesNotMatch(panelSource, /listDramaTTSProviders|providersQuery|const \[provider,/);
   const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
   const nextStepSource = read("pages/drama/components/DramaNextStepPanel.tsx");
@@ -50,6 +50,18 @@ test("每个分镜行都能试听，并按当前状态生成或重新生成本�
   assert.match(panelSource, /regenerateDramaShotAudio\(projectId, shot\.id, \{ force \}\)/);
   assert.match(panelSource, /audioActionLabel = shouldForceRegenerate \? "重新生成" : "生成配音"/);
   assert.match(panelSource, /title=\{`\$\{audioActionLabel\}这一镜的配音`\}/);
+});
+
+test("没有可播放音频时只保留生成入口，并隐藏空播放器占位", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+
+  assert.match(panelSource, /const readySegments = segments\.filter\(/);
+  assert.match(panelSource, /segment\.status === "ready" && Boolean\(segment\.audioUrl\)/);
+  assert.match(panelSource, /readySegments\.map\(\(segment\) =>/);
+  assert.match(panelSource, /const hasReadyAudio = readySegments\.length > 0/);
+  assert.match(panelSource, /!hasReadyAudio && "ml-auto"/);
+  assert.doesNotMatch(panelSource, /SegmentStatusDot status=\{segment\.status\}/);
+  assert.doesNotMatch(panelSource, /segment\.status === "stale" \? "需重配" : "未生成"/);
 });
 
 test("分镜行把配音操作集中到音频区，并隐藏已由音频段展示的重复文本", () => {
