@@ -412,6 +412,29 @@ export async function assembleDramaSourceBundle(id: string) {
   return data;
 }
 
+export interface ComicDramaStoryboardGenerationPayload extends DramaLLMOptions {
+  visualStyle?: string;
+}
+
+export interface ComicDramaStoryboardGenerationResult {
+  projectId: string;
+  episodeOrder: number;
+  episode: DramaEpisode;
+  storyboard: DramaStoryboard | null;
+}
+
+export async function generateComicDramaStoryboard(
+  novelId: string,
+  order: number,
+  payload: ComicDramaStoryboardGenerationPayload = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<ComicDramaStoryboardGenerationResult>>(
+    `/drama/studio/${encodeURIComponent(novelId)}/chapters/${order}/storyboard`,
+    payload,
+  );
+  return data;
+}
+
 export async function analyzeDramaSourceSupplement(id: string, payload: DramaLLMOptions & {
   userSupplement?: string;
 } = {}) {
