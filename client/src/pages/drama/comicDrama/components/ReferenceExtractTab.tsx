@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import type { StorySettingsCharacter, StorySettingsProp, StorySettingsScene } from "@/api/story/storySettings";
 import {
   buildStoryAssetPresentation,
   StoryAssetPreview,
@@ -67,17 +68,18 @@ export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
   };
 
   const existingPreviewFor = (group: ExtractGroup, name: string) => {
+    const source = existingSourceFor(group, name);
+    if (!source) {
+      return null;
+    }
     if (group === "characters") {
-      const source = stage.existingAssets.characters.find((candidate) => candidate.name.trim() === name.trim());
-      return source ? buildStoryAssetPresentation({ kind: "character", asset: source }).preview : null;
+      return buildStoryAssetPresentation({ kind: "character", asset: source as StorySettingsCharacter }).preview;
     }
     if (group === "scenes") {
-      const source = stage.existingAssets.scenes.find((candidate) => candidate.name.trim() === name.trim());
-      return source ? buildStoryAssetPresentation({ kind: "scene", asset: source }).preview : null;
+      return buildStoryAssetPresentation({ kind: "scene", asset: source as StorySettingsScene }).preview;
     }
     if (group === "props") {
-      const source = stage.existingAssets.props.find((candidate) => candidate.name.trim() === name.trim());
-      return source ? buildStoryAssetPresentation({ kind: "prop", asset: source }).preview : null;
+      return buildStoryAssetPresentation({ kind: "prop", asset: source as StorySettingsProp }).preview;
     }
     return null;
   };
