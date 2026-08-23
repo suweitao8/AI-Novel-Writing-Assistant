@@ -26,6 +26,7 @@ const GROUP_ICONS: Record<ExtractGroup, string> = {
 // 漫剧工作室「当前 · 提取」页签：「解析」产出并随章节保存的设定建议。
 // 点卡片打开弹窗核对（与资产页签同一套表单）：新建议点「应用」单个创建；
 // 同名已存在的建议直接载入已有资产编辑（状态列表可见已生成的图），点「保存」更新已有资产。
+// 应用成功的建议保留在列表并亮「已存在」徽标（2026-08-23 用户要求），重新解析才整份重写。
 export default function ReferenceExtractTab(props: ReferenceExtractTabProps) {
   const { stage } = props;
   const { extraction } = stage;

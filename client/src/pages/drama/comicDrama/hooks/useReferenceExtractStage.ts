@@ -33,7 +33,8 @@ import {
 // 「提取」页签：展示「解析」产出并随章节持久化的设定建议（Chapter.referenceExtractionJson）。
 // 每条建议点开弹窗核对、可修改（与资产页签共用 assetForms 表单）：新建议点「应用」单个创建；
 // 同名已存在的建议直接载入已有资产编辑（状态列表可见已生成的图/音色），点「保存」更新该资产。
-// 两种路径成功后建议都从列表移除；新建议的初始状态由画面/音色提示词生成，不做批量勾选。
+// 应用成功的建议保留在列表并亮「已存在」徽标（2026-08-23 用户要求：应用后仍要能看到、
+// 知道哪些已经建过；重新「解析」会整份重写建议）。不做批量勾选。
 
 const EMPTY_EXTRACTION: ReferenceExtractionPayload = { characters: [], scenes: [], props: [], worldview: [] };
 
@@ -133,22 +134,9 @@ export function useReferenceExtractStage(input: {
 
   const chapterOrder = chapter?.order;
 
-  // 从持久化建议里移除一条（应用成功后调用；全部用完则清空字段）。
-  const removeAppliedItem = (group: ApplyOneInput["group"], index: number) => {
-    const next: ReferenceExtractionPayload = {
-      characters: [...extraction.characters],
-      scenes: [...extraction.scenes],
-      props: [...extraction.props],
-      worldview: [...extraction.worldview],
-    };
-    next[group].splice(index, 1);
-    const remaining = next.characters.length + next.scenes.length + next.props.length + next.worldview.length;
-    workspace.applyReferenceExtraction(remaining > 0 ? JSON.stringify(next) : null);
-  };
-
   const applyOneMutation = useMutation({
     mutationFn: async (payload: ApplyOneInput): Promise<{ group: string; updated: boolean }> => {
-      const { group, index, existingId, form } = payload;
+      const { group, existingId, form } = payload;
       const chapterTag = chapterOrder ? { chapterOrder } : {};
 
       if (form.__kind === "character") {
@@ -234,7 +222,8 @@ export function useReferenceExtractStage(input: {
         });
       }
 
-      removeAppliedItem(group, index);
+      // 应用成功后建议保留在列表：资产名单缓存刷新后卡片自动亮「已存在」徽标，
+      // 再点开走更新路径（existingId），同名兜底也拦得住重复创建。
       return { group, updated: Boolean(existingId) };
     },
     onSuccess: async ({ group, updated }) => {
