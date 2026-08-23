@@ -134,29 +134,38 @@ Add `"workflow:integrate": "node scripts/integrate-codex-worktree.cjs"`, stage o
 
 **Files:**
 - Modify: `package.json`
+- Create: `scripts/dev-service-supervisor.cjs`
 - Create: `scripts/dev-orchestration-policy.test.cjs`
 
-- [ ] **Step 1: Write a regression test for the orchestration contract**
+- [ ] **Step 1: Write a failing regression test for the orchestration contract**
 
-Read the root `package.json` and assert `dev:raw` contains `--restart-tries 3`, `--restart-after exponential`, and `--kill-others-on-fail`, while retaining exactly the shared, server, and client commands. This test fails against the current script because no restart or fail-fast flags are present.
+Read the root `package.json` and require `dev:raw` to delegate to `node scripts/dev-service-supervisor.cjs`. Add real child-process tests that make one child fail repeatedly and another child stay alive; assert only the failed child restarts and the group exits after the restart limit. Add a test that an unexpected clean watcher exit is treated as a group failure.
 
 - [ ] **Step 2: Run `node --test scripts/dev-orchestration-policy.test.cjs` and verify the expected failure**
 
-Expected: assertion failure identifying the missing restart/fail-fast options.
+Expected: module-not-found or assertion failure because the supervisor does not exist and `dev:raw` still invokes raw `concurrently`.
 
-- [ ] **Step 3: Update `dev:raw` to use bounded restart and group shutdown**
+- [ ] **Step 3: Implement the independent service supervisor**
 
-Set the exact root script to:
+Create `scripts/dev-service-supervisor.cjs` with the following behavior:
 
-```json
-"dev:raw": "concurrently --restart-tries 3 --restart-after exponential --kill-others-on-fail \"pnpm dev:shared\" \"pnpm dev:server\" \"pnpm dev:client\""
+```js
+const services = [
+  { name: "shared", script: "dev:shared" },
+  { name: "server", script: "dev:server" },
+  { name: "client", script: "dev:client" },
+];
+// Each child owns its own restart count. When one exhausts retries,
+// terminate all active siblings and clear pending restart timers.
+const result = await runServiceGroup({ services, maxRestarts: 3, restartDelayMs: 1000 });
+process.exitCode = result.exitCode;
 ```
 
-Keep Prisma’s existing safety failure behavior unchanged; a persistent schema/data problem must stop clearly instead of looping forever.
+Use `taskkill /PID <pid> /T /F` on Windows to terminate a child tree, forward SIGINT/SIGTERM, and set `AI_NOVEL_SERVICE_RESTART_COUNT` for diagnostics. Set the exact root script to `"dev:raw": "node scripts/dev-service-supervisor.cjs"`. Keep Prisma’s existing safety failure behavior unchanged; a persistent schema/data problem must stop clearly instead of looping forever.
 
 - [ ] **Step 4: Run the policy test and a disposable process simulation**
 
-Run `node --test scripts/dev-orchestration-policy.test.cjs`, then run a temporary command group where one child fails twice and succeeds on the third attempt, confirming restart; run a permanently failing child and confirm the group exits nonzero rather than leaving a sibling process alive.
+Run `node --test scripts/dev-orchestration-policy.test.cjs`; it must report three passing subtests using real Node child processes. Confirm a permanently failing child causes the group to exit nonzero without restarting a sibling after shutdown.
 
 - [ ] **Step 5: Commit the service orchestration unit**
 

@@ -57,7 +57,7 @@ Git 侧也存在过主分支直接提交：`322897bd` 于 2026-08-23 22:07 写�
 
 ### 4. 开发服务故障收敛
 
-调整 `dev:raw` 的 `concurrently` 策略：API 或其他子进程非零退出时，先按指数退避自动重启有限次数；连续失败后终止同组进程并让 `run-with-log` 记录最终退出状态。这样临时 `ECONNRESET` 可以自愈，真实启动失败不会让前端继续假装等待。
+将 `dev:raw` 交给 `scripts/dev-service-supervisor.cjs`，不再直接依赖 `concurrently` 管理重启。supervisor 为每个服务单独记录重启次数和指数退避，只重启真正退出的服务；当一个服务超过重试上限时，终止全部仍存活的兄弟进程并停止重启计时器。这样临时 `ECONNRESET` 可以自愈，真实启动失败不会让前端继续假装等待，也不会因为终止兄弟进程而把客户端重新拉起。
 
 Prisma 的安全前置检查保持原样：如果 schema 变化可能删除非空数据，启动必须失败并要求备份/迁移决策，不能通过 `--accept-data-loss` 绕过。
 
@@ -69,7 +69,7 @@ Prisma 的安全前置检查保持原样：如果 schema 变化可能删除非�
 
 | 现象 | 根因 | 新入口行为 |
 | --- | --- | --- |
-| `5174` 可访问但 `/api/health` 连接拒绝 | API 子进程退出，旧编排没有重启/收敛 | 有限重启；最终整组退出并留下日志 |
+| `5174` 可访问但 `/api/health` 连接拒绝 | API 子进程退出，旧编排没有重启/收敛 | supervisor 只重启 API；最终整组退出并留下日志 |
 | `main` 有未提交文件仍启动开发 | 启动检查只关注 `shared/` | 开发命令直接报告文件并要求创建 worktree |
 | Hook 未安装导致主分支可提交 | 新 checkout 缺少本地 hooks 配置 | worktree 创建器自动安装；启动前核验配置 |
 | 多个对话同时合并 | 没有集成级锁 | 集成入口持有 common-dir 原子锁 |
@@ -81,6 +81,5 @@ Prisma 的安全前置检查保持原样：如果 schema 变化可能删除非�
 - `pnpm workflow:worktree sample-task` 只创建同级 `codex/sample-task` worktree，并自动安装 hooks。
 - 直接 `git commit`、自动 merge、feature 分支 push 以及非 codex 来源合并仍被 Hook 拒绝。
 - 两个集成进程同时运行时，只有一个获得锁；冲突或失败后 `main` 不遗留 merge 状态。
-- 模拟 API 子进程短暂退出时，`dev:raw` 会按策略重启；超过次数后客户端不会继续单独运行。
+- 模拟 API 子进程短暂退出时，`dev:raw` 会按策略重启；超过次数后 supervisor 会停止所有子进程且不重新拉起被终止的客户端。
 - 所有流程脚本测试通过，主工作区和所有既有 worktree 的未提交改动不被触碰。
-
