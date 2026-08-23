@@ -372,8 +372,11 @@ function buildAssemblySegments(input: DramaRemotionEpisodeAssemblyInput): Assemb
     });
   }
   for (const shot of input.shots) {
-    const audioDuration = shot.audioLines.reduce((sum, line) => sum + normalizeDurationSec(line.durationSec, 1), 0);
-    const durationSec = audioDuration > 0 ? Math.max(1, audioDuration) : normalizeDurationSec(shot.durationSec, 1);
+    const audioDuration = shot.audioLines.reduce((sum, line) => sum + line.durationSec, 0);
+    if (!Number.isFinite(audioDuration) || audioDuration <= 0) {
+      throw new Error(`镜头 ${shot.order} 没有真实配音时长，无法建立时间轴。`);
+    }
+    const durationSec = Math.round(audioDuration * 100) / 100;
     segments.push({
       id: `shot-${shot.order}-${shot.shotId}`,
       kind: "shot",
@@ -424,7 +427,7 @@ function alignSubtitlesToSceneCursor(segments: AssemblySegment[], sceneCursor: n
     }
     let lineCursor = sceneCursor[index]!;
     for (const line of segment.audioLines) {
-      const durationSec = normalizeDurationSec(line.durationSec, 1);
+      const durationSec = line.durationSec;
       const text = line.text.trim();
       if (text) {
         subtitles.push({
@@ -445,10 +448,6 @@ function publicImagePath(segment: AssemblySegment, index: number): string {
   const ext = path.extname(segment.imagePath ?? "").toLowerCase();
   const safeExt = [".png", ".jpg", ".jpeg", ".webp"].includes(ext) ? ext : ".png";
   return `images/scene-${String(index).padStart(4, "0")}${safeExt}`;
-}
-
-function normalizeDurationSec(value: number | null | undefined, fallback: number): number {
-  return Number.isFinite(value) && Number(value) > 0 ? Number(value) : fallback;
 }
 
 function concatListContent(filePaths: string[]): string {

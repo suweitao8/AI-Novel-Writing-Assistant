@@ -6,7 +6,7 @@ import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
-import { ttsProviderRegistry } from "./TTSProviderPort";
+import { isRealTTSProvider, ttsProviderRegistry } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
 /** 台词行类型：旁白标记或无说话人=旁白，其余有说话人=对白（搬自 mydrama 的 narration/dialogue 语义） */
@@ -326,8 +326,11 @@ export class DramaDialogueAudioService {
       });
       const prev = existingItems.get(line.lineIndex);
       const reusable = !options.force
+        && isRealTTSProvider(provider)
         && existing?.status === "done"
+        && existing?.provider === provider
         && prev?.audioUrl?.startsWith("data:")
+        && prev.provider === provider
         && prev.textHash === textHash
         && prev.voiceKey === voiceKey;
       if (reusable && prev) {
