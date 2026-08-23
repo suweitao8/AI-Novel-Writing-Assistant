@@ -17,6 +17,7 @@ import {
   normalizeBaseURL,
   PROVIDERS,
 } from "../../llm/providers";
+import { normalizePcm16WavVolume } from "./audioLoudness";
 
 // 本机桥接服务约定的默认访问密钥；本地部署无需用户额外申请。
 const DEFAULT_LOCAL_AUDIO_API_KEY = "local-voxcpm2";
@@ -179,15 +180,18 @@ async function readAudioBytes(response: Response, client: { get: (url: string) =
 }
 
 function toResult(bytes: Uint8Array, contentType: string): AudioSpeechResult {
-  if (!bytes.byteLength) {
+  // VoxCPM2 的 normalize 参数只规范输入文字，不保证不同音色/控制提示的输出响度；
+  // 在公共出口统一 PCM16 WAV 的有效语音响度，避免旁白与角色试听出现明显音量差。
+  const normalizedBytes = normalizePcm16WavVolume(bytes);
+  if (!normalizedBytes.byteLength) {
     throw new Error("语音服务返回了空音频。");
   }
-  const audioDataBase64 = Buffer.from(bytes).toString("base64");
+  const audioDataBase64 = Buffer.from(normalizedBytes).toString("base64");
   const normalizedContentType = contentType.split(";")[0]?.trim() || "audio/mpeg";
   return {
     audioDataBase64,
     contentType: normalizedContentType,
-    byteLength: bytes.byteLength,
+    byteLength: normalizedBytes.byteLength,
     dataUrl: `data:${normalizedContentType};base64,${audioDataBase64}`,
   };
 }

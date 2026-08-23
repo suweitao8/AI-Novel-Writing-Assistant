@@ -29,6 +29,7 @@ import {
   type DramaShotBlockingSketchEditorContext,
   type DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
+import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,15 +189,16 @@ export default function DramaBlocking3DPage() {
   const placedNames = new Set(viewer?.getActorLabels() ?? []);
 
   const applyViewerAction = useCallback((action: (nextViewer: Blocking3dViewer) => boolean) => {
-    if (!viewer) return;
+    if (!viewer || saving) return;
     if (!action(viewer)) return;
     setDirty(true);
     syncSelection(viewer);
-  }, [syncSelection, viewer]);
+  }, [saving, syncSelection, viewer]);
 
   const handleSave = async (confirmAfterSave: boolean) => {
     if (!viewer || !context?.scene || saving) return;
     setSaving(true);
+    viewer.setInteractionEnabled(false);
     try {
       const draft = buildSketchData(context, viewer);
       const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
@@ -209,7 +211,10 @@ export default function DramaBlocking3DPage() {
       if (!result.data) throw new Error("摆位图片上传后没有返回结果。");
       setSavedData(result.data);
       setDirty(false);
-      await queryClient.invalidateQueries({ queryKey: ["comic-drama"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) }),
+        queryClient.invalidateQueries({ queryKey: ["comic-drama"] }),
+      ]);
       toast.success(confirmAfterSave ? "3D 摆位已确认。" : "3D 摆位已保存。", {
         description: "分镜生成会使用这张摆位参考图。",
       });
@@ -218,6 +223,7 @@ export default function DramaBlocking3DPage() {
         description: error instanceof Error ? error.message : "请稍后重试。",
       });
     } finally {
+      viewer.setInteractionEnabled(true);
       setSaving(false);
     }
   };
@@ -280,9 +286,9 @@ export default function DramaBlocking3DPage() {
       </header>
 
       <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card className="min-h-[28rem] overflow-hidden">
-          <CardContent className="relative h-full min-h-[28rem] p-0">
-            <canvas ref={canvasRef} aria-label="3D 摆位视口" className="block h-full min-h-[28rem] w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+        <Card className="w-full self-start overflow-hidden">
+          <CardContent className="relative aspect-video w-full p-0">
+            <canvas ref={canvasRef} aria-label="3D 摆位视口" aria-busy={saving} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             {!viewer && !viewerError ? (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />初始化 3D 摆位台</div>
             ) : null}
@@ -308,10 +314,10 @@ export default function DramaBlocking3DPage() {
                 const selected = actor.characterName === selectedName;
                 return (
                   <div key={actor.characterName} className={cn("flex items-center gap-1.5 rounded-md border px-1.5 py-1", selected && "border-primary bg-accent")}>
-                    <button type="button" className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index))}>
+                    <button type="button" disabled={saving} className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index))}>
                       {actor.characterName}
                     </button>
-                    {placed ? <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`移除${actor.characterName}`} title="移除角色" onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button> : <span className="px-1 text-[11px] text-muted-foreground">加入</span>}
+                    {placed ? <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={saving} aria-label={`移除${actor.characterName}`} title="移除角色" onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button> : <span className="px-1 text-[11px] text-muted-foreground">加入</span>}
                   </div>
                 );
               }) : <p className="text-xs text-muted-foreground">本镜没有已识别角色。</p>}
@@ -324,12 +330,12 @@ export default function DramaBlocking3DPage() {
               {selectedName ? <p className="text-sm font-medium">{selectedName}</p> : <p className="text-xs text-muted-foreground">先选择一个角色。</p>}
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span>姿势</span>
-                <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={!selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
+                <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={saving || !selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
                   <option value="" disabled>选择姿势</option>
                   {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
                 </SelectControl>
               </label>
-              <Button type="button" variant="outline" className="w-full" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.setSelectedActionPlaying(!selectedActionPlaying))}>
+              <Button type="button" variant="outline" className="w-full" disabled={saving || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.setSelectedActionPlaying(!selectedActionPlaying))}>
                 {selectedActionPlaying ? <Pause className="mr-1.5 h-4 w-4" aria-hidden="true" /> : <Play className="mr-1.5 h-4 w-4" aria-hidden="true" />}
                 {selectedActionPlaying ? "暂停动作" : "播放动作"}
               </Button>
@@ -367,8 +373,8 @@ export default function DramaBlocking3DPage() {
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-sm">相机</CardTitle></CardHeader>
             <CardContent className="grid grid-cols-2 gap-1.5">
-              <Button type="button" variant="outline" size="sm" className="h-9" disabled={!viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
-              <Button type="button" variant="outline" size="sm" className="h-9" disabled={!viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
+              <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
+              <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
             </CardContent>
           </Card>
         </aside>

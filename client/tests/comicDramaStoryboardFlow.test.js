@@ -19,11 +19,14 @@ test("comic studio generates storyboard from the selected saved chapter", () => 
 
 test("storyboard page exposes generation and episode assembly actions", () => {
   const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
   const assemblySource = read("pages/drama/components/DramaEpisodeAssemblyPanel.tsx");
 
-  assert.match(panelSource, /DramaEpisodeAssemblyPanel/);
+  assert.match(panelSource, /DramaEpisodeAssemblyButton/);
+  assert.doesNotMatch(panelSource, /DramaEpisodeAssemblyResultPanel/);
   assert.match(panelSource, /生成/);
   assert.match(panelSource, /生成分镜失败/);
+  assert.match(pageSource, /<DramaEpisodeAssemblyPanel/);
   assert.match(assemblySource, /getDramaEpisodeAssembly/);
   assert.match(assemblySource, /startDramaEpisodeAssembly/);
   assert.match(assemblySource, /横屏 16:9/);

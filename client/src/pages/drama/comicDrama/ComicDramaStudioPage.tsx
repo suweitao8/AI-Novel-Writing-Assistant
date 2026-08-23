@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   BookOpenText,
   Boxes,
-  Film,
   Loader2,
   Plus,
   Settings,
@@ -68,7 +67,7 @@ const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   extract: "提取",
   script: "脚本",
   storyboard: "分镜",
-  video: "成片",
+  video: "视频",
 };
 
 const ASSET_TAB_LABELS: Record<AssetTab, string> = {
@@ -94,6 +93,7 @@ export default function ComicDramaStudioPage() {
   const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
   const [assetTab, setAssetTab] = useState<AssetTab>("characters");
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
+  const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [createChapterOpen, setCreateChapterOpen] = useState(false);
 
@@ -251,7 +251,10 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end">
+              <div
+                ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+                className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end"
+              >
                 {currentTab === "reference" ? (
                   <>
                     {chapterWorkspace.referenceSavePending ? (
@@ -315,12 +318,6 @@ export default function ComicDramaStudioPage() {
                       {storyboard.generateMutation.isPending ? "生成中…" : "生成"}
                     </AiButton>
                   </>
-                ) : currentTab === "video" && overview.drama ? (
-                  <Button size="sm" asChild>
-                    <Link to={`/drama/projects/${overview.drama.projectId}`}>
-                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开成片工作台
-                    </Link>
-                  </Button>
                 ) : null}
               </div>
             </SubTabRow>
@@ -386,6 +383,7 @@ export default function ComicDramaStudioPage() {
                 novelId={novelId}
                 projectId={overview.drama.projectId}
                 chapterOrder={chapterWorkspace.currentChapter?.order ?? null}
+                toolbarTarget={storyboardToolbarTarget}
               />
             ) : (
               <StoryboardBootstrapCard
@@ -615,8 +613,8 @@ function VideoSection(props: {
         order={props.order}
         hasShots={props.drama.shotCount > 0}
         busy={false}
-        buttonLabel="合成成片"
-        doneButtonLabel="重新合成"
+        buttonLabel="合成视频"
+        doneButtonLabel="重新合成视频"
       />
     </div>
   );
