@@ -4,7 +4,7 @@
 
 **Goal:** 为角色、场景、道具的统一资产卡片增加稳定的默认状态方形预览，并按资产类型显示正确的裁切区域。
 
-**Architecture:** 展示适配层从默认状态解析预览 URL 和裁切模式；`StoryAssetPreview` 负责方形容器、角色四视图左上格裁切、场景/道具居中裁切、缺图与加载失败占位；`StoryAssetCard` 只负责左图右信息的统一卡片布局。保持状态图片 API、数据库和完整图详情预览不变。
+**Architecture:** 展示适配层从默认状态解析预览 URL 和裁切模式；`StoryAssetPreview` 负责方形容器、角色四视图最左栏的固定方形裁切、场景/道具居中裁切、缺图与加载失败占位；`StoryAssetCard` 只负责左图右信息的统一卡片布局。保持状态图片 API、数据库和完整图详情预览不变。
 
 **Tech Stack:** React 19、TypeScript、Tailwind CSS v3、lucide-react、Node.js `node:test` 契约测试、pnpm。
 
@@ -43,7 +43,7 @@ const characterWithDefaultLater = buildStoryAssetPresentation({
 assert.deepEqual(characterWithDefaultLater.preview, {
   url: "/default.png?v=2026-08-23T12%3A00%3A00.000Z",
   alt: "默认优先角色默认状态预览",
-  mode: "character-top-left-grid",
+  mode: "character-left-square",
 });
 ```
 
@@ -74,7 +74,7 @@ test("story asset preview keeps the three crop modes and fallback states", () =>
   const presentation = read("components/storyAssets/storyAssetPresentation.ts");
   const preview = read("components/storyAssets/StoryAssetPreview.tsx");
 
-  assert.match(presentation, /character-top-left-grid/);
+  assert.match(presentation, /character-left-square/);
   assert.match(presentation, /center-square/);
   assert.match(presentation, /label\.trim\(\) === "默认"/);
   assert.match(preview, /w-\[400%\]/);
@@ -108,7 +108,7 @@ Expected: FAIL because `preview`/`StoryAssetPreview` do not exist yet and the ol
 Replace the unused `media` field with:
 
 ```ts
-export type StoryAssetPreviewMode = "character-top-left-grid" | "center-square";
+export type StoryAssetPreviewMode = "character-left-square" | "center-square";
 
 export interface StoryAssetPreviewSource {
   url: string;
@@ -117,11 +117,11 @@ export interface StoryAssetPreviewSource {
 }
 ```
 
-Add a helper that first finds `label.trim() === "默认"`, then falls back to `states[0]`, and a helper that returns `null` when the selected state has no `imageUrl`. Build the mode from the asset kind (`character-top-left-grid` for characters, `center-square` for scenes and props). Each asset builder must map its states once, use the resolved default state for summaries/badges where applicable, and attach `preview` to the returned model.
+Add a helper that first finds `label.trim() === "默认"`, then falls back to `states[0]`, and a helper that returns `null` when the selected state has no `imageUrl`. Build the mode from the asset kind (`character-left-square` for characters, `center-square` for scenes and props). Each asset builder must map its states once, use the resolved default state for summaries/badges where applicable, and attach `preview` to the returned model.
 
 - [ ] **Step 2: Implement `StoryAssetPreview` with complete display states**
 
-The component must accept `preview: StoryAssetPreviewSource | null` and an optional `className`. Its normal wrapper is `relative aspect-square overflow-hidden rounded-xl border border-border/70 bg-muted/25`. For the character mode, use an overflow-hidden square viewport and an absolutely positioned image sized `w-[400%] h-[200%] max-w-none object-fill` at the top-left so the four-column/two-row board selects the upper-left cell. For scene/prop mode, use `h-full w-full object-cover object-center`. For both modes set `loading="lazy"`, `decoding="async"`, and a meaningful `alt`.
+The component must accept `preview: StoryAssetPreviewSource | null` and an optional `className`. Its normal wrapper is `relative aspect-square overflow-hidden rounded-xl border border-border/70 bg-muted/25`. For the character mode, use an overflow-hidden square viewport and an absolutely positioned image sized `w-[400%] h-auto max-w-none` at `top: -58.3333%`, so the first quarter of the 1536×1024 board shows its y=224..608 face window as a 384×384 square. For scene/prop mode, use `h-full w-full object-cover object-center`. For both modes set `loading="lazy"`, `decoding="async"`, and a meaningful `alt`.
 
 Track `onError` in local state and render the same fallback for no URL or failed load:
 

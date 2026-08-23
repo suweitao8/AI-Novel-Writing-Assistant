@@ -8,7 +8,7 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 
 export type StoryAssetKind = "character" | "scene" | "prop";
 
-export type StoryAssetPreviewMode = "character-top-left-grid" | "center-square";
+export type StoryAssetPreviewMode = "character-left-square" | "center-square";
 
 export interface StoryAssetPreviewSource {
   url: string;
@@ -130,7 +130,7 @@ function buildStoryAssetPreview(
   return {
     url: defaultState.imageUrl,
     alt: `${name}默认状态预览`,
-    mode: kind === "character" ? "character-top-left-grid" : "center-square",
+    mode: kind === "character" ? "character-left-square" : "center-square",
   };
 }
 
