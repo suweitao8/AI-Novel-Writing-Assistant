@@ -16,7 +16,7 @@ const { normalizeSceneStates } = require("../dist/modules/novel/story-settings/a
 test("手动角色没有外貌字段时也会生成有内容的初始状态", () => {
   const state = createStoryCharacterInitialState({ name: "叶晨", gender: "male" });
   assert.equal(state.id, "initial");
-  assert.equal(state.label, "初始状态");
+  assert.equal(state.label, "默认");
   assert.equal(state.ageGroup, "youth");
   assert.match(state.description, /叶晨/);
   assert.match(state.description, /青年/);
@@ -59,7 +59,7 @@ test("旧角色没有状态时会形成带年龄、外貌和音色的初始状�
   });
 
   assert.equal(states.length, 1);
-  assert.equal(states[0].label, "初始状态");
+  assert.equal(states[0].label, "默认");
   assert.equal(states[0].ageGroup, "youth");
   assert.equal(states[0].description, "黑色短发，左眉有疤");
   assert.match(states[0].imagePrompt, /男性/);
@@ -79,13 +79,13 @@ test("场景和道具没有状态时会形成可直接生成的初始状态", ()
 
   assert.deepEqual(scene, [{
     id: "initial",
-    label: "初始状态",
+    label: "默认",
     description: "停电后的旧车站",
     imagePrompt: "冷白月光照进空荡站台",
     referenceStateId: null,
   }]);
   assert.equal(prop[0].id, "initial");
-  assert.equal(prop[0].label, "初始状态");
+  assert.equal(prop[0].label, "默认");
   assert.equal(prop[0].description, "一枚磨损的黄铜怀表");
   assert.equal(prop[0].imagePrompt, "一枚磨损的黄铜怀表");
   assert.equal(createStoryAssetInitialState({ imagePrompt: "" }).referenceStateId, null);

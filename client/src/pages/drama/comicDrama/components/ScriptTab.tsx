@@ -41,6 +41,17 @@ interface EditingTarget {
   field: "value" | "shot" | "speaker" | "mood" | "text" | "storyboard" | "name";
 }
 
+// 场景切换行下的状态面板数据：这个场景用哪个场景状态、出场角色各用哪个形象状态。
+// state 是「进入该场景段时已生效」的标记值（没有标记＝null，展示时回落资产默认状态）。
+interface SceneStatePanelData {
+  sceneIndex: number;
+  sceneName: string;
+  sceneState: string | null;
+  characterStates: Array<{ name: string; state: string | null }>;
+  /** 场景段结束位置（下一个场景行下标或结尾），写标记时限定在这个范围内找/插。 */
+  endExclusive: number;
+}
+
 // 漫剧工作室「当前 · 脚本」页签：本章脚本的线性列表——视频按什么顺序发生，列表就按什么顺序排。
 // 每一行是一件事：场景切换、角色形象切换、一格分镜、或分镜下的一句话（旁白/台词）。
 // 底层数据仍是 Chapter.expectation 文本（自动保存与后续分镜/视频生成链路不变），
@@ -263,6 +274,120 @@ export default function ScriptTab(props: ScriptTabProps) {
     setEditing({ index: index + 1, field: "text" });
   };
 
+  // —— 场景状态面板（2026-08-23 用户要求）——
+  // 每个场景段算一份：出场角色（说话人/状态标记点名 + 分镜画面里按断词匹配到的名字）
+  // 与各自生效的状态。状态沿用是「标记 sticky」：没写标记就用上一次使用的状态
+  // （本章更早的标记），首次出现＝资产默认状态。
+  const charactersByName = useMemo(
+    () => new Map(characters.map((character) => [character.name.trim(), character])),
+    [characters],
+  );
+  const scenesByName = useMemo(
+    () => new Map(scenes.map((scene) => [scene.name.trim(), scene])),
+    [scenes],
+  );
+  const characterNameMatcher = useMemo(() => {
+    const unique = [...new Set(characters.map((character) => character.name.trim()).filter((name) => name.length >= 2))]
+      .sort((left, right) => right.length - left.length);
+    if (unique.length === 0) {
+      return null;
+    }
+    return {
+      pattern: new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu"),
+    };
+  }, [characters]);
+
+  const scenePanels = useMemo<SceneStatePanelData[]>(() => {
+    const panels: SceneStatePanelData[] = [];
+    const runningCharState = new Map<string, string>();
+    const runningSceneState = new Map<string, string>();
+    let current: { sceneIndex: number; sceneName: string; appearing: string[] } | null = null;
+    const pushAppearing = (name: string) => {
+      if (current && name && name !== "旁白" && !current.appearing.includes(name)) {
+        current.appearing.push(name);
+      }
+    };
+    const closeCurrent = (endExclusive: number) => {
+      if (!current) {
+        return;
+      }
+      panels.push({
+        sceneIndex: current.sceneIndex,
+        sceneName: current.sceneName,
+        sceneState: runningSceneState.get(current.sceneName) ?? null,
+        characterStates: current.appearing
+          .filter((name) => charactersByName.has(name))
+          .map((name) => ({ name, state: runningCharState.get(name) ?? null })),
+        endExclusive,
+      });
+    };
+    items.forEach((item, index) => {
+      if (item.kind === "scene") {
+        closeCurrent(index);
+        current = { sceneIndex: index, sceneName: item.scene.trim(), appearing: [] };
+      } else if (item.kind === "sceneState") {
+        runningSceneState.set(item.scene.trim(), item.state.trim());
+      } else if (item.kind === "state") {
+        const name = item.name.trim();
+        runningCharState.set(name, item.state.trim());
+        pushAppearing(name);
+      } else if (item.kind === "line") {
+        pushAppearing(item.speaker.trim());
+      } else if (item.kind === "shot" && characterNameMatcher) {
+        characterNameMatcher.pattern.lastIndex = 0;
+        for (const found of item.storyboard.matchAll(characterNameMatcher.pattern)) {
+          pushAppearing(found[0]);
+        }
+      }
+    });
+    closeCurrent(items.length);
+    return panels;
+  }, [items, charactersByName, characterNameMatcher]);
+  const scenePanelByIndex = useMemo(
+    () => new Map(scenePanels.map((panel) => [panel.sceneIndex, panel])),
+    [scenePanels],
+  );
+
+  // 面板切换状态：在该场景段内找最后一个对应标记改值（段内中途切换的行保留，只改值）；
+  // 段内没有标记就在场景行后插入新标记——场景状态紧跟场景行，角色状态排在其后。
+  const switchPanelState = (
+    sceneIndex: number,
+    target: { kind: "sceneState" } | { kind: "state"; name: string },
+    nextState: string,
+  ) => {
+    const panel = scenePanelByIndex.get(sceneIndex);
+    if (!panel) {
+      return;
+    }
+    const next = [...items];
+    let targetIndex = -1;
+    for (let i = panel.endExclusive - 1; i > sceneIndex; i -= 1) {
+      const item = next[i];
+      if (target.kind === "sceneState" && item.kind === "sceneState" && item.scene.trim() === panel.sceneName) {
+        targetIndex = i;
+        break;
+      }
+      if (target.kind === "state" && item.kind === "state" && item.name.trim() === target.name) {
+        targetIndex = i;
+        break;
+      }
+    }
+    const marker = target.kind === "sceneState"
+      ? { kind: "sceneState" as const, scene: panel.sceneName, state: nextState }
+      : { kind: "state" as const, name: target.name, state: nextState };
+    if (targetIndex >= 0) {
+      next[targetIndex] = marker;
+    } else {
+      let insertAt = sceneIndex + 1;
+      const after = next[insertAt];
+      if (target.kind === "state" && after && after.kind === "sceneState" && after.scene.trim() === panel.sceneName) {
+        insertAt += 1;
+      }
+      next.splice(insertAt, 0, marker);
+    }
+    applyItems(next);
+  };
+
   if (workspace.chaptersQuery.isPending) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
@@ -311,7 +436,27 @@ export default function ScriptTab(props: ScriptTabProps) {
               {items.map((item, index) => (
                 <li key={index}>
                   {item.kind === "scene" ? (
-                    <SceneRow
+                    <>
+                      <SceneRow
+                        item={item}
+                        index={index}
+                        total={items.length}
+                        editing={editing}
+                        matched={scriptUsage.knownScenes.has(item.scene.trim())}
+                        onEdit={setEditing}
+                        onUpdate={updateItem}
+                        onRemove={removeItem}
+                        onMove={moveItem}
+                      />
+                      <SceneStatePanel
+                        panel={scenePanelByIndex.get(index) ?? null}
+                        sceneStates={scenesByName.get(item.scene.trim())?.states.map((state) => state.label).filter(Boolean) ?? []}
+                        characterStatesByName={charactersByName}
+                        onSwitch={(target, nextState) => switchPanelState(index, target, nextState)}
+                      />
+                    </>
+                  ) : item.kind === "sceneState" ? (
+                    <SceneStateRow
                       item={item}
                       index={index}
                       total={items.length}
@@ -575,6 +720,69 @@ function escapeRegExp(value: string): string {
 
 // —— 四类行 ——
 
+// 场景切换行下的状态面板：场景用哪个状态出图、每个出场角色用哪个形象状态，
+// 全部下拉可切。选中的值写进脚本标记行（【场景状态：…】/【角色状态：…】），
+// 没写标记时沿用上一次使用的状态（展示值回落资产默认状态）。
+function SceneStatePanel(props: {
+  panel: SceneStatePanelData | null;
+  sceneStates: string[];
+  characterStatesByName: Map<string, { states: Array<{ label: string }> }>;
+  onSwitch: (target: { kind: "sceneState" } | { kind: "state"; name: string }, nextState: string) => void;
+}) {
+  const { panel } = props;
+  if (!panel) {
+    return null;
+  }
+  const characterRows = panel.characterStates
+    .map((entry) => {
+      const options = (props.characterStatesByName.get(entry.name)?.states ?? [])
+        .map((state) => state.label)
+        .filter(Boolean);
+      return { name: entry.name, options, value: entry.state && options.includes(entry.state) ? entry.state : options[0] };
+    })
+    .filter((row) => row.options.length > 0);
+  const sceneValue = panel.sceneState && props.sceneStates.includes(panel.sceneState)
+    ? panel.sceneState
+    : props.sceneStates[0];
+  if (props.sceneStates.length === 0 && characterRows.length === 0) {
+    return null;
+  }
+  return (
+    <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">
+      {props.sceneStates.length > 0 ? (
+        <label className="inline-flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">场景状态</span>
+          <SelectControl
+            className="h-7 max-w-36 rounded-md border border-border bg-background px-1.5 text-xs"
+            value={sceneValue}
+            onChange={(event) => props.onSwitch({ kind: "sceneState" }, event.target.value)}
+            aria-label={`切换${panel.sceneName}的场景状态`}
+          >
+            {props.sceneStates.map((label) => (
+              <option key={label} value={label}>{label}</option>
+            ))}
+          </SelectControl>
+        </label>
+      ) : null}
+      {characterRows.map((row) => (
+        <label key={row.name} className="inline-flex min-w-0 items-center gap-1.5">
+          <span className="max-w-28 truncate text-xs font-medium text-foreground">{row.name}</span>
+          <SelectControl
+            className="h-7 max-w-36 rounded-md border border-border bg-background px-1.5 text-xs"
+            value={row.value}
+            onChange={(event) => props.onSwitch({ kind: "state", name: row.name }, event.target.value)}
+            aria-label={`切换${row.name}在本场景的形象`}
+          >
+            {row.options.map((label) => (
+              <option key={label} value={label}>{label}</option>
+            ))}
+          </SelectControl>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 function SceneRow(props: RowBaseProps & {
   item: Extract<ScriptItem, { kind: "scene" }>;
   matched: boolean;
@@ -641,6 +849,56 @@ function StateRow(props: RowBaseProps & {
         value={props.item.state}
         placeholder="新状态，如 重伤"
         className="w-auto text-sm font-semibold text-amber-700 dark:text-amber-400"
+        inputClassName="h-8 w-32"
+        onCommit={(next) => {
+          const value = next.trim();
+          if (value) {
+            props.onUpdate(props.index, { state: value });
+          }
+        }}
+        onCancel={() => props.onEdit(null)}
+        onActivate={() => props.onEdit({ index: props.index, field: "value" })}
+      />
+      <RowActions {...props} />
+    </div>
+  );
+}
+
+// 场景状态标记行：该场景从这条起用哪个状态出图（通常由场景切换行下的状态面板写入）。
+function SceneStateRow(props: RowBaseProps & {
+  item: Extract<ScriptItem, { kind: "sceneState" }>;
+  matched: boolean;
+  onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
+}) {
+  const nameActive = props.editing?.index === props.index && props.editing?.field === "name";
+  const stateActive = props.editing?.index === props.index && props.editing?.field === "value";
+  return (
+    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
+      <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景状态</Badge>
+      <EditableValue
+        active={nameActive}
+        value={props.item.scene}
+        placeholder="场景名"
+        className={props.matched
+          ? "w-auto text-sm font-semibold text-emerald-700 dark:text-emerald-400"
+          : "w-auto text-sm font-semibold text-orange-600 dark:text-orange-400"}
+        title={props.matched ? undefined : "设定里还没有这个场景，可在右侧面板创建"}
+        inputClassName="h-8 w-36"
+        onCommit={(next) => {
+          const value = next.trim();
+          if (value) {
+            props.onUpdate(props.index, { scene: value });
+          }
+        }}
+        onCancel={() => props.onEdit(null)}
+        onActivate={() => props.onEdit({ index: props.index, field: "name" })}
+      />
+      <span className="text-xs text-muted-foreground">切换为</span>
+      <EditableValue
+        active={stateActive}
+        value={props.item.state}
+        placeholder="状态名，如 夜晚"
+        className="w-auto text-sm font-semibold text-emerald-700 dark:text-emerald-400"
         inputClassName="h-8 w-32"
         onCommit={(next) => {
           const value = next.trim();

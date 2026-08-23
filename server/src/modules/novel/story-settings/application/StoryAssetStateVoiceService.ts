@@ -371,7 +371,7 @@ export class StoryAssetStateVoiceService {
       }
       // 估算失败：通用占位仍然可用（保持旧行为继续合成），只有真正为空才要求补写。
       if (!synthesisInput.emotion) {
-        const message = "没能按角色形象推断出音色描述，请先填写初始状态的音色描述或当前状态的音色变化。";
+        const message = "没能按角色形象推断出音色描述，请先填写默认状态的音色描述或当前状态的音色变化。";
         const failedStates = states.map((item) => item.id === stateId
           ? { ...item, voice: buildVoiceErrorState(item, mode, message) }
           : item);

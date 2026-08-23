@@ -25,6 +25,28 @@ const CANONICAL_DRAFT = [
   "苏叶（急切）：你的伤还在流血！",
 ].join("\n");
 
+// 场景状态标记（2026-08-23）：场景切换行下的状态面板写入，标记该场景用哪个状态出图。
+// 与【角色状态】同构；旧版本解析器把它当未知【…】文本保留，不丢内容。
+const SCENE_STATE_DRAFT = [
+  "【场景：客厅】",
+  "【场景状态：客厅：夜晚】",
+  "【角色状态：林川：重伤】",
+  "分镜：中景，林川扶着墙走进客厅",
+  "林川（虚弱）：没事。",
+].join("\n");
+
+test("sceneState 标记：parse/serialize/roundtrip", () => {
+  const items = parseScriptItems(SCENE_STATE_DRAFT);
+  assert.deepEqual(items[0], { kind: "scene", scene: "客厅" });
+  assert.deepEqual(items[1], { kind: "sceneState", scene: "客厅", state: "夜晚" });
+  assert.deepEqual(items[2], { kind: "state", name: "林川", state: "重伤" });
+  const serialized = serializeScriptItems(items);
+  assert.match(serialized, /【场景状态：客厅：夜晚】/);
+  assert.deepEqual(roundTripScriptItems(SCENE_STATE_DRAFT), items);
+  // 场景状态标记不是【场景】行：【场景：…】正则不得吃掉【场景状态：…】。
+  assert.equal(parseScriptItems("【场景状态：客厅：夜晚】")[0].kind, "sceneState");
+});
+
 test("parse：标记行/分镜行/台词行/神态括注全部拆出", () => {
   const items = parseScriptItems(CANONICAL_DRAFT);
   assert.deepEqual(items[0], { kind: "scene", scene: "卧室" });

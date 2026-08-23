@@ -333,7 +333,7 @@ test("音色描述为空时按角色形象 AI 估算兜底，不回填状态表�
   // 估算依据带上了角色形象档案。
   assert.equal(estimates.length, 1);
   assert.equal(estimates[0].character.facePrompt, "青年男性大学生，清爽短发");
-  assert.equal(estimates[0].state.label, "初始状态");
+  assert.equal(estimates[0].state.label, "默认");
   // 合成与落库都用估算出的描述。
   assert.match(calls[0].emotion, /青年男性，嗓音清亮干净/);
   const saved = JSON.parse(statesJson);
