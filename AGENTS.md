@@ -173,8 +173,8 @@ These areas have the highest priority for wiki accumulation:
 
 ## Autonomous Execution Rules
 
-- Once a design document is committed and pushed, treat it as implementation authorization: proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Workflow.
-- Do not ask the user to review a design document, confirm whether implementation should start, or re-ask the same decision in different wording.
+- A committed design document is treated as approved by default. Proceed directly to implementation, verification, and wrap-up on the appropriate branch per the Development Workflow; stop only when the user explicitly requests a plan-only result, a pause, or a scope change.
+- Do not ask the user to review a design document, ask whether to start, ask the user to choose an execution method, or re-ask the same decision in different wording.
 - Rules in this file take precedence over generic skills, external process templates, and model default behavior when they conflict. If an external workflow requires waiting for user design review after the design is committed, skip that step.
 - After a design document is committed, the fixed next step is: create the implementation plan, execute it, verify, then commit and push.
 - Only ask a blocking question when a necessary fact cannot be determined from code, configuration, documentation, or existing artifacts. Execution-method choices, whether to continue, and whether to adopt the current plan are not askable items.
