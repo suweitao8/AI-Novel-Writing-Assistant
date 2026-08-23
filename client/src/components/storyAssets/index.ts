@@ -10,5 +10,6 @@ export {
   type StoryAssetPreviewMode,
   type StoryAssetPreviewSource,
   type StoryAssetSource,
+  type StoryAssetImageStatus,
   type StoryAssetStatePresentation,
 } from "./storyAssetPresentation";

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,13 +75,22 @@ export default function ExtractApplyDialog(props: {
   const [sceneForm, setSceneForm] = useState<SceneApplyFormState>({ ...EMPTY_SCENE_FORM, states: [] });
   const [propForm, setPropForm] = useState<PropApplyFormState>({ ...EMPTY_PROP_FORM, states: [] });
   const [worldviewForm, setWorldviewForm] = useState<WorldviewFormState>({ name: "", description: "" });
+  const initializedKeyRef = useRef<string | null>(null);
+  const initializationKey = props.open && item
+    ? `${group}:${props.existing ? `existing:${props.existingAsset?.id ?? ""}` : `new:${item.name ?? ""}`}`
+    : null;
 
   // 打开时预填表单：已存在时载入已有资产的真实数据（含状态图/音色，克隆一份避免直改缓存）；
   // 新建议才用提取内容预填。弹窗内改动的就是「保存/应用」落库的最终内容。
   useEffect(() => {
     if (!props.open || !item) {
+      initializedKeyRef.current = null;
       return;
     }
+    if (initializedKeyRef.current === initializationKey) {
+      return;
+    }
+    initializedKeyRef.current = initializationKey;
     const extractItem = item as ReferenceExtractItem;
     if (props.existing && props.existingAsset) {
       const source = props.existingAsset;
@@ -145,7 +154,7 @@ export default function ExtractApplyDialog(props: {
       })],
     });
     setWorldviewForm({ name: item.name ?? "", description: extractItem.description ?? "" });
-  }, [props.open, item, props.existing, props.existingAsset, props.defaultEraStyle, group, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt]);
+  }, [props.open, item, props.existing, props.existingAsset, props.defaultEraStyle, group, character?.gender, character?.ageGroup, character?.appearance, character?.physique, character?.voicePrompt, initializationKey]);
 
   const formValid = group === "characters"
     ? characterForm.name.trim() !== ""

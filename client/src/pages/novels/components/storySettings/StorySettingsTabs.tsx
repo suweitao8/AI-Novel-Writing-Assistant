@@ -7,6 +7,7 @@ import SettingsCharactersTab from "./SettingsCharactersTab";
 import SettingsScenesTab from "./SettingsScenesTab";
 import SettingsPropsTab from "./SettingsPropsTab";
 import SettingsWorldTab from "./SettingsWorldTab";
+import AutoStoryAssetImageGeneration from "./AutoStoryAssetImageGeneration";
 
 interface StorySettingsTabsProps {
   novelId: string;
@@ -33,37 +34,40 @@ export default function StorySettingsTabs({ novelId, initialTab = "characters" }
   };
 
   return (
-    <Tabs defaultValue={initialTab} className="space-y-4">
-      <TabsList className="flex-wrap">
-        <TabsTrigger value="characters" className="gap-1.5">
-          <Users className="h-3.5 w-3.5" />
-          角色{overview ? ` ${overview.counts.characters}` : ""}
-        </TabsTrigger>
-        <TabsTrigger value="scenes" className="gap-1.5">
-          <MapPin className="h-3.5 w-3.5" />
-          场景{overview ? ` ${overview.counts.scenes}` : ""}
-        </TabsTrigger>
-        <TabsTrigger value="props" className="gap-1.5">
-          <Package className="h-3.5 w-3.5" />
-          道具{overview ? ` ${overview.counts.props}` : ""}
-        </TabsTrigger>
-        <TabsTrigger value="world" className="gap-1.5">
-          <Globe2 className="h-3.5 w-3.5" />
-          世界观
-        </TabsTrigger>
-      </TabsList>
-      <TabsContent value="characters">
-        <SettingsCharactersTab novelId={novelId} onChanged={invalidateSettings} />
-      </TabsContent>
-      <TabsContent value="scenes">
-        <SettingsScenesTab novelId={novelId} onChanged={invalidateSettings} />
-      </TabsContent>
-      <TabsContent value="props">
-        <SettingsPropsTab novelId={novelId} onChanged={invalidateSettings} />
-      </TabsContent>
-      <TabsContent value="world">
-        <SettingsWorldTab novelId={novelId} onChanged={invalidateSettings} />
-      </TabsContent>
-    </Tabs>
+    <>
+      <AutoStoryAssetImageGeneration novelId={novelId} />
+      <Tabs defaultValue={initialTab} className="space-y-4">
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="characters" className="gap-1.5">
+            <Users className="h-3.5 w-3.5" />
+            角色{overview ? ` ${overview.counts.characters}` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="scenes" className="gap-1.5">
+            <MapPin className="h-3.5 w-3.5" />
+            场景{overview ? ` ${overview.counts.scenes}` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="props" className="gap-1.5">
+            <Package className="h-3.5 w-3.5" />
+            道具{overview ? ` ${overview.counts.props}` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="world" className="gap-1.5">
+            <Globe2 className="h-3.5 w-3.5" />
+            世界观
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="characters">
+          <SettingsCharactersTab novelId={novelId} onChanged={invalidateSettings} />
+        </TabsContent>
+        <TabsContent value="scenes">
+          <SettingsScenesTab novelId={novelId} onChanged={invalidateSettings} />
+        </TabsContent>
+        <TabsContent value="props">
+          <SettingsPropsTab novelId={novelId} onChanged={invalidateSettings} />
+        </TabsContent>
+        <TabsContent value="world">
+          <SettingsWorldTab novelId={novelId} onChanged={invalidateSettings} />
+        </TabsContent>
+      </Tabs>
+    </>
   );
 }
