@@ -30,13 +30,16 @@ test("显示徽标：首状态（含存量旧名）显示「默认」", () => {
   assert.match(assetForms, /return "默认";/);
 });
 
-test("脚本场景状态面板：面板数据推导 + 标记写入 + 【场景状态】行渲染", () => {
+test("脚本场景状态面板：面板数据推导 + 标记写入 + 标记行不进正文渲染", () => {
   // 面板：场景状态与出场角色的生效状态（标记 sticky，无标记回落资产默认状态）。
   assert.match(scriptTab, /sceneState: runningSceneState\.get\(current\.sceneName\) \?\? null/);
   assert.match(scriptTab, /state: runningCharState\.get\(name\) \?\? null/);
   // 切换写入：段内最后一个对应标记改值，没有就在场景行后插入。
   assert.match(scriptTab, /\{ kind: "sceneState" as const, scene: panel\.sceneName, state: nextState \}/);
   assert.match(scriptTab, /\{ kind: "state" as const, name: target\.name, state: nextState \}/);
-  // 标记行有自己的渲染分支（不落纯文本行）。
-  assert.match(scriptTab, /item\.kind === "sceneState" \? \(\s*<SceneStateRow/);
+  // 标记行不在正文里单独渲染（2026-08-23 用户要求：面板下拉是唯一入口）——
+  // 渲染列表过滤掉 state/sceneState，也没有独立的标记行组件和添加按钮。
+  assert.match(scriptTab, /item\.kind !== "state" && entry\.item\.kind !== "sceneState"/);
+  assert.doesNotMatch(scriptTab, /function StateRow|function SceneStateRow/);
+  assert.doesNotMatch(scriptTab, /appendItem\(\{ kind: "state"/);
 });

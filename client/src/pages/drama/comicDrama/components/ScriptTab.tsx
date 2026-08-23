@@ -51,7 +51,8 @@ interface SceneStatePanelData {
 }
 
 // 漫剧工作室「当前 · 脚本」页签：本章脚本的线性列表——视频按什么顺序发生，列表就按什么顺序排。
-// 每一行是一件事：场景切换、角色形象切换、一格分镜、或分镜下的一句话（旁白/台词）。
+// 每一行是一件事：场景切换、一格分镜、或分镜下的一句话（旁白/台词）。
+// 状态标记行（【场景状态/角色状态】）不在正文里渲染，查看与切换统一走场景行下的状态面板。
 // 底层数据仍是 Chapter.expectation 文本（自动保存与后续分镜/视频生成链路不变），
 // 列表是它的结构化视图：parse 拆行渲染，编辑后 serialize 回写（往返契约见 shared/utils/scriptDocument）。
 export default function ScriptTab(props: ScriptTabProps) {
@@ -97,8 +98,17 @@ export default function ScriptTab(props: ScriptTabProps) {
   const propList = propsQuery.data?.data ?? [];
   const items = useMemo(() => parseScriptItems(workspace.expectationText), [workspace.expectationText]);
 
+  // 状态标记行不在正文里单独渲染（2026-08-23 用户要求：与场景行下的状态面板重复，
+  // 面板是唯一的查看/切换入口）；过滤只影响渲染，行操作仍用原始下标对位。
+  const visibleItems = useMemo(
+    () => items
+      .map((item, index) => ({ item, index }))
+      .filter((entry) => entry.item.kind !== "state" && entry.item.kind !== "sceneState"),
+    [items],
+  );
+
   // 脚本与设定资产的名字对应情况（2026-08-21 用户要求）：
-  // - 场景行/台词说话人/角色状态行按名字精确对应资产；
+  // - 场景行/台词说话人/状态标记按名字精确对应资产；
   // - 右侧面板只显示脚本用到的资产（按首次出现排序），用到了但没有对应资产的
   //   名字进 missing，以橙红警告卡提示「未生成，需要手动创建」——建好后自动消失；
   // - 已有资产名出现在正文任意位置（断词匹配，与正文高亮同口径）也算用到。
@@ -220,14 +230,17 @@ export default function ScriptTab(props: ScriptTabProps) {
     setRemoveTargetIndex(null);
   };
 
+  // 上移/下移按可见行换位：相邻位置可能是隐藏的状态标记，直接换相邻下标会变成
+  // 「点了没反应」的假移动，所以跳过标记找最近的可见行换位。
   const moveItem = (index: number, direction: -1 | 1) => {
-    const target = index + direction;
-    if (target < 0 || target >= items.length) {
+    const visibleIndex = visibleItems.findIndex((entry) => entry.index === index);
+    const neighbor = visibleIndex >= 0 ? visibleItems[visibleIndex + direction] : undefined;
+    if (!neighbor) {
       return;
     }
     const next = [...items];
     const [moved] = next.splice(index, 1);
-    next.splice(target, 0, moved);
+    next.splice(neighbor.index, 0, moved);
     applyItems(next);
   };
 
@@ -381,7 +394,7 @@ export default function ScriptTab(props: ScriptTabProps) {
     <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
       <Card className="rounded-3xl">
         <CardContent className="p-4 sm:p-6">
-          {items.length === 0 ? (
+          {visibleItems.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
               <p className="text-sm leading-6 text-muted-foreground">
                 这一章还没有脚本。到「参考」页签带入小说原文后点「解析」，脚本会按分镜逐行生成；也可以直接在下面添加。
@@ -389,7 +402,7 @@ export default function ScriptTab(props: ScriptTabProps) {
             </div>
           ) : (
             <ol className="space-y-2">
-              {items.map((item, index) => (
+              {visibleItems.map(({ item, index }) => (
                 <li key={index}>
                   {item.kind === "scene" ? (
                     <>
@@ -413,30 +426,6 @@ export default function ScriptTab(props: ScriptTabProps) {
                         onSwitch={(target, nextState) => switchPanelState(index, target, nextState)}
                       />
                     </>
-                  ) : item.kind === "sceneState" ? (
-                    <SceneStateRow
-                      item={item}
-                      index={index}
-                      total={items.length}
-                      editing={editing}
-                      matched={scriptUsage.knownScenes.has(item.scene.trim())}
-                      onEdit={setEditing}
-                      onUpdate={updateItem}
-                      onRemove={requestRemove}
-                      onMove={moveItem}
-                    />
-                  ) : item.kind === "state" ? (
-                    <StateRow
-                      item={item}
-                      index={index}
-                      total={items.length}
-                      editing={editing}
-                      matched={scriptUsage.knownCharacters.has(item.name.trim())}
-                      onEdit={setEditing}
-                      onUpdate={updateItem}
-                      onRemove={requestRemove}
-                      onMove={moveItem}
-                    />
                   ) : item.kind === "shot" ? (
                     <ShotRow
                       item={item}
@@ -462,7 +451,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       entityNames={entityNames}
                       speakerKnown={scriptUsage.knownCharacters.has(item.speaker.trim())}
                     />
-                  ) : (
+                  ) : item.kind === "text" ? (
                     <TextRow
                       item={item}
                       index={index}
@@ -473,7 +462,7 @@ export default function ScriptTab(props: ScriptTabProps) {
                       onRemove={requestRemove}
                       onMove={moveItem}
                     />
-                  )}
+                  ) : null}
                 </li>
               ))}
             </ol>
@@ -488,9 +477,6 @@ export default function ScriptTab(props: ScriptTabProps) {
             </Button>
             <Button variant="outline" size="sm" onClick={() => appendItem({ kind: "scene", scene: "场景名" }, "value")}>
               <Plus className="mr-1 h-4 w-4" aria-hidden="true" />场景切换
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => appendItem({ kind: "state", name: "角色名", state: "新状态" }, "name")}>
-              <Plus className="mr-1 h-4 w-4" aria-hidden="true" />角色状态
             </Button>
           </div>
         </CardContent>
@@ -787,104 +773,8 @@ function SceneRow(props: RowBaseProps & {
   );
 }
 
-function StateRow(props: RowBaseProps & {
-  item: Extract<ScriptItem, { kind: "state" }>;
-  matched: boolean;
-  onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
-}) {
-  const nameActive = props.editing?.index === props.index && props.editing?.field === "name";
-  const stateActive = props.editing?.index === props.index && props.editing?.field === "value";
-  return (
-    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-amber-500/10 px-3 py-2">
-      <Badge className="shrink-0 bg-amber-500/15 text-amber-700 hover:bg-amber-500/25 dark:text-amber-400">角色状态</Badge>
-      <EditableValue
-        active={nameActive}
-        value={props.item.name}
-        placeholder="角色名"
-        className={props.matched
-          ? "w-auto text-sm font-semibold text-amber-700 dark:text-amber-400"
-          : "w-auto text-sm font-semibold text-orange-600 dark:text-orange-400"}
-        title={props.matched ? undefined : "设定里还没有这个角色，可在右侧面板创建"}
-        inputClassName="h-8 w-28"
-        onCommit={(next) => {
-          const value = next.trim();
-          if (value) {
-            props.onUpdate(props.index, { name: value });
-          }
-        }}
-        onCancel={() => props.onEdit(null)}
-        onActivate={() => props.onEdit({ index: props.index, field: "name" })}
-      />
-      <span className="text-xs text-muted-foreground">切换为</span>
-      <EditableValue
-        active={stateActive}
-        value={props.item.state}
-        placeholder="新状态，如 重伤"
-        className="w-auto text-sm font-semibold text-amber-700 dark:text-amber-400"
-        inputClassName="h-8 w-32"
-        onCommit={(next) => {
-          const value = next.trim();
-          if (value) {
-            props.onUpdate(props.index, { state: value });
-          }
-        }}
-        onCancel={() => props.onEdit(null)}
-        onActivate={() => props.onEdit({ index: props.index, field: "value" })}
-      />
-      <RowActions {...props} />
-    </div>
-  );
-}
-
-// 场景状态标记行：该场景从这条起用哪个状态出图（通常由场景切换行下的状态面板写入）。
-function SceneStateRow(props: RowBaseProps & {
-  item: Extract<ScriptItem, { kind: "sceneState" }>;
-  matched: boolean;
-  onUpdate: (index: number, patch: Partial<ScriptItem> & Record<string, unknown>) => void;
-}) {
-  const nameActive = props.editing?.index === props.index && props.editing?.field === "name";
-  const stateActive = props.editing?.index === props.index && props.editing?.field === "value";
-  return (
-    <div className="group flex flex-wrap items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2">
-      <Badge className="shrink-0 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-400">场景状态</Badge>
-      <EditableValue
-        active={nameActive}
-        value={props.item.scene}
-        placeholder="场景名"
-        className={props.matched
-          ? "w-auto text-sm font-semibold text-emerald-700 dark:text-emerald-400"
-          : "w-auto text-sm font-semibold text-orange-600 dark:text-orange-400"}
-        title={props.matched ? undefined : "设定里还没有这个场景，可在右侧面板创建"}
-        inputClassName="h-8 w-36"
-        onCommit={(next) => {
-          const value = next.trim();
-          if (value) {
-            props.onUpdate(props.index, { scene: value });
-          }
-        }}
-        onCancel={() => props.onEdit(null)}
-        onActivate={() => props.onEdit({ index: props.index, field: "name" })}
-      />
-      <span className="text-xs text-muted-foreground">切换为</span>
-      <EditableValue
-        active={stateActive}
-        value={props.item.state}
-        placeholder="状态名，如 夜晚"
-        className="w-auto text-sm font-semibold text-emerald-700 dark:text-emerald-400"
-        inputClassName="h-8 w-32"
-        onCommit={(next) => {
-          const value = next.trim();
-          if (value) {
-            props.onUpdate(props.index, { state: value });
-          }
-        }}
-        onCancel={() => props.onEdit(null)}
-        onActivate={() => props.onEdit({ index: props.index, field: "value" })}
-      />
-      <RowActions {...props} />
-    </div>
-  );
-}
+// 角色状态/场景状态标记行不渲染为正文行（2026-08-23 用户决定：与场景行下的状态面板重复，
+// 面板下拉是唯一的查看/切换入口，标记由面板写入与改值，标记行不再有独立编辑入口）。
 
 // 画风切换行已移除（2026-08-23 用户决定：时代风格由资产状态自带，脚本不定义画风）；
 // 历史【画风：…】行解析为普通文本行（TextRow），不再有编辑入口。
