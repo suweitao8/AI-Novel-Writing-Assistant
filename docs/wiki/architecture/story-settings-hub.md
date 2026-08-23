@@ -85,13 +85,13 @@
 
 ### 前端
 
-- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`；`assetForms.tsx` 是角色/场景/道具的共用表单字段组件——资产页签编辑弹窗与漫剧「提取」应用弹窗（`ExtractApplyDialog`）复用同一套表单，两边编辑体验必须一致（SVG 地图：多数节点有保存坐标时按坐标布局，否则环形布局；语义 token）+ `StorySettingsConfirmCard`（确认卡）。
+- 共享组件 `client/src/pages/novels/components/storySettings/`：`StorySettingsTabs`（角色/场景/道具/世界观四页签）+ 四个 tab 组件 + `SettingsWorldMapView`；`assetForms.tsx` 是角色/场景/道具的共用表单字段组件——`StoryAssetEditDialog`（三类资产共用的新建/编辑弹窗，2026-08-23 起设定页签与漫剧脚本右侧列表共用）与漫剧「提取」应用弹窗（`ExtractApplyDialog`）复用同一套表单，各处编辑体验必须一致（SVG 地图：多数节点有保存坐标时按坐标布局，否则环形布局；语义 token）+ `StorySettingsConfirmCard`（确认卡）。
 - 短篇工作室：正文/设定二级页签 + 正文页顶部确认卡；简易书架页：创作/设定二级页签 + 续写前 ensureSettings。
 - 遵循 novel-ui 规范：ui/tabs、Card、AiButton（AI 生成按钮）、toast、语义 token。
 
 ### 故事资产展示边界（2026-08-22）
 
-角色、场景、道具在脚本右侧资产栏和设定中心页签中属于同一类“故事设定资产”，展示层必须共用 `client/src/components/storyAssets/`：`storyAssetPresentation.ts` 负责把三类 API 数据归一为卡片/详情模型，`StoryAssetCard` 负责可键盘触达的卡片入口，`StoryAssetDetailDialog` 负责基础信息、提示词、媒体和外观状态的统一只读展示。**2026-08-22 起：角色/场景/道具三个设定页签（含漫剧「资产」页签）点卡片直接打开各资产自己的编辑弹窗**（用户要求状态所见即编辑，只读详情中转被去掉）；`StoryAssetDetailDialog` 只保留给脚本右侧资产栏（OutlineSettingsAside）与提取弹窗的「已存在资产」只读展示。这样字段展示或状态信息增加时只改一处，脚本侧与设定中心不会再次分叉。
+角色、场景、道具在脚本右侧资产栏和设定中心页签中属于同一类“故事设定资产”，展示层必须共用 `client/src/components/storyAssets/`：`storyAssetPresentation.ts` 负责把三类 API 数据归一为卡片模型，`StoryAssetCard` 负责可键盘触达的卡片入口。**2026-08-23 起：所有入口打开的都是同一个可编辑可保存的弹窗 `StoryAssetEditDialog`（storySettings 目录，承载三类资产的新建/编辑/AI 草稿/AssetStatesEditor，页签点卡片＝编辑、脚本右侧资产栏点卡片＝同一编辑弹窗，其底部多一个删除入口走二次确认）**（用户要求：不要一个只读预览、一个可编辑两套界面）；此前的只读 `StoryAssetDetailDialog` 已删除，防止两条详情界面再次分叉。这样字段展示或状态编辑能力增加时只改一处，脚本侧与设定中心不会再次分叉（契约锁定在 tests/storyAssetEditDialogContract.test.js）。
 
 共用展示层不持有编辑、删除、缓存失效或生成请求；这些业务仍由脚本面板和三类设定页签分别管理，编辑时进入各资产类型自己的表单。角色库图片灯箱、图片生成确认弹窗和分镜首帧预览属于媒体/镜头流程，不接入故事资产详情弹窗，避免把不同生命周期的资源操作混成一个组件。
 

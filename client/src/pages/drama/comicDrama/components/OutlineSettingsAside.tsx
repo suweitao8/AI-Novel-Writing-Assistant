@@ -20,11 +20,11 @@ import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { createInitialCharacterState } from "@/pages/novels/components/storySettings/assetForms";
+import StoryAssetEditDialog from "@/pages/novels/components/storySettings/StoryAssetEditDialog";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
   buildStoryAssetPresentation,
   StoryAssetCard,
-  StoryAssetDetailDialog,
   type StoryAssetKind,
   type StoryAssetPresentation,
 } from "@/components/storyAssets";
@@ -50,8 +50,9 @@ const TYPE_LABELS: Record<AssetType, string> = {
   prop: "道具",
 };
 
-// 大纲编辑区右侧的设定资产面板：卡片展示统一摘要，点开弹窗看完整信息（图片提示词、
-// 外观状态等）并可删除；工具栏为 左新增 / 中搜索框 / 右搜索按钮，新增走弹窗。
+// 大纲编辑区右侧的设定资产面板：卡片展示统一摘要，点开与「资产」页签同一个
+// 可编辑可保存的弹窗（StoryAssetEditDialog，弹窗底部可删除，删除走二次确认）；
+// 工具栏为 左新增 / 中搜索框 / 右搜索按钮，新增走弹窗。
 // 创建走正式设定接口，与「设定」页签共享缓存；名字实时进入大纲高亮名单。
 export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
   const queryClient = useQueryClient();
@@ -251,15 +252,14 @@ export default function OutlineSettingsAside(props: OutlineSettingsAsideProps) {
         )}
       </div>
 
-      <StoryAssetDetailDialog
-        asset={detailAsset}
-        onOpenChange={(open) => { if (!open) setDetailId(null); }}
-        onDelete={() => {
-          if (detailAsset) {
-            setDeleteConfirmOpen(true);
-          }
-        }}
-        deleting={deleteMutation.isPending}
+      <StoryAssetEditDialog
+        novelId={props.novelId}
+        kind={detailAsset?.kind ?? "character"}
+        asset={detailAsset?.source ?? null}
+        open={detailAsset !== null}
+        onClose={() => setDetailId(null)}
+        onChanged={invalidate}
+        onDelete={() => setDeleteConfirmOpen(true)}
       />
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>

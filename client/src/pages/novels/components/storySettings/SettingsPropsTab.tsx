@@ -1,69 +1,32 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Plus, Search, Sparkles, Trash2 } from "lucide-react";
+import { Plus, Search, Trash2 } from "lucide-react";
 import type { StorySettingsProp } from "@/api/story/storySettings";
 import {
-  createStorySettingsProp,
   deleteStorySettingsProp,
-  generateStoryEntityDraft,
   getStorySettingsProps,
-  updateStorySettingsProp,
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
-import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
-import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
 import {
   buildStoryAssetPresentation,
   StoryAssetCard,
 } from "@/components/storyAssets";
-import {
-  AssetStatesEditor,
-  createInitialPropState,
-  EMPTY_PROP_FORM,
-  normalizeStatesForSave,
-  PropAssetFormFields,
-  type PropAssetFormState,
-} from "./assetForms";
-import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
+import StoryAssetEditDialog from "./StoryAssetEditDialog";
 
 interface SettingsPropsTabProps {
   novelId: string;
   onChanged?: () => void | Promise<void>;
 }
 
-type PropFormState = PropAssetFormState;
-
-function propStatesForEditor(prop: StorySettingsProp): StoryAssetState[] {
-  return prop.states?.length > 0
-    ? prop.states
-    : [createInitialPropState(prop)];
-}
-
-function preparePropStatesForSave(
-  states: StoryAssetState[],
-  form: PropFormState,
-  isCreating: boolean,
-): StoryAssetState[] {
-  if (!isCreating || states.length === 0) {
-    return states;
-  }
-  const defaultInitialState = createInitialPropState({ name: "" });
-  if (JSON.stringify(states[0]) !== JSON.stringify(defaultInitialState)) {
-    return states;
-  }
-  return [createInitialPropState({ name: form.name.trim() }), ...states.slice(1)];
-}
-
+// 道具列表：卡片点开与漫剧脚本页右侧列表是同一个编辑弹窗（StoryAssetEditDialog），
+// 新建/编辑/状态图都在弹窗里；这里的本地逻辑只剩 查询/搜索/删除。
 export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTabProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<StorySettingsProp | null>(null);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState<PropFormState>(EMPTY_PROP_FORM);
-  const [states, setStates] = useState<StoryAssetState[]>([]);
-  const [hint, setHint] = useState("");
   const [keyword, setKeyword] = useState("");
   const [appliedKeyword, setAppliedKeyword] = useState("");
 
@@ -80,10 +43,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
           .some((text) => text.toLowerCase().includes(normalized)))
     : props;
 
-  const statesValid = states.length > 0 && states.every((state) => Boolean(
-    state.label.trim() && state.description.trim() && state.imagePrompt.trim(),
-  ));
-
   const invalidate = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsProps(novelId) }),
@@ -91,38 +50,6 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     ]);
     await onChanged?.();
   };
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const name = form.name.trim();
-      const savedStates = normalizeStatesForSave(preparePropStatesForSave(states, form, creating));
-      const initial = savedStates[0];
-      return editing
-        ? updateStorySettingsProp(novelId, editing.id, {
-          name,
-          visualPrompt: initial?.imagePrompt?.trim() || null,
-          // 旧字段表单里已不存在：编辑保存即清空，数据和界面保持一致
-          description: null,
-          plotFunction: null,
-          ownerCharacterId: null,
-          firstAppearHint: null,
-          states: savedStates,
-        })
-        : createStorySettingsProp(novelId, {
-          name,
-          ...(initial?.imagePrompt?.trim() ? { visualPrompt: initial.imagePrompt.trim() } : {}),
-          states: savedStates,
-        });
-    },
-    onSuccess: async () => {
-      toast.success(editing ? "道具已保存。" : "道具已添加。");
-      closeDialog();
-      await invalidate();
-    },
-    onError: (error) => {
-      toast.error("道具保存失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: (propId: string) => deleteStorySettingsProp(novelId, propId),
@@ -135,41 +62,14 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
     },
   });
 
-  const generateMutation = useMutation({
-    mutationFn: () => generateStoryEntityDraft(novelId, "prop", hint),
-    onSuccess: (response) => {
-      const draft = response.data?.prop;
-      if (!draft) {
-        toast.error("AI 没有生成道具草稿，请重试。");
-        return;
-      }
-      setForm({
-        name: draft.name,
-      });
-      setStates([createInitialPropState(draft)]);
-      toast.success("草稿已生成，可以直接修改后保存。");
-    },
-    onError: (error) => {
-      toast.error("道具生成失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
-
   const openCreate = () => {
     setEditing(null);
     setCreating(true);
-    setForm(EMPTY_PROP_FORM);
-    setStates([createInitialPropState({ name: "" })]);
-    setHint("");
   };
 
   const openEdit = (prop: StorySettingsProp) => {
     setCreating(false);
     setEditing(prop);
-    setHint("");
-    setForm({
-      name: prop.name,
-    });
-    setStates(propStatesForEditor(prop));
   };
 
   const closeDialog = () => {
@@ -250,53 +150,14 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
         </div>
       )}
 
-      <Dialog open={creating || editing !== null} onOpenChange={(open) => !open && closeDialog()}>
-        <AppDialogContent
-          className="max-w-6xl"
-          title={editing ? "编辑道具" : "添加道具"}
-          description={editing
-            ? "管理道具名，以及每个状态的外观和图片提示词。"
-            : "写一句提示（也可以留空），让 AI 生成道具草稿；生成后可以随意修改再保存。"}
-          footer={
-            <>
-              <Button variant="outline" onClick={closeDialog} disabled={saveMutation.isPending}>取消</Button>
-              <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !form.name.trim() || !statesValid}>
-                {saveMutation.isPending ? "保存中..." : "保存"}
-              </Button>
-            </>
-          }
-        >
-          <div className="space-y-3">
-            {creating ? (
-              <div className="space-y-2 rounded-lg border border-dashed border-border bg-muted/30 p-3">
-                <label className="block space-y-1">
-                  <span className="text-sm font-medium">AI 生成提示</span>
-                  <Input
-                    value={hint}
-                    placeholder="例如：外婆留下的怀表 / 一封烧掉一半的信"
-                    onChange={(event) => setHint(event.target.value)}
-                    disabled={generateMutation.isPending}
-                  />
-                </label>
-                <AiButton
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => generateMutation.mutate()}
-                  disabled={generateMutation.isPending}
-                >
-                  {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                  {generateMutation.isPending ? "正在生成草稿..." : "AI 生成道具草稿"}
-                </AiButton>
-              </div>
-            ) : null}
-            <PropAssetFormFields
-              value={form}
-              onChange={(patch) => setForm((prev) => ({ ...prev, ...patch }))}
-            />
-            <AssetStatesEditor states={states} onChange={setStates} kind="prop" novelId={novelId} assetName={form.name || undefined} asset={editing ? { novelId, assetId: editing.id } : undefined} />
-          </div>
-        </AppDialogContent>
-      </Dialog>
+      <StoryAssetEditDialog
+        novelId={novelId}
+        kind="prop"
+        asset={editing}
+        open={creating || editing !== null}
+        onClose={closeDialog}
+        onChanged={onChanged}
+      />
     </div>
   );
 }
