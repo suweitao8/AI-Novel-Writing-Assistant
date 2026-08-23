@@ -6,6 +6,7 @@ const assert = require("node:assert/strict");
 
 const {
   parseScriptItems,
+  normalizeNarratorMoodInScript,
   serializeScriptItems,
   roundTripScriptItems,
   SCRIPT_SHOT_TYPES,
@@ -57,6 +58,31 @@ test("parse：标记行/分镜行/台词行/神态括注全部拆出", () => {
   assert.deepEqual(items[5], { kind: "scene", scene: "客厅" });
   assert.deepEqual(items[6], { kind: "state", name: "林川", state: "重伤" });
   assert.deepEqual(items[8], { kind: "line", speaker: "苏叶", mood: "急切", text: "你的伤还在流血！" });
+});
+
+test("旁白不保留语气：旧括注解析和保存时都规范化为空", () => {
+  assert.deepEqual(parseScriptItems("旁白（平静）：街灯亮起。"), [
+    { kind: "line", speaker: "旁白", mood: "", text: "街灯亮起。" },
+  ]);
+  assert.equal(
+    serializeScriptItems([
+      { kind: "line", speaker: "旁白", mood: "平静", text: "街灯亮起。" },
+    ]),
+    "旁白：街灯亮起。",
+  );
+});
+
+test("normalize：只清理旧旁白括注，保留角色语气和原有换行", () => {
+  const draft = [
+    "【场景：街道】",
+    "旁白（平静）：街灯亮起。",
+    "林川（急切）：别走。",
+  ].join("\r\n");
+  assert.equal(normalizeNarratorMoodInScript(draft), [
+    "【场景：街道】",
+    "旁白：街灯亮起。",
+    "林川（急切）：别走。",
+  ].join("\r\n"));
 });
 
 test("serialize：canonical 文本往返逐字稳定（幂等）", () => {

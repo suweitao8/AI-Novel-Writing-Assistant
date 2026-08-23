@@ -3,9 +3,19 @@ const assert = require("node:assert/strict");
 
 const {
   buildDialogueVoiceKey,
+  parseDialogueLines,
   parseShotCharacterStates,
   resolveVoiceForCharacterState,
 } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
+
+test("旁白行不会被当成带语气的对白", () => {
+  assert.deepEqual(parseDialogueLines("旁白（平静）：街灯亮起。"), [
+    { lineIndex: 0, type: "narration", speaker: "旁白", text: "街灯亮起。" },
+  ]);
+  assert.deepEqual(parseDialogueLines("林澈（急切）：别走。"), [
+    { lineIndex: 0, type: "dialogue", speaker: "林澈", text: "别走。", emotion: "急切" },
+  ]);
+});
 
 test("分镜角色状态会覆盖对白音色并传入状态试听参考", () => {
   const states = [{

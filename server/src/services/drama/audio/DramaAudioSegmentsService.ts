@@ -35,7 +35,7 @@ export interface DramaAudioSegment {
 
 /**
  * 逐行配音分段投影（显示层只读视图，搬自 mydrama voice-stage 的分段显示模型）：
- * 分镜台词的每一行是一条分段——有说话人是「对白」，没有说话人是「旁白」；
+ * 分镜台词的每一行是一条分段——旁白标记或无说话人是「旁白」，其余是「对白」；
  * 状态由「生成时快照（textHash/voiceKey）vs 当前行文本/音色绑定」判定。
  */
 export class DramaAudioSegmentsService {
