@@ -7,7 +7,7 @@ import type { VideoGenerationRequest, VideoGenerationResult, VideoProviderPort }
 
 // 本地 ffmpeg 视频通道：把镜头首帧图 + 台词配音合成为真实的 mp4 片段。
 // 参考旧项目（supertale）的合成方式：循环首帧图 + Ken Burns 缓慢推拉（zoompan），
-// 以配音时长为时间线（无配音时用 durationSec 静音占位），输出竖屏 1080x1920 H.264。
+// 以配音时长为时间线（无配音时用 durationSec 静音占位），输出横屏 1920x1080 H.264。
 // 任务为本地异步进程：createTask 派生 ffmpeg 后立即返回 running，getTask 检查产物文件。
 
 const VIDEOS_DIR_NAME = "generated-videos";
@@ -129,8 +129,8 @@ function buildFfmpegArgs(input: {
   durationSec: number;
   outputPath: string;
 }): string[] {
-  const width = 1080;
-  const height = 1920;
+  const width = 1920;
+  const height = 1080;
   const fps = DEFAULT_FPS;
   const duration = Math.max(1, Math.round(input.durationSec));
   const filterChain = [

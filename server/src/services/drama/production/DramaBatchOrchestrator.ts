@@ -1,4 +1,4 @@
-import { getImageModelProvider } from "../../../llm/modelCategories";
+import { getAudioModelProvider, getImageModelProvider } from "../../../llm/modelCategories";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 
 import { prisma } from "../../../db/prisma";
@@ -91,7 +91,7 @@ type BatchProcessResult = {
 };
 
 const DEFAULT_IMAGE_PROVIDER = getImageModelProvider();
-const DEFAULT_TTS_PROVIDER = "voxcpm2";
+const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
 // progress 会整串落库：errors 只保留最近若干条，failedShotIds 始终完整。
 const MAX_PROGRESS_ERRORS = 50;
 
@@ -293,6 +293,10 @@ export class DramaBatchOrchestrator {
       }
 
       const progress = readProgress(job.progress);
+      if (job.type === "tts") {
+        // 兼容旧任务：即使历史 progress 记录了页面传入的 provider，恢复执行也必须回到系统音频槽位。
+        progress.provider = DEFAULT_TTS_PROVIDER;
+      }
       const targetSet = new Set(progress.targetShotIds ?? []);
       const shots = (episode.storyboards[0]?.shots ?? [])
         .filter((shot) => targetSet.size === 0 || targetSet.has(shot.id));
@@ -364,11 +368,11 @@ export class DramaBatchOrchestrator {
     return "processed";
   }
 
-  private async processTtsShot(shot: BatchShot, provider?: string, force = false): Promise<BatchProcessResult> {
+  private async processTtsShot(shot: BatchShot, force = false): Promise<BatchProcessResult> {
     if (!force && hasDoneDialogueAudio(shot.dialogueAudioData)) {
       return { status: "skipped" };
     }
-    const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, provider || DEFAULT_TTS_PROVIDER, { force });
+    const data = await this.dialogueAudioService.synthesizeShotDialogue(shot.id, DEFAULT_TTS_PROVIDER, { force });
     const seconds = (data.items ?? []).reduce((sum, item) => {
       return sum + normalizeDurationSec(item.durationSec, Math.max(1, Math.ceil(item.text.length / 5)));
     }, 0);
@@ -415,7 +419,7 @@ export class DramaBatchOrchestrator {
         : { status };
     }
     if (type === "tts") {
-      return this.processTtsShot(shot, provider, force);
+      return this.processTtsShot(shot, force);
     }
     const status = await this.processVideoShot(projectId, shot.id, cachedVideoPrompt, provider);
     return status === "processed"
@@ -470,7 +474,9 @@ export class DramaBatchOrchestrator {
       throw new AppError("没有可处理的镜头。", 400);
     }
 
-    const provider = input.provider?.trim() || this.defaultProviderForType(input.type);
+    const provider = input.type === "tts"
+      ? this.defaultProviderForType("tts")
+      : input.provider?.trim() || this.defaultProviderForType(input.type);
     return {
       episode,
       provider,

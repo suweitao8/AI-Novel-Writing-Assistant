@@ -13,7 +13,6 @@ import {
   generateDramaShotKeyframe,
   generateDramaStoryboard,
   getDramaProject,
-  listDramaTTSProviders,
   type DramaShot,
 } from "@/api/media/drama";
 import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegment } from "@/api/media/comicDrama";
@@ -21,7 +20,11 @@ import { queryKeys } from "@/api/queryKeys";
 import SelectControl from "@/components/common/SelectControl";
 import { LightboxImage } from "@/components/common/LightboxImage";
 import { CharacterVoiceCard, NarratorVoiceCard, SegmentStatusDot } from "./VoiceStagePanel";
-import { DramaEpisodeAssemblyPanel } from "../components/DramaEpisodeAssemblyPanel";
+import {
+  DramaEpisodeAssemblyButton,
+  DramaEpisodeAssemblyResultPanel,
+  useDramaEpisodeAssembly,
+} from "../components/DramaEpisodeAssemblyPanel";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -53,7 +56,6 @@ const POLL_GRACE_MS = 30_000;
 export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
-  const [provider, setProvider] = useState("voxcpm2");
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
   const [voiceSettingsOpen, setVoiceSettingsOpen] = useState(false);
@@ -80,15 +82,9 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
       return hasTtsJob || hasKeyframeWork ? 3000 : false;
     },
   });
-  const providersQuery = useQuery({
-    queryKey: queryKeys.drama.ttsProviders,
-    queryFn: () => listDramaTTSProviders(),
-  });
-
   const project = projectQuery.data?.data;
   const episodes = project?.episodes ?? [];
   const characters = project?.characters ?? [];
-  const providers = providersQuery.data?.data ?? [];
   const activeOrder = selectedOrder ?? episodes[0]?.order ?? null;
   const activeEpisode = episodes.find((episode) => episode.order === activeOrder) ?? null;
   const storyboard = activeEpisode?.storyboards?.[0] ?? null;
@@ -181,7 +177,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
 
   const ttsBatchMutation = useMutation({
     mutationFn: (force: boolean) =>
-      createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "tts", provider, force }),
+      createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "tts", force }),
     onSuccess: () => {
       lastTaskActivityAtRef.current = Date.now();
       toast.success("配音任务已开始", { description: "完成后每一行的配音会变成可播放状态。" });
@@ -193,7 +189,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   const regenerateMutation = useMutation({
     mutationFn: (shot: DramaShot) => {
       // 服务端按文本/音色指纹复用未变化的行，这里不强制整镜重配（force 只留给「全部重新配音」）。
-      return regenerateDramaShotAudio(projectId, shot.id, { provider, force: false });
+      return regenerateDramaShotAudio(projectId, shot.id, { force: false });
     },
     onMutate: (shot) => setRegeneratingShotId(shot.id),
     onSuccess: () => {
@@ -205,6 +201,12 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
   });
 
   const busy = storyboardMutation.isPending || keyframeBatchMutation.isPending || ttsBatchMutation.isPending;
+  const assemblyController = useDramaEpisodeAssembly({
+    projectId,
+    order: activeEpisode?.order ?? activeOrder ?? 0,
+    hasShots: shots.length > 0,
+    busy,
+  });
 
   const { mutate: mutateKeyframeOne } = keyframeOneMutation;
   const { mutate: mutateRegenerate } = regenerateMutation;
@@ -218,7 +220,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
 
   return (
     <div className="space-y-3">
-      {/* 工具行：集 / 语音服务 / 批量操作 / 音色设置 */}
+      {/* 工具行：集 / 批量操作 / 音色设置 */}
       <div className="flex flex-wrap items-center gap-2">
         <SelectControl
           className="h-9 min-w-[130px] rounded-md border bg-background px-2 text-sm"
@@ -230,18 +232,6 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
           {episodes.map((episode) => (
             <option key={episode.id} value={episode.order}>
               第 {episode.order} 集{episode.title ? ` · ${episode.title}` : ""}
-            </option>
-          ))}
-        </SelectControl>
-        <SelectControl
-          className="h-9 min-w-[140px] rounded-md border bg-background px-2 text-sm"
-          value={provider}
-          onChange={(event) => setProvider(event.target.value)}
-          disabled={providers.length === 0}
-        >
-          {providers.map((item) => (
-            <option key={item.provider} value={item.provider}>
-              {item.label}
             </option>
           ))}
         </SelectControl>
@@ -278,6 +268,12 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
             >
               全部重新配音
             </Button>
+            <DramaEpisodeAssemblyButton
+              controller={assemblyController}
+              hasShots={shots.length > 0}
+              buttonLabel="合成"
+              doneButtonLabel="合成"
+            />
           </div>
         ) : null}
         <Button
@@ -353,13 +349,12 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
               onRegenerate={handleRegenerate}
             />
           ))}
-          <DramaEpisodeAssemblyPanel
-            projectId={projectId}
-            order={activeEpisode?.order ?? activeOrder ?? 0}
+          <DramaEpisodeAssemblyResultPanel
+            controller={assemblyController}
             hasShots={shots.length > 0}
-            busy={busy}
             buttonLabel="合成"
             doneButtonLabel="合成"
+            showActionButton={false}
           />
         </div>
       )}
@@ -388,14 +383,14 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   return (
     <div className="flex gap-3 rounded-xl border border-border bg-background p-3 transition hover:border-primary/30">
       {/* 首帧缩略图：就绪可放大，未生成可就地点生成 */}
-      <div className="w-20 shrink-0 sm:w-24">
+      <div className="w-32 shrink-0 sm:w-40">
         {keyframe.status === "done" && keyframe.url ? (
-          <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜首帧`} className="h-28 w-full sm:h-32" fit="cover" />
+          <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜首帧`} className="aspect-video w-full" fit="cover" />
         ) : props.keyframeBusy ? (
           <button
             type="button"
             disabled
-            className="flex h-28 w-full flex-col items-center justify-center gap-1 rounded-lg border border-border bg-muted/20 text-[10px] text-muted-foreground sm:h-32"
+            className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-lg border border-border bg-muted/20 text-[10px] text-muted-foreground"
           >
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             生成中
@@ -405,7 +400,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             type="button"
             onClick={() => props.onGenerateKeyframe(shot.id)}
             title="生成这一镜的首帧图"
-            className="flex h-28 w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground sm:h-32"
+            className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground transition hover:border-primary/40 hover:text-foreground"
           >
             <ImageIcon className="h-4 w-4" aria-hidden="true" />
             生成首帧

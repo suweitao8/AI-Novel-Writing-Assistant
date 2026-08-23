@@ -673,7 +673,8 @@ export class DramaShotKeyframeService {
     return runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,
       prompt: overrides?.promptOverride ?? ctx.prompt,
-      size: overrides?.sizeOverride ?? ctx.size,
+      // 分镜首帧固定横屏，页面级尺寸覆盖不能把生产画幅改回竖版。
+      size: IMAGE_SPECS.dramaKeyframe,
       negativePrompt: overrides?.negativePromptOverride ?? ctx.negativePrompt,
       ...(refs.refImages && refs.refImages.length > 0 ? { refImages: refs.refImages } : {}),
       referenceImages: refs.referenceImages && refs.referenceImages.length > 0 ? refs.referenceImages : undefined,

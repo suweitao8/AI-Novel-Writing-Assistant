@@ -344,7 +344,6 @@ export function DramaVisualPanel(props: {
             <DramaStoryboardBoard
               projectId={props.project.id}
               storyboard={storyboard}
-              orientation={props.project.orientation}
               busy={props.busy}
               keyframePending={keyframeFlow.dialogProps.loading || keyframeFlow.dialogProps.submitting}
               imageProviderReady={imageProviders.length > 0}

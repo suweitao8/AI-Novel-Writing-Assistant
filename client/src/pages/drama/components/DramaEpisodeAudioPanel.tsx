@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Headphones, RefreshCw } from "lucide-react";
 import {
@@ -8,11 +8,9 @@ import {
   type DramaBatchProgress,
   type DramaDialogueAudioData,
   type DramaEpisode,
-  type DramaTTSProvider,
 } from "@/api/media/drama";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import SelectControl from "@/components/common/SelectControl";
 
 function safeJson<T>(input: string | null | undefined, fallback: T): T {
   if (!input) {
@@ -59,26 +57,17 @@ export function DramaEpisodeAudioPanel(props: {
   projectId: string;
   episode: DramaEpisode;
   batchJobs?: DramaBatchJob[];
-  ttsProviders: DramaTTSProvider[];
   busy: boolean;
-  onBatchJob: (order: number, input: { type: "tts"; provider?: string; failedShotIds?: string[] }) => void;
+  onBatchJob: (order: number, input: { type: "tts"; failedShotIds?: string[] }) => void;
 }) {
-  const [selectedProvider, setSelectedProvider] = useState("");
-  const defaultProvider = props.ttsProviders.find((provider) => provider.provider === "voxcpm2")?.provider
-    ?? props.ttsProviders[0]?.provider
-    ?? "voxcpm2";
-  const activeProvider = props.ttsProviders.some((provider) => provider.provider === selectedProvider)
-    ? selectedProvider
-    : defaultProvider;
   const latestTtsBatch = props.batchJobs?.find((job) => job.episodeId === props.episode.id && job.type === "tts");
   const latestProgress = parseBatchProgress(latestTtsBatch?.progress);
   const ttsActive = isActiveBatch(latestTtsBatch);
   const hasStoryboardShots = Boolean(props.episode.storyboards?.[0]?.shots?.length);
   const estimateQuery = useQuery({
-    queryKey: ["drama", "batch-estimate", props.projectId, props.episode.order, "tts", activeProvider],
+    queryKey: ["drama", "batch-estimate", props.projectId, props.episode.order, "tts"],
     queryFn: () => estimateDramaEpisodeBatchJob(props.projectId, props.episode.order, {
       type: "tts",
-      provider: activeProvider,
     }),
     enabled: hasStoryboardShots,
     staleTime: 30_000,
@@ -94,12 +83,6 @@ export function DramaEpisodeAudioPanel(props: {
     });
   }, [props.episode.storyboards]);
 
-  useEffect(() => {
-    if (props.ttsProviders.length > 0 && !selectedProvider) {
-      setSelectedProvider(defaultProvider);
-    }
-  }, [defaultProvider, props.ttsProviders.length, selectedProvider]);
-
   const total = Math.max(0, latestProgress.total ?? 0);
   const done = Math.max(0, latestProgress.done ?? 0);
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
@@ -110,24 +93,12 @@ export function DramaEpisodeAudioPanel(props: {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium">配音</h3>
         <div className="flex flex-wrap gap-2">
-          <SelectControl
-            className="h-9 rounded-md border bg-background px-2 text-xs"
-            value={activeProvider}
-            onChange={(event) => setSelectedProvider(event.target.value)}
-            aria-label="配音通道"
-          >
-            {props.ttsProviders.length > 0 ? props.ttsProviders.map((provider) => (
-              <option key={provider.provider} value={provider.provider}>{provider.label}</option>
-            )) : (
-              <option value="mock">模拟配音通道</option>
-            )}
-          </SelectControl>
           <Button
             size="sm"
             type="button"
             variant="outline"
             disabled={props.busy || ttsActive || !hasStoryboardShots}
-            onClick={() => props.onBatchJob(props.episode.order, { type: "tts", provider: activeProvider })}
+            onClick={() => props.onBatchJob(props.episode.order, { type: "tts" })}
           >
             <Headphones className="h-4 w-4" />
             合成本集配音
@@ -152,7 +123,7 @@ export function DramaEpisodeAudioPanel(props: {
             <span>{done}/{total}</span>
             {latestProgress.skipped ? <span>已跳过 {latestProgress.skipped}</span> : null}
             {latestProgress.failed ? <span>失败 {latestProgress.failed}</span> : null}
-            {latestProgress.provider ? <span>通道：{latestProgress.provider}</span> : null}
+            {latestProgress.provider ? <span>系统音频模型：{latestProgress.provider}</span> : null}
             {latestProgress.cost ? <span>预计：{formatCost(latestProgress.cost, latestProgress.cost.estimated)}</span> : null}
             {latestProgress.cost ? <span>实际：{formatCost(latestProgress.cost, latestProgress.cost.actual)}</span> : null}
           </div>
@@ -166,7 +137,6 @@ export function DramaEpisodeAudioPanel(props: {
                 disabled={props.busy || ttsActive}
                 onClick={() => props.onBatchJob(props.episode.order, {
                   type: "tts",
-                  provider: activeProvider,
                   failedShotIds,
                 })}
               >

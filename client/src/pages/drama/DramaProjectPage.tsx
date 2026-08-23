@@ -25,7 +25,6 @@ import {
   getDramaProject,
   importDramaCharacterFromLibrary,
   listDramaCharacterLibrary,
-  listDramaTTSProviders,
   listDramaVideoProviders,
   repairDramaEpisode,
   refreshDramaVideoProviderTask,
@@ -287,8 +286,7 @@ function EpisodesPanel(props: {
   project: DramaProjectDetail;
   selectedOrder: number | null;
   onSelectOrder: (order: number) => void;
-  ttsProviders: Array<{ provider: string; label: string; description?: string }>;
-  onBatchJob: (order: number, input: { type: "tts"; provider?: string; failedShotIds?: string[] }) => void;
+  onBatchJob: (order: number, input: { type: "tts"; failedShotIds?: string[] }) => void;
   onGenerateScript: (order: number) => void;
   onReview: (order: number) => void;
   onRepair: (order: number) => void;
@@ -401,7 +399,6 @@ function EpisodesPanel(props: {
               projectId={props.project.id}
               episode={selectedEpisode}
               batchJobs={props.project.batchJobs}
-              ttsProviders={props.ttsProviders}
               busy={props.busy}
               onBatchJob={props.onBatchJob}
             />
@@ -459,14 +456,8 @@ export default function DramaProjectPage() {
     queryKey: queryKeys.drama.videoProviders,
     queryFn: listDramaVideoProviders,
   });
-  const ttsProvidersQuery = useQuery({
-    queryKey: queryKeys.drama.ttsProviders,
-    queryFn: listDramaTTSProviders,
-  });
-
   const project = projectQuery.data?.data;
   const videoProviders = videoProvidersQuery.data?.data ?? [];
-  const ttsProviders = ttsProvidersQuery.data?.data ?? [];
   useEffect(() => {
     if (selectedVideoProvider || videoProviders.length === 0) {
       return;
@@ -644,7 +635,6 @@ export default function DramaProjectPage() {
           project={project}
           selectedOrder={selectedOrderValue}
           onSelectOrder={setSelectedOrder}
-          ttsProviders={ttsProviders}
           onBatchJob={(order, input) => runAction(() => createDramaEpisodeBatchJob(project.id, order, input), "配音任务已创建。")}
           busy={actionMutation.isPending}
           onGenerateScript={(order) => runAction(() => generateDramaEpisodeScript(project.id, order), `第 ${order} 集台本已生成。`)}
