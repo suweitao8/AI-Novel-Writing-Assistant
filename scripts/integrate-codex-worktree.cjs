@@ -231,11 +231,29 @@ function integrateCodexWorktree({ cwd = process.cwd(), taskBranch, push = false,
 }
 
 function parseArgs(argv) {
-  const taskBranch = argv.find((arg) => !arg.startsWith("--"));
-  const push = argv.includes("--push");
-  const verifyIndex = argv.indexOf("--verify");
-  const verifyCommand = verifyIndex >= 0 ? argv[verifyIndex + 1] : undefined;
-  if (verifyIndex >= 0 && !verifyCommand) throw new Error("--verify requires one shell command argument.");
+  const [taskBranch, ...optionArgs] = argv;
+  if (!taskBranch || taskBranch.startsWith("--")) {
+    throw new Error("Integration requires the codex/<task> source branch first.");
+  }
+
+  let push = false;
+  let verifyCommand;
+  for (let index = 0; index < optionArgs.length; index += 1) {
+    const argument = optionArgs[index];
+    if (argument === "--push") {
+      push = true;
+      continue;
+    }
+    if (argument === "--verify") {
+      verifyCommand = optionArgs[index + 1];
+      if (!verifyCommand || verifyCommand.startsWith("--")) {
+        throw new Error("--verify requires one shell command argument.");
+      }
+      index += 1;
+      continue;
+    }
+    throw new Error(`Unknown integration option: ${argument}`);
+  }
   return { taskBranch, push, verifyCommand };
 }
 
@@ -275,6 +293,7 @@ module.exports = {
   gitCommonDir,
   hasMergeHead,
   integrateCodexWorktree,
+  parseArgs,
   processIsAlive,
   repositoryRoot,
   workspaceChanges,

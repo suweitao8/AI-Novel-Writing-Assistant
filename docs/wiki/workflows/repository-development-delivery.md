@@ -14,6 +14,7 @@
 - 新任务优先运行 `pnpm workflow:worktree <task>`；它只从干净 `main` 创建同级 `codex/<task>` worktree，并自动安装 hooks。
 - 新 checkout 或新环境先运行 `pnpm setup:git-hooks`，确认本地 `core.hooksPath` 指向仓库内的 `.githooks`。
 - `pnpm check:workspace-integrity` 是开发启动前置门禁；`main` 只要存在任意未提交的非 ignored 文件、未完成 merge、缺失 hooks 或错误的 `merge.ff`，就必须停止并迁移到隔离 worktree。
+- `pnpm test:workflow` 运行主分支门禁、worktree 创建、集成锁/冲突回滚和服务编排回归测试。
 - 安装脚本同时设置 `merge.ff=false`；普通 `git merge` 必须留下 merge commit，不能把 feature 分支 fast-forward 到 `main`。
 - 完成实现后运行与范围匹配的聚焦验证；配置或忽略规则要验证实际路径是否被规则命中。
 - 用 `git commit -s` 提交完整单元；代码 worktree 还必须合并回 `main`。

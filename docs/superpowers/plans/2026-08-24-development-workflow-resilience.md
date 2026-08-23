@@ -4,9 +4,9 @@
 
 **Goal:** 把主分支、隔离 worktree、集成推送和本地服务故障收敛成可执行且可验证的开发闭环。
 
-**Architecture:** 使用根目录 Node CLI 作为两个明确入口：`workflow:worktree` 负责从干净 `main` 创建并初始化任务 worktree，`workflow:integrate` 负责取得仓库级锁后准备 merge、签名提交并推送 `main`。启动门禁复用 `workspace-integrity-guard.cjs`，开发编排通过 `concurrently` 的有限重启和失败收敛避免 API 死掉后前端假活。
+**Architecture:** 使用根目录 Node CLI 作为两个明确入口：`workflow:worktree` 负责从干净 `main` 创建并初始化任务 worktree，`workflow:integrate` 负责取得仓库级锁后准备 merge、签名提交并推送 `main`。启动门禁复用 `workspace-integrity-guard.cjs`，开发编排由自有 `dev-service-supervisor.cjs` 负责按服务独立重启并在持续失败时整组收敛，避免 API 死掉后前端假活。
 
-**Tech Stack:** Node.js 22、pnpm、Git worktree/hooks、Node built-in test runner、concurrently 9.2.1、PowerShell 验证命令。
+**Tech Stack:** Node.js 22、pnpm、Git worktree/hooks、Node built-in test runner、Node 子进程 supervisor、PowerShell 验证命令。
 
 ---
 

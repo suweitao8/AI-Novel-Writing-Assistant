@@ -2,9 +2,35 @@ const assert = require("node:assert/strict");
 const test = require("node:test");
 const fs = require("node:fs");
 const path = require("node:path");
-const { runServiceGroup } = require("./dev-service-supervisor.cjs");
+const { spawnSync } = require("node:child_process");
+const { assertSupervisorStartupIntegrity, runServiceGroup } = require("./dev-service-supervisor.cjs");
 
 const packageJson = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
+
+function runGit(cwd, args) {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+}
+
+test("supervisor applies the main-workspace gate before starting services", () => {
+  const directory = fs.mkdtempSync(path.join(require("node:os").tmpdir(), "ai-novel-supervisor-"));
+  try {
+    runGit(directory, ["init", "-b", "main"]);
+    runGit(directory, ["config", "user.name", "Supervisor Test"]);
+    runGit(directory, ["config", "user.email", "supervisor@example.invalid"]);
+    fs.writeFileSync(path.join(directory, "README.md"), "base\n");
+    runGit(directory, ["add", "README.md"]);
+    runGit(directory, ["commit", "-m", "initial"]);
+    fs.writeFileSync(path.join(directory, "unfinished.ts"), "must move to a worktree\n");
+
+    assert.throws(
+      () => assertSupervisorStartupIntegrity({ cwd: directory }),
+      /main workspace contains uncommitted development changes/i,
+    );
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test("dev:raw delegates to the service supervisor instead of raw concurrently", () => {
   const script = packageJson.scripts?.["dev:raw"] ?? "";

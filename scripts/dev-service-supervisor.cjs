@@ -3,6 +3,7 @@
 "use strict";
 
 const { spawn, spawnSync } = require("node:child_process");
+const { assertDevelopmentWorkspaceIntegrity } = require("./workspace-integrity-guard.cjs");
 
 const DEFAULT_MAX_RESTARTS = 3;
 const DEFAULT_RESTART_DELAY_MS = 1000;
@@ -164,7 +165,12 @@ function runServiceGroup({
   });
 }
 
+function assertSupervisorStartupIntegrity({ cwd = process.cwd() } = {}) {
+  assertDevelopmentWorkspaceIntegrity({ cwd });
+}
+
 async function main() {
+  assertSupervisorStartupIntegrity({ cwd: process.cwd() });
   const result = await runServiceGroup({ handleSignals: true });
   if (result.reason) console.error(`[dev-supervisor] ${result.reason}`);
   process.exitCode = result.exitCode;
@@ -183,7 +189,7 @@ module.exports = {
   DEFAULT_SERVICES,
   commandForService,
   delayForRestart,
+  assertSupervisorStartupIntegrity,
   runServiceGroup,
   terminateChild,
 };
-

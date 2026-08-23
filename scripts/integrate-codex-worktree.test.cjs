@@ -11,6 +11,7 @@ const {
   acquireIntegrationLock,
   assertIntegrationPreconditions,
   hasMergeHead,
+  parseArgs,
 } = require("./integrate-codex-worktree.cjs");
 
 function runGit(cwd, args, { expectSuccess = true } = {}) {
@@ -67,6 +68,17 @@ test("integration requires the protected main branch and a clean codex worktree"
     () => assertIntegrationPreconditions({ cwd: directory, taskBranch: "codex/not-main" }),
     /protected main branch/i,
   );
+});
+
+test("integration arguments require the source branch first and reject unknown options", () => {
+  assert.deepEqual(parseArgs(["codex/example", "--push", "--verify", "node --test"]), {
+    taskBranch: "codex/example",
+    push: true,
+    verifyCommand: "node --test",
+  });
+  assert.throws(() => parseArgs(["--push"]), /source branch first/i);
+  assert.throws(() => parseArgs(["codex/example", "--verify"]), /requires one shell command/i);
+  assert.throws(() => parseArgs(["codex/example", "--unexpected"]), /unknown integration option/i);
 });
 
 test("integration lock rejects a second active owner and releases safely", (t) => {
@@ -141,4 +153,3 @@ test("merge conflict is aborted so main does not retain MERGE_HEAD", (t) => {
   assert.equal(hasMergeHead(directory), false);
   assert.equal(runGit(directory, ["status", "--porcelain"]).stdout.trim(), "");
 });
-
