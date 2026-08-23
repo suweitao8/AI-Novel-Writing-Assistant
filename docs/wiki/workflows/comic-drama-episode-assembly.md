@@ -27,6 +27,7 @@
 - 结果记录：`DramaEpisode.assembledVideoData` JSON `{status: assembling|done|error, videoUrl, srtUrl, durationSec, shotCount, burnedSubtitles, generatedAt, warnings[]}`；warnings 是逐镜降级明细，合成仍然算完成。
 - 片头卡 3s（剧名 · 第 N 集）、片尾卡 2s（敬请期待下集）由 Remotion 直接渲染，不依赖本机字体探测。
 - 字幕渲染：`burnSubtitles=true` 时由 Remotion 在横屏画面底部渲染字幕；`burnSubtitles=false` 时只生成 SRT 下载，不把字幕绘入画面。字幕换行按 18 字符/行（`wrapSubtitleText`），断句规则见下。
+- 字幕角色语义：音频条目的 `type` 沿整集合成时间轴传递；旁白（`narration` 或兼容旧格式的 `speaker=旁白`）在画面和 SRT 中只输出正文白字，不显示「旁白：」标签；对白（`dialogue`）才显示角色名和冒号，角色名使用强调色。
 - 断句规则（搬自 mydrama narrated_timeline，红线：只改分组不改文字）：引号外句末标点（。！？!?…）切分 → 超过 42 字的子句退到逗号级标点再切 → 短于 8 字的碎片并入前一条。
 
 ## 关键模块

@@ -74,6 +74,7 @@ function SubtitleLayer({ subtitles }: { subtitles: DramaVideoSubtitle[] }) {
     frame >= subtitle.startFrame && frame < subtitle.startFrame + subtitle.durationInFrames,
   );
   if (!active) return null;
+  const isNarration = active.type === "narration" || !active.speaker?.trim() || active.speaker.trim() === "旁白";
 
   return (
     <AbsoluteFill style={{ pointerEvents: "none", justifyContent: "flex-end", alignItems: "center", padding: `0 ${width * 0.08}px ${height * 0.1}px` }}>
@@ -88,7 +89,7 @@ function SubtitleLayer({ subtitles }: { subtitles: DramaVideoSubtitle[] }) {
           textShadow: "0 4px 12px rgba(0,0,0,.9)",
         }}
       >
-        {active.speaker ? <span style={{ color: "#ffd580", marginRight: 10 }}>{active.speaker}：</span> : null}
+        {!isNarration && active.speaker ? <span style={{ color: "#ffd580", marginRight: 10 }}>{active.speaker}：</span> : null}
         {active.text}
       </div>
     </AbsoluteFill>

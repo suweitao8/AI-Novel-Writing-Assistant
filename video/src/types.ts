@@ -15,6 +15,7 @@ export interface DramaVideoSubtitle {
   durationInFrames: number;
   text: string;
   speaker?: string;
+  type?: "dialogue" | "narration";
 }
 
 export interface DramaEpisodeVideoProps {

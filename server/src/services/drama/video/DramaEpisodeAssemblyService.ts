@@ -11,6 +11,7 @@ import {
   type DramaAssemblyAudioLine,
   type DramaAssemblyShot,
 } from "./DramaRemotionEpisodeAssembler";
+import type { DramaSubtitleType } from "./dramaVideoTimeline";
 import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
 import {
   assertFfmpegAvailable,
@@ -286,7 +287,14 @@ export class DramaEpisodeAssemblyService {
   ): Promise<AssemblyShotPlan> {
     const audio = safeJsonParse<{
       status?: string;
-      items?: Array<{ lineIndex?: number; speaker?: string; text?: string; audioUrl?: string; durationSec?: number }>;
+      items?: Array<{
+        lineIndex?: number;
+        speaker?: string;
+        type?: DramaSubtitleType;
+        text?: string;
+        audioUrl?: string;
+        durationSec?: number;
+      }>;
     }>(shot.dialogueAudioData, {});
     const audioItems = (audio.status === "done" ? audio.items ?? [] : [])
       .filter((item) => item && typeof item.text === "string" && item.text.trim() && typeof item.audioUrl === "string" && item.audioUrl.startsWith("data:"))
@@ -307,9 +315,11 @@ export class DramaEpisodeAssemblyService {
         probed ?? item.durationSec,
         Math.max(1.5, Math.ceil((item.text?.length ?? 6) / 4)),
       );
+      const speaker = item.speaker?.trim() || undefined;
       audioLines.push({
         text: item.text!,
-        speaker: item.speaker?.trim() || undefined,
+        speaker,
+        type: item.type ?? (speaker && speaker !== "旁白" ? "dialogue" : "narration"),
         durationSec: Math.round(durationSec * 100) / 100,
         sourcePath: audioPath,
       });

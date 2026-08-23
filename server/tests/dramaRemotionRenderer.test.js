@@ -40,7 +40,7 @@ test("drama timeline converts contiguous seconds into landscape frame ranges", (
       { id: "shot-1", kind: "shot", durationSec: 2.25, imagePath: "images/shot-1.png" },
       { id: "end", kind: "end", durationSec: 1, title: "完" },
     ],
-    subtitles: [{ startSec: 1.5, endSec: 3.75, text: "第一句", speaker: "林澈" }],
+    subtitles: [{ startSec: 1.5, endSec: 3.75, text: "第一句", speaker: "林澈", type: "dialogue" }],
   });
 
   assert.equal(timeline.durationInFrames, 114);
@@ -54,6 +54,7 @@ test("drama timeline converts contiguous seconds into landscape frame ranges", (
     durationInFrames: 54,
     text: "第一句",
     speaker: "林澈",
+    type: "dialogue",
   }]);
 });
 
