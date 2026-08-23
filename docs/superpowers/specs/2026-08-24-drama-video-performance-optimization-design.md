@@ -63,9 +63,11 @@ Remotion 默认 worker 从 2 提升到 4，并允许 `DRAMA_REMOTION_CONCURRENCY
 ## Module Boundaries
 
 - `video/videoProcessingConcurrency.ts`：视频处理的受控并发、环境变量解析和有序映射；不依赖数据库或 Remotion。
-- `video/DramaEpisodeAssemblyService.ts`：镜头计划调度、作业进度顺序写入与阶段计时。
+- `video/assemblyJobProgress.ts`：作业进度快照的串行持久化和阶段计时；不依赖 Prisma，包含竞态可测的纯调度边界。
+- `video/DramaEpisodeAssemblyService.ts`：镜头计划调度、结果落库与进度 tracker 接入。
 - `video/DramaRemotionEpisodeAssembler.ts`：受控并发的分段音频规范化，最终 concat、mux、探测保持串行。
 - `video/DramaRemotionRenderer.ts` 与 `video/remotion.config.ts`：Remotion worker 配置和渲染过程。
+- `video/src/subtitleLookup.ts`：把任意字幕轨预处理成不重叠的查询区间，兼容旧轨中重叠 cue 的“首个激活项优先”语义。
 - `video/src/DramaEpisodeVideo.tsx`：仅负责当前字幕 cue 查找与呈现，不感知后端并发策略。
 
 ## Testing and Acceptance

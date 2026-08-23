@@ -13,6 +13,10 @@ import {
 } from "./dramaVideoTimeline";
 import { resolveFfmpegBin, resolveFfprobeBin, runVideoProcess } from "./ffmpegUtils";
 import { wrapSubtitleText } from "./subtitleText";
+import {
+  mapDramaVideoTasksInOrder,
+  resolveDramaVideoPreparationConcurrency,
+} from "./videoProcessingConcurrency";
 
 const SUBTITLE_WRAP_CHARS = 18;
 const TITLE_CARD_SEC = 3;
@@ -142,12 +146,15 @@ export class DramaRemotionEpisodeAssembler {
     const srtBody = buildSrt(alignedSubtitles);
     await fs.writeFile(input.srtPath, srtBody, "utf8");
 
-    const normalizedAudioPaths: string[] = [];
-    for (let index = 0; index < segments.length; index += 1) {
-      const outputPath = path.join(input.workDir, `audio-segment-${String(index).padStart(4, "0")}.wav`);
-      await this.normalizeSegmentAudio(segments[index]!, outputPath, input.workDir, index);
-      normalizedAudioPaths.push(outputPath);
-    }
+    const normalizedAudioPaths = await mapDramaVideoTasksInOrder(
+      segments,
+      resolveDramaVideoPreparationConcurrency(),
+      async (segment, index) => {
+        const outputPath = path.join(input.workDir, `audio-segment-${String(index).padStart(4, "0")}.wav`);
+        await this.normalizeSegmentAudio(segment, outputPath, input.workDir, index);
+        return outputPath;
+      },
+    );
 
     const fullAudioPath = path.join(input.workDir, "episode-audio.wav");
     await this.concatNormalizedAudio(normalizedAudioPaths, fullAudioPath, input.workDir, timeline.durationInFrames / input.profile.fps);
