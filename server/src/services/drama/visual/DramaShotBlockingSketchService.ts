@@ -257,6 +257,7 @@ export class DramaShotBlockingSketchService {
       version: (previous?.version ?? 0) + 1,
       scene: normalized.scene,
       actors: normalized.actors,
+      ...(normalized.layout3d ? { layout3d: normalized.layout3d } : {}),
     };
     await prisma.dramaShot.update({
       where: { id: shotId },

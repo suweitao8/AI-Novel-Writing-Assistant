@@ -13,6 +13,38 @@ export const BLOCKING_SKETCH_LIMITS = {
   maxActors: 12,
 } as const;
 
+export const BLOCKING_SKETCH_3D_LIMITS = {
+  cameraAzimDeg: { min: -180, max: 180 },
+  cameraElevDeg: { min: -89, max: 89 },
+  cameraDistance: { min: 0.25, max: 100 },
+  cameraFocalPoint: { min: -100, max: 100 },
+  positionX: { min: -100, max: 100 },
+  positionY: { min: 0, max: 50 },
+  positionZ: { min: -100, max: 100 },
+  yawDeg: { min: -180, max: 180 },
+  scale: { min: 0.1, max: 10 },
+} as const;
+
+export const BLOCKING_SKETCH_POSES = [
+  "standing",
+  "talking",
+  "arms_crossed",
+  "sitting",
+  "crouching",
+  "kneeling",
+  "lying",
+  "prone",
+  "walking",
+  "running",
+  "pointing",
+  "holding",
+  "interacting",
+  "fighting",
+  "sword",
+] as const;
+
+export type DramaShotBlockingSketchPose = typeof BLOCKING_SKETCH_POSES[number];
+
 export type DramaShotBlockingSketchStatus = "draft" | "confirmed";
 
 export interface DramaShotBlockingSketchScene {
@@ -36,6 +68,29 @@ export interface DramaShotBlockingSketchActor {
   zIndex: number;
 }
 
+export interface DramaShotBlockingSketch3DCamera {
+  azim: number;
+  elev: number;
+  distance: number;
+  focalPoint: [number, number, number];
+}
+
+export interface DramaShotBlockingSketch3DActor {
+  characterName: string;
+  position: [number, number, number];
+  yawDeg: number;
+  scale: [number, number, number];
+  pose: DramaShotBlockingSketchPose;
+  actionPlaying: boolean;
+}
+
+export interface DramaShotBlockingSketch3DLayout {
+  schemaVersion: 1;
+  engine: "playcanvas";
+  camera: DramaShotBlockingSketch3DCamera;
+  actors: DramaShotBlockingSketch3DActor[];
+}
+
 export interface DramaShotBlockingSketchData {
   status: DramaShotBlockingSketchStatus;
   version: number;
@@ -43,6 +98,7 @@ export interface DramaShotBlockingSketchData {
   generatedAt?: string;
   scene: DramaShotBlockingSketchScene;
   actors: DramaShotBlockingSketchActor[];
+  layout3d?: DramaShotBlockingSketch3DLayout;
 }
 
 function invalid(message: string): never {
@@ -84,6 +140,69 @@ function optionalBoolean(value: unknown, label: string): boolean {
   return value;
 }
 
+function tuple3(value: unknown, label: string, min: number, max: number): [number, number, number] {
+  if (!Array.isArray(value) || value.length !== 3) {
+    invalid(`${label}必须是三个数字`);
+  }
+  return [0, 1, 2].map((index) => finiteNumber(value[index], `${label}${index + 1}`, min, max)) as [number, number, number];
+}
+
+function array3(value: unknown, label: string): unknown[] {
+  if (!Array.isArray(value) || value.length !== 3) {
+    invalid(`${label}必须是三个数字`);
+  }
+  return value;
+}
+
+function normalizePose(value: unknown): DramaShotBlockingSketchPose {
+  if (typeof value !== "string" || !(BLOCKING_SKETCH_POSES as readonly string[]).includes(value)) {
+    invalid("姿势必须是支持的 3D 姿势");
+  }
+  return value as DramaShotBlockingSketchPose;
+}
+
+function normalize3dCamera(input: unknown): DramaShotBlockingSketch3DCamera {
+  const camera = objectValue(input, "3D 相机");
+  return {
+    azim: finiteNumber(camera.azim, "3D 相机水平角", BLOCKING_SKETCH_3D_LIMITS.cameraAzimDeg.min, BLOCKING_SKETCH_3D_LIMITS.cameraAzimDeg.max),
+    elev: finiteNumber(camera.elev, "3D 相机俯仰角", BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.min, BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.max),
+    distance: finiteNumber(camera.distance, "3D 相机距离", BLOCKING_SKETCH_3D_LIMITS.cameraDistance.min, BLOCKING_SKETCH_3D_LIMITS.cameraDistance.max),
+    focalPoint: tuple3(camera.focalPoint, "3D 相机焦点", BLOCKING_SKETCH_3D_LIMITS.cameraFocalPoint.min, BLOCKING_SKETCH_3D_LIMITS.cameraFocalPoint.max),
+  };
+}
+
+function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
+  const actor = objectValue(input, "3D 角色");
+  const position = array3(actor.position, "3D 角色位置");
+  return {
+    characterName: stringValue(actor.characterName, "3D 角色名称")!,
+    position: [
+      finiteNumber(position[0], "3D 角色横向位置", BLOCKING_SKETCH_3D_LIMITS.positionX.min, BLOCKING_SKETCH_3D_LIMITS.positionX.max),
+      finiteNumber(position[1], "3D 角色高度", BLOCKING_SKETCH_3D_LIMITS.positionY.min, BLOCKING_SKETCH_3D_LIMITS.positionY.max),
+      finiteNumber(position[2], "3D 角色纵向位置", BLOCKING_SKETCH_3D_LIMITS.positionZ.min, BLOCKING_SKETCH_3D_LIMITS.positionZ.max),
+    ],
+    yawDeg: finiteNumber(actor.yawDeg, "3D 角色旋转", BLOCKING_SKETCH_3D_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_LIMITS.yawDeg.max),
+    scale: tuple3(actor.scale, "3D 角色缩放", BLOCKING_SKETCH_3D_LIMITS.scale.min, BLOCKING_SKETCH_3D_LIMITS.scale.max),
+    pose: normalizePose(actor.pose),
+    actionPlaying: optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态"),
+  };
+}
+
+function normalizeLayout3d(input: unknown): DramaShotBlockingSketch3DLayout {
+  const layout = objectValue(input, "3D 摆位");
+  if (layout.schemaVersion !== 1) invalid("3D 摆位版本不受支持");
+  if (layout.engine !== "playcanvas") invalid("3D 摆位引擎不受支持");
+  if (!Array.isArray(layout.actors) || layout.actors.length > BLOCKING_SKETCH_LIMITS.maxActors) {
+    invalid(`3D 角色数量不能超过 ${BLOCKING_SKETCH_LIMITS.maxActors}`);
+  }
+  return {
+    schemaVersion: 1,
+    engine: "playcanvas",
+    camera: normalize3dCamera(layout.camera),
+    actors: layout.actors.map(normalize3dActor),
+  };
+}
+
 function normalizeScene(input: unknown): DramaShotBlockingSketchScene {
   const scene = objectValue(input, "场景");
   return {
@@ -121,6 +240,7 @@ export function normalizeBlockingSketchData(input: unknown): DramaShotBlockingSk
   }
   const url = stringValue(data.url, "草图图片", false);
   const generatedAt = stringValue(data.generatedAt, "生成时间", false);
+  const layout3d = data.layout3d === undefined ? undefined : normalizeLayout3d(data.layout3d);
   return {
     status: data.status,
     version: finiteNumber(data.version, "版本号", 1, Number.MAX_SAFE_INTEGER, true),
@@ -128,6 +248,7 @@ export function normalizeBlockingSketchData(input: unknown): DramaShotBlockingSk
     ...(generatedAt ? { generatedAt } : {}),
     scene: normalizeScene(data.scene),
     actors: data.actors.map(normalizeActor),
+    ...(layout3d ? { layout3d } : {}),
   };
 }
 

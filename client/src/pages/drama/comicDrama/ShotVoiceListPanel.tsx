@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Volume2,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   createDramaEpisodeBatchJob,
   generateDramaShotKeyframe,
@@ -563,6 +563,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   onBlockingSketchSaved: () => void;
 }) {
   const { shot, segments } = props;
+  const navigate = useNavigate();
   const keyframe = parseKeyframe(shot.keyframeData);
   const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
   const [blockingSketchOpen, setBlockingSketchOpen] = useState(false);
@@ -612,9 +613,18 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           size="sm"
           variant="outline"
           className="h-7 w-full px-2 text-[11px]"
+          onClick={() => navigate(`/drama/projects/${encodeURIComponent(props.projectId)}/shots/${encodeURIComponent(shot.id)}/blocking-3d?order=${shot.order}`)}
+        >
+          {blockingSketch.status === "draft" ? "继续 3D 摆位" : "3D 摆位台"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 w-full px-2 text-[11px]"
           onClick={() => setBlockingSketchOpen(true)}
         >
-          {blockingSketch.status === "draft" ? "继续摆位" : "摆位草图"}
+          2D 草图
         </Button>
       </div>
 
