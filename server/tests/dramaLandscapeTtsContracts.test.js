@@ -28,8 +28,8 @@ test("漫剧分镜、视频提示词和合成产物统一为横屏", () => {
   assert.match(keyframeService, /size: IMAGE_SPECS\.dramaKeyframe/);
   assert.doesNotMatch(keyframeService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
   assert.match(assemblyService, /DramaRemotionEpisodeAssembler/);
-  assert.match(assemblyService, /getDramaRenderProfile/);
-  assert.match(localVideo, /getDramaRenderProfile/);
+  assert.match(assemblyService, /getConfiguredDramaRenderProfile/);
+  assert.match(localVideo, /getConfiguredDramaRenderProfile/);
   assert.doesNotMatch(localVideo, /zoompan|Ken Burns/);
   assert.match(localVideo, /-loop/);
   assert.match(localVideo, /-vf/);

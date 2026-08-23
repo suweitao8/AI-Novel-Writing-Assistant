@@ -3,8 +3,9 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 import { resolveServerRoot } from "../../../runtime/appPaths";
+import { getConfiguredDramaRenderProfile } from "../../settings/DramaVideoRenderProfileSettingsService";
 import type { VideoGenerationRequest, VideoGenerationResult, VideoProviderPort } from "./VideoProviderPort";
-import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
+import { audioFileExtensionFromDataUrl, type DramaRenderProfile } from "./renderProfile";
 
 // 本地 ffmpeg 视频通道：把静态分镜画面 + 台词配音合成为真实的 mp4 片段。
 // 画面按配音时长保持静止（无配音时用 durationSec 静音占位），输出横屏 16:9 H.264。
@@ -127,8 +128,7 @@ function buildFfmpegArgs(input: {
   audioPath: string | null;
   durationSec: number;
   outputPath: string;
-}): string[] {
-  const profile = getDramaRenderProfile();
+}, profile: DramaRenderProfile): string[] {
   const width = profile.width;
   const height = profile.height;
   const fps = profile.fps || DEFAULT_FPS;
@@ -179,6 +179,7 @@ export class LocalFfmpegVideoProvider implements VideoProviderPort {
 
   async createTask(input: VideoGenerationRequest): Promise<VideoGenerationResult> {
     const ffmpegPath = resolveFfmpegPath();
+    const profile = await getConfiguredDramaRenderProfile();
     const taskId = `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const outputDir = resolveGeneratedVideosRoot();
     await fs.mkdir(outputDir, { recursive: true });
@@ -200,13 +201,12 @@ export class LocalFfmpegVideoProvider implements VideoProviderPort {
     const durationSec = Math.round(
       Math.max(input.durationSec ?? 0, audio ? 4 : 0) || DEFAULT_DURATION_SEC,
     );
-
     const args = buildFfmpegArgs({
       imagePath,
       audioPath: audio?.concatListPath ?? null,
       durationSec,
       outputPath,
-    });
+    }, profile);
 
     // Windows 下文件可能被占用：逐个兜底删除，失败忽略（下次启动同名 taskId 不同，不会堆积复用）。
     let tempCleaned = false;

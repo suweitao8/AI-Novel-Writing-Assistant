@@ -5,7 +5,9 @@ export interface DramaRenderProfile {
   fps: 24;
 }
 
-const DRAMA_RENDER_PROFILES: Record<DramaRenderProfile["id"], DramaRenderProfile> = {
+export const DRAMA_RENDER_PROFILE_IDS = ["720p", "1080p"] as const satisfies readonly DramaRenderProfile["id"][];
+
+export const DRAMA_RENDER_PROFILES: Record<DramaRenderProfile["id"], DramaRenderProfile> = {
   "720p": { id: "720p", width: 1280, height: 720, fps: 24 },
   "1080p": { id: "1080p", width: 1920, height: 1080, fps: 24 },
 };
@@ -16,14 +18,22 @@ export function assertLandscape16x9(width: number, height: number): void {
   }
 }
 
-export function getDramaRenderProfile(env: Record<string, string | undefined> = process.env): DramaRenderProfile {
-  const id = env.DRAMA_VIDEO_PROFILE?.trim() || "720p";
-  if (id !== "720p" && id !== "1080p") {
-    throw new Error(`不支持的漫剧视频分辨率配置：${id}，可选 720p 或 1080p`);
+export function getDramaRenderProfiles(): DramaRenderProfile[] {
+  return DRAMA_RENDER_PROFILE_IDS.map((id) => ({ ...DRAMA_RENDER_PROFILES[id] }));
+}
+
+export function getDramaRenderProfileById(value: unknown): DramaRenderProfile {
+  const id = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!DRAMA_RENDER_PROFILE_IDS.includes(id as DramaRenderProfile["id"])) {
+    throw new Error(`不支持的漫剧视频分辨率配置：${String(value || "未设置")}，可选 720p 或 1080p`);
   }
-  const profile = DRAMA_RENDER_PROFILES[id];
+  const profile = DRAMA_RENDER_PROFILES[id as DramaRenderProfile["id"]];
   assertLandscape16x9(profile.width, profile.height);
   return { ...profile };
+}
+
+export function getDramaRenderProfile(env: Record<string, string | undefined> = process.env): DramaRenderProfile {
+  return getDramaRenderProfileById(env.DRAMA_VIDEO_PROFILE?.trim() || "720p");
 }
 
 export function audioFileExtensionFromDataUrl(dataUrl: string): "wav" | "mp3" | "bin" {

@@ -14,7 +14,8 @@ import {
   type DramaAssemblyShot,
 } from "./DramaRemotionEpisodeAssembler";
 import type { DramaSubtitleType } from "./dramaVideoTimeline";
-import { audioFileExtensionFromDataUrl, getDramaRenderProfile } from "./renderProfile";
+import { audioFileExtensionFromDataUrl, type DramaRenderProfile } from "./renderProfile";
+import { getConfiguredDramaRenderProfile } from "../../settings/DramaVideoRenderProfileSettingsService";
 import {
   assertFfmpegAvailable,
   ensureDir,
@@ -84,6 +85,7 @@ export class DramaEpisodeAssemblyService {
 
   async getAssemblyStatus(projectId: string, order: number) {
     const episode = await this.loadEpisode(projectId, order);
+    const renderProfile = await getConfiguredDramaRenderProfile();
     const shots = episode.storyboards[0]?.shots ?? [];
     const promptByShot = this.buildPromptByShot(episode.videoPrompts ?? []);
     let withVideoClip = 0;
@@ -126,7 +128,7 @@ export class DramaEpisodeAssemblyService {
     return {
       episodeId: episode.id,
       order,
-      renderProfile: getDramaRenderProfile(),
+      renderProfile,
       shotCount: shots.length,
       clips: { withVideoClip, withKeyframeOnly, withoutVisual },
       withoutAudioShotCount: withoutAudio,
@@ -144,6 +146,7 @@ export class DramaEpisodeAssemblyService {
     }
     await assertFfmpegAvailable();
     await this.failStaleJobs(episode.id);
+    const renderProfile = await getConfiguredDramaRenderProfile();
 
     const running = await prisma.dramaBatchJob.findFirst({
       where: { episodeId: episode.id, type: "full_episode", status: { in: ["pending", "running"] } },
@@ -176,7 +179,7 @@ export class DramaEpisodeAssemblyService {
       burnSubtitles: options.burnSubtitles ?? true,
       includeTitleCard: options.includeTitleCard ?? true,
       includeEndCard: options.includeEndCard ?? true,
-    }).catch(() => undefined);
+    }, renderProfile).catch(() => undefined);
     return job;
   }
 
@@ -185,6 +188,7 @@ export class DramaEpisodeAssemblyService {
     projectId: string,
     order: number,
     options: Required<DramaEpisodeAssemblyOptions>,
+    profile: DramaRenderProfile,
   ) {
     if (this.runningJobs.has(jobId)) {
       return;
@@ -223,7 +227,6 @@ export class DramaEpisodeAssemblyService {
       await ensureDir(outputRoot);
       const finalVideoPath = path.join(outputRoot, `${finalFileId}.mp4`);
       const finalSrtPath = path.join(outputRoot, `${finalFileId}.srt`);
-      const profile = getDramaRenderProfile();
 
       const result = await this.assembler.assemble({
         jobId,
