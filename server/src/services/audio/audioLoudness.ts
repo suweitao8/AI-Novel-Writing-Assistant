@@ -1,6 +1,8 @@
 export const DEFAULT_AUDIO_TARGET_RMS_DBFS = -18;
 export const DEFAULT_AUDIO_MAX_PEAK_DBFS = -1;
 export const DEFAULT_AUDIO_ACTIVE_THRESHOLD_DBFS = -40;
+export const DEFAULT_AUDIO_COMPRESSOR_THRESHOLD_DBFS = -6;
+export const DEFAULT_AUDIO_COMPRESSOR_RATIO = 4;
 
 export interface Pcm16WavLoudnessMetrics {
   sampleRate: number;
@@ -79,6 +81,10 @@ function dbfsFromAmplitude(amplitude: number): number {
   return 20 * Math.log10(Math.max(amplitude / 32768, Number.EPSILON));
 }
 
+function amplitudeFromDbfs(dbfs: number): number {
+  return 10 ** (dbfs / 20);
+}
+
 export function analyzePcm16Wav(input: Uint8Array): Pcm16WavLoudnessMetrics | null {
   const layout = resolvePcm16WavLayout(input);
   if (!layout) {
@@ -124,28 +130,83 @@ export function normalizePcm16WavVolume(
     maxPeakDbfs?: number;
   } = {},
 ): Uint8Array {
-  const metrics = analyzePcm16Wav(input);
+  let source = input;
+  let metrics = analyzePcm16Wav(source);
   if (!metrics || metrics.activeSampleCount === 0) {
     return input;
   }
 
   const targetRmsDbfs = options.targetRmsDbfs ?? DEFAULT_AUDIO_TARGET_RMS_DBFS;
   const maxPeakDbfs = options.maxPeakDbfs ?? DEFAULT_AUDIO_MAX_PEAK_DBFS;
-  const desiredGainDb = targetRmsDbfs - metrics.activeRmsDbfs;
-  const peakLimitedGainDb = maxPeakDbfs - metrics.peakDbfs;
-  const gainDb = Math.min(desiredGainDb, peakLimitedGainDb);
-  const gain = 10 ** (gainDb / 20);
-  if (!Number.isFinite(gain) || Math.abs(gain - 1) < 0.0001) {
-    return input;
+  let desiredGainDb = targetRmsDbfs - metrics.activeRmsDbfs;
+  let peakLimitedGainDb = maxPeakDbfs - metrics.peakDbfs;
+
+  // Speech can contain a few near-full-scale peaks while the body of the
+  // sentence is quiet. In that case gain-only normalization would leave the
+  // whole sample quiet because the peaks hit the ceiling first. Compress the
+  // peaks just enough to make the requested gain safe, then recalculate RMS.
+  for (
+    let compressionPass = 0;
+    compressionPass < 4 && desiredGainDb > peakLimitedGainDb + 0.1 && desiredGainDb > 0;
+    compressionPass += 1
+  ) {
+    const layout = resolvePcm16WavLayout(source);
+    const desiredGain = amplitudeFromDbfs(desiredGainDb);
+    const maxPeakAmplitude = amplitudeFromDbfs(maxPeakDbfs);
+    const targetPeakAmplitude = maxPeakAmplitude / desiredGain;
+    const currentPeakAmplitude = amplitudeFromDbfs(metrics.peakDbfs);
+    if (
+      !layout
+      || !Number.isFinite(targetPeakAmplitude)
+      || targetPeakAmplitude <= 0
+      || targetPeakAmplitude >= currentPeakAmplitude
+    ) {
+      break;
+    }
+
+    const thresholdAmplitude = Math.min(
+      amplitudeFromDbfs(DEFAULT_AUDIO_COMPRESSOR_THRESHOLD_DBFS),
+      targetPeakAmplitude * 0.75,
+    );
+    const denominator = targetPeakAmplitude - thresholdAmplitude;
+    const calculatedRatio = denominator > 0
+      ? (currentPeakAmplitude - thresholdAmplitude) / denominator
+      : DEFAULT_AUDIO_COMPRESSOR_RATIO;
+    const ratio = Math.max(DEFAULT_AUDIO_COMPRESSOR_RATIO, calculatedRatio);
+    const compressed = new Uint8Array(source);
+    const view = new DataView(compressed.buffer, compressed.byteOffset, compressed.byteLength);
+    for (let offset = layout.dataOffset; offset + 2 <= layout.dataOffset + layout.dataLength; offset += 2) {
+      const sample = view.getInt16(offset, true);
+      const amplitude = Math.abs(sample) / 32768;
+      if (amplitude <= thresholdAmplitude) {
+        continue;
+      }
+      const compressedAmplitude = Math.min(
+        targetPeakAmplitude,
+        thresholdAmplitude + (amplitude - thresholdAmplitude) / ratio,
+      );
+      const compressedSample = Math.round(Math.sign(sample) * compressedAmplitude * 32768);
+      view.setInt16(offset, compressedSample, true);
+    }
+    source = compressed;
+    metrics = analyzePcm16Wav(source) ?? metrics;
+    desiredGainDb = targetRmsDbfs - metrics.activeRmsDbfs;
+    peakLimitedGainDb = maxPeakDbfs - metrics.peakDbfs;
   }
 
-  const layout = resolvePcm16WavLayout(input);
-  if (!layout) {
-    return input;
+  const gainDb = Math.min(desiredGainDb, peakLimitedGainDb);
+  const gain = amplitudeFromDbfs(gainDb);
+  if (!Number.isFinite(gain) || Math.abs(gain - 1) < 0.0001) {
+    return source;
   }
-  const output = new Uint8Array(input);
+
+  const layout = resolvePcm16WavLayout(source);
+  if (!layout) {
+    return source;
+  }
+  const output = new Uint8Array(source);
   const view = new DataView(output.buffer, output.byteOffset, output.byteLength);
-  const peakLimit = Math.min(32767, Math.floor(32768 * (10 ** (maxPeakDbfs / 20))));
+  const peakLimit = Math.min(32767, Math.floor(32768 * amplitudeFromDbfs(maxPeakDbfs)));
   for (let offset = layout.dataOffset; offset + 2 <= layout.dataOffset + layout.dataLength; offset += 2) {
     const sample = view.getInt16(offset, true);
     const scaled = Math.round(sample * gain);

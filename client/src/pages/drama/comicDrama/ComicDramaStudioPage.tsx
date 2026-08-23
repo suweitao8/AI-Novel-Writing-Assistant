@@ -5,7 +5,6 @@ import {
   ArrowLeft,
   BookOpenText,
   Boxes,
-  Film,
   Loader2,
   Plus,
   Settings,
@@ -319,12 +318,6 @@ export default function ComicDramaStudioPage() {
                       {storyboard.generateMutation.isPending ? "生成中…" : "生成"}
                     </AiButton>
                   </>
-                ) : currentTab === "video" && overview.drama ? (
-                  <Button size="sm" asChild>
-                    <Link to={`/drama/projects/${overview.drama.projectId}`}>
-                      <Film className="mr-1.5 h-4 w-4 shrink-0" aria-hidden="true" />打开视频工作台
-                    </Link>
-                  </Button>
                 ) : null}
               </div>
             </SubTabRow>
@@ -620,8 +613,8 @@ function VideoSection(props: {
         order={props.order}
         hasShots={props.drama.shotCount > 0}
         busy={false}
-        buttonLabel="合成成片"
-        doneButtonLabel="重新合成"
+        buttonLabel="合成视频"
+        doneButtonLabel="重新合成视频"
       />
     </div>
   );

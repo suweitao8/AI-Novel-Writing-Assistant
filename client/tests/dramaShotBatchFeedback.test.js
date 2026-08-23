@@ -17,6 +17,13 @@ test("批量生成画面会立即反馈并突出显示生成中的分镜", () =>
 test("批量画面生成使用有界并发", () => {
   const source = readFileSync(new URL("../../server/src/services/drama/production/DramaBatchOrchestrator.ts", import.meta.url), "utf8");
 
-  assert.match(source, /DRAMA_KEYFRAME_BATCH_CONCURRENCY = 3/);
-  assert.match(source, /runWithConcurrency\(shots, DRAMA_KEYFRAME_BATCH_CONCURRENCY/);
+  assert.match(source, /DRAMA_KEYFRAME_BATCH_CONCURRENCY = DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY/);
+  assert.match(source, /normalizeDramaKeyframeBatchConcurrency\(nextProgress\.concurrency\)/);
+});
+
+test("短剧工作室批量状态显示实际并发路数", () => {
+  const source = read("pages/drama/components/DramaVisualPanel.tsx");
+
+  assert.match(source, /progress\.concurrency/);
+  assert.match(source, /并发 \{progress\.concurrency\} 路/);
 });
