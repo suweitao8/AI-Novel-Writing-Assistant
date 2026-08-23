@@ -286,7 +286,7 @@ export default function DramaBlocking3DPage() {
       </header>
 
       <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card className="min-h-0 overflow-hidden">
+        <Card className="w-full self-start overflow-hidden">
           <CardContent className="relative aspect-video w-full p-0">
             <canvas ref={canvasRef} aria-label="3D 摆位视口" aria-busy={saving} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             {!viewer && !viewerError ? (
