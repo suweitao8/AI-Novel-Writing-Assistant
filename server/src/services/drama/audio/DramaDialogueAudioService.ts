@@ -6,6 +6,7 @@ import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
+import { globalNarratorVoiceSettingsService, hashNarratorSample } from "../../settings/GlobalNarratorVoiceSettingsService";
 import { isRealTTSProvider, ttsProviderRegistry } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
@@ -116,10 +117,14 @@ export function buildDialogueVoiceKey(input: {
   type: DialogueLineType;
   voice?: CharacterVoice;
   narratorDescription?: string;
+  narratorSampleAudioUrl?: string;
+  narratorSampleSha256?: string;
   lineEmotion?: string;
 }): string {
   if (input.type === "narration") {
-    return `narrator|${(input.narratorDescription ?? "").trim()}`;
+    const sampleFingerprint = input.narratorSampleSha256
+      ?? (input.narratorSampleAudioUrl ? hashNarratorSample(input.narratorSampleAudioUrl) : "");
+    return `narrator|${(input.narratorDescription ?? "").trim()}|${sampleFingerprint}`;
   }
   const voice = input.voice;
   return [
@@ -296,7 +301,7 @@ export class DramaDialogueAudioService {
 
     const adapter = ttsProviderRegistry.resolve(provider);
     const voiceMap = buildVoiceMap(shot.storyboard.project.characters);
-    const narratorVoice = readNarratorVoiceData(shot.storyboard.project.narratorVoiceData);
+    const narratorVoice = await globalNarratorVoiceSettingsService.get();
     const shotCharacterStates = parseShotCharacterStates(shot.characterStates);
     const novelStatesByName = shot.storyboard.project.source === "novel_import"
       && shot.storyboard.project.sourceRef?.trim()
@@ -322,6 +327,8 @@ export class DramaDialogueAudioService {
         type: line.type,
         voice,
         narratorDescription: narratorVoice.description,
+        narratorSampleAudioUrl: narratorVoice.sampleAudioUrl,
+        narratorSampleSha256: narratorVoice.sampleSha256,
         lineEmotion: line.emotion,
       });
       const prev = existingItems.get(line.lineIndex);
@@ -378,7 +385,7 @@ export class DramaDialogueAudioService {
               ? narratorVoice.description
               : (item.emotion || voice?.emotion || voice?.voicePrompt),
             speaker: isNarrationLine ? "旁白" : item.speaker,
-            referenceAudioUrl: isNarrationLine ? undefined : voice?.referenceAudioUrl,
+                referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
           },
         };
       });

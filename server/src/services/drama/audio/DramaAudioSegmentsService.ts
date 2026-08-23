@@ -4,6 +4,7 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
+import { globalNarratorVoiceSettingsService } from "../../settings/GlobalNarratorVoiceSettingsService";
 import {
   buildDialogueVoiceKey,
   buildVoiceMap,
@@ -11,7 +12,6 @@ import {
   hashDialogueText,
   parseDialogueLines,
   parseShotCharacterStates,
-  readNarratorVoiceData,
   resolveVoiceForCharacterState,
   type DialogueAudioData,
   type DialogueLineType,
@@ -63,7 +63,7 @@ export class DramaAudioSegmentsService {
       return [];
     }
     const voiceMap = buildVoiceMap(episode.project.characters);
-    const narratorVoice = readNarratorVoiceData(episode.project.narratorVoiceData);
+    const narratorVoice = await globalNarratorVoiceSettingsService.get();
     const expectedProvider = getAudioModelProvider();
     const novelStatesByName = episode.project.source === "novel_import"
       && episode.project.sourceRef?.trim()
@@ -94,6 +94,8 @@ export class DramaAudioSegmentsService {
           type: line.type,
           voice,
           narratorDescription: narratorVoice.description,
+          narratorSampleAudioUrl: narratorVoice.sampleAudioUrl,
+          narratorSampleSha256: narratorVoice.sampleSha256,
           lineEmotion: line.emotion,
         });
         let status: DramaAudioSegmentStatus = "missing";

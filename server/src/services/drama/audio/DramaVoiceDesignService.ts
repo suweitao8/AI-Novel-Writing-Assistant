@@ -1,7 +1,8 @@
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
 import { synthesizeAudioSpeech } from "../../audio/speechProvider";
-import { readCharacterVoice, readNarratorVoiceData } from "./DramaDialogueAudioService";
+import { globalNarratorVoiceSettingsService } from "../../settings/GlobalNarratorVoiceSettingsService";
+import { readCharacterVoice } from "./DramaDialogueAudioService";
 
 /** 音色试听固定样句（搬自 mydrama design 模式：用固定样句 + 描述控制生成参考音） */
 export const DRAMA_VOICE_SAMPLE_TEXT = "这是当前音色的试听效果，一句话就能听出年龄、语气和节奏。";
@@ -16,6 +17,18 @@ export interface NarratorVoiceState {
   description: string;
   sampleAudioUrl?: string;
   updatedAt?: string;
+}
+
+function toNarratorVoiceState(data: {
+  description?: string;
+  sampleAudioUrl?: string;
+  updatedAt?: string;
+}): NarratorVoiceState {
+  return {
+    description: data.description ?? "",
+    sampleAudioUrl: data.sampleAudioUrl,
+    updatedAt: data.updatedAt,
+  };
 }
 
 /**
@@ -63,12 +76,8 @@ export class DramaVoiceDesignService {
     if (!project) {
       throw new AppError(`未找到项目：${projectId}`, 404);
     }
-    const data = readNarratorVoiceData(project.narratorVoiceData);
-    return {
-      description: data.description ?? "",
-      sampleAudioUrl: data.sampleAudioUrl,
-      updatedAt: data.updatedAt,
-    };
+    const data = await globalNarratorVoiceSettingsService.get();
+    return toNarratorVoiceState(data);
   }
 
   async updateNarratorVoiceDescription(projectId: string, description: string): Promise<NarratorVoiceState> {
@@ -76,39 +85,11 @@ export class DramaVoiceDesignService {
     if (!project) {
       throw new AppError(`未找到项目：${projectId}`, 404);
     }
-    const current = readNarratorVoiceData(project.narratorVoiceData);
-    const next: NarratorVoiceState = {
-      ...current,
-      description: description.trim(),
-      updatedAt: new Date().toISOString(),
-    };
-    await prisma.dramaProject.update({
-      where: { id: projectId },
-      data: { narratorVoiceData: JSON.stringify(next) },
-    });
-    return next;
+    return toNarratorVoiceState(await globalNarratorVoiceSettingsService.updateDescription(description));
   }
 
   async designNarratorVoice(projectId: string, description: string): Promise<NarratorVoiceState> {
-    const trimmed = description.trim();
-    if (trimmed.length < 4) {
-      throw new AppError("旁白音色描述太短了：写清年龄、性别与叙述风格（例如「成年男声旁白，普通话自然，平直叙述」）。", 400);
-    }
-    const result = await synthesizeAudioSpeech({
-      text: DRAMA_VOICE_SAMPLE_TEXT,
-      audioType: "narration",
-      emotion: trimmed,
-    });
-    const next: NarratorVoiceState = {
-      description: trimmed,
-      sampleAudioUrl: result.dataUrl,
-      updatedAt: new Date().toISOString(),
-    };
-    await prisma.dramaProject.update({
-      where: { id: projectId },
-      data: { narratorVoiceData: JSON.stringify(next) },
-    });
-    return next;
+    return toNarratorVoiceState(await globalNarratorVoiceSettingsService.design(description));
   }
 }
 
