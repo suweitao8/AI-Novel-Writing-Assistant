@@ -60,16 +60,31 @@ function makeParsePayload(overrides = {}) {
   };
 }
 
-test("prompt 资产为 reference_parse@v13 且注册进 loader registry，旧两项已移除", () => {
-  assert.equal(chapterReferenceParsePrompt.version, "v13");
+test("prompt 资产为 reference_parse@v14 且注册进 loader registry，旧两项已移除", () => {
+  assert.equal(chapterReferenceParsePrompt.version, "v14");
   assert.equal(
     promptAssetLoaderEntries.find((entry) => entry.key.startsWith("novel.chapter.reference_parse")).key,
-    "novel.chapter.reference_parse@v13",
+    "novel.chapter.reference_parse@v14",
   );
   assert.equal(
     promptAssetLoaderEntries.filter((entry) => entry.key.startsWith("novel.chapter.reference_")).length,
     1,
   );
+});
+
+test("道具提取按复用度过滤：通用日常物品不收（2026-08-23 用户要求）", () => {
+  const messages = chapterReferenceParsePrompt.render({
+    novelTitle: "测试书",
+    chapterTitle: "第一章",
+    chapterOrder: 1,
+    referenceText: "测试文本",
+  });
+  const systemText = String(messages[0].content);
+  // 复用度是硬门槛：只收反复出现/推动关键情节的贯穿性道具；
+  // 行李箱/糖果零食/银行卡这类一次性日常物品不建形象，宁缺勿滥。
+  assert.match(systemText, /复用度是硬门槛/);
+  assert.match(systemText, /行李箱、背包、糖果零食、银行卡\/现金、手机、普通衣物餐具/);
+  assert.match(systemText, /本章确实没有就返回空数组/);
 });
 
 test("角色长相与穿搭按性格/年龄/身份各自设计，不同角色明显区分（2026-08-23 用户要求）", () => {
