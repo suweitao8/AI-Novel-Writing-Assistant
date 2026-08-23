@@ -35,3 +35,15 @@ test("配音界面不再提供页面级通道选择", () => {
   assert.doesNotMatch(projectPageSource, /ttsProvidersQuery|ttsProviders=/);
   assert.doesNotMatch(comicDramaApiSource, /payload: \{ provider\?: string; force\?: boolean \}/);
 });
+
+test("每个分镜行都能试听，并按当前状态生成或重新生成本镜配音", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+
+  assert.match(panelSource, /<audio controls preload="metadata"/);
+  assert.match(panelSource, /生成配音/);
+  assert.match(panelSource, /重新生成/);
+  assert.match(panelSource, /onClick=\{\(\) => props\.onRegenerate\(shot, shouldForceRegenerate\)\}/);
+  assert.match(panelSource, /regenerateDramaShotAudio\(projectId, shot\.id, \{ force \}\)/);
+  assert.match(panelSource, /audioActionLabel = shouldForceRegenerate \? "重新生成" : "生成配音"/);
+  assert.match(panelSource, /title=\{`\$\{audioActionLabel\}这一镜的配音`\}/);
+});
