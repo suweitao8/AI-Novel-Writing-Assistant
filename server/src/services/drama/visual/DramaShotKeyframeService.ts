@@ -16,12 +16,15 @@ import { filterImageGenerationReferences, parseImageStateSummary, runImageGenera
 import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
+import { buildDramaShotKeyframePrompt } from "../../../prompting/prompts/drama/shotKeyframe.prompts";
 import {
   buildShotStylePromptLines,
   combineShotStyleAvoidInstructions,
   type DramaAssetStyleKind,
 } from "./dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./dramaArtStyleResolver";
+import { isConfirmedBlockingSketch, parseBlockingSketchData } from "./DramaShotBlockingSketchContracts";
+import { dramaShotBlockingSketchService } from "./DramaShotBlockingSketchService";
 
 export type ShotKeyframeStatus = "idle" | "generating" | "done" | "error";
 
@@ -65,6 +68,7 @@ interface ShotKeyframeSource {
   /** 分镜 LLM 标注的每镜角色状态 JSON（[{name,state}]，drama.storyboard@v5 起） */
   characterStates?: string | null;
   visualPrompt?: string | null;
+  blockingSketchData?: string | null;
   storyboard: {
     project: {
       id: string;
@@ -497,31 +501,6 @@ function buildShotScriptJudge(shot: {
   };
 }
 
-function buildShotKeyframePrompt(
-  shot: ShotKeyframeSource,
-  styleLines: string[],
-  settings: { scenes: SceneSettingLite[]; props: PropSettingLite[] },
-  activeStatesByName: Map<string, StoryAssetState>,
-): string {
-  const characters = selectReferencedCharacters(shot).map((character) =>
-    buildCharacterPromptLine(character, activeStatesByName.get(character.name.trim())));
-  const lines = [
-    ...styleLines,
-    "静态画面：整镜保持这一张横屏首帧图，不设计运镜",
-    "构图干净，主体突出",
-    shot.location ? `地点：${shot.location}` : "",
-    ...buildSettingPromptLines(shot, settings),
-    shot.shotSize ? `景别：${shot.shotSize}` : "",
-    `画面内容：${shot.action}`,
-    shot.dialogue ? `台词语境（不要渲染字幕）：${shot.dialogue}` : "",
-    shot.visualPrompt ? `画面提示词：${shot.visualPrompt}` : "",
-    characters.length ? `角色：${characters.join("｜")}` : "",
-    "所有出场角色保持服装、发型、五官、年龄与情绪一致",
-    "不要文字、水印、字幕或标志",
-  ];
-  return lines.filter(Boolean).join("，");
-}
-
 export class DramaShotKeyframeService {
   private async buildKeyframeGenerationContext(
     shotId: string,
@@ -541,6 +520,14 @@ export class DramaShotKeyframeService {
     if (!shot) {
       throw new AppError(`未找到短剧镜头：${shotId}`, 404);
     }
+    const parsedBlockingSketch = parseBlockingSketchData(shot.blockingSketchData);
+    if (parsedBlockingSketch?.status === "draft") {
+      throw new AppError("存在尚未确认的摆位草图，请先确认草图再生成分镜画面。", 409);
+    }
+    const blockingSketch = isConfirmedBlockingSketch(parsedBlockingSketch) ? parsedBlockingSketch : null;
+    if (blockingSketch && !(await dramaShotBlockingSketchService.resolveExistingBlockingSketchPath(shotId))) {
+      throw new AppError("已确认摆位草图的图片不可读取，请重新保存并确认。", 409);
+    }
 
     // 时代风格逐镜判定（2026-08-22 用户要求）：镜头画面/台词 + 所在集正文作为剧情上下文，
     // AI 判断这一镜处于什么时代（切换场景时可能需要切换风格），失败回落全局链。
@@ -556,18 +543,32 @@ export class DramaShotKeyframeService {
     // 该镜各角色的生效状态（分镜 LLM 标注 × 设定中心状态名单）
     const activeStatesByName = resolveActiveStatesByName(shot, novelStatesByName);
     const usedKinds = resolveShotAssetStyleKinds(shot, settings);
-    const prompt = buildShotKeyframePrompt(
-      shot,
-      buildShotStylePromptLines(styleContext.assets, usedKinds, styleContext.specific),
-      settings,
-      activeStatesByName,
-    );
+    const prompt = buildDramaShotKeyframePrompt({
+      styleLines: buildShotStylePromptLines(styleContext.assets, usedKinds, styleContext.specific),
+      location: shot.location,
+      settingLines: buildSettingPromptLines(shot, settings),
+      shotSize: shot.shotSize,
+      action: shot.action,
+      dialogue: shot.dialogue,
+      visualPrompt: shot.visualPrompt,
+      characters: selectReferencedCharacters(shot).map((character) =>
+        buildCharacterPromptLine(character, activeStatesByName.get(character.name.trim()))),
+      hasConfirmedBlockingSketch: Boolean(blockingSketch),
+    });
     const negativePrompt = [
       "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
       combineShotStyleAvoidInstructions(styleContext.assets, usedKinds, styleContext.specific),
     ].filter(Boolean).join("，");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];
+    if (blockingSketch) {
+      refImages.unshift(blockingSketch.url);
+      referenceImages.unshift({
+        kind: "layout_sketch",
+        label: "已确认摆位草图",
+        url: blockingSketch.url,
+      });
+    }
     if (useCharacterRefImages) {
       const referencedChars = selectReferencedCharacters(shot);
       for (const char of referencedChars) {
@@ -639,6 +640,7 @@ export class DramaShotKeyframeService {
       prompt,
       refImages,
       referenceImages,
+      blockingSketchUrl: blockingSketch?.url,
       size: IMAGE_SPECS.dramaKeyframe,
       negativePrompt,
       title: `生成镜头 ${shot.order} 首帧图`,
@@ -672,7 +674,7 @@ export class DramaShotKeyframeService {
     const refs = filterImageGenerationReferences({
       refImages: ctx.refImages,
       referenceImages: ctx.referenceImages,
-      excludedReferenceImageUrls: overrides?.excludedReferenceImageUrls,
+      excludedReferenceImageUrls: overrides?.excludedReferenceImageUrls?.filter((url) => url !== ctx.blockingSketchUrl),
     });
     return runImageGeneration(ctx.adapter, {
       provider: overrides?.providerOverride ?? provider,

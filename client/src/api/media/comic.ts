@@ -90,7 +90,7 @@ export interface ComicPanel {
 }
 
 export interface PanelReferenceImageMeta {
-  kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene";
+  kind: "character_sheet" | "character_expression" | "character_face" | "asset" | "scene" | "layout_sketch";
   label: string;
   url: string;
 }

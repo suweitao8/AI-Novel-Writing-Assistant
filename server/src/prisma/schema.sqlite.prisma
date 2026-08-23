@@ -3785,6 +3785,7 @@ model DramaShot {
   characterStates String?
   visualPrompt  String?
   keyframeData  String?
+  blockingSketchData String?
   dialogueAudioData String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

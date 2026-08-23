@@ -24,6 +24,7 @@ import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
 import { SegmentStatusDot } from "./VoiceStagePanel";
+import ShotBlockingSketchDialog from "./components/ShotBlockingSketchDialog";
 import {
   DramaEpisodeAssemblyButton,
   DramaEpisodeAssemblyResultPanel,
@@ -40,6 +41,7 @@ interface ShotVoiceListPanelProps {
 }
 
 type KeyframeState = { status?: string; url?: string; error?: string };
+type BlockingSketchState = { status?: "draft" | "confirmed"; url?: string };
 
 function parseKeyframe(raw: string | null | undefined): KeyframeState {
   if (!raw?.trim()) {
@@ -47,6 +49,15 @@ function parseKeyframe(raw: string | null | undefined): KeyframeState {
   }
   try {
     return JSON.parse(raw) as KeyframeState;
+  } catch {
+    return {};
+  }
+}
+
+function parseBlockingSketch(raw: string | null | undefined): BlockingSketchState {
+  if (!raw?.trim()) return {};
+  try {
+    return JSON.parse(raw) as BlockingSketchState;
   } catch {
     return {};
   }
@@ -429,8 +440,10 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder }:
               segments={segmentsByShotId.get(shot.id) ?? EMPTY_SEGMENTS}
               keyframeBusy={keyframeShotId === shot.id || optimisticKeyframeShotIds.has(shot.id) || parseKeyframe(shot.keyframeData).status === "generating"}
               regenerating={regeneratingShotId === shot.id}
+              projectId={projectId}
               onGenerateKeyframe={handleGenerateKeyframe}
               onRegenerate={handleRegenerate}
+              onBlockingSketchSaved={invalidateAll}
             />
           ))}
           <DramaEpisodeAssemblyResultPanel
@@ -545,11 +558,15 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   segments: DramaAudioSegment[];
   keyframeBusy: boolean;
   regenerating: boolean;
+  projectId: string;
   onGenerateKeyframe: (shotId: string) => void;
   onRegenerate: (shot: DramaShot, force: boolean) => void;
+  onBlockingSketchSaved: () => void;
 }) {
   const { shot, segments } = props;
   const keyframe = parseKeyframe(shot.keyframeData);
+  const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
+  const [blockingSketchOpen, setBlockingSketchOpen] = useState(false);
   const pendingCount = segments.filter((segment) => segment.status !== "ready" || !segment.audioUrl).length;
   const shouldForceRegenerate = segments.length > 0 && pendingCount === 0;
   const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
@@ -560,7 +577,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   return (
     <div className="flex gap-3 rounded-xl border border-border bg-background p-3 transition hover:border-primary/30">
       {/* 分镜画面缩略图：就绪可放大，未生成可就地点生成 */}
-      <div className="w-32 shrink-0 sm:w-40">
+      <div className="w-32 shrink-0 space-y-1.5 sm:w-40">
         {keyframe.status === "done" && keyframe.url ? (
           <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜画面`} className="aspect-video w-full" fit="cover" />
         ) : props.keyframeBusy ? (
@@ -586,7 +603,24 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             生成画面
           </button>
         )}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-7 w-full px-2 text-[11px]"
+          onClick={() => setBlockingSketchOpen(true)}
+        >
+          {blockingSketch.status === "draft" ? "继续摆位" : "摆位草图"}
+        </Button>
       </div>
+
+      <ShotBlockingSketchDialog
+        open={blockingSketchOpen}
+        onOpenChange={setBlockingSketchOpen}
+        projectId={props.projectId}
+        shot={shot}
+        onSaved={props.onBlockingSketchSaved}
+      />
 
       {/* 分镜信息 + 配音段 */}
       <div className="min-w-0 flex-1 space-y-1.5">
