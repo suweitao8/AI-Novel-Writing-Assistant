@@ -23,17 +23,26 @@ export function parseImageStateSummary(value: string | null | undefined): { stat
   return { status: parsed.status ?? "idle", ...(parsed.url ? { url: parsed.url } : {}) };
 }
 
-/** 把图片 URL（data: 或 http(s):）保存到本地磁盘 */
-export async function saveImageToDisk(imageUrl: string, destPath: string): Promise<void> {
-  await fs.mkdir(path.dirname(destPath), { recursive: true });
+/** 取图片字节（data: 或 http(s):）——落盘前的统一出口，便于透明底抠底等后处理。 */
+export async function resolveImageBytes(imageUrl: string): Promise<Buffer> {
   if (imageUrl.startsWith("data:")) {
     const [, b64 = ""] = imageUrl.split(",", 2);
-    await fs.writeFile(destPath, Buffer.from(b64, "base64"));
-  } else {
-    const resp = await fetch(imageUrl);
-    if (!resp.ok) throw new Error(`图片下载失败 (${resp.status}): ${imageUrl}`);
-    await fs.writeFile(destPath, Buffer.from(await resp.arrayBuffer()));
+    return Buffer.from(b64, "base64");
   }
+  const resp = await fetch(imageUrl);
+  if (!resp.ok) throw new Error(`图片下载失败 (${resp.status}): ${imageUrl}`);
+  return Buffer.from(await resp.arrayBuffer());
+}
+
+/** 把图片字节写到磁盘（自动建目录）。 */
+export async function writeImageBytes(destPath: string, bytes: Buffer): Promise<void> {
+  await fs.mkdir(path.dirname(destPath), { recursive: true });
+  await fs.writeFile(destPath, bytes);
+}
+
+/** 把图片 URL（data: 或 http(s):）保存到本地磁盘 */
+export async function saveImageToDisk(imageUrl: string, destPath: string): Promise<void> {
+  await writeImageBytes(destPath, await resolveImageBytes(imageUrl));
 }
 
 /** 根据 URL 推断扩展名（png/jpg/webp）；无法识别时默认 png */

@@ -21,6 +21,7 @@ import {
 } from "../provider";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { resolveImageProviderForReferences } from "../assetProviderRouting";
+import { ensureTransparentBackground } from "../backgroundKeying";
 
 import {
   DEFAULT_RUNTIME_PROVIDER,
@@ -30,7 +31,7 @@ import {
   type ImageTargetAdapter,
   type RunImageGenerationOptions,
 } from "./types";
-import { describeError, inferExtension, saveImageToDisk } from "./utils";
+import { describeError, inferExtension, resolveImageBytes, writeImageBytes } from "./utils";
 
 const DEFAULT_HISTORY_MAX = 5;
 
@@ -118,7 +119,13 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
 
     const ext = inferExtension(imageUrl);
     const destPath = adapter.diskPath(ext);
-    await saveImageToDisk(imageUrl, destPath);
+    // 请求了透明底（PNG）但结果没有 alpha 通道时做确定性抠底：codex edits（带参考图）
+    // 路径实测会把透明底压平成不透明纯色底，提示词救不回来（2026-08-23）。
+    const rawBytes = await resolveImageBytes(imageUrl);
+    const finalBytes = opts.background === "transparent" && opts.outputFormat === "png"
+      ? await ensureTransparentBackground(rawBytes)
+      : rawBytes;
+    await writeImageBytes(destPath, finalBytes);
     if (adapter.cleanupOtherExts) await adapter.cleanupOtherExts(ext);
 
     console.log(`[image.runtime] done kind=${adapter.kind} provider=${provider} model=${model} -> ${path.basename(destPath)}`);
