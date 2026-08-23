@@ -24,6 +24,7 @@ server/src/prisma/dev.db
 server/src/prisma/dev.db-journal
 # 数据库/迁移操作前的手工安全备份，永不入库
 server/backups/
+server/dev.backup-*.db*
 *.db.bak*
 server/dev.db.bak*
 .history/
