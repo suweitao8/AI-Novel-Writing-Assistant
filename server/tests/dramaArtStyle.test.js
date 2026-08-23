@@ -137,15 +137,17 @@ test("negative 禁区合并资产层与具体层；无具体风格时只有资�
   );
 });
 
-test("末世废土预设的破败脏旧只施加在环境上，不自动施加到角色（2026-08-23 拆分）", () => {
-  // 污渍/血渍/磨损是通用的角色状态属性：战斗后带血、逃亡带尘土由外观状态描述，
-  // 时代风格不再把末世书所有角色无条件弄脏（预设文本直接进角色/分镜提示词，必须自带边界）。
+test("末世废土预设的破败脏旧只施加在环境上，且文本里不出现具体脏旧词（2026-08-23 拆分+复核）", () => {
+  // 污渍/血渍/尘土这类词是通用的角色状态属性（「身上状态」标签/状态描写），由外观状态描述；
+  // 预设文本会原样进角色/分镜提示词——连这些词本身都不能出现（负面枚举反容易被模型
+  // 当成画面指令），只保留「角色状态以资料与状态描写为准」的干净边界句。
   const preset = DRAMA_VISUAL_STYLE_PRESETS.find((item) => item.id === "post_apocalyptic");
-  assert.match(preset.styleInstructions, /施加在场景与道具等环境上，不自动施加到角色身上/);
-  assert.match(preset.styleInstructions, /角色身上是否有污渍、血渍、磨损、尘土，只由角色资料与当前状态描写决定/);
-  assert.match(preset.avoidInstructions, /不主动给角色添加污渍与破败/);
+  assert.match(preset.styleInstructions, /只施加在场景与道具等环境上/);
+  assert.match(preset.styleInstructions, /角色的服装与身体状态一律以角色资料与当前状态描写为准，本风格不改变角色的干净程度与身体状况/);
+  assert.match(preset.avoidInstructions, /不因本风格自行改变/);
   // 环境层的末世质感仍然保留（场景该破败还是要破败），只是不再无差别扩散到角色。
   assert.match(preset.styleInstructions, /开裂的混凝土、锈蚀金属/);
+  assert.doesNotMatch(preset.styleInstructions + preset.avoidInstructions, /污渍|血渍|血迹|尘土|泥|磨损/);
 });
 
 test("自定义具体风格只有中文提示词也能组合", () => {

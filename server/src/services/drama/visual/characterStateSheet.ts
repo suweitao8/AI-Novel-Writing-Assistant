@@ -58,14 +58,14 @@ export interface CharacterStateSheetPromptInput {
 /**
  * 身上状态标签 → 画面短语（2026-08-23）：污渍/血迹这类通用画面细节跟外观状态走，
  * 不再混进时代风格——勾了哪个标签就按短语如实画在角色身上，一个不勾就干净整洁。
+ * 首版 8 标签当天按用户反馈合并为 5 个（近义归并，合并映射在 shared 的
+ * LEGACY_STORY_ASSET_WEAR_TAG_MAP；标签集契约三处同步：shared 白名单、HTTP 角色状态
+ * schema、本短语表）。
  */
 export const CHARACTER_WEAR_TAG_PROMPTS: Record<string, string> = {
   blood: "衣物与皮肤上有明显的血迹、血污",
-  stain: "衣物上有明显的污渍与油渍",
-  dust: "衣物、头发与皮肤上蒙着明显的尘土",
-  mud: "衣物与鞋上溅有明显的泥点、泥污",
-  worn: "服装明显磨损、起毛起球、褪色发旧",
-  torn: "衣物有撕裂的破口与毛边",
+  grime: "衣物、头发与皮肤上有明显的污渍、尘土与泥点",
+  damage: "服装明显磨损、起毛褪色，有撕裂的破口与毛边",
   wound: "皮肤上有明显的伤口、擦伤与淤青",
   soot: "脸部与衣物被烟尘熏黑",
 };

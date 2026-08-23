@@ -49,17 +49,15 @@ export type StoryAssetWeather = "sunny" | "cloudy" | "rainy";
  * 角色状态的通用「身上状态」标签（2026-08-23 用户要求）：污渍/血迹/尘土这类画面细节
  * 从时代风格里拆出来，跟外观状态走——勾选即在该状态的状态图里如实呈现，不勾默认
  * 干净整洁（任何时代风格都不自动弄脏角色，详见角色四视图模板规则）。
+ * 首版 8 标签当天即按用户反馈合并为 5 个（近义归并）：血迹/脏污/破损/伤痕/烟熏。
  */
-export type StoryAssetWearTag = "blood" | "stain" | "dust" | "mud" | "worn" | "torn" | "wound" | "soot";
+export type StoryAssetWearTag = "blood" | "grime" | "damage" | "wound" | "soot";
 
 /** 身上状态标签的编辑器选项（label 即用户可见文案；画面短语由服务端生图模板维护）。 */
 export const STORY_ASSET_WEAR_TAG_OPTIONS: ReadonlyArray<{ id: StoryAssetWearTag; label: string }> = [
   { id: "blood", label: "血迹" },
-  { id: "stain", label: "污渍" },
-  { id: "dust", label: "尘土" },
-  { id: "mud", label: "泥泞" },
-  { id: "worn", label: "磨损" },
-  { id: "torn", label: "破损" },
+  { id: "grime", label: "脏污" },
+  { id: "damage", label: "破损" },
   { id: "wound", label: "伤痕" },
   { id: "soot", label: "烟熏" },
 ];
@@ -69,8 +67,39 @@ const STORY_ASSET_SCENE_TYPES = new Set<StoryAssetSceneType>(["interior", "exter
 const STORY_ASSET_TIMES_OF_DAY = new Set<StoryAssetTimeOfDay>(["morning", "noon", "night"]);
 const STORY_ASSET_WEATHERS = new Set<StoryAssetWeather>(["sunny", "cloudy", "rainy"]);
 const STORY_ASSET_WEAR_TAGS = new Set<StoryAssetWearTag>([
-  "blood", "stain", "dust", "mud", "worn", "torn", "wound", "soot",
+  "blood", "grime", "damage", "wound", "soot",
 ]);
+
+/**
+ * 首版 8 标签（stain/dust/mud/worn/torn…）的合并迁移映射：已存进 statesJson 的旧 id
+ * 在归一化时自动换成新 id（污渍/尘土/泥泞→脏污，磨损/破损→破损），合并不丢已勾选。
+ */
+const LEGACY_STORY_ASSET_WEAR_TAG_MAP: Record<string, StoryAssetWearTag> = {
+  stain: "grime",
+  dust: "grime",
+  mud: "grime",
+  worn: "damage",
+  torn: "damage",
+};
+
+/** 身上状态标签归一化：旧 id 迁移 + 白名单过滤 + 去重；空结果返回 undefined（不勾＝干净）。 */
+function canonicalizeWearTags(wearTags: unknown): StoryAssetWearTag[] | undefined {
+  if (!Array.isArray(wearTags)) {
+    return undefined;
+  }
+  const canonical: StoryAssetWearTag[] = [];
+  for (const tag of wearTags) {
+    if (typeof tag !== "string") {
+      continue;
+    }
+    const mapped = LEGACY_STORY_ASSET_WEAR_TAG_MAP[tag]
+      ?? (STORY_ASSET_WEAR_TAGS.has(tag as StoryAssetWearTag) ? (tag as StoryAssetWearTag) : null);
+    if (mapped && !canonical.includes(mapped)) {
+      canonical.push(mapped);
+    }
+  }
+  return canonical.length > 0 ? canonical : undefined;
+}
 const STORY_ASSET_AGE_LABELS: Record<StoryAssetAgeGroup, string> = {
   child: "少年/儿童",
   youth: "青年",
@@ -213,8 +242,12 @@ export function normalizeStoryAssetStates(
       const description = typeof state.description === "string" && state.description.trim()
         ? state.description.trim()
         : (index === 0 ? fallbackDescription : "状态变化");
+      // 身上状态标签在此归一化：旧 id（合并前 8 标签）迁成新 id，未知值丢弃，
+      // 迁移后为空就不保留字段（不勾＝干净）。
+      const { wearTags: legacyWearTags, ...stateWithoutWearTags } = state;
+      const canonicalWearTags = canonicalizeWearTags(legacyWearTags);
       return {
-        ...state,
+        ...stateWithoutWearTags,
         id: state.id.trim(),
         label: state.label.trim(),
         description,
@@ -230,6 +263,7 @@ export function normalizeStoryAssetStates(
         ...(index === 0 && state.weather === undefined && initialState.weather !== undefined
           ? { weather: initialState.weather }
           : {}),
+        ...(canonicalWearTags ? { wearTags: canonicalWearTags } : {}),
       };
     })
     : [createStoryAssetInitialState(initialState)];
@@ -323,9 +357,9 @@ function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput 
   if (!isNullableString(state.eraStyle)) {
     return false;
   }
-  if (state.wearTags !== undefined
-    && (!Array.isArray(state.wearTags)
-      || state.wearTags.some((tag) => typeof tag !== "string" || !STORY_ASSET_WEAR_TAGS.has(tag as StoryAssetWearTag)))) {
+  // 身上状态标签只做结构校验（数组）：具体值交给 normalizeStoryAssetStates 里的
+  // canonicalizeWearTags 做旧 id 迁移与白名单过滤——枚举校验会把带旧 id 的整个状态丢掉。
+  if (state.wearTags !== undefined && !Array.isArray(state.wearTags)) {
     return false;
   }
   if (state.chapterOrder !== undefined && state.chapterOrder !== null

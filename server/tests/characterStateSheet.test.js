@@ -203,7 +203,7 @@ test("composes four view files into a 1280x720 png without changing the panel co
   }
 });
 
-test("身上状态标签如实进提示词，不勾不出现（2026-08-23 污渍/血迹跟状态走）", () => {
+test("身上状态标签如实进提示词，不勾不出现（2026-08-23 污渍/血迹跟状态走；同日合并为 5 标签）", () => {
   const withWear = buildCharacterStateSheetPrompt({
     assetName: "叶晨",
     gender: "male",
@@ -212,11 +212,11 @@ test("身上状态标签如实进提示词，不勾不出现（2026-08-23 污渍
     stateLabel: "战后",
     stateDescription: "刚经历恶战",
     stateImagePrompt: "青年男性",
-    wearTags: ["blood", "dust", "not_a_tag"],
+    wearTags: ["blood", "grime", "not_a_tag"],
   });
   // 勾选的标签按短语画在角色身上（body condition 行在 CHARACTER DATA 里，优先级高于通用假设）；
-  // 未知标签是脏输入，直接丢弃而不是报错。
-  assert.match(withWear, /body condition \(render exactly as described\): 衣物与皮肤上有明显的血迹、血污；衣物、头发与皮肤上蒙着明显的尘土/);
+  // 未知标签是脏输入，直接丢弃而不是报错；旧版 8 标签 id 由 shared 归一化迁移，不进这里。
+  assert.match(withWear, /body condition \(render exactly as described\): 衣物与皮肤上有明显的血迹、血污；衣物、头发与皮肤上有明显的污渍、尘土与泥点/);
   assert.doesNotMatch(withWear, /not_a_tag/);
 
   const clean = buildCharacterStateSheetPrompt({
