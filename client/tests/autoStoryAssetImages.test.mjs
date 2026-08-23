@@ -7,6 +7,7 @@ import {
   runWithConcurrency,
   storyAssetImageTaskKey,
 } from "../src/pages/novels/components/storySettings/autoStoryAssetImages.ts";
+import { StoryAssetImageRequestRegistry } from "../src/pages/novels/components/storySettings/storyAssetImageRequestRegistry.ts";
 
 function asset(id, states) {
   return { id, states };
@@ -66,4 +67,37 @@ test("自动补图调度器最多保持三路并发并处理全部任务", async
 
   assert.equal(maximumActive, AUTO_STORY_ASSET_IMAGE_CONCURRENCY);
   assert.deepEqual([...completed].sort(), [...items].sort());
+});
+
+test("排队请求和手动请求共享同一个 promise，网络执行只发生一次", async () => {
+  const registry = new StoryAssetImageRequestRegistry();
+  let calls = 0;
+  registry.reserve("queued");
+
+  const queued = registry.request("queued", async () => {
+    calls += 1;
+    return "queued-result";
+  });
+  assert.equal(registry.getState("queued"), "queued");
+
+  const started = registry.start("queued", async () => {
+    calls += 1;
+    return "queued-result";
+  });
+  assert.strictEqual(started, queued);
+  assert.equal(await queued, "queued-result");
+  assert.equal(calls, 1);
+  assert.equal(registry.getState("queued"), null);
+
+  const first = registry.request("direct", async () => {
+    calls += 1;
+    return "direct-result";
+  });
+  const second = registry.request("direct", async () => {
+    calls += 1;
+    return "duplicate-result";
+  });
+  assert.strictEqual(first, second);
+  assert.equal(await second, "direct-result");
+  assert.equal(calls, 2);
 });

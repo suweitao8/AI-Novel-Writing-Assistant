@@ -3,7 +3,6 @@ import { useQuery, useQueryClient, type QueryClient, type QueryKey } from "@tans
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { StoryAssetStateImage } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
-  generateStoryAssetStateImage,
   getStorySettingsCharacters,
   getStorySettingsProps,
   getStorySettingsScenes,
@@ -21,6 +20,10 @@ import {
   type AutoStoryAsset,
   type StoryAssetImageTask,
 } from "./autoStoryAssetImages";
+import {
+  reserveStoryAssetImageRequest,
+  startStoryAssetImageRequest,
+} from "./storyAssetImageRequestCoordinator";
 
 type StoryAssetRecord = (StorySettingsCharacter | StorySettingsScene | StorySettingsProp) & AutoStoryAsset;
 
@@ -95,14 +98,6 @@ function getErrorMessage(error: unknown): string {
   return "图片生成失败，请打开资产详情重试。";
 }
 
-async function generateTask(novelId: string, task: StoryAssetImageTask): Promise<StoryAssetRecord> {
-  const response = await generateStoryAssetStateImage(novelId, task.kind, task.assetId, task.stateId);
-  if (!response.data) {
-    throw new Error(response.error ?? response.message ?? "图片生成失败，请打开资产详情重试。");
-  }
-  return response.data;
-}
-
 /**
  * 无界面自动补图协调器：列表刷新后补齐三类资产的默认状态图。
  * 生图请求沿用详情弹窗的同一接口，避免创建入口各自维护一套副作用。
@@ -144,7 +139,19 @@ export default function AutoStoryAssetImageGeneration({ novelId }: AutoStoryAsse
     const tasks = groups.flatMap((group) =>
       getMissingStoryAssetImageTasks(group.kind, group.assets, attemptedKeys));
     if (tasks.length === 0) return;
-    tasks.forEach((task) => attemptedKeys.add(task.key));
+    tasks.forEach((task) => {
+      attemptedKeys.add(task.key);
+      reserveStoryAssetImageRequest({
+        novelId,
+        kind: task.kind,
+        assetId: task.assetId,
+        stateId: task.stateId,
+      });
+      const group = groups.find((candidate) => candidate.kind === task.kind);
+      if (group) {
+        setStateImageStatus(queryClient, group, task, "generating");
+      }
+    });
 
     const groupsByKind = new Map(groups.map((group) => [group.kind, group]));
     let succeeded = 0;
@@ -152,10 +159,17 @@ export default function AutoStoryAssetImageGeneration({ novelId }: AutoStoryAsse
     void runWithConcurrency(tasks, AUTO_STORY_ASSET_IMAGE_CONCURRENCY, async (task) => {
       const group = groupsByKind.get(task.kind);
       if (!group) return;
-      setStateImageStatus(queryClient, group, task, "generating");
       try {
-        const asset = await generateTask(novelId, task);
-        updateAssetInCache(queryClient, group.queryKey, task.assetId, () => asset);
+        const response = await startStoryAssetImageRequest({
+          novelId,
+          kind: task.kind,
+          assetId: task.assetId,
+          stateId: task.stateId,
+        });
+        if (!response.data) {
+          throw new Error("图片生成失败，请打开资产详情重试。");
+        }
+        updateAssetInCache(queryClient, group.queryKey, task.assetId, () => response.data as StoryAssetRecord);
         succeeded += 1;
       } catch (error) {
         failed += 1;

@@ -6,7 +6,7 @@ export interface AutoStoryAssetState {
   id: string;
   label: string;
   image?: {
-    status?: AutoStoryAssetImageStatus | string;
+    status?: AutoStoryAssetImageStatus;
     url?: string | null;
   } | null;
 }

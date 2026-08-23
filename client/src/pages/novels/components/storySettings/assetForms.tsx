@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2 } from "lucide-react";
 import {
   cancelStoryAssetStateImage,
-  generateStoryAssetStateImage,
   generateStoryCharacterStateVoice,
   getStorySettingsCharacters,
   getStorySettingsProps,
@@ -31,6 +30,10 @@ import {
   type StoryAssetState,
   type StoryAssetWearTag,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  getStoryAssetImageRequestState,
+  requestStoryAssetImage,
+} from "./storyAssetImageRequestCoordinator";
 
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
@@ -317,7 +320,12 @@ export function AssetStatesEditor(props: {
         throw new Error("先保存资产，再生成状态图。");
       }
       await flushLocalEdits();
-      return generateStoryAssetStateImage(asset.novelId, kind, asset.assetId, stateId);
+      return requestStoryAssetImage({
+        novelId: asset.novelId,
+        kind,
+        assetId: asset.assetId,
+        stateId,
+      });
     },
     onSuccess: async (response) => {
       onChange(response.data?.states ?? []);
@@ -468,10 +476,21 @@ export function AssetStatesEditor(props: {
       && Boolean(state.voice.sampleAudioUrl?.trim()))
     : [];
   const anyPending = imageMutation.isPending || cancelImageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
-  const generationDisabled = !asset || anyPending;
+  const imageRequestState = asset && selectedStateId
+    ? getStoryAssetImageRequestState({
+      novelId: asset.novelId,
+      kind,
+      assetId: asset.assetId,
+      stateId: selectedStateId,
+    })
+    : null;
+  const imageRequestActive = imageRequestState === "queued" || imageRequestState === "running";
   // 服务端仍在生成（弹窗重开/轮询读到的 generating 态）：按钮显示生成中并禁用重复触发。
   const serverImageGenerating = selectedState?.image?.status === "generating";
-  const imageGenerating = (imageMutation.isPending && imageMutation.variables === selectedStateId) || Boolean(serverImageGenerating);
+  const generationDisabled = !asset || anyPending || imageRequestActive || serverImageGenerating;
+  const imageGenerating = (imageMutation.isPending && imageMutation.variables === selectedStateId)
+    || Boolean(serverImageGenerating)
+    || imageRequestActive;
   const serverVoiceGenerating = selectedState?.voice?.status === "generating";
 
   return (
@@ -628,7 +647,7 @@ export function AssetStatesEditor(props: {
                   variant="outline"
                   size="sm"
                   className="h-8"
-                  disabled={generationDisabled || serverImageGenerating}
+                  disabled={generationDisabled}
                   title={!asset ? "先保存资产，再生成状态图" : undefined}
                   onClick={() => imageMutation.mutate(selectedState.id)}
                 >
@@ -641,8 +660,8 @@ export function AssetStatesEditor(props: {
                     variant="outline"
                     size="sm"
                     className="h-8"
-                    disabled={cancelImageMutation.isPending || !asset}
-                    title="停止本次生成，可重新发起"
+                    disabled={cancelImageMutation.isPending || !asset || imageRequestState === "queued"}
+                    title={imageRequestState === "queued" ? "图片已排队，开始生成后可终止。" : "停止本次生成，可重新发起"}
                     onClick={() => cancelImageMutation.mutate(selectedState.id)}
                   >
                     {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
