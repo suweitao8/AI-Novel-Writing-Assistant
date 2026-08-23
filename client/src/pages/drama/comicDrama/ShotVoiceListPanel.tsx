@@ -21,6 +21,7 @@ import { queryKeys } from "@/api/queryKeys";
 import SelectControl from "@/components/common/SelectControl";
 import { LightboxImage } from "@/components/common/LightboxImage";
 import { CharacterVoiceCard, NarratorVoiceCard, SegmentStatusDot } from "./VoiceStagePanel";
+import { DramaEpisodeAssemblyPanel } from "../components/DramaEpisodeAssemblyPanel";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -336,7 +337,7 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
           <p className="text-sm text-muted-foreground">第 {activeOrder} 集还没有分镜。</p>
           <Button className="mt-3" size="sm" disabled={busy} onClick={() => storyboardMutation.mutate()}>
             {storyboardMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Clapperboard className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            生成分镜
+            生成
           </Button>
         </div>
       ) : (
@@ -352,6 +353,14 @@ export default function ShotVoiceListPanel({ novelId, projectId }: ShotVoiceList
               onRegenerate={handleRegenerate}
             />
           ))}
+          <DramaEpisodeAssemblyPanel
+            projectId={projectId}
+            order={activeEpisode?.order ?? activeOrder ?? 0}
+            hasShots={shots.length > 0}
+            busy={busy}
+            buttonLabel="合成"
+            doneButtonLabel="合成"
+          />
         </div>
       )}
     </div>

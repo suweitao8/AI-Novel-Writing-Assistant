@@ -34,6 +34,7 @@ import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../services/drama/visual/drama
 import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVideoProvider";
 import { dramaEpisodeAssemblyService } from "../../../services/drama/video/DramaEpisodeAssemblyService";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
+import { comicDramaStoryboardBridgeService } from "../../../services/drama/studio/ComicDramaStoryboardBridgeService";
 
 const router = Router();
 
@@ -201,6 +202,18 @@ const studioLinksQuerySchema = z.object({
   novelIds: z.string().trim().min(1).max(4000),
 });
 const studioOverviewParamsSchema = z.object({ novelId: z.string().trim().min(1) });
+const studioStoryboardParamsSchema = z.object({
+  novelId: z.string().trim().min(1),
+  order: z.coerce.number().int().min(1),
+});
+const studioStoryboardBodySchema = z
+  .object({
+    provider: z.string().optional(),
+    model: z.string().optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    visualStyle: z.string().trim().max(60).optional(),
+  })
+  .optional();
 
 router.get("/studio/links", validate({ query: studioLinksQuerySchema }), async (req, res, next) => {
   try {
@@ -224,6 +237,24 @@ router.get("/studio/:novelId/overview", validate({ params: studioOverviewParamsS
     next(error);
   }
 });
+
+router.post(
+  "/studio/:novelId/chapters/:order/storyboard",
+  validate({ params: studioStoryboardParamsSchema, body: studioStoryboardBodySchema }),
+  async (req, res, next) => {
+    try {
+      const { novelId, order } = req.params as unknown as z.infer<typeof studioStoryboardParamsSchema>;
+      const data = await comicDramaStoryboardBridgeService.generateStoryboardFromNovelChapter(
+        novelId,
+        order,
+        (req.body ?? {}) as never,
+      );
+      res.status(200).json({ success: true, data, message: "当前章节分镜已生成。" });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /** GET /api/drama/visual-styles — 时代画风选项：内置预设 + 全局自定义（2026-08-22 起自定义并入）。 */
 router.get("/visual-styles", async (_req, res, next) => {

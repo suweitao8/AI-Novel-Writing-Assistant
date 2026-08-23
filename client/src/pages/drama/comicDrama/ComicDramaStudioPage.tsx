@@ -10,13 +10,12 @@ import {
   Plus,
   Settings,
   Sparkles,
-  Wand2,
 } from "lucide-react";
 import type { ComicDramaLinkStats } from "@ai-novel/shared/types/comicDrama";
 import { getComicDramaStudioOverview } from "@/api/media/comicDrama";
 import {
   assembleDramaSourceBundle,
-  createDramaProject,
+  generateComicDramaStoryboard,
   getDramaVisualStyles,
 } from "@/api/media/drama";
 import { getStorySettingsOverview, getStorySettingsWorld } from "@/api/story/storySettings";
@@ -27,6 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import AiButton from "@/components/common/AiButton";
 import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
@@ -131,12 +131,20 @@ export default function ComicDramaStudioPage() {
     novelId,
     workspace: chapterWorkspace,
   });
+  const selectedScriptReady = Boolean(
+    chapterWorkspace.currentChapter
+      && chapterWorkspace.expectationText.trim()
+      && !chapterWorkspace.expectationDirty
+      && !chapterWorkspace.savePending
+      && !chapterWorkspace.saveError,
+  );
   const storyboard = useStoryboardStage({
     novelId,
-    novelTitle: overview?.novel.title ?? "",
     drama: overview?.drama ?? null,
-    chapterCount: overview?.novel.chapterCount ?? 0,
     novelDefaultStyleId: novelDefaultArtStyle,
+    chapterOrder: chapterWorkspace.currentChapter?.order ?? null,
+    scriptReady: selectedScriptReady,
+    onGenerated: () => setCurrentTab("storyboard"),
   });
 
   const directorTask = overview?.novel.directorTask ?? null;
@@ -279,22 +287,31 @@ export default function ComicDramaStudioPage() {
                     ) : null}
                   </>
                 ) : currentTab === "script" ? (
-                  chapterWorkspace.savePending ? (
-                    <span className="text-xs text-muted-foreground">自动保存中…</span>
-                  ) : chapterWorkspace.saveError ? (
-                    <span className="inline-flex items-center gap-2 text-xs text-destructive">
-                      保存失败
-                      <button
-                        type="button"
-                        className="underline underline-offset-2"
-                        onClick={chapterWorkspace.flushExpectationSave}
-                      >
-                        重试
-                      </button>
-                    </span>
-                  ) : chapterWorkspace.expectationDirty ? (
-                    <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
-                  ) : null
+                  <>
+                    {chapterWorkspace.savePending ? (
+                      <span className="text-xs text-muted-foreground">自动保存中…</span>
+                    ) : chapterWorkspace.saveError ? (
+                      <span className="inline-flex items-center gap-2 text-xs text-destructive">
+                        保存失败
+                        <button
+                          type="button"
+                          className="underline underline-offset-2"
+                          onClick={chapterWorkspace.flushExpectationSave}
+                        >
+                          重试
+                        </button>
+                      </span>
+                    ) : chapterWorkspace.expectationDirty ? (
+                      <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
+                    ) : null}
+                    <AiButton
+                      size="sm"
+                      disabled={!storyboard.scriptReady || storyboard.generateMutation.isPending}
+                      onClick={() => storyboard.generateMutation.mutate()}
+                    >
+                      {storyboard.generateMutation.isPending ? "生成中…" : "生成"}
+                    </AiButton>
+                  </>
                 ) : currentTab === "video" && overview.drama ? (
                   <Button size="sm" asChild>
                     <Link to={`/drama/projects/${overview.drama.projectId}`}>
@@ -365,9 +382,9 @@ export default function ComicDramaStudioPage() {
               <ShotVoiceListPanel novelId={novelId} projectId={overview.drama.projectId} />
             ) : (
               <StoryboardBootstrapCard
-                chapterCount={overview.novel.chapterCount}
-                createPending={storyboard.createMutation.isPending}
-                onCreate={() => storyboard.createMutation.mutate()}
+                canGenerate={storyboard.scriptReady}
+                generatePending={storyboard.generateMutation.isPending}
+                onGenerate={() => storyboard.generateMutation.mutate()}
               />
             )
           ) : (
@@ -444,14 +461,15 @@ function SubTabRow(props: { children: ReactNode }) {
   );
 }
 
-// 分镜管线共享状态：画风选项（全局画风库，供创建分镜项目选默认风格）、创建分镜项目、章节自动同步。
+// 分镜管线共享状态：画风选项、当前章节生成、章节自动同步。
 // 顶栏按钮与内容区共用同一份 mutation，避免两处状态漂移。
 function useStoryboardStage(input: {
   novelId: string;
-  novelTitle: string;
   drama: ComicDramaLinkStats | null;
-  chapterCount: number;
   novelDefaultStyleId: string | null;
+  chapterOrder: number | null;
+  scriptReady: boolean;
+  onGenerated: () => void;
 }) {
   const queryClient = useQueryClient();
   const stylesQuery = useQuery({
@@ -472,26 +490,21 @@ function useStoryboardStage(input: {
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.links([input.novelId]) });
   };
 
-  const createMutation = useMutation({
+  const generateMutation = useMutation({
     mutationFn: async () => {
-      if (input.chapterCount < 1) {
-        throw new Error("小说还没有成稿章节。");
+      if (input.chapterOrder === null || !input.scriptReady) {
+        throw new Error("请先保存当前章节脚本。");
       }
-      return createDramaProject({
-        title: input.novelTitle,
-        source: "novel_import",
-        sourceRef: input.novelId,
+      return generateComicDramaStoryboard(input.novelId, input.chapterOrder, {
         visualStyle: effectiveStyleId,
       });
     },
     onSuccess: async (response) => {
       await invalidate();
-      const projectId = response.data?.id;
-      toast.success(projectId
-        ? "分镜项目已创建，正在从小说成稿导入内容。"
-        : "分镜项目已创建。");
+      toast.success(`第 ${response.data?.episodeOrder ?? input.chapterOrder} 章分镜已生成。`);
+      input.onGenerated();
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "创建分镜项目失败，请重试。"),
+    onError: (error) => toast.error(error instanceof Error ? error.message : "生成分镜失败，请重试。"),
   });
 
   const syncMutation = useMutation({
@@ -507,7 +520,7 @@ function useStoryboardStage(input: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "同步小说内容到分镜失败，请重试。"),
   });
 
-  return { styleOptions, effectiveStyleId, createMutation, syncMutation };
+  return { styleOptions, effectiveStyleId, scriptReady: input.scriptReady, generateMutation, syncMutation };
 }
 
 // 「设定 · 通用」页签：项目级配置，看分镜项目状态。
@@ -531,12 +544,11 @@ function ProjectSettingsSection(props: {
   );
 }
 
-// 「分镜」页签还没有分镜项目时的引导卡：从小说成稿一键创建分镜项目，
-// 创建后分镜板直接在本页签内展示与操作。
+// 「分镜」页签还没有分镜项目时的入口：生成当前选中章节的分镜。
 function StoryboardBootstrapCard(props: {
-  chapterCount: number;
-  createPending: boolean;
-  onCreate: () => void;
+  canGenerate: boolean;
+  generatePending: boolean;
+  onGenerate: () => void;
 }) {
   return (
     <Card className="rounded-3xl">
@@ -548,14 +560,14 @@ function StoryboardBootstrapCard(props: {
           <Button
             className="mt-4"
             size="sm"
-            onClick={props.onCreate}
-            disabled={props.createPending || props.chapterCount < 1}
-            title={props.chapterCount < 1 ? "还没有成稿章节。" : undefined}
+            onClick={props.onGenerate}
+            disabled={props.generatePending || !props.canGenerate}
+            title={!props.canGenerate ? "请先保存当前章节脚本。" : undefined}
           >
-            {props.createPending
+            {props.generatePending
               ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-              : <Wand2 className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            从成稿生成分镜
+              : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+            生成
           </Button>
         </div>
       </CardContent>
