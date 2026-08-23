@@ -40,7 +40,8 @@ test("右侧资产列表在更新时间和脚本使用顺序之前应用类型�
     /compareStoryAssetKinds\(left\.kind, right\.kind\)[\s\S]*?\|\|\s*\(order\.get\(/,
   );
   assert.match(asideSource, /compareStoryAssetKinds\(left\.type, right\.type\)/);
-  assert.match(scriptTabSource, /for \(const name of mentionedCharacters\)[\s\S]*?pushUsed\(`character:/);
-  assert.match(scriptTabSource, /for \(const name of mentionedScenes\)[\s\S]*?pushUsed\(`scene:/);
-  assert.match(scriptTabSource, /for \(const name of mentionedProps\)[\s\S]*?pushUsed\(`prop:/);
+  assert.match(scriptTabSource, /const pushMentionedAssets =/);
+  assert.match(scriptTabSource, /for \(const item of items\)[\s\S]*?pushMentionedAssets\(sourceText\);/);
+  assert.match(scriptTabSource, /pushStructuredAsset\("character", name\)/);
+  assert.match(scriptTabSource, /pushStructuredAsset\("scene", name\)/);
 });

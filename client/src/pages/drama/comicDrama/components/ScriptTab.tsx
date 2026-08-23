@@ -125,59 +125,74 @@ export default function ScriptTab(props: ScriptTabProps) {
         usedOrderKeys.push(key);
       }
     };
+    const assetKindsByName = new Map<string, Array<"character" | "scene" | "prop">>();
+    const registerAssetNames = (kind: "character" | "scene" | "prop", names: string[]) => {
+      for (const rawName of names) {
+        const name = rawName.trim();
+        if (!name) continue;
+        const kinds = assetKindsByName.get(name) ?? [];
+        if (!kinds.includes(kind)) kinds.push(kind);
+        assetKindsByName.set(name, kinds);
+      }
+    };
+    registerAssetNames("character", characters.map((character) => character.name));
+    registerAssetNames("scene", scenes.map((scene) => scene.name));
+    registerAssetNames("prop", propList.map((prop) => prop.name));
+    const mentionNames = [...assetKindsByName.keys()]
+      .filter((name) => name.length >= 2)
+      .sort((left, right) => right.length - left.length);
+    const mentionPattern = mentionNames.length > 0
+      ? new RegExp(`(?<![\\p{L}\\p{N}])(?:${mentionNames.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu")
+      : null;
+    const pushMentionedAssets = (sourceText: string) => {
+      if (!mentionPattern || !sourceText) return;
+      for (const match of sourceText.matchAll(mentionPattern)) {
+        for (const kind of assetKindsByName.get(match[0]) ?? []) {
+          pushUsed(`${kind}:${match[0]}`);
+        }
+      }
+    };
+    const pushStructuredAsset = (kind: "character" | "scene", rawName: string) => {
+      const name = rawName.trim();
+      if (name && assetKindsByName.get(name)?.includes(kind)) {
+        pushUsed(`${kind}:${name}`);
+      }
+    };
     for (const item of items) {
+      let sourceText = "";
       if (item.kind === "scene") {
         const name = item.scene.trim();
-        if (!name) continue;
+        sourceText = name;
         if (knownScenes.has(name)) {
-          pushUsed(`scene:${name}`);
+          pushStructuredAsset("scene", name);
         } else if (!missingScenes.includes(name)) {
-          missingScenes.push(name);
+          if (name) missingScenes.push(name);
         }
+      } else if (item.kind === "sceneState") {
+        sourceText = `${item.scene} ${item.state}`;
+        pushStructuredAsset("scene", item.scene);
       } else if (item.kind === "line") {
         const name = item.speaker.trim();
-        if (!name || name === "旁白") continue;
-        if (knownCharacters.has(name)) {
-          pushUsed(`character:${name}`);
-        } else if (!missingCharacters.includes(name)) {
+        sourceText = `${name} ${item.mood} ${item.text}`;
+        if (name && name !== "旁白" && knownCharacters.has(name)) {
+          pushStructuredAsset("character", name);
+        } else if (name && name !== "旁白" && !missingCharacters.includes(name)) {
           missingCharacters.push(name);
         }
       } else if (item.kind === "state") {
         const name = item.name.trim();
-        if (!name) continue;
-        if (knownCharacters.has(name)) {
-          pushUsed(`character:${name}`);
-        } else if (!missingCharacters.includes(name)) {
+        sourceText = `${name} ${item.state}`;
+        if (name && knownCharacters.has(name)) {
+          pushStructuredAsset("character", name);
+        } else if (name && !missingCharacters.includes(name)) {
           missingCharacters.push(name);
         }
+      } else if (item.kind === "shot") {
+        sourceText = `${item.shot} ${item.storyboard}`;
+      } else {
+        sourceText = item.text;
       }
-    }
-    const text = workspace.expectationText;
-    // 每类资产一个交替正则一次全文扫描（长名优先 + 断词边界），等价于逐名 test 但只扫三遍。
-    const mentionedIn = (names: string[]) => {
-      const unique = [...new Set(names.map((name) => name.trim()).filter((name) => name.length >= 2))]
-        .sort((left, right) => right.length - left.length);
-      if (unique.length === 0) {
-        return [];
-      }
-      const pattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:${unique.map(escapeRegExp).join("|")})(?![\\p{L}\\p{N}])`, "gu");
-      const found: string[] = [];
-      for (const match of text.matchAll(pattern)) {
-        if (!found.includes(match[0])) found.push(match[0]);
-      }
-      return found;
-    };
-    const mentionedCharacters = mentionedIn(characters.map((character) => character.name));
-    const mentionedScenes = mentionedIn(scenes.map((scene) => scene.name));
-    const mentionedProps = mentionedIn(propList.map((prop) => prop.name));
-    for (const name of mentionedCharacters) {
-      pushUsed(`character:${name.trim()}`);
-    }
-    for (const name of mentionedScenes) {
-      pushUsed(`scene:${name.trim()}`);
-    }
-    for (const name of mentionedProps) {
-      pushUsed(`prop:${name.trim()}`);
+      pushMentionedAssets(sourceText);
     }
     return {
       knownCharacters,
@@ -189,7 +204,7 @@ export default function ScriptTab(props: ScriptTabProps) {
         ...missingCharacters.map((name) => ({ type: "character" as const, name })),
       ],
     };
-  }, [items, characters, scenes, propList, workspace.expectationText]);
+  }, [items, characters, scenes, propList]);
 
   const entityNames = useMemo(() => ({
     characters: characters.map((character) => character.name),
