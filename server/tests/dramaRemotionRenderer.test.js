@@ -8,6 +8,17 @@ const { getDramaRenderProfile } = require("../dist/services/drama/video/renderPr
 const { buildDramaVideoTimeline } = require("../dist/services/drama/video/dramaVideoTimeline.js");
 const { DramaRemotionRenderer, resolveRemotionProcess } = require("../dist/services/drama/video/DramaRemotionRenderer.js");
 
+test("Remotion runner consumes stdout so long renders cannot block on a full pipe", async () => {
+  const source = await fs.readFile(
+    path.resolve(__dirname, "../src/services/drama/video/DramaRemotionRenderer.ts"),
+    "utf8",
+  );
+  assert.match(
+    source,
+    /child\.stdout\?\.on\("data", \(chunk: Buffer\) => \{[\s\S]*?stdout = .*slice\(-6000\)/,
+  );
+});
+
 test("Windows Remotion runner invokes pnpm through cmd.exe", () => {
   const processSpec = resolveRemotionProcess(["exec", "remotion", "--version"]);
   if (process.platform === "win32") {

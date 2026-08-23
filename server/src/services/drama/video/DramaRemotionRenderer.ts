@@ -105,11 +105,15 @@ async function runRemotionCommand(args: string[], cwd: string): Promise<void> {
       shell: processSpec.shell,
       stdio: ["ignore", "pipe", "pipe"],
     });
+    let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
       child.kill();
       reject(new Error("Remotion 渲染超过 15 分钟，已终止。"));
     }, 15 * 60_000);
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout = `${stdout}${chunk.toString()}`.slice(-6000);
+    });
     child.stderr?.on("data", (chunk: Buffer) => {
       stderr = `${stderr}${chunk.toString()}`.slice(-6000);
     });
@@ -122,7 +126,8 @@ async function runRemotionCommand(args: string[], cwd: string): Promise<void> {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`Remotion 渲染失败（exit ${code ?? "unknown"}）：${stderr.trim() || "无详细错误"}`));
+        const details = [stdout.trim(), stderr.trim()].filter(Boolean).join("\n");
+        reject(new Error(`Remotion 渲染失败（exit ${code ?? "unknown"}）：${details || "无详细错误"}`));
       }
     });
   });
