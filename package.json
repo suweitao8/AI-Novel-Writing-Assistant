@@ -9,6 +9,8 @@
   },
   "scripts": {
     "check:deps": "node scripts/check-deps.cjs",
+    "setup:git-hooks": "node scripts/install-git-hooks.cjs",
+    "test:git-workflow": "node --test scripts/git-workflow-guard.test.cjs",
     "opencode:bridge": "node scripts/start-opencode-go-bridge.cjs",
     "codex:image": "node scripts/start-codex-image-bridge.cjs",
     "grok:bridge": "node scripts/start-grok-build-bridge.cjs",
