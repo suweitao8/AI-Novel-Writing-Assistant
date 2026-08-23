@@ -37,9 +37,10 @@ test("3D 角色快照限制范围，并能投影回旧分镜草图字段", () =>
     x: 0.75,
     y: 0.82,
     scale: 0.56,
-    flipX: false,
+    flipX: true,
     zIndex: 0,
   });
+  assert.equal(projectBlocking3dActorToLegacy({ ...actor, yawDeg: 180 }, 0).flipX, false);
 });
 
 test("3D 角色拒绝未知姿势和不合法空间数据", () => {

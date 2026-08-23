@@ -138,7 +138,7 @@ export function projectBlocking3dActorToLegacy(
     x: Math.max(0, Math.min(1, 0.5 + actor.position[0] / 10)),
     y: 0.82,
     scale: Number(Math.max(0.08, Math.min(2, averageScale * 0.4)).toFixed(4)),
-    flipX: false,
+    flipX: Math.cos((actor.yawDeg * Math.PI) / 180) > 0,
     zIndex: Math.max(0, Math.min(99, Math.trunc(index))),
   };
 }
