@@ -17,7 +17,6 @@ interface DramaStoryboardBoardProps {
   projectId: string;
   storyboard: DramaStoryboard;
   onShotUpdated?: () => void;
-  orientation: string;
   busy: boolean;
   keyframePending: boolean;
   imageProviderReady: boolean;
@@ -81,7 +80,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [previewShot, setPreviewShot] = useState<DramaShot | null>(null);
   const [gridPreviewOpen, setGridPreviewOpen] = useState(false);
-  const isVertical = props.orientation.startsWith("vertical");
 
   const shotsWithState = useMemo(
     () => shots.map((shot) => ({ shot, keyframe: parseKeyframe(shot.keyframeData) })),
@@ -214,7 +212,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                 <ShotKeyframeArea
                   shot={shot}
                   keyframe={keyframe}
-                  isVertical={isVertical}
                   onPreview={() => setPreviewShot(shot)}
                   onGenerate={() => props.onGenerateKeyframe(shot)}
                   generateDisabled={generateDisabled(keyframe)}
@@ -277,7 +274,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
       <ShotPreviewDialog
         shot={previewShot}
         keyframe={previewShot ? parseKeyframe(previewShot.keyframeData) : EMPTY_KEYFRAME}
-        isVertical={isVertical}
         projectId={props.projectId}
         onShotUpdated={props.onShotUpdated}
         onOpenChange={(open) => {
@@ -322,7 +318,7 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
                   <img
                     src={keyframe.url}
                     alt={`镜头 ${shot.order} 首帧`}
-                    className={cn("w-full object-cover", isVertical ? "aspect-[9/16]" : "aspect-video")}
+                    className="aspect-video w-full object-cover"
                   />
                   <span className="absolute bottom-1 left-1 rounded bg-background/80 px-1.5 py-0.5 text-[11px] text-foreground">
                     镜头 {shot.order}
@@ -340,13 +336,12 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
 function ShotKeyframeArea(props: {
   shot: DramaShot;
   keyframe: DramaShotKeyframeData;
-  isVertical: boolean;
   onPreview: () => void;
   onGenerate: () => void;
   generateDisabled: boolean;
 }) {
   const { keyframe } = props;
-  const aspectClass = props.isVertical ? "aspect-[9/16]" : "aspect-video";
+  const aspectClass = "aspect-video";
 
   if (keyframe.status === "done" && keyframe.url) {
     return (
@@ -398,7 +393,6 @@ function ShotKeyframeArea(props: {
 function ShotPreviewDialog(props: {
   shot: DramaShot | null;
   keyframe: DramaShotKeyframeData;
-  isVertical: boolean;
   projectId: string;
   onShotUpdated?: () => void;
   onOpenChange: (open: boolean) => void;
@@ -452,7 +446,7 @@ function ShotPreviewDialog(props: {
 
   return (
     <Dialog open={Boolean(shot)} onOpenChange={props.onOpenChange}>
-      <DialogContent className={cn("max-w-3xl", props.isVertical ? "sm:max-w-md" : "sm:max-w-3xl")}>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>镜头 {shot?.order ?? ""} · {shot?.shotSize || "景别待定"}</DialogTitle>
           <DialogDescription>
@@ -474,7 +468,7 @@ function ShotPreviewDialog(props: {
                 <img
                   src={props.keyframe.url}
                   alt={`镜头 ${shot.order} 首帧`}
-                  className={cn("w-full rounded-md border object-contain", props.isVertical ? "max-h-[70vh]" : "max-h-[60vh]")}
+                  className="max-h-[60vh] w-full rounded-md border object-contain"
                 />
               </button>
             ) : (

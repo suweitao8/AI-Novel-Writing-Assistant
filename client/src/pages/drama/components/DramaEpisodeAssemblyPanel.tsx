@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Clapperboard, Download, ExternalLink } from "lucide-react";
 import {
@@ -30,14 +30,34 @@ export interface DramaEpisodeAssemblyPanelProps {
   doneButtonLabel?: string;
 }
 
-export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps) {
+export interface DramaEpisodeAssemblyController {
+  burnSubtitles: boolean;
+  setBurnSubtitles: Dispatch<SetStateAction<boolean>>;
+  includeCards: boolean;
+  setIncludeCards: Dispatch<SetStateAction<boolean>>;
+  status: DramaEpisodeAssemblyStatus | undefined;
+  activeJob: DramaEpisodeAssemblyStatus["activeJob"];
+  assembled: DramaEpisodeAssemblyStatus["assembled"];
+  running: boolean;
+  progress: DramaBatchProgress | null;
+  progressPhase: string;
+  total: number;
+  done: number;
+  percent: number;
+  clips: DramaEpisodeAssemblyStatus["clips"] | undefined;
+  busy: boolean;
+  isPending: boolean;
+  start: () => void;
+}
+
+export function useDramaEpisodeAssembly(props: Omit<DramaEpisodeAssemblyPanelProps, "buttonLabel" | "doneButtonLabel">): DramaEpisodeAssemblyController {
   const queryClient = useQueryClient();
   const [burnSubtitles, setBurnSubtitles] = useState(true);
   const [includeCards, setIncludeCards] = useState(true);
   const assemblyQuery = useQuery({
     queryKey: queryKeys.drama.episodeAssembly(props.projectId, props.order),
     queryFn: () => getDramaEpisodeAssembly(props.projectId, props.order),
-    enabled: true,
+    enabled: props.order > 0,
     refetchInterval: (query) => {
       const status = query.state.data?.data;
       return status?.activeJob || status?.assembled?.status === "assembling" ? 2500 : false;
@@ -71,6 +91,60 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
   const percent = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
   const clips = status?.clips;
 
+  return {
+    burnSubtitles,
+    setBurnSubtitles,
+    includeCards,
+    setIncludeCards,
+    status,
+    activeJob,
+    assembled,
+    running,
+    progress,
+    progressPhase,
+    total,
+    done,
+    percent,
+    clips,
+    busy: props.busy,
+    isPending: startMutation.isPending,
+    start: () => startMutation.mutate(),
+  };
+}
+
+export function DramaEpisodeAssemblyButton(props: {
+  controller: DramaEpisodeAssemblyController;
+  hasShots: boolean;
+  buttonLabel?: string;
+  doneButtonLabel?: string;
+}) {
+  const { controller } = props;
+
+  return (
+    <Button
+      type="button"
+      size="sm"
+      disabled={controller.busy || controller.running || !props.hasShots || controller.isPending}
+      onClick={controller.start}
+    >
+      <Clapperboard className="h-4 w-4" />
+      {controller.assembled?.status === "done"
+        ? props.doneButtonLabel ?? "合成"
+        : props.buttonLabel ?? "合成"}
+    </Button>
+  );
+}
+
+export function DramaEpisodeAssemblyResultPanel(props: {
+  controller: DramaEpisodeAssemblyController;
+  hasShots: boolean;
+  buttonLabel?: string;
+  doneButtonLabel?: string;
+  showActionButton?: boolean;
+}) {
+  const { controller } = props;
+  const showActionButton = props.showActionButton ?? true;
+
   return (
     <Card className="rounded-lg">
       <CardHeader>
@@ -78,16 +152,16 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
         <CardDescription>把本集镜头拼接成一支成片，并生成配套字幕。</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
-        {status && props.hasShots ? (
+        {controller.status && props.hasShots ? (
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            <span>共 {status.shotCount} 个镜头</span>
-            {clips?.withVideoClip ? <span>视频片段 {clips.withVideoClip}</span> : null}
-            {clips?.withKeyframeOnly ? <span>首帧图兜底 {clips.withKeyframeOnly}</span> : null}
-            {clips?.withoutVisual ? <span>占位画面 {clips.withoutVisual}</span> : null}
-            {status.withoutAudioShotCount ? <span>缺配音 {status.withoutAudioShotCount}（将静音）</span> : null}
+            <span>共 {controller.status.shotCount} 个镜头</span>
+            {controller.clips?.withVideoClip ? <span>视频片段 {controller.clips.withVideoClip}</span> : null}
+            {controller.clips?.withKeyframeOnly ? <span>首帧图兜底 {controller.clips.withKeyframeOnly}</span> : null}
+            {controller.clips?.withoutVisual ? <span>占位画面 {controller.clips.withoutVisual}</span> : null}
+            {controller.status.withoutAudioShotCount ? <span>缺配音 {controller.status.withoutAudioShotCount}（将静音）</span> : null}
           </div>
         ) : null}
-        {status && props.hasShots && (clips?.withoutVisual || status.withoutAudioShotCount) ? (
+        {controller.status && props.hasShots && (controller.clips?.withoutVisual || controller.status.withoutAudioShotCount) ? (
           <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
             缺少的画面或配音会在合成时自动补齐。
           </div>
@@ -97,9 +171,9 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={burnSubtitles}
-              disabled={running}
-              onChange={(event) => setBurnSubtitles(event.target.checked)}
+              checked={controller.burnSubtitles}
+              disabled={controller.running}
+              onChange={(event) => controller.setBurnSubtitles(event.target.checked)}
               className="h-4 w-4 accent-primary"
             />
             <span>字幕烧进画面</span>
@@ -107,76 +181,86 @@ export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps)
           <label className="flex cursor-pointer items-center gap-2 text-sm">
             <input
               type="checkbox"
-              checked={includeCards}
-              disabled={running}
-              onChange={(event) => setIncludeCards(event.target.checked)}
+              checked={controller.includeCards}
+              disabled={controller.running}
+              onChange={(event) => controller.setIncludeCards(event.target.checked)}
               className="h-4 w-4 accent-primary"
             />
             <span>片头片尾卡</span>
           </label>
-          <Button
-            type="button"
-            disabled={props.busy || running || !props.hasShots || startMutation.isPending}
-            onClick={() => startMutation.mutate()}
-          >
-            <Clapperboard className="h-4 w-4" />
-            {assembled?.status === "done"
-              ? props.doneButtonLabel ?? "重新合成整集"
-              : props.buttonLabel ?? "合成整集"}
-          </Button>
+          {showActionButton ? (
+            <DramaEpisodeAssemblyButton
+              controller={controller}
+              hasShots={props.hasShots}
+              buttonLabel={props.buttonLabel}
+              doneButtonLabel={props.doneButtonLabel}
+            />
+          ) : null}
         </div>
 
-        {running ? (
+        {controller.running ? (
           <div className="rounded-md border p-3 text-sm">
             <div className="flex items-center justify-between gap-3">
-              <div className="font-medium">正在合成{progressPhase ? ` · ${progressPhase}` : ""}</div>
-              <Badge variant="outline">{percent}%</Badge>
+              <div className="font-medium">正在合成{controller.progressPhase ? ` · ${controller.progressPhase}` : ""}</div>
+              <Badge variant="outline">{controller.percent}%</Badge>
             </div>
             <div className="mt-3 h-2 overflow-hidden rounded bg-muted">
-              <div className="h-full bg-primary" style={{ width: `${percent}%` }} />
+              <div className="h-full bg-primary" style={{ width: `${controller.percent}%` }} />
             </div>
-            {total > 0 ? <div className="mt-2 text-xs text-muted-foreground">{done}/{total} 个片段</div> : null}
-            {progress?.failed ? <div className="mt-2 text-xs text-destructive">{progress.failed} 个镜头降级处理，详情见合成结果。</div> : null}
+            {controller.total > 0 ? <div className="mt-2 text-xs text-muted-foreground">{controller.done}/{controller.total} 个片段</div> : null}
+            {controller.progress?.failed ? <div className="mt-2 text-xs text-destructive">{controller.progress.failed} 个镜头降级处理，详情见合成结果。</div> : null}
           </div>
         ) : null}
 
-        {!running && assembled?.status === "error" ? (
+        {!controller.running && controller.assembled?.status === "error" ? (
           <div className="rounded-md border border-destructive/40 p-3 text-sm text-destructive">
-            上次合成失败：{assembled.error || "未知原因"}。可重新合成再试。
+            上次合成失败：{controller.assembled.error || "未知原因"}。可重新合成再试。
           </div>
         ) : null}
 
-        {!running && assembled?.status === "done" && assembled.videoUrl ? (
+        {!controller.running && controller.assembled?.status === "done" && controller.assembled.videoUrl ? (
           <div className="space-y-3">
-            <video controls preload="metadata" src={assembled.videoUrl} className="mx-auto w-full max-w-sm rounded-md border" />
+            <video controls preload="metadata" src={controller.assembled.videoUrl} className="mx-auto w-full max-w-sm rounded-md border" />
             <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-              <span>时长 {formatAsmDuration(assembled.durationSec)}</span>
-              {assembled.shotCount ? <span>{assembled.shotCount} 个镜头</span> : null}
-              <span>{assembled.burnedSubtitles ? "字幕已烧录" : "字幕外挂"}</span>
-              {assembled.generatedAt ? <span>生成于 {new Date(assembled.generatedAt).toLocaleString()}</span> : null}
-              {assembled.srtUrl ? (
-                <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
+              <span>时长 {formatAsmDuration(controller.assembled.durationSec)}</span>
+              {controller.assembled.shotCount ? <span>{controller.assembled.shotCount} 个镜头</span> : null}
+              <span>{controller.assembled.burnedSubtitles ? "字幕已烧录" : "字幕外挂"}</span>
+              {controller.assembled.generatedAt ? <span>生成于 {new Date(controller.assembled.generatedAt).toLocaleString()}</span> : null}
+              {controller.assembled.srtUrl ? (
+                <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={controller.assembled.srtUrl}>
                   <Download className="h-4 w-4" />下载字幕（SRT）
                 </a>
               ) : null}
               <a
                 className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
-                href={assembled.videoUrl}
+                href={controller.assembled.videoUrl}
                 target="_blank"
                 rel="noreferrer"
               >
                 <ExternalLink className="h-4 w-4" />新窗口打开
               </a>
             </div>
-            {assembled.warnings?.length ? (
+            {controller.assembled.warnings?.length ? (
               <div className="rounded-md border border-dashed p-3 text-xs text-muted-foreground">
-                {assembled.warnings.map((warning, index) => <div key={index}>· {warning}</div>)}
+                {controller.assembled.warnings.map((warning, index) => <div key={index}>· {warning}</div>)}
               </div>
             ) : null}
           </div>
         ) : null}
       </CardContent>
     </Card>
+  );
+}
+
+export function DramaEpisodeAssemblyPanel(props: DramaEpisodeAssemblyPanelProps) {
+  const controller = useDramaEpisodeAssembly(props);
+  return (
+    <DramaEpisodeAssemblyResultPanel
+      controller={controller}
+      hasShots={props.hasShots}
+      buttonLabel={props.buttonLabel}
+      doneButtonLabel={props.doneButtonLabel}
+    />
   );
 }
 

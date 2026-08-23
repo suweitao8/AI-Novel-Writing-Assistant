@@ -297,7 +297,7 @@ export class DramaExportService {
           durationSec: cursor || normalizeDurationSec(episode.durationSec, entries.length * 3 || 1),
         },
         canvas: {
-          aspectRatio: "9:16",
+          aspectRatio: "16:9",
           fps: 30,
         },
         tracks: {

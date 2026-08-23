@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { resolveStoryAssetStateAncestors } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
+import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
@@ -61,7 +62,7 @@ export interface NarratorVoiceData {
   updatedAt?: string;
 }
 
-const DEFAULT_TTS_PROVIDER = "voxcpm2";
+const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
 
 // 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM 的
 // emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。

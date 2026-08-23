@@ -607,7 +607,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
   charactersDigest: string;
 }, DramaStoryboardOutput> = {
   id: "drama.storyboard",
-  version: "v4",
+  version: "v5",
   taskType: "outline_planning",
   mode: "structured",
   language: "zh",
@@ -616,7 +616,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
   postValidate: validateDramaStoryboard,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏短剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
+      "你是横屏影视化漫剧分镜师。把台本拆成可拍摄镜头序列，优先近景、中近景、强表情和明确动作。",
       "每个镜头必须能服务冲突推进，避免空镜和环境铺陈。",
       "action 写这一镜的画面：出现的角色一律用「角色视觉锚点」里的角色全名，台本里用「妹妹」「大哥」「老板」等称谓的，换成对应角色的全名再写——后续按名字给镜头挂角色参考图，称谓对不上角色就画不出对应形象。",
       "action 里要写清每个角色的位置与姿态（站/坐/躺/蹲、面向哪边、在画面中的方位）；同一地点内相邻镜头的位置要连贯，角色起身/坐下/躺下/走动等位置变化必须写明，不要让人物在镜头之间无故换位。",
@@ -635,7 +635,7 @@ export const dramaStoryboardPrompt: PromptAsset<{
 export const dramaVideoPromptOutputSchema = z.object({
   prompt: z.string().trim().min(1),
   negativePrompt: z.string().trim().optional(),
-  aspectRatio: z.string().trim().default("9:16"),
+  aspectRatio: z.string().trim().default("16:9"),
   durationSec: z.number().int().min(1).max(30).optional(),
 });
 
@@ -646,7 +646,7 @@ export const dramaVideoPromptPrompt: PromptAsset<{
   charactersDigest: string;
 }, DramaVideoPromptOutput> = {
   id: "drama.video.prompt",
-  version: "v1",
+  version: "v2",
   taskType: "outline_planning",
   mode: "structured",
   language: "zh",
@@ -654,8 +654,8 @@ export const dramaVideoPromptPrompt: PromptAsset<{
   outputSchema: dramaVideoPromptOutputSchema,
   render: (input) => [
     new SystemMessage([
-      "你是竖屏 AI 视频提示词导演。把单个短剧镜头转成视频生成提示词。",
-      "提示词必须保留角色视觉锚点、动作、情绪、镜头语言和 9:16 竖屏构图。",
+      "你是横屏影视化 AI 视频提示词导演。把单个漫剧镜头转成视频生成提示词。",
+      "提示词必须保留角色视觉锚点、动作、情绪、镜头语言和 16:9 横屏构图。",
       "只输出符合 schema 的 JSON。",
     ].join("\n")),
     new HumanMessage([

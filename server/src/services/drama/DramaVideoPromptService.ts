@@ -145,7 +145,8 @@ export class DramaVideoPromptService {
           provider: resolveDefaultVideoProvider(),
           prompt: output.prompt,
           negativePrompt: output.negativePrompt ?? null,
-          aspectRatio: output.aspectRatio || "9:16",
+          // 分镜视频统一走横屏时间轴；模型返回的旧画幅不能覆盖产品画幅契约。
+          aspectRatio: "16:9",
           durationSec: output.durationSec ?? shot.durationSec,
           status: "prompted",
           version,

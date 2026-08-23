@@ -76,7 +76,7 @@ export async function listDramaAudioSegments(projectId: string, order: number): 
 export async function regenerateDramaShotAudio(
   projectId: string,
   shotId: string,
-  payload: { provider?: string; force?: boolean } = {},
+  payload: { force?: boolean } = {},
 ) {
   const { data } = await apiClient.post<ApiResponse<unknown>>(
     `/drama/projects/${projectId}/shots/${shotId}/audio`,

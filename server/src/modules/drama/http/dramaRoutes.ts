@@ -69,7 +69,6 @@ const batchJobBodySchema = z.object({
 });
 
 const shotAudioRegenerateSchema = z.object({
-  provider: z.string().trim().optional(),
   force: z.boolean().optional(),
 });
 
@@ -507,7 +506,7 @@ router.post(
     try {
       const { shotId } = req.params as z.infer<typeof shotParamsSchema>;
       const body = req.body as z.infer<typeof shotAudioRegenerateSchema>;
-      const data = await dramaDialogueAudioService.synthesizeShotDialogue(shotId, body.provider || "voxcpm2", {
+      const data = await dramaDialogueAudioService.synthesizeShotDialogue(shotId, undefined, {
         force: body.force ?? false,
       });
       res.status(200).json({ success: true, data, message: "Drama shot dialogue audio generated." });

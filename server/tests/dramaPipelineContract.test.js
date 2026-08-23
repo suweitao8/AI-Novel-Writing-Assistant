@@ -359,7 +359,7 @@ function installPipelineStubs() {
         if (asset.id === "drama.storyboard") {
           return {
             output: {
-              summary: "大厅羞辱到董事长反转的竖屏镜头。",
+              summary: "大厅羞辱到董事长反转的横屏镜头。",
               shots: [{
                 order: 1,
                 shotSize: "中近景",
@@ -378,7 +378,7 @@ function installPipelineStubs() {
         if (asset.id === "drama.video.prompt") {
           return {
             output: {
-              prompt: "9:16 vertical drama, modern company lobby, restrained young man in black suit being blocked by security, tense close shot",
+              prompt: "16:9 horizontal drama, modern company lobby, restrained young man in black suit being blocked by security, tense close shot",
               negativePrompt: "low quality, blurry, extra fingers",
               aspectRatio: "9:16",
               durationSec: 5,
@@ -439,6 +439,19 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   process.env.DRAMA_TTS_MOCK_COST_PER_SECOND = "0.2";
   clearDramaModules();
   const state = installPipelineStubs();
+  const speechProviderPath = require.resolve("../dist/services/audio/speechProvider.js");
+  require.cache[speechProviderPath] = {
+    id: speechProviderPath,
+    filename: speechProviderPath,
+    loaded: true,
+    exports: {
+      synthesizeAudioSpeech: async () => ({
+        dataUrl: "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=",
+        contentType: "audio/wav",
+        byteLength: 44,
+      }),
+    },
+  };
   const { DramaScriptService } = require("../dist/services/drama/DramaScriptService.js");
   const { DramaQualityGate } = require("../dist/services/drama/DramaQualityGate.js");
   const { DramaRepairService } = require("../dist/services/drama/DramaRepairService.js");
@@ -488,7 +501,7 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(keyframeProgress.cost.estimated, 1.25);
   assert.equal(keyframeProgress.cost.actual, 1.25);
   assert.equal(state.keyframeInput.sceneType, "chapter_illustration");
-  assert.equal(state.keyframeInput.size, "1024x1536");
+  assert.equal(state.keyframeInput.size, "1536x1024");
   assert.match(state.shots[0].keyframeData, /shot-images/);
 
   const videoEstimate = await batchOrchestrator.estimateEpisodeBatchJob(
@@ -521,8 +534,8 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(videoProgress.cost.actual, 2);
 
   const prompt = state.videoPrompts[0];
-  assert.equal(prompt.aspectRatio, "9:16");
-  assert.match(prompt.prompt, /vertical drama/);
+  assert.equal(prompt.aspectRatio, "16:9");
+  assert.match(prompt.prompt, /horizontal drama/);
   assert.equal(prompt.provider, "mock");
   assert.match(prompt.providerTaskId, /^mock_/);
   assert.equal(prompt.status, "queued");
@@ -545,8 +558,8 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(finishedTts.status, "done");
   assert.equal(ttsProgress.total, 1);
   assert.equal(ttsProgress.done, 1);
-  assert.equal(ttsProgress.cost.estimated, 1);
-  assert.equal(ttsProgress.cost.actual, 0.4);
+  assert.equal(ttsProgress.cost.estimated, 0);
+  assert.equal(ttsProgress.cost.actual, 0);
   assert.equal(ttsProgress.cost.actualUnits.seconds, 2);
   const audioData = JSON.parse(state.shots[0].dialogueAudioData);
   assert.equal(audioData.status, "done");
@@ -554,7 +567,7 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
   assert.equal(audioData.items[0].text, "让董事长下来。");
   assert.equal(audioData.items[0].voiceId, "lin-voice");
   assert.match(audioData.items[0].audioUrl, /^data:audio\/wav;base64,/);
-  assert.equal(audioData.items[0].durationSec, 2);
+  assert.equal(audioData.items[0].durationSec, undefined);
 
   const { DramaExportService } = require("../dist/services/drama/DramaExportService.js");
   const srt = await new DramaExportService().exportEpisode("project_1", 1, "srt");

@@ -20,13 +20,13 @@ import { splitNarrationIntoSentences, wrapSubtitleText } from "./subtitleText";
 // 漫剧整集合成（移植自 mydrama generators/video_composer.py + export/narrated_timeline.py）。
 // 契约：
 // - 时间轴由音频驱动：一行台词 = 一段音频 = 一条字幕，绝不二次切分文本。
-// - 每个镜头先归一化为统一的 1080x1920/30fps/H.264+AAC 片段（时长精确对齐该镜音频总时长），
+// - 每个镜头先归一化为统一的 1920x1080/30fps/H.264+AAC 片段（时长精确对齐该镜音频总时长），
 //   再用 concat demuxer 无损拼接；视频片段过长裁剪、缺口 ≤1.5x 变速补齐、>1.5x 冻结末帧。
 // - 无视频片段的镜头退化为 首帧图 + Ken Burns 推拉（四效果按镜序轮换）；再退化为纯色卡。
 // - 产物 mp4 + srt 落在 storage/generated-videos/，结果记录在 DramaEpisode.assembledVideoData。
 
-const WIDTH = 1080;
-const HEIGHT = 1920;
+const WIDTH = 1920;
+const HEIGHT = 1080;
 const FPS = 30;
 const SUBTITLE_WRAP_CHARS = 18;
 const SUBTITLE_FORCE_STYLE = "FontSize=44,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=0,MarginV=140";
