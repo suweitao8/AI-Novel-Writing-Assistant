@@ -46,6 +46,7 @@
 
 - **本机没有 ffmpeg**：POST 直接 400，文案提示安装 ffmpeg；不会创建半途任务。Remotion CLI 和 Chromium 由 `video/` workspace 提供。
 - **服务重启中断合成**：任务停留在 running；下次启动合成时超过 10 分钟未更新的 running 任务自动标 failed（「服务重启导致合成中断，请重新合成」），不会永久卡死入口。
+- **Remotion 长渲染停在 render**：`DramaRemotionRenderer` 以 pipe 接收子进程输出时，stdout 和 stderr 都必须持续消费并只保留尾部日志；否则 Remotion 输出填满系统管道后会阻塞，表现为任务一直 running、中间视频文件不再增长。排查时同时检查子进程 CPU、临时输出更新时间和 API 的 `phase`，不要先改前端轮询或降低分辨率掩盖问题。
 - **配音比脚本时长长**：镜头场景时长取配音总时长，Remotion 场景和字幕一起延长，不再依赖逐镜视频片段的变速/冻结策略。
 - **本地片段文件丢失**：该镜退化为首帧图或占位卡，进 warnings，不阻断整集。
 - **Remotion 或 ffprobe 合同失败**：无法确认最终 MP4 为目标横屏规格时，整集任务失败并保留错误，不把不符合规格的文件标成可播放成片。
