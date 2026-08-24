@@ -40,7 +40,12 @@ import {
   DEFAULT_BLOCKING_3D_CAMERA,
   projectBlocking3dActorToLegacy,
 } from "./components/blocking3d/blocking3dMath";
-import { createBlocking3dViewer, type Blocking3dViewer } from "./components/blocking3d/blocking3dViewerApp";
+import {
+  createBlocking3dViewer,
+  DEFAULT_BLOCKING_3D_ENVIRONMENT,
+  type Blocking3dEnvironmentSettings,
+  type Blocking3dViewer,
+} from "./components/blocking3d/blocking3dViewerApp";
 
 function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShotBlockingSketch3DLayout {
   if (context.sketch?.layout3d) return context.sketch.layout3d;
@@ -49,6 +54,7 @@ function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShot
     schemaVersion: 1,
     engine: "playcanvas",
     camera: { ...DEFAULT_BLOCKING_3D_CAMERA, focalPoint: [...DEFAULT_BLOCKING_3D_CAMERA.focalPoint] },
+    environment: { ...DEFAULT_BLOCKING_3D_ENVIRONMENT },
     actors: actors.map((actor, index) => ({
       characterName: actor.characterName,
       position: [(actor.x - 0.5) * 10, 0, (index - actors.length / 2) * 0.35] as [number, number, number],
@@ -112,6 +118,7 @@ export default function DramaBlocking3DPage() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
+  const [environmentSettings, setEnvironmentSettings] = useState<Blocking3dEnvironmentSettings>({ ...DEFAULT_BLOCKING_3D_ENVIRONMENT });
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
@@ -128,6 +135,7 @@ export default function DramaBlocking3DPage() {
     setSelectedName(nextViewer.getSelectedActor());
     setSelectedPose(nextViewer.getSelectedPose());
     setSelectedTransform(nextViewer.getSelectedTransform());
+    setEnvironmentSettings(nextViewer.getEnvironmentSettings());
   }, []);
 
   useEffect(() => {
@@ -190,6 +198,14 @@ export default function DramaBlocking3DPage() {
     setDirty(true);
     syncSelection(viewer);
   }, [saving, syncSelection, viewer]);
+
+  const updateEnvironmentSetting = useCallback((key: keyof Blocking3dEnvironmentSettings, value: number) => {
+    if (!viewer || saving) return;
+    const next = { ...environmentSettings, [key]: value };
+    if (!viewer.setEnvironmentSettings(next)) return;
+    setEnvironmentSettings(viewer.getEnvironmentSettings());
+    setDirty(true);
+  }, [environmentSettings, saving, viewer]);
 
   const handleSave = async (confirmAfterSave: boolean) => {
     if (!viewer || !context?.scene || saving) return;
@@ -367,6 +383,28 @@ export default function DramaBlocking3DPage() {
             <CardContent className="grid grid-cols-2 gap-1.5">
               <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
               <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">HDRI 环境</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2"><span>投影高度</span><output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output></span>
+                <input type="range" aria-label="HDRI 投影高度" min="0.6" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2"><span>半球尺寸</span><output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output></span>
+                <input type="range" aria-label="HDRI 半球尺寸" min="24" max="96" step="2" value={environmentSettings.domeRadius} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2"><span>水平旋转</span><output className="tabular-nums text-foreground">{environmentSettings.yawDeg.toFixed(0)}°</output></span>
+                <input type="range" aria-label="HDRI 水平旋转" min="-180" max="180" step="5" value={environmentSettings.yawDeg} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("yawDeg", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2"><span>环境亮度</span><output className="tabular-nums text-foreground">{environmentSettings.intensity.toFixed(1)}</output></span>
+                <input type="range" aria-label="HDRI 环境亮度" min="0.6" max="1.6" step="0.1" value={environmentSettings.intensity} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("intensity", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
             </CardContent>
           </Card>
         </aside>

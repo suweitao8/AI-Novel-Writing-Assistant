@@ -3,6 +3,7 @@ import * as pc from "playcanvas";
 import type {
   DramaShotBlockingSketch3DActor,
   DramaShotBlockingSketch3DCamera,
+  DramaShotBlockingSketch3DEnvironment,
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
@@ -11,6 +12,15 @@ const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
+export const GROUND_PROJECTION_SOURCE_ASPECT = 1.9;
+const DEFAULT_GROUND_UV_TOP = 0.52;
+const DEFAULT_GROUND_UV_BOTTOM = 0.98;
+export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
+  projectionCenterHeight: 1,
+  domeRadius: 48,
+  yawDeg: 0,
+  intensity: 1,
+};
 export const BLOCKING_SKETCH_CAPTURE_SIZE = {
   width: 1280,
   height: 720,
@@ -62,6 +72,8 @@ export interface Blocking3dViewerOptions {
   onStatus?: (status: string) => void;
 }
 
+export type Blocking3dEnvironmentSettings = DramaShotBlockingSketch3DEnvironment;
+
 export interface Blocking3dViewer {
   readonly canvas: HTMLCanvasElement;
   onSelectionChange: (listener: (label: string | null) => void) => () => void;
@@ -89,17 +101,21 @@ export interface Blocking3dViewer {
   getCameraState: () => DramaShotBlockingSketch3DCamera;
   setInteractionEnabled: (enabled: boolean) => void;
   setEnvironment: (url: string | null) => Promise<void>;
+  getEnvironmentSettings: () => Blocking3dEnvironmentSettings;
+  setEnvironmentSettings: (settings: Blocking3dEnvironmentSettings) => boolean;
   exportLayout: () => {
     schemaVersion: 1;
     engine: "playcanvas";
     camera: DramaShotBlockingSketch3DCamera;
     actors: DramaShotBlockingSketch3DActor[];
+    environment: Blocking3dEnvironmentSettings;
   };
   loadLayout: (layout: {
     schemaVersion: 1;
     engine: "playcanvas";
     camera: DramaShotBlockingSketch3DCamera;
     actors: DramaShotBlockingSketch3DActor[];
+    environment?: Blocking3dEnvironmentSettings;
   }) => void;
   capturePng: () => Blob;
   destroy: () => void;
@@ -107,6 +123,50 @@ export interface Blocking3dViewer {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettings> | undefined): Blocking3dEnvironmentSettings {
+  const numberOr = (value: unknown, fallback: number): number => {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+  };
+  return {
+    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.6, 2),
+    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 24, 96),
+    yawDeg: clamp(numberOr(input?.yawDeg, DEFAULT_BLOCKING_3D_ENVIRONMENT.yawDeg), -180, 180),
+    intensity: clamp(numberOr(input?.intensity, DEFAULT_BLOCKING_3D_ENVIRONMENT.intensity), 0.6, 1.6),
+  };
+}
+
+function createDomeGeometry(): pc.DomeGeometry {
+  return new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
+}
+
+function createScenePlateDomeGeometry(): pc.DomeGeometry {
+  const geometry = createDomeGeometry();
+  const positions = geometry.positions ?? [];
+  const uvs = geometry.uvs ?? [];
+  for (let index = 0; index < uvs.length; index += 2) {
+    const sourceV = uvs[index + 1];
+    if (sourceV < 0.5) continue;
+    const positionIndex = (index / 2) * 3;
+    const x = positions[positionIndex] / 0.5;
+    const z = positions[positionIndex + 2] / 0.5;
+    const radial = clamp(Math.hypot(x, z) / 0.95, 0, 1);
+    const azimuth = radial < 0.05 ? 0.5 : (Math.atan2(z, x) / (Math.PI * 2) + 0.5 + 1) % 1;
+    uvs[index] = azimuth;
+    uvs[index + 1] = DEFAULT_GROUND_UV_TOP + radial * (DEFAULT_GROUND_UV_BOTTOM - DEFAULT_GROUND_UV_TOP);
+  }
+  return geometry;
+}
+
+function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
+  texture.minFilter = pc.FILTER_LINEAR_MIPMAP_LINEAR;
+  texture.magFilter = pc.FILTER_LINEAR;
+  texture.mipmaps = true;
+  texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
+  texture.addressU = pc.ADDRESS_REPEAT;
+  texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
 }
 
 function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
@@ -295,6 +355,22 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   let environmentDome: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
+  let environmentMaterial: pc.StandardMaterial | null = null;
+  let environmentSettings = normalizeEnvironmentSettings(undefined);
+  const applyEnvironmentSettings = () => {
+    if (environmentDome) {
+      environmentDome.setLocalScale(
+        environmentSettings.domeRadius,
+        environmentSettings.domeRadius * environmentSettings.projectionCenterHeight,
+        environmentSettings.domeRadius,
+      );
+      environmentDome.setEulerAngles(0, environmentSettings.yawDeg, 0);
+    }
+    if (environmentMaterial) {
+      environmentMaterial.emissiveIntensity = environmentSettings.intensity;
+      environmentMaterial.update();
+    }
+  };
   const syncEnvironmentDomePosition = () => {
     if (!environmentDome) return;
     const cameraPosition = cameraEntity.getPosition();
@@ -740,6 +816,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentDome.destroy();
         environmentDome = null;
       }
+      environmentMaterial = null;
       if (environmentAsset) {
         app.assets.remove(environmentAsset);
         environmentAsset = null;
@@ -748,33 +825,49 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       setStatus("正在加载场景 HDRI 环境...");
       environmentAsset = await loadAsset(app, url, "texture");
       const texture = environmentAsset.resource as pc.Texture;
-      const geometry = new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
+      configureEnvironmentTexture(texture, app);
+      const textureAspect = texture.width / texture.height;
+      const isEquirectangular = textureAspect >= GROUND_PROJECTION_SOURCE_ASPECT && textureAspect <= 2.1;
+      const groundProjection = !isEquirectangular;
+      const geometry = groundProjection ? createScenePlateDomeGeometry() : createDomeGeometry();
       const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
       const material = new pc.StandardMaterial();
       material.diffuse = new pc.Color(1, 1, 1);
       material.diffuseMap = texture;
       material.emissive = new pc.Color(1, 1, 1);
       material.emissiveMap = texture;
+      material.emissiveIntensity = environmentSettings.intensity;
       material.cull = pc.CULLFACE_FRONT;
       material.depthWrite = false;
       material.update();
+      environmentMaterial = material;
       const meshInstance = new pc.MeshInstance(mesh, material);
       environmentDome = new pc.Entity("blocking3d-hdri-dome");
       environmentDome.addComponent("render", {
         meshInstances: [meshInstance],
         layers: [pc.LAYERID_SKYBOX],
       });
-      environmentDome.setLocalScale(180, 180, 180);
+      applyEnvironmentSettings();
       syncEnvironmentDomePosition();
       app.root.addChild(environmentDome);
       ground.enabled = false;
       setStatus("3D 草图已就绪");
+    },
+    getEnvironmentSettings() {
+      return { ...environmentSettings };
+    },
+    setEnvironmentSettings(settings) {
+      environmentSettings = normalizeEnvironmentSettings(settings);
+      applyEnvironmentSettings();
+      emitChange();
+      return true;
     },
     exportLayout() {
       return {
         schemaVersion: 1,
         engine: "playcanvas",
         camera: viewer.getCameraState(),
+        environment: viewer.getEnvironmentSettings(),
         actors: [...actors.values()].map((actor) => {
           const position = actor.entity.getPosition();
           const scale = actor.entity.getLocalScale();
@@ -790,6 +883,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       };
     },
     loadLayout(layout) {
+      environmentSettings = normalizeEnvironmentSettings(layout.environment);
+      applyEnvironmentSettings();
       viewer.setCameraState(layout.camera);
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);

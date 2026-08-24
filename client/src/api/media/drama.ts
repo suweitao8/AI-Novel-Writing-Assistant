@@ -208,11 +208,19 @@ export interface DramaShotBlockingSketch3DActor {
   actionPlaying: boolean;
 }
 
+export interface DramaShotBlockingSketch3DEnvironment {
+  projectionCenterHeight: number;
+  domeRadius: number;
+  yawDeg: number;
+  intensity: number;
+}
+
 export interface DramaShotBlockingSketch3DLayout {
   schemaVersion: 1;
   engine: "playcanvas";
   camera: DramaShotBlockingSketch3DCamera;
   actors: DramaShotBlockingSketch3DActor[];
+  environment?: DramaShotBlockingSketch3DEnvironment;
 }
 
 export interface DramaShotBlockingSketchData {

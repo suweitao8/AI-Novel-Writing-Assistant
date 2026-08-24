@@ -51,6 +51,10 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 
 场景状态图加载为 `DomeGeometry` 半球，并使用内侧剔除显示球面内部。`DomeGeometry` 的下半部承担 HDRI 地面弧面；加载成功后隐藏仅用于无环境时兜底的纯色地面平面，定位网格仍作为辅助线绘制在地面上。环境实体只跟随相机的 X/Z 位置，Y 轴固定在世界地面，避免移动相机高度时把半球地面抬离角色脚下。没有状态图或环境加载失败时恢复纯色地面。
 
+场景状态图和真正的等距 HDRI 不能共用同一种地面采样：2:1 素材保留标准等距半球 UV，其他比例（当前产品默认是 1280×720 场景图）改用下半球的方位角 + 地面半径投影，避免把普通透视图的底部一行像素拉满整个地面。环境纹理启用线性 mipmap、各向异性过滤和边缘寻址；环境材质用自发光强度显示贴图，不让场景灯光把背景压糊。
+
+`layout3d.environment` 是可选的向后兼容字段，保存投影高度、半球尺寸、水平旋转和环境亮度。投影高度通过半球竖直比例调整地平线构图，地面仍固定在世界 Y=0；旧布局没有该字段时使用 viewer 默认值。右侧 HDRI 环境面板是这些参数的唯一编辑入口，保存草图时与角色、相机快照一起写回。
+
 ## Related Modules
 
 - `client/src/pages/drama/comicDrama/DramaBlocking3DPage.tsx`
@@ -68,4 +72,6 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 - `docs/superpowers/plans/2026-08-24-drama-blocking-3d.md`
 - `docs/superpowers/specs/2026-08-24-drama-blocking-3d-static-hdri-design.md`
 - `docs/superpowers/plans/2026-08-24-drama-blocking-3d-static-hdri.md`
+- `docs/superpowers/specs/2026-08-24-drama-hdri-backdrop-clarity-design.md`
+- `docs/superpowers/plans/2026-08-24-drama-hdri-backdrop-clarity.md`
 - MyDrama viewer-kit 的 PlayCanvas 3D Director 参考实现

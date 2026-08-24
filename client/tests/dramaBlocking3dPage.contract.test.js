@@ -49,3 +49,13 @@ test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () 
   assert.match(entrySource, /3D 草图/);
   assert.doesNotMatch(entrySource, /2D 草图|ShotBlockingSketchDialog/);
 });
+
+test("3D 草图提供紧凑的 HDRI 环境调节入口", () => {
+  assert.match(pageSource, /HDRI 环境/);
+  assert.match(pageSource, /投影高度/);
+  assert.match(pageSource, /半球尺寸/);
+  assert.match(pageSource, /水平旋转/);
+  assert.match(pageSource, /环境亮度/);
+  assert.match(pageSource, /type=\"range\"/);
+  assert.match(pageSource, /setEnvironmentSettings/);
+});
