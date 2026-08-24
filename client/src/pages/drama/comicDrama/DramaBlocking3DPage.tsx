@@ -201,11 +201,11 @@ export default function DramaBlocking3DPage() {
 
   const updateEnvironmentSetting = useCallback((key: keyof Blocking3dEnvironmentSettings, value: number) => {
     if (!viewer || saving) return;
-    const next = { ...environmentSettings, [key]: value };
+    const next = { ...viewer.getEnvironmentSettings(), [key]: value };
     if (!viewer.setEnvironmentSettings(next)) return;
-    setEnvironmentSettings(viewer.getEnvironmentSettings());
+    setEnvironmentSettings(next);
     setDirty(true);
-  }, [environmentSettings, saving, viewer]);
+  }, [saving, viewer]);
 
   const handleSave = async (confirmAfterSave: boolean) => {
     if (!viewer || !context?.scene || saving) return;
