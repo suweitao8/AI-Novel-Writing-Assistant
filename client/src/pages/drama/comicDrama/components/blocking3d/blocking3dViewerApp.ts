@@ -18,6 +18,7 @@ export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   domeRadius: 48,
   yawDeg: 0,
   intensity: 1,
+  groundTextureScale: 10,
 };
 export const BLOCKING_SKETCH_CAPTURE_SIZE = {
   width: 1280,
@@ -133,6 +134,7 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 24, 96),
     yawDeg: clamp(numberOr(input?.yawDeg, DEFAULT_BLOCKING_3D_ENVIRONMENT.yawDeg), -180, 180),
     intensity: clamp(numberOr(input?.intensity, DEFAULT_BLOCKING_3D_ENVIRONMENT.intensity), 0.6, 1.6),
+    groundTextureScale: clamp(numberOr(input?.groundTextureScale, DEFAULT_BLOCKING_3D_ENVIRONMENT.groundTextureScale), 1, 20),
   };
 }
 
@@ -140,7 +142,7 @@ function createDomeGeometry(): pc.DomeGeometry {
   return new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
 }
 
-function createDomeSectionGeometry(startTheta: number, endTheta: number, sourceVStart: number, sourceVEnd: number): pc.Geometry {
+function createDomeSectionGeometry(startTheta: number, endTheta: number, sourceVStart: number, sourceVEnd: number, textureRepeat = 1): pc.Geometry {
   const radius = 0.5;
   const latitudeBands = 24;
   const longitudeBands = 64;
@@ -168,7 +170,14 @@ function createDomeSectionGeometry(startTheta: number, endTheta: number, sourceV
       domeY += 0.1;
       positions.push(x * radius, domeY * radius, z * radius);
       normals.push(x, y, z);
-      uvs.push(1 - lon / longitudeBands, sourceVStart + (lat / latitudeBands) * (sourceVEnd - sourceVStart));
+      const textureProgress = lat / latitudeBands;
+      const repeatedTextureProgress = textureProgress >= 1
+        ? 1
+        : textureProgress * textureRepeat - Math.floor(textureProgress * textureRepeat);
+      uvs.push(
+        (1 - lon / longitudeBands) * textureRepeat,
+        sourceVStart + repeatedTextureProgress * (sourceVEnd - sourceVStart),
+      );
     }
   }
 
@@ -194,8 +203,9 @@ function createUpperDomeGeometry(): pc.Geometry {
   return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5);
 }
 
-function createGroundDomeGeometry(): pc.Geometry {
-  return createDomeSectionGeometry(Math.PI * 0.5, Math.PI, 0.5, 1);
+function createGroundDomeGeometry(groundTextureScale = 1): pc.Geometry {
+  const textureScale = Math.max(1, groundTextureScale);
+  return createDomeSectionGeometry(Math.PI * 0.5, Math.PI, 0.5, 1, textureScale);
 }
 
 function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
@@ -396,8 +406,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.StandardMaterial | null = null;
   let environmentGroundMaterial: pc.StandardMaterial | null = null;
+  let environmentGroundMeshInstance: pc.MeshInstance | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  const rebuildEnvironmentGroundMesh = () => {
+    if (!environmentGroundMeshInstance) return;
+    const previousMesh = environmentGroundMeshInstance.mesh;
+    const nextMesh = pc.Mesh.fromGeometry(
+      app.graphicsDevice,
+      createGroundDomeGeometry(environmentSettings.groundTextureScale),
+    );
+    environmentGroundMeshInstance.mesh = nextMesh;
+    previousMesh.destroy();
+  };
   const applyEnvironmentSettings = () => {
     if (environmentDome) {
       environmentDome.setLocalScale(
@@ -867,6 +888,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentGround.destroy();
         environmentGround = null;
       }
+      environmentGroundMeshInstance = null;
       environmentMaterial = null;
       environmentGroundMaterial = null;
       if (environmentAsset) {
@@ -910,10 +932,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         groundMaterial.depthWrite = false;
         groundMaterial.update();
         environmentGroundMaterial = groundMaterial;
-        const groundMesh = pc.Mesh.fromGeometry(app.graphicsDevice, createGroundDomeGeometry());
+        const groundMesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createGroundDomeGeometry(environmentSettings.groundTextureScale),
+        );
+        environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, groundMaterial);
         environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
         environmentGround.addComponent("render", {
-          meshInstances: [new pc.MeshInstance(groundMesh, groundMaterial)],
+          meshInstances: [environmentGroundMeshInstance],
           layers: [pc.LAYERID_SKYBOX],
         });
         environmentGround.setPosition(environmentWorldPosition);
@@ -931,6 +957,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     setEnvironmentSettings(settings) {
       environmentSettings = normalizeEnvironmentSettings(settings);
       applyEnvironmentSettings();
+      rebuildEnvironmentGroundMesh();
       emitChange();
       return true;
     },
@@ -957,6 +984,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     loadLayout(layout) {
       environmentSettings = normalizeEnvironmentSettings(layout.environment);
       applyEnvironmentSettings();
+      rebuildEnvironmentGroundMesh();
       viewer.setCameraState(layout.camera);
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);
@@ -1000,6 +1028,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       actors.clear();
       environmentDome?.destroy();
       environmentGround?.destroy();
+      environmentGroundMeshInstance = null;
       environmentAsset && app.assets.remove(environmentAsset);
       selectionRing.destroy();
       app.destroy();
