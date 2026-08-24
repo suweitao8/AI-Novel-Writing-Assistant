@@ -153,7 +153,7 @@ const batchJobBodySchema = z.object({
   shotIds: z.array(z.string().trim().min(1)).optional(),
   failedShotIds: z.array(z.string().trim().min(1)).optional(),
   useCharacterRefImages: z.boolean().optional(),
-  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  /** keyframes/tts 强制重生成：忽略已有首帧或配音 */
   force: z.boolean().optional(),
 });
 

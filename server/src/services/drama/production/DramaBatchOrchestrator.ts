@@ -33,7 +33,7 @@ export interface DramaBatchProgress {
   concurrency?: number;
   errors?: Array<{ shotId: string; message: string }>;
   useCharacterRefImages?: boolean;
-  /** tts 重配模式：true=忽略已有配音全部重合成；false=只补缺失 */
+  /** 强制重生成模式：keyframes 忽略已有首帧，tts 忽略已有配音；false=只补缺失。 */
   force?: boolean;
   cost?: DramaBatchCostBreakdown;
 }
@@ -63,7 +63,7 @@ export interface CreateEpisodeBatchJobInput {
   shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
-  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  /** 强制重生成模式：keyframes 忽略已有首帧，tts 忽略已有配音。 */
   force?: boolean;
 }
 
@@ -149,6 +149,13 @@ function hasDoneKeyframe(raw: string | null | undefined): boolean {
 
 function isDraftBlockingSketch(raw: string | null | undefined): boolean {
   return parseBlockingSketchData(raw)?.status === "draft";
+}
+
+export function shouldSkipDramaKeyframe(
+  shot: Pick<BatchShot, "keyframeData" | "blockingSketchData">,
+  force = false,
+): boolean {
+  return (!force && hasDoneKeyframe(shot.keyframeData)) || isDraftBlockingSketch(shot.blockingSketchData);
 }
 
 function isActiveVideoPrompt(prompt: BatchVideoPrompt): boolean {
@@ -466,8 +473,13 @@ export class DramaBatchOrchestrator {
     }
   }
 
-  private async processKeyframeShot(shot: BatchShot, provider?: string, useCharacterRefImages = true): Promise<"processed" | "skipped"> {
-    if (hasDoneKeyframe(shot.keyframeData) || isDraftBlockingSketch(shot.blockingSketchData)) {
+  private async processKeyframeShot(
+    shot: BatchShot,
+    provider?: string,
+    useCharacterRefImages = true,
+    force = false,
+  ): Promise<"processed" | "skipped"> {
+    if (shouldSkipDramaKeyframe(shot, force)) {
       return "skipped";
     }
     await this.keyframeService.generateKeyframe(shot.id, (provider || DEFAULT_IMAGE_PROVIDER) as LLMProvider, useCharacterRefImages);
@@ -520,7 +532,7 @@ export class DramaBatchOrchestrator {
     currentAudioReadyShotIds?: ReadonlySet<string>,
   ): Promise<BatchProcessResult> {
     if (type === "keyframes") {
-      const status = await this.processKeyframeShot(shot, provider, useCharacterRefImages);
+      const status = await this.processKeyframeShot(shot, provider, useCharacterRefImages, force);
       return status === "processed"
         ? { status, costUnits: { images: 1, shots: 1 } }
         : { status };
@@ -648,7 +660,7 @@ export class DramaBatchOrchestrator {
 
     let estimatedUnits: DramaBatchCostUnits = {};
     if (type === "keyframes") {
-      const billableShots = shots.filter((shot) => !hasDoneKeyframe(shot.keyframeData) && !isDraftBlockingSketch(shot.blockingSketchData));
+      const billableShots = shots.filter((shot) => !shouldSkipDramaKeyframe(shot, force));
       estimatedUnits = { images: billableShots.length, shots: billableShots.length };
     } else if (type === "videos") {
       const billableShots = shots.filter((shot) => {

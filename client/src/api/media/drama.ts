@@ -744,7 +744,7 @@ export async function createDramaEpisodeBatchJob(id: string, order: number, payl
   shotIds?: string[];
   failedShotIds?: string[];
   useCharacterRefImages?: boolean;
-  /** tts 重配模式：true=忽略已有配音全部重合成 */
+  /** keyframes/tts 强制重生成：忽略已有首帧或配音 */
   force?: boolean;
 }) {
   const { data } = await apiClient.post<ApiResponse<DramaBatchJob>>(

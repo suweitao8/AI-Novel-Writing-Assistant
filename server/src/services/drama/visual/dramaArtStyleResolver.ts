@@ -29,10 +29,15 @@ import {
   DEFAULT_DRAMA_ASSET_STYLES,
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
   DRAMA_ASSET_STYLE_KINDS,
+  filterDramaEraStyleCandidates,
   DRAMA_VISUAL_STYLE_PRESETS,
   matchDramaEraStyle,
+  resolveDramaRenderFamily,
+  resolveDramaVisualStyle,
   type DramaAssetStyleKind,
   type DramaAssetVisualStyle,
+  type DramaEraStyleCandidate,
+  type DramaRenderFamily,
   type DramaSpecificStyle,
 } from "./dramaVisualStyles";
 import { judgeEraStyle, type JudgeEraStyleFn } from "./eraStyleJudge";
@@ -41,6 +46,8 @@ import { getDramaEraStyleCustoms } from "./eraStyleLibrary";
 export interface ResolvedDramaArtStyle {
   assets: Record<DramaAssetStyleKind, DramaAssetVisualStyle>;
   specific: DramaSpecificStyle | null;
+  /** 本项目所有图片生成点共用的渲染媒介，不随逐镜时代氛围判定变化。 */
+  renderFamily: DramaRenderFamily;
 }
 
 /** 按剧情判定时代风格的上下文（2026-08-22 用户要求）：带剧情文本的生成点用。 */
@@ -129,8 +136,16 @@ async function loadEraStyleRecord(novelId: string | null): Promise<NovelArtStyle
 function matchSpecificStyle(
   chosen: string,
   artStyles: DramaSpecificStyle[],
+  renderFamily: DramaRenderFamily,
 ): DramaSpecificStyle | null {
-  return matchDramaEraStyle(chosen, artStyles);
+  const matched = matchDramaEraStyle(chosen, artStyles);
+  if (!matched) {
+    return null;
+  }
+  const preset = "id" in matched && typeof matched.id === "string"
+    ? resolveDramaVisualStyle(matched.id)
+    : null;
+  return !preset || preset.styleFamily === renderFamily ? matched : null;
 }
 
 export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInput): Promise<ResolvedDramaArtStyle> {
@@ -145,6 +160,7 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
 
   const novelId = input.sourceRef?.trim() || null;
   const novelArtStyles = await loadEraStyleRecord(novelId);
+  const renderFamily = resolveDramaRenderFamily(input.visualStyle?.trim() || novelArtStyles.defaultArtStyle);
 
   // 用户给生成点显式选定的时代风格（状态图的自选字段）：直接采用，不再判定。
   // 匹配不到可选风格（如自定义风格已删）时按悬空引用处理：提供了 pinnedMissFallbackStyle
@@ -152,29 +168,60 @@ export async function resolveDramaArtStyleContext(input: ResolveDramaArtStyleInp
   // 否则回落常规链。
   const pinned = input.pinnedStyle?.trim();
   if (pinned) {
-    const pinnedSpecific = matchDramaEraStyle(pinned, novelArtStyles.artStyles);
+    const pinnedSpecific = matchSpecificStyle(pinned, novelArtStyles.artStyles, renderFamily);
     if (pinnedSpecific) {
-      return { assets, specific: pinnedSpecific };
+      return { assets, specific: pinnedSpecific, renderFamily };
     }
     if (input.pinnedMissFallbackStyle?.trim()) {
-      const fallbackSpecific = matchDramaEraStyle(input.pinnedMissFallbackStyle, novelArtStyles.artStyles);
+      const fallbackSpecific = matchSpecificStyle(
+        input.pinnedMissFallbackStyle,
+        novelArtStyles.artStyles,
+        renderFamily,
+      );
       if (fallbackSpecific) {
-        return { assets, specific: fallbackSpecific };
+        return { assets, specific: fallbackSpecific, renderFamily };
       }
     }
   }
 
   const chosen = input.visualStyle?.trim();
   if (chosen) {
-    return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, chosen, novelArtStyles.artStyles) };
+    return {
+      assets,
+      specific: await resolveSpecificWithScriptJudge(
+        input,
+        novelId,
+        chosen,
+        novelArtStyles.artStyles,
+        renderFamily,
+      ),
+      renderFamily,
+    };
   }
 
   if (!novelArtStyles.defaultArtStyle) {
-    return { assets, specific: await resolveSpecificWithScriptJudge(input, novelId, null, novelArtStyles.artStyles) };
+    return {
+      assets,
+      specific: await resolveSpecificWithScriptJudge(
+        input,
+        novelId,
+        null,
+        novelArtStyles.artStyles,
+        renderFamily,
+      ),
+      renderFamily,
+    };
   }
   return {
     assets,
-    specific: await resolveSpecificWithScriptJudge(input, novelId, novelArtStyles.defaultArtStyle, novelArtStyles.artStyles),
+    specific: await resolveSpecificWithScriptJudge(
+      input,
+      novelId,
+      novelArtStyles.defaultArtStyle,
+      novelArtStyles.artStyles,
+      renderFamily,
+    ),
+    renderFamily,
   };
 }
 
@@ -185,32 +232,38 @@ async function resolveSpecificWithScriptJudge(
   novelId: string | null,
   chainKey: string | null,
   customStyles: DramaSpecificStyle[],
+  renderFamily: DramaRenderFamily,
 ): Promise<DramaSpecificStyle | null> {
-  const chainSpecific = chainKey ? matchDramaEraStyle(chainKey, customStyles) : null;
+  const chainSpecific = chainKey ? matchSpecificStyle(chainKey, customStyles, renderFamily) : null;
   const excerpt = input.scriptJudge?.scriptExcerpt?.trim();
   if (!excerpt) {
     return chainSpecific;
   }
-  const availableStyles = [
-    ...DRAMA_VISUAL_STYLE_PRESETS.map((preset) => ({ key: preset.id, label: preset.label, summary: preset.summary })),
+  const availableStyles = filterDramaEraStyleCandidates([
+    ...DRAMA_VISUAL_STYLE_PRESETS.map((preset) => ({
+      key: preset.id,
+      label: preset.label,
+      summary: preset.summary,
+      styleFamily: preset.styleFamily,
+    })),
     ...customStyles.map((style) => ({
       key: style.label,
       label: style.label,
       summary: style.styleInstructions.slice(0, 80),
     })),
-  ];
+  ] satisfies DramaEraStyleCandidate[], renderFamily);
   const judge = input.judgeFn ?? judgeEraStyle;
   const judged = await judge({
     ...(novelId ? { novelId } : {}),
     target: input.scriptJudge?.target ?? "",
     scriptExcerpt: excerpt,
     availableStyles,
-    defaultKey: chainKey,
+    defaultKey: chainSpecific ? chainKey : null,
   });
   if (!judged) {
     return chainSpecific;
   }
-  const judgedSpecific = matchDramaEraStyle(judged.styleKey, customStyles);
+  const judgedSpecific = matchSpecificStyle(judged.styleKey, customStyles, renderFamily);
   if (judgedSpecific) {
     console.log(`[era-style-judge] ${input.scriptJudge?.target ?? ""} → ${judged.styleKey}（${judged.reason}）`);
     return judgedSpecific;

@@ -201,7 +201,12 @@ export class DramaCharacterImageService {
     });
     const prompt = buildDramaCharacterSheetPrompt(
       character,
-      buildAssetStylePromptLines("character", styleContext.assets.character, styleContext.specific),
+      buildAssetStylePromptLines(
+        "character",
+        styleContext.assets.character,
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
     );
 
     const adapter: ImageTargetAdapter<CharacterSheetData> = {
