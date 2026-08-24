@@ -7,7 +7,7 @@ import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { globalNarratorVoiceSettingsService, hashNarratorSample } from "../../settings/GlobalNarratorVoiceSettingsService";
-import { isRealTTSProvider, ttsProviderRegistry } from "./TTSProviderPort";
+import { isRealTTSProvider, ttsProviderRegistry, type TTSGenerationRequest } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
 /** 台词行类型：旁白标记或无说话人=旁白，其余有说话人=对白（搬自 mydrama 的 narration/dialogue 语义） */
@@ -63,7 +63,33 @@ export interface NarratorVoiceData {
   updatedAt?: string;
 }
 
+/**
+ * 把分镜行统一转换为 TTS 请求。
+ * 旁白使用 narration 语义并只携带旁白参考音频；角色对白使用 dialogue 语义和角色名。
+ * 这层不能交给 provider 猜测，否则旁白会被错误包装成角色对白。
+ */
+export function buildDialogueTTSRequest(
+  item: Pick<DialogueAudioItem, "type" | "speaker" | "text" | "emotion">,
+  voice: CharacterVoice | undefined,
+  narratorVoice: NarratorVoiceData,
+): TTSGenerationRequest {
+  const isNarrationLine = item.type === "narration" || item.speaker === "旁白";
+  return {
+    text: item.text,
+    audioType: isNarrationLine ? "narration" : "dialogue",
+    voiceId: isNarrationLine ? undefined : voice?.voiceId,
+    speed: isNarrationLine ? undefined : voice?.speed,
+    emotion: isNarrationLine
+      ? narratorVoice.description
+      : (item.emotion || voice?.emotion || voice?.voicePrompt),
+    speaker: isNarrationLine ? undefined : item.speaker,
+    referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
+  };
+}
+
 const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
+/** 旁白曾被错误包装成 dialogue；升级版本后旧音频必须重新生成。 */
+export const NARRATION_AUDIO_SEMANTICS_VERSION = "narration-v2";
 
 // 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM 的
 // emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。
@@ -124,7 +150,7 @@ export function buildDialogueVoiceKey(input: {
   if (input.type === "narration") {
     const sampleFingerprint = input.narratorSampleSha256
       ?? (input.narratorSampleAudioUrl ? hashNarratorSample(input.narratorSampleAudioUrl) : "");
-    return `narrator|${(input.narratorDescription ?? "").trim()}|${sampleFingerprint}`;
+    return `narrator|${NARRATION_AUDIO_SEMANTICS_VERSION}|${(input.narratorDescription ?? "").trim()}|${sampleFingerprint}`;
   }
   const voice = input.voice;
   return [
@@ -372,21 +398,9 @@ export class DramaDialogueAudioService {
       // 先在派发前解析每行的音色/语气参数，避免并发 worker 内重复查表。
       const prepared = pendingItems.map((item) => {
         const voice = resolvedVoiceByLine.get(item.lineIndex);
-        // 「旁白：内容」行解析后 speaker=旁白，配音按旁白处理（旁白音色描述，不找角色音色）。
-        const isNarrationLine = item.type === "narration" || item.speaker === "旁白";
         return {
           item,
-          request: {
-            text: item.text,
-            voiceId: isNarrationLine ? undefined : voice?.voiceId,
-            speed: isNarrationLine ? undefined : voice?.speed,
-            // 行内语气优先（分镜台词的「角色（语气）：台词」），其次角色默认情绪，旁白用旁白音色描述。
-            emotion: isNarrationLine
-              ? narratorVoice.description
-              : (item.emotion || voice?.emotion || voice?.voicePrompt),
-            speaker: isNarrationLine ? "旁白" : item.speaker,
-            referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
-          },
+          request: buildDialogueTTSRequest(item, voice, narratorVoice),
         };
       });
       // 有界并发（3 路）合成；任一行失败仍走原有整体失败语义，最终按 lineIndex 排序。

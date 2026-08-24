@@ -1,8 +1,10 @@
-import { synthesizeAudioSpeech } from "../../audio/speechProvider";
+import { synthesizeAudioSpeech, type AudioSpeechType } from "../../audio/speechProvider";
 import { VoxCPM2TTSProvider } from "./VoxCPM2TTSProvider";
 
 export interface TTSGenerationRequest {
   text: string;
+  /** 语义必须透传到模型：旁白不能被包装成角色对白。 */
+  audioType: AudioSpeechType;
   voiceId?: string | null;
   speed?: number | null;
   emotion?: string | null;
