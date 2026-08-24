@@ -27,6 +27,11 @@ import { ttsProviderRegistry } from "../../../services/drama/audio/TTSProviderPo
 import { dramaAudioSegmentsService } from "../../../services/drama/audio/DramaAudioSegmentsService";
 import { dramaDialogueAudioService } from "../../../services/drama/audio/DramaDialogueAudioService";
 import { dramaVoiceDesignService } from "../../../services/drama/audio/DramaVoiceDesignService";
+import {
+  listIndexTTS25Catalog,
+  persistIndexTTS25ReferenceAudio,
+} from "../../../services/audio/indexTTS25";
+import { resolveAudioSpeechSlotConfig } from "../../../services/audio/speechProvider";
 import { rhythmEngine } from "../../../services/drama/engine/rhythmEngine";
 import { dramaBatchOrchestrator } from "../../../services/drama/production/DramaBatchOrchestrator";
 import { dramaShotKeyframeService } from "../../../services/drama/visual/DramaShotKeyframeService";
@@ -163,10 +168,21 @@ const shotAudioRegenerateSchema = z.object({
 
 const narratorVoiceUpdateSchema = z.object({
   description: z.string().trim().min(4).max(1000),
+  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  indexTTS25Speaker: z.string().trim().max(120).optional(),
 });
 
 const characterVoiceDesignSchema = z.object({
   prompt: z.string().trim().min(4).max(1000),
+  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  indexTTS25Speaker: z.string().trim().max(120).optional(),
+});
+
+const indexTTS25ReferenceUploadSchema = z.object({
+  audioDataUrl: z.string()
+    .trim()
+    .max(14_000_000)
+    .refine((value) => /^data:audio\//i.test(value), "请上传音频文件。"),
 });
 
 const outlineRequestSchema = z
@@ -622,7 +638,10 @@ router.patch(
     try {
       const { id } = req.params as z.infer<typeof idParamsSchema>;
       const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
-      const data = await dramaVoiceDesignService.updateNarratorVoiceDescription(id, body.description);
+      const data = await dramaVoiceDesignService.updateNarratorVoiceDescription(id, body.description, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
       res.status(200).json({ success: true, data, message: "Drama narrator voice updated." });
     } catch (error) {
       next(error);
@@ -637,7 +656,10 @@ router.post(
     try {
       const { id } = req.params as z.infer<typeof idParamsSchema>;
       const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
-      const data = await dramaVoiceDesignService.designNarratorVoice(id, body.description);
+      const data = await dramaVoiceDesignService.designNarratorVoice(id, body.description, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
       res.status(200).json({ success: true, data, message: "Drama narrator voice sample generated." });
     } catch (error) {
       next(error);
@@ -652,8 +674,39 @@ router.post(
     try {
       const { characterId } = req.params as z.infer<typeof characterParamsSchema>;
       const body = req.body as z.infer<typeof characterVoiceDesignSchema>;
-      const data = await dramaVoiceDesignService.designCharacterVoice(characterId, body.prompt);
+      const data = await dramaVoiceDesignService.designCharacterVoice(characterId, body.prompt, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
       res.status(200).json({ success: true, data, message: "Drama character voice sample generated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.get("/index-tts25/catalog", async (_req, res, next) => {
+  try {
+    const config = await resolveAudioSpeechSlotConfig();
+    const data = await listIndexTTS25Catalog(config.baseURL, config.timeoutMs);
+    res.status(200).json({ success: true, data, message: "IndexTTS 2.5 音色目录读取成功。" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post(
+  "/index-tts25/references",
+  validate({ body: indexTTS25ReferenceUploadSchema }),
+  async (req, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof indexTTS25ReferenceUploadSchema>;
+      const fileName = await persistIndexTTS25ReferenceAudio(body.audioDataUrl);
+      res.status(200).json({
+        success: true,
+        data: { fileName },
+        message: "参考音频已加入 IndexTTS 2.5 音色库。",
+      });
     } catch (error) {
       next(error);
     }

@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_INDEXTTS25_ROOT = "D:\\Tools\\yzy-index-tts-2.5-260824";
 const DEFAULT_REFERENCE_AUDIO = "测试参考音频.mp3";
 const DEFAULT_SPEAKER = "default";
+const DEFAULT_WEB_UI_URL = "http://127.0.0.1:9000";
 const DEFAULT_LANGUAGE = "ZH";
 const AUDIO_EXTENSIONS = new Set([".wav", ".mp3", ".flac", ".m4a", ".ogg"]);
 
@@ -14,6 +15,8 @@ export interface IndexTTS25SpeechInput {
   text: string;
   speed?: number | null;
   emotion?: string | null;
+  /** IndexTTS 的底模/LoRA speaker；不要传剧情角色名。 */
+  indexTTS25Speaker?: string | null;
   speaker?: string | null;
   referenceAudioUrl?: string | null;
 }
@@ -36,6 +39,18 @@ export interface IndexTTS25Health {
   status?: string;
   modelLoaded?: boolean;
   qwenEmotion?: boolean;
+}
+
+export interface IndexTTS25VoiceCatalog {
+  available: boolean;
+  health: IndexTTS25Health | null;
+  speakers: string[];
+  referenceVoices: string[];
+  defaultSpeaker: string;
+  defaultReferenceAudio: string;
+  apiBaseURL: string;
+  webUIUrl: string;
+  error?: string;
 }
 
 function readEnv(name: string): string | undefined {
@@ -117,6 +132,10 @@ function isAudioExtension(extension: string): boolean {
 
 export function getIndexTTS25Root(): string {
   return readEnv("INDEXTTS25_ROOT") || DEFAULT_INDEXTTS25_ROOT;
+}
+
+export function getIndexTTS25WebUIUrl(): string {
+  return readEnv("INDEXTTS25_WEB_UI_URL") || DEFAULT_WEB_UI_URL;
 }
 
 export function getIndexTTS25VoicesDir(root = getIndexTTS25Root()): string {
@@ -242,6 +261,26 @@ async function cacheReferenceAudio(referenceAudioUrl: string | undefined): Promi
   return fileName;
 }
 
+/**
+ * 将上传或生成的参考音频物化到 IndexTTS 音色库。
+ * 文件名由内容指纹决定，重复保存只复用已有文件，不覆盖整合包里的原始音频。
+ */
+export async function persistIndexTTS25ReferenceAudio(referenceAudioUrl: string): Promise<string> {
+  const normalized = referenceAudioUrl.trim();
+  if (!normalized) {
+    throw new Error("参考音频不能为空。");
+  }
+  const isDataAudio = /^data:audio\//i.test(normalized);
+  const isVoiceLibraryFile = path.basename(normalized) === normalized
+    && isAudioExtension(path.extname(normalized))
+    && !normalized.includes("..")
+    && !/[\\/]/.test(normalized);
+  if (!isDataAudio && !isVoiceLibraryFile) {
+    throw new Error("参考音频只能使用音频 data URL 或 IndexTTS 音色库中的文件名。");
+  }
+  return cacheReferenceAudio(normalized);
+}
+
 export async function readIndexTTS25Health(
   baseURL: string,
   timeoutMs: number,
@@ -264,6 +303,61 @@ export async function readIndexTTS25Health(
   }
 }
 
+async function readJsonEndpoint(baseURL: string, endpoint: string, timeoutMs: number): Promise<unknown> {
+  const response = await fetch(`${normalizeBaseURL(baseURL)}${endpoint}`, {
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  if (!response.ok) {
+    throw new Error(`${endpoint} ${response.status} ${response.statusText}`);
+  }
+  return response.json();
+}
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
+    .map((item) => item.trim());
+}
+
+/** 读取 IndexTTS 网页工作台和 API 共享的 speaker/参考音频目录。 */
+export async function listIndexTTS25Catalog(
+  baseURL: string,
+  timeoutMs: number,
+): Promise<IndexTTS25VoiceCatalog> {
+  const health = await readIndexTTS25Health(baseURL, timeoutMs);
+  const errors: string[] = [];
+  let speakers: string[] = [];
+  let referenceVoices: string[] = [];
+
+  try {
+    const payload = await readJsonEndpoint(baseURL, "/speakers", timeoutMs) as Record<string, unknown>;
+    speakers = readStringArray(payload.speakers);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  try {
+    const payload = await readJsonEndpoint(baseURL, "/voices", timeoutMs) as Record<string, unknown>;
+    referenceVoices = readStringArray(payload.voices);
+  } catch (error) {
+    errors.push(error instanceof Error ? error.message : String(error));
+  }
+
+  return {
+    available: Boolean(health),
+    health,
+    speakers: speakers.length > 0 ? speakers : [DEFAULT_SPEAKER],
+    referenceVoices,
+    defaultSpeaker: readEnv("INDEXTTS25_SPEAKER") || DEFAULT_SPEAKER,
+    defaultReferenceAudio: path.basename(getIndexTTS25DefaultReferencePath()),
+    apiBaseURL: normalizeBaseURL(baseURL),
+    webUIUrl: getIndexTTS25WebUIUrl(),
+    ...(errors.length > 0 ? { error: errors.join("；") } : {}),
+  };
+}
+
 export function buildIndexTTS25Request(
   input: IndexTTS25SpeechInput,
   referenceAudio: string,
@@ -279,7 +373,7 @@ export function buildIndexTTS25Request(
   const request: Record<string, unknown> = {
     // 项目里的 speaker 是剧情角色名；IndexTTS 的 speaker 是底模/LoRA 名称，
     // 不能把“林澈”之类的角色名直接发给它，否则会被判定为不存在的 LoRA。
-    speaker: readEnv("INDEXTTS25_SPEAKER") || DEFAULT_SPEAKER,
+    speaker: input.indexTTS25Speaker?.trim() || readEnv("INDEXTTS25_SPEAKER") || DEFAULT_SPEAKER,
     audio: referenceAudio,
     text,
     lang: (readEnv("INDEXTTS25_LANGUAGE") || DEFAULT_LANGUAGE).toUpperCase(),

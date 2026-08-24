@@ -39,6 +39,7 @@ test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () 
       voiceId: "lin-che",
       voicePrompt: "青年男声，低沉克制",
       referenceAudioUrl: "data:audio/wav;base64:character",
+      indexTTS25Speaker: "lin-che-lora",
     },
     {},
   );
@@ -47,6 +48,28 @@ test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () 
   assert.equal(request.speaker, "林澈");
   assert.equal(request.emotion, "压低声音");
   assert.equal(request.referenceAudioUrl, "data:audio/wav;base64:character");
+  assert.equal(request.indexTTS25Speaker, "lin-che-lora");
+});
+
+test("角色试听样本会作为后续 IndexTTS 参考音频，且读取自定义 speaker", () => {
+  const { readCharacterVoice, buildDialogueTTSRequest } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
+  const voice = readCharacterVoice({
+    name: "叶竹",
+    voiceProfile: JSON.stringify({
+      voicePrompt: "青年女声，清亮克制",
+      sampleAudioUrl: "data:audio/wav;base64:preview",
+      indexTTS25Speaker: "ye-zhu-lora",
+    }),
+  });
+  assert.equal(voice.referenceAudioUrl, "data:audio/wav;base64:preview");
+  assert.equal(voice.indexTTS25Speaker, "ye-zhu-lora");
+  const request = buildDialogueTTSRequest(
+    { type: "dialogue", speaker: "叶竹", text: "我在。", emotion: undefined },
+    voice,
+    {},
+  );
+  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64:preview");
+  assert.equal(request.indexTTS25Speaker, "ye-zhu-lora");
 });
 
 test("IndexTTS 2.5 provider 将分镜的 audioType 透传到公共语音出口", () => {
@@ -66,10 +89,12 @@ test("IndexTTS 2.5 provider 将分镜的 audioType 透传到公共语音出口",
     text: "角色内容。",
     audioType: "dialogue",
     speaker: "林澈",
+    indexTTS25Speaker: "lin-che-lora",
     emotion: "克制",
   });
   assert.equal(dialogue.audioType, "dialogue");
   assert.equal(dialogue.speaker, "林澈");
+  assert.equal(dialogue.indexTTS25Speaker, "lin-che-lora");
 });
 
 test("旁白音色指纹包含路由版本，自动淘汰旧的对白包装音频", () => {
@@ -78,7 +103,21 @@ test("旁白音色指纹包含路由版本，自动淘汰旧的对白包装音�
     type: "narration",
     narratorDescription: "成年女声旁白，温和沉稳",
     narratorSampleAudioUrl: "data:audio/wav;base64:narrator",
+    narratorIndexTTS25Speaker: "narrator-lora",
   });
 
   assert.match(key, /narration-v2/);
+});
+
+test("speaker 变化会淘汰旧对白音频", () => {
+  const { buildDialogueVoiceKey } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
+  const first = buildDialogueVoiceKey({
+    type: "dialogue",
+    voice: { name: "叶竹", indexTTS25Speaker: "default" },
+  });
+  const second = buildDialogueVoiceKey({
+    type: "dialogue",
+    voice: { name: "叶竹", indexTTS25Speaker: "ye-zhu-lora" },
+  });
+  assert.notEqual(first, second);
 });

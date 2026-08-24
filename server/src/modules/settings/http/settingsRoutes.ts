@@ -405,6 +405,8 @@ const dramaAssetArtStyleUpdateSchema = z.object({
 
 const narratorVoiceUpdateSchema = z.object({
   description: z.string().trim().min(4).max(1000),
+  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  indexTTS25Speaker: z.string().trim().max(120).optional(),
 });
 
 router.get("/narrator-voice", async (_req, res, next) => {
@@ -426,7 +428,10 @@ router.patch(
   async (req, res, next) => {
     try {
       const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
-      const data = await globalNarratorVoiceSettingsService.updateDescription(body.description);
+      const data = await globalNarratorVoiceSettingsService.updateDescription(body.description, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
       res.status(200).json({
         success: true,
         data,
@@ -444,7 +449,10 @@ router.post(
   async (req, res, next) => {
     try {
       const body = req.body as z.infer<typeof narratorVoiceUpdateSchema>;
-      const data = await globalNarratorVoiceSettingsService.design(body.description);
+      const data = await globalNarratorVoiceSettingsService.design(body.description, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
       res.status(200).json({
         success: true,
         data,

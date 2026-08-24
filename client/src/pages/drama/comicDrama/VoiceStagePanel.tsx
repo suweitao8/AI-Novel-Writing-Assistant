@@ -14,8 +14,10 @@ import {
   updateDramaNarratorVoice,
   type DramaAudioSegment,
 } from "@/api/media/comicDrama";
+import { getIndexTTS25VoiceCatalog } from "@/api/audio";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
+import { IndexTTS25VoiceControls } from "@/components/audio/IndexTTS25VoiceControls";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -27,13 +29,18 @@ import { cn } from "@/lib/utils";
 function parseVoiceProfile(raw: string | null | undefined): {
   voicePrompt?: string;
   sampleAudioUrl?: string;
+  referenceAudioUrl?: string;
+  indexTTS25Speaker?: string;
 } {
   if (!raw?.trim()) return {};
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const sampleAudioUrl = typeof parsed.sampleAudioUrl === "string" ? parsed.sampleAudioUrl : undefined;
     return {
       voicePrompt: typeof parsed.voicePrompt === "string" ? parsed.voicePrompt : undefined,
-      sampleAudioUrl: typeof parsed.sampleAudioUrl === "string" ? parsed.sampleAudioUrl : undefined,
+      sampleAudioUrl,
+      referenceAudioUrl: typeof parsed.referenceAudioUrl === "string" ? parsed.referenceAudioUrl : sampleAudioUrl,
+      indexTTS25Speaker: typeof parsed.indexTTS25Speaker === "string" ? parsed.indexTTS25Speaker : undefined,
     };
   } catch {
     return {};
@@ -54,15 +61,29 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
     queryKey: queryKeys.comicDrama.narratorVoice(projectId),
     queryFn: () => getDramaNarratorVoice(projectId),
   });
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.settings.indexTTS25Catalog,
+    queryFn: getIndexTTS25VoiceCatalog,
+    staleTime: 30_000,
+  });
   const [draft, setDraft] = useState<string | null>(null);
+  const [speakerDraft, setSpeakerDraft] = useState<string | null>(null);
+  const [referenceDraft, setReferenceDraft] = useState<string | null>(null);
   const description = draft ?? narratorQuery.data?.description ?? "";
+  const speaker = speakerDraft ?? narratorQuery.data?.indexTTS25Speaker ?? catalogQuery.data?.defaultSpeaker ?? "default";
+  const referenceAudio = referenceDraft ?? narratorQuery.data?.referenceAudioUrl ?? "";
 
   const designMutation = useMutation({
-    mutationFn: () => designDramaNarratorVoice(projectId, description),
+    mutationFn: () => designDramaNarratorVoice(projectId, description, {
+      referenceAudioUrl: referenceAudio || undefined,
+      indexTTS25Speaker: speaker || undefined,
+    }),
     onSuccess: () => {
       toast.success("旁白音色试听已生成");
       // 丢弃本地草稿跟随服务端：设计成功后服务端描述已是权威值，旧草稿再保存会覆盖它。
       setDraft(null);
+      setSpeakerDraft(null);
+      setReferenceDraft(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.narratorVoice(projectId) });
       void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.audioSegmentsAll(projectId) });
     },
@@ -72,9 +93,14 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
   });
 
   const saveMutation = useMutation({
-    mutationFn: () => updateDramaNarratorVoice(projectId, description),
+    mutationFn: () => updateDramaNarratorVoice(projectId, description, {
+      referenceAudioUrl: referenceAudio || undefined,
+      indexTTS25Speaker: speaker || undefined,
+    }),
     onSuccess: () => {
       toast.success("旁白音色描述已保存");
+      setSpeakerDraft(null);
+      setReferenceDraft(null);
       void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.narratorVoice(projectId) });
     },
     onError: (error: Error) => {
@@ -128,6 +154,17 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
       {narratorQuery.data?.sampleAudioUrl ? (
         <audio controls preload="metadata" src={narratorQuery.data.sampleAudioUrl} className="h-8 w-full" />
       ) : null}
+      <IndexTTS25VoiceControls
+        catalog={catalogQuery.data}
+        catalogLoading={catalogQuery.isLoading}
+        catalogError={catalogQuery.error instanceof Error ? catalogQuery.error : null}
+        speaker={speaker}
+        referenceAudio={referenceAudio}
+        onSpeakerChange={setSpeakerDraft}
+        onReferenceAudioChange={setReferenceDraft}
+        onRefresh={() => void catalogQuery.refetch()}
+        disabled={designMutation.isPending || saveMutation.isPending}
+      />
       <p className="text-xs leading-5 text-muted-foreground">
         分镜台词里没有说话人的行会用旁白音色配音；改过描述后，已有旁白会标记为「已过期」，需要重新配音。
       </p>
@@ -139,8 +176,19 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
   const queryClient = useQueryClient();
   const profile = parseVoiceProfile(character.voiceProfile);
   const [prompt, setPrompt] = useState(profile.voicePrompt ?? "");
+  const [speaker, setSpeaker] = useState(profile.indexTTS25Speaker ?? "default");
+  const [referenceAudio, setReferenceAudio] = useState(profile.referenceAudioUrl ?? "");
   // 本地未改动时跟随服务端音色描述：音色设计完成后轮询会带回新值，不同步会一直显示旧文案。
   const lastServerPromptRef = useRef(profile.voicePrompt ?? "");
+  const lastServerSourceRef = useRef({
+    speaker: profile.indexTTS25Speaker ?? "default",
+    referenceAudio: profile.referenceAudioUrl ?? "",
+  });
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.settings.indexTTS25Catalog,
+    queryFn: getIndexTTS25VoiceCatalog,
+    staleTime: 30_000,
+  });
   useEffect(() => {
     const serverPrompt = profile.voicePrompt ?? "";
     if (prompt === lastServerPromptRef.current) {
@@ -148,9 +196,23 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
     }
     lastServerPromptRef.current = serverPrompt;
   }, [profile.voicePrompt, prompt]);
+  useEffect(() => {
+    const serverSpeaker = profile.indexTTS25Speaker ?? "default";
+    const serverReferenceAudio = profile.referenceAudioUrl ?? "";
+    if (speaker === lastServerSourceRef.current.speaker) {
+      setSpeaker(serverSpeaker);
+    }
+    if (referenceAudio === lastServerSourceRef.current.referenceAudio) {
+      setReferenceAudio(serverReferenceAudio);
+    }
+    lastServerSourceRef.current = { speaker: serverSpeaker, referenceAudio: serverReferenceAudio };
+  }, [profile.indexTTS25Speaker, profile.referenceAudioUrl, referenceAudio, speaker]);
 
   const designMutation = useMutation({
-    mutationFn: () => designDramaCharacterVoice(projectId, character.id, prompt),
+    mutationFn: () => designDramaCharacterVoice(projectId, character.id, prompt, {
+      referenceAudioUrl: referenceAudio || undefined,
+      indexTTS25Speaker: speaker || undefined,
+    }),
     onSuccess: (result) => {
       toast.success(`${character.name} 的音色试听已生成`);
       void queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) });
@@ -200,6 +262,17 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
           )}
         </AiButton>
       </div>
+      <IndexTTS25VoiceControls
+        catalog={catalogQuery.data}
+        catalogLoading={catalogQuery.isLoading}
+        catalogError={catalogQuery.error instanceof Error ? catalogQuery.error : null}
+        speaker={speaker}
+        referenceAudio={referenceAudio}
+        onSpeakerChange={setSpeaker}
+        onReferenceAudioChange={setReferenceAudio}
+        onRefresh={() => void catalogQuery.refetch()}
+        disabled={designMutation.isPending}
+      />
       {profile.sampleAudioUrl ? (
         <audio controls preload="metadata" src={profile.sampleAudioUrl} className="h-8 w-full" />
       ) : null}

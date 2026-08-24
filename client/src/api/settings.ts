@@ -142,6 +142,8 @@ export interface PendingReviewAutoPromotionSettings {
 export interface GlobalNarratorVoiceState {
   description?: string;
   sampleAudioUrl?: string;
+  referenceAudioUrl?: string;
+  indexTTS25Speaker?: string;
   sampleText?: string;
   sampleSha256?: string;
   source?: "legacy" | "generated" | "manual";
@@ -153,18 +155,24 @@ export async function getGlobalNarratorVoice() {
   return data;
 }
 
-export async function saveGlobalNarratorVoiceDescription(description: string) {
+export async function saveGlobalNarratorVoiceDescription(
+  description: string,
+  options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+) {
   const { data } = await apiClient.patch<ApiResponse<GlobalNarratorVoiceState>>(
     "/settings/narrator-voice",
-    { description },
+    { description, ...options },
   );
   return data;
 }
 
-export async function designGlobalNarratorVoice(description: string) {
+export async function designGlobalNarratorVoice(
+  description: string,
+  options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+) {
   const { data } = await apiClient.post<ApiResponse<GlobalNarratorVoiceState>>(
     "/settings/narrator-voice/design",
-    { description },
+    { description, ...options },
   );
   return data;
 }
