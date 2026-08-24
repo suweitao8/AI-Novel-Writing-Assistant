@@ -44,7 +44,7 @@ export default function NarratorVoiceSettingsPage() {
 
   const voice = narratorVoiceQuery.data?.data;
   const speaker = speakerDraft ?? voice?.indexTTS25Speaker ?? catalogQuery.data?.defaultSpeaker ?? "default";
-  const referenceAudio = referenceDraft ?? voice?.referenceAudioUrl ?? voice?.sampleAudioUrl ?? "";
+  const referenceAudio = referenceDraft ?? voice?.referenceAudioUrl ?? "";
 
   const saveMutation = useMutation({
     mutationFn: () => saveGlobalNarratorVoiceDescription(draft, {
@@ -113,21 +113,13 @@ export default function NarratorVoiceSettingsPage() {
             />
           </label>
 
-          {displayedVoice?.sampleAudioUrl ? (
-            <div className="space-y-2 rounded-md border bg-muted/20 p-4">
-              <p className="text-sm font-medium">当前试听样本</p>
-              <audio controls preload="metadata" className="w-full" src={displayedVoice.sampleAudioUrl}>
-                当前浏览器不支持音频播放。
-              </audio>
-            </div>
-          ) : null}
-
           <IndexTTS25VoiceControls
             catalog={catalogQuery.data}
             catalogLoading={catalogQuery.isLoading}
             catalogError={catalogQuery.error instanceof Error ? catalogQuery.error : null}
             speaker={speaker}
             referenceAudio={referenceAudio}
+            sampleAudioUrl={displayedVoice?.sampleAudioUrl}
             onSpeakerChange={setSpeakerDraft}
             onReferenceAudioChange={setReferenceDraft}
             onRefresh={() => void catalogQuery.refetch()}
