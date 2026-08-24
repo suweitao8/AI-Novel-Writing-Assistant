@@ -125,6 +125,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
   const [optimisticKeyframeShotIds, setOptimisticKeyframeShotIds] = useState<Set<string>>(() => new Set());
+  const activeOrder = chapterOrder;
   const lastTaskActivityAtRef = useRef(0);
   const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;
 
@@ -155,7 +156,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   });
   const project = projectQuery.data?.data;
   const episodes = project?.episodes ?? [];
-  const activeOrder = chapterOrder;
   const activeEpisode = episodes.find((episode) => episode.order === activeOrder) ?? null;
   const storyboard = activeEpisode?.storyboards?.[0] ?? null;
   const shots = useMemo(() => storyboard?.shots ?? [], [storyboard]);
