@@ -15,6 +15,7 @@ export interface IndexTTS25VoiceControlsProps {
   catalogError?: Error | null;
   speaker: string;
   referenceAudio: string;
+  sampleAudioUrl?: string;
   onSpeakerChange: (value: string) => void;
   onReferenceAudioChange: (value: string) => void;
   onRefresh?: () => void;
@@ -38,6 +39,7 @@ export function IndexTTS25VoiceControls({
   catalogError,
   speaker,
   referenceAudio,
+  sampleAudioUrl,
   onSpeakerChange,
   onReferenceAudioChange,
   onRefresh,
@@ -50,18 +52,18 @@ export function IndexTTS25VoiceControls({
     referenceAudio.startsWith("data:") ? "试听样本" : referenceAudio || "",
   );
   const [localPreview, setLocalPreview] = useState<{ referenceAudio: string; url: string } | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>(
+  const [referencePreviewUrl, setReferencePreviewUrl] = useState<string | undefined>(
     referenceAudio.startsWith("data:") ? referenceAudio : undefined,
   );
 
   useEffect(() => {
     setFileLabel(referenceAudio.startsWith("data:") ? "试听样本" : referenceAudio || "");
     if (referenceAudio.startsWith("data:")) {
-      setPreviewUrl(referenceAudio);
+      setReferencePreviewUrl(referenceAudio);
     } else if (localPreview?.referenceAudio === referenceAudio) {
-      setPreviewUrl(localPreview.url);
+      setReferencePreviewUrl(localPreview.url);
     } else {
-      setPreviewUrl(undefined);
+      setReferencePreviewUrl(undefined);
     }
   }, [localPreview, referenceAudio]);
 
@@ -90,7 +92,7 @@ export function IndexTTS25VoiceControls({
       });
       const saved = await saveIndexTTS25ReferenceAudio(dataUrl);
       setLocalPreview({ referenceAudio: saved.fileName, url: dataUrl });
-      setPreviewUrl(dataUrl);
+      setReferencePreviewUrl(dataUrl);
       setFileLabel(`${file.name}（${formatBytes(file.size)}）`);
       onReferenceAudioChange(saved.fileName);
       toast.success("参考音频已保存");
@@ -110,11 +112,22 @@ export function IndexTTS25VoiceControls({
     ...((catalog?.speakers ?? [])),
     ...(speaker ? [speaker] : []),
   ]));
+  const previewUrl = referencePreviewUrl ?? sampleAudioUrl;
+  const previewKind = referencePreviewUrl ? "reference" : sampleAudioUrl ? "sample" : null;
+  const clearReferenceAudio = () => {
+    setLocalPreview(null);
+    setReferencePreviewUrl(undefined);
+    setFileLabel("");
+    onReferenceAudioChange("");
+  };
 
   return (
-    <div className="space-y-2 rounded-lg border border-border/80 bg-background/60 p-2.5">
+    <div className="space-y-3 border-t border-border pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-medium text-foreground">IndexTTS 2.5 全局音色来源</span>
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium text-foreground">语音合成</p>
+          <p className="text-xs text-muted-foreground">IndexTTS 2.5</p>
+        </div>
         <div className="flex items-center gap-1.5">
           <span className={cn(
             "text-[11px]",
@@ -160,7 +173,6 @@ export function IndexTTS25VoiceControls({
             value={referenceAudio}
             onChange={(event) => {
               setLocalPreview(null);
-              setPreviewUrl(undefined);
               setFileLabel(event.target.value);
               onReferenceAudioChange(event.target.value);
             }}
@@ -224,25 +236,31 @@ export function IndexTTS25VoiceControls({
           </div>
         </div>
         {previewUrl ? (
-          <div className="flex items-center gap-2">
-            <audio controls preload="metadata" src={previewUrl} className="h-7 min-w-0 flex-1" />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 shrink-0"
-              onClick={() => {
-                setLocalPreview(null);
-                setPreviewUrl(undefined);
-                setFileLabel("");
-                onReferenceAudioChange("");
-              }}
-              disabled={disabled || uploading}
-              aria-label="清除参考音频"
-              title="清除参考音频"
-            >
-              <X className="h-3.5 w-3.5" aria-hidden="true" />
-            </Button>
+          <div className="space-y-1.5 rounded-md border border-border/60 bg-muted/10 p-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-foreground">
+                {previewKind === "reference" ? "参考音频试听" : "旁白试听样本"}
+              </span>
+              {referenceAudio ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={clearReferenceAudio}
+                  disabled={disabled || uploading}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />清除参考音频
+                </Button>
+              ) : null}
+            </div>
+            <audio
+              controls
+              preload="metadata"
+              src={previewUrl}
+              className="h-7 w-full"
+              aria-label={previewKind === "reference" ? "参考音频试听" : "旁白试听样本"}
+            />
           </div>
         ) : referenceAudio ? (
           <div className="flex justify-end">
@@ -251,12 +269,7 @@ export function IndexTTS25VoiceControls({
               variant="ghost"
               size="sm"
               className="h-7"
-              onClick={() => {
-                setLocalPreview(null);
-                setPreviewUrl(undefined);
-                setFileLabel("");
-                onReferenceAudioChange("");
-              }}
+              onClick={clearReferenceAudio}
               disabled={disabled || uploading}
             >
               <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />清除参考音频
