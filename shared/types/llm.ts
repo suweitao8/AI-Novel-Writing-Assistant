@@ -14,7 +14,7 @@ export const LLM_PROVIDERS = [
   "grok-cli",
   "codex",
   "grok_build",
-  "voxcpm2",
+  "indextts25",
 ] as const;
 
 export type BuiltinLLMProvider = typeof LLM_PROVIDERS[number];

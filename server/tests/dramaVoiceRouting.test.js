@@ -24,7 +24,7 @@ test("分镜配音为旁白保留 narration 语义，并且不把旁白当成角
   assert.equal(request.referenceAudioUrl, "data:audio/wav;base64,narrator");
 });
 
-test("VoxCPM2 请求继续为角色保留 dialogue 语义和角色名", () => {
+test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () => {
   const { buildDialogueTTSRequest } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
 
   const request = buildDialogueTTSRequest(
@@ -49,10 +49,10 @@ test("VoxCPM2 请求继续为角色保留 dialogue 语义和角色名", () => {
   assert.equal(request.referenceAudioUrl, "data:audio/wav;base64:character");
 });
 
-test("VoxCPM2 provider 将分镜的 audioType 透传到公共语音出口", () => {
-  const { buildVoxCPMSpeechInput } = require("../dist/services/drama/audio/VoxCPM2TTSProvider.js");
+test("IndexTTS 2.5 provider 将分镜的 audioType 透传到公共语音出口", () => {
+  const { buildIndexTTS25SpeechInput } = require("../dist/services/drama/audio/IndexTTS25TTSProvider.js");
 
-  const narrator = buildVoxCPMSpeechInput({
+  const narrator = buildIndexTTS25SpeechInput({
     text: "旁白内容。",
     audioType: "narration",
     speaker: "旁白",
@@ -62,7 +62,7 @@ test("VoxCPM2 provider 将分镜的 audioType 透传到公共语音出口", () =
   assert.equal(narrator.audioType, "narration");
   assert.equal(narrator.speaker, undefined);
 
-  const dialogue = buildVoxCPMSpeechInput({
+  const dialogue = buildIndexTTS25SpeechInput({
     text: "角色内容。",
     audioType: "dialogue",
     speaker: "林澈",
