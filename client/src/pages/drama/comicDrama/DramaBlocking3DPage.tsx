@@ -10,8 +10,6 @@ import {
   Loader2,
   Minus,
   Move3D,
-  Pause,
-  Play,
   Plus,
   RotateCcw,
   RotateCw,
@@ -57,7 +55,7 @@ function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShot
       yawDeg: actor.flipX ? 0 : 180,
       scale: [actor.scale / 0.4, actor.scale / 0.4, actor.scale / 0.4] as [number, number, number],
       pose: "standing" as const,
-      actionPlaying: true,
+      actionPlaying: false,
     })),
   };
 }
@@ -110,10 +108,9 @@ export default function DramaBlocking3DPage() {
   const viewerRef = useRef<Blocking3dViewer | null>(null);
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [status, setStatus] = useState("准备 3D 摆位台");
+  const [status, setStatus] = useState("准备 3D 草图");
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
-  const [selectedActionPlaying, setSelectedActionPlaying] = useState<boolean | null>(null);
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -130,7 +127,6 @@ export default function DramaBlocking3DPage() {
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
     setSelectedName(nextViewer.getSelectedActor());
     setSelectedPose(nextViewer.getSelectedPose());
-    setSelectedActionPlaying(nextViewer.getSelectedActionPlaying());
     setSelectedTransform(nextViewer.getSelectedTransform());
   }, []);
 
@@ -143,7 +139,7 @@ export default function DramaBlocking3DPage() {
     setViewerError(null);
     void createBlocking3dViewer({
       canvas,
-      backgroundUrl: context.scene.imageUrl,
+      environmentUrl: context.scene.imageUrl,
       onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
@@ -164,7 +160,7 @@ export default function DramaBlocking3DPage() {
         syncSelection(nextViewer);
       });
     }).catch((error: unknown) => {
-      if (!cancelled) setViewerError(error instanceof Error ? error.message : "3D 摆位台加载失败。");
+      if (!cancelled) setViewerError(error instanceof Error ? error.message : "3D 草图加载失败。");
     });
     return () => {
       cancelled = true;
@@ -202,24 +198,24 @@ export default function DramaBlocking3DPage() {
     try {
       const draft = buildSketchData(context, viewer);
       const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
-      if (!saved.data) throw new Error("保存后没有返回摆位数据。");
+      if (!saved.data) throw new Error("保存后没有返回草图数据。");
       const png = viewer.capturePng();
       const uploaded = await uploadDramaShotBlockingSketchPng(projectId, shotId, png);
       const result = confirmAfterSave
         ? await confirmDramaShotBlockingSketch(projectId, shotId)
         : uploaded;
-      if (!result.data) throw new Error("摆位图片上传后没有返回结果。");
+      if (!result.data) throw new Error("草图图片上传后没有返回结果。");
       setSavedData(result.data);
       setDirty(false);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) }),
         queryClient.invalidateQueries({ queryKey: ["comic-drama"] }),
       ]);
-      toast.success(confirmAfterSave ? "3D 摆位已确认。" : "3D 摆位已保存。", {
-        description: "分镜生成会使用这张摆位参考图。",
+      toast.success(confirmAfterSave ? "3D 草图已确认。" : "3D 草图已保存。", {
+        description: "分镜生成会使用这张草图参考图。",
       });
     } catch (error) {
-      toast.error(confirmAfterSave ? "确认 3D 摆位失败" : "保存 3D 摆位失败", {
+      toast.error(confirmAfterSave ? "确认 3D 草图失败" : "保存 3D 草图失败", {
         description: error instanceof Error ? error.message : "请稍后重试。",
       });
     } finally {
@@ -229,19 +225,19 @@ export default function DramaBlocking3DPage() {
   };
 
   const goBack = () => {
-    if (dirty && !window.confirm("当前 3D 摆位还有未保存修改，确定离开吗？")) return;
+    if (dirty && !window.confirm("当前 3D 草图还有未保存修改，确定离开吗？")) return;
     navigate(-1);
   };
 
   const currentStatus = savedData?.status ?? context?.sketch?.status ?? "draft";
 
   if (contextQuery.isPending) {
-    return <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />载入 3D 摆位数据</div>;
+    return <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />载入 3D 草图数据</div>;
   }
   if (contextQuery.isError || !context) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-sm text-destructive">摆位数据载入失败。</p>
+        <p className="text-sm text-destructive">草图数据载入失败。</p>
         <Button variant="outline" onClick={() => void contextQuery.refetch()}>重新载入</Button>
       </div>
     );
@@ -264,23 +260,23 @@ export default function DramaBlocking3DPage() {
           </Button>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 摆位` : "3D 摆位台"}</h1>
+              <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
               <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
                 {dirty ? "未保存" : currentStatus === "confirmed" ? "已确认" : "草稿"}
               </Badge>
             </div>
-            <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧可调整姿势和动作。</p>
+            <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧调整静态姿势和位置。</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
           <Button type="button" variant="outline" disabled={!viewer || saving} onClick={() => void handleSave(false)}>
             {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            保存摆位
+            保存草图
           </Button>
           <Button type="button" disabled={!viewer || saving} onClick={() => void handleSave(true)}>
             {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Check className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            确认摆位
+            确认草图
           </Button>
         </div>
       </header>
@@ -288,14 +284,14 @@ export default function DramaBlocking3DPage() {
       <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <Card className="w-full self-start overflow-hidden">
           <CardContent className="relative aspect-video w-full p-0">
-            <canvas ref={canvasRef} aria-label="3D 摆位视口" aria-busy={saving} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <canvas ref={canvasRef} aria-label="3D 草图视口" aria-busy={saving} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             {!viewer && !viewerError ? (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />初始化 3D 摆位台</div>
+              <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />初始化 3D 草图</div>
             ) : null}
             {viewerError ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/90 p-6 text-center">
                 <p className="text-sm text-destructive">{viewerError}</p>
-                <p className="text-xs text-muted-foreground">请确认浏览器支持 WebGL，并重新打开摆位台。</p>
+                <p className="text-xs text-muted-foreground">请确认浏览器支持 WebGL，并重新打开 3D 草图。</p>
                 <Button variant="outline" onClick={goBack}>返回分镜</Button>
               </div>
             ) : null}
@@ -325,7 +321,7 @@ export default function DramaBlocking3DPage() {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">姿势与动作</CardTitle></CardHeader>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">静态姿势</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {selectedName ? <p className="text-sm font-medium">{selectedName}</p> : <p className="text-xs text-muted-foreground">先选择一个角色。</p>}
               <label className="block space-y-1.5 text-xs text-muted-foreground">
@@ -335,10 +331,6 @@ export default function DramaBlocking3DPage() {
                   {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
                 </SelectControl>
               </label>
-              <Button type="button" variant="outline" className="w-full" disabled={saving || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.setSelectedActionPlaying(!selectedActionPlaying))}>
-                {selectedActionPlaying ? <Pause className="mr-1.5 h-4 w-4" aria-hidden="true" /> : <Play className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                {selectedActionPlaying ? "暂停动作" : "播放动作"}
-              </Button>
             </CardContent>
           </Card>
 

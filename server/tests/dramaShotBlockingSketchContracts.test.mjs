@@ -62,7 +62,7 @@ test("已有草图 JSON 只接受已知状态，空数据保持兼容", () => {
   assert.equal(parseBlockingSketchData(JSON.stringify(validSketch))?.scene.yawDeg, 25);
 });
 
-test("3D 摆位快照与旧草图字段一起保存，并保留坐着/躺着/趴着姿势", () => {
+test("3D 草图快照与旧草图字段一起保存，并统一保存静态关键帧姿势", () => {
   const input = {
     ...validSketch,
     layout3d: {
@@ -94,7 +94,14 @@ test("3D 摆位快照与旧草图字段一起保存，并保留坐着/躺着/趴
       ],
     },
   };
-  assert.deepEqual(normalizeBlockingSketchData(input), input);
+  const expected = {
+    ...input,
+    layout3d: {
+      ...input.layout3d,
+      actors: input.layout3d.actors.map((actor) => ({ ...actor, actionPlaying: false })),
+    },
+  };
+  assert.deepEqual(normalizeBlockingSketchData(input), expected);
 });
 
 test("3D 摆位快照拒绝越界位置和未知姿势", () => {
@@ -136,4 +143,25 @@ test("3D 摆位快照拒绝越界位置和未知姿势", () => {
     }),
     /姿势/,
   );
+});
+
+test("旧的动作播放标记会归一化为静态关键帧", () => {
+  const normalized = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+      actors: [{
+        characterName: "沈烬",
+        position: [0, 0, 0],
+        yawDeg: 0,
+        scale: [1, 1, 1],
+        pose: "standing",
+        actionPlaying: true,
+      }],
+    },
+  });
+
+  assert.equal(normalized.layout3d?.actors[0]?.actionPlaying, false);
 });

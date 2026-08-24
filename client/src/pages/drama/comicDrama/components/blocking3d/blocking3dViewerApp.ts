@@ -58,7 +58,7 @@ interface Blocking3dViewerActor {
 
 export interface Blocking3dViewerOptions {
   canvas: HTMLCanvasElement;
-  backgroundUrl?: string | null;
+  environmentUrl?: string | null;
   onStatus?: (status: string) => void;
 }
 
@@ -79,8 +79,6 @@ export interface Blocking3dViewer {
   getActorLabels: () => string[];
   setSelectedPose: (pose: DramaShotBlockingSketchPose) => boolean;
   getSelectedPose: () => DramaShotBlockingSketchPose | null;
-  setSelectedActionPlaying: (playing: boolean) => boolean;
-  getSelectedActionPlaying: () => boolean | null;
   nudgeSelected: (dx: number, dy: number, dz: number) => boolean;
   rotateSelected: (degrees: number) => boolean;
   scaleSelected: (factor: number) => boolean;
@@ -90,7 +88,7 @@ export interface Blocking3dViewer {
   setCameraState: (camera: DramaShotBlockingSketch3DCamera) => void;
   getCameraState: () => DramaShotBlockingSketch3DCamera;
   setInteractionEnabled: (enabled: boolean) => void;
-  setBackground: (url: string | null) => Promise<void>;
+  setEnvironment: (url: string | null) => Promise<void>;
   exportLayout: () => {
     schemaVersion: 1;
     engine: "playcanvas";
@@ -173,23 +171,22 @@ function setAnimationPose(
   actor: Blocking3dViewerActor,
   tracks: Map<string, unknown>,
   pose: DramaShotBlockingSketchPose,
-  actionPlaying: boolean,
 ): void {
   const anim = actor.animEntity.anim as unknown as AnimComponent | undefined;
   if (!anim) throw new Error(`角色“${actor.label}”没有可用的动作组件。`);
   const clip = resolveBlocking3dPoseClip(pose, tracks.keys());
   const track = tracks.get(clip.clipName);
   if (!track) throw new Error(`角色“${actor.label}”的动作片段不可用。`);
-  anim.assignAnimation(clip.clipName, track, 0, 1, true);
+  anim.assignAnimation(clip.clipName, track, 0, 1, false);
   const layer = anim.baseLayer;
   if (layer) {
     layer.play(clip.clipName);
-    if (!actionPlaying) layer.pause();
+    layer.pause();
     layer.activeStateCurrentTime = clip.sampleTime;
   }
-  anim.playing = actionPlaying;
+  anim.playing = false;
   actor.pose = pose;
-  actor.actionPlaying = actionPlaying;
+  actor.actionPlaying = false;
 }
 
 function createMaterial(color: pc.Color, opacity = 1): pc.StandardMaterial {
@@ -296,8 +293,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   selectionRing.enabled = false;
   app.root.addChild(selectionRing);
 
-  let backgroundEntity: pc.Entity | null = null;
-  let backgroundAsset: pc.Asset | null = null;
+  let environmentDome: pc.Entity | null = null;
+  let environmentAsset: pc.Asset | null = null;
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
@@ -524,6 +521,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
+    if (environmentDome) environmentDome.setPosition(cameraEntity.getPosition());
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
     const actor = selectedActor();
     if (actor) {
@@ -551,7 +549,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (track && typeof name === "string") animationTracks.set(name, track);
     }
     if (!animationTracks.has("Idle_Loop")) throw new Error("3D 代理角色缺少基础待机动作。");
-    setStatus("3D 摆位台已就绪");
+    setStatus("3D 草图已就绪");
   } catch (error) {
     resizeObserver.disconnect();
     canvas.removeEventListener("pointerdown", onPointerDown);
@@ -586,10 +584,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       entity: root,
       animEntity: model,
       pose: "standing",
-      actionPlaying: true,
+      actionPlaying: false,
       color: colorForIndex(index),
     };
-    setAnimationPose(actor, animationTracks, "standing", true);
+    setAnimationPose(actor, animationTracks, "standing");
     return actor;
   };
 
@@ -665,21 +663,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     setSelectedPose(pose) {
       const actor = selectedActor();
       if (!actor) return false;
-      setAnimationPose(actor, animationTracks, pose, actor.actionPlaying);
+      setAnimationPose(actor, animationTracks, pose);
       emitSelection();
       emitChange();
       return true;
     },
     getSelectedPose: () => selectedActor()?.pose ?? null,
-    setSelectedActionPlaying(playing) {
-      const actor = selectedActor();
-      if (!actor) return false;
-      setAnimationPose(actor, animationTracks, actor.pose, playing);
-      emitSelection();
-      emitChange();
-      return true;
-    },
-    getSelectedActionPlaying: () => selectedActor()?.actionPlaying ?? null,
     nudgeSelected(dx, dy, dz) {
       const actor = selectedActor();
       if (!actor) return false;
@@ -740,25 +729,39 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         keyboardInput = new Set();
       }
     },
-    async setBackground(url) {
-      if (backgroundEntity) {
-        backgroundEntity.destroy();
-        backgroundEntity = null;
+    async setEnvironment(url) {
+      if (environmentDome) {
+        environmentDome.destroy();
+        environmentDome = null;
       }
-      if (backgroundAsset) {
-        app.assets.remove(backgroundAsset);
-        backgroundAsset = null;
+      if (environmentAsset) {
+        app.assets.remove(environmentAsset);
+        environmentAsset = null;
       }
       if (!url?.trim()) return;
-      setStatus("正在加载场景背景...");
-      backgroundAsset = await loadAsset(app, url, "texture");
-      const material = createMaterial(new pc.Color(1, 1, 1));
-      material.diffuseMap = backgroundAsset.resource as pc.Texture;
+      setStatus("正在加载场景 HDRI 环境...");
+      environmentAsset = await loadAsset(app, url, "texture");
+      const texture = environmentAsset.resource as pc.Texture;
+      const geometry = new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
+      const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
+      const material = new pc.StandardMaterial();
+      material.diffuse = new pc.Color(1, 1, 1);
+      material.diffuseMap = texture;
       material.emissive = new pc.Color(1, 1, 1);
-      material.emissiveMap = backgroundAsset.resource as pc.Texture;
+      material.emissiveMap = texture;
+      material.cull = pc.CULLFACE_FRONT;
+      material.depthWrite = false;
       material.update();
-      backgroundEntity = createPlane(app, "blocking3d-background", [0, 3.8, -7], [14, 1, 7], material, [90, 0, 0]);
-      setStatus("3D 摆位台已就绪");
+      const meshInstance = new pc.MeshInstance(mesh, material);
+      environmentDome = new pc.Entity("blocking3d-hdri-dome");
+      environmentDome.addComponent("render", {
+        meshInstances: [meshInstance],
+        layers: [pc.LAYERID_SKYBOX],
+      });
+      environmentDome.setLocalScale(180, 180, 180);
+      environmentDome.setPosition(cameraEntity.getPosition());
+      app.root.addChild(environmentDome);
+      setStatus("3D 草图已就绪");
     },
     exportLayout() {
       return {
@@ -774,7 +777,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
             yawDeg: clamp(actor.entity.getEulerAngles().y, -180, 180),
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
-            actionPlaying: actor.actionPlaying,
+            actionPlaying: false,
           };
         }),
       };
@@ -787,7 +790,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         actor.entity.setPosition(saved.position[0], saved.position[1], saved.position[2]);
         actor.entity.setEulerAngles(0, saved.yawDeg, 0);
         actor.entity.setLocalScale(saved.scale[0], saved.scale[1], saved.scale[2]);
-        setAnimationPose(actor, animationTracks, saved.pose, saved.actionPlaying);
+        setAnimationPose(actor, animationTracks, saved.pose);
       }
       if (layout.actors[0]) select(layout.actors[0].characterName);
       emitSelection();
@@ -821,15 +824,15 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       window.removeEventListener("blur", onBlur);
       for (const actor of actors.values()) actor.entity.destroy();
       actors.clear();
-      backgroundEntity?.destroy();
-      backgroundAsset && app.assets.remove(backgroundAsset);
+      environmentDome?.destroy();
+      environmentAsset && app.assets.remove(environmentAsset);
       selectionRing.destroy();
       app.destroy();
     },
   };
 
   try {
-    if (options.backgroundUrl) await viewer.setBackground(options.backgroundUrl);
+    if (options.environmentUrl) await viewer.setEnvironment(options.environmentUrl);
     return viewer;
   } catch (error) {
     viewer.destroy();

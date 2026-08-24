@@ -131,10 +131,10 @@
 
 ### Decision
 
-- 每个 `DramaShot` 独立保存一份 1280×720 的摆位草图数据和 PNG。草图以本镜匹配场景的默认 2:1 全景图为背景，角色取本镜已引用状态的四视图正面全身区域；用户可以调整场景视角，以及角色的位置、大小、左右翻转和前后层级。
+- 每个 `DramaShot` 独立保存一份 1280×720 的 3D 草图数据和 PNG。草图把本镜匹配场景状态图加载到半球 HDRI 环境中，角色使用代理模型；用户可以调整相机、角色位置、大小、朝向、深度和静态姿势。
 - 保存草图只形成草稿，上传 PNG 并确认后才成为可用于生图的构图依据。草稿不能发起单镜画面生成，批量生成会跳过草稿镜头且不纳入图片成本。
 - 已确认的草图作为画面生成的第一张锁定参考图，并在提示词中明确要求保持场景视角、角色位置、相对大小、朝向和前后关系。确认对话框不得移除该参考图；重新生成分镜画面也复用它。
-- 摆位草图是 2D 构图控制层，不替代旧项目的 3D 导演/控制帧能力。它的目标是让用户快速锁定静态分镜构图，而不是建立可运动的三维场景。
+- 3D 草图通过动画剪辑采样一个关键帧后立即暂停，视口只用于静态构图，不提供动作播放入口；旧二维字段和 PNG 仅用于兼容读取，不再提供用户侧 2D 编辑入口。
 
 ### Failure Modes
 
@@ -144,7 +144,7 @@
 
 ### Related Modules
 
-- 前端：`ShotBlockingSketchDialog.tsx`、`ShotVoiceListPanel.tsx`、`ImageGenerationConfirmDialog.tsx`。
+- 前端：`DramaBlocking3DPage.tsx`、`blocking3dViewerApp.ts`、`ShotVoiceListPanel.tsx`、`ImageGenerationConfirmDialog.tsx`。
 - 服务端：`DramaShotBlockingSketchService.ts`、`DramaShotKeyframeService.ts`、`DramaBatchOrchestrator.ts`、`dramaRoutes.ts`。
 
 ## 批量分镜画面生成的并发与状态反馈
