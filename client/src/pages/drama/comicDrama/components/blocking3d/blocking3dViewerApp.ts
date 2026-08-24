@@ -396,6 +396,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.StandardMaterial | null = null;
   let environmentGroundMaterial: pc.StandardMaterial | null = null;
+  const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
   const applyEnvironmentSettings = () => {
     if (environmentDome) {
@@ -422,11 +423,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentGroundMaterial.emissiveIntensity = environmentSettings.intensity;
       environmentGroundMaterial.update();
     }
-  };
-  const syncEnvironmentDomePosition = () => {
-    const cameraPosition = cameraEntity.getPosition();
-    if (environmentDome) environmentDome.setPosition(cameraPosition.x, 0, cameraPosition.z);
-    if (environmentGround) environmentGround.setPosition(cameraPosition.x, 0, cameraPosition.z);
   };
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
@@ -654,7 +650,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
-    syncEnvironmentDomePosition();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
     const actor = selectedActor();
     if (actor) {
@@ -921,10 +916,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
           meshInstances: [new pc.MeshInstance(groundMesh, groundMaterial)],
           layers: [pc.LAYERID_SKYBOX],
         });
+        environmentGround.setPosition(environmentWorldPosition);
         app.root.addChild(environmentGround);
       }
       applyEnvironmentSettings();
-      syncEnvironmentDomePosition();
+      environmentDome.setPosition(environmentWorldPosition);
       app.root.addChild(environmentDome);
       ground.enabled = false;
       setStatus("3D 草图已就绪");
