@@ -66,7 +66,8 @@
 
 - `server/src/services/drama/audio/`（DialogueAudio/Segments/VoiceDesign 三个服务）
 - `server/src/services/drama/production/DramaBatchOrchestrator.ts`（tts force 透传）
-- `client/src/pages/drama/comicDrama/VoiceStagePanel.tsx`
+- `client/src/pages/settings/views/NarratorVoiceSettingsPage.tsx`（全局旁白音色配置）
+- `client/src/components/audio/IndexTTS25VoiceControls.tsx`（IndexTTS 2.5 模型音色与参考音频控件）
 - 旧项目对照：`mydrama src/novelvideo/seedance2_i2v/voice_clone.py`、`frontend/src/components/episode/voice-stage.tsx`、`audio/segmentation.py`
 
 ## 来源

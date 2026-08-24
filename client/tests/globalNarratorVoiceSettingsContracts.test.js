@@ -16,6 +16,16 @@ test("系统设置提供独立旁白音色入口", () => {
 test("旁白音色页面提供保存描述和重新生成试听", () => {
   const page = read("pages/settings/views/NarratorVoiceSettingsPage.tsx");
   assert.match(page, /系统旁白音色/);
+  assert.match(page, /IndexTTS25VoiceControls/);
+  assert.match(page, /整个应用统一使用/);
+  assert.match(read("components/audio/IndexTTS25VoiceControls.tsx"), /IndexTTS 2\.5 全局音色来源/);
   assert.match(page, /重新生成并试听/);
   assert.match(page, /sampleAudioUrl/);
+});
+
+test("分镜页不再承载全局 IndexTTS 2.5 音色设置", () => {
+  const panel = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  assert.doesNotMatch(panel, /IndexTTS 2\.5 音色设置/);
+  assert.doesNotMatch(panel, /VoiceStagePanel/);
+  assert.doesNotMatch(panel, /NarratorVoiceCard|CharacterVoiceCard/);
 });

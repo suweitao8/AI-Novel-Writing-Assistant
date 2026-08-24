@@ -10,7 +10,7 @@
 |---|---|---|---|
 | 画面风格预设体系 | `src/novelvideo/styles/presets/`（6 预设 + STYLE_DESIGN.md 红线） | `shared/types/visualStyle.ts` + `services/visualStyle/` + `modules/visual-style/`（见 `docs/wiki/architecture/visual-style-presets.md`） | styleTag 年代词禁令、custom-shadows-preset 语义一并搬入 |
 | 参考图风格分析（design 思路） | `generators/style_analyzer.py` | `visual_style.analyze@v1` PromptAsset | 需视觉模型才能真正可用 |
-| 配音分段显示模型 | `frontend/src/components/episode/voice-stage.tsx` | `VoiceStagePanel.tsx`（见 `docs/wiki/workflows/comic-drama-voice-overdub.md`） | 旁白/对白二分 + 三态（就绪/过期/未生成） |
+| 配音分段显示模型 | `frontend/src/components/episode/voice-stage.tsx` | `ShotVoiceListPanel.tsx` + `NarratorVoiceSettingsPage.tsx`（见 `docs/wiki/workflows/comic-drama-voice-overdub.md`） | 分镜页只显示旁白/对白分段三态；全局旁白音色在系统设置维护 |
 | 音色描述生成（design 模式） | `seedance2_i2v/character_voice_generation.py`、`services/global_narrator_voice.py` | `DramaVoiceDesignService`（角色音色 + 项目旁白） | 描述→固定样句试听，不克隆 |
 | sha 过期判定 | `voice_audio_records.py`（voice sha + text sha → missing/stale/current） | `DialogueAudioItem.textHash/voiceKey` + `DramaAudioSegmentsService` | 思路搬移，实现简化 |
 | 批量只补缺失 | `generate_seedance2_dialogue_audio_for_voice`（skipped_existing） | batch-jobs tts `force` 语义 + 行级复用 | |
@@ -24,7 +24,7 @@
 
 ## 本项目现状对照（2026-08-19）
 
-漫剧链路已具备：小说 → 章节管理 → 分镜（`DramaStoryboard`/`DramaShot`）→ 横屏首帧（`keyframeData`）→ 配音（`dialogueAudioData` + VoiceStagePanel）→ 逐镜素材（`DramaVideoPrompt.resultUrl`，LocalFfmpeg/Http/Mock 三 Provider）→ **整集合成**（full_episode：Remotion 横屏时间轴 + 音频 mux + 字幕/SRT，见 `docs/wiki/workflows/comic-drama-episode-assembly.md`）。
+漫剧链路已具备：小说 → 章节管理 → 分镜（`DramaStoryboard`/`DramaShot`）→ 横屏首帧（`keyframeData`）→ 配音（`dialogueAudioData` + `ShotVoiceListPanel`）→ 逐镜素材（`DramaVideoPrompt.resultUrl`，LocalFfmpeg/Http/Mock 三 Provider）→ **整集合成**（full_episode：Remotion 横屏时间轴 + 音频 mux + 字幕/SRT，见 `docs/wiki/workflows/comic-drama-episode-assembly.md`）。全局旁白音色由 `NarratorVoiceSettingsPage` 统一维护，不属于分镜列表的项目级设置。
 
 与 mydrama 相比剩余缺口：首尾帧过渡提示词（I2V 接入后需要）、整集素材 zip 打包、BGM 混音（旧项目也不成熟）。
 

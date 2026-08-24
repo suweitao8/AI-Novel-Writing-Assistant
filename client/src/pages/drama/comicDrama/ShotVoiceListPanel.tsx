@@ -27,7 +27,6 @@ import {
   DramaEpisodeAssemblyButton,
   useDramaEpisodeAssembly,
 } from "../components/DramaEpisodeAssemblyPanel";
-import { CharacterVoiceCard, NarratorVoiceCard } from "./VoiceStagePanel";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -399,21 +398,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     <>
       {storyboardToolbar}
       <div className="space-y-3">
-
-        <section className="space-y-3 rounded-2xl border border-border/70 bg-background/70 p-3" aria-labelledby="indextts25-voice-settings-title">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <h2 id="indextts25-voice-settings-title" className="text-sm font-semibold text-foreground">IndexTTS 2.5 音色设置</h2>
-            <span className="text-xs text-muted-foreground">旁白与角色</span>
-          </div>
-          <NarratorVoiceCard projectId={projectId} />
-          {(project?.characters ?? []).length > 0 ? (
-            <div className="grid gap-3 xl:grid-cols-2">
-              {(project?.characters ?? []).map((character) => (
-                <CharacterVoiceCard key={character.id} projectId={projectId} character={character} />
-              ))}
-            </div>
-          ) : null}
-        </section>
 
         {keyframeBatchJob && keyframeBatchJob.status !== "done" ? (
         <div
