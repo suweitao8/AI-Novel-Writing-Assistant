@@ -85,8 +85,39 @@ export interface DramaVisualStylePreset extends DramaSpecificStyle {
   id: string;
   /** 面向用户的一句话说明（中文），风格选择界面展示。 */
   summary: string;
-  styleFamily: "animation" | "live_action";
+  styleFamily: DramaRenderFamily;
 }
+
+/**
+ * 渲染媒介层：题材/时代可以逐镜变化，但同一个项目不能在写实影视化与动画媒介之间跳变。
+ * 只有项目明确选择东方玄幻等动画预设时，才允许使用 animation。
+ */
+export type DramaRenderFamily = "animation" | "live_action";
+
+export const DEFAULT_DRAMA_RENDER_FAMILY: DramaRenderFamily = "live_action";
+
+export interface DramaRenderFamilyPolicy {
+  label: string;
+  prompt: string;
+  avoidInstructions: string;
+}
+
+export const DRAMA_RENDER_FAMILY_POLICIES: Record<DramaRenderFamily, DramaRenderFamilyPolicy> = {
+  live_action: {
+    label: "统一写实影视化",
+    prompt:
+      "统一写实影视化媒介：本项目所有角色、场景、道具和分镜首帧都使用同一套写实电影级影视质感，真实比例、真实材质、自然光影和摄影级空间关系；只改变剧情内容、景别、动作与氛围，不改变渲染媒介。",
+    avoidInstructions:
+      "统一写实影视化媒介锁定；禁止卡通、动漫、插画、赛璐璐、平面2D、手绘油画、Q版、二次元渲染、低多边形玩具感；禁止从写实影视化切换为动画或插画媒介。",
+  },
+  animation: {
+    label: "统一动画影视化",
+    prompt:
+      "统一动画影视化媒介：本项目所有角色、场景、道具和分镜首帧都使用同一套高质量动画电影美术质感，统一角色比例、材质语言、光影规则和镜头空间关系；只改变剧情内容、景别、动作与氛围，不改变渲染媒介。",
+    avoidInstructions:
+      "禁止真人摄影感、写实照片感、纪录片质感和写实影视化与动画之间的媒介跳变；禁止水印、签名或文字。",
+  },
+};
 
 // 本书画风预设：只写题材与氛围，渲染媒介一律交给资产类别层；
 // 全部预设都必须遵循画面里明确写出的时代/地点/服饰描述，不擅自加料。
@@ -173,6 +204,25 @@ export function resolveDramaVisualStyle(styleId: string | null | undefined): Dra
   return DRAMA_VISUAL_STYLE_PRESETS.find((preset) => preset.id === normalized) ?? null;
 }
 
+export function resolveDramaRenderFamily(styleId: string | null | undefined): DramaRenderFamily {
+  return resolveDramaVisualStyle(styleId)?.styleFamily ?? DEFAULT_DRAMA_RENDER_FAMILY;
+}
+
+export interface DramaEraStyleCandidate {
+  key: string;
+  label: string;
+  summary: string;
+  styleFamily?: DramaRenderFamily;
+}
+
+/** 过滤逐镜时代判定候选，防止 AI 把项目媒介从写实切到动画或反向切换。 */
+export function filterDramaEraStyleCandidates(
+  candidates: readonly DramaEraStyleCandidate[],
+  renderFamily: DramaRenderFamily,
+): DramaEraStyleCandidate[] {
+  return candidates.filter((candidate) => !candidate.styleFamily || candidate.styleFamily === renderFamily);
+}
+
 // 脚本画风标记层已移除（2026-08-23 用户决定：时代风格由资产状态自带，脚本不定义章节画风）。
 // 历史【画风：…】行不再参与任何解析，脚本文档按未知标记原样保留为文本。
 
@@ -203,6 +253,7 @@ export function buildAssetStylePromptLines(
   kind: DramaAssetStyleKind,
   asset: DramaAssetVisualStyle,
   specific: DramaSpecificStyle | null,
+  renderFamily: DramaRenderFamily = DEFAULT_DRAMA_RENDER_FAMILY,
 ): string[] {
   const tags = [asset.styleTag, specific?.styleTag].filter(Boolean).join("，");
   const label = asset.kind === kind ? asset.label : `${asset.label}（${kind}）`;
@@ -210,6 +261,7 @@ export function buildAssetStylePromptLines(
     `资产类型：${label}。${asset.formatInstructions} ${tags}`.trim(),
     asset.styleInstructions,
     ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
+    DRAMA_RENDER_FAMILY_POLICIES[renderFamily].prompt,
   ];
 }
 
@@ -218,6 +270,7 @@ export function buildShotStylePromptLines(
   styles: Record<DramaAssetStyleKind, DramaAssetVisualStyle>,
   usedKinds: readonly DramaAssetStyleKind[],
   specific: DramaSpecificStyle | null,
+  renderFamily: DramaRenderFamily = DEFAULT_DRAMA_RENDER_FAMILY,
 ): string[] {
   const kinds = DRAMA_ASSET_STYLE_KINDS.filter((kind) => usedKinds.includes(kind));
   const assets = kinds.map((kind) => styles[kind]);
@@ -228,6 +281,7 @@ export function buildShotStylePromptLines(
       : "横屏影视化分镜首帧图（横屏 16:9 电影构图），作为图生视频的决定性第一帧",
     ...assets.map((asset) => asset.styleInstructions),
     ...(specific?.styleInstructions ? [specific.styleInstructions] : []),
+    DRAMA_RENDER_FAMILY_POLICIES[renderFamily].prompt,
   ];
 }
 
@@ -235,8 +289,13 @@ export function buildShotStylePromptLines(
 export function combineAssetStyleAvoidInstructions(
   asset: DramaAssetVisualStyle,
   specific: DramaSpecificStyle | null,
+  renderFamily: DramaRenderFamily = DEFAULT_DRAMA_RENDER_FAMILY,
 ): string {
-  return [asset.avoidInstructions, specific?.avoidInstructions].filter(Boolean).join(" ");
+  return [
+    asset.avoidInstructions,
+    specific?.avoidInstructions,
+    DRAMA_RENDER_FAMILY_POLICIES[renderFamily].avoidInstructions,
+  ].filter(Boolean).join(" ");
 }
 
 /** 多类资产同时进入分镜时合并对应禁区，避免不相关类别的约束污染首帧。 */
@@ -244,11 +303,13 @@ export function combineShotStyleAvoidInstructions(
   styles: Record<DramaAssetStyleKind, DramaAssetVisualStyle>,
   usedKinds: readonly DramaAssetStyleKind[],
   specific: DramaSpecificStyle | null,
+  renderFamily: DramaRenderFamily = DEFAULT_DRAMA_RENDER_FAMILY,
 ): string {
   const kinds = DRAMA_ASSET_STYLE_KINDS.filter((kind) => usedKinds.includes(kind));
   return [
     ...kinds.map((kind) => styles[kind].avoidInstructions),
     specific?.avoidInstructions,
+    DRAMA_RENDER_FAMILY_POLICIES[renderFamily].avoidInstructions,
   ]
     .filter(Boolean)
     .join(" ");

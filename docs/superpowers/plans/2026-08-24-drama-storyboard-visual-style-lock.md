@@ -96,7 +96,7 @@ Extend `ResolvedDramaArtStyle` with `renderFamily`. Extend `buildAssetStylePromp
 
 - [ ] **Step 3: Filter per-shot era candidates by the locked family**
 
-In `resolveDramaArtStyleContext`, calculate the family from `pinnedStyle`, then `visualStyle`, then `DEFAULT_DRAMA_VISUAL_STYLE_ID`. Keep a compatible chain style only. When building `availableStyles`, include only built-in presets whose `styleFamily` matches the lock; custom era styles remain atmosphere-only and inherit the lock. Accept a judge result only when it resolves to a compatible style. If no compatible result exists, use the compatible chain style or the built-in `realistic`/same-family fallback.
+In `resolveDramaArtStyleContext`, calculate the family from the explicit project `visualStyle`, then the novel default built-in style, and finally the default `live_action` family. Keep a compatible chain style only; a per-asset `pinnedStyle` can change era atmosphere but cannot change the project render medium. When building `availableStyles`, include only built-in presets whose `styleFamily` matches the lock; custom era styles remain atmosphere-only and inherit the lock. Accept a judge result only when it resolves to a compatible style. If no compatible result exists, use the compatible chain style or the built-in same-family fallback.
 
 - [ ] **Step 4: Pass the resolved family into all image-generation entrypoints**
 

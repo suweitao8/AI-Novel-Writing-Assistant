@@ -11,5 +11,6 @@ const source = fs.readFileSync(
 test("批量首帧跳过尚未确认的摆位草图，不把它计为失败或图片成本", () => {
   assert.match(source, /isDraftBlockingSketch/);
   assert.match(source, /return "skipped"/);
-  assert.match(source, /!hasDoneKeyframe\(shot\.keyframeData\) && !isDraftBlockingSketch\(shot\.blockingSketchData\)/);
+  assert.match(source, /shouldSkipDramaKeyframe/);
+  assert.match(source, /!shouldSkipDramaKeyframe\(shot, force\)/);
 });
