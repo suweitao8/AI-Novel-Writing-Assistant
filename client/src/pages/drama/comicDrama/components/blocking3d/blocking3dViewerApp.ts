@@ -155,7 +155,7 @@ function createScenePlateDomeGeometry(): pc.DomeGeometry {
     const radial = clamp(Math.hypot(x, z) / 0.95, 0, 1);
     const azimuth = radial < 0.05 ? 0.5 : (Math.atan2(z, x) / (Math.PI * 2) + 0.5 + 1) % 1;
     uvs[index] = azimuth;
-    uvs[index + 1] = DEFAULT_GROUND_UV_TOP + radial * (DEFAULT_GROUND_UV_BOTTOM - DEFAULT_GROUND_UV_TOP);
+    uvs[index + 1] = DEFAULT_GROUND_UV_BOTTOM - radial * (DEFAULT_GROUND_UV_BOTTOM - DEFAULT_GROUND_UV_TOP);
   }
   return geometry;
 }
