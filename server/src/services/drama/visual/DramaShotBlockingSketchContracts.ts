@@ -26,8 +26,8 @@ export const BLOCKING_SKETCH_3D_LIMITS = {
 } as const;
 
 export const BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS = {
-  projectionCenterHeight: { min: 0.6, max: 2 },
-  domeRadius: { min: 24, max: 96 },
+  projectionCenterHeight: { min: 0.6, max: 10 },
+  domeRadius: { min: 20, max: 100 },
   yawDeg: { min: -180, max: 180 },
   intensity: { min: 0.6, max: 1.6 },
 } as const;
@@ -211,7 +211,7 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   const environment = objectValue(input, "HDRI 环境");
   return {
     projectionCenterHeight: finiteNumber(environment.projectionCenterHeight, "HDRI 环境投射中心高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
-    domeRadius: finiteNumber(environment.domeRadius, "HDRI 环境半球尺寸", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    domeRadius: finiteNumber(environment.domeRadius, "HDRI 环境半球直径", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max),
     yawDeg: finiteNumber(environment.yawDeg, "HDRI 环境水平旋转", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.max),
     intensity: finiteNumber(environment.intensity, "HDRI 环境亮度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.max),
   };

@@ -391,11 +391,11 @@ export default function DramaBlocking3DPage() {
             <CardContent className="space-y-3">
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2"><span>投射中心高度</span><output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output></span>
-                <input type="range" aria-label="HDRI 投射中心高度" min="0.6" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+                <input type="range" aria-label="HDRI 投射中心高度" min="0.6" max="10" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center justify-between gap-2"><span>半球尺寸</span><output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output></span>
-                <input type="range" aria-label="HDRI 半球尺寸" min="24" max="96" step="2" value={environmentSettings.domeRadius} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                <span className="flex items-center justify-between gap-2"><span>半球直径</span><output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output></span>
+                <input type="range" aria-label="HDRI 半球直径" min="20" max="100" step="1" value={environmentSettings.domeRadius} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2"><span>水平旋转</span><output className="tabular-nums text-foreground">{environmentSettings.yawDeg.toFixed(0)}°</output></span>

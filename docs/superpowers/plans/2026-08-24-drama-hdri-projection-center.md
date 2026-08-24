@@ -4,7 +4,7 @@
 
 **Goal:** 用固定世界中心的投射中心高度替代地面 UV repeat，让普通场景图地面呈现 HDRIBackdrop 式的投射收缩效果。
 
-**Architecture:** viewer 保留四个环境参数，其中 `projectionCenterHeight` 表示世界投射点 `(0, height, 0)`。普通 16:9 场景图的独立下半球在生成几何时按该投射点计算单次 UV，天空和地面实体都固定在世界原点并使用统一半球尺寸；2:1 等距 HDRI 继续走完整半球。服务端归一化和前端类型移除历史 `groundTextureScale`，旧 JSON 中该未知字段被忽略。
+**Architecture:** viewer 保留四个环境参数，其中 `projectionCenterHeight` 表示世界投射点 `(0, height, 0)`。普通 16:9 场景图的独立下半球在生成几何时按该投射点计算单次 UV，天空和地面实体都固定在世界原点并使用统一半球直径；2:1 等距 HDRI 继续走完整半球。服务端归一化和前端类型移除历史 `groundTextureScale`，旧 JSON 中该未知字段被忽略。
 
 **Tech Stack:** React 19、Vite、PlayCanvas 2.21、TypeScript、Zod、Node test。
 
@@ -22,7 +22,7 @@
 
 - [x] **Step 1: 写失败契约测试**：把页面断言从“地面贴图密度”改为“投射中心高度”；断言 viewer 保留 `projectionCenterHeight`，不再出现 `groundTextureScale`、`Math.floor` 或 `createGroundDomeGeometry(environmentSettings.groundTextureScale)`；把服务端旧快照期望改为四字段环境对象，并增加带历史密度字段时归一化后不再返回该字段。
 - [x] **Step 2: 运行定向测试确认 RED**：运行客户端静态/页面契约和服务端契约测试，确认旧实现分别因密度字段、旧 UI 和旧归一化结果失败。
-- [x] **Step 3: 移除契约字段**：从客户端/服务端环境接口、默认值、归一化和 HTTP schema 中删除 `groundTextureScale`；保留 `projectionCenterHeight` 的 0.6–2.0 边界，并让 Zod 继续接受旧 JSON 后丢弃未知密度字段。
+- [x] **Step 3: 移除契约字段**：从客户端/服务端环境接口、默认值、归一化和 HTTP schema 中删除 `groundTextureScale`；保留 `projectionCenterHeight` 的 0.6–10 边界，并让 Zod 继续接受旧 JSON 后丢弃未知密度字段。
 - [x] **Step 4: 运行定向契约测试确认 GREEN**：确认旧环境对象和历史密度字段都归一化为四字段，越界高度仍被拒绝。
 
 ### Task 2: 用投射中心生成普通场景图地面 UV
@@ -47,7 +47,7 @@
 - Modify: `docs/superpowers/specs/2026-08-24-drama-hdri-backdrop-clarity-design.md`
 - Modify: `docs/superpowers/plans/2026-08-24-drama-hdri-backdrop-clarity.md`
 
-- [x] **Step 1: 替换控件**：移除“地面贴图密度” range，现有“投影高度”改名为“投射中心高度”，aria-label 改为 `HDRI 投射中心高度`，继续显示 0.6–2.0 数值和 `setEnvironmentSettings` 受控更新。
+- [x] **Step 1: 替换控件**：移除“地面贴图密度” range，现有“投影高度”改名为“投射中心高度”，aria-label 改为 `HDRI 投射中心高度`，继续显示 0.6–10 数值；半球控件以“半球直径”显示 20–100，二者都通过 `setEnvironmentSettings` 受控更新。
 - [x] **Step 2: 更新长期文档**：把 release/README/wiki/旧设计计划中的 density repeat 描述改为固定世界中心的投射中心高度，并说明普通场景图地面只做单次投射。
 - [x] **Step 3: 运行客户端构建和服务端类型检查**：workspace typecheck、客户端 build 和服务端定向契约测试均通过。
 
