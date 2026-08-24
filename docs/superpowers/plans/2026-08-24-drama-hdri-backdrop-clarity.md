@@ -30,7 +30,7 @@
 
 - [ ] **Step 1: 保持失败测试**：运行 `node --experimental-strip-types --test client/tests/dramaBlocking3dStaticHdri.contract.test.js`，确认新投影和参数断言为 RED。
 - [ ] **Step 2: 实现最小几何修复**：根据 `texture.width / texture.height` 判断 2:1 等距 HDRI；非 2:1 时，上半球只采样源图上半幅，新增带贴图的下半球网格采样下半幅，保持圆球地面并避免普通透视图整张映射到完整球面。
-- [ ] **Step 3: 实现纹理和环境参数**：设置线性采样、关闭 mipmap、设备最大各向异性过滤、U 重复/V 边缘寻址；以 `domeRadius`、`projectionCenterHeight`、`yawDeg`、`intensity` 更新天空和地面网格的尺度、旋转和材质自发光，并保留水平跟随、Y=0 地面。
+- [ ] **Step 3: 实现纹理和环境参数**：设置线性采样、关闭 mipmap、设备最大各向异性过滤、U 重复/V 边缘寻址；以 `domeRadius`、`projectionCenterHeight`、`yawDeg`、`intensity` 更新天空和地面网格的尺度、旋转和材质自发光，并保持环境世界坐标固定、Y=0 地面。
 - [ ] **Step 4: 实现 viewer API 和布局持久化**：增加 `getEnvironmentSettings`、`setEnvironmentSettings`，在 `exportLayout`/`loadLayout` 读写环境参数；清空 URL 时销毁环境并恢复纯色地面。
 - [ ] **Step 5: 运行客户端定向测试确认 GREEN**：执行 `node --experimental-strip-types --test client/tests/dramaBlocking3dStaticHdri.contract.test.js client/tests/dramaBlocking3dPage.contract.test.js`，确认全部通过。
 
