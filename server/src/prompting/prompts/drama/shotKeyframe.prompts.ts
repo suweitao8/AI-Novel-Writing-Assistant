@@ -11,6 +11,7 @@ export interface DramaShotKeyframePromptInput {
   visualPrompt?: string | null;
   characters: string[];
   hasConfirmedBlockingSketch: boolean;
+  lightingContract?: string | null;
 }
 
 export function buildDramaShotKeyframePrompt(input: DramaShotKeyframePromptInput): string {
@@ -30,13 +31,14 @@ export function buildDramaShotKeyframePrompt(input: DramaShotKeyframePromptInput
     input.characters.length ? `角色：${input.characters.join("｜")}` : "",
     "所有出场角色保持服装、发型、五官、年龄与情绪一致",
     "不要文字、水印、字幕或标志",
+    input.lightingContract?.trim() || "",
   ];
   return lines.filter(Boolean).join("，");
 }
 
 export const dramaShotKeyframePrompt: PromptAsset<DramaShotKeyframePromptInput, string> = {
   id: "drama.shot.keyframe",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "text",
   language: "zh",

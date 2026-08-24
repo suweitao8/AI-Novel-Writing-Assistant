@@ -198,6 +198,10 @@ function normalizeCostBreakdown(input: DramaBatchCostBreakdown | undefined): Dra
   };
 }
 
+export function resolveDramaBatchUseCharacterRefImages(value: boolean | null | undefined): boolean {
+  return value ?? true;
+}
+
 function normalizeProgress(input: Partial<DramaBatchProgress>): DramaBatchProgress {
   return {
     total: input.total ?? 0,
@@ -210,7 +214,7 @@ function normalizeProgress(input: Partial<DramaBatchProgress>): DramaBatchProgre
     currentShotId: input.currentShotId,
     concurrency: input.concurrency,
     errors: input.errors ?? [],
-    useCharacterRefImages: input.useCharacterRefImages,
+    useCharacterRefImages: resolveDramaBatchUseCharacterRefImages(input.useCharacterRefImages),
     force: input.force,
     cost: normalizeCostBreakdown(input.cost),
   };
@@ -302,7 +306,7 @@ export class DramaBatchOrchestrator {
           ? DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY
           : undefined,
         errors: [],
-        useCharacterRefImages: input.useCharacterRefImages ?? true,
+        useCharacterRefImages: resolveDramaBatchUseCharacterRefImages(input.useCharacterRefImages),
         force: input.force ?? false,
         cost: prepared.cost,
       });
@@ -421,7 +425,7 @@ export class DramaBatchOrchestrator {
             shot,
             promptByShot.get(shot.id),
             nextProgress.provider,
-            nextProgress.useCharacterRefImages ?? false,
+            resolveDramaBatchUseCharacterRefImages(nextProgress.useCharacterRefImages),
             nextProgress.force ?? false,
             currentAudioReadyShotIds,
           );

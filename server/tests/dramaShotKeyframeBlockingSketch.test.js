@@ -16,7 +16,8 @@ test("确认后的摆位草图排在首帧参考图第一位，并锁定构图",
   assert.match(keyframeSource, /referenceImages\.unshift/);
   assert.match(promptSource, /drama\.shot\.keyframe/);
   assert.match(promptSource, /锁定摆位草图/);
-  assert.match(registrySource, /drama\.shot\.keyframe@v1/);
+  assert.match(promptSource, /lightingContract/);
+  assert.match(registrySource, /drama\.shot\.keyframe@v2/);
 });
 
 test("草稿草图不会偷偷进入首帧生成", () => {

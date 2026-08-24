@@ -23,6 +23,7 @@ import {
   type DramaAssetStyleKind,
 } from "./dramaVisualStyles";
 import { resolveDramaArtStyleContext } from "./dramaArtStyleResolver";
+import { buildSceneLightingAvoidInstructions, buildSceneLightingContract } from "./sceneLightingContract";
 import { isConfirmedBlockingSketch, parseBlockingSketchData } from "./DramaShotBlockingSketchContracts";
 import { dramaShotBlockingSketchService } from "./DramaShotBlockingSketchService";
 
@@ -82,6 +83,7 @@ interface ShotKeyframeSource {
 
 interface SceneSettingLite {
   name: string;
+  stateLabel: string | null;
   environmentPrompt: string | null;
   summary: string | null;
   sceneType: string | null;
@@ -111,6 +113,7 @@ function resolveInitialSettingState(
   },
   imageUrlForState?: (stateId: string) => string,
 ): {
+  stateLabel: string;
   imagePrompt: string;
   imageUrl: string | null;
   sceneType?: string | null;
@@ -133,6 +136,7 @@ function resolveInitialSettingState(
       : null,
   })[0];
   return {
+    stateLabel: initial?.label?.trim() || "默认",
     imagePrompt: initial?.imagePrompt?.trim() || fallbackImagePrompt,
     imageUrl: initial?.image?.status === "done" && initial.image.url?.trim()
       ? imageUrlForState?.(initial.id) ?? initial.image.url.trim()
@@ -360,6 +364,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
       }, (stateId) => stateImageUrl(novelId, "scene", id, stateId));
       return {
         ...rest,
+        stateLabel: initial.stateLabel,
         environmentPrompt: initial.imagePrompt,
         imageUrl: initial.imageUrl ?? null,
         sceneType: initial.sceneType ?? null,
@@ -543,6 +548,17 @@ export class DramaShotKeyframeService {
     // 该镜各角色的生效状态（分镜 LLM 标注 × 设定中心状态名单）
     const activeStatesByName = resolveActiveStatesByName(shot, novelStatesByName);
     const usedKinds = resolveShotAssetStyleKinds(shot, settings);
+    const matchedScene = matchSceneByName(settings.scenes, shot.location);
+    const lightingContract = matchedScene
+      ? buildSceneLightingContract({
+        sceneName: matchedScene.name,
+        stateLabel: matchedScene.stateLabel,
+        sceneType: matchedScene.sceneType,
+        timeOfDay: matchedScene.timeOfDay,
+        weather: matchedScene.weather,
+        hasReferenceImage: Boolean(matchedScene.imageUrl),
+      })
+      : null;
     const prompt = buildDramaShotKeyframePrompt({
       styleLines: buildShotStylePromptLines(
         styleContext.assets,
@@ -559,6 +575,7 @@ export class DramaShotKeyframeService {
       characters: selectReferencedCharacters(shot).map((character) =>
         buildCharacterPromptLine(character, activeStatesByName.get(character.name.trim()))),
       hasConfirmedBlockingSketch: Boolean(blockingSketch),
+      lightingContract,
     });
     const negativePrompt = [
       "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
@@ -568,6 +585,7 @@ export class DramaShotKeyframeService {
         styleContext.specific,
         styleContext.renderFamily,
       ),
+      matchedScene ? buildSceneLightingAvoidInstructions() : "",
     ].filter(Boolean).join("，");
     const refImages: string[] = [];
     const referenceImages: import("../../image/runtime").GeneratedReferenceImageMeta[] = [];
@@ -608,12 +626,11 @@ export class DramaShotKeyframeService {
         }
       }
       // 场景初始状态图（镜头地点与设定场景同名）与画面里点名的道具，也作为参考图挂给首帧图。
-      const matchedScene = matchSceneByName(settings.scenes, shot.location);
       if (matchedScene?.imageUrl) {
         refImages.push(matchedScene.imageUrl);
         referenceImages.push({
           kind: "scene",
-          label: `${matchedScene.name} · 默认状态图`,
+          label: `${matchedScene.name} · ${matchedScene.stateLabel ?? "默认"}状态图`,
           url: matchedScene.imageUrl,
         });
       }

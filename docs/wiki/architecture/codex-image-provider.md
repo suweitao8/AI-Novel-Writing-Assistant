@@ -17,11 +17,13 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 
 - 端口约定：`18766` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）。
 - 业务路由规则（2026-08-22/23 起）：`resolveAssetImageProvider` 里 kind=character/prop（透明底）/kind=scene（2:1 全景）无条件走 Codex；无参考图封面默认 `grok_build`，带参考图回退 Codex。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
-- 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时走 multipart `/images/edits`，`image` 字段的文件会作为 `-i` 参考传给 CLI（应用侧参考图必须传本地文件路径——JSON 生成路径不解析 `input_image_url`，传 URL 会静默丢参考）。
+- 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时先由 `server/src/services/image/referenceImageFiles.ts` 按业务顺序把本地路径、服务端相对 URL、HTTP(S) URL 或 data URL 准备成本地文件，再走 multipart `/images/edits`，每一张图都作为独立 `image` 字段传给 CLI 的 `-i`。桥同时接收 `reference_labels`，把角色、场景、道具和摆位草图的用途按附件顺序写入 agent prompt；不会再把多张参考图压缩成单个 `input_image_url`，JSON 路径收到该字段会明确报错而不是静默丢参考。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。
 - **应用侧超时（2026-08-23 同日二次调整：默认 180 秒快速失败）**：`IMAGE_GENERATION_HTTP_TIMEOUT_MS` 默认 3 分钟（`server/src/config/imageGeneration.ts`）。当天历程：300s → 900s（对齐桥预算，等慢图）→ 用户实测后决定收回 180s——超过 3 分钟大概率是环境问题（代理断开、桥异常），快速失败优于干等；因为桥已支持「客户端断开即杀 codex」（下一条），提前断开**不再**白烧订阅额度或占并发槽，900s 时代的教训已由断开终止根治。前端「生成中」实时显示已耗时，用户也可随时点「终止」。需要更长等待设 `IMAGE_GENERATION_HTTP_TIMEOUT_MS`（上限 900s）。
 - **桥跟随客户端断开终止（2026-08-23）**：HTTP 客户端断开（服务端超时/取消）即 kill 本次 codex 进程并释放并发槽，不再为无人等待的请求跑满预算；每次请求在桥日志里记录 `done/failed ... in <ms>` 耗时行，排查慢请求先看这里（`%LOCALAPPDATA%\AINovel\codex-image-bridge\logs`）。
+- **分镜参考图与场景光照契约（2026-08-24）**：分镜生成的参考顺序固定为「已确认摆位草图 → 出场角色当前状态图/角色设计稿 → 镜头地点的场景默认状态图 → 画面点名的道具图」。角色状态图和场景状态图不能只停留在预览元数据，必须在最终 multipart 请求中分别出现；桥日志中的 `refs=<数量>` 是实际附件数量证据。场景状态图是所有同场镜头的唯一光照基准，提示词锁定光源方向、色温、明暗比例、阴影和空气透视，并禁止角色单独打主光或镜头自行改成暖黄、冷蓝、血红、霓虹等新光照。没有场景状态图时只能使用结构化的场景状态事实，不能伪称已经有图像光照锚点。
+- **参考图任务的失败策略**：参考图准备失败（URL 无法读取、data URL 非图片、本地文件不可读）必须在 Provider 请求前失败，禁止退化为无参考生成；显式指定不支持参考图的 provider 必须报错，默认路由会把带参考图的请求送到 Codex。批量分镜任务创建、旧 progress 读取和镜头处理统一把缺省 `useCharacterRefImages` 视为 `true`，避免旧任务恢复时悄悄关闭角色参考图。
 
 ## 失败模式
 
@@ -29,6 +31,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - codex CLI 未安装：桥 `/health` 返回 `ready: false`，`pnpm codex:image` 会在 120 秒后报错；可设置 `CODEX_IMAGE_EXECUTABLE` 指定路径。
 - codex 登录态失效：CLI 以非零退出码结束，桥返回 502 并透传 stderr 尾部，任务层按现有图片任务重试规则处理。
 - CLI 正常结束但没有新图片文件：桥报「Codex 结束运行但没有产出图片文件」，通常是订阅侧图片工具被拒或额度问题。
+- 分镜结果角色外观漂移或同一场景光线跳变：先查看 `/keyframe/prepare` 返回的 `referenceImages`，再核对桥日志的 `refs` 与 `reference_labels`；如果预览有角色/场景但日志为 `refs=0`，问题在请求组装或 Provider 通道，不在提示词。若 `refs` 正确但仍漂移，再检查场景状态图是否为空、是否选错状态，以及最终提示词末尾的场景光照契约是否存在。
 - Windows 直接 spawn npm 全局 `.cmd` 会抛 `EINVAL`（CVE-2024-27980 修复后行为），桥与启动器统一经 `cmd.exe /c` 启动，prompt 走 stdin 防止 `.cmd` 分词。
 
 ## 相关模块

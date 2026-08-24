@@ -25,6 +25,7 @@ import type {
   ImageQuality,
 } from "./types";
 import { appendCharacterImageEthnicityConstraint } from "@ai-novel/shared/imagePrompt";
+import { prepareReferenceImageFiles, type PreparedReferenceImageFiles } from "./referenceImageFiles";
 
 function normalizeBaseUrl(value: string): string {
   return value.endsWith("/") ? value.slice(0, -1) : value;
@@ -200,22 +201,15 @@ export function buildImageGenerationRequestBody(input: ImageProviderGenerateInpu
     }
   }
 
-  // 参考图注入（OpenAI images/edits 兼容格式）
-  // grok 暂不支持参考图，静默跳过；其他 provider 按 input_image_url 格式透传，
-  // 若 provider 实际不支持，API 层会返回错误，由上层处理。
-  if (input.refImages && input.refImages.length > 0 && input.provider !== "grok") {
-    requestBody.input_image_url = input.refImages[0];
-  }
-
   return requestBody;
 }
 
 export function assertImageProviderReferenceSupport(input: ImageProviderGenerateInput): void {
   if (
-    input.provider === "grok_build"
+    (input.provider === "grok_build" || input.provider === "grok")
     && ((input.refImages?.length ?? 0) > 0 || (input.refImagePaths?.length ?? 0) > 0)
   ) {
-    throw new Error("Grok Build 图片通道不支持参考图，请切换到 Codex 图片通道。");
+    throw new Error(`${input.provider} 图片通道不支持参考图，请切换到 Codex 图片通道。`);
   }
 }
 
@@ -246,15 +240,11 @@ function inferMimeType(filePath: string): string {
  */
 async function generateWithFileRef(
   input: ImageProviderGenerateInput,
-  refImagePath: string,
+  refImagePaths: readonly string[],
   apiKey: string | undefined,
   baseURL: string,
   controller: AbortController,
 ): Promise<ImageProviderGenerateResult> {
-  const fileBuffer = await fs.readFile(refImagePath);
-  const mimeType = inferMimeType(refImagePath);
-  const blob = new Blob([fileBuffer], { type: mimeType });
-
   const form = new FormData();
   form.append("model", input.model);
   form.append("prompt", buildPrompt(input.prompt, input.negativePrompt, input.sceneType));
@@ -269,8 +259,19 @@ async function generateWithFileRef(
       form.append("output_format", input.outputFormat);
     }
   }
-  // 将文件以 image 字段上传，OpenAI /images/edits 兼容格式
-  form.append("image", blob, path.basename(refImagePath));
+  for (const refImagePath of refImagePaths) {
+    const fileBuffer = await fs.readFile(refImagePath);
+    const mimeType = inferMimeType(refImagePath);
+    const blob = new Blob([fileBuffer], { type: mimeType });
+    // 将全部文件以多个 image 字段上传，OpenAI /images/edits 兼容格式。
+    form.append("image", blob, path.basename(refImagePath));
+  }
+  if (input.referenceImages && input.referenceImages.length > 0) {
+    if (input.referenceImages.length !== refImagePaths.length) {
+      throw new Error(`参考图标签数量（${input.referenceImages.length}）与附件数量（${refImagePaths.length}）不一致。`);
+    }
+    form.append("reference_labels", JSON.stringify(input.referenceImages.map((item) => item.label)));
+  }
 
   const response = await fetch(`${baseURL}/images/edits`, {
     method: "POST",
@@ -308,7 +309,6 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
   }
   assertImageProviderReferenceSupport(input);
 
-  const { apiKey, baseURL } = await resolveProviderSecret(input.provider);
   const controller = new AbortController();
   const timeoutMs = imageGenerationConfig.httpTimeoutMs;
   // 外部终止信号联动：手动终止时立即断开请求（本地桥收到断开会同步杀掉 codex 进程），
@@ -324,11 +324,17 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
     timeoutMs,
   );
 
+  let preparedReferences: PreparedReferenceImageFiles | null = null;
   try {
-    // 优先使用本地文件路径（multipart 上传，避免 base64 膨胀）
-    const refImagePath = input.refImagePaths?.[0];
-    if (refImagePath && input.provider !== "grok") {
-      return await generateWithFileRef(input, refImagePath, apiKey, baseURL, controller);
+    // 参考图先准备并校验，再读取 Provider 密钥；任何参考图失败都不能落回无参考生成。
+    preparedReferences = await prepareReferenceImageFiles({
+      refImagePaths: input.refImagePaths,
+      refImages: input.refImages,
+      signal: controller.signal,
+    });
+    const { apiKey, baseURL } = await resolveProviderSecret(input.provider);
+    if (preparedReferences.filePaths.length > 0) {
+      return await generateWithFileRef(input, preparedReferences.filePaths, apiKey, baseURL, controller);
     }
 
     const requestBody = buildImageGenerationRequestBody(input);
@@ -363,6 +369,7 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
       })),
     };
   } finally {
+    await preparedReferences?.cleanup().catch(() => undefined);
     clearTimeout(timeout);
     externalSignal?.removeEventListener("abort", onExternalAbort);
   }
