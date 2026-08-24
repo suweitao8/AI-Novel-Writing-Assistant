@@ -8,7 +8,7 @@ const DEFAULT_REFERENCE_AUDIO = "测试参考音频.mp3";
 const DEFAULT_SPEAKER = "default";
 const DEFAULT_WEB_UI_URL = "http://127.0.0.1:9000";
 const DEFAULT_LANGUAGE = "ZH";
-const AUDIO_EXTENSIONS = new Set([".wav", ".mp3", ".flac", ".m4a", ".ogg"]);
+const AUDIO_EXTENSIONS = new Set([".wav", ".mp3", ".flac", ".m4a", ".ogg", ".webm"]);
 const MAX_REFERENCE_AUDIO_BYTES = 10 * 1024 * 1024;
 const AUDIO_MIME_TYPES = new Set([
   "audio/mpeg",
@@ -133,6 +133,8 @@ function extensionFromContentType(contentType: string | null | undefined): strin
       return ".m4a";
     case "audio/ogg":
       return ".ogg";
+    case "audio/webm":
+      return ".webm";
     default:
       return ".mp3";
   }

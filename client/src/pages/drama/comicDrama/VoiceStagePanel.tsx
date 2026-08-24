@@ -147,9 +147,9 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
           variant="ghost"
           size="sm"
           onClick={() => saveMutation.mutate()}
-          disabled={saveMutation.isPending || draft === null}
+          disabled={saveMutation.isPending || (draft === null && speakerDraft === null && referenceDraft === null)}
         >
-          只保存描述
+          保存描述和音色来源
         </Button>
       </div>
       {narratorQuery.data?.sampleAudioUrl ? (

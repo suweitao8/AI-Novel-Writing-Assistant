@@ -29,7 +29,7 @@ function formatBytes(bytes: number): string {
 
 function isAudioFile(file: File): boolean {
   if (file.type.toLowerCase().startsWith("audio/")) return true;
-  return /\.(wav|mp3|flac|m4a|ogg)$/i.test(file.name);
+  return /\.(wav|mp3|flac|m4a|ogg|webm)$/i.test(file.name);
 }
 
 export function IndexTTS25VoiceControls({
