@@ -10,3 +10,14 @@ test("每一镜的画面区域都有摆位入口，并在保存后刷新当前�
   assert.doesNotMatch(source, /2D 草图/);
   assert.match(source, /encodeURIComponent\(props\.projectId\)/);
 });
+
+test("每一镜支持在草图与 AI 画面之间切换，并把操作放在预览图右侧", () => {
+  assert.match(source, /type PreviewKind = "sketch" \| "ai"/);
+  assert.match(source, /role="tablist"/);
+  assert.match(source, /role="tab"/);
+  assert.match(source, /aria-selected=\{activePreviewKind === "sketch"\}/);
+  assert.match(source, /disabled=\{!hasBlockingSketch\}/);
+  assert.match(source, /编辑 3D 草图/);
+  assert.match(source, /生成 AI 图/);
+  assert.match(source, /sm:w-\[26rem\]/);
+});
