@@ -56,4 +56,3 @@
 - [ ] **Step 2: 在固定端口页面回归**：保持 API 3100、客户端 5174，刷新当前 3D 草图，确认地面细节不再整片拉伸、调节四个参数立即生效、保存刷新后参数仍在；读取浏览器 console 确认无新增错误。
 - [ ] **Step 3: 检查 diff 和提交**：确认只包含本功能文件，使用 `git commit -s` 提交。
 - [ ] **Step 4: 从 main 集成并推送**：使用 `pnpm workflow:integrate codex/drama-hdri-backdrop-clarity --push --verify "pnpm build"`，随后检查 `main` 与 `origin/main` SHA 一致、工作区干净并清理本次 worktree。
-
