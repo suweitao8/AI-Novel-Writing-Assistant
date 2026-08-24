@@ -390,16 +390,12 @@ export default function DramaBlocking3DPage() {
             <CardHeader className="pb-3"><CardTitle className="text-sm">HDRI 环境</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <label className="block space-y-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center justify-between gap-2"><span>投影高度</span><output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output></span>
-                <input type="range" aria-label="HDRI 投影高度" min="0.6" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+                <span className="flex items-center justify-between gap-2"><span>投射中心高度</span><output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output></span>
+                <input type="range" aria-label="HDRI 投射中心高度" min="0.6" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2"><span>半球尺寸</span><output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output></span>
                 <input type="range" aria-label="HDRI 半球尺寸" min="24" max="96" step="2" value={environmentSettings.domeRadius} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
-              </label>
-              <label className="block space-y-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center justify-between gap-2"><span>地面贴图密度</span><output className="tabular-nums text-foreground">{environmentSettings.groundTextureScale.toFixed(0)}x</output></span>
-                <input type="range" aria-label="HDRI 地面贴图密度" min="1" max="20" step="1" value={environmentSettings.groundTextureScale} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("groundTextureScale", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2"><span>水平旋转</span><output className="tabular-nums text-foreground">{environmentSettings.yawDeg.toFixed(0)}°</output></span>

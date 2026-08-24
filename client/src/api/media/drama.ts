@@ -213,7 +213,6 @@ export interface DramaShotBlockingSketch3DEnvironment {
   domeRadius: number;
   yawDeg: number;
   intensity: number;
-  groundTextureScale: number;
 }
 
 export interface DramaShotBlockingSketch3DLayout {

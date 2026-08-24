@@ -136,7 +136,6 @@ const blockingSketch3dEnvironmentSchema = z.object({
   domeRadius: z.number().min(24).max(96),
   yawDeg: z.number().min(-180).max(180),
   intensity: z.number().min(0.6).max(1.6),
-  groundTextureScale: z.number().min(1).max(20).optional(),
 });
 
 const blockingSketch3dLayoutSchema = z.object({
