@@ -183,7 +183,6 @@ export function DramaStoryboardBoard(props: DramaStoryboardBoardProps) {
             disabled={props.batchActive || props.busy || selectedIds.size === 0 || !props.imageProviderReady}
             onClick={() => props.onBatchKeyframes([...selectedIds])}
           >
-            <ImageIcon className="h-4 w-4" />
             生成所选画面
           </AiButton>
         </div>

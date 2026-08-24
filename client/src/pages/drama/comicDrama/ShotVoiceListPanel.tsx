@@ -7,9 +7,6 @@ import {
   Pause,
   Pencil,
   Play,
-  RefreshCw,
-  Sparkles,
-  Volume2,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
@@ -691,7 +688,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               disabled={!hasBlockingSketch}
               onClick={() => selectPreview("sketch")}
               onKeyDown={(event) => handlePreviewKeyDown(event, "sketch")}
-              title={hasBlockingSketch ? "查看 3D 草图" : "还没有 3D 草图"}
+              title={hasBlockingSketch ? "查看 3D 图" : "还没有 3D 图"}
               className={cn(
                 "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                 activePreviewKind === "sketch"
@@ -699,7 +696,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
                   : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
               )}
             >
-              3D 草图
+              3D图
             </button>
             <button
               id={aiTabId}
@@ -710,7 +707,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               tabIndex={activePreviewKind === "ai" ? 0 : -1}
               onClick={() => selectPreview("ai")}
               onKeyDown={(event) => handlePreviewKeyDown(event, "ai")}
-              title="查看 AI 生图"
+              title="查看 AI 图"
               className={cn(
                 "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 activePreviewKind === "ai"
@@ -718,7 +715,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
                   : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
               )}
             >
-              AI 生图
+              AI图
             </button>
           </div>
           <Button
@@ -727,10 +724,10 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             variant="outline"
             className="h-auto min-h-9 w-full justify-center px-2 text-[11px]"
             onClick={() => navigate(`/drama/projects/${encodeURIComponent(props.projectId)}/shots/${encodeURIComponent(shot.id)}/blocking-3d?order=${shot.order}`)}
-            title="编辑这一镜的 3D 草图"
+            title="编辑这一镜的 3D 图"
           >
             <Pencil className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
-            编辑 3D 草图
+            编辑3D
           </Button>
           <AiButton
             type="button"
@@ -739,14 +736,12 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             className="h-auto min-h-9 w-full justify-center px-2 text-[11px]"
             disabled={props.keyframeBusy || blockingSketchNeedsConfirmation}
             onClick={() => props.onGenerateKeyframe(shot.id)}
-            title={blockingSketchNeedsConfirmation ? "请先确认 3D 草图后再生成 AI 图" : "生成这一镜的 AI 画面"}
+            title={blockingSketchNeedsConfirmation ? "请先确认 3D 图后再生成 AI 图" : "生成这一镜的 AI 图"}
           >
             {props.keyframeBusy ? (
               <Loader2 className="mr-1 h-3 w-3 shrink-0 motion-safe:animate-spin motion-reduce:animate-none" aria-hidden="true" />
-            ) : (
-              <Sparkles className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
-            )}
-            {props.keyframeBusy ? "生成中…" : keyframe.status === "done" ? "重新生成 AI 图" : "生成 AI 图"}
+            ) : null}
+            {props.keyframeBusy ? "生成中…" : keyframe.status === "done" ? "重新生图" : "生成AI图"}
           </AiButton>
         </div>
       </div>
@@ -805,13 +800,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
               title={`${audioActionLabel}这一镜的配音`}
             >
-              {props.regenerating ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" />
-              ) : shouldForceRegenerate ? (
-                <RefreshCw className="mr-1 h-3 w-3" aria-hidden="true" />
-              ) : (
-                <Volume2 className="mr-1 h-3 w-3" aria-hidden="true" />
-              )}
+              {props.regenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
             </AiButton>
           </div>
