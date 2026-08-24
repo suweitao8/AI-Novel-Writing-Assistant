@@ -53,7 +53,9 @@ test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () 
 test("3D 草图提供紧凑的 HDRI 环境调节入口", () => {
   assert.match(pageSource, /HDRI 环境/);
   assert.match(pageSource, /投射中心高度/);
-  assert.match(pageSource, /半球尺寸/);
+  assert.match(pageSource, /min="0\.6" max="10" step="0\.1"/);
+  assert.match(pageSource, /半球直径/);
+  assert.match(pageSource, /min="20" max="100" step="1"/);
   assert.match(pageSource, /水平旋转/);
   assert.match(pageSource, /环境亮度/);
   assert.match(pageSource, /HDRI 投射中心高度/);

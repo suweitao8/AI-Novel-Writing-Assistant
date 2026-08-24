@@ -129,8 +129,8 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     return Number.isFinite(numeric) ? numeric : fallback;
   };
   return {
-    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.6, 2),
-    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 24, 96),
+    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.6, 10),
+    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 20, 100),
     yawDeg: clamp(numberOr(input?.yawDeg, DEFAULT_BLOCKING_3D_ENVIRONMENT.yawDeg), -180, 180),
     intensity: clamp(numberOr(input?.intensity, DEFAULT_BLOCKING_3D_ENVIRONMENT.intensity), 0.6, 1.6),
   };

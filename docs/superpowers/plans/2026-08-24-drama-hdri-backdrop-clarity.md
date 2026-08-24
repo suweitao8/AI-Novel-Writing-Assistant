@@ -17,7 +17,7 @@
 - Modify: `server/src/services/drama/visual/DramaShotBlockingSketchContracts.ts` — 增加环境参数类型、边界归一化和布局持久化。
 - Modify: `server/src/modules/drama/http/dramaRoutes.ts` — 让 HTTP schema 接受同样的环境参数边界。
 
-- [ ] **Step 1: 写服务端边界测试**：使用现有 drama contracts 测试模式，断言环境参数缺失时兼容旧布局，参数超出 `projectionCenterHeight 0.6–2.0`、`domeRadius 24–96`、`yawDeg -180–180`、`intensity 0.6–1.6` 时拒绝，并确认旧 `groundTextureScale` 不会被回写。
+- [ ] **Step 1: 写服务端边界测试**：使用现有 drama contracts 测试模式，断言环境参数缺失时兼容旧布局，参数超出 `projectionCenterHeight 0.6–10`、`domeRadius 20–100`、`yawDeg -180–180`、`intensity 0.6–1.6` 时拒绝，并确认旧 `groundTextureScale` 不会被回写。
 - [ ] **Step 2: 运行定向服务端测试确认失败**：执行 `pnpm --filter @ai-novel/server test -- --runInBand` 中对应 contracts 测试文件，预期新断言因字段尚未定义失败。
 - [ ] **Step 3: 实现客户端和服务端类型/schema**：新增 `DramaShotBlockingSketch3DEnvironment`，在 layout 中以 optional 字段保存；归一化函数为旧数据返回 undefined，为新数据按边界保留数值。
 - [ ] **Step 4: 运行定向测试确认通过**：重复同一命令，确认旧布局和新布局边界均通过。
@@ -40,7 +40,7 @@
 - Modify: `client/src/pages/drama/comicDrama/DramaBlocking3DPage.tsx` — 显示和调整环境参数，沿用页面现有 Card/Button/token。
 - Test: `client/tests/dramaBlocking3dPage.contract.test.js` — 断言控件存在且保存路径继续使用 viewer 导出的布局。
 
-- [ ] **Step 1: 写页面契约断言**：要求页面包含 `HDRI 环境`、`投射中心高度`、`半球尺寸`、`水平旋转`、`环境亮度` 和 range 控件。
+- [ ] **Step 1: 写页面契约断言**：要求页面包含 `HDRI 环境`、`投射中心高度`、`半球直径`、`水平旋转`、`环境亮度` 和 range 控件。
 - [ ] **Step 2: 运行页面契约确认失败**：执行上述客户端定向测试，预期新断言失败。
 - [ ] **Step 3: 实现受控控件**：用 viewer 默认值初始化状态，滑块变更调用 `setEnvironmentSettings`、标记 dirty 并通过 `onChange` 同步；加载旧布局时回到默认值，保存仍由 `buildSketchData` 使用 `exportLayout`。
 - [ ] **Step 4: 运行页面契约和 client typecheck**：执行 `node --experimental-strip-types --test client/tests/dramaBlocking3dPage.contract.test.js` 与 `pnpm --filter @ai-novel/client typecheck`。

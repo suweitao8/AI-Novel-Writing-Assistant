@@ -51,9 +51,11 @@ test("普通场景图也使用带贴图的下半球，真正等距 HDRI 保留�
   assert.doesNotMatch(viewerSource, /environmentGround = createPlane/);
 });
 
-test("HDRI 环境提供投射中心高度、半球尺寸、旋转和清晰度参数", () => {
+test("HDRI 环境提供投射中心高度、半球直径、旋转和清晰度参数", () => {
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
+  assert.match(viewerSource, /projectionCenterHeight[^\n]*0\.6, 10/);
+  assert.match(viewerSource, /domeRadius[^\n]*20, 100/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /texture\.anisotropy/);
   assert.match(viewerSource, /material\.emissiveIntensity/);

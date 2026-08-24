@@ -132,8 +132,8 @@ const blockingSketch3dActorSchema = z.object({
 });
 
 const blockingSketch3dEnvironmentSchema = z.object({
-  projectionCenterHeight: z.number().min(0.6).max(2),
-  domeRadius: z.number().min(24).max(96),
+  projectionCenterHeight: z.number().min(0.6).max(10),
+  domeRadius: z.number().min(20).max(100),
   yawDeg: z.number().min(-180).max(180),
   intensity: z.number().min(0.6).max(1.6),
 });

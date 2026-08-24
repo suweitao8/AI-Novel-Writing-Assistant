@@ -204,7 +204,9 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
   };
   for (const [key, value] of [
     ["projectionCenterHeight", 0.5],
-    ["domeRadius", 100],
+    ["projectionCenterHeight", 10.1],
+    ["domeRadius", 19],
+    ["domeRadius", 100.1],
     ["yawDeg", 181],
     ["intensity", 2],
   ]) {
@@ -216,4 +218,13 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
       /HDRI 环境/,
     );
   }
+  const atUpperBoundary = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      ...baseLayout,
+      environment: { ...baseLayout.environment, projectionCenterHeight: 10, domeRadius: 100 },
+    },
+  });
+  assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 10);
+  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 100);
 });
