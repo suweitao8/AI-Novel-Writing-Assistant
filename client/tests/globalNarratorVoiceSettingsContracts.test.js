@@ -18,6 +18,7 @@ test("旁白音色页面提供保存描述和重新生成试听", () => {
   assert.match(page, /系统旁白音色/);
   assert.match(page, /IndexTTS25VoiceControls/);
   assert.match(page, /整个应用统一使用/);
+  assert.match(read("components/audio/IndexTTS25VoiceControls.tsx"), /IndexTTS 2\.5 全局音色来源/);
   assert.match(page, /重新生成并试听/);
   assert.match(page, /sampleAudioUrl/);
 });

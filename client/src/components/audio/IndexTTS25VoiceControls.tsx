@@ -114,7 +114,7 @@ export function IndexTTS25VoiceControls({
   return (
     <div className="space-y-2 rounded-lg border border-border/80 bg-background/60 p-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs font-medium text-foreground">IndexTTS 2.5 音色来源</span>
+        <span className="text-xs font-medium text-foreground">IndexTTS 2.5 全局音色来源</span>
         <div className="flex items-center gap-1.5">
           <span className={cn(
             "text-[11px]",
