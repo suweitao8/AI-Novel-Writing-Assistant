@@ -26,3 +26,8 @@ test("场景状态图作为半球 HDRI 环境，不再作为后置背景平面",
   assert.match(viewerSource, /environmentUrl/);
   assert.doesNotMatch(viewerSource, /createPlane\(app, "blocking3d-background"/);
 });
+
+test("HDRI 半球负责弧形地面，纯色地面只在没有 HDRI 时显示", () => {
+  assert.match(viewerSource, /ground\.enabled = false/);
+  assert.match(viewerSource, /ground\.enabled = true/);
+});
