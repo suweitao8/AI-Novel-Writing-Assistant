@@ -31,3 +31,8 @@ test("HDRI 半球负责弧形地面，纯色地面只在没有 HDRI 时显示", 
   assert.match(viewerSource, /ground\.enabled = false/);
   assert.match(viewerSource, /ground\.enabled = true/);
 });
+
+test("HDRI 半球跟随相机水平位置但固定在世界地面", () => {
+  assert.match(viewerSource, /environmentDome\.setPosition\(cameraPosition\.x, 0, cameraPosition\.z\)/);
+  assert.doesNotMatch(viewerSource, /environmentDome\.setPosition\(cameraEntity\.getPosition\(\)\)/);
+});
