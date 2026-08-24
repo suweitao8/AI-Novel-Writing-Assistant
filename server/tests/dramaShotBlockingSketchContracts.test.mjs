@@ -165,3 +165,50 @@ test("旧的动作播放标记会归一化为静态关键帧", () => {
 
   assert.equal(normalized.layout3d?.actors[0]?.actionPlaying, false);
 });
+
+test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快照", () => {
+  const layout3d = {
+    schemaVersion: 1,
+    engine: "playcanvas",
+    camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+    actors: [],
+    environment: {
+      projectionCenterHeight: 1.2,
+      domeRadius: 48,
+      yawDeg: -25,
+      intensity: 1.1,
+    },
+  };
+  const normalized = normalizeBlockingSketchData({ ...validSketch, layout3d });
+  assert.deepEqual(normalized.layout3d?.environment, layout3d.environment);
+  assert.equal(normalizeBlockingSketchData({ ...validSketch, layout3d: { ...layout3d, environment: undefined } }).layout3d?.environment, undefined);
+});
+
+test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
+  const baseLayout = {
+    schemaVersion: 1,
+    engine: "playcanvas",
+    camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+    actors: [],
+    environment: {
+      projectionCenterHeight: 1,
+      domeRadius: 48,
+      yawDeg: 0,
+      intensity: 1,
+    },
+  };
+  for (const [key, value] of [
+    ["projectionCenterHeight", 0.5],
+    ["domeRadius", 100],
+    ["yawDeg", 181],
+    ["intensity", 2],
+  ]) {
+    assert.throws(
+      () => normalizeBlockingSketchData({
+        ...validSketch,
+        layout3d: { ...baseLayout, environment: { ...baseLayout.environment, [key]: value } },
+      }),
+      /HDRI 环境/,
+    );
+  }
+});

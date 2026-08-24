@@ -25,6 +25,13 @@ export const BLOCKING_SKETCH_3D_LIMITS = {
   scale: { min: 0.1, max: 10 },
 } as const;
 
+export const BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS = {
+  projectionCenterHeight: { min: 0.6, max: 2 },
+  domeRadius: { min: 24, max: 96 },
+  yawDeg: { min: -180, max: 180 },
+  intensity: { min: 0.6, max: 1.6 },
+} as const;
+
 export const BLOCKING_SKETCH_POSES = [
   "standing",
   "talking",
@@ -85,11 +92,19 @@ export interface DramaShotBlockingSketch3DActor {
   actionPlaying: boolean;
 }
 
+export interface DramaShotBlockingSketch3DEnvironment {
+  projectionCenterHeight: number;
+  domeRadius: number;
+  yawDeg: number;
+  intensity: number;
+}
+
 export interface DramaShotBlockingSketch3DLayout {
   schemaVersion: 1;
   engine: "playcanvas";
   camera: DramaShotBlockingSketch3DCamera;
   actors: DramaShotBlockingSketch3DActor[];
+  environment?: DramaShotBlockingSketch3DEnvironment;
 }
 
 export interface DramaShotBlockingSketchData {
@@ -192,6 +207,16 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
   };
 }
 
+function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnvironment {
+  const environment = objectValue(input, "HDRI 环境");
+  return {
+    projectionCenterHeight: finiteNumber(environment.projectionCenterHeight, "HDRI 环境投影高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    domeRadius: finiteNumber(environment.domeRadius, "HDRI 环境半球尺寸", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    yawDeg: finiteNumber(environment.yawDeg, "HDRI 环境水平旋转", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.max),
+    intensity: finiteNumber(environment.intensity, "HDRI 环境亮度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.max),
+  };
+}
+
 function normalizeLayout3d(input: unknown): DramaShotBlockingSketch3DLayout {
   const layout = objectValue(input, "3D 摆位");
   if (layout.schemaVersion !== 1) invalid("3D 摆位版本不受支持");
@@ -204,6 +229,7 @@ function normalizeLayout3d(input: unknown): DramaShotBlockingSketch3DLayout {
     engine: "playcanvas",
     camera: normalize3dCamera(layout.camera),
     actors: layout.actors.map(normalize3dActor),
+    ...(layout.environment === undefined ? {} : { environment: normalize3dEnvironment(layout.environment) }),
   };
 }
 

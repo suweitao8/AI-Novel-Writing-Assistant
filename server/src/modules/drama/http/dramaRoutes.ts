@@ -131,11 +131,19 @@ const blockingSketch3dActorSchema = z.object({
   actionPlaying: z.boolean(),
 });
 
+const blockingSketch3dEnvironmentSchema = z.object({
+  projectionCenterHeight: z.number().min(0.6).max(2),
+  domeRadius: z.number().min(24).max(96),
+  yawDeg: z.number().min(-180).max(180),
+  intensity: z.number().min(0.6).max(1.6),
+});
+
 const blockingSketch3dLayoutSchema = z.object({
   schemaVersion: z.literal(1),
   engine: z.literal("playcanvas"),
   camera: blockingSketch3dCameraSchema,
   actors: z.array(blockingSketch3dActorSchema).max(12),
+  environment: blockingSketch3dEnvironmentSchema.optional(),
 });
 
 const blockingSketchDataSchema = z.object({
