@@ -162,7 +162,7 @@ function createUpperDomeGeometry(): pc.Geometry {
       const x = cosPhi * sinTheta;
       const y = cosTheta;
       const z = sinPhi * sinTheta;
-      positions.push(x * radius, y * radius + radius * 0.1, z * radius);
+      positions.push(x * radius, y * radius, z * radius);
       normals.push(x, y, z);
       uvs.push(1 - lon / longitudeBands, (lat / latitudeBands) * 0.5);
     }
