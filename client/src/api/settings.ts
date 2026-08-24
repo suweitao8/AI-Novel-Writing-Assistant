@@ -157,7 +157,7 @@ export async function getGlobalNarratorVoice() {
 
 export async function saveGlobalNarratorVoiceDescription(
   description: string,
-  options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+  options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
 ) {
   const { data } = await apiClient.patch<ApiResponse<GlobalNarratorVoiceState>>(
     "/settings/narrator-voice",
@@ -168,7 +168,7 @@ export async function saveGlobalNarratorVoiceDescription(
 
 export async function designGlobalNarratorVoice(
   description: string,
-  options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+  options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
 ) {
   const { data } = await apiClient.post<ApiResponse<GlobalNarratorVoiceState>>(
     "/settings/narrator-voice/design",

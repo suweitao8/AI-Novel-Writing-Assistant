@@ -130,6 +130,45 @@ test("IndexTTS 2.5 reference persistence rejects remote URLs and arbitrary local
   );
 });
 
+test("IndexTTS 2.5 synthesis rejects remote and outside-library reference paths", async () => {
+  const fixture = withIndexTTSRoot();
+  try {
+    const { synthesizeAudioSpeech } = require("../dist/services/audio/speechProvider.js");
+    const config = { baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" };
+    await assert.rejects(
+      synthesizeAudioSpeech({ text: "不应读取远程文件。", audioType: "dialogue", referenceAudioUrl: "https://example.com/private.mp3" }, config),
+      /只能使用音频 data URL 或 IndexTTS 音色库中的文件名/,
+    );
+    await assert.rejects(
+      synthesizeAudioSpeech({ text: "不应读取本地文件。", audioType: "dialogue", referenceAudioUrl: path.join(fixture.root, "outside.mp3") }, config),
+      /只能使用音频 data URL 或 IndexTTS 音色库中的文件名/,
+    );
+    await assert.rejects(
+      synthesizeAudioSpeech({ text: "不应接受非法编码。", audioType: "dialogue", referenceAudioUrl: "data:audio/mpeg;base64,not-base64!" }, config),
+      /base64 内容无效/,
+    );
+  } finally {
+    fixture.restore();
+  }
+});
+
+test("IndexTTS 2.5 reference data URL is capped by decoded bytes", async () => {
+  const fixture = withIndexTTSRoot();
+  try {
+    const { synthesizeAudioSpeech } = require("../dist/services/audio/speechProvider.js");
+    const oversized = Buffer.alloc(10 * 1024 * 1024 + 1).toString("base64");
+    await assert.rejects(
+      synthesizeAudioSpeech(
+        { text: "不应读取超大音频。", audioType: "dialogue", referenceAudioUrl: `data:audio/mpeg;base64,${oversized}` },
+        { baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" },
+      ),
+      /不能超过 10 MB/,
+    );
+  } finally {
+    fixture.restore();
+  }
+});
+
 test("IndexTTS 2.5 catalog exposes speakers and references without leaking the server path", async () => {
   const server = http.createServer((req, res) => {
     res.setHeader("Content-Type", "application/json");

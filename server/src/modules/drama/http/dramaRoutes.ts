@@ -168,13 +168,18 @@ const shotAudioRegenerateSchema = z.object({
 
 const narratorVoiceUpdateSchema = z.object({
   description: z.string().trim().min(4).max(1000),
-  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  referenceAudioUrl: z.string().trim().max(14_000_000).nullable().optional(),
   indexTTS25Speaker: z.string().trim().max(120).optional(),
 });
 
 const characterVoiceDesignSchema = z.object({
   prompt: z.string().trim().min(4).max(1000),
-  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  referenceAudioUrl: z.string().trim().max(14_000_000).nullable().optional(),
+  indexTTS25Speaker: z.string().trim().max(120).optional(),
+});
+
+const characterVoiceSourceUpdateSchema = z.object({
+  referenceAudioUrl: z.string().trim().max(14_000_000).nullable().optional(),
   indexTTS25Speaker: z.string().trim().max(120).optional(),
 });
 
@@ -679,6 +684,24 @@ router.post(
         indexTTS25Speaker: body.indexTTS25Speaker,
       });
       res.status(200).json({ success: true, data, message: "Drama character voice sample generated." });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.patch(
+  "/projects/:id/characters/:characterId/voice-source",
+  validate({ params: characterParamsSchema, body: characterVoiceSourceUpdateSchema }),
+  async (req, res, next) => {
+    try {
+      const { characterId } = req.params as z.infer<typeof characterParamsSchema>;
+      const body = req.body as z.infer<typeof characterVoiceSourceUpdateSchema>;
+      const data = await dramaVoiceDesignService.updateCharacterVoiceSource(characterId, {
+        referenceAudioUrl: body.referenceAudioUrl,
+        indexTTS25Speaker: body.indexTTS25Speaker,
+      });
+      res.status(200).json({ success: true, data, message: "角色音色来源已保存。" });
     } catch (error) {
       next(error);
     }

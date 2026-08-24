@@ -17,6 +17,12 @@ export interface CharacterVoiceDesignResult {
   indexTTS25Speaker?: string;
 }
 
+export interface CharacterVoiceSourceState {
+  characterId: string;
+  referenceAudioUrl?: string;
+  indexTTS25Speaker?: string;
+}
+
 export interface NarratorVoiceState {
   description: string;
   sampleAudioUrl?: string;
@@ -50,7 +56,7 @@ export class DramaVoiceDesignService {
   async designCharacterVoice(
     characterId: string,
     prompt: string,
-    options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
   ): Promise<CharacterVoiceDesignResult> {
     const character = await prisma.dramaCharacter.findUnique({ where: { id: characterId } });
     if (!character) {
@@ -60,11 +66,15 @@ export class DramaVoiceDesignService {
     if (trimmedPrompt.length < 4) {
       throw new AppError("音色描述太短了：写清年龄、性别、语气或节奏（例如「青年男声，低沉平静，说话慢」）。", 400);
     }
-    const suppliedReference = options.referenceAudioUrl?.trim() || undefined;
-    const referenceAudioUrl = suppliedReference
-      ? await persistIndexTTS25ReferenceAudio(suppliedReference)
+    const existingVoice = readCharacterVoice(character);
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const referenceCandidate = hasReferenceOverride
+      ? options.referenceAudioUrl?.trim() || undefined
+      : existingVoice.referenceAudioUrl;
+    const referenceAudioUrl = referenceCandidate
+      ? await persistIndexTTS25ReferenceAudio(referenceCandidate)
       : undefined;
-    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || undefined;
+    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || existingVoice.indexTTS25Speaker;
     const result = await synthesizeAudioSpeech({
       text: DRAMA_VOICE_SAMPLE_TEXT,
       audioType: "dialogue",
@@ -75,9 +85,8 @@ export class DramaVoiceDesignService {
     });
     const persistedReferenceAudioUrl = referenceAudioUrl
       ?? await persistIndexTTS25ReferenceAudio(result.dataUrl);
-    const voice = readCharacterVoice(character);
     const mergedProfile = {
-      ...voice,
+      ...existingVoice,
       name: character.name,
       voicePrompt: trimmedPrompt,
       sampleAudioUrl: result.dataUrl,
@@ -98,6 +107,40 @@ export class DramaVoiceDesignService {
     };
   }
 
+  async updateCharacterVoiceSource(
+    characterId: string,
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
+  ): Promise<CharacterVoiceSourceState> {
+    const character = await prisma.dramaCharacter.findUnique({ where: { id: characterId } });
+    if (!character) {
+      throw new AppError(`未找到角色：${characterId}`, 404);
+    }
+    const existingVoice = readCharacterVoice(character);
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const suppliedReference = options.referenceAudioUrl?.trim() || undefined;
+    const referenceAudioUrl = suppliedReference
+      ? await persistIndexTTS25ReferenceAudio(suppliedReference)
+      : hasReferenceOverride ? undefined : existingVoice.referenceAudioUrl;
+    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || existingVoice.indexTTS25Speaker;
+    const nextProfile: Record<string, unknown> = {
+      ...existingVoice,
+      name: character.name,
+      ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
+      ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
+    };
+    if (!referenceAudioUrl) delete nextProfile.referenceAudioUrl;
+    if (!indexTTS25Speaker) delete nextProfile.indexTTS25Speaker;
+    await prisma.dramaCharacter.update({
+      where: { id: characterId },
+      data: { voiceProfile: JSON.stringify(nextProfile) },
+    });
+    return {
+      characterId,
+      ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
+      ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
+    };
+  }
+
   async getNarratorVoice(projectId: string): Promise<NarratorVoiceState> {
     const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
     if (!project) {
@@ -110,7 +153,7 @@ export class DramaVoiceDesignService {
   async updateNarratorVoiceDescription(
     projectId: string,
     description: string,
-    options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
   ): Promise<NarratorVoiceState> {
     const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
     if (!project) {
@@ -122,7 +165,7 @@ export class DramaVoiceDesignService {
   async designNarratorVoice(
     projectId: string,
     description: string,
-    options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
   ): Promise<NarratorVoiceState> {
     const project = await prisma.dramaProject.findUnique({ where: { id: projectId } });
     if (!project) {

@@ -11,6 +11,7 @@ import {
   designDramaCharacterVoice,
   designDramaNarratorVoice,
   getDramaNarratorVoice,
+  saveDramaCharacterVoiceSource,
   updateDramaNarratorVoice,
   type DramaAudioSegment,
 } from "@/api/media/comicDrama";
@@ -75,7 +76,7 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
 
   const designMutation = useMutation({
     mutationFn: () => designDramaNarratorVoice(projectId, description, {
-      referenceAudioUrl: referenceAudio || undefined,
+      referenceAudioUrl: referenceAudio,
       indexTTS25Speaker: speaker || undefined,
     }),
     onSuccess: () => {
@@ -94,7 +95,7 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
 
   const saveMutation = useMutation({
     mutationFn: () => updateDramaNarratorVoice(projectId, description, {
-      referenceAudioUrl: referenceAudio || undefined,
+      referenceAudioUrl: referenceAudio,
       indexTTS25Speaker: speaker || undefined,
     }),
     onSuccess: () => {
@@ -210,15 +211,31 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
 
   const designMutation = useMutation({
     mutationFn: () => designDramaCharacterVoice(projectId, character.id, prompt, {
-      referenceAudioUrl: referenceAudio || undefined,
+      referenceAudioUrl: referenceAudio,
       indexTTS25Speaker: speaker || undefined,
     }),
     onSuccess: (result) => {
       toast.success(`${character.name} 的音色试听已生成`);
       void queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.audioSegmentsAll(projectId) });
     },
     onError: (error: Error) => {
       toast.error(`生成 ${character.name} 的音色失败`, { description: error.message });
+    },
+  });
+
+  const saveSourceMutation = useMutation({
+    mutationFn: () => saveDramaCharacterVoiceSource(projectId, character.id, {
+      referenceAudioUrl: referenceAudio,
+      indexTTS25Speaker: speaker || undefined,
+    }),
+    onSuccess: () => {
+      toast.success(`${character.name} 的音色来源已保存`);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.audioSegmentsAll(projectId) });
+    },
+    onError: (error: Error) => {
+      toast.error(`保存 ${character.name} 的音色来源失败`, { description: error.message });
     },
   });
 
@@ -261,6 +278,15 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
             </>
           )}
         </AiButton>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => saveSourceMutation.mutate()}
+          disabled={designMutation.isPending || saveSourceMutation.isPending}
+        >
+          {saveSourceMutation.isPending ? "保存中..." : "保存音色来源"}
+        </Button>
       </div>
       <IndexTTS25VoiceControls
         catalog={catalogQuery.data}
@@ -271,7 +297,7 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
         onSpeakerChange={setSpeaker}
         onReferenceAudioChange={setReferenceAudio}
         onRefresh={() => void catalogQuery.refetch()}
-        disabled={designMutation.isPending}
+        disabled={designMutation.isPending || saveSourceMutation.isPending}
       />
       {profile.sampleAudioUrl ? (
         <audio controls preload="metadata" src={profile.sampleAudioUrl} className="h-8 w-full" />

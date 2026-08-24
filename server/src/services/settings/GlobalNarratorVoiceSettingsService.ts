@@ -168,15 +168,18 @@ export class GlobalNarratorVoiceSettingsService {
 
   async updateDescription(
     description: string,
-    options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
   ): Promise<GlobalNarratorVoiceState> {
     const trimmed = description.trim();
     this.assertDescription(trimmed);
     const current = await this.get();
-    const suppliedReference = options.referenceAudioUrl?.trim() || undefined;
-    const referenceAudioUrl = suppliedReference
-      ? await this.getReferencePersister()(suppliedReference)
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const referenceCandidate = hasReferenceOverride
+      ? options.referenceAudioUrl?.trim() || undefined
       : current.referenceAudioUrl;
+    const referenceAudioUrl = referenceCandidate
+      ? await this.getReferencePersister()(referenceCandidate)
+      : undefined;
     const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || current.indexTTS25Speaker;
     const next: GlobalNarratorVoiceState = {
       ...current,
@@ -186,21 +189,26 @@ export class GlobalNarratorVoiceSettingsService {
       source: "manual",
       updatedAt: this.getNow().toISOString(),
     };
+    if (!referenceAudioUrl) delete next.referenceAudioUrl;
     await this.save(next);
     return next;
   }
 
   async design(
     description: string,
-    options: { referenceAudioUrl?: string; indexTTS25Speaker?: string } = {},
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
   ): Promise<GlobalNarratorVoiceState> {
     const trimmed = description.trim();
     this.assertDescription(trimmed);
-    const suppliedReference = options.referenceAudioUrl?.trim() || undefined;
-    const referenceAudioUrl = suppliedReference
-      ? await this.getReferencePersister()(suppliedReference)
+    const current = await this.get();
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const referenceCandidate = hasReferenceOverride
+      ? options.referenceAudioUrl?.trim() || undefined
+      : current.referenceAudioUrl;
+    const referenceAudioUrl = referenceCandidate
+      ? await this.getReferencePersister()(referenceCandidate)
       : undefined;
-    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || undefined;
+    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || current.indexTTS25Speaker;
     const result = await this.getSynthesizer()({
       text: GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT,
       audioType: "narration",

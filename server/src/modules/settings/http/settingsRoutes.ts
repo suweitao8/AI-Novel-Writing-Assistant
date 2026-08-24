@@ -405,7 +405,7 @@ const dramaAssetArtStyleUpdateSchema = z.object({
 
 const narratorVoiceUpdateSchema = z.object({
   description: z.string().trim().min(4).max(1000),
-  referenceAudioUrl: z.string().trim().max(14_000_000).optional(),
+  referenceAudioUrl: z.string().trim().max(14_000_000).nullable().optional(),
   indexTTS25Speaker: z.string().trim().max(120).optional(),
 });
 

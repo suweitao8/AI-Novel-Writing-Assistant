@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, open, readFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 const DEFAULT_INDEXTTS25_ROOT = "D:\\Tools\\yzy-index-tts-2.5-260824";
 const DEFAULT_REFERENCE_AUDIO = "测试参考音频.mp3";
@@ -10,6 +9,19 @@ const DEFAULT_SPEAKER = "default";
 const DEFAULT_WEB_UI_URL = "http://127.0.0.1:9000";
 const DEFAULT_LANGUAGE = "ZH";
 const AUDIO_EXTENSIONS = new Set([".wav", ".mp3", ".flac", ".m4a", ".ogg"]);
+const MAX_REFERENCE_AUDIO_BYTES = 10 * 1024 * 1024;
+const AUDIO_MIME_TYPES = new Set([
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/flac",
+  "audio/x-flac",
+  "audio/mp4",
+  "audio/x-m4a",
+  "audio/ogg",
+  "audio/webm",
+]);
 
 export interface IndexTTS25SpeechInput {
   text: string;
@@ -161,18 +173,67 @@ function parseDataURL(value: string): { bytes: Uint8Array; contentType: string }
   const metadata = value.slice(5, commaIndex);
   const payload = value.slice(commaIndex + 1);
   const parts = metadata.split(";");
-  const contentType = parts[0]?.trim() || "audio/mpeg";
-  if (!parts.includes("base64")) {
-    return {
-      bytes: new TextEncoder().encode(decodeURIComponent(payload)),
-      contentType,
-    };
+  const contentType = (parts[0]?.trim() || "audio/mpeg").toLowerCase();
+  if (!AUDIO_MIME_TYPES.has(contentType)) {
+    throw new Error("参考音频只支持 WAV、MP3、FLAC、M4A、OGG 或 WEBM 音频。");
   }
-  try {
-    return { bytes: Uint8Array.from(Buffer.from(payload, "base64")), contentType };
-  } catch {
+  if (!parts.includes("base64")) {
+    try {
+      const bytes = new TextEncoder().encode(decodeURIComponent(payload));
+      if (bytes.byteLength > MAX_REFERENCE_AUDIO_BYTES) {
+        throw new Error("参考音频不能超过 10 MB。");
+      }
+      return { bytes, contentType };
+    } catch (error) {
+      if (error instanceof Error && error.message === "参考音频不能超过 10 MB。") {
+        throw error;
+      }
+      throw new Error("参考音频 data URL 内容无效。");
+    }
+  }
+  if (payload.length % 4 !== 0) {
     throw new Error("参考音频 data URL 的 base64 内容无效。");
   }
+  const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+  const decodedLength = (payload.length / 4) * 3 - padding;
+  if (decodedLength > MAX_REFERENCE_AUDIO_BYTES) {
+    throw new Error("参考音频不能超过 10 MB。");
+  }
+  if (!isBase64Payload(payload)) {
+    throw new Error("参考音频 data URL 的 base64 内容无效。");
+  }
+  const bytes = Uint8Array.from(Buffer.from(payload, "base64"));
+  if (bytes.byteLength > MAX_REFERENCE_AUDIO_BYTES) {
+    throw new Error("参考音频不能超过 10 MB。");
+  }
+  return { bytes, contentType };
+}
+
+function isVoiceLibraryFileName(value: string): boolean {
+  return path.basename(value) === value
+    && isAudioExtension(path.extname(value))
+    && !value.includes("..")
+    && !/[\\/]/.test(value);
+}
+
+function isBase64Payload(value: string): boolean {
+  if (!value || value.length % 4 !== 0) {
+    return false;
+  }
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  const contentLength = value.length - padding;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    const isBase64Char = (code >= 65 && code <= 90)
+      || (code >= 97 && code <= 122)
+      || (code >= 48 && code <= 57)
+      || code === 43
+      || code === 47;
+    if (index < contentLength ? !isBase64Char : code !== 61) {
+      return false;
+    }
+  }
+  return true;
 }
 
 async function readReferenceAudio(referenceAudioUrl: string | undefined): Promise<{
@@ -185,8 +246,12 @@ async function readReferenceAudio(referenceAudioUrl: string | undefined): Promis
     if (!existsSync(defaultPath)) {
       throw new Error(`IndexTTS 2.5 默认参考音频不存在：${defaultPath}`);
     }
+    const bytes = new Uint8Array(await readFile(defaultPath));
+    if (bytes.byteLength > MAX_REFERENCE_AUDIO_BYTES) {
+      throw new Error("参考音频不能超过 10 MB。");
+    }
     return {
-      bytes: new Uint8Array(await readFile(defaultPath)),
+      bytes,
       contentType: contentTypeFromExtension(defaultPath),
       sourcePath: defaultPath,
     };
@@ -196,34 +261,19 @@ async function readReferenceAudio(referenceAudioUrl: string | undefined): Promis
   if (dataURL) {
     return dataURL;
   }
-
-  if (/^https?:\/\//i.test(referenceAudioUrl)) {
-    const response = await fetch(referenceAudioUrl, {
-      signal: AbortSignal.timeout(parseNumber(readEnv("INDEXTTS25_REFERENCE_TIMEOUT_MS"), 30000, 1000, 300000)),
-    });
-    if (!response.ok) {
-      throw new Error(`下载 IndexTTS 参考音频失败：${response.status} ${response.statusText}`);
-    }
-    return {
-      bytes: new Uint8Array(await response.arrayBuffer()),
-      contentType: response.headers.get("content-type") || "audio/mpeg",
-    };
+  if (!isVoiceLibraryFileName(referenceAudioUrl)) {
+    throw new Error("参考音频只能使用音频 data URL 或 IndexTTS 音色库中的文件名。");
   }
-
-  let localPath = referenceAudioUrl;
-  if (/^file:\/\//i.test(localPath)) {
-    localPath = fileURLToPath(localPath);
-  } else if (!path.isAbsolute(localPath)) {
-    const candidate = path.join(getIndexTTS25VoicesDir(), localPath);
-    if (existsSync(candidate)) {
-      localPath = candidate;
-    }
-  }
+  const localPath = path.join(path.resolve(getIndexTTS25VoicesDir()), referenceAudioUrl);
   if (!existsSync(localPath)) {
     throw new Error(`IndexTTS 参考音频不存在：${referenceAudioUrl}`);
   }
+  const bytes = new Uint8Array(await readFile(localPath));
+  if (bytes.byteLength > MAX_REFERENCE_AUDIO_BYTES) {
+    throw new Error("参考音频不能超过 10 MB。");
+  }
   return {
-    bytes: new Uint8Array(await readFile(localPath)),
+    bytes,
     contentType: contentTypeFromExtension(localPath),
     sourcePath: localPath,
   };

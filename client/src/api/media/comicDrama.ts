@@ -71,7 +71,7 @@ export interface DramaCharacterVoiceDesignResult {
 }
 
 export interface DramaVoiceDesignOptions {
-  referenceAudioUrl?: string;
+  referenceAudioUrl?: string | null;
   indexTTS25Speaker?: string;
 }
 
@@ -134,6 +134,22 @@ export async function designDramaCharacterVoice(
   const { data } = await apiClient.post<ApiResponse<DramaCharacterVoiceDesignResult>>(
     `/drama/projects/${projectId}/characters/${characterId}/voice-design`,
     { prompt, ...options },
+  );
+  return data.data!;
+}
+
+export async function saveDramaCharacterVoiceSource(
+  projectId: string,
+  characterId: string,
+  options: DramaVoiceDesignOptions = {},
+) {
+  const { data } = await apiClient.patch<ApiResponse<{
+    characterId: string;
+    referenceAudioUrl?: string;
+    indexTTS25Speaker?: string;
+  }>>(
+    `/drama/projects/${projectId}/characters/${characterId}/voice-source`,
+    options,
   );
   return data.data!;
 }

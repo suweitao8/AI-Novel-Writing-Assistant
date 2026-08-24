@@ -18,9 +18,10 @@
 - 健康检查：`GET http://127.0.0.1:9005/health`，启动就绪只要求 JSON `status=ok`；`model_loaded=false` 是正常的懒加载状态。
 - 参考音频列表：`GET /voices`。合成：`POST /tts`，请求至少包含 `speaker`、`audio`、`text`，成功响应为 `audio/wav` 二进制。
 - 默认参考音频为 `voices/测试参考音频.mp3`，可用 `INDEXTTS25_DEFAULT_REFERENCE_AUDIO` 覆盖；服务根目录可用 `INDEXTTS25_ROOT` 覆盖。
-- 项目会把 data URL、HTTP(S) 音频地址或本地音频路径读取为字节，按 SHA-256 内容指纹缓存到 IndexTTS `voices/`，只新增或复用文件，不删除整合包原有音频。
+- 业务输入只允许音频 data URL 或 `voices/` 音色库中的文件名；服务端会限制 data URL 解码后的大小，并按 SHA-256 内容指纹缓存到 IndexTTS `voices/`，只新增或复用文件，不接受 HTTP、`file://` 或音色库外的本地路径，避免合成入口发生远程抓取或任意文件读取。
 - 角色和旁白的 `sampleAudioUrl` 只负责播放器预览；`referenceAudioUrl` 才是后续合成使用的稳定参考音频。文字生成的试听样本会自动物化到 `voices/` 并写入 `referenceAudioUrl`，因此“生成音色”不会停留在试听层。
 - `GET /api/drama/index-tts25/catalog` 读取健康状态、已训练 speaker 和参考音频库；上传参考音频通过服务端内容寻址保存。LoRA 训练继续使用 9000 网页工作台，训练完成后刷新目录即可在业务音色卡中选择。
+- 旁白和角色可以单独保存模型 speaker / 参考音频来源，不要求重新生成试听；保存来源后会让包含旧音色指纹的配音进入过期状态。
 - 角色对白和旁白都使用参考音频克隆；情绪描述在健康状态声明 `qwen_emo=true` 时映射为 `emo_control_method=3` / `emo_text`，否则使用参考音色模式，避免低显存实例因为可选情绪模块缺失而阻断配音。
 - `speed` 映射为 `duration_factor=1/speed`，并限制在 IndexTTS 支持的 0.5~2.0 范围。返回音频继续走公共 PCM16 WAV 响度归一化与 data URL 封装。
 

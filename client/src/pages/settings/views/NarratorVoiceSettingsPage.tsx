@@ -48,7 +48,7 @@ export default function NarratorVoiceSettingsPage() {
 
   const saveMutation = useMutation({
     mutationFn: () => saveGlobalNarratorVoiceDescription(draft, {
-      referenceAudioUrl: referenceAudio || undefined,
+      referenceAudioUrl: referenceAudio,
       indexTTS25Speaker: speaker || undefined,
     }),
     onSuccess: (response) => {
@@ -64,7 +64,7 @@ export default function NarratorVoiceSettingsPage() {
 
   const designMutation = useMutation({
     mutationFn: () => designGlobalNarratorVoice(draft, {
-      referenceAudioUrl: referenceAudio || undefined,
+      referenceAudioUrl: referenceAudio,
       indexTTS25Speaker: speaker || undefined,
     }),
     onSuccess: (response) => {

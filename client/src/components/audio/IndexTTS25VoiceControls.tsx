@@ -49,14 +49,21 @@ export function IndexTTS25VoiceControls({
   const [fileLabel, setFileLabel] = useState(
     referenceAudio.startsWith("data:") ? "试听样本" : referenceAudio || "",
   );
+  const [localPreview, setLocalPreview] = useState<{ referenceAudio: string; url: string } | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(
     referenceAudio.startsWith("data:") ? referenceAudio : undefined,
   );
 
   useEffect(() => {
     setFileLabel(referenceAudio.startsWith("data:") ? "试听样本" : referenceAudio || "");
-    setPreviewUrl(referenceAudio.startsWith("data:") ? referenceAudio : undefined);
-  }, [referenceAudio]);
+    if (referenceAudio.startsWith("data:")) {
+      setPreviewUrl(referenceAudio);
+    } else if (localPreview?.referenceAudio === referenceAudio) {
+      setPreviewUrl(localPreview.url);
+    } else {
+      setPreviewUrl(undefined);
+    }
+  }, [localPreview, referenceAudio]);
 
   const openFilePicker = () => {
     if (!disabled && !uploading) inputRef.current?.click();
@@ -82,6 +89,7 @@ export function IndexTTS25VoiceControls({
         reader.readAsDataURL(file);
       });
       const saved = await saveIndexTTS25ReferenceAudio(dataUrl);
+      setLocalPreview({ referenceAudio: saved.fileName, url: dataUrl });
       setPreviewUrl(dataUrl);
       setFileLabel(`${file.name}（${formatBytes(file.size)}）`);
       onReferenceAudioChange(saved.fileName);
@@ -151,6 +159,7 @@ export function IndexTTS25VoiceControls({
           <SelectControl
             value={referenceAudio}
             onChange={(event) => {
+              setLocalPreview(null);
               setPreviewUrl(undefined);
               setFileLabel(event.target.value);
               onReferenceAudioChange(event.target.value);
@@ -166,72 +175,93 @@ export function IndexTTS25VoiceControls({
         </label>
       </div>
 
-      <div
-        role="button"
-        tabIndex={disabled || uploading ? -1 : 0}
-        aria-label="上传参考音频"
-        aria-disabled={disabled || uploading}
-        className={cn(
-          "flex min-h-16 items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-xs transition",
-          dragging ? "border-primary bg-accent" : "border-border hover:border-primary/60 hover:bg-accent/50",
-          (disabled || uploading) && "cursor-not-allowed opacity-60",
-          !disabled && !uploading && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-        onClick={openFilePicker}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openFilePicker();
-          }
-        }}
-        onDragOver={(event) => {
-          event.preventDefault();
-          if (!disabled && !uploading) setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragging(false);
-          void handleFile(event.dataTransfer.files[0]);
-        }}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="audio/wav,audio/mpeg,audio/flac,audio/mp4,audio/ogg"
-          className="sr-only"
-          tabIndex={-1}
-          onChange={(event) => {
-            void handleFile(event.target.files?.[0]);
-            event.target.value = "";
+      <div className="space-y-2">
+        <div
+          role="button"
+          tabIndex={disabled || uploading ? -1 : 0}
+          aria-label="上传参考音频"
+          aria-disabled={disabled || uploading}
+          className={cn(
+            "flex min-h-16 items-center justify-between gap-3 rounded-md border border-dashed px-3 py-2 text-xs transition",
+            dragging ? "border-primary bg-accent" : "border-border hover:border-primary/60 hover:bg-accent/50",
+            (disabled || uploading) && "cursor-not-allowed opacity-60",
+            !disabled && !uploading && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+          )}
+          onClick={openFilePicker}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openFilePicker();
+            }
           }}
-        />
-        <div className="flex min-w-0 items-center gap-2">
-          {uploading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden="true" /> : <Upload className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-          <span className="truncate text-muted-foreground">
-            {uploading ? "正在保存参考音频..." : fileLabel ? `当前：${fileLabel}` : "点击、拖拽或按 Enter 上传参考音频"}
-          </span>
+          onDragOver={(event) => {
+            event.preventDefault();
+            if (!disabled && !uploading) setDragging(true);
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(event) => {
+            event.preventDefault();
+            setDragging(false);
+            void handleFile(event.dataTransfer.files[0]);
+          }}
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="audio/wav,audio/mpeg,audio/flac,audio/mp4,audio/ogg,audio/webm"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(event) => {
+              void handleFile(event.target.files?.[0]);
+              event.target.value = "";
+            }}
+          />
+          <div className="flex min-w-0 items-center gap-2">
+            {uploading ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-primary" aria-hidden="true" /> : <Upload className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
+            <span className="truncate text-muted-foreground">
+              {uploading ? "正在保存参考音频..." : fileLabel ? `当前：${fileLabel}` : "点击、拖拽或按 Enter 上传参考音频"}
+            </span>
+          </div>
         </div>
         {previewUrl ? (
-          <audio controls preload="metadata" src={previewUrl} className="h-7 max-w-[45%]" onClick={(event) => event.stopPropagation()} />
+          <div className="flex items-center gap-2">
+            <audio controls preload="metadata" src={previewUrl} className="h-7 min-w-0 flex-1" />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={() => {
+                setLocalPreview(null);
+                setPreviewUrl(undefined);
+                setFileLabel("");
+                onReferenceAudioChange("");
+              }}
+              disabled={disabled || uploading}
+              aria-label="清除参考音频"
+              title="清除参考音频"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
         ) : referenceAudio ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 shrink-0"
-            onClick={(event) => {
-              event.stopPropagation();
-              setPreviewUrl(undefined);
-              setFileLabel("");
-              onReferenceAudioChange("");
-            }}
-            disabled={disabled || uploading}
-            aria-label="清除参考音频"
-            title="清除参考音频"
-          >
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
+          <div className="flex justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7"
+              onClick={() => {
+                setLocalPreview(null);
+                setPreviewUrl(undefined);
+                setFileLabel("");
+                onReferenceAudioChange("");
+              }}
+              disabled={disabled || uploading}
+            >
+              <X className="mr-1 h-3.5 w-3.5" aria-hidden="true" />清除参考音频
+            </Button>
+          </div>
         ) : null}
       </div>
 
