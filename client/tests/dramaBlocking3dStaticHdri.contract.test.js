@@ -42,6 +42,7 @@ test("普通场景图使用地面投影保护，真正等距 HDRI 保留原生�
   assert.match(viewerSource, /texture\.width \/ texture\.height/);
   assert.match(viewerSource, /GROUND_PROJECTION_SOURCE_ASPECT/);
   assert.match(viewerSource, /groundProjection/);
+  assert.match(viewerSource, /DEFAULT_GROUND_UV_BOTTOM - radial/);
 });
 
 test("HDRI 环境提供投影高度、半球尺寸、旋转和清晰度参数", () => {
