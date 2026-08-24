@@ -295,6 +295,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   let environmentDome: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
+  const syncEnvironmentDomePosition = () => {
+    if (!environmentDome) return;
+    const cameraPosition = cameraEntity.getPosition();
+    environmentDome.setPosition(cameraPosition.x, 0, cameraPosition.z);
+  };
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
@@ -521,7 +526,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
-    if (environmentDome) environmentDome.setPosition(cameraEntity.getPosition());
+    syncEnvironmentDomePosition();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
     const actor = selectedActor();
     if (actor) {
@@ -730,6 +735,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       }
     },
     async setEnvironment(url) {
+      ground.enabled = true;
       if (environmentDome) {
         environmentDome.destroy();
         environmentDome = null;
@@ -759,8 +765,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         layers: [pc.LAYERID_SKYBOX],
       });
       environmentDome.setLocalScale(180, 180, 180);
-      environmentDome.setPosition(cameraEntity.getPosition());
+      syncEnvironmentDomePosition();
       app.root.addChild(environmentDome);
+      ground.enabled = false;
       setStatus("3D 草图已就绪");
     },
     exportLayout() {
