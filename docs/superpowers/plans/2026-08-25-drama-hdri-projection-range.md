@@ -52,5 +52,5 @@
 - No additional source files.
 
 - [x] **Step 1: 运行验证**：执行客户端/服务端定向测试、`pnpm typecheck` 和 `pnpm build`，确认全部退出码为 0。
-- [ ] **Step 2: 固定端口页面回归**：在 5174 的 3D 草图页面确认两个 range 显示新边界、场景正常渲染、控制台无新增错误；API 3100 健康检查返回成功。
-- [ ] **Step 3: 提交并合入**：检查 diff 和状态，使用 `git commit -s`，从干净 `main` 运行 `pnpm workflow:integrate codex/drama-projection-range --push --verify "pnpm build"`，核对本地与 `origin/main` SHA 相同并清理本次 worktree。
+- [x] **Step 2: 固定端口页面回归**：在 5174 的 3D 草图页面确认两个 range 显示新边界、场景正常渲染、控制台无新增错误；API 3100 健康检查返回成功。
+- [x] **Step 3: 提交并合入**：检查 diff 和状态，使用 `git commit -s`，从干净 `main` 运行 `pnpm workflow:integrate codex/drama-projection-range --push --verify "pnpm build"`，核对本地与 `origin/main` SHA 相同并清理本次 worktree。
