@@ -19,8 +19,9 @@
 - `DramaShot.dialogueAudioData`（JSON）：
   - `items[].type`：`dialogue | narration`；
   - `items[].textHash`：生成时该行文本的 sha256 前 16 位；
-  - `items[].voiceKey`：生成时音色指纹（对白包含 voiceId/行内语气/角色提示/语速/状态样本；旁白为 `narrator|描述|sampleSha256`）。
-  - `items[].audioUrl`：base64 data URL（视频合成阶段直接消费，不可改此约定）。
+- `items[].voiceKey`：生成时音色指纹（对白包含 voiceId/行内语气/角色提示/语速/状态样本；旁白为 `narrator|narration-v2|描述|sampleSha256`）。旁白指纹带语义版本，避免历史上按对白控制生成的旧音频继续被当作可用素材。
+- `items[].audioUrl`：base64 data URL（视频合成阶段直接消费，不可改此约定）。
+- TTS 请求必须显式携带 `audioType`：旁白使用 `narration`，不透传说话人；角色对白使用 `dialogue`，并透传角色名。提供方只能执行这一语义，不得把所有请求硬编码为对白或根据缺省字段猜测。
 - `AppSetting` 的 `drama.globalNarratorVoice`（JSON）是系统旁白唯一权威来源：`{description, sampleAudioUrl, sampleText, sampleSha256, source, updatedAt}`。合成与 stale 投影都读取它，旁白请求把 `sampleAudioUrl` 作为 VoxCPM2 的 `metadata.audio_url`。
 - `DramaProject.narratorVoiceData` 只保留为兼容迁移来源。系统设置首次读取且全局 key 为空时，会从第一个有有效旧旁白的项目迁移一次并写入 `AppSetting`；旧项目旁白接口仍保留，但委托系统设置服务，不再写回项目字段。
 - `DramaCharacter.voiceProfile`（JSON）：扩展 `{voicePrompt, sampleAudioUrl, sampleUpdatedAt}`；`voicePrompt` 无显式 emotion 时作为该角色台词的情绪提示传入。
@@ -50,6 +51,7 @@
 ## 失败模式 / 注意
 
 - 修改旁白描述或角色音色后，已有音频会自然变为 stale（voiceKey 变化），UI 标「已过期」——这是特性不是 bug，提示用户补配。
+- 如果旁白整体听起来像角色对白、出现角色式控制语气，应先检查 TTS 提供方是否丢失 `audioType`；旁白应走 `narration` 控制且不带角色说话人，修复后依靠 `narration-v2` 指纹让旧音频重新生成。
 - 行内增删台词会使 lineIndex 错位，同镜多行可能集体过期——按镜重配即可恢复。
 - 音频以 data URL 存于 `dialogueAudioData`，角色试听存于 `voiceProfile`，系统旁白试听存于 `AppSetting` 的 `drama.globalNarratorVoice.sampleAudioUrl`；都不要改成文件路径引用，视频合成链路依赖 data URL。旁白 voice key 保存 SHA-256 指纹而不是把完整样本重复写入每一行。
 - 说话人不在角色列表时**不报错**：透传角色名让语音服务按名字描述音色（容忍分镜里的临时角色名）。
