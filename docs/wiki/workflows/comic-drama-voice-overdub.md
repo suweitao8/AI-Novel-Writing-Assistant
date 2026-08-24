@@ -8,7 +8,7 @@
 
 - **旁白/对白二分**：带 `旁白` 标记或没有说话人前缀的是「旁白」（项目旁白音色），其余有角色名的是「对白」（角色音色）。mydrama 用 beat.audio_type 表达，本项目由 `parseDialogueLines` 统一归类；历史格式 `旁白（语气）：内容` 也必须归为旁白并丢弃行内语气。
 - **一行一分段**：显示层按「行」组织（mydrama 的 AudioSegment），每行三态：可播放 / 已过期 / 未生成。过期判定来自生成时快照与当前状态的对比（mydrama 用 voice sha + text sha，本项目用 textHash + voiceKey）。
-- **音色描述生成（design 模式）**：不克隆音频，用一句文字描述（年龄/性别/语气/节奏）作为情绪控制提示，让 VoxCPM2 用固定样句合成一段参考音。角色继续按角色资产维护；旁白统一由系统设置维护，所有漫剧项目共用同一份旁白参考样本。
+- **音色描述生成（design 模式）**：不克隆音频，用一句文字描述（年龄/性别/语气/节奏）作为情绪控制提示，让 IndexTTS 2.5 用固定样句合成一段参考音。角色继续按角色资产维护；旁白统一由系统设置维护，所有漫剧项目共用一份旁白参考样本。
 - **批量只补缺失**：Generate missing / Redo all 两种批量模式；重配时未变化的行复用已有音频，不做全量重合成。
 
 ## 当前实现
@@ -22,7 +22,7 @@
 - `items[].voiceKey`：生成时音色指纹（对白包含 voiceId/行内语气/角色提示/语速/状态样本；旁白为 `narrator|narration-v2|描述|sampleSha256`）。旁白指纹带语义版本，避免历史上按对白控制生成的旧音频继续被当作可用素材。
 - `items[].audioUrl`：base64 data URL（视频合成阶段直接消费，不可改此约定）。
 - TTS 请求必须显式携带 `audioType`：旁白使用 `narration`，不透传说话人；角色对白使用 `dialogue`，并透传角色名。提供方只能执行这一语义，不得把所有请求硬编码为对白或根据缺省字段猜测。
-- `AppSetting` 的 `drama.globalNarratorVoice`（JSON）是系统旁白唯一权威来源：`{description, sampleAudioUrl, sampleText, sampleSha256, source, updatedAt}`。合成与 stale 投影都读取它，旁白请求把 `sampleAudioUrl` 作为 VoxCPM2 的 `metadata.audio_url`。
+- `AppSetting` 的 `drama.globalNarratorVoice`（JSON）是系统旁白唯一权威来源：`{description, sampleAudioUrl, sampleText, sampleSha256, source, updatedAt}`。合成与 stale 投影都读取它，旁白请求把 `sampleAudioUrl` 交给 IndexTTS 2.5 适配层缓存并作为 `/tts` 的 `audio` 参考文件。
 - `DramaProject.narratorVoiceData` 只保留为兼容迁移来源。系统设置首次读取且全局 key 为空时，会从第一个有有效旧旁白的项目迁移一次并写入 `AppSetting`；旧项目旁白接口仍保留，但委托系统设置服务，不再写回项目字段。
 - `DramaCharacter.voiceProfile`（JSON）：扩展 `{voicePrompt, sampleAudioUrl, sampleUpdatedAt}`；`voicePrompt` 无显式 emotion 时作为该角色台词的情绪提示传入。
 

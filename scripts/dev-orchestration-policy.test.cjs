@@ -41,9 +41,9 @@ test("dev:raw delegates to the service supervisor instead of raw concurrently", 
   assert.doesNotMatch(script, /concurrently/);
 });
 
-test("direct API development startup ensures the VoxCPM2 bridge first", () => {
+test("direct API development startup ensures the IndexTTS 2.5 API first", () => {
   const script = serverPackageJson.scripts?.["dev:api"] ?? "";
-  assert.match(script, /start-voxcpm2-bridge\.cjs/);
+  assert.match(script, /start-indextts25-api\.cjs/);
 });
 
 test("service supervisor restarts children independently and stops the group after persistent failure", async () => {

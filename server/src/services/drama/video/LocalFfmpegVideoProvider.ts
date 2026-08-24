@@ -102,7 +102,7 @@ async function writeAudioInputs(
     if (!buffer || buffer.length === 0) {
       continue;
     }
-    // 扩展名按 dataUrl 的 mime 推断（VoxCPM 桥接返回 audio/wav），给 ffmpeg 正确的探测提示。
+    // 扩展名按 dataUrl 的 mime 推断（IndexTTS 2.5 API 返回 audio/wav），给 ffmpeg 正确的探测提示。
     const ext = audioFileExtensionFromDataUrl(dataUrl);
     const tempPath = path.join(os.tmpdir(), `cd-audio-${taskId}-${index}.${ext}`);
     await fs.writeFile(tempPath, buffer);

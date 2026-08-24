@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-// 确保项目使用的正式 VoxCPM2 FastAPI 桥接服务已就绪。
-// 不复用旧版 Gradio worker 桥：它没有 /v1/models，且响应头协议不完整。
+// 确保 IndexTTS 2.5 的独立 FastAPI 服务已就绪。
+// 9000 端口的“启动.bat”网页工作台与 9005 端口的 API 是两个进程；
+// 项目开发启动链只管理 API，网页仍可由整合包启动脚本单独打开。
 
 "use strict";
 
@@ -9,8 +10,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
-const DEFAULT_ROOT = "D:\\Github\\VoxCPM";
-const DEFAULT_PORT = 18761;
+const DEFAULT_ROOT = "D:\\Tools\\yzy-index-tts-2.5-260824";
+const DEFAULT_PORT = 9005;
 const READY_TIMEOUT_SECONDS = 120;
 
 function readPositiveNumber(value, fallback) {
@@ -20,11 +21,11 @@ function readPositiveNumber(value, fallback) {
 
 function parseArgs(argv = process.argv, env = process.env) {
   const args = {
-    port: readPositiveNumber(env.VOXCPM2_BRIDGE_PORT, DEFAULT_PORT),
-    root: env.VOXCPM2_ROOT?.trim() || DEFAULT_ROOT,
-    python: env.VOXCPM2_BRIDGE_PYTHON?.trim() || "",
-    script: env.VOXCPM2_BRIDGE_SCRIPT?.trim() || "",
-    timeoutSeconds: readPositiveNumber(env.VOXCPM2_BRIDGE_TIMEOUT_SECONDS, READY_TIMEOUT_SECONDS),
+    port: readPositiveNumber(env.INDEXTTS25_API_PORT, DEFAULT_PORT),
+    root: env.INDEXTTS25_ROOT?.trim() || DEFAULT_ROOT,
+    python: env.INDEXTTS25_API_PYTHON?.trim() || "",
+    script: env.INDEXTTS25_API_SCRIPT?.trim() || "",
+    timeoutSeconds: readPositiveNumber(env.INDEXTTS25_API_TIMEOUT_SECONDS, READY_TIMEOUT_SECONDS),
   };
 
   for (let index = 2; index < argv.length; index += 1) {
@@ -50,33 +51,23 @@ function resolvePaths(args) {
   return {
     root,
     python: path.resolve(args.python || path.join(root, ".venv", "Scripts", "python.exe")),
-    script: path.resolve(args.script || path.join(root, "openai_speech_server.py")),
+    script: path.resolve(args.script || path.join(root, "app_api.py")),
+    webuiLauncher: path.join(root, "启动.bat"),
   };
 }
 
-function isCanonicalBridgeHealth(payload) {
-  return Boolean(payload && payload.status === "ok" && payload.model_loaded === true);
+function isIndexTTS25Health(payload) {
+  return Boolean(payload && payload.status === "ok");
 }
 
 async function isHttpReady(healthURL, fetchImpl = fetch) {
   try {
-    const healthResponse = await fetchImpl(healthURL, { signal: AbortSignal.timeout(3000) });
-    if (!healthResponse.ok) {
+    const response = await fetchImpl(healthURL, { signal: AbortSignal.timeout(3000) });
+    if (!response.ok) {
       return false;
     }
-    const health = await healthResponse.json().catch(() => null);
-    if (!isCanonicalBridgeHealth(health)) {
-      return false;
-    }
-
-    const modelsResponse = await fetchImpl(`${new URL(healthURL).origin}/v1/models`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!modelsResponse.ok) {
-      return false;
-    }
-    const models = await modelsResponse.json().catch(() => null);
-    return Boolean(models?.data?.some((model) => model?.id === "voxcpm2"));
+    const payload = await response.json().catch(() => null);
+    return isIndexTTS25Health(payload);
   } catch {
     return false;
   }
@@ -95,9 +86,9 @@ async function waitForHttpReady(url, label, timeoutSeconds = READY_TIMEOUT_SECON
 
 function resolveLogsDir(env = process.env) {
   if (env.LOCALAPPDATA) {
-    return path.join(env.LOCALAPPDATA, "AINovel", "voxcpm2-bridge", "logs");
+    return path.join(env.LOCALAPPDATA, "AINovel", "indextts25-api", "logs");
   }
-  return path.join(REPO_ROOT, "runtime", "voxcpm2-bridge", "logs");
+  return path.join(REPO_ROOT, "runtime", "indextts25-api", "logs");
 }
 
 function spawnDetached(command, args, options) {
@@ -113,36 +104,36 @@ function spawnDetached(command, args, options) {
   return child;
 }
 
-async function ensureBridge(args, fetchImpl = fetch) {
+async function ensureIndexTTS25Api(args, fetchImpl = fetch) {
   const healthURL = `http://127.0.0.1:${args.port}/health`;
   if (await isHttpReady(healthURL, fetchImpl)) {
-    console.log(`VoxCPM2 音频桥已在运行：${healthURL}`);
+    console.log(`IndexTTS 2.5 API 已在运行：${healthURL}`);
     return;
   }
 
   const paths = resolvePaths(args);
   if (!fs.existsSync(paths.script)) {
-    throw new Error(`未找到正式 VoxCPM2 桥接脚本：${paths.script}。请设置 VOXCPM2_ROOT 或 VOXCPM2_BRIDGE_SCRIPT。`);
+    throw new Error(`未找到 IndexTTS 2.5 API 脚本：${paths.script}。请设置 INDEXTTS25_ROOT 或 INDEXTTS25_API_SCRIPT。`);
   }
   if (!fs.existsSync(paths.python)) {
-    throw new Error(`未找到 VoxCPM2 Python 环境：${paths.python}。请设置 VOXCPM2_BRIDGE_PYTHON。`);
+    throw new Error(`未找到 IndexTTS 2.5 Python 环境：${paths.python}。请设置 INDEXTTS25_ROOT 或 INDEXTTS25_API_PYTHON。`);
   }
 
   const logsDir = resolveLogsDir();
   fs.mkdirSync(logsDir, { recursive: true });
-  spawnDetached(paths.python, [paths.script, "--host", "127.0.0.1", "--port", String(args.port)], {
+  spawnDetached(paths.python, ["-u", paths.script, "--host", "127.0.0.1", "--port", String(args.port)], {
     cwd: paths.root,
-    stdoutLog: path.join(logsDir, "bridge.stdout.log"),
-    stderrLog: path.join(logsDir, "bridge.stderr.log"),
+    stdoutLog: path.join(logsDir, "api.stdout.log"),
+    stderrLog: path.join(logsDir, "api.stderr.log"),
   });
-  console.log(`已启动 VoxCPM2 音频桥，等待 ${healthURL}`);
-  await waitForHttpReady(healthURL, "VoxCPM2 音频桥", args.timeoutSeconds, fetchImpl);
+  console.log(`已启动 IndexTTS 2.5 API，等待 ${healthURL}`);
+  await waitForHttpReady(healthURL, "IndexTTS 2.5 API", args.timeoutSeconds, fetchImpl);
 }
 
 async function main() {
   const args = parseArgs();
-  await ensureBridge(args);
-  console.log(`VoxCPM2 音频通道已就绪：http://127.0.0.1:${args.port}/v1`);
+  await ensureIndexTTS25Api(args);
+  console.log(`IndexTTS 2.5 音频通道已就绪：http://127.0.0.1:${args.port}`);
 }
 
 if (require.main === module) {
@@ -156,12 +147,12 @@ module.exports = {
   DEFAULT_ROOT,
   DEFAULT_PORT,
   READY_TIMEOUT_SECONDS,
-  isCanonicalBridgeHealth,
+  isIndexTTS25Health,
   isHttpReady,
   parseArgs,
   resolveLogsDir,
   resolvePaths,
   spawnDetached,
   waitForHttpReady,
-  ensureBridge,
+  ensureIndexTTS25Api,
 };

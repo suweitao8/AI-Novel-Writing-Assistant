@@ -17,7 +17,7 @@ export interface ProviderConfig {
   /** 本机订阅桥接使用的默认 bearer，不是云端 API 密钥。 */
   defaultApiKey?: string;
   requiresApiKey?: boolean;
-  // 部分本地桥接服务（如 VoxCPM2 语音桥）不提供 /models 列表接口；
+  // 部分本地桥接服务（如 IndexTTS 2.5 API）不提供 /models 列表接口；
   // 标记为 false 后模型列表固定使用注册表里的 models。
   supportsModelList?: boolean;
 }
@@ -187,14 +187,15 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     requiresApiKey: false,
     supportsModelList: false,
   },
-  voxcpm2: {
-    name: "VoxCPM2 语音",
-    baseURL: "http://127.0.0.1:18761/v1",
-    defaultModel: "voxcpm2",
-    models: ["voxcpm2"],
-    envKey: "VOXCPM2_API_KEY",
-    envBaseURLKey: "VOXCPM2_BASE_URL",
-    envModelKey: "VOXCPM2_MODEL",
+  indextts25: {
+    name: "IndexTTS 2.5 语音",
+    baseURL: "http://127.0.0.1:9005",
+    defaultModel: "index-tts-2.5",
+    models: ["index-tts-2.5"],
+    envKey: "INDEXTTS25_API_KEY",
+    envBaseURLKey: "INDEXTTS25_BASE_URL",
+    envModelKey: "INDEXTTS25_MODEL",
+    defaultApiKey: "local-indextts25",
     requiresApiKey: false,
     supportsModelList: false,
   },

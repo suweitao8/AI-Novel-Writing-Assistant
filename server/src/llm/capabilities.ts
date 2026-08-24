@@ -180,8 +180,8 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonObject: false,
       supportsJsonSchema: false,
     },
-    voxcpm2: {
-      // voxcpm2 是音频专用本地通道，不参与文本结构化输出。
+    indextts25: {
+      // indextts25 是音频专用本地通道，不参与文本结构化输出。
       supportsJsonObject: false,
       supportsJsonSchema: false,
     },

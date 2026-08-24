@@ -53,7 +53,7 @@ export interface CharacterVoice {
   speed?: number;
   /** 角色音色描述（voiceProfile.voicePrompt），无显式 emotion 时作为语气提示传入 */
   voicePrompt?: string;
-  /** 角色当前剧情状态已生成的试听，用作 VoxCPM2 的参考音频。 */
+  /** 角色当前剧情状态已生成的试听，用作 IndexTTS 2.5 的参考音频。 */
   referenceAudioUrl?: string;
 }
 
@@ -91,7 +91,7 @@ const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
 /** 旁白曾被错误包装成 dialogue；升级版本后旧音频必须重新生成。 */
 export const NARRATION_AUDIO_SEMANTICS_VERSION = "narration-v2";
 
-// 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM 的
+// 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（IndexTTS 2.5 的
 // emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。
 const SPEAKER_EMOTION_PATTERN = /^([^（(]{1,24})[（(]([^）)]{1,24})[)）]/;
 
