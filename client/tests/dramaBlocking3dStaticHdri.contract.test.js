@@ -60,3 +60,10 @@ test("HDRI 环境提供投影高度、半球尺寸、旋转和清晰度参数", 
   assert.match(viewerSource, /getEnvironmentSettings/);
   assert.match(viewerSource, /setEnvironmentSettings/);
 });
+
+test("地面贴图密度可以独立缩小，并通过环境布局保存", () => {
+  assert.match(viewerSource, /groundTextureScale/);
+  assert.match(viewerSource, /createGroundDomeGeometry\(environmentSettings\.groundTextureScale\)/);
+  assert.match(viewerSource, /Math\.floor\(/);
+  assert.match(viewerSource, /environmentGround/);
+});

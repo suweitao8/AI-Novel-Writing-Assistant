@@ -398,6 +398,10 @@ export default function DramaBlocking3DPage() {
                 <input type="range" aria-label="HDRI 半球尺寸" min="24" max="96" step="2" value={environmentSettings.domeRadius} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2"><span>地面贴图密度</span><output className="tabular-nums text-foreground">{environmentSettings.groundTextureScale.toFixed(0)}x</output></span>
+                <input type="range" aria-label="HDRI 地面贴图密度" min="1" max="20" step="1" value={environmentSettings.groundTextureScale} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("groundTextureScale", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2"><span>水平旋转</span><output className="tabular-nums text-foreground">{environmentSettings.yawDeg.toFixed(0)}°</output></span>
                 <input type="range" aria-label="HDRI 水平旋转" min="-180" max="180" step="5" value={environmentSettings.yawDeg} disabled={saving || !viewer} onChange={(event) => updateEnvironmentSetting("yawDeg", Number(event.target.value))} className="w-full accent-primary" />
               </label>
