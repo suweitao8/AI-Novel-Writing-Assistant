@@ -730,6 +730,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       }
     },
     async setEnvironment(url) {
+      ground.enabled = true;
       if (environmentDome) {
         environmentDome.destroy();
         environmentDome = null;
@@ -761,6 +762,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDome.setLocalScale(180, 180, 180);
       environmentDome.setPosition(cameraEntity.getPosition());
       app.root.addChild(environmentDome);
+      ground.enabled = false;
       setStatus("3D 草图已就绪");
     },
     exportLayout() {
