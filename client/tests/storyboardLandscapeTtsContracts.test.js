@@ -13,7 +13,8 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   assert.match(panelSource, /toolbarTarget/);
   assert.doesNotMatch(panelSource, /DramaEpisodeAssemblyResultPanel/);
   assert.match(panelSource, /aspect-video/);
-  assert.match(panelSource, /w-32 shrink-0 space-y-1\.5 sm:w-40/);
+  assert.match(panelSource, /w-full shrink-0 items-stretch gap-2 sm:w-\[26rem\]/);
+  assert.match(panelSource, /w-28 shrink-0 flex-col gap-1\.5/);
   assert.doesNotMatch(panelSource, /listDramaTTSProviders|providersQuery|const \[provider,/);
   const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
   const nextStepSource = read("pages/drama/components/DramaNextStepPanel.tsx");
@@ -127,7 +128,7 @@ test("分镜工具栏使用父级章节并收敛为三个批量入口", () => {
   const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
 
   assert.match(panelSource, /chapterOrder/);
-  assert.doesNotMatch(panelSource, /SelectControl|selectedOrder|音色设置/);
+  assert.doesNotMatch(panelSource, /SelectControl|selectedOrder/);
   assert.match(panelSource, /生成分镜/);
   assert.match(panelSource, /生成配音/);
   assert.match(panelSource, /重新配音/);

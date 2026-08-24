@@ -17,7 +17,10 @@ test("每一镜支持在草图与 AI 画面之间切换，并把操作放在预�
   assert.match(source, /role="tab"/);
   assert.match(source, /aria-selected=\{activePreviewKind === "sketch"\}/);
   assert.match(source, /disabled=\{!hasBlockingSketch\}/);
-  assert.match(source, /编辑 3D 草图/);
-  assert.match(source, /生成 AI 图/);
+  assert.match(source, />\s*3D图\s*<\/button>/);
+  assert.match(source, />\s*AI图\s*<\/button>/);
+  assert.match(source, /编辑3D/);
+  assert.match(source, /生成AI图/);
+  assert.match(source, /重新生图/);
   assert.match(source, /sm:w-\[26rem\]/);
 });

@@ -3,9 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AudioLines,
   Loader2,
-  Mic,
   User,
-  Wand2,
 } from "lucide-react";
 import {
   designDramaCharacterVoice,
@@ -138,9 +136,7 @@ export function NarratorVoiceCard({ projectId }: { projectId: string }) {
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />生成中...
             </>
           ) : (
-            <>
-              <Wand2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />生成音色并试听
-            </>
+            "生成音色并试听"
           )}
         </AiButton>
         <Button
@@ -273,9 +269,7 @@ export function CharacterVoiceCard({ projectId, character }: { projectId: string
               <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />生成中...
             </>
           ) : (
-            <>
-              <Mic className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />生成音色并试听
-            </>
+            "生成音色并试听"
           )}
         </AiButton>
         <Button

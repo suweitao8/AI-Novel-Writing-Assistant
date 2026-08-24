@@ -207,7 +207,7 @@ export default function WorldMapPanel({ novelId, onChanged }: WorldMapPanelProps
           disabled={generateMutation.isPending}
           title="把还没放上地图的场景按位置关系摆上来；地图还没有地形时会顺便生成地形分区"
         >
-          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+          {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {generateMutation.isPending ? "生成中..." : "生成地图"}
         </AiButton>
       </div>
