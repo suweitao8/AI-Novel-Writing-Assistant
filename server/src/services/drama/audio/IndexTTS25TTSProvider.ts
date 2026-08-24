@@ -12,6 +12,7 @@ export function buildIndexTTS25SpeechInput(input: TTSGenerationRequest): AudioSp
     text: input.text,
     audioType: input.audioType,
     speaker: input.audioType === "narration" ? undefined : (input.speaker ?? input.voiceId ?? undefined),
+    indexTTS25Speaker: input.indexTTS25Speaker ?? undefined,
     speed: input.speed ?? undefined,
     emotion: input.emotion ?? undefined,
     referenceAudioUrl: input.referenceAudioUrl ?? undefined,

@@ -49,6 +49,8 @@ interface DialogueLine {
 export interface CharacterVoice {
   name: string;
   voiceId?: string;
+  /** IndexTTS 2.5 的已训练 speaker 名称。 */
+  indexTTS25Speaker?: string;
   emotion?: string;
   speed?: number;
   /** 角色音色描述（voiceProfile.voicePrompt），无显式 emotion 时作为语气提示传入 */
@@ -60,6 +62,8 @@ export interface CharacterVoice {
 export interface NarratorVoiceData {
   description?: string;
   sampleAudioUrl?: string;
+  referenceAudioUrl?: string;
+  indexTTS25Speaker?: string;
   updatedAt?: string;
 }
 
@@ -78,12 +82,15 @@ export function buildDialogueTTSRequest(
     text: item.text,
     audioType: isNarrationLine ? "narration" : "dialogue",
     voiceId: isNarrationLine ? undefined : voice?.voiceId,
+    indexTTS25Speaker: isNarrationLine ? narratorVoice.indexTTS25Speaker : voice?.indexTTS25Speaker,
     speed: isNarrationLine ? undefined : voice?.speed,
     emotion: isNarrationLine
       ? narratorVoice.description
       : (item.emotion || voice?.emotion || voice?.voicePrompt),
     speaker: isNarrationLine ? undefined : item.speaker,
-    referenceAudioUrl: isNarrationLine ? narratorVoice.sampleAudioUrl : voice?.referenceAudioUrl,
+    referenceAudioUrl: isNarrationLine
+      ? (narratorVoice.referenceAudioUrl ?? narratorVoice.sampleAudioUrl)
+      : voice?.referenceAudioUrl,
   };
 }
 
@@ -145,16 +152,26 @@ export function buildDialogueVoiceKey(input: {
   narratorDescription?: string;
   narratorSampleAudioUrl?: string;
   narratorSampleSha256?: string;
+  narratorReferenceAudioUrl?: string;
+  narratorIndexTTS25Speaker?: string;
   lineEmotion?: string;
 }): string {
   if (input.type === "narration") {
     const sampleFingerprint = input.narratorSampleSha256
       ?? (input.narratorSampleAudioUrl ? hashNarratorSample(input.narratorSampleAudioUrl) : "");
-    return `narrator|${NARRATION_AUDIO_SEMANTICS_VERSION}|${(input.narratorDescription ?? "").trim()}|${sampleFingerprint}`;
+    return [
+      "narrator",
+      NARRATION_AUDIO_SEMANTICS_VERSION,
+      (input.narratorDescription ?? "").trim(),
+      sampleFingerprint,
+      input.narratorReferenceAudioUrl ?? "",
+      input.narratorIndexTTS25Speaker ?? "",
+    ].join("|");
   }
   const voice = input.voice;
   return [
     voice?.voiceId ?? "",
+    voice?.indexTTS25Speaker ?? "",
     input.lineEmotion ?? "",
     voice?.emotion ?? voice?.voicePrompt ?? "",
     voice?.speed ?? "",
@@ -182,14 +199,23 @@ export function readCharacterVoice(character: {
   if (parsed && typeof parsed === "object") {
     const voiceId = [parsed.voiceId, parsed.voice, parsed.id]
       .find((value) => typeof value === "string" && value.trim());
+    const indexTTS25Speaker = typeof parsed.indexTTS25Speaker === "string"
+      ? parsed.indexTTS25Speaker.trim()
+      : undefined;
     const emotion = typeof parsed.emotion === "string" ? parsed.emotion.trim() : undefined;
     const voicePrompt = typeof parsed.voicePrompt === "string" ? parsed.voicePrompt.trim() : undefined;
+    const sampleAudioUrl = typeof parsed.sampleAudioUrl === "string" ? parsed.sampleAudioUrl.trim() : undefined;
+    const referenceAudioUrl = typeof parsed.referenceAudioUrl === "string"
+      ? parsed.referenceAudioUrl.trim()
+      : sampleAudioUrl;
     const speed = Number(parsed.speed);
     return {
       name: character.name,
       voiceId: typeof voiceId === "string" ? voiceId.trim() : undefined,
+      indexTTS25Speaker: indexTTS25Speaker || undefined,
       emotion: emotion || undefined,
       voicePrompt: voicePrompt || undefined,
+      referenceAudioUrl: referenceAudioUrl || undefined,
       speed: Number.isFinite(speed) && speed > 0 ? speed : undefined,
     };
   }
@@ -285,6 +311,8 @@ export function readNarratorVoiceData(raw: string | null | undefined): NarratorV
   return {
     description: typeof parsed.description === "string" ? parsed.description : undefined,
     sampleAudioUrl: typeof parsed.sampleAudioUrl === "string" ? parsed.sampleAudioUrl : undefined,
+    referenceAudioUrl: typeof parsed.referenceAudioUrl === "string" ? parsed.referenceAudioUrl : undefined,
+    indexTTS25Speaker: typeof parsed.indexTTS25Speaker === "string" ? parsed.indexTTS25Speaker : undefined,
     updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : undefined,
   };
 }
@@ -355,6 +383,8 @@ export class DramaDialogueAudioService {
         narratorDescription: narratorVoice.description,
         narratorSampleAudioUrl: narratorVoice.sampleAudioUrl,
         narratorSampleSha256: narratorVoice.sampleSha256,
+        narratorReferenceAudioUrl: narratorVoice.referenceAudioUrl,
+        narratorIndexTTS25Speaker: narratorVoice.indexTTS25Speaker,
         lineEmotion: line.emotion,
       });
       const prev = existingItems.get(line.lineIndex);

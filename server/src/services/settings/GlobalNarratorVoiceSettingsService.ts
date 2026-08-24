@@ -6,6 +6,7 @@ import {
   type AudioSpeechInput,
   type AudioSpeechResult,
 } from "../audio/speechProvider";
+import { persistIndexTTS25ReferenceAudio } from "../audio/indexTTS25";
 import { VOICE_PREVIEW_SAMPLE_TEXT } from "../audio/voicePreviewSample";
 
 export const GLOBAL_NARRATOR_VOICE_SETTING_KEY = "drama.globalNarratorVoice";
@@ -19,6 +20,10 @@ export type GlobalNarratorVoiceSource = "legacy" | "generated" | "manual";
 export interface GlobalNarratorVoiceState {
   description?: string;
   sampleAudioUrl?: string;
+  /** IndexTTS 2.5 音色库中的稳定参考音频文件名。 */
+  referenceAudioUrl?: string;
+  /** IndexTTS 2.5 的已训练 speaker 名称。 */
+  indexTTS25Speaker?: string;
   sampleText?: string;
   sampleSha256?: string;
   source?: GlobalNarratorVoiceSource;
@@ -46,6 +51,7 @@ interface GlobalNarratorVoiceSettingsServiceDeps {
   appSettingStore?: AppSettingStore;
   legacyProjectStore?: LegacyProjectStore;
   synthesize?: (input: AudioSpeechInput) => Promise<Pick<AudioSpeechResult, "dataUrl">>;
+  persistReferenceAudio?: (referenceAudioUrl: string) => Promise<string>;
   now?: () => Date;
 }
 
@@ -81,12 +87,16 @@ export function parseGlobalNarratorVoice(value: unknown): GlobalNarratorVoiceSta
   const state: GlobalNarratorVoiceState = {};
   const description = readString(record.description);
   const sampleAudioUrl = readString(record.sampleAudioUrl);
+  const referenceAudioUrl = readString(record.referenceAudioUrl);
+  const indexTTS25Speaker = readString(record.indexTTS25Speaker);
   const sampleText = readString(record.sampleText);
   const sampleSha256 = readString(record.sampleSha256);
   const source = readSource(record.source);
   const updatedAt = readString(record.updatedAt);
   if (description) state.description = description;
   if (sampleAudioUrl) state.sampleAudioUrl = sampleAudioUrl;
+  if (referenceAudioUrl) state.referenceAudioUrl = referenceAudioUrl;
+  if (indexTTS25Speaker) state.indexTTS25Speaker = indexTTS25Speaker;
   if (sampleText) state.sampleText = sampleText;
   if (sampleSha256) state.sampleSha256 = sampleSha256;
   if (source) state.source = source;
@@ -108,6 +118,7 @@ function withoutIncompatibleNarratorSample(state: GlobalNarratorVoiceState): Glo
   }
   const next = { ...state };
   delete next.sampleAudioUrl;
+  delete next.referenceAudioUrl;
   delete next.sampleText;
   delete next.sampleSha256;
   return next;
@@ -155,31 +166,63 @@ export class GlobalNarratorVoiceSettingsService {
     return next;
   }
 
-  async updateDescription(description: string): Promise<GlobalNarratorVoiceState> {
+  async updateDescription(
+    description: string,
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
+  ): Promise<GlobalNarratorVoiceState> {
     const trimmed = description.trim();
     this.assertDescription(trimmed);
     const current = await this.get();
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const referenceCandidate = hasReferenceOverride
+      ? options.referenceAudioUrl?.trim() || undefined
+      : current.referenceAudioUrl;
+    const referenceAudioUrl = referenceCandidate
+      ? await this.getReferencePersister()(referenceCandidate)
+      : undefined;
+    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || current.indexTTS25Speaker;
     const next: GlobalNarratorVoiceState = {
       ...current,
       description: trimmed,
+      ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
+      ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
       source: "manual",
       updatedAt: this.getNow().toISOString(),
     };
+    if (!referenceAudioUrl) delete next.referenceAudioUrl;
     await this.save(next);
     return next;
   }
 
-  async design(description: string): Promise<GlobalNarratorVoiceState> {
+  async design(
+    description: string,
+    options: { referenceAudioUrl?: string | null; indexTTS25Speaker?: string } = {},
+  ): Promise<GlobalNarratorVoiceState> {
     const trimmed = description.trim();
     this.assertDescription(trimmed);
+    const current = await this.get();
+    const hasReferenceOverride = options.referenceAudioUrl !== undefined;
+    const referenceCandidate = hasReferenceOverride
+      ? options.referenceAudioUrl?.trim() || undefined
+      : current.referenceAudioUrl;
+    const referenceAudioUrl = referenceCandidate
+      ? await this.getReferencePersister()(referenceCandidate)
+      : undefined;
+    const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || current.indexTTS25Speaker;
     const result = await this.getSynthesizer()({
       text: GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT,
       audioType: "narration",
       emotion: trimmed,
+      referenceAudioUrl,
+      indexTTS25Speaker,
     });
+    const persistedReferenceAudioUrl = referenceAudioUrl
+      ?? await this.getReferencePersister()(result.dataUrl);
     const next: GlobalNarratorVoiceState = {
       description: trimmed,
       sampleAudioUrl: result.dataUrl,
+      referenceAudioUrl: persistedReferenceAudioUrl,
+      ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
       sampleText: GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT,
       sampleSha256: hashNarratorSample(result.dataUrl),
       source: "generated",
@@ -217,6 +260,10 @@ export class GlobalNarratorVoiceSettingsService {
 
   private getSynthesizer(): (input: AudioSpeechInput) => Promise<Pick<AudioSpeechResult, "dataUrl">> {
     return this.deps.synthesize ?? synthesizeAudioSpeech;
+  }
+
+  private getReferencePersister(): (referenceAudioUrl: string) => Promise<string> {
+    return this.deps.persistReferenceAudio ?? persistIndexTTS25ReferenceAudio;
   }
 
   private getNow(): Date {

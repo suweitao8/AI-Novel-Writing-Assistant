@@ -29,6 +29,7 @@ function createService(overrides = {}) {
       },
     },
     synthesize: overrides.synthesize ?? (async () => ({ dataUrl: "data:audio/mp3;base64:generated" })),
+    persistReferenceAudio: overrides.persistReferenceAudio ?? (async () => "app-generated.mp3"),
     now: overrides.now ?? (() => new Date("2026-08-23T00:00:00.000Z")),
   });
 }
@@ -146,4 +147,60 @@ test("生成试听会以旁白样句和描述调用语音服务并替换全局�
     result.sampleText,
     "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
   );
+  assert.equal(result.referenceAudioUrl, "app-generated.mp3");
+});
+
+test("保存旁白描述时可以同步持久化 IndexTTS speaker 和参考音频", async () => {
+  const store = createStore({
+    "drama.globalNarratorVoice": JSON.stringify({ description: "旧描述", referenceAudioUrl: "old.wav" }),
+  });
+  const service = createService({
+    appSettingStore: store,
+    persistReferenceAudio: async (value) => {
+      assert.equal(value, "data:audio/wav;base64:uploaded");
+      return "uploaded.wav";
+    },
+  });
+  const result = await service.updateDescription("新的描述", {
+    referenceAudioUrl: "data:audio/wav;base64:uploaded",
+    indexTTS25Speaker: "narrator-lora",
+  });
+  assert.equal(result.referenceAudioUrl, "uploaded.wav");
+  assert.equal(result.indexTTS25Speaker, "narrator-lora");
+});
+
+test("旁白试听可以绑定 IndexTTS speaker 和用户参考音频", async () => {
+  const calls = [];
+  const service = createService({
+    synthesize: async (input) => {
+      calls.push(input);
+      return { dataUrl: "data:audio/mp3;base64:new" };
+    },
+    persistReferenceAudio: async (value) => {
+      assert.equal(value, "data:audio/wav;base64:uploaded");
+      return "uploaded-reference.wav";
+    },
+  });
+  const result = await service.design("成年男声，平直叙述", {
+    referenceAudioUrl: "data:audio/wav;base64:uploaded",
+    indexTTS25Speaker: "narrator-lora",
+  });
+  assert.equal(calls[0].referenceAudioUrl, "uploaded-reference.wav");
+  assert.equal(calls[0].indexTTS25Speaker, "narrator-lora");
+  assert.equal(result.referenceAudioUrl, "uploaded-reference.wav");
+  assert.equal(result.indexTTS25Speaker, "narrator-lora");
+});
+
+test("清除旁白参考音频会从持久化状态中移除来源", async () => {
+  const store = createStore({
+    "drama.globalNarratorVoice": JSON.stringify({
+      description: "旧描述",
+      referenceAudioUrl: "old.wav",
+      indexTTS25Speaker: "narrator-lora",
+    }),
+  });
+  const service = createService({ appSettingStore: store });
+  const result = await service.updateDescription("新的描述", { referenceAudioUrl: "" });
+  assert.equal(result.referenceAudioUrl, undefined);
+  assert.equal(result.indexTTS25Speaker, "narrator-lora");
 });

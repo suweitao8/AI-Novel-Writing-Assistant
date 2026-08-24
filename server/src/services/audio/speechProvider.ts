@@ -36,6 +36,8 @@ export interface AudioSpeechInput {
   text: string;
   audioType?: AudioSpeechType;
   speaker?: string;
+  /** IndexTTS 2.5 的底模/LoRA speaker；与业务角色名分离。 */
+  indexTTS25Speaker?: string;
   speed?: number;
   emotion?: string;
   referenceAudioUrl?: string;
@@ -121,6 +123,7 @@ export async function synthesizeAudioSpeech(
       text,
       speed: input.speed,
       emotion: input.emotion,
+      indexTTS25Speaker: input.indexTTS25Speaker,
       speaker: input.speaker,
       referenceAudioUrl: input.referenceAudioUrl,
     },

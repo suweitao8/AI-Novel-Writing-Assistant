@@ -57,6 +57,8 @@ export interface DramaAudioSegment {
 export interface DramaNarratorVoiceState {
   description: string;
   sampleAudioUrl?: string;
+  referenceAudioUrl?: string;
+  indexTTS25Speaker?: string;
   updatedAt?: string;
 }
 
@@ -64,6 +66,13 @@ export interface DramaCharacterVoiceDesignResult {
   characterId: string;
   prompt: string;
   sampleAudioUrl: string;
+  referenceAudioUrl: string;
+  indexTTS25Speaker?: string;
+}
+
+export interface DramaVoiceDesignOptions {
+  referenceAudioUrl?: string | null;
+  indexTTS25Speaker?: string;
 }
 
 export async function listDramaAudioSegments(projectId: string, order: number): Promise<DramaAudioSegment[]> {
@@ -92,18 +101,26 @@ export async function getDramaNarratorVoice(projectId: string): Promise<DramaNar
   return data.data ?? { description: "" };
 }
 
-export async function updateDramaNarratorVoice(projectId: string, description: string): Promise<DramaNarratorVoiceState> {
+export async function updateDramaNarratorVoice(
+  projectId: string,
+  description: string,
+  options: DramaVoiceDesignOptions = {},
+): Promise<DramaNarratorVoiceState> {
   const { data } = await apiClient.patch<ApiResponse<DramaNarratorVoiceState>>(
     `/drama/projects/${projectId}/narrator-voice`,
-    { description },
+    { description, ...options },
   );
   return data.data!;
 }
 
-export async function designDramaNarratorVoice(projectId: string, description: string): Promise<DramaNarratorVoiceState> {
+export async function designDramaNarratorVoice(
+  projectId: string,
+  description: string,
+  options: DramaVoiceDesignOptions = {},
+): Promise<DramaNarratorVoiceState> {
   const { data } = await apiClient.post<ApiResponse<DramaNarratorVoiceState>>(
     `/drama/projects/${projectId}/narrator-voice/design`,
-    { description },
+    { description, ...options },
   );
   return data.data!;
 }
@@ -112,10 +129,27 @@ export async function designDramaCharacterVoice(
   projectId: string,
   characterId: string,
   prompt: string,
+  options: DramaVoiceDesignOptions = {},
 ): Promise<DramaCharacterVoiceDesignResult> {
   const { data } = await apiClient.post<ApiResponse<DramaCharacterVoiceDesignResult>>(
     `/drama/projects/${projectId}/characters/${characterId}/voice-design`,
-    { prompt },
+    { prompt, ...options },
+  );
+  return data.data!;
+}
+
+export async function saveDramaCharacterVoiceSource(
+  projectId: string,
+  characterId: string,
+  options: DramaVoiceDesignOptions = {},
+) {
+  const { data } = await apiClient.patch<ApiResponse<{
+    characterId: string;
+    referenceAudioUrl?: string;
+    indexTTS25Speaker?: string;
+  }>>(
+    `/drama/projects/${projectId}/characters/${characterId}/voice-source`,
+    options,
   );
   return data.data!;
 }
