@@ -24,7 +24,6 @@ import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegmen
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
-import ShotBlockingSketchDialog from "./components/ShotBlockingSketchDialog";
 import {
   DramaEpisodeAssemblyButton,
   useDramaEpisodeAssembly,
@@ -471,7 +470,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
               projectId={projectId}
               onGenerateKeyframe={handleGenerateKeyframe}
               onRegenerate={handleRegenerate}
-              onBlockingSketchSaved={invalidateAll}
             />
           ))}
         </div>
@@ -583,13 +581,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   projectId: string;
   onGenerateKeyframe: (shotId: string) => void;
   onRegenerate: (shot: DramaShot, force: boolean) => void;
-  onBlockingSketchSaved: () => void;
 }) {
   const { shot, segments } = props;
   const navigate = useNavigate();
   const keyframe = parseKeyframe(shot.keyframeData);
   const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
-  const [blockingSketchOpen, setBlockingSketchOpen] = useState(false);
   const readySegments = segments.filter(
     (segment): segment is DramaAudioSegment & { status: "ready"; audioUrl: string } =>
       segment.status === "ready" && Boolean(segment.audioUrl),
@@ -638,26 +634,9 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           className="h-7 w-full px-2 text-[11px]"
           onClick={() => navigate(`/drama/projects/${encodeURIComponent(props.projectId)}/shots/${encodeURIComponent(shot.id)}/blocking-3d?order=${shot.order}`)}
         >
-          {blockingSketch.status === "draft" ? "继续 3D 摆位" : "3D 摆位台"}
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          className="h-7 w-full px-2 text-[11px]"
-          onClick={() => setBlockingSketchOpen(true)}
-        >
-          2D 草图
+          {blockingSketch.status === "draft" ? "继续 3D 草图" : "3D 草图"}
         </Button>
       </div>
-
-      <ShotBlockingSketchDialog
-        open={blockingSketchOpen}
-        onOpenChange={setBlockingSketchOpen}
-        projectId={props.projectId}
-        shot={shot}
-        onSaved={props.onBlockingSketchSaved}
-      />
 
       {/* 分镜信息 + 配音段 */}
       <div className="min-w-0 flex-1 space-y-1.5">

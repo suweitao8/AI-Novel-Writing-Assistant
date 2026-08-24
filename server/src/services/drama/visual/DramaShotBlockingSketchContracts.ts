@@ -81,6 +81,7 @@ export interface DramaShotBlockingSketch3DActor {
   yawDeg: number;
   scale: [number, number, number];
   pose: DramaShotBlockingSketchPose;
+  /** Compatibility marker for older snapshots; 3D 草图始终保存静态关键帧。 */
   actionPlaying: boolean;
 }
 
@@ -174,6 +175,9 @@ function normalize3dCamera(input: unknown): DramaShotBlockingSketch3DCamera {
 function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
   const actor = objectValue(input, "3D 角色");
   const position = array3(actor.position, "3D 角色位置");
+  // Keep validating the legacy field so malformed old snapshots are still rejected,
+  // but normalize every accepted layout to the static-frame contract.
+  optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态");
   return {
     characterName: stringValue(actor.characterName, "3D 角色名称")!,
     position: [
@@ -184,7 +188,7 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     yawDeg: finiteNumber(actor.yawDeg, "3D 角色旋转", BLOCKING_SKETCH_3D_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_LIMITS.yawDeg.max),
     scale: tuple3(actor.scale, "3D 角色缩放", BLOCKING_SKETCH_3D_LIMITS.scale.min, BLOCKING_SKETCH_3D_LIMITS.scale.max),
     pose: normalizePose(actor.pose),
-    actionPlaying: optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态"),
+    actionPlaying: false,
   };
 }
 

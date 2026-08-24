@@ -30,7 +30,7 @@ test("3D 摆位页面保存快照并继续上传 PNG 参考图", () => {
   assert.match(mathSource, /prone/);
 });
 
-test("3D 摆位 runtime 提供代理模型、姿势、相机和导出能力", () => {
+test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能力", () => {
   assert.match(viewerSource, /UAL2_Standard\.glb/);
   assert.match(viewerSource, /UAL1_Standard\.glb/);
   assert.match(viewerSource, /setSelectedPose/);
@@ -38,9 +38,14 @@ test("3D 摆位 runtime 提供代理模型、姿势、相机和导出能力", ()
   assert.match(viewerSource, /BLOCKING_SKETCH_CAPTURE_SIZE/);
   assert.match(viewerSource, /setInteractionEnabled/);
   assert.match(viewerSource, /capturePng/);
+  assert.match(viewerSource, /DomeGeometry/);
+  assert.match(viewerSource, /setEnvironment/);
+  assert.doesNotMatch(viewerSource, /setSelectedActionPlaying|getSelectedActionPlaying/);
+  assert.doesNotMatch(viewerSource, /blocking3d-background/);
 });
 
-test("分镜列表默认进入独立 3D 摆位台，同时保留 2D 草图入口", () => {
+test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () => {
   assert.match(entrySource, /blocking-3d\?order=/);
-  assert.match(entrySource, /2D 草图/);
+  assert.match(entrySource, /3D 草图/);
+  assert.doesNotMatch(entrySource, /2D 草图|ShotBlockingSketchDialog/);
 });

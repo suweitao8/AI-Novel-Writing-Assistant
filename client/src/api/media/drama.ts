@@ -204,6 +204,7 @@ export interface DramaShotBlockingSketch3DActor {
   yawDeg: number;
   scale: [number, number, number];
   pose: DramaShotBlockingSketchPose;
+  /** Legacy compatibility marker; the 3D sketch always stores a paused key frame. */
   actionPlaying: boolean;
 }
 
