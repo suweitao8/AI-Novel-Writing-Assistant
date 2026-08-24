@@ -139,6 +139,13 @@ function buildAgentPrompt(input) {
   const referenceInstruction = input.hasReferences
     ? "Use the attached reference images as identity and design references; preserve the relevant subjects while following the visual brief."
     : "There are no reference images; construct the scene from the visual brief.";
+  const referenceLabels = Array.isArray(input.referenceLabels)
+    ? input.referenceLabels.filter((label) => typeof label === "string" && label.trim())
+    : [];
+  const referenceManifest = referenceLabels.length > 0
+    ? "\nReference image order and purpose (the attachments are in this exact order):\n"
+      + referenceLabels.map((label, index) => `${index + 1}. ${label.trim()}`).join("\n")
+    : "";
   const qualityText = input.quality ? `Quality target: ${input.quality}.` : "Use the highest practical quality.";
   // OpenAI Images 兼容参数里只有 transparent 需要桥接翻译：CLI 的图片工具没有 background 字段，
   // 透明底靠 agent prompt 明确要求真 alpha 通道的 PNG（2026-08-22：角色/道具资产参考图统一透明底）。
@@ -151,7 +158,7 @@ function buildAgentPrompt(input) {
     "Use the built-in image_generation tool exactly once. Generate exactly one final image "
     + "and do not return a textual substitute, code, or a second variation. "
     + `The final image must use aspect ratio ${input.aspectRatio} and target size ${input.imageSize}. `
-    + `${qualityText} ${transparentInstruction}${referenceInstruction}\n\n`
+    + `${qualityText} ${transparentInstruction}${referenceInstruction}${referenceManifest}\n\n`
     + "Visual brief:\n"
     + String(input.prompt || "").trim()
   ).trim();
@@ -409,7 +416,7 @@ async function main() {
   const executable = resolveCodexExecutable();
   const executableAvailable = Boolean(executable);
 
-  async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, signal }) {
+  async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, referenceLabels, signal }) {
     const workdir = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-image-bridge-"));
     try {
       const referencePaths = [];
@@ -428,6 +435,7 @@ async function main() {
         imageSize,
         quality,
         transparent,
+        referenceLabels,
         agentModel: args.agentModel,
         timeoutMs: args.timeoutSeconds * 1000,
         signal,
@@ -482,12 +490,24 @@ async function main() {
           const contentType = req.headers["content-type"] || "";
           let fields;
           let references = [];
+          let referenceLabels = [];
           if (pathname.endsWith("/edits") && contentType.toLowerCase().startsWith("multipart/")) {
             const parsed = parseMultipart(contentType, rawBody);
             fields = parsed.fields;
             references = parsed.files;
+            try {
+              const parsedLabels = JSON.parse(String(fields.reference_labels || "[]"));
+              referenceLabels = Array.isArray(parsedLabels)
+                ? parsedLabels.filter((label) => typeof label === "string" && label.trim())
+                : [];
+            } catch {
+              referenceLabels = [];
+            }
           } else {
             fields = JSON.parse(rawBody.toString("utf8"));
+            if (fields.input_image_url) {
+              throw new Error("reference_images_require_multipart_edits");
+            }
           }
           const prompt = String(fields.prompt || "").trim();
           if (!prompt) {
@@ -501,11 +521,11 @@ async function main() {
           const transparent = String(fields.background || "").trim().toLowerCase() === "transparent";
           const responseFormat = String(fields.response_format || "b64_json");
           const count = Math.max(1, Math.min(Number(fields.n || 1) || 1, 4));
-          console.log(`[codex-image-bridge] ${pathname} prompt_len=${prompt.length} refs=${references.length} n=${count} aspect=${aspectRatio}`);
+          console.log(`[codex-image-bridge] ${pathname} prompt_len=${prompt.length} refs=${references.length} labels=${referenceLabels.length} n=${count} aspect=${aspectRatio}`);
 
           const images = [];
           for (let index = 0; index < count; index += 1) {
-            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, signal: clientAbort.signal });
+            const imageBytes = await generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, referenceLabels, signal: clientAbort.signal });
             images.push(toDataItem(imageBytes, responseFormat));
           }
           console.log(`[codex-image-bridge] done ${pathname} in ${Date.now() - startedAt}ms`);
@@ -538,4 +558,11 @@ async function main() {
   });
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = {
+  buildAgentPrompt,
+  parseMultipart,
+};

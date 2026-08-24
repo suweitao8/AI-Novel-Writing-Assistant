@@ -98,10 +98,12 @@ export interface ImageProviderGenerateInput {
   outputFormat?: ImageOutputFormat;
   outputCompression?: number;
   moderation?: ImageModerationLevel;
-  /** 参考图 URL 列表（支持 http/https）；provider 不支持时静默忽略 */
+  /** 参考图 URL 列表（支持 http/https、data URL 和服务端相对 URL）。 */
   refImages?: string[];
-  /** 参考图本地文件路径列表；优先于 refImages，通过 multipart/form-data 上传，避免 base64 膨胀 */
+  /** 参考图本地文件路径列表；有值时按顺序通过 multipart/form-data 上传。 */
   refImagePaths?: string[];
+  /** 与实际附件顺序对应的参考图标签，供桥接器建立角色/场景用途清单。 */
+  referenceImages?: Array<{ kind: string; label: string }>;
   /** 外部终止信号：abort 时立即中断底层 HTTP 请求（手动终止生成用，不等超时） */
   signal?: AbortSignal;
 }
