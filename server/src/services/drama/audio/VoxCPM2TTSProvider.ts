@@ -6,7 +6,22 @@ import type {
   TTSGenerationResult,
   TTSProviderPort,
 } from "./TTSProviderPort";
-import { synthesizeAudioSpeech } from "../../audio/speechProvider";
+import { synthesizeAudioSpeech, type AudioSpeechInput } from "../../audio/speechProvider";
+
+/**
+ * VoxCPM2 的公共出口映射。
+ * 旧实现把所有请求固定成 dialogue，导致旁白也被桥接层拼成「旁白的中文声音」角色控制词。
+ */
+export function buildVoxCPMSpeechInput(input: TTSGenerationRequest): AudioSpeechInput {
+  const audioType = input.audioType;
+  return {
+    text: input.text,
+    audioType,
+    speaker: audioType === "narration" ? undefined : (input.speaker ?? input.voiceId ?? undefined),
+    emotion: input.emotion ?? undefined,
+    referenceAudioUrl: input.referenceAudioUrl ?? undefined,
+  };
+}
 
 export class VoxCPM2TTSProvider implements TTSProviderPort {
   readonly provider = "voxcpm2";
@@ -16,13 +31,7 @@ export class VoxCPM2TTSProvider implements TTSProviderPort {
   readonly currency = process.env.DRAMA_COST_CURRENCY?.trim() || "CNY";
 
   async synthesize(input: TTSGenerationRequest): Promise<TTSGenerationResult> {
-    const result = await synthesizeAudioSpeech({
-      text: input.text,
-      audioType: "dialogue",
-      speaker: input.speaker ?? input.voiceId ?? undefined,
-      emotion: input.emotion ?? undefined,
-      referenceAudioUrl: input.referenceAudioUrl ?? undefined,
-    });
+    const result = await synthesizeAudioSpeech(buildVoxCPMSpeechInput(input));
     return {
       audioUrl: result.dataUrl,
       raw: {

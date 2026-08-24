@@ -766,7 +766,12 @@ export class StoryAssetStateImageService {
       pinnedStyle: state.eraStyle?.trim() || DEFAULT_DRAMA_VISUAL_STYLE_ID,
       pinnedMissFallbackStyle: DEFAULT_DRAMA_VISUAL_STYLE_ID,
     });
-    const styleLines = buildAssetStylePromptLines(kind, styleContext.assets[kind], styleContext.specific);
+    const styleLines = buildAssetStylePromptLines(
+      kind,
+      styleContext.assets[kind],
+      styleContext.specific,
+      styleContext.renderFamily,
+    );
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
       kind === "scene"
@@ -774,7 +779,11 @@ export class StoryAssetStateImageService {
         : kind === "prop"
           ? "other objects, multiple objects, extra props, hands, holding, table, cloth, fabric, rag, wooden board, background scenery"
           : "",
-      combineAssetStyleAvoidInstructions(styleContext.assets[kind], styleContext.specific),
+      combineAssetStyleAvoidInstructions(
+        styleContext.assets[kind],
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
     ].filter(Boolean).join(", ");
 
     let artifactLease: Awaited<ReturnType<StoryAssetImageGenerationLock["acquire"]>> | null = null;

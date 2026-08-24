@@ -248,7 +248,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   });
 
   const keyframeBatchMutation = useMutation({
-    mutationFn: (input: { shotIds?: string[]; failedShotIds?: string[] }) =>
+    mutationFn: (input: { shotIds?: string[]; failedShotIds?: string[]; force?: boolean }) =>
       createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "keyframes", ...input }),
     onMutate: (input) => {
       const targetShotIds = input.shotIds ?? input.failedShotIds ?? [];
@@ -359,6 +359,23 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
           >
             生成分镜
           </Button>
+          <AiButton
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy || shots.length === 0}
+            onClick={() => keyframeBatchMutation.mutate({ shotIds: shots.map((shot) => shot.id), force: true })}
+            title="按统一写实影视化风格重生成本集分镜首帧"
+          >
+            {keyframeBatchMutation.isPending || keyframeBatchActive ? (
+              <>
+                <Loader2 className="mr-1.5 h-3.5 w-3.5 motion-safe:animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                统一风格生成中…
+              </>
+            ) : (
+              "统一写实重生成"
+            )}
+          </AiButton>
           <Button
             size="sm"
             onClick={() => ttsBatchMutation.mutate(shouldForceTts)}

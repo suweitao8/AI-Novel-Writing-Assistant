@@ -560,7 +560,12 @@ export class DramaShotKeyframeService {
       })
       : null;
     const prompt = buildDramaShotKeyframePrompt({
-      styleLines: buildShotStylePromptLines(styleContext.assets, usedKinds, styleContext.specific),
+      styleLines: buildShotStylePromptLines(
+        styleContext.assets,
+        usedKinds,
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
       location: shot.location,
       settingLines: buildSettingPromptLines(shot, settings),
       shotSize: shot.shotSize,
@@ -574,7 +579,12 @@ export class DramaShotKeyframeService {
     });
     const negativePrompt = [
       "低质量，模糊，五官变形，多指，身体重复，文字，水印，字幕",
-      combineShotStyleAvoidInstructions(styleContext.assets, usedKinds, styleContext.specific),
+      combineShotStyleAvoidInstructions(
+        styleContext.assets,
+        usedKinds,
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
       matchedScene ? buildSceneLightingAvoidInstructions() : "",
     ].filter(Boolean).join("，");
     const refImages: string[] = [];

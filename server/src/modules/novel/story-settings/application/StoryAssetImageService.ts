@@ -16,6 +16,7 @@ import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/d
 import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
+  type DramaRenderFamily,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
   resolveAssetImageProvider,
@@ -71,8 +72,9 @@ function buildStyleLines(
   kind: "scene" | "prop",
   asset: Parameters<typeof buildAssetStylePromptLines>[1],
   specific: Parameters<typeof buildAssetStylePromptLines>[2],
+  renderFamily: DramaRenderFamily,
 ): string[] {
-  return buildAssetStylePromptLines(kind, asset, specific);
+  return buildAssetStylePromptLines(kind, asset, specific, renderFamily);
 }
 
 // 时间/天气 → 光线描述（结构化字段转生图语言；两项都未设定时不加，交给图片提示词本身）。
@@ -145,7 +147,10 @@ export class StoryAssetImageService {
       throw new AppError("没有找到这个场景。", 404);
     }
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const prompt = buildScenePanoramaPrompt(scene, buildStyleLines("scene", styleContext.assets.scene, styleContext.specific));
+    const prompt = buildScenePanoramaPrompt(
+      scene,
+      buildStyleLines("scene", styleContext.assets.scene, styleContext.specific, styleContext.renderFamily),
+    );
     const adapter: ImageTargetAdapter<GeneratedImageState> = {
       kind: `story.scene:${sceneId}`,
       loadState: async () => safeJsonParse<GeneratedImageState>(scene.imageData, { status: "idle" }),
@@ -161,7 +166,11 @@ export class StoryAssetImageService {
       provider: resolveAssetImageProvider({ kind: "scene", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.scenePanorama,
-      negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.scene, styleContext.specific),
+      negativePrompt: combineAssetStyleAvoidInstructions(
+        styleContext.assets.scene,
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
     });
     const row = await prisma.novelScene.findUnique({ where: { id: sceneId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);
@@ -174,7 +183,10 @@ export class StoryAssetImageService {
       throw new AppError("没有找到这个道具。", 404);
     }
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
-    const prompt = buildPropViewPrompt(prop, buildStyleLines("prop", styleContext.assets.prop, styleContext.specific));
+    const prompt = buildPropViewPrompt(
+      prop,
+      buildStyleLines("prop", styleContext.assets.prop, styleContext.specific, styleContext.renderFamily),
+    );
     const adapter: ImageTargetAdapter<GeneratedImageState> = {
       kind: `story.prop:${propId}`,
       loadState: async () => safeJsonParse<GeneratedImageState>(prop.imageData, { status: "idle" }),
@@ -189,7 +201,11 @@ export class StoryAssetImageService {
       provider: provider ?? resolveAssetImageProvider({ kind: "prop", hasReference: false }),
       prompt,
       size: IMAGE_SPECS.characterAsset,
-      negativePrompt: combineAssetStyleAvoidInstructions(styleContext.assets.prop, styleContext.specific),
+      negativePrompt: combineAssetStyleAvoidInstructions(
+        styleContext.assets.prop,
+        styleContext.specific,
+        styleContext.renderFamily,
+      ),
       ...TRANSPARENT_IMAGE_OPTIONS,
     });
     const row = await prisma.novelProp.findUnique({ where: { id: propId }, select: { imageData: true } });

@@ -5,6 +5,10 @@ const {
   DEFAULT_DRAMA_ASSET_STYLES,
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
   DRAMA_VISUAL_STYLE_PRESETS,
+  DEFAULT_DRAMA_RENDER_FAMILY,
+  DRAMA_RENDER_FAMILY_POLICIES,
+  resolveDramaRenderFamily,
+  filterDramaEraStyleCandidates,
   matchDramaEraStyle,
   buildAssetStylePromptLines,
   buildShotStylePromptLines,
@@ -29,6 +33,45 @@ test("内置具体风格都是题材叠加层：id 唯一、默认 id 在列、�
     );
     assert.ok(preset.summary.trim().length > 0, `${preset.id} 缺少面向用户的 summary`);
   }
+});
+
+test("分镜渲染媒介默认锁定写实，并且逐镜候选不能跨到动画", () => {
+  assert.equal(DEFAULT_DRAMA_RENDER_FAMILY, "live_action");
+  assert.equal(resolveDramaRenderFamily("post_apocalyptic"), "live_action");
+  assert.equal(resolveDramaRenderFamily("guoman_fantasy"), "animation");
+  assert.equal(resolveDramaRenderFamily("已删除的风格"), "live_action");
+
+  const candidates = [
+    { key: "realistic", label: "现代都市", summary: "", styleFamily: "live_action" },
+    { key: "guoman_fantasy", label: "东方玄幻", summary: "", styleFamily: "animation" },
+    { key: "自定义末世", label: "自定义末世", summary: "" },
+  ];
+  assert.deepEqual(
+    filterDramaEraStyleCandidates(candidates, "live_action").map((candidate) => candidate.key),
+    ["realistic", "自定义末世"],
+  );
+  assert.deepEqual(
+    filterDramaEraStyleCandidates(candidates, "animation").map((candidate) => candidate.key),
+    ["guoman_fantasy", "自定义末世"],
+  );
+});
+
+test("统一渲染媒介提示词同时进入正向和负向约束", () => {
+  const specific = DRAMA_VISUAL_STYLE_PRESETS.find((preset) => preset.id === "post_apocalyptic");
+  const prompt = buildShotStylePromptLines(
+    DEFAULT_DRAMA_ASSET_STYLES,
+    ["character", "scene"],
+    specific,
+    "live_action",
+  ).join(" ");
+  const negative = combineAssetStyleAvoidInstructions(
+    DEFAULT_DRAMA_ASSET_STYLES.character,
+    specific,
+    "live_action",
+  );
+  assert.match(prompt, /统一写实影视化/);
+  assert.match(negative, /禁止卡通|禁止.*动漫/);
+  assert.match(DRAMA_RENDER_FAMILY_POLICIES.animation.prompt, /统一动画/);
 });
 
 test("三类资产默认风格拥有各自固定规格", () => {
@@ -65,7 +108,7 @@ test("风格指令全部中文化：内置预设与三类资产层不残留英�
 test("资产提示词只拼入自己的格式、正向画风和时代层", () => {
   const specific = DRAMA_VISUAL_STYLE_PRESETS[0];
   const lines = buildAssetStylePromptLines("scene", DEFAULT_DRAMA_ASSET_STYLES.scene, specific);
-  assert.equal(lines.length, 3);
+  assert.equal(lines.length, 4);
   assert.match(lines[0], /360/);
   assert.ok(lines[0].includes(DEFAULT_DRAMA_ASSET_STYLES.scene.styleTag));
   assert.equal(lines[1], DEFAULT_DRAMA_ASSET_STYLES.scene.styleInstructions);
@@ -125,15 +168,18 @@ test("固定负面约束与自定义正向提示词分离", () => {
   assert.doesNotMatch(combineAssetStyleAvoidInstructions(DEFAULT_DRAMA_ASSET_STYLES.scene, null), /多肢|人体结构/);
 });
 
-test("negative 禁区合并资产层与具体层；无具体风格时只有资产层", () => {
+test("negative 禁区合并资产层、具体层和统一渲染媒介约束", () => {
   const specific = DRAMA_VISUAL_STYLE_PRESETS.find((preset) => preset.id === "post_apocalyptic");
   const combined = combineAssetStyleAvoidInstructions(DEFAULT_DRAMA_ASSET_STYLES.character, specific);
   assert.ok(combined.startsWith(DEFAULT_DRAMA_ASSET_STYLES.character.avoidInstructions));
   assert.ok(combined.includes(specific.avoidInstructions));
   assert.equal(
-    combineAssetStyleAvoidInstructions(DEFAULT_DRAMA_ASSET_STYLES.character, null),
-    DEFAULT_DRAMA_ASSET_STYLES.character.avoidInstructions,
+    combineAssetStyleAvoidInstructions(DEFAULT_DRAMA_ASSET_STYLES.character, null).startsWith(
+      DEFAULT_DRAMA_ASSET_STYLES.character.avoidInstructions,
+    ),
+    true,
   );
+  assert.match(combineAssetStyleAvoidInstructions(DEFAULT_DRAMA_ASSET_STYLES.character, null), /统一写实影视化/);
 });
 
 test("末世废土预设的破败脏旧只施加在环境上，且文本里不出现具体脏旧词（2026-08-23 拆分+复核）", () => {
@@ -152,7 +198,7 @@ test("末世废土预设的破败脏旧只施加在环境上，且文本里不�
 test("自定义具体风格只有中文提示词也能组合", () => {
   const custom = { label: "现代诡异", styleInstructions: "雾气浓重，色调诡异压抑" };
   const lines = buildAssetStylePromptLines("prop", DEFAULT_DRAMA_ASSET_STYLES.prop, custom);
-  assert.equal(lines.length, 3);
+  assert.equal(lines.length, 4);
   assert.ok(lines[2].includes("雾气浓重"));
   assert.ok(lines[0].includes(DEFAULT_DRAMA_ASSET_STYLES.prop.styleTag));
 });
