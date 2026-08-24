@@ -51,7 +51,7 @@ test("普通场景图也使用带贴图的下半球，真正等距 HDRI 保留�
   assert.doesNotMatch(viewerSource, /environmentGround = createPlane/);
 });
 
-test("HDRI 环境提供投影高度、半球尺寸、旋转和清晰度参数", () => {
+test("HDRI 环境提供投射中心高度、半球尺寸、旋转和清晰度参数", () => {
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /yawDeg/);
@@ -61,9 +61,15 @@ test("HDRI 环境提供投影高度、半球尺寸、旋转和清晰度参数", 
   assert.match(viewerSource, /setEnvironmentSettings/);
 });
 
-test("地面贴图密度可以独立缩小，并通过环境布局保存", () => {
-  assert.match(viewerSource, /groundTextureScale/);
-  assert.match(viewerSource, /createGroundDomeGeometry\(environmentSettings\.groundTextureScale\)/);
-  assert.match(viewerSource, /Math\.floor\(/);
+test("普通场景图地面使用投射中心高度，不通过 UV repeat 缩放", () => {
+  assert.match(viewerSource, /projectionCenterHeight/);
+  assert.match(viewerSource, /function createGroundDomeGeometry\(projectionCenterHeight/);
+  assert.match(viewerSource, /function projectGroundTextureUv/);
+  assert.match(viewerSource, /worldX = x \* domeRadius/);
+  assert.match(viewerSource, /Math\.atan2/);
+  assert.match(viewerSource, /ADDRESS_CLAMP_TO_EDGE/);
+  assert.doesNotMatch(viewerSource, /groundTextureScale/);
+  assert.doesNotMatch(viewerSource, /Math\.floor\(/);
+  assert.doesNotMatch(viewerSource, /domeRadius \* environmentSettings\.projectionCenterHeight/);
   assert.match(viewerSource, /environmentGround/);
 });

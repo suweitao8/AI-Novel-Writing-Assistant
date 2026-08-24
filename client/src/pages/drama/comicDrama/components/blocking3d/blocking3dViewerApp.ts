@@ -18,7 +18,6 @@ export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   domeRadius: 48,
   yawDeg: 0,
   intensity: 1,
-  groundTextureScale: 10,
 };
 export const BLOCKING_SKETCH_CAPTURE_SIZE = {
   width: 1280,
@@ -134,7 +133,6 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 24, 96),
     yawDeg: clamp(numberOr(input?.yawDeg, DEFAULT_BLOCKING_3D_ENVIRONMENT.yawDeg), -180, 180),
     intensity: clamp(numberOr(input?.intensity, DEFAULT_BLOCKING_3D_ENVIRONMENT.intensity), 0.6, 1.6),
-    groundTextureScale: clamp(numberOr(input?.groundTextureScale, DEFAULT_BLOCKING_3D_ENVIRONMENT.groundTextureScale), 1, 20),
   };
 }
 
@@ -142,7 +140,15 @@ function createDomeGeometry(): pc.DomeGeometry {
   return new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
 }
 
-function createDomeSectionGeometry(startTheta: number, endTheta: number, sourceVStart: number, sourceVEnd: number, textureRepeat = 1): pc.Geometry {
+type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
+
+function createDomeSectionGeometry(
+  startTheta: number,
+  endTheta: number,
+  sourceVStart: number,
+  sourceVEnd: number,
+  uvMapper?: DomeUvMapper,
+): pc.Geometry {
   const radius = 0.5;
   const latitudeBands = 24;
   const longitudeBands = 64;
@@ -171,13 +177,13 @@ function createDomeSectionGeometry(startTheta: number, endTheta: number, sourceV
       positions.push(x * radius, domeY * radius, z * radius);
       normals.push(x, y, z);
       const textureProgress = lat / latitudeBands;
-      const repeatedTextureProgress = textureProgress >= 1
-        ? 1
-        : textureProgress * textureRepeat - Math.floor(textureProgress * textureRepeat);
-      uvs.push(
-        (1 - lon / longitudeBands) * textureRepeat,
-        sourceVStart + repeatedTextureProgress * (sourceVEnd - sourceVStart),
-      );
+      const [u, v] = uvMapper
+        ? uvMapper(x, domeY, z)
+        : [
+          1 - lon / longitudeBands,
+          sourceVStart + textureProgress * (sourceVEnd - sourceVStart),
+        ];
+      uvs.push(u, v);
     }
   }
 
@@ -203,9 +209,31 @@ function createUpperDomeGeometry(): pc.Geometry {
   return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5);
 }
 
-function createGroundDomeGeometry(groundTextureScale = 1): pc.Geometry {
-  const textureScale = Math.max(1, groundTextureScale);
-  return createDomeSectionGeometry(Math.PI * 0.5, Math.PI, 0.5, 1, textureScale);
+function projectGroundTextureUv(
+  x: number,
+  y: number,
+  z: number,
+  projectionCenterHeight: number,
+  domeRadius: number,
+): [number, number] {
+  const worldX = x * domeRadius;
+  const worldY = y * domeRadius;
+  const worldZ = z * domeRadius;
+  const horizontalDistance = Math.hypot(worldX, worldZ);
+  const downAngle = Math.atan2(Math.max(projectionCenterHeight - worldY, 0), horizontalDistance);
+  const verticalProgress = clamp(downAngle / (Math.PI * 0.5), 0, 1);
+  const azimuthProgress = ((Math.atan2(worldZ, worldX) + Math.PI * 0.5) / (Math.PI * 2) + 1) % 1;
+  return [1 - azimuthProgress, 0.5 + verticalProgress * 0.5];
+}
+
+function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
+  return createDomeSectionGeometry(
+    Math.PI * 0.5,
+    Math.PI,
+    0.5,
+    1,
+    (x, y, z) => projectGroundTextureUv(x, y, z, projectionCenterHeight, domeRadius),
+  );
 }
 
 function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
@@ -213,7 +241,7 @@ function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void
   texture.magFilter = pc.FILTER_LINEAR;
   texture.mipmaps = false;
   texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
-  texture.addressU = pc.ADDRESS_REPEAT;
+  texture.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
 }
 
@@ -414,7 +442,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const previousMesh = environmentGroundMeshInstance.mesh;
     const nextMesh = pc.Mesh.fromGeometry(
       app.graphicsDevice,
-      createGroundDomeGeometry(environmentSettings.groundTextureScale),
+      createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
     );
     environmentGroundMeshInstance.mesh = nextMesh;
     previousMesh.destroy();
@@ -423,7 +451,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (environmentDome) {
       environmentDome.setLocalScale(
         environmentSettings.domeRadius,
-        environmentSettings.domeRadius * environmentSettings.projectionCenterHeight,
+        environmentSettings.domeRadius,
         environmentSettings.domeRadius,
       );
       environmentDome.setEulerAngles(0, environmentSettings.yawDeg, 0);
@@ -431,7 +459,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (environmentGround) {
       environmentGround.setLocalScale(
         environmentSettings.domeRadius,
-        environmentSettings.domeRadius * environmentSettings.projectionCenterHeight,
+        environmentSettings.domeRadius,
         environmentSettings.domeRadius,
       );
       environmentGround.setEulerAngles(0, environmentSettings.yawDeg, 0);
@@ -934,7 +962,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentGroundMaterial = groundMaterial;
         const groundMesh = pc.Mesh.fromGeometry(
           app.graphicsDevice,
-          createGroundDomeGeometry(environmentSettings.groundTextureScale),
+          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
         );
         environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, groundMaterial);
         environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");

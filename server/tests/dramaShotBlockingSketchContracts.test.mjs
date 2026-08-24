@@ -180,7 +180,12 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
     },
   };
   const normalized = normalizeBlockingSketchData({ ...validSketch, layout3d });
-  assert.deepEqual(normalized.layout3d?.environment, { ...layout3d.environment, groundTextureScale: 10 });
+  assert.deepEqual(normalized.layout3d?.environment, layout3d.environment);
+  const normalizedLegacy = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: { ...layout3d, environment: { ...layout3d.environment, groundTextureScale: 10 } },
+  });
+  assert.deepEqual(normalizedLegacy.layout3d?.environment, layout3d.environment);
   assert.equal(normalizeBlockingSketchData({ ...validSketch, layout3d: { ...layout3d, environment: undefined } }).layout3d?.environment, undefined);
 });
 
@@ -202,8 +207,6 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ["domeRadius", 100],
     ["yawDeg", 181],
     ["intensity", 2],
-    ["groundTextureScale", 0.5],
-    ["groundTextureScale", 21],
   ]) {
     assert.throws(
       () => normalizeBlockingSketchData({
