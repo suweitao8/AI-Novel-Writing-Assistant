@@ -142,21 +142,47 @@ function createDomeGeometry(): pc.DomeGeometry {
   return new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
 }
 
-function createScenePlateDomeGeometry(): pc.DomeGeometry {
-  const geometry = createDomeGeometry();
-  const positions = geometry.positions ?? [];
-  const uvs = geometry.uvs ?? [];
-  for (let index = 0; index < uvs.length; index += 2) {
-    const sourceV = uvs[index + 1];
-    if (sourceV < 0.5) continue;
-    const positionIndex = (index / 2) * 3;
-    const x = positions[positionIndex] / 0.5;
-    const z = positions[positionIndex + 2] / 0.5;
-    const radial = clamp(Math.hypot(x, z) / 0.95, 0, 1);
-    const azimuth = radial < 0.05 ? 0.5 : (Math.atan2(z, x) / (Math.PI * 2) + 0.5 + 1) % 1;
-    uvs[index] = azimuth;
-    uvs[index + 1] = DEFAULT_GROUND_UV_BOTTOM - radial * (DEFAULT_GROUND_UV_BOTTOM - DEFAULT_GROUND_UV_TOP);
+function createUpperDomeGeometry(): pc.Geometry {
+  const radius = 0.5;
+  const latitudeBands = 24;
+  const longitudeBands = 64;
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+
+  for (let lat = 0; lat <= latitudeBands; lat += 1) {
+    const theta = (lat * Math.PI * 0.5) / latitudeBands;
+    const sinTheta = Math.sin(theta);
+    const cosTheta = Math.cos(theta);
+    for (let lon = 0; lon <= longitudeBands; lon += 1) {
+      const phi = (lon * Math.PI * 2) / longitudeBands - Math.PI / 2;
+      const sinPhi = Math.sin(phi);
+      const cosPhi = Math.cos(phi);
+      const x = cosPhi * sinTheta;
+      const y = cosTheta;
+      const z = sinPhi * sinTheta;
+      positions.push(x * radius, y * radius + radius * 0.1, z * radius);
+      normals.push(x, y, z);
+      uvs.push(1 - lon / longitudeBands, (lat / latitudeBands) * 0.5);
+    }
   }
+
+  for (let lat = 0; lat < latitudeBands; lat += 1) {
+    for (let lon = 0; lon < longitudeBands; lon += 1) {
+      const first = lat * (longitudeBands + 1) + lon;
+      const second = first + longitudeBands + 1;
+      indices.push(first + 1, second, first);
+      indices.push(first + 1, second + 1, second);
+    }
+  }
+
+  const geometry = new pc.Geometry();
+  geometry.positions = positions;
+  geometry.normals = normals;
+  geometry.uvs = uvs;
+  geometry.uvs1 = uvs;
+  geometry.indices = indices;
   return geometry;
 }
 
@@ -354,8 +380,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   app.root.addChild(selectionRing);
 
   let environmentDome: pc.Entity | null = null;
+  let environmentGround: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.StandardMaterial | null = null;
+  let environmentGroundMaterial: pc.StandardMaterial | null = null;
   let environmentSettings = normalizeEnvironmentSettings(undefined);
   const applyEnvironmentSettings = () => {
     if (environmentDome) {
@@ -366,15 +394,24 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       );
       environmentDome.setEulerAngles(0, environmentSettings.yawDeg, 0);
     }
+    if (environmentGround) {
+      const diameter = environmentSettings.domeRadius * 2;
+      environmentGround.setLocalScale(diameter, diameter, diameter);
+      environmentGround.setEulerAngles(0, environmentSettings.yawDeg, 0);
+    }
     if (environmentMaterial) {
       environmentMaterial.emissiveIntensity = environmentSettings.intensity;
       environmentMaterial.update();
     }
+    if (environmentGroundMaterial) {
+      environmentGroundMaterial.emissiveIntensity = environmentSettings.intensity;
+      environmentGroundMaterial.update();
+    }
   };
   const syncEnvironmentDomePosition = () => {
-    if (!environmentDome) return;
     const cameraPosition = cameraEntity.getPosition();
-    environmentDome.setPosition(cameraPosition.x, 0, cameraPosition.z);
+    if (environmentDome) environmentDome.setPosition(cameraPosition.x, 0, cameraPosition.z);
+    if (environmentGround) environmentGround.setPosition(cameraPosition.x, -0.003, cameraPosition.z);
   };
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
@@ -816,7 +853,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentDome.destroy();
         environmentDome = null;
       }
+      if (environmentGround) {
+        environmentGround.destroy();
+        environmentGround = null;
+      }
       environmentMaterial = null;
+      environmentGroundMaterial = null;
       if (environmentAsset) {
         app.assets.remove(environmentAsset);
         environmentAsset = null;
@@ -829,7 +871,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const textureAspect = texture.width / texture.height;
       const isEquirectangular = textureAspect >= GROUND_PROJECTION_SOURCE_ASPECT && textureAspect <= 2.1;
       const groundProjection = !isEquirectangular;
-      const geometry = groundProjection ? createScenePlateDomeGeometry() : createDomeGeometry();
+      const geometry = groundProjection ? createUpperDomeGeometry() : createDomeGeometry();
       const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
       const material = new pc.StandardMaterial();
       material.diffuse = new pc.Color(1, 1, 1);
@@ -847,6 +889,32 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         meshInstances: [meshInstance],
         layers: [pc.LAYERID_SKYBOX],
       });
+      if (groundProjection) {
+        const groundMaterial = new pc.StandardMaterial();
+        const groundTextureTiling = new pc.Vec2(1, DEFAULT_GROUND_UV_BOTTOM - DEFAULT_GROUND_UV_TOP);
+        const groundTextureOffset = new pc.Vec2(0, DEFAULT_GROUND_UV_TOP);
+        groundMaterial.diffuse = new pc.Color(1, 1, 1);
+        groundMaterial.diffuseMap = texture;
+        groundMaterial.diffuseMapTiling = groundTextureTiling;
+        groundMaterial.diffuseMapOffset = groundTextureOffset;
+        groundMaterial.emissive = new pc.Color(1, 1, 1);
+        groundMaterial.emissiveMap = texture;
+        groundMaterial.emissiveMapTiling = groundTextureTiling;
+        groundMaterial.emissiveMapOffset = groundTextureOffset;
+        groundMaterial.emissiveIntensity = environmentSettings.intensity;
+        groundMaterial.cull = pc.CULLFACE_NONE;
+        groundMaterial.depthWrite = false;
+        groundMaterial.update();
+        environmentGroundMaterial = groundMaterial;
+        environmentGround = createPlane(
+          app,
+          "blocking3d-hdri-ground",
+          [0, -0.003, 0],
+          [environmentSettings.domeRadius * 2, environmentSettings.domeRadius * 2, environmentSettings.domeRadius * 2],
+          groundMaterial,
+        );
+        environmentGround.render!.layers = [pc.LAYERID_SKYBOX];
+      }
       applyEnvironmentSettings();
       syncEnvironmentDomePosition();
       app.root.addChild(environmentDome);
@@ -927,6 +995,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       for (const actor of actors.values()) actor.entity.destroy();
       actors.clear();
       environmentDome?.destroy();
+      environmentGround?.destroy();
       environmentAsset && app.assets.remove(environmentAsset);
       selectionRing.destroy();
       app.destroy();

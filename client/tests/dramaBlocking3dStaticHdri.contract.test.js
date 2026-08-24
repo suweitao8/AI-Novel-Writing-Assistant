@@ -38,11 +38,12 @@ test("HDRI 半球跟随相机水平位置但固定在世界地面", () => {
 });
 
 test("普通场景图使用地面投影保护，真正等距 HDRI 保留原生半球采样", () => {
-  assert.match(viewerSource, /createScenePlateDomeGeometry/);
+  assert.match(viewerSource, /createUpperDomeGeometry/);
+  assert.match(viewerSource, /environmentGround/);
+  assert.match(viewerSource, /diffuseMapTiling/);
   assert.match(viewerSource, /texture\.width \/ texture\.height/);
   assert.match(viewerSource, /GROUND_PROJECTION_SOURCE_ASPECT/);
   assert.match(viewerSource, /groundProjection/);
-  assert.match(viewerSource, /DEFAULT_GROUND_UV_BOTTOM - radial/);
 });
 
 test("HDRI 环境提供投影高度、半球尺寸、旋转和清晰度参数", () => {
