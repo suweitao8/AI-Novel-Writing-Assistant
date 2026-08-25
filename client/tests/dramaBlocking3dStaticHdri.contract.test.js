@@ -61,7 +61,7 @@ test("HDRI 环境固定在世界坐标，旋转相机不会搬动地面", () => 
 test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
   assert.match(viewerSource, /createUpperDomeGeometry/);
   assert.match(viewerSource, /createGroundDomeGeometry/);
-  assert.match(viewerSource, /createProjectedHdriGroundMaterial/);
+  assert.match(viewerSource, /createProjectedHdriMaterial/);
   assert.match(viewerSource, /environmentGround/);
   assert.match(environmentProjectionSource, /material\.cull = pc\.CULLFACE_FRONT/);
   assert.match(viewerSource, /texture\.mipmaps = false/);
@@ -70,14 +70,19 @@ test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => 
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
-test("上半球保留等距贴图材质，下半球单独使用地面投射材质", () => {
-  assert.match(viewerSource, /const material = new pc\.StandardMaterial\(\)/);
-  assert.match(viewerSource, /material\.diffuseMap = texture/);
-  assert.match(viewerSource, /material\.emissiveMap = texture/);
-  assert.match(viewerSource, /const projectedGroundMaterial = createProjectedHdriGroundMaterial\(texture, environmentSettings\)/);
-  assert.match(viewerSource, /environmentGroundMeshInstance = new pc\.MeshInstance\(groundMesh, projectedGroundMaterial\)/);
-  assert.doesNotMatch(viewerSource, /environmentGroundMeshInstance = new pc\.MeshInstance\(groundMesh, material\)/);
-  assert.match(environmentProjectionSource, /function createProjectedHdriGroundMaterial/);
+test("上下半球共用投影材质，并沿用标准材质的颜色空间输出", () => {
+  assert.match(viewerSource, /let environmentMaterial: pc\.ShaderMaterial \| null = null/);
+  assert.doesNotMatch(viewerSource, /environmentGroundMaterial/);
+  assert.match(viewerSource, /const material = createProjectedHdriMaterial\(texture, environmentSettings\)/);
+  assert.match(viewerSource, /const meshInstance = new pc\.MeshInstance\(mesh, material\)/);
+  assert.match(viewerSource, /environmentGroundMeshInstance = new pc\.MeshInstance\(groundMesh, material\)/);
+  assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
+  assert.match(environmentProjectionSource, /#include "gammaPS"/);
+  assert.match(environmentProjectionSource, /decodeGamma\(rawColor\)/);
+  assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
+  assert.match(environmentProjectionSource, /if \(vWorldPosition\.y >= edgeHeight\)/);
+  assert.match(environmentProjectionSource, /v = 0\.5 - upperProgress \* 0\.5/);
+  assert.match(environmentProjectionSource, /v = 0\.5 \+ lowerProgress \* 0\.5/);
 });
 
 test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固定", () => {
@@ -91,7 +96,7 @@ test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固
   assert.match(viewerSource, /yawDeg: 0/);
   assert.match(viewerSource, /intensity: 1/);
   assert.match(viewerSource, /texture\.anisotropy/);
-  assert.match(viewerSource, /updateProjectedHdriGroundMaterial/);
+  assert.match(viewerSource, /updateProjectedHdriMaterial/);
   assert.match(viewerSource, /getEnvironmentSettings/);
   assert.match(viewerSource, /setEnvironmentSettings/);
 });

@@ -13,8 +13,8 @@ import {
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import {
-  createProjectedHdriGroundMaterial,
-  updateProjectedHdriGroundMaterial,
+  createProjectedHdriMaterial,
+  updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
@@ -458,8 +458,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentDome: pc.Entity | null = null;
   let environmentGround: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
-  let environmentMaterial: pc.StandardMaterial | null = null;
-  let environmentGroundMaterial: pc.ShaderMaterial | null = null;
+  let environmentMaterial: pc.ShaderMaterial | null = null;
   let environmentDomeMeshInstance: pc.MeshInstance | null = null;
   let environmentGroundMeshInstance: pc.MeshInstance | null = null;
   let environmentLightingSource: pc.Texture | null = null;
@@ -523,12 +522,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentGround.setEulerAngles(0, 0, 0);
     }
     if (environmentMaterial) {
-      environmentMaterial.update();
-    }
-    if (environmentGroundMaterial) {
       if (environmentAsset?.resource instanceof pc.Texture) {
-        updateProjectedHdriGroundMaterial(
-          environmentGroundMaterial,
+        updateProjectedHdriMaterial(
+          environmentMaterial,
           environmentAsset.resource,
           environmentSettings,
         );
@@ -1102,7 +1098,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentMaterial = null;
-      environmentGroundMaterial = null;
       if (environmentAsset) {
         app.assets.remove(environmentAsset);
         environmentAsset = null;
@@ -1119,15 +1114,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
       );
       const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
-      const material = new pc.StandardMaterial();
-      material.diffuse = new pc.Color(1, 1, 1);
-      material.diffuseMap = texture;
-      material.emissive = new pc.Color(1, 1, 1);
-      material.emissiveMap = texture;
-      material.emissiveIntensity = 1;
-      material.cull = pc.CULLFACE_FRONT;
-      material.depthWrite = false;
-      material.update();
+      const material = createProjectedHdriMaterial(texture, environmentSettings);
       environmentMaterial = material;
       const meshInstance = new pc.MeshInstance(mesh, material);
       environmentDomeMeshInstance = meshInstance;
@@ -1140,9 +1127,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         app.graphicsDevice,
         createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
       );
-      const projectedGroundMaterial = createProjectedHdriGroundMaterial(texture, environmentSettings);
-      environmentGroundMaterial = projectedGroundMaterial;
-      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, projectedGroundMaterial);
+      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, material);
       environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
       environmentGround.addComponent("render", {
         meshInstances: [environmentGroundMeshInstance],
@@ -1238,7 +1223,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentMaterial = null;
-      environmentGroundMaterial = null;
       environmentAsset && app.assets.remove(environmentAsset);
       clearEnvironmentLighting();
       cameraFrame.destroy();
