@@ -18,6 +18,17 @@ export interface StoryAssetStateImage {
   error?: string;
 }
 
+/**
+ * 状态图的 status 描述最近一次生成尝试，URL 才表示当前仍可尝试读取的图片指针。
+ * 失败或重新生成期间若保留旧 URL，引用链和预览仍应继续使用这张最后可用图片；
+ * 实际文件归属与完整性由资产图片路由再次校验。
+ */
+export function hasStoryAssetStateImageUrl(
+  image: StoryAssetStateImage | null | undefined,
+): image is StoryAssetStateImage & { url: string } {
+  return Boolean(image?.url?.trim());
+}
+
 /** 状态音色的操作模式：沿用上一状态的试听，或为当前状态重新合成。 */
 export type StoryAssetStateVoiceMode = "reuse_previous" | "generate_new";
 
