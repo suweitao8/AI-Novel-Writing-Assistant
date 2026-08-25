@@ -150,6 +150,30 @@ test("生成试听会以旁白样句和描述调用语音服务并替换全局�
   assert.equal(result.referenceAudioUrl, undefined);
 });
 
+test("重新设计音色不会把上一次试听样本当成新的参考音频", async () => {
+  const calls = [];
+  const store = createStore({
+    "drama.globalNarratorVoice": JSON.stringify({
+      description: "旧男声旁白",
+      referenceAudioUrl: "app-legacy-index-reference.mp3",
+      sampleText: "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
+      sampleAudioUrl: "data:audio/wav;base64,old-male-sample",
+    }),
+  });
+  const service = createService({
+    appSettingStore: store,
+    synthesize: async (input) => {
+      calls.push(input);
+      return { dataUrl: "data:audio/wav;base64,new-female-sample" };
+    },
+  });
+
+  const result = await service.design("成年女声旁白，普通话自然清楚，温和沉稳");
+
+  assert.equal(calls[0].referenceAudioUrl, undefined);
+  assert.equal(result.referenceAudioUrl, undefined);
+});
+
 test("保存旁白描述时保留可被 VoxCPM2 读取的参考音频", async () => {
   const store = createStore({
     "drama.globalNarratorVoice": JSON.stringify({ description: "旧描述", referenceAudioUrl: "old.wav" }),
