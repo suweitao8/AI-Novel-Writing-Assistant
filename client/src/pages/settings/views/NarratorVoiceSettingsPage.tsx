@@ -84,7 +84,7 @@ export default function NarratorVoiceSettingsPage() {
                 hasEditedDraft.current = true;
                 setDraft(event.target.value);
               }}
-              placeholder="例如：成年女声旁白，普通话自然清楚，温和沉稳地叙述。"
+              placeholder="例如：成年女性，约30岁，明亮自然的女中音；普通话标准清晰，声音温暖亲和，像真实的人在近距离讲故事；语速中等，停顿自然，句尾平稳但有轻微语气变化；吐字清楚、连贯，有真实呼吸感；不要播音腔、主持腔、新闻腔，不要低沉或男性化。"
               rows={4}
               disabled={narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending}
             />

@@ -13,7 +13,7 @@ export const GLOBAL_NARRATOR_VOICE_SETTING_KEY = "drama.globalNarratorVoice";
 /** 兼容现有调用方；实际文本由 audio/voicePreviewSample 统一维护。 */
 export const GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT = VOICE_PREVIEW_SAMPLE_TEXT;
 export const DEFAULT_GLOBAL_NARRATOR_VOICE_DESCRIPTION =
-  "成年女声旁白，普通话自然清楚，温和沉稳地叙述；不做情绪表演，不使用播音员或主持人的腔调。";
+  "成年女性，约30岁，明亮自然的女中音；普通话标准清晰，声音温暖亲和，像真实的人在近距离讲故事；语速中等，停顿自然，句尾平稳但有轻微语气变化；吐字清楚、连贯，有真实呼吸感；不要播音腔、主持腔、新闻腔，不要低沉或男性化。";
 
 export type GlobalNarratorVoiceSource = "legacy" | "generated" | "manual";
 
