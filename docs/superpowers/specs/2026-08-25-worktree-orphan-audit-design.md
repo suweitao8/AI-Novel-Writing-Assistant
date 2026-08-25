@@ -56,6 +56,8 @@ pnpm workflow:recover-worktree codex/<task> --apply
 
 Git 树比较使用 `git ls-tree` 的 blob 内容哈希和受控目录遍历；目录存在额外文件、缺少跟踪文件、包含未允许的 reparse point，或分支未合入时，恢复直接拒绝。
 
+当历史异常阻断了维护分支本身的创建或集成时，允许显式使用 `--repair-lifecycle` 创建/集成维护工作树。该模式仍要求 main 干净、源码和依赖链接隔离，并用固定路径白名单验证分支只修改工作流守卫、测试和文档；它不能绕过业务代码或 `shared/` 保护。
+
 ## 验收标准
 
 - 当前环境中的 `prunable` 登记和两个已知孤立目录能被只读审计准确列出。

@@ -7,7 +7,10 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync, spawnSync } = require("node:child_process");
 const { assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
-const { assertNoUnresolvedWorktreeLifecycleIssues } = require("./worktree-lifecycle-audit.cjs");
+const {
+  assertLifecycleRepairScope,
+  assertNoUnresolvedWorktreeLifecycleIssues,
+} = require("./worktree-lifecycle-audit.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
@@ -97,7 +100,7 @@ function findWorktreeForBranch(cwd, branchName) {
   return worktreeEntries(cwd).find((entry) => entry.branch === ref) ?? null;
 }
 
-function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch } = {}) {
+function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch, allowLifecycleRepair = false } = {}) {
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     throw new Error("Integration must run from the protected main branch workspace.");
   }
@@ -105,7 +108,11 @@ function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch } = {}
     throw new Error("Integration source must be a local codex/<lowercase-task> branch.");
   }
   assertWorktreeFilesystemIsolation({ cwd, phase: "integration main" });
-  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "integration main" });
+  if (allowLifecycleRepair) {
+    assertLifecycleRepairScope({ cwd, branchName: taskBranch });
+  } else {
+    assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "integration main" });
+  }
   if (workspaceChanges(cwd).length > 0) {
     throw new Error("main workspace is not clean; refuse to integrate over uncommitted changes.");
   }
@@ -206,13 +213,13 @@ function runVerification(command, cwd) {
   if (result.status !== 0) throw new Error(`verification command failed with exit code ${result.status}.`);
 }
 
-function integrateCodexWorktree({ cwd = process.cwd(), taskBranch, push = false, verifyCommand } = {}) {
+function integrateCodexWorktree({ cwd = process.cwd(), taskBranch, push = false, verifyCommand, allowLifecycleRepair = false } = {}) {
   const repoRoot = repositoryRoot(cwd);
   const lock = acquireIntegrationLock({ gitCommonDir: gitCommonDir(repoRoot), branch: taskBranch });
   let mergeAttempted = false;
   let commitCreated = false;
   try {
-    assertIntegrationPreconditions({ cwd: repoRoot, taskBranch });
+    assertIntegrationPreconditions({ cwd: repoRoot, taskBranch, allowLifecycleRepair });
     mergeAttempted = true;
     runGit(repoRoot, ["merge", "--no-ff", "--no-commit", taskBranch]);
     runGit(repoRoot, ["diff", "--cached", "--check"]);
@@ -249,10 +256,15 @@ function parseArgs(argv) {
 
   let push = false;
   let verifyCommand;
+  let allowLifecycleRepair = false;
   for (let index = 0; index < optionArgs.length; index += 1) {
     const argument = optionArgs[index];
     if (argument === "--push") {
       push = true;
+      continue;
+    }
+    if (argument === "--repair-lifecycle") {
+      allowLifecycleRepair = true;
       continue;
     }
     if (argument === "--verify") {
@@ -265,11 +277,11 @@ function parseArgs(argv) {
     }
     throw new Error(`Unknown integration option: ${argument}`);
   }
-  return { taskBranch, push, verifyCommand };
+  return { allowLifecycleRepair, taskBranch, push, verifyCommand };
 }
 
 function printHelp() {
-  console.log("Usage: pnpm workflow:integrate codex/<task> [--push] [--verify \"command\"]");
+  console.log("Usage: pnpm workflow:integrate codex/<task> [--push] [--verify \"command\"] [--repair-lifecycle]");
   console.log("Runs a locked, reviewed no-ff merge from a clean codex worktree into main.");
 }
 

@@ -45,6 +45,15 @@ pnpm workflow:audit
 
 只读审计失败时，先处理报告中的登记/孤立目录，不要绕过门禁创建或合并新的工作树。
 
+如果审计异常本身阻断了工作流守卫修复，可显式使用维护模式：
+
+```powershell
+pnpm workflow:worktree <guard-task> --repair-lifecycle
+pnpm workflow:integrate codex/<guard-task> --repair-lifecycle --push --verify "pnpm test:workflow"
+```
+
+维护模式只允许工作流脚本、测试和文档白名单内的变更，不能用于业务代码或 `shared/` 变更。
+
 ### 集成
 
 ```powershell

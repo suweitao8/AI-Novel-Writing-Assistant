@@ -69,9 +69,11 @@ function branchExists(cwd, branchName) {
   }
 }
 
-function assertMainWorkspaceReady(cwd) {
+function assertMainWorkspaceReady(cwd, { allowLifecycleRepair = false } = {}) {
   assertMainSourceIntegrity({ cwd, phase: "worktree creation" });
-  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "worktree creation" });
+  if (!allowLifecycleRepair) {
+    assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "worktree creation" });
+  }
 
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     throw new Error("Worktree creation must start from the protected main branch.");
@@ -155,13 +157,13 @@ function removeCreatedWorktree(cwd, targetPath, branchName) {
   return { removed: true, error: null };
 }
 
-function createWorktree({ cwd = process.cwd(), task, targetPath } = {}) {
+function createWorktree({ cwd = process.cwd(), task, targetPath, allowLifecycleRepair = false } = {}) {
   const repoRoot = path.resolve(runGit(cwd, ["rev-parse", "--show-toplevel"]));
   const slug = normalizeTaskSlug(task);
   const branchName = `${CODEX_BRANCH_PREFIX}${slug}`;
   const resolvedTarget = path.resolve(targetPath ?? defaultWorktreePath(repoRoot, slug));
 
-  assertMainWorkspaceReady(repoRoot);
+  assertMainWorkspaceReady(repoRoot, { allowLifecycleRepair });
   if (branchExists(repoRoot, branchName)) {
     throw new Error(`Branch collision: ${branchName} already exists.`);
   }
@@ -188,19 +190,34 @@ function createWorktree({ cwd = process.cwd(), task, targetPath } = {}) {
 function printHelp() {
   console.log("Usage: pnpm workflow:worktree <task-name>");
   console.log("Creates a sibling codex/<task-name> worktree from a clean main workspace and installs Git hooks.");
+  console.log("Use --repair-lifecycle only for an isolated workflow-guard repair when workflow:audit reports a blocker.");
+}
+
+function parseArgs(argv) {
+  const [task, ...options] = argv;
+  if (!task || task.startsWith("--")) {
+    throw new Error("Worktree creation requires a task name first.");
+  }
+  let allowLifecycleRepair = false;
+  for (const option of options) {
+    if (option === "--repair-lifecycle") {
+      allowLifecycleRepair = true;
+      continue;
+    }
+    throw new Error(`Unknown worktree creation option: ${option}`);
+  }
+  return { allowLifecycleRepair, task };
 }
 
 function main() {
-  const task = process.argv[2];
-  if (!task || task === "--help" || task === "-h") {
+  const args = process.argv.slice(2);
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     printHelp();
-    if (!task || task === "--help" || task === "-h") {
-      if (!task) process.exitCode = 1;
-      return;
-    }
+    if (args.length === 0) process.exitCode = 1;
+    return;
   }
 
-  const result = createWorktree({ task, cwd: process.cwd() });
+  const result = createWorktree({ ...parseArgs(args), cwd: process.cwd() });
   console.log(`Worktree ready: ${result.worktreePath}`);
   console.log(`Branch: ${result.branchName}`);
   console.log(`Continue development from: ${result.worktreePath}`);
@@ -226,6 +243,7 @@ module.exports = {
   defaultWorktreePath,
   hasMergeHead,
   normalizeTaskSlug,
+  parseArgs,
   removeCreatedWorktree,
   runInstall,
   runSetup,
