@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
@@ -44,14 +44,17 @@ import { DRAMA_CHAPTERS_QUERY_KEY, useNovelChapterWorkspace } from "@/pages/dram
 import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useReferenceDraftStage";
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
+import {
+  readStudioNavigation,
+  type AssetTab,
+  type StudioStage,
+} from "./navigation/studioNavigation";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·通用）。
-type StudioStage = "current" | "assets" | "settings";
 // 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
 type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
-type AssetTab = "characters" | "scenes" | "props";
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
 // 画风不在本项目内维护：资产画风与时代画风库在独立的「画风管理」页（/art-style）；时代风格由各资产状态自带，脚本不再定义章节画风。
 type SettingsTab = "world" | "map" | "general";
@@ -90,10 +93,11 @@ const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 // 全部随当前章更新；「解析」按参考文本生成本章脚本与设定提取。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [stage, setStage] = useState<StudioStage>("current");
+  const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
   const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
-  const [assetTab, setAssetTab] = useState<AssetTab>("characters");
+  const [assetTab, setAssetTab] = useState<AssetTab>(() => readStudioNavigation(searchParams.toString()).assetTab);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);

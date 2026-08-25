@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Loader2, Move3D } from "lucide-react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
   getStorySettingsScene,
@@ -20,6 +20,7 @@ import {
   type Blocking3dEnvironmentSettings,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
+import { resolveStudioReturnPath } from "./navigation/studioNavigation";
 
 const REFERENCE_ACTOR_LABEL = "比例参照（约1.8m）";
 
@@ -40,6 +41,7 @@ function resolveSceneEnvironmentUrl(state: StorySettingsScene["states"][number] 
 export default function DramaScene3DPage() {
   const { novelId = "", sceneId = "", stateId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<Blocking3dViewer | null>(null);
@@ -64,6 +66,7 @@ export default function DramaScene3DPage() {
   const scene = sceneQuery.data?.data ?? null;
   const selectedState = useMemo(() => (scene ? resolveSceneState(scene, stateId) : null), [scene, stateId]);
   const environmentUrl = useMemo(() => resolveSceneEnvironmentUrl(selectedState), [selectedState]);
+  const returnPath = resolveStudioReturnPath(novelId, searchParams.toString());
 
   useEffect(() => {
     if (!scene || !selectedState) return;
@@ -208,7 +211,11 @@ export default function DramaScene3DPage() {
       leavingRef.current = false;
       return;
     }
-    navigate(-1);
+    if (returnPath) {
+      navigate(returnPath, { replace: true });
+    } else {
+      navigate(-1);
+    }
   };
 
   if (sceneQuery.isPending) {
