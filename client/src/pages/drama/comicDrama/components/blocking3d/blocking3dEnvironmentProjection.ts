@@ -61,7 +61,7 @@ void main(void) {
 }
 `;
 
-export function createProjectedHdriGroundMaterial(
+export function createProjectedHdriMaterial(
   texture: pc.Texture,
   settings: ProjectedHdriMaterialSettings,
 ): pc.ShaderMaterial {
@@ -75,11 +75,11 @@ export function createProjectedHdriGroundMaterial(
   });
   material.cull = pc.CULLFACE_FRONT;
   material.depthWrite = false;
-  updateProjectedHdriGroundMaterial(material, texture, settings);
+  updateProjectedHdriMaterial(material, texture, settings);
   return material;
 }
 
-export function updateProjectedHdriGroundMaterial(
+export function updateProjectedHdriMaterial(
   material: pc.ShaderMaterial,
   texture: pc.Texture,
   settings: ProjectedHdriMaterialSettings,
