@@ -93,6 +93,7 @@ export default function DramaScene3DPage() {
       viewerRef.current = nextViewer;
       setViewer(nextViewer);
       nextViewer.addActor(REFERENCE_ACTOR_LABEL, 0);
+      nextViewer.setActorMovementEnabled(false);
       nextViewer.setEnvironmentSettings(scene.scene3dEnvironment);
       nextViewer.fitView();
       unsubscribeChange = nextViewer.onChange(() => {
@@ -288,7 +289,7 @@ export default function DramaScene3DPage() {
               </div>
             ) : null}
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />左键拖参照角色 · 右键旋转 · 滚轮缩放 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移
             </div>
           </CardContent>
         </Card>
