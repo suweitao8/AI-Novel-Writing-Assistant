@@ -7,6 +7,7 @@ import { AppError } from "../../../middleware/errorHandler";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { globalNarratorVoiceSettingsService, hashNarratorSample } from "../../settings/GlobalNarratorVoiceSettingsService";
+import { selectVoxCPMReferenceAudio } from "../../audio/speechProvider";
 import { isRealTTSProvider, ttsProviderRegistry, type TTSGenerationRequest } from "./TTSProviderPort";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
@@ -55,8 +56,10 @@ export interface CharacterVoice {
   speed?: number;
   /** 角色音色描述（voiceProfile.voicePrompt），无显式 emotion 时作为语气提示传入 */
   voicePrompt?: string;
-  /** 角色当前剧情状态已生成的试听，用作 IndexTTS 2.5 的参考音频。 */
+  /** 角色当前剧情状态已生成的试听，用作 VoxCPM2 的参考音频候选。 */
   referenceAudioUrl?: string;
+  /** 角色设计试听样本；当历史 referenceAudioUrl 是 IndexTTS 文件名时作为回退。 */
+  sampleAudioUrl?: string;
 }
 
 export interface NarratorVoiceData {
@@ -82,15 +85,14 @@ export function buildDialogueTTSRequest(
     text: item.text,
     audioType: isNarrationLine ? "narration" : "dialogue",
     voiceId: isNarrationLine ? undefined : voice?.voiceId,
-    indexTTS25Speaker: isNarrationLine ? narratorVoice.indexTTS25Speaker : voice?.indexTTS25Speaker,
     speed: isNarrationLine ? undefined : voice?.speed,
     emotion: isNarrationLine
       ? narratorVoice.description
       : (item.emotion || voice?.emotion || voice?.voicePrompt),
     speaker: isNarrationLine ? undefined : item.speaker,
     referenceAudioUrl: isNarrationLine
-      ? (narratorVoice.referenceAudioUrl ?? narratorVoice.sampleAudioUrl)
-      : voice?.referenceAudioUrl,
+      ? selectVoxCPMReferenceAudio(narratorVoice.referenceAudioUrl, narratorVoice.sampleAudioUrl)
+      : selectVoxCPMReferenceAudio(voice?.referenceAudioUrl, voice?.sampleAudioUrl),
   };
 }
 
@@ -98,7 +100,7 @@ const DEFAULT_TTS_PROVIDER = getAudioModelProvider();
 /** 旁白曾被错误包装成 dialogue；升级版本后旧音频必须重新生成。 */
 export const NARRATION_AUDIO_SEMANTICS_VERSION = "narration-v2";
 
-// 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（IndexTTS 2.5 的
+// 对白行约定：「角色名（语气）：台词」——语气会作为该行的配音情绪提示（VoxCPM2 的
 // emotion_prompt），角色名保持干净便于匹配角色音色；没有（语气）时回落角色默认情绪。
 const SPEAKER_EMOTION_PATTERN = /^([^（(]{1,24})[（(]([^）)]{1,24})[)）]/;
 
@@ -165,17 +167,16 @@ export function buildDialogueVoiceKey(input: {
       (input.narratorDescription ?? "").trim(),
       sampleFingerprint,
       input.narratorReferenceAudioUrl ?? "",
-      input.narratorIndexTTS25Speaker ?? "",
     ].join("|");
   }
   const voice = input.voice;
   return [
     voice?.voiceId ?? "",
-    voice?.indexTTS25Speaker ?? "",
     input.lineEmotion ?? "",
     voice?.emotion ?? voice?.voicePrompt ?? "",
     voice?.speed ?? "",
     voice?.referenceAudioUrl ?? "",
+    voice?.sampleAudioUrl ?? "",
   ].join("|");
 }
 
@@ -215,6 +216,7 @@ export function readCharacterVoice(character: {
       indexTTS25Speaker: indexTTS25Speaker || undefined,
       emotion: emotion || undefined,
       voicePrompt: voicePrompt || undefined,
+      sampleAudioUrl: sampleAudioUrl || undefined,
       referenceAudioUrl: referenceAudioUrl || undefined,
       speed: Number.isFinite(speed) && speed > 0 ? speed : undefined,
     };

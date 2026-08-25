@@ -718,7 +718,7 @@ router.patch(
 
 router.get("/index-tts25/catalog", async (_req, res, next) => {
   try {
-    const config = await resolveAudioSpeechSlotConfig();
+    const config = await resolveAudioSpeechSlotConfig({ provider: "indextts25" });
     const data = await listIndexTTS25Catalog(config.baseURL, config.timeoutMs);
     res.status(200).json({ success: true, data, message: "IndexTTS 2.5 音色目录读取成功。" });
   } catch (error) {

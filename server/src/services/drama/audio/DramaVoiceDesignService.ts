@@ -1,7 +1,6 @@
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
-import { synthesizeAudioSpeech } from "../../audio/speechProvider";
-import { persistIndexTTS25ReferenceAudio } from "../../audio/indexTTS25";
+import { selectVoxCPMReferenceAudio, synthesizeAudioSpeech } from "../../audio/speechProvider";
 import { VOICE_PREVIEW_SAMPLE_TEXT } from "../../audio/voicePreviewSample";
 import { globalNarratorVoiceSettingsService } from "../../settings/GlobalNarratorVoiceSettingsService";
 import { readCharacterVoice } from "./DramaDialogueAudioService";
@@ -13,7 +12,7 @@ export interface CharacterVoiceDesignResult {
   characterId: string;
   prompt: string;
   sampleAudioUrl: string;
-  referenceAudioUrl: string;
+  referenceAudioUrl?: string;
   indexTTS25Speaker?: string;
 }
 
@@ -71,26 +70,21 @@ export class DramaVoiceDesignService {
     const referenceCandidate = hasReferenceOverride
       ? options.referenceAudioUrl?.trim() || undefined
       : existingVoice.referenceAudioUrl;
-    const referenceAudioUrl = referenceCandidate
-      ? await persistIndexTTS25ReferenceAudio(referenceCandidate)
-      : undefined;
+    const referenceAudioUrl = selectVoxCPMReferenceAudio(referenceCandidate, existingVoice.sampleAudioUrl);
     const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || existingVoice.indexTTS25Speaker;
     const result = await synthesizeAudioSpeech({
       text: DRAMA_VOICE_SAMPLE_TEXT,
       audioType: "dialogue",
       speaker: character.name,
       emotion: trimmedPrompt,
-      indexTTS25Speaker,
       referenceAudioUrl,
     });
-    const persistedReferenceAudioUrl = referenceAudioUrl
-      ?? await persistIndexTTS25ReferenceAudio(result.dataUrl);
     const mergedProfile = {
       ...existingVoice,
       name: character.name,
       voicePrompt: trimmedPrompt,
       sampleAudioUrl: result.dataUrl,
-      referenceAudioUrl: persistedReferenceAudioUrl,
+      ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
       ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
       sampleUpdatedAt: new Date().toISOString(),
     };
@@ -102,7 +96,7 @@ export class DramaVoiceDesignService {
       characterId,
       prompt: trimmedPrompt,
       sampleAudioUrl: result.dataUrl,
-      referenceAudioUrl: persistedReferenceAudioUrl,
+      ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
       ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
     };
   }
@@ -119,8 +113,8 @@ export class DramaVoiceDesignService {
     const hasReferenceOverride = options.referenceAudioUrl !== undefined;
     const suppliedReference = options.referenceAudioUrl?.trim() || undefined;
     const referenceAudioUrl = suppliedReference
-      ? await persistIndexTTS25ReferenceAudio(suppliedReference)
-      : hasReferenceOverride ? undefined : existingVoice.referenceAudioUrl;
+      ? selectVoxCPMReferenceAudio(suppliedReference)
+      : hasReferenceOverride ? undefined : selectVoxCPMReferenceAudio(existingVoice.referenceAudioUrl);
     const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || existingVoice.indexTTS25Speaker;
     const nextProfile: Record<string, unknown> = {
       ...existingVoice,
@@ -128,7 +122,7 @@ export class DramaVoiceDesignService {
       ...(referenceAudioUrl ? { referenceAudioUrl } : {}),
       ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
     };
-    if (!referenceAudioUrl) delete nextProfile.referenceAudioUrl;
+    if (hasReferenceOverride && !referenceAudioUrl) delete nextProfile.referenceAudioUrl;
     if (!indexTTS25Speaker) delete nextProfile.indexTTS25Speaker;
     await prisma.dramaCharacter.update({
       where: { id: characterId },

@@ -1,13 +1,13 @@
-# IndexTTS 2.5 本地音频供应商
+# IndexTTS 2.5 本地音频供应商（暂存兼容通道）
 
 ## Background
 
-项目的音频槽位服务角色配音、旁白试听、状态音色和漫剧分镜配音。当前本地模型使用 `D:\Tools\yzy-index-tts-2.5-260824` 整合包：`启动.bat` 提供 9000 端口的网页工作台，网页的「API 服务」页拉起独立的 `app_api.py`，默认监听 9005。
+项目的音频槽位曾使用角色配音、旁白试听、状态音色和漫剧分镜配音。当前默认已恢复为 VoxCPM2；本页保留 IndexTTS 2.5 的协议和数据兼容规则，只有显式指定 `provider: "indextts25"` 时才使用 `D:\Tools\yzy-index-tts-2.5-260824` 的 9005 API。
 
 ## Decision
 
-- 音频槽位 provider 固定为 `indextts25`，注册在 `server/src/llm/providers.ts`，默认地址 `http://127.0.0.1:9005`，默认模型标识 `index-tts-2.5`。
-- 根目录 `pnpm dev` 和 `server` 的开发启动命令只调用 `scripts/start-indextts25-api.cjs`，不再启动 VoxCPM2，也不把 9000 网页进程误判成可合成 API。
+- IndexTTS provider 仍注册在 `server/src/llm/providers.ts`，默认地址 `http://127.0.0.1:9005`，默认模型标识 `index-tts-2.5`，但不再是音频槽位默认值。
+- 根目录 `pnpm dev` 和 `server` 的开发启动命令默认只校验/启动 VoxCPM2；IndexTTS 仅通过 `pnpm indextts25:api` 或显式 provider override 启用，不会被 9000 网页进程误判成合成 API。
 - 业务统一经过 `server/src/services/audio/speechProvider.ts`；IndexTTS 协议、参考音频处理和情绪能力判断集中在 `server/src/services/audio/indexTTS25.ts`。
 - `server/src/services/drama/audio/IndexTTS25TTSProvider.ts` 只负责把 `TTSGenerationRequest` 映射到公共音频入口。剧情角色名不是 IndexTTS 的 `speaker` 名，不能直接作为 speaker 发送；默认使用 `default`，如有 LoRA 则使用角色/旁白配置中的 `indexTTS25Speaker`，没有显式配置时再回落到 `INDEXTTS25_SPEAKER`。
 
@@ -33,7 +33,7 @@
 - 9000 网页由整合包的 `启动.bat` 单独负责；网页中的「API 服务 → 启动服务」也会启动相同的 9005 API。不要同时为同一端口再手动启动第二个 `app_api.py`。
 - 首个真实 `/tts` 请求会加载模型，耗时较长属正常；健康检查不会提前加载模型。验证时必须额外执行一次短文本合成，并检查返回体非空且 `Content-Type` 为 `audio/wav`。
 - 如果报参考音频不存在，先检查 `INDEXTTS25_ROOT\voices` 和 `/voices` 返回值；如果报模型显存不足，先停止 9000 网页工作台中占用显存的克隆配音任务，再重试 API 合成。
-- 旧 VoxCPM2 的配置和历史数据不做删除，但不再属于当前 provider、启动链或默认音频槽；18761 不应由本项目重新监听。
+- VoxCPM2 是当前默认 provider、启动链和 18761 端口；IndexTTS 的配置、路由和历史数据不做删除，但不应在未显式指定 provider 时被读取或启动。
 
 ## Failure Modes
 

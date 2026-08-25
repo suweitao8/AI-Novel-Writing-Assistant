@@ -15,16 +15,10 @@ test("系统设置提供独立旁白音色入口", () => {
 
 test("旁白音色页面提供保存描述和重新生成试听", () => {
   const page = read("pages/settings/views/NarratorVoiceSettingsPage.tsx");
-  const controls = read("components/audio/IndexTTS25VoiceControls.tsx");
   assert.match(page, /系统旁白音色/);
-  assert.match(page, /IndexTTS25VoiceControls/);
   assert.match(page, /整个应用统一使用/);
-  assert.match(page, /sampleAudioUrl=\{displayedVoice\?\.sampleAudioUrl\}/);
-  assert.match(page, /const referenceAudio = referenceDraft \?\? voice\?\.referenceAudioUrl \?\? ""/);
-  assert.doesNotMatch(page, /<audio\b/);
-  assert.match(controls, /sampleAudioUrl\?: string/);
-  assert.match(controls, /语音合成/);
-  assert.equal((controls.match(/<audio\b/g) ?? []).length, 1);
+  assert.match(page, /<audio[\s\S]*sampleAudioUrl/);
+  assert.doesNotMatch(page, /IndexTTS25|IndexTTS 2\.5|indexTTS25/);
   assert.match(page, /重新生成并试听/);
   assert.match(page, /sampleAudioUrl/);
 });

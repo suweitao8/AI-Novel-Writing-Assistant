@@ -147,47 +147,39 @@ test("生成试听会以旁白样句和描述调用语音服务并替换全局�
     result.sampleText,
     "这是音色参考测试文本，请用自然、清晰、稳定的中文普通话读完。语速适中，吐字清楚，保持真实连贯的声音。",
   );
-  assert.equal(result.referenceAudioUrl, "app-generated.mp3");
+  assert.equal(result.referenceAudioUrl, undefined);
 });
 
-test("保存旁白描述时可以同步持久化 IndexTTS speaker 和参考音频", async () => {
+test("保存旁白描述时保留可被 VoxCPM2 读取的参考音频", async () => {
   const store = createStore({
     "drama.globalNarratorVoice": JSON.stringify({ description: "旧描述", referenceAudioUrl: "old.wav" }),
   });
   const service = createService({
     appSettingStore: store,
-    persistReferenceAudio: async (value) => {
-      assert.equal(value, "data:audio/wav;base64:uploaded");
-      return "uploaded.wav";
-    },
   });
   const result = await service.updateDescription("新的描述", {
-    referenceAudioUrl: "data:audio/wav;base64:uploaded",
+    referenceAudioUrl: "data:audio/wav;base64,dXBsb2FkZWQ=",
     indexTTS25Speaker: "narrator-lora",
   });
-  assert.equal(result.referenceAudioUrl, "uploaded.wav");
+  assert.equal(result.referenceAudioUrl, "data:audio/wav;base64,dXBsb2FkZWQ=");
   assert.equal(result.indexTTS25Speaker, "narrator-lora");
 });
 
-test("旁白试听可以绑定 IndexTTS speaker 和用户参考音频", async () => {
+test("旁白试听使用用户提供的 VoxCPM2 参考音频", async () => {
   const calls = [];
   const service = createService({
     synthesize: async (input) => {
       calls.push(input);
       return { dataUrl: "data:audio/mp3;base64:new" };
     },
-    persistReferenceAudio: async (value) => {
-      assert.equal(value, "data:audio/wav;base64:uploaded");
-      return "uploaded-reference.wav";
-    },
   });
   const result = await service.design("成年男声，平直叙述", {
-    referenceAudioUrl: "data:audio/wav;base64:uploaded",
+    referenceAudioUrl: "data:audio/wav;base64,dXBsb2FkZWQ=",
     indexTTS25Speaker: "narrator-lora",
   });
-  assert.equal(calls[0].referenceAudioUrl, "uploaded-reference.wav");
-  assert.equal(calls[0].indexTTS25Speaker, "narrator-lora");
-  assert.equal(result.referenceAudioUrl, "uploaded-reference.wav");
+  assert.equal(calls[0].referenceAudioUrl, "data:audio/wav;base64,dXBsb2FkZWQ=");
+  assert.equal(calls[0].indexTTS25Speaker, undefined);
+  assert.equal(result.referenceAudioUrl, "data:audio/wav;base64,dXBsb2FkZWQ=");
   assert.equal(result.indexTTS25Speaker, "narrator-lora");
 });
 

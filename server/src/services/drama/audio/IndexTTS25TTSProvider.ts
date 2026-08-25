@@ -27,7 +27,10 @@ export class IndexTTS25TTSProvider implements TTSProviderPort {
   readonly currency = process.env.DRAMA_COST_CURRENCY?.trim() || "CNY";
 
   async synthesize(input: TTSGenerationRequest): Promise<TTSGenerationResult> {
-    const result = await synthesizeAudioSpeech(buildIndexTTS25SpeechInput(input));
+    const result = await synthesizeAudioSpeech(
+      buildIndexTTS25SpeechInput(input),
+      { provider: "indextts25" },
+    );
     return {
       audioUrl: result.dataUrl,
       raw: {

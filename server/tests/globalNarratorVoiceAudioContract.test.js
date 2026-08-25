@@ -5,10 +5,11 @@ const path = require("node:path");
 
 const read = (relativePath) => fs.readFileSync(path.join(__dirname, "..", "src", relativePath), "utf8");
 
-test("旁白合成读取系统级设置并传递参考音频", () => {
+test("旁白合成读取系统级设置并选择 VoxCPM2 可用的参考音频", () => {
   const dialogueService = read("services/drama/audio/DramaDialogueAudioService.ts");
   assert.match(dialogueService, /globalNarratorVoiceSettingsService\.get\(\)/);
-  assert.match(dialogueService, /referenceAudioUrl:\s*isNarrationLine\s*\?\s*narratorVoice\.sampleAudioUrl/);
+  assert.match(dialogueService, /selectVoxCPMReferenceAudio\(narratorVoice\.referenceAudioUrl, narratorVoice\.sampleAudioUrl\)/);
+  assert.doesNotMatch(dialogueService, /indexTTS25Speaker: isNarrationLine/);
 });
 
 test("旁白音色指纹同时包含描述和参考样本", () => {
