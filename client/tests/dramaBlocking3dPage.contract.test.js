@@ -20,7 +20,7 @@ const entrySource = fs.readFileSync(
   "utf8",
 );
 
-test("3D 摆位页面自动保存快照并继续上传 PNG 参考图", () => {
+test("3D 摆位页面保存快照并继续上传 PNG 参考图", () => {
   assert.match(pageSource, /createBlocking3dViewer/);
   assert.match(pageSource, /layout3d/);
   assert.match(pageSource, /uploadDramaShotBlockingSketchPng/);
@@ -30,19 +30,27 @@ test("3D 摆位页面自动保存快照并继续上传 PNG 参考图", () => {
   assert.match(pageSource, /autoPlanDramaShotBlockingSketch/);
   assert.match(pageSource, /<AiButton/);
   assert.match(pageSource, /context\.sketch\?\.layout3d/);
-  assert.match(pageSource, /自动保存/);
   assert.match(mathSource, /prone/);
 });
 
-test("离开 3D 草图前等待自动保存并在成功后返回分镜", () => {
-  assert.match(pageSource, /await flushAutoSave\(\)/);
-  assert.match(pageSource, /flushAutoSave\(\)[\s\S]*navigate\(-1\)/);
+test("分镜 3D 操作不会自动保存，只在退出前保存并返回分镜", () => {
+  assert.doesNotMatch(pageSource, /saveTimerRef/);
+  assert.doesNotMatch(pageSource, /setTimeout\(\(\) => \{[\s\S]*saveSketch/);
+  assert.match(pageSource, /await saveBeforeExit\(\)/);
+  assert.match(pageSource, /saveBeforeExit\(\)[\s\S]*navigate\(-1\)/);
   assert.match(pageSource, /refetchQueries|refetchType/);
+  assert.doesNotMatch(pageSource, /自动保存/);
   assert.doesNotMatch(pageSource, /当前 3D 草图还有未保存修改，确定离开吗/);
   assert.doesNotMatch(pageSource, /保存草图|确认草图/);
 });
 
-test("自动构图或自动保存期间禁止离开 3D 草图", () => {
+test("AI 自动构图只留下未保存修改，不在构图完成后立即保存", () => {
+  assert.match(pageSource, /AI 构图完成，有未保存修改/);
+  assert.doesNotMatch(pageSource, /setStatus\("AI 构图完成，正在自动保存"\)/);
+  assert.doesNotMatch(pageSource, /await handleAutoSave\(\)/);
+});
+
+test("自动构图或保存期间禁止离开 3D 草图", () => {
   assert.match(pageSource, /aria-label="返回分镜"[^>]*disabled=\{saving \|\| autoPlanning\}/);
 });
 
