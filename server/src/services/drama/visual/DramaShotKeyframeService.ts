@@ -5,6 +5,7 @@ import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
+  hasStoryAssetStateImageUrl,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -139,11 +140,12 @@ function resolveInitialSettingState(
       ? fallback.weather
       : null,
   })[0];
+  const initialImage = initial?.image;
   return {
     stateLabel: initial?.label?.trim() || "默认",
     imagePrompt: initial?.imagePrompt?.trim() || fallbackImagePrompt,
-    imageUrl: initial?.image?.status === "done" && initial.image.url?.trim()
-      ? imageUrlForState?.(initial.id) ?? initial.image.url.trim()
+    imageUrl: hasStoryAssetStateImageUrl(initialImage)
+      ? imageUrlForState?.(initial?.id ?? "") ?? initialImage.url.trim()
       : null,
     sceneType: initial?.sceneType ?? null,
     timeOfDay: initial?.timeOfDay ?? null,
@@ -613,8 +615,8 @@ export class DramaShotKeyframeService {
         // 角色在这一镜处于登记过的状态且状态图已生成：用状态图当参考图
         // （比设计稿更贴合当前外观）；否则回落角色设计稿
         const activeState = activeStatesByName.get(char.name.trim());
-        const stateImageUrl = activeState?.image?.status === "done" && activeState.image.url
-          ? activeState.image.url
+        const stateImageUrl = hasStoryAssetStateImageUrl(activeState?.image)
+          ? activeState.image.url.trim()
           : null;
         if (stateImageUrl) {
           refImages.push(stateImageUrl);

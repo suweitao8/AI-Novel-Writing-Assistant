@@ -3,7 +3,7 @@ const assert = require("node:assert/strict");
 
 // 资产状态图（StoryAssetStateImageService）纯函数契约：
 // 提示词组装（角色/场景/道具 + 基础外观 + 状态变化 + 参考图一致性指令）
-// 与参考图解析（只认已生成完成的状态图）。
+// 与参考图解析（只认仍有可用 URL 指针的状态图；失败/生成中可继续沿用旧图）。
 
 const {
   buildStateImagePrompt,
@@ -116,7 +116,7 @@ test("场景状态提示词会把叙事里的生物改写为环境痕迹", () =>
 test("角色状态图一次生成完整四视图，不再四次独立生图后裁切", () => {
   assert.match(imageServiceSource, /runImageGeneration/);
   assert.match(imageServiceSource, /buildCharacterStateSheetPrompt/);
-  assert.match(imageServiceSource, /buildAssetStylePromptLines\(kind, styleContext\.assets\[kind\]/);
+  assert.match(imageServiceSource, /buildAssetStylePromptLines\(\s*kind,\s*styleContext\.assets\[kind\]/);
   assert.doesNotMatch(imageServiceSource, /runCompositeImageGeneration/);
   assert.doesNotMatch(imageServiceSource, /buildCharacterStateViewPrompts/);
   assert.doesNotMatch(imageServiceSource, /styleContext\.universal/);
@@ -165,6 +165,16 @@ test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿
     { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
   ];
   assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
+});
+
+test("resolveStateReferenceImageUrl：失败或重新生成中的状态仍可沿用保留的旧图片", () => {
+  const states = [
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常", image: { status: "done", url: "/state/s1" } },
+    { id: "s2", label: "重试失败", description: "轻伤", imagePrompt: "轻伤", image: { status: "error", url: "/state/s2", error: "timeout" } },
+    { id: "s3", label: "重试中", description: "重伤", imagePrompt: "重伤", image: { status: "generating", url: "/state/s3" } },
+  ];
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[0], id: "s4", referenceStateId: "s2" }), "/state/s2");
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[0], id: "s5", referenceStateId: "s3" }), "/state/s3");
 });
 
 test("状态图 URL 必须包含资产归属，避免不同资产复用 initial 状态时互相覆盖", () => {

@@ -22,6 +22,7 @@ import {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
   resolveStoryAssetStateAncestors,
+  hasStoryAssetStateImageUrl,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 
@@ -63,6 +64,7 @@ import {
 } from "./StoryAssetStateImageStorage";
 import {
   StoryAssetImageArtifactStore,
+  isStoryAssetImageArtifactStorageKeyForTarget,
   type StoryAssetImageArtifactLocation,
   type StoryAssetImageArtifactMetadata,
   type StoryAssetImageExtension,
@@ -73,6 +75,10 @@ import {
   buildStoryAssetImageTargetKey,
   type StoryAssetImageArtifactRecord,
 } from "./StoryAssetImageGenerationLock";
+import {
+  preserveReadableStoryAssetImagePointer,
+  prioritizeStoryAssetImageArtifacts,
+} from "./StoryAssetImageRecoveryPolicy";
 
 const STATE_IMAGE_EXTS: Array<[string, string]> = [
   ["png", "image/png"],
@@ -458,9 +464,8 @@ export function resolveStateReferenceImage(
     ? states.map((item) => item.id === state.id ? state : item)
     : [...states, state];
   for (const ancestor of resolveStoryAssetStateAncestors(effectiveStates, state.id)) {
-    const url = ancestor.image?.status === "done" ? ancestor.image.url?.trim() : undefined;
-    if (url) {
-      return { stateId: ancestor.id, url };
+    if (hasStoryAssetStateImageUrl(ancestor.image)) {
+      return { stateId: ancestor.id, url: ancestor.image.url.trim() };
     }
   }
   return null;
@@ -534,7 +539,10 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
+        patch: (state) => ({
+          ...state,
+          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
+        }),
       });
     } else if (kind === "scene") {
       await updateStoryAssetStateJsonWithCas({
@@ -589,7 +597,10 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
+        patch: (state) => ({
+          ...state,
+          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
+        }),
       });
     } else {
       await updateStoryAssetStateJsonWithCas({
@@ -629,7 +640,10 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({ ...state, image: pruneStateImage(image) }),
+        patch: (state) => ({
+          ...state,
+          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
+        }),
       });
     }
   }
@@ -980,9 +994,61 @@ export class StoryAssetStateImageService {
     return null;
   }
 
+  private async resolveCommittedArtifactFile(artifact: {
+    generationId: string;
+    storageKey: string;
+    sha256: string | null;
+    byteSize: number | null;
+    mimeType: string | null;
+    extension: string | null;
+  }, target: {
+    novelId: string;
+    kind: StoryAssetKind;
+    assetId: string;
+    stateId: string;
+  }): Promise<{ filePath: string; mimeType: string } | null> {
+    try {
+      const extension = artifact.extension === "png" || artifact.extension === "jpg" || artifact.extension === "webp"
+        ? artifact.extension
+        : null;
+      const mimeType = artifact.mimeType === "image/png"
+        || artifact.mimeType === "image/jpeg"
+        || artifact.mimeType === "image/webp"
+        ? artifact.mimeType
+        : null;
+      if (!extension || !mimeType || !artifact.generationId.trim()) {
+        return null;
+      }
+      if (!isStoryAssetImageArtifactStorageKeyForTarget(artifact.storageKey, {
+        ...target,
+        generationId: artifact.generationId,
+        extension,
+      })) {
+        return null;
+      }
+
+      const finalPath = storyAssetImageArtifactStore.resolveStorageKeyPath(artifact.storageKey);
+      const verification = await storyAssetImageArtifactStore.verifyCurrentArtifact({
+        storageKey: artifact.storageKey,
+        finalPath,
+        sha256: artifact.sha256,
+        byteSize: artifact.byteSize,
+        mimeType,
+        extension,
+      });
+      return verification.valid
+        ? { filePath: verification.finalPath, mimeType: verification.mimeType }
+        : null;
+    } catch {
+      // 一个损坏或历史格式异常的候选不能阻断继续尝试更旧的 committed 制品。
+      return null;
+    }
+  }
+
   /**
    * 优先按当前状态的 artifactId 解析图片，并再次校验资产所有权和文件 hash。
    * 兼容不可变制品上线前已经写入“资产归属目录但没有 artifactId”的图片；
+   * 当前制品损坏时还会从同一资产状态的历史 committed 制品恢复；
    * 该目录同时包含 novel/kind/asset/state，不会按裸 stateId 猜图。
    */
   async resolveStateImagePath(
@@ -994,21 +1060,18 @@ export class StoryAssetStateImageService {
     const row = await loadStateAsset(novelId, kind, assetId);
     const stateImage = row.states?.find((state) => state.id === stateId)?.image;
     const artifactId = stateImage?.artifactId?.trim();
-    if (!artifactId) {
-      const scopedLegacy = await this.resolveImageFile(stateImageDir(novelId, kind, assetId, stateId));
-      return scopedLegacy ? { filePath: scopedLegacy.filePath, mimeType: scopedLegacy.mimeType } : null;
-    }
-
-    const artifact = await prisma.storyAssetImageArtifact.findFirst({
+    const artifacts = await prisma.storyAssetImageArtifact.findMany({
       where: {
-        id: artifactId,
         novelId,
         kind,
         assetId,
         stateId,
         status: "committed",
       },
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
       select: {
+        id: true,
+        generationId: true,
         storageKey: true,
         sha256: true,
         byteSize: true,
@@ -1016,34 +1079,15 @@ export class StoryAssetStateImageService {
         extension: true,
       },
     });
-    if (!artifact || !artifact.extension || !artifact.mimeType) {
-      return null;
+    for (const artifact of prioritizeStoryAssetImageArtifacts(artifactId, artifacts)) {
+      const resolved = await this.resolveCommittedArtifactFile(artifact, { novelId, kind, assetId, stateId });
+      if (resolved) {
+        return resolved;
+      }
     }
 
-    const extension = artifact.extension === "png" || artifact.extension === "jpg" || artifact.extension === "webp"
-      ? artifact.extension
-      : null;
-    const mimeType = artifact.mimeType === "image/png"
-      || artifact.mimeType === "image/jpeg"
-      || artifact.mimeType === "image/webp"
-      ? artifact.mimeType
-      : null;
-    if (!extension || !mimeType) {
-      return null;
-    }
-
-    const finalPath = storyAssetImageArtifactStore.resolveStorageKeyPath(artifact.storageKey);
-    const verification = await storyAssetImageArtifactStore.verifyCurrentArtifact({
-      storageKey: artifact.storageKey,
-      finalPath,
-      sha256: artifact.sha256,
-      byteSize: artifact.byteSize,
-      mimeType,
-      extension,
-    });
-    return verification.valid
-      ? { filePath: verification.finalPath, mimeType: verification.mimeType }
-      : null;
+    const scopedLegacy = await this.resolveImageFile(stateImageDir(novelId, kind, assetId, stateId));
+    return scopedLegacy ? { filePath: scopedLegacy.filePath, mimeType: scopedLegacy.mimeType } : null;
   }
 
   /** 兼容仍保存旧 URL 的调用方；新的资产 DTO 不再返回这个 URL。 */
