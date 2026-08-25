@@ -19,7 +19,7 @@ test("场景资产 API 暴露统一 HDRI 参数读写", () => {
 });
 
 test("场景状态图片旁提供携带当前状态的 3D 场景编辑", () => {
-  assert.match(assetForms, /平面图/);
+  assert.match(assetForms, /fit="natural"/);
   assert.match(assetForms, /3D编辑/);
   assert.match(assetForms, /buildScene3dEditorPath\(asset\.novelId, asset\.assetId, selectedState\.id\)/);
   assert.doesNotMatch(scenesTab, /3D场景编辑/);

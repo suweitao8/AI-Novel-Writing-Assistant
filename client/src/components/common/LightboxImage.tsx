@@ -87,7 +87,8 @@ export function LightboxImage(props: {
   className?: string;
   /** contain 模式下用模糊放大底图填充空隙 */
   blurBackdrop?: boolean;
-  fit?: "cover" | "contain";
+  /** natural 模式按图片原始比例撑开缩略图容器，不裁切也不制造水平留白。 */
+  fit?: "cover" | "contain" | "natural";
   onError?: () => void;
 }) {
   const { src, alt, className, blurBackdrop = true, fit = "cover", onError } = props;
@@ -102,6 +103,7 @@ export function LightboxImage(props: {
         className={cn(
           "group/lb relative block cursor-zoom-in overflow-hidden rounded-lg border border-border bg-muted/40 p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
           className ?? "h-36 w-full",
+          fit === "natural" && "h-auto",
         )}
       >
         {fit === "contain" && blurBackdrop ? (
@@ -120,7 +122,11 @@ export function LightboxImage(props: {
           loading="lazy"
           decoding="async"
           onError={onError}
-          className={cn("relative z-10 h-full w-full", fit === "contain" ? "object-contain" : "object-cover")}
+          className={cn(
+            "relative z-10 w-full",
+            fit === "natural" ? "block h-auto" : "h-full",
+            fit === "cover" ? "object-cover" : "object-contain",
+          )}
         />
         <span className="absolute bottom-1.5 right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-background/75 text-foreground/70 opacity-0 transition-opacity group-hover/lb:opacity-100">
           <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
