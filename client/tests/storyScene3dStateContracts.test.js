@@ -12,9 +12,9 @@ const router = read("src/router/index.tsx");
 const viewer = read("src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts");
 
 test("场景状态图片操作旁提供携带当前状态的 3D 编辑入口", () => {
-  assert.match(assetForms, /平面图/);
+  assert.match(assetForms, /fit="natural"/);
   assert.match(assetForms, /3D编辑/);
-  assert.match(assetForms, /states\/\$\{encodeURIComponent\(selectedState\.id\)\}\/3d/);
+  assert.match(assetForms, /buildScene3dEditorPath\(asset\.novelId, asset\.assetId, selectedState\.id\)/);
 });
 
 test("场景 3D 编辑器使用路由指定的状态图", () => {

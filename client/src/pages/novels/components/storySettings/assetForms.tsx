@@ -199,7 +199,7 @@ export function AssetStatesEditor(props: {
   const [promptTweak, setPromptTweak] = useState("");
   // 添加状态的模板选择（null=未在添加；空串=空白创建；其他=作为模板的状态 id）。
   const [addFromStateId, setAddFromStateId] = useState<string | null>(null);
-  // 图片区比例跟随资产画幅：场景状态图保持 2:1，角色/道具设计图严格 16:9。
+  // 缺图占位跟随目标画幅；已有状态图按原图自然比例展示，避免 object-contain 在比例不一致时留下水平空白。
   const stateImageAspect = kind === "scene" ? "aspect-[2/1]" : "aspect-video";
   const showVoice = kind === "character";
   const showScene = kind === "scene";
@@ -619,9 +619,9 @@ export function AssetStatesEditor(props: {
                   <LightboxImage
                     src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
                     alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
-                    fit="contain"
+                    fit="natural"
                     blurBackdrop={false}
-                    className={cn(stateImageAspect, "w-full rounded-lg border-0")}
+                    className="w-full rounded-lg border-0"
                   />
                 ) : (
                   <div
@@ -631,24 +631,6 @@ export function AssetStatesEditor(props: {
                   />
                 )}
               </div>
-              {kind === "scene" && selectedState.image?.url ? (
-                <div className="flex justify-end pt-2" role="group" aria-label="场景 3D 操作">
-                  {asset ? (
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="h-7 px-2 text-xs shadow-sm"
-                      disabled={anyPending}
-                      aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
-                      onClick={() => navigate(buildScene3dEditorPath(asset.novelId, asset.assetId, selectedState.id))}
-                    >
-                      <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                      3D编辑
-                    </Button>
-                  ) : null}
-                </div>
-              ) : null}
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <label className="min-w-40 flex-1 space-y-1">
                   <span className="text-xs font-medium">参考图</span>
@@ -665,32 +647,48 @@ export function AssetStatesEditor(props: {
                     ))}
                   </SelectControl>
                 </label>
-                <AiButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="h-8"
-                  disabled={generationDisabled}
-                  title={!asset ? "先保存资产，再生成状态图" : undefined}
-                  onClick={() => imageMutation.mutate(selectedState.id)}
-                >
-                  {imageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
-                  {imageGenerating ? <GeneratingElapsedLabel /> : selectedState.image?.url ? "重新生成图片" : "生成图片"}
-                </AiButton>
-                {imageGenerating ? (
+                <div className="flex flex-wrap items-center gap-2" role="group" aria-label="状态图片操作">
+                  {kind === "scene" && selectedState.image?.url && asset ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-8 px-2 text-xs shadow-sm"
+                      disabled={anyPending}
+                      aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
+                      onClick={() => navigate(buildScene3dEditorPath(asset.novelId, asset.assetId, selectedState.id))}
+                    >
+                      <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      3D编辑
+                    </Button>
+                  ) : null}
                   <AiButton
                     type="button"
                     variant="outline"
                     size="sm"
                     className="h-8"
-                    disabled={cancelImageMutation.isPending || !asset || imageRequestState === "queued"}
-                    title={imageRequestState === "queued" ? "图片已排队，开始生成后可终止。" : "停止本次生成，可重新发起"}
-                    onClick={() => cancelImageMutation.mutate(selectedState.id)}
+                    disabled={generationDisabled}
+                    title={!asset ? "先保存资产，再生成状态图" : undefined}
+                    onClick={() => imageMutation.mutate(selectedState.id)}
                   >
-                    {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
-                    {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? "终止中..." : "终止"}
+                    {imageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
+                    {imageGenerating ? <GeneratingElapsedLabel /> : selectedState.image?.url ? "重新生成图片" : "生成图片"}
                   </AiButton>
-                ) : null}
+                  {imageGenerating ? (
+                    <AiButton
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                      disabled={cancelImageMutation.isPending || !asset || imageRequestState === "queued"}
+                      title={imageRequestState === "queued" ? "图片已排队，开始生成后可终止。" : "停止本次生成，可重新发起"}
+                      onClick={() => cancelImageMutation.mutate(selectedState.id)}
+                    >
+                      {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? "终止中..." : "终止"}
+                    </AiButton>
+                  ) : null}
+                </div>
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">默认状态是基础形象，直接生成。</p> : null}
               {hasSelectedImageError ? (

@@ -14,9 +14,12 @@ test("角色、场景、道具共用放大的左状态列表右详情布局", ()
   assert.match(source, /self-start overflow-y-auto rounded-lg border border-border\/60 bg-muted\/20 p-2 lg:w-72 lg:shrink-0/);
   assert.match(source, /min-w-0 flex-1 space-y-3 rounded-lg/);
   assert.match(source, /stateImageAspect = kind === "scene" \? "aspect-\[2\/1\]" : "aspect-video"/);
-  assert.match(source, /\$\{stateImageAspect\} max-h-\[28rem\] w-full/);
   assert.match(source, /flex min-h-28 items-center justify-center/);
   assert.doesNotMatch(source, /aspect-\[3\/2\] max-h-\[28rem\] w-full/);
+  assert.match(source, /fit="natural"/);
+  assert.match(source, /className="w-full rounded-lg border-0"/);
+  assert.match(source, /className="flex flex-wrap items-center gap-2" role="group" aria-label="状态图片操作"/);
+  assert.doesNotMatch(source, /<div className="flex justify-end pt-2" role="group" aria-label="场景 3D 操作">/);
   assert.doesNotMatch(source, /<div className="space-y-3 rounded-lg border border-border\/70 p-3">/);
 });
 
@@ -36,7 +39,7 @@ test("状态图地址携带生成时间，重新生成后不会命中旧缓存",
 test("状态详情图片使用独立的大图预览入口", () => {
   assert.match(source, /import .*LightboxImage.*from "@\/components\/common\/LightboxImage"/);
   assert.match(source, /<LightboxImage/);
-  assert.match(source, /fit="contain"/);
+  assert.match(source, /fit="natural"/);
 });
 
 test("状态详情按图片、图片设定、音色分区，不重复显示可见状态标签", () => {
