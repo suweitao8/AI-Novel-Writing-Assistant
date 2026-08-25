@@ -1285,6 +1285,10 @@ router.get("/shot-images/:shotId/keyframe", validate({ params: shotImageParamsSc
       res.status(404).json({ success: false, message: "镜头分镜画面尚未生成。" });
       return;
     }
+    if (await dramaShotKeyframeService.isExistingKeyframeReferencePassthrough(shotId, resolved)) {
+      res.status(404).json({ success: false, message: "镜头 AI 首帧不可用，请重新生成。" });
+      return;
+    }
     res.setHeader("Content-Type", resolved.mimeType);
     res.setHeader("Cache-Control", "public, max-age=86400");
     fs.createReadStream(resolved.filePath).pipe(res);

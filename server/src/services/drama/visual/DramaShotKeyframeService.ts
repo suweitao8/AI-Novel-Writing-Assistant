@@ -12,7 +12,10 @@ import { prisma } from "../../../db/prisma";
 import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import { AppError } from "../../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
+import { prepareReferenceImageFiles } from "../../image/referenceImageFiles";
 import { filterImageGenerationReferences, parseImageStateSummary, runImageGeneration, type ImageTargetAdapter } from "../../image/runtime";
+import { fingerprintImageFile } from "../../image/runtime/referenceIntegrity";
+import type { GeneratedReferenceImageMeta } from "../../image/runtime/types";
 import { IMAGE_SPECS } from "../../image/imageSpecs";
 import { safeJsonParse } from "../utils/json";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
@@ -46,6 +49,7 @@ export interface ShotKeyframeData {
   generatedAt?: string;
   error?: string;
   history?: ShotKeyframeHistoryItem[];
+  referenceImages?: GeneratedReferenceImageMeta[];
 }
 
 interface CharacterLite {
@@ -507,6 +511,12 @@ function buildShotScriptJudge(shot: {
 }
 
 export class DramaShotKeyframeService {
+  private readonly referencePassthroughCache = new Map<string, {
+    fileKey: string;
+    stateKey: string;
+    matched: boolean;
+  }>();
+
   private async buildKeyframeGenerationContext(
     shotId: string,
     useCharacterRefImages = true,
@@ -753,6 +763,50 @@ export class DramaShotKeyframeService {
       }
     }
     return null;
+  }
+
+  /**
+   * 历史数据可能已经把参考图原样写进 keyframe.png。展示层不能把这种文件
+   * 当成成功首帧输出；生成 runtime 的新结果由指纹校验负责，这里负责旧结果。
+   */
+  async isExistingKeyframeReferencePassthrough(
+    shotId: string,
+    resolved: { filePath: string; mimeType: string },
+  ): Promise<boolean> {
+    const [stat, shot] = await Promise.all([
+      fs.stat(resolved.filePath),
+      prisma.dramaShot.findUnique({ where: { id: shotId }, select: { keyframeData: true } }),
+    ]);
+    const data = safeJsonParse<ShotKeyframeData>(shot?.keyframeData, { status: "idle" });
+    const referenceUrls = (data.referenceImages ?? [])
+      .map((reference) => reference.url?.trim())
+      .filter((url): url is string => Boolean(url));
+    if (referenceUrls.length === 0) {
+      return false;
+    }
+
+    const fileKey = `${stat.size}:${stat.mtimeMs}`;
+    const stateKey = `${data.version ?? 0}:${data.generatedAt ?? ""}:${referenceUrls.join("|")}`;
+    const cached = this.referencePassthroughCache.get(shotId);
+    if (cached?.fileKey === fileKey && cached.stateKey === stateKey) {
+      return cached.matched;
+    }
+
+    try {
+      const prepared = await prepareReferenceImageFiles({ refImages: referenceUrls });
+      try {
+        const outputFingerprint = await fingerprintImageFile(resolved.filePath);
+        const matched = prepared.fingerprints.includes(outputFingerprint);
+        this.referencePassthroughCache.set(shotId, { fileKey, stateKey, matched });
+        return matched;
+      } finally {
+        await prepared.cleanup();
+      }
+    } catch {
+      // 历史参考资产被删除时无法完成重复比对；不能因此把原本存在的
+      // keyframe 变成 500，交给图片本身继续展示。
+      return false;
+    }
   }
 
   async resolveArchivedKeyframePath(shotId: string, version: number): Promise<{ filePath: string; mimeType: string } | null> {

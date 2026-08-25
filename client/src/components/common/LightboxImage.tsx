@@ -88,8 +88,9 @@ export function LightboxImage(props: {
   /** contain 模式下用模糊放大底图填充空隙 */
   blurBackdrop?: boolean;
   fit?: "cover" | "contain";
+  onError?: () => void;
 }) {
-  const { src, alt, className, blurBackdrop = true, fit = "cover" } = props;
+  const { src, alt, className, blurBackdrop = true, fit = "cover", onError } = props;
   const [open, setOpen] = useState(false);
 
   return (
@@ -118,6 +119,7 @@ export function LightboxImage(props: {
           alt={alt}
           loading="lazy"
           decoding="async"
+          onError={onError}
           className={cn("relative z-10 h-full w-full", fit === "contain" ? "object-contain" : "object-cover")}
         />
         <span className="absolute bottom-1.5 right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-background/75 text-foreground/70 opacity-0 transition-opacity group-hover/lb:opacity-100">

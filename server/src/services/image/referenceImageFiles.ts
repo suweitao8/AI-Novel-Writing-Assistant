@@ -2,11 +2,14 @@ import fs from "fs/promises";
 import os from "os";
 import path from "path";
 
+import { fingerprintImageFile } from "./runtime/referenceIntegrity";
+
 const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const SUPPORTED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
 
 export interface PreparedReferenceImageFiles {
   filePaths: string[];
+  fingerprints: string[];
   cleanup: () => Promise<void>;
 }
 
@@ -134,6 +137,7 @@ export async function prepareReferenceImageFiles(input: {
 
     return {
       filePaths: temporaryPaths,
+      fingerprints: await Promise.all(temporaryPaths.map((filePath) => fingerprintImageFile(filePath))),
       cleanup: async () => {
         if (cleaned) return;
         cleaned = true;
