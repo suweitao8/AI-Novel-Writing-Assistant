@@ -16,7 +16,7 @@
 - Create: `client/tests/dramaEpisodePreparation.test.js`
 - Modify: `client/tests/comicDramaStoryboardFlow.test.js`
 
-- [ ] **Step 1: Write a failing coordinator test**
+- [x] **Step 1: Write a failing coordinator test**
 
 Cover these concrete behaviors through the production coordinator API:
 
@@ -40,7 +40,7 @@ assert.deepEqual(result, { keyframes: "done", tts: "done" });
 
 Also test that an existing active job is reused without calling its `start`, and that a failed job rejects before assembly can continue.
 
-- [ ] **Step 2: Run the focused test and confirm RED**
+- [x] **Step 2: Run the focused test and confirm RED**
 
 Run:
 
@@ -50,11 +50,11 @@ pnpm --filter @ai-novel/client exec node --experimental-strip-types --test tests
 
 Expected: fail because `client/src/pages/drama/comicDrama/dramaEpisodePreparation.ts` does not exist yet.
 
-- [ ] **Step 3: Strengthen the storyboard toolbar contract**
+- [x] **Step 3: Strengthen the storyboard toolbar contract**
 
 Update `client/tests/comicDramaStoryboardFlow.test.js` to require that `ShotVoiceListPanel.tsx` contains one `DramaEpisodeAssemblyButton` but no toolbar labels or title for `生成分镜`, `统一写实重生成`, or `生成配音`; retain assertions for the empty-state `生成分镜` and per-shot generation entry.
 
-- [ ] **Step 4: Run the toolbar contract and confirm RED**
+- [x] **Step 4: Run the toolbar contract and confirm RED**
 
 Run:
 
@@ -70,15 +70,15 @@ Expected: fail because the current toolbar still contains the three removed acti
 - Create: `client/src/pages/drama/comicDrama/dramaEpisodePreparation.ts`
 - Test: `client/tests/dramaEpisodePreparation.test.js`
 
-- [ ] **Step 1: Implement task start and active-job reuse**
+- [x] **Step 1: Implement task start and active-job reuse**
 
 Define `DramaEpisodePreparationTask`, `DramaEpisodePreparationJob`, and `prepareDramaEpisodeAssets`. Each task has a type, an optional existing `jobId`, and an optional `start()` callback. Start all new tasks with `Promise.all`; do not call `start()` for an existing job.
 
-- [ ] **Step 2: Implement condition-based terminal polling**
+- [x] **Step 2: Implement condition-based terminal polling**
 
 Poll `getJobs()` until every selected job is `done`. Treat `failed` and `paused` as an actionable error, and use a bounded timeout with an explicit Chinese error message. Use a condition check plus `setTimeout`, not a single fixed sleep.
 
-- [ ] **Step 3: Run the coordinator test and confirm GREEN**
+- [x] **Step 3: Run the coordinator test and confirm GREEN**
 
 Run the same focused command from Task 1 and require all coordinator tests to pass with zero failures.
 
@@ -89,25 +89,25 @@ Run the same focused command from Task 1 and require all coordinator tests to pa
 - Modify: `client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx`
 - Modify: `client/tests/comicDramaStoryboardFlow.test.js`
 
-- [ ] **Step 1: Add an optional preparation callback to the assembly controller**
+- [x] **Step 1: Add an optional preparation callback to the assembly controller**
 
 Add `prepare?: () => Promise<void>` to the assembly props. Make the existing assembly mutation await `prepare()` before calling `startDramaEpisodeAssembly`. Keep the prop optional so the video tab remains unchanged.
 
-- [ ] **Step 2: Complete the assembly button loading state**
+- [x] **Step 2: Complete the assembly button loading state**
 
 When `controller.isPending` is true, render the existing `Loader2` icon and the label `准备素材中...`; when the server assembly is running, render a loader and `合成中...`; preserve the existing done/retry labels and disabled behavior.
 
 Extend `client/tests/comicDramaStoryboardFlow.test.js` to assert that the assembly panel exposes the optional preparation callback and both preparation/assembly loading labels.
 
-- [ ] **Step 3: Build the storyboard preparation callback**
+- [x] **Step 3: Build the storyboard preparation callback**
 
 In `ShotVoiceListPanel.tsx`, derive missing keyframe shot ids and whether TTS has pending audio. Reuse active keyframe/TTS jobs; otherwise call the existing batch-job mutations with `force: false` for TTS and missing shot ids for keyframes. Pass both tasks to `prepareDramaEpisodeAssets` so requests launch concurrently, then invalidate project/audio queries before assembly starts.
 
-- [ ] **Step 4: Remove only the redundant toolbar actions**
+- [x] **Step 4: Remove only the redundant toolbar actions**
 
 Delete the top-level batch keyframe button, the `AiButton` for “统一写实重生成”, and the top-level TTS button. Keep the `DramaEpisodeAssemblyButton`, the empty-state storyboard button, and all per-shot actions.
 
-- [ ] **Step 5: Run the coordinator and toolbar tests**
+- [x] **Step 5: Run the coordinator and toolbar tests**
 
 Run:
 
@@ -124,7 +124,7 @@ Expected: all tests pass and the source contract confirms only the assembly tool
 - Modify: `docs/releases/release-notes.md`
 - Modify: `docs/wiki/workflows/drama-visual-style-consistency.md`
 
-- [ ] **Step 1: Run client typecheck and production build**
+- [x] **Step 1: Run client typecheck and production build**
 
 ```powershell
 pnpm --filter @ai-novel/client typecheck
@@ -135,7 +135,7 @@ pnpm --filter @ai-novel/client build
 
 Open the running `http://localhost:5174/drama/studio/cmt0z2mgy0012zsb5d716mkzj`, switch to “分镜”, and verify the toolbar has only “合成”; verify the empty-state and per-shot controls remain available where applicable. Do not click generation or assembly in the live project.
 
-- [ ] **Step 3: Update user-visible and durable documentation**
+- [x] **Step 3: Update user-visible and durable documentation**
 
 Add a date-based release note and README latest-update bullet describing the single compose entry and automatic concurrent preparation. Add a stable workflow rule explaining that the global realistic style is configured in 画风管理 and the storyboard toolbar should not duplicate a style-specific regeneration action.
 

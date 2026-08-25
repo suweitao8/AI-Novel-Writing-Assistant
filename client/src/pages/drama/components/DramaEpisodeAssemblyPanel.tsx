@@ -1,6 +1,6 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Clapperboard, Download, ExternalLink } from "lucide-react";
+import { Clapperboard, Download, ExternalLink, Loader2 } from "lucide-react";
 import {
   getDramaEpisodeAssembly,
   startDramaEpisodeAssembly,
@@ -28,6 +28,7 @@ export interface DramaEpisodeAssemblyPanelProps {
   busy: boolean;
   buttonLabel?: string;
   doneButtonLabel?: string;
+  prepare?: () => Promise<void>;
 }
 
 export interface DramaEpisodeAssemblyController {
@@ -70,11 +71,14 @@ export function useDramaEpisodeAssembly(props: Omit<DramaEpisodeAssemblyPanelPro
   const running = Boolean(activeJob) || assembled?.status === "assembling";
 
   const startMutation = useMutation({
-    mutationFn: () => startDramaEpisodeAssembly(props.projectId, props.order, {
-      burnSubtitles,
-      includeTitleCard: includeCards,
-      includeEndCard: includeCards,
-    }),
+    mutationFn: async () => {
+      await props.prepare?.();
+      return startDramaEpisodeAssembly(props.projectId, props.order, {
+        burnSubtitles,
+        includeTitleCard: includeCards,
+        includeEndCard: includeCards,
+      });
+    },
     onSuccess: () => {
       toast.success("合成已开始，完成后可直接在下方播放或下载。");
       void queryClient.invalidateQueries({ queryKey: queryKeys.drama.episodeAssembly(props.projectId, props.order) });
@@ -130,8 +134,16 @@ export function DramaEpisodeAssemblyButton(props: {
       disabled={controller.busy || controller.running || !props.hasShots || controller.isPending}
       onClick={controller.start}
     >
-      <Clapperboard className="h-4 w-4" />
-      {controller.assembled?.status === "done"
+      {controller.isPending || controller.running ? (
+        <Loader2 className="h-4 w-4 motion-safe:animate-spin motion-reduce:animate-none" aria-hidden="true" />
+      ) : (
+        <Clapperboard className="h-4 w-4" />
+      )}
+      {controller.isPending
+        ? "准备素材中..."
+        : controller.running
+          ? "合成中..."
+          : controller.assembled?.status === "done"
         ? props.doneButtonLabel ?? "合成"
         : props.buttonLabel ?? "合成"}
     </Button>
@@ -233,7 +245,7 @@ export function DramaEpisodeAssemblyResultPanel(props: {
 
         {controller.status && props.hasShots && (controller.clips?.withoutVisual || controller.status.withoutAudioShotCount) ? (
           <div className="rounded-xl border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">
-            缺少的画面或配音会在合成时自动补齐。
+            点击合成会先补齐缺失画面和配音，再开始生成视频。
           </div>
         ) : null}
 

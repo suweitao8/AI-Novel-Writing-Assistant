@@ -27,6 +27,7 @@ import {
   DramaEpisodeAssemblyButton,
   useDramaEpisodeAssembly,
 } from "../components/DramaEpisodeAssemblyPanel";
+import { prepareDramaEpisodeAssets, type DramaEpisodePreparationTask } from "./dramaEpisodePreparation";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
@@ -51,6 +52,11 @@ function parseKeyframe(raw: string | null | undefined): KeyframeState {
   } catch {
     return {};
   }
+}
+
+function hasReadyKeyframe(raw: string | null | undefined): boolean {
+  const keyframe = parseKeyframe(raw);
+  return keyframe.status === "done" && Boolean(keyframe.url?.trim());
 }
 
 function parseBlockingSketch(raw: string | null | undefined): BlockingSketchState {
@@ -88,6 +94,10 @@ function isActiveBatch(job: DramaBatchJob | null): boolean {
   return job?.status === "pending" || job?.status === "running";
 }
 
+function isPreparationBatchJob(job: DramaBatchJob): job is DramaBatchJob & { type: "keyframes" | "tts" } {
+  return job.type === "keyframes" || job.type === "tts";
+}
+
 function batchStatusLabel(status: DramaBatchJob["status"]): string {
   const labels: Record<DramaBatchJob["status"], string> = {
     pending: "等待生成",
@@ -121,7 +131,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   const queryClient = useQueryClient();
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
-  const [optimisticKeyframeShotIds, setOptimisticKeyframeShotIds] = useState<Set<string>>(() => new Set());
   const activeOrder = chapterOrder;
   const lastTaskActivityAtRef = useRef(0);
   const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;
@@ -156,10 +165,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   const activeEpisode = episodes.find((episode) => episode.order === activeOrder) ?? null;
   const storyboard = activeEpisode?.storyboards?.[0] ?? null;
   const shots = useMemo(() => storyboard?.shots ?? [], [storyboard]);
-
-  useEffect(() => {
-    setOptimisticKeyframeShotIds(new Set());
-  }, [activeEpisode?.id]);
 
   const ttsJob = useMemo(() => {
     return (project?.batchJobs ?? []).find((job) =>
@@ -211,23 +216,11 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     let generating = 0;
     for (const shot of shots) {
       const status = parseKeyframe(shot.keyframeData).status;
-      if (status === "done") done += 1;
-      else if (status === "generating" || optimisticKeyframeShotIds.has(shot.id)) generating += 1;
+      if (hasReadyKeyframe(shot.keyframeData)) done += 1;
+      else if (status === "generating") generating += 1;
     }
     return { total: shots.length, done, generating, missing: Math.max(0, shots.length - done - generating) };
-  }, [optimisticKeyframeShotIds, shots]);
-
-  const keyframeTargetShotIds = useMemo(() => {
-    return shots
-      .filter((shot) => !["done", "generating"].includes(parseKeyframe(shot.keyframeData).status ?? ""))
-      .map((shot) => shot.id);
   }, [shots]);
-  const hasDialogue = useMemo(
-    () => shots.some((shot) => Boolean(shot.dialogue?.trim())),
-    [shots],
-  );
-  const shouldForceTts = summary.total > 0 && summary.pending === 0;
-  const canRunTts = shouldForceTts || summary.pending > 0 || (summary.total === 0 && hasDialogue);
 
   const invalidateAll = () => {
     if (activeOrder !== null) {
@@ -246,32 +239,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     onError: (error: Error) => toast.error("生成分镜失败", { description: error.message }),
   });
 
-  const keyframeBatchMutation = useMutation({
-    mutationFn: (input: { shotIds?: string[]; failedShotIds?: string[]; force?: boolean }) =>
-      createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "keyframes", ...input }),
-    onMutate: (input) => {
-      const targetShotIds = input.shotIds ?? input.failedShotIds ?? [];
-      lastTaskActivityAtRef.current = Date.now();
-      setOptimisticKeyframeShotIds((current) => new Set([...current, ...targetShotIds]));
-      return { targetShotIds };
-    },
-    onSuccess: () => {
-      toast.success("分镜画面已进入并发生成队列。", { description: "生成中的分镜会在左侧缩略图中高亮显示。" });
-      invalidateAll();
-    },
-    onError: (error: Error, _input, mutationContext) => {
-      const targetShotIds = mutationContext?.targetShotIds ?? [];
-      if (targetShotIds.length > 0) {
-        setOptimisticKeyframeShotIds((current) => {
-          const next = new Set(current);
-          for (const shotId of targetShotIds) next.delete(shotId);
-          return next;
-        });
-      }
-      toast.error("创建分镜画面任务失败", { description: error.message });
-    },
-  });
-
   const keyframeOneMutation = useMutation({
     mutationFn: (shotId: string) => generateDramaShotKeyframe(projectId, shotId),
     onMutate: (shotId) => {
@@ -287,35 +254,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     onSettled: () => setKeyframeShotId(null),
   });
 
-  useEffect(() => {
-    if (optimisticKeyframeShotIds.size === 0) {
-      return;
-    }
-    if (keyframeBatchMutation.isPending || keyframeBatchActive || inTaskGraceWindow()) {
-      return;
-    }
-    const generatingShotIds = new Set(
-      shots
-        .filter((shot) => parseKeyframe(shot.keyframeData).status === "generating")
-        .map((shot) => shot.id),
-    );
-    setOptimisticKeyframeShotIds((current) => {
-      const next = new Set([...current].filter((shotId) => generatingShotIds.has(shotId)));
-      return next.size === current.size ? current : next;
-    });
-  }, [keyframeBatchActive, keyframeBatchMutation.isPending, optimisticKeyframeShotIds.size, shots]);
-
-  const ttsBatchMutation = useMutation({
-    mutationFn: (force: boolean) =>
-      createDramaEpisodeBatchJob(projectId, activeOrder as number, { type: "tts", force }),
-    onSuccess: () => {
-      lastTaskActivityAtRef.current = Date.now();
-      toast.success("配音任务已开始", { description: "完成后每一行的配音会变成可播放状态。" });
-      invalidateAll();
-    },
-    onError: (error: Error) => toast.error("创建配音任务失败", { description: error.message }),
-  });
-
   const regenerateMutation = useMutation({
     mutationFn: ({ shot, force }: { shot: DramaShot; force: boolean }) => {
       return regenerateDramaShotAudio(projectId, shot.id, { force });
@@ -329,12 +267,99 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     onSettled: () => setRegeneratingShotId(null),
   });
 
-  const busy = storyboardMutation.isPending || keyframeBatchMutation.isPending || keyframeBatchActive || ttsBatchMutation.isPending;
+  // 合成可以接管并等待已有的批量画面/配音任务，因此不能把 active batch 当成禁用条件。
+  const busy = storyboardMutation.isPending || keyframeOneMutation.isPending || regenerateMutation.isPending;
+  const prepareForAssembly = useCallback(async () => {
+    if (activeOrder === null || shots.length === 0) {
+      return;
+    }
+
+    lastTaskActivityAtRef.current = Date.now();
+    const [latestProjectResponse, latestSegments] = await Promise.all([
+      getDramaProject(projectId),
+      listDramaAudioSegments(projectId, activeOrder),
+    ]);
+    const latestProject = latestProjectResponse.data;
+    const latestEpisode = (latestProject?.episodes ?? []).find((episode) => episode.order === activeOrder);
+    const latestShots = latestEpisode?.storyboards?.[0]?.shots ?? [];
+    if (latestShots.length === 0) {
+      throw new Error("当前集还没有可合成的分镜。");
+    }
+
+    const missingKeyframeShotIds = latestShots
+      .filter((shot) => !hasReadyKeyframe(shot.keyframeData) && parseKeyframe(shot.keyframeData).status !== "generating")
+      .map((shot) => shot.id);
+    const activeKeyframeJob = (latestProject?.batchJobs ?? []).find((job) =>
+      job.episodeId === latestEpisode?.id
+      && job.type === "keyframes"
+      && isActiveBatch(job),
+    );
+    const activeTtsJob = (latestProject?.batchJobs ?? []).find((job) =>
+      job.episodeId === latestEpisode?.id
+      && job.type === "tts"
+      && isActiveBatch(job),
+    );
+    const needsTts = latestShots.some((shot) => Boolean(shot.dialogue?.trim()))
+      && (latestSegments.length === 0 || latestSegments.some((segment) => segment.status !== "ready"));
+
+    const tasks: DramaEpisodePreparationTask[] = [];
+    if (activeKeyframeJob) {
+      tasks.push({ type: "keyframes", jobId: activeKeyframeJob.id });
+    } else if (missingKeyframeShotIds.length > 0) {
+      tasks.push({
+        type: "keyframes",
+        start: async () => {
+          const response = await createDramaEpisodeBatchJob(projectId, activeOrder, {
+            type: "keyframes",
+            shotIds: missingKeyframeShotIds,
+          });
+          const jobId = response.data?.id;
+          if (!jobId) {
+            throw new Error("分镜画面任务创建失败，请重试。");
+          }
+          return jobId;
+        },
+      });
+    }
+    if (activeTtsJob) {
+      tasks.push({ type: "tts", jobId: activeTtsJob.id });
+    } else if (needsTts) {
+      tasks.push({
+        type: "tts",
+        start: async () => {
+          const response = await createDramaEpisodeBatchJob(projectId, activeOrder, {
+            type: "tts",
+            force: false,
+          });
+          const jobId = response.data?.id;
+          if (!jobId) {
+            throw new Error("配音任务创建失败，请重试。");
+          }
+          return jobId;
+        },
+      });
+    }
+
+    await prepareDramaEpisodeAssets({
+      tasks,
+      getJobs: async () => {
+        const response = await getDramaProject(projectId);
+        const episodeId = (response.data?.episodes ?? []).find((episode) => episode.order === activeOrder)?.id;
+        return (response.data?.batchJobs ?? [])
+          .filter((job) => job.episodeId === episodeId)
+          .filter(isPreparationBatchJob)
+          .map(({ id, type, status }) => ({ id, type, status }));
+      },
+    });
+    lastTaskActivityAtRef.current = Date.now();
+    invalidateAll();
+  }, [activeOrder, invalidateAll, projectId, shots.length]);
   const assemblyController = useDramaEpisodeAssembly({
     projectId,
     order: activeEpisode?.order ?? activeOrder ?? 0,
     hasShots: shots.length > 0,
     busy,
+    prepare: prepareForAssembly,
   });
 
   const { mutate: mutateKeyframeOne } = keyframeOneMutation;
@@ -350,39 +375,6 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   const storyboardToolbar = storyboard && toolbarTarget
     ? createPortal(
         <>
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy || keyframeSummary.generating > 0 || keyframeSummary.missing === 0}
-            onClick={() => keyframeBatchMutation.mutate({ shotIds: keyframeTargetShotIds })}
-          >
-            生成分镜
-          </Button>
-          <AiButton
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={busy || shots.length === 0}
-            onClick={() => keyframeBatchMutation.mutate({ shotIds: shots.map((shot) => shot.id), force: true })}
-            title="按统一写实影视化风格重生成本集分镜首帧"
-          >
-            {keyframeBatchMutation.isPending || keyframeBatchActive ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 motion-safe:animate-spin motion-reduce:animate-none" aria-hidden="true" />
-                统一风格生成中…
-              </>
-            ) : (
-              "统一写实重生成"
-            )}
-          </AiButton>
-          <Button
-            size="sm"
-            onClick={() => ttsBatchMutation.mutate(shouldForceTts)}
-            disabled={busy || jobRunning || !canRunTts}
-          >
-            {jobRunning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
-            {jobRunning ? `${shouldForceTts ? "重新配音" : "生成配音"}中...` : shouldForceTts ? "重新配音" : "生成配音"}
-          </Button>
           <DramaEpisodeAssemblyButton
             controller={assemblyController}
             hasShots={shots.length > 0}
@@ -417,7 +409,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
           ) : null}
           {keyframeBatchProgress.concurrency ? <span>并发 {keyframeBatchProgress.concurrency} 路</span> : null}
           {(keyframeBatchProgress.failedShotIds ?? []).length > 0 ? (
-            <span>失败 {(keyframeBatchProgress.failedShotIds ?? []).length} 个，可点击上方按钮重试</span>
+            <span>失败 {(keyframeBatchProgress.failedShotIds ?? []).length} 个，可在对应分镜下方重试</span>
           ) : null}
         </div>
         ) : null}
@@ -465,7 +457,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
               key={shot.id}
               shot={shot}
               segments={segmentsByShotId.get(shot.id) ?? EMPTY_SEGMENTS}
-              keyframeBusy={keyframeShotId === shot.id || optimisticKeyframeShotIds.has(shot.id) || parseKeyframe(shot.keyframeData).status === "generating"}
+              keyframeBusy={keyframeShotId === shot.id || parseKeyframe(shot.keyframeData).status === "generating"}
               regenerating={regeneratingShotId === shot.id}
               projectId={projectId}
               onGenerateKeyframe={handleGenerateKeyframe}
