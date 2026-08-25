@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { StoryAssetPreview } from "./StoryAssetPreview";
-import type { StoryAssetPresentation } from "./storyAssetPresentation";
+import type { StoryAssetImageStatus, StoryAssetPresentation } from "./storyAssetPresentation";
 
 export interface StoryAssetCardProps {
   asset: StoryAssetPresentation;
@@ -31,6 +31,37 @@ const KIND_TONES: Record<StoryAssetPresentation["kind"], { card: string; badge: 
   },
 };
 
+function AssetImageStatusBadge({
+  status,
+  error,
+}: {
+  status: StoryAssetImageStatus | null;
+  error: string;
+}) {
+  if (status === "generating") {
+    return (
+      <Badge variant="outline" className="gap-1 border-primary/50 bg-primary/10 text-[11px] text-primary">
+        <LoaderCircle aria-hidden="true" className="h-3 w-3 animate-spin" />
+        生成中
+      </Badge>
+    );
+  }
+
+  if (status === "error" && error) {
+    return (
+      <Badge
+        variant="outline"
+        title={error}
+        className="border-destructive/50 bg-destructive/10 text-[11px] text-destructive"
+      >
+        生成失败
+      </Badge>
+    );
+  }
+
+  return null;
+}
+
 export function StoryAssetCard({
   asset,
   compact = false,
@@ -43,51 +74,64 @@ export function StoryAssetCard({
   const imageStatus = defaultState?.imageStatus === "error" && !defaultState?.imageError
     ? null
     : defaultState?.imageStatus ?? null;
+  const stateLabel = defaultState?.label.trim() || "暂无状态";
+  const stateCountLabel = asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态";
   return (
     <Card className={cn("min-w-0", tone.card, className)}>
-      <CardContent className={cn("p-3", compact && "p-2.5")}>
-        <div className="flex items-start gap-2">
+      <CardContent className="p-2.5">
+        <div className={cn(compact ? "flex items-start gap-2" : "relative")}>
           <button
             type="button"
-            className="flex min-w-0 flex-1 items-stretch gap-3 rounded-md text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(
+              compact
+                ? "flex min-w-0 flex-1 items-stretch gap-3 rounded-md text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+                : "group block w-full rounded-lg text-left outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring",
+            )}
             onClick={onOpen}
             aria-label={`查看${asset.typeLabel}「${asset.name}」详情`}
           >
             <StoryAssetPreview
               preview={asset.preview}
               status={imageStatus}
-              className={cn("w-24 shrink-0", !compact && "sm:w-36")}
+              className={compact ? "w-24 shrink-0" : "w-full"}
             />
-            <span className="min-w-0 flex-1 py-1">
-              <span className="flex min-w-0 items-start gap-2">
-                <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
-                <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
+            {compact ? (
+              <span className="min-w-0 flex-1 py-1">
+                <span className="flex min-w-0 items-start gap-2">
+                  <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
+                  <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
+                </span>
+                <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                  {asset.summary}
+                </p>
+                <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {asset.badges.map((badge) => (
+                    <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
+                  ))}
+                  <AssetImageStatusBadge status={imageStatus} error={defaultState?.imageError ?? ""} />
+                  <Badge variant="secondary" className="text-[11px]">{stateCountLabel}</Badge>
+                </span>
               </span>
-              <p className={cn("mt-2 text-xs leading-5 text-muted-foreground", compact ? "line-clamp-2" : "line-clamp-3")}>
-                {asset.summary}
-              </p>
-              <span className="mt-2 flex flex-wrap items-center gap-1.5">
-                {asset.badges.map((badge) => (
-                  <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
-                ))}
-                {imageStatus === "generating" ? (
-                  <Badge variant="outline" className="gap-1 border-primary/50 bg-primary/10 text-[11px] text-primary">
-                    <LoaderCircle aria-hidden="true" className="h-3 w-3 animate-spin" />
-                    生成中
-                  </Badge>
-                ) : imageStatus === "error" && Boolean(defaultState?.imageError) ? (
-                  <Badge variant="outline" title={defaultState?.imageError || undefined} className="border-destructive/50 bg-destructive/10 text-[11px] text-destructive">
-                    生成失败
-                  </Badge>
-                ) : null}
-                <Badge variant="secondary" className="text-[11px]">
-                  {asset.states.length > 0 ? `${asset.states.length} 个状态` : "暂无状态"}
-                </Badge>
+            ) : (
+              <span className="mt-2 block min-w-0">
+                <span className="block truncate font-medium text-foreground">{asset.name}</span>
+                <span className="mt-1.5 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="min-w-0 truncate">{stateLabel}</span>
+                  <span aria-hidden="true">·</span>
+                  <span className="shrink-0">{stateCountLabel}</span>
+                  <AssetImageStatusBadge status={imageStatus} error={defaultState?.imageError ?? ""} />
+                </span>
               </span>
-            </span>
+            )}
           </button>
           {actions ? (
-            <div className="flex shrink-0 items-center gap-1" onClick={(event) => event.stopPropagation()}>
+            <div
+              className={cn(
+                "flex shrink-0 items-center gap-1",
+                !compact && "absolute right-1.5 top-1.5 rounded-md bg-background/80 p-0.5 backdrop-blur-sm",
+              )}
+              onClick={(event) => event.stopPropagation()}
+            >
               {actions}
             </div>
           ) : null}

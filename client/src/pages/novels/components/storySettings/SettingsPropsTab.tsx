@@ -120,7 +120,7 @@ export default function SettingsPropsTab({ novelId, onChanged }: SettingsPropsTa
       ) : filteredProps.length === 0 ? (
         <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredProps.map((prop) => {
             const asset = buildStoryAssetPresentation({ kind: "prop", asset: prop });
             return (
