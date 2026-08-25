@@ -119,7 +119,6 @@ export default function DramaBlocking3DPage() {
   const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
   const autoPlanKeyRef = useRef<string | null>(null);
 
   const contextQuery = useQuery({
@@ -198,7 +197,7 @@ export default function DramaBlocking3DPage() {
     syncSelection(viewer);
   }, [autoPlanning, saving, syncSelection, viewer]);
 
-  const handleAutoSave = useCallback(async (): Promise<boolean> => {
+  const saveSketch = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
     if (!viewer || !context?.scene) return false;
     const promise = (async () => {
@@ -207,25 +206,25 @@ export default function DramaBlocking3DPage() {
       try {
         const draft = buildSketchData(context, viewer);
         const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
-        if (!saved.data) throw new Error("自动保存没有返回草图数据。");
+        if (!saved.data) throw new Error("保存没有返回草图数据。");
         const png = viewer.capturePng();
         const uploaded = await uploadDramaShotBlockingSketchPng(projectId, shotId, png);
-        if (!uploaded.data) throw new Error("自动保存没有返回草图图片。");
+        if (!uploaded.data) throw new Error("保存没有返回草图图片。");
         const confirmed = await confirmDramaShotBlockingSketch(projectId, shotId);
-        if (!confirmed.data) throw new Error("自动确认没有返回草图数据。");
+        if (!confirmed.data) throw new Error("确认没有返回草图数据。");
         setSavedData(confirmed.data);
         setDirty(false);
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId), refetchType: "all" }),
           queryClient.invalidateQueries({ queryKey: ["comic-drama"], refetchType: "all" }),
         ]);
-        setStatus("3D 草图已自动保存");
-        toast.success("3D 草图已自动保存。", {
+        setStatus("3D 草图已保存");
+        toast.success("3D 草图已保存。", {
           description: "分镜生成会使用最新的草图参考图。",
         });
         return true;
       } catch (error) {
-        toast.error("自动保存 3D 草图失败", {
+        toast.error("保存 3D 草图失败", {
           description: error instanceof Error ? error.message : "请稍后重试。",
         });
         return false;
@@ -251,11 +250,10 @@ export default function DramaBlocking3DPage() {
       viewer.loadLayout(result.data.layout);
       syncSelection(viewer);
       setDirty(true);
-      setStatus("AI 构图完成，正在自动保存");
+      setStatus("AI 构图完成，有未保存修改");
       toast.success("AI 已完成本镜构图。", {
         description: result.data.compositionNote || "角色位置、相机和景深已应用到 3D 草图。",
       });
-      await handleAutoSave();
     } catch (error) {
       toast.error("AI 自动构图失败", {
         description: error instanceof Error ? error.message : "请稍后重试，原有布局已保留。",
@@ -264,20 +262,7 @@ export default function DramaBlocking3DPage() {
       viewer.setInteractionEnabled(true);
       setAutoPlanning(false);
     }
-  }, [autoPlanning, context, handleAutoSave, projectId, saving, shotId, syncSelection, viewer]);
-
-  useEffect(() => {
-    if (!dirty || !viewer || autoPlanning) return undefined;
-    const timer = window.setTimeout(() => {
-      saveTimerRef.current = null;
-      void handleAutoSave();
-    }, 900);
-    saveTimerRef.current = timer;
-    return () => {
-      window.clearTimeout(timer);
-      if (saveTimerRef.current === timer) saveTimerRef.current = null;
-    };
-  }, [autoPlanning, dirty, handleAutoSave, viewer]);
+  }, [autoPlanning, context, projectId, saving, shotId, syncSelection, viewer]);
 
   useEffect(() => {
     if (!viewer || !context?.scene || context.sketch?.layout3d || context.actors.length === 0) return;
@@ -287,20 +272,16 @@ export default function DramaBlocking3DPage() {
     void handleAutoPlan();
   }, [context, handleAutoPlan, projectId, shotId, viewer]);
 
-  const flushAutoSave = useCallback(async (): Promise<boolean> => {
-    if (saveTimerRef.current !== null) {
-      window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
+  const saveBeforeExit = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
-    if (dirty) return handleAutoSave();
+    if (dirty) return saveSketch();
     return true;
-  }, [dirty, handleAutoSave]);
+  }, [dirty, saveSketch]);
 
   const goBack = async () => {
     if (leavingRef.current) return;
     leavingRef.current = true;
-    if (!(await flushAutoSave())) {
+    if (!(await saveBeforeExit())) {
       leavingRef.current = false;
       return;
     }
@@ -340,7 +321,7 @@ export default function DramaBlocking3DPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
                   <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
-                    {saving ? "自动保存中" : dirty ? "等待自动保存" : currentStatus === "confirmed" ? "已自动保存" : "草稿"}
+                    {saving ? "保存中" : dirty ? "有未保存修改" : currentStatus === "confirmed" ? "已保存" : "草稿"}
                   </Badge>
                 </div>
                 <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧调整静态姿势和位置。</p>
