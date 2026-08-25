@@ -72,6 +72,28 @@ test("integration requires the protected main branch and a clean codex worktree"
   );
 });
 
+test("integration refuses to change main while an orphan lifecycle issue exists", (t) => {
+  const directory = createRepository();
+  const source = createFeatureWorktree(directory, "codex/integration-with-orphan", "feature.txt", "feature\n");
+  const orphanBranch = "codex/orphan-integration-blocker";
+  const orphanPath = path.join(path.dirname(directory), `${path.basename(directory)}-orphan-integration-blocker`);
+  runGit(directory, ["worktree", "add", "-b", orphanBranch, orphanPath, "main"]);
+  runGit(directory, ["worktree", "remove", "--force", orphanPath]);
+  fs.mkdirSync(path.join(orphanPath, "shared"), { recursive: true });
+  t.after(() => {
+    fs.rmSync(orphanPath, { recursive: true, force: true });
+    runGit(directory, ["branch", "-D", orphanBranch], { expectSuccess: false });
+    cleanupRepository(directory, source);
+  });
+
+  assert.throws(
+    () => assertIntegrationPreconditions({ cwd: directory, taskBranch: "codex/integration-with-orphan" }),
+    /unresolved worktree lifecycle|orphan-worktree-directory/i,
+  );
+  assert.equal(hasMergeHead(directory), false);
+  assert.equal(runGit(directory, ["rev-parse", "HEAD"]).status, 0);
+});
+
 test("integration arguments require the source branch first and reject unknown options", () => {
   assert.deepEqual(parseArgs(["codex/example", "--push", "--verify", "node --test"]), {
     taskBranch: "codex/example",

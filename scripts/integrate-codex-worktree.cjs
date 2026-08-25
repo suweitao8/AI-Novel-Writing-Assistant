@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync, spawnSync } = require("node:child_process");
 const { assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
+const { assertNoUnresolvedWorktreeLifecycleIssues } = require("./worktree-lifecycle-audit.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
@@ -104,6 +105,7 @@ function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch } = {}
     throw new Error("Integration source must be a local codex/<lowercase-task> branch.");
   }
   assertWorktreeFilesystemIsolation({ cwd, phase: "integration main" });
+  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "integration main" });
   if (workspaceChanges(cwd).length > 0) {
     throw new Error("main workspace is not clean; refuse to integrate over uncommitted changes.");
   }

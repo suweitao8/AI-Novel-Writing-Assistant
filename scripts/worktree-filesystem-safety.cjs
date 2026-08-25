@@ -73,7 +73,7 @@ function linkTarget(linkPath, root, phase) {
   return target;
 }
 
-function assertSourceDirectory(directoryPath, { required, phase, root }) {
+function assertSourceDirectory(directoryPath, { required, phase, checkoutRoot }) {
   let stats;
   try {
     stats = fs.lstatSync(directoryPath);
@@ -86,13 +86,12 @@ function assertSourceDirectory(directoryPath, { required, phase, root }) {
   }
 
   if (stats.isSymbolicLink()) {
-    const root = path.dirname(path.dirname(directoryPath));
     const target = realPath(directoryPath);
     fail([
       `${phase}: source directory must be a real directory`,
       `${displayPath(directoryPath)} -> ${target ? displayPath(target) : "<broken link>"}`,
       `The source path cannot be shared through a Junction or symbolic link.`,
-      `Checkout root: ${displayPath(root ?? path.dirname(directoryPath))}`,
+      `Checkout root: ${displayPath(checkoutRoot)}`,
     ].join("\n"));
   }
   if (!stats.isDirectory()) {
@@ -101,7 +100,7 @@ function assertSourceDirectory(directoryPath, { required, phase, root }) {
   return true;
 }
 
-function inspectDependencyEntry(entryPath, root, phase) {
+function inspectDependencyEntry(entryPath, root, phase, visitedDirectories = new Set()) {
   let stats;
   try {
     stats = fs.lstatSync(entryPath);
@@ -116,8 +115,13 @@ function inspectDependencyEntry(entryPath, root, phase) {
   }
   if (!stats.isDirectory()) return;
 
-  const entryName = path.basename(entryPath);
-  if (!entryName.startsWith("@")) return;
+  const resolvedEntryPath = realPath(entryPath);
+  if (!resolvedEntryPath) {
+    fail(`${phase}: dependency directory has no resolvable path: ${displayPath(entryPath)}.`);
+  }
+  const comparableResolvedPath = comparablePath(resolvedEntryPath);
+  if (visitedDirectories.has(comparableResolvedPath)) return;
+  visitedDirectories.add(comparableResolvedPath);
 
   let children;
   try {
@@ -126,7 +130,7 @@ function inspectDependencyEntry(entryPath, root, phase) {
     fail(`${phase}: cannot inspect scoped dependency directory ${displayPath(entryPath)}: ${error.message}`);
   }
   for (const child of children) {
-    inspectDependencyEntry(path.join(entryPath, child.name), root, phase);
+    inspectDependencyEntry(path.join(entryPath, child.name), root, phase, visitedDirectories);
   }
 }
 
@@ -153,12 +157,9 @@ function inspectDependencyRoot(dependencyRoot, root, phase) {
   } catch (error) {
     fail(`${phase}: cannot inspect dependency root ${displayPath(dependencyRoot)}: ${error.message}`);
   }
+  const visitedDirectories = new Set();
   for (const entry of entries) {
-    if (entry.name === ".pnpm") {
-      inspectDependencyEntry(path.join(dependencyRoot, entry.name), root, phase);
-      continue;
-    }
-    inspectDependencyEntry(path.join(dependencyRoot, entry.name), root, phase);
+    inspectDependencyEntry(path.join(dependencyRoot, entry.name), root, phase, visitedDirectories);
   }
 }
 
@@ -185,16 +186,28 @@ function inspectReparsePoints({ cwd = process.cwd(), paths: candidatePaths } = {
   return links;
 }
 
-function assertWorktreeFilesystemIsolation({ cwd = process.cwd(), phase = "workspace" } = {}) {
-  const root = repositoryRoot(cwd);
-  assertSourceDirectory(path.join(root, "shared"), { required: true, phase, root });
+function assertFilesystemIsolationAtRoot({ root, phase = "workspace" } = {}) {
+  const resolvedRoot = path.resolve(root);
+  assertSourceDirectory(path.join(resolvedRoot, "shared"), {
+    required: true,
+    phase,
+    checkoutRoot: resolvedRoot,
+  });
   for (const directory of SOURCE_DIRECTORIES) {
-    assertSourceDirectory(path.join(root, directory), { required: false, phase, root });
+    assertSourceDirectory(path.join(resolvedRoot, directory), {
+      required: false,
+      phase,
+      checkoutRoot: resolvedRoot,
+    });
   }
   for (const dependencyRoot of DEPENDENCY_ROOTS) {
-    inspectDependencyRoot(path.join(root, dependencyRoot), root, phase);
+    inspectDependencyRoot(path.join(resolvedRoot, dependencyRoot), resolvedRoot, phase);
   }
-  return { root };
+  return { root: resolvedRoot };
+}
+
+function assertWorktreeFilesystemIsolation({ cwd = process.cwd(), phase = "workspace" } = {}) {
+  return assertFilesystemIsolationAtRoot({ root: repositoryRoot(cwd), phase });
 }
 
 function assertMainSourceIntegrity(options = {}) {
@@ -205,6 +218,7 @@ module.exports = {
   DEPENDENCY_ROOTS,
   SOURCE_DIRECTORIES,
   assertMainSourceIntegrity,
+  assertFilesystemIsolationAtRoot,
   assertWorktreeFilesystemIsolation,
   comparablePath,
   displayPath,

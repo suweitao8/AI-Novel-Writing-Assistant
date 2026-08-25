@@ -54,8 +54,7 @@ function workspaceChanges(cwd) {
   return output ? output.split(/\r?\n/).filter(Boolean) : [];
 }
 
-function worktreeEntries(cwd) {
-  const output = runGit(cwd, ["worktree", "list", "--porcelain"]);
+function parseWorktreeList(output) {
   const entries = [];
   let current = null;
   for (const line of output.split(/\r?\n/)) {
@@ -68,9 +67,14 @@ function worktreeEntries(cwd) {
     if (line.startsWith("HEAD ")) current.head = line.slice("HEAD ".length);
     if (line.startsWith("branch ")) current.branch = line.slice("branch ".length);
     if (line === "detached") current.detached = true;
+    if (line === "prunable") current.prunable = true;
   }
   if (current) entries.push(current);
   return entries;
+}
+
+function worktreeEntries(cwd) {
+  return parseWorktreeList(runGit(cwd, ["worktree", "list", "--porcelain"]));
 }
 
 function normalizedPath(value) {
@@ -279,6 +283,7 @@ module.exports = {
   cleanupCodexWorktree,
   currentBranch,
   findCandidate,
+  parseWorktreeList,
   removeLocalDependencyRoots,
   removeRegisteredWorktree,
   repositoryRoot,

@@ -19,7 +19,7 @@
 - 不自动恢复被删除的文件，不执行 `git restore`、数据库重置或 Prisma 数据丢失迁移。
 - 不修改已有并行工作树，不删除未明确指定的目录或分支。
 - 不禁止 pnpm 在当前 checkout 内建立的链接；只阻止解析到 checkout 外部的链接。
-- 不递归扫描整个 `.pnpm` 内容仓库；检查范围聚焦源码目录和本项目依赖入口，避免启动明显变慢。
+- 不跟随外部链接递归扫描未知目录；检查范围仍聚焦源码目录和六个本项目依赖根，但会递归检查这些根内部的链接，避免深层 Junction 绕过门禁。
 
 ## 方案
 
@@ -32,7 +32,7 @@
 - 检查根目录以及所有当前 workspace 包的依赖入口：`client/node_modules`、`server/node_modules`、`shared/node_modules`、`site/node_modules`、`video/node_modules`，并检查 `@ai-novel/shared` 解析目标。允许当前 checkout 内的 pnpm 链接，拒绝指向主 checkout、其他 worktree 或 checkout 外部的 Junction/符号链接。
 - 提供可测试的 `assertWorktreeFilesystemIsolation`、`assertMainSourceIntegrity` 和 `inspectReparsePoints`，错误信息包含“链接路径 -> 真实目标”。
 
-安全检查不跟随外部链接递归遍历。对链接只读取 `lstat` 和 `realpath`，对普通目录只扫描约定的顶层入口；因此检查本身不会因为 `node_modules` 规模而扩大破坏面。
+安全检查不跟随外部链接递归遍历。对链接只读取 `lstat` 和 `realpath`，对固定依赖根内的普通目录递归扫描并在真实路径去重；因此检查不会跨 checkout 扩大破坏面，同时能捕获非 scoped package 下的深层 Junction。
 
 ### 2. 工作流入口接入
 
