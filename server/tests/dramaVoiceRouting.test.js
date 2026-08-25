@@ -24,7 +24,7 @@ test("分镜配音为旁白保留 narration 语义，并且不把旁白当成角
   assert.equal(request.referenceAudioUrl, "data:audio/wav;base64,narrator");
 });
 
-test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () => {
+test("VoxCPM2 请求继续为角色保留 dialogue 语义和角色名", () => {
   const { buildDialogueTTSRequest } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
 
   const request = buildDialogueTTSRequest(
@@ -38,8 +38,7 @@ test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () 
       name: "林澈",
       voiceId: "lin-che",
       voicePrompt: "青年男声，低沉克制",
-      referenceAudioUrl: "data:audio/wav;base64:character",
-      indexTTS25Speaker: "lin-che-lora",
+      referenceAudioUrl: "data:audio/wav;base64,Y2hhcmFjdGVy",
     },
     {},
   );
@@ -47,35 +46,31 @@ test("IndexTTS 2.5 请求继续为角色保留 dialogue 语义和角色名", () 
   assert.equal(request.audioType, "dialogue");
   assert.equal(request.speaker, "林澈");
   assert.equal(request.emotion, "压低声音");
-  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64:character");
-  assert.equal(request.indexTTS25Speaker, "lin-che-lora");
+  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64,Y2hhcmFjdGVy");
 });
 
-test("角色试听样本会作为后续 IndexTTS 参考音频，且读取自定义 speaker", () => {
+test("角色试听样本会作为后续 VoxCPM2 参考音频", () => {
   const { readCharacterVoice, buildDialogueTTSRequest } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
   const voice = readCharacterVoice({
     name: "叶竹",
     voiceProfile: JSON.stringify({
       voicePrompt: "青年女声，清亮克制",
-      sampleAudioUrl: "data:audio/wav;base64:preview",
-      indexTTS25Speaker: "ye-zhu-lora",
+      sampleAudioUrl: "data:audio/wav;base64,cHJldmlldw==",
     }),
   });
-  assert.equal(voice.referenceAudioUrl, "data:audio/wav;base64:preview");
-  assert.equal(voice.indexTTS25Speaker, "ye-zhu-lora");
+  assert.equal(voice.referenceAudioUrl, "data:audio/wav;base64,cHJldmlldw==");
   const request = buildDialogueTTSRequest(
     { type: "dialogue", speaker: "叶竹", text: "我在。", emotion: undefined },
     voice,
     {},
   );
-  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64:preview");
-  assert.equal(request.indexTTS25Speaker, "ye-zhu-lora");
+  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64,cHJldmlldw==");
 });
 
-test("IndexTTS 2.5 provider 将分镜的 audioType 透传到公共语音出口", () => {
-  const { buildIndexTTS25SpeechInput } = require("../dist/services/drama/audio/IndexTTS25TTSProvider.js");
+test("VoxCPM2 provider 将分镜的 audioType 透传到公共语音出口", () => {
+  const { buildVoxCPMSpeechInput } = require("../dist/services/drama/audio/VoxCPM2TTSProvider.js");
 
-  const narrator = buildIndexTTS25SpeechInput({
+  const narrator = buildVoxCPMSpeechInput({
     text: "旁白内容。",
     audioType: "narration",
     speaker: "旁白",
@@ -85,16 +80,28 @@ test("IndexTTS 2.5 provider 将分镜的 audioType 透传到公共语音出口",
   assert.equal(narrator.audioType, "narration");
   assert.equal(narrator.speaker, undefined);
 
-  const dialogue = buildIndexTTS25SpeechInput({
+  const dialogue = buildVoxCPMSpeechInput({
     text: "角色内容。",
     audioType: "dialogue",
     speaker: "林澈",
-    indexTTS25Speaker: "lin-che-lora",
     emotion: "克制",
   });
   assert.equal(dialogue.audioType, "dialogue");
   assert.equal(dialogue.speaker, "林澈");
-  assert.equal(dialogue.indexTTS25Speaker, "lin-che-lora");
+});
+
+test("历史 IndexTTS 文件名不会作为 VoxCPM2 参考音频发送", () => {
+  const { buildDialogueTTSRequest } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
+  const request = buildDialogueTTSRequest(
+    { type: "narration", speaker: "旁白", text: "继续前进。", emotion: undefined },
+    undefined,
+    {
+      description: "成年女声旁白，温和沉稳",
+      referenceAudioUrl: "app-legacy-index-reference.mp3",
+      sampleAudioUrl: "data:audio/wav;base64,Z2VuZXJhdGVkLXByZXZpZXc=",
+    },
+  );
+  assert.equal(request.referenceAudioUrl, "data:audio/wav;base64,Z2VuZXJhdGVkLXByZXZpZXc=");
 });
 
 test("旁白音色指纹包含路由版本，自动淘汰旧的对白包装音频", () => {
@@ -103,21 +110,20 @@ test("旁白音色指纹包含路由版本，自动淘汰旧的对白包装音�
     type: "narration",
     narratorDescription: "成年女声旁白，温和沉稳",
     narratorSampleAudioUrl: "data:audio/wav;base64:narrator",
-    narratorIndexTTS25Speaker: "narrator-lora",
   });
 
   assert.match(key, /narration-v2/);
 });
 
-test("speaker 变化会淘汰旧对白音频", () => {
+test("角色音色描述变化会淘汰旧对白音频", () => {
   const { buildDialogueVoiceKey } = require("../dist/services/drama/audio/DramaDialogueAudioService.js");
   const first = buildDialogueVoiceKey({
     type: "dialogue",
-    voice: { name: "叶竹", indexTTS25Speaker: "default" },
+    voice: { name: "叶竹", voicePrompt: "自然女声" },
   });
   const second = buildDialogueVoiceKey({
     type: "dialogue",
-    voice: { name: "叶竹", indexTTS25Speaker: "ye-zhu-lora" },
+    voice: { name: "叶竹", voicePrompt: "清亮女声" },
   });
   assert.notEqual(first, second);
 });

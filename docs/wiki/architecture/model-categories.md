@@ -7,7 +7,7 @@
 ## 决策
 
 - 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型。
-- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=grok-cli`（Grok Build 文本本地桥）、`image=grok_build`（Grok Build 图片本地桥）、`audio=indextts25`（IndexTTS 2.5 本地语音 API）。带参考图的图片任务由业务路由自动回退到兼容 `/images/edits` 的 Codex 图片桥。
+- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=grok-cli`（Grok Build 文本本地桥）、`image=grok_build`（Grok Build 图片本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音 API）。带参考图的图片任务由业务路由自动回退到兼容 `/images/edits` 的 Codex 图片桥。
 - 槽位的服务地址、API Key、模型均可编辑；更换供应商时修改槽位配置即可，产品不再提供按厂商维度逐个配置的界面。
 - 所有任务路由统一解析到文本槽：`resolveModel` 的 provider/model 一律来自文本槽当前配置，路由行仅保留温度与结构化协议偏好，避免历史路由把任务钉在已不再使用的供应商上。
 
@@ -20,7 +20,7 @@
 - 存量数据里遗留的 provider 值（如拆书记录中的 deepseek）不再被文字任务读取；重新入队时会回写为文本槽当前供应商。
 - 知识库向量（RAG embedding）是独立通道，有专属设置面与默认供应商，不属于文本/图片槽管辖。
 - `/api/settings/model-categories` 返回三槽状态；前端模型设置页只渲染三张卡片，见 `client/src/pages/settings/models/`。
-- 音频槽的合成入口统一走 `server/src/services/audio/speechProvider.ts`（`synthesizeAudioSpeech`），配置解析顺序与文本/图片槽一致（已保存配置 > 环境变量 > 注册表默认值）；短剧配音链通过 `services/drama/audio/IndexTTS25TTSProvider.ts` 适配为 TTS provider。协议契约见 `docs/wiki/architecture/indextts25-audio-provider.md`。
+- 音频槽的合成入口统一走 `server/src/services/audio/speechProvider.ts`（`synthesizeAudioSpeech`），配置解析顺序与文本/图片槽一致（已保存配置 > 环境变量 > 注册表默认值）；当前默认通过 `services/drama/audio/VoxCPM2TTSProvider.ts` 接入本机 VoxCPM2，协议契约见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。IndexTTS 2.5 仅保留显式兼容适配，不属于默认启动链。
 - 音频槽的连通测试走 `POST /api/settings/model-categories/audio/test`：合成一句固定短语验证地址、密钥与模型整体可用，不复用文本模型的对话探测。
 - `LLMSelector` 只展示文本槽的模型列表；`llm-selection` 保存的历史选择只有落在文本槽供应商上时才沿用其模型，否则回落文本槽当前模型（`client/src/lib/llmSelection.ts` 的 `resolvePreferredLLMSelection`）。
 - 新手引导（QuickSetup）只配置文本槽：检测通过后写入全部任务路由的温度与协议偏好，并保存全局选择。
@@ -33,7 +33,7 @@
 
 - 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
 - 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
-- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 9005 IndexTTS 2.5 音频 API）时连通测试失败；`pnpm dev` 会自动启动这些开发依赖，单独启动服务端时分别执行 `pnpm grok:bridge`、`pnpm codex:image`、`pnpm indextts25:api`。音频 API 的正式实现与健康校验见 `docs/wiki/architecture/indextts25-audio-provider.md`。
+- 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 18761 VoxCPM2 音频 API）时连通测试失败；`pnpm dev` 会自动启动这些开发依赖，单独启动服务端时分别执行 `pnpm grok:bridge`、`pnpm codex:image`、`pnpm voxcpm2:bridge`。音频 API 的正式实现与健康校验见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 
 ## 相关模块
 
@@ -44,5 +44,5 @@
 - `server/src/modules/setup/onboarding/application/QuickSetupService.ts`：新手引导。
 - `client/src/pages/settings/models/`：设置页三卡片。
 - `client/src/components/common/LLMSelector.tsx`、`client/src/components/layout/LLMSelectionBootstrap.tsx`、`client/src/lib/llmSelection.ts`。
-- `server/src/services/audio/speechProvider.ts`：音频槽语音合成入口；`server/src/services/audio/indexTTS25.ts`：参考音频缓存与 IndexTTS 协议适配；`server/src/services/drama/audio/IndexTTS25TTSProvider.ts`：配音链适配器。
-- 相关文档：`docs/wiki/architecture/grok-build-provider.md`、`docs/wiki/architecture/opencode-go-provider.md`、`docs/wiki/architecture/codex-image-provider.md`、`docs/wiki/architecture/indextts25-audio-provider.md`。
+- `server/src/services/audio/speechProvider.ts`：音频槽语音合成入口；`server/src/services/drama/audio/VoxCPM2TTSProvider.ts`：当前配音链适配器；`server/src/services/audio/indexTTS25.ts`：暂存的 IndexTTS 显式兼容实现。
+- 相关文档：`docs/wiki/architecture/grok-build-provider.md`、`docs/wiki/architecture/opencode-go-provider.md`、`docs/wiki/architecture/codex-image-provider.md`、`docs/wiki/architecture/voxcpm2-audio-provider.md`、`docs/wiki/architecture/indextts25-audio-provider.md`。

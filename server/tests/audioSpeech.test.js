@@ -5,11 +5,13 @@ const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
 
-test("IndexTTS 2.5 provider is registered from the audio model slot", () => {
+test("VoxCPM2 provider is registered from the audio model slot", () => {
   const { ttsProviderRegistry } = require("../dist/services/drama/audio/TTSProviderPort.js");
+  const { getAudioModelProvider } = require("../dist/llm/modelCategories.js");
   const providers = ttsProviderRegistry.listProviders();
-  assert.equal(providers.some((item) => item.provider === "indextts25"), true);
-  assert.equal(providers.some((item) => item.provider === "voxcpm2"), false);
+  assert.equal(getAudioModelProvider(), "voxcpm2");
+  assert.equal(providers.some((item) => item.provider === "voxcpm2"), true);
+  assert.equal(providers.some((item) => item.provider === "indextts25"), false);
 });
 
 function withIndexTTSRoot() {
@@ -29,23 +31,17 @@ function withIndexTTSRoot() {
   };
 }
 
-test("audio speech synthesis follows the IndexTTS 2.5 /tts protocol and caches references", async () => {
-  const fixture = withIndexTTSRoot();
+test("audio speech synthesis follows the VoxCPM2 /v1/audio/speech protocol", async () => {
   const seen = [];
   const server = http.createServer((req, res) => {
-    if (req.url === "/health") {
-      res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ status: "ok", model_loaded: false, qwen_emo: true }));
-      return;
-    }
     let body = "";
     req.on("data", (chunk) => {
       body += chunk;
     });
     req.on("end", () => {
       seen.push({ url: req.url, auth: req.headers.authorization, body: JSON.parse(body) });
-      res.setHeader("Content-Type", "audio/wav");
-      res.end(Buffer.from("fake-wav-bytes"));
+      res.setHeader("Content-Type", "audio/mpeg");
+      res.end(Buffer.from("fake-mp3-bytes"));
     });
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -58,35 +54,32 @@ test("audio speech synthesis follows the IndexTTS 2.5 /tts protocol and caches r
         text: "测试台词。",
         audioType: "dialogue",
         speaker: "林月",
-        speed: 1.25,
         emotion: "紧张",
         referenceAudioUrl: "data:audio/mpeg;base64,cmVm",
       },
       {
+        provider: "voxcpm2",
         baseURL: `http://127.0.0.1:${port}`,
-        apiKey: "local-indextts25",
-        model: "index-tts-2.5",
+        apiKey: "local-voxcpm2",
+        model: "voxcpm2",
       },
     );
 
     assert.equal(seen.length, 1);
-    assert.equal(seen[0].url, "/tts");
-    assert.equal(seen[0].auth, "Bearer local-indextts25");
-    assert.equal(seen[0].body.speaker, "default");
-    assert.match(seen[0].body.audio, /^app-[a-f0-9]{32}\.mp3$/);
-    assert.equal(seen[0].body.text, "测试台词。");
-    assert.equal(seen[0].body.lang, "ZH");
-    assert.equal(seen[0].body.duration_factor, 0.8);
-    assert.equal(seen[0].body.emo_control_method, 3);
-    assert.equal(seen[0].body.emo_text, "紧张");
-    assert.equal(seen[0].body.return_type, "file");
-    assert.equal(result.contentType, "audio/wav");
+    assert.equal(seen[0].url, "/audio/speech");
+    assert.equal(seen[0].auth, "Bearer local-voxcpm2");
+    assert.equal(seen[0].body.model, "voxcpm2");
+    assert.equal(seen[0].body.input, "测试台词。");
+    assert.equal(seen[0].body.metadata.audio_type, "dialogue");
+    assert.equal(seen[0].body.metadata.speaker, "林月");
+    assert.equal(seen[0].body.metadata.emotion_prompt, "紧张");
+    assert.equal(seen[0].body.metadata.audio_url, "data:audio/mpeg;base64,cmVm");
+    assert.equal(seen[0].body.metadata.should_use_prompt_for_emotion, true);
+    assert.equal(result.contentType, "audio/mpeg");
     assert.ok(result.byteLength > 0);
-    assert.match(result.dataUrl, /^data:audio\/wav;base64,/);
-    assert.equal(fs.existsSync(path.join(fixture.root, "voices", seen[0].body.audio)), true);
+    assert.match(result.dataUrl, /^data:audio\/mpeg;base64,/);
   } finally {
     await new Promise((resolve) => server.close(resolve));
-    fixture.restore();
   }
 });
 
@@ -134,7 +127,7 @@ test("IndexTTS 2.5 synthesis rejects remote and outside-library reference paths"
   const fixture = withIndexTTSRoot();
   try {
     const { synthesizeAudioSpeech } = require("../dist/services/audio/speechProvider.js");
-    const config = { baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" };
+    const config = { provider: "indextts25", baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" };
     await assert.rejects(
       synthesizeAudioSpeech({ text: "不应读取远程文件。", audioType: "dialogue", referenceAudioUrl: "https://example.com/private.mp3" }, config),
       /只能使用音频 data URL 或 IndexTTS 音色库中的文件名/,
@@ -160,7 +153,7 @@ test("IndexTTS 2.5 reference data URL is capped by decoded bytes", async () => {
     await assert.rejects(
       synthesizeAudioSpeech(
         { text: "不应读取超大音频。", audioType: "dialogue", referenceAudioUrl: `data:audio/mpeg;base64,${oversized}` },
-        { baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" },
+        { provider: "indextts25", baseURL: "http://127.0.0.1:1", apiKey: "local-indextts25", model: "index-tts-2.5" },
       ),
       /不能超过 10 MB/,
     );
@@ -223,7 +216,7 @@ test("IndexTTS 2.5 falls back to reference-audio emotion mode when QwenEmotion i
     const { synthesizeAudioSpeech } = require("../dist/services/audio/speechProvider.js");
     await synthesizeAudioSpeech(
       { text: "测试旁白。", audioType: "narration", emotion: "平静" },
-      { baseURL: `http://127.0.0.1:${server.address().port}`, apiKey: "local-indextts25", model: "index-tts-2.5" },
+      { provider: "indextts25", baseURL: `http://127.0.0.1:${server.address().port}`, apiKey: "local-indextts25", model: "index-tts-2.5" },
     );
   } finally {
     await new Promise((resolve) => server.close(resolve));
@@ -244,7 +237,7 @@ test("IndexTTS 2.5 errors preserve the service detail", async () => {
     await assert.rejects(
       synthesizeAudioSpeech(
         { text: "测试旁白。", audioType: "narration" },
-        { baseURL: `http://127.0.0.1:${server.address().port}`, apiKey: "local-indextts25", model: "index-tts-2.5" },
+        { provider: "indextts25", baseURL: `http://127.0.0.1:${server.address().port}`, apiKey: "local-indextts25", model: "index-tts-2.5" },
       ),
       /模型显存不足/,
     );

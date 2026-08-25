@@ -1,5 +1,5 @@
 import { synthesizeAudioSpeech, type AudioSpeechType } from "../../audio/speechProvider";
-import { IndexTTS25TTSProvider } from "./IndexTTS25TTSProvider";
+import { VoxCPM2TTSProvider } from "./VoxCPM2TTSProvider";
 
 export interface TTSGenerationRequest {
   text: string;
@@ -190,4 +190,4 @@ if (httpSynthesizeUrl) {
   }));
 }
 
-ttsProviderRegistry.register(new IndexTTS25TTSProvider());
+ttsProviderRegistry.register(new VoxCPM2TTSProvider());

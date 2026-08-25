@@ -44,6 +44,6 @@ test("配音批量任务和单镜接口只使用系统音频模型槽位", () =>
   assert.match(orchestrator, /const DEFAULT_TTS_PROVIDER = getAudioModelProvider\(\)/);
   assert.match(orchestrator, /input\.type === "tts"/);
   assert.match(routes, /synthesizeShotDialogue\(shotId, undefined,/);
-  assert.match(fs.readFileSync(path.resolve(__dirname, "..", "src", "llm", "modelCategories.ts"), "utf8"), /audio: "indextts25"/);
+  assert.match(fs.readFileSync(path.resolve(__dirname, "..", "src", "llm", "modelCategories.ts"), "utf8"), /audio: "voxcpm2"/);
   assert.doesNotMatch(routes, /body\.provider \|\| "voxcpm2"/);
 });

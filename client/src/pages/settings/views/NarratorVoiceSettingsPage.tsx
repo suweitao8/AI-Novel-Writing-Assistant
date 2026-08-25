@@ -6,10 +6,8 @@ import {
   getGlobalNarratorVoice,
   saveGlobalNarratorVoiceDescription,
 } from "@/api/settings";
-import { getIndexTTS25VoiceCatalog } from "@/api/audio";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
-import { IndexTTS25VoiceControls } from "@/components/audio/IndexTTS25VoiceControls";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,14 +24,7 @@ export default function NarratorVoiceSettingsPage() {
     queryKey: queryKeys.settings.narratorVoice,
     queryFn: getGlobalNarratorVoice,
   });
-  const catalogQuery = useQuery({
-    queryKey: queryKeys.settings.indexTTS25Catalog,
-    queryFn: getIndexTTS25VoiceCatalog,
-    staleTime: 30_000,
-  });
   const [draft, setDraft] = useState("");
-  const [speakerDraft, setSpeakerDraft] = useState<string | null>(null);
-  const [referenceDraft, setReferenceDraft] = useState<string | null>(null);
   const hasEditedDraft = useRef(false);
 
   useEffect(() => {
@@ -42,19 +33,10 @@ export default function NarratorVoiceSettingsPage() {
     }
   }, [narratorVoiceQuery.data?.data]);
 
-  const voice = narratorVoiceQuery.data?.data;
-  const speaker = speakerDraft ?? voice?.indexTTS25Speaker ?? catalogQuery.data?.defaultSpeaker ?? "default";
-  const referenceAudio = referenceDraft ?? voice?.referenceAudioUrl ?? "";
-
   const saveMutation = useMutation({
-    mutationFn: () => saveGlobalNarratorVoiceDescription(draft, {
-      referenceAudioUrl: referenceAudio,
-      indexTTS25Speaker: speaker || undefined,
-    }),
+    mutationFn: () => saveGlobalNarratorVoiceDescription(draft),
     onSuccess: (response) => {
       hasEditedDraft.current = false;
-      setSpeakerDraft(null);
-      setReferenceDraft(null);
       setDraft(response.data?.description ?? "");
       void queryClient.invalidateQueries({ queryKey: queryKeys.settings.narratorVoice });
       toast.success("旁白音色描述已保存。");
@@ -63,14 +45,9 @@ export default function NarratorVoiceSettingsPage() {
   });
 
   const designMutation = useMutation({
-    mutationFn: () => designGlobalNarratorVoice(draft, {
-      referenceAudioUrl: referenceAudio,
-      indexTTS25Speaker: speaker || undefined,
-    }),
+    mutationFn: () => designGlobalNarratorVoice(draft),
     onSuccess: (response) => {
       hasEditedDraft.current = false;
-      setSpeakerDraft(null);
-      setReferenceDraft(null);
       setDraft(response.data?.description ?? "");
       void queryClient.invalidateQueries({ queryKey: queryKeys.settings.narratorVoice });
       toast.success("旁白试听已生成。");
@@ -78,7 +55,7 @@ export default function NarratorVoiceSettingsPage() {
     onError: (error) => toast.error(errorMessage(error, "生成旁白试听失败，请重试。")),
   });
 
-  const displayedVoice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
+  const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
 
@@ -113,18 +90,14 @@ export default function NarratorVoiceSettingsPage() {
             />
           </label>
 
-          <IndexTTS25VoiceControls
-            catalog={catalogQuery.data}
-            catalogLoading={catalogQuery.isLoading}
-            catalogError={catalogQuery.error instanceof Error ? catalogQuery.error : null}
-            speaker={speaker}
-            referenceAudio={referenceAudio}
-            sampleAudioUrl={displayedVoice?.sampleAudioUrl}
-            onSpeakerChange={setSpeakerDraft}
-            onReferenceAudioChange={setReferenceDraft}
-            onRefresh={() => void catalogQuery.refetch()}
-            disabled={isBusy}
-          />
+          {voice?.sampleAudioUrl ? (
+            <div className="space-y-2 rounded-md border bg-muted/20 p-4">
+              <p className="text-sm font-medium">当前试听样本</p>
+              <audio controls preload="metadata" className="w-full" src={voice.sampleAudioUrl}>
+                当前浏览器不支持音频播放。
+              </audio>
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap justify-end gap-2">
             <Button
@@ -142,7 +115,7 @@ export default function NarratorVoiceSettingsPage() {
               onClick={() => designMutation.mutate()}
             >
               {designMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <WandSparkles className="h-4 w-4" />}
-              {designMutation.isPending ? "生成中..." : displayedVoice?.sampleAudioUrl ? "重新生成并试听" : "生成并试听"}
+              {designMutation.isPending ? "生成中..." : voice?.sampleAudioUrl ? "重新生成并试听" : "生成并试听"}
             </AiButton>
           </div>
         </CardContent>

@@ -6,7 +6,7 @@
 
 ## 失败实例（2026-08-22）
 
-用户在漫剧工作室上传/生成图片报「上游模型服务连接失败（ECONNREFUSED）」。`netstat -ano | grep 1876` 显示 18762（OpenCode Go）/18763（opencode serve）/18764（Grok Build 文本）/18767（Grok Build 图片）全部 LISTENING，唯独 **18766 没有进程**。根因：根目录 `package.json` 的 `dev`/`dev:log` 启动链只串了 `pnpm grok:bridge`（同时拉起 18764+18767），`codex:image`（18766）只有独立脚本、不在启动链里——开发环境重启后 Codex 桥一直是停的。音频已迁移到 IndexTTS 2.5 的 9005 API，不再占用旧的 18761。
+用户在漫剧工作室上传/生成图片报「上游模型服务连接失败（ECONNREFUSED）」。`netstat -ano | grep 1876` 显示 18762（OpenCode Go）/18763（opencode serve）/18764（Grok Build 文本）/18767（Grok Build 图片）全部 LISTENING，唯独 **18766 没有进程**。根因：根目录 `package.json` 的 `dev`/`dev:log` 启动链只串了 `pnpm grok:bridge`（同时拉起 18764+18767），`codex:image`（18766）只有独立脚本、不在启动链里——开发环境重启后 Codex 桥一直是停的。当前音频使用 VoxCPM2 的 18761；IndexTTS 2.5 的 9005 仅保留显式兼容脚本。
 
 ## 当前规则
 

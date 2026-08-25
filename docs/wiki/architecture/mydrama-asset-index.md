@@ -67,7 +67,7 @@
 
 - `director_world/`（3D 舞台/体素世界/360 全景）——视频生成专用，与文字产品无关。
 - cognee 知识图谱——本项目已有 RAG/Qdrant 路线。
-- EdgeTTS/CosyVoice 双后端——本项目音频槽现统一走 IndexTTS 2.5 的本机 `/tts` API；旧 OpenAI 兼容音频桥仅作为历史对照。
+- EdgeTTS/CosyVoice 双后端——本项目音频槽现统一走 VoxCPM2 的本机 `/v1/audio/speech` API；IndexTTS 2.5 仅作为显式兼容通道保留，旧 OpenAI 兼容音频桥的声音设计口径仍可作为历史对照。
 - 计费/额度体系（shared/billing_errors）——产品形态不同。
 
 ## 使用守则
