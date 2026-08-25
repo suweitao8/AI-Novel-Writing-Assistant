@@ -7,7 +7,7 @@ export interface Blocking3dGeometryData {
 
 export const LONGITUDE_BANDS = 64;
 export const GROUND_DOME_FLAT_RADIUS = 0.95;
-const GROUND_DOME_RIM_BANDS = 6;
+export const GROUND_DOME_RIM_BANDS = 16;
 const GEOMETRY_RADIUS = 0.5;
 
 function clamp(value: number, min: number, max: number): number {
@@ -70,8 +70,12 @@ export function createGroundDomeGeometryData(
 
   for (let band = 0; band <= GROUND_DOME_RIM_BANDS; band += 1) {
     const progress = band / GROUND_DOME_RIM_BANDS;
-    const radial = 1 - progress * (1 - GROUND_DOME_FLAT_RADIUS);
-    const y = edgeHeight * (1 - progress);
+    // Match the upper dome's near-vertical tangent at the horizon, then
+    // flatten the curve into the usable floor instead of cutting it with a
+    // fixed-slope strip. This keeps the projected panorama from changing
+    // slope abruptly at the dome/floor boundary.
+    const radial = 1 - (1 - GROUND_DOME_FLAT_RADIUS) * progress * progress;
+    const y = edgeHeight * (1 - progress) * (1 - progress);
     rings.push(addGroundRing(data, radial, y));
   }
 

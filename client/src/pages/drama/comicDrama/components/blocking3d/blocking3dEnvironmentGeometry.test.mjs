@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  GROUND_DOME_RIM_BANDS,
   GROUND_DOME_FLAT_RADIUS,
+  LONGITUDE_BANDS,
   createGroundDomeGeometryData,
+  getGroundDomeEdgeHeight,
 } from "./blocking3dEnvironmentGeometry.ts";
 
 function vertex(data, index) {
@@ -39,4 +42,26 @@ test("地面全景贴图由投影材质按世界坐标计算，不把经度 UV �
   const data = createGroundDomeGeometryData(2, 15);
 
   assert.ok(data.uvs.every((value) => value === 0), "地面投影不应依赖顶点 UV 插值，否则中心会把角度映射成环状漩涡");
+});
+
+test("地面外圈以垂直切线接入半球，并平滑落到平底", () => {
+  const projectionCenterHeight = 2;
+  const domeRadius = 15;
+  const data = createGroundDomeGeometryData(projectionCenterHeight, domeRadius);
+  const ringSize = LONGITUDE_BANDS + 1;
+  const firstVertexOfRing = (ring) => vertex(data, ring * ringSize).position;
+  const radial = (position) => Math.hypot(position[0], position[2]);
+  const outer = firstVertexOfRing(0);
+  const first = firstVertexOfRing(1);
+  const second = firstVertexOfRing(2);
+  const inner = firstVertexOfRing(GROUND_DOME_RIM_BANDS);
+  const outerRadialDrop = radial(outer) - radial(first);
+  const nextRadialDrop = radial(first) - radial(second);
+  const outerHeightDrop = outer[1] - first[1];
+  const nextHeightDrop = first[1] - second[1];
+
+  assert.ok(outerRadialDrop < nextRadialDrop, "接缝第一段应先沿垂直方向过渡，避免地面斜切半球边缘");
+  assert.ok(outerHeightDrop > nextHeightDrop, "接缝第一段的高度变化应逐步放缓");
+  assert.ok(Math.abs(outer[1] - getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius) * 0.5) < 1e-8);
+  assert.ok(Math.abs(inner[1]) < 1e-8, "外圈弧面应平滑落到平底高度");
 });
