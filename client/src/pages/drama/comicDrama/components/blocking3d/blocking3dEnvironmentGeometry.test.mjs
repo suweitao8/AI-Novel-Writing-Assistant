@@ -23,7 +23,8 @@ test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉�
   }
 
   assert.equal(centerIndices.length, 1, "平底中心应只有一个几何顶点");
-  assert.equal(data.uvs.length, 0, "地面贴图由投影材质计算，不应携带顶点 UV");
+  assert.equal(data.uvs.length, vertexCount * 2, "PlayCanvas 顶点流需要占位 UV");
+  assert.ok(data.uvs.every((value) => value === 0), "地面占位 UV 必须保持常量，不能编码全景角度");
   assert.equal(data.indices.length % 3, 0, "地面索引必须组成完整三角形");
   assert.ok(data.indices.every((index) => index >= 0 && index < vertexCount), "地面索引不得越界");
 
@@ -37,9 +38,5 @@ test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉�
 test("地面全景贴图由投影材质按世界坐标计算，不把经度 UV 写进顶点", () => {
   const data = createGroundDomeGeometryData(2, 15);
 
-  assert.equal(
-    data.uvs.length,
-    0,
-    "地面投影不应依赖顶点 UV 插值，否则中心会把角度映射成环状漩涡",
-  );
+  assert.ok(data.uvs.every((value) => value === 0), "地面投影不应依赖顶点 UV 插值，否则中心会把角度映射成环状漩涡");
 });
