@@ -168,8 +168,14 @@ function createDomeSectionGeometry(
 
   for (let lat = 0; lat <= latitudeBands; lat += 1) {
     const theta = startTheta + ((endTheta - startTheta) * lat) / latitudeBands;
-    const sinTheta = Math.sin(theta);
-    const cosTheta = Math.cos(theta);
+    const rawSinTheta = Math.sin(theta);
+    const rawCosTheta = Math.cos(theta);
+    // Math.sin(Math.PI) leaves a tiny non-zero radius. Snapping the pole keeps
+    // all converging vertices truly coincident, so the last triangle fan cannot
+    // rasterize a stretched UV sliver from floating-point residue.
+    const isPole = Math.abs(rawSinTheta) < 1e-8;
+    const sinTheta = isPole ? 0 : rawSinTheta;
+    const cosTheta = isPole ? Math.sign(rawCosTheta) : rawCosTheta;
     for (let lon = 0; lon <= longitudeBands; lon += 1) {
       const phi = (lon * Math.PI * 2) / longitudeBands - Math.PI / 2;
       const sinPhi = Math.sin(phi);
@@ -187,7 +193,7 @@ function createDomeSectionGeometry(
           1 - lon / longitudeBands,
           sourceVStart + textureProgress * (sourceVEnd - sourceVStart),
         ];
-      uvs.push(u, v);
+      uvs.push(isPole ? 0.5 : u, v);
     }
   }
 
