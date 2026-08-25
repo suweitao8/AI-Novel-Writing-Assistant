@@ -26,8 +26,13 @@ test("场景状态编辑器只展示静态状态图，3D效果通过独立编辑
   assert.doesNotMatch(assetFormsSource, /PanoramaViewer/);
   assert.doesNotMatch(assetFormsSource, /sceneFlatView/);
   assert.doesNotMatch(assetFormsSource, /平面图|360° 预览/);
+  assert.match(assetFormsSource, /const stateImageAspect = kind === "scene" \? "aspect-\[2\/1\]" : "aspect-video"/);
   assert.match(assetFormsSource, /<LightboxImage[\s\S]*selectedState\.image\.url/);
+  assert.match(assetFormsSource, /className=\{cn\(stateImageAspect, "w-full rounded-lg border-0"\)\}/);
+  assert.match(assetFormsSource, /className=\{cn\(stateImageAspect, "w-full rounded-lg bg-muted\/10"\)\}/);
+  assert.doesNotMatch(assetFormsSource, /\$\{stateImageAspect\} max-h-\[28rem\]/);
   assert.match(assetFormsSource, /buildScene3dEditorPath\(asset\.novelId, asset\.assetId, selectedState\.id\)/);
   assert.match(assetFormsSource, /3D编辑/);
-  assert.match(assetFormsSource, /absolute bottom-2 right-2 z-30 flex items-center gap-1\.5/);
+  assert.doesNotMatch(assetFormsSource, /absolute bottom-2 right-2 z-30/);
+  assert.match(assetFormsSource, /<div className="flex justify-end pt-2" role="group" aria-label="场景 3D 操作">[\s\S]*3D编辑/);
 });
