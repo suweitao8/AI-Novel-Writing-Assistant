@@ -18,6 +18,105 @@ export interface StoryScene3DEnvironment {
 
 export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">;
 
+/** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
+export const STORY_SCENE_3D_MARKER_KINDS = [
+  "bed",
+  "table",
+  "chair",
+  "sofa",
+  "desk",
+  "cabinet",
+  "shelf",
+  "door",
+  "window",
+  "counter",
+  "stair",
+  "other",
+] as const;
+
+export type StoryScene3DMarkerKind = (typeof STORY_SCENE_3D_MARKER_KINDS)[number];
+
+export const STORY_SCENE_3D_MARKER_KIND_LABELS: Record<StoryScene3DMarkerKind, string> = {
+  bed: "床",
+  table: "桌子",
+  chair: "椅子",
+  sofa: "沙发",
+  desk: "书桌",
+  cabinet: "柜子",
+  shelf: "架子",
+  door: "门",
+  window: "窗户",
+  counter: "柜台",
+  stair: "楼梯",
+  other: "固定物体",
+};
+
+export type StoryScene3DMarkerAnchor = "floor" | "wall" | "ceiling";
+export type StoryScene3DVector3 = [number, number, number];
+
+export interface StoryScene3DMarkerImageRegion {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface StoryScene3DMarker {
+  id: string;
+  kind: StoryScene3DMarkerKind;
+  label: string;
+  anchor: StoryScene3DMarkerAnchor;
+  /** 世界坐标，单位米；position 是长方体中心，地面锚点由归一化器落地。 */
+  position: StoryScene3DVector3;
+  /** 长方体尺寸，分别为 X/Y/Z，单位米。 */
+  size: StoryScene3DVector3;
+  yawDeg: number;
+  confidence: number;
+  imageRegion?: StoryScene3DMarkerImageRegion;
+  evidence?: string;
+  source?: "ai" | "manual";
+}
+
+export interface StoryScene3DMarkerSet {
+  schemaVersion: 1;
+  status: "ready" | "error" | "stale";
+  sourceImageArtifactId?: string | null;
+  sourceImageGeneratedAt?: string | null;
+  analyzedAt?: string;
+  analysisNote?: string;
+  error?: string;
+  markers: StoryScene3DMarker[];
+}
+
+const STORY_SCENE_3D_MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceiling"]);
+
+/** 只判断持久化结构是否可安全保留；数值范围由服务端归一化器负责。 */
+export function isStoryScene3DMarkerSet(value: unknown): value is StoryScene3DMarkerSet {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Record<string, unknown>;
+  if (source.schemaVersion !== 1
+    || (source.status !== "ready" && source.status !== "error" && source.status !== "stale")
+    || !Array.isArray(source.markers)) {
+    return false;
+  }
+  return source.markers.every((item) => {
+    if (!item || typeof item !== "object") return false;
+    const marker = item as Record<string, unknown>;
+    return typeof marker.id === "string"
+      && typeof marker.kind === "string"
+      && STORY_SCENE_3D_MARKER_KINDS.includes(marker.kind as StoryScene3DMarkerKind)
+      && typeof marker.label === "string"
+      && typeof marker.anchor === "string"
+      && STORY_SCENE_3D_MARKER_ANCHORS.has(marker.anchor as StoryScene3DMarkerAnchor)
+      && Array.isArray(marker.position)
+      && marker.position.length === 3
+      && Array.isArray(marker.size)
+      && marker.size.length === 3
+      && typeof marker.yawDeg === "number"
+      && typeof marker.confidence === "number";
+  });
+}
+
 export interface ComicDramaLinkStats {
   projectId: string;
   projectTitle: string;

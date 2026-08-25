@@ -5,6 +5,7 @@
 // v3 的 stateLabel/stateNote 提取时已不再生成，仅为已持久化的旧结果保留。
 
 import { stripAssetImagePromptNoise } from "../utils/imagePromptPurity.js";
+import { isStoryScene3DMarkerSet, type StoryScene3DMarkerSet } from "./comicDrama.js";
 
 /** 资产状态生成图：状态编辑器点「生成图」后写入；按 referenceStateId 取另一状态的图当参考。 */
 export interface StoryAssetStateImage {
@@ -176,6 +177,8 @@ export interface StoryAssetState {
   image?: StoryAssetStateImage;
   /** 该状态的音色试听与复用来源（角色状态专用，场景/道具不使用）。 */
   voice?: StoryAssetStateVoice;
+  /** 场景状态图的 3D 固定物体标记；只在场景状态使用，随状态图片保存。 */
+  scene3dMarkers?: StoryScene3DMarkerSet;
 }
 
 /**
@@ -264,10 +267,17 @@ export function normalizeStoryAssetStates(
         : (index === 0 ? fallbackDescription : "状态变化");
       // 身上状态标签在此归一化：旧 id（合并前 8 标签）迁成新 id，未知值丢弃，
       // 迁移后为空就不保留字段（不勾＝干净）。
-      const { wearTags: legacyWearTags, ...stateWithoutWearTags } = state;
+      const {
+        wearTags: legacyWearTags,
+        scene3dMarkers: rawScene3dMarkers,
+        ...stateWithoutRuntimeMarkers
+      } = state;
       const canonicalWearTags = canonicalizeWearTags(legacyWearTags);
+      const scene3dMarkers = isStoryScene3DMarkerSet(rawScene3dMarkers)
+        ? rawScene3dMarkers
+        : undefined;
       return {
-        ...stateWithoutWearTags,
+        ...stateWithoutRuntimeMarkers,
         id: state.id.trim(),
         label: canonicalizeInitialStateLabel(state.label, index),
         description,
@@ -284,6 +294,7 @@ export function normalizeStoryAssetStates(
           ? { weather: initialState.weather }
           : {}),
         ...(canonicalWearTags ? { wearTags: canonicalWearTags } : {}),
+        ...(scene3dMarkers ? { scene3dMarkers } : {}),
       };
     })
     : [createStoryAssetInitialState(initialState)];

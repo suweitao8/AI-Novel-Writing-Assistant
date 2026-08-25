@@ -7,6 +7,7 @@ import {
   ArrowRight,
   ArrowUp,
   Loader2,
+  MapPin,
   Minus,
   Move3D,
   Plus,
@@ -35,6 +36,7 @@ import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { STORY_SCENE_3D_MARKER_KIND_LABELS } from "@ai-novel/shared/types/comicDrama";
 import {
   BLOCKING_3D_POSES,
   BLOCKING_3D_POSE_LABELS,
@@ -112,6 +114,7 @@ export default function DramaBlocking3DPage() {
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("准备 3D 草图");
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
   const [dirty, setDirty] = useState(false);
@@ -143,11 +146,13 @@ export default function DramaBlocking3DPage() {
     if (!canvas || !context?.scene || viewerRef.current) return undefined;
     let cancelled = false;
     let unsubscribeSelection: (() => void) | undefined;
+    let unsubscribeMarkerSelection: (() => void) | undefined;
     let unsubscribeChange: (() => void) | undefined;
     setViewerError(null);
     void createBlocking3dViewer({
       canvas,
       environmentUrl: context.scene.imageUrl,
+      sceneMarkers: context.scene.markers,
       onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
@@ -163,6 +168,7 @@ export default function DramaBlocking3DPage() {
       else nextViewer.fitView();
       syncSelection(nextViewer);
       unsubscribeSelection = nextViewer.onSelectionChange(() => syncSelection(nextViewer));
+      unsubscribeMarkerSelection = nextViewer.onMarkerSelection(setSelectedMarkerId);
       unsubscribeChange = nextViewer.onChange(() => {
         setDirty(true);
         syncSelection(nextViewer);
@@ -173,6 +179,7 @@ export default function DramaBlocking3DPage() {
     return () => {
       cancelled = true;
       unsubscribeSelection?.();
+      unsubscribeMarkerSelection?.();
       unsubscribeChange?.();
       viewerRef.current?.destroy();
       viewerRef.current = null;
@@ -191,6 +198,12 @@ export default function DramaBlocking3DPage() {
   }, [dirty, saving]);
 
   const placedNames = new Set(viewer?.getActorLabels() ?? []);
+
+  const focusMarker = useCallback((markerId: string) => {
+    if (!viewer) return;
+    viewer.focusMarker(markerId);
+    setSelectedMarkerId(markerId);
+  }, [viewer]);
 
   const applyViewerAction = useCallback((action: (nextViewer: Blocking3dViewer) => boolean) => {
     if (!viewer || saving || autoPlanning) return;
@@ -376,6 +389,27 @@ export default function DramaBlocking3DPage() {
                   </div>
                 );
               }) : <p className="text-xs text-muted-foreground">本镜没有已识别角色。</p>}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">场景空间标记</CardTitle></CardHeader>
+            <CardContent className="space-y-1.5">
+              {context.scene.markers.length ? context.scene.markers.map((marker) => {
+                const selected = marker.id === selectedMarkerId;
+                return (
+                  <button
+                    key={marker.id}
+                    type="button"
+                    className={cn("flex min-h-9 w-full items-center justify-between gap-2 rounded-md border px-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", selected && "border-primary bg-accent")}
+                    aria-pressed={selected}
+                    onClick={() => focusMarker(marker.id)}
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /><span className="truncate">{marker.label}</span><span className="shrink-0 text-xs text-muted-foreground">{STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]}</span></span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{Math.round(marker.confidence * 100)}%</span>
+                  </button>
+                );
+              }) : <p className="text-xs text-muted-foreground">当前场景没有已识别标记。</p>}
             </CardContent>
           </Card>
 

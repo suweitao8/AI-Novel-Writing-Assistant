@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Move3D } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Move3D, WandSparkles } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
+  analyzeStoryScene3dMarkers,
   getStorySettingsScene,
   updateStorySettingsScene,
   type StorySettingsScene,
@@ -12,8 +13,10 @@ import { queryKeys } from "@/api/queryKeys";
 import { buildStateImageSrc } from "@/components/storyAssets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
+import { STORY_SCENE_3D_MARKER_KIND_LABELS } from "@ai-novel/shared/types/comicDrama";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -53,6 +56,8 @@ export default function DramaScene3DPage() {
   });
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [analyzingMarkers, setAnalyzingMarkers] = useState(false);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const saveTimerRef = useRef<number | null>(null);
@@ -80,10 +85,12 @@ export default function DramaScene3DPage() {
 
     let cancelled = false;
     let unsubscribeChange: (() => void) | undefined;
+    let unsubscribeMarkerSelection: (() => void) | undefined;
     setViewerError(null);
     void createBlocking3dViewer({
       canvas,
       environmentUrl,
+      sceneMarkers: selectedState.scene3dMarkers?.markers ?? [],
       onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
@@ -99,6 +106,7 @@ export default function DramaScene3DPage() {
       unsubscribeChange = nextViewer.onChange(() => {
         setEnvironmentSettings(nextViewer.getEnvironmentSettings());
       });
+      unsubscribeMarkerSelection = nextViewer.onMarkerSelection(setSelectedMarkerId);
     }).catch((error: unknown) => {
       if (!cancelled) {
         setViewerError(error instanceof Error ? error.message : "场景 3D 预览加载失败。");
@@ -108,6 +116,7 @@ export default function DramaScene3DPage() {
     return () => {
       cancelled = true;
       unsubscribeChange?.();
+      unsubscribeMarkerSelection?.();
       viewerRef.current?.destroy();
       viewerRef.current = null;
       setViewer(null);
@@ -169,6 +178,29 @@ export default function DramaScene3DPage() {
     });
     return promise;
   }, [environmentSettings.domeRadius, environmentSettings.projectionCenterHeight, novelId, queryClient, scene, sceneId, viewer]);
+
+  const analyzeMarkers = useCallback(async () => {
+    if (!selectedState || analyzingMarkers || saving) return;
+    setAnalyzingMarkers(true);
+    try {
+      const response = await analyzeStoryScene3dMarkers(novelId, sceneId, selectedState.id);
+      if (response.data) {
+        queryClient.setQueryData(queryKeys.novels.storySettingsScene(novelId, sceneId), response);
+      }
+      const count = response.data?.states.find((state) => state.id === selectedState.id)?.scene3dMarkers?.markers.length ?? 0;
+      toast.success("空间标记识别完成。", { description: `已识别 ${count} 个固定物体。` });
+    } catch (error) {
+      toast.error("空间标记识别失败。", { description: error instanceof Error ? error.message : "请稍后重试。" });
+    } finally {
+      setAnalyzingMarkers(false);
+    }
+  }, [analyzingMarkers, novelId, queryClient, saving, sceneId, selectedState]);
+
+  const focusMarker = useCallback((markerId: string) => {
+    if (!viewer) return;
+    viewer.focusMarker(markerId);
+    setSelectedMarkerId(markerId);
+  }, [viewer]);
 
   const updateEnvironmentSetting = useCallback((key: "projectionCenterHeight" | "domeRadius", value: number) => {
     const next = {
@@ -312,6 +344,40 @@ export default function DramaScene3DPage() {
                 </span>
                     <input type="range" aria-label="半球直径" min="10" max="50" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
               </label>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+              <CardTitle className="text-sm">空间标记</CardTitle>
+              <AiButton
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!environmentUrl || saving || analyzingMarkers}
+                onClick={() => void analyzeMarkers()}
+                title="识别当前场景状态图中的固定空间物体"
+              >
+                {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+                {analyzingMarkers ? "识别中" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
+              </AiButton>
+            </CardHeader>
+            <CardContent className="space-y-1.5">
+              {selectedState.scene3dMarkers?.markers.length ? selectedState.scene3dMarkers.markers.map((marker) => {
+                const selected = marker.id === selectedMarkerId;
+                return (
+                  <button
+                    key={marker.id}
+                    type="button"
+                    className={cn("flex min-h-9 w-full items-center justify-between gap-2 rounded-md border px-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", selected && "border-primary bg-accent")}
+                    aria-pressed={selected}
+                    onClick={() => focusMarker(marker.id)}
+                  >
+                    <span className="flex min-w-0 items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /><span className="truncate">{marker.label}</span><span className="shrink-0 text-xs text-muted-foreground">{STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]}</span></span>
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{Math.round(marker.confidence * 100)}%</span>
+                  </button>
+                );
+              }) : <p className="text-xs text-muted-foreground">尚未识别空间标记。</p>}
             </CardContent>
           </Card>
 

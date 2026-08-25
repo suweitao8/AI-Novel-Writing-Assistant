@@ -37,4 +37,6 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   const text = messages.map((message) => String(message.content)).join("\n");
   assert.match(text, /全部角色|每个.*角色/);
   assert.match(text, /16:9/);
+  assert.match(text, /空间固定物体标记/);
+  assert.match(text, /不要与.*重叠/);
 });

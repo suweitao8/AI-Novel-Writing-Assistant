@@ -6,7 +6,11 @@ import {
   hasStoryAssetStateImageUrl,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
-import type { StoryScene3DEnvironment } from "@ai-novel/shared/types/comicDrama";
+import type {
+  StoryScene3DEnvironment,
+  StoryScene3DMarker,
+  StoryScene3DMarkerSet,
+} from "@ai-novel/shared/types/comicDrama";
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
@@ -71,6 +75,8 @@ interface BlockingSketchEditorScene {
   stateId: string;
   imageUrl: string;
   environment: StoryScene3DEnvironment;
+  markers: StoryScene3DMarker[];
+  markerAnalysis: StoryScene3DMarkerSet | null;
 }
 
 export interface BlockingSketchEditorActor {
@@ -263,6 +269,8 @@ export class DramaShotBlockingSketchService {
         stateId: matchedScene.state.id,
         imageUrl: stateImageUrl(novelId, "scene", matchedScene.assetId, matchedScene.state.id),
         environment: matchedScene.environment,
+        markers: matchedScene.state.scene3dMarkers?.markers ?? [],
+        markerAnalysis: matchedScene.state.scene3dMarkers ?? null,
       }
       : null;
 

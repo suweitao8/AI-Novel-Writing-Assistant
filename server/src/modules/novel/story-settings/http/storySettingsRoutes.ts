@@ -13,9 +13,16 @@ import { storyStateImagePromptService } from "../application/StoryStateImageProm
 import { worldMapService } from "../application/WorldMapService";
 import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
+import { storyScene3dMarkerService } from "../application/StoryScene3dMarkerService";
+import { llmProviderSchema } from "../../../../llm/providerSchema";
 
 const novelParams = z.object({ id: z.string().trim().min(1) });
 const sceneParams = z.object({ id: z.string().trim().min(1), sceneId: z.string().trim().min(1) });
+const sceneStateParams = z.object({
+  id: z.string().trim().min(1),
+  sceneId: z.string().trim().min(1),
+  stateId: z.string().trim().min(1),
+});
 const propParams = z.object({ id: z.string().trim().min(1), propId: z.string().trim().min(1) });
 const characterParams = z.object({ id: z.string().trim().min(1), characterId: z.string().trim().min(1) });
 const stateImageParams = z.object({
@@ -54,6 +61,44 @@ const assetStateVoiceSchema = z.object({
   error: z.string().max(600).optional(),
 }).strict();
 
+const scene3dMarkerSchema = z.object({
+  id: z.string().trim().min(1).max(80),
+  kind: z.enum(["bed", "table", "chair", "sofa", "desk", "cabinet", "shelf", "door", "window", "counter", "stair", "other"]),
+  label: z.string().trim().min(1).max(80),
+  anchor: z.enum(["floor", "wall", "ceiling"]),
+  position: z.tuple([
+    z.number().min(-50).max(50),
+    z.number().min(0).max(30),
+    z.number().min(-50).max(50),
+  ]),
+  size: z.tuple([
+    z.number().min(0.05).max(30),
+    z.number().min(0.05).max(30),
+    z.number().min(0.05).max(30),
+  ]),
+  yawDeg: z.number().min(-180).max(180),
+  confidence: z.number().min(0).max(1),
+  imageRegion: z.object({
+    x: z.number().min(0).max(1),
+    y: z.number().min(0).max(1),
+    width: z.number().min(0).max(1),
+    height: z.number().min(0).max(1),
+  }).optional(),
+  evidence: z.string().trim().max(240).optional(),
+  source: z.enum(["ai", "manual"]).optional(),
+}).strict();
+
+const scene3dMarkerSetSchema = z.object({
+  schemaVersion: z.literal(1),
+  status: z.enum(["ready", "error", "stale"]),
+  sourceImageArtifactId: z.string().trim().max(160).optional(),
+  sourceImageGeneratedAt: z.string().max(80).optional(),
+  analyzedAt: z.string().max(80).optional(),
+  analysisNote: z.string().max(500).optional(),
+  error: z.string().max(600).optional(),
+  markers: z.array(scene3dMarkerSchema).max(32),
+}).strict();
+
 const assetStateSchema = z.object({
   id: z.string().trim().min(1).max(60),
   label: z.string().trim().min(1).max(24),
@@ -72,6 +117,7 @@ const assetStateSchema = z.object({
   referenceStateId: z.string().trim().max(60).nullable().optional(),
   image: assetStateImageSchema.optional(),
   voice: assetStateVoiceSchema.optional(),
+  scene3dMarkers: scene3dMarkerSetSchema.optional(),
 }).strict();
 
 // 角色图片提示词可省略；服务端会根据状态变化、年龄和性别归一化生成。
@@ -291,6 +337,31 @@ export function registerStorySettingsRoutes(router: Router): void {
       next(error);
     }
   });
+
+  router.post(
+    "/:id/settings/scenes/:sceneId/states/:stateId/3d-markers/analyze",
+    validate({
+      params: sceneStateParams,
+      body: z.object({
+        provider: llmProviderSchema.optional(),
+        model: z.string().trim().max(160).optional(),
+        temperature: z.number().min(0).max(2).optional(),
+      }).strict().default({}),
+    }),
+    async (req, res, next) => {
+      try {
+        const data = await storyScene3dMarkerService.analyzeSceneState(
+          String(req.params.id),
+          String(req.params.sceneId),
+          String(req.params.stateId),
+          req.body,
+        );
+        res.json({ success: true, data, message: "场景空间标记已识别。" } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   router.post("/:id/settings/scenes", validate({ params: novelParams, body: sceneCreateSchema }), async (req, res, next) => {
     try {

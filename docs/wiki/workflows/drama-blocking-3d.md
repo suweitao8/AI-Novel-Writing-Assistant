@@ -29,6 +29,15 @@
 - AI 自动构图完成后，右侧相机面板展示 FOV、景深开关、焦点距离、清晰范围和模糊半径；这些值由镜头上下文规划并进入 PlayCanvas `CameraFrame.dof`，不是只写入数据库的装饰字段。
 - 任意角色、姿势、视角或空间操作只更新当前 3D 草图；离开页面时统一保存一次并等待同一条保存 Promise，保存失败则留在当前页面以便重试。
 
+### 场景状态空间语义标记
+
+- 固定空间物体标记属于场景状态，而不是场景资产顶层或镜头 `layout3d`。不同状态图可能对应不同家具布局，因此 `StoryAssetState.scene3dMarkers` 必须与产生它的状态图片制品绑定。
+- 「识别空间」使用注册的多模态结构化 Prompt `drama.scene.state.3d_markers@v1`，输入当前状态的真实图片制品和场景环境参数，输出床、桌、椅、门窗等固定物体的类别、近似米制位置、长方体尺寸、朝向、置信度和图像证据区域。人物、动物和临时物品不进入标记集合；室外/自然场景可以返回空集合。
+- 世界坐标合同固定为地面 `y=0`、`+Z` 指向全景水平中心、`+X` 指向右侧；`position` 是长方体中心，地面锚点由服务端归一化到 `size.y / 2`。服务端只做结构校验、范围裁剪、地面落地和唯一 ID 处理，不用关键词或固定坐标替代 AI 识别。
+- 场景资产 3D 编辑器和分镜 3D 草图都渲染同一份半透明 PlayCanvas 长方体。用户可以从列表或直接点击标记选择并聚焦；标记不会写进镜头 `layout3d`，只作为构图参照和自动构图上下文。
+- 自动构图 Prompt 接收 `sceneJson.markers`，需要避开固定物体体积，并用相邻位置表达坐、倚靠、经过等空间关系；没有标记时不得自行编造障碍物坐标。
+- 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回使用 `statesJson` CAS，并在写入前复核图片制品指纹，防止旧分析覆盖新图片。
+
 ### 静态姿势与关键帧
 
 姿势使用稳定的业务枚举保存，不把具体 GLB 动画剪辑名暴露给 API。当前支持站立、交谈、抱臂、坐着、蹲下、跪下、躺着、趴着、走路、跑步、指向、持物、互动、战斗和持剑。用户选择姿势后，运行时只截取对应关键帧，不提供播放动作入口。
@@ -52,6 +61,9 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 ## Failure Modes
 
 - 不能把通用代理模型当成最终角色渲染结果，否则会把低模、临时材质和动画库限制带进成片。
+- 空间标记不是精确测绘数据，不能把低置信度长方体当成碰撞检测或最终布景；它只用于快速判断角色与固定物体的相对关系。
+- 不能把标记存到场景顶层或镜头快照，否则切换状态图后会继续显示旧家具，或者同一场景的镜头之间出现不可解释的状态漂移。
+- 图片制品变更后如果仍存在旧标记，说明图片提交路径绕过了场景状态失效策略；应先检查最终制品提交分支和 `statesJson` CAS，不要在前端单独清空来掩盖数据竞态。
 - 不能只保存 PNG 而丢失 `layout3d`，否则用户无法继续调整空间关系和姿势。
 - 不能把 3D 草图确认前的图片注入分镜生成或批量任务；确认状态仍是参考图锁定的闸门。
 - 不能把 AI 自动构图结果直接落库后再校验；必须先校验角色集合、相机范围和 3D 快照，再由前端加载并在退出保存链路中统一确认。
@@ -92,6 +104,9 @@ HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLi
 - `server/src/services/drama/visual/DramaShotBlockingSketchContracts.ts`
 - `server/src/services/drama/visual/DramaShotBlockingSketchService.ts`
 - `server/src/modules/novel/story-settings/application/StoryScene3dEnvironment.ts`
+- `server/src/modules/novel/story-settings/application/StoryScene3dMarkers.ts`
+- `server/src/modules/novel/story-settings/application/StoryScene3dMarkerService.ts`
+- `server/src/prompting/prompts/drama/sceneState3dMarkers.prompts.ts`
 - `server/src/modules/novel/story-settings/application/StorySettingsService.ts`
 - `server/src/modules/drama/http/dramaRoutes.ts`
 - `docs/wiki/workflows/short-drama-workspace.md`
