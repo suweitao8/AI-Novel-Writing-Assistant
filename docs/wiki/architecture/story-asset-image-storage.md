@@ -26,6 +26,7 @@ story-state-images/
 - 状态表单保存必须保留服务端生成的 `image` 和 `voice` 运行时字段；生图期间保留旧 artifact pointer，成功后才切换。
 - 生成失败只记录本次错误；已有图片时保留当前 `artifactId`、归属 URL 和生成时间，没有已有图片时不暴露 staging 制品指针。
 - `status` 表示最近一次生成尝试，不能单独决定图片是否可用；只要保留了 URL 指针，资产卡、状态引用、分镜参考图和 3D 场景预览都继续使用最后可读图片，同时显示生成中/失败反馈。
+- 关闭失败提示是独立的状态级 CAS 动作：只删除当前状态图片的 `error` 字段，不改变 `status`、`artifactId`、URL、生成时间或重试入口；CAS 重试时按最新状态清除，避免把并发生成的新图片回退。
 - 生成锁的进程内 map 只能优化同进程请求，不能替代数据库 lease；key 必须包含项目、类型、资产和状态四级范围。
 - lease 在长生成期间定时续期；generating/error 中间状态写入会在同一事务内条件触碰 staging 制品，lease 失效的旧任务不能回写状态，更不能把当前指针回滚到旧图。
 
@@ -53,7 +54,7 @@ story-state-images/
 - `server/src/modules/novel/story-settings/application/StoryAssetImageArtifactStore.ts`：路径、临时文件、原子改名和完整性校验。
 - `server/src/modules/novel/story-settings/application/StoryAssetImageGenerationLock.ts`：持久目标 lease 和制品生命周期。
 - `server/src/modules/novel/story-settings/application/StoryAssetImageRecoveryPolicy.ts`：失败指针保留和同一资产历史制品恢复排序规则。
-- `server/src/modules/novel/story-settings/application/StoryAssetStateImageService.ts`：角色/场景/道具状态图生成、artifact-first 读取和事务提交。
+- `server/src/modules/novel/story-settings/application/StoryAssetStateImageService.ts`：角色/场景/道具状态图生成、artifact-first 读取、事务提交和失败提示关闭。
 - `server/src/services/image/runtime/runner.ts`：通用图片运行时的制品 session 钩子；旧适配器仍可使用固定路径，但故事状态图必须使用新钩子。
 - `server/src/modules/novel/story-settings/application/StoryAssetImageAudit.ts` 与 `server/scripts/audit-story-asset-images.cjs`：dry-run 审计和备份保护的迁移入口。
 

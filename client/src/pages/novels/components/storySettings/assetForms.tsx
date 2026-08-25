@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, Box, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2 } from "lucide-react";
+import { AudioLines, Box, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   cancelStoryAssetStateImage,
+  dismissStoryAssetStateImageError,
   generateStoryCharacterStateVoice,
   getStorySettingsCharacters,
   getStorySettingsProps,
@@ -352,6 +353,23 @@ export function AssetStatesEditor(props: {
     onError: (error) => toast.error(error instanceof Error ? error.message : "终止生成失败，请重试。"),
   });
 
+  const dismissImageErrorMutation = useMutation({
+    mutationFn: async (stateId: string) => {
+      if (!asset) {
+        throw new Error("资产还未保存。");
+      }
+      await flushLocalEdits();
+      return dismissStoryAssetStateImageError(asset.novelId, kind, asset.assetId, stateId);
+    },
+    onSuccess: async (response) => {
+      onChange(response.data?.states ?? []);
+      setLocalDirty(false);
+      await invalidateSettings();
+      toast.success("已关闭失败提示。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "关闭失败提示失败，请重试。"),
+  });
+
   const voiceMutation = useMutation({
     mutationFn: async (stateId: string) => {
       if (!asset || kind !== "character") {
@@ -475,7 +493,7 @@ export function AssetStatesEditor(props: {
       && state.voice?.status === "done"
       && Boolean(state.voice.sampleAudioUrl?.trim()))
     : [];
-  const anyPending = imageMutation.isPending || cancelImageMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
+  const anyPending = imageMutation.isPending || cancelImageMutation.isPending || dismissImageErrorMutation.isPending || voiceMutation.isPending || pickVoiceMutation.isPending || promptTweakMutation.isPending;
   const imageRequestState = asset && selectedStateId
     ? getStoryAssetImageRequestState({
       novelId: asset.novelId,
@@ -667,7 +685,25 @@ export function AssetStatesEditor(props: {
                 ) : null}
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">默认状态是基础形象，直接生成。</p> : null}
-              {selectedState.image?.error ? <p className="text-xs text-destructive">{selectedState.image.error}</p> : null}
+              {selectedState.image?.error ? (
+                <div className="flex items-start gap-2 text-xs text-destructive" role="alert">
+                  <p className="min-w-0 flex-1">{selectedState.image.error}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 shrink-0 text-destructive hover:text-destructive md:h-8 md:w-8"
+                    aria-label="关闭状态图失败提示"
+                    title="关闭提示"
+                    disabled={dismissImageErrorMutation.isPending || anyPending}
+                    onClick={() => dismissImageErrorMutation.mutate(selectedState.id)}
+                  >
+                    {dismissImageErrorMutation.isPending && dismissImageErrorMutation.variables === selectedState.id
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      : <X className="h-3.5 w-3.5" aria-hidden="true" />}
+                  </Button>
+                </div>
+              ) : null}
             </section>
 
             <section className="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 md:grid-cols-2" aria-label="状态设定">

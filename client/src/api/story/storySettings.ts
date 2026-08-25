@@ -431,6 +431,20 @@ export async function cancelStoryAssetStateImage(
   return data;
 }
 
+/** 关闭状态图失败提示：仅清除 error 字段，保留当前图片与重试状态。 */
+export async function dismissStoryAssetStateImageError(
+  novelId: string,
+  kind: StoryAssetKind,
+  assetId: string,
+  stateId: string,
+) {
+  const resource = kind === "character" ? "characters" : kind === "scene" ? "scenes" : "props";
+  const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter | StorySettingsScene | StorySettingsProp>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/${resource}/${encodeURIComponent(assetId)}/states/${encodeURIComponent(stateId)}/dismiss-image-error`,
+  );
+  return data;
+}
+
 /** 按小改动指令让 AI 微调状态图片提示词（纯文本改写，不落库，结果写回表单由用户保存）。 */
 export async function tweakStoryStateImagePrompt(
   novelId: string,

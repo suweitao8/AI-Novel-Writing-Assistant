@@ -58,3 +58,18 @@ export function prioritizeStoryAssetImageArtifacts<T extends StoryAssetImageArti
   }
   return [current, ...candidates.filter((candidate) => candidate.id !== currentId)];
 }
+
+/**
+ * 关闭状态图失败提示时只清除错误文案。
+ *
+ * 状态图的 status 描述最近一次生成尝试，图片指针描述当前仍可读取的制品；
+ * 两者不能因为用户关闭提示而被互相覆盖。保留 error status 也让用户仍可重新生成，
+ * 而删除 error 字段后详情页和资产卡片不再展示红色失败提示。
+ */
+export function dismissStoryAssetImageError(image: StoryAssetStateImage): StoryAssetStateImage {
+  if (!image.error?.trim()) {
+    return image;
+  }
+  const { error: _error, ...withoutError } = image;
+  return withoutError;
+}

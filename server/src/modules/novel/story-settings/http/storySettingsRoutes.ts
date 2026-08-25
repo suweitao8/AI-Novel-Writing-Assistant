@@ -567,6 +567,20 @@ export function registerStorySettingsRoutes(router: Router): void {
   );
 
   router.post(
+    "/:id/settings/characters/:characterId/states/:stateId/dismiss-image-error",
+    validate({ params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, characterId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "character", characterId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
     "/:id/settings/characters/:characterId/states/:stateId/generate-image",
     validate({ params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }) }),
     async (req, res, next) => {
@@ -621,6 +635,20 @@ export function registerStorySettingsRoutes(router: Router): void {
   );
 
   router.post(
+    "/:id/settings/scenes/:sceneId/states/:stateId/dismiss-image-error",
+    validate({ params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, sceneId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "scene", sceneId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
     "/:id/settings/scenes/:sceneId/states/:stateId/generate-image",
     validate({ params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }) }),
     async (req, res, next) => {
@@ -641,6 +669,20 @@ export function registerStorySettingsRoutes(router: Router): void {
       try {
         const { id, propId, stateId } = req.params as Record<string, string>;
         const data = await storyAssetStateImageService.cancelStateImage(id, "prop", propId, stateId);
+        res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/props/:propId/states/:stateId/dismiss-image-error",
+    validate({ params: z.object({ id: novelParams.shape.id, propId: propParams.shape.propId, stateId: z.string().trim().min(1) }) }),
+    async (req, res, next) => {
+      try {
+        const { id, propId, stateId } = req.params as Record<string, string>;
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "prop", propId, stateId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

@@ -76,6 +76,7 @@ import {
   type StoryAssetImageArtifactRecord,
 } from "./StoryAssetImageGenerationLock";
 import {
+  dismissStoryAssetImageError,
   preserveReadableStoryAssetImagePointer,
   prioritizeStoryAssetImageArtifacts,
 } from "./StoryAssetImageRecoveryPolicy";
@@ -88,6 +89,7 @@ const STATE_IMAGE_EXTS: Array<[string, string]> = [
 
 export type { StoryAssetKind } from "./StoryAssetStateImageStorage";
 export { stateImageUrl } from "./StoryAssetStateImageStorage";
+export { dismissStoryAssetImageError };
 
 interface StateAssetRow {
   id: string;
@@ -481,6 +483,7 @@ export class StoryAssetStateImageService {
     fallbackStates: StoryAssetState[] = [],
     artifactCommit?: StoryAssetImageCommitContext,
     artifactLeaseGuard?: StoryAssetImageLeaseGuard,
+    patchCurrentImage?: (current: StoryAssetStateImage | undefined) => StoryAssetStateImage | undefined,
   ): Promise<void> {
     if (kind === "character") {
       await updateStoryAssetStateJsonWithCas({
@@ -539,10 +542,15 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({
-          ...state,
-          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
-        }),
+        patch: (state) => {
+          const nextImage = patchCurrentImage
+            ? patchCurrentImage(state.image)
+            : preserveReadableStoryAssetImagePointer(state.image, image);
+          return {
+            ...state,
+            ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
+          };
+        },
       });
     } else if (kind === "scene") {
       await updateStoryAssetStateJsonWithCas({
@@ -597,10 +605,15 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({
-          ...state,
-          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
-        }),
+        patch: (state) => {
+          const nextImage = patchCurrentImage
+            ? patchCurrentImage(state.image)
+            : preserveReadableStoryAssetImagePointer(state.image, image);
+          return {
+            ...state,
+            ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
+          };
+        },
       });
     } else {
       await updateStoryAssetStateJsonWithCas({
@@ -640,10 +653,15 @@ export class StoryAssetStateImageService {
           });
           return result.count === 1;
         },
-        patch: (state) => ({
-          ...state,
-          image: pruneStateImage(preserveReadableStoryAssetImagePointer(state.image, image)),
-        }),
+        patch: (state) => {
+          const nextImage = patchCurrentImage
+            ? patchCurrentImage(state.image)
+            : preserveReadableStoryAssetImagePointer(state.image, image);
+          return {
+            ...state,
+            ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
+          };
+        },
       });
     }
   }
@@ -737,6 +755,38 @@ export class StoryAssetStateImageService {
           });
         }
       }
+    }
+    if (kind === "character") {
+      const list = await storySettingsService.listCharacters(novelId);
+      return list.find((item) => item.id === assetId) ?? null;
+    }
+    if (kind === "scene") {
+      const list = await storySettingsService.listScenes(novelId);
+      return list.find((item) => item.id === assetId) ?? null;
+    }
+    const list = await storySettingsService.listProps(novelId);
+    return list.find((item) => item.id === assetId) ?? null;
+  }
+
+  /** 关闭状态图失败提示：只删除当前状态图片的 error 字段，保留制品指针与可重试状态。 */
+  async dismissStateImageError(
+    novelId: string,
+    kind: StoryAssetKind,
+    assetId: string,
+    stateId: string,
+  ): Promise<unknown> {
+    const { states, state } = await this.findState(novelId, kind, assetId, stateId);
+    if (state.image?.error?.trim()) {
+      await this.writeStateImage(
+        kind,
+        assetId,
+        stateId,
+        state.image,
+        states,
+        undefined,
+        undefined,
+        (current) => current ? dismissStoryAssetImageError(current) : current,
+      );
     }
     if (kind === "character") {
       const list = await storySettingsService.listCharacters(novelId);
