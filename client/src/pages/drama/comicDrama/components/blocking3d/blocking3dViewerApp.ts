@@ -16,6 +16,7 @@ import {
   createProjectedHdriMaterial,
   updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
+import { createSelectionRingGeometryData } from "./blocking3dSelectionRing";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 import {
@@ -449,16 +450,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     });
   }
 
-  const selectionMaterial = createMaterial(new pc.Color(0.16, 0.9, 0.34), 0.65);
-  selectionMaterial.emissive = new pc.Color(0.16, 0.9, 0.34);
-  selectionMaterial.emissiveIntensity = 1;
+  const selectionColor = new pc.Color(0.02, 0.32, 0.1);
+  const selectionMaterial = createMaterial(selectionColor);
+  selectionMaterial.emissive = selectionColor.clone();
+  selectionMaterial.emissiveIntensity = 0.35;
   selectionMaterial.update();
+  const selectionGeometry = createPlayCanvasGeometry(createSelectionRingGeometryData());
+  const selectionMesh = pc.Mesh.fromGeometry(app.graphicsDevice, selectionGeometry);
+  const selectionMeshInstance = new pc.MeshInstance(selectionMesh, selectionMaterial);
   const selectionRing = new pc.Entity("blocking3d-selection-ring");
   selectionRing.addComponent("render", {
-    type: "cylinder",
-    material: selectionMaterial,
+    meshInstances: [selectionMeshInstance],
   });
-  selectionRing.setLocalScale(0.9, 0.018, 0.9);
+  selectionRing.setLocalScale(0.9, 1, 0.9);
   selectionRing.enabled = false;
   app.root.addChild(selectionRing);
 
@@ -596,7 +600,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const position = actor.entity.getPosition();
       selectionRing.enabled = true;
       selectionRing.setPosition(position.x, 0.008, position.z);
-      selectionRing.setLocalScale(Math.max(0.65, actor.entity.getLocalScale().x * 0.85), 0.018, Math.max(0.65, actor.entity.getLocalScale().z * 0.85));
+      selectionRing.setLocalScale(Math.max(0.65, actor.entity.getLocalScale().x * 0.85), 1, Math.max(0.65, actor.entity.getLocalScale().z * 0.85));
     } else {
       selectionRing.enabled = false;
     }
@@ -1254,6 +1258,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       clearEnvironmentLighting();
       cameraFrame.destroy();
       selectionRing.destroy();
+      selectionMesh.destroy();
       app.destroy();
     },
   };

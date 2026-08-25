@@ -22,6 +22,10 @@ const environmentProjectionSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentProjection.ts", import.meta.url),
   "utf8",
 );
+const selectionRingSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dSelectionRing.ts", import.meta.url),
+  "utf8",
+);
 const environmentSource = `${viewerSource}\n${environmentGeometrySource}\n${environmentProjectionSource}`;
 
 test("3D 草图只显示静态姿势控制，不提供动态播放入口", () => {
@@ -158,8 +162,14 @@ test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI �
   assert.doesNotMatch(viewerSource, /estimateHdriLightDirection|getImageData|setFromDirections\(pc\.Vec3\.DOWN/);
 });
 
-test("选中角色使用绿色标记，场景参照角色支持锁定位置移动", () => {
-  assert.match(viewerSource, /new pc\.Color\(0\.16, 0\.9, 0\.34\)/);
+test("选中角色使用深绿色空心圆环，场景参照角色支持锁定位置移动", () => {
+  assert.match(selectionRingSource, /SELECTION_RING_INNER_RADIUS/);
+  assert.match(selectionRingSource, /SELECTION_RING_OUTER_RADIUS/);
+  assert.match(selectionRingSource, /data\.indices\.push\(outer, inner, nextOuter\)/);
+  assert.match(viewerSource, /createSelectionRingGeometryData\(\)/);
+  assert.match(viewerSource, /new pc\.Color\(0\.02, 0\.32, 0\.1\)/);
+  assert.match(viewerSource, /meshInstances: \[selectionMeshInstance\]/);
+  assert.doesNotMatch(viewerSource, /type: "cylinder"/);
   assert.match(viewerSource, /setActorMovementEnabled/);
   assert.match(viewerSource, /let actorMovementEnabled = true/);
   assert.match(viewerSource, /mode: hit && selectedLabel === hit && actorMovementEnabled \? "actor"/);
