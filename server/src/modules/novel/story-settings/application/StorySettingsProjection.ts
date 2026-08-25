@@ -2,6 +2,7 @@ import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtra
 import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
 import { normalizeCharacterStates, normalizePropStates, normalizeSceneStates, parseStates } from "./StorySettingsStatePolicy";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
+import { parseStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
 
 /** 设定中心实体 DTO 投影；投影阶段也要保证返回的状态数组可直接进入生成链。 */
 
@@ -91,6 +92,7 @@ export function projectScene(row: {
   sortOrder: number;
   source: string;
   statesJson?: string | null;
+  scene3dEnvironmentJson?: string | null;
   updatedAt: Date;
 }, novelId: string) {
   return {
@@ -108,6 +110,7 @@ export function projectScene(row: {
     sortOrder: row.sortOrder,
     source: row.source,
     states: scopeStateImageUrls(normalizeSceneStates(parseStates(row.statesJson), row), novelId, "scene", row.id),
+    scene3dEnvironment: parseStoryScene3dEnvironment(row.scene3dEnvironmentJson),
     updatedAt: row.updatedAt.toISOString(),
   };
 }

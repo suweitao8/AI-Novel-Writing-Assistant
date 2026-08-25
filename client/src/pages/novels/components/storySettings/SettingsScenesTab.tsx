@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Box, Plus, Search, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type { StorySettingsScene } from "@/api/story/storySettings";
 import {
   deleteStorySettingsScene,
@@ -25,6 +26,7 @@ interface SettingsScenesTabProps {
 // 新建/编辑/状态图都在弹窗里；这里的本地逻辑只剩 查询/搜索/删除。
 export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenesTabProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [editing, setEditing] = useState<StorySettingsScene | null>(null);
   const [creating, setCreating] = useState(false);
   const [keyword, setKeyword] = useState("");
@@ -130,6 +132,19 @@ export default function SettingsScenesTab({ novelId, onChanged }: SettingsScenes
                 onOpen={() => openEdit(scene)}
                 actions={(
                   <>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label={`编辑${scene.name}的3D场景`}
+                      title="3D场景编辑"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        navigate(`/drama/studio/${encodeURIComponent(novelId)}/scenes/${encodeURIComponent(scene.id)}/3d`);
+                      }}
+                    >
+                      <Box className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"

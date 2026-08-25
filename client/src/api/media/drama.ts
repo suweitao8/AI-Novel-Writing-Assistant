@@ -1,4 +1,5 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
+import type { StoryScene3DEnvironment } from "@ai-novel/shared/types/comicDrama";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/comic";
 import { apiClient } from "../client";
@@ -240,6 +241,7 @@ export interface DramaShotBlockingSketchEditorContext {
     assetId: string;
     stateId: string;
     imageUrl: string;
+    environment: StoryScene3DEnvironment;
   } | null;
   actors: Array<{
     characterName: string;

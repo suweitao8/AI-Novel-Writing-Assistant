@@ -563,6 +563,8 @@ model NovelScene {
   // 场景 360° 全景参考图的生成状态 JSON（{status,url,...}，文件存 generated-images/story-assets）。
   imageData       String?
   statesJson      String?
+  // 场景资产统一 3D 环境参数 JSON；所有分镜从这里继承投射中心高度与半球直径。
+  scene3dEnvironmentJson String?
   mapNodeId    String?
   mapUnmappable Boolean @default(false)
   sortOrder    Int      @default(0)

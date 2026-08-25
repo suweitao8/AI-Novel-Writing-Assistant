@@ -4,6 +4,10 @@ import type {
   StoryAssetStateInput,
   StoryAssetStateVoiceMode,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type {
+  StoryScene3DEnvironment,
+  StoryScene3DEnvironmentInput,
+} from "@ai-novel/shared/types/comicDrama";
 import { apiClient } from "../client";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
@@ -40,6 +44,8 @@ export interface StorySettingsScene {
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
+  /** 场景资产统一的 3D HDRI 环境参数，所有分镜从这里继承。 */
+  scene3dEnvironment: StoryScene3DEnvironment;
   updatedAt: string;
 }
 
@@ -162,11 +168,19 @@ export async function createStorySettingsScene(
     weather?: string;
     mapNodeId?: string;
     states?: StoryAssetStateInput[];
+    scene3dEnvironment?: StoryScene3DEnvironmentInput | null;
   },
 ) {
   const { data } = await apiClient.post<ApiResponse<StorySettingsScene>>(
     `/novels/${encodeURIComponent(novelId)}/settings/scenes`,
     payload,
+  );
+  return data;
+}
+
+export async function getStorySettingsScene(novelId: string, sceneId: string) {
+  const { data } = await apiClient.get<ApiResponse<StorySettingsScene>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/scenes/${encodeURIComponent(sceneId)}`,
   );
   return data;
 }
@@ -184,6 +198,7 @@ export async function updateStorySettingsScene(
     weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetStateInput[];
+    scene3dEnvironment?: StoryScene3DEnvironmentInput | null;
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StorySettingsScene>>(
