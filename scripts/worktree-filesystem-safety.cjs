@@ -12,6 +12,8 @@ const DEPENDENCY_ROOTS = [
   "client/node_modules",
   "server/node_modules",
   "shared/node_modules",
+  "site/node_modules",
+  "video/node_modules",
 ];
 
 function fail(message) {

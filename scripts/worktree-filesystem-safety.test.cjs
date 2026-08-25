@@ -72,6 +72,18 @@ test("rejects a dependency root that resolves to another checkout", (t) => {
   );
 });
 
+test("rejects a site dependency root that resolves to another checkout", (t) => {
+  const fixture = createFixture(t);
+  const other = createFixture(t);
+  fs.mkdirSync(path.join(other, "site", "node_modules"), { recursive: true });
+  linkDirectory(path.join(other, "site", "node_modules"), path.join(fixture, "site", "node_modules"));
+
+  assert.throws(
+    () => assertWorktreeFilesystemIsolation({ cwd: fixture }),
+    /external filesystem link|node_modules/i,
+  );
+});
+
 test("rejects a missing shared source directory", (t) => {
   const fixture = createFixture(t);
   fs.rmSync(path.join(fixture, "shared"), { recursive: true, force: true });
