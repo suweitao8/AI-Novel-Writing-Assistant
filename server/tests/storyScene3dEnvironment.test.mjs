@@ -8,6 +8,12 @@ import {
 } from "../dist/modules/novel/story-settings/application/StoryScene3dEnvironment.js";
 
 test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () => {
+  assert.deepEqual(DEFAULT_STORY_SCENE_3D_ENVIRONMENT, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    yawDeg: 0,
+    intensity: 1,
+  });
   assert.deepEqual(normalizeStoryScene3dEnvironment(undefined), DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
   assert.deepEqual(normalizeStoryScene3dEnvironment({
     projectionCenterHeight: 4.5,

@@ -60,8 +60,8 @@ test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => 
 });
 
 test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固定", () => {
-  assert.match(viewerSource, /projectionCenterHeight: 3/);
-  assert.match(viewerSource, /domeRadius: 20/);
+  assert.match(viewerSource, /projectionCenterHeight: 2/);
+  assert.match(viewerSource, /domeRadius: 15/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);

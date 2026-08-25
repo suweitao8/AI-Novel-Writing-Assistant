@@ -19,8 +19,8 @@ const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
-  projectionCenterHeight: 3,
-  domeRadius: 20,
+  projectionCenterHeight: 2,
+  domeRadius: 15,
   yawDeg: 0,
   intensity: 1,
 };
