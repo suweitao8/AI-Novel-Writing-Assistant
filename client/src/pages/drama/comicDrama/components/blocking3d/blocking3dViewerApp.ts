@@ -419,6 +419,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     nearClip: 0.05,
     farClip: 200,
   });
+  // PlayCanvas uses scene.envAtlas as the fallback texture for its built-in
+  // infinite Skybox. Keep the atlas for HDRI lighting, but remove that layer
+  // from this camera so the finite backdrop below remains the only environment
+  // visible in the blocking viewport.
+  const cameraComponent = cameraEntity.camera!;
+  cameraComponent.layers = cameraComponent.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
   app.root.addChild(cameraEntity);
   const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
   cameraFrame.dof.nearBlur = false;
@@ -1143,7 +1149,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDome = new pc.Entity("blocking3d-hdri-dome");
       environmentDome.addComponent("render", {
         meshInstances: [meshInstance],
-        layers: [pc.LAYERID_SKYBOX],
+        layers: [pc.LAYERID_WORLD],
       });
       const groundMesh = pc.Mesh.fromGeometry(
         app.graphicsDevice,
@@ -1153,7 +1159,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
       environmentGround.addComponent("render", {
         meshInstances: [environmentGroundMeshInstance],
-        layers: [pc.LAYERID_SKYBOX],
+        layers: [pc.LAYERID_WORLD],
       });
       environmentGround.setPosition(environmentWorldPosition);
       app.root.addChild(environmentGround);
