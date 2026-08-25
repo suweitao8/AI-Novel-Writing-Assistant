@@ -33,6 +33,13 @@ const DEFAULT_CAMERA: DramaShotBlockingSketch3DCamera = {
   elev: -12,
   distance: 8,
   focalPoint: [0, 0.8, 0],
+  fovDeg: 52,
+  nearClip: 0.05,
+  farClip: 200,
+  depthOfFieldEnabled: false,
+  focusDistance: 8,
+  focusRange: 5,
+  blurRadius: 3,
 };
 const ACTOR_COLORS = [
   [0.78, 0.32, 0.28],
@@ -287,6 +294,8 @@ function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlock
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
   };
+  const nearClip = clamp(numberOr(input.nearClip, DEFAULT_CAMERA.nearClip), 0.05, 5);
+  const farClip = Math.max(nearClip + 0.05, clamp(numberOr(input.farClip, DEFAULT_CAMERA.farClip), 20, 300));
   return {
     azim: clamp(numberOr(input.azim, 0), -180, 180),
     elev: clamp(numberOr(input.elev, 0), -89, 89),
@@ -296,6 +305,15 @@ function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlock
       clamp(numberOr(input.focalPoint?.[1], 0.8), -100, 100),
       clamp(numberOr(input.focalPoint?.[2], 0), -100, 100),
     ],
+    fovDeg: clamp(numberOr(input.fovDeg, DEFAULT_CAMERA.fovDeg), 30, 100),
+    nearClip,
+    farClip,
+    depthOfFieldEnabled: typeof input.depthOfFieldEnabled === "boolean"
+      ? input.depthOfFieldEnabled
+      : DEFAULT_CAMERA.depthOfFieldEnabled,
+    focusDistance: clamp(numberOr(input.focusDistance, DEFAULT_CAMERA.focusDistance), 0.25, 100),
+    focusRange: clamp(numberOr(input.focusRange, DEFAULT_CAMERA.focusRange), 0.1, 100),
+    blurRadius: clamp(numberOr(input.blurRadius, DEFAULT_CAMERA.blurRadius), 0, 10),
   };
 }
 

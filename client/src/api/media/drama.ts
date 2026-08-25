@@ -197,6 +197,13 @@ export interface DramaShotBlockingSketch3DCamera {
   elev: number;
   distance: number;
   focalPoint: [number, number, number];
+  fovDeg: number;
+  nearClip: number;
+  farClip: number;
+  depthOfFieldEnabled: boolean;
+  focusDistance: number;
+  focusRange: number;
+  blurRadius: number;
 }
 
 export interface DramaShotBlockingSketch3DActor {

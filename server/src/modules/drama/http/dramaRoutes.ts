@@ -112,6 +112,13 @@ const blockingSketch3dCameraSchema = z.object({
     z.number().min(-100).max(100),
     z.number().min(-100).max(100),
   ]),
+  fovDeg: z.number().min(30).max(100).optional().default(52),
+  nearClip: z.number().min(0.05).max(5).optional().default(0.05),
+  farClip: z.number().min(20).max(300).optional().default(200),
+  depthOfFieldEnabled: z.boolean().optional().default(false),
+  focusDistance: z.number().min(0.25).max(100).optional().default(8),
+  focusRange: z.number().min(0.1).max(100).optional().default(5),
+  blurRadius: z.number().min(0).max(10).optional().default(3),
 });
 
 const blockingSketch3dActorSchema = z.object({

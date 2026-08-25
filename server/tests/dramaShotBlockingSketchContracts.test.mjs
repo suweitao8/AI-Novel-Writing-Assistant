@@ -98,6 +98,16 @@ test("3D 草图快照与旧草图字段一起保存，并统一保存静态关�
     ...input,
     layout3d: {
       ...input.layout3d,
+      camera: {
+        ...input.layout3d.camera,
+        fovDeg: 52,
+        nearClip: 0.05,
+        farClip: 200,
+        depthOfFieldEnabled: false,
+        focusDistance: 8,
+        focusRange: 5,
+        blurRadius: 3,
+      },
       actors: input.layout3d.actors.map((actor) => ({ ...actor, actionPlaying: false })),
     },
   };
@@ -191,6 +201,75 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
   });
   assert.deepEqual(normalizedLegacy.layout3d?.environment, normalized.layout3d?.environment);
   assert.equal(normalizeBlockingSketchData({ ...validSketch, layout3d: { ...layout3d, environment: undefined } }).layout3d?.environment, undefined);
+});
+
+test("3D 相机兼容旧快照并保存镜头与景深参数", () => {
+  const old = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: { azim: 0, elev: -12, distance: 4, focalPoint: [0, 0.8, 0] },
+      actors: [],
+    },
+  });
+  assert.deepEqual(old.layout3d?.camera, {
+    azim: 0,
+    elev: -12,
+    distance: 4,
+    focalPoint: [0, 0.8, 0],
+    fovDeg: 52,
+    nearClip: 0.05,
+    farClip: 200,
+    depthOfFieldEnabled: false,
+    focusDistance: 8,
+    focusRange: 5,
+    blurRadius: 3,
+  });
+
+  const next = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      ...old.layout3d,
+      camera: {
+        ...old.layout3d?.camera,
+        fovDeg: 38,
+        nearClip: 0.1,
+        farClip: 120,
+        depthOfFieldEnabled: true,
+        focusDistance: 4.5,
+        focusRange: 2.25,
+        blurRadius: 4,
+      },
+    },
+  });
+  assert.equal(next.layout3d?.camera.depthOfFieldEnabled, true);
+  assert.equal(next.layout3d?.camera.focusDistance, 4.5);
+  assert.equal(next.layout3d?.camera.blurRadius, 4);
+});
+
+test("3D 相机拒绝越界景深字段", () => {
+  assert.throws(() => normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: {
+        azim: 0,
+        elev: 0,
+        distance: 3,
+        focalPoint: [0, 0, 0],
+        fovDeg: 120,
+        nearClip: 0.01,
+        farClip: 200,
+        depthOfFieldEnabled: true,
+        focusDistance: 3,
+        focusRange: 2,
+        blurRadius: 3,
+      },
+      actors: [],
+    },
+  }), /3D 相机/);
 });
 
 test("HDRI 环境参数拒绝超出视口可控范围的值", () => {

@@ -16,7 +16,19 @@ test("3D 摆位提供坐着、躺着和趴着姿势，并保存可恢复的相�
   assert.deepEqual(normalizeBlocking3dCamera(undefined), DEFAULT_BLOCKING_3D_CAMERA);
   assert.deepEqual(
     normalizeBlocking3dCamera({ azim: 10, elev: -15, distance: 4, focalPoint: [1, 0, -2] }),
-    { azim: 10, elev: -15, distance: 4, focalPoint: [1, 0, -2] },
+    {
+      azim: 10,
+      elev: -15,
+      distance: 4,
+      focalPoint: [1, 0, -2],
+      fovDeg: 52,
+      nearClip: 0.05,
+      farClip: 200,
+      depthOfFieldEnabled: false,
+      focusDistance: 8,
+      focusRange: 5,
+      blurRadius: 3,
+    },
   );
 });
 
@@ -41,6 +53,52 @@ test("3D 角色快照限制范围，并能投影回旧分镜草图字段", () =>
     zIndex: 0,
   });
   assert.equal(projectBlocking3dActorToLegacy({ ...actor, yawDeg: 180 }, 0).flipX, false);
+});
+
+test("3D 客户端相机兼容旧快照并保留景深参数", () => {
+  assert.deepEqual(normalizeBlocking3dCamera({
+    azim: 10,
+    elev: -15,
+    distance: 4,
+    focalPoint: [1, 0, -2],
+  }), {
+    azim: 10,
+    elev: -15,
+    distance: 4,
+    focalPoint: [1, 0, -2],
+    fovDeg: 52,
+    nearClip: 0.05,
+    farClip: 200,
+    depthOfFieldEnabled: false,
+    focusDistance: 8,
+    focusRange: 5,
+    blurRadius: 3,
+  });
+  assert.deepEqual(normalizeBlocking3dCamera({
+    azim: 10,
+    elev: -15,
+    distance: 4,
+    focalPoint: [1, 0, -2],
+    fovDeg: 38,
+    nearClip: 0.1,
+    farClip: 120,
+    depthOfFieldEnabled: true,
+    focusDistance: 4.5,
+    focusRange: 2.25,
+    blurRadius: 4,
+  }), {
+    azim: 10,
+    elev: -15,
+    distance: 4,
+    focalPoint: [1, 0, -2],
+    fovDeg: 38,
+    nearClip: 0.1,
+    farClip: 120,
+    depthOfFieldEnabled: true,
+    focusDistance: 4.5,
+    focusRange: 2.25,
+    blurRadius: 4,
+  });
 });
 
 test("3D 角色拒绝未知姿势和不合法空间数据", () => {
