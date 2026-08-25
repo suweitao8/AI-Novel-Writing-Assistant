@@ -115,7 +115,7 @@ pnpm --filter @ai-novel/client build
 
 Expected: 两条命令退出码为 0。
 
-- [ ] **Step 2: 用真实浏览器检查分镜卡片**
+- [x] **Step 2: 用真实浏览器检查分镜卡片**
 
 在现有 `5174` 页面打开“分镜”标签，确认真实 DOM 满足：
 
@@ -123,7 +123,7 @@ Expected: 两条命令退出码为 0。
 2. 三个按钮位于水平切换下面，顺序为编辑 3D、AI 摆位、生成/重新生图。
 3. 没有 AI 图时 3D 图仍选中、AI 图仍禁用；有 AI 图时两者可以点击切换。
 
-- [ ] **Step 3: 提交、合并、推送并清理**
+- [x] **Step 3: 提交、合并、推送并清理**
 
 ```powershell
 git add client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx client/tests/shotVoiceBlockingSketchEntry.test.js README.md docs/releases/release-notes.md
