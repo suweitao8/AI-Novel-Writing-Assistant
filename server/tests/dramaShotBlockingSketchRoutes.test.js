@@ -16,6 +16,11 @@ test("分镜摆位草图提供读取、保存、上传、确认和图片预览�
   assert.match(source, /shot-images\/:shotId\/blocking-sketch"/);
 });
 
+test("分镜摆位草图提供只规划不落库的自动构图路由", () => {
+  assert.match(source, /projects\/\:id\/shots\/\:shotId\/blocking-sketch\/auto-plan/);
+  assert.match(source, /dramaShotBlockingSketchService\.autoPlan/);
+});
+
 test("草图元数据通过 Zod 校验，PNG 图片使用原始请求流上传", () => {
   assert.match(source, /blockingSketchDataSchema/);
   assert.match(source, /blockingSketchSaveSchema/);

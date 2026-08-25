@@ -12,3 +12,8 @@ test("客户端草图 API 使用独立的元数据、PNG 上传与确认端点",
   assert.match(source, /confirmDramaShotBlockingSketch/);
   assert.match(source, /blocking-sketch\/image/);
 });
+
+test("客户端草图 API 暴露自动构图端点", () => {
+  assert.match(source, /autoPlanDramaShotBlockingSketch/);
+  assert.match(source, /blocking-sketch\/auto-plan/);
+});

@@ -1053,6 +1053,20 @@ router.put(
   },
 );
 
+router.post(
+  "/projects/:id/shots/:shotId/blocking-sketch/auto-plan",
+  validate({ params: shotParamsSchema, body: llmOptionsSchema }),
+  async (req, res, next) => {
+    try {
+      const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
+      const data = await dramaShotBlockingSketchService.autoPlan(id, shotId, (req.body ?? {}) as never);
+      res.status(200).json({ success: true, data, message: "3D 草图构图已规划。" });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
 router.post("/projects/:id/shots/:shotId/blocking-sketch/image", validate({ params: shotParamsSchema }), async (req, res, next) => {
   try {
     const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;

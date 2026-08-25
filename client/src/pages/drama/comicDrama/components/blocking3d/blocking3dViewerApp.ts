@@ -430,6 +430,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     farClip: 200,
   });
   app.root.addChild(cameraEntity);
+  const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
+  cameraFrame.dof.nearBlur = false;
+  cameraFrame.dof.highQuality = true;
 
   const light = new pc.Entity("blocking3d-key-light");
   light.addComponent("light", {
@@ -573,6 +576,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const orbitDistance = () => clamp(cameraState.distance, 0.25, 100);
 
   const syncCamera = () => {
+    if (!cameraEntity.camera) return;
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const distance = orbitDistance();
@@ -582,8 +586,16 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       cameraState.focalPoint[1] + Math.sin(-elevation) * distance,
       cameraState.focalPoint[2] + Math.cos(azimuth) * cosElevation * distance,
     );
+    cameraEntity.camera.fov = cameraState.fovDeg;
+    cameraEntity.camera.nearClip = cameraState.nearClip;
+    cameraEntity.camera.farClip = cameraState.farClip;
+    cameraFrame.dof.enabled = cameraState.depthOfFieldEnabled;
+    cameraFrame.dof.focusDistance = cameraState.focusDistance;
+    cameraFrame.dof.focusRange = cameraState.focusRange;
+    cameraFrame.dof.blurRadius = cameraState.blurRadius;
     cameraEntity.setPosition(position);
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
+    cameraFrame.update();
   };
 
   const emitSelection = () => {
@@ -789,6 +801,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
 
   app.on("update", (dt: number) => {
+    cameraFrame.update();
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
@@ -1160,6 +1173,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentAsset && app.assets.remove(environmentAsset);
+      cameraFrame.destroy();
       selectionRing.destroy();
       app.destroy();
     },

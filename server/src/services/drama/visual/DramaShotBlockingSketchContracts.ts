@@ -304,7 +304,7 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   };
 }
 
-function normalizeLayout3d(input: unknown): DramaShotBlockingSketch3DLayout {
+export function normalizeBlockingSketch3dLayout(input: unknown): DramaShotBlockingSketch3DLayout {
   const layout = objectValue(input, "3D 摆位");
   if (layout.schemaVersion !== 1) invalid("3D 摆位版本不受支持");
   if (layout.engine !== "playcanvas") invalid("3D 摆位引擎不受支持");
@@ -357,7 +357,7 @@ export function normalizeBlockingSketchData(input: unknown): DramaShotBlockingSk
   }
   const url = stringValue(data.url, "草图图片", false);
   const generatedAt = stringValue(data.generatedAt, "生成时间", false);
-  const layout3d = data.layout3d === undefined ? undefined : normalizeLayout3d(data.layout3d);
+  const layout3d = data.layout3d === undefined ? undefined : normalizeBlockingSketch3dLayout(data.layout3d);
   return {
     status: data.status,
     version: finiteNumber(data.version, "版本号", 1, Number.MAX_SAFE_INTEGER, true),

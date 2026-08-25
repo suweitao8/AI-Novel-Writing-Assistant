@@ -259,6 +259,11 @@ export interface DramaShotBlockingSketchEditorContext {
   }>;
 }
 
+export interface DramaShotBlockingAutoPlanResult {
+  layout: DramaShotBlockingSketch3DLayout;
+  compositionNote?: string;
+}
+
 export interface DramaDialogueAudioItem {
   lineIndex: number;
   speaker?: string;
@@ -691,6 +696,18 @@ export async function saveDramaShotBlockingSketch(
     { data },
   );
   return response.data;
+}
+
+export async function autoPlanDramaShotBlockingSketch(
+  id: string,
+  shotId: string,
+  payload: DramaLLMOptions = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<DramaShotBlockingAutoPlanResult>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch/auto-plan`,
+    payload,
+  );
+  return data;
 }
 
 export async function uploadDramaShotBlockingSketchPng(id: string, shotId: string, png: Blob) {

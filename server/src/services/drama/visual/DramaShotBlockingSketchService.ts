@@ -9,15 +9,24 @@ import type { StoryScene3DEnvironment } from "@ai-novel/shared/types/comicDrama"
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
+import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
+import {
+  dramaShotBlockingAutoPlanPrompt,
+  type DramaShotBlockingAutoPlanOutput,
+} from "../../../prompting/prompts/drama/shotBlockingAutoPlan.prompts";
 import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
+import type { DramaLLMOptions } from "../DramaStrategyService";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { safeJsonParse } from "../utils/json";
 import {
+  normalizeBlockingSketch3dLayout,
   normalizeBlockingSketchData,
   parseBlockingSketchData,
+  type DramaShotBlockingSketch3DLayout,
   type DramaShotBlockingSketchActor,
   type DramaShotBlockingSketchData,
+  type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
 import { parseStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
 
@@ -34,9 +43,16 @@ interface CharacterLite {
 
 interface BlockingSketchShot {
   id: string;
+  order: number;
+  shotSize: string | null;
+  cameraMove: string | null;
+  durationSec: number | null;
+  action: string;
+  dialogue: string | null;
   location: string | null;
   characterRefs: string | null;
   characterStates: string | null;
+  visualPrompt: string | null;
   blockingSketchData: string | null;
   storyboard: {
     project: {
@@ -68,6 +84,11 @@ export interface DramaShotBlockingSketchEditorContext {
   sketch: DramaShotBlockingSketchData | null;
   scene: BlockingSketchEditorScene | null;
   actors: BlockingSketchEditorActor[];
+}
+
+export interface DramaShotBlockingAutoPlanResult {
+  layout: DramaShotBlockingSketch3DLayout;
+  compositionNote?: string;
 }
 
 function dramaShotDir(shotId: string): string {
@@ -162,7 +183,19 @@ export class DramaShotBlockingSketchService {
   private async assertShotInProject(projectId: string, shotId: string): Promise<BlockingSketchShot> {
     const shot = await prisma.dramaShot.findUnique({
       where: { id: shotId },
-      include: {
+      select: {
+        id: true,
+        order: true,
+        shotSize: true,
+        cameraMove: true,
+        durationSec: true,
+        action: true,
+        dialogue: true,
+        location: true,
+        characterRefs: true,
+        characterStates: true,
+        visualPrompt: true,
+        blockingSketchData: true,
         storyboard: {
           include: {
             project: { include: { characters: { select: { id: true, name: true, portraitData: true } } } },
@@ -249,6 +282,40 @@ export class DramaShotBlockingSketchService {
     return { sketch, scene, actors };
   }
 
+  async autoPlan(projectId: string, shotId: string, options: DramaLLMOptions = {}): Promise<DramaShotBlockingAutoPlanResult> {
+    const shot = await this.assertShotInProject(projectId, shotId);
+    const context = await this.getEditorContext(projectId, shotId);
+    if (!context.scene) {
+      throw new AppError("当前镜头没有可用的场景状态图。", 409);
+    }
+    if (context.actors.length === 0) {
+      throw new AppError("当前镜头没有可规划的出场角色。", 409);
+    }
+    const result = await runStructuredPrompt({
+      asset: dramaShotBlockingAutoPlanPrompt,
+      promptInput: {
+        shotJson: JSON.stringify({
+          order: shot.order,
+          location: shot.location,
+          shotSize: shot.shotSize,
+          cameraMove: shot.cameraMove,
+          durationSec: shot.durationSec,
+          action: shot.action,
+          dialogue: shot.dialogue,
+          visualPrompt: shot.visualPrompt,
+        }),
+        sceneJson: JSON.stringify(context.scene),
+        actorsJson: JSON.stringify(context.actors),
+      },
+      options: {
+        provider: options.provider,
+        model: options.model,
+        temperature: options.temperature ?? 0.25,
+      },
+    });
+    return buildDramaShotBlockingAutoPlanLayout(result.output, context.actors, context.scene.environment);
+  }
+
   async saveSketch(projectId: string, shotId: string, input: unknown): Promise<DramaShotBlockingSketchData> {
     const shot = await this.assertShotInProject(projectId, shotId);
     let normalized: DramaShotBlockingSketchData;
@@ -327,6 +394,52 @@ export class DramaShotBlockingSketchService {
     } catch {
       return null;
     }
+  }
+}
+
+function normalizedName(value: string): string {
+  return value.trim().toLocaleLowerCase();
+}
+
+export function buildDramaShotBlockingAutoPlanLayout(
+  output: DramaShotBlockingAutoPlanOutput,
+  actors: BlockingSketchEditorActor[],
+  environment: StoryScene3DEnvironment,
+): DramaShotBlockingAutoPlanResult {
+  const expectedNames = actors.map((actor) => actor.characterName.trim());
+  const expected = new Set(expectedNames.map(normalizedName));
+  const plannedNames = output.actors.map((actor) => actor.characterName.trim());
+  const planned = new Set(plannedNames.map(normalizedName));
+  const missing = expectedNames.filter((name) => !planned.has(normalizedName(name)));
+  const extra = plannedNames.filter((name) => !expected.has(normalizedName(name)));
+  if (missing.length > 0 || extra.length > 0 || planned.size !== plannedNames.length || expected.size !== expectedNames.length) {
+    throw new AppError(
+      `自动构图角色与当前镜头角色不一致${missing.length ? `，缺少：${missing.join("、")}` : ""}${extra.length ? `，多出：${extra.join("、")}` : ""}`,
+      422,
+    );
+  }
+  try {
+    const layout = normalizeBlockingSketch3dLayout({
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: output.camera,
+      actors: output.actors.map((actor) => ({
+        characterName: actor.characterName.trim(),
+        position: actor.position,
+        yawDeg: actor.yawDeg,
+        scale: actor.scale,
+        pose: actor.pose as DramaShotBlockingSketchPose,
+        actionPlaying: false,
+      })),
+      environment,
+    });
+    return {
+      layout,
+      ...(output.compositionNote?.trim() ? { compositionNote: output.compositionNote.trim() } : {}),
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+    throw new AppError(error instanceof Error ? error.message : "自动构图返回了无效的 3D 布局。", 422);
   }
 }
 
