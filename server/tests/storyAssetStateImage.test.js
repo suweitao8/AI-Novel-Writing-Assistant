@@ -7,6 +7,7 @@ const assert = require("node:assert/strict");
 
 const {
   buildStateImagePrompt,
+  dismissStoryAssetImageError,
   resolveStateReferenceImageUrl,
   stateImageUrl,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetStateImageService.js");
@@ -175,6 +176,31 @@ test("resolveStateReferenceImageUrl：失败或重新生成中的状态仍可沿
   ];
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[0], id: "s4", referenceStateId: "s2" }), "/state/s2");
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[0], id: "s5", referenceStateId: "s3" }), "/state/s3");
+});
+
+test("关闭状态图失败提示只移除 error，不删除已确认图片或重试状态", () => {
+  const image = {
+    status: "error",
+    artifactId: "artifact-1",
+    url: "/state/s2",
+    prompt: "完整提示词",
+    provider: "codex",
+    generatedAt: "2026-08-25T10:00:00.000Z",
+    error: "生成超时，请重试。",
+  };
+
+  assert.deepEqual(dismissStoryAssetImageError(image), {
+    status: "error",
+    artifactId: "artifact-1",
+    url: "/state/s2",
+    prompt: "完整提示词",
+    provider: "codex",
+    generatedAt: "2026-08-25T10:00:00.000Z",
+  });
+  assert.deepEqual(dismissStoryAssetImageError({ status: "done", url: "/state/s3" }), {
+    status: "done",
+    url: "/state/s3",
+  });
 });
 
 test("状态图 URL 必须包含资产归属，避免不同资产复用 initial 状态时互相覆盖", () => {

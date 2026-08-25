@@ -73,7 +73,7 @@ export function StoryAssetCard({
                     <LoaderCircle aria-hidden="true" className="h-3 w-3 animate-spin" />
                     生成中
                   </Badge>
-                ) : imageStatus === "error" ? (
+                ) : imageStatus === "error" && Boolean(defaultState?.imageError) ? (
                   <Badge variant="outline" title={defaultState?.imageError || undefined} className="border-destructive/50 bg-destructive/10 text-[11px] text-destructive">
                     生成失败
                   </Badge>
