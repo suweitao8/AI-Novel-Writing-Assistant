@@ -128,14 +128,34 @@ test("下半球在投射中心附近使用有限平底，避免尖点三角面�
   assert.match(environmentProjectionSource, /fract\(/);
 });
 
-test("中键平移使用摄像机屏幕坐标，并依据场景图亮部设置角色主光", () => {
+test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI 环境", () => {
   assert.match(viewerSource, /const screenRight = new pc\.Vec3\(Math\.cos\(azimuth\)/);
   assert.match(viewerSource, /const screenUp/);
   assert.match(viewerSource, /panCamera/);
   assert.doesNotMatch(viewerSource, /moveCamera\(-dx \* 0\.01, dy \* 0\.01, 0\)/);
-  assert.match(viewerSource, /estimateHdriLightDirection/);
-  assert.match(viewerSource, /getSource\(\)/);
-  assert.match(viewerSource, /getImageData/);
-  assert.match(viewerSource, /setFromDirections\(pc\.Vec3\.DOWN/);
-  assert.doesNotMatch(viewerSource, /light\.lookAt/);
+  assert.match(viewerSource, /pc\.EnvLighting\.generateLightingSource/);
+  assert.match(viewerSource, /pc\.EnvLighting\.generateAtlas/);
+  assert.match(viewerSource, /app\.scene\.envAtlas/);
+  assert.match(viewerSource, /pc\.TEXTUREPROJECTION_EQUIRECT/);
+  assert.match(viewerSource, /app\.scene\.ambientLight/);
+  assert.doesNotMatch(viewerSource, /type: "directional"/);
+  assert.doesNotMatch(viewerSource, /type: "omni"/);
+  assert.doesNotMatch(viewerSource, /estimateHdriLightDirection|getImageData|setFromDirections\(pc\.Vec3\.DOWN/);
+});
+
+test("选中角色使用绿色标记，场景参照角色支持锁定位置移动", () => {
+  assert.match(viewerSource, /new pc\.Color\(0\.16, 0\.9, 0\.34\)/);
+  assert.match(viewerSource, /setActorMovementEnabled/);
+  assert.match(viewerSource, /let actorMovementEnabled = true/);
+  assert.match(viewerSource, /mode: hit && selectedLabel === hit && actorMovementEnabled \? "actor"/);
+  assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
+  assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+  assert.doesNotMatch(scene3dPageSource, /左键拖参照角色/);
+});
+
+test("代理角色按 1.8 米实际高度校准", () => {
+  assert.match(viewerSource, /ACTOR_REFERENCE_HEIGHT_METERS = 1\.8/);
+  assert.match(viewerSource, /ACTOR_PROXY_NATIVE_HEIGHT_METERS = 1\.8287/);
+  assert.match(viewerSource, /ACTOR_REFERENCE_SCALE/);
+  assert.match(viewerSource, /root\.setLocalScale\(ACTOR_REFERENCE_SCALE/);
 });

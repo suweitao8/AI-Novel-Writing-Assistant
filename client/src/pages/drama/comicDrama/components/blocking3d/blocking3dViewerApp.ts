@@ -7,11 +7,6 @@ import type {
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import {
-  DEFAULT_HDRI_LIGHT_ESTIMATE,
-  estimateHdriLightDirection,
-  type HdriLightEstimate,
-} from "./blocking3dEnvironmentMath";
-import {
   createGroundDomeGeometryData,
   getGroundDomeEdgeHeight,
   type Blocking3dGeometryData,
@@ -27,6 +22,10 @@ const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
+const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
+const ACTOR_REFERENCE_HEIGHT_METERS = 1.8;
+const ACTOR_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
+const ACTOR_REFERENCE_SCALE = ACTOR_REFERENCE_HEIGHT_METERS / ACTOR_PROXY_NATIVE_HEIGHT_METERS;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   domeRadius: 15,
@@ -119,6 +118,7 @@ export interface Blocking3dViewer {
   setCameraState: (camera: DramaShotBlockingSketch3DCamera) => void;
   getCameraState: () => DramaShotBlockingSketch3DCamera;
   setInteractionEnabled: (enabled: boolean) => void;
+  setActorMovementEnabled: (enabled: boolean) => void;
   setEnvironment: (url: string | null) => Promise<void>;
   getEnvironmentSettings: () => Blocking3dEnvironmentSettings;
   setEnvironmentSettings: (settings: Blocking3dEnvironmentSettings) => boolean;
@@ -245,30 +245,13 @@ function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: nu
 }
 
 function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
+  texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
   texture.minFilter = pc.FILTER_LINEAR;
   texture.magFilter = pc.FILTER_LINEAR;
   texture.mipmaps = false;
   texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
   texture.addressU = pc.ADDRESS_REPEAT;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
-}
-
-function estimateHdriLightFromTexture(texture: pc.Texture): HdriLightEstimate {
-  const source = texture.getSource();
-  if (!source) return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
-  const width = 64;
-  const height = 36;
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext("2d", { willReadFrequently: true });
-  if (!context) return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
-  try {
-    context.drawImage(source, 0, 0, width, height);
-    return estimateHdriLightDirection(context.getImageData(0, 0, width, height).data, width, height);
-  } catch {
-    return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
-  }
 }
 
 function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
@@ -403,6 +386,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   app.setCanvasFillMode(pc.FILLMODE_NONE);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
   app.scene.exposure = 1;
+  app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
 
   const cameraEntity = new pc.Entity("blocking3d-camera");
   cameraEntity.addComponent("camera", {
@@ -415,34 +399,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
   cameraFrame.dof.nearBlur = false;
   cameraFrame.dof.highQuality = true;
-
-  const light = new pc.Entity("blocking3d-key-light");
-  light.addComponent("light", {
-    type: "directional",
-    color: new pc.Color(1, 0.95, 0.88),
-    intensity: 1.4,
-  });
-  app.root.addChild(light);
-
-  const applyHdriKeyLight = (estimate: HdriLightEstimate) => {
-    const direction = new pc.Vec3(...estimate.direction).normalize();
-    light.setPosition(direction.x * 10, direction.y * 10, direction.z * 10);
-    const incomingDirection = new pc.Vec3(-direction.x, -direction.y, -direction.z);
-    light.setRotation(new pc.Quat().setFromDirections(pc.Vec3.DOWN, incomingDirection));
-    light.light!.color = new pc.Color(...estimate.color);
-    light.light!.intensity = 1.4;
-  };
-  applyHdriKeyLight(DEFAULT_HDRI_LIGHT_ESTIMATE);
-
-  const fill = new pc.Entity("blocking3d-fill-light");
-  fill.addComponent("light", {
-    type: "omni",
-    color: new pc.Color(0.65, 0.76, 1),
-    intensity: 0.35,
-    range: 20,
-  });
-  fill.setPosition(-3, 4, 5);
-  app.root.addChild(fill);
 
   const ground = createPlane(
     app,
@@ -469,10 +425,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     });
   }
 
+  const selectionMaterial = createMaterial(new pc.Color(0.16, 0.9, 0.34), 0.65);
+  selectionMaterial.emissive = new pc.Color(0.16, 0.9, 0.34);
+  selectionMaterial.emissiveIntensity = 1;
+  selectionMaterial.update();
   const selectionRing = new pc.Entity("blocking3d-selection-ring");
   selectionRing.addComponent("render", {
     type: "cylinder",
-    material: createMaterial(new pc.Color(0.9, 0.68, 0.22), 0.65),
+    material: selectionMaterial,
   });
   selectionRing.setLocalScale(0.9, 0.018, 0.9);
   selectionRing.enabled = false;
@@ -485,8 +445,29 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentGroundMaterial: pc.ShaderMaterial | null = null;
   let environmentDomeMeshInstance: pc.MeshInstance | null = null;
   let environmentGroundMeshInstance: pc.MeshInstance | null = null;
+  let environmentLightingSource: pc.Texture | null = null;
+  let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  const clearEnvironmentLighting = () => {
+    if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
+    environmentAtlas?.destroy();
+    environmentAtlas = null;
+    environmentLightingSource?.destroy();
+    environmentLightingSource = null;
+    app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
+  };
+  const applyEnvironmentLighting = (texture: pc.Texture) => {
+    texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
+    environmentLightingSource = pc.EnvLighting.generateLightingSource(texture, { size: 128 });
+    environmentAtlas = pc.EnvLighting.generateAtlas(environmentLightingSource, {
+      size: 256,
+      numReflectionSamples: 256,
+      numAmbientSamples: 512,
+    });
+    app.scene.envAtlas = environmentAtlas;
+    app.scene.ambientLight = new pc.Color(0, 0, 0);
+  };
   const rebuildEnvironmentGroundMesh = () => {
     if (environmentGroundMeshInstance) {
       const previousGroundMesh = environmentGroundMeshInstance.mesh;
@@ -551,6 +532,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
   let destroyed = false;
   let interactionEnabled = true;
+  let actorMovementEnabled = true;
   let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
   let keyboardInput = new Set<string>();
   const changeListeners = new Set<() => void>();
@@ -648,7 +630,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      mode: hit && selectedLabel === hit ? "actor" : event.button === 2 ? "camera" : "none",
+      mode: hit && selectedLabel === hit && actorMovementEnabled ? "actor" : event.button === 2 ? "camera" : "none",
       actorLabel: hit ?? undefined,
       lastGround: hit ? raycastGround(event.clientX, event.clientY) ?? undefined : undefined,
     };
@@ -848,6 +830,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (model.anim) model.anim.rootBone = model;
     root.setPosition((index - 1) * 1.6, 0, 0);
     root.setEulerAngles(0, 180, 0);
+    root.setLocalScale(ACTOR_REFERENCE_SCALE, ACTOR_REFERENCE_SCALE, ACTOR_REFERENCE_SCALE);
     app.root.addChild(root);
     const actor: Blocking3dViewerActor = {
       label,
@@ -940,6 +923,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     getSelectedPose: () => selectedActor()?.pose ?? null,
     nudgeSelected(dx, dy, dz) {
+      if (!actorMovementEnabled) return false;
       const actor = selectedActor();
       if (!actor) return false;
       const position = actor.entity.getPosition();
@@ -971,6 +955,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return true;
     },
     groundSelected() {
+      if (!actorMovementEnabled) return false;
       const actor = selectedActor();
       if (!actor) return false;
       const position = actor.entity.getPosition();
@@ -999,8 +984,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         keyboardInput = new Set();
       }
     },
+    setActorMovementEnabled(enabled) {
+      actorMovementEnabled = enabled;
+      if (!enabled && dragState?.mode === "actor") dragState = null;
+    },
     async setEnvironment(url) {
       ground.enabled = true;
+      clearEnvironmentLighting();
       if (environmentDome) {
         environmentDome.destroy();
         environmentDome = null;
@@ -1017,15 +1007,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         app.assets.remove(environmentAsset);
         environmentAsset = null;
       }
-      if (!url?.trim()) {
-        applyHdriKeyLight(DEFAULT_HDRI_LIGHT_ESTIMATE);
-        return;
-      }
+      if (!url?.trim()) return;
       setStatus("正在加载场景 HDRI 环境...");
       environmentAsset = await loadAsset(app, url, "texture");
       const texture = environmentAsset.resource as pc.Texture;
       configureEnvironmentTexture(texture, app);
-      applyHdriKeyLight(estimateHdriLightFromTexture(texture));
+      applyEnvironmentLighting(texture);
       // 所有状态图都按“上半球 + 带投射中心的下半球”使用。
       // 这样 16:9 场景图和 2:1 等距柱状图都能通过投射中心高度控制地面落点。
       const geometry = createUpperDomeGeometry(
@@ -1149,6 +1136,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentAsset && app.assets.remove(environmentAsset);
+      clearEnvironmentLighting();
       cameraFrame.destroy();
       selectionRing.destroy();
       app.destroy();
