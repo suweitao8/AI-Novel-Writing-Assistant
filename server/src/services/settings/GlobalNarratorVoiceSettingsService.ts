@@ -203,8 +203,10 @@ export class GlobalNarratorVoiceSettingsService {
       ? options.referenceAudioUrl?.trim() || undefined
       : current.referenceAudioUrl;
     const persistedReferenceAudioUrl = selectVoxCPMReferenceAudio(referenceCandidate);
-    const referenceAudioUrl = persistedReferenceAudioUrl
-      ?? selectVoxCPMReferenceAudio(current.sampleAudioUrl);
+    // 音色设计和音色克隆是两条不同路径：没有用户明确提供的参考音频时，
+    // 必须让 VoxCPM2 从描述重新设计新音色，不能把上一次试听样本当作隐式参考。
+    // 否则用户把“男声”改成“女声”时，模型仍会优先复制旧样本的音色。
+    const referenceAudioUrl = persistedReferenceAudioUrl;
     const indexTTS25Speaker = options.indexTTS25Speaker?.trim() || current.indexTTS25Speaker;
     const result = await this.getSynthesizer()({
       text: GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT,
@@ -216,13 +218,17 @@ export class GlobalNarratorVoiceSettingsService {
       ...current,
       description: trimmed,
       sampleAudioUrl: result.dataUrl,
-      ...(persistedReferenceAudioUrl ? { referenceAudioUrl: persistedReferenceAudioUrl } : {}),
       ...(indexTTS25Speaker ? { indexTTS25Speaker } : {}),
       sampleText: GLOBAL_NARRATOR_VOICE_SAMPLE_TEXT,
       sampleSha256: hashNarratorSample(result.dataUrl),
       source: "generated",
       updatedAt: this.getNow().toISOString(),
     };
+    if (referenceAudioUrl) {
+      next.referenceAudioUrl = referenceAudioUrl;
+    } else {
+      delete next.referenceAudioUrl;
+    }
     await this.save(next);
     return next;
   }
