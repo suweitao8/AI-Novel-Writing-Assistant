@@ -115,13 +115,17 @@ test("removes local dependency directories before deleting a merged worktree", (
   runGit(directory, ["merge", "--no-ff", "--no-edit", branch]);
   fs.mkdirSync(path.join(target, "node_modules", ".pnpm", "fixture"), { recursive: true });
   const dependencyRoot = path.join(target, "node_modules");
+  const siteDependencyRoot = path.join(target, "site", "node_modules");
   fs.writeFileSync(path.join(dependencyRoot, ".pnpm", "fixture", "package.json"), "{}\n");
+  fs.mkdirSync(path.join(siteDependencyRoot, ".pnpm", "fixture"), { recursive: true });
+  fs.writeFileSync(path.join(siteDependencyRoot, ".pnpm", "fixture", "package.json"), "{}\n");
 
   cleanupCodexWorktree({
     cwd: directory,
     target: branch,
     removeWorktree: ({ cwd, candidate }) => {
       assert.equal(fs.existsSync(dependencyRoot), false);
+      assert.equal(fs.existsSync(siteDependencyRoot), false);
       runGit(cwd, ["worktree", "remove", "--force", candidate.path]);
     },
   });
