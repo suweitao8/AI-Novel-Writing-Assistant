@@ -76,6 +76,8 @@ test("普通场景图地面使用连续半球曲面，不通过 UV repeat 缩放
   assert.match(viewerSource, /const domeScale = domeRadius \* 0\.5/);
   assert.match(viewerSource, /worldX = x \* domeScale/);
   assert.match(viewerSource, /Math\.atan2/);
+  assert.match(viewerSource, /const edgeDownAngle/);
+  assert.match(viewerSource, /downAngle - edgeDownAngle/);
   assert.doesNotMatch(viewerSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(viewerSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(viewerSource, /ADDRESS_CLAMP_TO_EDGE/);
@@ -86,12 +88,13 @@ test("普通场景图地面使用连续半球曲面，不通过 UV repeat 缩放
 });
 
 test("中键平移使用摄像机屏幕坐标，并依据场景图亮部设置角色主光", () => {
-  assert.match(viewerSource, /const screenRight/);
+  assert.match(viewerSource, /const screenRight = new pc\.Vec3\(Math\.cos\(azimuth\)/);
   assert.match(viewerSource, /const screenUp/);
   assert.match(viewerSource, /panCamera/);
   assert.doesNotMatch(viewerSource, /moveCamera\(-dx \* 0\.01, dy \* 0\.01, 0\)/);
   assert.match(viewerSource, /estimateHdriLightDirection/);
   assert.match(viewerSource, /getSource\(\)/);
   assert.match(viewerSource, /getImageData/);
-  assert.match(viewerSource, /light\.lookAt/);
+  assert.match(viewerSource, /setFromDirections\(pc\.Vec3\.DOWN/);
+  assert.doesNotMatch(viewerSource, /light\.lookAt/);
 });

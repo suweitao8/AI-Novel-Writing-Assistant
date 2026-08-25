@@ -142,6 +142,17 @@ function finiteNumber(value: unknown, label: string, min: number, max: number, i
   return numeric;
 }
 
+function clampedEnvironmentNumber(
+  value: unknown,
+  label: string,
+  min: number,
+  max: number,
+  acceptedMin: number,
+  acceptedMax: number,
+): number {
+  return Math.max(min, Math.min(max, finiteNumber(value, label, acceptedMin, acceptedMax)));
+}
+
 function objectValue(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     invalid(`${label}不能为空`);
@@ -212,8 +223,8 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   finiteNumber(environment.yawDeg, "HDRI 环境水平旋转", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.max);
   finiteNumber(environment.intensity, "HDRI 环境亮度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.max);
   return {
-    projectionCenterHeight: finiteNumber(environment.projectionCenterHeight, "HDRI 环境投射中心高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
-    domeRadius: finiteNumber(environment.domeRadius, "HDRI 环境半球直径", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    projectionCenterHeight: clampedEnvironmentNumber(environment.projectionCenterHeight, "HDRI 环境投射中心高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max, 0.6, 10),
+    domeRadius: clampedEnvironmentNumber(environment.domeRadius, "HDRI 环境半球直径", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max, 10, 100),
     yawDeg: 0,
     intensity: 1,
   };

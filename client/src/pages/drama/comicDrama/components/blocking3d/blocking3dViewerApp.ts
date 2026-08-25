@@ -223,12 +223,19 @@ function projectGroundTextureUv(
   domeRadius: number,
 ): [number, number] {
   const domeScale = domeRadius * 0.5;
+  const groundDomeEdgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
   const worldX = x * domeScale;
   const worldY = y * domeScale;
   const worldZ = z * domeScale;
   const horizontalDistance = Math.hypot(worldX, worldZ);
+  const edgeWorldY = groundDomeEdgeHeight * domeScale;
+  const edgeDownAngle = Math.atan2(projectionCenterHeight - edgeWorldY, domeScale);
   const downAngle = Math.atan2(projectionCenterHeight - worldY, horizontalDistance);
-  const verticalProgress = clamp(downAngle / (Math.PI * 0.5), 0, 1);
+  const verticalProgress = clamp(
+    (downAngle - edgeDownAngle) / (Math.PI * 0.5 - edgeDownAngle),
+    0,
+    1,
+  );
   const azimuthProgress = ((Math.atan2(worldZ, worldX) + Math.PI * 0.5) / (Math.PI * 2) + 1) % 1;
   return [1 - azimuthProgress, 0.5 + verticalProgress * 0.5];
 }
@@ -417,7 +424,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const applyHdriKeyLight = (estimate: HdriLightEstimate) => {
     const direction = new pc.Vec3(...estimate.direction).normalize();
     light.setPosition(direction.x * 10, direction.y * 10, direction.z * 10);
-    light.lookAt(new pc.Vec3(0, 0.8, 0), pc.Vec3.UP);
+    const incomingDirection = new pc.Vec3(-direction.x, -direction.y, -direction.z);
+    light.setRotation(new pc.Quat().setFromDirections(pc.Vec3.DOWN, incomingDirection));
     light.light!.color = new pc.Color(...estimate.color);
     light.light!.intensity = 1.4;
   };
@@ -599,7 +607,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
-    const screenRight = new pc.Vec3(-Math.cos(azimuth), 0, Math.sin(azimuth));
+    const screenRight = new pc.Vec3(Math.cos(azimuth), 0, -Math.sin(azimuth));
     const screenUp = new pc.Vec3(
       Math.sin(azimuth) * Math.sin(elevation),
       cosElevation,
