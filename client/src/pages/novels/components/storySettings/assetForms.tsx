@@ -35,6 +35,7 @@ import {
   getStoryAssetImageRequestState,
   requestStoryAssetImage,
 } from "./storyAssetImageRequestCoordinator";
+import { buildScene3dEditorPath } from "@/pages/drama/comicDrama/navigation/studioNavigation";
 
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
@@ -635,9 +636,7 @@ export function AssetStatesEditor(props: {
                         className="h-7 px-2 text-xs shadow-sm"
                         disabled={anyPending}
                         aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
-                        onClick={() => navigate(
-                          `/drama/studio/${encodeURIComponent(asset.novelId)}/scenes/${encodeURIComponent(asset.assetId)}/states/${encodeURIComponent(selectedState.id)}/3d`,
-                        )}
+                        onClick={() => navigate(buildScene3dEditorPath(asset.novelId, asset.assetId, selectedState.id))}
                       >
                         <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
                         3D编辑
