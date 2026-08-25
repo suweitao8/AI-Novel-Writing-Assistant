@@ -13,6 +13,7 @@ const {
   realPath,
 } = require("./worktree-filesystem-safety.cjs");
 const {
+  assertLifecycleRepairScope,
   assertNoUnresolvedWorktreeLifecycleIssues,
   parseWorktreeList,
 } = require("./worktree-lifecycle-audit.cjs");
@@ -107,18 +108,22 @@ function assertBranchMerged(cwd, branchName) {
   }
 }
 
-function assertCleanupPreconditions({ cwd = process.cwd(), target } = {}) {
+function assertCleanupPreconditions({ cwd = process.cwd(), target, allowLifecycleRepair = false } = {}) {
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     throw new Error("Cleanup must run from the protected main branch workspace.");
   }
   assertWorktreeFilesystemIsolation({ cwd, phase: "cleanup main" });
-  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "cleanup main" });
   const mainChanges = workspaceChanges(cwd);
   if (mainChanges.length > 0) {
     throw new Error(["main workspace is not clean; cleanup is stopped.", ...mainChanges].join("\n"));
   }
 
   const candidate = findCandidate(cwd, target);
+  if (allowLifecycleRepair) {
+    assertLifecycleRepairScope({ cwd, branchName: candidate.branchName });
+  } else {
+    assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "cleanup main" });
+  }
   if (!fs.existsSync(candidate.path)) {
     throw new Error(`Registered cleanup worktree path is missing: ${candidate.path}`);
   }
@@ -229,8 +234,8 @@ function assertWorktreeWasRemoved(cwd, candidate) {
   }
 }
 
-function cleanupCodexWorktree({ cwd = process.cwd(), target, removeWorktree = removeRegisteredWorktree } = {}) {
-  const candidate = assertCleanupPreconditions({ cwd, target });
+function cleanupCodexWorktree({ cwd = process.cwd(), target, removeWorktree = removeRegisteredWorktree, allowLifecycleRepair = false } = {}) {
+  const candidate = assertCleanupPreconditions({ cwd, target, allowLifecycleRepair });
   removeLocalDependencyRoots(candidate.path);
   removeWorktree({ cwd, candidate });
   assertWorktreeWasRemoved(cwd, candidate);
@@ -239,18 +244,34 @@ function cleanupCodexWorktree({ cwd = process.cwd(), target, removeWorktree = re
 }
 
 function printHelp() {
-  console.log("Usage: pnpm workflow:cleanup codex/<task>");
+  console.log("Usage: pnpm workflow:cleanup codex/<task> [--repair-lifecycle]");
   console.log("Removes one clean, already merged codex worktree and then deletes its local branch.");
 }
 
+function parseArgs(argv) {
+  const [target, ...options] = argv;
+  if (!target || target.startsWith("--")) {
+    throw new Error("Cleanup requires a codex/<task> target first.");
+  }
+  let allowLifecycleRepair = false;
+  for (const option of options) {
+    if (option === "--repair-lifecycle") {
+      allowLifecycleRepair = true;
+      continue;
+    }
+    throw new Error(`Unknown cleanup option: ${option}`);
+  }
+  return { allowLifecycleRepair, target };
+}
+
 function main() {
-  const target = process.argv[2];
-  if (!target || target === "--help" || target === "-h") {
+  const args = process.argv.slice(2);
+  if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
     printHelp();
-    if (!target) process.exitCode = 1;
+    if (args.length === 0) process.exitCode = 1;
     return;
   }
-  const candidate = cleanupCodexWorktree({ target });
+  const candidate = cleanupCodexWorktree(parseArgs(args));
   console.log(`Cleaned ${candidate.branchName}: ${candidate.path}`);
 }
 
@@ -269,6 +290,7 @@ module.exports = {
   cleanupCodexWorktree,
   currentBranch,
   findCandidate,
+  parseArgs,
   parseWorktreeList,
   removeLocalDependencyRoots,
   removeRegisteredWorktree,
