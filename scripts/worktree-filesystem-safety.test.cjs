@@ -84,6 +84,29 @@ test("rejects a site dependency root that resolves to another checkout", (t) => 
   );
 });
 
+test("rejects a deep dependency link outside the checkout", (t) => {
+  const fixture = createFixture(t);
+  const other = createFixture(t);
+  const deepLink = path.join(fixture, "node_modules", "package", "node_modules", "shared-link");
+  fs.mkdirSync(path.dirname(deepLink), { recursive: true });
+  fs.mkdirSync(path.join(other, "node_modules"), { recursive: true });
+  linkDirectory(path.join(other, "node_modules"), deepLink);
+
+  assert.throws(
+    () => assertWorktreeFilesystemIsolation({ cwd: fixture }),
+    /external filesystem link|shared-link[s\S]*->/i,
+  );
+});
+
+test("accepts a deep dependency link that stays inside the checkout", (t) => {
+  const fixture = createFixture(t);
+  const deepLink = path.join(fixture, "node_modules", "package", "node_modules", "shared-link");
+  fs.mkdirSync(path.dirname(deepLink), { recursive: true });
+  linkDirectory(path.join(fixture, "shared"), deepLink);
+
+  assert.doesNotThrow(() => assertWorktreeFilesystemIsolation({ cwd: fixture }));
+});
+
 test("rejects a missing shared source directory", (t) => {
   const fixture = createFixture(t);
   fs.rmSync(path.join(fixture, "shared"), { recursive: true, force: true });

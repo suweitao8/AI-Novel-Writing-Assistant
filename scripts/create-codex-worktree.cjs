@@ -6,6 +6,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { assertMainSourceIntegrity, assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
+const { assertNoUnresolvedWorktreeLifecycleIssues } = require("./worktree-lifecycle-audit.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
@@ -70,6 +71,7 @@ function branchExists(cwd, branchName) {
 
 function assertMainWorkspaceReady(cwd) {
   assertMainSourceIntegrity({ cwd, phase: "worktree creation" });
+  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "worktree creation" });
 
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     throw new Error("Worktree creation must start from the protected main branch.");

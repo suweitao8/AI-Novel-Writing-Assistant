@@ -117,6 +117,33 @@ test("refuses to create a worktree from a dirty main workspace", (t) => {
   assert.equal(fs.existsSync(target), false);
 });
 
+test("refuses to create a worktree while an unregistered orphan directory remains", (t) => {
+  const directory = createRepository();
+  const orphanBranch = "codex/orphan-blocker";
+  const orphanPath = path.join(path.dirname(directory), `${path.basename(directory)}-orphan-blocker`);
+  const target = defaultWorktreePath(directory, "new-worktree");
+  t.after(() => {
+    fs.rmSync(orphanPath, { recursive: true, force: true });
+    runGit(directory, ["branch", "-D", orphanBranch], { expectSuccess: false });
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  copyWorkflowFiles(directory);
+  runGit(directory, ["worktree", "add", "-b", orphanBranch, orphanPath, "main"]);
+  runGit(directory, ["worktree", "remove", "--force", orphanPath]);
+  fs.mkdirSync(path.join(orphanPath, "shared"), { recursive: true });
+
+  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/create-codex-worktree.cjs"), "new-worktree"], {
+    cwd: directory,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /unresolved worktree lifecycle|orphan-worktree-directory/i);
+  assert.equal(fs.existsSync(target), false);
+});
+
 test("refuses to create a worktree when the requested branch already exists", (t) => {
   const directory = createRepository();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
