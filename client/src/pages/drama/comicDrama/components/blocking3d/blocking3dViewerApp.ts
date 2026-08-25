@@ -16,6 +16,10 @@ import {
   getGroundDomeEdgeHeight,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
+import {
+  createProjectedHdriGroundMaterial,
+  updateProjectedHdriGroundMaterial,
+} from "./blocking3dEnvironmentProjection";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 
@@ -245,7 +249,7 @@ function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void
   texture.magFilter = pc.FILTER_LINEAR;
   texture.mipmaps = false;
   texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
-  texture.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
+  texture.addressU = pc.ADDRESS_REPEAT;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
 }
 
@@ -478,7 +482,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentGround: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.StandardMaterial | null = null;
-  let environmentGroundMaterial: pc.StandardMaterial | null = null;
+  let environmentGroundMaterial: pc.ShaderMaterial | null = null;
   let environmentDomeMeshInstance: pc.MeshInstance | null = null;
   let environmentGroundMeshInstance: pc.MeshInstance | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
@@ -525,8 +529,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentMaterial.update();
     }
     if (environmentGroundMaterial) {
-      environmentGroundMaterial.emissiveIntensity = 1;
-      environmentGroundMaterial.update();
+      if (environmentAsset?.resource instanceof pc.Texture) {
+        updateProjectedHdriGroundMaterial(
+          environmentGroundMaterial,
+          environmentAsset.resource,
+          environmentSettings,
+        );
+      }
     }
   };
   let actorAsset: pc.Asset;
@@ -1040,21 +1049,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         meshInstances: [meshInstance],
         layers: [pc.LAYERID_SKYBOX],
       });
-      const groundMaterial = new pc.StandardMaterial();
-      groundMaterial.diffuse = new pc.Color(1, 1, 1);
-      groundMaterial.diffuseMap = texture;
-      groundMaterial.emissive = new pc.Color(1, 1, 1);
-      groundMaterial.emissiveMap = texture;
-      groundMaterial.emissiveIntensity = 1;
-      groundMaterial.cull = pc.CULLFACE_FRONT;
-      groundMaterial.depthWrite = false;
-      groundMaterial.update();
-      environmentGroundMaterial = groundMaterial;
+      const projectedGroundMaterial = createProjectedHdriGroundMaterial(texture, environmentSettings);
+      environmentGroundMaterial = projectedGroundMaterial;
       const groundMesh = pc.Mesh.fromGeometry(
         app.graphicsDevice,
         createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
       );
-      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, groundMaterial);
+      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, projectedGroundMaterial);
       environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
       environmentGround.addComponent("render", {
         meshInstances: [environmentGroundMeshInstance],
