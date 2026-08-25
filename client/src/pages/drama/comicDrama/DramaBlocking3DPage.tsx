@@ -333,7 +333,7 @@ export default function DramaBlocking3DPage() {
     <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-3">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
         <div className="flex min-w-0 items-center gap-3">
-          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" onClick={() => void goBack()}>
+          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
               <div className="min-w-0">

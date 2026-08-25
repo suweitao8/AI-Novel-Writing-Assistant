@@ -42,6 +42,10 @@ test("离开 3D 草图前等待自动保存并在成功后返回分镜", () => {
   assert.doesNotMatch(pageSource, /保存草图|确认草图/);
 });
 
+test("自动构图或自动保存期间禁止离开 3D 草图", () => {
+  assert.match(pageSource, /aria-label="返回分镜"[^>]*disabled=\{saving \|\| autoPlanning\}/);
+});
+
 test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能力", () => {
   assert.match(viewerSource, /UAL2_Standard\.glb/);
   assert.match(viewerSource, /UAL1_Standard\.glb/);
