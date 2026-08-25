@@ -32,4 +32,3 @@
 - [ ] 更新 release notes、README 最新更新和 3D 草图 wiki，记录固定参数与自动打光规则。
 - [ ] 运行定向测试、typecheck、build，并检查固定端口 API/页面和控制台。
 - [ ] 使用签名提交，从干净 `main` 集成、推送并清理本次 worktree。
-

@@ -2,7 +2,6 @@ export interface HdriLightEstimate {
   direction: [number, number, number];
   color: [number, number, number];
 }
-
 export const DEFAULT_HDRI_LIGHT_ESTIMATE: HdriLightEstimate = {
   direction: [0.45, 0.72, 0.5],
   color: [1, 0.95, 0.88],
@@ -89,4 +88,3 @@ export function estimateHdriLightDirection(
     ],
   };
 }
-
