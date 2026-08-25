@@ -62,6 +62,7 @@ const routes: RouteObject[] = [
       { path: "novels/:id/chapters/:chapterId", element: <NovelChapterEdit /> },
       { path: "drama", element: <ComicDramaListPage /> },
       { path: "drama/studio/:novelId", element: <ComicDramaStudioPage /> },
+      { path: "drama/studio/:novelId/scenes/:sceneId/states/:stateId/3d", element: <DramaScene3DPage /> },
       { path: "drama/studio/:novelId/scenes/:sceneId/3d", element: <DramaScene3DPage /> },
       { path: "drama/projects/:id/shots/:shotId/blocking-3d", element: <DramaBlocking3DPage /> },
       { path: "drama/projects/:id", element: <DramaProjectPage /> },

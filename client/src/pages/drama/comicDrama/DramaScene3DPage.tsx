@@ -23,19 +23,22 @@ import {
 
 const REFERENCE_ACTOR_LABEL = "比例参照（约1.8m）";
 
-function resolveSceneEnvironmentUrl(scene: StorySettingsScene): string | null {
-  const defaultState = scene.states.find((state) => state.label.trim() === "默认") ?? scene.states[0];
-  if (defaultState?.image?.status === "done" && defaultState.image.url?.trim()) {
-    return buildStateImageSrc(defaultState.image.url, defaultState.image.generatedAt);
+function resolveSceneState(scene: StorySettingsScene, stateId?: string): StorySettingsScene["states"][number] | null {
+  if (stateId?.trim()) {
+    return scene.states.find((state) => state.id === stateId) ?? null;
   }
-  if (scene.image?.status === "done" && scene.image.url?.trim()) {
-    return buildStateImageSrc(scene.image.url, undefined);
+  return scene.states[0] ?? null;
+}
+
+function resolveSceneEnvironmentUrl(state: StorySettingsScene["states"][number] | null): string | null {
+  if (state?.image?.status === "done" && state.image.url?.trim()) {
+    return buildStateImageSrc(state.image.url, state.image.generatedAt);
   }
   return null;
 }
 
 export default function DramaScene3DPage() {
-  const { novelId = "", sceneId = "" } = useParams();
+  const { novelId = "", sceneId = "", stateId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -55,17 +58,18 @@ export default function DramaScene3DPage() {
     staleTime: 0,
   });
   const scene = sceneQuery.data?.data ?? null;
-  const environmentUrl = useMemo(() => (scene ? resolveSceneEnvironmentUrl(scene) : null), [scene]);
+  const selectedState = useMemo(() => (scene ? resolveSceneState(scene, stateId) : null), [scene, stateId]);
+  const environmentUrl = useMemo(() => resolveSceneEnvironmentUrl(selectedState), [selectedState]);
 
   useEffect(() => {
-    if (!scene) return;
+    if (!scene || !selectedState) return;
     setEnvironmentSettings(scene.scene3dEnvironment);
     setDirty(false);
-  }, [scene]);
+  }, [scene, selectedState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !scene) return undefined;
+    if (!canvas || !scene || !selectedState) return undefined;
 
     let cancelled = false;
     let unsubscribeChange: (() => void) | undefined;
@@ -100,7 +104,7 @@ export default function DramaScene3DPage() {
       viewerRef.current = null;
       setViewer(null);
     };
-  }, [environmentUrl, scene]);
+  }, [environmentUrl, scene, selectedState]);
 
   useEffect(() => {
     viewer?.setInteractionEnabled(!sceneQuery.isFetching);
@@ -175,6 +179,15 @@ export default function DramaScene3DPage() {
     );
   }
 
+  if (!selectedState) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+        <p className="text-sm text-destructive">状态资产不存在。</p>
+        <Button variant="outline" onClick={goBack}>返回场景资产</Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-3">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
@@ -184,7 +197,7 @@ export default function DramaScene3DPage() {
           </Button>
           <div className="min-w-0">
             <h1 className="truncate text-lg font-semibold">场景资产 · 3D 场景编辑</h1>
-            <p className="truncate text-sm text-muted-foreground">{scene.name}</p>
+            <p className="truncate text-sm text-muted-foreground">{scene.name} · {selectedState.label}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
