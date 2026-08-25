@@ -85,11 +85,18 @@ test("普通场景图地面使用连续半球曲面，不通过 UV repeat 缩放
   assert.match(viewerSource, /environmentGround/);
 });
 
-test("半球极点使用精确坐标和稳定 UV，避免退化三角面拉伸纹理", () => {
+test("半球极点使用精确坐标和经度 UV，避免退化三角面拉伸纹理", () => {
   assert.match(viewerSource, /const rawSinTheta = Math\.sin\(theta\)/);
   assert.match(viewerSource, /const isPole = Math\.abs\(rawSinTheta\) < 1e-8/);
   assert.match(viewerSource, /const sinTheta = isPole \? 0 : rawSinTheta/);
-  assert.match(viewerSource, /uvs\.push\(isPole \? 0\.5 : u, v\)/);
+  assert.match(viewerSource, /const poleU = 1 - lon \/ longitudeBands/);
+  assert.match(viewerSource, /uvs\.push\(isPole \? poleU : u, v\)/);
+});
+
+test("半球极点保留每个经度的 UV，避免极点三角扇跨纹理拉伸", () => {
+  assert.match(viewerSource, /const poleU = 1 - lon \/ longitudeBands/);
+  assert.match(viewerSource, /uvs\.push\(isPole \? poleU : u, v\)/);
+  assert.doesNotMatch(viewerSource, /uvs\.push\(isPole \? 0\.5 : u, v\)/);
 });
 
 test("中键平移使用摄像机屏幕坐标，并依据场景图亮部设置角色主光", () => {
