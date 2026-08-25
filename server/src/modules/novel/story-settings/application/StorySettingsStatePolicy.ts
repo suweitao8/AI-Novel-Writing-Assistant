@@ -11,6 +11,7 @@ import {
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { AppError } from "../../../../middleware/errorHandler";
+import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
 
 /**
  * 设定中心状态持久化策略。
@@ -81,6 +82,9 @@ export function normalizeSceneStates(
     sceneType,
     timeOfDay,
     weather,
+  }).map((state) => {
+    const scene3dMarkers = normalizeStoryScene3dMarkerSet(state.scene3dMarkers);
+    return scene3dMarkers ? { ...state, scene3dMarkers } : state;
   });
 }
 
@@ -109,6 +113,7 @@ export function preserveStoryAssetRuntimeAssets(
       ...state,
       ...(current?.image ? { image: current.image } : {}),
       ...(current?.voice ? { voice: current.voice } : {}),
+      ...(current?.scene3dMarkers ? { scene3dMarkers: current.scene3dMarkers } : {}),
     };
   });
 }

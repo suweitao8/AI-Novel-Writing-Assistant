@@ -185,6 +185,19 @@ export async function getStorySettingsScene(novelId: string, sceneId: string) {
   return data;
 }
 
+export async function analyzeStoryScene3dMarkers(
+  novelId: string,
+  sceneId: string,
+  stateId: string,
+  payload: { provider?: string; model?: string; temperature?: number } = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<StorySettingsScene>>(
+    `/novels/${encodeURIComponent(novelId)}/settings/scenes/${encodeURIComponent(sceneId)}/states/${encodeURIComponent(stateId)}/3d-markers/analyze`,
+    payload,
+  );
+  return data;
+}
+
 export async function updateStorySettingsScene(
   novelId: string,
   sceneId: string,

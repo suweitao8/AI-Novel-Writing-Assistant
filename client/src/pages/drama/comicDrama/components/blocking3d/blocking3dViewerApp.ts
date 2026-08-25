@@ -1,4 +1,5 @@
 import * as pc from "playcanvas";
+import type { StoryScene3DMarker } from "@ai-novel/shared/types/comicDrama";
 
 import type {
   DramaShotBlockingSketch3DActor,
@@ -18,6 +19,15 @@ import {
 } from "./blocking3dEnvironmentGeometry";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
+import {
+  createSceneMarkerRuntime,
+  destroySceneMarkerRuntime,
+  drawSceneMarkerOutlines,
+  pickSceneMarker,
+  setSceneMarkerSelected,
+  updateSceneMarkerRuntime,
+  type Blocking3dSceneMarkerRuntime,
+} from "./blocking3dSceneMarkers";
 
 const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
@@ -84,6 +94,7 @@ interface Blocking3dViewerActor {
 export interface Blocking3dViewerOptions {
   canvas: HTMLCanvasElement;
   environmentUrl?: string | null;
+  sceneMarkers?: StoryScene3DMarker[];
   onStatus?: (status: string) => void;
 }
 
@@ -92,11 +103,17 @@ export type Blocking3dEnvironmentSettings = DramaShotBlockingSketch3DEnvironment
 export interface Blocking3dViewer {
   readonly canvas: HTMLCanvasElement;
   onSelectionChange: (listener: (label: string | null) => void) => () => void;
+  onMarkerSelection: (listener: (id: string | null) => void) => () => void;
   onChange: (listener: () => void) => () => void;
   onStatus: (listener: (status: string) => void) => () => void;
   addActor: (label: string, index: number) => boolean;
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
+  selectMarker: (id: string | null) => boolean;
+  focusMarker: (id: string) => boolean;
+  getSelectedMarker: () => string | null;
+  setSceneMarkers: (markers: StoryScene3DMarker[]) => void;
+  getSceneMarkers: () => StoryScene3DMarker[];
   getSelectedActor: () => string | null;
   getSelectedTransform: () => {
     position: [number, number, number];
@@ -533,9 +550,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
   const actors = new Map<string, Blocking3dViewerActor>();
+  const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
   const selectionListeners = new Set<(label: string | null) => void>();
+  const markerSelectionListeners = new Set<(id: string | null) => void>();
   const statusListeners = new Set<(status: string) => void>();
   let selectedLabel: string | null = null;
+  let selectedMarkerId: string | null = null;
   let cameraState: DramaShotBlockingSketch3DCamera = {
     ...DEFAULT_CAMERA,
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
@@ -589,6 +609,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     }
   };
 
+  const emitMarkerSelection = () => {
+    for (const [id, runtime] of sceneMarkerRuntimes) {
+      setSceneMarkerSelected(runtime, id === selectedMarkerId);
+    }
+    for (const listener of markerSelectionListeners) listener(selectedMarkerId);
+  };
+
   const emitChange = () => {
     for (const listener of changeListeners) listener();
   };
@@ -596,7 +623,59 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const select = (label: string | null): boolean => {
     if (label !== null && !actors.has(label)) return false;
     selectedLabel = label;
+    if (label !== null) {
+      selectedMarkerId = null;
+      emitMarkerSelection();
+    } else if (selectedMarkerId !== null) {
+      selectedMarkerId = null;
+      emitMarkerSelection();
+    }
     emitSelection();
+    return true;
+  };
+
+  const selectMarker = (id: string | null): boolean => {
+    if (id !== null && !sceneMarkerRuntimes.has(id)) return false;
+    selectedMarkerId = id;
+    if (id !== null) selectedLabel = null;
+    emitMarkerSelection();
+    emitSelection();
+    return true;
+  };
+
+  const setSceneMarkers = (markers: StoryScene3DMarker[]) => {
+    const nextIds = new Set<string>();
+    for (const marker of markers) {
+      if (!marker.id.trim()) continue;
+      nextIds.add(marker.id);
+      const existing = sceneMarkerRuntimes.get(marker.id);
+      if (existing) {
+        updateSceneMarkerRuntime(existing, marker, marker.id === selectedMarkerId);
+      } else {
+        sceneMarkerRuntimes.set(marker.id, createSceneMarkerRuntime(app, marker, marker.id === selectedMarkerId));
+      }
+    }
+    for (const [id, runtime] of sceneMarkerRuntimes) {
+      if (nextIds.has(id)) continue;
+      destroySceneMarkerRuntime(runtime);
+      sceneMarkerRuntimes.delete(id);
+    }
+    if (selectedMarkerId && !nextIds.has(selectedMarkerId)) {
+      selectedMarkerId = null;
+      emitMarkerSelection();
+    }
+  };
+
+  const focusMarker = (id: string): boolean => {
+    const runtime = sceneMarkerRuntimes.get(id);
+    if (!runtime) return false;
+    selectMarker(id);
+    const marker = runtime.marker;
+    cameraState.focalPoint = [marker.position[0], Math.max(0.5, marker.position[1]), marker.position[2]];
+    cameraState.distance = clamp(Math.max(4, Math.max(...marker.size) * 3 + 3), 0.25, 100);
+    cameraState.azim = -35;
+    cameraState.elev = -12;
+    syncCamera();
     return true;
   };
 
@@ -633,7 +712,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (destroyed || !interactionEnabled) return;
     canvas.focus();
     const hit = event.button === 0 ? pickActor(event.clientX, event.clientY) : null;
+    const markerHit = event.button === 0 && !hit
+      ? pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY))
+      : null;
     if (hit) select(hit);
+    else if (markerHit) selectMarker(markerHit);
     dragState = {
       button: event.button,
       pointerId: event.pointerId,
@@ -687,7 +770,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     try { canvas.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
     if (button === 0 && Math.hypot(dx, dy) < 6) {
       const hit = pickActor(event.clientX, event.clientY);
-      select(hit);
+      if (hit) {
+        select(hit);
+      } else {
+        const markerHit = pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY));
+        if (markerHit) selectMarker(markerHit);
+        else select(null);
+      }
     }
   };
 
@@ -784,12 +873,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     const actor = selectedActor();
     if (actor) {
       const position = actor.entity.getPosition();
       selectionRing.setPosition(position.x, 0.008, position.z);
     }
   });
+  setSceneMarkers(options.sceneMarkers ?? []);
   app.start();
   syncCamera();
 
@@ -879,6 +970,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       listener(selectedLabel);
       return () => selectionListeners.delete(listener);
     },
+    onMarkerSelection(listener) {
+      markerSelectionListeners.add(listener);
+      listener(selectedMarkerId);
+      return () => markerSelectionListeners.delete(listener);
+    },
     onChange(listener) {
       changeListeners.add(listener);
       return () => changeListeners.delete(listener);
@@ -907,6 +1003,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     selectActor(label) {
       return select(label);
     },
+    selectMarker,
+    focusMarker,
+    getSelectedMarker: () => selectedMarkerId,
+    setSceneMarkers,
+    getSceneMarkers: () => [...sceneMarkerRuntimes.values()].map((runtime) => runtime.marker),
     getSelectedActor: () => selectedLabel,
     getSelectedTransform() {
       const actor = selectedActor();
@@ -1143,6 +1244,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       window.removeEventListener("blur", onBlur);
       for (const actor of actors.values()) actor.entity.destroy();
       actors.clear();
+      for (const runtime of sceneMarkerRuntimes.values()) destroySceneMarkerRuntime(runtime);
+      sceneMarkerRuntimes.clear();
       environmentDome?.destroy();
       environmentGround?.destroy();
       environmentDomeMeshInstance = null;

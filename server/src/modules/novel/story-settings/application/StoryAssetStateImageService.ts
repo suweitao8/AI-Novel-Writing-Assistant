@@ -366,6 +366,26 @@ function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
   };
 }
 
+/**
+ * 场景状态图提交后，旧图片对应的空间标记不能继续伪装成当前图的标记。
+ * 生成中/失败/取消只更新图片状态，仍保留最后一张可读图片与其标记；只有不可变制品
+ * 完成提交时才清除标记，等待用户针对新图重新识别。
+ */
+export function applySceneStateImageWrite(input: {
+  state: StoryAssetState;
+  image?: StoryAssetStateImage;
+  invalidateMarkers: boolean;
+}): StoryAssetState {
+  const nextState = input.image
+    ? { ...input.state, image: pruneStateImage(input.image) }
+    : input.state;
+  if (!input.invalidateMarkers) {
+    return nextState;
+  }
+  const { scene3dMarkers: _scene3dMarkers, ...withoutMarkers } = nextState;
+  return withoutMarkers;
+}
+
 function sanitizeSceneStateDescription(value: string): string {
   return value
     .replace(/(?:巨型|大型|带血角|血角|凶猛)*(?:猛兽|怪物|异兽|野兽|动物|生物)/giu, "地面爪痕与破坏痕迹")
@@ -613,10 +633,11 @@ export class StoryAssetStateImageService {
           const nextImage = patchCurrentImage
             ? patchCurrentImage(state.image)
             : preserveReadableStoryAssetImagePointer(state.image, image);
-          return {
-            ...state,
-            ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
-          };
+          return applySceneStateImageWrite({
+            state,
+            image: nextImage,
+            invalidateMarkers: Boolean(artifactCommit),
+          });
         },
         maxAttempts,
       });
