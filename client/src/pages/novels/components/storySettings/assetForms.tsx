@@ -595,34 +595,34 @@ export function AssetStatesEditor(props: {
                     alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
                     fit="contain"
                     blurBackdrop={false}
-                    className={`${stateImageAspect} max-h-[28rem] w-full rounded-lg border-0`}
+                    className={cn(stateImageAspect, "w-full rounded-lg border-0")}
                   />
                 ) : (
                   <div
-                    className={`${stateImageAspect} max-h-[28rem] w-full rounded-lg bg-muted/10`}
+                    className={cn(stateImageAspect, "w-full rounded-lg bg-muted/10")}
                     role="img"
                     aria-label={`${getAssetStateLabel(selectedState, selectedIndex)}尚未生成图片`}
                   />
                 )}
-                {kind === "scene" && selectedState.image?.url ? (
-                  <div className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5">
-                    {asset ? (
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-7 px-2 text-xs shadow-sm"
-                        disabled={anyPending}
-                        aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
-                        onClick={() => navigate(buildScene3dEditorPath(asset.novelId, asset.assetId, selectedState.id))}
-                      >
-                        <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-                        3D编辑
-                      </Button>
-                    ) : null}
-                  </div>
-                ) : null}
               </div>
+              {kind === "scene" && selectedState.image?.url ? (
+                <div className="flex justify-end pt-2" role="group" aria-label="场景 3D 操作">
+                  {asset ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-7 px-2 text-xs shadow-sm"
+                      disabled={anyPending}
+                      aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
+                      onClick={() => navigate(buildScene3dEditorPath(asset.novelId, asset.assetId, selectedState.id))}
+                    >
+                      <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                      3D编辑
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <label className="min-w-40 flex-1 space-y-1">
                   <span className="text-xs font-medium">参考图</span>
