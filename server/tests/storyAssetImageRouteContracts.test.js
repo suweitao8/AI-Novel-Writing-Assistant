@@ -13,6 +13,12 @@ test("资产归属明确的路由使用 artifact-first resolver", () => {
   assert.match(routes, /artifactId:\s*z\.string\(\)/);
 });
 
+test("artifact 指针缺失时兼容读取带资产归属的旧状态图文件", () => {
+  const service = read("modules/novel/story-settings/application/StoryAssetStateImageService.ts");
+  assert.match(service, /stateImageDir\(novelId, kind, assetId, stateId\)/);
+  assert.match(service, /resolveImageFile\(stateImageDir\(novelId, kind, assetId, stateId\)\)/);
+});
+
 test("旧的仅 stateId 图片 URL 不再返回共享 legacy 文件", () => {
   const routes = read("modules/novel/story-settings/http/storySettingsRoutes.ts");
   const start = routes.indexOf("/:id/settings/state-images/:stateId");

@@ -57,6 +57,7 @@ import {
 } from "../../../../services/image/assetProviderRouting";
 import {
   legacyStateImageDir,
+  stateImageDir,
   stateImageUrl,
   type StoryAssetKind,
 } from "./StoryAssetStateImageStorage";
@@ -977,8 +978,9 @@ export class StoryAssetStateImageService {
   }
 
   /**
-   * 只按当前状态的 artifactId 解析图片，并再次校验资产所有权和文件 hash。
-   * legacy 目录由独立审计/迁移入口读取；正常资产接口绝不按 stateId 猜图。
+   * 优先按当前状态的 artifactId 解析图片，并再次校验资产所有权和文件 hash。
+   * 兼容不可变制品上线前已经写入“资产归属目录但没有 artifactId”的图片；
+   * 该目录同时包含 novel/kind/asset/state，不会按裸 stateId 猜图。
    */
   async resolveStateImagePath(
     novelId: string,
@@ -990,7 +992,8 @@ export class StoryAssetStateImageService {
     const stateImage = row.states?.find((state) => state.id === stateId)?.image;
     const artifactId = stateImage?.artifactId?.trim();
     if (!artifactId) {
-      return null;
+      const scopedLegacy = await this.resolveImageFile(stateImageDir(novelId, kind, assetId, stateId));
+      return scopedLegacy ? { filePath: scopedLegacy.filePath, mimeType: scopedLegacy.mimeType } : null;
     }
 
     const artifact = await prisma.storyAssetImageArtifact.findFirst({
