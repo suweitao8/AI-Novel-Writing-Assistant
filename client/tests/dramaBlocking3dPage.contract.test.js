@@ -50,6 +50,12 @@ test("AI 自动构图只留下未保存修改，不在构图完成后立即保�
   assert.doesNotMatch(pageSource, /await handleAutoSave\(\)/);
 });
 
+test("autoPlan 查询参数会让已有布局重新交给 AI 规划", () => {
+  assert.match(pageSource, /searchParams\.get\("autoPlan"\)/);
+  assert.match(pageSource, /autoPlanRequested/);
+  assert.match(pageSource, /autoPlanRequested \|\| !context\.sketch\?\.layout3d/);
+});
+
 test("自动构图或保存期间禁止离开 3D 草图", () => {
   assert.match(pageSource, /aria-label="返回分镜"[^>]*disabled=\{saving \|\| autoPlanning\}/);
 });

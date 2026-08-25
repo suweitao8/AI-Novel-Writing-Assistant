@@ -7,6 +7,7 @@ import {
   Pause,
   Pencil,
   Play,
+  WandSparkles,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
@@ -596,7 +597,12 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const blockingSketchUrl = withPreviewCacheBust(blockingSketch.url, blockingSketch.generatedAt, blockingSketch.version);
   const aiPreviewUrl = withPreviewCacheBust(keyframe.url, keyframe.generatedAt, keyframe.version);
   const hasBlockingSketch = Boolean(blockingSketchUrl);
-  const activePreviewKind: PreviewKind = previewKind === "sketch" && hasBlockingSketch ? "sketch" : "ai";
+  const hasReadyAiPreview = keyframe.status === "done" && Boolean(aiPreviewUrl) && !aiPreviewError;
+  const activePreviewKind: PreviewKind = hasBlockingSketch && !hasReadyAiPreview
+    ? "sketch"
+    : previewKind === "sketch" && hasBlockingSketch
+      ? "sketch"
+      : "ai";
   const previewPanelId = `shot-${shot.id}-preview-panel`;
   const sketchTabId = `shot-${shot.id}-sketch-tab`;
   const aiTabId = `shot-${shot.id}-ai-tab`;
@@ -619,6 +625,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
 
   const selectPreview = (next: PreviewKind) => {
     if (next === "sketch" && !hasBlockingSketch) return;
+    if (next === "ai" && !hasReadyAiPreview) return;
     setPreviewKind(next);
   };
 
@@ -724,12 +731,14 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               role="tab"
               aria-selected={activePreviewKind === "ai"}
               aria-controls={previewPanelId}
+              aria-disabled={!hasReadyAiPreview}
               tabIndex={activePreviewKind === "ai" ? 0 : -1}
+              disabled={!hasReadyAiPreview}
               onClick={() => selectPreview("ai")}
               onKeyDown={(event) => handlePreviewKeyDown(event, "ai")}
-              title="查看 AI 图"
+              title={hasReadyAiPreview ? "查看 AI 图" : "AI 图生成后才能查看"}
               className={cn(
-                "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
                 activePreviewKind === "ai"
                   ? "bg-background text-foreground shadow-sm"
                   : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
@@ -749,6 +758,18 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             <Pencil className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
             编辑3D
           </Button>
+          <AiButton
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-auto min-h-9 w-full justify-center px-2 text-[11px]"
+            disabled={props.keyframeBusy}
+            onClick={() => navigate(`/drama/projects/${encodeURIComponent(props.projectId)}/shots/${encodeURIComponent(shot.id)}/blocking-3d?order=${shot.order}&autoPlan=1`)}
+            title={props.keyframeBusy ? "请等待 AI 图生成完成" : "让 AI 规划本镜角色摆位和镜头参数"}
+          >
+            <WandSparkles className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
+            AI摆位
+          </AiButton>
           <AiButton
             type="button"
             size="sm"

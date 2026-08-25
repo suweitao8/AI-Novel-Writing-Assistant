@@ -17,18 +17,26 @@ test("每一镜支持在草图与 AI 画面之间切换，并把操作放在预�
   assert.match(source, /role="tab"/);
   assert.match(source, /aria-selected=\{activePreviewKind === "sketch"\}/);
   assert.match(source, /disabled=\{!hasBlockingSketch\}/);
+  assert.match(source, /disabled=\{!hasReadyAiPreview\}/);
   assert.match(source, />\s*3D图\s*<\/button>/);
   assert.match(source, />\s*AI图\s*<\/button>/);
   assert.match(source, /编辑3D/);
+  assert.match(source, /AI摆位/);
   assert.match(source, /生成AI图/);
   assert.match(source, /重新生图/);
   assert.match(source, /sm:w-\[26rem\]/);
 });
 
-test("AI 图和 3D 图使用生成版本刷新缓存，AI 图加载失败时不回退到场景图", () => {
+test("没有可用 AI 图时强制显示 3D 草图", () => {
+  assert.match(source, /const hasReadyAiPreview/);
+  assert.match(source, /hasBlockingSketch && !hasReadyAiPreview/);
+  assert.match(source, /activePreviewKind === "sketch"/);
+});
+
+test("AI 图和 3D 图使用生成版本刷新缓存，AI 图加载失败时回退到 3D 草图", () => {
   assert.match(source, /generatedAt/);
   assert.match(source, /cache|version/);
   assert.match(source, /onError/);
   assert.match(source, /暂无可用 AI 画面|AI 图不可用/);
-  assert.doesNotMatch(source, /blockingSketch\.scene\.imageUrl/);
+  assert.match(source, /autoPlan=1/);
 });
