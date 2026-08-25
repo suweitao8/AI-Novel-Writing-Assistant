@@ -5,6 +5,7 @@ import path from "node:path";
 
 const read = (relativePath) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 const storySettingsApi = read("src/api/story/storySettings.ts");
+const assetForms = read("src/pages/novels/components/storySettings/assetForms.tsx");
 const scenesTab = read("src/pages/novels/components/storySettings/SettingsScenesTab.tsx");
 const dialog = read("src/pages/novels/components/storySettings/StoryAssetEditDialog.tsx");
 const page = read("src/pages/drama/comicDrama/DramaScene3DPage.tsx");
@@ -17,10 +18,13 @@ test("场景资产 API 暴露统一 HDRI 参数读写", () => {
   assert.match(storySettingsApi, /updateStorySettingsScene/);
 });
 
-test("场景资产入口提供 3D 场景编辑", () => {
-  assert.match(scenesTab, /编辑.*3D场景|3D场景编辑/);
-  assert.match(dialog, /3D场景编辑/);
-  assert.match(router, /drama\/studio\/:novelId\/scenes\/:sceneId\/3d/);
+test("场景状态图片旁提供携带当前状态的 3D 场景编辑", () => {
+  assert.match(assetForms, /平面图/);
+  assert.match(assetForms, /3D编辑/);
+  assert.match(assetForms, /states\/\$\{encodeURIComponent\(selectedState\.id\)\}\/3d/);
+  assert.doesNotMatch(scenesTab, /3D场景编辑/);
+  assert.doesNotMatch(dialog, /3D场景编辑/);
+  assert.match(router, /drama\/studio\/:novelId\/scenes\/:sceneId\/states\/:stateId\/3d/);
 });
 
 test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", () => {

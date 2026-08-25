@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Box, Loader2, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Loader2, Sparkles } from "lucide-react";
 import type {
   StorySettingsCharacter,
   StorySettingsProp,
@@ -117,7 +116,6 @@ export default function StoryAssetEditDialog(props: {
   onDelete?: () => void;
 }) {
   const { novelId, kind, asset, open } = props;
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [form, setForm] = useState<AssetFormState>(EMPTY_SCENE_FORM);
   const [states, setStates] = useState<StoryAssetState[]>([]);
@@ -357,19 +355,6 @@ export default function StoryAssetEditDialog(props: {
               onChange={(patch) => setForm((prev) => ({ ...prev, ...patch } as AssetFormState))}
             />
           )}
-          {kind === "scene" && asset ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                props.onClose();
-                navigate(`/drama/studio/${encodeURIComponent(novelId)}/scenes/${encodeURIComponent(asset.id)}/3d`);
-              }}
-            >
-              <Box className="mr-1.5 h-4 w-4" aria-hidden="true" />
-              3D场景编辑
-            </Button>
-          ) : null}
           <AssetStatesEditor
             states={states}
             onChange={setStates}

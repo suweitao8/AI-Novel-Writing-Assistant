@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2 } from "lucide-react";
+import { AudioLines, Box, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   cancelStoryAssetStateImage,
   generateStoryCharacterStateVoice,
@@ -189,6 +190,7 @@ export function AssetStatesEditor(props: {
   asset?: { novelId: string; assetId: string };
 }) {
   const { states, onChange, kind, novelId, assetName, asset } = props;
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStateId, setSelectedStateId] = useState<string | null>(states[0]?.id ?? null);
   const [voicePickerOpen, setVoicePickerOpen] = useState(false);
@@ -614,16 +616,34 @@ export function AssetStatesEditor(props: {
                   />
                 )}
                 {kind === "scene" && selectedState.image?.url ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="absolute bottom-2 right-2 h-7 px-2 text-xs shadow-sm"
-                    disabled={anyPending}
-                    onClick={() => setSceneFlatView((flat) => !flat)}
-                  >
-                    {sceneFlatView ? "360° 预览" : "平面图"}
-                  </Button>
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="h-7 px-2 text-xs shadow-sm"
+                      disabled={anyPending}
+                      onClick={() => setSceneFlatView((flat) => !flat)}
+                    >
+                      {sceneFlatView ? "360° 预览" : "平面图"}
+                    </Button>
+                    {asset ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="h-7 px-2 text-xs shadow-sm"
+                        disabled={anyPending}
+                        aria-label={`编辑${getAssetStateLabel(selectedState, selectedIndex)}状态的 3D 场景`}
+                        onClick={() => navigate(
+                          `/drama/studio/${encodeURIComponent(asset.novelId)}/scenes/${encodeURIComponent(asset.assetId)}/states/${encodeURIComponent(selectedState.id)}/3d`,
+                        )}
+                      >
+                        <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                        3D编辑
+                      </Button>
+                    ) : null}
+                  </div>
                 ) : null}
               </div>
               <div className="flex flex-wrap items-end justify-between gap-2">
