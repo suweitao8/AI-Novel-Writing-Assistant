@@ -3,7 +3,7 @@
 "use strict";
 
 const { spawn, spawnSync } = require("node:child_process");
-const { assertDevelopmentWorkspaceIntegrity } = require("./workspace-integrity-guard.cjs");
+const { assertStartupIntegrity } = require("./workspace-integrity-guard.cjs");
 
 const DEFAULT_MAX_RESTARTS = 3;
 const DEFAULT_RESTART_DELAY_MS = 1000;
@@ -166,7 +166,7 @@ function runServiceGroup({
 }
 
 function assertSupervisorStartupIntegrity({ cwd = process.cwd() } = {}) {
-  assertDevelopmentWorkspaceIntegrity({ cwd });
+  assertStartupIntegrity({ cwd });
 }
 
 async function main() {

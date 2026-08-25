@@ -26,7 +26,9 @@ function createRepository() {
   runGit(directory, ["config", "user.name", "Worktree CLI Test"]);
   runGit(directory, ["config", "user.email", "worktree-cli@example.invalid"]);
   fs.writeFileSync(path.join(directory, "README.md"), "fixture\n");
-  runGit(directory, ["add", "README.md"]);
+  fs.mkdirSync(path.join(directory, "shared", "types"), { recursive: true });
+  fs.writeFileSync(path.join(directory, "shared", "types", "example.ts"), "export type Example = string;\n");
+  runGit(directory, ["add", "README.md", "shared"]);
   runGit(directory, ["commit", "-m", "initial"]);
   return directory;
 }
@@ -39,6 +41,7 @@ function copyWorkflowFiles(directory) {
   fs.copyFileSync(path.join(repoRoot, "scripts", "install-git-hooks.cjs"), path.join(directory, "scripts", "install-git-hooks.cjs"));
   fs.copyFileSync(path.join(repoRoot, "scripts", "git-workflow-guard.cjs"), path.join(directory, "scripts", "git-workflow-guard.cjs"));
   fs.copyFileSync(path.join(repoRoot, "scripts", "workspace-integrity-guard.cjs"), path.join(directory, "scripts", "workspace-integrity-guard.cjs"));
+  fs.copyFileSync(path.join(repoRoot, "scripts", "worktree-filesystem-safety.cjs"), path.join(directory, "scripts", "worktree-filesystem-safety.cjs"));
   fs.writeFileSync(
     path.join(directory, "package.json"),
     JSON.stringify({
@@ -47,7 +50,11 @@ function copyWorkflowFiles(directory) {
       scripts: { "setup:git-hooks": "node scripts/install-git-hooks.cjs" },
     }, null, 2),
   );
-  runGit(directory, ["add", ".githooks", "scripts", "package.json"]);
+  fs.writeFileSync(
+    path.join(directory, "pnpm-lock.yaml"),
+    "lockfileVersion: '9.0'\nsettings:\n  autoInstallPeers: true\n  excludeLinksFromLockfile: false\nimporters:\n  .: {}\n",
+  );
+  runGit(directory, ["add", ".githooks", "scripts", "package.json", "pnpm-lock.yaml"]);
   runGit(directory, ["commit", "-m", "add workflow bootstrap"]);
 }
 
@@ -125,4 +132,32 @@ test("refuses to create a worktree when the requested branch already exists", (t
 
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /already exists|collision/i);
+});
+
+test("refuses to create a worktree when main shared resolves outside the checkout", (t) => {
+  const directory = createRepository();
+  const other = createRepository();
+  const target = defaultWorktreePath(directory, "external-shared");
+  t.after(() => {
+    fs.rmSync(target, { recursive: true, force: true });
+    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(other, { recursive: true, force: true });
+  });
+  copyWorkflowFiles(directory);
+  fs.rmSync(path.join(directory, "shared"), { recursive: true, force: true });
+  fs.symlinkSync(
+    path.join(other, "shared"),
+    path.join(directory, "shared"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+
+  const result = spawnSync(process.execPath, [path.join(repoRoot, "scripts/create-codex-worktree.cjs"), "external-shared"], {
+    cwd: directory,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /external filesystem link|shared[\s\S]*->/i);
+  assert.equal(fs.existsSync(target), false);
 });
