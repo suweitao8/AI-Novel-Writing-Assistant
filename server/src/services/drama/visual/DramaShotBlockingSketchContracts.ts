@@ -29,6 +29,7 @@ export const BLOCKING_SKETCH_3D_LIMITS = {
   positionZ: { min: -100, max: 100 },
   yawDeg: { min: -180, max: 180 },
   scale: { min: 0.1, max: 10 },
+  heightMeters: { min: 0.7, max: 2.4 },
 } as const;
 
 export const BLOCKING_SKETCH_3D_CAMERA_DEFAULTS = {
@@ -110,6 +111,8 @@ export interface DramaShotBlockingSketch3DActor {
   position: [number, number, number];
   yawDeg: number;
   scale: [number, number, number];
+  /** 角色资产推断出的近似身高；旧布局缺失此字段时保留原始绝对缩放。 */
+  heightMeters?: number;
   pose: DramaShotBlockingSketchPose;
   /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
   color?: [number, number, number];
@@ -280,6 +283,14 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
   const color = actor.color === undefined
     ? undefined
     : tuple3(actor.color, "3D 角色颜色", 0, 1);
+  const heightMeters = actor.heightMeters === undefined
+    ? undefined
+    : finiteNumber(
+      actor.heightMeters,
+      "3D 角色身高基准",
+      BLOCKING_SKETCH_3D_LIMITS.heightMeters.min,
+      BLOCKING_SKETCH_3D_LIMITS.heightMeters.max,
+    );
   // Keep validating the legacy field so malformed old snapshots are still rejected,
   // but normalize every accepted layout to the static-frame contract.
   optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态");
@@ -292,6 +303,7 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     ],
     yawDeg: finiteNumber(actor.yawDeg, "3D 角色旋转", BLOCKING_SKETCH_3D_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_LIMITS.yawDeg.max),
     scale: tuple3(actor.scale, "3D 角色缩放", BLOCKING_SKETCH_3D_LIMITS.scale.min, BLOCKING_SKETCH_3D_LIMITS.scale.max),
+    ...(heightMeters === undefined ? {} : { heightMeters }),
     pose: normalizePose(actor.pose),
     ...(color ? { color } : {}),
     actionPlaying: false,

@@ -25,6 +25,13 @@ import type { DramaLLMOptions } from "../DramaStrategyService";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { safeJsonParse } from "../utils/json";
 import {
+  CHARACTER_HEIGHT_DEFAULT_METERS,
+  ensureDramaCharacterHeightProfiles,
+  ensureNovelCharacterHeightProfiles,
+  heightToProxyScale,
+  type CharacterHeightProfileSource,
+} from "./CharacterHeightProfileService";
+import {
   normalizeBlockingSketch3dLayout,
   normalizeBlockingSketchData,
   parseBlockingSketchData,
@@ -44,6 +51,11 @@ interface CharacterLite {
   id: string;
   name: string;
   portraitData?: string | null;
+  archetype?: string | null;
+  persona?: string | null;
+  speechStyle?: string | null;
+  visualAnchor?: string | null;
+  relations?: string | null;
 }
 
 interface BlockingSketchShot {
@@ -85,6 +97,9 @@ export interface BlockingSketchEditorActor {
   stateId?: string;
   imageUrl?: string;
   sourceImageKind: "state_sheet" | "portrait" | "placeholder";
+  heightMeters: number;
+  heightSource: CharacterHeightProfileSource | "legacy";
+  heightConfidence?: number;
 }
 
 export interface DramaShotBlockingSketchEditorContext {
@@ -205,7 +220,22 @@ export class DramaShotBlockingSketchService {
         blockingSketchData: true,
         storyboard: {
           include: {
-            project: { include: { characters: { select: { id: true, name: true, portraitData: true } } } },
+            project: {
+              include: {
+                characters: {
+                  select: {
+                    id: true,
+                    name: true,
+                    portraitData: true,
+                    archetype: true,
+                    persona: true,
+                    speechStyle: true,
+                    visualAnchor: true,
+                    relations: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -221,20 +251,32 @@ export class DramaShotBlockingSketchService {
     const project = shot.storyboard.project;
     const sketch = parseBlockingSketchData(shot.blockingSketchData);
     if (project.source !== "novel_import" || !project.sourceRef?.trim()) {
+      const referencedCharacters = selectReferencedCharacters(shot);
+      const heightProfilesById = await ensureDramaCharacterHeightProfiles(
+        project.id,
+        referencedCharacters.map((character) => character.id),
+      );
       return {
         sketch,
         scene: null,
-        actors: selectReferencedCharacters(shot).map((character) => ({
-          characterName: character.name,
-          assetId: character.id,
-          ...(resolvePortraitUrl(character) ? { imageUrl: resolvePortraitUrl(character)! } : {}),
-          sourceImageKind: resolvePortraitUrl(character) ? "portrait" : "placeholder",
-        })),
+        actors: referencedCharacters.map((character) => {
+          const profile = heightProfilesById.get(character.id);
+          return {
+            characterName: character.name,
+            assetId: character.id,
+            ...(resolvePortraitUrl(character) ? { imageUrl: resolvePortraitUrl(character)! } : {}),
+            sourceImageKind: resolvePortraitUrl(character) ? "portrait" : "placeholder",
+            heightMeters: profile?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS,
+            heightSource: profile?.source ?? "legacy",
+            ...(profile ? { heightConfidence: profile.confidence } : {}),
+          };
+        }),
       };
     }
 
     const novelId = project.sourceRef.trim();
-    const [sceneRows, statesByName] = await Promise.all([
+    const referencedCharacters = selectReferencedCharacters(shot);
+    const [sceneRows, statesByName, heightProfilesByName] = await Promise.all([
       prisma.novelScene.findMany({
         where: { novelId },
         select: {
@@ -250,6 +292,7 @@ export class DramaShotBlockingSketchService {
         },
       }),
       loadNovelCharacterStatesByName(novelId),
+      ensureNovelCharacterHeightProfiles(novelId, referencedCharacters.map((character) => character.name)),
     ]);
     const sceneCandidates = sceneRows.map((scene) => ({
       name: scene.name,
@@ -283,12 +326,16 @@ export class DramaShotBlockingSketchService {
         ? activeState.image.url.trim()
         : null;
       const portraitUrl = resolvePortraitUrl(character);
+      const profile = heightProfilesByName.get(normalizedName(character.name));
       return {
         characterName: character.name,
         assetId: character.id,
         ...(activeState ? { stateId: activeState.id } : {}),
         ...(stateUrl || portraitUrl ? { imageUrl: stateUrl ?? portraitUrl ?? undefined } : {}),
         sourceImageKind: stateUrl ? "state_sheet" : portraitUrl ? "portrait" : "placeholder",
+        heightMeters: profile?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS,
+        heightSource: profile?.source ?? "legacy",
+        ...(profile ? { heightConfidence: profile.confidence } : {}),
       };
     });
 
@@ -432,15 +479,24 @@ export function buildDramaShotBlockingAutoPlanLayout(
     );
   }
   try {
+    const actorByName = new Map(actors.map((actor) => [normalizedName(actor.characterName), actor]));
     const layout = normalizeBlockingSketch3dLayout({
       schemaVersion: 1,
       engine: "playcanvas",
       camera: output.camera,
       actors: output.actors.map((actor) => ({
+        ...(() => {
+          const source = actorByName.get(normalizedName(actor.characterName));
+          const heightMeters = source?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
+          const baseScale = heightToProxyScale(heightMeters);
+          return {
+            scale: actor.scale.map((value) => Math.max(0.1, Math.min(10, value * baseScale))) as [number, number, number],
+            heightMeters,
+          };
+        })(),
         characterName: actor.characterName.trim(),
         position: actor.position,
         yawDeg: actor.yawDeg,
-        scale: actor.scale,
         pose: actor.pose as DramaShotBlockingSketchPose,
         actionPlaying: false,
       })),
