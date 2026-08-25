@@ -630,7 +630,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   };
 
   const handlePreviewKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: PreviewKind) => {
-    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
     event.preventDefault();
     selectPreview(current === "sketch" ? "ai" : "sketch");
   };
@@ -701,8 +701,8 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           <div
             role="tablist"
             aria-label={`第 ${shot.order} 镜预览类型`}
-            aria-orientation="vertical"
-            className="grid grid-cols-1 gap-1 rounded-lg border border-border/60 bg-muted/20 p-1"
+            aria-orientation="horizontal"
+            className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/20 p-1"
           >
             <button
               id={sketchTabId}
