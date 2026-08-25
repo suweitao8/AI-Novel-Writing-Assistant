@@ -9,8 +9,8 @@ export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
 } as const;
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
-  projectionCenterHeight: 3,
-  domeRadius: 20,
+  projectionCenterHeight: 2,
+  domeRadius: 15,
   yawDeg: 0,
   intensity: 1,
 };
