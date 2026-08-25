@@ -420,6 +420,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     nearClip: 0.05,
     farClip: 200,
   });
+  // PlayCanvas uses scene.envAtlas as the fallback texture for its built-in
+  // infinite Skybox. Keep the atlas for HDRI lighting, but remove that layer
+  // from this camera so the finite backdrop below remains the only environment
+  // visible in the blocking viewport.
+  const cameraComponent = cameraEntity.camera!;
+  cameraComponent.layers = cameraComponent.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
   app.root.addChild(cameraEntity);
   const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
   cameraFrame.dof.nearBlur = false;
@@ -540,6 +546,21 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
           environmentSettings,
         );
       }
+    }
+  };
+  const clearEnvironmentVisuals = () => {
+    environmentDome?.destroy();
+    environmentDome = null;
+    environmentGround?.destroy();
+    environmentGround = null;
+    environmentDomeMeshInstance = null;
+    environmentGroundMeshInstance = null;
+    environmentMaterial?.destroy();
+    environmentMaterial = null;
+    if (environmentAsset) {
+      environmentAsset.unload();
+      app.assets.remove(environmentAsset);
+      environmentAsset = null;
     }
   };
   let actorAsset: pc.Asset;
@@ -1113,21 +1134,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     async setEnvironment(url) {
       ground.enabled = true;
       clearEnvironmentLighting();
-      if (environmentDome) {
-        environmentDome.destroy();
-        environmentDome = null;
-      }
-      if (environmentGround) {
-        environmentGround.destroy();
-        environmentGround = null;
-      }
-      environmentDomeMeshInstance = null;
-      environmentGroundMeshInstance = null;
-      environmentMaterial = null;
-      if (environmentAsset) {
-        app.assets.remove(environmentAsset);
-        environmentAsset = null;
-      }
+      clearEnvironmentVisuals();
       if (!url?.trim()) return;
       setStatus("正在加载场景 HDRI 环境...");
       environmentAsset = await loadAsset(app, url, "texture");
@@ -1147,7 +1154,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentDome = new pc.Entity("blocking3d-hdri-dome");
       environmentDome.addComponent("render", {
         meshInstances: [meshInstance],
-        layers: [pc.LAYERID_SKYBOX],
+        layers: [pc.LAYERID_WORLD],
       });
       const groundMesh = pc.Mesh.fromGeometry(
         app.graphicsDevice,
@@ -1157,7 +1164,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
       environmentGround.addComponent("render", {
         meshInstances: [environmentGroundMeshInstance],
-        layers: [pc.LAYERID_SKYBOX],
+        layers: [pc.LAYERID_WORLD],
       });
       environmentGround.setPosition(environmentWorldPosition);
       app.root.addChild(environmentGround);
@@ -1249,12 +1256,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       actors.clear();
       for (const runtime of sceneMarkerRuntimes.values()) destroySceneMarkerRuntime(runtime);
       sceneMarkerRuntimes.clear();
-      environmentDome?.destroy();
-      environmentGround?.destroy();
-      environmentDomeMeshInstance = null;
-      environmentGroundMeshInstance = null;
-      environmentMaterial = null;
-      environmentAsset && app.assets.remove(environmentAsset);
+      clearEnvironmentVisuals();
       clearEnvironmentLighting();
       cameraFrame.destroy();
       selectionRing.destroy();

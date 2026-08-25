@@ -62,6 +62,18 @@ test("HDRI 环境固定在世界坐标，旋转相机不会搬动地面", () => 
   assert.doesNotMatch(viewerSource, /syncEnvironmentDomePosition\(\);/);
 });
 
+test("有限 HDRI 半球不应触发 PlayCanvas 内置无限天空盒", () => {
+  assert.match(viewerSource, /cameraComponent\.layers = cameraComponent\.layers\.filter/);
+  assert.match(viewerSource, /layerId !== pc\.LAYERID_SKYBOX/);
+  assert.match(viewerSource, /layers: \[pc\.LAYERID_WORLD\]/);
+  assert.doesNotMatch(viewerSource, /layers: \[pc\.LAYERID_SKYBOX\]/);
+});
+
+test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
+  assert.match(viewerSource, /environmentAsset\.unload\(\)/);
+  assert.match(viewerSource, /environmentMaterial\?\.destroy\(\)/);
+});
+
 test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
   assert.match(viewerSource, /createUpperDomeGeometry/);
   assert.match(viewerSource, /createGroundDomeGeometry/);
