@@ -123,7 +123,7 @@ export default function SettingsCharactersTab({ novelId, onChanged }: SettingsCh
       ) : filteredCharacters.length === 0 ? (
         <div className="flex min-h-[120px] items-center justify-center text-sm text-muted-foreground">空</div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredCharacters.map((character) => {
             const asset = buildStoryAssetPresentation({ kind: "character", asset: character });
             return (
