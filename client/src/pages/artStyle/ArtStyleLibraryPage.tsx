@@ -281,7 +281,7 @@ export default function ArtStyleLibraryPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold text-foreground">画风管理</h1>
-        <p className="text-sm leading-6 text-muted-foreground">资产画风与时代画风，全部小说和漫剧项目共用。</p>
+        <p className="text-sm leading-6 text-muted-foreground">通用美术风格：写实影视化。资产画风与时代画风，全部小说和漫剧项目共用。</p>
       </header>
 
       {stylesQuery.isPending ? (

@@ -40,6 +40,53 @@ test("损坏配置回落为空的三类覆盖", () => {
   });
 });
 
+test("历史三维游戏内置值归一化为新的写实默认值", () => {
+  assert.deepEqual(
+    parseDramaAssetArtStylePayload(JSON.stringify({
+      characterPrompt: "影视化三维游戏美术质感：旧角色默认",
+      scenePrompt: "影视化三维场景美术质感：旧场景默认",
+      propPrompt: "影视化三维道具美术质感：旧道具默认",
+    })),
+    {
+      characterPrompt: "",
+      scenePrompt: "",
+      propPrompt: "",
+    },
+  );
+});
+
+test("生图解析器不会继续使用历史三维资产默认值", async () => {
+  const originalFindUnique = prisma.appSetting.findUnique;
+  const originalWorldFindUnique = prisma.novelSettingsWorld.findUnique;
+  const originalChapterFindMany = prisma.chapter.findMany;
+  try {
+    prisma.appSetting.findUnique = async ({ where }) => {
+      if (where.key !== DRAMA_ASSET_ART_STYLE_SETTING_KEY) {
+        return null;
+      }
+      return {
+        key: where.key,
+        value: JSON.stringify({
+          characterPrompt: "影视化三维游戏美术质感：旧角色默认",
+          scenePrompt: "影视化三维场景美术质感：旧场景默认",
+          propPrompt: "影视化三维道具美术质感：旧道具默认",
+        }),
+      };
+    };
+    prisma.novelSettingsWorld.findUnique = async () => null;
+    prisma.chapter.findMany = async () => [];
+
+    const context = await resolveDramaArtStyleContext({});
+    assert.match(context.assets.character.styleInstructions, /写实影视化角色资产质感/);
+    assert.match(context.assets.scene.styleInstructions, /写实影视化场景质感/);
+    assert.match(context.assets.prop.styleInstructions, /写实影视化道具质感/);
+  } finally {
+    prisma.appSetting.findUnique = originalFindUnique;
+    prisma.novelSettingsWorld.findUnique = originalWorldFindUnique;
+    prisma.chapter.findMany = originalChapterFindMany;
+  }
+});
+
 test("每类提示词独立限制为 2000 字符", () => {
   assert.equal(normalizeDramaAssetStylePrompt("  角色质感  "), "角色质感");
   assert.equal(normalizeDramaAssetStylePrompt("x".repeat(2100)).length, 2000);
@@ -106,7 +153,7 @@ test("解析器按类别读取新的覆盖，不读取历史单一画风", async
 
     const context = await resolveDramaArtStyleContext({});
     assert.equal(context.assets.character.styleInstructions, "角色自定义");
-    assert.match(context.assets.scene.styleInstructions, /影视化三维场景/);
+    assert.match(context.assets.scene.styleInstructions, /写实影视化场景/);
     assert.equal(context.assets.prop.styleInstructions, "道具自定义");
     assert.equal(context.specific, null);
   } finally {
