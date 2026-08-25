@@ -605,7 +605,7 @@ export function AssetStatesEditor(props: {
                   />
                 )}
                 {kind === "scene" && selectedState.image?.url ? (
-                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                  <div className="absolute bottom-2 right-2 z-30 flex items-center gap-1.5">
                     {asset ? (
                       <Button
                         type="button"

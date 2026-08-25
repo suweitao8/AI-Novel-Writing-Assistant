@@ -6,6 +6,10 @@ const pageSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/DramaBlocking3DPage.tsx", import.meta.url),
   "utf8",
 );
+const scene3dPageSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/DramaScene3DPage.tsx", import.meta.url),
+  "utf8",
+);
 const viewerSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts", import.meta.url),
   "utf8",
@@ -25,6 +29,12 @@ test("场景状态图作为半球 HDRI 环境，不再作为后置背景平面",
   assert.match(viewerSource, /environmentDome/);
   assert.match(viewerSource, /environmentUrl/);
   assert.doesNotMatch(viewerSource, /createPlane\(app, "blocking3d-background"/);
+});
+
+test("场景 3D 编辑器使用当前状态图作为 HDRI 背景", () => {
+  assert.match(scene3dPageSource, /function resolveSceneEnvironmentUrl[\s\S]*state\?\.image\?\.url\?\.trim\(\)/);
+  assert.doesNotMatch(scene3dPageSource, /state\?\.image\?\.status === "done"/);
+  assert.match(scene3dPageSource, /createBlocking3dViewer\(\{[\s\S]*environmentUrl,[\s\S]*onStatus: setStatus/);
 });
 
 test("HDRI 半球负责弧形地面，纯色地面只在没有 HDRI 时显示", () => {
