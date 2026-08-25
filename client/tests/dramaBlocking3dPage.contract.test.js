@@ -20,21 +20,26 @@ const entrySource = fs.readFileSync(
   "utf8",
 );
 
-test("3D 摆位页面保存快照并继续上传 PNG 参考图", () => {
+test("3D 摆位页面自动保存快照并继续上传 PNG 参考图", () => {
   assert.match(pageSource, /createBlocking3dViewer/);
   assert.match(pageSource, /layout3d/);
   assert.match(pageSource, /uploadDramaShotBlockingSketchPng/);
   assert.match(pageSource, /confirmDramaShotBlockingSketch/);
   assert.match(pageSource, /setInteractionEnabled\(false\)/);
   assert.match(pageSource, /queryKeys\.drama\.project/);
+  assert.match(pageSource, /autoPlanDramaShotBlockingSketch/);
+  assert.match(pageSource, /<AiButton/);
+  assert.match(pageSource, /context\.sketch\?\.layout3d/);
+  assert.match(pageSource, /自动保存/);
   assert.match(mathSource, /prone/);
 });
 
-test("离开 3D 草图前自动保存并在成功后返回分镜", () => {
-  assert.match(pageSource, /await handleSave\(false\)/);
-  assert.match(pageSource, /handleSave\(false\)[\s\S]*navigate\(-1\)/);
+test("离开 3D 草图前等待自动保存并在成功后返回分镜", () => {
+  assert.match(pageSource, /await flushAutoSave\(\)/);
+  assert.match(pageSource, /flushAutoSave\(\)[\s\S]*navigate\(-1\)/);
   assert.match(pageSource, /refetchQueries|refetchType/);
   assert.doesNotMatch(pageSource, /当前 3D 草图还有未保存修改，确定离开吗/);
+  assert.doesNotMatch(pageSource, /保存草图|确认草图/);
 });
 
 test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能力", () => {

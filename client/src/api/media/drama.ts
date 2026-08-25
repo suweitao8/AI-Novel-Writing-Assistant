@@ -197,6 +197,13 @@ export interface DramaShotBlockingSketch3DCamera {
   elev: number;
   distance: number;
   focalPoint: [number, number, number];
+  fovDeg: number;
+  nearClip: number;
+  farClip: number;
+  depthOfFieldEnabled: boolean;
+  focusDistance: number;
+  focusRange: number;
+  blurRadius: number;
 }
 
 export interface DramaShotBlockingSketch3DActor {
@@ -250,6 +257,11 @@ export interface DramaShotBlockingSketchEditorContext {
     imageUrl?: string;
     sourceImageKind: "state_sheet" | "portrait" | "placeholder";
   }>;
+}
+
+export interface DramaShotBlockingAutoPlanResult {
+  layout: DramaShotBlockingSketch3DLayout;
+  compositionNote?: string;
 }
 
 export interface DramaDialogueAudioItem {
@@ -684,6 +696,18 @@ export async function saveDramaShotBlockingSketch(
     { data },
   );
   return response.data;
+}
+
+export async function autoPlanDramaShotBlockingSketch(
+  id: string,
+  shotId: string,
+  payload: DramaLLMOptions = {},
+) {
+  const { data } = await apiClient.post<ApiResponse<DramaShotBlockingAutoPlanResult>>(
+    `/drama/projects/${id}/shots/${shotId}/blocking-sketch/auto-plan`,
+    payload,
+  );
+  return data;
 }
 
 export async function uploadDramaShotBlockingSketchPng(id: string, shotId: string, png: Blob) {

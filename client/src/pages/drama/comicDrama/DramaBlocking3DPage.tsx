@@ -6,18 +6,18 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Check,
   Loader2,
   Minus,
   Move3D,
   Plus,
   RotateCcw,
   RotateCw,
-  Save,
   Trash2,
+  WandSparkles,
 } from "lucide-react";
 
 import {
+  autoPlanDramaShotBlockingSketch,
   confirmDramaShotBlockingSketch,
   getDramaShotBlockingSketch,
   saveDramaShotBlockingSketch,
@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SelectControl from "@/components/common/SelectControl";
+import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import {
@@ -50,20 +51,12 @@ function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShot
   if (context.sketch?.layout3d) {
     return { ...context.sketch.layout3d, environment: context.scene.environment };
   }
-  const actors = context.sketch?.actors ?? [];
   return {
     schemaVersion: 1,
     engine: "playcanvas",
     camera: { ...DEFAULT_BLOCKING_3D_CAMERA, focalPoint: [...DEFAULT_BLOCKING_3D_CAMERA.focalPoint] },
     environment: context.scene.environment,
-    actors: actors.map((actor, index) => ({
-      characterName: actor.characterName,
-      position: [(actor.x - 0.5) * 10, 0, (index - actors.length / 2) * 0.35] as [number, number, number],
-      yawDeg: actor.flipX ? 0 : 180,
-      scale: [actor.scale / 0.4, actor.scale / 0.4, actor.scale / 0.4] as [number, number, number],
-      pose: "standing" as const,
-      actionPlaying: false,
-    })),
+    actors: [],
   };
 }
 
@@ -121,8 +114,13 @@ export default function DramaBlocking3DPage() {
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoPlanning, setAutoPlanning] = useState(false);
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
+  const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
   const leavingRef = useRef(false);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const autoPlanKeyRef = useRef<string | null>(null);
 
   const contextQuery = useQuery({
     queryKey: ["drama-shot-blocking-sketch", projectId, shotId],
@@ -136,6 +134,7 @@ export default function DramaBlocking3DPage() {
     setSelectedName(nextViewer.getSelectedActor());
     setSelectedPose(nextViewer.getSelectedPose());
     setSelectedTransform(nextViewer.getSelectedTransform());
+    setCameraState(nextViewer.getCameraState());
   }, []);
 
   useEffect(() => {
@@ -193,51 +192,115 @@ export default function DramaBlocking3DPage() {
   const placedNames = new Set(viewer?.getActorLabels() ?? []);
 
   const applyViewerAction = useCallback((action: (nextViewer: Blocking3dViewer) => boolean) => {
-    if (!viewer || saving) return;
+    if (!viewer || saving || autoPlanning) return;
     if (!action(viewer)) return;
     setDirty(true);
     syncSelection(viewer);
-  }, [saving, syncSelection, viewer]);
+  }, [autoPlanning, saving, syncSelection, viewer]);
 
-  const handleSave = async (confirmAfterSave: boolean): Promise<boolean> => {
-    if (!viewer || !context?.scene || saving) return false;
-    setSaving(true);
+  const handleAutoSave = useCallback(async (): Promise<boolean> => {
+    if (savePromiseRef.current) return savePromiseRef.current;
+    if (!viewer || !context?.scene) return false;
+    const promise = (async () => {
+      setSaving(true);
+      viewer.setInteractionEnabled(false);
+      try {
+        const draft = buildSketchData(context, viewer);
+        const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
+        if (!saved.data) throw new Error("自动保存没有返回草图数据。");
+        const png = viewer.capturePng();
+        const uploaded = await uploadDramaShotBlockingSketchPng(projectId, shotId, png);
+        if (!uploaded.data) throw new Error("自动保存没有返回草图图片。");
+        const confirmed = await confirmDramaShotBlockingSketch(projectId, shotId);
+        if (!confirmed.data) throw new Error("自动确认没有返回草图数据。");
+        setSavedData(confirmed.data);
+        setDirty(false);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId), refetchType: "all" }),
+          queryClient.invalidateQueries({ queryKey: ["comic-drama"], refetchType: "all" }),
+        ]);
+        setStatus("3D 草图已自动保存");
+        toast.success("3D 草图已自动保存。", {
+          description: "分镜生成会使用最新的草图参考图。",
+        });
+        return true;
+      } catch (error) {
+        toast.error("自动保存 3D 草图失败", {
+          description: error instanceof Error ? error.message : "请稍后重试。",
+        });
+        return false;
+      } finally {
+        viewer.setInteractionEnabled(true);
+        setSaving(false);
+      }
+    })();
+    savePromiseRef.current = promise;
+    void promise.finally(() => {
+      if (savePromiseRef.current === promise) savePromiseRef.current = null;
+    });
+    return promise;
+  }, [context, projectId, queryClient, shotId, viewer]);
+
+  const handleAutoPlan = useCallback(async () => {
+    if (!viewer || !context?.scene || autoPlanning || saving) return;
+    setAutoPlanning(true);
     viewer.setInteractionEnabled(false);
     try {
-      const draft = buildSketchData(context, viewer);
-      const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
-      if (!saved.data) throw new Error("保存后没有返回草图数据。");
-      const png = viewer.capturePng();
-      const uploaded = await uploadDramaShotBlockingSketchPng(projectId, shotId, png);
-      const result = confirmAfterSave
-        ? await confirmDramaShotBlockingSketch(projectId, shotId)
-        : uploaded;
-      if (!result.data) throw new Error("草图图片上传后没有返回结果。");
-      setSavedData(result.data);
-      setDirty(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId), refetchType: "all" }),
-        queryClient.invalidateQueries({ queryKey: ["comic-drama"], refetchType: "all" }),
-      ]);
-      toast.success(confirmAfterSave ? "3D 草图已确认。" : "3D 草图已保存。", {
-        description: "分镜生成会使用这张草图参考图。",
+      const result = await autoPlanDramaShotBlockingSketch(projectId, shotId);
+      if (!result.data?.layout) throw new Error("自动构图没有返回可用的 3D 布局。");
+      viewer.loadLayout(result.data.layout);
+      syncSelection(viewer);
+      setDirty(true);
+      setStatus("AI 构图完成，正在自动保存");
+      toast.success("AI 已完成本镜构图。", {
+        description: result.data.compositionNote || "角色位置、相机和景深已应用到 3D 草图。",
       });
-      return true;
+      await handleAutoSave();
     } catch (error) {
-      toast.error(confirmAfterSave ? "确认 3D 草图失败" : "保存 3D 草图失败", {
-        description: error instanceof Error ? error.message : "请稍后重试。",
+      toast.error("AI 自动构图失败", {
+        description: error instanceof Error ? error.message : "请稍后重试，原有布局已保留。",
       });
-      return false;
     } finally {
       viewer.setInteractionEnabled(true);
-      setSaving(false);
+      setAutoPlanning(false);
     }
-  };
+  }, [autoPlanning, context, handleAutoSave, projectId, saving, shotId, syncSelection, viewer]);
+
+  useEffect(() => {
+    if (!dirty || !viewer || autoPlanning) return undefined;
+    const timer = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      void handleAutoSave();
+    }, 900);
+    saveTimerRef.current = timer;
+    return () => {
+      window.clearTimeout(timer);
+      if (saveTimerRef.current === timer) saveTimerRef.current = null;
+    };
+  }, [autoPlanning, dirty, handleAutoSave, viewer]);
+
+  useEffect(() => {
+    if (!viewer || !context?.scene || context.sketch?.layout3d || context.actors.length === 0) return;
+    const key = `${projectId}:${shotId}`;
+    if (autoPlanKeyRef.current === key) return;
+    autoPlanKeyRef.current = key;
+    void handleAutoPlan();
+  }, [context, handleAutoPlan, projectId, shotId, viewer]);
+
+  const flushAutoSave = useCallback(async (): Promise<boolean> => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (savePromiseRef.current) return savePromiseRef.current;
+    if (dirty) return handleAutoSave();
+    return true;
+  }, [dirty, handleAutoSave]);
 
   const goBack = async () => {
     if (leavingRef.current) return;
     leavingRef.current = true;
-    if (dirty && !(await handleSave(false))) {
+    if (!(await flushAutoSave())) {
       leavingRef.current = false;
       return;
     }
@@ -273,33 +336,29 @@ export default function DramaBlocking3DPage() {
           <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" onClick={() => void goBack()}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
-              <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
-                {dirty ? "未保存" : currentStatus === "confirmed" ? "已确认" : "草稿"}
-              </Badge>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
+                  <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
+                    {saving ? "自动保存中" : dirty ? "等待自动保存" : currentStatus === "confirmed" ? "已自动保存" : "草稿"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧调整静态姿势和位置。</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧调整静态姿势和位置。</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
-          <Button type="button" variant="outline" disabled={!viewer || saving} onClick={() => void handleSave(false)}>
-            {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            保存草图
-          </Button>
-          <Button type="button" disabled={!viewer || saving} onClick={() => void handleSave(true)}>
-            {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Check className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            确认草图
-          </Button>
-        </div>
+            <div className="flex items-center gap-2">
+              <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
+              <AiButton type="button" variant="outline" disabled={!viewer || saving || autoPlanning || context.actors.length === 0} onClick={() => void handleAutoPlan()} title="按本镜角色、动作和场景自动规划 3D 构图">
+                {autoPlanning ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+                {autoPlanning ? "自动构图中" : context.sketch?.layout3d ? "重新自动构图" : "AI 自动构图"}
+              </AiButton>
+            </div>
       </header>
 
       <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
         <Card className="w-full self-start overflow-hidden">
           <CardContent className="relative aspect-video w-full p-0">
-            <canvas ref={canvasRef} aria-label="3D 草图视口" aria-busy={saving} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+            <canvas ref={canvasRef} aria-label="3D 草图视口" aria-busy={saving || autoPlanning} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             {!viewer && !viewerError ? (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />初始化 3D 草图</div>
             ) : null}
@@ -378,11 +437,20 @@ export default function DramaBlocking3DPage() {
           </Card>
 
           <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">相机</CardTitle></CardHeader>
-            <CardContent className="grid grid-cols-2 gap-1.5">
-              <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
-              <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || !viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
-            </CardContent>
+              <CardHeader className="pb-3"><CardTitle className="text-sm">相机</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
+                  <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
+                </div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                  <dt>视野角</dt><dd className="text-right tabular-nums">{cameraState.fovDeg.toFixed(0)}°</dd>
+                  <dt>景深</dt><dd className="text-right">{cameraState.depthOfFieldEnabled ? "开启" : "关闭"}</dd>
+                  <dt>焦点距离</dt><dd className="text-right tabular-nums">{cameraState.focusDistance.toFixed(2)}</dd>
+                  <dt>清晰范围</dt><dd className="text-right tabular-nums">{cameraState.focusRange.toFixed(2)}</dd>
+                  <dt>模糊半径</dt><dd className="text-right tabular-nums">{cameraState.blurRadius.toFixed(2)}</dd>
+                </dl>
+              </CardContent>
           </Card>
 
         </aside>

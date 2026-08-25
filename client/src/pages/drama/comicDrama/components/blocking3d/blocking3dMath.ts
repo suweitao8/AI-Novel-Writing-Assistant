@@ -46,6 +46,13 @@ export const DEFAULT_BLOCKING_3D_CAMERA: DramaShotBlockingSketch3DCamera = {
   elev: -12,
   distance: 8,
   focalPoint: [0, 0.8, 0],
+  fovDeg: 52,
+  nearClip: 0.05,
+  farClip: 200,
+  depthOfFieldEnabled: false,
+  focusDistance: 8,
+  focusRange: 5,
+  blurRadius: 3,
 };
 
 const LIMITS = {
@@ -53,6 +60,12 @@ const LIMITS = {
   cameraElev: [-89, 89],
   cameraDistance: [0.25, 100],
   cameraPoint: [-100, 100],
+  cameraFov: [30, 100],
+  cameraNearClip: [0.05, 5],
+  cameraFarClip: [20, 300],
+  cameraFocusDistance: [0.25, 100],
+  cameraFocusRange: [0.1, 100],
+  cameraBlurRadius: [0, 10],
   positionX: [-100, 100],
   positionY: [0, 50],
   positionZ: [-100, 100],
@@ -100,11 +113,26 @@ export function normalizeBlocking3dCamera(input: unknown): DramaShotBlockingSket
   if (input === undefined || input === null) return { ...DEFAULT_BLOCKING_3D_CAMERA, focalPoint: [...DEFAULT_BLOCKING_3D_CAMERA.focalPoint] };
   if (!input || typeof input !== "object" || Array.isArray(input)) fail("相机不能为空");
   const camera = input as Record<string, unknown>;
+  const optional = (value: unknown, fallback: number, label: string, limits: readonly [number, number]): number =>
+    value === undefined ? fallback : finite(value, label, limits[0], limits[1]);
+  const nearClip = optional(camera.nearClip, DEFAULT_BLOCKING_3D_CAMERA.nearClip, "近裁剪面", LIMITS.cameraNearClip);
+  const farClip = optional(camera.farClip, DEFAULT_BLOCKING_3D_CAMERA.farClip, "远裁剪面", LIMITS.cameraFarClip);
+  if (farClip <= nearClip) fail("远裁剪面必须大于近裁剪面");
+  if (camera.depthOfFieldEnabled !== undefined && typeof camera.depthOfFieldEnabled !== "boolean") {
+    fail("景深开关必须是布尔值");
+  }
   return {
     azim: finite(camera.azim, "水平角", LIMITS.cameraAzim[0], LIMITS.cameraAzim[1]),
     elev: finite(camera.elev, "俯仰角", LIMITS.cameraElev[0], LIMITS.cameraElev[1]),
     distance: finite(camera.distance, "距离", LIMITS.cameraDistance[0], LIMITS.cameraDistance[1]),
     focalPoint: tuple3(camera.focalPoint, "焦点", LIMITS.cameraPoint[0], LIMITS.cameraPoint[1]),
+    fovDeg: optional(camera.fovDeg, DEFAULT_BLOCKING_3D_CAMERA.fovDeg, "视野角", LIMITS.cameraFov),
+    nearClip,
+    farClip,
+    depthOfFieldEnabled: camera.depthOfFieldEnabled === undefined ? DEFAULT_BLOCKING_3D_CAMERA.depthOfFieldEnabled : camera.depthOfFieldEnabled,
+    focusDistance: optional(camera.focusDistance, DEFAULT_BLOCKING_3D_CAMERA.focusDistance, "焦点距离", LIMITS.cameraFocusDistance),
+    focusRange: optional(camera.focusRange, DEFAULT_BLOCKING_3D_CAMERA.focusRange, "景深范围", LIMITS.cameraFocusRange),
+    blurRadius: optional(camera.blurRadius, DEFAULT_BLOCKING_3D_CAMERA.blurRadius, "模糊半径", LIMITS.cameraBlurRadius),
   };
 }
 

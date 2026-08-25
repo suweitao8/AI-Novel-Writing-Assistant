@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Move3D, Save } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Loader2, Move3D } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import {
@@ -50,6 +50,10 @@ export default function DramaScene3DPage() {
     ...DEFAULT_BLOCKING_3D_ENVIRONMENT,
   });
   const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const leavingRef = useRef(false);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
 
   const sceneQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId),
@@ -107,43 +111,60 @@ export default function DramaScene3DPage() {
   }, [environmentUrl, scene, selectedState]);
 
   useEffect(() => {
-    viewer?.setInteractionEnabled(!sceneQuery.isFetching);
-  }, [sceneQuery.isFetching, viewer]);
+    viewer?.setInteractionEnabled(!sceneQuery.isFetching && !saving);
+  }, [saving, sceneQuery.isFetching, viewer]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!dirty || sceneQuery.isFetching) return;
+      if (!dirty || saving || sceneQuery.isFetching) return;
       event.preventDefault();
       event.returnValue = "";
     };
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
-  }, [dirty, sceneQuery.isFetching]);
+  }, [dirty, saving, sceneQuery.isFetching]);
 
-  const saveMutation = useMutation({
-    mutationFn: () => updateStorySettingsScene(novelId, sceneId, {
-      scene3dEnvironment: {
-        projectionCenterHeight: environmentSettings.projectionCenterHeight,
-        domeRadius: environmentSettings.domeRadius,
-      },
-    }),
-    onSuccess: async (response) => {
-      const savedEnvironment = response.data?.scene3dEnvironment;
-      if (savedEnvironment) {
-        setEnvironmentSettings(savedEnvironment);
-        viewer?.setEnvironmentSettings(savedEnvironment);
+  const saveScene = useCallback(async (): Promise<boolean> => {
+    if (savePromiseRef.current) return savePromiseRef.current;
+    if (!viewer || !scene) return false;
+    const snapshot = {
+      projectionCenterHeight: environmentSettings.projectionCenterHeight,
+      domeRadius: environmentSettings.domeRadius,
+    };
+    const promise = (async () => {
+      setSaving(true);
+      viewer.setInteractionEnabled(false);
+      try {
+        const response = await updateStorySettingsScene(novelId, sceneId, {
+          scene3dEnvironment: snapshot,
+        });
+        const savedEnvironment = response.data?.scene3dEnvironment;
+        if (savedEnvironment) {
+          setEnvironmentSettings(savedEnvironment);
+          viewer.setEnvironmentSettings(savedEnvironment);
+        }
+        setDirty(false);
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId) }),
+          queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
+        ]);
+        setStatus("场景参数已自动保存");
+        toast.success("场景参数已自动保存。");
+        return true;
+      } catch (error) {
+        toast.error("场景参数自动保存失败。", { description: error instanceof Error ? error.message : undefined });
+        return false;
+      } finally {
+        viewer.setInteractionEnabled(true);
+        setSaving(false);
       }
-      setDirty(false);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId) }),
-        queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
-      ]);
-      toast.success("场景参数已保存。");
-    },
-    onError: (error) => {
-      toast.error("场景参数保存失败。", { description: error instanceof Error ? error.message : undefined });
-    },
-  });
+    })();
+    savePromiseRef.current = promise;
+    void promise.finally(() => {
+      if (savePromiseRef.current === promise) savePromiseRef.current = null;
+    });
+    return promise;
+  }, [environmentSettings.domeRadius, environmentSettings.projectionCenterHeight, novelId, queryClient, scene, sceneId, viewer]);
 
   const updateEnvironmentSetting = useCallback((key: "projectionCenterHeight" | "domeRadius", value: number) => {
     const next = {
@@ -157,8 +178,36 @@ export default function DramaScene3DPage() {
     setDirty(true);
   }, [environmentSettings, viewer]);
 
-  const goBack = () => {
-    if (dirty && !saveMutation.isPending && !window.confirm("场景参数还有未保存修改，确定离开吗？")) return;
+  useEffect(() => {
+    if (!dirty || !viewer || saving) return undefined;
+    const timer = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      void saveScene();
+    }, 700);
+    saveTimerRef.current = timer;
+    return () => {
+      window.clearTimeout(timer);
+      if (saveTimerRef.current === timer) saveTimerRef.current = null;
+    };
+  }, [dirty, saving, saveScene, viewer]);
+
+  const flushAutoSave = useCallback(async (): Promise<boolean> => {
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    if (savePromiseRef.current) return savePromiseRef.current;
+    if (dirty) return saveScene();
+    return true;
+  }, [dirty, saveScene]);
+
+  const goBack = async () => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    if (!(await flushAutoSave())) {
+      leavingRef.current = false;
+      return;
+    }
     navigate(-1);
   };
 
@@ -201,15 +250,8 @@ export default function DramaScene3DPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
-          <Button
-            type="button"
-            disabled={!viewer || !dirty || saveMutation.isPending}
-            onClick={() => saveMutation.mutate()}
-          >
-            {saveMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            保存场景参数
-          </Button>
+          <span className="text-xs text-muted-foreground" role="status">{saving ? "自动保存中" : dirty ? "等待自动保存" : "已自动保存"}</span>
+          <span className="hidden text-xs text-muted-foreground sm:inline">{status}</span>
         </div>
       </header>
 
@@ -219,7 +261,7 @@ export default function DramaScene3DPage() {
             <canvas
               ref={canvasRef}
               aria-label={`${scene.name} 3D 场景预览`}
-              aria-busy={!viewer}
+              aria-busy={!viewer || saving}
               className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {!viewer && !viewerError ? (
@@ -253,19 +295,15 @@ export default function DramaScene3DPage() {
                   <span>投射中心高度</span>
                   <output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output>
                 </span>
-                <input type="range" aria-label="投射中心高度" min="1" max="10" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={!viewer || saveMutation.isPending} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="投射中心高度" min="1" max="10" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
               </label>
               <label className="block space-y-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center justify-between gap-2">
                   <span>半球直径</span>
                   <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
                 </span>
-                <input type="range" aria-label="半球直径" min="10" max="50" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saveMutation.isPending} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="半球直径" min="10" max="50" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
               </label>
-              <Button type="button" className="w-full" disabled={!viewer || !dirty || saveMutation.isPending} onClick={() => saveMutation.mutate()}>
-                {saveMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                保存场景参数
-              </Button>
             </CardContent>
           </Card>
 

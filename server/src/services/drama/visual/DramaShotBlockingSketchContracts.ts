@@ -18,11 +18,27 @@ export const BLOCKING_SKETCH_3D_LIMITS = {
   cameraElevDeg: { min: -89, max: 89 },
   cameraDistance: { min: 0.25, max: 100 },
   cameraFocalPoint: { min: -100, max: 100 },
+  cameraFovDeg: { min: 30, max: 100 },
+  cameraNearClip: { min: 0.05, max: 5 },
+  cameraFarClip: { min: 20, max: 300 },
+  cameraFocusDistance: { min: 0.25, max: 100 },
+  cameraFocusRange: { min: 0.1, max: 100 },
+  cameraBlurRadius: { min: 0, max: 10 },
   positionX: { min: -100, max: 100 },
   positionY: { min: 0, max: 50 },
   positionZ: { min: -100, max: 100 },
   yawDeg: { min: -180, max: 180 },
   scale: { min: 0.1, max: 10 },
+} as const;
+
+export const BLOCKING_SKETCH_3D_CAMERA_DEFAULTS = {
+  fovDeg: 52,
+  nearClip: 0.05,
+  farClip: 200,
+  depthOfFieldEnabled: false,
+  focusDistance: 8,
+  focusRange: 5,
+  blurRadius: 3,
 } as const;
 
 export const BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS = {
@@ -80,6 +96,13 @@ export interface DramaShotBlockingSketch3DCamera {
   elev: number;
   distance: number;
   focalPoint: [number, number, number];
+  fovDeg: number;
+  nearClip: number;
+  farClip: number;
+  depthOfFieldEnabled: boolean;
+  focusDistance: number;
+  focusRange: number;
+  blurRadius: number;
 }
 
 export interface DramaShotBlockingSketch3DActor {
@@ -190,11 +213,62 @@ function normalizePose(value: unknown): DramaShotBlockingSketchPose {
 
 function normalize3dCamera(input: unknown): DramaShotBlockingSketch3DCamera {
   const camera = objectValue(input, "3D 相机");
+  const optionalNumber = (value: unknown, fallback: number, label: string, min: number, max: number): number =>
+    value === undefined ? fallback : finiteNumber(value, label, min, max);
+  const depthOfFieldEnabled = camera.depthOfFieldEnabled === undefined
+    ? BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.depthOfFieldEnabled
+    : optionalBoolean(camera.depthOfFieldEnabled, "3D 相机景深开关");
+  const nearClip = optionalNumber(
+    camera.nearClip,
+    BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.nearClip,
+    "3D 相机近裁剪面",
+    BLOCKING_SKETCH_3D_LIMITS.cameraNearClip.min,
+    BLOCKING_SKETCH_3D_LIMITS.cameraNearClip.max,
+  );
+  const farClip = optionalNumber(
+    camera.farClip,
+    BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.farClip,
+    "3D 相机远裁剪面",
+    BLOCKING_SKETCH_3D_LIMITS.cameraFarClip.min,
+    BLOCKING_SKETCH_3D_LIMITS.cameraFarClip.max,
+  );
+  if (farClip <= nearClip) invalid("3D 相机远裁剪面必须大于近裁剪面");
   return {
     azim: finiteNumber(camera.azim, "3D 相机水平角", BLOCKING_SKETCH_3D_LIMITS.cameraAzimDeg.min, BLOCKING_SKETCH_3D_LIMITS.cameraAzimDeg.max),
     elev: finiteNumber(camera.elev, "3D 相机俯仰角", BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.min, BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.max),
     distance: finiteNumber(camera.distance, "3D 相机距离", BLOCKING_SKETCH_3D_LIMITS.cameraDistance.min, BLOCKING_SKETCH_3D_LIMITS.cameraDistance.max),
     focalPoint: tuple3(camera.focalPoint, "3D 相机焦点", BLOCKING_SKETCH_3D_LIMITS.cameraFocalPoint.min, BLOCKING_SKETCH_3D_LIMITS.cameraFocalPoint.max),
+    fovDeg: optionalNumber(
+      camera.fovDeg,
+      BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.fovDeg,
+      "3D 相机视野角",
+      BLOCKING_SKETCH_3D_LIMITS.cameraFovDeg.min,
+      BLOCKING_SKETCH_3D_LIMITS.cameraFovDeg.max,
+    ),
+    nearClip,
+    farClip,
+    depthOfFieldEnabled,
+    focusDistance: optionalNumber(
+      camera.focusDistance,
+      BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.focusDistance,
+      "3D 相机焦点距离",
+      BLOCKING_SKETCH_3D_LIMITS.cameraFocusDistance.min,
+      BLOCKING_SKETCH_3D_LIMITS.cameraFocusDistance.max,
+    ),
+    focusRange: optionalNumber(
+      camera.focusRange,
+      BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.focusRange,
+      "3D 相机景深范围",
+      BLOCKING_SKETCH_3D_LIMITS.cameraFocusRange.min,
+      BLOCKING_SKETCH_3D_LIMITS.cameraFocusRange.max,
+    ),
+    blurRadius: optionalNumber(
+      camera.blurRadius,
+      BLOCKING_SKETCH_3D_CAMERA_DEFAULTS.blurRadius,
+      "3D 相机景深模糊半径",
+      BLOCKING_SKETCH_3D_LIMITS.cameraBlurRadius.min,
+      BLOCKING_SKETCH_3D_LIMITS.cameraBlurRadius.max,
+    ),
   };
 }
 
@@ -230,7 +304,7 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   };
 }
 
-function normalizeLayout3d(input: unknown): DramaShotBlockingSketch3DLayout {
+export function normalizeBlockingSketch3dLayout(input: unknown): DramaShotBlockingSketch3DLayout {
   const layout = objectValue(input, "3D 摆位");
   if (layout.schemaVersion !== 1) invalid("3D 摆位版本不受支持");
   if (layout.engine !== "playcanvas") invalid("3D 摆位引擎不受支持");
@@ -283,7 +357,7 @@ export function normalizeBlockingSketchData(input: unknown): DramaShotBlockingSk
   }
   const url = stringValue(data.url, "草图图片", false);
   const generatedAt = stringValue(data.generatedAt, "生成时间", false);
-  const layout3d = data.layout3d === undefined ? undefined : normalizeLayout3d(data.layout3d);
+  const layout3d = data.layout3d === undefined ? undefined : normalizeBlockingSketch3dLayout(data.layout3d);
   return {
     status: data.status,
     version: finiteNumber(data.version, "版本号", 1, Number.MAX_SAFE_INTEGER, true),
