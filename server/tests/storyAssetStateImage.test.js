@@ -72,6 +72,11 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 2026-08-22：场景状态图必须是 360° 等距柱状全景（前端有全景预览），不再按主体构图。
   assert.match(scene, /360-degree equirectangular panorama/);
   assert.match(scene, /seamless horizontal wrap-around view/);
+  assert.match(scene, /horizon line is exactly centered at vertical v=0\.5/);
+  assert.match(scene, /upper half \(v=0\.0-0\.5\)/);
+  assert.match(scene, /lower half \(v=0\.5-1\.0\) is primarily one continuous clean ground/);
+  assert.match(scene, /do not place large furniture, trees, buildings, rocks or other tall objects deep in the lower half/);
+  assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
   const prop = buildStateImagePrompt({
     kind: "prop",
