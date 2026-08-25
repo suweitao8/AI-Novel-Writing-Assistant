@@ -51,27 +51,50 @@ test("普通场景图也使用带贴图的下半球，真正等距 HDRI 保留�
   assert.doesNotMatch(viewerSource, /environmentGround = createPlane/);
 });
 
-test("HDRI 环境提供投射中心高度、半球直径、旋转和清晰度参数", () => {
+test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固定", () => {
+  assert.match(viewerSource, /projectionCenterHeight: 3/);
+  assert.match(viewerSource, /domeRadius: 20/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
-  assert.match(viewerSource, /projectionCenterHeight[^\n]*0\.6, 10/);
-  assert.match(viewerSource, /domeRadius[^\n]*20, 100/);
+  assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);
+  assert.match(viewerSource, /domeRadius[^\n]*10, 50/);
   assert.match(viewerSource, /yawDeg/);
+  assert.match(viewerSource, /yawDeg: 0/);
+  assert.match(viewerSource, /intensity: 1/);
   assert.match(viewerSource, /texture\.anisotropy/);
   assert.match(viewerSource, /material\.emissiveIntensity/);
   assert.match(viewerSource, /getEnvironmentSettings/);
   assert.match(viewerSource, /setEnvironmentSettings/);
 });
 
-test("普通场景图地面使用投射中心高度，不通过 UV repeat 缩放", () => {
+test("普通场景图地面使用连续半球曲面，不通过 UV repeat 缩放", () => {
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /function createGroundDomeGeometry\(projectionCenterHeight/);
+  assert.match(viewerSource, /groundDomeEdgeHeight/);
+  assert.match(viewerSource, /domeY = groundDomeEdgeHeight \* \(y \+ 1\)/);
   assert.match(viewerSource, /function projectGroundTextureUv/);
-  assert.match(viewerSource, /worldX = x \* domeRadius/);
+  assert.match(viewerSource, /const domeScale = domeRadius \* 0\.5/);
+  assert.match(viewerSource, /worldX = x \* domeScale/);
   assert.match(viewerSource, /Math\.atan2/);
+  assert.match(viewerSource, /const edgeDownAngle/);
+  assert.match(viewerSource, /downAngle - edgeDownAngle/);
+  assert.doesNotMatch(viewerSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
+  assert.doesNotMatch(viewerSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(viewerSource, /ADDRESS_CLAMP_TO_EDGE/);
   assert.doesNotMatch(viewerSource, /groundTextureScale/);
   assert.doesNotMatch(viewerSource, /Math\.floor\(/);
   assert.doesNotMatch(viewerSource, /domeRadius \* environmentSettings\.projectionCenterHeight/);
   assert.match(viewerSource, /environmentGround/);
+});
+
+test("中键平移使用摄像机屏幕坐标，并依据场景图亮部设置角色主光", () => {
+  assert.match(viewerSource, /const screenRight = new pc\.Vec3\(Math\.cos\(azimuth\)/);
+  assert.match(viewerSource, /const screenUp/);
+  assert.match(viewerSource, /panCamera/);
+  assert.doesNotMatch(viewerSource, /moveCamera\(-dx \* 0\.01, dy \* 0\.01, 0\)/);
+  assert.match(viewerSource, /estimateHdriLightDirection/);
+  assert.match(viewerSource, /getSource\(\)/);
+  assert.match(viewerSource, /getImageData/);
+  assert.match(viewerSource, /setFromDirections\(pc\.Vec3\.DOWN/);
+  assert.doesNotMatch(viewerSource, /light\.lookAt/);
 });
