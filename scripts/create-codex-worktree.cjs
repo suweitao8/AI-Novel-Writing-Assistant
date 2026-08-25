@@ -5,6 +5,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { assertMainSourceIntegrity, assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
@@ -68,6 +69,8 @@ function branchExists(cwd, branchName) {
 }
 
 function assertMainWorkspaceReady(cwd) {
+  assertMainSourceIntegrity({ cwd, phase: "worktree creation" });
+
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     throw new Error("Worktree creation must start from the protected main branch.");
   }
@@ -102,17 +105,52 @@ function runSetup(worktreePath) {
   }
 }
 
+function runInstall(worktreePath) {
+  try {
+    if (process.platform === "win32") {
+      execFileSync(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "pnpm install --frozen-lockfile"], {
+        cwd: worktreePath,
+        stdio: "inherit",
+        windowsHide: true,
+      });
+    } else {
+      execFileSync("pnpm", ["install", "--frozen-lockfile"], {
+        cwd: worktreePath,
+        stdio: "inherit",
+      });
+    }
+  } catch (error) {
+    throw new Error(
+      `pnpm install --frozen-lockfile failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 function removeCreatedWorktree(cwd, targetPath, branchName) {
   try {
-    runGit(cwd, ["worktree", "remove", "--force", targetPath]);
-  } catch {
-    // Preserve the original setup error; the worktree may already be gone.
+    runGit(cwd, ["worktree", "remove", targetPath]);
+  } catch (error) {
+    return {
+      removed: false,
+      error: new Error([
+        `Created worktree was kept because controlled removal failed: ${targetPath}`,
+        error instanceof Error ? error.message : String(error),
+        `Do not recursively delete it. Inspect it, then use 'pnpm workflow:cleanup' only after the branch is intentionally integrated.`,
+      ].join("\n")),
+    };
   }
   try {
     runGit(cwd, ["branch", "-D", branchName]);
-  } catch {
-    // Preserve the original setup error; the branch may already be gone.
+  } catch (error) {
+    return {
+      removed: true,
+      error: new Error([
+        `Created worktree was removed but branch deletion failed: ${branchName}`,
+        error instanceof Error ? error.message : String(error),
+      ].join("\n")),
+    };
   }
+  return { removed: true, error: null };
 }
 
 function createWorktree({ cwd = process.cwd(), task, targetPath } = {}) {
@@ -131,9 +169,14 @@ function createWorktree({ cwd = process.cwd(), task, targetPath } = {}) {
 
   runGit(repoRoot, ["worktree", "add", "-b", branchName, resolvedTarget, PROTECTED_BRANCH], { inherit: true });
   try {
+    runInstall(resolvedTarget);
     runSetup(resolvedTarget);
+    assertWorktreeFilesystemIsolation({ cwd: resolvedTarget, phase: "worktree creation" });
   } catch (error) {
-    removeCreatedWorktree(repoRoot, resolvedTarget, branchName);
+    const cleanup = removeCreatedWorktree(repoRoot, resolvedTarget, branchName);
+    if (cleanup.error) {
+      throw new Error(`${error instanceof Error ? error.message : String(error)}\n${cleanup.error.message}`);
+    }
     throw error;
   }
 
@@ -181,5 +224,8 @@ module.exports = {
   defaultWorktreePath,
   hasMergeHead,
   normalizeTaskSlug,
+  removeCreatedWorktree,
+  runInstall,
+  runSetup,
   workspaceChanges,
 };

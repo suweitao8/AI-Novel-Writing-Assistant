@@ -22,7 +22,9 @@ test("supervisor applies the main-workspace gate before starting services", () =
     runGit(directory, ["config", "user.name", "Supervisor Test"]);
     runGit(directory, ["config", "user.email", "supervisor@example.invalid"]);
     fs.writeFileSync(path.join(directory, "README.md"), "base\n");
-    runGit(directory, ["add", "README.md"]);
+    fs.mkdirSync(path.join(directory, "shared", "types"), { recursive: true });
+    fs.writeFileSync(path.join(directory, "shared", "types", "example.ts"), "export type Example = string;\n");
+    runGit(directory, ["add", "README.md", "shared"]);
     runGit(directory, ["commit", "-m", "initial"]);
     fs.writeFileSync(path.join(directory, "unfinished.ts"), "must move to a worktree\n");
 

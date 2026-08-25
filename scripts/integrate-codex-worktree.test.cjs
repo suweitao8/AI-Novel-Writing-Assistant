@@ -28,7 +28,9 @@ function createRepository() {
   runGit(directory, ["config", "user.name", "Integration CLI Test"]);
   runGit(directory, ["config", "user.email", "integration-cli@example.invalid"]);
   fs.writeFileSync(path.join(directory, "README.md"), "base\n");
-  runGit(directory, ["add", "README.md"]);
+  fs.mkdirSync(path.join(directory, "shared", "types"), { recursive: true });
+  fs.writeFileSync(path.join(directory, "shared", "types", "example.ts"), "export type Example = string;\n");
+  runGit(directory, ["add", "README.md", "shared"]);
   runGit(directory, ["commit", "-m", "initial"]);
   return directory;
 }
@@ -152,4 +154,30 @@ test("merge conflict is aborted so main does not retain MERGE_HEAD", (t) => {
   assert.match(`${result.stdout}\n${result.stderr}`, /merge|conflict/i);
   assert.equal(hasMergeHead(directory), false);
   assert.equal(runGit(directory, ["status", "--porcelain"]).stdout.trim(), "");
+});
+
+test("integration rejects a source worktree whose shared directory resolves outside", (t) => {
+  const directory = createRepository();
+  const source = createFeatureWorktree(directory, "codex/external-source", "feature.txt", "feature\n");
+  const other = createRepository();
+  t.after(() => {
+    cleanupRepository(directory, source, null);
+    fs.rmSync(other, { recursive: true, force: true });
+  });
+  fs.rmSync(path.join(source, "shared"), { recursive: true, force: true });
+  fs.symlinkSync(
+    path.join(other, "shared"),
+    path.join(source, "shared"),
+    process.platform === "win32" ? "junction" : "dir",
+  );
+
+  const result = spawnSync(process.execPath, [scriptPath, "codex/external-source"], {
+    cwd: directory,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /external filesystem link|shared[\s\S]*->/i);
+  assert.equal(hasMergeHead(directory), false);
 });

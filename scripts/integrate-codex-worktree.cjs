@@ -6,6 +6,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync, spawnSync } = require("node:child_process");
+const { assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
@@ -102,6 +103,7 @@ function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch } = {}
   if (!CODEX_BRANCH_PATTERN.test(taskBranch ?? "")) {
     throw new Error("Integration source must be a local codex/<lowercase-task> branch.");
   }
+  assertWorktreeFilesystemIsolation({ cwd, phase: "integration main" });
   if (workspaceChanges(cwd).length > 0) {
     throw new Error("main workspace is not clean; refuse to integrate over uncommitted changes.");
   }
@@ -118,6 +120,7 @@ function assertIntegrationPreconditions({ cwd = process.cwd(), taskBranch } = {}
   if (path.normalize(sourceWorktree.path).toLowerCase() === path.normalize(repositoryRoot(cwd)).toLowerCase()) {
     throw new Error("Integration source must be checked out in a separate worktree, not the main workspace.");
   }
+  assertWorktreeFilesystemIsolation({ cwd: sourceWorktree.path, phase: "integration source" });
   const sourceChanges = workspaceChanges(sourceWorktree.path);
   if (sourceChanges.length > 0) {
     throw new Error([
@@ -211,9 +214,15 @@ function integrateCodexWorktree({ cwd = process.cwd(), taskBranch, push = false,
     mergeAttempted = true;
     runGit(repoRoot, ["merge", "--no-ff", "--no-commit", taskBranch]);
     runGit(repoRoot, ["diff", "--cached", "--check"]);
+    assertWorktreeFilesystemIsolation({ cwd: repoRoot, phase: "prepared integration" });
+    const sourceWorktree = findWorktreeForBranch(repoRoot, taskBranch);
+    if (!sourceWorktree) throw new Error(`Integration source ${taskBranch} disappeared during merge preparation.`);
+    assertWorktreeFilesystemIsolation({ cwd: sourceWorktree.path, phase: "prepared integration source" });
     runVerification(verifyCommand, repoRoot);
+    assertWorktreeFilesystemIsolation({ cwd: repoRoot, phase: "integration commit" });
     runGit(repoRoot, ["commit", "-s", "--no-edit"]);
     commitCreated = true;
+    assertWorktreeFilesystemIsolation({ cwd: repoRoot, phase: "integration push" });
     if (push) runGit(repoRoot, ["push", "origin", "main"], { inherit: true });
     return { commitCreated, pushed: push, taskBranch };
   } catch (error) {

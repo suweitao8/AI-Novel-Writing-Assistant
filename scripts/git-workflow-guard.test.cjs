@@ -43,6 +43,10 @@ function installTestHooks(directory) {
     path.join(directory, "scripts", "workspace-integrity-guard.cjs"),
   );
   fs.copyFileSync(
+    path.join(repoRoot, "scripts", "worktree-filesystem-safety.cjs"),
+    path.join(directory, "scripts", "worktree-filesystem-safety.cjs"),
+  );
+  fs.copyFileSync(
     path.join(repoRoot, "scripts", "install-git-hooks.cjs"),
     path.join(directory, "scripts", "install-git-hooks.cjs"),
   );
@@ -64,8 +68,14 @@ function writeAndStage(directory, fileName, contents) {
 
 function createInitialCommit(directory) {
   writeAndStage(directory, "README.md", "initial\n");
+  writeAndStage(directory, "shared/types/example.ts", "export type Example = string;\n");
   const result = runGit(directory, ["commit", "-m", "initial"]);
   assert.equal(result.status, 0, result.stderr || result.stdout);
+}
+
+function linkDirectory(target, linkPath) {
+  fs.mkdirSync(path.dirname(linkPath), { recursive: true });
+  fs.symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
 }
 
 test("a direct commit on main is blocked while feature commits remain available", (t) => {
@@ -195,6 +205,25 @@ test("shared changes require a dedicated codex/shared branch and reject tracked 
   const blockedDeletion = runGit(directory, ["commit", "-m", "remove asset contract"]);
   assert.notEqual(blockedDeletion.status, 0);
   assert.match(`${blockedDeletion.stdout}\n${blockedDeletion.stderr}`, /deleting tracked files under shared/i);
+});
+
+test("git hooks reject a feature commit whose shared directory points outside the checkout", (t) => {
+  const directory = createRepository();
+  const other = createRepository();
+  t.after(() => {
+    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(other, { recursive: true, force: true });
+  });
+  createInitialCommit(directory);
+  installTestHooks(directory);
+  assert.equal(runGit(directory, ["switch", "-c", "codex/external-shared-link"]).status, 0);
+  fs.rmSync(path.join(directory, "shared"), { recursive: true, force: true });
+  linkDirectory(path.join(other, "shared"), path.join(directory, "shared"));
+  writeAndStage(directory, "feature.txt", "feature\n");
+
+  const blocked = runGit(directory, ["commit", "-m", "external shared link"]);
+  assert.notEqual(blocked.status, 0);
+  assert.match(`${blocked.stdout}\n${blocked.stderr}`, /external filesystem link|shared[\s\S]*->/i);
 });
 
 test("main rejects a merge whose source is not a codex branch", (t) => {
