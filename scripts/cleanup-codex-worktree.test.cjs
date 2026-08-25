@@ -43,6 +43,11 @@ function removeRegisteredWorktree(directory, target) {
   runGit(directory, ["worktree", "remove", "--force", target]);
 }
 
+function linkDirectory(target, linkPath) {
+  fs.mkdirSync(path.dirname(linkPath), { recursive: true });
+  fs.symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
+}
+
 test("refuses to clean a codex worktree before its branch is merged", (t) => {
   const directory = createRepository(t);
   const branch = "codex/not-merged";
@@ -123,4 +128,27 @@ test("removes local dependency directories before deleting a merged worktree", (
 
   assert.equal(fs.existsSync(target), false);
   assert.notEqual(runGit(directory, ["show-ref", "--verify", `refs/heads/${branch}`], { expectSuccess: false }).status, 0);
+});
+
+test("validates all dependency roots before removing any of them", (t) => {
+  const directory = createRepository(t);
+  const branch = "codex/two-phase-cleanup";
+  const target = createFeatureWorktree(directory, branch);
+  runGit(directory, ["merge", "--no-ff", "--no-edit", branch]);
+  const rootDependency = path.join(target, "node_modules");
+  const clientDependency = path.join(target, "client", "node_modules");
+  fs.mkdirSync(path.join(rootDependency, ".pnpm", "fixture"), { recursive: true });
+  fs.writeFileSync(path.join(rootDependency, ".pnpm", "fixture", "package.json"), "{}\n");
+  linkDirectory(rootDependency, clientDependency);
+
+  cleanupCodexWorktree({
+    cwd: directory,
+    target: branch,
+    removeWorktree: ({ cwd, candidate }) => {
+      assert.equal(fs.existsSync(rootDependency), false);
+      assert.equal(fs.existsSync(clientDependency), false);
+      runGit(cwd, ["worktree", "remove", "--force", candidate.path]);
+    },
+  });
+  assert.equal(fs.existsSync(target), false);
 });

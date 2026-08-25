@@ -49,10 +49,10 @@
 1. 只能从干净的 `main` 运行。
 2. 目标必须是 Git 登记的、非 detached、非 `main` 的 `codex/*` 工作树，且分支已经合入当前 `main`。
 3. 目标工作树必须干净，且通过无外部链接检查；任一条件不满足就停止。
-4. 先对当前工作树明确的 `node_modules`、`client/node_modules`、`server/node_modules`、`shared/node_modules` 做非跟随式链接复查，只移除这些已验证的依赖根；再执行 `git worktree remove --force <validated-path>`，随后确认登记已消失、路径已消失，最后才删除本地分支。
+4. 先对当前工作树明确的 `node_modules`、`client/node_modules`、`server/node_modules`、`shared/node_modules` 做完整的非跟随式链接复查；四个根全部验证通过后，才一次性移除这些已验证的依赖根，再执行 `git worktree remove --force <validated-path>`，随后确认登记已消失、路径已消失，最后才删除本地分支。
 5. Git 删除失败时保留目录和分支，输出原始错误与人工处理建议；不使用 `Remove-Item -Recurse`、`rmdir /s` 或未解析的 glob 作为兜底。
 
-`--force` 只在目标已通过路径边界和 reparse-point 检查、且本地依赖根已被安全移除后使用，且只作用于 Git 登记的精确工作树路径。依赖清理只允许固定的四个 `node_modules` 根，并逐项 `lstat` 检查链接目标在当前 checkout 内；不接受任意目录或 glob。这样可以清理正常工作树中的本地依赖，同时避免跨工作树 Junction 被 Git 删除流程跟随。
+`--force` 只在目标已通过路径边界和 reparse-point 检查、且本地依赖根已被安全移除后使用，且只作用于 Git 登记的精确工作树路径。依赖清理采用“两阶段提交”：先对固定的四个 `node_modules` 根和其内部链接全部 `lstat`/`realpath`，全部通过后才删除；不接受任意目录或 glob。这样既能清理正常工作树中的本地依赖，也不会因后一个依赖根异常而留下部分清理状态。
 
 ## 数据流与失败处理
 
