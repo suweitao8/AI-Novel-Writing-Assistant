@@ -26,6 +26,10 @@ function addVertex(
   const index = data.positions.length / 3;
   data.positions.push(...position);
   data.normals.push(...normal);
+  // PlayCanvas requires every declared stream to have one item per vertex.
+  // The projection shader ignores this placeholder UV; it must stay constant
+  // so no panorama angle is interpolated across the center fan.
+  data.uvs.push(0, 0);
   return index;
 }
 
