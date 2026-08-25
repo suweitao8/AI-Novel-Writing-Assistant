@@ -42,6 +42,8 @@ export interface GeneratedImageState {
   prompt?: string;
   provider?: string;
   generatedAt?: string;
+  /** 业务需要区分同一错误文案的并发重试时使用；未提供时保持旧入口契约。 */
+  attemptId?: string;
   error?: string;
   origin?: "generated" | "uploaded";
   history?: GeneratedImageHistoryItem[];
@@ -128,6 +130,8 @@ export interface RunImageGenerationOptions {
    * 不再等满超时——代理切错、生成卡住时用户可以停掉重来。
    */
   signal?: AbortSignal;
+  /** 本次生成尝试的唯一标识，会贯穿 generating/done/error 状态。 */
+  attemptId?: string;
 }
 
 export const DEFAULT_RUNTIME_PROVIDER: LLMProvider = getImageModelProvider();

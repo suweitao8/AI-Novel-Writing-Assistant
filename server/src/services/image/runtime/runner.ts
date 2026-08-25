@@ -91,11 +91,14 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
   const effectivePrompt = sceneType === "character"
     ? appendCharacterImageEthnicityConstraint(opts.prompt)
     : opts.prompt;
+  const attemptId = opts.attemptId?.trim() || undefined;
+  const attemptFields = attemptId ? { attemptId } : {};
 
   // 4. 创建本次制品会话并标 generating。必须先拿到制品 lease，抢锁失败不能
   // 把其他任务正在使用的旧状态改成 error。
   const generatingState = {
     ...existing,
+    ...attemptFields,
     status: "generating",
     provider,
     version: nextVersion,
@@ -157,6 +160,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
 
     // 6. 写 done
     const doneBase: GeneratedImageState = {
+      ...attemptFields,
       status: "done",
       version: nextVersion,
       url: adapter.publicUrl(),
@@ -187,6 +191,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
       console.log(`[image.runtime] cancelled kind=${adapter.kind} provider=${provider}`);
       const cancelledState = {
         ...existing,
+        ...attemptFields,
         status: "error",
         provider,
         version: nextVersion,
@@ -209,6 +214,7 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     console.error(`[image.runtime] error kind=${adapter.kind} provider=${provider}:`, errMsg);
     const errorState = {
       ...existing,
+      ...attemptFields,
       status: "error",
       provider,
       version: nextVersion,

@@ -12,6 +12,7 @@
  */
 import fs from "fs/promises";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import type {
   StoryAssetState,
@@ -360,6 +361,7 @@ function pruneStateImage(image: StoryAssetStateImage): StoryAssetStateImage {
     ...(image.prompt ? { prompt: clampText(image.prompt, STATE_IMAGE_PROMPT_MAX) } : {}),
     ...(image.provider ? { provider: image.provider } : {}),
     ...(image.generatedAt ? { generatedAt: image.generatedAt } : {}),
+    ...(image.attemptId ? { attemptId: image.attemptId } : {}),
     ...(image.error ? { error: clampText(image.error, STATE_IMAGE_ERROR_MAX) } : {}),
   };
 }
@@ -484,6 +486,7 @@ export class StoryAssetStateImageService {
     artifactCommit?: StoryAssetImageCommitContext,
     artifactLeaseGuard?: StoryAssetImageLeaseGuard,
     patchCurrentImage?: (current: StoryAssetStateImage | undefined) => StoryAssetStateImage | undefined,
+    maxAttempts = 3,
   ): Promise<void> {
     if (kind === "character") {
       await updateStoryAssetStateJsonWithCas({
@@ -551,6 +554,7 @@ export class StoryAssetStateImageService {
             ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
           };
         },
+        maxAttempts,
       });
     } else if (kind === "scene") {
       await updateStoryAssetStateJsonWithCas({
@@ -614,6 +618,7 @@ export class StoryAssetStateImageService {
             ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
           };
         },
+        maxAttempts,
       });
     } else {
       await updateStoryAssetStateJsonWithCas({
@@ -662,6 +667,7 @@ export class StoryAssetStateImageService {
             ...(nextImage ? { image: pruneStateImage(nextImage) } : {}),
           };
         },
+        maxAttempts,
       });
     }
   }
@@ -775,9 +781,11 @@ export class StoryAssetStateImageService {
     assetId: string,
     stateId: string,
     expectedError: string,
+    expectedAttemptId?: string,
   ): Promise<unknown> {
     const { states, state } = await this.findState(novelId, kind, assetId, stateId);
-    if (state.image?.error === expectedError) {
+    if (state.image && state.image.error === expectedError
+      && (expectedAttemptId === undefined || state.image.attemptId === expectedAttemptId)) {
       await this.writeStateImage(
         kind,
         assetId,
@@ -786,9 +794,14 @@ export class StoryAssetStateImageService {
         states,
         undefined,
         undefined,
-        (current) => current?.error === expectedError
-          ? dismissStoryAssetImageError(current, expectedError)
-          : current,
+        (current) => {
+          if (!current || current.error !== expectedError
+            || (expectedAttemptId !== undefined && current.attemptId !== expectedAttemptId)) {
+            return current;
+          }
+          return dismissStoryAssetImageError(current, expectedError, expectedAttemptId);
+        },
+        expectedAttemptId === undefined ? 1 : 3,
       );
     }
     if (kind === "character") {
@@ -811,6 +824,7 @@ export class StoryAssetStateImageService {
     controller: AbortController,
   ): Promise<unknown> {
     const { row, states, state } = await this.findState(novelId, kind, assetId, stateId);
+    const attemptId = randomUUID();
     const resolvedReference = resolveStateReferenceImage(states, state);
     // 参考图优先传本地文件（provider 走 multipart /images/edits）：codex 桥的 JSON 生成路径
     // 不解析 input_image_url，传 URL 会静默丢参考；本地文件是唯一可靠形态。
@@ -978,6 +992,7 @@ export class StoryAssetStateImageService {
         sceneType: "character",
         negativePrompt: [CHARACTER_STATE_SHEET_NEGATIVE_PROMPT, negativePrompt].filter(Boolean).join(", "),
         signal: controller.signal,
+        attemptId,
         ...TRANSPARENT_IMAGE_OPTIONS,
         ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceImages ? { referenceImages } : {}),
@@ -1001,6 +1016,7 @@ export class StoryAssetStateImageService {
         size: kind === "scene" ? IMAGE_SPECS.scenePanorama : IMAGE_SPECS.characterAsset,
         negativePrompt,
         signal: controller.signal,
+        attemptId,
         ...(kind === "prop" ? TRANSPARENT_IMAGE_OPTIONS : {}),
         ...(referenceFile ? { refImagePaths: [referenceFile.filePath] } : referenceUrl ? { refImages: [referenceUrl] } : {}),
         ...(referenceUrl && referencedLabel
