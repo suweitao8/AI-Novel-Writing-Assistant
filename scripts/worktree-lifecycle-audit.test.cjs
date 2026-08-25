@@ -9,6 +9,7 @@ const test = require("node:test");
 
 const { parseWorktreeList } = require("./cleanup-codex-worktree.cjs");
 const {
+  assertLifecycleRepairScope,
   assertNoUnresolvedWorktreeLifecycleIssues,
   auditWorktreeLifecycle,
   expectedWorktreePath,
@@ -117,4 +118,27 @@ test("refuses recovery when orphan content has been modified", (t) => {
   );
   assert.equal(fs.existsSync(target), true);
   assert.equal(runGit(directory, ["show-ref", "--verify", `refs/heads/${branchName}`]).status, 0);
+});
+
+test("repair scope remains verifiable after the branch has been merged", (t) => {
+  const directory = createRepository(t);
+  const branchName = "codex/merged-repair-scope";
+  const target = path.join(path.dirname(directory), `${path.basename(directory)}-${branchName.replace(/\//g, "-")}`);
+  runGit(directory, ["worktree", "add", "-b", branchName, target, "main"]);
+  fs.mkdirSync(path.join(target, "scripts"), { recursive: true });
+  fs.writeFileSync(path.join(target, "scripts", "worktree-lifecycle-audit.cjs"), "repair scope\n");
+  runGit(target, ["add", "scripts/worktree-lifecycle-audit.cjs"]);
+  runGit(target, ["commit", "-m", "repair scope"]);
+  runGit(directory, ["merge", "--no-ff", "--no-edit", branchName]);
+  t.after(() => {
+    if (fs.existsSync(directory)) {
+      runGit(directory, ["worktree", "remove", "--force", target], { expectSuccess: false });
+      runGit(directory, ["branch", "-D", branchName], { expectSuccess: false });
+    }
+    fs.rmSync(target, { recursive: true, force: true });
+  });
+
+  assert.deepEqual(assertLifecycleRepairScope({ cwd: directory, branchName }), [
+    "scripts/worktree-lifecycle-audit.cjs",
+  ]);
 });

@@ -119,7 +119,18 @@ function localCodexBranches(cwd) {
 }
 
 function branchChangedPaths(cwd, branchName) {
-  const output = runGit(cwd, ["diff", "--name-only", "-z", `${PROTECTED_BRANCH}...${branchName}`]);
+  let output = runGit(cwd, ["diff", "--name-only", "-z", `${PROTECTED_BRANCH}...${branchName}`]);
+  if (!output) {
+    const branchTip = runGit(cwd, ["rev-parse", branchName]);
+    const mergeLog = runGit(cwd, ["log", "--merges", "--format=%H %P", PROTECTED_BRANCH]);
+    const mergeEntry = mergeLog
+      .split(/\r?\n/)
+      .map((line) => line.trim().split(/\s+/))
+      .find((parts) => parts.length >= 3 && parts[2] === branchTip);
+    if (mergeEntry) {
+      output = runGit(cwd, ["diff", "--name-only", "-z", `${mergeEntry[1]}...${branchTip}`]);
+    }
+  }
   return output
     ? output.split("\0").filter(Boolean).map((entry) => entry.replace(/\\/g, "/"))
     : [];
