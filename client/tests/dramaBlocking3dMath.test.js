@@ -7,7 +7,17 @@ import {
   normalizeBlocking3dActor,
   normalizeBlocking3dCamera,
   projectBlocking3dActorToLegacy,
+  updateBlocking3dCameraAzimuth,
+  wrapBlocking3dAzimuth,
 } from "../src/pages/drama/comicDrama/components/blocking3d/blocking3dMath.ts";
+
+test("3D 相机水平旋转跨过 0/360 边界时继续连续旋转", () => {
+  assert.equal(wrapBlocking3dAzimuth(182.5), -177.5);
+  assert.equal(wrapBlocking3dAzimuth(-182.5), 177.5);
+  assert.equal(updateBlocking3dCameraAzimuth(179, -10, 0.35), -177.5);
+  assert.equal(updateBlocking3dCameraAzimuth(-179, 10, 0.35), 177.5);
+  assert.equal(updateBlocking3dCameraAzimuth(0, 10, 0.35), -3.5);
+});
 
 test("3D 摆位提供坐着、躺着和趴着姿势，并保存可恢复的相机状态", () => {
   assert.ok(BLOCKING_3D_POSES.includes("sitting"));

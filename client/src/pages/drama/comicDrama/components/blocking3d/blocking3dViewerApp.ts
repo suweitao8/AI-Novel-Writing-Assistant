@@ -11,6 +11,7 @@ import {
   estimateHdriLightDirection,
   type HdriLightEstimate,
 } from "./blocking3dEnvironmentMath";
+import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 
 const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
@@ -315,7 +316,7 @@ function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlock
   const nearClip = clamp(numberOr(input.nearClip, DEFAULT_CAMERA.nearClip), 0.05, 5);
   const farClip = Math.max(nearClip + 0.05, clamp(numberOr(input.farClip, DEFAULT_CAMERA.farClip), 20, 300));
   return {
-    azim: clamp(numberOr(input.azim, 0), -180, 180),
+    azim: wrapBlocking3dAzimuth(numberOr(input.azim, 0)),
     elev: clamp(numberOr(input.elev, 0), -89, 89),
     distance: clamp(numberOr(input.distance, DEFAULT_CAMERA.distance), 0.25, 100),
     focalPoint: [
@@ -708,7 +709,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         emitChange();
       }
     } else if (dragState.button === 2) {
-      cameraState.azim = clamp(cameraState.azim - dx * 0.35, -180, 180);
+      cameraState.azim = updateBlocking3dCameraAzimuth(cameraState.azim, dx);
       cameraState.elev = clamp(cameraState.elev + dy * 0.25, -89, 89);
       syncCamera();
       emitChange();

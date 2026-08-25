@@ -55,6 +55,19 @@ export const DEFAULT_BLOCKING_3D_CAMERA: DramaShotBlockingSketch3DCamera = {
   blurRadius: 3,
 };
 
+export function wrapBlocking3dAzimuth(degrees: number): number {
+  const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;
+  return wrapped === -180 && degrees > 0 ? 180 : wrapped;
+}
+
+export function updateBlocking3dCameraAzimuth(
+  currentAzimuth: number,
+  deltaX: number,
+  sensitivity = 0.35,
+): number {
+  return wrapBlocking3dAzimuth(currentAzimuth - deltaX * sensitivity);
+}
+
 const LIMITS = {
   cameraAzim: [-180, 180],
   cameraElev: [-89, 89],
