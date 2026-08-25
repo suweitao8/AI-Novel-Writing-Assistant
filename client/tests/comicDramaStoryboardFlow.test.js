@@ -34,6 +34,22 @@ test("storyboard page exposes generation and episode assembly actions", () => {
   assert.match(assemblySource, /assembled\?\.status === "done"/);
 });
 
+test("分镜顶部工具栏只保留合成，并在合成前准备素材", () => {
+  const panelSource = read("pages/drama/comicDrama/ShotVoiceListPanel.tsx");
+  const assemblySource = read("pages/drama/components/DramaEpisodeAssemblyPanel.tsx");
+  const toolbarStart = panelSource.indexOf("const storyboardToolbar");
+  const toolbarEnd = panelSource.indexOf("return (", toolbarStart);
+  const toolbarSource = panelSource.slice(toolbarStart, toolbarEnd);
+
+  assert.equal((toolbarSource.match(/<DramaEpisodeAssemblyButton/g) ?? []).length, 1);
+  assert.doesNotMatch(toolbarSource, /生成分镜|统一写实重生成|生成配音|AiButton/);
+  assert.match(panelSource, /还没有分镜/);
+  assert.match(panelSource, /onGenerateKeyframe/);
+  assert.match(assemblySource, /prepare\?: \(\) => Promise<void>/);
+  assert.match(assemblySource, /准备素材中/);
+  assert.match(assemblySource, /合成中/);
+});
+
 test("storyboard generation never falls back to the retired Unreal 3D style", () => {
   const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
 
