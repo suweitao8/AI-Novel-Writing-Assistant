@@ -11,6 +11,11 @@ import {
   estimateHdriLightDirection,
   type HdriLightEstimate,
 } from "./blocking3dEnvironmentMath";
+import {
+  createGroundDomeGeometryData,
+  getGroundDomeEdgeHeight,
+  type Blocking3dGeometryData,
+} from "./blocking3dEnvironmentGeometry";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 
@@ -151,14 +156,6 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
 type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
 type DomeYMapper = (x: number, y: number, z: number) => number;
 
-// Keep the lower hemisphere from collapsing into a single pointed pole. The
-// finite floor follows the EnviroDome/HDRIBackdrop convention: most of the
-// lower surface is a usable floor and only the outer rim curves up to the
-// horizon. This prevents the final triangle fan from stretching one texel
-// column into a visible spike when the camera looks across the ground.
-const GROUND_DOME_FLAT_RADIUS = 0.95;
-const GROUND_DOME_RIM_WIDTH = 1 - GROUND_DOME_FLAT_RADIUS;
-
 function createDomeSectionGeometry(
   startTheta: number,
   endTheta: number,
@@ -229,56 +226,18 @@ function createUpperDomeGeometry(edgeHeight = 0.1): pc.Geometry {
   return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5, undefined, (_x, y, _z) => y + edgeHeight);
 }
 
-function getGroundDomeEdgeHeight(projectionCenterHeight: number, domeRadius: number): number {
-  return clamp(projectionCenterHeight / domeRadius, 0.004, 1);
-}
-
-function mapGroundDomeY(x: number, _y: number, z: number, edgeHeight: number): number {
-  const radial = Math.hypot(x, z);
-  if (radial <= GROUND_DOME_FLAT_RADIUS) return 0;
-  const rimProgress = clamp(
-    (radial - GROUND_DOME_FLAT_RADIUS) / GROUND_DOME_RIM_WIDTH,
-    0,
-    1,
-  );
-  return edgeHeight * rimProgress;
-}
-
-function projectGroundTextureUv(
-  x: number,
-  y: number,
-  z: number,
-  projectionCenterHeight: number,
-  domeRadius: number,
-): [number, number] {
-  const domeScale = domeRadius * 0.5;
-  const groundDomeEdgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
-  const worldX = x * domeScale;
-  const worldY = y * domeScale;
-  const worldZ = z * domeScale;
-  const horizontalDistance = Math.hypot(worldX, worldZ);
-  const edgeWorldY = groundDomeEdgeHeight * domeScale;
-  const edgeDownAngle = Math.atan2(projectionCenterHeight - edgeWorldY, domeScale);
-  const downAngle = Math.atan2(projectionCenterHeight - worldY, horizontalDistance);
-  const verticalProgress = clamp(
-    (downAngle - edgeDownAngle) / (Math.PI * 0.5 - edgeDownAngle),
-    0,
-    1,
-  );
-  const azimuthProgress = ((Math.atan2(worldZ, worldX) + Math.PI * 0.5) / (Math.PI * 2) + 1) % 1;
-  return [1 - azimuthProgress, 0.5 + verticalProgress * 0.5];
+function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
+  const geometry = new pc.Geometry();
+  geometry.positions = data.positions;
+  geometry.normals = data.normals;
+  geometry.uvs = data.uvs;
+  geometry.uvs1 = data.uvs;
+  geometry.indices = data.indices;
+  return geometry;
 }
 
 function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
-  const groundDomeEdgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
-  return createDomeSectionGeometry(
-    Math.PI * 0.5,
-    Math.PI,
-    0.5,
-    1,
-    (x, y, z) => projectGroundTextureUv(x, y, z, projectionCenterHeight, domeRadius),
-    (x, y, z) => mapGroundDomeY(x, y, z, groundDomeEdgeHeight),
-  );
+  return createPlayCanvasGeometry(createGroundDomeGeometryData(projectionCenterHeight, domeRadius));
 }
 
 function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
