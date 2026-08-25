@@ -46,7 +46,9 @@ function createRemote(directory) {
 function createFeatureWorktree(directory, branchName, fileName, contents) {
   const target = path.join(path.dirname(directory), `${path.basename(directory)}-${branchName.replace(/\//g, "-")}`);
   runGit(directory, ["worktree", "add", "-b", branchName, target, "main"]);
-  fs.writeFileSync(path.join(target, fileName), contents);
+  const filePath = path.join(target, fileName);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, contents);
   runGit(target, ["add", fileName]);
   runGit(target, ["commit", "-m", "feature change"]);
   return target;
@@ -95,7 +97,8 @@ test("integration refuses to change main while an orphan lifecycle issue exists"
 });
 
 test("integration arguments require the source branch first and reject unknown options", () => {
-  assert.deepEqual(parseArgs(["codex/example", "--push", "--verify", "node --test"]), {
+  assert.deepEqual(parseArgs(["codex/example", "--push", "--verify", "node --test", "--repair-lifecycle"]), {
+    allowLifecycleRepair: true,
     taskBranch: "codex/example",
     push: true,
     verifyCommand: "node --test",
@@ -103,6 +106,44 @@ test("integration arguments require the source branch first and reject unknown o
   assert.throws(() => parseArgs(["--push"]), /source branch first/i);
   assert.throws(() => parseArgs(["codex/example", "--verify"]), /requires one shell command/i);
   assert.throws(() => parseArgs(["codex/example", "--unexpected"]), /unknown integration option/i);
+});
+
+test("lifecycle repair mode allows only the guarded workflow path scope", (t) => {
+  const directory = createRepository();
+  const source = createFeatureWorktree(directory, "codex/lifecycle-repair", "scripts/worktree-lifecycle-audit.cjs", "repair\n");
+  const orphanBranch = "codex/lifecycle-repair-blocker";
+  const orphanPath = path.join(path.dirname(directory), `${path.basename(directory)}-lifecycle-repair-blocker`);
+  runGit(directory, ["worktree", "add", "-b", orphanBranch, orphanPath, "main"]);
+  runGit(directory, ["worktree", "remove", "--force", orphanPath]);
+  fs.mkdirSync(path.join(orphanPath, "shared"), { recursive: true });
+  t.after(() => {
+    fs.rmSync(orphanPath, { recursive: true, force: true });
+    if (fs.existsSync(directory)) {
+      runGit(directory, ["branch", "-D", orphanBranch], { expectSuccess: false });
+    }
+    cleanupRepository(directory, source);
+  });
+
+  assert.doesNotThrow(() => assertIntegrationPreconditions({
+    cwd: directory,
+    taskBranch: "codex/lifecycle-repair",
+    allowLifecycleRepair: true,
+  }));
+});
+
+test("lifecycle repair mode rejects a branch that changes product files", (t) => {
+  const directory = createRepository();
+  const source = createFeatureWorktree(directory, "codex/lifecycle-repair-product", "feature.txt", "not a guard\n");
+  t.after(() => cleanupRepository(directory, source));
+
+  assert.throws(
+    () => assertIntegrationPreconditions({
+      cwd: directory,
+      taskBranch: "codex/lifecycle-repair-product",
+      allowLifecycleRepair: true,
+    }),
+    /outside the guarded workflow scope|feature\.txt/i,
+  );
 });
 
 test("integration lock rejects a second active owner and releases safely", (t) => {

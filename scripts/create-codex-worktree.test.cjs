@@ -7,9 +7,11 @@ const { spawnSync } = require("node:child_process");
 
 const repoRoot = path.resolve(__dirname, "..");
 const {
+  assertMainWorkspaceReady,
   branchNameForTask,
   defaultWorktreePath,
   normalizeTaskSlug,
+  parseArgs,
 } = require("./create-codex-worktree.cjs");
 
 function runGit(cwd, args, { expectSuccess = true } = {}) {
@@ -62,6 +64,11 @@ test("normalizes task names to safe lowercase branch slugs", () => {
   assert.equal(normalizeTaskSlug("Character Aesthetic_v2"), "character-aesthetic-v2");
   assert.equal(branchNameForTask("Video 16x9"), "codex/video-16x9");
   assert.throws(() => normalizeTaskSlug("---"), /task slug|empty/i);
+  assert.deepEqual(parseArgs(["lifecycle-repair", "--repair-lifecycle"]), {
+    allowLifecycleRepair: true,
+    task: "lifecycle-repair",
+  });
+  assert.throws(() => parseArgs(["lifecycle-repair", "--unknown"]), /unknown worktree creation option/i);
 });
 
 test("uses a sibling worktree path derived from the repository name", () => {
@@ -142,6 +149,28 @@ test("refuses to create a worktree while an unregistered orphan directory remain
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /unresolved worktree lifecycle|orphan-worktree-directory/i);
   assert.equal(fs.existsSync(target), false);
+});
+
+test("repair mode can pass the lifecycle gate without relaxing main cleanliness", (t) => {
+  const directory = createRepository();
+  const orphanBranch = "codex/repair-mode-orphan";
+  const orphanPath = path.join(path.dirname(directory), `${path.basename(directory)}-repair-mode-orphan`);
+  t.after(() => {
+    fs.rmSync(orphanPath, { recursive: true, force: true });
+    if (fs.existsSync(directory)) runGit(directory, ["branch", "-D", orphanBranch], { expectSuccess: false });
+    fs.rmSync(directory, { recursive: true, force: true });
+  });
+  copyWorkflowFiles(directory);
+  runGit(directory, ["worktree", "add", "-b", orphanBranch, orphanPath, "main"]);
+  runGit(directory, ["worktree", "remove", "--force", orphanPath]);
+  fs.mkdirSync(path.join(orphanPath, "shared"), { recursive: true });
+
+  assert.doesNotThrow(() => assertMainWorkspaceReady(directory, { allowLifecycleRepair: true }));
+  fs.writeFileSync(path.join(directory, "unfinished.ts"), "dirty main\n");
+  assert.throws(
+    () => assertMainWorkspaceReady(directory, { allowLifecycleRepair: true }),
+    /main workspace is not clean|unfinished\.ts/i,
+  );
 });
 
 test("refuses to create a worktree when the requested branch already exists", (t) => {

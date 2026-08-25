@@ -6,11 +6,28 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { displayPath, isWithin } = require("./worktree-filesystem-safety.cjs");
-const { worktreeEntries } = require("./cleanup-codex-worktree.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
+const LIFECYCLE_REPAIR_PATHS = new Set([
+  "package.json",
+  "scripts/cleanup-codex-worktree.cjs",
+  "scripts/cleanup-codex-worktree.test.cjs",
+  "scripts/create-codex-worktree.cjs",
+  "scripts/create-codex-worktree.test.cjs",
+  "scripts/integrate-codex-worktree.cjs",
+  "scripts/integrate-codex-worktree.test.cjs",
+  "scripts/recover-orphan-worktree.cjs",
+  "scripts/worktree-filesystem-safety.cjs",
+  "scripts/worktree-filesystem-safety.test.cjs",
+  "scripts/worktree-lifecycle-audit.cjs",
+  "scripts/worktree-lifecycle-audit.test.cjs",
+  "docs/wiki/workflows/worktree-filesystem-safety.md",
+  "docs/superpowers/specs/2026-08-25-worktree-filesystem-safety-design.md",
+  "docs/superpowers/specs/2026-08-25-worktree-orphan-audit-design.md",
+  "docs/superpowers/plans/2026-08-25-worktree-orphan-audit.md",
+]);
 
 function runGit(cwd, args) {
   try {
@@ -31,6 +48,29 @@ function runGit(cwd, args) {
 
 function repositoryRoot(cwd = process.cwd()) {
   return path.resolve(runGit(cwd, ["rev-parse", "--show-toplevel"]));
+}
+
+function parseWorktreeList(output) {
+  const entries = [];
+  let current = null;
+  for (const line of String(output).split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) {
+      if (current) entries.push(current);
+      current = { path: line.slice("worktree ".length) };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith("HEAD ")) current.head = line.slice("HEAD ".length);
+    if (line.startsWith("branch ")) current.branch = line.slice("branch ".length);
+    if (line === "detached") current.detached = true;
+    if (line === "prunable") current.prunable = true;
+  }
+  if (current) entries.push(current);
+  return entries;
+}
+
+function worktreeEntries(cwd) {
+  return parseWorktreeList(runGit(cwd, ["worktree", "list", "--porcelain"]));
 }
 
 function primaryRepositoryRoot(cwd = process.cwd()) {
@@ -76,6 +116,31 @@ function localCodexBranches(cwd) {
   return output
     ? output.split(/\r?\n/).map((branch) => branch.trim()).filter(Boolean).filter((branch) => CODEX_BRANCH_PATTERN.test(branch))
     : [];
+}
+
+function branchChangedPaths(cwd, branchName) {
+  const output = runGit(cwd, ["diff", "--name-only", "-z", `${PROTECTED_BRANCH}...${branchName}`]);
+  return output
+    ? output.split("\0").filter(Boolean).map((entry) => entry.replace(/\\/g, "/"))
+    : [];
+}
+
+function assertLifecycleRepairScope({ cwd = process.cwd(), branchName } = {}) {
+  if (!CODEX_BRANCH_PATTERN.test(branchName ?? "")) {
+    throw new Error("Lifecycle repair requires a local codex/<lowercase-task> branch.");
+  }
+  const changedPaths = branchChangedPaths(cwd, branchName);
+  const disallowedPaths = changedPaths.filter((entry) => !LIFECYCLE_REPAIR_PATHS.has(entry));
+  if (changedPaths.length === 0) {
+    throw new Error(`Lifecycle repair branch ${branchName} has no changes to the workflow guard.`);
+  }
+  if (disallowedPaths.length > 0) {
+    throw new Error([
+      `Lifecycle repair branch ${branchName} changes files outside the guarded workflow scope.`,
+      ...disallowedPaths.map((entry) => `- ${entry}`),
+    ].join("\n"));
+  }
+  return changedPaths;
 }
 
 function issue(kind, details) {
@@ -221,7 +286,9 @@ function assertRecoveryPath({ cwd = process.cwd(), branchName, targetPath } = {}
 module.exports = {
   CODEX_BRANCH_PATTERN,
   CODEX_BRANCH_PREFIX,
+  LIFECYCLE_REPAIR_PATHS,
   PROTECTED_BRANCH,
+  assertLifecycleRepairScope,
   assertNoUnresolvedWorktreeLifecycleIssues,
   assertRecoveryPath,
   auditWorktreeLifecycle,
@@ -231,8 +298,10 @@ module.exports = {
   formatAuditReport,
   localCodexBranches,
   normalizedPath,
+  parseWorktreeList,
   primaryRepositoryRoot,
   repositoryRoot,
+  worktreeEntries,
 };
 
 function main() {

@@ -12,6 +12,10 @@ const {
   isWithin,
   realPath,
 } = require("./worktree-filesystem-safety.cjs");
+const {
+  assertNoUnresolvedWorktreeLifecycleIssues,
+  parseWorktreeList,
+} = require("./worktree-lifecycle-audit.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
@@ -52,25 +56,6 @@ function repositoryRoot(cwd) {
 function workspaceChanges(cwd) {
   const output = runGit(cwd, ["status", "--porcelain=v1", "--untracked-files=all"]);
   return output ? output.split(/\r?\n/).filter(Boolean) : [];
-}
-
-function parseWorktreeList(output) {
-  const entries = [];
-  let current = null;
-  for (const line of output.split(/\r?\n/)) {
-    if (line.startsWith("worktree ")) {
-      if (current) entries.push(current);
-      current = { path: line.slice("worktree ".length) };
-      continue;
-    }
-    if (!current) continue;
-    if (line.startsWith("HEAD ")) current.head = line.slice("HEAD ".length);
-    if (line.startsWith("branch ")) current.branch = line.slice("branch ".length);
-    if (line === "detached") current.detached = true;
-    if (line === "prunable") current.prunable = true;
-  }
-  if (current) entries.push(current);
-  return entries;
 }
 
 function worktreeEntries(cwd) {
@@ -127,6 +112,7 @@ function assertCleanupPreconditions({ cwd = process.cwd(), target } = {}) {
     throw new Error("Cleanup must run from the protected main branch workspace.");
   }
   assertWorktreeFilesystemIsolation({ cwd, phase: "cleanup main" });
+  assertNoUnresolvedWorktreeLifecycleIssues({ cwd, phase: "cleanup main" });
   const mainChanges = workspaceChanges(cwd);
   if (mainChanges.length > 0) {
     throw new Error(["main workspace is not clean; cleanup is stopped.", ...mainChanges].join("\n"));
