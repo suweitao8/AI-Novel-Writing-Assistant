@@ -32,6 +32,7 @@ import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
@@ -100,6 +101,18 @@ function formatVec3(value: [number, number, number] | undefined): string {
   return value.map((item) => item.toFixed(2)).join(" / ");
 }
 
+type RgbColor = [number, number, number];
+
+function rgbToHex(color: RgbColor | null): string {
+  if (!color) return "#000000";
+  return `#${color.map((channel) => Math.round(Math.max(0, Math.min(1, channel)) * 255).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function hexToRgb(value: string): RgbColor | null {
+  if (!/^#[\da-f]{6}$/i.test(value)) return null;
+  return [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset + 1, offset + 3), 16) / 255) as RgbColor;
+}
+
 export default function DramaBlocking3DPage() {
   const { id: projectId = "", shotId = "" } = useParams();
   const navigate = useNavigate();
@@ -116,6 +129,7 @@ export default function DramaBlocking3DPage() {
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
+  const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -137,6 +151,7 @@ export default function DramaBlocking3DPage() {
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
     setSelectedName(nextViewer.getSelectedActor());
     setSelectedPose(nextViewer.getSelectedPose());
+    setSelectedColor(nextViewer.getSelectedColor());
     setSelectedTransform(nextViewer.getSelectedTransform());
     setCameraState(nextViewer.getCameraState());
   }, []);
@@ -423,6 +438,30 @@ export default function DramaBlocking3DPage() {
                   <option value="" disabled>选择姿势</option>
                   {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
                 </SelectControl>
+              </label>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3"><CardTitle className="text-sm">模型外观</CardTitle></CardHeader>
+            <CardContent className="space-y-3">
+              {selectedName ? <p className="text-sm font-medium">{selectedName}</p> : <p className="text-xs text-muted-foreground">先选择一个角色。</p>}
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2">
+                  <span>模型颜色</span>
+                  <span className="font-mono text-[11px] uppercase">{selectedColor ? rgbToHex(selectedColor) : "—"}</span>
+                </span>
+                <Input
+                  type="color"
+                  aria-label="模型颜色"
+                  value={rgbToHex(selectedColor)}
+                  disabled={saving || autoPlanning || !selectedName}
+                  onChange={(event) => {
+                    const color = hexToRgb(event.target.value);
+                    if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color));
+                  }}
+                  className="h-10 cursor-pointer p-1"
+                />
               </label>
             </CardContent>
           </Card>

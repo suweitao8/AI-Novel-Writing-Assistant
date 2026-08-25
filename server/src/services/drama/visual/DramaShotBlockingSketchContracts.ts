@@ -111,6 +111,8 @@ export interface DramaShotBlockingSketch3DActor {
   yawDeg: number;
   scale: [number, number, number];
   pose: DramaShotBlockingSketchPose;
+  /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
+  color?: [number, number, number];
   /** Compatibility marker for older snapshots; 3D 草图始终保存静态关键帧。 */
   actionPlaying: boolean;
 }
@@ -275,6 +277,9 @@ function normalize3dCamera(input: unknown): DramaShotBlockingSketch3DCamera {
 function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
   const actor = objectValue(input, "3D 角色");
   const position = array3(actor.position, "3D 角色位置");
+  const color = actor.color === undefined
+    ? undefined
+    : tuple3(actor.color, "3D 角色颜色", 0, 1);
   // Keep validating the legacy field so malformed old snapshots are still rejected,
   // but normalize every accepted layout to the static-frame contract.
   optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态");
@@ -288,6 +293,7 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     yawDeg: finiteNumber(actor.yawDeg, "3D 角色旋转", BLOCKING_SKETCH_3D_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_LIMITS.yawDeg.max),
     scale: tuple3(actor.scale, "3D 角色缩放", BLOCKING_SKETCH_3D_LIMITS.scale.min, BLOCKING_SKETCH_3D_LIMITS.scale.max),
     pose: normalizePose(actor.pose),
+    ...(color ? { color } : {}),
     actionPlaying: false,
   };
 }
