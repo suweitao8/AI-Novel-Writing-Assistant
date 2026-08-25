@@ -7,6 +7,10 @@ const pageSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/DramaBlocking3DPage.tsx"),
   "utf8",
 );
+const scene3dPageSource = fs.readFileSync(
+  path.join(process.cwd(), "src/pages/drama/comicDrama/DramaScene3DPage.tsx"),
+  "utf8",
+);
 const viewerSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts"),
   "utf8",
@@ -67,6 +71,7 @@ test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能�
   assert.match(viewerSource, /setCameraState/);
   assert.match(viewerSource, /BLOCKING_SKETCH_CAPTURE_SIZE/);
   assert.match(viewerSource, /setInteractionEnabled/);
+  assert.match(viewerSource, /setActorMovementEnabled/);
   assert.match(viewerSource, /capturePng/);
   assert.match(viewerSource, /DomeGeometry/);
   assert.match(viewerSource, /setEnvironment/);
@@ -85,4 +90,11 @@ test("分镜 3D 草图从场景资产继承 HDRI 参数，不再单独编辑", (
   assert.match(pageSource, /environment: context\.scene\.environment/);
   assert.doesNotMatch(pageSource, /HDRI 环境|投射中心高度|半球直径|setEnvironmentSettings/);
   assert.doesNotMatch(pageSource, /type=\"range\"/);
+});
+
+test("场景 3D 编辑页只允许相机交互，比例参照角色固定在 1.8 米", () => {
+  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "比例参照（约1\.8m）"/);
+  assert.match(scene3dPageSource, /nextViewer\.addActor\(REFERENCE_ACTOR_LABEL, 0\)/);
+  assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
+  assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
 });

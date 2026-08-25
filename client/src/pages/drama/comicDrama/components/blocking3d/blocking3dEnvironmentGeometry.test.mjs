@@ -3,22 +3,16 @@ import test from "node:test";
 
 import {
   GROUND_DOME_FLAT_RADIUS,
-  LONGITUDE_BANDS,
   createGroundDomeGeometryData,
 } from "./blocking3dEnvironmentGeometry.ts";
 
 function vertex(data, index) {
   return {
     position: data.positions.slice(index * 3, index * 3 + 3),
-    uv: data.uvs.slice(index * 2, index * 2 + 2),
   };
 }
 
-function positionKey(position) {
-  return position.map((value) => (Math.abs(value) < 1e-8 ? "0" : value.toFixed(8))).join(",");
-}
-
-test("地面投影的经度接缝保持连续，不把整张图片拉成一条竖带", () => {
+test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉伸", () => {
   const data = createGroundDomeGeometryData(2, 15);
   const vertexCount = data.positions.length / 3;
   const centerIndices = [];
@@ -29,37 +23,20 @@ test("地面投影的经度接缝保持连续，不把整张图片拉成一条�
   }
 
   assert.equal(centerIndices.length, 1, "平底中心应只有一个几何顶点");
-  assert.deepEqual(vertex(data, centerIndices[0]).uv, [0.5, 1]);
-
-  const positionGroups = new Map();
-  for (let index = 0; index < vertexCount; index += 1) {
-    const { position, uv } = vertex(data, index);
-    const key = positionKey(position);
-    const group = positionGroups.get(key) ?? [];
-    group.push({ index, uv });
-    positionGroups.set(key, group);
-  }
-
-  const seamPairs = [...positionGroups.values()].filter((group) => (
-    group.length >= 2
-    && group.some(({ uv }) => uv[0] < 0.01)
-    && group.some(({ uv }) => uv[0] > 0.99)
-  ));
-  assert.ok(seamPairs.length > 0, "首尾经度需要在同一位置使用 0/1 两侧 UV");
-
-  for (let offset = 0; offset < data.indices.length; offset += 3) {
-    const triangle = data.indices.slice(offset, offset + 3);
-    if (triangle.includes(centerIndices[0])) continue;
-    const us = triangle.map((index) => vertex(data, index).uv[0]);
-    assert.ok(
-      Math.max(...us) - Math.min(...us) <= (1 / LONGITUDE_BANDS) + 1e-6,
-      `非中心三角形跨越了过大的 U 范围: ${us.join(", ")}`,
-    );
-  }
+  assert.equal(data.uvs.length, vertexCount * 2, "PlayCanvas 顶点流需要占位 UV");
+  assert.ok(data.uvs.every((value) => value === 0), "地面占位 UV 必须保持常量，不能编码全景角度");
+  assert.equal(data.indices.length % 3, 0, "地面索引必须组成完整三角形");
+  assert.ok(data.indices.every((index) => index >= 0 && index < vertexCount), "地面索引不得越界");
 
   const maxRadial = Math.max(...Array.from({ length: vertexCount }, (_, index) => {
     const { position } = vertex(data, index);
     return Math.hypot(position[0], position[2]);
   }));
   assert.ok(maxRadial > GROUND_DOME_FLAT_RADIUS * 0.5, "地面应保留外圈弧面");
+});
+
+test("地面全景贴图由投影材质按世界坐标计算，不把经度 UV 写进顶点", () => {
+  const data = createGroundDomeGeometryData(2, 15);
+
+  assert.ok(data.uvs.every((value) => value === 0), "地面投影不应依赖顶点 UV 插值，否则中心会把角度映射成环状漩涡");
 });
