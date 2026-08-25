@@ -148,7 +148,15 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
 }
 
 type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
-type DomeYMapper = (y: number) => number;
+type DomeYMapper = (x: number, y: number, z: number) => number;
+
+// Keep the lower hemisphere from collapsing into a single pointed pole. The
+// finite floor follows the EnviroDome/HDRIBackdrop convention: most of the
+// lower surface is a usable floor and only the outer rim curves up to the
+// horizon. This prevents the final triangle fan from stretching one texel
+// column into a visible spike when the camera looks across the ground.
+const GROUND_DOME_FLAT_RADIUS = 0.95;
+const GROUND_DOME_RIM_WIDTH = 1 - GROUND_DOME_FLAT_RADIUS;
 
 function createDomeSectionGeometry(
   startTheta: number,
@@ -183,7 +191,7 @@ function createDomeSectionGeometry(
       const x = cosPhi * sinTheta;
       const y = cosTheta;
       const z = sinPhi * sinTheta;
-      const domeY = domeYMapper ? domeYMapper(y) : y + 0.1;
+      const domeY = domeYMapper ? domeYMapper(x, y, z) : y + 0.1;
       positions.push(x * radius, domeY * radius, z * radius);
       normals.push(x, y, z);
       const textureProgress = lat / latitudeBands;
@@ -217,11 +225,22 @@ function createDomeSectionGeometry(
 }
 
 function createUpperDomeGeometry(edgeHeight = 0.1): pc.Geometry {
-  return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5, undefined, (y) => y + edgeHeight);
+  return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5, undefined, (_x, y, _z) => y + edgeHeight);
 }
 
 function getGroundDomeEdgeHeight(projectionCenterHeight: number, domeRadius: number): number {
   return clamp(projectionCenterHeight / domeRadius, 0.004, 1);
+}
+
+function mapGroundDomeY(x: number, _y: number, z: number, edgeHeight: number): number {
+  const radial = Math.hypot(x, z);
+  if (radial <= GROUND_DOME_FLAT_RADIUS) return 0;
+  const rimProgress = clamp(
+    (radial - GROUND_DOME_FLAT_RADIUS) / GROUND_DOME_RIM_WIDTH,
+    0,
+    1,
+  );
+  return edgeHeight * rimProgress;
 }
 
 function projectGroundTextureUv(
@@ -257,10 +276,7 @@ function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: nu
     0.5,
     1,
     (x, y, z) => projectGroundTextureUv(x, y, z, projectionCenterHeight, domeRadius),
-    (y) => {
-      const domeY = groundDomeEdgeHeight * (y + 1);
-      return domeY;
-    },
+    (x, y, z) => mapGroundDomeY(x, y, z, groundDomeEdgeHeight),
   );
 }
 
