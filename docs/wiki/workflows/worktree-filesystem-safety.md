@@ -50,6 +50,7 @@ pnpm workflow:audit
 ```powershell
 pnpm workflow:worktree <guard-task> --repair-lifecycle
 pnpm workflow:integrate codex/<guard-task> --repair-lifecycle --push --verify "pnpm test:workflow"
+pnpm workflow:cleanup codex/<guard-task> --repair-lifecycle
 ```
 
 维护模式只允许工作流脚本、测试和文档白名单内的变更，不能用于业务代码或 `shared/` 变更。

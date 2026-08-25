@@ -7,7 +7,7 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const test = require("node:test");
 
-const { cleanupCodexWorktree } = require("./cleanup-codex-worktree.cjs");
+const { cleanupCodexWorktree, parseArgs } = require("./cleanup-codex-worktree.cjs");
 
 function runGit(cwd, args, { expectSuccess = true } = {}) {
   const result = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
@@ -47,6 +47,14 @@ function linkDirectory(target, linkPath) {
   fs.mkdirSync(path.dirname(linkPath), { recursive: true });
   fs.symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
 }
+
+test("cleanup arguments support the explicit lifecycle repair mode", () => {
+  assert.deepEqual(parseArgs(["codex/guard", "--repair-lifecycle"]), {
+    allowLifecycleRepair: true,
+    target: "codex/guard",
+  });
+  assert.throws(() => parseArgs(["codex/guard", "--unknown"]), /unknown cleanup option/i);
+});
 
 test("refuses to clean a codex worktree before its branch is merged", (t) => {
   const directory = createRepository(t);
