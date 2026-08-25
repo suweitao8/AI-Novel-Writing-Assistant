@@ -16,7 +16,7 @@
 - Modify: `client/tests/shotVoiceBlockingSketchEntry.test.js`
 - Test source: `client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx`
 
-- [ ] **Step 1: 写出要求水平 tab 的断言**
+- [x] **Step 1: 写出要求水平 tab 的断言**
 
 在现有“草图与 AI 画面之间切换”测试中追加以下断言，明确要求水平方向、两列布局以及只响应左右方向键：
 
@@ -27,7 +27,7 @@ assert.doesNotMatch(source, /aria-orientation="vertical"/);
 assert.match(source, /\["ArrowLeft", "ArrowRight"\]/);
 ```
 
-- [ ] **Step 2: 运行测试确认它因旧布局失败**
+- [x] **Step 2: 运行测试确认它因旧布局失败**
 
 Run:
 
@@ -42,7 +42,7 @@ Expected: 现有测试失败，至少报告找不到 `aria-orientation="horizont
 **Files:**
 - Modify: `client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx:650-805`
 
-- [ ] **Step 1: 将键盘行为限定为水平 tab 的左右方向键**
+- [x] **Step 1: 将键盘行为限定为水平 tab 的左右方向键**
 
 保留现有 `selectPreview` 校验和活动 tab 的 `tabIndex`，把处理函数改成只拦截左右键：
 
@@ -54,7 +54,7 @@ const handlePreviewKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: 
 };
 ```
 
-- [ ] **Step 2: 将 tablist 改为水平两列，并保持三个按钮在其下方**
+- [x] **Step 2: 将 tablist 改为水平两列，并保持三个按钮在其下方**
 
 将 tablist 的方向和布局改为：
 
@@ -69,7 +69,7 @@ const handlePreviewKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: 
 
 保留两个 tab 的 DOM 顺序为 `3D图` 后 `AI图`，并保留其后的三个控件顺序为 `编辑3D`、`AI摆位`、`生成AI图`/`重新生图`。继续使用 `Button` 和 `AiButton`，不要复制按钮样式或改变既有禁用条件。
 
-- [ ] **Step 3: 运行 focused tests 确认变为绿色**
+- [x] **Step 3: 运行 focused tests 确认变为绿色**
 
 Run:
 
@@ -85,11 +85,11 @@ Expected: 12 个测试全部通过，且原有 3D 草图兜底、AI 图禁用和
 - Modify: `README.md`
 - Modify: `docs/releases/release-notes.md`
 
-- [ ] **Step 1: 在当前日期条目补充分镜预览切换说明**
+- [x] **Step 1: 在当前日期条目补充分镜预览切换说明**
 
 用面向用户的文案记录：分镜预览现在以左侧 3D 图、右侧 AI 图的水平切换展示，编辑、AI 摆位和生图操作集中在切换区域下方。不要写文件名、内部实现或迁移过程。
 
-- [ ] **Step 2: 检查文案和文档清单**
+- [x] **Step 2: 检查文案和文档清单**
 
 Run:
 
@@ -106,7 +106,7 @@ Expected: 无空白错误，文档清单校验通过。
 - Verify: `client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx`
 - Verify: `client/tests/shotVoiceBlockingSketchEntry.test.js`
 
-- [ ] **Step 1: 运行客户端类型检查和生产构建**
+- [x] **Step 1: 运行客户端类型检查和生产构建**
 
 ```powershell
 pnpm --filter @ai-novel/client typecheck
