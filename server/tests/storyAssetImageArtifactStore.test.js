@@ -8,6 +8,7 @@ const path = require("node:path");
 const {
   StoryAssetImageArtifactStore,
   buildStoryAssetImageArtifactStorageKey,
+  isStoryAssetImageArtifactStorageKeyForTarget,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetImageArtifactStore.js");
 
 async function withTempRoot(fn) {
@@ -51,6 +52,35 @@ test("generates different storage keys and generation directories for assets sha
     assert.ok(first.finalPath.startsWith(rootDir));
     assert.ok(second.finalPath.startsWith(rootDir));
   });
+});
+
+test("只接受与完整资产归属完全匹配的 committed storageKey", () => {
+  const target = {
+    novelId: "novel-1",
+    kind: "character",
+    assetId: "asset-a",
+    stateId: "initial",
+    generationId: "gen-a",
+    extension: "png",
+  };
+  const validKey = buildStoryAssetImageArtifactStorageKey(target);
+
+  assert.equal(isStoryAssetImageArtifactStorageKeyForTarget(validKey, target), true);
+  assert.equal(
+    isStoryAssetImageArtifactStorageKeyForTarget(
+      buildStoryAssetImageArtifactStorageKey({ ...target, assetId: "asset-b" }),
+      target,
+    ),
+    false,
+  );
+  assert.equal(
+    isStoryAssetImageArtifactStorageKeyForTarget("story-state-images/initial/image.png", target),
+    false,
+  );
+  assert.equal(
+    isStoryAssetImageArtifactStorageKeyForTarget("../story-state-images/id-novel-1/character/id-asset-a/id-initial/image.png", target),
+    false,
+  );
 });
 
 test("writes artifacts through an exclusive .part file and verifies metadata without overwriting older generations", async () => {

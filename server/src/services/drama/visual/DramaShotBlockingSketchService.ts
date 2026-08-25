@@ -3,6 +3,7 @@ import path from "path";
 import {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
+  hasStoryAssetStateImageUrl,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { StoryScene3DEnvironment } from "@ai-novel/shared/types/comicDrama";
@@ -251,7 +252,11 @@ export class DramaShotBlockingSketchService {
       environment: parseStoryScene3dEnvironment(scene.scene3dEnvironmentJson),
     })).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState; environment: StoryScene3DEnvironment } => Boolean(scene.state));
     const matchedScene = matchSceneByName(sceneCandidates, shot.location);
-    const scene = matchedScene?.state.image?.status === "done" && matchedScene.state.image.url?.trim()
+    const matchedSceneState = matchedScene?.state;
+    const sceneImageUrl = hasStoryAssetStateImageUrl(matchedSceneState?.image)
+      ? matchedSceneState.image.url.trim()
+      : null;
+    const scene = matchedScene && sceneImageUrl
       ? {
         name: matchedScene.name,
         assetId: matchedScene.assetId,
@@ -266,7 +271,7 @@ export class DramaShotBlockingSketchService {
       const states = statesByName.get(character.name.trim()) ?? [];
       const stateName = activeStateNames.get(character.name.trim());
       const activeState = (stateName ? states.find((state) => state.label.trim() === stateName) : undefined) ?? states[0];
-      const stateUrl = activeState?.image?.status === "done" && activeState.image.url?.trim()
+      const stateUrl = hasStoryAssetStateImageUrl(activeState?.image)
         ? activeState.image.url.trim()
         : null;
       const portraitUrl = resolvePortraitUrl(character);

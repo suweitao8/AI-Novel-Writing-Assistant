@@ -133,6 +133,21 @@ export function buildStoryAssetImageArtifactStorageKey(input: StoryAssetImageArt
   ].join("/");
 }
 
+/**
+ * 数据库里的 storageKey 不是可信的归属证明；读取前必须确认它正好指向
+ * 当前 novel/kind/asset/state/generation 的不可变图片，而不是其它资产目录或裸 stateId 目录。
+ */
+export function isStoryAssetImageArtifactStorageKeyForTarget(
+  storageKey: string,
+  target: StoryAssetImageArtifactTarget,
+): boolean {
+  try {
+    return storageKey === buildStoryAssetImageArtifactStorageKey(target);
+  } catch {
+    return false;
+  }
+}
+
 export class StoryAssetImageArtifactStore {
   private readonly rootDir: string;
 
