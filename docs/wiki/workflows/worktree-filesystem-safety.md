@@ -13,7 +13,7 @@
 - 启动、commit、push、创建和集成前都调用 `scripts/worktree-filesystem-safety.cjs`。检查只读 `lstat`/`realpath`，不自动恢复文件。
 - `client`、`server`、`scripts` 存在时也必须是普通源码目录；依赖入口可以是当前 checkout 内的 pnpm 链接，不能指向 checkout 外部。
 - 工作树清理只能使用 `pnpm workflow:cleanup codex/<task>`。清理器只接受当前 `main` 已登记、已合入、干净且通过链接检查的工作树。
-- 创建新工作树或集成前必须通过 `pnpm workflow:audit`；Git 的 `prunable` 登记、分支对应但未登记的同级目录和缺失登记都属于未解决生命周期异常。
+- 创建新工作树、集成或清理前必须通过 `pnpm workflow:audit`；Git 的 `prunable` 登记、分支对应但未登记的同级目录和缺失登记都属于未解决生命周期异常。
 - 历史孤立目录只能使用 `pnpm workflow:recover-worktree codex/<task>` 先做只读验证；只有人工明确加 `--apply`，且源码逐文件匹配已合入分支、路径边界和依赖链接都通过时，才允许清理。
 
 ## Current Rule

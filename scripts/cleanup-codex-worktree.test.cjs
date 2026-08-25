@@ -62,6 +62,34 @@ test("refuses to clean a codex worktree before its branch is merged", (t) => {
   removeRegisteredWorktree(directory, target);
 });
 
+test("refuses cleanup while another unregistered orphan exists", (t) => {
+  const directory = createRepository(t);
+  const targetBranch = "codex/cleanup-target";
+  const target = createFeatureWorktree(directory, targetBranch);
+  runGit(directory, ["merge", "--no-ff", "--no-edit", targetBranch]);
+  const orphanBranch = "codex/cleanup-orphan-blocker";
+  const orphanPath = path.join(path.dirname(directory), `${path.basename(directory)}-cleanup-orphan-blocker`);
+  runGit(directory, ["worktree", "add", "-b", orphanBranch, orphanPath, "main"]);
+  runGit(directory, ["worktree", "remove", "--force", orphanPath]);
+  fs.mkdirSync(path.join(orphanPath, "shared"), { recursive: true });
+  t.after(() => {
+    fs.rmSync(orphanPath, { recursive: true, force: true });
+    if (fs.existsSync(directory)) {
+      runGit(directory, ["branch", "-D", orphanBranch], { expectSuccess: false });
+      removeRegisteredWorktree(directory, target);
+    } else {
+      fs.rmSync(target, { recursive: true, force: true });
+    }
+  });
+
+  assert.throws(
+    () => cleanupCodexWorktree({ cwd: directory, target: targetBranch }),
+    /unresolved worktree lifecycle|orphan-worktree-directory/i,
+  );
+  assert.equal(fs.existsSync(target), true);
+  assert.equal(runGit(directory, ["show-ref", "--verify", `refs/heads/${targetBranch}`]).status, 0);
+});
+
 test("refuses to clean a dirty codex worktree even after its branch is merged", (t) => {
   const directory = createRepository(t);
   const branch = "codex/dirty-cleanup";

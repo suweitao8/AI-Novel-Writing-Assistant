@@ -6,7 +6,6 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { displayPath, isWithin } = require("./worktree-filesystem-safety.cjs");
-const { worktreeEntries } = require("./cleanup-codex-worktree.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
@@ -31,6 +30,29 @@ function runGit(cwd, args) {
 
 function repositoryRoot(cwd = process.cwd()) {
   return path.resolve(runGit(cwd, ["rev-parse", "--show-toplevel"]));
+}
+
+function parseWorktreeList(output) {
+  const entries = [];
+  let current = null;
+  for (const line of String(output).split(/\r?\n/)) {
+    if (line.startsWith("worktree ")) {
+      if (current) entries.push(current);
+      current = { path: line.slice("worktree ".length) };
+      continue;
+    }
+    if (!current) continue;
+    if (line.startsWith("HEAD ")) current.head = line.slice("HEAD ".length);
+    if (line.startsWith("branch ")) current.branch = line.slice("branch ".length);
+    if (line === "detached") current.detached = true;
+    if (line === "prunable") current.prunable = true;
+  }
+  if (current) entries.push(current);
+  return entries;
+}
+
+function worktreeEntries(cwd) {
+  return parseWorktreeList(runGit(cwd, ["worktree", "list", "--porcelain"]));
 }
 
 function primaryRepositoryRoot(cwd = process.cwd()) {
@@ -231,8 +253,10 @@ module.exports = {
   formatAuditReport,
   localCodexBranches,
   normalizedPath,
+  parseWorktreeList,
   primaryRepositoryRoot,
   repositoryRoot,
+  worktreeEntries,
 };
 
 function main() {
