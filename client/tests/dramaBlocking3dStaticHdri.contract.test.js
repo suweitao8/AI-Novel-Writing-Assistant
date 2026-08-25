@@ -20,7 +20,7 @@ test("3D 草图只显示静态姿势控制，不提供动态播放入口", () =>
 });
 
 test("场景状态图作为半球 HDRI 环境，不再作为后置背景平面", () => {
-  assert.match(viewerSource, /new pc\.DomeGeometry/);
+  assert.match(viewerSource, /createUpperDomeGeometry/);
   assert.match(viewerSource, /pc\.CULLFACE_FRONT/);
   assert.match(viewerSource, /environmentDome/);
   assert.match(viewerSource, /environmentUrl/);
@@ -39,16 +39,14 @@ test("HDRI 环境固定在世界坐标，旋转相机不会搬动地面", () => 
   assert.doesNotMatch(viewerSource, /syncEnvironmentDomePosition\(\);/);
 });
 
-test("普通场景图也使用带贴图的下半球，真正等距 HDRI 保留完整半球", () => {
+test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
   assert.match(viewerSource, /createUpperDomeGeometry/);
   assert.match(viewerSource, /createGroundDomeGeometry/);
   assert.match(viewerSource, /environmentGround/);
   assert.match(viewerSource, /pc\.CULLFACE_FRONT/);
-  assert.match(viewerSource, /texture\.width \/ texture\.height/);
-  assert.match(viewerSource, /GROUND_PROJECTION_SOURCE_ASPECT/);
-  assert.match(viewerSource, /groundProjection/);
   assert.match(viewerSource, /texture\.mipmaps = false/);
   assert.doesNotMatch(viewerSource, /environmentGround = createPlane/);
+  assert.doesNotMatch(viewerSource, /GROUND_PROJECTION_SOURCE_ASPECT|isEquirectangular|groundProjection/);
 });
 
 test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固定", () => {

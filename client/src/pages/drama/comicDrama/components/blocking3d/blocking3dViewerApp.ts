@@ -17,7 +17,6 @@ const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
-export const GROUND_PROJECTION_SOURCE_ASPECT = 1.9;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 3,
   domeRadius: 20,
@@ -146,10 +145,6 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     yawDeg: 0,
     intensity: 1,
   };
-}
-
-function createDomeGeometry(): pc.DomeGeometry {
-  return new pc.DomeGeometry({ latitudeBands: 40, longitudeBands: 64 });
 }
 
 type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
@@ -515,7 +510,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentGroundMeshInstance.mesh = nextGroundMesh;
       previousGroundMesh.destroy();
     }
-    if (environmentDomeMeshInstance && environmentGroundMeshInstance) {
+    if (environmentDomeMeshInstance) {
       const previousDomeMesh = environmentDomeMeshInstance.mesh;
       const nextDomeMesh = pc.Mesh.fromGeometry(
         app.graphicsDevice,
@@ -1039,12 +1034,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const texture = environmentAsset.resource as pc.Texture;
       configureEnvironmentTexture(texture, app);
       applyHdriKeyLight(estimateHdriLightFromTexture(texture));
-      const textureAspect = texture.width / texture.height;
-      const isEquirectangular = textureAspect >= GROUND_PROJECTION_SOURCE_ASPECT && textureAspect <= 2.1;
-      const groundProjection = !isEquirectangular;
-      const geometry = groundProjection
-        ? createUpperDomeGeometry(getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius))
-        : createDomeGeometry();
+      // 所有状态图都按“上半球 + 带投射中心的下半球”使用。
+      // 这样 16:9 场景图和 2:1 等距柱状图都能通过投射中心高度控制地面落点。
+      const geometry = createUpperDomeGeometry(
+        getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+      );
       const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
       const material = new pc.StandardMaterial();
       material.diffuse = new pc.Color(1, 1, 1);
@@ -1063,30 +1057,28 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         meshInstances: [meshInstance],
         layers: [pc.LAYERID_SKYBOX],
       });
-      if (groundProjection) {
-        const groundMaterial = new pc.StandardMaterial();
-        groundMaterial.diffuse = new pc.Color(1, 1, 1);
-        groundMaterial.diffuseMap = texture;
-        groundMaterial.emissive = new pc.Color(1, 1, 1);
-        groundMaterial.emissiveMap = texture;
-        groundMaterial.emissiveIntensity = 1;
-        groundMaterial.cull = pc.CULLFACE_FRONT;
-        groundMaterial.depthWrite = false;
-        groundMaterial.update();
-        environmentGroundMaterial = groundMaterial;
-        const groundMesh = pc.Mesh.fromGeometry(
-          app.graphicsDevice,
-          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-        );
-        environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, groundMaterial);
-        environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
-        environmentGround.addComponent("render", {
-          meshInstances: [environmentGroundMeshInstance],
-          layers: [pc.LAYERID_SKYBOX],
-        });
-        environmentGround.setPosition(environmentWorldPosition);
-        app.root.addChild(environmentGround);
-      }
+      const groundMaterial = new pc.StandardMaterial();
+      groundMaterial.diffuse = new pc.Color(1, 1, 1);
+      groundMaterial.diffuseMap = texture;
+      groundMaterial.emissive = new pc.Color(1, 1, 1);
+      groundMaterial.emissiveMap = texture;
+      groundMaterial.emissiveIntensity = 1;
+      groundMaterial.cull = pc.CULLFACE_FRONT;
+      groundMaterial.depthWrite = false;
+      groundMaterial.update();
+      environmentGroundMaterial = groundMaterial;
+      const groundMesh = pc.Mesh.fromGeometry(
+        app.graphicsDevice,
+        createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+      );
+      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, groundMaterial);
+      environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
+      environmentGround.addComponent("render", {
+        meshInstances: [environmentGroundMeshInstance],
+        layers: [pc.LAYERID_SKYBOX],
+      });
+      environmentGround.setPosition(environmentWorldPosition);
+      app.root.addChild(environmentGround);
       applyEnvironmentSettings();
       environmentDome.setPosition(environmentWorldPosition);
       app.root.addChild(environmentDome);
