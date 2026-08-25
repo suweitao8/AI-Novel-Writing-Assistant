@@ -6,6 +6,11 @@ import type {
   DramaShotBlockingSketch3DEnvironment,
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
+import {
+  DEFAULT_HDRI_LIGHT_ESTIMATE,
+  estimateHdriLightDirection,
+  type HdriLightEstimate,
+} from "./blocking3dEnvironmentMath";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 
 const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
@@ -14,8 +19,8 @@ const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 export const GROUND_PROJECTION_SOURCE_ASPECT = 1.9;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
-  projectionCenterHeight: 1,
-  domeRadius: 48,
+  projectionCenterHeight: 3,
+  domeRadius: 20,
   yawDeg: 0,
   intensity: 1,
 };
@@ -129,10 +134,10 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     return Number.isFinite(numeric) ? numeric : fallback;
   };
   return {
-    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.6, 10),
-    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 20, 100),
-    yawDeg: clamp(numberOr(input?.yawDeg, DEFAULT_BLOCKING_3D_ENVIRONMENT.yawDeg), -180, 180),
-    intensity: clamp(numberOr(input?.intensity, DEFAULT_BLOCKING_3D_ENVIRONMENT.intensity), 0.6, 1.6),
+    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 1, 10),
+    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 10, 50),
+    yawDeg: 0,
+    intensity: 1,
   };
 }
 
@@ -141,6 +146,7 @@ function createDomeGeometry(): pc.DomeGeometry {
 }
 
 type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
+type DomeYMapper = (y: number) => number;
 
 function createDomeSectionGeometry(
   startTheta: number,
@@ -148,6 +154,7 @@ function createDomeSectionGeometry(
   sourceVStart: number,
   sourceVEnd: number,
   uvMapper?: DomeUvMapper,
+  domeYMapper?: DomeYMapper,
 ): pc.Geometry {
   const radius = 0.5;
   const latitudeBands = 24;
@@ -168,12 +175,7 @@ function createDomeSectionGeometry(
       const x = cosPhi * sinTheta;
       const y = cosTheta;
       const z = sinPhi * sinTheta;
-      let domeY = y;
-      if (domeY < 0) {
-        domeY *= 0.3;
-        if (x * x + z * z < 0.95 * 0.95) domeY = -0.1;
-      }
-      domeY += 0.1;
+      const domeY = domeYMapper ? domeYMapper(y) : y + 0.1;
       positions.push(x * radius, domeY * radius, z * radius);
       normals.push(x, y, z);
       const textureProgress = lat / latitudeBands;
@@ -205,8 +207,12 @@ function createDomeSectionGeometry(
   return geometry;
 }
 
-function createUpperDomeGeometry(): pc.Geometry {
-  return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5);
+function createUpperDomeGeometry(edgeHeight = 0.1): pc.Geometry {
+  return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5, undefined, (y) => y + edgeHeight);
+}
+
+function getGroundDomeEdgeHeight(projectionCenterHeight: number, domeRadius: number): number {
+  return clamp(projectionCenterHeight / domeRadius, 0.004, 1);
 }
 
 function projectGroundTextureUv(
@@ -216,23 +222,36 @@ function projectGroundTextureUv(
   projectionCenterHeight: number,
   domeRadius: number,
 ): [number, number] {
-  const worldX = x * domeRadius;
-  const worldY = y * domeRadius;
-  const worldZ = z * domeRadius;
+  const domeScale = domeRadius * 0.5;
+  const groundDomeEdgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
+  const worldX = x * domeScale;
+  const worldY = y * domeScale;
+  const worldZ = z * domeScale;
   const horizontalDistance = Math.hypot(worldX, worldZ);
-  const downAngle = Math.atan2(Math.max(projectionCenterHeight - worldY, 0), horizontalDistance);
-  const verticalProgress = clamp(downAngle / (Math.PI * 0.5), 0, 1);
+  const edgeWorldY = groundDomeEdgeHeight * domeScale;
+  const edgeDownAngle = Math.atan2(projectionCenterHeight - edgeWorldY, domeScale);
+  const downAngle = Math.atan2(projectionCenterHeight - worldY, horizontalDistance);
+  const verticalProgress = clamp(
+    (downAngle - edgeDownAngle) / (Math.PI * 0.5 - edgeDownAngle),
+    0,
+    1,
+  );
   const azimuthProgress = ((Math.atan2(worldZ, worldX) + Math.PI * 0.5) / (Math.PI * 2) + 1) % 1;
   return [1 - azimuthProgress, 0.5 + verticalProgress * 0.5];
 }
 
 function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
+  const groundDomeEdgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
   return createDomeSectionGeometry(
     Math.PI * 0.5,
     Math.PI,
     0.5,
     1,
     (x, y, z) => projectGroundTextureUv(x, y, z, projectionCenterHeight, domeRadius),
+    (y) => {
+      const domeY = groundDomeEdgeHeight * (y + 1);
+      return domeY;
+    },
   );
 }
 
@@ -243,6 +262,24 @@ function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void
   texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
   texture.addressU = pc.ADDRESS_CLAMP_TO_EDGE;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+}
+
+function estimateHdriLightFromTexture(texture: pc.Texture): HdriLightEstimate {
+  const source = texture.getSource();
+  if (!source) return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
+  const width = 64;
+  const height = 36;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
+  try {
+    context.drawImage(source, 0, 0, width, height);
+    return estimateHdriLightDirection(context.getImageData(0, 0, width, height).data, width, height);
+  } catch {
+    return { ...DEFAULT_HDRI_LIGHT_ESTIMATE };
+  }
 }
 
 function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
@@ -382,8 +419,17 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     color: new pc.Color(1, 0.95, 0.88),
     intensity: 1.4,
   });
-  light.setEulerAngles(45, 35, 0);
   app.root.addChild(light);
+
+  const applyHdriKeyLight = (estimate: HdriLightEstimate) => {
+    const direction = new pc.Vec3(...estimate.direction).normalize();
+    light.setPosition(direction.x * 10, direction.y * 10, direction.z * 10);
+    const incomingDirection = new pc.Vec3(-direction.x, -direction.y, -direction.z);
+    light.setRotation(new pc.Quat().setFromDirections(pc.Vec3.DOWN, incomingDirection));
+    light.light!.color = new pc.Color(...estimate.color);
+    light.light!.intensity = 1.4;
+  };
+  applyHdriKeyLight(DEFAULT_HDRI_LIGHT_ESTIMATE);
 
   const fill = new pc.Entity("blocking3d-fill-light");
   fill.addComponent("light", {
@@ -434,18 +480,29 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.StandardMaterial | null = null;
   let environmentGroundMaterial: pc.StandardMaterial | null = null;
+  let environmentDomeMeshInstance: pc.MeshInstance | null = null;
   let environmentGroundMeshInstance: pc.MeshInstance | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
   const rebuildEnvironmentGroundMesh = () => {
-    if (!environmentGroundMeshInstance) return;
-    const previousMesh = environmentGroundMeshInstance.mesh;
-    const nextMesh = pc.Mesh.fromGeometry(
-      app.graphicsDevice,
-      createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-    );
-    environmentGroundMeshInstance.mesh = nextMesh;
-    previousMesh.destroy();
+    if (environmentGroundMeshInstance) {
+      const previousGroundMesh = environmentGroundMeshInstance.mesh;
+      const nextGroundMesh = pc.Mesh.fromGeometry(
+        app.graphicsDevice,
+        createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+      );
+      environmentGroundMeshInstance.mesh = nextGroundMesh;
+      previousGroundMesh.destroy();
+    }
+    if (environmentDomeMeshInstance && environmentGroundMeshInstance) {
+      const previousDomeMesh = environmentDomeMeshInstance.mesh;
+      const nextDomeMesh = pc.Mesh.fromGeometry(
+        app.graphicsDevice,
+        createUpperDomeGeometry(getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius)),
+      );
+      environmentDomeMeshInstance.mesh = nextDomeMesh;
+      previousDomeMesh.destroy();
+    }
   };
   const applyEnvironmentSettings = () => {
     if (environmentDome) {
@@ -454,7 +511,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentSettings.domeRadius,
         environmentSettings.domeRadius,
       );
-      environmentDome.setEulerAngles(0, environmentSettings.yawDeg, 0);
+      environmentDome.setEulerAngles(0, 0, 0);
     }
     if (environmentGround) {
       environmentGround.setLocalScale(
@@ -462,14 +519,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentSettings.domeRadius,
         environmentSettings.domeRadius,
       );
-      environmentGround.setEulerAngles(0, environmentSettings.yawDeg, 0);
+      environmentGround.setEulerAngles(0, 0, 0);
     }
     if (environmentMaterial) {
-      environmentMaterial.emissiveIntensity = environmentSettings.intensity;
+      environmentMaterial.emissiveIntensity = 1;
       environmentMaterial.update();
     }
     if (environmentGroundMaterial) {
-      environmentGroundMaterial.emissiveIntensity = environmentSettings.intensity;
+      environmentGroundMaterial.emissiveIntensity = 1;
       environmentGroundMaterial.update();
     }
   };
@@ -546,6 +603,24 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     syncCamera();
   };
 
+  const panCamera = (dx: number, dy: number) => {
+    const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
+    const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
+    const cosElevation = Math.cos(elevation);
+    const screenRight = new pc.Vec3(Math.cos(azimuth), 0, -Math.sin(azimuth));
+    const screenUp = new pc.Vec3(
+      Math.sin(azimuth) * Math.sin(elevation),
+      cosElevation,
+      Math.cos(azimuth) * Math.sin(elevation),
+    );
+    const scale = clamp(orbitDistance() * 0.00125, 0.003, 0.04);
+    moveCamera(
+      (-screenRight.x * dx + screenUp.x * dy) * scale,
+      (-screenRight.y * dx + screenUp.y * dy) * scale,
+      (-screenRight.z * dx + screenUp.z * dy) * scale,
+    );
+  };
+
   const onPointerDown = (event: PointerEvent) => {
     if (destroyed || !interactionEnabled) return;
     canvas.focus();
@@ -590,7 +665,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       syncCamera();
       emitChange();
     } else if (dragState.button === 1) {
-      moveCamera(-dx * 0.01, dy * 0.01, 0);
+      panCamera(dx, dy);
       emitChange();
     }
   };
@@ -916,6 +991,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentGround.destroy();
         environmentGround = null;
       }
+      environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentMaterial = null;
       environmentGroundMaterial = null;
@@ -923,27 +999,34 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         app.assets.remove(environmentAsset);
         environmentAsset = null;
       }
-      if (!url?.trim()) return;
+      if (!url?.trim()) {
+        applyHdriKeyLight(DEFAULT_HDRI_LIGHT_ESTIMATE);
+        return;
+      }
       setStatus("正在加载场景 HDRI 环境...");
       environmentAsset = await loadAsset(app, url, "texture");
       const texture = environmentAsset.resource as pc.Texture;
       configureEnvironmentTexture(texture, app);
+      applyHdriKeyLight(estimateHdriLightFromTexture(texture));
       const textureAspect = texture.width / texture.height;
       const isEquirectangular = textureAspect >= GROUND_PROJECTION_SOURCE_ASPECT && textureAspect <= 2.1;
       const groundProjection = !isEquirectangular;
-      const geometry = groundProjection ? createUpperDomeGeometry() : createDomeGeometry();
+      const geometry = groundProjection
+        ? createUpperDomeGeometry(getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius))
+        : createDomeGeometry();
       const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
       const material = new pc.StandardMaterial();
       material.diffuse = new pc.Color(1, 1, 1);
       material.diffuseMap = texture;
       material.emissive = new pc.Color(1, 1, 1);
       material.emissiveMap = texture;
-      material.emissiveIntensity = environmentSettings.intensity;
+      material.emissiveIntensity = 1;
       material.cull = pc.CULLFACE_FRONT;
       material.depthWrite = false;
       material.update();
       environmentMaterial = material;
       const meshInstance = new pc.MeshInstance(mesh, material);
+      environmentDomeMeshInstance = meshInstance;
       environmentDome = new pc.Entity("blocking3d-hdri-dome");
       environmentDome.addComponent("render", {
         meshInstances: [meshInstance],
@@ -955,7 +1038,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         groundMaterial.diffuseMap = texture;
         groundMaterial.emissive = new pc.Color(1, 1, 1);
         groundMaterial.emissiveMap = texture;
-        groundMaterial.emissiveIntensity = environmentSettings.intensity;
+        groundMaterial.emissiveIntensity = 1;
         groundMaterial.cull = pc.CULLFACE_FRONT;
         groundMaterial.depthWrite = false;
         groundMaterial.update();
@@ -1056,6 +1139,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       actors.clear();
       environmentDome?.destroy();
       environmentGround?.destroy();
+      environmentDomeMeshInstance = null;
       environmentGroundMeshInstance = null;
       environmentAsset && app.assets.remove(environmentAsset);
       selectionRing.destroy();
