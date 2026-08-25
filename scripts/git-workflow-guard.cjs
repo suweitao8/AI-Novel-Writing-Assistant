@@ -4,6 +4,7 @@
 
 const { execFileSync } = require("node:child_process");
 const { assertMainWorkspaceSharedIntegrity } = require("./workspace-integrity-guard.cjs");
+const { assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
@@ -97,6 +98,7 @@ function assertMergeSourceIsCodexBranch(commit) {
 }
 
 function assertCommitAllowed() {
+  assertWorktreeFilesystemIsolation({ cwd: process.cwd(), phase: "git commit hook" });
   const branch = currentBranch();
   if (!isProtectedBranch(branch)) {
     assertStagedSharedChangesAllowed();
@@ -167,6 +169,7 @@ function assertMainHistoryOnlyContainsMerges(remoteSha, localSha) {
 }
 
 function assertPushAllowed(input) {
+  assertWorktreeFilesystemIsolation({ cwd: process.cwd(), phase: "git push hook" });
   const branch = currentBranch();
   const updates = input
     .split(/\r?\n/)

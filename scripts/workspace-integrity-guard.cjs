@@ -5,6 +5,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const {
+  assertMainSourceIntegrity,
+  assertWorktreeFilesystemIsolation,
+} = require("./worktree-filesystem-safety.cjs");
 
 const PROTECTED_BRANCH = "main";
 
@@ -95,6 +99,8 @@ function assertMainWorkspaceSharedIntegrity({ cwd = process.cwd() } = {}) {
     return;
   }
 
+  assertMainSourceIntegrity({ cwd, phase: "main shared integrity" });
+
   const changes = mainWorkspaceSharedChanges(cwd);
   if (changes.length === 0) {
     return;
@@ -108,6 +114,8 @@ function assertMainWorkspaceSharedIntegrity({ cwd = process.cwd() } = {}) {
 }
 
 function assertDevelopmentWorkspaceIntegrity({ cwd = process.cwd() } = {}) {
+  assertWorktreeFilesystemIsolation({ cwd, phase: "development startup" });
+
   if (currentBranch(cwd) !== PROTECTED_BRANCH) {
     return;
   }
@@ -151,7 +159,6 @@ function assertClientRuntimeIntegrity({ cwd = process.cwd() } = {}) {
 
 function assertStartupIntegrity({ cwd = process.cwd() } = {}) {
   assertDevelopmentWorkspaceIntegrity({ cwd });
-  assertMainWorkspaceSharedIntegrity({ cwd });
   assertClientRuntimeIntegrity({ cwd });
 }
 

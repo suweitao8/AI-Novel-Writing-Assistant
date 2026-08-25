@@ -35,6 +35,11 @@ function writeFile(directory, fileName, contents) {
   fs.writeFileSync(fullPath, contents);
 }
 
+function linkDirectory(target, linkPath) {
+  fs.mkdirSync(path.dirname(linkPath), { recursive: true });
+  fs.symlinkSync(target, linkPath, process.platform === "win32" ? "junction" : "dir");
+}
+
 function createInitialCommit(directory) {
   writeFile(directory, "shared/types/example.ts", "export type Example = string;\n");
   writeFile(directory, ".gitignore", "client/node_modules/\n");
@@ -149,6 +154,24 @@ test("clean main workspace passes the development integrity gate", (t) => {
   assert.doesNotThrow(() => assertDevelopmentWorkspaceIntegrity({ cwd: directory }));
 });
 
+test("development integrity rejects an external shared junction in a feature worktree", (t) => {
+  const directory = createRepository();
+  const other = createRepository();
+  t.after(() => {
+    fs.rmSync(directory, { recursive: true, force: true });
+    fs.rmSync(other, { recursive: true, force: true });
+  });
+  createInitialCommit(directory);
+  runGit(directory, ["switch", "-c", "codex/external-link-test"]);
+  fs.rmSync(path.join(directory, "shared"), { recursive: true, force: true });
+  linkDirectory(path.join(other, "shared"), path.join(directory, "shared"));
+
+  assert.throws(
+    () => assertDevelopmentWorkspaceIntegrity({ cwd: directory }),
+    /external filesystem link|shared[\s\S]*->/i,
+  );
+});
+
 test("startup integrity check reports a missing Vite refresh runtime", (t) => {
   const directory = createRepository();
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
@@ -185,6 +208,10 @@ test("dependency preflight reports a missing Vite refresh runtime before startin
   fs.copyFileSync(
     path.join(__dirname, "workspace-integrity-guard.cjs"),
     path.join(directory, "scripts/workspace-integrity-guard.cjs"),
+  );
+  fs.copyFileSync(
+    path.join(__dirname, "worktree-filesystem-safety.cjs"),
+    path.join(directory, "scripts/worktree-filesystem-safety.cjs"),
   );
 
   const result = spawnSync(process.execPath, ["scripts/check-deps.cjs"], {
