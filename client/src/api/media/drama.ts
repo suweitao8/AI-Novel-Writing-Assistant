@@ -216,6 +216,8 @@ export interface DramaShotBlockingSketch3DActor {
   yawDeg: number;
   scale: [number, number, number];
   pose: DramaShotBlockingSketchPose;
+  /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
+  color?: [number, number, number];
   /** Legacy compatibility marker; the 3D sketch always stores a paused key frame. */
   actionPlaying: boolean;
 }

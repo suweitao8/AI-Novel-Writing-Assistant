@@ -92,6 +92,7 @@ interface Blocking3dViewerActor {
   pose: DramaShotBlockingSketchPose;
   actionPlaying: boolean;
   color: [number, number, number];
+  material: pc.StandardMaterial;
 }
 
 export interface Blocking3dViewerOptions {
@@ -126,6 +127,8 @@ export interface Blocking3dViewer {
   getActorLabels: () => string[];
   setSelectedPose: (pose: DramaShotBlockingSketchPose) => boolean;
   getSelectedPose: () => DramaShotBlockingSketchPose | null;
+  setSelectedColor: (color: [number, number, number]) => boolean;
+  getSelectedColor: () => [number, number, number] | null;
   nudgeSelected: (dx: number, dy: number, dz: number) => boolean;
   rotateSelected: (degrees: number) => boolean;
   scaleSelected: (factor: number) => boolean;
@@ -327,8 +330,7 @@ function loadAsset(app: pc.AppBase, url: string, type: "container" | "texture"):
   });
 }
 
-function setEntityMaterial(entity: pc.Entity, color: [number, number, number]): void {
-  const material = new pc.StandardMaterial();
+function setEntityMaterial(entity: pc.Entity, color: [number, number, number], material = new pc.StandardMaterial()): pc.StandardMaterial {
   material.diffuse = new pc.Color(color[0], color[1], color[2]);
   material.metalness = 0;
   material.update();
@@ -338,6 +340,11 @@ function setEntityMaterial(entity: pc.Entity, color: [number, number, number]): 
   for (const model of entity.findComponents("model") as pc.ModelComponent[]) {
     for (const mesh of model.meshInstances ?? []) mesh.material = material;
   }
+  return material;
+}
+
+function normalizeActorColor(color: [number, number, number]): [number, number, number] {
+  return color.map((channel) => clamp(Number(channel), 0, 1)) as [number, number, number];
 }
 
 function setAnimationPose(
@@ -906,11 +913,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const resource = actorAsset.resource as ContainerResource;
     const model = resource.instantiateRenderEntity?.({ castShadows: false });
     if (!model) throw new Error("3D 代理角色模型无法实例化。");
+    const color = colorForIndex(index);
     const root = new pc.Entity(`blocking3d-actor-${label}`);
     model.name = "quaternius_mannequin";
     model.setLocalPosition(0, 0, 0);
     model.setLocalEulerAngles(0, 180, 0);
-    setEntityMaterial(model, colorForIndex(index));
+    const material = setEntityMaterial(model, color);
     root.addChild(model);
     model.addComponent("anim", { activate: true });
     if (model.anim) model.anim.rootBone = model;
@@ -924,7 +932,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       animEntity: model,
       pose: "standing",
       actionPlaying: false,
-      color: colorForIndex(index),
+      color,
+      material,
     };
     setAnimationPose(actor, animationTracks, "standing");
     return actor;
@@ -1018,6 +1027,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return true;
     },
     getSelectedPose: () => selectedActor()?.pose ?? null,
+    setSelectedColor(color) {
+      const actor = selectedActor();
+      if (!actor || color.some((channel) => !Number.isFinite(channel))) return false;
+      const nextColor = normalizeActorColor(color);
+      actor.color = nextColor;
+      actor.material = setEntityMaterial(actor.animEntity, nextColor, actor.material);
+      emitChange();
+      return true;
+    },
+    getSelectedColor() {
+      const color = selectedActor()?.color;
+      return color ? [...color] as [number, number, number] : null;
+    },
     nudgeSelected(dx, dy, dz) {
       if (!actorMovementEnabled) return false;
       const actor = selectedActor();
@@ -1166,6 +1188,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
             yawDeg: clamp(actor.entity.getEulerAngles().y, -180, 180),
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
+            color: [...actor.color] as [number, number, number],
             actionPlaying: false,
           };
         }),
@@ -1182,6 +1205,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         actor.entity.setPosition(saved.position[0], saved.position[1], saved.position[2]);
         actor.entity.setEulerAngles(0, saved.yawDeg, 0);
         actor.entity.setLocalScale(saved.scale[0], saved.scale[1], saved.scale[2]);
+        if (saved.color) {
+          actor.color = normalizeActorColor(saved.color);
+          actor.material = setEntityMaterial(actor.animEntity, actor.color, actor.material);
+        }
         setAnimationPose(actor, animationTracks, saved.pose);
       }
       if (layout.actors[0]) select(layout.actors[0].characterName);

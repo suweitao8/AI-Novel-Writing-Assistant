@@ -79,6 +79,16 @@ test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能�
   assert.doesNotMatch(viewerSource, /blocking3d-background/);
 });
 
+test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", () => {
+  assert.match(pageSource, /type="color"/);
+  assert.match(pageSource, /模型颜色/);
+  assert.match(viewerSource, /setSelectedColor/);
+  assert.match(viewerSource, /getSelectedColor/);
+  assert.match(viewerSource, /color: \[\.\.\.actor\.color\]/);
+  assert.match(viewerSource, /saved\.color/);
+  assert.match(viewerSource, /setEntityMaterial\(actor\.animEntity, actor\.color/);
+});
+
 test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () => {
   assert.match(entrySource, /blocking-3d\?order=/);
   assert.match(entrySource, /3D 草图/);
