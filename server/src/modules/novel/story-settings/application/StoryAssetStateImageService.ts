@@ -774,9 +774,10 @@ export class StoryAssetStateImageService {
     kind: StoryAssetKind,
     assetId: string,
     stateId: string,
+    expectedError: string,
   ): Promise<unknown> {
     const { states, state } = await this.findState(novelId, kind, assetId, stateId);
-    if (state.image?.error?.trim()) {
+    if (state.image?.error === expectedError) {
       await this.writeStateImage(
         kind,
         assetId,
@@ -785,7 +786,9 @@ export class StoryAssetStateImageService {
         states,
         undefined,
         undefined,
-        (current) => current ? dismissStoryAssetImageError(current) : current,
+        (current) => current?.error === expectedError
+          ? dismissStoryAssetImageError(current, expectedError)
+          : current,
       );
     }
     if (kind === "character") {

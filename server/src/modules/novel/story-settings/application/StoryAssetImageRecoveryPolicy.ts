@@ -66,8 +66,8 @@ export function prioritizeStoryAssetImageArtifacts<T extends StoryAssetImageArti
  * 两者不能因为用户关闭提示而被互相覆盖。保留 error status 也让用户仍可重新生成，
  * 而删除 error 字段后详情页和资产卡片不再展示红色失败提示。
  */
-export function dismissStoryAssetImageError(image: StoryAssetStateImage): StoryAssetStateImage {
-  if (!image.error?.trim()) {
+export function dismissStoryAssetImageError(image: StoryAssetStateImage, expectedError?: string): StoryAssetStateImage {
+  if (!image.error?.trim() || (expectedError !== undefined && image.error !== expectedError)) {
     return image;
   }
   const { error: _error, ...withoutError } = image;

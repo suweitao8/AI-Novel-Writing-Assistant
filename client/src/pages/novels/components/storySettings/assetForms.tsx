@@ -354,18 +354,23 @@ export function AssetStatesEditor(props: {
   });
 
   const dismissImageErrorMutation = useMutation({
-    mutationFn: async (stateId: string) => {
+    mutationFn: async ({ stateId, expectedError }: { stateId: string; expectedError: string }) => {
       if (!asset) {
         throw new Error("资产还未保存。");
       }
       await flushLocalEdits();
-      return dismissStoryAssetStateImageError(asset.novelId, kind, asset.assetId, stateId);
+      return dismissStoryAssetStateImageError(asset.novelId, kind, asset.assetId, stateId, expectedError);
     },
-    onSuccess: async (response) => {
+    onSuccess: async (response, variables) => {
       onChange(response.data?.states ?? []);
       setLocalDirty(false);
       await invalidateSettings();
-      toast.success("已关闭失败提示。");
+      const nextState = response.data?.states?.find((state) => state.id === variables.stateId);
+      if (nextState?.image?.error) {
+        toast.error("检测到新的生成失败，提示已保留。");
+      } else {
+        toast.success("已关闭失败提示。");
+      }
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "关闭失败提示失败，请重试。"),
   });
@@ -487,6 +492,8 @@ export function AssetStatesEditor(props: {
 
   const selectedIndex = states.findIndex((state) => state.id === selectedStateId);
   const selectedState = selectedIndex >= 0 ? states[selectedIndex] ?? null : null;
+  const selectedImageError = selectedState?.image?.error ?? null;
+  const hasSelectedImageError = Boolean(selectedImageError?.trim());
   const referenceOptions = selectedState ? states.filter((state) => state.id !== selectedState.id) : [];
   const voiceSourceOptions = selectedState
     ? states.filter((state) => state.id !== selectedState.id
@@ -685,9 +692,9 @@ export function AssetStatesEditor(props: {
                 ) : null}
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">默认状态是基础形象，直接生成。</p> : null}
-              {selectedState.image?.error ? (
+              {hasSelectedImageError ? (
                 <div className="flex items-start gap-2 text-xs text-destructive" role="alert">
-                  <p className="min-w-0 flex-1">{selectedState.image.error}</p>
+                  <p className="min-w-0 flex-1">{selectedImageError}</p>
                   <Button
                     type="button"
                     variant="ghost"
@@ -696,9 +703,13 @@ export function AssetStatesEditor(props: {
                     aria-label="关闭状态图失败提示"
                     title="关闭提示"
                     disabled={dismissImageErrorMutation.isPending || anyPending}
-                    onClick={() => dismissImageErrorMutation.mutate(selectedState.id)}
+                    onClick={() => {
+                      if (selectedImageError) {
+                        dismissImageErrorMutation.mutate({ stateId: selectedState.id, expectedError: selectedImageError });
+                      }
+                    }}
                   >
-                    {dismissImageErrorMutation.isPending && dismissImageErrorMutation.variables === selectedState.id
+                    {dismissImageErrorMutation.isPending && dismissImageErrorMutation.variables?.stateId === selectedState.id
                       ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
                       : <X className="h-3.5 w-3.5" aria-hidden="true" />}
                   </Button>

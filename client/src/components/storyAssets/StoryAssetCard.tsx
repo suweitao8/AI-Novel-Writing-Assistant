@@ -40,7 +40,9 @@ export function StoryAssetCard({
 }: StoryAssetCardProps) {
   const tone = KIND_TONES[asset.kind];
   const defaultState = asset.states.find((state) => state.label.trim() === "默认") ?? asset.states[0];
-  const imageStatus = defaultState?.imageStatus ?? null;
+  const imageStatus = defaultState?.imageStatus === "error" && !defaultState?.imageError
+    ? null
+    : defaultState?.imageStatus ?? null;
   return (
     <Card className={cn("min-w-0", tone.card, className)}>
       <CardContent className={cn("p-3", compact && "p-2.5")}>
