@@ -32,7 +32,7 @@ function resolveSceneState(scene: StorySettingsScene, stateId?: string): StorySe
 }
 
 function resolveSceneEnvironmentUrl(state: StorySettingsScene["states"][number] | null): string | null {
-  if (state?.image?.status === "done" && state.image.url?.trim()) {
+  if (state?.image?.url?.trim()) {
     return buildStateImageSrc(state.image.url, state.image.generatedAt);
   }
   return null;

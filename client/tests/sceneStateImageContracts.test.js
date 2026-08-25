@@ -29,4 +29,5 @@ test("场景状态编辑器只展示静态状态图，3D效果通过独立编辑
   assert.match(assetFormsSource, /<LightboxImage[\s\S]*selectedState\.image\.url/);
   assert.match(assetFormsSource, /buildScene3dEditorPath\(asset\.novelId, asset\.assetId, selectedState\.id\)/);
   assert.match(assetFormsSource, /3D编辑/);
+  assert.match(assetFormsSource, /absolute bottom-2 right-2 z-30 flex items-center gap-1\.5/);
 });
