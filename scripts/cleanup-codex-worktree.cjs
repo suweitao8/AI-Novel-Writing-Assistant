@@ -5,7 +5,13 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
-const { assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
+const {
+  DEPENDENCY_ROOTS,
+  assertWorktreeFilesystemIsolation,
+  displayPath,
+  isWithin,
+  realPath,
+} = require("./worktree-filesystem-safety.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PATTERN = /^codex\/[a-z0-9][a-z0-9-]*$/;
@@ -138,6 +144,77 @@ function assertCleanupPreconditions({ cwd = process.cwd(), target } = {}) {
   return candidate;
 }
 
+function assertDependencyTreeIsLocal(directoryPath, checkoutRoot) {
+  const pending = [directoryPath];
+  while (pending.length > 0) {
+    const current = pending.pop();
+    let stats;
+    try {
+      stats = fs.lstatSync(current);
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw new Error(`Cannot inspect dependency path before cleanup: ${displayPath(current)}: ${error.message}`);
+    }
+
+    if (stats.isSymbolicLink()) {
+      const target = realPath(current);
+      if (!target) throw new Error(`Broken dependency link cannot be cleaned safely: ${displayPath(current)}`);
+      if (!isWithin(checkoutRoot, target)) {
+        throw new Error([
+          "Cleanup refused an external dependency link.",
+          `${displayPath(current)} -> ${displayPath(target)}`,
+          `The target must remain inside ${displayPath(checkoutRoot)}.`,
+        ].join("\n"));
+      }
+      continue;
+    }
+    if (!stats.isDirectory()) continue;
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      pending.push(path.join(current, entry.name));
+    }
+  }
+}
+
+function removeLocalDependencyRoots(worktreePath) {
+  const removed = [];
+  for (const relativePath of DEPENDENCY_ROOTS) {
+    const dependencyPath = path.join(worktreePath, relativePath);
+    let stats;
+    try {
+      stats = fs.lstatSync(dependencyPath);
+    } catch (error) {
+      if (error?.code === "ENOENT") continue;
+      throw new Error(`Cannot inspect dependency root before cleanup: ${displayPath(dependencyPath)}: ${error.message}`);
+    }
+
+    if (stats.isSymbolicLink()) {
+      const target = realPath(dependencyPath);
+      if (!target) throw new Error(`Broken dependency root cannot be cleaned safely: ${displayPath(dependencyPath)}`);
+      if (!isWithin(worktreePath, target)) {
+        throw new Error([
+          "Cleanup refused an external dependency root.",
+          `${displayPath(dependencyPath)} -> ${displayPath(target)}`,
+        ].join("\n"));
+      }
+      fs.rmSync(dependencyPath, { force: true });
+      removed.push(dependencyPath);
+      continue;
+    }
+    if (!stats.isDirectory()) {
+      throw new Error(`Dependency root is not a directory: ${displayPath(dependencyPath)}`);
+    }
+
+    const target = realPath(dependencyPath);
+    if (!target || !isWithin(worktreePath, target)) {
+      throw new Error(`Dependency root resolves outside the worktree: ${displayPath(dependencyPath)}`);
+    }
+    assertDependencyTreeIsLocal(dependencyPath, worktreePath);
+    fs.rmSync(dependencyPath, { recursive: true, force: true });
+    removed.push(dependencyPath);
+  }
+  return removed;
+}
+
 function removeRegisteredWorktree({ cwd, candidate }) {
   runGit(cwd, ["worktree", "remove", "--force", candidate.path]);
   return candidate;
@@ -157,6 +234,7 @@ function assertWorktreeWasRemoved(cwd, candidate) {
 
 function cleanupCodexWorktree({ cwd = process.cwd(), target, removeWorktree = removeRegisteredWorktree } = {}) {
   const candidate = assertCleanupPreconditions({ cwd, target });
+  removeLocalDependencyRoots(candidate.path);
   removeWorktree({ cwd, candidate });
   assertWorktreeWasRemoved(cwd, candidate);
   runGit(cwd, ["branch", "-d", candidate.branchName]);
@@ -194,6 +272,7 @@ module.exports = {
   cleanupCodexWorktree,
   currentBranch,
   findCandidate,
+  removeLocalDependencyRoots,
   removeRegisteredWorktree,
   repositoryRoot,
   worktreeEntries,

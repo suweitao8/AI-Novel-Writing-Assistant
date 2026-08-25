@@ -24,7 +24,8 @@ function createRepository(t) {
   fs.mkdirSync(path.join(directory, "shared", "types"), { recursive: true });
   fs.writeFileSync(path.join(directory, "shared", "types", "example.ts"), "export type Example = string;\n");
   fs.writeFileSync(path.join(directory, "README.md"), "base\n");
-  runGit(directory, ["add", "README.md", "shared"]);
+  fs.writeFileSync(path.join(directory, ".gitignore"), "node_modules/\n");
+  runGit(directory, ["add", "README.md", ".gitignore", "shared"]);
   runGit(directory, ["commit", "-m", "initial"]);
   return directory;
 }
@@ -100,4 +101,26 @@ test("removes an already merged and clean codex worktree before deleting its bra
   assert.equal(fs.existsSync(target), false);
   assert.notEqual(runGit(directory, ["show-ref", "--verify", `refs/heads/${branch}`], { expectSuccess: false }).status, 0);
   assert.doesNotMatch(runGit(directory, ["worktree", "list", "--porcelain"]).stdout, /codex\/cleaned/);
+});
+
+test("removes local dependency directories before deleting a merged worktree", (t) => {
+  const directory = createRepository(t);
+  const branch = "codex/with-dependencies";
+  const target = createFeatureWorktree(directory, branch);
+  runGit(directory, ["merge", "--no-ff", "--no-edit", branch]);
+  fs.mkdirSync(path.join(target, "node_modules", ".pnpm", "fixture"), { recursive: true });
+  const dependencyRoot = path.join(target, "node_modules");
+  fs.writeFileSync(path.join(dependencyRoot, ".pnpm", "fixture", "package.json"), "{}\n");
+
+  cleanupCodexWorktree({
+    cwd: directory,
+    target: branch,
+    removeWorktree: ({ cwd, candidate }) => {
+      assert.equal(fs.existsSync(dependencyRoot), false);
+      runGit(cwd, ["worktree", "remove", "--force", candidate.path]);
+    },
+  });
+
+  assert.equal(fs.existsSync(target), false);
+  assert.notEqual(runGit(directory, ["show-ref", "--verify", `refs/heads/${branch}`], { expectSuccess: false }).status, 0);
 });
