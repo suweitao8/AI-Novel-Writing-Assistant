@@ -31,6 +31,9 @@ void main(void) {
 export const PROJECTED_HDRI_FRAGMENT_GLSL = `
 precision highp float;
 
+#include "gammaPS"
+#include "tonemappingPS"
+
 uniform sampler2D uEnvironmentMap;
 uniform float uProjectionCenterHeight;
 uniform float uDomeRadius;
@@ -47,26 +50,38 @@ void main(void) {
     float edgeHeight = clamp(uProjectionCenterHeight / uDomeRadius, 0.004, 1.0) * domeScale;
     float edgeDownAngle = atan(uProjectionCenterHeight - edgeHeight, domeScale);
     float downAngle = atan(uProjectionCenterHeight - vWorldPosition.y, horizontalDistance);
-    float verticalProgress = clamp(
-        (downAngle - edgeDownAngle) / (PI * 0.5 - edgeDownAngle),
-        0.0,
-        1.0
-    );
     float azimuthProgress = fract(
         (atan(projectionToSurface.z, projectionToSurface.x) + PI * 0.5) / TWO_PI + 1.0
     );
     float u = 1.0 - azimuthProgress;
-    float v = 0.5 + verticalProgress * 0.5;
-    gl_FragColor = texture2D(uEnvironmentMap, vec2(u, v));
+    float v;
+    if (vWorldPosition.y >= edgeHeight) {
+        float upperProgress = clamp(
+            (edgeDownAngle - downAngle) / (edgeDownAngle + PI * 0.5),
+            0.0,
+            1.0
+        );
+        v = 0.5 - upperProgress * 0.5;
+    } else {
+        float lowerProgress = clamp(
+            (downAngle - edgeDownAngle) / (PI * 0.5 - edgeDownAngle),
+            0.0,
+            1.0
+        );
+        v = 0.5 + lowerProgress * 0.5;
+    }
+    vec4 rawColor = texture2D(uEnvironmentMap, vec2(u, v));
+    vec3 linearColor = decodeGamma(rawColor);
+    gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
 `;
 
-export function createProjectedHdriGroundMaterial(
+export function createProjectedHdriMaterial(
   texture: pc.Texture,
   settings: ProjectedHdriMaterialSettings,
 ): pc.ShaderMaterial {
   const material = new pc.ShaderMaterial({
-    uniqueName: "drama-blocking3d-hdri-ground-projection",
+    uniqueName: "drama-blocking3d-hdri-projection",
     attributes: {
       aPosition: pc.SEMANTIC_POSITION,
     },
@@ -75,11 +90,11 @@ export function createProjectedHdriGroundMaterial(
   });
   material.cull = pc.CULLFACE_FRONT;
   material.depthWrite = false;
-  updateProjectedHdriGroundMaterial(material, texture, settings);
+  updateProjectedHdriMaterial(material, texture, settings);
   return material;
 }
 
-export function updateProjectedHdriGroundMaterial(
+export function updateProjectedHdriMaterial(
   material: pc.ShaderMaterial,
   texture: pc.Texture,
   settings: ProjectedHdriMaterialSettings,
