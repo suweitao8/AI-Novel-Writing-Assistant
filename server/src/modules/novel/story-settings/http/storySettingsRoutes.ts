@@ -570,13 +570,16 @@ export function registerStorySettingsRoutes(router: Router): void {
     "/:id/settings/characters/:characterId/states/:stateId/dismiss-image-error",
     validate({
       params: z.object({ id: novelParams.shape.id, characterId: characterParams.shape.characterId, stateId: z.string().trim().min(1) }),
-      body: z.object({ error: z.string().min(1).max(600) }).strict(),
+      body: z.object({
+        error: z.string().min(1).max(600),
+        attemptId: z.string().trim().min(1).max(120).optional(),
+      }).strict(),
     }),
     async (req, res, next) => {
       try {
         const { id, characterId, stateId } = req.params as Record<string, string>;
-        const { error } = req.body as { error: string };
-        const data = await storyAssetStateImageService.dismissStateImageError(id, "character", characterId, stateId, error);
+        const { error, attemptId } = req.body as { error: string; attemptId?: string };
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "character", characterId, stateId, error, attemptId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
@@ -642,13 +645,16 @@ export function registerStorySettingsRoutes(router: Router): void {
     "/:id/settings/scenes/:sceneId/states/:stateId/dismiss-image-error",
     validate({
       params: z.object({ id: novelParams.shape.id, sceneId: sceneParams.shape.sceneId, stateId: z.string().trim().min(1) }),
-      body: z.object({ error: z.string().min(1).max(600) }).strict(),
+      body: z.object({
+        error: z.string().min(1).max(600),
+        attemptId: z.string().trim().min(1).max(120).optional(),
+      }).strict(),
     }),
     async (req, res, next) => {
       try {
         const { id, sceneId, stateId } = req.params as Record<string, string>;
-        const { error } = req.body as { error: string };
-        const data = await storyAssetStateImageService.dismissStateImageError(id, "scene", sceneId, stateId, error);
+        const { error, attemptId } = req.body as { error: string; attemptId?: string };
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "scene", sceneId, stateId, error, attemptId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
@@ -688,13 +694,16 @@ export function registerStorySettingsRoutes(router: Router): void {
     "/:id/settings/props/:propId/states/:stateId/dismiss-image-error",
     validate({
       params: z.object({ id: novelParams.shape.id, propId: propParams.shape.propId, stateId: z.string().trim().min(1) }),
-      body: z.object({ error: z.string().min(1).max(600) }).strict(),
+      body: z.object({
+        error: z.string().min(1).max(600),
+        attemptId: z.string().trim().min(1).max(120).optional(),
+      }).strict(),
     }),
     async (req, res, next) => {
       try {
         const { id, propId, stateId } = req.params as Record<string, string>;
-        const { error } = req.body as { error: string };
-        const data = await storyAssetStateImageService.dismissStateImageError(id, "prop", propId, stateId, error);
+        const { error, attemptId } = req.body as { error: string; attemptId?: string };
+        const data = await storyAssetStateImageService.dismissStateImageError(id, "prop", propId, stateId, error, attemptId);
         res.json({ success: true, data } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);

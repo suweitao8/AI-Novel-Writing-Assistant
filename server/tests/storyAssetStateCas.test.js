@@ -63,6 +63,44 @@ test("状态资产 CAS 冲突重试时只合并目标字段并保留并发状态
   assert.equal(saved[1].image.url, "/state/s2");
 });
 
+test("状态资产 CAS 单次模式在冲突后不重试覆盖同文案的新错误", async () => {
+  const initial = [{
+    id: "s1",
+    label: "初始",
+    description: "正常",
+    imagePrompt: "正面",
+    image: { status: "error", error: "生成超时" },
+  }];
+  let raw = JSON.stringify(initial);
+  let writeAttempts = 0;
+
+  await assert.rejects(
+    updateStoryAssetStateJsonWithCas({
+      stateId: "s1",
+      fallbackStates: initial,
+      maxAttempts: 1,
+      read: async () => ({ raw }),
+      write: async () => {
+        writeAttempts += 1;
+        raw = JSON.stringify([{
+          ...initial[0],
+          image: { status: "error", error: "生成超时", attemptId: "new-attempt" },
+        }]);
+        return false;
+      },
+      patch: (state) => ({ ...state, image: { status: "error" } }),
+    }),
+    (error) => error?.statusCode === 409,
+  );
+
+  assert.equal(writeAttempts, 1);
+  assert.deepEqual(JSON.parse(raw)[0].image, {
+    status: "error",
+    error: "生成超时",
+    attemptId: "new-attempt",
+  });
+});
+
 test("状态资产 CAS 遇到损坏 JSON 时不会写回覆盖原始数据", async () => {
   let writes = 0;
   await assert.rejects(

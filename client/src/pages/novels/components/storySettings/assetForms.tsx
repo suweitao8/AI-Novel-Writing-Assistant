@@ -354,12 +354,12 @@ export function AssetStatesEditor(props: {
   });
 
   const dismissImageErrorMutation = useMutation({
-    mutationFn: async ({ stateId, expectedError }: { stateId: string; expectedError: string }) => {
+    mutationFn: async ({ stateId, expectedError, expectedAttemptId }: { stateId: string; expectedError: string; expectedAttemptId?: string }) => {
       if (!asset) {
         throw new Error("资产还未保存。");
       }
       await flushLocalEdits();
-      return dismissStoryAssetStateImageError(asset.novelId, kind, asset.assetId, stateId, expectedError);
+      return dismissStoryAssetStateImageError(asset.novelId, kind, asset.assetId, stateId, expectedError, expectedAttemptId);
     },
     onSuccess: async (response, variables) => {
       onChange(response.data?.states ?? []);
@@ -493,6 +493,7 @@ export function AssetStatesEditor(props: {
   const selectedIndex = states.findIndex((state) => state.id === selectedStateId);
   const selectedState = selectedIndex >= 0 ? states[selectedIndex] ?? null : null;
   const selectedImageError = selectedState?.image?.error ?? null;
+  const selectedImageAttemptId = selectedState?.image?.attemptId ?? null;
   const hasSelectedImageError = Boolean(selectedImageError?.trim());
   const referenceOptions = selectedState ? states.filter((state) => state.id !== selectedState.id) : [];
   const voiceSourceOptions = selectedState
@@ -705,7 +706,11 @@ export function AssetStatesEditor(props: {
                     disabled={dismissImageErrorMutation.isPending || anyPending}
                     onClick={() => {
                       if (selectedImageError) {
-                        dismissImageErrorMutation.mutate({ stateId: selectedState.id, expectedError: selectedImageError });
+                        dismissImageErrorMutation.mutate({
+                          stateId: selectedState.id,
+                          expectedError: selectedImageError,
+                          ...(selectedImageAttemptId ? { expectedAttemptId: selectedImageAttemptId } : {}),
+                        });
                       }
                     }}
                   >

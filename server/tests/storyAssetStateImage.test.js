@@ -186,18 +186,21 @@ test("关闭状态图失败提示只移除 error，不删除已确认图片或�
     prompt: "完整提示词",
     provider: "codex",
     generatedAt: "2026-08-25T10:00:00.000Z",
+    attemptId: "attempt-1",
     error: "生成超时，请重试。",
   };
 
-  assert.deepEqual(dismissStoryAssetImageError(image, image.error), {
+  assert.deepEqual(dismissStoryAssetImageError(image, image.error, image.attemptId), {
     status: "error",
     artifactId: "artifact-1",
     url: "/state/s2",
     prompt: "完整提示词",
     provider: "codex",
     generatedAt: "2026-08-25T10:00:00.000Z",
+    attemptId: "attempt-1",
   });
   assert.deepEqual(dismissStoryAssetImageError(image, "另一轮生成的错误"), image);
+  assert.deepEqual(dismissStoryAssetImageError(image, image.error, "attempt-2"), image);
   assert.deepEqual(dismissStoryAssetImageError(image, "   "), image);
   assert.deepEqual(dismissStoryAssetImageError({ status: "done", url: "/state/s3" }), {
     status: "done",

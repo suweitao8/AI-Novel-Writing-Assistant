@@ -15,6 +15,8 @@ export interface StoryAssetStateImage {
   prompt?: string;
   provider?: string;
   generatedAt?: string;
+  /** 本次生成尝试的唯一标识；关闭失败提示时用于区分同文案的后续重试。 */
+  attemptId?: string;
   error?: string;
 }
 
@@ -321,6 +323,7 @@ function isStoryAssetStateImageRecord(value: unknown): boolean {
     && isNullableString(value.prompt)
     && isNullableString(value.provider)
     && isNullableString(value.generatedAt)
+    && isNullableString(value.attemptId)
     && isNullableString(value.error);
 }
 

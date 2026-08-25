@@ -438,11 +438,12 @@ export async function dismissStoryAssetStateImageError(
   assetId: string,
   stateId: string,
   expectedError: string,
+  expectedAttemptId?: string,
 ) {
   const resource = kind === "character" ? "characters" : kind === "scene" ? "scenes" : "props";
   const { data } = await apiClient.post<ApiResponse<StorySettingsCharacter | StorySettingsScene | StorySettingsProp>>(
     `/novels/${encodeURIComponent(novelId)}/settings/${resource}/${encodeURIComponent(assetId)}/states/${encodeURIComponent(stateId)}/dismiss-image-error`,
-    { error: expectedError },
+    { error: expectedError, ...(expectedAttemptId ? { attemptId: expectedAttemptId } : {}) },
   );
   return data;
 }
