@@ -121,4 +121,6 @@ export interface ImageProviderGenerateResult {
   provider: LLMProvider;
   model: string;
   images: GeneratedImage[];
+  /** 实际发送给 provider 的参考附件指纹，用于阻止原样回传参考图。 */
+  referenceFingerprints?: string[];
 }

@@ -122,6 +122,7 @@ export default function DramaBlocking3DPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
+  const leavingRef = useRef(false);
 
   const contextQuery = useQuery({
     queryKey: ["drama-shot-blocking-sketch", projectId, shotId],
@@ -198,8 +199,8 @@ export default function DramaBlocking3DPage() {
     syncSelection(viewer);
   }, [saving, syncSelection, viewer]);
 
-  const handleSave = async (confirmAfterSave: boolean) => {
-    if (!viewer || !context?.scene || saving) return;
+  const handleSave = async (confirmAfterSave: boolean): Promise<boolean> => {
+    if (!viewer || !context?.scene || saving) return false;
     setSaving(true);
     viewer.setInteractionEnabled(false);
     try {
@@ -215,24 +216,31 @@ export default function DramaBlocking3DPage() {
       setSavedData(result.data);
       setDirty(false);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId) }),
-        queryClient.invalidateQueries({ queryKey: ["comic-drama"] }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId), refetchType: "all" }),
+        queryClient.invalidateQueries({ queryKey: ["comic-drama"], refetchType: "all" }),
       ]);
       toast.success(confirmAfterSave ? "3D 草图已确认。" : "3D 草图已保存。", {
         description: "分镜生成会使用这张草图参考图。",
       });
+      return true;
     } catch (error) {
       toast.error(confirmAfterSave ? "确认 3D 草图失败" : "保存 3D 草图失败", {
         description: error instanceof Error ? error.message : "请稍后重试。",
       });
+      return false;
     } finally {
       viewer.setInteractionEnabled(true);
       setSaving(false);
     }
   };
 
-  const goBack = () => {
-    if (dirty && !window.confirm("当前 3D 草图还有未保存修改，确定离开吗？")) return;
+  const goBack = async () => {
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    if (dirty && !(await handleSave(false))) {
+      leavingRef.current = false;
+      return;
+    }
     navigate(-1);
   };
 
@@ -262,7 +270,7 @@ export default function DramaBlocking3DPage() {
     <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-3">
       <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
         <div className="flex min-w-0 items-center gap-3">
-          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" onClick={goBack}>
+          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" onClick={() => void goBack()}>
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           </Button>
           <div className="min-w-0">
@@ -299,7 +307,7 @@ export default function DramaBlocking3DPage() {
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/90 p-6 text-center">
                 <p className="text-sm text-destructive">{viewerError}</p>
                 <p className="text-xs text-muted-foreground">请确认浏览器支持 WebGL，并重新打开 3D 草图。</p>
-                <Button variant="outline" onClick={goBack}>返回分镜</Button>
+                <Button variant="outline" onClick={() => void goBack()}>返回分镜</Button>
               </div>
             ) : null}
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">

@@ -334,7 +334,8 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
     });
     const { apiKey, baseURL } = await resolveProviderSecret(input.provider);
     if (preparedReferences.filePaths.length > 0) {
-      return await generateWithFileRef(input, preparedReferences.filePaths, apiKey, baseURL, controller);
+      const result = await generateWithFileRef(input, preparedReferences.filePaths, apiKey, baseURL, controller);
+      return { ...result, referenceFingerprints: preparedReferences.fingerprints };
     }
 
     const requestBody = buildImageGenerationRequestBody(input);
@@ -367,6 +368,7 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
         ...item,
         seed: typeof input.seed === "number" ? input.seed + index : undefined,
       })),
+      referenceFingerprints: preparedReferences.fingerprints,
     };
   } finally {
     await preparedReferences?.cleanup().catch(() => undefined);

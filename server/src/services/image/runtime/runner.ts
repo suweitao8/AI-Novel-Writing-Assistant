@@ -33,6 +33,7 @@ import {
   type ImageTargetAdapter,
   type RunImageGenerationOptions,
 } from "./types";
+import { matchesReferenceImageFingerprint } from "./referenceIntegrity";
 import { describeError, inferExtension, resolveImageBytes, writeImageBytes } from "./utils";
 
 const DEFAULT_HISTORY_MAX = 5;
@@ -143,6 +144,9 @@ export async function runImageGeneration<TState extends GeneratedImageState>(
     // 请求了透明底（PNG）但结果没有 alpha 通道时做确定性抠底：codex edits（带参考图）
     // 路径实测会把透明底压平成不透明纯色底，提示词救不回来（2026-08-23）。
     const rawBytes = await resolveImageBytes(imageUrl);
+    if (matchesReferenceImageFingerprint(rawBytes, result.referenceFingerprints)) {
+      throw new Error("图片生成结果与参考图完全相同，已阻止把参考图保存为生成结果，请重新生成。");
+    }
     const finalBytes = opts.background === "transparent" && opts.outputFormat === "png"
       ? await ensureTransparentBackground(rawBytes)
       : rawBytes;

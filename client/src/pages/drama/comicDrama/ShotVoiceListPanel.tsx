@@ -39,9 +39,22 @@ interface ShotVoiceListPanelProps {
   toolbarTarget: HTMLDivElement | null;
 }
 
-type KeyframeState = { status?: string; url?: string; error?: string };
-type BlockingSketchState = { status?: "draft" | "confirmed"; url?: string };
+type KeyframeState = { status?: string; version?: number; url?: string; error?: string; generatedAt?: string };
+type BlockingSketchState = { status?: "draft" | "confirmed"; version?: number; url?: string; generatedAt?: string };
 type PreviewKind = "sketch" | "ai";
+
+function withPreviewCacheBust(url: string | undefined, generatedAt?: string, version?: number): string | null {
+  const trimmedUrl = url?.trim();
+  if (!trimmedUrl) {
+    return null;
+  }
+  const cacheKey = generatedAt?.trim() || (typeof version === "number" && version > 0 ? String(version) : "");
+  if (!cacheKey) {
+    return trimmedUrl;
+  }
+  const separator = trimmedUrl.includes("?") ? "&" : "?";
+  return `${trimmedUrl}${separator}v=${encodeURIComponent(cacheKey)}`;
+}
 
 function parseKeyframe(raw: string | null | undefined): KeyframeState {
   if (!raw?.trim()) {
@@ -577,9 +590,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const { shot, segments } = props;
   const navigate = useNavigate();
   const [previewKind, setPreviewKind] = useState<PreviewKind>("ai");
+  const [aiPreviewError, setAiPreviewError] = useState(false);
   const keyframe = parseKeyframe(shot.keyframeData);
   const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
-  const blockingSketchUrl = blockingSketch.url?.trim() || null;
+  const blockingSketchUrl = withPreviewCacheBust(blockingSketch.url, blockingSketch.generatedAt, blockingSketch.version);
+  const aiPreviewUrl = withPreviewCacheBust(keyframe.url, keyframe.generatedAt, keyframe.version);
   const hasBlockingSketch = Boolean(blockingSketchUrl);
   const activePreviewKind: PreviewKind = previewKind === "sketch" && hasBlockingSketch ? "sketch" : "ai";
   const previewPanelId = `shot-${shot.id}-preview-panel`;
@@ -597,6 +612,10 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const shotMeta = [shot.shotSize]
     .filter(Boolean)
     .join(" · ");
+
+  useEffect(() => {
+    setAiPreviewError(false);
+  }, [aiPreviewUrl]);
 
   const selectPreview = (next: PreviewKind) => {
     if (next === "sketch" && !hasBlockingSketch) return;
@@ -621,8 +640,16 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
       ) : null;
     }
 
-    if (keyframe.status === "done" && keyframe.url) {
-      return <LightboxImage src={keyframe.url} alt={`第 ${shot.order} 镜 AI 画面`} className="aspect-video w-full" fit="cover" />;
+    if (keyframe.status === "done" && aiPreviewUrl && !aiPreviewError) {
+      return (
+        <LightboxImage
+          src={aiPreviewUrl}
+          alt={`第 ${shot.order} 镜 AI 画面`}
+          className="aspect-video w-full"
+          fit="cover"
+          onError={() => setAiPreviewError(true)}
+        />
+      );
     }
     if (props.keyframeBusy) {
       return (
@@ -641,10 +668,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
     return (
       <div
         className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground"
-        aria-label={`第 ${shot.order} 镜还没有 AI 画面`}
+        role="status"
+        aria-label={`第 ${shot.order} 镜暂无可用 AI 画面`}
       >
         <ImageIcon className="h-4 w-4" aria-hidden="true" />
-        暂无 AI 画面
+        {aiPreviewError ? "AI 图不可用，请重新生成" : "暂无 AI 画面"}
       </div>
     );
   };

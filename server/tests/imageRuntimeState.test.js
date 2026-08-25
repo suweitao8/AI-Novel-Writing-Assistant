@@ -76,3 +76,46 @@ test("character runtime persists the same constrained prompt that it sends to th
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
 });
+
+test("生成结果与参考图完全相同时不保存为 done", async () => {
+  const originalFetch = global.fetch;
+  const originalCodexApiKey = process.env.CODEX_API_KEY;
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-novel-image-reference-passthrough-"));
+  let savedState;
+  process.env.CODEX_API_KEY = "test-codex-key";
+  global.fetch = async (url) => {
+    assert.match(String(url), /\/images\/edits$/);
+    return {
+      ok: true,
+      json: async () => ({ data: [{ b64_json: "AAAA" }] }),
+    };
+  };
+
+  try {
+    await assert.rejects(
+      () => runImageGeneration({
+        kind: "test.image-reference-passthrough",
+        loadState: async () => ({ status: "idle" }),
+        saveState: async (state) => {
+          savedState = state;
+        },
+        diskPath: (extension) => path.join(tempDir, `image.${extension}`),
+        publicUrl: () => "/test-reference-passthrough-image",
+      }, {
+        provider: "codex",
+        prompt: "test image",
+        refImages: ["data:image/png;base64,AAAA"],
+      }),
+      /参考图完全相同/,
+    );
+
+    assert.equal(savedState.status, "error");
+    assert.match(savedState.error, /参考图完全相同/);
+    assert.equal(fs.readdirSync(tempDir).length, 0);
+  } finally {
+    global.fetch = originalFetch;
+    if (originalCodexApiKey === undefined) delete process.env.CODEX_API_KEY;
+    else process.env.CODEX_API_KEY = originalCodexApiKey;
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
