@@ -415,11 +415,14 @@ export function buildStateImagePrompt(
         "360-degree equirectangular panorama of the empty scene environment, standard 2:1 aspect ratio, seamless horizontal wrap-around",
         "seamless horizontal wrap-around view of the whole space",
         "consistent palette, materials, architecture and lighting across the entire panorama",
-        "horizon roughly centered vertically, one continuous full-view image, no borders, no split panels, no collage",
+        "equirectangular panorama layout: the horizon line is exactly centered at vertical v=0.5; keep the image as one continuous panorama, not a drawn divider or collage",
+        "upper half (v=0.0-0.5) contains the sky, ceiling, walls, distant background and environment objects; cluster major objects around the horizon and keep them primarily above the center line",
+        "lower half (v=0.5-1.0) is primarily one continuous clean ground, floor or terrain surface with sparse low-lying detail",
+        "do not place large furniture, trees, buildings, rocks or other tall objects deep in the lower half; do not let objects cross toward the nadir where equirectangular projection stretches them",
+        "keep the lower half free of repeated or stretched objects; preserve natural ground material detail without filling it with props",
         "pure empty environment reference",
         "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
         "narrative living subjects remain off-screen and may appear only as environmental traces",
-        "uniform detail and sharpness across the whole 360-degree view",
       ]
       : [
         // 角色/道具参考图统一透明底（2026-08-22）：底图要能直接叠进分镜首帧。
