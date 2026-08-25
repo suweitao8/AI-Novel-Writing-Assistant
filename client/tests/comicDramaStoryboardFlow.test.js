@@ -33,3 +33,12 @@ test("storyboard page exposes generation and episode assembly actions", () => {
   assert.match(assemblySource, /合成/);
   assert.match(assemblySource, /assembled\?\.status === "done"/);
 });
+
+test("storyboard generation never falls back to the retired Unreal 3D style", () => {
+  const pageSource = read("pages/drama/comicDrama/ComicDramaStudioPage.tsx");
+
+  assert.doesNotMatch(pageSource, /unreal_cinematic_3d/);
+  assert.match(pageSource, /styleOptions\[0\]\?\.id/);
+  assert.match(pageSource, /const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic"/);
+  assert.match(pageSource, /\|\| DEFAULT_DRAMA_VISUAL_STYLE_ID/);
+});

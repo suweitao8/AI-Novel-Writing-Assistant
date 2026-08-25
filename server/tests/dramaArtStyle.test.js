@@ -74,6 +74,17 @@ test("统一渲染媒介提示词同时进入正向和负向约束", () => {
   assert.match(DRAMA_RENDER_FAMILY_POLICIES.animation.prompt, /统一动画/);
 });
 
+test("通用资产画风默认使用写实基线，不再注入虚幻三维游戏媒介", () => {
+  for (const kind of DRAMA_ASSET_STYLE_KINDS) {
+    const style = DEFAULT_DRAMA_ASSET_STYLES[kind];
+    const prompt = `${style.styleInstructions} ${style.styleTag}`;
+    assert.match(prompt, /写实|真实材质|自然光影/);
+    assert.doesNotMatch(prompt, /虚幻|UE5|三维|游戏美术|游戏渲染/);
+  }
+  assert.match(DRAMA_RENDER_FAMILY_POLICIES.live_action.prompt, /写实/);
+  assert.match(DRAMA_RENDER_FAMILY_POLICIES.live_action.avoidInstructions, /卡通|动漫/);
+});
+
 test("三类资产默认风格拥有各自固定规格", () => {
   assert.deepEqual(DRAMA_ASSET_STYLE_KINDS, ["character", "scene", "prop"]);
   assert.match(DEFAULT_DRAMA_ASSET_STYLES.character.formatInstructions, /四个视图|四视图/);

@@ -55,7 +55,7 @@ test("selected chapter bridge reuses the project and generates only the requeste
       dramaProject: {
         findFirst: async ({ where }) => {
           assert.deepEqual(where, { source: "novel_import", sourceRef: "novel-1" });
-          return { id: "project-1", title: "测试漫剧", visualStyle: "unreal_cinematic_3d" };
+          return { id: "project-1", title: "测试漫剧", visualStyle: "realistic" };
         },
       },
       dramaEpisode: {
@@ -83,7 +83,7 @@ test("selected chapter bridge reuses the project and generates only the requeste
     provider: "grok-build",
     model: "grok-test",
     temperature: 0.2,
-    visualStyle: "unreal_cinematic_3d",
+    visualStyle: "realistic",
   });
 
   assert.equal(result.projectId, "project-1");

@@ -82,6 +82,8 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   general: "通用",
 };
 
+const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
+
 // 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
 // 每个页签下方都有自己的居中子页签条、操作按钮靠右。
 // 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（脚本/分镜/成片）
@@ -489,7 +491,7 @@ function useStoryboardStage(input: {
   const effectiveStyleId = input.drama?.visualStyle
     || (novelDefaultIsKnown ? input.novelDefaultStyleId : null)
     || styleOptions[0]?.id
-    || "unreal_cinematic_3d";
+    || DEFAULT_DRAMA_VISUAL_STYLE_ID;
   const invalidate = async () => {
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.overview(input.novelId) });
     await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.links([input.novelId]) });

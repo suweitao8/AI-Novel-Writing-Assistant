@@ -27,6 +27,18 @@ const PROMPT_FIELD_BY_KIND: Record<DramaAssetStyleKind, keyof DramaAssetArtStyle
   prop: "propPrompt",
 };
 
+// 旧版本把内置默认提示词写进了 drama.assetArtStyles，导致升级代码默认值后仍继续显示旧的三维游戏媒介。
+// 只按每类旧默认提示词的稳定前缀归一化，用户真正保存的其他自定义内容不受影响。
+const LEGACY_DEFAULT_PROMPT_PREFIX_BY_KIND: Record<DramaAssetStyleKind, string> = {
+  character: "影视化三维游戏美术质感：",
+  scene: "影视化三维场景美术质感：",
+  prop: "影视化三维道具美术质感：",
+};
+
+function isLegacyDefaultPrompt(kind: DramaAssetStyleKind, prompt: string): boolean {
+  return prompt.startsWith(LEGACY_DEFAULT_PROMPT_PREFIX_BY_KIND[kind]);
+}
+
 export function normalizeDramaAssetStyleKind(value: unknown): DramaAssetStyleKind | null {
   if (typeof value !== "string") {
     return null;
@@ -54,10 +66,13 @@ export function parseDramaAssetArtStylePayload(value: unknown): DramaAssetArtSty
   }
   try {
     const payload = JSON.parse(value) as Record<string, unknown>;
+    const characterPrompt = normalizeDramaAssetStylePrompt(payload.characterPrompt);
+    const scenePrompt = normalizeDramaAssetStylePrompt(payload.scenePrompt);
+    const propPrompt = normalizeDramaAssetStylePrompt(payload.propPrompt);
     return {
-      characterPrompt: normalizeDramaAssetStylePrompt(payload.characterPrompt),
-      scenePrompt: normalizeDramaAssetStylePrompt(payload.scenePrompt),
-      propPrompt: normalizeDramaAssetStylePrompt(payload.propPrompt),
+      characterPrompt: isLegacyDefaultPrompt("character", characterPrompt) ? "" : characterPrompt,
+      scenePrompt: isLegacyDefaultPrompt("scene", scenePrompt) ? "" : scenePrompt,
+      propPrompt: isLegacyDefaultPrompt("prop", propPrompt) ? "" : propPrompt,
     };
   } catch {
     return emptyOverrides();
