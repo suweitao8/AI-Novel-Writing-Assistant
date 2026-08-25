@@ -176,7 +176,7 @@ function assertDependencyTreeIsLocal(directoryPath, checkoutRoot) {
 }
 
 function removeLocalDependencyRoots(worktreePath) {
-  const removed = [];
+  const candidates = [];
   for (const relativePath of DEPENDENCY_ROOTS) {
     const dependencyPath = path.join(worktreePath, relativePath);
     let stats;
@@ -196,8 +196,7 @@ function removeLocalDependencyRoots(worktreePath) {
           `${displayPath(dependencyPath)} -> ${displayPath(target)}`,
         ].join("\n"));
       }
-      fs.rmSync(dependencyPath, { force: true });
-      removed.push(dependencyPath);
+      candidates.push({ dependencyPath, symbolicLink: true });
       continue;
     }
     if (!stats.isDirectory()) {
@@ -209,8 +208,16 @@ function removeLocalDependencyRoots(worktreePath) {
       throw new Error(`Dependency root resolves outside the worktree: ${displayPath(dependencyPath)}`);
     }
     assertDependencyTreeIsLocal(dependencyPath, worktreePath);
-    fs.rmSync(dependencyPath, { recursive: true, force: true });
-    removed.push(dependencyPath);
+    candidates.push({ dependencyPath, symbolicLink: false });
+  }
+
+  const removed = [];
+  for (const candidate of candidates) {
+    fs.rmSync(candidate.dependencyPath, {
+      force: true,
+      ...(candidate.symbolicLink ? {} : { recursive: true }),
+    });
+    removed.push(candidate.dependencyPath);
   }
   return removed;
 }

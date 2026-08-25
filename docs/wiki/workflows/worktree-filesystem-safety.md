@@ -49,7 +49,7 @@ pnpm workflow:integrate codex/<task> --push --verify "pnpm test:workflow"
 pnpm workflow:cleanup codex/<task>
 ```
 
-清理顺序固定为：验证 main 和目标工作树 → 逐项验证并移除当前工作树的四个固定依赖根（`node_modules`、`client/node_modules`、`server/node_modules`、`shared/node_modules`）→ `git worktree remove --force <已验证的精确路径>` → 确认 Git 登记和目录都消失 → `git branch -d <branch>`。依赖清理不会跟随链接，且只作用于这些已验证的依赖目录；流程不使用 `Remove-Item -Recurse`、`rmdir /s` 或 glob 兜底。任一环节失败时保留现场并根据错误继续诊断。
+清理顺序固定为：验证 main 和目标工作树 → 先完整验证四个固定依赖根及其内部链接，再一次性移除（`node_modules`、`client/node_modules`、`server/node_modules`、`shared/node_modules`）→ `git worktree remove --force <已验证的精确路径>` → 确认 Git 登记和目录都消失 → `git branch -d <branch>`。依赖清理不会跟随链接，且只作用于这些已验证的依赖目录；流程不使用 `Remove-Item -Recurse`、`rmdir /s` 或 glob 兜底，也不会因后一个依赖根异常而先删掉前一个。任一环节失败时保留现场并根据错误继续诊断。
 
 ## Failure Modes
 
