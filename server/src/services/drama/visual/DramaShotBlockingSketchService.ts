@@ -5,6 +5,7 @@ import {
   parseStoryAssetStatesJson,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
+import type { StoryScene3DEnvironment } from "@ai-novel/shared/types/comicDrama";
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
@@ -18,6 +19,7 @@ import {
   type DramaShotBlockingSketchActor,
   type DramaShotBlockingSketchData,
 } from "./DramaShotBlockingSketchContracts";
+import { parseStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
 const BLOCKING_SKETCH_FILE = "blocking-sketch.png";
@@ -51,6 +53,7 @@ interface BlockingSketchEditorScene {
   assetId: string;
   stateId: string;
   imageUrl: string;
+  environment: StoryScene3DEnvironment;
 }
 
 export interface BlockingSketchEditorActor {
@@ -203,6 +206,7 @@ export class DramaShotBlockingSketchService {
           sceneType: true,
           timeOfDay: true,
           weather: true,
+          scene3dEnvironmentJson: true,
         },
       }),
       loadNovelCharacterStatesByName(novelId),
@@ -211,7 +215,8 @@ export class DramaShotBlockingSketchService {
       name: scene.name,
       assetId: scene.id,
       state: selectSceneState(scene.statesJson, scene),
-    })).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState } => Boolean(scene.state));
+      environment: parseStoryScene3dEnvironment(scene.scene3dEnvironmentJson),
+    })).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState; environment: StoryScene3DEnvironment } => Boolean(scene.state));
     const matchedScene = matchSceneByName(sceneCandidates, shot.location);
     const scene = matchedScene?.state.image?.status === "done" && matchedScene.state.image.url?.trim()
       ? {
@@ -219,6 +224,7 @@ export class DramaShotBlockingSketchService {
         assetId: matchedScene.assetId,
         stateId: matchedScene.state.id,
         imageUrl: stateImageUrl(novelId, "scene", matchedScene.assetId, matchedScene.state.id),
+        environment: matchedScene.environment,
       }
       : null;
 

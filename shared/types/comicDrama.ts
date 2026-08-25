@@ -4,6 +4,20 @@
 
 export type ComicDramaStageKey = "novel" | "storyboard" | "voice" | "video";
 
+/**
+ * 场景资产的统一 3D 环境参数。投射中心高度和半球直径由场景资产维护，
+ * 分镜只读取这份配置；yaw/intensity 保留在数据合同中用于兼容旧分镜快照，
+ * 当前产品固定为 0 / 1。
+ */
+export interface StoryScene3DEnvironment {
+  projectionCenterHeight: number;
+  domeRadius: number;
+  yawDeg: number;
+  intensity: number;
+}
+
+export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">;
+
 export interface ComicDramaLinkStats {
   projectId: string;
   projectTitle: string;

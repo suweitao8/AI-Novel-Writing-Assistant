@@ -194,6 +194,10 @@ const sceneCreateSchema = z.object({
   weather: z.enum(["sunny", "cloudy", "rainy"]).optional(),
   mapNodeId: z.string().trim().max(60).optional(),
   states: z.array(assetStateSchema).max(24).optional(),
+  scene3dEnvironment: z.object({
+    projectionCenterHeight: z.number().min(1).max(10),
+    domeRadius: z.number().min(10).max(50),
+  }).strict().nullable().optional(),
 });
 
 const sceneUpdateSchema = z.object({
@@ -206,6 +210,10 @@ const sceneUpdateSchema = z.object({
   weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
   mapNodeId: z.string().trim().max(60).nullable().optional(),
   states: z.array(assetStateSchema).max(24).optional(),
+  scene3dEnvironment: z.object({
+    projectionCenterHeight: z.number().min(1).max(10),
+    domeRadius: z.number().min(10).max(50),
+  }).strict().nullable().optional(),
 });
 
 const propCreateSchema = z.object({
@@ -266,6 +274,18 @@ export function registerStorySettingsRoutes(router: Router): void {
   router.get("/:id/settings/scenes", validate({ params: novelParams }), async (req, res, next) => {
     try {
       const data = await storySettingsService.listScenes(String(req.params.id));
+      res.json({ success: true, data } satisfies ApiResponse<typeof data>);
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  router.get("/:id/settings/scenes/:sceneId", validate({ params: sceneParams }), async (req, res, next) => {
+    try {
+      const data = await storySettingsService.getScene(
+        String(req.params.id),
+        String(req.params.sceneId),
+      );
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
     } catch (error) {
       next(error);

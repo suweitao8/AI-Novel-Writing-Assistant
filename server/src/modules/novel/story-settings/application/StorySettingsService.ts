@@ -36,6 +36,11 @@ import {
 import { projectCharacter, projectProp, projectScene, parseCharacterAliases, serializeCharacterAliases } from "./StorySettingsProjection";
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
+import {
+  parseStoryScene3dEnvironment,
+  serializeStoryScene3dEnvironment,
+} from "./StoryScene3dEnvironment";
+import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
 
 export type StorySettingsCategory = "characters" | "scenes" | "props" | "world";
 
@@ -81,6 +86,7 @@ export interface StorySettingsScene {
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
+  scene3dEnvironment: ReturnType<typeof parseStoryScene3dEnvironment>;
   updatedAt: string;
 }
 
@@ -573,6 +579,7 @@ export class StorySettingsService {
         sortOrder: row.sortOrder,
         source: row.source,
         states: scopeStateImageUrls(states, novelId, "scene", row.id),
+        scene3dEnvironment: parseStoryScene3dEnvironment(row.scene3dEnvironmentJson),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -588,6 +595,7 @@ export class StorySettingsService {
     weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetStateInput[];
+    scene3dEnvironment?: StoryScene3DEnvironmentInput | null;
   }): Promise<StorySettingsScene> {
     await requireNovel(novelId);
     assertValidStateInput(input.states);
@@ -609,11 +617,21 @@ export class StorySettingsService {
         weather: normalizeSceneWeather(input.weather),
         mapNodeId: input.mapNodeId ?? null,
         statesJson: serializeStates(states),
+        scene3dEnvironmentJson: serializeStoryScene3dEnvironment(input.scene3dEnvironment),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
     });
     return projectScene(row, novelId);
+  }
+
+  async getScene(novelId: string, sceneId: string): Promise<StorySettingsScene> {
+    const scenes = await this.listScenes(novelId);
+    const scene = scenes.find((item) => item.id === sceneId);
+    if (!scene) {
+      throw new AppError("没有找到这个场景。", 404);
+    }
+    return scene;
   }
 
   async updateScene(novelId: string, sceneId: string, input: {
@@ -626,6 +644,7 @@ export class StorySettingsService {
     weather?: string | null;
     mapNodeId?: string | null;
     states?: StoryAssetStateInput[];
+    scene3dEnvironment?: StoryScene3DEnvironmentInput | null;
   }): Promise<StorySettingsScene> {
     assertValidStateInput(input.states);
     for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -659,6 +678,9 @@ export class StorySettingsService {
           ...(input.weather !== undefined ? { weather: normalizeSceneWeather(input.weather) } : {}),
           ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
           ...(statesJson !== undefined ? { statesJson } : {}),
+          ...(input.scene3dEnvironment !== undefined
+            ? { scene3dEnvironmentJson: serializeStoryScene3dEnvironment(input.scene3dEnvironment) }
+            : {}),
         },
       });
       if (result.count !== 1) {
