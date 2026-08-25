@@ -105,6 +105,7 @@ export default function DramaBlocking3DPage() {
   const [searchParams] = useSearchParams();
   const shotOrder = searchParams.get("order");
   const autoPlanRequested = searchParams.get("autoPlan") === "1";
+  const autoPlanMode = autoPlanRequested ? "requested" : "initial";
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<Blocking3dViewer | null>(null);
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
@@ -269,11 +270,11 @@ export default function DramaBlocking3DPage() {
     if (!viewer || !context?.scene || context.actors.length === 0) return;
     const shouldAutoPlan = autoPlanRequested || !context.sketch?.layout3d;
     if (!shouldAutoPlan) return;
-    const key = `${projectId}:${shotId}:${autoPlanRequested ? "requested" : "initial"}`;
+    const key = `${projectId}:${shotId}:${autoPlanMode}`;
     if (autoPlanKeyRef.current === key) return;
     autoPlanKeyRef.current = key;
     void handleAutoPlan();
-  }, [autoPlanRequested, context, handleAutoPlan, projectId, shotId, viewer]);
+  }, [autoPlanMode, context, handleAutoPlan, projectId, viewer]);
 
   const saveBeforeExit = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
