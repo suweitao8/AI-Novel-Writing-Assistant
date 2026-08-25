@@ -87,4 +87,3 @@
 - shared build；服务端定向测试/build/typecheck；客户端定向测试/typecheck/build；
 - `git diff --check`、`pnpm check:workspace-integrity`；
 - 在独立分支提交后用 `pnpm workflow:integrate codex/scene-semantic-markers --push` 集成，确认 `main` 与 `origin/main` 同步，并清理已合并工作树。
-
