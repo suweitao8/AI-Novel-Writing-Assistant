@@ -82,6 +82,7 @@ test("3D 草图快照与旧草图字段一起保存，并统一保存静态关�
           scale: [1.4, 1.4, 1.4],
           pose: "sitting",
           actionPlaying: false,
+          color: [0.12, 0.34, 0.56],
         },
         {
           characterName: "血角兽",
@@ -112,6 +113,32 @@ test("3D 草图快照与旧草图字段一起保存，并统一保存静态关�
     },
   };
   assert.deepEqual(normalizeBlockingSketchData(input), expected);
+});
+
+test("3D 角色颜色会随布局保存，并拒绝超出 RGB 范围的值", () => {
+  const layout3d = {
+    schemaVersion: 1,
+    engine: "playcanvas",
+    camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+    actors: [{
+      characterName: "沈烬",
+      position: [0, 0, 0],
+      yawDeg: 0,
+      scale: [1, 1, 1],
+      pose: "standing",
+      actionPlaying: false,
+      color: [0.2, 0.4, 0.8],
+    }],
+  };
+  const normalized = normalizeBlockingSketchData({ ...validSketch, layout3d });
+  assert.deepEqual(normalized.layout3d?.actors[0]?.color, [0.2, 0.4, 0.8]);
+  assert.throws(
+    () => normalizeBlockingSketchData({
+      ...validSketch,
+      layout3d: { ...layout3d, actors: [{ ...layout3d.actors[0], color: [1.1, 0, 0] }] },
+    }),
+    /颜色/,
+  );
 });
 
 test("3D 摆位快照拒绝越界位置和未知姿势", () => {

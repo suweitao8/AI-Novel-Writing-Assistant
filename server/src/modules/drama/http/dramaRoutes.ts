@@ -135,6 +135,11 @@ const blockingSketch3dActorSchema = z.object({
     z.number().min(0.1).max(10),
   ]),
   pose: blockingSketch3dPoseSchema,
+  color: z.tuple([
+    z.number().min(0).max(1),
+    z.number().min(0).max(1),
+    z.number().min(0).max(1),
+  ]).optional(),
   actionPlaying: z.boolean(),
 });
 
