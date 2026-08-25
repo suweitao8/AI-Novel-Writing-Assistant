@@ -24,3 +24,61 @@ test("身高档案迁移只新增两列", () => {
     assert.equal((source.match(/ADD COLUMN/gi) ?? []).length, 2);
   }
 });
+
+test("身高档案接受边界值并拒绝越界值", () => {
+  const service = require("../dist/services/drama/visual/CharacterHeightProfileService.js");
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
+    schemaVersion: 1,
+    heightMeters: 0.7,
+    confidence: 0,
+    rationale: "边界",
+    source: "ai",
+    inputFingerprint: "sha256:a",
+    generatedAt: "2026-08-26T00:00:00.000Z",
+  })).heightMeters, 0.7);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
+    schemaVersion: 1,
+    heightMeters: 2.4,
+    confidence: 1,
+    rationale: "边界",
+    source: "ai",
+    inputFingerprint: "sha256:b",
+    generatedAt: "2026-08-26T00:00:00.000Z",
+  })).heightMeters, 2.4);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 2.41 })), null);
+  assert.equal(service.parseCharacterHeightProfile("not-json"), null);
+});
+
+test("同一角色输入产生稳定指纹，代理模型按 1.8287 米原生高度换算", () => {
+  const service = require("../dist/services/drama/visual/CharacterHeightProfileService.js");
+  const input = {
+    name: "小满",
+    role: "学生",
+    gender: "female",
+    ageGroup: "child",
+    physique: "娇小",
+    appearance: "",
+  };
+  assert.equal(
+    service.buildCharacterHeightInputFingerprint(input),
+    service.buildCharacterHeightInputFingerprint({ ...input }),
+  );
+  assert.equal(service.heightToProxyScale(1.8287), 1);
+  assert.ok(service.heightToProxyScale(0.7) < service.heightToProxyScale(1.8));
+});
+
+test("fallback 档案明确标记来源且固定兼容高度", () => {
+  const service = require("../dist/services/drama/visual/CharacterHeightProfileService.js");
+  const profile = service.createFallbackCharacterHeightProfile("sha256:f");
+  assert.equal(profile.source, "fallback");
+  assert.equal(profile.heightMeters, 1.8);
+});
+
+test("身高推断通过 Prompt Registry 注册", () => {
+  const registrySource = read("server/src/prompting/registry/promptAssetLoaderEntries.ts");
+  const promptSource = read("server/src/prompting/prompts/novel/characterHeightEstimate.prompts.ts");
+  assert.match(registrySource, /novel\.character\.heightEstimate@v1/);
+  assert.match(registrySource, /characterHeightEstimatePrompt/);
+  assert.match(promptSource, /只输出符合 schema 的 JSON/);
+  assert.match(promptSource, /年龄段、体型、外貌/);
+});
