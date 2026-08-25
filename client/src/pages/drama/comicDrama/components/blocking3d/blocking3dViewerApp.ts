@@ -544,6 +544,21 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       }
     }
   };
+  const clearEnvironmentVisuals = () => {
+    environmentDome?.destroy();
+    environmentDome = null;
+    environmentGround?.destroy();
+    environmentGround = null;
+    environmentDomeMeshInstance = null;
+    environmentGroundMeshInstance = null;
+    environmentMaterial?.destroy();
+    environmentMaterial = null;
+    if (environmentAsset) {
+      environmentAsset.unload();
+      app.assets.remove(environmentAsset);
+      environmentAsset = null;
+    }
+  };
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
@@ -1115,21 +1130,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     async setEnvironment(url) {
       ground.enabled = true;
       clearEnvironmentLighting();
-      if (environmentDome) {
-        environmentDome.destroy();
-        environmentDome = null;
-      }
-      if (environmentGround) {
-        environmentGround.destroy();
-        environmentGround = null;
-      }
-      environmentDomeMeshInstance = null;
-      environmentGroundMeshInstance = null;
-      environmentMaterial = null;
-      if (environmentAsset) {
-        app.assets.remove(environmentAsset);
-        environmentAsset = null;
-      }
+      clearEnvironmentVisuals();
       if (!url?.trim()) return;
       setStatus("正在加载场景 HDRI 环境...");
       environmentAsset = await loadAsset(app, url, "texture");
@@ -1251,12 +1252,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       actors.clear();
       for (const runtime of sceneMarkerRuntimes.values()) destroySceneMarkerRuntime(runtime);
       sceneMarkerRuntimes.clear();
-      environmentDome?.destroy();
-      environmentGround?.destroy();
-      environmentDomeMeshInstance = null;
-      environmentGroundMeshInstance = null;
-      environmentMaterial = null;
-      environmentAsset && app.assets.remove(environmentAsset);
+      clearEnvironmentVisuals();
       clearEnvironmentLighting();
       cameraFrame.destroy();
       selectionRing.destroy();

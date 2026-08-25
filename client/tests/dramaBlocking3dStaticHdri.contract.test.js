@@ -65,6 +65,11 @@ test("有限 HDRI 半球不应触发 PlayCanvas 内置无限天空盒", () => {
   assert.doesNotMatch(viewerSource, /layers: \[pc\.LAYERID_SKYBOX\]/);
 });
 
+test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
+  assert.match(viewerSource, /environmentAsset\.unload\(\)/);
+  assert.match(viewerSource, /environmentMaterial\?\.destroy\(\)/);
+});
+
 test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
   assert.match(viewerSource, /createUpperDomeGeometry/);
   assert.match(viewerSource, /createGroundDomeGeometry/);
