@@ -215,6 +215,8 @@ export interface DramaShotBlockingSketch3DActor {
   position: [number, number, number];
   yawDeg: number;
   scale: [number, number, number];
+  /** Character height baseline used by the 3D blocking viewer; omitted by legacy snapshots. */
+  heightMeters?: number;
   pose: DramaShotBlockingSketchPose;
   /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
   color?: [number, number, number];
@@ -264,6 +266,9 @@ export interface DramaShotBlockingSketchEditorContext {
     stateId?: string;
     imageUrl?: string;
     sourceImageKind: "state_sheet" | "portrait" | "placeholder";
+    heightMeters: number;
+    heightSource: "ai" | "fallback" | "legacy";
+    heightConfidence?: number;
   }>;
 }
 

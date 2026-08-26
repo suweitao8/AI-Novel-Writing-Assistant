@@ -874,6 +874,7 @@ model Character {
   appearance      String?
   physique        String?
   ageGroup        String?
+  heightProfileJson String?
   facePrompt      String?
   attireStyle     String?
   signatureDetail String?
@@ -3704,6 +3705,8 @@ model DramaCharacter {
   speechStyle        String?
   visualAnchor       String?
   voiceProfile       String?
+  // 分镜 blocking 的 AI 近似身高档案 JSON
+  heightProfileJson  String?
   relations          String?
   sourceCharacterRef String?
   // 角色形象图 JSON: { status:"idle"|"generating"|"done"|"error", url?:string, prompt?:string, generatedAt?:string }

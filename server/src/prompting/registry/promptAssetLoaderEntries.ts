@@ -30,6 +30,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/novel/storySettings.prompts").storyEntityGeneratePrompt as UnknownPromptAsset,
   },
   {
+    key: "novel.character.heightEstimate@v1",
+    load: () => require("../prompts/novel/characterHeightEstimate.prompts").characterHeightEstimatePrompt as UnknownPromptAsset,
+  },
+  {
     key: "novel.outline.expand@v1",
     load: () => require("../prompts/novel/outlineExpand.prompts").novelOutlineExpandPrompt as UnknownPromptAsset,
   },

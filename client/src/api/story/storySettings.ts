@@ -84,6 +84,12 @@ export interface StorySettingsCharacter {
   personality: string | null;
   appearance: string | null;
   background: string | null;
+  /** AI 根据角色设定推断的分镜相对身高；仅展示，不能手工修改。 */
+  heightProfile: {
+    heightMeters: number;
+    confidence: number;
+    source: "ai" | "fallback";
+  } | null;
   states: StoryAssetState[];
   updatedAt: string;
 }

@@ -3,6 +3,7 @@ import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetIma
 import { normalizeCharacterStates, normalizePropStates, normalizeSceneStates, parseStates } from "./StorySettingsStatePolicy";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
 import { parseStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
+import { parseCharacterHeightProfile } from "../../../../services/drama/visual/CharacterHeightProfileService";
 
 /** 设定中心实体 DTO 投影；投影阶段也要保证返回的状态数组可直接进入生成链。 */
 
@@ -54,6 +55,7 @@ export function projectCharacter(row: {
   personality: string | null;
   appearance: string | null;
   background: string | null;
+  heightProfileJson?: string | null;
   statesJson?: string | null;
   aliasesJson?: string | null;
   updatedAt: Date;
@@ -71,10 +73,22 @@ export function projectCharacter(row: {
     personality: row.personality,
     appearance: row.appearance,
     background: row.background,
+    heightProfile: projectCharacterHeightProfile(row.heightProfileJson),
     aliases: parseCharacterAliases(row.aliasesJson, row.name),
     states: scopeStateImageUrls(normalizeCharacterStates(parseStates(row.statesJson), row), novelId, "character", row.id),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+export function projectCharacterHeightProfile(raw: string | null | undefined) {
+  const profile = parseCharacterHeightProfile(raw);
+  return profile
+    ? {
+      heightMeters: profile.heightMeters,
+      confidence: profile.confidence,
+      source: profile.source,
+    }
+    : null;
 }
 
 export function projectScene(row: {

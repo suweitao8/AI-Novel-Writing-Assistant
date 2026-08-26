@@ -166,6 +166,7 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
   const badges = [
     labelFor(GENDER_LABELS, asset.gender),
     labelFor(AGE_LABELS, initialState?.ageGroup ?? asset.ageGroup),
+    asset.heightProfile ? `约 ${asset.heightProfile.heightMeters.toFixed(1)} 米` : "",
   ].filter(Boolean);
 
   addDetail(details, "性别", labelFor(GENDER_LABELS, asset.gender));
@@ -177,6 +178,13 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
   addDetail(details, "面部提示词", asset.facePrompt);
   addDetail(details, "音色", asset.voiceTexture);
   addDetail(details, "背景", asset.background);
+  addDetail(
+    details,
+    "分镜比例基准",
+    asset.heightProfile
+      ? `约 ${asset.heightProfile.heightMeters.toFixed(1)} 米（${asset.heightProfile.source === "ai" ? "AI 估算" : "兼容基准"}）`
+      : null,
+  );
 
   return {
     id: asset.id,

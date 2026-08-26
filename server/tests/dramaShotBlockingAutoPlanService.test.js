@@ -60,6 +60,30 @@ test("自动构图服务拒绝缺失当前镜头角色而不使用固定坐标�
   );
 });
 
+test("自动构图把局部缩放乘到角色身高基准上并保存身高元数据", () => {
+  const heightAwareActors = [
+    { characterName: "高个成年人", sourceImageKind: "state_sheet", heightMeters: 1.8, heightSource: "ai" },
+    { characterName: "小孩", sourceImageKind: "state_sheet", heightMeters: 0.9, heightSource: "ai" },
+  ];
+  const heightAwareOutput = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "高个成年人", scale: [1, 1, 1] },
+      { ...planOutput.actors[1], characterName: "小孩", scale: [1, 1, 1] },
+    ],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+    heightAwareOutput,
+    heightAwareActors,
+    { projectionCenterHeight: 3, domeRadius: 20, yawDeg: 0, intensity: 1 },
+  );
+  const tall = result.layout.actors[0];
+  const child = result.layout.actors[1];
+  assert.equal(tall.heightMeters, 1.8);
+  assert.equal(child.heightMeters, 0.9);
+  assert.ok(Math.abs(tall.scale[0] / child.scale[0] - 2) < 0.0001);
+});
+
 test("自动构图服务通过注册 Prompt 获取镜头上下文并返回未落库布局", () => {
   assert.match(serviceSource, /runStructuredPrompt/);
   assert.match(serviceSource, /dramaShotBlockingAutoPlanPrompt/);
@@ -67,6 +91,7 @@ test("自动构图服务通过注册 Prompt 获取镜头上下文并返回未落
   assert.match(serviceSource, /shotSize/);
   assert.match(serviceSource, /visualPrompt/);
   assert.match(serviceSource, /context\.actors/);
+  assert.match(serviceSource, /heightMeters/);
   assert.match(serviceSource, /不一致|遗漏|缺少/);
   assert.doesNotMatch(serviceSource, /blockingSketchData:\s*JSON\.stringify\(.*autoPlan/s);
 });

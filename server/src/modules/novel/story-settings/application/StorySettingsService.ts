@@ -33,7 +33,14 @@ import {
   preserveStoryAssetRuntimeAssets,
   serializeStates,
 } from "./StorySettingsStatePolicy";
-import { projectCharacter, projectProp, projectScene, parseCharacterAliases, serializeCharacterAliases } from "./StorySettingsProjection";
+import {
+  projectCharacter,
+  projectCharacterHeightProfile,
+  projectProp,
+  projectScene,
+  parseCharacterAliases,
+  serializeCharacterAliases,
+} from "./StorySettingsProjection";
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
 import {
@@ -124,6 +131,11 @@ export interface StorySettingsCharacter {
   personality: string | null;
   appearance: string | null;
   background: string | null;
+  heightProfile: {
+    heightMeters: number;
+    confidence: number;
+    source: "ai" | "fallback";
+  } | null;
   states: StoryAssetState[];
   updatedAt: string;
 }
@@ -886,13 +898,14 @@ export class StorySettingsService {
         personality: true,
         appearance: true,
         background: true,
+        heightProfileJson: true,
         statesJson: true,
         aliasesJson: true,
         updatedAt: true,
       },
     });
     return Promise.all(rows.map(async (row) => {
-      const { statesJson, aliasesJson, ...rest } = row;
+      const { statesJson, aliasesJson, heightProfileJson, ...rest } = row;
       const parsedStates = parseStates(statesJson);
       const states = normalizeCharacterStates(parsedStates, row);
       const normalizedStatesJson = serializeStates(states);
@@ -906,6 +919,7 @@ export class StorySettingsService {
       return {
         ...rest,
         aliases: parseCharacterAliases(aliasesJson, row.name),
+        heightProfile: projectCharacterHeightProfile(heightProfileJson),
         states: scopeStateImageUrls(states, novelId, "character", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };

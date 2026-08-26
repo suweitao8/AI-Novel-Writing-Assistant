@@ -18,6 +18,12 @@ import {
 } from "./blocking3dEnvironmentProjection";
 import { createSelectionRingGeometryData } from "./blocking3dSelectionRing";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
+import {
+  DEFAULT_BLOCKING_3D_HEIGHT_METERS,
+  heightToBlocking3dScale,
+  normalizeBlocking3dHeight,
+  scaleSavedActorForCurrentHeight,
+} from "./blocking3dScale";
 import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 import {
   createSceneMarkerRuntime,
@@ -34,9 +40,6 @@ const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
-const ACTOR_REFERENCE_HEIGHT_METERS = 1.8;
-const ACTOR_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
-const ACTOR_REFERENCE_SCALE = ACTOR_REFERENCE_HEIGHT_METERS / ACTOR_PROXY_NATIVE_HEIGHT_METERS;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   domeRadius: 15,
@@ -88,6 +91,7 @@ interface AnimComponent {
 
 interface Blocking3dViewerActor {
   label: string;
+  heightMeters: number;
   entity: pc.Entity;
   animEntity: pc.Entity;
   pose: DramaShotBlockingSketchPose;
@@ -111,7 +115,7 @@ export interface Blocking3dViewer {
   onMarkerSelection: (listener: (id: string | null) => void) => () => void;
   onChange: (listener: () => void) => () => void;
   onStatus: (listener: (status: string) => void) => () => void;
-  addActor: (label: string, index: number) => boolean;
+  addActor: (label: string, index: number, heightMeters?: number) => boolean;
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
   selectMarker: (id: string | null) => boolean;
@@ -934,7 +938,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     throw error instanceof Error ? error : new Error(String(error));
   }
 
-  const createActor = (label: string, index: number): Blocking3dViewerActor => {
+  const createActor = (
+    label: string,
+    index: number,
+    heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
+  ): Blocking3dViewerActor => {
     const resource = actorAsset.resource as ContainerResource;
     const model = resource.instantiateRenderEntity?.({ castShadows: false });
     if (!model) throw new Error("3D 代理角色模型无法实例化。");
@@ -949,10 +957,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (model.anim) model.anim.rootBone = model;
     root.setPosition((index - 1) * 1.6, 0, 0);
     root.setEulerAngles(0, 180, 0);
-    root.setLocalScale(ACTOR_REFERENCE_SCALE, ACTOR_REFERENCE_SCALE, ACTOR_REFERENCE_SCALE);
+    const normalizedHeightMeters = normalizeBlocking3dHeight(heightMeters);
+    const proxyScale = heightToBlocking3dScale(normalizedHeightMeters);
+    root.setLocalScale(proxyScale, proxyScale, proxyScale);
     app.root.addChild(root);
     const actor: Blocking3dViewerActor = {
       label,
+      heightMeters: normalizedHeightMeters,
       entity: root,
       animEntity: model,
       pose: "standing",
@@ -1004,9 +1015,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);
     },
-    addActor(label, index) {
+    addActor(label, index, heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS) {
       if (!label.trim() || actors.has(label)) return false;
-      const actor = createActor(label.trim(), index);
+      const actor = createActor(label.trim(), index, heightMeters);
       actors.set(label.trim(), actor);
       if (!selectedLabel) select(label.trim());
       emitChange();
@@ -1195,6 +1206,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
           const scale = actor.entity.getLocalScale();
           return {
             characterName: actor.label,
+            heightMeters: actor.heightMeters,
             position: [position.x, position.y, position.z] as [number, number, number],
             yawDeg: clamp(actor.entity.getEulerAngles().y, -180, 180),
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
@@ -1215,7 +1227,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         if (!actor) continue;
         actor.entity.setPosition(saved.position[0], saved.position[1], saved.position[2]);
         actor.entity.setEulerAngles(0, saved.yawDeg, 0);
-        actor.entity.setLocalScale(saved.scale[0], saved.scale[1], saved.scale[2]);
+        const scale = scaleSavedActorForCurrentHeight(
+          saved.scale,
+          saved.heightMeters,
+          actor.heightMeters,
+        );
+        actor.entity.setLocalScale(scale[0], scale[1], scale[2]);
         if (saved.color) {
           actor.color = normalizeActorColor(saved.color);
           actor.material = setEntityMaterial(actor.animEntity, actor.color, actor.material);
