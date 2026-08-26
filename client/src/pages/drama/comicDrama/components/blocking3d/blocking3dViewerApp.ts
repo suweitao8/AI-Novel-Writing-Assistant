@@ -3,6 +3,10 @@ import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   type StoryScene3DMarker,
 } from "@ai-novel/shared/types/comicDrama";
+import {
+  clampBlockingActorPositionToStage,
+  resolveStoryScene3DActorStageRadius,
+} from "@ai-novel/shared/utils/blockingStage";
 
 import type {
   DramaShotBlockingSketch3DActor,
@@ -458,6 +462,31 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+
+  // 舞台边界参考圈：半球半径减去边缘运动缓冲，角色站位不允许越过它。
+  const STAGE_BOUNDARY_SEGMENTS = 96;
+  const stageBoundaryColor = new pc.Color(0.9, 0.62, 0.2, 0.4);
+  let stageBoundaryLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
+  const rebuildStageBoundary = () => {
+    stageBoundaryLines = [];
+    const radius = resolveStoryScene3DActorStageRadius(environmentSettings);
+    const y = 0.012;
+    let previousXZ: { x: number; z: number } | null = null;
+    for (let index = 0; index <= STAGE_BOUNDARY_SEGMENTS; index += 1) {
+      const angle = (index / STAGE_BOUNDARY_SEGMENTS) * Math.PI * 2;
+      const xz = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
+      if (previousXZ) {
+        stageBoundaryLines.push({
+          start: new pc.Vec3(previousXZ.x, y, previousXZ.z),
+          end: new pc.Vec3(xz.x, y, xz.z),
+          color: stageBoundaryColor,
+        });
+      }
+      previousXZ = xz;
+    }
+  };
+  rebuildStageBoundary();
+
   const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime = createProjectionCenterGizmo(
     app,
     environmentSettings,
@@ -504,6 +533,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
+    rebuildStageBoundary();
     if (environmentBackdrop) {
       environmentBackdrop.setLocalScale(
         environmentSettings.domeRadius,
@@ -735,11 +765,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const nextGround = raycastGround(event.clientX, event.clientY);
       if (actor && previousGround && nextGround) {
         const position = actor.entity.getPosition();
-        actor.entity.setPosition(
-          clamp(position.x + nextGround.x - previousGround.x, -100, 100),
+        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage([
+          position.x + nextGround.x - previousGround.x,
           position.y,
-          clamp(position.z + nextGround.z - previousGround.z, -100, 100),
-        );
+          position.z + nextGround.z - previousGround.z,
+        ], environmentSettings);
+        actor.entity.setPosition(nextX, nextY, nextZ);
         dragState.lastGround = nextGround;
         emitSelection();
         emitChange();
@@ -867,6 +898,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     selectionOutline.frameUpdate();
@@ -1054,11 +1086,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const actor = selectedActor();
       if (!actor) return false;
       const position = actor.entity.getPosition();
-      actor.entity.setPosition(
-        clamp(position.x + dx, -100, 100),
+      const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage([
+        position.x + dx,
         clamp(position.y + dy, 0, 50),
-        clamp(position.z + dz, -100, 100),
-      );
+        position.z + dz,
+      ], environmentSettings);
+      actor.entity.setPosition(nextX, nextY, nextZ);
       emitSelection();
       emitChange();
       return true;
