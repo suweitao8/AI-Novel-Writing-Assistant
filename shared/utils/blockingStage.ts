@@ -25,11 +25,19 @@ function finiteOr(value: unknown, fallback: number): number {
 export type BlockingStageEnvironment = Pick<StoryScene3DEnvironment, "domeRadius" | "projectionCenterHeight">
   & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>;
 
-/** 角色允许的活动半径：半球半径减去边缘缓冲。 */
+/**
+ * 角色允许的活动半径：半球真实半径减去边缘缓冲。
+ *
+ * 环境字段 domeRadius 按产品语义存的是半球直径（设置页滑块即“半球直径”），
+ * 3D 视图的 dome 几何也按直径缩放（0.5 半径基础网格 × domeRadius），
+ * 所以世界真实半径 = domeRadius / 2。舞台边界必须在真实半径的基础上内缩，
+ * 否则会画到半球外面、角色也会被允许走出球边穿模。
+ */
 export function resolveStoryScene3DActorStageRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
+  const domeWorldRadius = finiteOr(environment?.domeRadius, 10) / 2;
   return Math.max(
     STORY_SCENE_3D_ACTOR_STAGE_MIN_RADIUS_M,
-    finiteOr(environment?.domeRadius, 10) - STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
+    domeWorldRadius - STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
   );
 }
 
