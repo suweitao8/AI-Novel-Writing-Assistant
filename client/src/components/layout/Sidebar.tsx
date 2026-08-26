@@ -32,6 +32,7 @@ import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog"
 import AppVersionBadge from "@/components/layout/AppVersionBadge";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
 import { cn } from "@/lib/utils";
+import { isNavRouteVisible } from "@/config/dramaFocusNav";
 
 interface NavItem {
   to: string;
@@ -80,6 +81,13 @@ const navGroups: NavGroup[] = [
     ],
   },
 ];
+
+const visibleNavGroups = navGroups
+  .map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isNavRouteVisible(item.to)),
+  }))
+  .filter((group) => group.items.length > 0);
 
 interface SidebarProps {
   onSwitchToWorkspaceNav?: () => void;
@@ -162,7 +170,7 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
-        {navGroups.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.title}
