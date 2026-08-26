@@ -252,6 +252,16 @@ export interface DramaShotBlockingSketchData {
 
 export interface DramaShotBlockingSketchEditorContext {
   sketch: DramaShotBlockingSketchData | null;
+  shot: {
+    order: number;
+    location: string;
+    shotSize: string;
+    cameraMove: string;
+    durationSec: number | null;
+    action: string;
+    dialogue: string;
+    visualPrompt: string;
+  };
   scene: {
     name: string;
     assetId: string;

@@ -49,6 +49,32 @@ test("自动构图服务把 AI 输出归一化为完整 PlayCanvas 布局", () =
   assert.equal(result.compositionNote, "双人关系清楚");
 });
 
+test("编辑器上下文摘要保留当前镜头的设计字段", () => {
+  assert.equal(typeof serviceModule.buildDramaShotBlockingEditorShotSummary, "function");
+  assert.deepEqual(
+    serviceModule.buildDramaShotBlockingEditorShotSummary({
+      order: 4,
+      location: "废墟广场",
+      shotSize: "近景",
+      cameraMove: "缓慢推进",
+      durationSec: 3.5,
+      action: "血角兽抬头冲向镜头",
+      dialogue: null,
+      visualPrompt: "低机位，红色天光",
+    }),
+    {
+      order: 4,
+      location: "废墟广场",
+      shotSize: "近景",
+      cameraMove: "缓慢推进",
+      durationSec: 3.5,
+      action: "血角兽抬头冲向镜头",
+      dialogue: "",
+      visualPrompt: "低机位，红色天光",
+    },
+  );
+});
+
 test("自动构图服务拒绝缺失当前镜头角色而不使用固定坐标补齐", () => {
   assert.throws(
     () => serviceModule.buildDramaShotBlockingAutoPlanLayout(
