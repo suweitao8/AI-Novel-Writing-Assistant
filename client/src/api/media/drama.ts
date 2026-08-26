@@ -244,6 +244,7 @@ export interface DramaShotBlockingSketchData {
   version: number;
   url?: string;
   generatedAt?: string;
+  compositionNote?: string;
   scene: DramaShotBlockingSketchScene;
   actors: DramaShotBlockingSketchActor[];
   layout3d?: DramaShotBlockingSketch3DLayout;
@@ -251,6 +252,16 @@ export interface DramaShotBlockingSketchData {
 
 export interface DramaShotBlockingSketchEditorContext {
   sketch: DramaShotBlockingSketchData | null;
+  shot: {
+    order: number;
+    location: string;
+    shotSize: string;
+    cameraMove: string;
+    durationSec: number | null;
+    action: string;
+    dialogue: string;
+    visualPrompt: string;
+  };
   scene: {
     name: string;
     assetId: string;

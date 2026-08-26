@@ -32,6 +32,10 @@ test("编辑器上下文从镜头场景和角色状态中构建，而不是让�
   assert.match(source, /matchSceneByName/);
 });
 
+test("保存草图时保留 AI 镜头设计说明", () => {
+  assert.match(source, /compositionNote:\s*normalized\.compositionNote/);
+});
+
 test("环境快照不一致时，分镜上下文不会继续提供旧空间标记", () => {
   assert.match(source, /isStoryScene3DMarkerSetCurrent/);
   assert.match(source, /const markerAnalysis = matchedSceneState\?\.scene3dMarkers \?\? null/);

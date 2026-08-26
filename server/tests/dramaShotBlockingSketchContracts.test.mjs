@@ -39,6 +39,16 @@ test("摆位草图固定为横屏 16:9，并保留可恢复的构图数据", () 
   assert.deepEqual(normalizeBlockingSketchData(validSketch), validSketch);
 });
 
+test("镜头设计说明可随草图快照规范化并兼容旧数据", () => {
+  const normalized = normalizeBlockingSketchData({
+    ...validSketch,
+    compositionNote: "低机位贴近血角兽，角色从画面右侧压入前景。",
+  });
+
+  assert.equal(normalized.compositionNote, "低机位贴近血角兽，角色从画面右侧压入前景。");
+  assert.equal(normalizeBlockingSketchData(validSketch).compositionNote, undefined);
+});
+
 test("摆位草图拒绝越界相机和角色位置，防止脏数据进入正式生图", () => {
   assert.throws(
     () => normalizeBlockingSketchData({

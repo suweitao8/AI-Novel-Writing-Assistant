@@ -148,6 +148,7 @@ export interface DramaShotBlockingSketchData {
   version: number;
   url?: string;
   generatedAt?: string;
+  compositionNote?: string;
   scene: DramaShotBlockingSketchScene;
   actors: DramaShotBlockingSketchActor[];
   layout3d?: DramaShotBlockingSketch3DLayout;
@@ -383,12 +384,14 @@ export function normalizeBlockingSketchData(input: unknown): DramaShotBlockingSk
   }
   const url = stringValue(data.url, "草图图片", false);
   const generatedAt = stringValue(data.generatedAt, "生成时间", false);
+  const compositionNote = stringValue(data.compositionNote, "镜头设计说明", false);
   const layout3d = data.layout3d === undefined ? undefined : normalizeBlockingSketch3dLayout(data.layout3d);
   return {
     status: data.status,
     version: finiteNumber(data.version, "版本号", 1, Number.MAX_SAFE_INTEGER, true),
     ...(url ? { url } : {}),
     ...(generatedAt ? { generatedAt } : {}),
+    ...(compositionNote ? { compositionNote } : {}),
     scene: normalizeScene(data.scene),
     actors: data.actors.map(normalizeActor),
     ...(layout3d ? { layout3d } : {}),
