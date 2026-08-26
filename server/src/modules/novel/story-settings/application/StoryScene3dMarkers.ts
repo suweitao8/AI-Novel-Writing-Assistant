@@ -143,6 +143,46 @@ function normalizeMarker(
   return marker;
 }
 
+/**
+ * 可行走地面不是视觉模型的输出，而是墙面标记深度的确定性后处理：
+ * 全景投射时地平线以下的墙面像素会落在地面几何上，角色站在这些区域
+ * 会显得踩在墙上。取所有已投影墙面标记的最近半径，生成内接于该半径
+ * 的方形薄板作为角色站位的可靠范围；没有墙面证据时退回与空间标记
+ * 一致的参考半径。每次归一化都会丢弃旧薄板并重新推导，保持幂等。
+ */
+export const WALKABLE_FLOOR_MARKER_ID = "scene-floor-walkable";
+const WALKABLE_FLOOR_SLAB_THICKNESS = 0.06;
+const WALKABLE_FLOOR_INSCRIBED_MARGIN = 0.95;
+const WALKABLE_FLOOR_MAX_HALF_SIDE = 15;
+
+function synthesizeWalkableFloorMarker(
+  markers: StoryScene3DMarker[],
+  maxRadius: number,
+): StoryScene3DMarker | null {
+  if (markers.length === 0) return null;
+  const wallRadii = markers
+    .filter((marker) => marker.anchor === "wall")
+    .map((marker) => Math.hypot(marker.position[0], marker.position[2]))
+    .filter((radius) => Number.isFinite(radius) && radius > 0);
+  const boundaryRadius = wallRadii.length > 0 ? Math.min(...wallRadii) : maxRadius;
+  const halfSide = clamp(
+    (boundaryRadius / Math.SQRT2) * WALKABLE_FLOOR_INSCRIBED_MARGIN,
+    0.25,
+    WALKABLE_FLOOR_MAX_HALF_SIDE,
+  );
+  return {
+    id: WALKABLE_FLOOR_MARKER_ID,
+    kind: "floor",
+    label: "可行走地面",
+    anchor: "floor",
+    position: [0, WALKABLE_FLOOR_SLAB_THICKNESS / 2, 0],
+    size: [halfSide * 2, WALKABLE_FLOOR_SLAB_THICKNESS, halfSide * 2],
+    yawDeg: 0,
+    confidence: 1,
+    source: "ai",
+  };
+}
+
 export function normalizeStoryScene3dMarkerSet(
   input: unknown,
   options: {
@@ -163,7 +203,8 @@ export function normalizeStoryScene3dMarkerSet(
   const markers = rawMarkers
     .slice(0, STORY_SCENE_3D_MARKER_LIMITS.maxMarkers)
     .map((marker, index) => normalizeMarker(marker, index, maxRadius))
-    .filter((marker): marker is StoryScene3DMarker => Boolean(marker));
+    .filter((marker): marker is StoryScene3DMarker => Boolean(marker))
+    .filter((marker) => marker.kind !== "floor");
   const usedIds = new Set<string>();
   for (const [index, marker] of markers.entries()) {
     const baseId = (marker.id || `marker-${index + 1}`).slice(0, 72);
@@ -187,6 +228,8 @@ export function normalizeStoryScene3dMarkerSet(
       marker.size = projection.size;
       marker.yawDeg = projection.yawDeg;
     }
+    const walkableFloor = synthesizeWalkableFloorMarker(markers, maxRadius);
+    if (walkableFloor) markers.push(walkableFloor);
   }
   const status = source.status === "error" || source.status === "stale" ? source.status : "ready";
   const result: StoryScene3DMarkerSet = {
@@ -254,7 +297,10 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
   if (!markerSet || !environment || markerSet.status !== "ready" || markerSet.sourceEnvironment) {
     return markerSet ?? null;
   }
-  if (markerSet.markers.length === 0 || markerSet.markers.some((marker) => marker.source === "manual" || !marker.imageRegion)) {
+  if (markerSet.markers.length === 0 || markerSet.markers.some((marker) => (
+    marker.kind !== "floor"
+    && (marker.source === "manual" || !marker.imageRegion)
+  ))) {
     return markerSet;
   }
   return {
