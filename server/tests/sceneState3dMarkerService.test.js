@@ -152,6 +152,7 @@ test("场景标记服务保存投射环境快照，并用图像区域重算位�
 
   assert.deepEqual(result.sourceEnvironment, {
     projectionCenterHeight: 2,
+    projectionCenterHeightRatio: 0.1333,
     domeRadius: 15,
     panoramaHorizonV: 0.5,
   });

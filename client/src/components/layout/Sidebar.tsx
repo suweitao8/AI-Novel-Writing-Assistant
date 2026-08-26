@@ -32,6 +32,7 @@ import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog"
 import AppVersionBadge from "@/components/layout/AppVersionBadge";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
 import { cn } from "@/lib/utils";
+import { isNavRouteVisible } from "@/config/dramaFocusNav";
 
 interface NavItem {
   to: string;
@@ -50,7 +51,7 @@ const navGroups: NavGroup[] = [
     items: [
       { to: "/", label: "首页", icon: House },
       { to: "/novels", label: "小说列表", icon: BookOpenText },
-      { to: "/drama", label: "漫剧列表", icon: Clapperboard },
+      { to: "/drama", label: "漫剧", icon: Clapperboard },
       { to: "/comic", label: "漫画工作台", icon: SquareStack },
       { to: "/creative-hub", label: "创作中枢", icon: LayoutDashboard },
       { to: "/book-analysis", label: "拆书", icon: ScanSearch },
@@ -70,16 +71,23 @@ const navGroups: NavGroup[] = [
   {
     title: "系统",
     items: [
-      { to: "/tasks", label: "运行记录", icon: ListTodo },
+      { to: "/tasks", label: "记录", icon: ListTodo },
       { to: "/auto-director/follow-ups", label: "导演跟进", icon: Workflow },
       { to: "/prompt-workbench", label: "提示词管理", icon: Braces },
       { to: "/genres", label: "题材基底库", icon: Tags },
       { to: "/story-modes", label: "推进模式库", icon: Workflow },
-      { to: "/art-style", label: "画风管理", icon: ImagePlus },
-      { to: "/settings", label: "系统设置", icon: Settings2 },
+      { to: "/art-style", label: "画风", icon: ImagePlus },
+      { to: "/settings", label: "系统", icon: Settings2 },
     ],
   },
 ];
+
+const visibleNavGroups = navGroups
+  .map((group) => ({
+    ...group,
+    items: group.items.filter((item) => isNavRouteVisible(item.to)),
+  }))
+  .filter((group) => group.items.length > 0);
 
 interface SidebarProps {
   onSwitchToWorkspaceNav?: () => void;
@@ -162,7 +170,7 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
-        {navGroups.map((group) => (
+        {visibleNavGroups.map((group) => (
           <div key={group.title} className="space-y-1">
             <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.title}
