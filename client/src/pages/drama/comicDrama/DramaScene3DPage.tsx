@@ -34,7 +34,7 @@ import {
 import { resolveStudioReturnPath } from "./navigation/studioNavigation";
 
 const REFERENCE_ACTOR_HEIGHT_METERS = 1.7;
-const REFERENCE_ACTOR_LABEL = "比例参照（约1.7m）";
+const REFERENCE_ACTOR_LABEL = "参考角色（约1.7m）";
 const SCENE_OBJECT_ID = "scene";
 const REFERENCE_OBJECT_ID = "reference";
 
@@ -331,7 +331,7 @@ export default function DramaScene3DPage() {
   const sceneObjectItems: Drama3DObjectItem[] = [
     {
       id: SCENE_OBJECT_ID,
-      label: "场景对象",
+      label: "世界",
       kind: "scene",
       selected: selectedObjectId === SCENE_OBJECT_ID,
       onSelect: () => selectObject(SCENE_OBJECT_ID),
@@ -345,7 +345,7 @@ export default function DramaScene3DPage() {
     })),
     {
       id: REFERENCE_OBJECT_ID,
-      label: "比例参照",
+      label: "参考角色",
       kind: "reference" as const,
       selected: selectedObjectId === REFERENCE_OBJECT_ID,
       onSelect: () => selectObject(REFERENCE_OBJECT_ID),
@@ -397,7 +397,7 @@ export default function DramaScene3DPage() {
               </div>
             ) : null}
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移
             </div>
           </CardContent>
         </Card>
@@ -405,17 +405,17 @@ export default function DramaScene3DPage() {
       objects={<Drama3DObjectPanel items={sceneObjectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 pb-3">
+          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 px-3 pb-2 pt-2.5">
             <CardTitle className="text-sm">属性面板</CardTitle>
             <Badge variant="outline">
-              {selectedObjectId === SCENE_OBJECT_ID ? "场景" : selectedObjectId === REFERENCE_OBJECT_ID ? "比例参照" : selectedMarker ? "空间标记" : "对象"}
+              {selectedObjectId === SCENE_OBJECT_ID ? "世界" : selectedObjectId === REFERENCE_OBJECT_ID ? "参考角色" : selectedMarker ? "空间标记" : "对象"}
             </Badge>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">场景</dt>
+                  <dt className="text-muted-foreground">世界</dt>
                   <dd className="text-right">{scene.name}</dd>
                   <dt className="text-muted-foreground">当前状态</dt>
                   <dd className="text-right">{selectedState.label}</dd>
@@ -470,7 +470,7 @@ export default function DramaScene3DPage() {
               <>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
                   <dt className="text-muted-foreground">对象</dt>
-                  <dd className="text-right">比例参照</dd>
+                  <dd className="text-right">参考角色</dd>
                   <dt className="text-muted-foreground">高度</dt>
                   <dd className="text-right tabular-nums">约 {REFERENCE_ACTOR_HEIGHT_METERS.toFixed(1)} 米</dd>
                   <dt className="text-muted-foreground">用途</dt>
@@ -478,7 +478,7 @@ export default function DramaScene3DPage() {
                 </dl>
                 <p className="border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">固定在场景原点，只用于校准投射中心和半球直径，不会保存到分镜。</p>
                 <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => { viewer?.selectActor(REFERENCE_ACTOR_LABEL); viewer?.fitView(); }}>
-                  <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦比例参照
+                  <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦参考角色
                 </Button>
               </>
             ) : selectedMarker ? (

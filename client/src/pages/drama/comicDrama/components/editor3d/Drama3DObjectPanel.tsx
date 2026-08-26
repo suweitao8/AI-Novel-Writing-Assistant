@@ -33,7 +33,7 @@ function ObjectIcon({ kind }: { kind: Drama3DObjectKind }) {
 export function Drama3DObjectPanel({ items, className }: Drama3DObjectPanelProps) {
   return (
     <Card className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
-      <CardHeader className="shrink-0 pb-3">
+      <CardHeader className="shrink-0 px-3 pb-2 pt-2.5">
         <CardTitle className="flex items-center gap-2 text-sm">
           <Box className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           场景对象

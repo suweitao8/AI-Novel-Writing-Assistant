@@ -396,7 +396,7 @@ export default function DramaBlocking3DPage() {
   const objectItems: Drama3DObjectItem[] = [
     {
       id: SCENE_OBJECT_ID,
-      label: "场景对象",
+      label: "世界",
       kind: "scene",
       selected: selectedObjectId === SCENE_OBJECT_ID,
       onSelect: () => selectObject(SCENE_OBJECT_ID),
@@ -493,10 +493,10 @@ export default function DramaBlocking3DPage() {
       objects={<Drama3DObjectPanel items={objectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 pb-3">
+          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 px-3 pb-2 pt-2.5">
             <CardTitle className="text-sm">属性面板</CardTitle>
             <Badge variant="outline">
-              {selectedObjectId === SCENE_OBJECT_ID ? "场景" : selectedObjectId.startsWith("actor:") ? "角色" : selectedMarker ? "空间标记" : "对象"}
+              {selectedObjectId === SCENE_OBJECT_ID ? "世界" : selectedObjectId.startsWith("actor:") ? "角色" : selectedMarker ? "空间标记" : "对象"}
             </Badge>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
@@ -603,7 +603,7 @@ export default function DramaBlocking3DPage() {
                 {cameraActions}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">从上方对象列表选择场景、角色或空间标记。</p>
+              <p className="text-xs text-muted-foreground">从上方对象列表选择世界、角色或空间标记。</p>
             )}
           </CardContent>
         </Card>
