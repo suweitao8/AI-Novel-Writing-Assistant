@@ -13,12 +13,17 @@ const objectPanel = read("src/pages/drama/comicDrama/components/editor3d/Drama3D
 const scenePage = read("src/pages/drama/comicDrama/DramaScene3DPage.tsx");
 const blockingPage = read("src/pages/drama/comicDrama/DramaBlocking3DPage.tsx");
 
-test("共享 3D 工作台使用满高布局并把右侧拆成对象和操作两区", () => {
+test("共享 3D 工作台把控制栏放在左侧并让视口占据右侧", () => {
   assert.match(shell, /h-full/);
   assert.match(shell, /min-h-0/);
-  assert.match(shell, /grid-rows-/);
   assert.match(shell, /overflow-hidden/);
-  assert.match(objectPanel, /场景对象/);
+  assert.match(shell, /xl:grid-cols-\[22rem_minmax\(0,1fr\)\]/);
+  assert.match(shell, /<aside aria-label="场景编辑控制栏"/);
+  assert.match(shell, /data-editor-region="objects"/);
+  assert.match(shell, /data-editor-region="actions"/);
+  assert.match(shell, /data-editor-region="viewport"/);
+  assert.match(scenePage, /label: "世界"/);
+  assert.match(blockingPage, /label: "世界"/);
   assert.match(objectPanel, /aria-pressed/);
   assert.match(objectPanel, /focus-visible:ring/);
 });
@@ -28,11 +33,10 @@ test("两个页面都注册根场景对象并接入共享工作台", () => {
   assert.match(blockingPage, /kind: "scene"/);
   assert.match(scenePage, /Drama3DEditorShell/);
   assert.match(blockingPage, /Drama3DEditorShell/);
-  assert.match(scenePage, /属性面板/);
-  assert.match(blockingPage, /属性面板/);
+  assert.match(shell, /aria-label="属性面板"/);
 });
 
-test("对象树只显示图标和名称，属性面板固定并在内容区滚动", () => {
+test("对象树只显示图标和名称，列表与属性内容各自在区域内滚动", () => {
   assert.doesNotMatch(objectPanel, /item\.meta/);
   assert.doesNotMatch(objectPanel, /item\.trailing/);
   assert.doesNotMatch(scenePage, /\n\s+meta:/);
@@ -40,22 +44,39 @@ test("对象树只显示图标和名称，属性面板固定并在内容区滚�
   assert.match(shell, /grid-rows-\[minmax\(0,33\.333%\)_minmax\(0,1fr\)\]/);
   assert.match(shell, /gap-2/);
   assert.match(shell, /aria-label="属性面板"/);
-  assert.match(objectPanel, /h-full min-h-0/);
-  assert.match(objectPanel, /CardHeader className="shrink-0 px-3 pb-2 pt-2\.5"/);
+  assert.match(shell, /data-editor-region="objects"[^>]*className="h-full min-h-0 overflow-hidden"/);
+  assert.match(shell, /data-editor-region="actions"[^>]*className="h-full min-h-0 overflow-hidden"/);
+  assert.match(objectPanel, /overflow-y-auto/);
+  assert.match(scenePage, /overflow-y-auto/);
+  assert.match(blockingPage, /overflow-y-auto/);
 });
 
 test("对象列表使用世界和参考角色语义，并直接列出空间标记", () => {
   assert.match(scenePage, /label: "世界"/);
   assert.match(scenePage, /label: "参考角色"/);
-  assert.match(scenePage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
-  assert.match(scenePage, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
   assert.match(scenePage, /visibleSceneMarkers\.map/);
   assert.doesNotMatch(scenePage, /label: "场景对象"/);
   assert.doesNotMatch(scenePage, /label: "比例参照"/);
 
   assert.match(blockingPage, /label: "世界"/);
-  assert.match(blockingPage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
   assert.match(blockingPage, /context\.scene\.markers\.map/);
+});
+
+test("对象卡和属性卡不重复显示标题与标题图标", () => {
+  assert.doesNotMatch(objectPanel, /CardHeader|CardTitle|<Box/);
+  assert.doesNotMatch(scenePage, /CardHeader|CardTitle/);
+  assert.doesNotMatch(blockingPage, /CardHeader|CardTitle/);
+});
+
+test("顶部导航只保留返回入口和当前主名称", () => {
+  assert.match(scenePage, /data-editor-header="primary"/);
+  assert.match(blockingPage, /data-editor-header="primary"/);
+  assert.match(scenePage, /scene\.name/);
+  assert.match(blockingPage, /第 \$\{shotOrder\} 镜 3D 草图/);
+  assert.doesNotMatch(scenePage, /场景资产 · 3D 场景编辑/);
+  assert.doesNotMatch(scenePage, /\{status\}<\/span>/);
+  assert.doesNotMatch(blockingPage, /左键拖动角色，右键旋转视角/);
+  assert.doesNotMatch(blockingPage, /<Badge variant=\{!dirty/);
 });
 
 test("可移动角色属性包含位置、旋转和大小", () => {
