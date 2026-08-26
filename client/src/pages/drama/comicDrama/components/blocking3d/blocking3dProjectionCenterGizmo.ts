@@ -6,16 +6,17 @@ export interface Blocking3dProjectionCenterGizmoSettings {
 }
 
 export interface Blocking3dProjectionCenterGizmoRuntime {
-  entity: pc.Entity;
-  material: pc.StandardMaterial;
   size: number;
   height: number;
 }
 
-const GIZMO_COLOR = new pc.Color(0.14, 0.84, 1, 0.82);
-const GIZMO_EDGE_COLOR = new pc.Color(0.34, 0.94, 1, 0.98);
-const MIN_GIZMO_SIZE = 0.28;
-const MAX_GIZMO_SIZE = 0.5;
+// The center marker is a visual reference only. Keep it line-only so the
+// panorama remains fully visible underneath it, and keep its footprint small
+// enough that it does not read like another scene object.
+const GIZMO_EDGE_COLOR = new pc.Color(0.2, 0.9, 1, 1);
+const GIZMO_SIZE_RATIO = 0.007;
+const MIN_GIZMO_SIZE = 0.06;
+const MAX_GIZMO_SIZE = 0.1;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -27,36 +28,14 @@ function finiteOr(value: unknown, fallback: number): number {
 }
 
 function resolveGizmoSize(domeRadius: number): number {
-  return clamp(finiteOr(domeRadius, 15) * 0.035, MIN_GIZMO_SIZE, MAX_GIZMO_SIZE);
+  return clamp(finiteOr(domeRadius, 15) * GIZMO_SIZE_RATIO, MIN_GIZMO_SIZE, MAX_GIZMO_SIZE);
 }
 
 export function createProjectionCenterGizmo(
-  app: pc.AppBase,
+  _app: pc.AppBase,
   settings: Blocking3dProjectionCenterGizmoSettings,
 ): Blocking3dProjectionCenterGizmoRuntime {
-  const material = new pc.StandardMaterial();
-  material.diffuse = GIZMO_COLOR.clone();
-  material.emissive = GIZMO_COLOR.clone();
-  material.emissiveIntensity = 0.8;
-  material.opacity = GIZMO_COLOR.a;
-  material.blendType = pc.BLEND_NORMAL;
-  material.depthWrite = false;
-  material.depthTest = false;
-  material.useLighting = false;
-  material.useSkybox = false;
-  material.cull = pc.CULLFACE_NONE;
-  material.update();
-
-  const entity = new pc.Entity("blocking3d-projection-center-gizmo");
-  entity.addComponent("render", {
-    type: "box",
-    material,
-    layers: [pc.LAYERID_WORLD],
-  });
-  app.root.addChild(entity);
   const runtime: Blocking3dProjectionCenterGizmoRuntime = {
-    entity,
-    material,
     size: resolveGizmoSize(settings.domeRadius),
     height: 0,
   };
@@ -70,8 +49,6 @@ export function updateProjectionCenterGizmo(
 ): void {
   runtime.height = Math.max(0, finiteOr(settings.projectionCenterHeight, 2));
   runtime.size = resolveGizmoSize(settings.domeRadius);
-  runtime.entity.setPosition(0, runtime.height, 0);
-  runtime.entity.setLocalScale(runtime.size, runtime.size, runtime.size);
 }
 
 function cubeCorners(runtime: Blocking3dProjectionCenterGizmoRuntime): pc.Vec3[] {
@@ -120,8 +97,8 @@ export function drawProjectionCenterGizmo(
 }
 
 export function destroyProjectionCenterGizmo(
-  runtime: Blocking3dProjectionCenterGizmoRuntime,
+  _runtime: Blocking3dProjectionCenterGizmoRuntime,
 ): void {
-  runtime.entity.destroy();
-  runtime.material.destroy();
+  // The wireframe is drawn transiently by PlayCanvas on each frame, so there
+  // is no retained entity or material to dispose.
 }
