@@ -9,7 +9,7 @@
 | 规格 Key | 场景 | 画幅 | 语义 |
 | --- | --- | --- | --- |
 | `characterSheet` | 角色四视图/表情稿（漫画与漫剧） | 1536x864（严格 16:9） | 横版：四视图按固定顺序并排，角色设计稿与状态图统一此规格 |
-| `scenePanorama` | 场景 360° 全景参考图（状态图与旧版全景） | 2048x1024 请求（2:1 等距柱状） | 2:1 是 equirectangular 标准比例；只有 Codex 通道支持该比例，场景图统一走 Codex（2026-08-23 用户要求） |
+| `scenePanorama` | 场景 360° 全景参考图（状态图与旧版全景） | 2048x1024 请求（2:1 等距柱状） | 2:1 是 equirectangular 标准比例；只有 Codex 通道支持该比例，场景图统一走 Codex（2026-08-23 用户要求）。2026-08-26 起纵向为三区构图：底部 50% 纯地面、`v=0.3–0.5` 远景带、顶部 30% 纯天空，契约见 `services/image/panorama/scenePanoramaLayout.ts` 与 drama-blocking-3d 工作流页 |
 | `characterAsset` | 服装/武器等角色资产设计参考图 | 1536x864（严格 16:9） | 横版：角色资产与道具状态图统一此规格 |
 | `dramaKeyframe` | 漫剧分镜首帧 | 1536x864 | 横版 16:9：服务于横屏视频镜头 |
 | `comicPanelFallback` | 漫画分格兜底画幅 | 1024x1536 | 竖版：正式值跟随漫画模板 imageSize |
