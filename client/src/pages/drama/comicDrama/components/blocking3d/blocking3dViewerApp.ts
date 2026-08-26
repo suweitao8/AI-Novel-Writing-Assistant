@@ -16,7 +16,7 @@ import {
   updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
 import { createSelectionRingGeometryData } from "./blocking3dSelectionRing";
-import { drawEntitySelectionOutline } from "./blocking3dSelectionOutline";
+import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import {
   DEFAULT_BLOCKING_3D_HEIGHT_METERS,
@@ -568,6 +568,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
   };
   let destroyed = false;
+  const selectionOutline = createBlocking3dSelectionOutline(app, cameraEntity, SELECTION_OUTLINE_COLOR);
   let interactionEnabled = true;
   let actorMovementEnabled = true;
   let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
@@ -607,6 +608,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const emitSelection = () => {
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
+    selectionOutline.setEntity(actor?.entity ?? null);
     if (actor) {
       const position = actor.entity.getPosition();
       selectionRing.enabled = true;
@@ -887,8 +889,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (actor) {
       const position = actor.entity.getPosition();
       selectionRing.setPosition(position.x, 0.008, position.z);
-      drawEntitySelectionOutline(app, actor.entity, SELECTION_OUTLINE_COLOR);
     }
+    selectionOutline.frameUpdate();
   });
   setSceneMarkers(options.sceneMarkers ?? []);
   app.start();
@@ -923,6 +925,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     window.removeEventListener("keyup", onKeyUp);
     window.removeEventListener("blur", onBlur);
     destroyProjectionCenterGizmo(projectionCenterGizmo);
+    selectionOutline.destroy();
     app.destroy();
     throw error instanceof Error ? error : new Error(String(error));
   }
@@ -1017,9 +1020,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     removeActor(label) {
       const actor = actors.get(label);
       if (!actor) return false;
+      if (selectedLabel === label) select(null);
       actor.entity.destroy();
       actors.delete(label);
-      if (selectedLabel === label) select(null);
       emitChange();
       return true;
     },
@@ -1241,9 +1244,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       emitSelection();
     },
     capturePng() {
-      app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
-      app.render();
+      const selectedOutlineEntity = selectionOutline.getEntity();
+      selectionOutline.setEntity(null);
       try {
+        app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
+        app.render();
         const dataUrl = canvas.toDataURL("image/png");
         const base64 = dataUrl.split(",", 2)[1] ?? "";
         const binary = window.atob(base64);
@@ -1252,6 +1257,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         return new Blob([bytes], { type: "image/png" });
       } finally {
         resize();
+        selectionOutline.setEntity(selectedOutlineEntity);
+        selectionOutline.frameUpdate();
         app.render();
       }
     },
@@ -1275,6 +1282,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       clearEnvironmentVisuals();
       clearEnvironmentLighting();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
+      selectionOutline.destroy();
       cameraFrame.destroy();
       selectionRing.destroy();
       selectionMesh.destroy();
