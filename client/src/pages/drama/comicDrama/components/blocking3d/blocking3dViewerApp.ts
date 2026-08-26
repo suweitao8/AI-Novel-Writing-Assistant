@@ -55,7 +55,7 @@ const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
-const SELECTION_OUTLINE_COLOR = new pc.Color(0.18, 0.95, 0.52, 0.98);
+const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 1.7,
   domeRadius: 10,
@@ -592,7 +592,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const emitSelection = () => {
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
-    selectionOutline.setEntity(actor?.entity ?? null);
+    // 角色与空间标记互斥选中；选中的标记使用与角色同一条外轮廓反馈通道。
+    const markerRuntime = !selectedLabel && selectedMarkerId
+      ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
+      : null;
+    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? null);
   };
 
   const emitMarkerSelection = () => {
@@ -624,8 +628,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (id !== null && !sceneMarkerRuntimes.has(id)) return false;
     selectedMarkerId = id;
     if (id !== null) selectedLabel = null;
-    emitMarkerSelection();
+    // 先发角色事件再发标记事件：页面两个监听共用一个选中状态，
+    // 后到的标记事件必须覆盖 label=null 引发的“回到世界”回退。
     emitSelection();
+    emitMarkerSelection();
     return true;
   };
 
@@ -649,6 +655,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (selectedMarkerId && !nextIds.has(selectedMarkerId)) {
       selectedMarkerId = null;
       emitMarkerSelection();
+      // 被移除的标记实体即将销毁，外轮廓必须同步摘除，避免引用已销毁网格。
+      emitSelection();
     }
   };
 
@@ -1161,9 +1169,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return { ...environmentSettings };
     },
     setEnvironmentSettings(settings) {
-      environmentSettings = normalizeEnvironmentSettings(settings);
+      const next = normalizeEnvironmentSettings(settings);
+      // 背景网格只由投射中心高度和半球半径决定；分界线等参数是纯着色器
+      // uniform，拖动时重建网格会造成无意义的 GPU 抖动。
+      const geometryChanged = next.projectionCenterHeight !== environmentSettings.projectionCenterHeight
+        || next.domeRadius !== environmentSettings.domeRadius;
+      environmentSettings = next;
       applyEnvironmentSettings();
-      rebuildEnvironmentBackdropMesh();
+      if (geometryChanged) rebuildEnvironmentBackdropMesh();
       emitChange();
       return true;
     },

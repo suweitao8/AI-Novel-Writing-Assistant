@@ -18,7 +18,8 @@ test("正式角色、道具和场景资产入口不接受页面尺寸覆盖", ()
   assert.doesNotMatch(assetService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
   assert.match(sceneService, /size: IMAGE_SPECS\.scenePanorama/);
   assert.doesNotMatch(sceneService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);
-  assert.match(sceneService, /SCENE_PANORAMA_LAYOUT_PROMPT_LINES/);
+  // 2026-08-26：场景入口改走 scenePanoramaLayoutLinesFor(sceneType)，室内场景自动追加强化行。
+  assert.match(sceneService, /scenePanoramaLayoutLinesFor\(sceneType\)/);
   assert.match(sceneService, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
   assert.match(dramaCharacterService, /size: IMAGE_SPECS\.characterSheet/);
   assert.doesNotMatch(dramaCharacterService, /size: overrides\?\.sizeOverride \?\? ctx\.size/);

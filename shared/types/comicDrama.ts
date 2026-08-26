@@ -4,8 +4,15 @@
 
 export type ComicDramaStageKey = "novel" | "storyboard" | "voice" | "video";
 
-/** 没有保存过分界参数的旧场景仍按全景图垂直中心投射。 */
+/** 没有保存过分界参数的旧场景仍按全景图垂直中心投射；也是生成构图契约的目标地平线。 */
 export const STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V = 0.5 as const;
+
+/**
+ * 全景图天空区分界（v 从顶部计）：v<0.3 为纯天空/天花板，v=0.3-0.5 为远景带，
+ * 与从底部计的 70% 分界等价。这是生成构图契约（scenePanoramaLayout）与状态
+ * 编辑器平面图构图参考线的边界，不随场景的 panoramaHorizonV 投射参数变化。
+ */
+export const STORY_SCENE_3D_PANORAMA_SKY_V = 0.3 as const;
 
 /**
  * 场景资产的统一 3D 环境参数。投射中心高度和半球直径由场景资产维护，
@@ -45,6 +52,7 @@ export const STORY_SCENE_3D_MARKER_KINDS = [
   "window",
   "counter",
   "stair",
+  "floor",
   "other",
 ] as const;
 
@@ -62,6 +70,7 @@ export const STORY_SCENE_3D_MARKER_KIND_LABELS: Record<StoryScene3DMarkerKind, s
   window: "窗户",
   counter: "柜台",
   stair: "楼梯",
+  floor: "可行走地面",
   other: "固定物体",
 };
 

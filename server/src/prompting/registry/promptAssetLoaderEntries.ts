@@ -226,11 +226,11 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/shotKeyframe.prompts").dramaShotKeyframePrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.shot.blocking.autoPlan@v1",
+    key: "drama.shot.blocking.autoPlan@v2",
     load: () => require("../prompts/drama/shotBlockingAutoPlan.prompts").dramaShotBlockingAutoPlanPrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.scene.state.3d_markers@v4",
+    key: "drama.scene.state.3d_markers@v6",
     load: () => require("../prompts/drama/sceneState3dMarkers.prompts").sceneState3dMarkersPrompt as UnknownPromptAsset,
   },
   {

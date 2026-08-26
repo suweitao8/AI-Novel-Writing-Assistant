@@ -38,11 +38,16 @@ test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参�
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
 
-test("场景 3D 编辑器可调全景地面分界并沿用半球直径范围", () => {
-  assert.match(page, /aria-label="全景地面分界"/);
+test("场景 3D 编辑器可调分界线并沿用半球直径范围", () => {
+  assert.match(page, /aria-label="分界线"/);
   assert.match(page, /min="40" max="65" step="1"/);
   assert.match(page, /panoramaHorizonV/);
   assert.match(viewer, /panoramaHorizonV/);
+});
+
+test("环境滑块拖动不得触发 3D 视图整体重建", () => {
+  assert.match(page, /sceneMarkers: visibleSceneMarkersRef\.current/);
+  assert.doesNotMatch(page, /\[environmentUrl, scene, selectedState, visibleSceneMarkers\]/);
 });
 
 test("场景 3D 编辑器投射中心高度限制为 0.5 到 2、半球直径限制为 5 到 20", () => {

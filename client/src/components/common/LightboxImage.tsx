@@ -19,8 +19,10 @@ export function LightboxOverlay(props: {
   onClose: () => void;
   /** 大图下的说明文字（可选） */
   caption?: ReactNode;
+  /** 覆盖在图片上的辅助层（可选），随大图实际显示区域定位 */
+  overlay?: ReactNode;
 }) {
-  const { open, src, alt, onClose, caption } = props;
+  const { open, src, alt, onClose, caption, overlay } = props;
 
   useEffect(() => {
     if (!open) {
@@ -65,13 +67,15 @@ export function LightboxOverlay(props: {
           <X className="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
-      <img
-        src={src}
-        alt={alt}
-        decoding="async"
-        className="max-h-[78vh] max-w-full rounded-xl object-contain shadow-2xl shadow-black/60"
-        onClick={(event) => event.stopPropagation()}
-      />
+      <div className="relative" onClick={(event) => event.stopPropagation()}>
+        <img
+          src={src}
+          alt={alt}
+          decoding="async"
+          className="max-h-[78vh] max-w-full rounded-xl object-contain shadow-2xl shadow-black/60"
+        />
+        {overlay ? <div className="pointer-events-none absolute inset-0">{overlay}</div> : null}
+      </div>
       {caption ? (
         <p className="max-w-[80vw] text-center text-xs leading-5 text-background/80" onClick={(event) => event.stopPropagation()}>
           {caption}
@@ -89,9 +93,11 @@ export function LightboxImage(props: {
   blurBackdrop?: boolean;
   /** natural 模式按图片原始比例撑开缩略图容器，不裁切也不制造水平留白。 */
   fit?: "cover" | "contain" | "natural";
+  /** 覆盖在缩略图与大图上的辅助层（可选），按图片实际显示区域定位 */
+  overlay?: ReactNode;
   onError?: () => void;
 }) {
-  const { src, alt, className, blurBackdrop = true, fit = "cover", onError } = props;
+  const { src, alt, className, blurBackdrop = true, fit = "cover", overlay, onError } = props;
   const [open, setOpen] = useState(false);
 
   return (
@@ -128,11 +134,12 @@ export function LightboxImage(props: {
             fit === "cover" ? "object-cover" : "object-contain",
           )}
         />
+        {overlay ? <div className="pointer-events-none absolute inset-0 z-10">{overlay}</div> : null}
         <span className="absolute bottom-1.5 right-1.5 z-20 flex h-6 w-6 items-center justify-center rounded-full bg-background/75 text-foreground/70 opacity-0 transition-opacity group-hover/lb:opacity-100">
           <ZoomIn className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
       </button>
-      <LightboxOverlay open={open} src={src} alt={alt} onClose={() => setOpen(false)} />
+      <LightboxOverlay open={open} src={src} alt={alt} onClose={() => setOpen(false)} overlay={overlay} />
     </>
   );
 }

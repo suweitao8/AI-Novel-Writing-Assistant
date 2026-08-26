@@ -98,6 +98,10 @@ export default function DramaScene3DPage() {
     () => sceneMarkersAreCurrent ? selectedState?.scene3dMarkers?.markers ?? [] : [],
     [sceneMarkersAreCurrent, selectedState?.scene3dMarkers],
   );
+  // 环境滑块拖动会翻转标记的“当前有效”状态；3D 视图只能跟随环境图重建，
+  // 标记显隐必须走 viewer.setSceneMarkers 增量更新，否则每次拖动都会整图重载。
+  const visibleSceneMarkersRef = useRef(visibleSceneMarkers);
+  visibleSceneMarkersRef.current = visibleSceneMarkers;
 
   useEffect(() => {
     if (!scene || !selectedState) return;
@@ -117,7 +121,7 @@ export default function DramaScene3DPage() {
     void createBlocking3dViewer({
       canvas,
       environmentUrl,
-      sceneMarkers: visibleSceneMarkers,
+      sceneMarkers: visibleSceneMarkersRef.current,
     }).then((nextViewer) => {
       if (cancelled) {
         nextViewer.destroy();
@@ -158,7 +162,7 @@ export default function DramaScene3DPage() {
       viewerRef.current = null;
       setViewer(null);
     };
-  }, [environmentUrl, scene, selectedState, visibleSceneMarkers]);
+  }, [environmentUrl, scene, selectedState]);
 
   useEffect(() => {
     if (!viewer) return;
@@ -425,10 +429,10 @@ export default function DramaScene3DPage() {
                   </label>
                   <label className="block space-y-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center justify-between gap-2">
-                      <span>全景地面分界</span>
+                      <span>分界线</span>
                       <output className="tabular-nums text-foreground">{Math.round(environmentSettings.panoramaHorizonV * 100)}%</output>
                     </span>
-                    <input type="range" aria-label="全景地面分界" min="40" max="65" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
+                    <input type="range" aria-label="分界线" min="40" max="65" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
                   </label>
                 </div>
 
@@ -444,9 +448,12 @@ export default function DramaScene3DPage() {
                       title="识别当前场景状态图中的固定空间物体"
                     >
                       {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-                      {analyzingMarkers ? "识别中" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
+                      {analyzingMarkers ? "识别中，约 1 分钟" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
                     </AiButton>
                   </div>
+                  {analyzingMarkers ? (
+                    <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体和可行走地面，请保持页面打开。</p>
+                  ) : null}
                   {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>
                   ) : null}

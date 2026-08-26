@@ -17,7 +17,7 @@ import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
   SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
-  SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+  scenePanoramaLayoutLinesFor,
   type DramaRenderFamily,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
@@ -103,13 +103,15 @@ export function buildScenePanoramaPrompt(scene: {
   environmentPrompt: string | null;
   timeOfDay: string | null;
   weather: string | null;
+  /** interior | exterior | nature；室内追加强化行，家具/墙根不落下半区。 */
+  sceneType?: string | null;
 }, styleLines: string[]): string {
   const lines: string[] = [
     `360-degree panorama of the scene: ${scene.name}`,
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama in standard 2:1 aspect ratio",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
-    ...SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+    ...scenePanoramaLayoutLinesFor(scene.sceneType),
     "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
     "living subjects stay off-screen; translate narrative entities into environmental traces such as footprints, claw marks, blood stains, disturbed vegetation and damaged structures",
   ];
@@ -151,7 +153,13 @@ export class StoryAssetImageService {
     }
     const styleContext = await resolveDramaArtStyleContext({ visualStyle: null, sourceRef: novelId });
     const prompt = buildScenePanoramaPrompt(
-      scene,
+      {
+        name: scene.name,
+        environmentPrompt: scene.environmentPrompt,
+        timeOfDay: scene.timeOfDay,
+        weather: scene.weather,
+        sceneType: scene.sceneType,
+      },
       buildStyleLines("scene", styleContext.assets.scene, styleContext.specific, styleContext.renderFamily),
     );
     const adapter: ImageTargetAdapter<GeneratedImageState> = {

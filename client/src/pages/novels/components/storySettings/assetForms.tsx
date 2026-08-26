@@ -34,6 +34,10 @@ import {
   type StoryAssetWearTag,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_PANORAMA_SKY_V,
+} from "@ai-novel/shared/types/comicDrama";
+import {
   getStoryAssetImageRequestState,
   requestStoryAssetImage,
 } from "./storyAssetImageRequestCoordinator";
@@ -182,6 +186,30 @@ export function getCharacterStateHeightError(value: number | null | undefined): 
     : `请输入 ${STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS.toFixed(2)}–${STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS.toFixed(2)} 米。`;
 }
 
+/** 场景全景构图参考线：50% 地平线（地面分界）与 70%（从底部计）天空分界，对应生成契约的三区布局。
+ *  标注按用户视角从底部计；线压在照片上，用虚线加高对比保证可见。 */
+function ScenePanoramaGuides() {
+  return (
+    <>
+      {[
+        { v: STORY_SCENE_3D_PANORAMA_SKY_V, label: "70%" },
+        { v: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V, label: "50%" },
+      ].map((guide) => (
+        <div
+          key={guide.label}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-foreground/80"
+          style={{ top: `${guide.v * 100}%` }}
+        >
+          <span className="absolute right-1.5 -top-2.5 rounded-sm bg-background/90 px-1 text-[10px] font-medium leading-4 text-foreground shadow-sm">
+            {guide.label}
+          </span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 // 状态编辑器（角色/场景/道具编辑弹窗共用）：左列状态列表 + 右侧当前状态直接编辑。
 // 2026-08-22 用户决定的交互：
 // - 所有字段行内直接可编辑，统一由弹窗「保存」一次落库（状态不单独保存，2026-08-22
@@ -189,7 +217,7 @@ export function getCharacterStateHeightError(value: number | null | undefined): 
 // - 状态字段包含状态名、角色年龄段/身高（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
-//   场景状态图按普通 2:1 图片展示；需要空间预览或摆位时进入独立的 3D 编辑；
+//   场景状态图按普通 2:1 图片展示，叠加 50%/70% 构图参考线；需要空间预览或摆位时进入独立的 3D 编辑；
 // - 图片提示词可 AI 微调：复用旧状态提示词时，写一句要改的地方（如「去掉身上的
 //   伤」）即可，AI 只改指令涉及的部分；改完随状态一起保存，不单独落库；
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
@@ -646,6 +674,7 @@ export function AssetStatesEditor(props: {
                     fit="natural"
                     blurBackdrop={false}
                     className="w-full rounded-lg border-0"
+                    overlay={showScene ? <ScenePanoramaGuides /> : undefined}
                   />
                 ) : (
                   <div

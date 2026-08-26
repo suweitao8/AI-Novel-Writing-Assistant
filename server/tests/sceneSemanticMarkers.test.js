@@ -4,9 +4,9 @@ import test from "node:test";
 import {
   normalizeStoryScene3dMarkerSet,
   parseStoryScene3dMarkerSet,
-  projectStoryScene3dMarkerPosition,
   adoptLegacyStoryScene3dMarkerEnvironment,
 } from "../src/modules/novel/story-settings/application/StoryScene3dMarkers.ts";
+import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
 import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/shared/types/comicDrama";
 
@@ -124,11 +124,12 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
     size: [2, 1, 2],
     imageRegion: { x: 0.4, y: 0.65, width: 0.2, height: 0.2 },
   };
-  const front = projectStoryScene3dMarkerPosition(marker, environment);
-  const left = projectStoryScene3dMarkerPosition({
+  const project = (entry) => projectStoryScene3dMarkerFromImageRegion(entry, environment).position;
+  const front = project(marker);
+  const left = project({
     ...marker,
     imageRegion: { ...marker.imageRegion, x: 0.15 },
-  }, environment);
+  });
 
   assert.ok(Math.abs(front[0]) < 0.05, "全景水平中心应落在世界 Z 轴附近");
   assert.ok(front[2] > 0, "全景水平中心应落在 +Z 正前方");
@@ -137,18 +138,24 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
   assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
 });
 
-test("默认 50% 全景中家具框底在地平线上方时仍落在半球地面外圈", () => {
+test("默认 50% 全景中家具框底在地平线上方时用类别高度跨度反算深度", () => {
   const marker = {
     anchor: "floor",
     position: [0, 0.5, 0],
     size: [1.2, 0.8, 0.8],
     imageRegion: { x: 0.4, y: 0.3, width: 0.2, height: 0.16 },
   };
-  const projected = projectStoryScene3dMarkerPosition(marker, environment);
+  const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment).position;
 
+  // 类别 other 的典型高度 1.6m ÷ 垂直跨度 tan(0.6283)-tan(0.1257)。
+  const expectedRadius = 1.6 / (Math.tan(Math.PI * 0.2) - Math.tan(Math.PI * 0.04));
   assert.ok(Math.abs(projected[0]) < 0.05, "水平中心仍应保持在世界 Z 轴附近");
-  assert.ok(projected[2] > 6.6, "地面物体应落在当前半球的可用外圈，而不是球体中心");
-  assert.ok(projected[1] > 0.4, "图片证据参与尺寸校准后仍必须落地");
+  assert.ok(
+    Math.abs(Math.hypot(projected[0], projected[2]) - expectedRadius) < 0.02,
+    "框底没有落地证据时应按类别高度与跨度反算深度",
+  );
+  assert.ok(Math.hypot(projected[0], projected[2]) > 1, "不能塌缩回投射中心脚下");
+  assert.ok(projected[1] > 0.1, "图片证据参与尺寸校准后仍必须落地");
 });
 
 test("投射中心高度、半球直径和全景分界都会参与标记反算", () => {
@@ -156,27 +163,29 @@ test("投射中心高度、半球直径和全景分界都会参与标记反算",
     anchor: "wall",
     position: [2, 2, -2],
     size: [1, 2, 1],
-    imageRegion: { x: 0.4, y: 0.32, width: 0.2, height: 0.16 },
+    // 垂直跨度小到没有深度证据，深度只能来自半球参考半径。
+    imageRegion: { x: 0.4, y: 0.32, width: 0.2, height: 0.01 },
   };
-  const compact = projectStoryScene3dMarkerPosition(marker, environment);
-  const expanded = projectStoryScene3dMarkerPosition(marker, {
+  const project = (entryEnvironment) => projectStoryScene3dMarkerFromImageRegion(marker, entryEnvironment).position;
+  const compact = project(environment);
+  const expanded = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
     panoramaHorizonV: 0.58,
   });
-  const expandedWithDefaultHorizon = projectStoryScene3dMarkerPosition(marker, {
+  const expandedWithDefaultHorizon = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
   });
-  const expandedAtCenterHorizon = projectStoryScene3dMarkerPosition(marker, {
+  const expandedAtCenterHorizon = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
     panoramaHorizonV: 0.5,
   });
-  const shifted = projectStoryScene3dMarkerPosition(marker, {
+  const shifted = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
@@ -276,4 +285,110 @@ test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据�
     environment,
   );
   assert.equal(coordinateOnly?.sourceEnvironment, undefined);
+});
+
+
+test("可行走地面薄板由墙面深度推导，角色站位不会越过墙面", () => {
+  const normalized = normalizeStoryScene3dMarkerSet({
+    schemaVersion: 1,
+    status: "ready",
+    markers: [
+      {
+        id: "door",
+        kind: "door",
+        label: "房门",
+        anchor: "wall",
+        position: [2.4, 1, 0.7],
+        size: [0.9, 2.1, 0.12],
+        yawDeg: 0,
+        confidence: 0.9,
+        source: "manual",
+        imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.32 },
+      },
+    ],
+  }, {
+    maxRadius: 6,
+    environment,
+  });
+  const floor = normalized?.markers.find((marker) => marker.kind === "floor");
+  assert.ok(floor, "识别出墙面标记后必须生成可行走地面");
+  assert.equal(floor.id, "scene-floor-walkable");
+  const expectedHalfSide = (2.5 / Math.SQRT2) * 0.95;
+  assert.ok(Math.abs(floor.size[0] - expectedHalfSide * 2) < 1e-6, "地面范围取最近墙面半径的内接方形");
+  assert.ok(Math.abs(floor.size[2] - expectedHalfSide * 2) < 1e-6);
+  assert.ok(floor.size[1] <= 0.12, "地面薄板必须足够薄，不遮挡摆位视线");
+  assert.equal(floor.position[0], 0);
+  assert.equal(floor.position[2], 0);
+  assert.equal(floor.position[1], floor.size[1] / 2);
+  assert.equal(normalized?.markers.length, 2);
+});
+
+test("没有墙面证据时地面范围回退参考半径，空标记集合不生成地面", () => {
+  const furnitureOnly = normalizeStoryScene3dMarkerSet({
+    schemaVersion: 1,
+    status: "ready",
+    markers: [{
+      id: "bed",
+      kind: "bed",
+      label: "床",
+      anchor: "floor",
+      position: [1.2, 0.45, 2.4],
+      size: [2.2, 0.9, 2],
+      yawDeg: 0,
+      confidence: 0.8,
+      source: "manual",
+    }],
+  }, {
+    maxRadius: 6,
+    environment,
+  });
+  const floor = furnitureOnly?.markers.find((marker) => marker.kind === "floor");
+  assert.ok(floor, "有家具证据时仍要给出地面范围");
+  const expectedHalfSide = (6 / Math.SQRT2) * 0.95;
+  assert.ok(Math.abs(floor.size[0] - expectedHalfSide * 2) < 1e-6);
+
+  const empty = normalizeStoryScene3dMarkerSet({
+    schemaVersion: 1,
+    status: "ready",
+    markers: [],
+  }, { maxRadius: 6, environment });
+  assert.equal(empty?.markers.some((marker) => marker.kind === "floor"), false);
+});
+
+test("地面薄板每次归一化重新推导，模型或旧数据里的地面标记会被替换", () => {
+  const input = {
+    schemaVersion: 1,
+    status: "ready",
+    markers: [
+      {
+        id: "door",
+        kind: "door",
+        label: "房门",
+        anchor: "wall",
+        position: [2.4, 1, 0.7],
+        size: [0.9, 2.1, 0.12],
+        yawDeg: 0,
+        confidence: 0.9,
+        imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.32 },
+      },
+      {
+        id: "scene-floor-walkable",
+        kind: "floor",
+        label: "过期的地面",
+        anchor: "floor",
+        position: [0, 0.03, 0],
+        size: [40, 0.06, 40],
+        yawDeg: 0,
+        confidence: 1,
+      },
+    ],
+  };
+  const first = normalizeStoryScene3dMarkerSet(input, { maxRadius: 6, environment });
+  const floors = first?.markers.filter((marker) => marker.kind === "floor") ?? [];
+  assert.equal(floors.length, 1, "旧地面标记必须被替换而不是叠加");
+  const second = normalizeStoryScene3dMarkerSet(first, { maxRadius: 6, environment });
+  const secondFloor = second?.markers.find((marker) => marker.kind === "floor");
+  assert.deepEqual(secondFloor?.size, floors[0]?.size);
+  assert.deepEqual(secondFloor?.position, floors[0]?.position);
+  assert.equal(second?.markers.length, first?.markers.length);
 });
