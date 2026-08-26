@@ -73,12 +73,15 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 2026-08-22：场景状态图必须是 360° 等距柱状全景（前端有全景预览），不再按主体构图。
   assert.match(scene, /360-degree equirectangular panorama/);
   assert.match(scene, /seamless horizontal wrap-around view/);
-  assert.match(scene, /horizon line is exactly centered at vertical v=0\.5/);
-  assert.match(scene, /upper half \(v=0\.0-0\.5\)/);
-  assert.match(scene, /lower half \(v=0\.5-1\.0\) is primarily one continuous clean ground/);
-  assert.match(scene, /do not place large furniture, trees, buildings, rocks or other tall objects deep in the lower half/);
+  assert.match(scene, /strict two-zone equirectangular layout split by the exact vertical center line v=0\.5/);
+  assert.match(scene, /upper zone v=0\.0-0\.48 contains/);
+  assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object must be fully above v=0\.48 with a clean safety margin/);
+  assert.match(scene, /lower zone v=0\.52-1\.0 contains only one continuous clean ground/);
+  assert.match(scene, /center band v=0\.48-0\.52 remains an uncluttered horizon transition/);
+  assert.match(scene, /no object, furniture leg or object fragment crosses it/);
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
+  assert.match(imageServiceSource, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
   const prop = buildStateImagePrompt({
     kind: "prop",
     assetName: "军刀",

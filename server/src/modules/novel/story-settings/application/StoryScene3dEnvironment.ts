@@ -6,11 +6,13 @@ import type {
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   projectionCenterHeight: { min: 1, max: 10 },
   domeRadius: { min: 10, max: 50 },
+  panoramaHorizonV: { min: 0.4, max: 0.65 },
 } as const;
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
   projectionCenterHeight: 2,
   domeRadius: 15,
+  panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
 };
@@ -35,6 +37,11 @@ export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvi
       finiteOr(input?.domeRadius, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius),
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
+    ),
+    panoramaHorizonV: clamp(
+      finiteOr(input?.panoramaHorizonV, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.panoramaHorizonV),
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
     ),
     yawDeg: 0,
     intensity: 1,

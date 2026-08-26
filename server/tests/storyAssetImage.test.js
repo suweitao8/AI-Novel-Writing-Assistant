@@ -16,5 +16,9 @@ test("场景全景提示词只允许空环境，不把怪物或人物画进场�
   assert.match(prompt, /no animals/);
   assert.match(prompt, /no monsters/);
   assert.match(prompt, /environmental traces/);
+  assert.match(prompt, /strict two-zone equirectangular layout split by the exact vertical center line v=0\.5/);
+  assert.match(prompt, /fully above v=0\.48 with a clean safety margin/);
+  assert.match(prompt, /lower zone v=0\.52-1\.0 contains only one continuous clean ground/);
+  assert.match(prompt, /no object, furniture leg or object fragment crosses it/);
   assert.doesNotMatch(prompt, /NO characters or only tiny background figures/);
 });

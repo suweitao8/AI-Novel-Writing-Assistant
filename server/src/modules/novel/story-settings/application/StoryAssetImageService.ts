@@ -16,6 +16,8 @@ import { resolveDramaArtStyleContext } from "../../../../services/drama/visual/d
 import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
+  SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
+  SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
   type DramaRenderFamily,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
@@ -107,6 +109,7 @@ export function buildScenePanoramaPrompt(scene: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama in standard 2:1 aspect ratio",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
+    ...SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
     "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
     "living subjects stay off-screen; translate narrative entities into environmental traces such as footprints, claw marks, blood stains, disturbed vegetation and damaged structures",
   ];
@@ -170,7 +173,7 @@ export class StoryAssetImageService {
         styleContext.assets.scene,
         styleContext.specific,
         styleContext.renderFamily,
-      ),
+      ) + `, ${SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT}`,
     });
     const row = await prisma.novelScene.findUnique({ where: { id: sceneId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);

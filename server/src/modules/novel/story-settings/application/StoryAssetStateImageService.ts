@@ -43,6 +43,8 @@ import {
   buildAssetStylePromptLines,
   combineAssetStyleAvoidInstructions,
   DEFAULT_DRAMA_VISUAL_STYLE_ID,
+  SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
+  SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
   buildCharacterStateSheetPrompt,
@@ -445,11 +447,7 @@ export function buildStateImagePrompt(
         "360-degree equirectangular panorama of the empty scene environment, standard 2:1 aspect ratio, seamless horizontal wrap-around",
         "seamless horizontal wrap-around view of the whole space",
         "consistent palette, materials, architecture and lighting across the entire panorama",
-        "equirectangular panorama layout: the horizon line is exactly centered at vertical v=0.5; keep the image as one continuous panorama, not a drawn divider or collage",
-        "upper half (v=0.0-0.5) contains the sky, ceiling, walls, distant background and environment objects; cluster major objects around the horizon and keep them primarily above the center line",
-        "lower half (v=0.5-1.0) is primarily one continuous clean ground, floor or terrain surface with sparse low-lying detail",
-        "do not place large furniture, trees, buildings, rocks or other tall objects deep in the lower half; do not let objects cross toward the nadir where equirectangular projection stretches them",
-        "keep the lower half free of repeated or stretched objects; preserve natural ground material detail without filling it with props",
+        ...SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
         "pure empty environment reference",
         "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
         "narrative living subjects remain off-screen and may appear only as environmental traces",
@@ -881,7 +879,10 @@ export class StoryAssetStateImageService {
     const negativePrompt = [
       "low quality, blurry, distorted face, extra fingers, duplicate body, text, watermark, subtitles",
       kind === "scene"
-        ? "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes"
+        ? [
+          "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes",
+          SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
+        ].join(", ")
         : kind === "prop"
           ? "other objects, multiple objects, extra props, hands, holding, table, cloth, fabric, rag, wooden board, background scenery"
           : "",

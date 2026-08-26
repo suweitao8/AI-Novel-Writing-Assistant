@@ -12,11 +12,13 @@ export type ComicDramaStageKey = "novel" | "storyboard" | "voice" | "video";
 export interface StoryScene3DEnvironment {
   projectionCenterHeight: number;
   domeRadius: number;
+  /** Source-image V coordinate used as the 3D panorama ground boundary. */
+  panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
 }
 
-export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">;
+export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius" | "panoramaHorizonV">;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [
