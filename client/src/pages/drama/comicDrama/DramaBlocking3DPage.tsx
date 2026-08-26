@@ -398,34 +398,17 @@ export default function DramaBlocking3DPage() {
       id: SCENE_OBJECT_ID,
       label: "场景对象",
       kind: "scene",
-      meta: `第 ${context.shot.order} 镜 · ${currentStatus === "confirmed" ? "已保存" : "草稿"}`,
       selected: selectedObjectId === SCENE_OBJECT_ID,
       onSelect: () => selectObject(SCENE_OBJECT_ID),
     },
     ...context.actors.map((actor, index) => {
       const id = actorObjectId(actor.characterName);
-      const placed = placedNames.has(actor.characterName);
       return {
         id,
         label: actor.characterName,
         kind: "actor" as const,
-        meta: `${formatHeight(actor.heightMeters)} · ${placed ? "已加入" : "未加入"}`,
         selected: selectedObjectId === id,
         onSelect: () => selectObject(id),
-        trailing: placed ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            disabled={saving || autoPlanning}
-            aria-label={`移除${actor.characterName}`}
-            title="移除角色"
-            onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}
-          >
-            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-          </Button>
-        ) : undefined,
       };
     }),
     ...context.scene.markers.map((marker) => {
@@ -434,7 +417,6 @@ export default function DramaBlocking3DPage() {
         id,
         label: marker.label,
         kind: "marker" as const,
-        meta: `${STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]} · ${Math.round(marker.confidence * 100)}%`,
         selected: selectedObjectId === id,
         onSelect: () => selectObject(id),
       };
@@ -510,9 +492,9 @@ export default function DramaBlocking3DPage() {
       }
       objects={<Drama3DObjectPanel items={objectItems} />}
       actions={
-        <Card className="flex min-h-0 flex-col overflow-hidden">
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
           <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 pb-3">
-            <CardTitle className="text-sm">属性与操作</CardTitle>
+            <CardTitle className="text-sm">属性面板</CardTitle>
             <Badge variant="outline">
               {selectedObjectId === SCENE_OBJECT_ID ? "场景" : selectedObjectId.startsWith("actor:") ? "角色" : selectedMarker ? "空间标记" : "对象"}
             </Badge>
@@ -574,6 +556,9 @@ export default function DramaBlocking3DPage() {
                   <dt className="text-muted-foreground">身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
                   <dt className="text-muted-foreground">状态</dt><dd className="text-right">{placedNames.has(selectedActorContext.characterName) ? "已加入镜头" : "未加入镜头"}</dd>
                 </dl>
+                <Button type="button" variant="outline" className="w-full" disabled={saving || autoPlanning || !placedNames.has(selectedActorContext.characterName)} onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(selectedActorContext.characterName))}>
+                  <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />从本镜移除
+                </Button>
                 <div className="space-y-3 border-t border-border/60 pt-4">
                   <div className="text-xs font-medium">静态姿势</div>
                   <label className="block space-y-1.5 text-xs text-muted-foreground">
@@ -611,6 +596,7 @@ export default function DramaBlocking3DPage() {
                   <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                     <dt>位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.position)}</dd>
                     <dt>旋转</dt><dd className="text-right tabular-nums">{selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—"}</dd>
+                    <dt>大小</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.scale)}</dd>
                     <dt>身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
                   </dl>
                 </div>

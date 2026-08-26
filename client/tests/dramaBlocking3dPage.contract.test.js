@@ -108,6 +108,12 @@ test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", ()
   assert.match(viewerSource, /setEntityMaterial\(actor\.animEntity, actor\.color/);
 });
 
+test("选中角色和比例参照使用 3D 外轮廓反馈", () => {
+  assert.match(viewerSource, /drawEntitySelectionOutline/);
+  assert.match(viewerSource, /selectedActor\(\)/);
+  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
+});
+
 test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () => {
   assert.match(entrySource, /blocking-3d\?order=/);
   assert.match(entrySource, /3D 草图/);
