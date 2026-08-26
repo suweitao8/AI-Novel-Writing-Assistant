@@ -18,8 +18,10 @@ export type DramaAssetStyleKind = (typeof DRAMA_ASSET_STYLE_KINDS)[number];
 // Compatibility facade: existing drama asset callers keep their import path,
 // while the shared image contract is owned by the image/panorama module.
 export {
+  SCENE_PANORAMA_INTERIOR_PROMPT_LINES,
   SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
   SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+  scenePanoramaLayoutLinesFor,
 } from "../../image/panorama/scenePanoramaLayout";
 
 /** 角色、场景、道具各自的固定规格与渲染质感。 */

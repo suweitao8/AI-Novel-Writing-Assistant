@@ -77,6 +77,8 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 平面图的 50%/70% 构图参考线同一契约）。
   assert.match(scene, /strict three-zone equirectangular vertical layout with two fixed boundaries: the horizon line at v=0\.5 and the sky line at v=0\.3/);
   assert.match(scene, /texture-coordinate contracts, never visible lines, seams, stripes, split-screens or collages/);
+  // 2026-08-26：下半区按“俯视纯地板材质”出图，对抗模型的物理透视先验。
+  assert.match(scene, /the lower half is not a perspective view of the space: it renders as one seamless floor material seen from directly above/);
   assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground/);
   assert.match(scene, /center band v=0\.48-0\.52 remains empty and uncluttered/);
   assert.match(scene, /middle distant zone v=0\.3-0\.5 holds the distant view/);
@@ -84,6 +86,25 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
   assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
+  // 室内强化行只进 interior 场景，室外不得混入。
+  assert.doesNotMatch(scene, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band/);
+  const interior = buildStateImagePrompt({
+    kind: "scene",
+    assetName: "出租屋",
+    baseAppearance: null,
+    state: {
+      label: "白天",
+      description: "空房间",
+      imagePrompt: "木地板，白墙，一张床靠墙",
+      sceneType: "interior",
+    },
+    hasReference: false,
+  }, []);
+  // 2026-08-26：室内场景追加强化行——家具/墙根全部留在地平线以上，下半区只有纯地板
+  //（用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
+  assert.match(interior, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon/);
+  assert.match(interior, /the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it/);
+  assert.match(interior, /the floor half stays completely empty interior flooring/);
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
   assert.match(imageServiceSource, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
