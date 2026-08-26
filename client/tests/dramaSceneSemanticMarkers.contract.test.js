@@ -17,6 +17,9 @@ test("场景 3D 编辑器提供状态级 AI 空间识别和标记聚焦", () => 
   assert.match(pageSource, /onMarkerSelection/);
   assert.match(pageSource, /空间标记/);
   assert.match(pageSource, /重新识别/);
+  assert.match(pageSource, /isStoryScene3DMarkerSetCurrent/);
+  assert.match(pageSource, /场景投射参数已改变，请重新识别空间标记/);
+  assert.match(pageSource, /dirty && !\(await saveScene\(\)\)/);
 });
 
 test("分镜 3D 编辑器复用场景状态标记而不把标记写进镜头角色布局", () => {

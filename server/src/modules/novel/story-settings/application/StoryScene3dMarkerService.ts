@@ -1,5 +1,9 @@
 import fs from "fs/promises";
-import type { StoryScene3DEnvironment, StoryScene3DMarkerSet } from "@ai-novel/shared/types/comicDrama";
+import {
+  storyScene3DEnvironmentMatches,
+  type StoryScene3DEnvironment,
+  type StoryScene3DMarkerSet,
+} from "@ai-novel/shared/types/comicDrama";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -15,7 +19,10 @@ import {
   parseStates,
   updateStoryAssetStateJsonWithCas,
 } from "./StorySettingsStatePolicy";
-import { parseStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
+import {
+  normalizeStoryScene3dEnvironment,
+  parseStoryScene3dEnvironment,
+} from "./StoryScene3dEnvironment";
 import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
 
@@ -37,19 +44,33 @@ export function buildStoryScene3dMarkerSet(
   environment: StoryScene3DEnvironment,
   imageMeta: StoryScene3dMarkerImageMeta,
 ): StoryScene3DMarkerSet {
+  const normalizedEnvironment = normalizeStoryScene3dEnvironment(environment);
   const normalized = normalizeStoryScene3dMarkerSet({
     schemaVersion: 1,
     status: "ready",
     markers: output.markers,
+    sourceEnvironment: {
+      projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
+      domeRadius: normalizedEnvironment.domeRadius,
+      panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
+    },
     analysisNote: output.analysisNote,
     sourceImageArtifactId: imageMeta.artifactId,
     sourceImageGeneratedAt: imageMeta.generatedAt,
     analyzedAt: new Date().toISOString(),
-  }, { maxRadius: environment.domeRadius * 0.45 });
+  }, {
+    maxRadius: normalizedEnvironment.domeRadius * 0.45,
+    environment: normalizedEnvironment,
+  });
 
   return normalized ?? {
     schemaVersion: 1,
     status: "ready",
+    sourceEnvironment: {
+      projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
+      domeRadius: normalizedEnvironment.domeRadius,
+      panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
+    },
     markers: [],
     analyzedAt: new Date().toISOString(),
   };
@@ -137,6 +158,8 @@ export class StoryScene3dMarkerService {
       artifactId: initialState.image.artifactId,
       generatedAt: initialState.image.generatedAt,
     });
+    let liveEnvironmentRaw = initialRow.scene3dEnvironmentJson;
+    let liveEnvironment = environment;
 
     await updateStoryAssetStateJsonWithCas({
       stateId,
@@ -152,11 +175,14 @@ export class StoryScene3dMarkerService {
             sceneType: true,
             timeOfDay: true,
             weather: true,
+            scene3dEnvironmentJson: true,
           },
         });
         if (!row) {
           throw new AppError("没有找到这个场景。", 404);
         }
+        liveEnvironmentRaw = row.scene3dEnvironmentJson;
+        liveEnvironment = parseStoryScene3dEnvironment(row.scene3dEnvironmentJson);
         return {
           raw: row.statesJson,
           fallbackStates: normalizeSceneStates(parseStates(row.statesJson), row),
@@ -165,7 +191,12 @@ export class StoryScene3dMarkerService {
       },
       write: async (expectedRaw, nextRaw) => {
         const writeResult = await prisma.novelScene.updateMany({
-          where: { id: sceneId, novelId, statesJson: expectedRaw },
+          where: {
+            id: sceneId,
+            novelId,
+            statesJson: expectedRaw,
+            scene3dEnvironmentJson: liveEnvironmentRaw,
+          },
           data: { statesJson: nextRaw },
         });
         return writeResult.count === 1;
@@ -173,6 +204,9 @@ export class StoryScene3dMarkerService {
       patch: (state) => {
         if (stateImageFingerprint(state) !== imageFingerprint) {
           throw new AppError("场景图片已更新，请重新识别空间标记。", 409);
+        }
+        if (!storyScene3DEnvironmentMatches(liveEnvironment, environment)) {
+          throw new AppError("场景投射参数已改变，请重新识别空间标记。", 409);
         }
         return { ...state, scene3dMarkers: markerSet };
       },

@@ -16,7 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
-import { STORY_SCENE_3D_MARKER_KIND_LABELS } from "@ai-novel/shared/types/comicDrama";
+import {
+  isStoryScene3DMarkerSetCurrent,
+  STORY_SCENE_3D_MARKER_KIND_LABELS,
+} from "@ai-novel/shared/types/comicDrama";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -72,6 +75,14 @@ export default function DramaScene3DPage() {
   const selectedState = useMemo(() => (scene ? resolveSceneState(scene, stateId) : null), [scene, stateId]);
   const environmentUrl = useMemo(() => resolveSceneEnvironmentUrl(selectedState), [selectedState]);
   const returnPath = resolveStudioReturnPath(novelId, searchParams.toString());
+  const sceneMarkersAreCurrent = useMemo(
+    () => isStoryScene3DMarkerSetCurrent(selectedState?.scene3dMarkers, environmentSettings),
+    [environmentSettings, selectedState?.scene3dMarkers],
+  );
+  const visibleSceneMarkers = useMemo(
+    () => sceneMarkersAreCurrent ? selectedState?.scene3dMarkers?.markers ?? [] : [],
+    [sceneMarkersAreCurrent, selectedState?.scene3dMarkers],
+  );
 
   useEffect(() => {
     if (!scene || !selectedState) return;
@@ -90,7 +101,7 @@ export default function DramaScene3DPage() {
     void createBlocking3dViewer({
       canvas,
       environmentUrl,
-      sceneMarkers: selectedState.scene3dMarkers?.markers ?? [],
+      sceneMarkers: visibleSceneMarkers,
       onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
@@ -121,7 +132,13 @@ export default function DramaScene3DPage() {
       viewerRef.current = null;
       setViewer(null);
     };
-  }, [environmentUrl, scene, selectedState]);
+  }, [environmentUrl, scene, selectedState, visibleSceneMarkers]);
+
+  useEffect(() => {
+    if (!viewer) return;
+    viewer.setSceneMarkers(visibleSceneMarkers);
+    if (!sceneMarkersAreCurrent) setSelectedMarkerId(null);
+  }, [sceneMarkersAreCurrent, viewer, visibleSceneMarkers]);
 
   useEffect(() => {
     viewer?.setInteractionEnabled(!sceneQuery.isFetching && !saving);
@@ -184,6 +201,7 @@ export default function DramaScene3DPage() {
     if (!selectedState || analyzingMarkers || saving) return;
     setAnalyzingMarkers(true);
     try {
+      if (dirty && !(await saveScene())) return;
       const response = await analyzeStoryScene3dMarkers(novelId, sceneId, selectedState.id);
       if (response.data) {
         queryClient.setQueryData(queryKeys.novels.storySettingsScene(novelId, sceneId), response);
@@ -195,7 +213,7 @@ export default function DramaScene3DPage() {
     } finally {
       setAnalyzingMarkers(false);
     }
-  }, [analyzingMarkers, novelId, queryClient, saving, sceneId, selectedState]);
+  }, [analyzingMarkers, dirty, novelId, queryClient, saveScene, saving, sceneId, selectedState]);
 
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
@@ -354,7 +372,10 @@ export default function DramaScene3DPage() {
               </AiButton>
             </CardHeader>
             <CardContent className="space-y-1.5">
-              {selectedState.scene3dMarkers?.markers.length ? selectedState.scene3dMarkers.markers.map((marker) => {
+              {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
+                <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>
+              ) : null}
+              {sceneMarkersAreCurrent && visibleSceneMarkers.length ? visibleSceneMarkers.map((marker) => {
                 const selected = marker.id === selectedMarkerId;
                 return (
                   <button
@@ -368,7 +389,7 @@ export default function DramaScene3DPage() {
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{Math.round(marker.confidence * 100)}%</span>
                   </button>
                 );
-              }) : <p className="text-xs text-muted-foreground">尚未识别空间标记。</p>}
+              }) : sceneMarkersAreCurrent ? <p className="text-xs text-muted-foreground">尚未识别空间标记。</p> : null}
             </CardContent>
           </Card>
 

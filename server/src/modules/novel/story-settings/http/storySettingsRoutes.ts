@@ -97,6 +97,11 @@ const scene3dMarkerSetSchema = z.object({
   status: z.enum(["ready", "error", "stale"]),
   sourceImageArtifactId: z.string().trim().max(160).optional(),
   sourceImageGeneratedAt: z.string().max(80).optional(),
+  sourceEnvironment: z.object({
+    projectionCenterHeight: z.number().min(1).max(10),
+    domeRadius: z.number().min(10).max(50),
+    panoramaHorizonV: z.number().min(0.4).max(0.65),
+  }).optional(),
   analyzedAt: z.string().max(80).optional(),
   analysisNote: z.string().max(500).optional(),
   error: z.string().max(600).optional(),
