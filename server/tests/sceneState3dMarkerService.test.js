@@ -58,9 +58,11 @@ test("场景标记服务把固定 50% 上半区的地面家具放到半球外圈
   }, { artifactId: "artifact-table" });
 
   const position = result.markers[0]?.position;
+  const size = result.markers[0]?.size;
   assert.ok(position);
+  assert.ok(size);
   assert.ok(Math.hypot(position[0], position[2]) > 6.6, "桌子应落在半球可用地面外圈");
-  assert.equal(position[1], 0.4);
+  assert.equal(position[1], size[1] / 2);
 });
 
 test("场景标记服务保存结果时以图像区域纠正墙面物体方向", () => {
@@ -86,6 +88,33 @@ test("场景标记服务保存结果时以图像区域纠正墙面物体方向",
   assert.ok(result.markers[0].position[0] > 0);
   assert.ok(result.markers[0].position[2] < 0);
   assert.ok(result.markers[0].yawDeg > 90);
+});
+
+test("场景标记服务不会把近中心的墙面物体保存到投射中心", () => {
+  const result = serviceModule.buildStoryScene3dMarkerSet({
+    markers: [{
+      kind: "window",
+      label: "窗户",
+      anchor: "wall",
+      position: [0, 1.2, 0],
+      size: [1, 1, 0.1],
+      yawDeg: 0,
+      confidence: 0.9,
+      imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.18 },
+    }],
+  }, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    yawDeg: 0,
+    intensity: 1,
+  }, { artifactId: "artifact-window" });
+
+  const marker = result.markers[0];
+  assert.ok(marker);
+  assert.ok(Math.abs(Math.hypot(marker.position[0], marker.position[2]) - 6.75) < 1e-9);
+  assert.ok(marker.size[0] > 1);
+  assert.ok(marker.size[1] > 1);
+  assert.equal(marker.position[1] >= marker.size[1] / 2, true);
 });
 
 test("场景标记服务保存投射环境快照，并用图像区域重算位置", () => {
