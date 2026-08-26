@@ -23,6 +23,10 @@ import {
 import { WorldContextGateway } from "../../../../services/novel/worldContext/WorldContextGateway";
 import { NovelWorkflowService } from "../../../../services/novel/workflow/NovelWorkflowService";
 import { DRAMA_VISUAL_STYLE_PRESETS } from "../../../../services/drama/visual/dramaVisualStyles";
+import {
+  ensureNovelCharacterHeightProfiles,
+  type CharacterHeightProfile,
+} from "../../../../services/drama/visual/CharacterHeightProfileService";
 import { parseStoryAssetImage, type StoryAssetImageState } from "./StoryAssetImageService";
 import {
   canSafelyRewriteStates,
@@ -59,6 +63,18 @@ function assertValidStateInput(states: StoryAssetStateInput[] | undefined): void
   if (error) {
     throw new AppError(error, 400);
   }
+}
+
+function heightProfileKey(name: string): string {
+  return name.trim().toLocaleLowerCase();
+}
+
+function attachHeightProfile<T extends { name: string; heightProfileJson: string | null }>(
+  row: T,
+  profiles: Map<string, CharacterHeightProfile>,
+): T {
+  const profile = profiles.get(heightProfileKey(row.name));
+  return profile ? { ...row, heightProfileJson: JSON.stringify(profile) } : row;
 }
 
 export interface StoryEntityDraft {
@@ -904,8 +920,10 @@ export class StorySettingsService {
         updatedAt: true,
       },
     });
+    const heightProfiles = await ensureNovelCharacterHeightProfiles(novelId, rows.map((row) => row.name));
     return Promise.all(rows.map(async (row) => {
-      const { statesJson, aliasesJson, heightProfileJson, ...rest } = row;
+      const rowWithHeight = attachHeightProfile(row, heightProfiles);
+      const { statesJson, aliasesJson, heightProfileJson, ...rest } = rowWithHeight;
       const parsedStates = parseStates(statesJson);
       const states = normalizeCharacterStates(parsedStates, row);
       const normalizedStatesJson = serializeStates(states);
@@ -974,7 +992,8 @@ export class StorySettingsService {
         statesJson: serializeStates(states),
       },
     });
-    return projectCharacter(row, novelId);
+    const heightProfiles = await ensureNovelCharacterHeightProfiles(novelId, [row.name]);
+    return projectCharacter(attachHeightProfile(row, heightProfiles), novelId);
   }
 
   async updateCharacter(novelId: string, characterId: string, input: {
@@ -1051,7 +1070,8 @@ export class StorySettingsService {
       if (!updated) {
         throw new AppError("角色更新后无法读取。", 500);
       }
-      return projectCharacter(updated, novelId);
+      const heightProfiles = await ensureNovelCharacterHeightProfiles(novelId, [updated.name]);
+      return projectCharacter(attachHeightProfile(updated, heightProfiles), novelId);
     }
     throw new AppError("设定已被其他操作更新，请刷新后重试。", 409);
   }
