@@ -4,12 +4,14 @@ import AppRouteFallback from "./AppRouteFallback";
 import LLMSelectionBootstrap from "./LLMSelectionBootstrap";
 import NovelWorkspaceRail from "./NovelWorkspaceRail";
 import Sidebar from "./Sidebar";
+import TopNav from "./TopNav";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import MobileSiteShell from "./mobile/MobileSiteShell";
 import AutoDirectorPauseNotificationWatcher from "@/components/autoDirector/AutoDirectorPauseNotificationWatcher";
 import { TaskRecoveryProvider } from "./TaskRecoveryContext";
 import TaskRecoveryDialog from "./TaskRecoveryDialog";
 import { useIsMobileViewport } from "./mobile/useIsMobileViewport";
+import { DRAMA_FOCUS_MODE } from "@/config/dramaFocusNav";
 import {
   AUTO_DIRECTOR_MOBILE_CLASSES,
   shouldUseAutoDirectorMobileFullWidthContent,
@@ -45,6 +47,8 @@ export default function AppLayout() {
   }, [location.pathname]);
 
   const isNovelWorkspace = Boolean(workspaceRoute?.novelId);
+  const showWorkspaceRail = isNovelWorkspace && workspaceNavMode === "workspace" && Boolean(workspaceRoute);
+  const useTopNavLayout = DRAMA_FOCUS_MODE && !showWorkspaceRail;
   const useMobileNovelWorkspaceLayout = isMobileViewport && isNovelWorkspace;
   const useMobileSiteLayout = isMobileViewport && !isNovelWorkspace;
   const useMobileFullWidthContent = useMemo(
@@ -120,25 +124,35 @@ export default function AppLayout() {
   return (
     <CreationSetupProvider>
     <TaskRecoveryProvider>
-      <div className="h-[100dvh] overflow-hidden bg-background">
+      <div className={useTopNavLayout
+        ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
+        : "flex h-[100dvh] min-h-0 overflow-hidden bg-background"}
+      >
         <AutoDirectorPauseNotificationWatcher />
         <LLMSelectionBootstrap />
-        <div className="flex h-full min-h-0">
-          <div className={useMobileFullWidthContent ? "hidden md:block" : "shrink-0"}>
-            {isNovelWorkspace && workspaceNavMode === "workspace" && workspaceRoute ? (
-              <NovelWorkspaceRail
-                novelId={workspaceRoute.novelId}
-                chapterId={workspaceRoute.chapterId}
-                collapsed={isWorkspaceRailCollapsed}
-                onToggle={() => setIsWorkspaceRailCollapsed((current) => !current)}
-                onSwitchToProjectNav={() => setWorkspaceNavMode("project")}
-              />
-            ) : (
-              <Sidebar
-                onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
-              />
-            )}
-          </div>
+        {useTopNavLayout ? (
+          <TopNav
+            onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
+          />
+        ) : null}
+        <div className="flex min-h-0 flex-1">
+          {!useTopNavLayout ? (
+            <div className={useMobileFullWidthContent ? "hidden md:block" : "shrink-0"}>
+              {showWorkspaceRail && workspaceRoute ? (
+                <NovelWorkspaceRail
+                  novelId={workspaceRoute.novelId}
+                  chapterId={workspaceRoute.chapterId}
+                  collapsed={isWorkspaceRailCollapsed}
+                  onToggle={() => setIsWorkspaceRailCollapsed((current) => !current)}
+                  onSwitchToProjectNav={() => setWorkspaceNavMode("project")}
+                />
+              ) : (
+                <Sidebar
+                  onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
+                />
+              )}
+            </div>
+          ) : null}
           <main className={useMobileFullWidthContent ? AUTO_DIRECTOR_MOBILE_CLASSES.appMain : DEFAULT_APP_MAIN_CLASS_NAME}>
             <Suspense fallback={<AppRouteFallback />}>
               <Outlet />

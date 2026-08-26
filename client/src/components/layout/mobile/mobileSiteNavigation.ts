@@ -83,13 +83,13 @@ const moreNavGroups: MobileNavGroup[] = [
   {
     title: "世界与系统",
     items: [
-      { key: "tasks", label: "运行记录", to: "/tasks", group: "more" },
+      { key: "tasks", label: "记录", to: "/tasks", group: "more" },
       { key: "auto-director-follow-ups", label: "导演跟进", to: "/auto-director/follow-ups", group: "more" },
       { key: "worlds", label: "世界样本库", to: "/worlds", group: "more" },
       { key: "world-generator", label: "创建世界样本", to: "/worlds/generator", group: "more" },
       { key: "prompt-workbench", label: "提示词管理", to: "/prompt-workbench", group: "more" },
-      { key: "art-style", label: "画风管理", to: "/art-style", group: "more" },
-      { key: "settings", label: "系统设置", to: "/settings", group: "more" },
+      { key: "art-style", label: "画风", to: "/art-style", group: "more" },
+      { key: "settings", label: "系统", to: "/settings", group: "more" },
     ],
   },
 ];
