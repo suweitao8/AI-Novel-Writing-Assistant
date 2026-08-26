@@ -14,12 +14,12 @@ test("角色状态编辑器提供米制身高输入和范围校验", () => {
   assert.match(editor, /heightMeters/);
 });
 
-test("角色状态设定区先于大图呈现，首屏可发现身高输入", () => {
-  const settingsIndex = editor.indexOf('aria-label="状态设定"');
+test("角色状态资料位于大图之后，编辑字段保持在图片下方", () => {
+  const settingsIndex = editor.indexOf('aria-label="状态资料"');
   const imageIndex = editor.indexOf('aria-label="状态图片"');
-  assert.ok(settingsIndex >= 0, "状态设定区必须存在");
+  assert.ok(settingsIndex >= 0, "状态资料区必须存在");
   assert.ok(imageIndex >= 0, "状态图片区必须存在");
-  assert.ok(settingsIndex < imageIndex, "状态设定区应放在大图之前");
+  assert.ok(imageIndex < settingsIndex, "状态资料区应放在大图之后");
 });
 
 test("角色资产卡片区分手动身高与 AI 估算", () => {
