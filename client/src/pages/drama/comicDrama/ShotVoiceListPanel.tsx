@@ -23,6 +23,7 @@ import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegmen
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
+import { Badge } from "@/components/ui/badge";
 import {
   DramaEpisodeAssemblyButton,
   useDramaEpisodeAssembly,
@@ -90,6 +91,35 @@ function safeJson<T>(input: string | null | undefined, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+type ShotCharacterState = { name: string; state: string };
+
+function parseCharacterRefs(raw: string | null | undefined): string[] {
+  const value = safeJson<unknown>(raw, []);
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseCharacterStates(raw: string | null | undefined): ShotCharacterState[] {
+  const value = safeJson<unknown>(raw, []);
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object") {
+      return [];
+    }
+    const entry = item as Record<string, unknown>;
+    const name = typeof entry.name === "string" ? entry.name.trim() : "";
+    const state = typeof entry.state === "string" ? entry.state.trim() : "";
+    return name && state ? [{ name, state }] : [];
+  });
 }
 
 function parseBatchProgress(raw: string | null | undefined): DramaBatchProgress {
@@ -578,6 +608,59 @@ function AudioSegmentPlayer({ src, label }: { src: string; label: string }) {
   );
 }
 
+function ShotDesignSummary({ shot }: { shot: DramaShot }) {
+  const characterRefs = parseCharacterRefs(shot.characterRefs);
+  const characterStates = parseCharacterStates(shot.characterStates);
+  const stateByName = new Map(characterStates.map((entry) => [entry.name, entry.state]));
+  const characterNames = Array.from(new Set([
+    ...characterRefs,
+    ...characterStates.map((entry) => entry.name),
+  ]));
+  const action = shot.action?.trim();
+  const cameraMove = shot.cameraMove?.trim();
+  const location = shot.location?.trim();
+  const visualPrompt = shot.visualPrompt?.trim();
+
+  return (
+    <section
+      aria-label={`第 ${shot.order} 镜分镜设计`}
+      className="space-y-1.5 rounded-lg border border-border/60 bg-muted/10 p-2.5"
+    >
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] font-semibold text-foreground">分镜设计</span>
+        {cameraMove ? <Badge variant="secondary" className="text-[10px]">运镜 {cameraMove}</Badge> : null}
+        {location ? <span className="text-[11px] text-muted-foreground">场景：{location}</span> : null}
+      </div>
+      {action ? (
+        <p className="text-sm leading-6 text-foreground">{action}</p>
+      ) : (
+        <p className="text-xs text-muted-foreground">暂无分镜设计</p>
+      )}
+      {characterNames.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1.5" aria-label="出场角色">
+          <span className="text-[11px] text-muted-foreground">出场角色</span>
+          {characterNames.map((name) => {
+            const state = stateByName.get(name);
+            return (
+              <Badge key={name} variant="secondary" className="text-[10px]">
+                {state ? `${name} · ${state}` : name}
+              </Badge>
+            );
+          })}
+        </div>
+      ) : null}
+      {visualPrompt ? (
+        <details className="rounded-md border border-border/50 bg-background/50 px-2 py-1">
+          <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            画面提示词
+          </summary>
+          <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{visualPrompt}</p>
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
 const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   shot: DramaShot;
   segments: DramaAudioSegment[];
@@ -781,8 +864,10 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           {shotMeta ? <span className="text-[11px] text-muted-foreground">{shotMeta}</span> : null}
         </div>
 
+        <ShotDesignSummary shot={shot} />
+
         {segments.length > 0 ? (
-          <div className="space-y-0.5">
+          <div className="space-y-0.5" aria-label={`第 ${shot.order} 镜台词与旁白`}>
             {segments.map((segment) => (
               <p key={`${segment.shotId}-${segment.lineIndex}`} className="line-clamp-2 text-sm leading-6 text-foreground">
                 <span className="font-medium text-muted-foreground">{audioSegmentLabel(segment)}：</span>
@@ -790,10 +875,11 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               </p>
             ))}
           </div>
-        ) : shot.dialogue || shot.action ? (
-          <p className="line-clamp-2 text-sm leading-6 text-foreground">
-            {shot.dialogue ? `「${shot.dialogue}」` : shot.action}
-          </p>
+        ) : shot.dialogue?.trim() ? (
+          <div aria-label={`第 ${shot.order} 镜台词与旁白`}>
+            <span className="text-[11px] font-medium text-muted-foreground">台词/旁白</span>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{shot.dialogue}</p>
+          </div>
         ) : null}
 
         {segments.length > 0 ? (
