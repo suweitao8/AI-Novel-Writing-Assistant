@@ -16,7 +16,10 @@ function clamp(value: number, min: number, max: number): number {
 }
 
 export function getGroundDomeEdgeHeight(projectionCenterHeight: number, domeRadius: number): number {
-  return clamp(projectionCenterHeight / domeRadius, 0.004, 1);
+  // The base mesh radius is 0.5 and the entity is scaled by domeRadius. Keep
+  // the actual seam at the projection center's world-space height so its
+  // direction maps to the panorama horizon (v=0.5).
+  return clamp((projectionCenterHeight * 2) / domeRadius, 0.004, 2);
 }
 
 function addVertex(

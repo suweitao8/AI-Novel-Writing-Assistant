@@ -410,6 +410,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  let environmentRequestId = 0;
+  const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
+  const discardEnvironmentAsset = (asset: pc.Asset) => {
+    asset.unload();
+    app.assets.remove(asset);
+  };
   const clearEnvironmentLighting = () => {
     if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
     environmentAtlas?.destroy();
@@ -1048,13 +1054,25 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (!enabled && dragState?.mode === "actor") dragState = null;
     },
     async setEnvironment(url) {
+      const requestId = ++environmentRequestId;
       ground.enabled = true;
       clearEnvironmentLighting();
       clearEnvironmentVisuals();
       if (!url?.trim()) return;
       setStatus("正在加载场景 HDRI 环境...");
-      environmentAsset = await loadAsset(app, url, "texture");
-      const texture = environmentAsset.resource as pc.Texture;
+      let asset: pc.Asset;
+      try {
+        asset = await loadAsset(app, url, "texture");
+      } catch (error) {
+        if (!isCurrentEnvironmentRequest(requestId)) return;
+        throw error;
+      }
+      if (!isCurrentEnvironmentRequest(requestId)) {
+        discardEnvironmentAsset(asset);
+        return;
+      }
+      environmentAsset = asset;
+      const texture = asset.resource as pc.Texture;
       configureEnvironmentTexture(texture, app);
       applyEnvironmentLighting(texture);
       // EnviroDome uses one continuous surface for the sky and the floor.
@@ -1153,6 +1171,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     destroy() {
       if (destroyed) return;
+      environmentRequestId += 1;
       destroyed = true;
       resizeObserver.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);

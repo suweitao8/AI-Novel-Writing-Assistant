@@ -71,6 +71,9 @@ test("有限 HDRI 半球不应触发 PlayCanvas 内置无限天空盒", () => {
 test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
   assert.match(viewerSource, /environmentAsset\.unload\(\)/);
   assert.match(viewerSource, /environmentMaterial\?\.destroy\(\)/);
+  assert.match(viewerSource, /let environmentRequestId = 0/);
+  assert.match(viewerSource, /isCurrentEnvironmentRequest/);
+  assert.match(viewerSource, /discardEnvironmentAsset\(asset\)/);
 });
 
 test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
@@ -97,6 +100,8 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
   assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
+  assert.match(environmentProjectionSource, /float horizontalLength = length\(projectionDirection\.xz\)/);
+  assert.match(environmentProjectionSource, /if \(horizontalLength > 0\.0001\)/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
@@ -135,15 +140,17 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.match(environmentSource, /environmentBackdrop/);
 });
 
-test("半球极点使用精确坐标和经度 UV，避免退化三角面拉伸纹理", () => {
+test("半球极点使用精确坐标，避免退化三角面拉伸纹理", () => {
   assert.match(environmentGeometrySource, /const rawSinTheta = Math\.sin\(theta\)/);
   assert.match(environmentGeometrySource, /const isPole = Math\.abs\(rawSinTheta\) < 1e-8/);
   assert.match(environmentGeometrySource, /const sinTheta = isPole \? 0 : rawSinTheta/);
 });
 
-test("半球极点保留每个经度的 UV，避免极点三角扇跨纹理拉伸", () => {
+test("半球极点坐标精确收敛，投影材质在极点使用固定经度", () => {
   assert.match(environmentGeometrySource, /addUpperRing/);
   assert.match(environmentGeometrySource, /isPole/);
+  assert.match(environmentProjectionSource, /float u = 0\.5/);
+  assert.match(environmentProjectionSource, /if \(horizontalLength > 0\.0001\)/);
 });
 
 test("下半球在投射中心附近使用有限平底，避免尖点三角面拉伸", () => {
@@ -159,6 +166,7 @@ test("下半球在投射中心附近使用有限平底，避免尖点三角面�
 test("HDRI EnviroDome 使用一份连续网格，避免上下 MeshInstance 的交界光栅缝", () => {
   assert.match(environmentGeometrySource, /export function createBackdropGeometryData/);
   assert.match(environmentGeometrySource, /UPPER_DOME_LATITUDE_BANDS/);
+  assert.match(environmentGeometrySource, /projectionCenterHeight \* 2/);
   assert.match(viewerSource, /createBackdropGeometryData\(/);
   assert.match(viewerSource, /let environmentBackdrop: pc\.Entity \| null = null/);
   assert.match(viewerSource, /environmentBackdrop\.addComponent\("render"/);
@@ -169,8 +177,29 @@ test("HDRI 投影使用投射中心方向的连续等距坐标，不在地平线
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
   assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
   assert.match(environmentProjectionSource, /fract\(/);
+  assert.match(environmentProjectionSource, /Avoid atan\(0, 0\)/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
   assert.doesNotMatch(environmentProjectionSource, /if \(vWorldPosition\.y >= edgeHeight\)/);
+});
+
+test("HDRI 等距投影数学在地平线、两极和经度循环处连续", async () => {
+  const { projectEquirectangularDirection } = await import(
+    "../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentProjection.ts",
+  );
+  const horizon = projectEquirectangularDirection([1, 0, 0]);
+  const opposite = projectEquirectangularDirection([-1, 0, 0]);
+  const top = projectEquirectangularDirection([0, 1, 0]);
+  const bottom = projectEquirectangularDirection([0, -1, 0]);
+  const scaled = projectEquirectangularDirection([10, 0, 0]);
+
+  assert.equal(horizon.v, 0.5);
+  assert.equal(top.v, 0);
+  assert.equal(bottom.v, 1);
+  assert.ok(horizon.u >= 0 && horizon.u <= 1);
+  assert.ok(opposite.u >= 0 && opposite.u <= 1);
+  assert.deepEqual(scaled, horizon, "投影只由方向决定，与距离无关");
+  assert.equal(projectEquirectangularDirection([0, 1, 0]).u, 0.5, "上极点使用固定经度");
+  assert.equal(projectEquirectangularDirection([0, -1, 0]).u, 0.5, "下极点使用固定经度");
 });
 
 test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI 环境", () => {
