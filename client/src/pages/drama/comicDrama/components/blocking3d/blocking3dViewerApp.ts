@@ -16,6 +16,7 @@ import {
   updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
 import { createSelectionRingGeometryData } from "./blocking3dSelectionRing";
+import { drawEntitySelectionOutline } from "./blocking3dSelectionOutline";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import {
   DEFAULT_BLOCKING_3D_HEIGHT_METERS,
@@ -53,6 +54,7 @@ const DEFAULT_FOV = 52;
 const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 const SELECTION_RING_OPACITY = 0.5;
+const SELECTION_OUTLINE_COLOR = new pc.Color(0.18, 0.95, 0.52, 0.98);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 1.7,
   domeRadius: 10,
@@ -885,6 +887,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (actor) {
       const position = actor.entity.getPosition();
       selectionRing.setPosition(position.x, 0.008, position.z);
+      drawEntitySelectionOutline(app, actor.entity, SELECTION_OUTLINE_COLOR);
     }
   });
   setSceneMarkers(options.sceneMarkers ?? []);
