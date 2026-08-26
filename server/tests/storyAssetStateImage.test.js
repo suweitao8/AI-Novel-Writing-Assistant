@@ -73,12 +73,16 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 2026-08-22：场景状态图必须是 360° 等距柱状全景（前端有全景预览），不再按主体构图。
   assert.match(scene, /360-degree equirectangular panorama/);
   assert.match(scene, /seamless horizontal wrap-around view/);
-  assert.match(scene, /strict two-zone equirectangular layout split by the exact fixed vertical center line v=0\.5/);
-  assert.match(scene, /texture-coordinate contract, never a visible line/);
-  assert.match(scene, /upper zone v=0\.0-0\.48 contains/);
-  assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object must be complete and fully contained above v=0\.48/);
-  assert.match(scene, /lower zone v=0\.52-1\.0 contains only one continuous clean ground/);
+  // 2026-08-26：三区构图——底部 50% 地面、v=0.3-0.5 远景带、顶部 30% 天空（与状态编辑器
+  // 平面图的 50%/70% 构图参考线同一契约）。
+  assert.match(scene, /strict three-zone equirectangular vertical layout with two fixed boundaries: the horizon line at v=0\.5 and the sky line at v=0\.3/);
+  assert.match(scene, /texture-coordinate contracts, never visible lines, seams, stripes, split-screens or collages/);
+  assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground/);
   assert.match(scene, /center band v=0\.48-0\.52 remains empty and uncluttered/);
+  assert.match(scene, /middle distant zone v=0\.3-0\.5 holds the distant view/);
+  assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object kept complete and fully contained between v=0\.3 and v=0\.48/);
+  assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
+  assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);

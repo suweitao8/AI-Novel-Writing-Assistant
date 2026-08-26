@@ -34,6 +34,10 @@ import {
   type StoryAssetWearTag,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
+  STORY_SCENE_3D_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_PANORAMA_SKY_V,
+} from "@ai-novel/shared/types/comicDrama";
+import {
   getStoryAssetImageRequestState,
   requestStoryAssetImage,
 } from "./storyAssetImageRequestCoordinator";
@@ -189,7 +193,7 @@ export function getCharacterStateHeightError(value: number | null | undefined): 
 // - 状态字段包含状态名、角色年龄段/身高（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
-//   场景状态图按普通 2:1 图片展示；需要空间预览或摆位时进入独立的 3D 编辑；
+//   场景状态图按普通 2:1 图片展示，叠加 50%/70% 构图参考线；需要空间预览或摆位时进入独立的 3D 编辑；
 // - 图片提示词可 AI 微调：复用旧状态提示词时，写一句要改的地方（如「去掉身上的
 //   伤」）即可，AI 只改指令涉及的部分；改完随状态一起保存，不单独落库；
 // - 音色（仅角色）：音色提示词可直接写；「生成音色」合成新音色；旁边「选取音色」
@@ -654,6 +658,17 @@ export function AssetStatesEditor(props: {
                     aria-label={`${getAssetStateLabel(selectedState, selectedIndex)}尚未生成图片`}
                   />
                 )}
+                {/* 场景全景的构图参考线：50% 地平线与 70%（从底部计）天空分界，对应生成契约的三区布局。 */}
+                {showScene && selectedState.image?.url
+                  ? [STORY_SCENE_3D_PANORAMA_SKY_V, STORY_SCENE_3D_PANORAMA_HORIZON_V].map((v) => (
+                    <div
+                      key={v}
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-x-0 h-px bg-foreground/55"
+                      style={{ top: `${v * 100}%` }}
+                    />
+                  ))
+                  : null}
               </div>
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <label className="min-w-40 flex-1 space-y-1">

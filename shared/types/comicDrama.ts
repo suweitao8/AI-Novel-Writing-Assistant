@@ -4,8 +4,15 @@
 
 export type ComicDramaStageKey = "novel" | "storyboard" | "voice" | "video";
 
-/** 全景图与 3D 环境之间唯一固定的垂直投射分界。 */
+/** 全景图与 3D 环境之间唯一固定的垂直投射分界（地平线，v 从顶部计）。 */
 export const STORY_SCENE_3D_PANORAMA_HORIZON_V = 0.5 as const;
+
+/**
+ * 全景图天空区分界（v 从顶部计）：v<0.3 为纯天空/天花板，v=0.3-0.5 为远景带，
+ * 与从底部计的 70% 分界等价。生成提示词（scenePanoramaLayout）与状态编辑器
+ * 平面图的构图参考线都以此为准。
+ */
+export const STORY_SCENE_3D_PANORAMA_SKY_V = 0.3 as const;
 
 /**
  * 场景资产的统一 3D 环境参数。投射中心高度和半球直径由场景资产维护，
