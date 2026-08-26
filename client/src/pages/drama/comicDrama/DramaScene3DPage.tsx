@@ -192,6 +192,7 @@ export default function DramaScene3DPage() {
     if (!viewer || !scene) return false;
     const snapshot = {
       projectionCenterHeight: environmentSettings.projectionCenterHeight,
+      projectionCenterHeightRatio: environmentSettings.projectionCenterHeightRatio,
       domeRadius: environmentSettings.domeRadius,
       panoramaHorizonV: environmentSettings.panoramaHorizonV,
     };
@@ -227,7 +228,7 @@ export default function DramaScene3DPage() {
       if (savePromiseRef.current === promise) savePromiseRef.current = null;
     });
     return promise;
-  }, [environmentSettings.domeRadius, environmentSettings.panoramaHorizonV, environmentSettings.projectionCenterHeight, novelId, queryClient, scene, sceneId, viewer]);
+  }, [environmentSettings.domeRadius, environmentSettings.panoramaHorizonV, environmentSettings.projectionCenterHeight, environmentSettings.projectionCenterHeightRatio, novelId, queryClient, scene, sceneId, viewer]);
 
   const analyzeMarkers = useCallback(async () => {
     if (!selectedState || analyzingMarkers || saving) return;
@@ -268,13 +269,15 @@ export default function DramaScene3DPage() {
     focusMarker(objectId.slice("marker:".length));
   }, [focusMarker, viewer]);
 
-  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeight" | "domeRadius" | "panoramaHorizonV", value: number) => {
+  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeightRatio" | "domeRadius" | "panoramaHorizonV", value: number) => {
     const next = {
       ...environmentSettings,
       [key]: value,
       yawDeg: 0,
       intensity: 1,
     } satisfies Blocking3dEnvironmentSettings;
+    // 投射中心高度恒为直径 × 占比：调直径保持等比，调占比直接换算。
+    next.projectionCenterHeight = Math.round(next.domeRadius * next.projectionCenterHeightRatio * 100) / 100;
     setEnvironmentSettings(next);
     viewer?.setEnvironmentSettings(next);
     setDirty(true);
@@ -416,9 +419,9 @@ export default function DramaScene3DPage() {
                   <label className="block space-y-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center justify-between gap-2">
                       <span>投射中心高度</span>
-                      <output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output>
+                      <output className="tabular-nums text-foreground">{Math.round(environmentSettings.projectionCenterHeightRatio * 100)}% · {(environmentSettings.domeRadius * environmentSettings.projectionCenterHeightRatio).toFixed(2)} 米</output>
                     </span>
-                    <input type="range" aria-label="投射中心高度" min="0.5" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="投射中心高度占比" min="5" max="20" step="0.5" value={Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeightRatio", Number(event.target.value) / 100)} className="w-full accent-primary" />
                   </label>
                   <label className="block space-y-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center justify-between gap-2">

@@ -20,7 +20,13 @@ export const STORY_SCENE_3D_PANORAMA_SKY_V = 0.3 as const;
  * 当前产品固定为 0 / 1。
  */
 export interface StoryScene3DEnvironment {
+  /**
+   * 投射中心的世界高度（米）。权威值恒为
+   * domeRadius × projectionCenterHeightRatio，由归一化器派生，不单独编辑。
+   */
   projectionCenterHeight: number;
+  /** 投射中心高度相对半球直径的比例（5%–20%，默认 10%），是用户实际调节的参数。 */
+  projectionCenterHeightRatio: number;
   domeRadius: number;
   /** Source-image V coordinate that should land on the 3D projection horizon. */
   panoramaHorizonV: number;
@@ -28,16 +34,20 @@ export interface StoryScene3DEnvironment {
   intensity: number;
 }
 
-/** 场景参数写入和旧空间标记快照允许缺少新字段，服务端会回退到 0.5。 */
+/** 场景参数写入和旧空间标记快照允许缺少新字段，服务端会回退到默认比例。 */
 export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">
-  & Partial<Pick<StoryScene3DEnvironment, "panoramaHorizonV">>;
+  & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeightRatio" | "panoramaHorizonV">>;
 
 /** 投射中心高度、半球直径和全景地面分界的可调范围，场景编辑、空间标记和分镜草图共用同一份合同。 */
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
-  projectionCenterHeight: { min: 0.5, max: 2 },
+  projectionCenterHeight: { min: 0.25, max: 4 },
+  projectionCenterHeightRatio: { min: 0.05, max: 0.2 },
   domeRadius: { min: 5, max: 20 },
   panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
+
+/** 用户未显式选择比例时的默认投射占比：投射高度 = 半球直径 × 10%。 */
+export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO = 0.1 as const;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [
@@ -132,6 +142,21 @@ function resolvePanoramaHorizonV(environment: StoryScene3DEnvironmentInput): num
     : STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V;
 }
 
+/**
+ * 投射占比的一致性读取：快照没有显式 ratio 时按“高度 ÷ 直径”推导，
+ * 这样旧快照与新结构的比较只看实际投射比例，不会因为字段缺失而失配。
+ */
+function resolveProjectionCenterHeightRatio(environment: StoryScene3DEnvironmentInput): number {
+  if (typeof environment.projectionCenterHeightRatio === "number"
+    && Number.isFinite(environment.projectionCenterHeightRatio)) {
+    return environment.projectionCenterHeightRatio;
+  }
+  const derived = environment.domeRadius > 0
+    ? environment.projectionCenterHeight / environment.domeRadius
+    : Number.NaN;
+  return Number.isFinite(derived) ? derived : STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO;
+}
+
 /** 环境参数改变任一投射量时，旧标记就不能继续代表当前场景。 */
 export function storyScene3DEnvironmentMatches(
   left: StoryScene3DEnvironmentInput | null | undefined,
@@ -140,7 +165,8 @@ export function storyScene3DEnvironmentMatches(
   if (!left || !right) return false;
   return Math.abs(left.projectionCenterHeight - right.projectionCenterHeight) < 0.0001
     && Math.abs(left.domeRadius - right.domeRadius) < 0.0001
-    && Math.abs(resolvePanoramaHorizonV(left) - resolvePanoramaHorizonV(right)) < 0.0001;
+    && Math.abs(resolvePanoramaHorizonV(left) - resolvePanoramaHorizonV(right)) < 0.0001
+    && Math.abs(resolveProjectionCenterHeightRatio(left) - resolveProjectionCenterHeightRatio(right)) < 0.0001;
 }
 
 /** 只有带环境快照且与当前环境一致的结果才能进入 3D 摆位上下文。 */

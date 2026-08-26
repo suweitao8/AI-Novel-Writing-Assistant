@@ -79,6 +79,14 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max,
     ),
+    projectionCenterHeightRatio: typeof source.projectionCenterHeightRatio === "number"
+      && Number.isFinite(source.projectionCenterHeightRatio)
+      ? clamp(
+        source.projectionCenterHeightRatio,
+        STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
+        STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
+      )
+      : undefined,
     domeRadius: clamp(
       domeRadius,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
@@ -316,6 +324,9 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
     ...markerSet,
     sourceEnvironment: {
       projectionCenterHeight: environment.projectionCenterHeight,
+      ...(environment.projectionCenterHeightRatio != null
+        ? { projectionCenterHeightRatio: environment.projectionCenterHeightRatio }
+        : {}),
       domeRadius: environment.domeRadius,
       panoramaHorizonV: environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     },

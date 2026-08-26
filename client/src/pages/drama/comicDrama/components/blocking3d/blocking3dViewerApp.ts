@@ -64,7 +64,8 @@ const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
-  projectionCenterHeight: 1.7,
+  projectionCenterHeight: Math.round(10 * 0.17 * 100) / 100,
+  projectionCenterHeightRatio: 0.17,
   domeRadius: 10,
   panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
@@ -208,7 +209,17 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
     return Number.isFinite(numeric) ? numeric : fallback;
   };
   return {
-    projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.5, 2),
+    projectionCenterHeightRatio: clamp(
+      numberOr(input?.projectionCenterHeightRatio, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio),
+      0.05,
+      0.2,
+    ),
+    projectionCenterHeight: (() => {
+      // 高度由直径 × 占比派生，直径拖动时投射中心等比跟随。
+      const ratio = clamp(numberOr(input?.projectionCenterHeightRatio, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio), 0.05, 0.2);
+      const diameter = clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 20);
+      return Math.round(diameter * ratio * 100) / 100;
+    })(),
     domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 20),
     panoramaHorizonV: clamp(numberOr(input?.panoramaHorizonV, DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV), 0.45, 0.55),
     yawDeg: 0,

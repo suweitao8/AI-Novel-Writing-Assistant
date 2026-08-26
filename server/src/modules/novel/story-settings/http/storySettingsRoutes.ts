@@ -269,6 +269,11 @@ const sceneCreateSchema = z.object({
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
       .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    projectionCenterHeightRatio: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max)
+      .optional(),
     domeRadius: z
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
@@ -296,6 +301,11 @@ const sceneUpdateSchema = z.object({
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
       .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    projectionCenterHeightRatio: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max)
+      .optional(),
     domeRadius: z
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)

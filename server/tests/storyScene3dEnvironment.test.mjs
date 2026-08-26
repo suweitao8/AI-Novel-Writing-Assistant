@@ -10,49 +10,64 @@ import {
   serializeStoryScene3dEnvironment,
 } from "../dist/modules/novel/story-settings/application/StoryScene3dEnvironment.js";
 
+function withRatio(domeRadius, ratio, panoramaHorizonV = 0.5) {
+  return {
+    projectionCenterHeight: Math.round(domeRadius * ratio * 100) / 100,
+    projectionCenterHeightRatio: ratio,
+    domeRadius,
+    panoramaHorizonV,
+    yawDeg: 0,
+    intensity: 1,
+  };
+}
+
 test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () => {
   assert.deepEqual(DEFAULT_STORY_SCENE_3D_ENVIRONMENT, {
     projectionCenterHeight: 1.7,
+    projectionCenterHeightRatio: 0.17,
     domeRadius: 10,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
   assert.deepEqual(normalizeStoryScene3dEnvironment(undefined), DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
+  // 高度由直径 × 占比派生：隐含占比 4.5/32≈14% 落在范围内，
+  // 直径裁剪到 20 后高度等比跟随 → 2.81 米。
   assert.deepEqual(normalizeStoryScene3dEnvironment({
     projectionCenterHeight: 4.5,
     domeRadius: 32,
     panoramaHorizonV: 0.65,
     yawDeg: 120,
     intensity: 0.7,
-  }), {
-    projectionCenterHeight: 2,
-    domeRadius: 20,
-    panoramaHorizonV: 0.55,
-    yawDeg: 0,
-    intensity: 1,
-  });
+  }), withRatio(20, 0.1406, 0.55));
 });
 
 test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
   assert.deepEqual(parseStoryScene3dEnvironment(null), DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
+  // 直径裁剪到 20 后按存量高度推导占比：0.6/20=3% 低于下限，收敛到 5% → 高度 1 米。
   assert.deepEqual(parseStoryScene3dEnvironment(JSON.stringify({
     projectionCenterHeight: 0.6,
     domeRadius: 96,
     panoramaHorizonV: 0.9,
-  })), {
-    projectionCenterHeight: 0.6,
-    domeRadius: 20,
-    panoramaHorizonV: 0.55,
-    yawDeg: 0,
-    intensity: 1,
-  });
+  })), withRatio(20, 0.05, 0.55));
 });
 
-test("场景资产 HDRI 投射中心高度的可调范围是 0.5 到 2", () => {
-  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 0.5 }).projectionCenterHeight, 0.5);
-  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 2 }).projectionCenterHeight, 2);
-  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 2.1 }).projectionCenterHeight, 2);
+test("投射中心高度由直径 × 占比派生，占比可调范围是 5% 到 20%", () => {
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.1 }).projectionCenterHeight, 0.6);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.05 }).projectionCenterHeight, 0.3);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.2 }).projectionCenterHeight, 1.2);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.01 }).projectionCenterHeightRatio, 0.05);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.9 }).projectionCenterHeightRatio, 0.2);
+  // 占比相同时，直径变化后高度等比跟随。
+  const small = normalizeStoryScene3dEnvironment({ domeRadius: 6, projectionCenterHeightRatio: 0.1 });
+  const large = normalizeStoryScene3dEnvironment({ domeRadius: 12, ...small, domeRadius: 12, projectionCenterHeightRatio: small.projectionCenterHeightRatio });
+  assert.equal(large.projectionCenterHeight, 1.2);
+});
+
+test("旧快照没有占比时按存量高度与直径推导", () => {
+  const normalized = normalizeStoryScene3dEnvironment({ projectionCenterHeight: 1.7, domeRadius: 10 });
+  assert.equal(normalized.projectionCenterHeightRatio, 0.17);
+  assert.equal(normalized.projectionCenterHeight, 1.7);
 });
 
 test("场景资产 HDRI 半球直径的可调范围是 5 到 20", () => {
@@ -62,16 +77,11 @@ test("场景资产 HDRI 半球直径的可调范围是 5 到 20", () => {
 });
 
 test("全景地面分界会被保存并按 45% 到 55% 归一化", () => {
-  const value = { projectionCenterHeight: 1.5, domeRadius: 20, panoramaHorizonV: 0.52 };
+  const value = { projectionCenterHeightRatio: 0.075, domeRadius: 20, panoramaHorizonV: 0.52 };
   const serialized = serializeStoryScene3dEnvironment(value);
   assert.match(serialized, /panoramaHorizonV/);
-  assert.deepEqual(parseStoryScene3dEnvironment(serialized), {
-    projectionCenterHeight: 1.5,
-    domeRadius: 20,
-    panoramaHorizonV: 0.52,
-    yawDeg: 0,
-    intensity: 1,
-  });
+  assert.match(serialized, /projectionCenterHeightRatio/);
+  assert.deepEqual(parseStoryScene3dEnvironment(serialized), withRatio(20, 0.075, 0.52));
 });
 
 test("缺失或越界的全景地面分界使用默认值或边界值", () => {
@@ -85,15 +95,18 @@ test("缺失或越界的全景地面分界使用默认值或边界值", () => {
 });
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
+  // 室内：直径 6、占比 10% → 投射中心 0.6 米。
   assert.deepEqual(getDefaultStoryScene3dEnvironment("interior"), {
-    projectionCenterHeight: 0.5,
-    domeRadius: 5,
+    projectionCenterHeight: 0.6,
+    projectionCenterHeightRatio: 0.1,
+    domeRadius: 6,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
   assert.deepEqual(getDefaultStoryScene3dEnvironment("exterior"), {
     projectionCenterHeight: 1.7,
+    projectionCenterHeightRatio: 0.17,
     domeRadius: 10,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
@@ -101,6 +114,7 @@ test("场景类型决定 3D 默认高度和半球直径", () => {
   });
   assert.deepEqual(getDefaultStoryScene3dEnvironment("nature"), {
     projectionCenterHeight: 1,
+    projectionCenterHeightRatio: 0.05,
     domeRadius: 20,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
@@ -121,6 +135,7 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
     { projectionCenterHeight: 2, domeRadius: 10 },
     { projectionCenterHeight: 2, domeRadius: 15 },
     { projectionCenterHeight: 2, domeRadius: 20 },
+    { projectionCenterHeight: 0.5, domeRadius: 5 },
   ]) {
     for (const sceneType of ["interior", "exterior", "nature"]) {
       assert.deepEqual(
@@ -131,16 +146,10 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
   }
 
   const custom = serializeStoryScene3dEnvironment(
-    { projectionCenterHeight: 1.2, domeRadius: 15, panoramaHorizonV: 0.52 },
+    { projectionCenterHeightRatio: 0.075, domeRadius: 15, panoramaHorizonV: 0.52 },
     { customized: true },
   );
-  assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), {
-    projectionCenterHeight: 1.2,
-    domeRadius: 15,
-    panoramaHorizonV: 0.52,
-    yawDeg: 0,
-    intensity: 1,
-  });
+  assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), withRatio(15, 0.075, 0.52));
 });
 
 test("未配置序列化记录会随类型解析，显式 null 仍然代表未配置", () => {
@@ -150,8 +159,9 @@ test("未配置序列化记录会随类型解析，显式 null 仍然代表未�
   );
   assert.equal(resolveStoryScene3dEnvironment("nature", storedDefault).domeRadius, 20);
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", null), {
-    projectionCenterHeight: 0.5,
-    domeRadius: 5,
+    projectionCenterHeight: 0.6,
+    projectionCenterHeightRatio: 0.1,
+    domeRadius: 6,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
