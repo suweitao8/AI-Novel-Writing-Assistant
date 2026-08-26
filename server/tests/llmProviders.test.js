@@ -7,6 +7,7 @@ const {
   getJsonCapability,
   getModelParameterCompatibility,
   resolveModelTemperature,
+  supportsVisionInput,
 } = require("../dist/llm/capabilities.js");
 const { resolveLLMClientOptions, setProviderSecretCache } = require("../dist/llm/factory.js");
 const {
@@ -28,7 +29,7 @@ test("local Grok Build providers are registered as subscription-backed channels"
   assert.equal(PROVIDERS["grok-cli"].defaultModel, "grok-cli/grok-4.6");
   assert.equal(PROVIDERS.grok_build.requiresApiKey, false);
   assert.equal(PROVIDERS.grok_build.defaultModel, "grok-build-image");
-  assert.equal(getTextModelProvider(), "grok-cli");
+  assert.equal(getTextModelProvider(), "opencode");
 });
 
 test("local Grok Build client options use the bridge bearer by default", async () => {
@@ -371,4 +372,12 @@ test("structured failure classification separates native-json, thinking and sche
     }),
     "malformed_json",
   );
+});
+
+test("视觉能力声明：OpenCode Go 是纯文本通道，未知通道按可送图处理", () => {
+  assert.equal(supportsVisionInput("opencode"), false);
+  assert.equal(supportsVisionInput("grok-cli"), true);
+  assert.equal(supportsVisionInput("grok_build"), false);
+  assert.equal(supportsVisionInput("gemini"), true);
+  assert.equal(supportsVisionInput("custom-relay"), true);
 });

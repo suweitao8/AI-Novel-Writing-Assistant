@@ -14,6 +14,10 @@ import {
   type SceneState3dMarkersOutput,
 } from "../../../../prompting/prompts/drama/sceneState3dMarkers.prompts";
 import type { DramaLLMOptions } from "../../../../services/drama/DramaStrategyService";
+import { supportsVisionInput } from "../../../../llm/capabilities";
+import { getTextModelProvider } from "../../../../llm/modelCategories";
+import { PROVIDERS } from "../../../../llm/providers";
+import { isBuiltinLLMProvider } from "@ai-novel/shared/types/llm";
 import { storyAssetStateImageService } from "./StoryAssetStateImageService";
 import {
   normalizeSceneStates,
@@ -171,6 +175,17 @@ export class StoryScene3dMarkerService {
     const imageBuffer = await fs.readFile(sourceImage.filePath);
     if (imageBuffer.byteLength > MAX_ANALYZE_IMAGE_BYTES) {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
+    }
+
+    const effectiveProvider = options.provider ?? getTextModelProvider();
+    if (!supportsVisionInput(effectiveProvider)) {
+      const providerName = isBuiltinLLMProvider(effectiveProvider)
+        ? PROVIDERS[effectiveProvider].name
+        : effectiveProvider;
+      throw new AppError(
+        `当前文本模型通道（${providerName}）不支持图片输入，空间识别需要视觉模型通道（如 Grok Build）。`,
+        409,
+      );
     }
 
     const analysisImage = await prepareAnalysisImage(imageBuffer, sourceImage.mimeType);

@@ -22,6 +22,8 @@ OpenCode Go 是基于本机已登录 OpenCode 订阅的文本模型通道（默�
 
 - serve 或桥接未启动：`/health` 返回 503 `opencode_unavailable`，模型设置页连通性测试会显示该错误；运行 `pnpm opencode:bridge` 恢复。
 - 上游偶发 `Session not found`（HTTP 404）：桥接用全新 session 自动重试最多 3 次，无需应用侧处理。
+- 上游余额不足等错误（HTTP 401 `Insufficient balance`）不返回文本 parts，而是放在响应 `info.error`：桥接提取 `info.error.data.message` 原样抛出，应用侧与连通测试能直接看到真实原因。
+- 本桥是纯文本通道：`image_url` 内容会被替换为占位文本；送图任务（空间标记识别）通过 `capabilities.supportsVisionInput("opencode") === false` 在服务端快速失败，不会静默丢图。文本槽临时切到 opencode 期间（Grok Build 额度耗尽），视觉任务仍需等待 grok-cli 恢复。
 - 长章节生成可达数分钟：启动器默认把桥接上游超时设为 900 秒，应用侧请求超时需要覆盖该时长（默认 `API_TIMEOUT_MS` 为 10 分钟）。
 - Windows 上直接 spawn npm 全局 `.cmd` 会抛 `EINVAL`（Node CVE-2024-27980 修复后行为），启动器统一经 `cmd.exe /c` 拉起 opencode。
 
