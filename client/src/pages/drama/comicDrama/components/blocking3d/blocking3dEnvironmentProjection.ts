@@ -2,7 +2,6 @@ import * as pc from "playcanvas";
 
 export interface ProjectedHdriMaterialSettings {
   projectionCenterHeight: number;
-  domeRadius: number;
 }
 
 export interface ProjectedHdriCoordinates {
@@ -79,7 +78,6 @@ precision highp float;
 
 uniform sampler2D uEnvironmentMap;
 uniform float uProjectionCenterHeight;
-uniform float uDomeRadius;
 
 varying vec3 vWorldPosition;
 
@@ -139,6 +137,5 @@ export function updateProjectedHdriMaterial(
 ): void {
   material.setParameter("uEnvironmentMap", texture);
   material.setParameter("uProjectionCenterHeight", settings.projectionCenterHeight);
-  material.setParameter("uDomeRadius", settings.domeRadius);
   material.update();
 }

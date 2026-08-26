@@ -128,7 +128,6 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.match(environmentProjectionSource, /projectionToSurface/);
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
-  assert.match(environmentProjectionSource, /uDomeRadius/);
   assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
