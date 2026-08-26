@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 
+import { parseStoryAssetStatesJson } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
@@ -50,12 +51,14 @@ interface CharacterHeightSubject extends CharacterHeightInput {
   name: string;
   updatedAt: Date;
   heightProfileJson: string | null;
+  statesJson?: string | null;
 }
 
 interface NovelCharacterHeightRow extends CharacterHeightSubject {
   kind: "novel";
   role: string;
   gender: string;
+  statesJson: string | null;
   heightProfileJson: string | null;
 }
 
@@ -70,6 +73,14 @@ interface DramaCharacterHeightRow extends CharacterHeightSubject {
 
 function compactText(value: unknown): string {
   return typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+}
+
+function firstNonEmpty(...values: unknown[]): string | null {
+  for (const value of values) {
+    const text = compactText(value);
+    if (text) return text;
+  }
+  return null;
 }
 
 function normalizedName(value: string): string {
@@ -107,6 +118,38 @@ function profileInput(input: CharacterHeightInput): Record<string, string> {
 export function buildCharacterHeightInputFingerprint(input: CharacterHeightInput): string {
   const payload = JSON.stringify(profileInput(input));
   return `sha256:${createHash("sha256").update(payload).digest("hex")}`;
+}
+
+/**
+ * 角色状态模型把年龄、外貌和图片提示词放在默认状态里；旧角色则可能仍只有角色级字段。
+ * 身高推断必须使用同一份合并输入，否则提取应用后的关键资料不会进入 Prompt。
+ */
+export function buildNovelCharacterHeightInput(subject: {
+  name?: string | null;
+  role?: string | null;
+  gender?: string | null;
+  ageGroup?: string | null;
+  physique?: string | null;
+  appearance?: string | null;
+  personality?: string | null;
+  background?: string | null;
+  attireStyle?: string | null;
+  facePrompt?: string | null;
+  statesJson?: string | null;
+}): CharacterHeightInput {
+  const defaultState = parseStoryAssetStatesJson(subject.statesJson).states[0];
+  return {
+    name: firstNonEmpty(subject.name),
+    role: firstNonEmpty(subject.role),
+    gender: firstNonEmpty(subject.gender),
+    ageGroup: firstNonEmpty(subject.ageGroup, defaultState?.ageGroup),
+    physique: firstNonEmpty(subject.physique),
+    appearance: firstNonEmpty(subject.appearance, defaultState?.description),
+    personality: firstNonEmpty(subject.personality),
+    background: firstNonEmpty(subject.background),
+    attireStyle: firstNonEmpty(subject.attireStyle),
+    facePrompt: firstNonEmpty(subject.facePrompt, defaultState?.imagePrompt),
+  };
 }
 
 export function parseCharacterHeightProfile(raw: string | null | undefined): CharacterHeightProfile | null {
@@ -185,7 +228,7 @@ function subjectKey(subject: CharacterHeightSubject): string {
   return `${subject.kind}:${subject.id}`;
 }
 
-function promptCharacterJson(subject: CharacterHeightSubject): string {
+function promptCharacterJson(subject: CharacterHeightInput): string {
   return JSON.stringify(profileInput(subject), null, 2);
 }
 
@@ -208,7 +251,10 @@ async function persistProfile(subject: CharacterHeightSubject, profile: Characte
 }
 
 async function ensureSubject(subject: CharacterHeightSubject): Promise<CharacterHeightProfile> {
-  const inputFingerprint = buildCharacterHeightInputFingerprint(subject);
+  const heightInput = subject.kind === "novel"
+    ? buildNovelCharacterHeightInput(subject)
+    : subject;
+  const inputFingerprint = buildCharacterHeightInputFingerprint(heightInput);
   const current = parseCharacterHeightProfile(subject.heightProfileJson);
   if (current?.inputFingerprint === inputFingerprint) return current;
 
@@ -216,7 +262,7 @@ async function ensureSubject(subject: CharacterHeightSubject): Promise<Character
   try {
     const result = await runStructuredPrompt({
       asset: characterHeightEstimatePrompt,
-      promptInput: { characterJson: promptCharacterJson(subject) },
+      promptInput: { characterJson: promptCharacterJson(heightInput) },
       options: {
         temperature: 0,
         entrypoint: "drama.blocking.characterHeight",
@@ -262,6 +308,7 @@ class CharacterHeightProfileService {
         background: true,
         attireStyle: true,
         facePrompt: true,
+        statesJson: true,
         heightProfileJson: true,
         updatedAt: true,
       },
