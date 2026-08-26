@@ -8,8 +8,7 @@ import type {
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import {
-  createGroundDomeGeometryData,
-  getGroundDomeEdgeHeight,
+  createBackdropGeometryData,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import {
@@ -181,79 +180,6 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
   };
 }
 
-type DomeUvMapper = (x: number, y: number, z: number) => [number, number];
-type DomeYMapper = (x: number, y: number, z: number) => number;
-
-function createDomeSectionGeometry(
-  startTheta: number,
-  endTheta: number,
-  sourceVStart: number,
-  sourceVEnd: number,
-  uvMapper?: DomeUvMapper,
-  domeYMapper?: DomeYMapper,
-): pc.Geometry {
-  const radius = 0.5;
-  const latitudeBands = 24;
-  const longitudeBands = 64;
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const uvs: number[] = [];
-  const indices: number[] = [];
-
-  for (let lat = 0; lat <= latitudeBands; lat += 1) {
-    const theta = startTheta + ((endTheta - startTheta) * lat) / latitudeBands;
-    const rawSinTheta = Math.sin(theta);
-    const rawCosTheta = Math.cos(theta);
-    // Math.sin(Math.PI) leaves a tiny non-zero radius. Snapping the pole keeps
-    // all converging vertices truly coincident; each duplicated longitude still
-    // needs its own U so the final triangle fan does not stretch across the map.
-    const isPole = Math.abs(rawSinTheta) < 1e-8;
-    const sinTheta = isPole ? 0 : rawSinTheta;
-    const cosTheta = isPole ? Math.sign(rawCosTheta) : rawCosTheta;
-    for (let lon = 0; lon <= longitudeBands; lon += 1) {
-      const phi = (lon * Math.PI * 2) / longitudeBands - Math.PI / 2;
-      const sinPhi = Math.sin(phi);
-      const cosPhi = Math.cos(phi);
-      const x = cosPhi * sinTheta;
-      const y = cosTheta;
-      const z = sinPhi * sinTheta;
-      const domeY = domeYMapper ? domeYMapper(x, y, z) : y + 0.1;
-      positions.push(x * radius, domeY * radius, z * radius);
-      normals.push(x, y, z);
-      const textureProgress = lat / latitudeBands;
-      const [u, v] = uvMapper
-        ? uvMapper(x, domeY, z)
-        : [
-          1 - lon / longitudeBands,
-          sourceVStart + textureProgress * (sourceVEnd - sourceVStart),
-        ];
-      const poleU = 1 - lon / longitudeBands;
-      uvs.push(isPole ? poleU : u, v);
-    }
-  }
-
-  for (let lat = 0; lat < latitudeBands; lat += 1) {
-    for (let lon = 0; lon < longitudeBands; lon += 1) {
-      const first = lat * (longitudeBands + 1) + lon;
-      const second = first + longitudeBands + 1;
-      indices.push(first + 1, second, first);
-      indices.push(first + 1, second + 1, second);
-    }
-  }
-
-  const geometry = new pc.Geometry();
-  geometry.positions = positions;
-  geometry.normals = normals;
-  geometry.uvs = uvs;
-  geometry.uvs1 = uvs;
-  geometry.indices = indices;
-  return geometry;
-}
-
-function createUpperDomeGeometry(edgeHeight = 0.1): pc.Geometry {
-  return createDomeSectionGeometry(0, Math.PI * 0.5, 0, 0.5, undefined, (_x, y, _z) => y + edgeHeight);
-}
-
 function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
   const geometry = new pc.Geometry();
   geometry.positions = data.positions;
@@ -264,8 +190,8 @@ function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
   return geometry;
 }
 
-function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
-  return createPlayCanvasGeometry(createGroundDomeGeometryData(projectionCenterHeight, domeRadius));
+function createBackdropGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
+  return createPlayCanvasGeometry(createBackdropGeometryData(projectionCenterHeight, domeRadius));
 }
 
 function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
@@ -475,16 +401,20 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   selectionRing.enabled = false;
   app.root.addChild(selectionRing);
 
-  let environmentDome: pc.Entity | null = null;
-  let environmentGround: pc.Entity | null = null;
+  let environmentBackdrop: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
   let environmentMaterial: pc.ShaderMaterial | null = null;
-  let environmentDomeMeshInstance: pc.MeshInstance | null = null;
-  let environmentGroundMeshInstance: pc.MeshInstance | null = null;
+  let environmentBackdropMeshInstance: pc.MeshInstance | null = null;
   let environmentLightingSource: pc.Texture | null = null;
   let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  let environmentRequestId = 0;
+  const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
+  const discardEnvironmentAsset = (asset: pc.Asset) => {
+    asset.unload();
+    app.assets.remove(asset);
+  };
   const clearEnvironmentLighting = () => {
     if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
     environmentAtlas?.destroy();
@@ -504,42 +434,25 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     app.scene.envAtlas = environmentAtlas;
     app.scene.ambientLight = new pc.Color(0, 0, 0);
   };
-  const rebuildEnvironmentGroundMesh = () => {
-    if (environmentGroundMeshInstance) {
-      const previousGroundMesh = environmentGroundMeshInstance.mesh;
-      const nextGroundMesh = pc.Mesh.fromGeometry(
+  const rebuildEnvironmentBackdropMesh = () => {
+    if (environmentBackdropMeshInstance) {
+      const previousBackdropMesh = environmentBackdropMeshInstance.mesh;
+      const nextBackdropMesh = pc.Mesh.fromGeometry(
         app.graphicsDevice,
-        createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
       );
-      environmentGroundMeshInstance.mesh = nextGroundMesh;
-      previousGroundMesh.destroy();
-    }
-    if (environmentDomeMeshInstance) {
-      const previousDomeMesh = environmentDomeMeshInstance.mesh;
-      const nextDomeMesh = pc.Mesh.fromGeometry(
-        app.graphicsDevice,
-        createUpperDomeGeometry(getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius)),
-      );
-      environmentDomeMeshInstance.mesh = nextDomeMesh;
-      previousDomeMesh.destroy();
+      environmentBackdropMeshInstance.mesh = nextBackdropMesh;
+      previousBackdropMesh.destroy();
     }
   };
   const applyEnvironmentSettings = () => {
-    if (environmentDome) {
-      environmentDome.setLocalScale(
+    if (environmentBackdrop) {
+      environmentBackdrop.setLocalScale(
         environmentSettings.domeRadius,
         environmentSettings.domeRadius,
         environmentSettings.domeRadius,
       );
-      environmentDome.setEulerAngles(0, 0, 0);
-    }
-    if (environmentGround) {
-      environmentGround.setLocalScale(
-        environmentSettings.domeRadius,
-        environmentSettings.domeRadius,
-        environmentSettings.domeRadius,
-      );
-      environmentGround.setEulerAngles(0, 0, 0);
+      environmentBackdrop.setEulerAngles(0, 0, 0);
     }
     if (environmentMaterial) {
       if (environmentAsset?.resource instanceof pc.Texture) {
@@ -552,12 +465,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     }
   };
   const clearEnvironmentVisuals = () => {
-    environmentDome?.destroy();
-    environmentDome = null;
-    environmentGround?.destroy();
-    environmentGround = null;
-    environmentDomeMeshInstance = null;
-    environmentGroundMeshInstance = null;
+    environmentBackdrop?.destroy();
+    environmentBackdrop = null;
+    environmentBackdropMeshInstance?.mesh.destroy();
+    environmentBackdropMeshInstance = null;
     environmentMaterial?.destroy();
     environmentMaterial = null;
     if (environmentAsset) {
@@ -1132,45 +1043,46 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (!enabled && dragState?.mode === "actor") dragState = null;
     },
     async setEnvironment(url) {
+      const requestId = ++environmentRequestId;
       ground.enabled = true;
       clearEnvironmentLighting();
       clearEnvironmentVisuals();
       if (!url?.trim()) return;
       setStatus("正在加载场景 HDRI 环境...");
-      environmentAsset = await loadAsset(app, url, "texture");
-      const texture = environmentAsset.resource as pc.Texture;
+      let asset: pc.Asset;
+      try {
+        asset = await loadAsset(app, url, "texture");
+      } catch (error) {
+        if (!isCurrentEnvironmentRequest(requestId)) return;
+        throw error;
+      }
+      if (!isCurrentEnvironmentRequest(requestId)) {
+        discardEnvironmentAsset(asset);
+        return;
+      }
+      environmentAsset = asset;
+      const texture = asset.resource as pc.Texture;
       configureEnvironmentTexture(texture, app);
       applyEnvironmentLighting(texture);
-      // 所有状态图都按“上半球 + 带投射中心的下半球”使用。
-      // 这样 16:9 场景图和 2:1 等距柱状图都能通过投射中心高度控制地面落点。
-      const geometry = createUpperDomeGeometry(
-        getGroundDomeEdgeHeight(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+      // EnviroDome uses one continuous surface for the sky and the floor.
+      // Sharing the equator ring is important: two independent draw calls
+      // can leave a raster gap even when their positions appear identical.
+      const mesh = pc.Mesh.fromGeometry(
+        app.graphicsDevice,
+        createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
       );
-      const mesh = pc.Mesh.fromGeometry(app.graphicsDevice, geometry);
       const material = createProjectedHdriMaterial(texture, environmentSettings);
       environmentMaterial = material;
       const meshInstance = new pc.MeshInstance(mesh, material);
-      environmentDomeMeshInstance = meshInstance;
-      environmentDome = new pc.Entity("blocking3d-hdri-dome");
-      environmentDome.addComponent("render", {
+      environmentBackdropMeshInstance = meshInstance;
+      environmentBackdrop = new pc.Entity("blocking3d-hdri-backdrop");
+      environmentBackdrop.addComponent("render", {
         meshInstances: [meshInstance],
         layers: [pc.LAYERID_WORLD],
       });
-      const groundMesh = pc.Mesh.fromGeometry(
-        app.graphicsDevice,
-        createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-      );
-      environmentGroundMeshInstance = new pc.MeshInstance(groundMesh, material);
-      environmentGround = new pc.Entity("blocking3d-hdri-ground-dome");
-      environmentGround.addComponent("render", {
-        meshInstances: [environmentGroundMeshInstance],
-        layers: [pc.LAYERID_WORLD],
-      });
-      environmentGround.setPosition(environmentWorldPosition);
-      app.root.addChild(environmentGround);
+      environmentBackdrop.setPosition(environmentWorldPosition);
+      app.root.addChild(environmentBackdrop);
       applyEnvironmentSettings();
-      environmentDome.setPosition(environmentWorldPosition);
-      app.root.addChild(environmentDome);
       ground.enabled = false;
       setStatus("3D 草图已就绪");
     },
@@ -1180,7 +1092,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     setEnvironmentSettings(settings) {
       environmentSettings = normalizeEnvironmentSettings(settings);
       applyEnvironmentSettings();
-      rebuildEnvironmentGroundMesh();
+      rebuildEnvironmentBackdropMesh();
       emitChange();
       return true;
     },
@@ -1209,7 +1121,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     loadLayout(layout) {
       environmentSettings = normalizeEnvironmentSettings(layout.environment);
       applyEnvironmentSettings();
-      rebuildEnvironmentGroundMesh();
+      rebuildEnvironmentBackdropMesh();
       viewer.setCameraState(layout.camera);
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);
@@ -1248,6 +1160,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     destroy() {
       if (destroyed) return;
+      environmentRequestId += 1;
       destroyed = true;
       resizeObserver.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);

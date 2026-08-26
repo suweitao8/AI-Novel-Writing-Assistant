@@ -5,6 +5,8 @@ import {
   GROUND_DOME_RIM_BANDS,
   GROUND_DOME_FLAT_RADIUS,
   LONGITUDE_BANDS,
+  UPPER_DOME_LATITUDE_BANDS,
+  createBackdropGeometryData,
   createGroundDomeGeometryData,
   getGroundDomeEdgeHeight,
 } from "./blocking3dEnvironmentGeometry.ts";
@@ -14,6 +16,44 @@ function vertex(data, index) {
     position: data.positions.slice(index * 3, index * 3 + 3),
   };
 }
+
+test("EnviroDome 上下表面共享唯一交界圈，避免两个网格的光栅缝", () => {
+  const data = createBackdropGeometryData(2, 15);
+  const ringSize = LONGITUDE_BANDS + 1;
+  const seamRingStart = UPPER_DOME_LATITUDE_BANDS * ringSize;
+  const seamHeight = getGroundDomeEdgeHeight(2, 15) * 0.5;
+  const seamWorldHeight = seamHeight * 15;
+  const seamVertices = [];
+
+  for (let index = 0; index < data.positions.length / 3; index += 1) {
+    const position = vertex(data, index).position;
+    if (Math.abs(position[1] - seamHeight) < 1e-8) seamVertices.push(index);
+  }
+
+  assert.equal(seamVertices.length, ringSize, "交界圈只能存在一份顶点");
+  assert.deepEqual(seamVertices, Array.from({ length: ringSize }, (_, offset) => seamRingStart + offset));
+  assert.ok(Math.abs(seamWorldHeight - 2) < 1e-8, "交界圈应位于投射中心水平面");
+  const upperIndexCount = UPPER_DOME_LATITUDE_BANDS * LONGITUDE_BANDS * 6;
+  const firstLowerRingStart = (UPPER_DOME_LATITUDE_BANDS + 1) * ringSize;
+  assert.deepEqual(
+    data.indices.slice(upperIndexCount, upperIndexCount + 6),
+    [seamRingStart + 1, firstLowerRingStart, seamRingStart, seamRingStart + 1, firstLowerRingStart + 1, firstLowerRingStart],
+    "上半球和地面必须在同一份索引缓冲中连接",
+  );
+});
+
+test("有效投射中心高度和半球直径都把交界圈放在投射中心水平面", () => {
+  const ringSize = LONGITUDE_BANDS + 1;
+  const seamRingStart = UPPER_DOME_LATITUDE_BANDS * ringSize;
+  for (const [projectionCenterHeight, domeRadius] of [[1, 10], [2, 15], [10, 10], [10, 50]]) {
+    const data = createBackdropGeometryData(projectionCenterHeight, domeRadius);
+    const seamLocalY = vertex(data, seamRingStart).position[1];
+    assert.ok(
+      Math.abs(seamLocalY * domeRadius - projectionCenterHeight) < 1e-8,
+      `交界圈高度应匹配投射中心: h=${projectionCenterHeight}, diameter=${domeRadius}`,
+    );
+  }
+});
 
 test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉伸", () => {
   const data = createGroundDomeGeometryData(2, 15);

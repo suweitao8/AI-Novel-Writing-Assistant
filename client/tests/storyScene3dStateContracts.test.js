@@ -29,8 +29,11 @@ test("场景级入口不再重复提供 3D 编辑", () => {
   assert.doesNotMatch(dialog, /3D场景编辑/);
 });
 
-test("2:1 全景图也通过上下半球投影，使投射中心高度参与地面重建", () => {
-  assert.match(viewer, /const geometry = createUpperDomeGeometry/);
-  assert.match(viewer, /createGroundDomeGeometry\(environmentSettings\.projectionCenterHeight/);
+test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参与地面重建", () => {
+  assert.match(viewer, /function createBackdropGeometry\(projectionCenterHeight: number, domeRadius: number\)/);
+  assert.match(viewer, /createBackdropGeometryData\(projectionCenterHeight, domeRadius\)/);
+  assert.match(viewer, /createBackdropGeometry\(environmentSettings\.projectionCenterHeight, environmentSettings\.domeRadius\)/);
+  assert.doesNotMatch(viewer, /createUpperDomeGeometry/);
+  assert.doesNotMatch(viewer, /createGroundDomeGeometry\(environmentSettings\.projectionCenterHeight/);
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
