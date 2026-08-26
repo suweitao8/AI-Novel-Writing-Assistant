@@ -12,8 +12,8 @@ import {
 
 test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () => {
   assert.deepEqual(DEFAULT_STORY_SCENE_3D_ENVIRONMENT, {
-    projectionCenterHeight: 2,
-    domeRadius: 15,
+    projectionCenterHeight: 1.7,
+    domeRadius: 10,
     yawDeg: 0,
     intensity: 1,
   });
@@ -72,14 +72,24 @@ test("任意历史全景地面分界都被忽略，运行时统一使用固定 5
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
   assert.deepEqual(getDefaultStoryScene3dEnvironment("interior"), {
-    projectionCenterHeight: 2,
+    projectionCenterHeight: 1,
+    domeRadius: 8,
+    yawDeg: 0,
+    intensity: 1,
+  });
+  assert.deepEqual(getDefaultStoryScene3dEnvironment("exterior"), {
+    projectionCenterHeight: 1.7,
     domeRadius: 10,
     yawDeg: 0,
     intensity: 1,
   });
-  assert.equal(getDefaultStoryScene3dEnvironment("exterior").domeRadius, 15);
-  assert.equal(getDefaultStoryScene3dEnvironment("nature").domeRadius, 20);
-  assert.equal(getDefaultStoryScene3dEnvironment("unknown").domeRadius, 15);
+  assert.deepEqual(getDefaultStoryScene3dEnvironment("nature"), {
+    projectionCenterHeight: 1,
+    domeRadius: 20,
+    yawDeg: 0,
+    intensity: 1,
+  });
+  assert.deepEqual(getDefaultStoryScene3dEnvironment("unknown"), getDefaultStoryScene3dEnvironment("exterior"));
 });
 
 test("状态类型优先于场景兼容类型，缺失时按室外兜底", () => {
@@ -90,9 +100,18 @@ test("状态类型优先于场景兼容类型，缺失时按室外兜底", () =>
 });
 
 test("历史固定默认快照按场景类型迁移，已标记自定义值保持不变", () => {
-  const legacy = JSON.stringify(DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
-  assert.equal(resolveStoryScene3dEnvironment("interior", legacy).domeRadius, 10);
-  assert.equal(resolveStoryScene3dEnvironment("nature", legacy).domeRadius, 20);
+  for (const legacy of [
+    { projectionCenterHeight: 2, domeRadius: 10 },
+    { projectionCenterHeight: 2, domeRadius: 15 },
+    { projectionCenterHeight: 2, domeRadius: 20 },
+  ]) {
+    for (const sceneType of ["interior", "exterior", "nature"]) {
+      assert.deepEqual(
+        resolveStoryScene3dEnvironment(sceneType, JSON.stringify(legacy)),
+        getDefaultStoryScene3dEnvironment(sceneType),
+      );
+    }
+  }
 
   const custom = serializeStoryScene3dEnvironment(
     { projectionCenterHeight: 4.5, domeRadius: 15, panoramaHorizonV: 0.58 },
@@ -112,5 +131,10 @@ test("未配置序列化记录会随类型解析，显式 null 仍然代表未�
     { customized: false },
   );
   assert.equal(resolveStoryScene3dEnvironment("nature", storedDefault).domeRadius, 20);
-  assert.equal(resolveStoryScene3dEnvironment("interior", null).domeRadius, 10);
+  assert.deepEqual(resolveStoryScene3dEnvironment("interior", null), {
+    projectionCenterHeight: 1,
+    domeRadius: 8,
+    yawDeg: 0,
+    intensity: 1,
+  });
 });
