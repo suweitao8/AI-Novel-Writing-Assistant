@@ -3,36 +3,12 @@ import os from "os";
 import path from "path";
 
 import { fingerprintImageFile } from "./runtime/referenceIntegrity";
-
-const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const SUPPORTED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+import { normalizeImageMimeType, sniffImageMimeType } from "./imageMimeType";
 
 export interface PreparedReferenceImageFiles {
   filePaths: string[];
   fingerprints: string[];
   cleanup: () => Promise<void>;
-}
-
-function normalizeMimeType(value: string | null | undefined): string | null {
-  const mimeType = value?.split(";", 1)[0]?.trim().toLowerCase() ?? "";
-  return SUPPORTED_MIME_TYPES.has(mimeType) ? mimeType : null;
-}
-
-function sniffMimeType(bytes: Buffer): string | null {
-  if (bytes.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE)) {
-    return "image/png";
-  }
-  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
-    return "image/jpeg";
-  }
-  if (
-    bytes.length >= 12
-    && bytes.subarray(0, 4).toString("ascii") === "RIFF"
-    && bytes.subarray(8, 12).toString("ascii") === "WEBP"
-  ) {
-    return "image/webp";
-  }
-  return null;
 }
 
 function extensionForMimeType(mimeType: string): string {
@@ -54,15 +30,57 @@ function parseDataUrl(source: string): { bytes: Buffer; mimeType: string } {
   if (!match) {
     throw new Error("参考图 data URL 格式无效。");
   }
-  const declaredMime = normalizeMimeType(match[1]);
+  const declaredMime = normalizeImageMimeType(match[1]);
   const bytes = match[2]
     ? Buffer.from(match[3], "base64")
     : Buffer.from(decodeURIComponent(match[3]), "utf8");
-  const mimeType = sniffMimeType(bytes) ?? declaredMime;
+  const mimeType = sniffImageMimeType(bytes) ?? declaredMime;
   if (!mimeType || bytes.length === 0) {
     throw new Error("参考图 data URL 不是可读取的 PNG/JPEG/WebP 图片。");
   }
   return { bytes, mimeType };
+}
+
+const MAX_REFERENCE_DOWNLOAD_BYTES = 20 * 1024 * 1024;
+
+/** 参考图下载只允许 http(s)；除本服务自身外，拒绝环回与私网地址，避免被当作内网探测入口。 */
+function assertFetchableReferenceUrl(rawUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    throw new Error(`参考图 URL 无效（${rawUrl}）。`);
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error(`参考图仅支持 http/https 地址（${rawUrl}）。`);
+  }
+  const ownOrigin = new URL(resolveInternalReferenceUrl("/"));
+  if (url.origin === ownOrigin.origin) {
+    return;
+  }
+  if (isPrivateOrLoopbackHost(url.hostname)) {
+    throw new Error(`参考图不允许指向本机或内网地址（${url.hostname}）。`);
+  }
+}
+
+function isPrivateOrLoopbackHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal")) {
+    return true;
+  }
+  const parts = host.split(".");
+  if (parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part))) {
+    const nums = parts.map(Number);
+    if (nums.some((n) => n < 0 || n > 255)) {
+      return false;
+    }
+    const [a, b] = nums;
+    return a === 10 || a === 127 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || a === 0;
+  }
+  if (host === "::1" || host === "::" || host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80")) {
+    return true;
+  }
+  return false;
 }
 
 async function downloadReferenceImage(source: string, signal?: AbortSignal): Promise<{ bytes: Buffer; mimeType: string }> {
@@ -70,6 +88,7 @@ async function downloadReferenceImage(source: string, signal?: AbortSignal): Pro
     throw new Error("参考图准备已取消。");
   }
   const requestUrl = source.startsWith("/") ? resolveInternalReferenceUrl(source) : source;
+  assertFetchableReferenceUrl(requestUrl);
   let response: Response;
   try {
     response = await fetch(requestUrl, { signal });
@@ -79,8 +98,28 @@ async function downloadReferenceImage(source: string, signal?: AbortSignal): Pro
   if (!response.ok) {
     throw new Error(`参考图无法读取（${source}）：HTTP ${response.status}`);
   }
-  const bytes = Buffer.from(await response.arrayBuffer());
-  const mimeType = sniffMimeType(bytes) ?? normalizeMimeType(response.headers.get("content-type"));
+  const declaredLength = Number(response.headers.get("content-length") ?? Number.NaN);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_REFERENCE_DOWNLOAD_BYTES) {
+    throw new Error(`参考图无法读取（${source}）：超过 ${Math.round(MAX_REFERENCE_DOWNLOAD_BYTES / (1024 * 1024))} MB 上限。`);
+  }
+  const chunks: Buffer[] = [];
+  let total = 0;
+  if (response.body) {
+    const reader = response.body.getReader();
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const buffer = Buffer.from(value);
+      total += buffer.length;
+      if (total > MAX_REFERENCE_DOWNLOAD_BYTES) {
+        await reader.cancel();
+        throw new Error(`参考图无法读取（${source}）：超过 ${Math.round(MAX_REFERENCE_DOWNLOAD_BYTES / (1024 * 1024))} MB 上限。`);
+      }
+      chunks.push(buffer);
+    }
+  }
+  const bytes = Buffer.concat(chunks);
+  const mimeType = sniffImageMimeType(bytes) ?? normalizeImageMimeType(response.headers.get("content-type"));
   if (!mimeType || bytes.length === 0) {
     throw new Error(`参考图无法读取（${source}）：响应不是 PNG/JPEG/WebP 图片。`);
   }

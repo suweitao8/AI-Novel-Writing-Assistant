@@ -4,6 +4,7 @@ import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
 import { validate } from "../../../middleware/validate";
+import { readBoundedRawBody } from "../../../middleware/rawBody";
 import { prisma } from "../../../db/prisma";
 import { dramaCharacterImageService } from "../../../services/drama/DramaCharacterImageService";
 import { dramaCharacterService } from "../../../services/drama/DramaCharacterService";
@@ -1077,9 +1078,7 @@ router.post(
 router.post("/projects/:id/shots/:shotId/blocking-sketch/image", validate({ params: shotParamsSchema }), async (req, res, next) => {
   try {
     const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(chunk as Buffer);
-    const data = await dramaShotBlockingSketchService.uploadSketchPng(id, shotId, Buffer.concat(chunks));
+    const data = await dramaShotBlockingSketchService.uploadSketchPng(id, shotId, await readBoundedRawBody(req));
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

@@ -46,8 +46,8 @@ import {
   type DramaShotBlockingSketchData,
   type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
-import { resolveStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
-import { normalizeSceneStates } from "../../../modules/novel/story-settings/application/StorySettingsStatePolicy";
+import { resolveStoryScene3dEnvironment } from "@ai-novel/shared/utils/scene3dEnvironment";
+import { normalizeSceneStates } from "@ai-novel/shared/utils/storyAssetSceneStates";
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
 const BLOCKING_SKETCH_FILE = "blocking-sketch.png";

@@ -9,15 +9,23 @@ import {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
-import {
-  characterHeightEstimatePrompt,
-  type CharacterHeightEstimateOutput,
-} from "../../../prompting/prompts/novel/characterHeightEstimate.prompts";
+import { getRegisteredPromptAsset } from "../../../prompting/registry";
+import type { PromptAsset } from "../../../prompting/core/promptTypes";
 
 export const CHARACTER_HEIGHT_DEFAULT_METERS = 1.8;
 export const CHARACTER_HEIGHT_MIN_METERS = STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS;
 export const CHARACTER_HEIGHT_MAX_METERS = STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS;
 export const CHARACTER_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
+
+/** 身高估算结果合同与 novel.character.heightEstimate@v1 的结构化输出保持一致。 */
+interface CharacterHeightEstimateResult {
+  heightMeters: number;
+  confidence: number;
+  rationale: string;
+}
+
+const CHARACTER_HEIGHT_ESTIMATE_PROMPT_ID = "novel.character.heightEstimate";
+const CHARACTER_HEIGHT_ESTIMATE_PROMPT_VERSION = "v1";
 
 const CHARACTER_HEIGHT_PROFILE_SCHEMA_VERSION = 1;
 const HEIGHT_PROFILE_SOURCES = ["ai", "fallback"] as const;
@@ -246,7 +254,7 @@ export function heightToProxyScale(heightMeters: number): number {
   return safeHeight / CHARACTER_PROXY_NATIVE_HEIGHT_METERS;
 }
 
-function buildAiProfile(output: CharacterHeightEstimateOutput, inputFingerprint: string): CharacterHeightProfile {
+function buildAiProfile(output: CharacterHeightEstimateResult, inputFingerprint: string): CharacterHeightProfile {
   return {
     schemaVersion: 1,
     heightMeters: clamp(output.heightMeters, CHARACTER_HEIGHT_MIN_METERS, CHARACTER_HEIGHT_MAX_METERS),
@@ -292,10 +300,20 @@ async function ensureSubject(subject: CharacterHeightSubject): Promise<Character
   const current = parseCharacterHeightProfile(subject.heightProfileJson);
   if (current?.inputFingerprint === inputFingerprint) return current;
 
+  const heightEstimateAsset = getRegisteredPromptAsset(
+    CHARACTER_HEIGHT_ESTIMATE_PROMPT_ID,
+    CHARACTER_HEIGHT_ESTIMATE_PROMPT_VERSION,
+  ) as PromptAsset<{ characterJson: string }, CharacterHeightEstimateResult> | null;
+  if (!heightEstimateAsset) {
+    throw new Error(
+      `身高估算 Prompt 未注册：${CHARACTER_HEIGHT_ESTIMATE_PROMPT_ID}@${CHARACTER_HEIGHT_ESTIMATE_PROMPT_VERSION}`,
+    );
+  }
+
   let profile: CharacterHeightProfile;
   try {
     const result = await runStructuredPrompt({
-      asset: characterHeightEstimatePrompt,
+      asset: heightEstimateAsset,
       promptInput: { characterJson: promptCharacterJson(heightInput) },
       options: {
         temperature: 0,
