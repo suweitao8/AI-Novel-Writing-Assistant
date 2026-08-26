@@ -9,7 +9,9 @@ const IMAGE_MODEL_OPTIONS: Record<ImageModelProvider, string[]> = {
   openai: ["gpt-image-2"],
   siliconflow: ["black-forest-labs/FLUX.1-schnell"],
   grok: ["grok-imagine-image"],
-  codex: ["gpt-image-2"],
+  // codex 桥的图片生成由与文本/视觉相同的 gpt-5.6-luna agent 驱动；
+  // 请求体里的 model 只是 Images 协议占位，桥不按它选模型。
+  codex: ["gpt-5.6-luna"],
   grok_build: ["grok-build-image"],
 };
 

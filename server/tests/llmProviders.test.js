@@ -33,12 +33,14 @@ test("local Grok Build providers are registered as subscription-backed channels"
 });
 
 test("文本/视觉/图片槽位统一走 Codex 订阅额度", () => {
-  // 三类槽位统一到 codex（chat 默认 gpt-5.6-luna + low 推理档 = fast 模式；
-  // 图片仍走 image_generation）。
+  // 三类槽位统一到 codex（chat 默认 gpt-5.6-luna + high 推理档；图片走 image_generation，
+  // 由同一 luna agent 驱动）。
   assert.equal(getVisionModelProvider(), "codex");
   assert.equal(getTextModelProvider(), "codex");
+  // 模型锁：gpt-5.6-luna 是唯一可选模型，设置页不出现其它模型。
+  assert.deepEqual(PROVIDERS.codex.models, ["gpt-5.6-luna"]);
   assert.equal(PROVIDERS.codex.defaultModel, "gpt-5.6-luna");
-  assert.ok(PROVIDERS.codex.models.includes("gpt-5.5"), "gpt-5.5 应保留为备选模型");
+  assert.equal(PROVIDERS.codex.supportsModelList, false);
 });
 
 test("local Grok Build client options use the bridge bearer by default", async () => {
