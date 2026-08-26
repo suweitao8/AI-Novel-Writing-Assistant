@@ -1,4 +1,4 @@
-import { memo, type ChangeEvent, type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Clapperboard,
@@ -9,7 +9,7 @@ import {
   Play,
 } from "lucide-react";
 import { createPortal } from "react-dom";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   createDramaEpisodeBatchJob,
   generateDramaShotKeyframe,
@@ -175,11 +175,12 @@ function formatAudioTime(value: number): string {
 const POLL_GRACE_MS = 30_000;
 
 // 一行 = 一个分镜 + 它的配音：分镜与配音强相关，合并成一个列表逐镜对照。
-// 深度操作（圈选批量、宫格预览、导出）仍在独立分镜工作台。
+// 3D图/AI图是整集统一预览模式（放在顶部工具栏「合成」左侧），不是逐镜切换。
 export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, toolbarTarget }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
   const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
+  const [previewMode, setPreviewMode] = useState<PreviewKind>("ai");
   const activeOrder = chapterOrder;
   const lastTaskActivityAtRef = useRef(0);
   const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;
@@ -424,6 +425,40 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   const storyboardToolbar = storyboard && toolbarTarget
     ? createPortal(
         <>
+          <div
+            role="group"
+            aria-label="分镜预览类型"
+            className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/20 p-1"
+          >
+            <button
+              type="button"
+              aria-pressed={previewMode === "sketch"}
+              onClick={() => setPreviewMode("sketch")}
+              title="整集预览 3D 图"
+              className={cn(
+                "inline-flex min-h-7 items-center justify-center rounded-md px-2.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                previewMode === "sketch"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+              )}
+            >
+              3D图
+            </button>
+            <button
+              type="button"
+              aria-pressed={previewMode === "ai"}
+              onClick={() => setPreviewMode("ai")}
+              title="整集预览 AI 图"
+              className={cn(
+                "inline-flex min-h-7 items-center justify-center rounded-md px-2.5 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                previewMode === "ai"
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
+              )}
+            >
+              AI图
+            </button>
+          </div>
           <DramaEpisodeAssemblyButton
             controller={assemblyController}
             hasShots={shots.length > 0}
@@ -474,18 +509,12 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
         {summary.total > 0 ? (
           <span>配音 {summary.ready}/{summary.total} 行就绪</span>
         ) : null}
-        <Link
-          to={`/drama/projects/${projectId}`}
-          className="ml-auto text-primary underline-offset-4 hover:underline"
-        >
-          打开完整分镜工作台
-        </Link>
       </div>
 
       {/* 主体：一行一镜，左分镜右配音 */}
       {episodes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center text-sm text-muted-foreground">
-          还没有分集。先在完整分镜工作台生成分集大纲。
+          还没有分集。切换到「脚本」页签，点击「生成」创建本章分镜。
         </div>
       ) : activeOrder === null ? (
         <div className="rounded-2xl border border-dashed border-border bg-background/60 px-6 py-10 text-center text-sm text-muted-foreground">
@@ -506,6 +535,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
               key={shot.id}
               shot={shot}
               segments={segmentsByShotId.get(shot.id) ?? EMPTY_SEGMENTS}
+              previewMode={previewMode}
               keyframeBusy={keyframeShotId === shot.id || parseKeyframe(shot.keyframeData).status === "generating"}
               regenerating={regeneratingShotId === shot.id}
               projectId={projectId}
@@ -756,6 +786,7 @@ function ShotInfoList(props: {
 const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   shot: DramaShot;
   segments: DramaAudioSegment[];
+  previewMode: PreviewKind;
   keyframeBusy: boolean;
   regenerating: boolean;
   projectId: string;
@@ -764,22 +795,12 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
 }) {
   const { shot, segments } = props;
   const navigate = useNavigate();
-  const [previewKind, setPreviewKind] = useState<PreviewKind>("ai");
   const [aiPreviewError, setAiPreviewError] = useState(false);
   const keyframe = parseKeyframe(shot.keyframeData);
   const blockingSketch = parseBlockingSketch(shot.blockingSketchData);
   const blockingSketchUrl = withPreviewCacheBust(blockingSketch.url, blockingSketch.generatedAt, blockingSketch.version);
   const aiPreviewUrl = withPreviewCacheBust(keyframe.url, keyframe.generatedAt, keyframe.version);
-  const hasBlockingSketch = Boolean(blockingSketchUrl);
   const hasReadyAiPreview = keyframe.status === "done" && Boolean(aiPreviewUrl) && !aiPreviewError;
-  const activePreviewKind: PreviewKind = hasBlockingSketch && !hasReadyAiPreview
-    ? "sketch"
-    : previewKind === "sketch" && hasBlockingSketch
-      ? "sketch"
-      : "ai";
-  const previewPanelId = `shot-${shot.id}-preview-panel`;
-  const sketchTabId = `shot-${shot.id}-sketch-tab`;
-  const aiTabId = `shot-${shot.id}-ai-tab`;
   const blockingSketchNeedsConfirmation = blockingSketch.status === "draft";
   const readySegments = segments.filter(
     (segment): segment is ReadyDramaAudioSegment =>
@@ -796,30 +817,40 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
     setAiPreviewError(false);
   }, [aiPreviewUrl]);
 
-  const selectPreview = (next: PreviewKind) => {
-    if (next === "sketch" && !hasBlockingSketch) return;
-    if (next === "ai" && !hasReadyAiPreview) return;
-    setPreviewKind(next);
-  };
-
-  const handlePreviewKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: PreviewKind) => {
-    if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
-    event.preventDefault();
-    selectPreview(current === "sketch" ? "ai" : "sketch");
-  };
-
   const renderPreview = () => {
-    if (activePreviewKind === "sketch") {
-      return blockingSketchUrl ? (
+    if (props.previewMode === "sketch") {
+      if (blockingSketchUrl) {
+        return (
+          <LightboxImage
+            src={blockingSketchUrl}
+            alt={`第 ${shot.order} 镜 3D 草图`}
+            className="aspect-video w-full"
+            fit="contain"
+          />
+        );
+      }
+      return (
+        <div
+          className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border bg-muted/10 text-[10px] text-muted-foreground"
+          role="status"
+          aria-label={`第 ${shot.order} 镜暂无 3D 图`}
+        >
+          <ImageIcon className="h-4 w-4" aria-hidden="true" />
+          暂无 3D 图
+        </div>
+      );
+    }
+
+    if (blockingSketchUrl && !hasReadyAiPreview) {
+      return (
         <LightboxImage
           src={blockingSketchUrl}
           alt={`第 ${shot.order} 镜 3D 草图`}
           className="aspect-video w-full"
           fit="contain"
         />
-      ) : null;
+      );
     }
-
     if (keyframe.status === "done" && aiPreviewUrl && !aiPreviewError) {
       return (
         <LightboxImage
@@ -862,64 +893,12 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
       {/* 预览图与操作栏并排：给分镜图保留完整的 16:9 高度。 */}
       <div className="flex w-full shrink-0 items-stretch gap-2 sm:w-[26rem]">
         <div
-          id={previewPanelId}
-          role="tabpanel"
-          aria-labelledby={activePreviewKind === "sketch" ? sketchTabId : aiTabId}
-          tabIndex={0}
-          className="min-w-0 flex-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={`第 ${shot.order} 镜预览图`}
+          className="min-w-0 flex-1 rounded-lg"
         >
           {renderPreview()}
         </div>
-        <div className="flex w-28 shrink-0 flex-col gap-1.5">
-          <div
-            role="tablist"
-            aria-label={`第 ${shot.order} 镜预览类型`}
-            aria-orientation="horizontal"
-            className="grid grid-cols-2 gap-1 rounded-lg border border-border/60 bg-muted/20 p-1"
-          >
-            <button
-              id={sketchTabId}
-              type="button"
-              role="tab"
-              aria-selected={activePreviewKind === "sketch"}
-              aria-controls={previewPanelId}
-              aria-disabled={!hasBlockingSketch}
-              tabIndex={activePreviewKind === "sketch" ? 0 : -1}
-              disabled={!hasBlockingSketch}
-              onClick={() => selectPreview("sketch")}
-              onKeyDown={(event) => handlePreviewKeyDown(event, "sketch")}
-              title={hasBlockingSketch ? "查看 3D 图" : "还没有 3D 图"}
-              className={cn(
-                "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                activePreviewKind === "sketch"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-              )}
-            >
-              3D图
-            </button>
-            <button
-              id={aiTabId}
-              type="button"
-              role="tab"
-              aria-selected={activePreviewKind === "ai"}
-              aria-controls={previewPanelId}
-              aria-disabled={!hasReadyAiPreview}
-              tabIndex={activePreviewKind === "ai" ? 0 : -1}
-              disabled={!hasReadyAiPreview}
-              onClick={() => selectPreview("ai")}
-              onKeyDown={(event) => handlePreviewKeyDown(event, "ai")}
-              title={hasReadyAiPreview ? "查看 AI 图" : "AI 图生成后才能查看"}
-              className={cn(
-                "inline-flex min-h-8 items-center justify-center rounded-md px-2 text-[11px] font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-                activePreviewKind === "ai"
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:bg-background/70 hover:text-foreground",
-              )}
-            >
-              AI图
-            </button>
-          </div>
+        <div className="flex w-28 shrink-0 flex-col justify-center gap-1.5">
           <Button
             type="button"
             size="sm"

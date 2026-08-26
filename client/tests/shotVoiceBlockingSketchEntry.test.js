@@ -11,19 +11,29 @@ test("每一镜的画面区域都有摆位入口，并在保存后刷新当前�
   assert.match(source, /encodeURIComponent\(props\.projectId\)/);
 });
 
-test("每一镜支持水平切换草图与 AI 画面，并保留编辑与生图操作", () => {
-  assert.match(source, /type PreviewKind = "sketch" \| "ai"/);
-  assert.match(source, /role="tablist"/);
-  assert.match(source, /role="tab"/);
-  assert.match(source, /aria-orientation="horizontal"/);
-  assert.match(source, /grid grid-cols-2/);
-  assert.doesNotMatch(source, /aria-orientation="vertical"/);
-  assert.match(source, /\["ArrowLeft", "ArrowRight"\]/);
-  assert.match(source, /aria-selected=\{activePreviewKind === "sketch"\}/);
-  assert.match(source, /disabled=\{!hasBlockingSketch\}/);
-  assert.match(source, /disabled=\{!hasReadyAiPreview\}/);
-  assert.match(source, />\s*3D图\s*<\/button>/);
-  assert.match(source, />\s*AI图\s*<\/button>/);
+test("3D图/AI图切换是整集统一的工具栏模式，放在合成按钮左侧", () => {
+  const toolbarStart = source.indexOf("const storyboardToolbar");
+  const toolbarEnd = source.indexOf("return (", toolbarStart);
+  const toolbarSource = source.slice(toolbarStart, toolbarEnd);
+  const toggleIndex = toolbarSource.indexOf("分镜预览类型");
+  const assemblyIndex = toolbarSource.indexOf("<DramaEpisodeAssemblyButton");
+
+  assert.ok(toggleIndex >= 0, "工具栏必须包含预览类型切换");
+  assert.ok(
+    assemblyIndex > toggleIndex,
+    "预览类型切换必须渲染在合成按钮之前（左侧）",
+  );
+  assert.match(toolbarSource, />\s*3D图\s*<\/button>/);
+  assert.match(toolbarSource, />\s*AI图\s*<\/button>/);
+  assert.match(source, /const \[previewMode, setPreviewMode\] = useState<PreviewKind>\("ai"\)/);
+  assert.match(source, /previewMode=\{previewMode\}/);
+});
+
+test("单镜不再携带独立切换，保留编辑 3D 和生成 AI 图操作", () => {
+  assert.doesNotMatch(source, /role="tablist"/);
+  assert.doesNotMatch(source, /role="tab"/);
+  assert.doesNotMatch(source, /\["ArrowLeft", "ArrowRight"\]/);
+  assert.match(source, /previewMode: PreviewKind/);
   assert.match(source, /编辑3D/);
   assert.doesNotMatch(source, /AI摆位/);
   assert.match(source, /生成AI图/);
@@ -31,22 +41,11 @@ test("每一镜支持水平切换草图与 AI 画面，并保留编辑与生图�
   assert.match(source, /sm:w-\[26rem\]/);
 });
 
-test("水平预览切换下面保留编辑 3D 和生成 AI 图操作", () => {
-  const tabListStart = source.indexOf('role="tablist"');
-  const controlPanelEnd = source.indexOf("/* 分镜信息 + 配音段 */", tabListStart);
-  const controlPanel = source.slice(tabListStart, controlPanelEnd);
-
-  assert.match(
-    controlPanel,
-    /<\/div>\s*<Button[\s\S]*编辑3D[\s\S]*<AiButton[\s\S]*生成中…/,
-  );
-  assert.doesNotMatch(controlPanel, /AI摆位|autoPlan=1/);
-});
-
-test("没有可用 AI 图时强制显示 3D 草图", () => {
+test("3D 模式逐镜显示草图，缺图时显示占位；AI 模式保留无 AI 图回退草图", () => {
+  assert.match(source, /props\.previewMode === "sketch"/);
+  assert.match(source, /暂无 3D 图/);
   assert.match(source, /const hasReadyAiPreview/);
-  assert.match(source, /hasBlockingSketch && !hasReadyAiPreview/);
-  assert.match(source, /activePreviewKind === "sketch"/);
+  assert.match(source, /blockingSketchUrl && !hasReadyAiPreview/);
 });
 
 test("AI 图和 3D 图使用生成版本刷新缓存，AI 图加载失败时回退到 3D 草图", () => {
@@ -55,4 +54,10 @@ test("AI 图和 3D 图使用生成版本刷新缓存，AI 图加载失败时回�
   assert.match(source, /onError/);
   assert.match(source, /暂无可用 AI 画面|AI 图不可用/);
   assert.doesNotMatch(source, /autoPlan=1/);
+});
+
+test("分镜页不再提供旧分镜工作台入口", () => {
+  assert.doesNotMatch(source, /打开完整分镜工作台/);
+  assert.doesNotMatch(source, /先在完整分镜工作台/);
+  assert.match(source, /还没有分集。切换到「脚本」页签/);
 });
