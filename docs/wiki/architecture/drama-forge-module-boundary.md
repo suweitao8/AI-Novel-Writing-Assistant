@@ -1,6 +1,6 @@
 # 短剧创作模块边界
 
-更新日期：2026-06-09
+更新日期：2026-08-27
 
 ## 背景
 
@@ -17,6 +17,16 @@
 `server/src/services/drama` 是独立 bounded context。它可以依赖 Prisma、LLM、Prompt Runner、任务队列、文件导出和图片/视频等平台基础设施，但不得依赖 `services/novel` 或 `modules/novel` 的业务实现。
 
 短剧模块与小说模块的唯一内容接触点是 `NovelSourceAdapter`。该 adapter 只能通过 Prisma 只读读取小说、章节、角色和事实数据，并把它们转成 `SourceBundle`。短剧核心服务只能消费 `SourceBundle`、`DramaCharacter`、`DramaFact`、`DramaEpisode` 等自有模型。
+
+## 跨上下文合同（2026-08-27 收敛）
+
+drama 与 novel 共用的「场景 3D 环境 / 空间标记 / 场景状态归一化」是数据合同，不是 novel 领域逻辑。实现统一放在 shared，两侧只 import shared：
+
+- `@ai-novel/shared/utils/scene3dEnvironment`：3D 环境默认值、范围限制、序列化与迁移（novel 侧 `StoryScene3dEnvironment.ts` 是兼容门面，仅 re-export）。
+- `@ai-novel/shared/utils/scene3dMarkers`：空间标记集合归一化、可行走地面合成、旧标记环境迁移（novel 侧 `StoryScene3dMarkers.ts` 同为门面）。
+- `@ai-novel/shared/utils/storyAssetSceneStates`：`normalizeSceneStates` 场景状态合成（novel 侧 `StorySettingsStatePolicy.ts` re-export）。
+
+drama 需要的小说侧 prompt 资产（如身高估算 `novel.character.heightEstimate@v1`）必须通过 `prompting/registry` 的 `getRegisteredPromptAsset(id, version)` 间接调用，不得直接 import `prompting/prompts/novel/**`。守卫测试 `server/tests/dramaDecoupling.test.js` 按 import 路径段强制这两条规则；新增共用规则时优先扩展 shared 合同或 registry，而不是放松守卫。
 
 ## SourceBundle 防腐层
 
