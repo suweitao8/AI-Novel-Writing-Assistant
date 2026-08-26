@@ -40,6 +40,11 @@ import {
   updateProjectionCenterGizmo,
   type Blocking3dProjectionCenterGizmoRuntime,
 } from "./blocking3dProjectionCenterGizmo";
+import {
+  applyHdriKeyLight,
+  clearHdriKeyLight,
+  createHdriKeyLight,
+} from "./blocking3dEnvironmentKeyLight";
 
 const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
@@ -409,6 +414,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   cameraFrame.dof.nearBlur = false;
   cameraFrame.dof.highQuality = true;
 
+  // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
+  // transient key light makes a bright window or sun patch readable on actors.
+  const environmentKeyLight = createHdriKeyLight();
+  app.root.addChild(environmentKeyLight);
+
   const ground = createPlane(
     app,
     "blocking3d-ground",
@@ -472,7 +482,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     asset.unload();
     app.assets.remove(asset);
   };
+  const clearEnvironmentKeyLight = () => {
+    clearHdriKeyLight(environmentKeyLight);
+  };
   const clearEnvironmentLighting = () => {
+    clearEnvironmentKeyLight();
     if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
     environmentAtlas?.destroy();
     environmentAtlas = null;
@@ -1129,6 +1143,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         const texture = asset.resource as pc.Texture;
         configureEnvironmentTexture(texture, app);
         applyEnvironmentLighting(texture);
+        applyHdriKeyLight(environmentKeyLight, texture);
         const projectionCube = createVisibleHdriCubemap(app, texture);
         if (!isCurrentEnvironmentRequest(requestId)) {
           projectionCube.destroy();
@@ -1260,6 +1275,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       cameraFrame.destroy();
       selectionRing.destroy();
       selectionMesh.destroy();
+      environmentKeyLight.destroy();
       app.destroy();
     },
   };
