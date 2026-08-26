@@ -11,9 +11,8 @@ import {
 } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { buildStateImageSrc } from "@/components/storyAssets";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import {
@@ -71,7 +70,6 @@ export default function DramaScene3DPage() {
   const viewerRef = useRef<Blocking3dViewer | null>(null);
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [status, setStatus] = useState("准备场景预览");
   const [environmentSettings, setEnvironmentSettings] = useState<Blocking3dEnvironmentSettings>({
     ...DEFAULT_BLOCKING_3D_ENVIRONMENT,
   });
@@ -120,7 +118,6 @@ export default function DramaScene3DPage() {
       canvas,
       environmentUrl,
       sceneMarkers: visibleSceneMarkers,
-      onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
         nextViewer.destroy();
@@ -210,7 +207,6 @@ export default function DramaScene3DPage() {
           queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId) }),
           queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
         ]);
-        setStatus("场景参数已保存");
         toast.success("场景参数已保存。");
         return true;
       } catch (error) {
@@ -355,20 +351,11 @@ export default function DramaScene3DPage() {
   return (
     <Drama3DEditorShell
       header={
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-          <div className="flex min-w-0 items-center gap-3">
-            <Button type="button" variant="ghost" size="icon" aria-label="返回场景资产" title="返回场景资产" onClick={goBack}>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold">场景资产 · 3D 场景编辑</h1>
-              <p className="truncate text-sm text-muted-foreground">{scene.name} · {selectedState.label}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground" role="status">{saving ? "保存中" : dirty ? "有未保存修改" : "已保存"}</span>
-            <span className="hidden text-xs text-muted-foreground sm:inline">{status}</span>
-          </div>
+        <div data-editor-header="primary" className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+          <Button type="button" variant="ghost" size="icon" aria-label="返回场景资产" title="返回场景资产" onClick={goBack}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <h1 className="min-w-0 truncate text-sm font-semibold">{scene.name}</h1>
         </div>
       }
       viewport={
@@ -405,13 +392,7 @@ export default function DramaScene3DPage() {
       objects={<Drama3DObjectPanel items={sceneObjectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 px-3 pb-2 pt-2.5">
-            <CardTitle className="text-sm">属性面板</CardTitle>
-            <Badge variant="outline">
-              {selectedObjectId === SCENE_OBJECT_ID ? "世界" : selectedObjectId === REFERENCE_OBJECT_ID ? "参考角色" : selectedMarker ? "空间标记" : "对象"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
