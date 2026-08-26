@@ -21,7 +21,7 @@ import {
 } from "./StorySettingsStatePolicy";
 import {
   normalizeStoryScene3dEnvironment,
-  parseStoryScene3dEnvironment,
+  resolveStoryScene3dEnvironment,
 } from "./StoryScene3dEnvironment";
 import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
@@ -132,7 +132,11 @@ export class StoryScene3dMarkerService {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
     }
 
-    const environment = parseStoryScene3dEnvironment(initialRow.scene3dEnvironmentJson);
+    const environment = resolveStoryScene3dEnvironment(
+      initialRow.sceneType,
+      initialRow.scene3dEnvironmentJson,
+      initialStates[0]?.sceneType,
+    );
     const imageFingerprint = stateImageFingerprint(initialState);
     const result = await runStructuredPrompt({
       asset: sceneState3dMarkersPrompt,
@@ -181,11 +185,16 @@ export class StoryScene3dMarkerService {
         if (!row) {
           throw new AppError("没有找到这个场景。", 404);
         }
+        const liveStates = normalizeSceneStates(parseStates(row.statesJson), row);
         liveEnvironmentRaw = row.scene3dEnvironmentJson;
-        liveEnvironment = parseStoryScene3dEnvironment(row.scene3dEnvironmentJson);
+        liveEnvironment = resolveStoryScene3dEnvironment(
+          row.sceneType,
+          row.scene3dEnvironmentJson,
+          liveStates[0]?.sceneType,
+        );
         return {
           raw: row.statesJson,
-          fallbackStates: normalizeSceneStates(parseStates(row.statesJson), row),
+          fallbackStates: liveStates,
           normalize: (states: StoryAssetState[]) => normalizeSceneStates(states, row),
         };
       },

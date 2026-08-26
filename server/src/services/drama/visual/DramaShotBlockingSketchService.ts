@@ -42,7 +42,7 @@ import {
   type DramaShotBlockingSketchData,
   type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
-import { parseStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
+import { resolveStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
 const BLOCKING_SKETCH_FILE = "blocking-sketch.png";
@@ -295,12 +295,19 @@ export class DramaShotBlockingSketchService {
       loadNovelCharacterStatesByName(novelId),
       ensureNovelCharacterHeightProfiles(novelId, referencedCharacters.map((character) => character.name)),
     ]);
-    const sceneCandidates = sceneRows.map((scene) => ({
-      name: scene.name,
-      assetId: scene.id,
-      state: selectSceneState(scene.statesJson, scene),
-      environment: parseStoryScene3dEnvironment(scene.scene3dEnvironmentJson),
-    })).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState; environment: StoryScene3DEnvironment } => Boolean(scene.state));
+    const sceneCandidates = sceneRows.map((scene) => {
+      const state = selectSceneState(scene.statesJson, scene);
+      return {
+        name: scene.name,
+        assetId: scene.id,
+        state,
+        environment: resolveStoryScene3dEnvironment(
+          scene.sceneType,
+          scene.scene3dEnvironmentJson,
+          state?.sceneType,
+        ),
+      };
+    }).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState; environment: StoryScene3DEnvironment } => Boolean(scene.state));
     const matchedScene = matchSceneByName(sceneCandidates, shot.location);
     const matchedSceneState = matchedScene?.state;
     const sceneImageUrl = hasStoryAssetStateImageUrl(matchedSceneState?.image)
