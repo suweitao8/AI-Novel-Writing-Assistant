@@ -29,17 +29,17 @@ test("场景状态图片旁提供携带当前状态的 3D 场景编辑", () => {
 
 test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", () => {
   assert.match(page, /createBlocking3dViewer/);
-  assert.match(page, /比例参照/);
+  assert.match(page, /比例参照|参考角色/);
   assert.match(page, /场景环境/);
   assert.match(page, /min="1" max="10" step="0\.1"/);
   assert.match(page, /min="5" max="30" step="1"/);
-  assert.doesNotMatch(page, /aria-label="全景地面分界"/);
-  assert.doesNotMatch(page, /panoramaHorizonV/);
+  assert.match(page, /aria-label="全景地面分界"/);
+  assert.match(page, /min="40" max="65" step="1"/);
+  assert.match(page, /panoramaHorizonV/);
   assert.match(page, /saveBeforeExit/);
   assert.match(page, /await saveBeforeExit\(\)/);
   assert.match(page, /updateStorySettingsScene/);
-  assert.match(page, /有未保存修改/);
-  assert.match(page, /已保存/);
+  assert.match(page, /场景参数已保存/);
   assert.doesNotMatch(page, /自动保存/);
   assert.doesNotMatch(page, /saveTimerRef/);
   assert.doesNotMatch(page, /setTimeout\(\(\) => \{[\s\S]*saveScene/);

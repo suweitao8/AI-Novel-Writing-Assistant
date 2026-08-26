@@ -34,7 +34,7 @@ import {
   type StoryAssetWearTag,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
-  STORY_SCENE_3D_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_PANORAMA_SKY_V,
 } from "@ai-novel/shared/types/comicDrama";
 import {
@@ -660,7 +660,7 @@ export function AssetStatesEditor(props: {
                 )}
                 {/* 场景全景的构图参考线：50% 地平线与 70%（从底部计）天空分界，对应生成契约的三区布局。 */}
                 {showScene && selectedState.image?.url
-                  ? [STORY_SCENE_3D_PANORAMA_SKY_V, STORY_SCENE_3D_PANORAMA_HORIZON_V].map((v) => (
+                  ? [STORY_SCENE_3D_PANORAMA_SKY_V, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V].map((v) => (
                     <div
                       key={v}
                       aria-hidden="true"

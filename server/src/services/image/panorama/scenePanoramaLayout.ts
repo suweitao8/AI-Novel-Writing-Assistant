@@ -10,8 +10,10 @@
  * - v=0.0-0.3  sky / ceiling only (top 30%);
  * - v=0.3-0.5  distant band: skyline, far background and all tall objects;
  * - v=0.5-1.0  continuous clean ground (bottom 50%).
- * The boundaries must stay in sync with STORY_SCENE_3D_PANORAMA_HORIZON_V /
- * STORY_SCENE_3D_PANORAMA_SKY_V in shared/types/comicDrama.ts.
+ * The boundaries must stay in sync with STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V /
+ * STORY_SCENE_3D_PANORAMA_SKY_V in shared/types/comicDrama.ts. They are image
+ * composition targets; the per-scene panoramaHorizonV environment parameter only
+ * adjusts the 3D projection mapping and never feeds back into generation.
  */
 export const SCENE_PANORAMA_LAYOUT_PROMPT_LINES = [
   "strict three-zone equirectangular vertical layout with two fixed boundaries: the horizon line at v=0.5 and the sky line at v=0.3; both are texture-coordinate contracts, never visible lines, seams, stripes, split-screens or collages",

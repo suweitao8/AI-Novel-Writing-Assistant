@@ -2,6 +2,7 @@ import {
   STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
   STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
 
 export const BLOCKING_SKETCH_CANVAS = {
   width: 1280,
@@ -53,6 +54,7 @@ export const BLOCKING_SKETCH_3D_CAMERA_DEFAULTS = {
 export const BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS = {
   projectionCenterHeight: { min: 1, max: 10 },
   domeRadius: { min: 5, max: 30 },
+  panoramaHorizonV: { min: 0.4, max: 0.65 },
   yawDeg: { min: -180, max: 180 },
   intensity: { min: 0.6, max: 1.6 },
 } as const;
@@ -131,6 +133,7 @@ export interface DramaShotBlockingSketch3DActor {
 export interface DramaShotBlockingSketch3DEnvironment {
   projectionCenterHeight: number;
   domeRadius: number;
+  panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
 }
@@ -326,6 +329,7 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   return {
     projectionCenterHeight: clampedEnvironmentNumber(environment.projectionCenterHeight, "HDRI 环境投射中心高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max, 0.6, 10),
     domeRadius: clampedEnvironmentNumber(environment.domeRadius, "HDRI 环境半球直径", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max, 5, 100),
+    panoramaHorizonV: clampedEnvironmentNumber(environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V, "HDRI 环境全景地面分界", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max, 0.4, 0.65),
     yawDeg: 0,
     intensity: 1,
   };

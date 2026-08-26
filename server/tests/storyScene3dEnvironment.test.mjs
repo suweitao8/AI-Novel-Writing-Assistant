@@ -14,6 +14,7 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   assert.deepEqual(DEFAULT_STORY_SCENE_3D_ENVIRONMENT, {
     projectionCenterHeight: 1.7,
     domeRadius: 10,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
@@ -21,11 +22,13 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   assert.deepEqual(normalizeStoryScene3dEnvironment({
     projectionCenterHeight: 4.5,
     domeRadius: 32,
+    panoramaHorizonV: 0.65,
     yawDeg: 120,
     intensity: 0.7,
   }), {
     projectionCenterHeight: 4.5,
     domeRadius: 30,
+    panoramaHorizonV: 0.65,
     yawDeg: 0,
     intensity: 1,
   });
@@ -36,10 +39,11 @@ test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
   assert.deepEqual(parseStoryScene3dEnvironment(JSON.stringify({
     projectionCenterHeight: 0.6,
     domeRadius: 96,
-    panoramaHorizonV: 0.65,
+    panoramaHorizonV: 0.9,
   })), {
     projectionCenterHeight: 1,
     domeRadius: 30,
+    panoramaHorizonV: 0.65,
     yawDeg: 0,
     intensity: 1,
   });
@@ -51,41 +55,46 @@ test("场景资产 HDRI 半球直径的可调范围是 5 到 30", () => {
   assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 31 }).domeRadius, 30);
 });
 
-test("旧全景地面分界只兼容读取，归一化固定为 50% 且新 JSON 不再写出该字段", () => {
+test("全景地面分界会被保存并按 40% 到 65% 归一化", () => {
   const value = { projectionCenterHeight: 2.5, domeRadius: 20, panoramaHorizonV: 0.58 };
   const serialized = serializeStoryScene3dEnvironment(value);
-  assert.doesNotMatch(serialized, /panoramaHorizonV/);
+  assert.match(serialized, /panoramaHorizonV/);
   assert.deepEqual(parseStoryScene3dEnvironment(serialized), {
     projectionCenterHeight: 2.5,
     domeRadius: 20,
+    panoramaHorizonV: 0.58,
     yawDeg: 0,
     intensity: 1,
   });
 });
 
-test("任意历史全景地面分界都被忽略，运行时统一使用固定 50% 合同", () => {
-  for (const panoramaHorizonV of [0.39, 0.4, 0.58, 0.65, 0.9]) {
-    const normalized = normalizeStoryScene3dEnvironment({ panoramaHorizonV });
-    assert.equal("panoramaHorizonV" in normalized, false);
-  }
+test("缺失或越界的全景地面分界使用默认值或边界值", () => {
+  assert.equal(normalizeStoryScene3dEnvironment({}).panoramaHorizonV, 0.5);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.39 }).panoramaHorizonV, 0.4);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.4 }).panoramaHorizonV, 0.4);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.65 }).panoramaHorizonV, 0.65);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.9 }).panoramaHorizonV, 0.65);
 });
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
   assert.deepEqual(getDefaultStoryScene3dEnvironment("interior"), {
     projectionCenterHeight: 1,
     domeRadius: 8,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
   assert.deepEqual(getDefaultStoryScene3dEnvironment("exterior"), {
     projectionCenterHeight: 1.7,
     domeRadius: 10,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
   assert.deepEqual(getDefaultStoryScene3dEnvironment("nature"), {
     projectionCenterHeight: 1,
     domeRadius: 20,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
@@ -120,6 +129,7 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), {
     projectionCenterHeight: 4.5,
     domeRadius: 15,
+    panoramaHorizonV: 0.58,
     yawDeg: 0,
     intensity: 1,
   });
@@ -134,6 +144,7 @@ test("未配置序列化记录会随类型解析，显式 null 仍然代表未�
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", null), {
     projectionCenterHeight: 1,
     domeRadius: 8,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });

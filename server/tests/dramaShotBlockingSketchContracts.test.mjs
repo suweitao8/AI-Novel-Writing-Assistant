@@ -264,6 +264,7 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
   assert.deepEqual(normalized.layout3d?.environment, {
     projectionCenterHeight: layout3d.environment.projectionCenterHeight,
     domeRadius: layout3d.environment.domeRadius,
+    panoramaHorizonV: layout3d.environment.panoramaHorizonV,
     yawDeg: 0,
     intensity: 1,
   });
@@ -282,7 +283,7 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
   });
   assert.equal(normalizedLegacy.layout3d?.environment?.projectionCenterHeight, normalized.layout3d?.environment?.projectionCenterHeight);
   assert.equal(normalizedLegacy.layout3d?.environment?.domeRadius, normalized.layout3d?.environment?.domeRadius);
-  assert.equal("panoramaHorizonV" in (normalizedLegacy.layout3d?.environment ?? {}), false);
+  assert.equal(normalizedLegacy.layout3d?.environment?.panoramaHorizonV, 0.5);
   assert.equal(normalizeBlockingSketchData({ ...validSketch, layout3d: { ...layout3d, environment: undefined } }).layout3d?.environment, undefined);
 });
 
@@ -374,6 +375,8 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ["projectionCenterHeight", 10.1],
     ["domeRadius", 4],
     ["domeRadius", 100.1],
+    ["panoramaHorizonV", 0.39],
+    ["panoramaHorizonV", 0.66],
     ["yawDeg", 181],
     ["intensity", 2],
   ]) {
@@ -410,11 +413,11 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     },
   });
   assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 30);
-  const legacyHorizon = normalizeBlockingSketchData({
+  const atHorizonBoundaries = normalizeBlockingSketchData({
     ...validSketch,
-    layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.39 } },
+    layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.65 } },
   });
-  assert.equal("panoramaHorizonV" in (legacyHorizon.layout3d?.environment ?? {}), false);
+  assert.equal(atHorizonBoundaries.layout3d?.environment?.panoramaHorizonV, 0.65);
 });
 
 test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆位失效", () => {
@@ -436,7 +439,7 @@ test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆�
   });
   assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 1);
   assert.equal(legacy.layout3d?.environment?.domeRadius, 30);
-  assert.equal("panoramaHorizonV" in (legacy.layout3d?.environment ?? {}), false);
+  assert.equal(legacy.layout3d?.environment?.panoramaHorizonV, 0.5);
   assert.equal(legacy.layout3d?.environment?.yawDeg, 0);
   assert.equal(legacy.layout3d?.environment?.intensity, 1);
 });
