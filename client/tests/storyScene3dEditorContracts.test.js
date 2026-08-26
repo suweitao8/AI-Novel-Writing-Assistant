@@ -33,10 +33,14 @@ test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", (
   assert.match(page, /场景资产 HDRI/);
   assert.match(page, /min="1" max="10" step="0\.1"/);
   assert.match(page, /min="10" max="50" step="1"/);
-  assert.match(page, /自动保存/);
-  assert.match(page, /flushAutoSave/);
+  assert.match(page, /saveBeforeExit/);
+  assert.match(page, /await saveBeforeExit\(\)/);
   assert.match(page, /updateStorySettingsScene/);
-  assert.doesNotMatch(page, /保存场景参数/);
+  assert.match(page, /有未保存修改/);
+  assert.match(page, /已保存/);
+  assert.doesNotMatch(page, /自动保存/);
+  assert.doesNotMatch(page, /saveTimerRef/);
+  assert.doesNotMatch(page, /setTimeout\(\(\) => \{[\s\S]*saveScene/);
   assert.doesNotMatch(page, /window\.confirm/);
   assert.doesNotMatch(page, /layout3d|saveDramaShotBlockingSketch/);
 });

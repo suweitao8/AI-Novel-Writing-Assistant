@@ -60,7 +60,6 @@ export default function DramaScene3DPage() {
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
 
   const sceneQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId),
@@ -161,11 +160,11 @@ export default function DramaScene3DPage() {
           queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId) }),
           queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) }),
         ]);
-        setStatus("场景参数已自动保存");
-        toast.success("场景参数已自动保存。");
+        setStatus("场景参数已保存");
+        toast.success("场景参数已保存。");
         return true;
       } catch (error) {
-        toast.error("场景参数自动保存失败。", { description: error instanceof Error ? error.message : undefined });
+        toast.error("场景参数保存失败。", { description: error instanceof Error ? error.message : undefined });
         return false;
       } finally {
         viewer.setInteractionEnabled(true);
@@ -214,24 +213,7 @@ export default function DramaScene3DPage() {
     setDirty(true);
   }, [environmentSettings, viewer]);
 
-  useEffect(() => {
-    if (!dirty || !viewer || saving) return undefined;
-    const timer = window.setTimeout(() => {
-      saveTimerRef.current = null;
-      void saveScene();
-    }, 700);
-    saveTimerRef.current = timer;
-    return () => {
-      window.clearTimeout(timer);
-      if (saveTimerRef.current === timer) saveTimerRef.current = null;
-    };
-  }, [dirty, saving, saveScene, viewer]);
-
-  const flushAutoSave = useCallback(async (): Promise<boolean> => {
-    if (saveTimerRef.current !== null) {
-      window.clearTimeout(saveTimerRef.current);
-      saveTimerRef.current = null;
-    }
+  const saveBeforeExit = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
     if (dirty) return saveScene();
     return true;
@@ -240,7 +222,7 @@ export default function DramaScene3DPage() {
   const goBack = async () => {
     if (leavingRef.current) return;
     leavingRef.current = true;
-    if (!(await flushAutoSave())) {
+    if (!(await saveBeforeExit())) {
       leavingRef.current = false;
       return;
     }
@@ -290,7 +272,7 @@ export default function DramaScene3DPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground" role="status">{saving ? "自动保存中" : dirty ? "等待自动保存" : "已自动保存"}</span>
+          <span className="text-xs text-muted-foreground" role="status">{saving ? "保存中" : dirty ? "有未保存修改" : "已保存"}</span>
           <span className="hidden text-xs text-muted-foreground sm:inline">{status}</span>
         </div>
       </header>
