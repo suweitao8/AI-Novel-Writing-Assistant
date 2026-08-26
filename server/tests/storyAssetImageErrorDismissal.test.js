@@ -41,3 +41,14 @@ test("每次状态图生成都把 attemptId 贯穿 runtime 状态", () => {
   assert.match(runtimeSource, /attemptId/);
   assert.match(runtimeSource, /attemptFields/);
 });
+
+test("跨进程残留锁的终止路径不依赖 statesJson 仍是 generating", () => {
+  const start = serviceSource.indexOf("async cancelStateImage(");
+  const end = serviceSource.indexOf("/** 关闭状态图失败提示", start);
+  const cancelSource = serviceSource.slice(start, end);
+
+  assert.match(cancelSource, /status:\s*["']staging["']/);
+  assert.match(cancelSource, /activeLockKey:\s*targetKey/);
+  assert.match(cancelSource, /leaseExpiresAt:\s*\{\s*gt:/);
+  assert.doesNotMatch(cancelSource, /if \(state\.image\?\.status === ["']generating["']\) \{[\s\S]*?findFirst/);
+});

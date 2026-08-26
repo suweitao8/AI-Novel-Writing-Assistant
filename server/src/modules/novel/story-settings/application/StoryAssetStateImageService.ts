@@ -730,8 +730,9 @@ export class StoryAssetStateImageService {
     }
   }
 
-  /** 终止状态图生成：中止在跑的请求并等 error 态写回；无在跑请求但状态是 generating
-   * （重启残留/别的实例）时直接改写为 error。返回更新后的资产 DTO（与生成接口同形）。 */
+  /** 终止状态图生成：中止在跑的请求并等 error 态写回；无在跑请求时按有效的
+   * staging lease fencing 跨进程残留任务，即使 statesJson 尚未写成 generating 也能恢复。
+   * 返回更新后的资产 DTO（与生成接口同形）。 */
   async cancelStateImage(
     novelId: string,
     kind: StoryAssetKind,
@@ -744,41 +745,39 @@ export class StoryAssetStateImageService {
       await flight.done.catch(() => {});
     } else {
       const { states, state } = await this.findState(novelId, kind, assetId, stateId);
-      if (state.image?.status === "generating") {
-        const targetKey = buildStoryAssetImageTargetKey({ novelId, kind, assetId, stateId });
-        const stagingArtifact = await prisma.storyAssetImageArtifact.findFirst({
+      const targetKey = buildStoryAssetImageTargetKey({ novelId, kind, assetId, stateId });
+      const stagingArtifact = await prisma.storyAssetImageArtifact.findFirst({
+        where: {
+          novelId,
+          kind,
+          assetId,
+          stateId,
+          status: "staging",
+          activeLockKey: targetKey,
+          leaseExpiresAt: { gt: new Date() },
+        },
+        orderBy: { updatedAt: "desc" },
+      });
+      // 跨进程取消只允许 fencing 当前 staging 制品；不依赖 statesJson 的 generating
+      // 快照，因为服务可能在取得 lease 后、写入中间状态前重启。
+      if (stagingArtifact) {
+        await this.writeStateImage(
+          kind,
+          assetId,
+          stateId,
+          { ...(state.image ?? { status: "idle" }), status: "error", error: IMAGE_GENERATION_CANCELLED_MESSAGE },
+          states,
+          undefined,
+          { artifactId: stagingArtifact.id, targetKey },
+        );
+        await prisma.storyAssetImageArtifact.updateMany({
           where: {
-            novelId,
-            kind,
-            assetId,
-            stateId,
+            id: stagingArtifact.id,
             status: "staging",
             activeLockKey: targetKey,
-            leaseExpiresAt: { gt: new Date() },
           },
-          orderBy: { updatedAt: "desc" },
+          data: { activeLockKey: null, leaseExpiresAt: null, status: "orphaned" },
         });
-        // 跨进程取消只允许 fencing 当前 staging 制品；找不到有效 lease 时，
-        // 不凭一份过期的 generating 快照去覆盖后来提交的制品指针。
-        if (stagingArtifact) {
-          await this.writeStateImage(
-            kind,
-            assetId,
-            stateId,
-            { ...state.image, status: "error", error: IMAGE_GENERATION_CANCELLED_MESSAGE },
-            states,
-            undefined,
-            { artifactId: stagingArtifact.id, targetKey },
-          );
-          await prisma.storyAssetImageArtifact.updateMany({
-            where: {
-              id: stagingArtifact.id,
-              status: "staging",
-              activeLockKey: targetKey,
-            },
-            data: { activeLockKey: null, leaseExpiresAt: null, status: "orphaned" },
-          });
-        }
       }
     }
     if (kind === "character") {

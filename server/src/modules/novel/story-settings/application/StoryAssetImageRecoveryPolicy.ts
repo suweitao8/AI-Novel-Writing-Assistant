@@ -9,6 +9,23 @@ function hasReadablePointer(image: StoryAssetStateImage | undefined): boolean {
 }
 
 /**
+ * 列表读取时把仍有有效持久 lease 的状态投影为生成中。
+ *
+ * lease 是跨进程的事实来源，statesJson 只是生成过程中的可读快照；服务在拿到
+ * lease 后、写入 generating 快照前重启时，两者可能短暂不一致。投影只改变返回值，
+ * 不把 staging 制品写进状态指针，并保留当前可读图片供用户继续预览。
+ */
+export function projectActiveStoryAssetImageGeneration(
+  image: StoryAssetStateImage | undefined,
+): StoryAssetStateImage {
+  const { error: _error, ...readableState } = image ?? {};
+  return {
+    ...readableState,
+    status: "generating",
+  };
+}
+
+/**
  * 生成失败只记录本次失败，不得把 staging 制品或失败请求的 URL 变成当前图片。
  * 当前状态已有可读指针时，只从当前状态恢复指针字段；没有旧图时则清掉
  * attempted 上可能携带的临时指针，避免把未提交制品暴露成当前图片。

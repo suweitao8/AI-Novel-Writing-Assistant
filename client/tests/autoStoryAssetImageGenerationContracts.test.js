@@ -45,6 +45,17 @@ test("自动队列和手动状态图入口使用共享请求登记器", () => {
   assert.match(formSource, /imageRequestState === "queued"/);
 });
 
+test("状态图生成冲突后刷新资产列表，让持久锁状态回到编辑器", () => {
+  const formSource = read("pages/novels/components/storySettings/assetForms.tsx");
+  const imageMutationStart = formSource.indexOf("const imageMutation = useMutation");
+  const imageMutationEnd = formSource.indexOf("// 终止生成中的状态图", imageMutationStart);
+  const imageMutation = formSource.slice(imageMutationStart, imageMutationEnd);
+
+  assert.match(imageMutation, /onError: \(error\) => \{/);
+  assert.match(imageMutation, /toast\.error/);
+  assert.match(imageMutation, /invalidateSettings\(\)/);
+});
+
 test("资产预览和卡片会突出显示生成中与失败状态", () => {
   const presentation = read("components/storyAssets/storyAssetPresentation.ts");
   const preview = read("components/storyAssets/StoryAssetPreview.tsx");

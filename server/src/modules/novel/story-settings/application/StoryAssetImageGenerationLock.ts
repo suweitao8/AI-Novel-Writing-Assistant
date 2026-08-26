@@ -40,6 +40,11 @@ export interface StoryAssetImageGenerationLease {
   commit(): Promise<StoryAssetImageArtifactRecord>;
 }
 
+export interface StoryAssetImageActiveTarget {
+  assetId: string;
+  stateId: string;
+}
+
 export interface StoryAssetImageGenerationLockOptions {
   db?: ArtifactDb;
   now?: () => Date;
@@ -75,6 +80,21 @@ export class StoryAssetImageGenerationLock {
     this.db = options.db ?? prisma;
     this.now = options.now ?? (() => new Date());
     this.leaseMs = Math.max(30_000, options.leaseMs ?? 15 * 60 * 1000);
+  }
+
+  /** 返回仍在有效 lease 内的状态图目标，供资产列表把跨进程任务投影为生成中。 */
+  async listActiveTargets(novelId: string, kind: StoryAssetKind): Promise<StoryAssetImageActiveTarget[]> {
+    const records = await (this.db.storyAssetImageArtifact as ArtifactDelegate).findMany({
+      where: {
+        novelId,
+        kind,
+        status: "staging",
+        activeLockKey: { not: null },
+        leaseExpiresAt: { gt: this.now() },
+      },
+      select: { assetId: true, stateId: true },
+    });
+    return records.map((record) => ({ assetId: record.assetId, stateId: record.stateId }));
   }
 
   async acquire(target: StoryAssetImageTarget): Promise<StoryAssetImageGenerationLease> {

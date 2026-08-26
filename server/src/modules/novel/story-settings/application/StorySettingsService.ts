@@ -47,6 +47,11 @@ import {
 } from "./StorySettingsProjection";
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
+import { projectActiveStoryAssetImageGeneration } from "./StoryAssetImageRecoveryPolicy";
+import {
+  storyAssetImageGenerationLock,
+  type StoryAssetImageActiveTarget,
+} from "./StoryAssetImageGenerationLock";
 import {
   getDefaultStoryScene3dEnvironment,
   resolveStoryScene3dEnvironment,
@@ -77,6 +82,30 @@ function attachHeightProfile<T extends { name: string; heightProfileJson: string
 ): T {
   const profile = profiles.get(heightProfileKey(row.name));
   return profile ? { ...row, heightProfileJson: JSON.stringify(profile) } : row;
+}
+
+function indexActiveStateImageTargets(
+  targets: StoryAssetImageActiveTarget[],
+): Map<string, ReadonlySet<string>> {
+  const stateIdsByAsset = new Map<string, Set<string>>();
+  for (const target of targets) {
+    const stateIds = stateIdsByAsset.get(target.assetId) ?? new Set<string>();
+    stateIds.add(target.stateId);
+    stateIdsByAsset.set(target.assetId, stateIds);
+  }
+  return stateIdsByAsset;
+}
+
+function projectActiveStateImageGenerations(
+  states: StoryAssetState[],
+  activeStateIds: ReadonlySet<string> | undefined,
+): StoryAssetState[] {
+  if (!activeStateIds || activeStateIds.size === 0) {
+    return states;
+  }
+  return states.map((state) => activeStateIds.has(state.id)
+    ? { ...state, image: projectActiveStoryAssetImageGeneration(state.image) }
+    : state);
 }
 
 export interface StoryEntityDraft {
@@ -583,6 +612,9 @@ export class StorySettingsService {
       where: { novelId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
+    const activeStateImageIdsByAsset = indexActiveStateImageTargets(
+      await storyAssetImageGenerationLock.listActiveTargets(novelId, "scene"),
+    );
     return Promise.all(rows.map(async (row) => {
       const baseStates = normalizeSceneStates(parseStates(row.statesJson), row);
       const environment = resolveStoryScene3dEnvironment(
@@ -603,6 +635,10 @@ export class StorySettingsService {
           });
         }
       }
+      const projectedStates = projectActiveStateImageGenerations(
+        states,
+        activeStateImageIdsByAsset.get(row.id),
+      );
       return {
         id: row.id,
         name: row.name,
@@ -617,7 +653,7 @@ export class StorySettingsService {
         mapUnmappable: row.mapUnmappable,
         sortOrder: row.sortOrder,
         source: row.source,
-        states: scopeStateImageUrls(states, novelId, "scene", row.id),
+        states: scopeStateImageUrls(projectedStates, novelId, "scene", row.id),
         scene3dEnvironment: environment,
         updatedAt: row.updatedAt.toISOString(),
       };
@@ -766,6 +802,9 @@ export class StorySettingsService {
       }),
     ]);
     const characterNames = new Map(characters.map((character) => [character.id, character.name]));
+    const activeStateImageIdsByAsset = indexActiveStateImageTargets(
+      await storyAssetImageGenerationLock.listActiveTargets(novelId, "prop"),
+    );
     return Promise.all(rows.map(async (row) => {
       const states = normalizePropStates(parseStates(row.statesJson), row);
       if (canSafelyRewriteStates(row.statesJson)) {
@@ -777,6 +816,10 @@ export class StorySettingsService {
           });
         }
       }
+      const projectedStates = projectActiveStateImageGenerations(
+        states,
+        activeStateImageIdsByAsset.get(row.id),
+      );
       return {
         id: row.id,
         name: row.name,
@@ -793,7 +836,7 @@ export class StorySettingsService {
         image: parseStoryAssetImage(row.imageData),
         sortOrder: row.sortOrder,
         source: row.source,
-        states: scopeStateImageUrls(states, novelId, "prop", row.id),
+        states: scopeStateImageUrls(projectedStates, novelId, "prop", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -941,6 +984,9 @@ export class StorySettingsService {
       },
     });
     const heightProfiles = await ensureNovelCharacterHeightProfiles(novelId, rows.map((row) => row.name));
+    const activeStateImageIdsByAsset = indexActiveStateImageTargets(
+      await storyAssetImageGenerationLock.listActiveTargets(novelId, "character"),
+    );
     return Promise.all(rows.map(async (row) => {
       const rowWithHeight = attachHeightProfile(row, heightProfiles);
       const { statesJson, aliasesJson, heightProfileJson, ...rest } = rowWithHeight;
@@ -954,11 +1000,15 @@ export class StorySettingsService {
           data: { statesJson: normalizedStatesJson },
         });
       }
+      const projectedStates = projectActiveStateImageGenerations(
+        states,
+        activeStateImageIdsByAsset.get(row.id),
+      );
       return {
         ...rest,
         aliases: parseCharacterAliases(aliasesJson, row.name),
         heightProfile: projectCharacterHeightProfile(heightProfileJson),
-        states: scopeStateImageUrls(states, novelId, "character", row.id),
+        states: scopeStateImageUrls(projectedStates, novelId, "character", row.id),
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
