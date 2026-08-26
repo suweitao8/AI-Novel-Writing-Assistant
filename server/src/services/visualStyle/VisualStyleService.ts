@@ -14,6 +14,7 @@ import type {
   VisualStyleSummary,
 } from "@ai-novel/shared/types/visualStyle";
 import { prisma } from "../../db/prisma";
+import { getVisionModelProvider } from "../../llm/modelCategories";
 import { AppError } from "../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../prompting/core/promptRunner";
 import { visualStyleAnalyzePrompt } from "../../prompting/prompts/visualStyle/visualStyle.prompts";
@@ -192,6 +193,8 @@ export class VisualStyleService {
         mimeType,
         userHint: input.userHint,
       },
+      // 送图理解固定走视觉槽（grok-cli），与文本任务的 OpenCode Go 通道分开。
+      options: { provider: getVisionModelProvider() },
     });
     return result.output;
   }

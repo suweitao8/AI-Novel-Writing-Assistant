@@ -15,7 +15,7 @@ import {
 } from "../../../../prompting/prompts/drama/sceneState3dMarkers.prompts";
 import type { DramaLLMOptions } from "../../../../services/drama/DramaStrategyService";
 import { supportsVisionInput } from "../../../../llm/capabilities";
-import { getTextModelProvider } from "../../../../llm/modelCategories";
+import { getVisionModelProvider } from "../../../../llm/modelCategories";
 import { PROVIDERS } from "../../../../llm/providers";
 import { isBuiltinLLMProvider } from "@ai-novel/shared/types/llm";
 import { storyAssetStateImageService } from "./StoryAssetStateImageService";
@@ -177,13 +177,14 @@ export class StoryScene3dMarkerService {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
     }
 
-    const effectiveProvider = options.provider ?? getTextModelProvider();
+    // 送图理解固定走视觉槽（grok-cli）；显式传入的 provider 仍然优先。
+    const effectiveProvider = options.provider ?? getVisionModelProvider();
     if (!supportsVisionInput(effectiveProvider)) {
       const providerName = isBuiltinLLMProvider(effectiveProvider)
         ? PROVIDERS[effectiveProvider].name
         : effectiveProvider;
       throw new AppError(
-        `当前文本模型通道（${providerName}）不支持图片输入，空间识别需要视觉模型通道（如 Grok Build）。`,
+        `当前模型通道（${providerName}）不支持图片输入，空间识别需要视觉通道。`,
         409,
       );
     }
@@ -201,7 +202,7 @@ export class StoryScene3dMarkerService {
         mimeType: analysisImage.mimeType,
       },
       options: {
-        provider: options.provider,
+        provider: effectiveProvider,
         model: options.model,
         temperature: options.temperature ?? 0.2,
         novelId,

@@ -4,17 +4,33 @@ const test = require("node:test");
 const {
   STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
   resolveStoryScene3DActorStageRadius,
+  resolveStoryScene3DDomeWorldRadius,
   clampBlockingActorPositionToStage,
   anchorBlockingCameraAtProjectionCenter,
   resolveBlockingCameraWorldPlacement,
 } = require("../../shared/dist/utils/blockingStage.js");
 
-test("角色舞台半径是半球半径减去边缘缓冲，并有最小可用值", () => {
+test("角色舞台半径是半球真实半径（直径的一半）减去边缘缓冲", () => {
   assert.equal(STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M, 1);
-  assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 8, projectionCenterHeight: 1 }), 7);
-  assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 20, projectionCenterHeight: 1.7 }), 19);
-  // 半径极小时保底，不把舞台压成零。
+  // domeRadius 字段按产品语义存直径：设置页滑块即“半球直径”，
+  // 3D dome 几何按 0.5 半径基础网格 × domeRadius 缩放。
+  assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 8, projectionCenterHeight: 1 }), 3, "直径 8 → 真实半径 4 → 舞台 3");
+  assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 20, projectionCenterHeight: 1.7 }), 9);
+  assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 10, projectionCenterHeight: 1.7 }), 4);
+  // 直径极小时保底，不把舞台压成零。
   assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 1.5, projectionCenterHeight: 1 }), 1);
+});
+
+test("半球世界半径是直径的一半，舞台边界必须落在它之内", () => {
+  assert.equal(resolveStoryScene3DDomeWorldRadius({ domeRadius: 8, projectionCenterHeight: 1 }), 4);
+  assert.equal(resolveStoryScene3DDomeWorldRadius({ domeRadius: 20, projectionCenterHeight: 1.7 }), 10);
+  for (const diameter of [5, 8, 10, 20]) {
+    const environment = { domeRadius: diameter, projectionCenterHeight: 1.7 };
+    assert.ok(
+      resolveStoryScene3DActorStageRadius(environment) < resolveStoryScene3DDomeWorldRadius(environment),
+      "舞台圈必须严格在半球边缘内侧",
+    );
+  }
 });
 
 test("角色位置径向 clamp 进舞台圆周并保持方位角与高度", () => {
@@ -22,9 +38,9 @@ test("角色位置径向 clamp 进舞台圆周并保持方位角与高度", () =
   const inside = clampBlockingActorPositionToStage([2, 0.9, -3], environment);
   assert.deepEqual(inside, [2, 0.9, -3], "舞台内位置保持原样");
 
-  // 半径 9：水平距离 30 的点被投影回圆周同方位。
+  // 直径 10 → 真实半径 5 → 舞台 4：越界点被投影回半径 4 的圆周同方位。
   const outside = clampBlockingActorPositionToStage([20, 0.4, -8], environment);
-  assert.ok(Math.abs(Math.hypot(outside[0], outside[2]) - 9) < 1e-9);
+  assert.ok(Math.abs(Math.hypot(outside[0], outside[2]) - 4) < 1e-9);
   assert.ok(outside[0] > 0 && outside[2] < 0, "clamp 保持原方位角");
   assert.equal(outside[1], 0.4, "高度不被改动");
 });
