@@ -12,12 +12,15 @@
 - `every stable issue code has one valid default policy`：目录新增第 24 个 issue code `runtime.background_prefetch_failed` 后计数断言未同步，已改为 24。
 - `artifact delta ...`（2 项）：测试仍调用旧 `characterInfluenceProposal` 公共方法；实现已迁移为 `characterDialogueInfluence` 私有流程，测试已重写对准新 API。
 
-## 待修：真实语义漂移（单进程和隔离运行都失败，代码或测试一方过期）
+## 已修复：语义漂移（2026-08-27 第二批，codex/fix-test-drift）
 
-- `chapterAcceptanceAssessmentService`：`normalizeAssessment` 实际返回 `continue_with_risk`，测试期望 `repairable`。风险治理合并（84ad7c58 一带）后分类口径变化，需要确认产品语义以哪边为准再改。
-- `novelDirectorAutoExecutionRuntime` 的 `circuit-breaker governance ...`：读取 `undefined.circuitBreaker`，测试消费的配置结构已改名/搬家。
-- `directorRunCommandService` 的 `stale recovery applies the task policy ...`：同属 director 风险治理语义漂移。
-- `runPipelineChapterWithRuntime escalates ...`（3 项）、`chapter character context ...`、`display state ...`（2 项）、`assembler refreshes ...`、`circuit-breaker governance ...`：集中在 chapter 生产链 runtime，建议按同一批语义变更一起对齐。
+- `chapterAcceptanceAssessmentService`：soft 可补义务缺口自 2026-06-04（13aac0e2）起有意降级为 `continue_with_risk` 记质量债（符合本仓库最高优先级规则），测试改为断言新口径。
+- `novelDirectorAutoExecutionRuntime` circuit-breaker：**真实回归**。2026-08-10（28f85766）实现的按治理决策分派（continue→闭合熔断继续 / pause→requeue / fail→停止）在 8 月 25 日并行分支收敛时未进入 main，main 停留在「一律暂停」。已按未合并分支 81c1babe 的最终设计移植恢复，applyAction 合同为 `(decision) => ...`。
+- `directorRunCommandService` stale 恢复：**真实回归**。旧 `DirectorCommandService.recoverStaleLeases` 只记录治理不执行；已按 81c1babe 设计委托给 `DirectorCommandLeaseService`（带 applyAction 分派）。
+- `StorySettingsService`：`new NovelWorkflowService()` 顶层实例化与 `GenerationContextAssembler → storySettingsService` 形成循环 require，单进程测试下拿不到构造器；改为惰性创建。
+- `chapterRuntimePipeline`（3 项）：章节生成改走流式 `llm.stream`，测试 LLM 工厂 mock 补齐 `stream`。
+- `characterVisibleProfile` / `generationContextAssembler`：被 2026-06-05（f056815b）有意删除的旧文本合同（`buildCharactersContextText`、`supportingContextText` 大杂烩），删除/对齐过期断言。
+- `directorDisplayStateBuilder`（2 项）：2026-07-15（d13c4b9a）新增「世界观准备」阶段使步骤索引 +1，断言改用新索引。
 
 ## 环境依赖（隔离运行同样失败，但原因是本机数据/服务缺失）
 

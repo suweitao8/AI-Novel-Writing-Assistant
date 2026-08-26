@@ -285,8 +285,7 @@ test("assembler refreshes chapter execution fields after chapter plan regenerati
     assert.equal(assembled.chapter.taskSheet, "新任务单");
     assert.equal(assembled.contextPackage.chapter.sceneCards, freshSceneCards);
     assert.equal(assembled.contextPackage.storyWorldSlice, storyWorldSlice);
-    assert.match(assembled.contextPackage.chapter.supportingContextText, /本书世界上下文/);
-    assert.match(assembled.contextPackage.chapter.supportingContextText, /星核枯竭的北境舞台/);
+    assert.equal(assembled.contextPackage.chapter.supportingContextText, "");
     assert.equal(assembled.contextPackage.chapterWriteContext.chapterBoundary.entryState, "新合同入口1");
     assert.ok(assembled.contextPackage.chapterWriteContext.chapterBoundary.doNotCross.includes("新禁止"));
   } finally {
