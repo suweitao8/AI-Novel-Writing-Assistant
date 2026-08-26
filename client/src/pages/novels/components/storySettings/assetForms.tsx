@@ -352,7 +352,12 @@ export function AssetStatesEditor(props: {
       await invalidateSettings();
       toast.success("状态图已生成。");
     },
-    onError: (error) => toast.error(error instanceof Error ? error.message : "状态图生成失败，请重试。"),
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : "状态图生成失败，请重试。");
+      // 409 可能来自跨进程持久 lease；重新读取列表后，编辑器才能显示真实的生成中状态
+      // 并提供终止入口，而不是继续拿旧的 statesJson 判断按钮。
+      void invalidateSettings();
+    },
   });
 
   // 终止生成中的状态图（代理切错、生成卡住时停掉重来，不等超时）。

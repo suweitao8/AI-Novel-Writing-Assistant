@@ -2,9 +2,32 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const {
+  projectActiveStoryAssetImageGeneration,
   preserveReadableStoryAssetImagePointer,
   prioritizeStoryAssetImageArtifacts,
 } = require("../dist/modules/novel/story-settings/application/StoryAssetImageRecoveryPolicy.js");
+
+test("有效的持久生成锁投影为生成中，但保留最后一张可读图片", () => {
+  assert.deepEqual(
+    projectActiveStoryAssetImageGeneration({
+      status: "error",
+      artifactId: "artifact-current",
+      url: "/api/story-assets/current",
+      generatedAt: "2026-08-25T10:00:00.000Z",
+      error: "上一轮失败",
+    }),
+    {
+      status: "generating",
+      artifactId: "artifact-current",
+      url: "/api/story-assets/current",
+      generatedAt: "2026-08-25T10:00:00.000Z",
+    },
+  );
+  assert.deepEqual(
+    projectActiveStoryAssetImageGeneration(undefined),
+    { status: "generating" },
+  );
+});
 
 test("失败写回保留当前可读图片指针，不把旧图降级成丢失", () => {
   const current = {

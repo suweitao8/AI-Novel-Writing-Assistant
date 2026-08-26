@@ -29,6 +29,7 @@ story-state-images/
 - 关闭失败提示是独立的状态级 CAS 动作：客户端必须提交用户当时看到的完整 `error` 文本和该次生成的 `attemptId`，服务端只在两者仍完全匹配时删除 `error` 字段，不改变 `status`、`artifactId`、URL、生成时间或重试入口。旧数据没有 `attemptId` 时只按 `error` 做单次 CAS，发生并发冲突就停止而不重试，避免同文案的新一轮错误被旧提示误清掉。
 - 生成锁的进程内 map 只能优化同进程请求，不能替代数据库 lease；key 必须包含项目、类型、资产和状态四级范围。
 - lease 在长生成期间定时续期；generating/error 中间状态写入会在同一事务内条件触碰 staging 制品，lease 失效的旧任务不能回写状态，更不能把当前指针回滚到旧图。
+- 资产列表展示生成状态时以有效的 `staging` lease 为跨进程事实来源：即使服务在取得 lease 后、写入 `statesJson.image.status=generating` 前重启，也要保留旧可读指针并投影为生成中；跨进程取消必须按当前 staging 制品和 target key fencing，不能要求状态快照已经是 generating。
 
 ## Migration and Recovery
 
@@ -42,6 +43,7 @@ story-state-images/
 | --- | --- |
 | 两个资产同时生成 `initial` | 目标锁和资产目录不同，两个制品并行且互不覆盖 |
 | 同一资产重复生成 | 第二个请求得到 409；旧图继续可读 |
+| 取得 lease 后服务在写入生成中快照前中断 | 列表按有效 lease 显示生成中；终止入口按 staging 制品回收锁，旧图指针仍保留 |
 | provider 失败或请求取消 | staging 制品释放为 orphaned，最新可读 pointer 不变，用户仍可看到旧图并重试 |
 | `.part` 写入中断 | final 文件不存在，读取返回 missing |
 | CAS 冲突 | 事务回滚，旧状态/旧制品不变 |

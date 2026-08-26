@@ -89,3 +89,49 @@ test("同一目标只能有一个 lease，不同资产的 initial 可以并行",
   await first.release();
   await secondAsset.release();
 });
+
+test("只返回仍在有效租约内的 staging 状态图目标，供列表投影生成中", async () => {
+  const now = new Date("2026-08-26T08:50:00.000Z");
+  const records = [
+    {
+      assetId: "scene-active",
+      stateId: "initial",
+      novelId: "n1",
+      kind: "scene",
+      status: "staging",
+      activeLockKey: "active",
+      leaseExpiresAt: new Date("2026-08-26T08:55:00.000Z"),
+    },
+    {
+      assetId: "scene-expired",
+      stateId: "initial",
+      novelId: "n1",
+      kind: "scene",
+      status: "staging",
+      activeLockKey: "expired",
+      leaseExpiresAt: new Date("2026-08-26T08:45:00.000Z"),
+    },
+    {
+      assetId: "scene-committed",
+      stateId: "initial",
+      novelId: "n1",
+      kind: "scene",
+      status: "committed",
+      activeLockKey: null,
+      leaseExpiresAt: null,
+    },
+  ];
+  const db = {
+    storyAssetImageArtifact: {
+      findMany: async () => records.filter((record) => record.status === "staging"
+        && record.activeLockKey
+        && record.leaseExpiresAt > now),
+    },
+  };
+  const lock = new StoryAssetImageGenerationLock({ db, now: () => now, leaseMs: 60_000 });
+
+  assert.deepEqual(
+    await lock.listActiveTargets("n1", "scene"),
+    [{ assetId: "scene-active", stateId: "initial" }],
+  );
+});
