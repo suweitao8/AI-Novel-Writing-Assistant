@@ -15,6 +15,23 @@ export const DRAMA_ASSET_STYLE_KINDS = ["character", "scene", "prop"] as const;
 
 export type DramaAssetStyleKind = (typeof DRAMA_ASSET_STYLE_KINDS)[number];
 
+/**
+ * 场景全景图的上下分区契约：等距柱状图下半部分会映射到 3D 半球地面，
+ * 因此高物体必须在地平线安全带以上完整收束，避免投影后被地面切开。
+ * 旧版场景全景和状态全景共用这一组提示词，保证两条生成入口不会漂移。
+ */
+export const SCENE_PANORAMA_LAYOUT_PROMPT_LINES = [
+  "strict two-zone equirectangular layout split by the exact vertical center line v=0.5",
+  "upper zone v=0.0-0.48 contains the sky or ceiling, walls, distant background and complete fixed environment objects",
+  "every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object must be fully above v=0.48 with a clean safety margin",
+  "lower zone v=0.52-1.0 contains only one continuous clean ground, floor or terrain surface with sparse low-lying natural detail",
+  "the narrow center band v=0.48-0.52 remains an uncluttered horizon transition; no object, furniture leg or object fragment crosses it",
+] as const;
+
+/** 场景全景图的负向约束，防止家具或大型物体落入会被地面投影的区域。 */
+export const SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT =
+  "furniture or objects in the lower half, furniture legs crossing the horizon, objects crossing the center line, split furniture, stretched props on the ground, cluttered floor, repeated ground objects";
+
 /** 角色、场景、道具各自的固定规格与渲染质感。 */
 export interface DramaAssetVisualStyle {
   kind: DramaAssetStyleKind;

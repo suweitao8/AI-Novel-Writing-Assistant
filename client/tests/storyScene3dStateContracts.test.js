@@ -37,3 +37,10 @@ test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参�
   assert.doesNotMatch(viewer, /createGroundDomeGeometry\(environmentSettings\.projectionCenterHeight/);
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
+
+test("场景 3D 编辑器持久化并实时应用全景地面分界", () => {
+  assert.match(page, /全景地面分界/);
+  assert.match(page, /panoramaHorizonV/);
+  assert.match(viewer, /panoramaHorizonV: 0\.5/);
+  assert.match(viewer, /panoramaHorizonV[^\n]*0\.4, 0\.65/);
+});

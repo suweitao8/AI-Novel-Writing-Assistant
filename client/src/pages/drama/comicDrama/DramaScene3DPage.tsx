@@ -75,7 +75,7 @@ export default function DramaScene3DPage() {
 
   useEffect(() => {
     if (!scene || !selectedState) return;
-    setEnvironmentSettings(scene.scene3dEnvironment);
+    setEnvironmentSettings({ ...DEFAULT_BLOCKING_3D_ENVIRONMENT, ...scene.scene3dEnvironment });
     setDirty(false);
   }, [scene, selectedState]);
 
@@ -143,6 +143,7 @@ export default function DramaScene3DPage() {
     const snapshot = {
       projectionCenterHeight: environmentSettings.projectionCenterHeight,
       domeRadius: environmentSettings.domeRadius,
+      panoramaHorizonV: environmentSettings.panoramaHorizonV,
     };
     const promise = (async () => {
       setSaving(true);
@@ -177,7 +178,7 @@ export default function DramaScene3DPage() {
       if (savePromiseRef.current === promise) savePromiseRef.current = null;
     });
     return promise;
-  }, [environmentSettings.domeRadius, environmentSettings.projectionCenterHeight, novelId, queryClient, scene, sceneId, viewer]);
+  }, [environmentSettings.domeRadius, environmentSettings.panoramaHorizonV, environmentSettings.projectionCenterHeight, novelId, queryClient, scene, sceneId, viewer]);
 
   const analyzeMarkers = useCallback(async () => {
     if (!selectedState || analyzingMarkers || saving) return;
@@ -202,7 +203,7 @@ export default function DramaScene3DPage() {
     setSelectedMarkerId(markerId);
   }, [viewer]);
 
-  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeight" | "domeRadius", value: number) => {
+  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeight" | "domeRadius" | "panoramaHorizonV", value: number) => {
     const next = {
       ...environmentSettings,
       [key]: value,
@@ -326,6 +327,13 @@ export default function DramaScene3DPage() {
                   <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
                 </span>
                     <input type="range" aria-label="半球直径" min="10" max="50" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+              </label>
+              <label className="block space-y-1.5 text-xs text-muted-foreground">
+                <span className="flex items-center justify-between gap-2">
+                  <span>全景地面分界</span>
+                  <output className="tabular-nums text-foreground">{Math.round(environmentSettings.panoramaHorizonV * 100)}%</output>
+                </span>
+                    <input type="range" aria-label="全景地面分界" min="40" max="65" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
               </label>
             </CardContent>
           </Card>
