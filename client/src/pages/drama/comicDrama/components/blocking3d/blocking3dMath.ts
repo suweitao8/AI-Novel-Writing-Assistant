@@ -5,6 +5,15 @@ import type {
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 
+export {
+  BLOCKING_3D_HEIGHT_MAX_METERS,
+  BLOCKING_3D_HEIGHT_MIN_METERS,
+  BLOCKING_3D_PROXY_NATIVE_HEIGHT_METERS,
+  DEFAULT_BLOCKING_3D_HEIGHT_METERS,
+  heightToBlocking3dScale,
+  scaleSavedActorForCurrentHeight,
+} from "./blocking3dScale";
+
 export const BLOCKING_3D_POSES: readonly DramaShotBlockingSketchPose[] = [
   "standing",
   "talking",
@@ -84,6 +93,7 @@ const LIMITS = {
   positionZ: [-100, 100],
   yaw: [-180, 180],
   scale: [0.1, 10],
+  heightMeters: [0.7, 2.4],
 } as const;
 
 function fail(message: string): never {
@@ -154,6 +164,9 @@ export function normalizeBlocking3dActor(input: unknown): DramaShotBlockingSketc
   const actor = input as Record<string, unknown>;
   const position = array3(actor.position, "位置");
   const scale = tuple3(actor.scale, "缩放", LIMITS.scale[0], LIMITS.scale[1]);
+  const heightMeters = actor.heightMeters === undefined
+    ? undefined
+    : finite(actor.heightMeters, "身高基准", LIMITS.heightMeters[0], LIMITS.heightMeters[1]);
   if (typeof actor.actionPlaying !== "boolean") fail("动作播放状态必须是布尔值");
   return {
     characterName: stringValue(actor.characterName, "角色名称"),
@@ -164,6 +177,7 @@ export function normalizeBlocking3dActor(input: unknown): DramaShotBlockingSketc
     ],
     yawDeg: finite(actor.yawDeg, "旋转", LIMITS.yaw[0], LIMITS.yaw[1]),
     scale,
+    ...(heightMeters === undefined ? {} : { heightMeters }),
     pose: poseValue(actor.pose),
     actionPlaying: actor.actionPlaying,
   };

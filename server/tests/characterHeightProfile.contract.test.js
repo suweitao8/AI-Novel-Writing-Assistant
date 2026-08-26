@@ -74,6 +74,42 @@ test("fallback 档案明确标记来源且固定兼容高度", () => {
   assert.equal(profile.heightMeters, 1.8);
 });
 
+test("设定中心只读投影保留身高摘要而不暴露完整档案", () => {
+  const projection = require("../dist/modules/novel/story-settings/application/StorySettingsProjection.js");
+  const projected = projection.projectCharacter({
+    id: "character-1",
+    name: "小满",
+    role: "学生",
+    gender: "female",
+    ageGroup: "child",
+    physique: "娇小",
+    attireStyle: null,
+    facePrompt: null,
+    voiceTexture: null,
+    personality: "谨慎",
+    appearance: "个子很小",
+    background: null,
+    heightProfileJson: JSON.stringify({
+      schemaVersion: 1,
+      heightMeters: 0.9,
+      confidence: 0.88,
+      rationale: "儿童且体型娇小",
+      source: "ai",
+      inputFingerprint: "sha256:character-1",
+      generatedAt: "2026-08-26T00:00:00.000Z",
+    }),
+    statesJson: null,
+    aliasesJson: null,
+    updatedAt: new Date("2026-08-26T00:00:00.000Z"),
+  }, "novel-1");
+  assert.deepEqual(projected.heightProfile, {
+    heightMeters: 0.9,
+    confidence: 0.88,
+    source: "ai",
+  });
+  assert.equal("rationale" in projected.heightProfile, false);
+});
+
 test("身高推断通过 Prompt Registry 注册", () => {
   const registrySource = read("server/src/prompting/registry/promptAssetLoaderEntries.ts");
   const promptSource = read("server/src/prompting/prompts/novel/characterHeightEstimate.prompts.ts");

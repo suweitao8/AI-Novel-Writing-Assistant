@@ -177,7 +177,7 @@ export default function DramaBlocking3DPage() {
       viewerRef.current = nextViewer;
       setViewer(nextViewer);
       const sources = context.actors ?? [];
-      sources.forEach((actor, index) => nextViewer.addActor(actor.characterName, index));
+      sources.forEach((actor, index) => nextViewer.addActor(actor.characterName, index, actor.heightMeters));
       const layout = initialLayout(context);
       if (layout.actors.length > 0) nextViewer.loadLayout(layout);
       else nextViewer.fitView();
@@ -397,7 +397,7 @@ export default function DramaBlocking3DPage() {
                 const selected = actor.characterName === selectedName;
                 return (
                   <div key={actor.characterName} className={cn("flex items-center gap-1.5 rounded-md border px-1.5 py-1", selected && "border-primary bg-accent")}>
-                    <button type="button" disabled={saving} className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index))}>
+                    <button type="button" disabled={saving} className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index, actor.heightMeters))}>
                       {actor.characterName}
                     </button>
                     {placed ? <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={saving} aria-label={`移除${actor.characterName}`} title="移除角色" onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button> : <span className="px-1 text-[11px] text-muted-foreground">加入</span>}

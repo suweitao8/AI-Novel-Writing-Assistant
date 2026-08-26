@@ -340,10 +340,23 @@ export default function StoryAssetEditDialog(props: {
             </div>
           ) : null}
           {kind === "character" ? (
-            <CharacterAssetFormFields
-              value={form as CharacterAssetFormState}
-              onChange={(patch) => setForm((prev) => ({ ...prev, ...patch } as AssetFormState))}
-            />
+            <>
+              <CharacterAssetFormFields
+                value={form as CharacterAssetFormState}
+                onChange={(patch) => setForm((prev) => ({ ...prev, ...patch } as AssetFormState))}
+              />
+              {(asset as StorySettingsCharacter | null)?.heightProfile ? (
+                <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/25 px-3 py-2 text-xs" aria-label="分镜比例基准">
+                  <span className="text-muted-foreground">分镜比例基准</span>
+                  <span className="font-medium text-foreground">
+                    约 {((asset as StorySettingsCharacter).heightProfile?.heightMeters ?? 0).toFixed(1)} 米
+                  </span>
+                  <span className="text-muted-foreground">
+                    {(asset as StorySettingsCharacter).heightProfile?.source === "ai" ? "AI 估算" : "兼容基准"}
+                  </span>
+                </div>
+              ) : null}
+            </>
           ) : kind === "scene" ? (
             <SceneAssetFormFields
               value={form as SceneAssetFormState}
