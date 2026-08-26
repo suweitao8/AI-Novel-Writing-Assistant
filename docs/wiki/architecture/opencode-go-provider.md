@@ -14,6 +14,11 @@ OpenCode Go 是基于本机已登录 OpenCode 订阅的文本模型通道（默�
 
 ## 当前规则
 
+- **2026-08-27 起：文本/视觉槽已切到 Codex 订阅**（Grok 与 OpenCode Go 余额同时耗尽，见 modelCategories.ts）。
+  opencode 通道保留注册与桥接（`pnpm opencode:bridge`），余额恢复后可在设置页把文本/视觉槽切回；
+  桥接的图片 FilePart 透传能力保留，切回即用。
+
+
 - 端口约定：`18762` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）、`18763` OpenCode serve。
 - 启动器对已就绪的服务直接复用，因此 mydrama 先启动的 serve/桥接与本项目的可以互相接管同一端口；两边的桥接协议兼容，本项目版本是超集（多出流式支持）。
 - 模型名必须是 `opencode-go/<model-id>` 格式，桥接会拒绝其他 provider 前缀。

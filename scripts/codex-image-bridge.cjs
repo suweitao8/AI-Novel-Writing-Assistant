@@ -1,19 +1,29 @@
 #!/usr/bin/env node
-// Codex 图片生成本地桥接：把 OpenAI Images 兼容请求翻译成本机 Codex CLI 的
-// 内置 image_generation 工具调用，使用本机已登录的 Codex 订阅，不需要真实 API Key。
+// Codex 本地桥接：把 OpenAI 兼容请求翻译成本机已登录 Codex 订阅的调用，不需要真实 API Key。
 // 移植自 mydrama 项目的 scripts/codex_image_bridge.py + src/novelvideo/generators/codex_image.py，
 // 协议保持一致（18766 端口），两个项目可以共用同一个桥。
 //
-// 对外暴露：
-//   GET  /health                  -> { ready, provider, runtime }
-//   GET  /v1/models               -> OpenAI 模型列表（只有 gpt-image-2）
+// 图片（原有能力）：
 //   POST /v1/images/generations   -> JSON { prompt, size|aspect_ratio, image_size, quality, n, response_format }
 //   POST /v1/images/edits         -> multipart/form-data，image 字段作为参考图
-//
-// 上游契约（codex CLI）：
 //   codex exec --ignore-user-config --ephemeral --json --color never --enable image_generation
 //          -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> [-i ref ...] -
 //   agent prompt 从 stdin 传入；产物出现在 $CODEX_HOME/generated_images 下。
+//
+// 文本/视觉（2026-08-27 新增）：POST /v1/chat/completions 走同一个 Codex 订阅额度。
+//   codex exec --ignore-user-config --ephemeral --json --color never
+//          -C <workdir> --skip-git-repo-check -s read-only -m <model>
+//          -c model_reasoning_effort="<effort>" [-i image ...] -
+//   默认 gpt-5.5 + low 推理档（官方描述 fast responses with lighter reasoning，即「fast 模式」）。
+//   注意：ChatGPT 账号的 Codex 不提供 luna 模型（服务端 400 明确拒绝），可用模型为
+//   gpt-5.5 / gpt-5.4 / gpt-5.4-mini（均支持图片输入）；模型可用 -m / CODEX_TEXT_MODEL 覆盖，
+//   若日后账号开放 luna，改一个环境变量即可切换。
+//
+// 对外暴露：
+//   GET  /health                  -> { ready, provider, runtime }
+//   GET  /v1/models               -> OpenAI 模型列表
+//   POST /v1/chat/completions     -> OpenAI chat completion；stream:true 时上游仍是一次性
+//                                    生成，桥接把完整结果按 SSE 分片下发。
 
 "use strict";
 
@@ -23,6 +33,7 @@ const fsp = require("node:fs/promises");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
+const { randomUUID } = require("node:crypto");
 
 const DEFAULT_HOST = "0.0.0.0";
 const DEFAULT_PORT = 18766;
@@ -33,6 +44,16 @@ const DEFAULT_TIMEOUT_SECONDS = 900;
 const DEFAULT_MAX_CONCURRENCY = 4;
 const MAX_REQUEST_BYTES = 20 * 1024 * 1024;
 const IMAGE_SUFFIXES = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+// 文本/视觉通道：fast 模式 = low 推理档（Fast responses with lighter reasoning）。
+const DEFAULT_TEXT_MODEL = "gpt-5.5";
+const DEFAULT_TEXT_EFFORT = "low";
+const DEFAULT_TEXT_TIMEOUT_SECONDS = 300;
+const DEFAULT_TEXT_MAX_CONCURRENCY = 2;
+const CHAT_IMAGE_SUFFIX_BY_MIME = {
+  "image/png": ".png",
+  "image/jpeg": ".jpg",
+  "image/webp": ".webp",
+};
 
 function envNumber(name, fallback) {
   const value = Number(process.env[name]);
@@ -47,6 +68,10 @@ function parseArgs(argv) {
     agentModel: (process.env.CODEX_IMAGE_AGENT_MODEL || DEFAULT_AGENT_MODEL).trim(),
     timeoutSeconds: envNumber("CODEX_IMAGE_TIMEOUT_SECONDS", DEFAULT_TIMEOUT_SECONDS),
     maxConcurrency: Math.max(1, Math.min(envNumber("CODEX_IMAGE_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY), 4)),
+    textModel: (process.env.CODEX_TEXT_MODEL || DEFAULT_TEXT_MODEL).trim(),
+    textEffort: (process.env.CODEX_TEXT_REASONING_EFFORT || DEFAULT_TEXT_EFFORT).trim(),
+    textTimeoutSeconds: envNumber("CODEX_TEXT_TIMEOUT_SECONDS", DEFAULT_TEXT_TIMEOUT_SECONDS),
+    textMaxConcurrency: Math.max(1, envNumber("CODEX_TEXT_MAX_CONCURRENCY", DEFAULT_TEXT_MAX_CONCURRENCY)),
   };
   for (let i = 2; i < argv.length; i += 1) {
     const key = argv[i];
@@ -60,6 +85,9 @@ function parseArgs(argv) {
       case "--api-key": args.apiKey = value; i += 1; break;
       case "--agent-model": args.agentModel = value; i += 1; break;
       case "--timeout-seconds": args.timeoutSeconds = Number(value); i += 1; break;
+      case "--text-model": args.textModel = value; i += 1; break;
+      case "--text-effort": args.textEffort = value; i += 1; break;
+      case "--text-timeout-seconds": args.textTimeoutSeconds = Number(value); i += 1; break;
       default:
         throw new Error(`未知参数：${key}`);
     }
@@ -332,6 +360,431 @@ function createConcurrencyLimiter(maxConcurrency) {
   };
 }
 
+// ─── 文本/视觉通道（chat completions → codex exec） ───────────────────────────
+
+function extractChatImage(item) {
+  const raw = typeof item.image_url === "string"
+    ? item.image_url
+    : item.image_url && typeof item.image_url === "object"
+      ? item.image_url.url
+      : item.url;
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const dataMatch = value.match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+  if (dataMatch) {
+    return { mime: dataMatch[1] || "image/png", base64: dataMatch[3] || "", url: null };
+  }
+  if (/^https?:\/\//i.test(value)) {
+    return { mime: "image/png", base64: null, url: value };
+  }
+  return null;
+}
+
+function contentToText(content, images) {
+  if (typeof content === "string") {
+    return content;
+  }
+  if (Array.isArray(content)) {
+    const chunks = [];
+    for (const item of content) {
+      if (typeof item === "string") {
+        chunks.push(item);
+      } else if (item && typeof item === "object") {
+        const type = item.type ?? "text";
+        if (type === "text" || type === "input_text" || type === null) {
+          const value = item.text ?? item.content;
+          if (value !== undefined && value !== null) {
+            chunks.push(String(value));
+          }
+        } else if (type === "image_url" || type === "input_image") {
+          const image = extractChatImage(item);
+          if (image) {
+            images.push(image);
+          } else {
+            chunks.push("[unparsable image input omitted]");
+          }
+        }
+      }
+    }
+    return chunks.join("\n");
+  }
+  if (content === undefined || content === null) {
+    return "";
+  }
+  return String(content);
+}
+
+function renderChatMessage(message, images) {
+  const role = String(message.role || "user").trim().toLowerCase();
+  const name = String(message.name || "").trim();
+  const label = name ? `${role}/${name}` : role;
+  const content = contentToText(message.content, images);
+  return `[${label}]\n${content}`.trim();
+}
+
+function chatToolContract(tools) {
+  if (!Array.isArray(tools) || tools.length === 0) {
+    return "";
+  }
+  const names = [];
+  for (const tool of tools) {
+    const fn = tool && typeof tool === "object" ? tool.function : null;
+    if (fn && typeof fn === "object" && typeof fn.name === "string" && fn.name.trim()) {
+      names.push(fn.name.trim());
+    }
+  }
+  if (names.length === 0) {
+    return "";
+  }
+  return (
+    "\n\n工具协议：当前请求注册了以下函数："
+    + names.join(", ")
+    + "。如果需要调用一个非最终输出函数，只输出一段 JSON："
+    + '{"__codex_tool_call__":{"name":"函数名","arguments":{}}}。'
+    + "如果可以直接返回最终结果，直接输出符合最终结构的 JSON。"
+  );
+}
+
+function chatResponseFormatContract(responseFormat) {
+  if (!responseFormat || typeof responseFormat !== "object") {
+    return "";
+  }
+  const formatType = String(responseFormat.type || "").trim();
+  if (formatType === "json_object") {
+    return "\n\n输出协议：只输出合法 JSON 对象，不要 Markdown 代码围栏或解释文字。";
+  }
+  if (formatType !== "json_schema") {
+    return "";
+  }
+  return (
+    "\n\n输出协议：只输出符合以下 JSON Schema 的 JSON 对象，不要 Markdown 代码围栏或解释文字。\n"
+    + JSON.stringify(responseFormat.json_schema ?? {}, null, 2)
+  );
+}
+
+function buildChatPrompt(messages, responseFormat, tools) {
+  const systemChunks = [];
+  const transcriptChunks = [];
+  const images = [];
+  for (const message of messages) {
+    if (!message || typeof message !== "object") {
+      throw new Error("每条 chat message 都必须是对象");
+    }
+    if (String(message.role || "").trim().toLowerCase() === "system") {
+      const content = contentToText(message.content, images).trim();
+      if (content) {
+        systemChunks.push(content);
+      }
+    } else {
+      transcriptChunks.push(renderChatMessage(message, images));
+    }
+  }
+  let systemPrompt = [
+    ...systemChunks,
+    // codex exec 是代码代理，文本任务必须约束成纯文本问答，禁止命令执行与工具探索。
+    "回答约束：这是纯文本/视觉理解任务，不要执行任何命令、不要读写文件、不要使用任何工具，直接用文字回答。",
+  ].join("\n\n");
+  systemPrompt += chatToolContract(tools);
+  systemPrompt += chatResponseFormatContract(responseFormat);
+  const transcript = transcriptChunks.join("\n\n").trim();
+  if (!transcript) {
+    throw new Error("messages 必须包含至少一条非 system 消息");
+  }
+  return { prompt: `${systemPrompt.trim()}\n\n---\n\n${transcript}`, images };
+}
+
+function resolveChatModel(requestModel, fallbackModel) {
+  let normalized = String(requestModel || "").trim();
+  if (normalized.startsWith("codex/")) {
+    normalized = normalized.slice("codex/".length);
+  }
+  // 图片模型 id 不是文本模型：回落到文本默认（gpt-5.5）。
+  if (!normalized || normalized === DEFAULT_IMAGE_MODEL) {
+    return fallbackModel;
+  }
+  return normalized;
+}
+
+async function saveChatImages(images, workdir) {
+  const paths = [];
+  for (let index = 0; index < images.length; index += 1) {
+    const image = images[index];
+    const suffix = CHAT_IMAGE_SUFFIX_BY_MIME[image.mime] || ".png";
+    const filePath = path.join(workdir, `chat-image-${index + 1}${suffix}`);
+    if (image.base64 !== null) {
+      await fsp.writeFile(filePath, Buffer.from(image.base64, "base64"));
+    } else {
+      const response = await fetch(image.url, { signal: AbortSignal.timeout(60_000) });
+      if (!response.ok) {
+        throw new Error(`图片下载失败：HTTP ${response.status}`);
+      }
+      await fsp.writeFile(filePath, Buffer.from(await response.arrayBuffer()));
+    }
+    paths.push(filePath);
+  }
+  return paths;
+}
+
+async function runCodexChat(input) {
+  const executable = resolveCodexExecutable();
+  if (!executable) {
+    throw new Error("未找到 codex CLI，请设置 CODEX_IMAGE_EXECUTABLE 或把 codex 加入 PATH");
+  }
+  if (input.signal?.aborted) {
+    throw new Error("client_closed");
+  }
+  await fsp.mkdir(input.workdir, { recursive: true });
+
+  let onClientAbort = null;
+  const isolatedHome = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-text-home-"));
+  try {
+    const sourceHome = codexHomeDir();
+    for (const name of ["auth.json", "cap_sid"]) {
+      const source = path.join(sourceHome, name);
+      try {
+        await fsp.copyFile(source, path.join(isolatedHome, name));
+      } catch {
+        // 没有该文件就跳过（例如旧版本没有 cap_sid）。
+      }
+    }
+
+    const commandArgs = [
+      "exec",
+      "--ignore-user-config",
+      "--ephemeral",
+      "--json",
+      "--color",
+      "never",
+      "-C",
+      input.workdir,
+      "--skip-git-repo-check",
+      "-s",
+      "read-only",
+      "-m",
+      input.model,
+      "-c",
+      `model_reasoning_effort="${input.effort}"`,
+    ];
+    for (const imagePath of input.imagePaths) {
+      commandArgs.push("-i", imagePath);
+    }
+    commandArgs.push("-");
+
+    // Windows 上直接 spawn .cmd 垫片会抛 EINVAL，统一经 cmd.exe /c；prompt 走 stdin。
+    const launchers = process.platform === "win32"
+      ? ["cmd.exe", ["/c", [executable, ...commandArgs].map(quoteCommandArg).join(" ")]]
+      : [executable, commandArgs];
+    const child = spawn(launchers[0], launchers[1], {
+      cwd: input.workdir,
+      env: { ...process.env, CODEX_HOME: isolatedHome },
+      stdio: ["pipe", "pipe", "pipe"],
+      windowsHide: true,
+    });
+
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk.toString("utf8"); });
+    child.stderr.on("data", (chunk) => { stderr += chunk.toString("utf8"); });
+    const onAbortHandler = () => killProcessTree(child);
+    onClientAbort = onAbortHandler;
+    if (input.signal) {
+      input.signal.addEventListener("abort", onAbortHandler);
+    }
+
+    const exitCode = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        killProcessTree(child);
+        reject(new Error(`Codex 文本生成超时（${Math.round(input.timeoutMs / 1000)}s）`));
+      }, input.timeoutMs);
+      child.on("error", (error) => {
+        clearTimeout(timer);
+        reject(new Error(`无法启动 Codex CLI：${error.message}`));
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        resolve(code);
+      });
+      child.stdin.on("error", () => {});
+      child.stdin.write(input.prompt, "utf8");
+      child.stdin.end();
+    });
+
+    // --json 事件流：最后一条 item.completed(agent_message) 即最终回答；
+    // type:"error" 事件/行（模型不存在、额度拒绝等）优先透出真实原因。
+    let agentText = "";
+    let upstreamError = null;
+    for (const line of stdout.split(/\r?\n/)) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("{")) continue;
+      let event;
+      try {
+        event = JSON.parse(trimmed);
+      } catch {
+        continue;
+      }
+      if (event?.type === "item.completed" && event.item?.type === "agent_message" && event.item.text) {
+        agentText = String(event.item.text);
+      } else if (event?.type === "error") {
+        upstreamError = event.message || JSON.stringify(event).slice(0, 500);
+      }
+    }
+    if (!upstreamError) {
+      const cliError = stderr.match(/\{"type":"error"[\s\S]*?\}/);
+      if (cliError) {
+        try {
+          const parsed = JSON.parse(cliError[0]);
+          upstreamError = parsed?.error?.message || parsed?.message || null;
+        } catch {
+          upstreamError = cliError[0].slice(0, 300);
+        }
+      }
+    }
+    if (exitCode !== 0 && !agentText) {
+      const detail = (stderr.trim() || stdout.trim() || `exit code ${exitCode}`).slice(-1200);
+      throw new Error(upstreamError ? `Codex 上游错误：${upstreamError}` : `Codex 文本生成失败：${detail}`);
+    }
+    if (!agentText) {
+      throw new Error(
+        upstreamError
+          ? `Codex 上游错误：${upstreamError}`
+          : "Codex 结束运行但没有返回文本内容",
+      );
+    }
+    return agentText;
+  } finally {
+    if (input.signal && onClientAbort) {
+      input.signal.removeEventListener("abort", onClientAbort);
+    }
+    fsp.rm(isolatedHome, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+function chatCompletionPayload({ content, model, finishReason, toolCall }) {
+  const message = toolCall
+    ? {
+        role: "assistant",
+        content: null,
+        tool_calls: [
+          {
+            id: toolCall.id,
+            type: "function",
+            function: {
+              name: toolCall.name,
+              arguments: JSON.stringify(toolCall.arguments),
+            },
+          },
+        ],
+      }
+    : { role: "assistant", content };
+  return {
+    id: `chatcmpl-codex-${randomUUID().replace(/-/g, "")}`,
+    object: "chat.completion",
+    created: 0,
+    model,
+    choices: [{ index: 0, finish_reason: finishReason, message }],
+    usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+  };
+}
+
+function sseChunk(payload) {
+  return `data: ${JSON.stringify(payload)}\n\n`;
+}
+
+function sendSseChatCompletion(res, payload, includeUsage) {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+  const base = {
+    id: payload.id,
+    object: "chat.completion.chunk",
+    created: payload.created,
+    model: payload.model,
+  };
+  const choice = payload.choices[0];
+  const firstDelta = choice.message.tool_calls
+    ? { role: "assistant", tool_calls: choice.message.tool_calls.map((call, index) => ({ index, ...call })) }
+    : { role: "assistant", content: choice.message.content ?? "" };
+  res.write(sseChunk({ ...base, choices: [{ index: 0, delta: firstDelta, finish_reason: null }] }));
+  res.write(sseChunk({ ...base, choices: [{ index: 0, delta: {}, finish_reason: choice.finish_reason }] }));
+  if (includeUsage) {
+    res.write(sseChunk({ ...base, choices: [], usage: payload.usage }));
+  }
+  res.write("data: [DONE]\n\n");
+  res.end();
+}
+
+function parseChatJson(text) {
+  const candidate = String(text || "").trim();
+  const match = candidate.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  const unwrapped = match ? match[1].trim() : candidate;
+  try {
+    return JSON.parse(unwrapped);
+  } catch {
+    return undefined;
+  }
+}
+
+async function handleChatCompletion({ bridge, body, signal, workdir }) {
+  if (!Array.isArray(body.messages) || body.messages.length === 0) {
+    return { status: 400, payload: { error: { message: "messages 必须是非空数组" } } };
+  }
+  const tools = Array.isArray(body.tools) ? body.tools : [];
+  const promptInfo = buildChatPrompt(body.messages, body.response_format, tools);
+  const model = resolveChatModel(body.model, bridge.textModel);
+  const work = path.join(workdir, `chat-${randomUUID().slice(0, 8)}`);
+  await fsp.mkdir(work, { recursive: true });
+  const imagePaths = await saveChatImages(promptInfo.images, work);
+  try {
+    const text = await runCodexChat({
+      prompt: promptInfo.prompt,
+      imagePaths,
+      model,
+      effort: bridge.textEffort,
+      workdir: work,
+      timeoutMs: bridge.textTimeoutSeconds * 1000,
+      signal,
+    });
+    let toolName = "";
+    let toolArguments = parseChatJson(text);
+    if (toolArguments && typeof toolArguments === "object" && !Array.isArray(toolArguments)) {
+      const envelope = toolArguments.__codex_tool_call__;
+      if (envelope && typeof envelope === "object") {
+        toolName = String(envelope.name || "").trim();
+        toolArguments = envelope.arguments || {};
+      }
+    }
+    const toolChoice = body.tool_choice;
+    if (toolChoice && typeof toolChoice === "object" && toolChoice.function && typeof toolChoice.function === "object") {
+      toolName = String(toolChoice.function.name || "").trim();
+    }
+    if (tools.length > 0 && !toolName && toolArguments !== undefined) {
+      const firstFunction = tools[0] && typeof tools[0] === "object" ? tools[0].function : null;
+      if (firstFunction && typeof firstFunction === "object" && firstFunction.name) {
+        toolName = String(firstFunction.name).trim();
+      }
+    }
+    if (toolName) {
+      return {
+        status: 200,
+        payload: chatCompletionPayload({
+          model,
+          finishReason: "tool_calls",
+          toolCall: {
+            id: `call_codex_${randomUUID().replace(/-/g, "").slice(0, 16)}`,
+            name: toolName,
+            arguments: toolArguments ?? {},
+          },
+        }),
+      };
+    }
+    return { status: 200, payload: chatCompletionPayload({ content: text, model, finishReason: "stop" }) };
+  } finally {
+    fsp.rm(work, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
 function parseMultipart(contentType, body) {
   const match = /boundary=(?:"([^"]+)"|([^;]+))/i.exec(contentType || "");
   if (!match) {
@@ -413,8 +866,14 @@ function toDataItem(imageBytes, responseFormat) {
 async function main() {
   const args = parseArgs(process.argv);
   const acquire = createConcurrencyLimiter(args.maxConcurrency);
+  const acquireText = createConcurrencyLimiter(args.textMaxConcurrency);
   const executable = resolveCodexExecutable();
   const executableAvailable = Boolean(executable);
+  const bridge = {
+    textModel: args.textModel,
+    textEffort: args.textEffort,
+    textTimeoutSeconds: args.textTimeoutSeconds,
+  };
 
   async function generateOne({ prompt, aspectRatio, imageSize, quality, transparent, references, referenceLabels, signal }) {
     const workdir = await fsp.mkdtemp(path.join(os.tmpdir(), "codex-image-bridge-"));
@@ -463,6 +922,8 @@ async function main() {
         runtime: {
           executable: executableAvailable ? executable : null,
           version: null,
+          textModel: bridge.textModel,
+          textEffort: bridge.textEffort,
         },
       });
       return;
@@ -470,8 +931,55 @@ async function main() {
     if (req.method === "GET" && pathname === "/v1/models") {
       sendJson(200, {
         object: "list",
-        data: [{ id: DEFAULT_IMAGE_MODEL, object: "model", owned_by: "codex" }],
+        data: [
+          { id: DEFAULT_IMAGE_MODEL, object: "model", owned_by: "codex" },
+          { id: args.textModel, object: "model", owned_by: "codex" },
+        ],
       });
+      return;
+    }
+    if (req.method === "POST" && pathname === "/v1/chat/completions") {
+      const auth = req.headers.authorization || "";
+      if (auth && auth !== `Bearer ${args.apiKey}`) {
+        sendJson(401, { error: { message: "invalid_api_key", type: "auth_error" } });
+        return;
+      }
+      const clientAbort = new AbortController();
+      res.once("close", () => clientAbort.abort());
+      const startedAt = Date.now();
+      readRawBody(req, MAX_REQUEST_BYTES)
+        .then(async (rawBody) => {
+          let body;
+          try {
+            body = JSON.parse(rawBody.toString("utf8"));
+          } catch {
+            return { status: 400, payload: { error: { message: "invalid_json" } } };
+          }
+          const model = resolveChatModel(body.model, bridge.textModel);
+          console.log(`[codex-image-bridge] chat model=${model} messages=${Array.isArray(body.messages) ? body.messages.length : 0} stream=${body.stream === true}`);
+          const result = await acquireText(() => handleChatCompletion({ bridge, body, signal: clientAbort.signal, workdir: os.tmpdir() }));
+          if (result.status === 200 && body.stream === true) {
+            const includeUsage = Boolean(
+              body.stream_options && typeof body.stream_options === "object" && body.stream_options.include_usage === true,
+            );
+            sendSseChatCompletion(res, result.payload, includeUsage);
+            return undefined;
+          }
+          return result;
+        })
+        .then((response) => {
+          if (response && !res.destroyed) {
+            sendJson(response.status, response.payload);
+          }
+        })
+        .catch((error) => {
+          const message = error.message || "invalid_request";
+          const status = message === "request_too_large" || message === "invalid_content_length" ? 413 : 502;
+          console.error(`[codex-image-bridge] failed chat in ${Date.now() - startedAt}ms: ${message}`);
+          if (!res.destroyed) {
+            sendJson(status, { error: { message: `codex_chat_failed: ${message}`, type: status === 502 ? "server_error" : "invalid_request_error" } });
+          }
+        });
       return;
     }
     if (req.method === "POST" && (pathname === "/v1/images/generations" || pathname === "/v1/images/edits")) {
@@ -550,8 +1058,8 @@ async function main() {
   });
 
   server.listen(args.port, args.host, () => {
-    console.log(`[codex-image-bridge] listening on http://${args.host}:${args.port}/v1/images/generations`);
-    console.log(`[codex-image-bridge] executable=${executable} agentModel=${args.agentModel} timeout=${args.timeoutSeconds}s`);
+    console.log(`[codex-image-bridge] listening on http://${args.host}:${args.port}/v1/images/generations + /v1/chat/completions`);
+    console.log(`[codex-image-bridge] executable=${executable} imageAgentModel=${args.agentModel} textModel=${args.textModel} textEffort=${args.textEffort} timeout=${args.timeoutSeconds}s textTimeout=${args.textTimeoutSeconds}s`);
     if (!executableAvailable) {
       console.warn("[codex-image-bridge] 未找到 codex CLI，请设置 CODEX_IMAGE_EXECUTABLE 或安装 codex。");
     }

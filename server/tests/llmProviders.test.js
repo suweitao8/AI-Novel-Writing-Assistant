@@ -29,13 +29,14 @@ test("local Grok Build providers are registered as subscription-backed channels"
   assert.equal(PROVIDERS["grok-cli"].defaultModel, "grok-cli/grok-4.6");
   assert.equal(PROVIDERS.grok_build.requiresApiKey, false);
   assert.equal(PROVIDERS.grok_build.defaultModel, "grok-build-image");
-  assert.equal(getTextModelProvider(), "opencode");
+  assert.equal(getTextModelProvider(), "codex");
 });
 
-test("视觉槽位固定走 grok-cli，文本任务保持 OpenCode Go 通道", () => {
-  // 2026-08-27：Grok 订阅退订后，视觉槽切到 OpenCode Go（MiMo 视觉）。
-  assert.equal(getVisionModelProvider(), "opencode");
-  assert.equal(getTextModelProvider(), "opencode");
+test("文本/视觉/图片槽位统一走 Codex 订阅额度", () => {
+  // 2026-08-27：Grok 与 OpenCode Go 额度均不可用，三类槽位统一到 codex
+  //（chat 默认 gpt-5.5 + low 推理档 = fast 模式；图片仍走 image_generation）。
+  assert.equal(getVisionModelProvider(), "codex");
+  assert.equal(getTextModelProvider(), "codex");
 });
 
 test("local Grok Build client options use the bridge bearer by default", async () => {
@@ -383,6 +384,8 @@ test("structured failure classification separates native-json, thinking and sche
 test("视觉能力声明：OpenCode Go 是纯文本通道，未知通道按可送图处理", () => {
   // 2026-08-27：桥接透传 image_url 为 opencode FilePart，MiMo 视觉可用。
   assert.equal(supportsVisionInput("opencode"), true);
+  // 2026-08-27：codex 桥新增 chat completions（文本 + -i 图片附件），视觉可用。
+  assert.equal(supportsVisionInput("codex"), true);
   assert.equal(supportsVisionInput("grok-cli"), true);
   assert.equal(supportsVisionInput("grok_build"), false);
   assert.equal(supportsVisionInput("gemini"), true);

@@ -1,4 +1,4 @@
-# Codex 图片本地供应商与桥接
+# Codex 本地供应商与桥接（图片 + 文本/视觉）
 
 ## 背景
 
@@ -7,7 +7,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 ## 决策
 
 - 供应商注册为内置 `codex`（`shared/types/llm.ts`、`server/src/llm/providers.ts`），名称显示为「Codex 图片」，默认指向 `http://127.0.0.1:18766/v1`，固定令牌 `CODEX_API_KEY=codex-bridge-local`。
-- **该供应商只用于图片**：桥上没有 `/v1/chat/completions`，文本任务路由到 codex 会得到明确 404；`capabilities.ts` 中 codex 的 JSON 能力声明为全 false。
+- **2026-08-27 起同时承载文本/视觉**：桥新增 `POST /v1/chat/completions`，经 `codex exec --json`（read-only 沙箱、隔离 CODEX_HOME、`-i` 图片附件）转发文本与图片理解请求；默认 `gpt-5.5` + `model_reasoning_effort=low`（官方描述 fast responses，即 fast 模式；`CODEX_TEXT_MODEL`/`CODEX_TEXT_REASONING_EFFORT` 可覆盖）。注意：ChatGPT 账号的 Codex 不提供 `luna` 模型（服务端 400 明确拒绝），账号可用模型为 gpt-5.5 / gpt-5.4 / gpt-5.4-mini。JSON 能力声明为 true/true：`response_format` 由桥翻译成输出协议注入 agent prompt（工具调用走 `__codex_tool_call__` 信封协议），Zod 校验兜底。文本槽/视觉槽/图片槽已统一指向 codex。
 - 图片模型走 `ProviderImageSettingsService` 的既有通道：`ImageModelProvider` 增加 `codex`，选项 `gpt-image-2`，env 读取 `CODEX_IMAGE_MODEL`，持久化在 `AppSetting`（key `provider.imageModel.codex`）。
 - 桥接实现为仓库内零依赖 Node 脚本（`scripts/codex-image-bridge.cjs`），从 mydrama 的 Python 桥移植，协议一致；启动器 `scripts/start-codex-image-bridge.cjs` 对应 `pnpm codex:image`。
 - Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality`、参考图（multipart `/images/edits`）与透明背景。**2026-08-22 起角色与道具的资产参考图（状态图/四视图/道具透视图）一律走 Codex 并要求透明底**：CLI 图片工具没有 `background` 字段，桥把 `background=transparent` 翻译成 agent prompt 硬约束（真 alpha 通道 PNG，禁止实底/棋盘格/地面），应用侧提示词与 `TRANSPARENT_IMAGE_OPTIONS`（background=transparent + output_format=png）双保险。Grok Build 固定输出 16:9 横版且不支持透明底与参考图编辑，仍只承担场景全景与无参考图封面。

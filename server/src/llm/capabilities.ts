@@ -27,7 +27,8 @@ const TEXT_ONLY_PROVIDERS = new Set<BuiltinLLMProvider>([
   // 图片/音频专用本地通道，不承担文本或视觉理解任务。
   // opencode 不在此列：桥接自 2026-08-27 起把 image_url 透传为 opencode FilePart，
   // 由视觉模型（opencode-go/mimo-v2.5）消费；送图任务不再需要快速失败。
-  "codex",
+  // codex 也不在此列：桥接自 2026-08-27 起新增 chat completions（codex exec
+  // 文本 + -i 图片附件），文本/视觉统一走 Codex 订阅额度。
   "grok_build",
   "voxcpm2",
   "indextts25",
@@ -189,9 +190,10 @@ export function getJsonCapability(provider: LLMProvider, model?: string, baseURL
       supportsJsonSchema: true,
     },
     codex: {
-      // codex 是图片专用本地通道，不支持文本结构化输出。
-      supportsJsonObject: false,
-      supportsJsonSchema: false,
+      // 2026-08-27：codex 桥新增 chat completions，response_format 由桥翻译成
+      // 输出协议注入 agent prompt，两种 JSON 约束都可用（Zod 校验兜底）。
+      supportsJsonObject: true,
+      supportsJsonSchema: true,
     },
     grok_build: {
       // Grok Build 是图片专用本地通道，不参与文本结构化输出。
