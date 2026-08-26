@@ -84,8 +84,8 @@ test("缺失或越界的全景地面分界使用默认值或边界值", () => {
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
   assert.deepEqual(getDefaultStoryScene3dEnvironment("interior"), {
-    projectionCenterHeight: 1,
-    domeRadius: 8,
+    projectionCenterHeight: 0.8,
+    domeRadius: 5,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
@@ -148,8 +148,8 @@ test("未配置序列化记录会随类型解析，显式 null 仍然代表未�
   );
   assert.equal(resolveStoryScene3dEnvironment("nature", storedDefault).domeRadius, 20);
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", null), {
-    projectionCenterHeight: 1,
-    domeRadius: 8,
+    projectionCenterHeight: 0.8,
+    domeRadius: 5,
     panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
