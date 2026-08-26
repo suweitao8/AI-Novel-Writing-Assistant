@@ -29,6 +29,7 @@ import {
   ensureDramaCharacterHeightProfiles,
   ensureNovelCharacterHeightProfiles,
   heightToProxyScale,
+  resolveCharacterHeightForState,
   type CharacterHeightProfileSource,
 } from "./CharacterHeightProfileService";
 import {
@@ -98,7 +99,7 @@ export interface BlockingSketchEditorActor {
   imageUrl?: string;
   sourceImageKind: "state_sheet" | "portrait" | "placeholder";
   heightMeters: number;
-  heightSource: CharacterHeightProfileSource | "legacy";
+  heightSource: CharacterHeightProfileSource | "manual" | "legacy";
   heightConfidence?: number;
 }
 
@@ -261,14 +262,13 @@ export class DramaShotBlockingSketchService {
         scene: null,
         actors: referencedCharacters.map((character) => {
           const profile = heightProfilesById.get(character.id);
+          const height = resolveCharacterHeightForState(undefined, profile);
           return {
             characterName: character.name,
             assetId: character.id,
             ...(resolvePortraitUrl(character) ? { imageUrl: resolvePortraitUrl(character)! } : {}),
             sourceImageKind: resolvePortraitUrl(character) ? "portrait" : "placeholder",
-            heightMeters: profile?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS,
-            heightSource: profile?.source ?? "legacy",
-            ...(profile ? { heightConfidence: profile.confidence } : {}),
+            ...height,
           };
         }),
       };
@@ -327,15 +327,14 @@ export class DramaShotBlockingSketchService {
         : null;
       const portraitUrl = resolvePortraitUrl(character);
       const profile = heightProfilesByName.get(normalizedName(character.name));
+      const height = resolveCharacterHeightForState(activeState, profile);
       return {
         characterName: character.name,
         assetId: character.id,
         ...(activeState ? { stateId: activeState.id } : {}),
         ...(stateUrl || portraitUrl ? { imageUrl: stateUrl ?? portraitUrl ?? undefined } : {}),
         sourceImageKind: stateUrl ? "state_sheet" : portraitUrl ? "portrait" : "placeholder",
-        heightMeters: profile?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS,
-        heightSource: profile?.source ?? "legacy",
-        ...(profile ? { heightConfidence: profile.confidence } : {}),
+        ...height,
       };
     });
 

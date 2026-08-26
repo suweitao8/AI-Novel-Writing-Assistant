@@ -163,10 +163,21 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
   const details: StoryAssetDetailItem[] = [];
   const initialState = asset.states[0];
   const states = asset.states.map(buildStatePresentation);
+  const manualHeight = typeof initialState?.heightMeters === "number" && Number.isFinite(initialState.heightMeters)
+    ? initialState.heightMeters
+    : null;
+  const displayHeight = manualHeight ?? asset.heightProfile?.heightMeters ?? null;
+  const displayHeightSource = manualHeight !== null
+    ? "手动设定"
+    : asset.heightProfile?.source === "ai"
+      ? "AI 估算"
+      : asset.heightProfile
+        ? "兼容基准"
+        : null;
   const badges = [
     labelFor(GENDER_LABELS, asset.gender),
     labelFor(AGE_LABELS, initialState?.ageGroup ?? asset.ageGroup),
-    asset.heightProfile ? `约 ${asset.heightProfile.heightMeters.toFixed(1)} 米` : "",
+    displayHeight !== null ? `约 ${displayHeight.toFixed(1)} 米` : "",
   ].filter(Boolean);
 
   addDetail(details, "性别", labelFor(GENDER_LABELS, asset.gender));
@@ -181,8 +192,8 @@ function buildCharacterPresentation(asset: StorySettingsCharacter): Omit<StoryAs
   addDetail(
     details,
     "分镜比例基准",
-    asset.heightProfile
-      ? `约 ${asset.heightProfile.heightMeters.toFixed(1)} 米（${asset.heightProfile.source === "ai" ? "AI 估算" : "兼容基准"}）`
+    displayHeight !== null && displayHeightSource
+      ? `约 ${displayHeight.toFixed(1)} 米（${displayHeightSource}）`
       : null,
   );
 
