@@ -6,6 +6,7 @@ import {
 import {
   clampBlockingActorPositionToStage,
   resolveStoryScene3DActorStageRadius,
+  resolveStoryScene3DDomeWorldRadius,
 } from "@ai-novel/shared/utils/blockingStage";
 
 import type {
@@ -16,6 +17,7 @@ import type {
 } from "@/api/media/drama";
 import {
   createBackdropGeometryData,
+  GROUND_DOME_FLAT_RADIUS,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import {
@@ -47,6 +49,7 @@ import {
   updateProjectionCenterGizmo,
   type Blocking3dProjectionCenterGizmoRuntime,
 } from "./blocking3dProjectionCenterGizmo";
+import { drawBlocking3dCameraGizmo, resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
 import {
   applyHdriKeyLight,
   clearHdriKeyLight,
@@ -169,6 +172,9 @@ export interface Blocking3dViewer {
   resetCamera: () => void;
   setCameraState: (camera: DramaShotBlockingSketch3DCamera) => void;
   getCameraState: () => DramaShotBlockingSketch3DCamera;
+  /** 镜头取景辅助开关：机位 gizmo + 相机取景画中画（layout3d.camera 的所见即所得）。 */
+  setShotCameraHelpersVisible: (visible: boolean) => void;
+  getShotCameraHelpersVisible: () => boolean;
   setInteractionEnabled: (enabled: boolean) => void;
   setActorMovementEnabled: (enabled: boolean) => void;
   setEnvironment: (url: string | null) => Promise<void>;
@@ -423,6 +429,24 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   cameraFrame.dof.nearBlur = false;
   cameraFrame.dof.highQuality = true;
 
+  // 镜头取景画中画：第二台相机按 layout3d.camera 的机位与参数渲染到右下角小窗，
+  // 编辑者随时能看到「镜头里到底怎么框住角色」。优先级高于主相机，压在其上层。
+  const shotCameraEntity = new pc.Entity("blocking3d-shot-camera");
+  shotCameraEntity.addComponent("camera", {
+    clearColor: new pc.Color(0.02, 0.03, 0.05),
+    fov: DEFAULT_FOV,
+    nearClip: 0.05,
+    farClip: 200,
+  });
+  const shotCameraComponent = shotCameraEntity.camera!;
+  shotCameraComponent.layers = cameraComponent.layers;
+  shotCameraComponent.priority = (cameraComponent.priority ?? 0) + 1;
+  // 取景小窗不挂 CameraFrame（无景深等整屏后效），只做纯净的取景呈现。
+  shotCameraComponent.rect = new pc.Vec4(0.575, 0.04, 0.4, 0.225);
+  shotCameraEntity.enabled = false;
+  app.root.addChild(shotCameraEntity);
+  const SHOT_CAMERA_RECT_WIDTH = 0.4;
+
   // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
   // transient key light makes a bright window or sun patch readable on actors.
   const environmentKeyLight = createHdriKeyLight();
@@ -463,29 +487,47 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
 
-  // 舞台边界参考圈：半球半径减去边缘运动缓冲，角色站位不允许越过它。
+  // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
+  // 地面平坦部分的外沿。调“半球直径”滑块时两条圈同时重算，可以直观
+  // 看到球边和舞台余量的关系。
+  // 青色圈不能画在直径的一半处：地面网格最外 5% 是向上卷起接回半球的
+  // 圆弧（GROUND_DOME_FLAT_RADIUS = 0.95），只有该比例以内才是真正的
+  // 平面地板，参考圈必须落在平坦区域里才不会浮在弧面上。
   const STAGE_BOUNDARY_SEGMENTS = 96;
   const stageBoundaryColor = new pc.Color(0.9, 0.62, 0.2, 0.4);
-  let stageBoundaryLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  const rebuildStageBoundary = () => {
-    stageBoundaryLines = [];
-    const radius = resolveStoryScene3DActorStageRadius(environmentSettings);
+  const domeBoundaryColor = new pc.Color(0.35, 0.75, 0.9, 0.45);
+  type BoundaryLine = { start: pc.Vec3; end: pc.Vec3; color: pc.Color };
+  let stageBoundaryLines: BoundaryLine[] = [];
+  let domeBoundaryLines: BoundaryLine[] = [];
+  const buildBoundaryRing = (radius: number, color: pc.Color): BoundaryLine[] => {
+    const lines: BoundaryLine[] = [];
     const y = 0.012;
     let previousXZ: { x: number; z: number } | null = null;
     for (let index = 0; index <= STAGE_BOUNDARY_SEGMENTS; index += 1) {
       const angle = (index / STAGE_BOUNDARY_SEGMENTS) * Math.PI * 2;
       const xz = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
       if (previousXZ) {
-        stageBoundaryLines.push({
+        lines.push({
           start: new pc.Vec3(previousXZ.x, y, previousXZ.z),
           end: new pc.Vec3(xz.x, y, xz.z),
-          color: stageBoundaryColor,
+          color,
         });
       }
       previousXZ = xz;
     }
+    return lines;
   };
-  rebuildStageBoundary();
+  const rebuildBoundaryRings = () => {
+    stageBoundaryLines = buildBoundaryRing(
+      resolveStoryScene3DActorStageRadius(environmentSettings),
+      stageBoundaryColor,
+    );
+    domeBoundaryLines = buildBoundaryRing(
+      resolveStoryScene3DDomeWorldRadius(environmentSettings) * GROUND_DOME_FLAT_RADIUS,
+      domeBoundaryColor,
+    );
+  };
+  rebuildBoundaryRings();
 
   const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime = createProjectionCenterGizmo(
     app,
@@ -533,7 +575,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
-    rebuildStageBoundary();
+    rebuildBoundaryRings();
     if (environmentBackdrop) {
       environmentBackdrop.setLocalScale(
         environmentSettings.domeRadius,
@@ -581,6 +623,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     ...DEFAULT_CAMERA,
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
   };
+  // 镜头取景辅助（机位 gizmo + 取景画中画）默认关闭，由页面按钮或 AI 构图完成时打开。
+  let shotCameraHelpersVisible = false;
+  // 导出草图瞬间挂起辅助线与画中画：导出的摆位图必须只有布景和角色。
+  let shotCameraHelpersSuppressed = false;
   let destroyed = false;
   const selectionOutline = createBlocking3dSelectionOutline(app, cameraEntity, SELECTION_OUTLINE_COLOR);
   let interactionEnabled = true;
@@ -617,6 +663,21 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     cameraEntity.setPosition(position);
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
     cameraFrame.update();
+    syncShotCamera(position);
+  };
+
+  /** 取景画中画与主相机共用同一机位参数；小窗保持导出草图的 16:9 画幅。 */
+  const syncShotCamera = (position: pc.Vec3) => {
+    if (!shotCameraComponent.enabled || !shotCameraEntity.camera) return;
+    shotCameraEntity.camera.fov = cameraState.fovDeg;
+    shotCameraEntity.camera.nearClip = Math.min(cameraState.nearClip, 0.05);
+    shotCameraEntity.camera.farClip = cameraState.farClip;
+    const canvasAspect = canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9;
+    // PlayCanvas rect 以画布左下为原点：右下角留边，宽 0.4、按窗口纵横比换算出 16:9 的显示高度。
+    const heightFraction = clamp(SHOT_CAMERA_RECT_WIDTH * canvasAspect * (9 / 16), 0.08, 0.8);
+    shotCameraComponent.rect = new pc.Vec4(0.975 - SHOT_CAMERA_RECT_WIDTH, 0.03, SHOT_CAMERA_RECT_WIDTH, heightFraction);
+    shotCameraEntity.setPosition(position);
+    shotCameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
   };
 
   const emitSelection = () => {
@@ -887,6 +948,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (!rect) return;
     app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
     app.resizeCanvas(rect.width, rect.height);
+    // 画中画高度按窗口纵横比换算成 16:9，resize 后必须重算视口。
+    if (shotCameraComponent.enabled && shotCameraEntity.camera) {
+      syncShotCamera(resolveBlocking3dOrbitPosition(cameraState));
+    }
   };
   resize();
   const resizeObserver = new ResizeObserver(resize);
@@ -898,8 +963,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    for (const line of domeBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
+    if (shotCameraHelpersVisible && !shotCameraHelpersSuppressed) {
+      drawBlocking3dCameraGizmo(app, { camera: cameraState });
+    }
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     selectionOutline.frameUpdate();
   });
@@ -1127,6 +1196,17 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     getCameraState() {
       return { ...cameraState, focalPoint: [...cameraState.focalPoint] };
     },
+    setShotCameraHelpersVisible(visible) {
+      shotCameraHelpersVisible = Boolean(visible);
+      shotCameraComponent.enabled = shotCameraHelpersVisible;
+      if (shotCameraHelpersVisible) {
+        // 打开瞬间重算机位与画中画视口，避免沿用陈旧 rect。
+        syncCamera();
+      }
+    },
+    getShotCameraHelpersVisible() {
+      return shotCameraHelpersVisible;
+    },
     setInteractionEnabled(enabled) {
       interactionEnabled = enabled;
       if (!enabled) {
@@ -1263,8 +1343,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     capturePng() {
       const selectedOutlineEntity = selectionOutline.getEntity();
       selectionOutline.setEntity(null);
+      const pipWasEnabled = shotCameraComponent.enabled;
+      if (pipWasEnabled) shotCameraComponent.enabled = false;
+      shotCameraHelpersSuppressed = true;
       try {
         app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
+        // 第一帧只用于冲掉上一轮 update 排队的参考线（网格/边界/gizmo），
+        // 第二帧才是干净的摆位画面：导出草图不能带编辑器辅助元素。
+        app.render();
         app.render();
         const dataUrl = canvas.toDataURL("image/png");
         const base64 = dataUrl.split(",", 2)[1] ?? "";
@@ -1274,6 +1360,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         return new Blob([bytes], { type: "image/png" });
       } finally {
         resize();
+        shotCameraHelpersSuppressed = false;
+        shotCameraComponent.enabled = pipWasEnabled;
         selectionOutline.setEntity(selectedOutlineEntity);
         selectionOutline.frameUpdate();
         app.render();
@@ -1299,6 +1387,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       clearEnvironmentVisuals();
       clearEnvironmentLighting();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
+      shotCameraEntity.destroy();
       selectionOutline.destroy();
       cameraFrame.destroy();
       environmentKeyLight.destroy();

@@ -4,6 +4,7 @@ const test = require("node:test");
 const {
   STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
   resolveStoryScene3DActorStageRadius,
+  resolveStoryScene3DDomeWorldRadius,
   clampBlockingActorPositionToStage,
   anchorBlockingCameraAtProjectionCenter,
   resolveBlockingCameraWorldPlacement,
@@ -18,6 +19,18 @@ test("角色舞台半径是半球真实半径（直径的一半）减去边缘�
   assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 10, projectionCenterHeight: 1.7 }), 4);
   // 直径极小时保底，不把舞台压成零。
   assert.equal(resolveStoryScene3DActorStageRadius({ domeRadius: 1.5, projectionCenterHeight: 1 }), 1);
+});
+
+test("半球世界半径是直径的一半，舞台边界必须落在它之内", () => {
+  assert.equal(resolveStoryScene3DDomeWorldRadius({ domeRadius: 8, projectionCenterHeight: 1 }), 4);
+  assert.equal(resolveStoryScene3DDomeWorldRadius({ domeRadius: 20, projectionCenterHeight: 1.7 }), 10);
+  for (const diameter of [5, 8, 10, 20]) {
+    const environment = { domeRadius: diameter, projectionCenterHeight: 1.7 };
+    assert.ok(
+      resolveStoryScene3DActorStageRadius(environment) < resolveStoryScene3DDomeWorldRadius(environment),
+      "舞台圈必须严格在半球边缘内侧",
+    );
+  }
 });
 
 test("角色位置径向 clamp 进舞台圆周并保持方位角与高度", () => {

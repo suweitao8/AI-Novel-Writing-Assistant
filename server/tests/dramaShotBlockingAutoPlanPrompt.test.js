@@ -5,7 +5,7 @@ const { dramaShotBlockingAutoPlanPrompt } = require("../dist/prompting/prompts/d
 
 test("自动构图 Prompt 输出完整角色摆位与相机景深合同", () => {
   assert.equal(dramaShotBlockingAutoPlanPrompt.id, "drama.shot.blocking.autoPlan");
-  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v3");
+  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v4");
   assert.equal(dramaShotBlockingAutoPlanPrompt.mode, "structured");
   const output = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: [{ characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" }],
@@ -42,6 +42,12 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /kind 为 floor.*可行走地面/);
   assert.match(text, /站立区域而不是障碍物/);
   assert.match(text, /投射中心/);
+  // v4：构图工艺基线——景别距离、三分法、轴线、相机高度语义与出画自检。
+  assert.match(text, /景别定距离/);
+  assert.match(text, /三分法/);
+  assert.match(text, /180° 轴线/);
+  assert.match(text, /elev 为负是俯拍/);
+  assert.match(text, /输出前自检/);
 
   const constrained = dramaShotBlockingAutoPlanPrompt.render({
     shotJson: "动作：沈烬奔跑",
