@@ -19,7 +19,7 @@ import { resolveComicStyleKeywords } from "./comicStylePrompt";
 import { REFERENCE_IMAGE_PROVIDER } from "../image/assetProviderRouting";
 import {
   SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
-  SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+  scenePanoramaLayoutLinesFor,
 } from "../image/panorama/scenePanoramaLayout";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -112,7 +112,7 @@ function buildSceneSheetPrompt(params: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
-    ...SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+    ...scenePanoramaLayoutLinesFor(sceneType),
     "environment concept art, NO characters or only tiny background figures",
   ];
   if (bible.palette) lines.push(`color palette: ${bible.palette}`);
