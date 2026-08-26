@@ -74,7 +74,7 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
   }
   return {
     projectionCenterHeight: clamp(projectionCenterHeight, 1, 10),
-    domeRadius: clamp(domeRadius, 10, 50),
+    domeRadius: clamp(domeRadius, 5, 30),
   };
 }
 

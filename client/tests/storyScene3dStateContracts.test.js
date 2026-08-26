@@ -43,3 +43,8 @@ test("场景 3D 编辑器不再暴露可调全景地面分界", () => {
   assert.doesNotMatch(page, /panoramaHorizonV/);
   assert.doesNotMatch(viewer, /panoramaHorizonV/);
 });
+
+test("场景 3D 编辑器半球直径统一限制为 5 到 30", () => {
+  assert.match(page, /min="5" max="30" step="1"/);
+  assert.match(viewer, /domeRadius: clamp\(numberOr\(input\?\.domeRadius,[\s\S]*?, 5, 30\)/);
+});

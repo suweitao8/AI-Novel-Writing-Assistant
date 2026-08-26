@@ -45,7 +45,7 @@ test("EnviroDome 上下表面共享唯一交界圈，避免两个网格的光栅
 test("有效投射中心高度和半球直径都把交界圈放在投射中心水平面", () => {
   const ringSize = LONGITUDE_BANDS + 1;
   const seamRingStart = UPPER_DOME_LATITUDE_BANDS * ringSize;
-  for (const [projectionCenterHeight, domeRadius] of [[1, 10], [2, 15], [10, 10], [10, 50]]) {
+  for (const [projectionCenterHeight, domeRadius] of [[1, 5], [2, 15], [10, 10], [10, 30]]) {
     const data = createBackdropGeometryData(projectionCenterHeight, domeRadius);
     const seamLocalY = vertex(data, seamRingStart).position[1];
     assert.ok(

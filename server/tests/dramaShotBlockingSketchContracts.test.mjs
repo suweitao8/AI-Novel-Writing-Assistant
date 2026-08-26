@@ -244,7 +244,7 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
     actors: [],
     environment: {
       projectionCenterHeight: 1.2,
-      domeRadius: 48,
+      domeRadius: 20,
       panoramaHorizonV: 0.58,
       yawDeg: -25,
       intensity: 1.1,
@@ -353,7 +353,7 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     actors: [],
     environment: {
       projectionCenterHeight: 1,
-      domeRadius: 48,
+      domeRadius: 15,
       panoramaHorizonV: 0.5,
       yawDeg: 0,
       intensity: 1,
@@ -362,7 +362,7 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
   for (const [key, value] of [
     ["projectionCenterHeight", 0.5],
     ["projectionCenterHeight", 10.1],
-    ["domeRadius", 9],
+    ["domeRadius", 4],
     ["domeRadius", 100.1],
     ["yawDeg", 181],
     ["intensity", 2],
@@ -379,11 +379,27 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ...validSketch,
     layout3d: {
       ...baseLayout,
-      environment: { ...baseLayout.environment, projectionCenterHeight: 10, domeRadius: 50 },
+      environment: { ...baseLayout.environment, projectionCenterHeight: 10, domeRadius: 30 },
     },
   });
   assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 10);
-  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 50);
+  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 30);
+  const atLowerBoundary = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      ...baseLayout,
+      environment: { ...baseLayout.environment, domeRadius: 5 },
+    },
+  });
+  assert.equal(atLowerBoundary.layout3d?.environment?.domeRadius, 5);
+  const aboveNewBoundary = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      ...baseLayout,
+      environment: { ...baseLayout.environment, domeRadius: 31 },
+    },
+  });
+  assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 30);
   const legacyHorizon = normalizeBlockingSketchData({
     ...validSketch,
     layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.39 } },
@@ -409,7 +425,7 @@ test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆�
     },
   });
   assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 1);
-  assert.equal(legacy.layout3d?.environment?.domeRadius, 50);
+  assert.equal(legacy.layout3d?.environment?.domeRadius, 30);
   assert.equal("panoramaHorizonV" in (legacy.layout3d?.environment ?? {}), false);
   assert.equal(legacy.layout3d?.environment?.yawDeg, 0);
   assert.equal(legacy.layout3d?.environment?.intensity, 1);

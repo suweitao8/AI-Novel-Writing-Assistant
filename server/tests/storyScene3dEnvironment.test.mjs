@@ -25,7 +25,7 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
     intensity: 0.7,
   }), {
     projectionCenterHeight: 4.5,
-    domeRadius: 32,
+    domeRadius: 30,
     yawDeg: 0,
     intensity: 1,
   });
@@ -39,10 +39,16 @@ test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
     panoramaHorizonV: 0.65,
   })), {
     projectionCenterHeight: 1,
-    domeRadius: 50,
+    domeRadius: 30,
     yawDeg: 0,
     intensity: 1,
   });
+});
+
+test("场景资产 HDRI 半球直径的可调范围是 5 到 30", () => {
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 5 }).domeRadius, 5);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 30 }).domeRadius, 30);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 31 }).domeRadius, 30);
 });
 
 test("旧全景地面分界只兼容读取，归一化固定为 50% 且新 JSON 不再写出该字段", () => {
