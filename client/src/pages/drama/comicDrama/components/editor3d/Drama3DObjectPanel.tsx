@@ -1,6 +1,6 @@
-import { Box, Layers3, MapPin, Ruler, UserRound } from "lucide-react";
+import { Layers3, MapPin, Ruler, UserRound } from "lucide-react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type Drama3DObjectKind = "scene" | "actor" | "marker" | "reference";
@@ -33,13 +33,7 @@ function ObjectIcon({ kind }: { kind: Drama3DObjectKind }) {
 export function Drama3DObjectPanel({ items, className }: Drama3DObjectPanelProps) {
   return (
     <Card className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
-      <CardHeader className="shrink-0 px-3 pb-2 pt-2.5">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Box className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          场景对象
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="min-h-0 flex-1 overflow-y-auto p-2">
+      <CardContent className="h-full min-h-0 flex-1 overflow-y-auto p-2">
         {items.length ? (
           <div role="list" aria-label="场景对象列表" className="space-y-1">
             {items.map((item) => (

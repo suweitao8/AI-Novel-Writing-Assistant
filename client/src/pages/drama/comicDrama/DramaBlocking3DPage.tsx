@@ -30,7 +30,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
@@ -146,7 +146,6 @@ export default function DramaBlocking3DPage() {
   const viewerRef = useRef<Blocking3dViewer | null>(null);
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
-  const [status, setStatus] = useState("准备 3D 草图");
   const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedObjectId, setSelectedObjectId] = useState<BlockingObjectSelectionId>(SCENE_OBJECT_ID);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
@@ -195,7 +194,6 @@ export default function DramaBlocking3DPage() {
       canvas,
       environmentUrl: context.scene.imageUrl,
       sceneMarkers: context.scene.markers,
-      onStatus: setStatus,
     }).then((nextViewer) => {
       if (cancelled) {
         nextViewer.destroy();
@@ -305,7 +303,6 @@ export default function DramaBlocking3DPage() {
           queryClient.invalidateQueries({ queryKey: queryKeys.drama.project(projectId), refetchType: "all" }),
           queryClient.invalidateQueries({ queryKey: ["comic-drama"], refetchType: "all" }),
         ]);
-        setStatus("3D 草图已保存");
         toast.success("3D 草图已保存。", {
           description: "分镜生成会使用最新的草图参考图。",
         });
@@ -338,7 +335,6 @@ export default function DramaBlocking3DPage() {
       syncSelection(viewer);
       setCompositionNote(result.data.compositionNote ?? "");
       setDirty(true);
-      setStatus("AI 构图完成，有未保存修改");
       toast.success("AI 已完成本镜构图。", {
         description: result.data.compositionNote || "角色位置、相机和景深已应用到 3D 草图。",
       });
@@ -367,8 +363,6 @@ export default function DramaBlocking3DPage() {
     }
     navigate(-1);
   };
-
-  const currentStatus = savedData?.status ?? context?.sketch?.status ?? "draft";
 
   if (contextQuery.isPending) {
     return <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />载入 3D 草图数据</div>;
@@ -447,24 +441,11 @@ export default function DramaBlocking3DPage() {
   return (
     <Drama3DEditorShell
       header={
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-          <div className="flex min-w-0 items-center gap-3">
-            <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
-              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-            </Button>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
-                <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
-                  {saving ? "保存中" : dirty ? "有未保存修改" : currentStatus === "confirmed" ? "已保存" : "草稿"}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放视角；在对象列表选择对象后调整属性。</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
-          </div>
+        <div data-editor-header="primary" className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+          </Button>
+          <h1 className="min-w-0 truncate text-sm font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
         </div>
       }
       viewport={
@@ -493,13 +474,7 @@ export default function DramaBlocking3DPage() {
       objects={<Drama3DObjectPanel items={objectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 px-3 pb-2 pt-2.5">
-            <CardTitle className="text-sm">属性面板</CardTitle>
-            <Badge variant="outline">
-              {selectedObjectId === SCENE_OBJECT_ID ? "世界" : selectedObjectId.startsWith("actor:") ? "角色" : selectedMarker ? "空间标记" : "对象"}
-            </Badge>
-          </CardHeader>
-          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <div className="text-xs font-medium">镜头设计</div>
