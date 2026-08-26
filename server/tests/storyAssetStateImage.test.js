@@ -106,9 +106,12 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(interior, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon/);
   assert.match(interior, /the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it/);
   assert.match(interior, /the floor half stays completely empty interior flooring/);
-  // 2026-08-26：墙面装饰只允许海报/画作等装饰品，禁止与主角无关的人像照片。
-  assert.match(interior, /wall décor rule: anything framed or hung on the walls is decorative media only/);
-  assert.match(interior, /never personal or family portrait photographs/);
+  // 2026-08-26（二轮收敛）：提示词明确写了的照片（如老照片）允许上墙且必须带相框；
+  // 没写数量最多一张；提示词没提照片时一张都不出。
+  assert.match(interior, /wall décor rule: anything framed or hung on the walls is decorative media/);
+  assert.match(interior, /photographs appear on walls only when the scene description explicitly mentions them/);
+  assert.match(interior, /each must sit inside a proper picture frame/);
+  assert.match(interior, /photo restraint: render at most one framed photograph unless the scene description explicitly names a larger amount/);
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
   assert.match(imageServiceSource, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
