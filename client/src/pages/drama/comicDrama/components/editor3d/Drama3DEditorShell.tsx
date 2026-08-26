@@ -20,7 +20,7 @@ export function Drama3DEditorShell({ header, viewport, objects, actions, classNa
           {viewport}
         </section>
 
-        <aside aria-label="场景对象与属性面板" className="grid min-h-0 min-w-0 grid-rows-[minmax(10rem,15rem)_minmax(0,1fr)] gap-3 overflow-hidden max-xl:min-h-[34rem]">
+        <aside aria-label="场景对象与属性面板" className="grid min-h-0 min-w-0 grid-rows-[minmax(0,33.333%)_minmax(0,1fr)] gap-2 overflow-hidden max-xl:min-h-[34rem]">
           <section aria-label="场景对象列表" data-editor-region="objects" className="h-full min-h-0 overflow-hidden">
             {objects}
           </section>
