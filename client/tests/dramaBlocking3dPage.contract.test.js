@@ -92,7 +92,7 @@ test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能�
   assert.match(viewerSource, /setInteractionEnabled/);
   assert.match(viewerSource, /setActorMovementEnabled/);
   assert.match(viewerSource, /capturePng/);
-  assert.match(viewerSource, /DomeGeometry/);
+  assert.match(viewerSource, /createBackdropGeometryData/);
   assert.match(viewerSource, /setEnvironment/);
   assert.doesNotMatch(viewerSource, /setSelectedActionPlaying|getSelectedActionPlaying/);
   assert.doesNotMatch(viewerSource, /blocking3d-background/);
@@ -121,8 +121,8 @@ test("分镜 3D 草图从场景资产继承 HDRI 参数，不再单独编辑", (
   assert.doesNotMatch(pageSource, /type=\"range\"/);
 });
 
-test("场景 3D 编辑页只允许相机交互，比例参照角色固定在 1.8 米", () => {
-  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "比例参照（约1\.8m）"/);
+test("场景 3D 编辑页只允许相机交互，比例参照角色固定在 1.7 米", () => {
+  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "比例参照（约1\.7m）"/);
   assert.match(scene3dPageSource, /nextViewer\.addActor\(REFERENCE_ACTOR_LABEL, 0\)/);
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
   assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
