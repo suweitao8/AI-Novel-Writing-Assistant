@@ -296,17 +296,17 @@ Expected: FAIL until both downstream services are wired.
 
 - [ ] **Step 2: Implement downstream wiring**
 
-In `StoryScene3dMarkerService`, keep `sceneType: true` in the initial scene select and resolve the environment after `initialState` is found:
+In `StoryScene3dMarkerService`, keep `sceneType: true` in the initial scene select and resolve the scene-level environment after the normalized states are available:
 
 ```ts
 const environment = resolveStoryScene3dEnvironment(
   initialRow.sceneType,
   initialRow.scene3dEnvironmentJson,
-  initialState.sceneType,
+  initialStates[0]?.sceneType,
 );
 ```
 
-Use this environment for `environmentJson` and marker radius exactly as before. In `DramaShotBlockingSketchService`, calculate the selected state once for every scene candidate and resolve the environment with that state type:
+Use this environment for `environmentJson` and marker radius exactly as before. The analyzed state can be any state, but the scene-level environment must continue to use the default state's type. In `DramaShotBlockingSketchService`, calculate the default state once for every scene candidate and resolve the environment with that state type:
 
 ```ts
 const sceneCandidates = sceneRows.map((scene) => {

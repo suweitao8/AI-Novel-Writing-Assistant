@@ -114,7 +114,7 @@ export class StoryScene3dMarkerService {
     const environment = resolveStoryScene3dEnvironment(
       initialRow.sceneType,
       initialRow.scene3dEnvironmentJson,
-      initialState.sceneType,
+      initialStates[0]?.sceneType,
     );
     const imageFingerprint = stateImageFingerprint(initialState);
     const result = await runStructuredPrompt({

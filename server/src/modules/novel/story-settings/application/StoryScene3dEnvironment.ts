@@ -42,15 +42,15 @@ export function normalizeStorySceneType(value: unknown): StoryAssetSceneType | n
 /** 状态类型是当前资产的权威值，场景级类型只为旧数据提供兼容回退。 */
 export function resolveStorySceneType(
   sceneType: unknown,
-  fallbackStateType?: unknown,
+  defaultStateType?: unknown,
 ): StoryAssetSceneType {
-  return normalizeStorySceneType(fallbackStateType)
+  return normalizeStorySceneType(defaultStateType)
     ?? normalizeStorySceneType(sceneType)
     ?? "exterior";
 }
 
 export function getDefaultStoryScene3dEnvironment(sceneType?: unknown): StoryScene3DEnvironment {
-  const resolvedType = resolveStorySceneType(undefined, sceneType);
+  const resolvedType = resolveStorySceneType(sceneType);
   return {
     ...DEFAULT_STORY_SCENE_3D_ENVIRONMENT,
     domeRadius: STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE[resolvedType],
@@ -112,10 +112,10 @@ function isLegacyDefaultEnvironment(input: StoryScene3DEnvironment): boolean {
 export function resolveStoryScene3dEnvironment(
   sceneType: unknown,
   raw: string | null | undefined,
-  fallbackStateType?: unknown,
+  defaultStateType?: unknown,
 ): StoryScene3DEnvironment {
   const defaultEnvironment = getDefaultStoryScene3dEnvironment(
-    resolveStorySceneType(sceneType, fallbackStateType),
+    resolveStorySceneType(sceneType, defaultStateType),
   );
   if (!raw?.trim()) {
     return defaultEnvironment;
