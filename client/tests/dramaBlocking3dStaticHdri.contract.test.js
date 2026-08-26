@@ -268,13 +268,13 @@ test("选中角色使用外轮廓反馈，场景参照角色支持锁定位置�
   assert.match(viewerSource, /let actorMovementEnabled = true/);
   assert.match(viewerSource, /mode: hit && selectedLabel === hit && actorMovementEnabled \? "actor"/);
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
-  assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+  assert.match(scene3dPageSource, /参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
   assert.doesNotMatch(scene3dPageSource, /左键拖参照角色/);
 });
 
 test("场景编辑参考角色固定为 1.7 米并放在世界中心", () => {
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_HEIGHT_METERS = 1\.7/);
-  assert.match(scene3dPageSource, /比例参照（约1\.7m）/);
+  assert.match(scene3dPageSource, /参考角色（约1\.7m）/);
   assert.match(scene3dPageSource, /addActor\(REFERENCE_ACTOR_LABEL, 0, REFERENCE_ACTOR_HEIGHT_METERS, \[0, 0, 0\]\)/);
   assert.match(viewerSource, /initialPosition/);
 });

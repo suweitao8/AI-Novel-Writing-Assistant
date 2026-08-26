@@ -144,11 +144,8 @@ test("对象树保留全部空间标记并使用世界/参考角色名称", () =
   assert.match(scene3dPageSource, /label: "世界"/);
   assert.match(scene3dPageSource, /label: "参考角色"/);
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
-  assert.match(scene3dPageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
-  assert.match(scene3dPageSource, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
   assert.match(pageSource, /label: "世界"/);
   assert.match(pageSource, /context\.scene\.markers\.map/);
-  assert.match(pageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
   assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
 });
 

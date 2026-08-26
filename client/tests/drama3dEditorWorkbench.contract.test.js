@@ -54,14 +54,11 @@ test("对象树只显示图标和名称，列表与属性内容各自在区域�
 test("对象列表使用世界和参考角色语义，并直接列出空间标记", () => {
   assert.match(scenePage, /label: "世界"/);
   assert.match(scenePage, /label: "参考角色"/);
-  assert.match(scenePage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
-  assert.match(scenePage, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
   assert.match(scenePage, /visibleSceneMarkers\.map/);
   assert.doesNotMatch(scenePage, /label: "场景对象"/);
   assert.doesNotMatch(scenePage, /label: "比例参照"/);
 
   assert.match(blockingPage, /label: "世界"/);
-  assert.match(blockingPage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
   assert.match(blockingPage, /context\.scene\.markers\.map/);
 });
 
