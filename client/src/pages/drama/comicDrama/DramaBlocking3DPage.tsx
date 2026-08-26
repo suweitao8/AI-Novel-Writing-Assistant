@@ -7,7 +7,6 @@ import {
   ArrowRight,
   ArrowUp,
   Loader2,
-  MapPin,
   Minus,
   Move3D,
   Plus,
@@ -36,7 +35,6 @@ import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
 import { STORY_SCENE_3D_MARKER_KIND_LABELS } from "@ai-novel/shared/types/comicDrama";
 import {
   BLOCKING_3D_POSES,
@@ -48,6 +46,11 @@ import {
   createBlocking3dViewer,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
+import {
+  Drama3DEditorShell,
+  Drama3DObjectPanel,
+  type Drama3DObjectItem,
+} from "./components/editor3d";
 
 function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShotBlockingSketch3DLayout {
   if (!context.scene) throw new Error("当前镜头没有可用的场景状态图。");
@@ -121,6 +124,18 @@ function hexToRgb(value: string): RgbColor | null {
   return [0, 2, 4].map((offset) => Number.parseInt(value.slice(offset + 1, offset + 3), 16) / 255) as RgbColor;
 }
 
+const SCENE_OBJECT_ID = "scene";
+
+type BlockingObjectSelectionId = typeof SCENE_OBJECT_ID | `actor:${string}` | `marker:${string}`;
+
+function actorObjectId(name: string): `actor:${string}` {
+  return `actor:${name}`;
+}
+
+function markerObjectId(markerId: string): `marker:${string}` {
+  return `marker:${markerId}`;
+}
+
 export default function DramaBlocking3DPage() {
   const { id: projectId = "", shotId = "" } = useParams();
   const navigate = useNavigate();
@@ -133,7 +148,7 @@ export default function DramaBlocking3DPage() {
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("准备 3D 草图");
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [selectedObjectId, setSelectedObjectId] = useState<BlockingObjectSelectionId>(SCENE_OBJECT_ID);
   const [selectedPose, setSelectedPose] = useState<DramaShotBlockingSketchPose | null>(null);
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [selectedTransform, setSelectedTransform] = useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
@@ -159,7 +174,9 @@ export default function DramaBlocking3DPage() {
   }, [context?.sketch?.compositionNote]);
 
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
-    setSelectedName(nextViewer.getSelectedActor());
+    const nextSelectedName = nextViewer.getSelectedActor();
+    setSelectedName(nextSelectedName);
+    setSelectedObjectId(nextSelectedName ? actorObjectId(nextSelectedName) : SCENE_OBJECT_ID);
     setSelectedPose(nextViewer.getSelectedPose());
     setSelectedColor(nextViewer.getSelectedColor());
     setSelectedTransform(nextViewer.getSelectedTransform());
@@ -193,11 +210,15 @@ export default function DramaBlocking3DPage() {
       else nextViewer.fitView();
       syncSelection(nextViewer);
       unsubscribeSelection = nextViewer.onSelectionChange(() => syncSelection(nextViewer));
-      unsubscribeMarkerSelection = nextViewer.onMarkerSelection(setSelectedMarkerId);
+      unsubscribeMarkerSelection = nextViewer.onMarkerSelection((markerId) => {
+        setSelectedObjectId(markerId ? markerObjectId(markerId) : SCENE_OBJECT_ID);
+      });
       unsubscribeChange = nextViewer.onChange(() => {
         setDirty(true);
         syncSelection(nextViewer);
       });
+      nextViewer.selectActor(null);
+      nextViewer.fitView();
     }).catch((error: unknown) => {
       if (!cancelled) setViewerError(error instanceof Error ? error.message : "3D 草图加载失败。");
     });
@@ -228,7 +249,7 @@ export default function DramaBlocking3DPage() {
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
     viewer.focusMarker(markerId);
-    setSelectedMarkerId(markerId);
+    setSelectedObjectId(markerObjectId(markerId));
   }, [viewer]);
 
   const applyViewerAction = useCallback((action: (nextViewer: Blocking3dViewer) => boolean) => {
@@ -237,6 +258,31 @@ export default function DramaBlocking3DPage() {
     setDirty(true);
     syncSelection(viewer);
   }, [autoPlanning, saving, syncSelection, viewer]);
+
+  const selectObject = useCallback((objectId: BlockingObjectSelectionId) => {
+    if (!viewer || saving || autoPlanning) return;
+    if (objectId === SCENE_OBJECT_ID) {
+      viewer.selectActor(null);
+      setSelectedObjectId(SCENE_OBJECT_ID);
+      return;
+    }
+    if (objectId.startsWith("marker:")) {
+      focusMarker(objectId.slice("marker:".length));
+      return;
+    }
+    const actorName = objectId.slice("actor:".length);
+    if (placedNames.has(actorName)) {
+      viewer.selectActor(actorName);
+      setSelectedObjectId(objectId);
+      return;
+    }
+    const actorIndex = context?.actors.findIndex((actor) => actor.characterName === actorName) ?? -1;
+    const actor = actorIndex >= 0 ? context?.actors[actorIndex] : undefined;
+    if (!actor) return;
+    applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, actorIndex, actor.heightMeters));
+    viewer.selectActor(actorName);
+    setSelectedObjectId(objectId);
+  }, [applyViewerAction, autoPlanning, context?.actors, focusMarker, placedNames, saving, viewer]);
 
   const saveSketch = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
@@ -344,35 +390,104 @@ export default function DramaBlocking3DPage() {
     );
   }
 
-  return (
-    <div className="flex min-h-[calc(100dvh-7rem)] flex-col gap-3">
-      <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
-        <div className="flex min-w-0 items-center gap-3">
-          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+  const selectedMarker = selectedObjectId.startsWith("marker:")
+    ? context.scene.markers.find((marker) => marker.id === selectedObjectId.slice("marker:".length)) ?? null
+    : null;
+  const objectItems: Drama3DObjectItem[] = [
+    {
+      id: SCENE_OBJECT_ID,
+      label: "场景对象",
+      kind: "scene",
+      meta: `第 ${context.shot.order} 镜 · ${currentStatus === "confirmed" ? "已保存" : "草稿"}`,
+      selected: selectedObjectId === SCENE_OBJECT_ID,
+      onSelect: () => selectObject(SCENE_OBJECT_ID),
+    },
+    ...context.actors.map((actor, index) => {
+      const id = actorObjectId(actor.characterName);
+      const placed = placedNames.has(actor.characterName);
+      return {
+        id,
+        label: actor.characterName,
+        kind: "actor" as const,
+        meta: `${formatHeight(actor.heightMeters)} · ${placed ? "已加入" : "未加入"}`,
+        selected: selectedObjectId === id,
+        onSelect: () => selectObject(id),
+        trailing: placed ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            disabled={saving || autoPlanning}
+            aria-label={`移除${actor.characterName}`}
+            title="移除角色"
+            onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}
+          >
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
-                  <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
-                    {saving ? "保存中" : dirty ? "有未保存修改" : currentStatus === "confirmed" ? "已保存" : "草稿"}
-                  </Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放视角；右侧调整静态姿势和位置。</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
-              <AiButton type="button" variant="outline" disabled={!viewer || saving || autoPlanning || context.actors.length === 0} onClick={() => void handleAutoPlan()} title="按本镜角色、动作和场景自动规划 3D 构图">
-                {autoPlanning ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                {autoPlanning ? "自动构图中" : context.sketch?.layout3d ? "重新自动构图" : "AI 自动构图"}
-              </AiButton>
-            </div>
-      </header>
+        ) : undefined,
+      };
+    }),
+    ...context.scene.markers.map((marker) => {
+      const id = markerObjectId(marker.id);
+      return {
+        id,
+        label: marker.label,
+        kind: "marker" as const,
+        meta: `${STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]} · ${Math.round(marker.confidence * 100)}%`,
+        selected: selectedObjectId === id,
+        onSelect: () => selectObject(id),
+      };
+    }),
+  ];
 
-      <div className="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <Card className="w-full self-start overflow-hidden">
-          <CardContent className="relative aspect-video w-full p-0">
+  const cameraActions = (
+    <div className="space-y-3 border-t border-border/60 pt-4">
+      <div className="text-xs font-medium">相机</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.fitView()}>
+          <Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.resetCamera()}>
+          <RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角
+        </Button>
+      </div>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+        <dt>视野角</dt><dd className="text-right tabular-nums">{cameraState.fovDeg.toFixed(0)}°</dd>
+        <dt>景深</dt><dd className="text-right">{cameraState.depthOfFieldEnabled ? "开启" : "关闭"}</dd>
+        <dt>焦点距离</dt><dd className="text-right tabular-nums">{cameraState.focusDistance.toFixed(2)}</dd>
+        <dt>清晰范围</dt><dd className="text-right tabular-nums">{cameraState.focusRange.toFixed(2)}</dd>
+        <dt>模糊半径</dt><dd className="text-right tabular-nums">{cameraState.blurRadius.toFixed(2)}</dd>
+      </dl>
+    </div>
+  );
+
+  return (
+    <Drama3DEditorShell
+      header={
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-lg font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
+                <Badge variant={!dirty && currentStatus === "confirmed" ? "default" : "secondary"}>
+                  {saving ? "保存中" : dirty ? "有未保存修改" : currentStatus === "confirmed" ? "已保存" : "草稿"}
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放视角；在对象列表选择对象后调整属性。</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="hidden text-xs text-muted-foreground sm:inline" role="status">{status}</span>
+          </div>
+        </div>
+      }
+      viewport={
+        <Card className="h-full min-h-0 w-full overflow-hidden">
+          <CardContent className="relative h-full min-h-0 w-full p-0">
             <canvas ref={canvasRef} aria-label="3D 草图视口" aria-busy={saving || autoPlanning} className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
             {!viewer && !viewerError ? (
               <div className="absolute inset-0 flex items-center justify-center bg-background/70 text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />初始化 3D 草图</div>
@@ -392,168 +507,121 @@ export default function DramaBlocking3DPage() {
             </div>
           </CardContent>
         </Card>
-
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
-              <CardTitle className="text-sm">镜头设计</CardTitle>
-              <Badge variant="outline">第 {context.shot.order} 镜</Badge>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                <dt className="text-muted-foreground">景别</dt>
-                <dd className="text-right">{context.shot.shotSize || "未设置"}</dd>
-                <dt className="text-muted-foreground">运镜</dt>
-                <dd className="text-right">{context.shot.cameraMove || "未设置"}</dd>
-                <dt className="text-muted-foreground">时长</dt>
-                <dd className="text-right tabular-nums">
-                  {context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}
-                </dd>
-              </dl>
-              <div className="space-y-1.5 border-t border-border/60 pt-3 text-xs">
-                <div className="text-muted-foreground">动作</div>
-                <p className="whitespace-pre-wrap leading-5">{context.shot.action || "未设置"}</p>
-                {context.shot.dialogue ? (
-                  <>
-                    <div className="pt-1 text-muted-foreground">对白</div>
-                    <p className="whitespace-pre-wrap leading-5">{context.shot.dialogue}</p>
-                  </>
-                ) : null}
-              </div>
-              <div className="space-y-1.5 border-t border-border/60 pt-3 text-xs">
-                <div className="text-muted-foreground">AI 构图说明</div>
-                <p className="whitespace-pre-wrap leading-5 text-foreground">
-                  {compositionNote || "点击顶部「AI 自动构图」生成本镜设计。"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">本镜角色</CardTitle></CardHeader>
-            <CardContent className="space-y-1.5">
-              {context.actors.length ? context.actors.map((actor, index) => {
-                const placed = placedNames.has(actor.characterName);
-                const selected = actor.characterName === selectedName;
-                return (
-                  <div key={actor.characterName} className={cn("flex items-center gap-1.5 rounded-md border px-1.5 py-1", selected && "border-primary bg-accent")}>
-                    <button type="button" disabled={saving} className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index, actor.heightMeters))}>
-                      <span className="flex min-w-0 items-center justify-between gap-2">
-                        <span className="truncate">{actor.characterName}</span>
-                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatHeight(actor.heightMeters)}</span>
-                      </span>
-                    </button>
-                    {placed ? <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={saving} aria-label={`移除${actor.characterName}`} title="移除角色" onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button> : <span className="px-1 text-[11px] text-muted-foreground">加入</span>}
-                  </div>
-                );
-              }) : <p className="text-xs text-muted-foreground">本镜没有已识别角色。</p>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">场景空间标记</CardTitle></CardHeader>
-            <CardContent className="space-y-1.5">
-              {context.scene.markers.length ? context.scene.markers.map((marker) => {
-                const selected = marker.id === selectedMarkerId;
-                return (
-                  <button
-                    key={marker.id}
-                    type="button"
-                    className={cn("flex min-h-9 w-full items-center justify-between gap-2 rounded-md border px-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", selected && "border-primary bg-accent")}
-                    aria-pressed={selected}
-                    onClick={() => focusMarker(marker.id)}
-                  >
-                    <span className="flex min-w-0 items-center gap-1.5 truncate"><MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" /><span className="truncate">{marker.label}</span><span className="shrink-0 text-xs text-muted-foreground">{STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]}</span></span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{Math.round(marker.confidence * 100)}%</span>
-                  </button>
-                );
-              }) : <p className="text-xs text-muted-foreground">当前场景没有已识别标记。</p>}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">静态姿势</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {selectedName ? <p className="text-sm font-medium">{selectedName}</p> : <p className="text-xs text-muted-foreground">先选择一个角色。</p>}
-              <label className="block space-y-1.5 text-xs text-muted-foreground">
-                <span>姿势</span>
-                <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={saving || !selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
-                  <option value="" disabled>选择姿势</option>
-                  {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
-                </SelectControl>
-              </label>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">模型外观</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {selectedName ? <p className="text-sm font-medium">{selectedName}</p> : <p className="text-xs text-muted-foreground">先选择一个角色。</p>}
-              <label className="block space-y-1.5 text-xs text-muted-foreground">
-                <span className="flex items-center justify-between gap-2">
-                  <span>模型颜色</span>
-                  <span className="font-mono text-[11px] uppercase">{selectedColor ? rgbToHex(selectedColor) : "—"}</span>
-                </span>
-                <Input
-                  type="color"
-                  aria-label="模型颜色"
-                  value={rgbToHex(selectedColor)}
-                  disabled={saving || autoPlanning || !selectedName}
-                  onChange={(event) => {
-                    const color = hexToRgb(event.target.value);
-                    if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color));
-                  }}
-                  className="h-10 cursor-pointer p-1"
-                />
-              </label>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3"><CardTitle className="text-sm">空间摆放</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-1.5">
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向左移动" title="向左移动" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(-0.2, 0, 0))}><ArrowLeft className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向前移动" title="向前移动" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, -0.2))}><ArrowUp className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向右移动" title="向右移动" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0.2, 0, 0))}><ArrowRight className="h-4 w-4" aria-hidden="true" /></Button>
-                <span />
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向后移动" title="向后移动" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, 0.2))}><ArrowDown className="h-4 w-4" aria-hidden="true" /></Button>
-                <span />
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色升高" title="升高" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0.2, 0))}><Plus className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色降低" title="降低" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, -0.2, 0))}><Minus className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>落地</Button>
-              </div>
-              <div className="grid grid-cols-2 gap-1.5">
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向左旋转角色" title="向左旋转" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向右旋转角色" title="向右旋转" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
-              </div>
-              <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                <dt>位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.position)}</dd>
-                <dt>旋转</dt><dd className="text-right tabular-nums">{selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—"}</dd>
-                <dt>身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext?.heightMeters)}</dd>
-              </dl>
-            </CardContent>
-          </Card>
-
-          <Card>
-              <CardHeader className="pb-3"><CardTitle className="text-sm">相机</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.fitView()}><Move3D className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />聚焦角色</Button>
-                  <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.resetCamera()}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角</Button>
-                </div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                  <dt>视野角</dt><dd className="text-right tabular-nums">{cameraState.fovDeg.toFixed(0)}°</dd>
-                  <dt>景深</dt><dd className="text-right">{cameraState.depthOfFieldEnabled ? "开启" : "关闭"}</dd>
-                  <dt>焦点距离</dt><dd className="text-right tabular-nums">{cameraState.focusDistance.toFixed(2)}</dd>
-                  <dt>清晰范围</dt><dd className="text-right tabular-nums">{cameraState.focusRange.toFixed(2)}</dd>
-                  <dt>模糊半径</dt><dd className="text-right tabular-nums">{cameraState.blurRadius.toFixed(2)}</dd>
+      }
+      objects={<Drama3DObjectPanel items={objectItems} />}
+      actions={
+        <Card className="flex min-h-0 flex-col overflow-hidden">
+          <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 pb-3">
+            <CardTitle className="text-sm">属性与操作</CardTitle>
+            <Badge variant="outline">
+              {selectedObjectId === SCENE_OBJECT_ID ? "场景" : selectedObjectId.startsWith("actor:") ? "角色" : selectedMarker ? "空间标记" : "对象"}
+            </Badge>
+          </CardHeader>
+          <CardContent className="min-h-0 flex-1 space-y-4 overflow-y-auto">
+            {selectedObjectId === SCENE_OBJECT_ID ? (
+              <>
+                <div className="text-xs font-medium">镜头设计</div>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                  <dt className="text-muted-foreground">镜头</dt>
+                  <dd className="text-right">第 {context.shot.order} 镜</dd>
+                  <dt className="text-muted-foreground">景别</dt>
+                  <dd className="text-right">{context.shot.shotSize || "未设置"}</dd>
+                  <dt className="text-muted-foreground">运镜</dt>
+                  <dd className="text-right">{context.shot.cameraMove || "未设置"}</dd>
+                  <dt className="text-muted-foreground">时长</dt>
+                  <dd className="text-right tabular-nums">{context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}</dd>
                 </dl>
-              </CardContent>
-          </Card>
-
-        </aside>
-      </div>
-    </div>
+                <div className="space-y-1.5 border-t border-border/60 pt-4 text-xs">
+                  <div className="text-muted-foreground">动作</div>
+                  <p className="whitespace-pre-wrap leading-5">{context.shot.action || "未设置"}</p>
+                  {context.shot.dialogue ? (
+                    <>
+                      <div className="pt-1 text-muted-foreground">对白</div>
+                      <p className="whitespace-pre-wrap leading-5">{context.shot.dialogue}</p>
+                    </>
+                  ) : null}
+                </div>
+                <div className="space-y-2 border-t border-border/60 pt-4 text-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-muted-foreground">AI 构图说明</div>
+                    <AiButton type="button" variant="outline" size="sm" disabled={!viewer || saving || autoPlanning || context.actors.length === 0} onClick={() => void handleAutoPlan()} title="按本镜角色、动作和场景自动规划 3D 构图">
+                      {autoPlanning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+                      {autoPlanning ? "自动构图中" : context.sketch?.layout3d ? "重新构图" : "AI 构图"}
+                    </AiButton>
+                  </div>
+                  <p className="whitespace-pre-wrap leading-5 text-foreground">{compositionNote || "尚未生成构图说明。"}</p>
+                </div>
+                {cameraActions}
+              </>
+            ) : selectedMarker ? (
+              <>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                  <dt className="text-muted-foreground">名称</dt><dd className="text-right">{selectedMarker.label}</dd>
+                  <dt className="text-muted-foreground">类型</dt><dd className="text-right">{STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}</dd>
+                  <dt className="text-muted-foreground">置信度</dt><dd className="text-right tabular-nums">{Math.round(selectedMarker.confidence * 100)}%</dd>
+                  <dt className="text-muted-foreground">位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedMarker.position)}</dd>
+                  <dt className="text-muted-foreground">尺寸</dt><dd className="text-right tabular-nums">{formatVec3(selectedMarker.size)}</dd>
+                </dl>
+                <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving || autoPlanning} onClick={() => focusMarker(selectedMarker.id)}>
+                  <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦空间标记
+                </Button>
+                {cameraActions}
+              </>
+            ) : selectedActorContext ? (
+              <>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                  <dt className="text-muted-foreground">角色</dt><dd className="text-right">{selectedActorContext.characterName}</dd>
+                  <dt className="text-muted-foreground">身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
+                  <dt className="text-muted-foreground">状态</dt><dd className="text-right">{placedNames.has(selectedActorContext.characterName) ? "已加入镜头" : "未加入镜头"}</dd>
+                </dl>
+                <div className="space-y-3 border-t border-border/60 pt-4">
+                  <div className="text-xs font-medium">静态姿势</div>
+                  <label className="block space-y-1.5 text-xs text-muted-foreground">
+                    <span>姿势</span>
+                    <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={saving || autoPlanning || !selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
+                      <option value="" disabled>选择姿势</option>
+                      {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
+                    </SelectControl>
+                  </label>
+                </div>
+                <div className="space-y-3 border-t border-border/60 pt-4">
+                  <div className="text-xs font-medium">模型外观</div>
+                  <label className="block space-y-1.5 text-xs text-muted-foreground">
+                    <span className="flex items-center justify-between gap-2"><span>模型颜色</span><span className="font-mono text-[11px] uppercase">{selectedColor ? rgbToHex(selectedColor) : "—"}</span></span>
+                    <Input type="color" aria-label="模型颜色" value={rgbToHex(selectedColor)} disabled={saving || autoPlanning || !selectedName} onChange={(event) => { const color = hexToRgb(event.target.value); if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color)); }} className="h-10 cursor-pointer p-1" />
+                  </label>
+                </div>
+                <div className="space-y-3 border-t border-border/60 pt-4">
+                  <div className="text-xs font-medium">空间摆放</div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向左移动" title="向左移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(-0.2, 0, 0))}><ArrowLeft className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向前移动" title="向前移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, -0.2))}><ArrowUp className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向右移动" title="向右移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0.2, 0, 0))}><ArrowRight className="h-4 w-4" aria-hidden="true" /></Button>
+                    <span />
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向后移动" title="向后移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, 0.2))}><ArrowDown className="h-4 w-4" aria-hidden="true" /></Button>
+                    <span />
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色升高" title="升高" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0.2, 0))}><Plus className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色降低" title="降低" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, -0.2, 0))}><Minus className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>落地</Button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向左旋转角色" title="向左旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向右旋转角色" title="向右旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
+                  </div>
+                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                    <dt>位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.position)}</dd>
+                    <dt>旋转</dt><dd className="text-right tabular-nums">{selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—"}</dd>
+                    <dt>身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
+                  </dl>
+                </div>
+                {cameraActions}
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">从上方对象列表选择场景、角色或空间标记。</p>
+            )}
+          </CardContent>
+        </Card>
+      }
+    />
   );
 }
