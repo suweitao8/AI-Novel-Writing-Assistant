@@ -37,6 +37,31 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   assert.equal(result.analysisNote, "室内主要家具");
 });
 
+test("场景标记服务保存结果时以图像区域纠正墙面物体方向", () => {
+  const result = serviceModule.buildStoryScene3dMarkerSet({
+    markers: [{
+      kind: "door",
+      label: "房门",
+      anchor: "wall",
+      position: [3.3, 1.15, 0.6],
+      size: [0.9, 2.3, 0.12],
+      yawDeg: -90,
+      confidence: 0.88,
+      imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.32 },
+    }],
+    analysisNote: "右侧房门",
+  }, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    yawDeg: 0,
+    intensity: 1,
+    panoramaHorizonV: 0.5,
+  }, { artifactId: "artifact-door" });
+  assert.ok(result.markers[0].position[0] > 0);
+  assert.ok(result.markers[0].position[2] < 0);
+  assert.ok(result.markers[0].yawDeg > 90);
+});
+
 test("场景标记服务保存投射环境快照，并用图像区域重算位置", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{

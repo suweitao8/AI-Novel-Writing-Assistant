@@ -33,6 +33,13 @@ import {
   updateSceneMarkerRuntime,
   type Blocking3dSceneMarkerRuntime,
 } from "./blocking3dSceneMarkers";
+import {
+  createProjectionCenterGizmo,
+  destroyProjectionCenterGizmo,
+  drawProjectionCenterGizmo,
+  updateProjectionCenterGizmo,
+  type Blocking3dProjectionCenterGizmoRuntime,
+} from "./blocking3dProjectionCenterGizmo";
 
 const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
@@ -457,6 +464,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime = createProjectionCenterGizmo(
+    app,
+    environmentSettings,
+  );
   let environmentRequestId = 0;
   const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
   const discardEnvironmentAsset = (asset: pc.Asset) => {
@@ -494,6 +505,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     }
   };
   const applyEnvironmentSettings = () => {
+    updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
     if (environmentBackdrop) {
       environmentBackdrop.setLocalScale(
         environmentSettings.domeRadius,
@@ -855,6 +867,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    drawProjectionCenterGizmo(app, projectionCenterGizmo);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     const actor = selectedActor();
     if (actor) {
@@ -894,6 +907,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     window.removeEventListener("keydown", onKeyDown);
     window.removeEventListener("keyup", onKeyUp);
     window.removeEventListener("blur", onBlur);
+    destroyProjectionCenterGizmo(projectionCenterGizmo);
     app.destroy();
     throw error instanceof Error ? error : new Error(String(error));
   }
@@ -1244,6 +1258,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       sceneMarkerRuntimes.clear();
       clearEnvironmentVisuals();
       clearEnvironmentLighting();
+      destroyProjectionCenterGizmo(projectionCenterGizmo);
       cameraFrame.destroy();
       selectionRing.destroy();
       selectionMesh.destroy();

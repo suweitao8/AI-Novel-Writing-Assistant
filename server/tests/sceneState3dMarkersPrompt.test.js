@@ -42,3 +42,10 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /imageRegion/);
   assert.equal(messages.at(-1)?.content?.[1]?.type, "image_url");
 });
+
+test("场景空间标记 Prompt 不接受缺少图像证据区域的 marker", () => {
+  assert.throws(() => sceneState3dMarkersPrompt.outputSchema.parse({
+    markers: [{ ...marker, imageRegion: undefined }],
+    analysisNote: "缺少证据区域",
+  }));
+});

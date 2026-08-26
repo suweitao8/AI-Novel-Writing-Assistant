@@ -109,7 +109,16 @@ export function projectScene(row: {
   scene3dEnvironmentJson?: string | null;
   updatedAt: Date;
 }, novelId: string) {
-  const states = normalizeSceneStates(parseStates(row.statesJson), row);
+  const baseStates = normalizeSceneStates(parseStates(row.statesJson), row);
+  const scene3dEnvironment = resolveStoryScene3dEnvironment(
+    row.sceneType,
+    row.scene3dEnvironmentJson,
+    baseStates[0]?.sceneType,
+  );
+  const states = normalizeSceneStates(baseStates, {
+    ...row,
+    scene3dEnvironment,
+  });
   return {
     id: row.id,
     name: row.name,
@@ -125,11 +134,7 @@ export function projectScene(row: {
     sortOrder: row.sortOrder,
     source: row.source,
     states: scopeStateImageUrls(states, novelId, "scene", row.id),
-    scene3dEnvironment: resolveStoryScene3dEnvironment(
-      row.sceneType,
-      row.scene3dEnvironmentJson,
-      states[0]?.sceneType,
-    ),
+    scene3dEnvironment,
     updatedAt: row.updatedAt.toISOString(),
   };
 }

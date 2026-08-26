@@ -80,6 +80,42 @@ test("重复标记 ID 会被归一化为稳定的唯一 ID", () => {
   assert.deepEqual(normalized?.markers.map((marker) => marker.id), ["same", "same-2"]);
 });
 
+test("读取场景标记时用图像区域纠正门窗经度侧，手工标记保持不变", () => {
+  const normalized = normalizeStoryScene3dMarkerSet({
+    schemaVersion: 1,
+    status: "ready",
+    markers: [
+      {
+        ...validMarkerSet.markers[0],
+        kind: "door",
+        anchor: "wall",
+        position: [3.3, 1.15, 0.6],
+        size: [0.9, 2.3, 0.12],
+        yawDeg: -90,
+        imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.32 },
+      },
+      {
+        ...validMarkerSet.markers[0],
+        id: "manual-window",
+        kind: "window",
+        anchor: "wall",
+        source: "manual",
+        position: [-1, 1.5, 2],
+        imageRegion: { x: 0.45, y: 0.36, width: 0.1, height: 0.22 },
+      },
+    ],
+  }, {
+    maxRadius: 6,
+    environment,
+  });
+  const door = normalized?.markers[0];
+  assert.ok(door);
+  assert.ok(door.position[0] > 0);
+  assert.ok(door.position[2] < 0);
+  assert.ok(door.yawDeg > 90);
+  assert.deepEqual(normalized?.markers[1]?.position, [-1, 1.5, 2]);
+});
+
 test("空间标记优先使用图像区域反算水平位置，而不是直接采信模型世界坐标", () => {
   const marker = {
     anchor: "floor",

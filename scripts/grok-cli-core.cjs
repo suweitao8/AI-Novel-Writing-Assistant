@@ -5,6 +5,7 @@ const fsp = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const { execFileSync, spawn } = require("node:child_process");
+const { pathToFileURL } = require("node:url");
 
 const DEFAULT_GROK_CLI_MODEL = "grok-4.6";
 const DEFAULT_GROK_CLI_API_KEY = "local-grok-cli";
@@ -66,8 +67,9 @@ function normalizeCliModel(model) {
 function buildGrokCliCommand(input) {
   const command = [
     input.executable,
-    "--prompt-file",
-    String(input.promptPath),
+    ...(input.promptJson
+      ? ["--prompt-json", String(input.promptJson)]
+      : ["--prompt-file", String(input.promptPath)]),
     "--verbatim",
     "--output-format",
     "json",
@@ -99,6 +101,152 @@ function buildGrokCliCommand(input) {
     command.push("--cwd", cwd);
   }
   return command;
+}
+
+function normalizeImageMimeType(value, fallback = "image/png") {
+  const mimeType = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return /^image\/[a-z0-9.+-]+$/.test(mimeType) ? mimeType : fallback;
+}
+
+function imageExtension(mimeType) {
+  switch (normalizeImageMimeType(mimeType)) {
+    case "image/jpeg": return "jpg";
+    case "image/webp": return "webp";
+    case "image/gif": return "gif";
+    default: return "png";
+  }
+}
+
+function parseDataImage(value, mimeType) {
+  if (typeof value !== "string") return null;
+  const match = value.match(/^data:([^;,]+)(?:;[^,]*)?;base64,([\s\S]*)$/i);
+  if (!match) return null;
+  const data = Buffer.from(match[2], "base64");
+  if (data.length === 0) return null;
+  return {
+    data,
+    mimeType: normalizeImageMimeType(match[1], mimeType),
+  };
+}
+
+function imageContentDescriptor(item) {
+  if (!item || typeof item !== "object") return null;
+  const type = typeof item.type === "string" ? item.type : "";
+  if (type === "image_url" || type === "input_image") {
+    const imageURL = item.image_url;
+    const url = typeof imageURL === "string" ? imageURL : imageURL?.url;
+    if (typeof url !== "string" || !url.trim()) return null;
+    const inline = parseDataImage(url, imageURL?.mimeType);
+    return inline ?? {
+      uri: url.trim(),
+      mimeType: normalizeImageMimeType(imageURL?.mimeType),
+    };
+  }
+  if (type === "image") {
+    const inline = parseDataImage(item.data, item.mimeType);
+    if (inline) return inline;
+    if (typeof item.data === "string" && item.data.trim()) {
+      const data = Buffer.from(item.data, "base64");
+      if (data.length > 0) {
+        return {
+          data,
+          mimeType: normalizeImageMimeType(item.mimeType),
+        };
+      }
+    }
+  }
+  return null;
+}
+
+function contentItems(content) {
+  if (Array.isArray(content)) return content;
+  if (typeof content === "string" && content.trim()) {
+    return [{ type: "text", text: content }];
+  }
+  if (content && typeof content === "object") return [content];
+  return [];
+}
+
+function textContentItem(item) {
+  if (typeof item === "string") return item;
+  if (!item || typeof item !== "object") return "";
+  const type = item.type ?? "text";
+  if (type === "text" || type === "input_text" || type === null) {
+    const text = item.text ?? item.content;
+    return text === undefined || text === null ? "" : String(text);
+  }
+  return "";
+}
+
+/**
+ * Convert OpenAI-compatible multimodal messages into the ACP content blocks
+ * accepted by `grok --prompt-json`. Inline data is intentionally replaced by
+ * resource links before this function is called so the image never has to be
+ * placed in a Windows command-line argument.
+ */
+function buildGrokPromptJson(messages, imageReferences = []) {
+  if (!Array.isArray(messages)) return "[]";
+  const blocks = [];
+  let imageIndex = 0;
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+    const role = normalizeOptionalText(message.role) || "user";
+    if (role === "system") continue;
+    blocks.push({ type: "text", text: `[${role}]` });
+    for (const item of contentItems(message.content)) {
+      const descriptor = imageContentDescriptor(item);
+      if (descriptor) {
+        const reference = imageReferences[imageIndex];
+        imageIndex += 1;
+        if (reference) {
+          blocks.push({
+            type: "resource_link",
+            uri: reference.uri,
+            name: reference.name,
+            mimeType: reference.mimeType,
+          });
+        } else {
+          blocks.push({ type: "text", text: "[image input unavailable]" });
+        }
+        continue;
+      }
+      const text = textContentItem(item);
+      if (text) blocks.push({ type: "text", text });
+    }
+    blocks.push({ type: "text", text: `[/${role}]` });
+  }
+  return JSON.stringify(blocks);
+}
+
+async function materializeGrokPromptImages(messages, tempDir) {
+  if (!Array.isArray(messages)) return [];
+  const references = [];
+  let imageIndex = 0;
+  for (const message of messages) {
+    if (!message || typeof message !== "object") continue;
+    for (const item of contentItems(message.content)) {
+      const descriptor = imageContentDescriptor(item);
+      if (!descriptor) continue;
+      if (descriptor.data) {
+        const fileName = `input-image-${imageIndex + 1}.${imageExtension(descriptor.mimeType)}`;
+        const filePath = path.join(tempDir, fileName);
+        await fsp.writeFile(filePath, descriptor.data);
+        references.push({
+          uri: pathToFileURL(filePath).href,
+          name: fileName,
+          mimeType: descriptor.mimeType,
+        });
+      } else {
+        references.push({
+          uri: descriptor.uri,
+          name: `input-image-${imageIndex + 1}`,
+          mimeType: descriptor.mimeType,
+        });
+      }
+      imageIndex += 1;
+    }
+  }
+  return references;
 }
 
 function contentToText(content) {
@@ -217,23 +365,28 @@ function extractOutputSchema(body) {
 async function runGrokCli(input, dependencies = {}) {
   const executable = input.executable || resolveGrokCliPath();
   const tempDir = await fsp.mkdtemp(path.join(os.tmpdir(), "grok-cli-bridge-"));
-  const promptPath = path.join(tempDir, "prompt.txt");
-  const schemaJson = input.schema ? JSON.stringify(input.schema) : undefined;
-  const transcript = input.transcript ?? buildGrokTranscript(input.messages);
-  await fsp.writeFile(promptPath, transcript, "utf8");
-  const command = buildGrokCliCommand({
-    executable,
-    promptPath,
-    model: input.model,
-    reasoningEffort: input.reasoningEffort ?? DEFAULT_GROK_REASONING_EFFORT,
-    systemPrompt: input.systemPrompt,
-    schemaJson,
-    cwd: tempDir,
-  });
   const spawnImpl = dependencies.spawnImpl || spawn;
   const timeoutMs = Math.max(1000, Math.floor((Number(input.timeoutSeconds) || DEFAULT_GROK_CLI_TIMEOUT_SECONDS) * 1000));
 
   try {
+    const promptPath = path.join(tempDir, "prompt.txt");
+    const schemaJson = input.schema ? JSON.stringify(input.schema) : undefined;
+    const transcript = input.transcript ?? buildGrokTranscript(input.messages);
+    await fsp.writeFile(promptPath, transcript, "utf8");
+    const imageReferences = await materializeGrokPromptImages(input.messages, tempDir);
+    const promptJson = imageReferences.length > 0
+      ? buildGrokPromptJson(input.messages, imageReferences)
+      : undefined;
+    const command = buildGrokCliCommand({
+      executable,
+      promptPath,
+      promptJson,
+      model: input.model,
+      reasoningEffort: input.reasoningEffort ?? DEFAULT_GROK_REASONING_EFFORT,
+      systemPrompt: input.systemPrompt,
+      schemaJson,
+      cwd: tempDir,
+    });
     const output = await new Promise((resolve, reject) => {
       const child = spawnImpl(command[0], command.slice(1), {
         cwd: tempDir,
@@ -288,12 +441,14 @@ module.exports = {
   DEFAULT_GROK_CLI_TIMEOUT_SECONDS,
   GrokCliError,
   buildGrokCliCommand,
+  buildGrokPromptJson,
   buildGrokTranscript,
   extractOutputSchema,
   findLongestJsonValue,
   isGrokCliAvailable,
   normalizeCliModel,
   parseGrokCliOutput,
+  materializeGrokPromptImages,
   resolveGrokCliPath,
   runGrokCli,
 };

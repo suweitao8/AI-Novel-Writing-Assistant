@@ -584,12 +584,16 @@ export class StorySettingsService {
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
     });
     return Promise.all(rows.map(async (row) => {
-      const states = normalizeSceneStates(parseStates(row.statesJson), row);
+      const baseStates = normalizeSceneStates(parseStates(row.statesJson), row);
       const environment = resolveStoryScene3dEnvironment(
         row.sceneType,
         row.scene3dEnvironmentJson,
-        states[0]?.sceneType,
+        baseStates[0]?.sceneType,
       );
+      const states = normalizeSceneStates(baseStates, {
+        ...row,
+        scene3dEnvironment: environment,
+      });
       if (canSafelyRewriteStates(row.statesJson)) {
         const normalizedStatesJson = serializeStates(states);
         if (normalizedStatesJson !== (row.statesJson?.trim() || null)) {

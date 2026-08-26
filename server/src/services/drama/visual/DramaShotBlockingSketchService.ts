@@ -1,7 +1,6 @@
 import fs from "fs/promises";
 import path from "path";
 import {
-  normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
   hasStoryAssetStateImageUrl,
   type StoryAssetState,
@@ -43,6 +42,7 @@ import {
   type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
 import { resolveStoryScene3dEnvironment } from "../../../modules/novel/story-settings/application/StoryScene3dEnvironment";
+import { normalizeSceneStates } from "../../../modules/novel/story-settings/application/StorySettingsStatePolicy";
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
 const BLOCKING_SKETCH_FILE = "blocking-sketch.png";
@@ -187,10 +187,15 @@ function matchSceneByName<T extends { name: string }>(scenes: T[], location: str
     .sort((left, right) => right.name.trim().length - left.name.trim().length)[0] ?? null;
 }
 
-function selectSceneState(statesJson: string | null, fallback: { name: string; summary: string | null; environmentPrompt: string | null; sceneType: string | null; timeOfDay: string | null; weather: string | null }) {
-  return normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
-    description: fallback.summary?.trim() || fallback.environmentPrompt?.trim() || `${fallback.name}默认状态`,
-    imagePrompt: fallback.environmentPrompt?.trim() || fallback.summary?.trim() || `${fallback.name}默认状态`,
+function selectSceneState(
+  statesJson: string | null,
+  fallback: { name: string; summary: string | null; environmentPrompt: string | null; sceneType: string | null; timeOfDay: string | null; weather: string | null },
+  environment?: StoryScene3DEnvironment,
+) {
+  return normalizeSceneStates(parseStoryAssetStatesJson(statesJson).states, {
+    name: fallback.name,
+    summary: fallback.summary,
+    environmentPrompt: fallback.environmentPrompt,
     sceneType: fallback.sceneType === "interior" || fallback.sceneType === "exterior" || fallback.sceneType === "nature"
       ? fallback.sceneType
       : null,
@@ -200,6 +205,7 @@ function selectSceneState(statesJson: string | null, fallback: { name: string; s
     weather: fallback.weather === "sunny" || fallback.weather === "cloudy" || fallback.weather === "rainy"
       ? fallback.weather
       : null,
+    scene3dEnvironment: environment,
   })[0] ?? null;
 }
 
@@ -296,16 +302,18 @@ export class DramaShotBlockingSketchService {
       ensureNovelCharacterHeightProfiles(novelId, referencedCharacters.map((character) => character.name)),
     ]);
     const sceneCandidates = sceneRows.map((scene) => {
-      const state = selectSceneState(scene.statesJson, scene);
+      const baseState = selectSceneState(scene.statesJson, scene);
+      const environment = resolveStoryScene3dEnvironment(
+        scene.sceneType,
+        scene.scene3dEnvironmentJson,
+        baseState?.sceneType,
+      );
+      const state = selectSceneState(scene.statesJson, scene, environment);
       return {
         name: scene.name,
         assetId: scene.id,
         state,
-        environment: resolveStoryScene3dEnvironment(
-          scene.sceneType,
-          scene.scene3dEnvironmentJson,
-          state?.sceneType,
-        ),
+        environment,
       };
     }).filter((scene): scene is { name: string; assetId: string; state: StoryAssetState; environment: StoryScene3DEnvironment } => Boolean(scene.state));
     const matchedScene = matchSceneByName(sceneCandidates, shot.location);
