@@ -125,14 +125,16 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
-test("HDRI 环境只提供投射中心高度和半球直径，地面分界固定为 50%", () => {
+test("HDRI 环境提供投射中心、高度、半球直径和可调地面分界", () => {
   assert.match(viewerSource, /projectionCenterHeight: 1\.7/);
   assert.match(viewerSource, /domeRadius: 10/);
+  assert.match(viewerSource, /STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V/);
+  assert.match(viewerSource, /panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);
   assert.match(viewerSource, /domeRadius[^\n]*5, 30/);
-  assert.doesNotMatch(viewerSource, /panoramaHorizonV/);
+  assert.match(viewerSource, /panoramaHorizonV[^\n]*0\.4, 0\.65/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /yawDeg: 0/);
   assert.match(viewerSource, /intensity: 1/);
@@ -149,8 +151,8 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.match(environmentProjectionSource, /projectionToSurface/);
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
+  assert.match(environmentProjectionSource, /uPanoramaHorizonV/);
   assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
-  assert.doesNotMatch(environmentProjectionSource, /uPanoramaHorizonV/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(environmentSource, /ADDRESS_REPEAT/);
@@ -218,7 +220,7 @@ test("HDRI 等距投影数学在地平线、两极和经度循环处连续", asy
   assert.ok(horizon.u >= 0 && horizon.u <= 1);
   assert.ok(opposite.u >= 0 && opposite.u <= 1);
   assert.deepEqual(scaled, horizon, "投影只由方向决定，与距离无关");
-  assert.equal(shifted.v, 0.5, "历史全景地面分界不能改变固定采样 V 坐标");
+  assert.equal(shifted.v, 0.58, "全景地面分界应改变采样 V 坐标");
   assert.equal(projectEquirectangularDirection([0, 1, 0]).u, 0.5, "上极点使用固定经度");
   assert.equal(projectEquirectangularDirection([0, -1, 0]).u, 0.5, "下极点使用固定经度");
 });
@@ -261,7 +263,7 @@ test("参考角色材质显式使用 HDRI 环境光", () => {
 });
 
 test("选中角色使用外轮廓反馈，场景参照角色支持锁定位置移动", () => {
-  assert.match(viewerSource, /drawEntitySelectionOutline/);
+  assert.match(viewerSource, /createBlocking3dSelectionOutline/);
   assert.doesNotMatch(viewerSource, /selectionRing|SELECTION_RING_OPACITY|createSelectionRingGeometryData/);
   assert.doesNotMatch(viewerSource, /type: "cylinder"/);
   assert.match(viewerSource, /setActorMovementEnabled/);

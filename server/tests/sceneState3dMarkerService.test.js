@@ -25,6 +25,7 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   }, {
     projectionCenterHeight: 2,
     domeRadius: 15,
+    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   }, {
@@ -37,7 +38,7 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   assert.equal(result.analysisNote, "室内主要家具");
 });
 
-test("场景标记服务把固定 50% 上半区的地面家具放到半球外圈", () => {
+test("场景标记服务把默认 50% 上半区的地面家具放到半球外圈", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "table",
@@ -140,6 +141,7 @@ test("场景标记服务保存投射环境快照，并用图像区域重算位�
   assert.deepEqual(result.sourceEnvironment, {
     projectionCenterHeight: 2,
     domeRadius: 15,
+    panoramaHorizonV: 0.5,
   });
   assert.ok(Math.abs(result.markers[0].position[0]) < 0.05);
   assert.ok(result.markers[0].position[2] > 0);

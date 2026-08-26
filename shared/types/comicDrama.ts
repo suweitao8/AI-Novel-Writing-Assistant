@@ -4,8 +4,8 @@
 
 export type ComicDramaStageKey = "novel" | "storyboard" | "voice" | "video";
 
-/** 全景图与 3D 环境之间唯一固定的垂直投射分界。 */
-export const STORY_SCENE_3D_PANORAMA_HORIZON_V = 0.5 as const;
+/** 没有保存过分界参数的旧场景仍按全景图垂直中心投射。 */
+export const STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V = 0.5 as const;
 
 /**
  * 场景资产的统一 3D 环境参数。投射中心高度和半球直径由场景资产维护，
@@ -15,11 +15,15 @@ export const STORY_SCENE_3D_PANORAMA_HORIZON_V = 0.5 as const;
 export interface StoryScene3DEnvironment {
   projectionCenterHeight: number;
   domeRadius: number;
+  /** Source-image V coordinate that should land on the 3D projection horizon. */
+  panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
 }
 
-export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">;
+/** 场景参数写入和旧空间标记快照允许缺少新字段，服务端会回退到 0.5。 */
+export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">
+  & Partial<Pick<StoryScene3DEnvironment, "panoramaHorizonV">>;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [
@@ -101,7 +105,15 @@ function isStoryScene3DEnvironmentInput(value: unknown): value is StoryScene3DEn
   return typeof source.projectionCenterHeight === "number"
     && Number.isFinite(source.projectionCenterHeight)
     && typeof source.domeRadius === "number"
-    && Number.isFinite(source.domeRadius);
+    && Number.isFinite(source.domeRadius)
+    && (source.panoramaHorizonV === undefined
+      || (typeof source.panoramaHorizonV === "number" && Number.isFinite(source.panoramaHorizonV)));
+}
+
+function resolvePanoramaHorizonV(environment: StoryScene3DEnvironmentInput): number {
+  return typeof environment.panoramaHorizonV === "number" && Number.isFinite(environment.panoramaHorizonV)
+    ? environment.panoramaHorizonV
+    : STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V;
 }
 
 /** 环境参数改变任一投射量时，旧标记就不能继续代表当前场景。 */
@@ -111,7 +123,8 @@ export function storyScene3DEnvironmentMatches(
 ): boolean {
   if (!left || !right) return false;
   return Math.abs(left.projectionCenterHeight - right.projectionCenterHeight) < 0.0001
-    && Math.abs(left.domeRadius - right.domeRadius) < 0.0001;
+    && Math.abs(left.domeRadius - right.domeRadius) < 0.0001
+    && Math.abs(resolvePanoramaHorizonV(left) - resolvePanoramaHorizonV(right)) < 0.0001;
 }
 
 /** 只有带环境快照且与当前环境一致的结果才能进入 3D 摆位上下文。 */
