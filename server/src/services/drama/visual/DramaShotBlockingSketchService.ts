@@ -83,6 +83,32 @@ interface BlockingSketchShot {
   };
 }
 
+export interface DramaShotBlockingSketchShotSummary {
+  order: number;
+  location: string;
+  shotSize: string;
+  cameraMove: string;
+  durationSec: number | null;
+  action: string;
+  dialogue: string;
+  visualPrompt: string;
+}
+
+export function buildDramaShotBlockingEditorShotSummary(
+  shot: Pick<BlockingSketchShot, "order" | "location" | "shotSize" | "cameraMove" | "durationSec" | "action" | "dialogue" | "visualPrompt">,
+): DramaShotBlockingSketchShotSummary {
+  return {
+    order: shot.order,
+    location: shot.location ?? "",
+    shotSize: shot.shotSize ?? "",
+    cameraMove: shot.cameraMove ?? "",
+    durationSec: shot.durationSec ?? null,
+    action: shot.action ?? "",
+    dialogue: shot.dialogue ?? "",
+    visualPrompt: shot.visualPrompt ?? "",
+  };
+}
+
 interface BlockingSketchEditorScene {
   name: string;
   assetId: string;
@@ -106,6 +132,7 @@ export interface BlockingSketchEditorActor {
 
 export interface DramaShotBlockingSketchEditorContext {
   sketch: DramaShotBlockingSketchData | null;
+  shot: DramaShotBlockingSketchShotSummary;
   scene: BlockingSketchEditorScene | null;
   actors: BlockingSketchEditorActor[];
 }
@@ -258,6 +285,7 @@ export class DramaShotBlockingSketchService {
     const shot = await this.assertShotInProject(projectId, shotId);
     const project = shot.storyboard.project;
     const sketch = parseBlockingSketchData(shot.blockingSketchData);
+    const shotSummary = buildDramaShotBlockingEditorShotSummary(shot);
     if (project.source !== "novel_import" || !project.sourceRef?.trim()) {
       const referencedCharacters = selectReferencedCharacters(shot);
       const heightProfilesById = await ensureDramaCharacterHeightProfiles(
@@ -266,6 +294,7 @@ export class DramaShotBlockingSketchService {
       );
       return {
         sketch,
+        shot: shotSummary,
         scene: null,
         actors: referencedCharacters.map((character) => {
           const profile = heightProfilesById.get(character.id);
@@ -356,7 +385,7 @@ export class DramaShotBlockingSketchService {
       };
     });
 
-    return { sketch, scene, actors };
+    return { sketch, shot: shotSummary, scene, actors };
   }
 
   async autoPlan(projectId: string, shotId: string, options: DramaLLMOptions = {}): Promise<DramaShotBlockingAutoPlanResult> {
@@ -405,6 +434,7 @@ export class DramaShotBlockingSketchService {
     const next: DramaShotBlockingSketchData = {
       status: "draft",
       version: (previous?.version ?? 0) + 1,
+      ...(normalized.compositionNote ? { compositionNote: normalized.compositionNote } : {}),
       scene: normalized.scene,
       actors: normalized.actors,
       ...(normalized.layout3d ? { layout3d: normalized.layout3d } : {}),

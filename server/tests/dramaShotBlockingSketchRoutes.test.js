@@ -34,3 +34,7 @@ test("草图路由显式校验 PlayCanvas 3D 快照", () => {
   assert.match(source, /layout3d: blockingSketch3dLayoutSchema\.optional\(\)/);
   assert.match(source, /blockingSketch3dPoseSchema/);
 });
+
+test("草图保存路由接受可选的 AI 镜头设计说明", () => {
+  assert.match(source, /compositionNote: z\.string\(\)\.trim\(\)\.min\(1\)\.max\(240\)\.optional\(\)/);
+});

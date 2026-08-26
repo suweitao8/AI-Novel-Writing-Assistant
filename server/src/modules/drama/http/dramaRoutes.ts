@@ -163,6 +163,7 @@ const blockingSketchDataSchema = z.object({
   version: z.number().int().min(1).max(Number.MAX_SAFE_INTEGER),
   url: z.string().trim().min(1).max(1200).optional(),
   generatedAt: z.string().trim().min(1).max(100).optional(),
+  compositionNote: z.string().trim().min(1).max(240).optional(),
   scene: blockingSketchSceneSchema,
   actors: z.array(blockingSketchActorSchema).max(12),
   layout3d: blockingSketch3dLayoutSchema.optional(),

@@ -54,8 +54,8 @@ const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 const SELECTION_RING_OPACITY = 0.5;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
-  projectionCenterHeight: 2,
-  domeRadius: 15,
+  projectionCenterHeight: 1.7,
+  domeRadius: 10,
   yawDeg: 0,
   intensity: 1,
 };
