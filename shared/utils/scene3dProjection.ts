@@ -201,7 +201,7 @@ function calibrateMarkerSize(
  */
 export function projectStoryScene3dMarkerFromImageRegion(
   marker: Pick<StoryScene3DMarker, "anchor" | "position" | "size" | "imageRegion">
-    & Partial<Pick<StoryScene3DMarker, "yawDeg" | "source">>,
+    & Partial<Pick<StoryScene3DMarker, "kind" | "yawDeg" | "source">>,
   environment: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "yawDeg">>,
   maxRadius = finiteOr(environment.domeRadius, 15) * 0.45,
 ): StoryScene3dMarkerProjection {
