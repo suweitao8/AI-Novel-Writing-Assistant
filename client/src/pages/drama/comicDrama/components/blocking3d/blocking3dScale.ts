@@ -1,6 +1,11 @@
+import {
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
+
 export const DEFAULT_BLOCKING_3D_HEIGHT_METERS = 1.8;
-export const BLOCKING_3D_HEIGHT_MIN_METERS = 0.7;
-export const BLOCKING_3D_HEIGHT_MAX_METERS = 2.4;
+export const BLOCKING_3D_HEIGHT_MIN_METERS = STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS;
+export const BLOCKING_3D_HEIGHT_MAX_METERS = STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS;
 export const BLOCKING_3D_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
 
 function clamp(value: number, min: number, max: number): number {

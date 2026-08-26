@@ -658,8 +658,8 @@ export function AssetStatesEditor(props: {
                   <span className="text-xs font-medium">身高（米）</span>
                   <Input
                     type="number"
-                    min="0.7"
-                    max="2.4"
+                    min={STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS}
+                    max={STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS}
                     step="0.01"
                     inputMode="decimal"
                     placeholder="例如 1.75"

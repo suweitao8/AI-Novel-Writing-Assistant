@@ -25,27 +25,39 @@ test("身高档案迁移只新增两列", () => {
   }
 });
 
-test("身高档案接受边界值并拒绝越界值", () => {
+test("身高档案接受 0.50 到 10.00 米边界并支持 5 米怪物", () => {
   const service = require("../dist/services/drama/visual/CharacterHeightProfileService.js");
+  assert.equal(service.CHARACTER_HEIGHT_MIN_METERS, 0.5);
+  assert.equal(service.CHARACTER_HEIGHT_MAX_METERS, 10);
   assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
     schemaVersion: 1,
-    heightMeters: 0.7,
+    heightMeters: 0.5,
     confidence: 0,
     rationale: "边界",
     source: "ai",
     inputFingerprint: "sha256:a",
     generatedAt: "2026-08-26T00:00:00.000Z",
-  })).heightMeters, 0.7);
+  })).heightMeters, 0.5);
   assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
     schemaVersion: 1,
-    heightMeters: 2.4,
+    heightMeters: 5,
     confidence: 1,
-    rationale: "边界",
+    rationale: "怪物身高",
     source: "ai",
     inputFingerprint: "sha256:b",
     generatedAt: "2026-08-26T00:00:00.000Z",
-  })).heightMeters, 2.4);
-  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 2.41 })), null);
+  })).heightMeters, 5);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
+    schemaVersion: 1,
+    heightMeters: 10,
+    confidence: 1,
+    rationale: "边界",
+    source: "ai",
+    inputFingerprint: "sha256:c",
+    generatedAt: "2026-08-26T00:00:00.000Z",
+  })).heightMeters, 10);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 0.49 })), null);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 10.01 })), null);
   assert.equal(service.parseCharacterHeightProfile("not-json"), null);
 });
 
@@ -64,7 +76,21 @@ test("同一角色输入产生稳定指纹，代理模型按 1.8287 米原生高
     service.buildCharacterHeightInputFingerprint({ ...input }),
   );
   assert.equal(service.heightToProxyScale(1.8287), 1);
-  assert.ok(service.heightToProxyScale(0.7) < service.heightToProxyScale(1.8));
+  assert.ok(service.heightToProxyScale(0.5) < service.heightToProxyScale(1.8));
+});
+
+test("身高估算 Prompt schema 接受 5 米怪物并拒绝范围外输出", () => {
+  const prompt = require("../dist/prompting/prompts/novel/characterHeightEstimate.prompts.js").characterHeightEstimatePrompt;
+  assert.equal(prompt.outputSchema.parse({
+    heightMeters: 5,
+    confidence: 0.92,
+    rationale: "巨型怪物",
+  }).heightMeters, 5);
+  assert.throws(() => prompt.outputSchema.parse({
+    heightMeters: 10.01,
+    confidence: 0.92,
+    rationale: "越界",
+  }));
 });
 
 test("fallback 档案明确标记来源且固定兼容高度", () => {

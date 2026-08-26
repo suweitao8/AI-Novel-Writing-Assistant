@@ -4,6 +4,10 @@ import type {
   DramaShotBlockingSketchActor,
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
+import {
+  BLOCKING_3D_HEIGHT_MAX_METERS,
+  BLOCKING_3D_HEIGHT_MIN_METERS,
+} from "./blocking3dScale";
 
 export {
   BLOCKING_3D_HEIGHT_MAX_METERS,
@@ -93,7 +97,7 @@ const LIMITS = {
   positionZ: [-100, 100],
   yaw: [-180, 180],
   scale: [0.1, 10],
-  heightMeters: [0.7, 2.4],
+  heightMeters: [BLOCKING_3D_HEIGHT_MIN_METERS, BLOCKING_3D_HEIGHT_MAX_METERS],
 } as const;
 
 function fail(message: string): never {

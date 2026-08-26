@@ -21,7 +21,7 @@
 
 - [ ] **Step 1: Write the failing contract test**
 
-在测试中读取两份 schema、两份 migration 和后续服务导出的常量，先断言角色表包含 `heightProfileJson`，新迁移同时为 `Character` 与 `DramaCharacter` 添加可空文本列，并断言有效身高边界为 0.7–2.4 米、默认兼容高度为 1.8 米。测试使用 `node:fs`，不触碰开发数据库。
+在测试中读取两份 schema、两份 migration 和后续服务导出的常量，先断言角色表包含 `heightProfileJson`，新迁移同时为 `Character` 与 `DramaCharacter` 添加可空文本列，并断言有效身高边界为 0.50–10.00 米、默认兼容高度为 1.8 米。测试使用 `node:fs`，不触碰开发数据库。
 
 ```js
 const assert = require("node:assert/strict");
@@ -103,14 +103,14 @@ const service = require("../dist/services/drama/visual/CharacterHeightProfileSer
 
 test("身高档案接受边界值并拒绝越界值", () => {
   assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
-    schemaVersion: 1, heightMeters: 0.7, confidence: 0, rationale: "边界", source: "ai",
+    schemaVersion: 1, heightMeters: 0.5, confidence: 0, rationale: "边界", source: "ai",
     inputFingerprint: "sha256:a", generatedAt: "2026-08-26T00:00:00.000Z",
-  })).heightMeters, 0.7);
+  })).heightMeters, 0.5);
   assert.equal(service.parseCharacterHeightProfile(JSON.stringify({
-    schemaVersion: 1, heightMeters: 2.4, confidence: 1, rationale: "边界", source: "ai",
+    schemaVersion: 1, heightMeters: 10, confidence: 1, rationale: "边界", source: "ai",
     inputFingerprint: "sha256:b", generatedAt: "2026-08-26T00:00:00.000Z",
-  })).heightMeters, 2.4);
-  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 2.41 })), null);
+  })).heightMeters, 10);
+  assert.equal(service.parseCharacterHeightProfile(JSON.stringify({ heightMeters: 10.01 })), null);
   assert.equal(service.parseCharacterHeightProfile("not-json"), null);
 });
 
@@ -118,7 +118,7 @@ test("同一角色输入产生稳定指纹，代理模型按 1.8287 米原生高
   const input = { name: "小满", role: "学生", gender: "female", ageGroup: "child", physique: "娇小", appearance: "" };
   assert.equal(service.buildCharacterHeightInputFingerprint(input), service.buildCharacterHeightInputFingerprint({ ...input }));
   assert.equal(service.heightToProxyScale(1.8287), 1);
-  assert.ok(service.heightToProxyScale(0.7) < service.heightToProxyScale(1.8));
+  assert.ok(service.heightToProxyScale(0.5) < service.heightToProxyScale(1.8));
 });
 
 test("fallback 档案明确标记来源且固定兼容高度", () => {
@@ -140,7 +140,7 @@ Expected: FAIL because the new module and registered prompt exports do not exist
 
 ```ts
 const outputSchema = z.object({
-  heightMeters: z.number().min(0.7).max(2.4),
+  heightMeters: z.number().min(0.5).max(10),
   confidence: z.number().min(0).max(1),
   rationale: z.string().trim().min(1).max(240),
 });
@@ -158,8 +158,8 @@ Prompt id 使用 `novel.character.heightEstimate`、版本 `v1`，系统消息�
 
 ```ts
 export const CHARACTER_HEIGHT_DEFAULT_METERS = 1.8;
-export const CHARACTER_HEIGHT_MIN_METERS = 0.7;
-export const CHARACTER_HEIGHT_MAX_METERS = 2.4;
+export const CHARACTER_HEIGHT_MIN_METERS = 0.5;
+export const CHARACTER_HEIGHT_MAX_METERS = 10;
 export const CHARACTER_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
 
 export function buildCharacterHeightInputFingerprint(input: CharacterHeightInput): string;
@@ -224,7 +224,7 @@ heightSource: "ai" | "fallback" | "legacy";
 heightConfidence?: number;
 ```
 
-归一化布局时若存在 `heightMeters` 必须通过 0.7–2.4 范围检查；缺失字段继续合法，表示旧布局。
+归一化布局时若存在 `heightMeters` 必须通过 0.50–10.00 范围检查；缺失字段继续合法，表示旧布局。
 
 - [ ] **Step 4: Enrich editor actors from canonical source profiles**
 

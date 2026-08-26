@@ -8,8 +8,8 @@ const presentation = readFileSync(new URL("../src/components/storyAssets/storyAs
 test("角色状态编辑器提供米制身高输入和范围校验", () => {
   assert.match(editor, /身高（米）/);
   assert.match(editor, /type="number"/);
-  assert.match(editor, /min="0\.7"/);
-  assert.match(editor, /max="2\.4"/);
+  assert.match(editor, /min=\{STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS\}/);
+  assert.match(editor, /max=\{STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS\}/);
   assert.match(editor, /step="0\.01"/);
   assert.match(editor, /heightMeters/);
 });
