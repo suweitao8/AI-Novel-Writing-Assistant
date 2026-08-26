@@ -13,6 +13,7 @@ import {
   RotateCcw,
   RotateCw,
   Trash2,
+  Video,
   WandSparkles,
 } from "lucide-react";
 
@@ -157,6 +158,8 @@ export default function DramaBlocking3DPage() {
   const [compositionNote, setCompositionNote] = useState("");
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
   const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
+  // 镜头取景辅助：机位 gizmo + 右下角取景画中画（默认关，构图完成后自动打开）。
+  const [shotPreviewOn, setShotPreviewOn] = useState(false);
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
 
@@ -171,6 +174,10 @@ export default function DramaBlocking3DPage() {
   useEffect(() => {
     setCompositionNote(context?.sketch?.compositionNote ?? "");
   }, [context?.sketch?.compositionNote]);
+
+  useEffect(() => {
+    viewer?.setShotCameraHelpersVisible(shotPreviewOn);
+  }, [shotPreviewOn, viewer]);
 
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
     const nextSelectedName = nextViewer.getSelectedActor();
@@ -335,6 +342,8 @@ export default function DramaBlocking3DPage() {
       syncSelection(viewer);
       setCompositionNote(result.data.compositionNote ?? "");
       setDirty(true);
+      // 构图完成即打开镜头取景：让用户立刻看到镜头里的实际画面效果。
+      setShotPreviewOn(true);
       toast.success("AI 已完成本镜构图。", {
         description: result.data.compositionNote || "角色位置、相机和景深已应用到 3D 草图。",
       });
@@ -427,6 +436,19 @@ export default function DramaBlocking3DPage() {
         <Button type="button" variant="outline" size="sm" className="h-9" disabled={saving || autoPlanning || !viewer} onClick={() => viewer?.resetCamera()}>
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />复位视角
         </Button>
+        <Button
+          type="button"
+          variant={shotPreviewOn ? "default" : "outline"}
+          size="sm"
+          className="col-span-2 h-9"
+          disabled={!viewer}
+          aria-pressed={shotPreviewOn}
+          title="显示镜头机位标记，并在右下角实时预览镜头里的画面构图"
+          onClick={() => setShotPreviewOn((value) => !value)}
+        >
+          <Video className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          {shotPreviewOn ? "隐藏镜头取景" : "镜头取景"}
+        </Button>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
         <dt>视野角</dt><dd className="text-right tabular-nums">{cameraState.fovDeg.toFixed(0)}°</dd>
@@ -460,6 +482,11 @@ export default function DramaBlocking3DPage() {
                 <p className="text-sm text-destructive">{viewerError}</p>
                 <p className="text-xs text-muted-foreground">请确认浏览器支持 WebGL，并重新打开 3D 草图。</p>
                 <Button variant="outline" onClick={() => void goBack()}>返回分镜</Button>
+              </div>
+            ) : null}
+            {shotPreviewOn && viewer && !viewerError ? (
+              <div className="pointer-events-none absolute bottom-[calc(3%+1.6rem)] right-[2.5%] rounded border border-primary/70 bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
+                镜头取景（导出草图不包含此预览）
               </div>
             ) : null}
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">

@@ -23,6 +23,7 @@ import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStor
 import {
   anchorBlockingCameraAtProjectionCenter,
   clampBlockingActorPositionToStage,
+  resolveBlockingCameraWorldPlacement,
   resolveStoryScene3DActorStageRadius,
 } from "@ai-novel/shared/utils/blockingStage";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
@@ -41,6 +42,7 @@ import {
   normalizeBlockingSketch3dLayout,
   normalizeBlockingSketchData,
   parseBlockingSketchData,
+  type DramaShotBlockingSketch3DCamera,
   type DramaShotBlockingSketch3DLayout,
   type DramaShotBlockingSketchActor,
   type DramaShotBlockingSketchData,
@@ -515,6 +517,54 @@ function normalizedName(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
 
+/** 导出草图固定 16:9；视野兜底按同一画幅计算，与前端取景小窗一致。 */
+const SHOT_FRAME_ASPECT = 16 / 9;
+
+/**
+ * AI 构图的确定性兜底：把任一角色（脚点与头顶）都落在相机取景锥内。
+ * 以取景框对角半角为几何覆盖判定——若当前 fovDeg 装不下，则只放大 fov
+ * （上限 schema 的 100°），不改动模型给的方向、距离、焦点与景深创意参数。
+ */
+export function fitAutoPlanCameraFovToActors(
+  camera: DramaShotBlockingSketch3DCamera,
+  actors: ReadonlyArray<{ position: [number, number, number]; heightMeters?: number }>,
+): DramaShotBlockingSketch3DCamera {
+  if (actors.length === 0) return camera;
+  const placement = resolveBlockingCameraWorldPlacement(camera);
+  const forwardLength = Math.hypot(placement.forward[0], placement.forward[1], placement.forward[2]) || 1;
+  const forward = [
+    placement.forward[0] / forwardLength,
+    placement.forward[1] / forwardLength,
+    placement.forward[2] / forwardLength,
+  ];
+  let maxCos = Number.POSITIVE_INFINITY;
+  for (const actor of actors) {
+    const heightMeters = actor.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
+    for (const sampleY of [actor.position[1] + heightMeters, actor.position[1]]) {
+      const dx = actor.position[0] - placement.position[0];
+      const dy = sampleY - placement.position[1];
+      const dz = actor.position[2] - placement.position[2];
+      const length = Math.hypot(dx, dy, dz);
+      if (length < 1e-6) continue;
+      const cosAngle = (dx * forward[0] + dy * forward[1] + dz * forward[2]) / length;
+      maxCos = Math.min(maxCos, cosAngle);
+    }
+  }
+  if (!Number.isFinite(maxCos)) return camera;
+  // 锥角按取景框对角覆盖：tan(vFov/2)*sqrt(1+aspect²) 必须盖住最偏角色的方位角，
+  // 外加 8% 视觉余量；只放宽不收紧，不触碰模型给的方向、距离、焦点与景深参数。
+  const coverageTan = Math.tan((Math.max(30, Math.min(100, camera.fovDeg)) / 2) * Math.PI / 180)
+    * Math.sqrt(1 + SHOT_FRAME_ASPECT * SHOT_FRAME_ASPECT);
+  const requiredTan = Math.tan(Math.acos(Math.max(maxCos, -0.05))) * 1.08;
+  if (requiredTan <= coverageTan) return camera;
+  const widenedHalfRad = Math.atan(requiredTan / Math.sqrt(1 + SHOT_FRAME_ASPECT * SHOT_FRAME_ASPECT));
+  const widenedDeg = (widenedHalfRad * 2 * 180) / Math.PI;
+  return {
+    ...camera,
+    fovDeg: Math.max(camera.fovDeg, Math.min(100, Math.ceil(widenedDeg))),
+  };
+}
+
 export function buildDramaShotBlockingAutoPlanLayout(
   output: DramaShotBlockingAutoPlanOutput,
   actors: BlockingSketchEditorActor[],
@@ -565,6 +615,8 @@ export function buildDramaShotBlockingAutoPlanLayout(
       })),
       environment,
     });
+    // AI 规划后的确定性出画兜底：任何角色落在取景锥外时只放宽 fovDeg。
+    layout.camera = fitAutoPlanCameraFovToActors(layout.camera, layout.actors);
     return {
       layout,
       ...(output.compositionNote?.trim() ? { compositionNote: output.compositionNote.trim() } : {}),
