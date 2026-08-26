@@ -5,6 +5,7 @@ import {
   normalizeStoryScene3dMarkerSet,
   parseStoryScene3dMarkerSet,
   projectStoryScene3dMarkerPosition,
+  adoptLegacyStoryScene3dMarkerEnvironment,
 } from "../src/modules/novel/story-settings/application/StoryScene3dMarkers.ts";
 import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/shared/types/comicDrama";
@@ -170,4 +171,50 @@ test("空间标记没有匹配当前环境快照时必须失效，不能流入�
   assert.equal(isCurrentMarkerSet(markerSet, environment), true);
   assert.equal(isCurrentMarkerSet(markerSet, { ...environment, domeRadius: 30 }), false);
   assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: undefined }, environment), false);
+});
+
+test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据仍保持过期", () => {
+  const legacyMarkerSet = normalizeStoryScene3dMarkerSet({
+    schemaVersion: 1,
+    status: "ready",
+    markers: [{
+      id: "door",
+      kind: "door",
+      label: "房门",
+      anchor: "wall",
+      position: [3, 2, 1],
+      size: [1, 2, 0.1],
+      yawDeg: 0,
+      confidence: 0.9,
+      source: "ai",
+      imageRegion: { x: 0.78, y: 0.34, width: 0.06, height: 0.32 },
+    }],
+  }, { environment });
+  const migrated = adoptLegacyStoryScene3dMarkerEnvironment(legacyMarkerSet, environment);
+  assert.deepEqual(migrated?.sourceEnvironment, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    panoramaHorizonV: 0.5,
+  });
+  assert.ok((migrated?.markers[0]?.position[0] ?? 0) > 0);
+
+  const coordinateOnly = adoptLegacyStoryScene3dMarkerEnvironment(
+    normalizeStoryScene3dMarkerSet({
+      schemaVersion: 1,
+      status: "ready",
+      markers: [{
+        id: "door",
+        kind: "door",
+        label: "房门",
+        anchor: "wall",
+        position: [3, 2, 1],
+        size: [1, 2, 0.1],
+        yawDeg: 0,
+        confidence: 0.9,
+        source: "ai",
+      }],
+    }, { environment }),
+    environment,
+  );
+  assert.equal(coordinateOnly?.sourceEnvironment, undefined);
 });
