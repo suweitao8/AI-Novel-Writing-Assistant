@@ -6,7 +6,12 @@ import {
 } from "@ai-novel/shared/types/comicDrama";
 import type { PromptAsset } from "../../core/promptTypes";
 
-const markerKindSchema = z.enum(STORY_SCENE_3D_MARKER_KINDS);
+/** 可行走地面薄板由服务端从墙面标记深度推导，不是视觉模型的输出类别。 */
+const VISION_MARKER_KINDS = STORY_SCENE_3D_MARKER_KINDS.filter(
+  (kind) => kind !== "floor",
+) as unknown as [StoryScene3DMarkerKind, ...StoryScene3DMarkerKind[]];
+
+const markerKindSchema = z.enum(VISION_MARKER_KINDS);
 const markerAnchorSchema = z.enum(["floor", "wall", "ceiling"]);
 
 const markerSchema = z.object({
@@ -76,7 +81,7 @@ export const sceneState3dMarkersPrompt: PromptAsset<
   SceneState3dMarkersOutput
 > = {
   id: "drama.scene.state.3d_markers",
-  version: "v5",
+  version: "v6",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -103,7 +108,8 @@ export const sceneState3dMarkersPrompt: PromptAsset<
       "床、桌子、椅子、沙发、柜体、门窗、楼梯及其他固定物体的主体、腿脚和硬边缘必须完整位于生成图安全带上方，不得跨越生成图中心安全带；如果物体在分界附近被切开、只露出碎片或无法判断完整轮廓，不要标注它。",
       "不要把分界画成可见横线、接缝、色带或拼贴边界；只按真实图片证据填写 imageRegion，服务端会按当前 3D 环境参数统一反算。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
-      `可用类别：${(STORY_SCENE_3D_MARKER_KINDS as readonly StoryScene3DMarkerKind[]).join("、")}`,
+      "不要输出地面、可行走范围或房间轮廓类的标记；角色可行走地面由服务端根据门窗墙面深度自动推导。",
+      `可用类别：${VISION_MARKER_KINDS.join("、")}`,
     ].join("\n")),
     new HumanMessage({
       content: [

@@ -448,9 +448,12 @@ export default function DramaScene3DPage() {
                       title="识别当前场景状态图中的固定空间物体"
                     >
                       {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-                      {analyzingMarkers ? "识别中" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
+                      {analyzingMarkers ? "识别中，约 1 分钟" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
                     </AiButton>
                   </div>
+                  {analyzingMarkers ? (
+                    <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体和可行走地面，请保持页面打开。</p>
+                  ) : null}
                   {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>
                   ) : null}
