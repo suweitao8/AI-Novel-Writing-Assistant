@@ -30,7 +30,7 @@ test("场景状态图片旁提供携带当前状态的 3D 场景编辑", () => {
 test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", () => {
   assert.match(page, /createBlocking3dViewer/);
   assert.match(page, /比例参照/);
-  assert.match(page, /场景资产 HDRI/);
+  assert.match(page, /场景环境/);
   assert.match(page, /min="1" max="10" step="0\.1"/);
   assert.match(page, /min="5" max="30" step="1"/);
   assert.doesNotMatch(page, /aria-label="全景地面分界"/);

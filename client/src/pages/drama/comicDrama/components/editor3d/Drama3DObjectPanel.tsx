@@ -13,6 +13,7 @@ export interface Drama3DObjectItem {
   meta?: ReactNode;
   selected: boolean;
   disabled?: boolean;
+  trailing?: ReactNode;
   onSelect: () => void;
 }
 
@@ -45,26 +46,31 @@ export function Drama3DObjectPanel({ items, className }: Drama3DObjectPanelProps
         {items.length ? (
           <div role="list" aria-label="场景对象列表" className="space-y-1">
             {items.map((item) => (
-              <button
+              <div
                 key={item.id}
-                type="button"
-                disabled={item.disabled}
-                aria-pressed={item.selected}
-                data-object-id={item.id}
-                data-object-kind={item.kind}
-                onClick={item.onSelect}
                 className={cn(
-                  "flex min-h-10 w-full items-center gap-2 rounded-md border border-transparent px-2.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "flex min-h-10 items-center gap-1 rounded-md border border-transparent transition-colors",
                   item.selected && "border-primary bg-accent",
                   item.disabled && "cursor-not-allowed opacity-50",
                 )}
               >
-                <ObjectIcon kind={item.kind} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{item.label}</span>
-                  {item.meta ? <span className="block truncate text-xs text-muted-foreground">{item.meta}</span> : null}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  disabled={item.disabled}
+                  aria-pressed={item.selected}
+                  data-object-id={item.id}
+                  data-object-kind={item.kind}
+                  onClick={item.onSelect}
+                  className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                >
+                  <ObjectIcon kind={item.kind} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate font-medium">{item.label}</span>
+                    {item.meta ? <span className="block truncate text-xs text-muted-foreground">{item.meta}</span> : null}
+                  </span>
+                </button>
+                {item.trailing ? <span className="shrink-0 pr-1">{item.trailing}</span> : null}
+              </div>
             ))}
           </div>
         ) : (
