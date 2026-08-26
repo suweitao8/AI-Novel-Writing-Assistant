@@ -15,7 +15,6 @@ import {
   createProjectedHdriMaterial,
   updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
-import { createSelectionRingGeometryData } from "./blocking3dSelectionRing";
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import {
@@ -53,7 +52,6 @@ const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
-const SELECTION_RING_OPACITY = 0.5;
 const SELECTION_OUTLINE_COLOR = new pc.Color(0.18, 0.95, 0.52, 0.98);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 1.7,
@@ -446,25 +444,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     });
   }
 
-  const selectionColor = new pc.Color(0.02, 0.32, 0.1);
-  const selectionMaterial = createMaterial(selectionColor, SELECTION_RING_OPACITY);
-  selectionMaterial.depthWrite = false;
-  selectionMaterial.useLighting = false;
-  selectionMaterial.useSkybox = false;
-  selectionMaterial.emissive = selectionColor.clone();
-  selectionMaterial.emissiveIntensity = 0.35;
-  selectionMaterial.update();
-  const selectionGeometry = createPlayCanvasGeometry(createSelectionRingGeometryData());
-  const selectionMesh = pc.Mesh.fromGeometry(app.graphicsDevice, selectionGeometry);
-  const selectionMeshInstance = new pc.MeshInstance(selectionMesh, selectionMaterial);
-  const selectionRing = new pc.Entity("blocking3d-selection-ring");
-  selectionRing.addComponent("render", {
-    meshInstances: [selectionMeshInstance],
-  });
-  selectionRing.setLocalScale(0.9, 1, 0.9);
-  selectionRing.enabled = false;
-  app.root.addChild(selectionRing);
-
   let environmentBackdrop: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
   let environmentProjectionCube: pc.Texture | null = null;
@@ -609,14 +588,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
     selectionOutline.setEntity(actor?.entity ?? null);
-    if (actor) {
-      const position = actor.entity.getPosition();
-      selectionRing.enabled = true;
-      selectionRing.setPosition(position.x, 0.008, position.z);
-      selectionRing.setLocalScale(Math.max(0.65, actor.entity.getLocalScale().x * 0.85), 1, Math.max(0.65, actor.entity.getLocalScale().z * 0.85));
-    } else {
-      selectionRing.enabled = false;
-    }
   };
 
   const emitMarkerSelection = () => {
@@ -885,11 +856,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
-    const actor = selectedActor();
-    if (actor) {
-      const position = actor.entity.getPosition();
-      selectionRing.setPosition(position.x, 0.008, position.z);
-    }
     selectionOutline.frameUpdate();
   });
   setSceneMarkers(options.sceneMarkers ?? []);
@@ -1284,8 +1250,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       destroyProjectionCenterGizmo(projectionCenterGizmo);
       selectionOutline.destroy();
       cameraFrame.destroy();
-      selectionRing.destroy();
-      selectionMesh.destroy();
       environmentKeyLight.destroy();
       app.destroy();
     },

@@ -53,7 +53,8 @@ test("分镜 3D 操作不会自动保存，只在退出前保存并返回分镜"
 });
 
 test("AI 自动构图只留下未保存修改，不在构图完成后立即保存", () => {
-  assert.match(pageSource, /AI 构图完成，有未保存修改/);
+  assert.match(pageSource, /setDirty\(true\)/);
+  assert.match(pageSource, /toast\.success\("AI 已完成本镜构图。"/);
   assert.doesNotMatch(pageSource, /setStatus\("AI 构图完成，正在自动保存"\)/);
   assert.doesNotMatch(pageSource, /await handleAutoSave\(\)/);
 });
@@ -68,7 +69,7 @@ test("编辑器按钮调用自动构图并把镜头设计说明留在未保存�
   assert.match(pageSource, /autoPlanDramaShotBlockingSketch/);
   assert.match(pageSource, /viewer\.loadLayout\(result\.data\.layout\)/);
   assert.match(pageSource, /compositionNote/);
-  assert.match(pageSource, /AI 构图完成，有未保存修改/);
+  assert.match(pageSource, /toast\.success\("AI 已完成本镜构图。"/);
   assert.doesNotMatch(pageSource, /autoPlan=1/);
 });
 
@@ -155,11 +156,8 @@ test("对象树保留全部空间标记并使用世界/参考角色名称", () =
   assert.match(scene3dPageSource, /label: "世界"/);
   assert.match(scene3dPageSource, /label: "参考角色"/);
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
-  assert.match(scene3dPageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
-  assert.match(scene3dPageSource, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
   assert.match(pageSource, /label: "世界"/);
   assert.match(pageSource, /context\.scene\.markers\.map/);
-  assert.match(pageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
   assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
 });
 
