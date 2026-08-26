@@ -17,6 +17,7 @@ import type {
 } from "@/api/media/drama";
 import {
   createBackdropGeometryData,
+  GROUND_DOME_FLAT_RADIUS,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import {
@@ -465,8 +466,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let environmentSettings = normalizeEnvironmentSettings(undefined);
 
   // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
-  // 自身的地面边界（直径的一半处）。调“半球直径”滑块时两条圈同时
-  // 重算，可以直观看到球边和舞台余量的关系。
+  // 地面平坦部分的外沿。调“半球直径”滑块时两条圈同时重算，可以直观
+  // 看到球边和舞台余量的关系。
+  // 青色圈不能画在直径的一半处：地面网格最外 5% 是向上卷起接回半球的
+  // 圆弧（GROUND_DOME_FLAT_RADIUS = 0.95），只有该比例以内才是真正的
+  // 平面地板，参考圈必须落在平坦区域里才不会浮在弧面上。
   const STAGE_BOUNDARY_SEGMENTS = 96;
   const stageBoundaryColor = new pc.Color(0.9, 0.62, 0.2, 0.4);
   const domeBoundaryColor = new pc.Color(0.35, 0.75, 0.9, 0.45);
@@ -497,7 +501,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       stageBoundaryColor,
     );
     domeBoundaryLines = buildBoundaryRing(
-      resolveStoryScene3DDomeWorldRadius(environmentSettings),
+      resolveStoryScene3DDomeWorldRadius(environmentSettings) * GROUND_DOME_FLAT_RADIUS,
       domeBoundaryColor,
     );
   };
