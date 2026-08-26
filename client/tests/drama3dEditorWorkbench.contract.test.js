@@ -28,8 +28,25 @@ test("两个页面都注册根场景对象并接入共享工作台", () => {
   assert.match(blockingPage, /kind: "scene"/);
   assert.match(scenePage, /Drama3DEditorShell/);
   assert.match(blockingPage, /Drama3DEditorShell/);
-  assert.match(scenePage, /属性与操作/);
-  assert.match(blockingPage, /属性与操作/);
+  assert.match(scenePage, /属性面板/);
+  assert.match(blockingPage, /属性面板/);
+});
+
+test("对象树只显示图标和名称，属性面板固定并在内容区滚动", () => {
+  assert.doesNotMatch(objectPanel, /item\.meta/);
+  assert.doesNotMatch(objectPanel, /item\.trailing/);
+  assert.doesNotMatch(scenePage, /\n\s+meta:/);
+  assert.doesNotMatch(blockingPage, /\n\s+meta:/);
+  assert.match(shell, /grid-rows-\[minmax\(10rem,15rem\)_minmax\(0,1fr\)\]/);
+  assert.match(shell, /aria-label="属性面板"/);
+  assert.match(objectPanel, /h-full min-h-0/);
+});
+
+test("可移动角色属性包含位置、旋转和大小", () => {
+  assert.match(blockingPage, /<dt>位置<\/dt>/);
+  assert.match(blockingPage, /<dt>旋转<\/dt>/);
+  assert.match(blockingPage, /<dt>大小<\/dt>/);
+  assert.match(blockingPage, /selectedTransform\?\.scale/);
 });
 
 test("编辑器视口不再用固定 16:9 容器", () => {

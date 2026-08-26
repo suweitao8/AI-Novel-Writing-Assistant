@@ -333,7 +333,6 @@ export default function DramaScene3DPage() {
       id: SCENE_OBJECT_ID,
       label: "场景对象",
       kind: "scene",
-      meta: `${scene.name} · ${selectedState.label}`,
       selected: selectedObjectId === SCENE_OBJECT_ID,
       onSelect: () => selectObject(SCENE_OBJECT_ID),
     },
@@ -341,7 +340,6 @@ export default function DramaScene3DPage() {
       id: markerObjectId(marker.id),
       label: marker.label,
       kind: "marker" as const,
-      meta: `${STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind]} · ${Math.round(marker.confidence * 100)}%`,
       selected: selectedObjectId === markerObjectId(marker.id),
       onSelect: () => selectObject(markerObjectId(marker.id)),
     })),
@@ -349,7 +347,6 @@ export default function DramaScene3DPage() {
       id: REFERENCE_OBJECT_ID,
       label: "比例参照",
       kind: "reference" as const,
-      meta: `固定 · 约 ${REFERENCE_ACTOR_HEIGHT_METERS.toFixed(1)} 米`,
       selected: selectedObjectId === REFERENCE_OBJECT_ID,
       onSelect: () => selectObject(REFERENCE_OBJECT_ID),
     },
@@ -407,9 +404,9 @@ export default function DramaScene3DPage() {
       }
       objects={<Drama3DObjectPanel items={sceneObjectItems} />}
       actions={
-        <Card className="flex min-h-0 flex-col overflow-hidden">
+        <Card className="flex h-full min-h-0 flex-col overflow-hidden">
           <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-2 pb-3">
-            <CardTitle className="text-sm">属性与操作</CardTitle>
+            <CardTitle className="text-sm">属性面板</CardTitle>
             <Badge variant="outline">
               {selectedObjectId === SCENE_OBJECT_ID ? "场景" : selectedObjectId === REFERENCE_OBJECT_ID ? "比例参照" : selectedMarker ? "空间标记" : "对象"}
             </Badge>
