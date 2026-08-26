@@ -14,7 +14,7 @@ test("分镜列表把合成操作放进右侧统一操作区，并使用横屏�
   assert.doesNotMatch(panelSource, /DramaEpisodeAssemblyResultPanel/);
   assert.match(panelSource, /aspect-video/);
   assert.match(panelSource, /w-full shrink-0 items-stretch gap-2 sm:w-\[26rem\]/);
-  assert.match(panelSource, /w-28 shrink-0 flex-col gap-1\.5/);
+  assert.match(panelSource, /w-28 shrink-0 flex-col justify-center gap-1.5/);
   assert.doesNotMatch(panelSource, /listDramaTTSProviders|providersQuery|const \[provider,/);
   const boardSource = read("pages/drama/components/DramaStoryboardBoard.tsx");
   const nextStepSource = read("pages/drama/components/DramaNextStepPanel.tsx");
