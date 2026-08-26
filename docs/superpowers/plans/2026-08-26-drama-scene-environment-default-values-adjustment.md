@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `server/tests/storyScene3dEnvironment.test.mjs:13-121`
 
-- [ ] **Step 1: Update the test expectations before changing production code**
+- [x] **Step 1: Update the test expectations before changing production code**
 
 Change the generic default assertion to:
 
@@ -75,7 +75,7 @@ assert.deepEqual(
 );
 ```
 
-- [ ] **Step 2: Run the focused test to verify it fails for the old defaults**
+- [x] **Step 2: Run the focused test to verify it fails for the old defaults**
 
 Run:
 
@@ -92,7 +92,7 @@ Expected: FAIL on the generic and per-type default assertions because production
 **Files:**
 - Modify: `server/src/modules/novel/story-settings/application/StoryScene3dEnvironment.ts:12-125`
 
-- [ ] **Step 1: Add the exact type maps and make the generic fallback outdoor `1.7 / 10`**
+- [x] **Step 1: Add the exact type maps and make the generic fallback outdoor `1.7 / 10`**
 
 Keep `STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE` for compatibility, add a projection-height map, and make `getDefaultStoryScene3dEnvironment` set both fields:
 
@@ -113,11 +113,11 @@ export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE: Record<Sto
 
 Resolve the type once and return its mapped height and diameter without changing the existing type-priority rule.
 
-- [ ] **Step 2: Recognize old and new uncustomized snapshots**
+- [x] **Step 2: Recognize old and new uncustomized snapshots**
 
 Replace the single legacy equality check with deterministic matching for old defaults `(2,10)`, `(2,15)`, `(2,20)` and new defaults `(1,8)`, `(1.7,10)`, `(1,20)`. Compare normalized height, diameter, yaw, and intensity. Preserve the existing precedence: `customized: true` always preserves the normalized input and `customized: false` always resolves through the current type default.
 
-- [ ] **Step 3: Run the focused test to verify the minimal implementation passes**
+- [x] **Step 3: Run the focused test to verify the minimal implementation passes**
 
 ```powershell
 pnpm --filter @ai-novel/server build
@@ -132,11 +132,11 @@ Expected: all environment tests pass, including exact defaults, outdoor fallback
 - Modify: `client/src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts:56-61`
 - Modify: `client/tests/dramaBlocking3dStaticHdri.contract.test.js:131-134`
 
-- [ ] **Step 1: Change the viewer fallback to outdoor `1.7 / 10`**
+- [x] **Step 1: Change the viewer fallback to outdoor `1.7 / 10`**
 
 Set `DEFAULT_BLOCKING_3D_ENVIRONMENT` to height `1.7`, diameter `10`, yaw `0`, and intensity `1`. Do not add scene-type branching to the viewer; the scene page already overlays the server-resolved environment.
 
-- [ ] **Step 2: Update and run the static client contract**
+- [x] **Step 2: Update and run the static client contract**
 
 Run from the repository root:
 
@@ -153,11 +153,11 @@ Expected: the contract passes and still confirms that only height and diameter a
 - Modify: `README.md:157`
 - Modify: `docs/releases/release-notes.md:14`
 
-- [ ] **Step 1: Document the exact type defaults**
+- [x] **Step 1: Document the exact type defaults**
 
 Update the workflow rule and latest product notes to state `interior=1/8`, `exterior=1.7/10`, `nature=1/20`, the outdoor fallback, and preservation of explicit custom calibration. Keep the compatibility explanation for the `domeRadius` field and its user-facing diameter meaning.
 
-- [ ] **Step 2: Check for stale current-rule text**
+- [x] **Step 2: Check for stale current-rule text**
 
 ```powershell
 git diff --check
@@ -171,7 +171,7 @@ Expected: no stale current-rule or release-note match remains; historical migrat
 **Files:**
 - No additional source files; verify the complete diff and repository state.
 
-- [ ] **Step 1: Run server checks**
+- [x] **Step 1: Run server checks**
 
 ```powershell
 pnpm --filter @ai-novel/shared build
@@ -183,7 +183,7 @@ node --test server/tests/storyScene3dEnvironment.test.mjs server/tests/storyScen
 
 Expected: every command exits with code 0 and the focused tests report zero failures.
 
-- [ ] **Step 2: Run client checks**
+- [x] **Step 2: Run client checks**
 
 ```powershell
 pnpm --filter @ai-novel/client typecheck
