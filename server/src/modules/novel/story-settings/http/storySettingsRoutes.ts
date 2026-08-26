@@ -100,7 +100,6 @@ const scene3dMarkerSetSchema = z.object({
   sourceEnvironment: z.object({
     projectionCenterHeight: z.number().min(1).max(10),
     domeRadius: z.number().min(10).max(50),
-    panoramaHorizonV: z.number().min(0.4).max(0.65),
   }).optional(),
   analyzedAt: z.string().max(80).optional(),
   analysisNote: z.string().max(500).optional(),
@@ -256,7 +255,6 @@ const sceneCreateSchema = z.object({
   scene3dEnvironment: z.object({
     projectionCenterHeight: z.number().min(1).max(10),
     domeRadius: z.number().min(10).max(50),
-    panoramaHorizonV: z.number().min(0.4).max(0.65),
   }).strict().nullable().optional(),
 });
 
@@ -273,7 +271,6 @@ const sceneUpdateSchema = z.object({
   scene3dEnvironment: z.object({
     projectionCenterHeight: z.number().min(1).max(10),
     domeRadius: z.number().min(10).max(50),
-    panoramaHorizonV: z.number().min(0.4).max(0.65),
   }).strict().nullable().optional(),
 });
 

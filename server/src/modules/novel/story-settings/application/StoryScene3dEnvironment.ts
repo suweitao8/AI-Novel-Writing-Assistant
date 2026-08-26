@@ -7,13 +7,11 @@ import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceE
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   projectionCenterHeight: { min: 1, max: 10 },
   domeRadius: { min: 10, max: 50 },
-  panoramaHorizonV: { min: 0.4, max: 0.65 },
 } as const;
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
   projectionCenterHeight: 2,
   domeRadius: 15,
-  panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
 };
@@ -57,22 +55,18 @@ export function getDefaultStoryScene3dEnvironment(sceneType?: unknown): StorySce
   };
 }
 
-export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvironment> | null | undefined): StoryScene3DEnvironment {
+export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvironment> | Record<string, unknown> | null | undefined): StoryScene3DEnvironment {
+  const source = input as Record<string, unknown> | null | undefined;
   return {
     projectionCenterHeight: clamp(
-      finiteOr(input?.projectionCenterHeight, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeight),
+      finiteOr(source?.projectionCenterHeight, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeight),
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max,
     ),
     domeRadius: clamp(
-      finiteOr(input?.domeRadius, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius),
+      finiteOr(source?.domeRadius, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius),
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
-    ),
-    panoramaHorizonV: clamp(
-      finiteOr(input?.panoramaHorizonV, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.panoramaHorizonV),
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
     ),
     yawDeg: 0,
     intensity: 1,
@@ -84,7 +78,7 @@ export function parseStoryScene3dEnvironment(raw: string | null | undefined): St
     return DEFAULT_STORY_SCENE_3D_ENVIRONMENT;
   }
   try {
-    const parsed = JSON.parse(raw) as Partial<StoryScene3DEnvironment>;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
     return normalizeStoryScene3dEnvironment(parsed);
   } catch {
     return DEFAULT_STORY_SCENE_3D_ENVIRONMENT;
@@ -92,11 +86,15 @@ export function parseStoryScene3dEnvironment(raw: string | null | undefined): St
 }
 
 export function serializeStoryScene3dEnvironment(
-  input: StoryScene3DEnvironmentInput | Partial<StoryScene3DEnvironment> | null | undefined,
+  input: StoryScene3DEnvironmentInput | Partial<StoryScene3DEnvironment> | Record<string, unknown> | null | undefined,
   options: { customized?: boolean } = {},
 ): string {
+  const normalized = normalizeStoryScene3dEnvironment(input);
   return JSON.stringify({
-    ...normalizeStoryScene3dEnvironment(input),
+    projectionCenterHeight: normalized.projectionCenterHeight,
+    domeRadius: normalized.domeRadius,
+    yawDeg: normalized.yawDeg,
+    intensity: normalized.intensity,
     customized: options.customized ?? input != null,
   });
 }
@@ -104,7 +102,6 @@ export function serializeStoryScene3dEnvironment(
 function isLegacyDefaultEnvironment(input: StoryScene3DEnvironment): boolean {
   return input.projectionCenterHeight === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeight
     && input.domeRadius === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius
-    && input.panoramaHorizonV === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.panoramaHorizonV
     && input.yawDeg === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.yawDeg
     && input.intensity === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.intensity;
 }
@@ -121,7 +118,7 @@ export function resolveStoryScene3dEnvironment(
     return defaultEnvironment;
   }
   try {
-    const parsed = JSON.parse(raw) as Partial<StoryScene3DEnvironment> & { customized?: unknown };
+    const parsed = JSON.parse(raw) as Record<string, unknown> & { customized?: unknown };
     const normalized = normalizeStoryScene3dEnvironment(parsed);
     const customized = parsed.customized === true
       || (parsed.customized === undefined && !isLegacyDefaultEnvironment(normalized));

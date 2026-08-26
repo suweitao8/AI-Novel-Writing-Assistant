@@ -85,7 +85,6 @@ test("场景标记服务保存投射环境快照，并用图像区域重算位�
   assert.deepEqual(result.sourceEnvironment, {
     projectionCenterHeight: 2,
     domeRadius: 15,
-    panoramaHorizonV: 0.5,
   });
   assert.ok(Math.abs(result.markers[0].position[0]) < 0.05);
   assert.ok(result.markers[0].position[2] > 0);

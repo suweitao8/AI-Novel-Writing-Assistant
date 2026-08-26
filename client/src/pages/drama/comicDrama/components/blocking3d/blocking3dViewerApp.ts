@@ -51,7 +51,6 @@ const SELECTION_RING_OPACITY = 0.5;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   domeRadius: 15,
-  panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
 };
@@ -192,7 +191,6 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
   return {
     projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 1, 10),
     domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 10, 50),
-    panoramaHorizonV: clamp(numberOr(input?.panoramaHorizonV, DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV), 0.4, 0.65),
     yawDeg: 0,
     intensity: 1,
   };
