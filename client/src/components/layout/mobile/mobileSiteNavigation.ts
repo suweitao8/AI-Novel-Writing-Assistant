@@ -1,3 +1,5 @@
+import { DRAMA_FOCUS_MODE, isNavRouteVisible } from "@/config/dramaFocusNav";
+
 export type MobilePrimaryNavKey = "home" | "novels" | "creation" | "tasks" | "more";
 
 export interface MobileNavItem {
@@ -93,11 +95,24 @@ const moreNavGroups: MobileNavGroup[] = [
 ];
 
 export function getMobilePrimaryNavItems(): MobileNavItem[] {
-  return primaryNavItems;
+  const items = primaryNavItems.filter((item) => isNavRouteVisible(item.to));
+  if (!DRAMA_FOCUS_MODE) {
+    return items;
+  }
+  return items.map((item) => (
+    item.key === "creation"
+      ? { ...item, label: "漫剧", to: "/drama" }
+      : item
+  ));
 }
 
 export function getMobileMoreNavGroups(): MobileNavGroup[] {
-  return moreNavGroups;
+  return moreNavGroups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => isNavRouteVisible(item.to)),
+    }))
+    .filter((group) => group.items.length > 0);
 }
 
 export function getMobileRoutePattern(pathname: string): MobileRoutePattern | undefined {
