@@ -8,6 +8,9 @@
 //   POST /session                      -> { id }
 //   POST /session/{id}/message         -> { parts: [{ type: "text", text }] }
 //   DELETE /session/{id}
+// 图片输入（2026-08-27）：image_url/input_image（data URL 或 http(s) URL）透传为
+// FilePart（{type:"file",mime,url,filename}），由 opencode 交给支持视觉的模型
+// （opencode-go/mimo-v2.5）。无法解析的图片地址降级为占位文本并继续。
 // 桥接对外暴露：
 //   GET  /health                       -> { ready, provider, model, upstream }
 //   GET  /v1/models                    -> OpenAI 模型列表（只有桥接配置的那一个模型）
@@ -85,7 +88,27 @@ function parseOpenCodeModel(model) {
   return { providerId, modelId };
 }
 
-function contentToText(content) {
+// 图片来源支持 data URL（服务端图片桥的标准形态）与 http(s) URL；
+// mime 取自 data URL 头，缺省 image/png。http(s) URL 由 opencode 上游自行抓取。
+function extractImageUrl(item) {
+  const raw = typeof item.image_url === "string"
+    ? item.image_url
+    : item.image_url && typeof item.image_url === "object"
+      ? item.image_url.url
+      : item.url;
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const dataMatch = value.match(/^data:([^;,]+)?(;base64)?,(.*)$/s);
+  if (dataMatch) {
+    return { mime: dataMatch[1] || "image/png", url: value };
+  }
+  if (/^https?:\/\//i.test(value)) {
+    return { mime: "image/png", url: value };
+  }
+  return null;
+}
+
+function contentToText(content, images) {
   if (typeof content === "string") {
     return content;
   }
@@ -102,7 +125,15 @@ function contentToText(content) {
             chunks.push(String(value));
           }
         } else if (type === "image_url" || type === "input_image") {
-          chunks.push("[image input omitted from text-only OpenCode Go route]");
+          // 2026-08-27：OpenCode Go 的 MiMo 模型支持图片输入，桥接把图片透传为
+          // opencode FilePart（已验证 {type:"file",mime,url} 通过服务端输入校验）；
+          // 只有无法解析的图片地址才降级为占位文本，避免静默丢图。
+          const image = extractImageUrl(item);
+          if (image) {
+            images.push(image);
+          } else {
+            chunks.push("[unparsable image input omitted]");
+          }
         }
       }
     }
@@ -114,11 +145,11 @@ function contentToText(content) {
   return String(content);
 }
 
-function renderMessage(message) {
+function renderMessage(message, images) {
   const role = String(message.role || "user").trim().toLowerCase();
   const name = String(message.name || "").trim();
   let label = name ? `${role}/${name}` : role;
-  let content = contentToText(message.content);
+  let content = contentToText(message.content, images);
   if (role === "tool") {
     const toolCallId = String(message.tool_call_id || "").trim();
     label = toolCallId ? `tool/${toolCallId}` : "tool";
@@ -172,17 +203,18 @@ function responseFormatContract(responseFormat) {
 function buildOpenCodePrompt(messages, responseFormat, tools) {
   const systemChunks = [];
   const transcriptChunks = [];
+  const images = [];
   for (const message of messages) {
     if (!message || typeof message !== "object") {
       throw new Error("每条 chat message 都必须是对象");
     }
     if (String(message.role || "").trim().toLowerCase() === "system") {
-      const content = contentToText(message.content).trim();
+      const content = contentToText(message.content, images).trim();
       if (content) {
         systemChunks.push(content);
       }
     } else {
-      transcriptChunks.push(renderMessage(message));
+      transcriptChunks.push(renderMessage(message, images));
     }
   }
   let systemPrompt = systemChunks.join("\n\n");
@@ -192,7 +224,7 @@ function buildOpenCodePrompt(messages, responseFormat, tools) {
   if (!transcript) {
     throw new Error("messages 必须包含至少一条非 system 消息");
   }
-  return { systemPrompt: systemPrompt.trim(), transcript };
+  return { systemPrompt: systemPrompt.trim(), transcript, images };
 }
 
 function stripJsonFence(text) {
@@ -243,7 +275,9 @@ class OpenCodeServerClient {
     }
     const raw = await response.text();
     if (!raw) {
-      return undefined;
+      // 上游在订阅额度耗尽/会话异常时可能返回 200 空体；归一成空对象，
+      // 让上层走到「无文本内容」的余额提示，而不是报意外的数据结构。
+      return {};
     }
     try {
       return JSON.parse(raw);
@@ -282,8 +316,19 @@ class OpenCodeServerClient {
     return null;
   }
 
-  async complete({ systemPrompt, transcript, model }) {
+  async complete({ systemPrompt, transcript, images = [], model }) {
     const { providerId, modelId } = parseOpenCodeModel(model);
+    const extFromMime = (mime) => (String(mime || "").includes("jpeg") || String(mime || "").includes("jpg")
+      ? "jpg"
+      : String(mime || "").includes("webp")
+        ? "webp"
+        : "png");
+    const imageParts = images.slice(0, 8).map((image, index) => ({
+      type: "file",
+      mime: image.mime || "image/png",
+      url: image.url,
+      filename: image.filename || `image-${index + 1}.${extFromMime(image.mime)}`,
+    }));
     let lastError = null;
     for (let attempt = 0; attempt < SESSION_RETRY_LIMIT; attempt += 1) {
       const session = this.expectObject(
@@ -300,7 +345,7 @@ class OpenCodeServerClient {
             model: { providerID: providerId, modelID: modelId },
             system: systemPrompt || "",
             variant: this.variant,
-            parts: [{ type: "text", text: transcript }],
+            parts: [{ type: "text", text: transcript }, ...imageParts],
           }),
         );
         const parts = Array.isArray(result.parts) ? result.parts : [];
@@ -318,7 +363,7 @@ class OpenCodeServerClient {
           throw new OpenCodeGoError(
             upstreamError
               ? `OpenCode 服务返回错误：${upstreamError}`
-              : "OpenCode 服务没有返回文本内容",
+              : "OpenCode 服务没有返回文本内容（常见原因：OpenCode Go 余额不足或登录过期，请到 opencode.ai workspace billing 充值或重新 opencode auth login）",
           );
         }
         return text;
@@ -395,7 +440,7 @@ function handleChatCompletion(bridge, client, body, authorization) {
     return { status: 400, payload: errorPayload(error.message || String(error)) };
   }
   return client
-    .complete({ systemPrompt: prompt.systemPrompt, transcript: prompt.transcript, model: bridge.model })
+    .complete({ systemPrompt: prompt.systemPrompt, transcript: prompt.transcript, images: prompt.images, model: bridge.model })
     .then((text) => {
       const stream = body.stream === true;
       const parsed = tryParseJson(text);

@@ -33,7 +33,8 @@ test("local Grok Build providers are registered as subscription-backed channels"
 });
 
 test("视觉槽位固定走 grok-cli，文本任务保持 OpenCode Go 通道", () => {
-  assert.equal(getVisionModelProvider(), "grok-cli");
+  // 2026-08-27：Grok 订阅退订后，视觉槽切到 OpenCode Go（MiMo 视觉）。
+  assert.equal(getVisionModelProvider(), "opencode");
   assert.equal(getTextModelProvider(), "opencode");
 });
 
@@ -380,7 +381,8 @@ test("structured failure classification separates native-json, thinking and sche
 });
 
 test("视觉能力声明：OpenCode Go 是纯文本通道，未知通道按可送图处理", () => {
-  assert.equal(supportsVisionInput("opencode"), false);
+  // 2026-08-27：桥接透传 image_url 为 opencode FilePart，MiMo 视觉可用。
+  assert.equal(supportsVisionInput("opencode"), true);
   assert.equal(supportsVisionInput("grok-cli"), true);
   assert.equal(supportsVisionInput("grok_build"), false);
   assert.equal(supportsVisionInput("gemini"), true);
