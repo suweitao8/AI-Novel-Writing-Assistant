@@ -101,6 +101,12 @@ function formatVec3(value: [number, number, number] | undefined): string {
   return value.map((item) => item.toFixed(2)).join(" / ");
 }
 
+function formatHeight(heightMeters: number | undefined): string {
+  return typeof heightMeters === "number" && Number.isFinite(heightMeters)
+    ? `约 ${heightMeters.toFixed(1)} 米`
+    : "—";
+}
+
 type RgbColor = [number, number, number];
 
 function rgbToHex(color: RgbColor | null): string {
@@ -213,6 +219,7 @@ export default function DramaBlocking3DPage() {
   }, [dirty, saving]);
 
   const placedNames = new Set(viewer?.getActorLabels() ?? []);
+  const selectedActorContext = context?.actors.find((actor) => actor.characterName === selectedName);
 
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
@@ -356,7 +363,7 @@ export default function DramaBlocking3DPage() {
                     {saving ? "保存中" : dirty ? "有未保存修改" : currentStatus === "confirmed" ? "已保存" : "草稿"}
                   </Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放；右侧调整静态姿势和位置。</p>
+                <p className="text-xs text-muted-foreground">左键拖动角色，右键旋转视角，滚轮缩放视角；右侧调整静态姿势和位置。</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -383,7 +390,7 @@ export default function DramaBlocking3DPage() {
               </div>
             ) : null}
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />左键拖角色 · 右键旋转 · 滚轮缩放 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />左键拖角色 · 右键旋转 · 滚轮缩放视角 · 中键平移
             </div>
           </CardContent>
         </Card>
@@ -398,7 +405,10 @@ export default function DramaBlocking3DPage() {
                 return (
                   <div key={actor.characterName} className={cn("flex items-center gap-1.5 rounded-md border px-1.5 py-1", selected && "border-primary bg-accent")}>
                     <button type="button" disabled={saving} className="min-h-9 min-w-0 flex-1 truncate px-1.5 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" aria-pressed={selected} onClick={() => placed ? viewer?.selectActor(actor.characterName) : applyViewerAction((nextViewer) => nextViewer.addActor(actor.characterName, index, actor.heightMeters))}>
-                      {actor.characterName}
+                      <span className="flex min-w-0 items-center justify-between gap-2">
+                        <span className="truncate">{actor.characterName}</span>
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatHeight(actor.heightMeters)}</span>
+                      </span>
                     </button>
                     {placed ? <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={saving} aria-label={`移除${actor.characterName}`} title="移除角色" onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(actor.characterName))}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /></Button> : <span className="px-1 text-[11px] text-muted-foreground">加入</span>}
                   </div>
@@ -480,16 +490,14 @@ export default function DramaBlocking3DPage() {
                 <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色降低" title="降低" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, -0.2, 0))}><Minus className="h-4 w-4" aria-hidden="true" /></Button>
                 <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>落地</Button>
               </div>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向左旋转角色" title="向左旋转" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
                 <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向右旋转角色" title="向右旋转" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="缩小角色" title="缩小" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.scaleSelected(0.9))}><Minus className="h-4 w-4" aria-hidden="true" /></Button>
-                <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="放大角色" title="放大" disabled={!selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.scaleSelected(1.1))}><Plus className="h-4 w-4" aria-hidden="true" /></Button>
               </div>
               <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                 <dt>位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.position)}</dd>
                 <dt>旋转</dt><dd className="text-right tabular-nums">{selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—"}</dd>
-                <dt>缩放</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.scale)}</dd>
+                <dt>身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext?.heightMeters)}</dd>
               </dl>
             </CardContent>
           </Card>

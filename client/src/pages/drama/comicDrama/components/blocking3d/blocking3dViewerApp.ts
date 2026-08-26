@@ -135,7 +135,6 @@ export interface Blocking3dViewer {
   getSelectedColor: () => [number, number, number] | null;
   nudgeSelected: (dx: number, dy: number, dz: number) => boolean;
   rotateSelected: (degrees: number) => boolean;
-  scaleSelected: (factor: number) => boolean;
   groundSelected: () => boolean;
   fitView: () => void;
   resetCamera: () => void;
@@ -1006,16 +1005,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (!actor) return false;
       const current = actor.entity.getEulerAngles();
       actor.entity.setEulerAngles(current.x, clamp(current.y + degrees, -180, 180), current.z);
-      emitChange();
-      return true;
-    },
-    scaleSelected(factor) {
-      const actor = selectedActor();
-      if (!actor) return false;
-      const current = actor.entity.getLocalScale();
-      const next = clamp(current.x * factor, 0.1, 10);
-      actor.entity.setLocalScale(next, next, next);
-      emitSelection();
       emitChange();
       return true;
     },

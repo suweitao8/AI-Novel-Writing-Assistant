@@ -108,3 +108,14 @@ test("场景 3D 编辑页只允许相机交互，比例参照角色固定在 1.8
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
   assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
 });
+
+test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
+  assert.doesNotMatch(scene3dPageSource, /saveTimerRef/);
+  assert.doesNotMatch(scene3dPageSource, /setTimeout\(\(\) => \{[\s\S]*saveScene/);
+  assert.match(scene3dPageSource, /await saveBeforeExit\(\)/);
+  assert.match(scene3dPageSource, /saveBeforeExit\(\)[\s\S]*navigate\(returnPath/);
+  assert.doesNotMatch(pageSource, /saveTimerRef/);
+  assert.doesNotMatch(pageSource, /setTimeout\(\(\) => \{[\s\S]*saveSketch/);
+  assert.match(pageSource, /await saveBeforeExit\(\)/);
+  assert.match(pageSource, /saveBeforeExit\(\)[\s\S]*navigate\(-1\)/);
+});
