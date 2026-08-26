@@ -156,6 +156,12 @@ function audioSegmentLabel(segment: DramaAudioSegment): string {
   return segment.type === "dialogue" ? segment.speaker ?? "角色" : "旁白";
 }
 
+function audioSegmentSpeechLabel(segment: DramaAudioSegment): string {
+  const speaker = audioSegmentLabel(segment);
+  const emotion = segment.emotion?.trim();
+  return emotion ? `${speaker}（${emotion}）` : speaker;
+}
+
 function formatAudioTime(value: number): string {
   if (!Number.isFinite(value) || value < 0) {
     return "--:--";
@@ -608,7 +614,18 @@ function AudioSegmentPlayer({ src, label }: { src: string; label: string }) {
   );
 }
 
-function ShotDesignSummary({ shot }: { shot: DramaShot }) {
+type ReadyDramaAudioSegment = DramaAudioSegment & { status: "ready"; audioUrl: string };
+
+function ShotInfoList(props: {
+  shot: DramaShot;
+  segments: DramaAudioSegment[];
+  readySegments: ReadyDramaAudioSegment[];
+  regenerating: boolean;
+  shouldForceRegenerate: boolean;
+  audioActionLabel: string;
+  onRegenerate: (shot: DramaShot, force: boolean) => void;
+}) {
+  const { shot, segments, readySegments } = props;
   const characterRefs = parseCharacterRefs(shot.characterRefs);
   const characterStates = parseCharacterStates(shot.characterStates);
   const stateByName = new Map(characterStates.map((entry) => [entry.name, entry.state]));
@@ -618,37 +635,120 @@ function ShotDesignSummary({ shot }: { shot: DramaShot }) {
   ]));
   const action = shot.action?.trim();
   const location = shot.location?.trim();
+  const hasAssets = Boolean(location) || characterNames.length > 0;
+  const hasVoice = segments.length > 0 || Boolean(shot.dialogue?.trim());
 
-  return (
-    <div
-      aria-label={`第 ${shot.order} 镜分镜设计`}
-      className="space-y-1"
-    >
-      <div className="flex min-w-0 items-start gap-2 text-sm leading-5">
-        <span className="shrink-0 pt-0.5 text-[11px] font-semibold text-muted-foreground">分镜设计</span>
-        {action ? (
-          <p className="min-w-0 line-clamp-2 text-foreground">{action}</p>
-        ) : (
-          <p className="min-w-0 text-xs text-muted-foreground">暂无分镜设计</p>
-        )}
-      </div>
-      {location || characterNames.length > 0 ? (
+  const infoRows = [
+    {
+      key: "design",
+      label: "分镜设计",
+      visible: true,
+      content: action ? (
+        <p className="min-w-0 line-clamp-2 text-sm leading-5 text-foreground">{action}</p>
+      ) : (
+        <p className="min-w-0 text-xs leading-5 text-muted-foreground">暂无分镜设计</p>
+      ),
+    },
+    {
+      key: "assets",
+      label: "资产",
+      visible: hasAssets,
+      content: (
         <div
-          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground"
-          aria-label={`第 ${shot.order} 镜场景与出场角色`}
+          className="flex min-w-0 flex-wrap items-center gap-1.5"
+          aria-label={`第 ${shot.order} 镜资产`}
         >
-          <span className="shrink-0 font-medium">场景/角色</span>
-          {location ? <span className="max-w-full truncate text-foreground">{location}</span> : null}
+          {location ? (
+            <Badge
+              variant="outline"
+              className="gap-1 border-primary/40 bg-primary/10 text-[10px] text-primary"
+              aria-label={`场景资产 ${location}`}
+            >
+              {location}
+            </Badge>
+          ) : null}
           {characterNames.map((name) => {
             const state = stateByName.get(name);
             return (
-              <Badge key={name} variant="secondary" className="text-[10px]">
+              <Badge
+                key={name}
+                variant="secondary"
+                className="gap-1 border-secondary/70 bg-secondary text-[10px] text-secondary-foreground"
+                aria-label={`角色资产 ${name}${state ? `，${state}` : ""}`}
+              >
                 {state ? `${name} · ${state}` : name}
               </Badge>
             );
           })}
         </div>
-      ) : null}
+      ),
+    },
+    {
+      key: "voice",
+      label: "语音",
+      visible: hasVoice,
+      content: segments.length > 0 ? (
+        <p className="min-w-0 line-clamp-2 text-sm leading-5 text-foreground">
+          {segments.map((segment, index) => (
+            <span key={`${segment.shotId}-${segment.lineIndex}`}>
+              {index > 0 ? <span className="mx-1 text-muted-foreground/70">·</span> : null}
+              <span className="font-medium text-muted-foreground">{audioSegmentSpeechLabel(segment)}：</span>
+              {segment.text}
+            </span>
+          ))}
+        </p>
+      ) : (
+        <p className="min-w-0 line-clamp-2 whitespace-pre-wrap text-sm leading-5 text-foreground">
+          <span className="font-medium text-muted-foreground">待解析：</span>
+          {shot.dialogue}
+        </p>
+      ),
+    },
+    {
+      key: "audio",
+      label: "配音",
+      visible: hasVoice,
+      content: (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+          {readySegments.map((segment) => (
+            <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 flex-1 basis-[16rem]">
+              <AudioSegmentPlayer
+                src={segment.audioUrl}
+                label={`${audioSegmentSpeechLabel(segment)}试听`}
+              />
+            </div>
+          ))}
+          <AiButton
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-auto h-8 shrink-0 px-2.5 text-xs"
+            disabled={props.regenerating}
+            onClick={() => props.onRegenerate(shot, props.shouldForceRegenerate)}
+            title={`${props.audioActionLabel}这一镜的配音`}
+          >
+            {props.regenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : null}
+            {props.regenerating ? `${props.audioActionLabel}中…` : props.audioActionLabel}
+          </AiButton>
+        </div>
+      ),
+    },
+  ].filter((row) => row.visible);
+
+  return (
+    <div
+      aria-label={`第 ${shot.order} 镜信息列表`}
+      className="relative min-w-0 space-y-1.5"
+    >
+      <div className="pointer-events-none absolute inset-y-0 left-[4.75rem] border-r border-border/60" aria-hidden="true" />
+      {infoRows.map((row) => (
+        <div key={row.key} className="grid min-w-0 grid-cols-[4.75rem_minmax(0,1fr)] gap-x-3">
+          <div className="min-w-0 pr-3 pt-0.5 text-right text-[11px] font-medium leading-5 text-muted-foreground">
+            {row.label}
+          </div>
+          <div className="min-w-0">{row.content}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -682,10 +782,9 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const aiTabId = `shot-${shot.id}-ai-tab`;
   const blockingSketchNeedsConfirmation = blockingSketch.status === "draft";
   const readySegments = segments.filter(
-    (segment): segment is DramaAudioSegment & { status: "ready"; audioUrl: string } =>
+    (segment): segment is ReadyDramaAudioSegment =>
       segment.status === "ready" && Boolean(segment.audioUrl),
   );
-  const hasReadyAudio = readySegments.length > 0;
   const pendingCount = segments.filter((segment) => segment.status !== "ready" || !segment.audioUrl).length;
   const shouldForceRegenerate = segments.length > 0 && pendingCount === 0;
   const audioActionLabel = shouldForceRegenerate ? "重新生成" : "生成配音";
@@ -856,60 +955,15 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
           {shotMeta ? <span className="text-[11px] text-muted-foreground">{shotMeta}</span> : null}
         </div>
 
-        <ShotDesignSummary shot={shot} />
-
-        {segments.length > 0 ? (
-          <div className="flex min-w-0 items-start gap-2 text-sm leading-5" aria-label={`第 ${shot.order} 镜旁白与对白`}>
-            <span className="shrink-0 pt-0.5 text-[11px] font-medium text-muted-foreground">旁白/对白</span>
-            <p className="min-w-0 line-clamp-2 text-foreground">
-              {segments.map((segment, index) => (
-                <span key={`${segment.shotId}-${segment.lineIndex}`}>
-                  {index > 0 ? <span className="mx-1 text-muted-foreground/70">·</span> : null}
-                  <span className="font-medium text-muted-foreground">{audioSegmentLabel(segment)}：</span>
-                  {segment.text}
-                </span>
-              ))}
-            </p>
-          </div>
-        ) : shot.dialogue?.trim() ? (
-          <div className="flex min-w-0 items-start gap-2 text-sm leading-5" aria-label={`第 ${shot.order} 镜旁白与对白`}>
-            <span className="shrink-0 pt-0.5 text-[11px] font-medium text-muted-foreground">旁白/对白</span>
-            <p className="min-w-0 line-clamp-2 whitespace-pre-wrap text-foreground">{shot.dialogue}</p>
-          </div>
-        ) : null}
-
-        {segments.length > 0 || Boolean(shot.dialogue?.trim()) ? (
-          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pt-0.5" aria-label={`第 ${shot.order} 镜配音`}>
-            <span className="shrink-0 text-[11px] font-medium text-muted-foreground">配音</span>
-            {hasReadyAudio ? (
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-                {readySegments.map((segment) => (
-                  <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 flex-1 basis-[16rem] items-center gap-2">
-                    <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
-                      {audioSegmentLabel(segment)}
-                      {segment.type === "dialogue" && segment.emotion ? (
-                        <span className="ml-1 font-normal text-muted-foreground/70">（{segment.emotion}）</span>
-                      ) : null}
-                    </span>
-                    <AudioSegmentPlayer src={segment.audioUrl} label={`${audioSegmentLabel(segment)}试听`} />
-                  </div>
-                ))}
-              </div>
-            ) : null}
-            <AiButton
-              type="button"
-              variant="outline"
-              size="sm"
-              className="ml-auto h-8 shrink-0 px-2.5 text-xs"
-              disabled={props.regenerating}
-              onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
-              title={`${audioActionLabel}这一镜的配音`}
-            >
-              {props.regenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" aria-hidden="true" /> : null}
-              {props.regenerating ? `${audioActionLabel}中…` : audioActionLabel}
-            </AiButton>
-          </div>
-        ) : null}
+        <ShotInfoList
+          shot={shot}
+          segments={segments}
+          readySegments={readySegments}
+          regenerating={props.regenerating}
+          shouldForceRegenerate={shouldForceRegenerate}
+          audioActionLabel={audioActionLabel}
+          onRegenerate={props.onRegenerate}
+        />
       </div>
     </div>
   );
