@@ -32,7 +32,7 @@ Run: `git add docs/superpowers/specs/2026-08-26-character-state-height-input-des
 
 - [x] **Step 1: 写失败测试**
   - 断言 `parseStoryAssetStatesJson` 保留 `heightMeters: 1.75`。
-  - 断言超出 `0.70–2.40` 的状态不作为有效状态进入归一化结果。
+  - 断言超出 `0.50–10.00` 的状态不作为有效状态进入归一化结果。
   - 断言角色状态 schema 接受 `heightMeters`，场景/道具基础 schema 不接受该字段（通过源契约测试覆盖 schema 分层）。
 - [x] **Step 2: 运行测试确认因字段未实现而失败**
 - [x] **Step 3: 最小实现字段、范围常量和归一化**

@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 
 import {
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
   normalizeStoryAssetHeightMeters,
   parseStoryAssetStatesJson,
   type StoryAssetState,
@@ -13,8 +15,8 @@ import {
 } from "../../../prompting/prompts/novel/characterHeightEstimate.prompts";
 
 export const CHARACTER_HEIGHT_DEFAULT_METERS = 1.8;
-export const CHARACTER_HEIGHT_MIN_METERS = 0.7;
-export const CHARACTER_HEIGHT_MAX_METERS = 2.4;
+export const CHARACTER_HEIGHT_MIN_METERS = STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS;
+export const CHARACTER_HEIGHT_MAX_METERS = STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS;
 export const CHARACTER_PROXY_NATIVE_HEIGHT_METERS = 1.8287;
 
 const CHARACTER_HEIGHT_PROFILE_SCHEMA_VERSION = 1;

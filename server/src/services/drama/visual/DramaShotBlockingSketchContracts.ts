@@ -1,3 +1,8 @@
+import {
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
+
 export const BLOCKING_SKETCH_CANVAS = {
   width: 1280,
   height: 720,
@@ -29,7 +34,10 @@ export const BLOCKING_SKETCH_3D_LIMITS = {
   positionZ: { min: -100, max: 100 },
   yawDeg: { min: -180, max: 180 },
   scale: { min: 0.1, max: 10 },
-  heightMeters: { min: 0.7, max: 2.4 },
+  heightMeters: {
+    min: STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
+    max: STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  },
 } as const;
 
 export const BLOCKING_SKETCH_3D_CAMERA_DEFAULTS = {

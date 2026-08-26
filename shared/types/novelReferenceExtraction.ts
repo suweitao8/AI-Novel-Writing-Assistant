@@ -56,9 +56,9 @@ export interface StoryAssetStateVoice {
 
 export type StoryAssetAgeGroup = "child" | "youth" | "middle" | "elder";
 
-/** 角色状态手动身高的统一边界（单位：米）；空值表示使用角色级 AI 估算。 */
-export const STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS = 0.7;
-export const STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS = 2.4;
+/** 所有角色状态（包含怪物/巨型生物）身高的统一边界（单位：米）；空值表示使用角色级 AI 估算。 */
+export const STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS = 0.5;
+export const STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS = 10;
 
 export function normalizeStoryAssetHeightMeters(value: unknown): number | undefined {
   if (typeof value !== "number"
@@ -467,7 +467,7 @@ export function validateStoryAssetStateList(
   for (const state of states) {
     if (state.heightMeters !== undefined && state.heightMeters !== null
       && normalizeStoryAssetHeightMeters(state.heightMeters) === undefined) {
-      return "角色状态身高需填写 0.70 到 2.40 米之间的数字。";
+      return `角色状态身高需填写 ${STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS.toFixed(2)} 到 ${STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS.toFixed(2)} 米之间的数字。`;
     }
   }
   for (const state of states) {

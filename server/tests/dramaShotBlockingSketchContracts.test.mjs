@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   BLOCKING_SKETCH_CANVAS,
+  BLOCKING_SKETCH_3D_LIMITS,
   normalizeBlockingSketchData,
   parseBlockingSketchData,
 } from "../src/services/drama/visual/DramaShotBlockingSketchContracts.ts";
@@ -179,6 +180,38 @@ test("3D 摆位快照拒绝越界位置和未知姿势", () => {
       },
     }),
     /姿势/,
+  );
+});
+
+test("3D 摆位身高统一支持 0.50 到 10.00 米", () => {
+  assert.deepEqual(BLOCKING_SKETCH_3D_LIMITS.heightMeters, { min: 0.5, max: 10 });
+  const normalized = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+      actors: [{
+        characterName: "血角兽",
+        position: [0, 0, 0],
+        yawDeg: 0,
+        scale: [1, 1, 1],
+        heightMeters: 5,
+        pose: "standing",
+        actionPlaying: false,
+      }],
+    },
+  });
+  assert.equal(normalized.layout3d?.actors[0]?.heightMeters, 5);
+  assert.throws(
+    () => normalizeBlockingSketchData({
+      ...validSketch,
+      layout3d: {
+        ...normalized.layout3d,
+        actors: [{ ...normalized.layout3d.actors[0], heightMeters: 10.01 }],
+      },
+    }),
+    /身高基准/,
   );
 });
 

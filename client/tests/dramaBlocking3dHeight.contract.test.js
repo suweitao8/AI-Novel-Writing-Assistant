@@ -18,6 +18,14 @@ test("带身高元数据的布局按当前角色高度等比迁移，旧布局�
   assert.equal(scale.heightToBlocking3dScale(1.8287), 1);
 });
 
+test("3D blocking 身高支持 0.50 到 10.00 米并保持 5 米怪物比例", () => {
+  assert.equal(scale.BLOCKING_3D_HEIGHT_MIN_METERS, 0.5);
+  assert.equal(scale.BLOCKING_3D_HEIGHT_MAX_METERS, 10);
+  assert.equal(scale.normalizeBlocking3dHeight(5), 5);
+  assert.equal(scale.normalizeBlocking3dHeight(0.1), 0.5);
+  assert.equal(scale.normalizeBlocking3dHeight(20), 10);
+});
+
 test("viewer 与 blocking 页面传递并保存角色身高基准", () => {
   assert.match(viewerSource, /heightMeters/);
   assert.match(viewerSource, /scaleSavedActorForCurrentHeight/);

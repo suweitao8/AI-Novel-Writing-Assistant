@@ -65,6 +65,26 @@ test("3D 角色快照限制范围，并能投影回旧分镜草图字段", () =>
   assert.equal(projectBlocking3dActorToLegacy({ ...actor, yawDeg: 180 }, 0).flipX, false);
 });
 
+test("3D 角色快照接受 5 米怪物并拒绝超出统一边界的身高", () => {
+  const monster = normalizeBlocking3dActor({
+    characterName: "血角兽",
+    position: [0, 0, 0],
+    yawDeg: 0,
+    scale: [1, 1, 1],
+    heightMeters: 5,
+    pose: "standing",
+    actionPlaying: false,
+  });
+  assert.equal(monster.heightMeters, 5);
+  assert.throws(
+    () => normalizeBlocking3dActor({
+      ...monster,
+      heightMeters: 10.01,
+    }),
+    /身高基准/,
+  );
+});
+
 test("3D 客户端相机兼容旧快照并保留景深参数", () => {
   assert.deepEqual(normalizeBlocking3dCamera({
     azim: 10,
