@@ -515,7 +515,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const clearEnvironmentVisuals = () => {
     environmentBackdrop?.destroy();
     environmentBackdrop = null;
-    environmentBackdropMeshInstance?.mesh.destroy();
+    environmentBackdropMeshInstance?.mesh?.destroy();
     environmentBackdropMeshInstance = null;
     environmentMaterial?.destroy();
     environmentMaterial = null;
