@@ -84,6 +84,8 @@ export interface StoryScene3DMarkerSet {
   status: "ready" | "error" | "stale";
   sourceImageArtifactId?: string | null;
   sourceImageGeneratedAt?: string | null;
+  /** 生成这些坐标时使用的场景投射参数；缺失时只能视为旧版标记。 */
+  sourceEnvironment?: StoryScene3DEnvironmentInput;
   analyzedAt?: string;
   analysisNote?: string;
   error?: string;
@@ -92,6 +94,37 @@ export interface StoryScene3DMarkerSet {
 
 const STORY_SCENE_3D_MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceiling"]);
 
+function isStoryScene3DEnvironmentInput(value: unknown): value is StoryScene3DEnvironmentInput {
+  if (!value || typeof value !== "object") return false;
+  const source = value as Record<string, unknown>;
+  return typeof source.projectionCenterHeight === "number"
+    && Number.isFinite(source.projectionCenterHeight)
+    && typeof source.domeRadius === "number"
+    && Number.isFinite(source.domeRadius)
+    && typeof source.panoramaHorizonV === "number"
+    && Number.isFinite(source.panoramaHorizonV);
+}
+
+/** 环境参数改变任一投射量时，旧标记就不能继续代表当前场景。 */
+export function storyScene3DEnvironmentMatches(
+  left: StoryScene3DEnvironmentInput | null | undefined,
+  right: StoryScene3DEnvironmentInput | null | undefined,
+): boolean {
+  if (!left || !right) return false;
+  return Math.abs(left.projectionCenterHeight - right.projectionCenterHeight) < 0.0001
+    && Math.abs(left.domeRadius - right.domeRadius) < 0.0001
+    && Math.abs(left.panoramaHorizonV - right.panoramaHorizonV) < 0.0001;
+}
+
+/** 只有带环境快照且与当前环境一致的结果才能进入 3D 摆位上下文。 */
+export function isStoryScene3DMarkerSetCurrent(
+  markerSet: Pick<StoryScene3DMarkerSet, "status" | "sourceEnvironment"> | null | undefined,
+  environment: StoryScene3DEnvironmentInput | null | undefined,
+): boolean {
+  return markerSet?.status === "ready"
+    && storyScene3DEnvironmentMatches(markerSet.sourceEnvironment, environment);
+}
+
 /** 只判断持久化结构是否可安全保留；数值范围由服务端归一化器负责。 */
 export function isStoryScene3DMarkerSet(value: unknown): value is StoryScene3DMarkerSet {
   if (!value || typeof value !== "object") return false;
@@ -99,6 +132,9 @@ export function isStoryScene3DMarkerSet(value: unknown): value is StoryScene3DMa
   if (source.schemaVersion !== 1
     || (source.status !== "ready" && source.status !== "error" && source.status !== "stale")
     || !Array.isArray(source.markers)) {
+    return false;
+  }
+  if (source.sourceEnvironment !== undefined && !isStoryScene3DEnvironmentInput(source.sourceEnvironment)) {
     return false;
   }
   return source.markers.every((item) => {

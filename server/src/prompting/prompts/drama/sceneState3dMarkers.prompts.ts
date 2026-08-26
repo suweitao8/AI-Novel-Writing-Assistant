@@ -30,7 +30,7 @@ const markerSchema = z.object({
     y: z.number().min(0).max(1),
     width: z.number().min(0).max(1),
     height: z.number().min(0).max(1),
-  }).optional(),
+  }),
   evidence: z.string().trim().max(240).optional(),
 });
 
@@ -76,7 +76,7 @@ export const sceneState3dMarkersPrompt: PromptAsset<
   SceneState3dMarkersOutput
 > = {
   id: "drama.scene.state.3d_markers",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -95,8 +95,9 @@ export const sceneState3dMarkersPrompt: PromptAsset<
       "输入是一张 360° 等距柱状全景图或场景状态图；只识别床、桌子、椅子、沙发、书桌、柜子、架子、门、窗户、柜台、楼梯等固定物体，输出的是可用于摆位的固定空间物体/家具标记。",
       "不要标注人物、动物、怪物、临时物品、衣物、食物、文字、装饰小件或仅凭常识猜测且画面中不可见的物体。室外/自然场景没有可信固定物体时返回空数组。",
       "坐标单位按米估算，并以约 1.8 米高的人物作为尺度参照：地面为 y=0，+Z 指向全景图正前方/水平中心，+X 指向画面右侧；position 是长方体中心，size 是 X/Y/Z 尺寸。",
-      "floor 锚点的 position.y 仍填写物体中心高度；wall/ceiling 物体按其在空间中的中心高度填写。坐标和尺寸只需近似，宁可少标也不要编造。",
-      "imageRegion 是物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高。confidence 反映图像证据强度。",
+      "position 只填写物体相对投射中心的距离和高度估计，不能把图片像素、归一化比例或框坐标直接填进 position；服务端会根据 imageRegion 和当前环境重新反算最终世界坐标。",
+      "每个标记都必须返回 imageRegion：它是物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高；先准确框住图中实际可见物体，再估算 position。floor 物体的框底部应贴近地面接触位置。confidence 反映图像证据强度。",
+      "当前投射中心高度、半球直径和全景地面分界只用于理解场景尺度；不要根据这些参数手工平移图片框，服务端会统一重算。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
       `可用类别：${(STORY_SCENE_3D_MARKER_KINDS as readonly StoryScene3DMarkerKind[]).join("、")}`,
     ].join("\n")),

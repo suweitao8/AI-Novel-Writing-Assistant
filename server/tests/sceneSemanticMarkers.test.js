@@ -4,8 +4,18 @@ import test from "node:test";
 import {
   normalizeStoryScene3dMarkerSet,
   parseStoryScene3dMarkerSet,
+  projectStoryScene3dMarkerPosition,
 } from "../src/modules/novel/story-settings/application/StoryScene3dMarkers.ts";
 import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/shared/types/comicDrama";
+
+const environment = {
+  projectionCenterHeight: 2,
+  domeRadius: 15,
+  panoramaHorizonV: 0.5,
+  yawDeg: 0,
+  intensity: 1,
+};
 
 const validMarkerSet = {
   schemaVersion: 1,
@@ -68,4 +78,60 @@ test("重复标记 ID 会被归一化为稳定的唯一 ID", () => {
     ],
   });
   assert.deepEqual(normalized?.markers.map((marker) => marker.id), ["same", "same-2"]);
+});
+
+test("空间标记优先使用图像区域反算水平位置，而不是直接采信模型世界坐标", () => {
+  const marker = {
+    anchor: "floor",
+    position: [9, 0.5, -9],
+    size: [2, 1, 2],
+    imageRegion: { x: 0.4, y: 0.65, width: 0.2, height: 0.2 },
+  };
+  const front = projectStoryScene3dMarkerPosition(marker, environment);
+  const left = projectStoryScene3dMarkerPosition({
+    ...marker,
+    imageRegion: { ...marker.imageRegion, x: 0.15 },
+  }, environment);
+
+  assert.ok(Math.abs(front[0]) < 0.05, "全景水平中心应落在世界 Z 轴附近");
+  assert.ok(front[2] > 0, "全景水平中心应落在 +Z 正前方");
+  assert.ok(left[0] < -0.1, "图像左侧物体应落在世界 -X 侧");
+  assert.ok(Math.abs(left[2]) < 0.1, "四分之一经度应接近世界 X 轴");
+  assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
+});
+
+test("投射中心高度、半球直径和全景地面分界会参与标记反算", () => {
+  const marker = {
+    anchor: "wall",
+    position: [2, 2, -2],
+    size: [1, 2, 1],
+    imageRegion: { x: 0.4, y: 0.32, width: 0.2, height: 0.16 },
+  };
+  const compact = projectStoryScene3dMarkerPosition(marker, environment);
+  const expanded = projectStoryScene3dMarkerPosition(marker, {
+    ...environment,
+    projectionCenterHeight: 4,
+    domeRadius: 30,
+    panoramaHorizonV: 0.58,
+  });
+
+  assert.ok(expanded[1] > compact[1], "投射中心升高后墙面标记高度应随之变化");
+  assert.ok(expanded[2] > compact[2], "半球直径变化后同一图像位置的深度应重新估算");
+  assert.notDeepEqual(expanded, compact, "环境参数变化不能继续复用旧的世界坐标");
+});
+
+test("空间标记没有匹配当前环境快照时必须失效，不能流入分镜摆位", () => {
+  const markerSet = {
+    schemaVersion: 1,
+    status: "ready",
+    sourceEnvironment: {
+      projectionCenterHeight: 2,
+      domeRadius: 15,
+      panoramaHorizonV: 0.5,
+    },
+    markers: [],
+  };
+  assert.equal(isCurrentMarkerSet(markerSet, environment), true);
+  assert.equal(isCurrentMarkerSet(markerSet, { ...environment, domeRadius: 30 }), false);
+  assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: undefined }, environment), false);
 });
