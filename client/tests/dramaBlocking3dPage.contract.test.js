@@ -127,6 +127,15 @@ test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
 });
 
+test("选中外描边为 80% 不透明度的橙色，空间标记共用同一条外轮廓", () => {
+  assert.match(viewerSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
+  assert.match(viewerSource, /markerRuntime\?\.entity \?\? null/);
+  // PlayCanvas 默认合成忽略颜色 alpha，描边不透明度必须由替换的合成着色器承载。
+  assert.match(selectionOutlineSource, /uOutlineOpacity/);
+  assert.match(selectionOutlineSource, /color\.a/);
+  assert.match(selectionOutlineSource, /fragmentGLSL: OUTLINE_BLEND_FRAGMENT_GLSL/);
+});
+
 test("3D 草图 PNG 捕获期间不包含选中外描边", () => {
   assert.match(viewerSource, /capturePng\(\)[\s\S]*selectionOutline\.setEntity\(null\)/);
   assert.match(viewerSource, /selectionOutline\.frameUpdate\(\)/);
