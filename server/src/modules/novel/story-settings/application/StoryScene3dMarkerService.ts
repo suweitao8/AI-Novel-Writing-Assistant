@@ -25,6 +25,7 @@ import {
 } from "./StoryScene3dEnvironment";
 import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
+import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
 
 const MAX_ANALYZE_IMAGE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -59,7 +60,7 @@ export function buildStoryScene3dMarkerSet(
     sourceImageGeneratedAt: imageMeta.generatedAt,
     analyzedAt: new Date().toISOString(),
   }, {
-    maxRadius: normalizedEnvironment.domeRadius * 0.45,
+    maxRadius: normalizedEnvironment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
     environment: normalizedEnvironment,
   });
 

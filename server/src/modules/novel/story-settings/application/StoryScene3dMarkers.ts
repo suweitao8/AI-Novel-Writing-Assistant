@@ -11,7 +11,10 @@ import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_MARKER_KINDS,
 } from "@ai-novel/shared/types/comicDrama";
-import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
+import {
+  projectStoryScene3dMarkerSetFromImageRegions,
+  STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
+} from "@ai-novel/shared/utils/scene3dProjection";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
   maxMarkers: 32,
@@ -81,25 +84,14 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
 }
 
 /**
- * 把多模态模型识别的 equirectangular 框反算到当前 3D 投射空间。
- *
- * 共享投影函数同时负责位置、尺寸和朝向，避免服务端与 shared 各自维护
- * 一套会逐渐漂移的全景坐标规则。这个导出保留给已有服务端调用方，只返回位置。
+ * 归一化只负责把模型输出的字段收进合法范围；坐标反算统一放在
+ * normalizeStoryScene3dMarkerSet 的集合级投影里做，因为门窗的深度证据
+ * 要在同一方位的 marker 之间聚类共享，不能逐个独立投影。
  */
-export function projectStoryScene3dMarkerPosition(
-  marker: Pick<StoryScene3DMarker, "anchor" | "position" | "size" | "imageRegion">
-    & Partial<Pick<StoryScene3DMarker, "kind" | "source" | "yawDeg">>,
-  environment: StoryScene3dMarkerProjectionEnvironment,
-  maxRadius = environment.domeRadius * 0.45,
-): [number, number, number] {
-  return projectStoryScene3dMarkerFromImageRegion(marker, environment, maxRadius).position;
-}
-
 function normalizeMarker(
   raw: unknown,
   index: number,
   maxRadius: number,
-  environment?: StoryScene3dMarkerProjectionEnvironment,
 ): StoryScene3DMarker | null {
   if (!raw || typeof raw !== "object") return null;
   const source = raw as Record<string, unknown>;
@@ -147,12 +139,6 @@ function normalizeMarker(
   const imageRegion = normalizeImageRegion(source.imageRegion);
   if (imageRegion) {
     marker.imageRegion = imageRegion;
-    if (environment && marker.source !== "manual") {
-      const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment, maxRadius);
-      marker.position = projected.position;
-      marker.size = projected.size;
-      marker.yawDeg = projected.yawDeg;
-    }
   }
   return marker;
 }
@@ -169,14 +155,14 @@ export function normalizeStoryScene3dMarkerSet(
   const rawMarkers = Array.isArray(source.markers) ? source.markers : [];
   const maxRadius = clamp(
     finiteOr(options.maxRadius, options.environment?.domeRadius
-      ? options.environment.domeRadius * 0.45
+      ? options.environment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO
       : STORY_SCENE_3D_MARKER_LIMITS.maxRadius),
     1,
     STORY_SCENE_3D_MARKER_LIMITS.maxRadius,
   );
   const markers = rawMarkers
     .slice(0, STORY_SCENE_3D_MARKER_LIMITS.maxMarkers)
-    .map((marker, index) => normalizeMarker(marker, index, maxRadius, options.environment))
+    .map((marker, index) => normalizeMarker(marker, index, maxRadius))
     .filter((marker): marker is StoryScene3DMarker => Boolean(marker));
   const usedIds = new Set<string>();
   for (const [index, marker] of markers.entries()) {
@@ -189,6 +175,18 @@ export function normalizeStoryScene3dMarkerSet(
     }
     usedIds.add(uniqueId);
     marker.id = uniqueId.slice(0, 80);
+  }
+  if (options.environment && markers.length > 0) {
+    const projections = projectStoryScene3dMarkerSetFromImageRegions(markers, options.environment, {
+      maxRadius,
+    });
+    for (const [index, projection] of projections.entries()) {
+      const marker = markers[index];
+      if (!marker || marker.source === "manual" || !marker.imageRegion) continue;
+      marker.position = projection.position;
+      marker.size = projection.size;
+      marker.yawDeg = projection.yawDeg;
+    }
   }
   const status = source.status === "error" || source.status === "stale" ? source.status : "ready";
   const result: StoryScene3DMarkerSet = {

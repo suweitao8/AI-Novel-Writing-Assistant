@@ -38,7 +38,7 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   assert.equal(result.analysisNote, "室内主要家具");
 });
 
-test("场景标记服务把默认 50% 上半区的地面家具放到半球外圈", () => {
+test("场景标记服务把上半区的地面家具按类别高度跨度反算深度", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "table",
@@ -62,7 +62,13 @@ test("场景标记服务把默认 50% 上半区的地面家具放到半球外圈
   const size = result.markers[0]?.size;
   assert.ok(position);
   assert.ok(size);
-  assert.ok(Math.hypot(position[0], position[2]) > 6.6, "桌子应落在半球可用地面外圈");
+  // 桌类典型高度 0.875m ÷ 垂直跨度，框底没有落地证据时不再推到半球外圈。
+  const expectedRadius = 0.875 / (Math.tan(Math.PI * 0.2) - Math.tan(Math.PI * 0.04));
+  assert.ok(
+    Math.abs(Math.hypot(position[0], position[2]) - expectedRadius) < 0.02,
+    `桌子应按图像跨度反算深度，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(position[0], position[2]).toFixed(3)}`,
+  );
+  assert.ok(Math.hypot(position[0], position[2]) > 0.8, "桌子不能塌缩回投射中心");
   assert.equal(position[1], size[1] / 2);
 });
 
@@ -91,7 +97,7 @@ test("场景标记服务保存结果时以图像区域纠正墙面物体方向",
   assert.ok(result.markers[0].yawDeg > 90);
 });
 
-test("场景标记服务不会把近中心的墙面物体保存到投射中心", () => {
+test("场景标记服务用图像跨度反算窗户深度，不保存近中心坐标", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "window",
@@ -112,8 +118,14 @@ test("场景标记服务不会把近中心的墙面物体保存到投射中心",
 
   const marker = result.markers[0];
   assert.ok(marker);
-  assert.ok(Math.abs(Math.hypot(marker.position[0], marker.position[2]) - 6.75) < 1e-9);
-  assert.ok(marker.size[0] > 1);
+  // 窗类典型高度 1.6m ÷ 框的垂直跨度：跨过地平线的窗不再贴到参考半径。
+  const expectedRadius = 1.6 / (Math.tan(Math.PI * 0.16) + Math.tan(Math.PI * 0.02));
+  assert.ok(
+    Math.abs(Math.hypot(marker.position[0], marker.position[2]) - expectedRadius) < 0.02,
+    `窗应按图像跨度反算深度，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(marker.position[0], marker.position[2]).toFixed(3)}`,
+  );
+  assert.ok(Math.hypot(marker.position[0], marker.position[2]) > 1, "窗不能停留在投射中心");
+  assert.ok(marker.size[0] >= 0.6 && marker.size[0] <= 3, "窗宽保持在类别范围内");
   assert.ok(marker.size[1] > 1);
   assert.equal(marker.position[1] >= marker.size[1] / 2, true);
 });

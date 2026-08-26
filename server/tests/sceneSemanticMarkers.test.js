@@ -4,9 +4,9 @@ import test from "node:test";
 import {
   normalizeStoryScene3dMarkerSet,
   parseStoryScene3dMarkerSet,
-  projectStoryScene3dMarkerPosition,
   adoptLegacyStoryScene3dMarkerEnvironment,
 } from "../src/modules/novel/story-settings/application/StoryScene3dMarkers.ts";
+import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
 import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/shared/types/comicDrama";
 
@@ -124,11 +124,12 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
     size: [2, 1, 2],
     imageRegion: { x: 0.4, y: 0.65, width: 0.2, height: 0.2 },
   };
-  const front = projectStoryScene3dMarkerPosition(marker, environment);
-  const left = projectStoryScene3dMarkerPosition({
+  const project = (entry) => projectStoryScene3dMarkerFromImageRegion(entry, environment).position;
+  const front = project(marker);
+  const left = project({
     ...marker,
     imageRegion: { ...marker.imageRegion, x: 0.15 },
-  }, environment);
+  });
 
   assert.ok(Math.abs(front[0]) < 0.05, "全景水平中心应落在世界 Z 轴附近");
   assert.ok(front[2] > 0, "全景水平中心应落在 +Z 正前方");
@@ -137,18 +138,24 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
   assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
 });
 
-test("默认 50% 全景中家具框底在地平线上方时仍落在半球地面外圈", () => {
+test("默认 50% 全景中家具框底在地平线上方时用类别高度跨度反算深度", () => {
   const marker = {
     anchor: "floor",
     position: [0, 0.5, 0],
     size: [1.2, 0.8, 0.8],
     imageRegion: { x: 0.4, y: 0.3, width: 0.2, height: 0.16 },
   };
-  const projected = projectStoryScene3dMarkerPosition(marker, environment);
+  const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment).position;
 
+  // 类别 other 的典型高度 1.6m ÷ 垂直跨度 tan(0.6283)-tan(0.1257)。
+  const expectedRadius = 1.6 / (Math.tan(Math.PI * 0.2) - Math.tan(Math.PI * 0.04));
   assert.ok(Math.abs(projected[0]) < 0.05, "水平中心仍应保持在世界 Z 轴附近");
-  assert.ok(projected[2] > 6.6, "地面物体应落在当前半球的可用外圈，而不是球体中心");
-  assert.ok(projected[1] > 0.4, "图片证据参与尺寸校准后仍必须落地");
+  assert.ok(
+    Math.abs(Math.hypot(projected[0], projected[2]) - expectedRadius) < 0.02,
+    "框底没有落地证据时应按类别高度与跨度反算深度",
+  );
+  assert.ok(Math.hypot(projected[0], projected[2]) > 1, "不能塌缩回投射中心脚下");
+  assert.ok(projected[1] > 0.1, "图片证据参与尺寸校准后仍必须落地");
 });
 
 test("投射中心高度、半球直径和全景分界都会参与标记反算", () => {
@@ -156,27 +163,29 @@ test("投射中心高度、半球直径和全景分界都会参与标记反算",
     anchor: "wall",
     position: [2, 2, -2],
     size: [1, 2, 1],
-    imageRegion: { x: 0.4, y: 0.32, width: 0.2, height: 0.16 },
+    // 垂直跨度小到没有深度证据，深度只能来自半球参考半径。
+    imageRegion: { x: 0.4, y: 0.32, width: 0.2, height: 0.01 },
   };
-  const compact = projectStoryScene3dMarkerPosition(marker, environment);
-  const expanded = projectStoryScene3dMarkerPosition(marker, {
+  const project = (entryEnvironment) => projectStoryScene3dMarkerFromImageRegion(marker, entryEnvironment).position;
+  const compact = project(environment);
+  const expanded = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
     panoramaHorizonV: 0.58,
   });
-  const expandedWithDefaultHorizon = projectStoryScene3dMarkerPosition(marker, {
+  const expandedWithDefaultHorizon = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
   });
-  const expandedAtCenterHorizon = projectStoryScene3dMarkerPosition(marker, {
+  const expandedAtCenterHorizon = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
     panoramaHorizonV: 0.5,
   });
-  const shifted = projectStoryScene3dMarkerPosition(marker, {
+  const shifted = project({
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
