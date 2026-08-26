@@ -3,6 +3,7 @@
 export const DRAMA_FOCUS_MODE = true;
 
 const DRAMA_FOCUS_HIDDEN_NAV_ROUTES = new Set<string>([
+  "/",
   "/novels",
   "/comic",
   "/creative-hub",
