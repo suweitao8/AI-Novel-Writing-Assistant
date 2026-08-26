@@ -19,13 +19,13 @@ export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
 };
 
 export const STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE: Record<StoryAssetSceneType, number> = {
-  interior: 8,
+  interior: 5,
   exterior: 10,
   nature: 20,
 };
 
 export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE: Record<StoryAssetSceneType, number> = {
-  interior: 1,
+  interior: 0.8,
   exterior: 1.7,
   nature: 1,
 };
