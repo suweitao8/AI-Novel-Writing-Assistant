@@ -66,6 +66,7 @@ function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShot
 function buildSketchData(
   context: DramaShotBlockingSketchEditorContext,
   viewer: Blocking3dViewer,
+  currentCompositionNote: string,
 ): DramaShotBlockingSketchData {
   if (!context.scene) throw new Error("当前镜头没有可用的场景状态图。");
   const { environment: _shotEnvironment, ...layout3d } = viewer.exportLayout();
@@ -90,6 +91,7 @@ function buildSketchData(
   return {
     status: "draft",
     version: (context.sketch?.version ?? 0) + 1,
+    ...(currentCompositionNote.trim() ? { compositionNote: currentCompositionNote.trim() } : {}),
     scene,
     actors,
     layout3d,
@@ -125,8 +127,6 @@ export default function DramaBlocking3DPage() {
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const shotOrder = searchParams.get("order");
-  const autoPlanRequested = searchParams.get("autoPlan") === "1";
-  const autoPlanMode = autoPlanRequested ? "requested" : "initial";
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<Blocking3dViewer | null>(null);
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
@@ -140,11 +140,11 @@ export default function DramaBlocking3DPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [autoPlanning, setAutoPlanning] = useState(false);
+  const [compositionNote, setCompositionNote] = useState("");
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
   const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
-  const autoPlanKeyRef = useRef<string | null>(null);
 
   const contextQuery = useQuery({
     queryKey: ["drama-shot-blocking-sketch", projectId, shotId],
@@ -153,6 +153,10 @@ export default function DramaBlocking3DPage() {
     staleTime: 0,
   });
   const context = contextQuery.data?.data ?? null;
+
+  useEffect(() => {
+    setCompositionNote(context?.sketch?.compositionNote ?? "");
+  }, [context?.sketch?.compositionNote]);
 
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
     setSelectedName(nextViewer.getSelectedActor());
@@ -241,7 +245,7 @@ export default function DramaBlocking3DPage() {
       setSaving(true);
       viewer.setInteractionEnabled(false);
       try {
-        const draft = buildSketchData(context, viewer);
+        const draft = buildSketchData(context, viewer, compositionNote);
         const saved = await saveDramaShotBlockingSketch(projectId, shotId, draft);
         if (!saved.data) throw new Error("保存没有返回草图数据。");
         const png = viewer.capturePng();
@@ -275,7 +279,7 @@ export default function DramaBlocking3DPage() {
       if (savePromiseRef.current === promise) savePromiseRef.current = null;
     });
     return promise;
-  }, [context, projectId, queryClient, shotId, viewer]);
+  }, [compositionNote, context, projectId, queryClient, shotId, viewer]);
 
   const handleAutoPlan = useCallback(async () => {
     if (!viewer || !context?.scene || autoPlanning || saving) return;
@@ -286,6 +290,7 @@ export default function DramaBlocking3DPage() {
       if (!result.data?.layout) throw new Error("自动构图没有返回可用的 3D 布局。");
       viewer.loadLayout(result.data.layout);
       syncSelection(viewer);
+      setCompositionNote(result.data.compositionNote ?? "");
       setDirty(true);
       setStatus("AI 构图完成，有未保存修改");
       toast.success("AI 已完成本镜构图。", {
@@ -300,16 +305,6 @@ export default function DramaBlocking3DPage() {
       setAutoPlanning(false);
     }
   }, [autoPlanning, context, projectId, saving, shotId, syncSelection, viewer]);
-
-  useEffect(() => {
-    if (!viewer || !context?.scene || context.actors.length === 0) return;
-    const shouldAutoPlan = autoPlanRequested || !context.sketch?.layout3d;
-    if (!shouldAutoPlan) return;
-    const key = `${projectId}:${shotId}:${autoPlanMode}`;
-    if (autoPlanKeyRef.current === key) return;
-    autoPlanKeyRef.current = key;
-    void handleAutoPlan();
-  }, [autoPlanMode, context, handleAutoPlan, projectId, viewer]);
 
   const saveBeforeExit = useCallback(async (): Promise<boolean> => {
     if (savePromiseRef.current) return savePromiseRef.current;
@@ -392,10 +387,48 @@ export default function DramaBlocking3DPage() {
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
               <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />左键拖角色 · 右键旋转 · 滚轮缩放视角 · 中键平移
             </div>
+            <div className="pointer-events-none absolute right-3 top-3">
+              <Badge variant="secondary" className="shadow-sm">镜头预览</Badge>
+            </div>
           </CardContent>
         </Card>
 
         <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+              <CardTitle className="text-sm">镜头设计</CardTitle>
+              <Badge variant="outline">第 {context.shot.order} 镜</Badge>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
+                <dt className="text-muted-foreground">景别</dt>
+                <dd className="text-right">{context.shot.shotSize || "未设置"}</dd>
+                <dt className="text-muted-foreground">运镜</dt>
+                <dd className="text-right">{context.shot.cameraMove || "未设置"}</dd>
+                <dt className="text-muted-foreground">时长</dt>
+                <dd className="text-right tabular-nums">
+                  {context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}
+                </dd>
+              </dl>
+              <div className="space-y-1.5 border-t border-border/60 pt-3 text-xs">
+                <div className="text-muted-foreground">动作</div>
+                <p className="whitespace-pre-wrap leading-5">{context.shot.action || "未设置"}</p>
+                {context.shot.dialogue ? (
+                  <>
+                    <div className="pt-1 text-muted-foreground">对白</div>
+                    <p className="whitespace-pre-wrap leading-5">{context.shot.dialogue}</p>
+                  </>
+                ) : null}
+              </div>
+              <div className="space-y-1.5 border-t border-border/60 pt-3 text-xs">
+                <div className="text-muted-foreground">AI 构图说明</div>
+                <p className="whitespace-pre-wrap leading-5 text-foreground">
+                  {compositionNote || "点击顶部「AI 自动构图」生成本镜设计。"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader className="pb-3"><CardTitle className="text-sm">本镜角色</CardTitle></CardHeader>
             <CardContent className="space-y-1.5">

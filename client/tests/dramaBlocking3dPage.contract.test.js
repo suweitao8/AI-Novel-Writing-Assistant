@@ -54,10 +54,29 @@ test("AI 自动构图只留下未保存修改，不在构图完成后立即保�
   assert.doesNotMatch(pageSource, /await handleAutoSave\(\)/);
 });
 
-test("autoPlan 查询参数会让已有布局重新交给 AI 规划", () => {
-  assert.match(pageSource, /searchParams\.get\("autoPlan"\)/);
-  assert.match(pageSource, /autoPlanRequested/);
-  assert.match(pageSource, /autoPlanRequested \|\| !context\.sketch\?\.layout3d/);
+test("打开编辑器不会因缺少布局或查询参数自动调用 AI", () => {
+  assert.doesNotMatch(pageSource, /searchParams\.get\("autoPlan"\)/);
+  assert.doesNotMatch(pageSource, /autoPlanRequested/);
+  assert.doesNotMatch(pageSource, /shouldAutoPlan/);
+});
+
+test("编辑器按钮调用自动构图并把镜头设计说明留在未保存状态", () => {
+  assert.match(pageSource, /autoPlanDramaShotBlockingSketch/);
+  assert.match(pageSource, /viewer\.loadLayout\(result\.data\.layout\)/);
+  assert.match(pageSource, /compositionNote/);
+  assert.match(pageSource, /AI 构图完成，有未保存修改/);
+  assert.doesNotMatch(pageSource, /autoPlan=1/);
+});
+
+test("编辑器显示当前镜头与 AI 镜头设计面板", () => {
+  assert.match(pageSource, /<Card/);
+  assert.match(pageSource, /镜头设计/);
+  assert.match(pageSource, /景别/);
+  assert.match(pageSource, /运镜/);
+  assert.match(pageSource, /时长/);
+  assert.match(pageSource, /AI 构图说明/);
+  assert.match(pageSource, /镜头预览/);
+  assert.match(pageSource, /context\.shot\.action/);
 });
 
 test("自动构图或保存期间禁止离开 3D 草图", () => {

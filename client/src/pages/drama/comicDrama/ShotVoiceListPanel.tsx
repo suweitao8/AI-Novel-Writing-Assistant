@@ -7,7 +7,6 @@ import {
   Pause,
   Pencil,
   Play,
-  WandSparkles,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
@@ -758,18 +757,6 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
             <Pencil className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
             编辑3D
           </Button>
-          <AiButton
-            type="button"
-            size="sm"
-            variant="outline"
-            className="h-auto min-h-9 w-full justify-center px-2 text-[11px]"
-            disabled={props.keyframeBusy}
-            onClick={() => navigate(`/drama/projects/${encodeURIComponent(props.projectId)}/shots/${encodeURIComponent(shot.id)}/blocking-3d?order=${shot.order}&autoPlan=1`)}
-            title={props.keyframeBusy ? "请等待 AI 图生成完成" : "让 AI 规划本镜角色摆位和镜头参数"}
-          >
-            <WandSparkles className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
-            AI摆位
-          </AiButton>
           <AiButton
             type="button"
             size="sm"
