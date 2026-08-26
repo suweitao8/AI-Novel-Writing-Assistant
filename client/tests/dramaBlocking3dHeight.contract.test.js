@@ -24,3 +24,12 @@ test("viewer 与 blocking 页面传递并保存角色身高基准", () => {
   assert.match(viewerSource, /heightMeters: actor\.heightMeters/);
   assert.match(pageSource, /addActor\(actor\.characterName, index, actor\.heightMeters\)/);
 });
+
+test("3D 草图不提供角色大小调整入口并显示角色身高", () => {
+  assert.doesNotMatch(viewerSource, /scaleSelected/);
+  assert.doesNotMatch(pageSource, /scaleSelected/);
+  assert.doesNotMatch(pageSource, /aria-label="缩小角色"/);
+  assert.doesNotMatch(pageSource, /aria-label="放大角色"/);
+  assert.doesNotMatch(pageSource, /<dt>缩放<\/dt>/);
+  assert.match(pageSource, /heightMeters[\s\S]{0,160}toFixed\(1\)/);
+});
