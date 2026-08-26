@@ -49,11 +49,12 @@ export function projectEquirectangularDirection(
 
 /**
  * The UE HDRIBackdrop floor and sky materials project a cubemap from a
- * world-space projection point. Our scene state is an equirectangular 2:1
- * image rather than a GPU cubemap, so this shader performs the equivalent
- * direction lookup directly against the panorama. Keeping the lookup in the
- * fragment shader is important: interpolating atan2-derived UVs across the
- * center of a floor fan turns the projection into a visible circular swirl.
+ * world-space projection point. Scene state is stored as an equirectangular
+ * 2:1 image, so the viewer first reprojects it into a filtered GPU cubemap and
+ * this shader samples that cubemap from the surface direction. Keeping the
+ * lookup in the fragment shader is important: interpolating a projected
+ * direction across the center of a floor fan turns the projection into a
+ * visible circular swirl.
  */
 export const PROJECTED_HDRI_VERTEX_GLSL = `
 attribute vec3 aPosition;
@@ -76,37 +77,15 @@ precision highp float;
 #include "gammaPS"
 #include "tonemappingPS"
 
-uniform sampler2D uEnvironmentMap;
+uniform samplerCube uEnvironmentMap;
 uniform float uProjectionCenterHeight;
 
 varying vec3 vWorldPosition;
 
-const float PI = 3.1415926535897932384626433832795;
-const float TWO_PI = 6.283185307179586476925286766559;
-
 void main(void) {
     vec3 projectionToSurface = vWorldPosition - vec3(0.0, uProjectionCenterHeight, 0.0);
     vec3 projectionDirection = normalize(projectionToSurface);
-    float horizontalLength = length(projectionDirection.xz);
-    float u = 0.5;
-    // Longitude is undefined at either pole. Avoid atan(0, 0) entirely; a
-    // cubemap has a stable filtered pole, so use a fixed longitude there.
-    if (horizontalLength > 0.0001) {
-        float azimuthProgress = fract(
-            (atan(projectionDirection.z, projectionDirection.x) + PI * 0.5) / TWO_PI + 1.0
-        );
-        u = 1.0 - azimuthProgress;
-        float poleProgress = smoothstep(0.94, 0.999, abs(projectionDirection.y));
-        // Blending to a fixed longitude gives the 2D panorama the same
-        // behavior as a filtered cubemap near either pole.
-        u = mix(u, 0.5, poleProgress);
-    }
-    float v = clamp(
-        0.5 - asin(clamp(projectionDirection.y, -1.0, 1.0)) / PI,
-        0.0,
-        1.0
-    );
-    vec4 rawColor = texture2D(uEnvironmentMap, vec2(u, v));
+    vec4 rawColor = textureCube(uEnvironmentMap, projectionDirection);
     vec3 linearColor = decodeGamma(rawColor);
     gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
