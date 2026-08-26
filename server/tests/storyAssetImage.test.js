@@ -39,4 +39,6 @@ test("室内场景全景提示词追加强化行：家具与墙根不落下半�
   assert.match(prompt, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon/);
   assert.match(prompt, /the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it/);
   assert.match(prompt, /the floor half stays completely empty interior flooring/);
+  assert.match(prompt, /wall décor rule: anything framed or hung on the walls is decorative media only/);
+  assert.match(prompt, /never personal or family portrait photographs/);
 });

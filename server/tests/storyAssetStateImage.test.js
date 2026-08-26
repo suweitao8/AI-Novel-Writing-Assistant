@@ -88,6 +88,7 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
   // 室内强化行只进 interior 场景，室外不得混入。
   assert.doesNotMatch(scene, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band/);
+  assert.doesNotMatch(scene, /wall décor rule/);
   const interior = buildStateImagePrompt({
     kind: "scene",
     assetName: "出租屋",
@@ -105,6 +106,9 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(interior, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon/);
   assert.match(interior, /the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it/);
   assert.match(interior, /the floor half stays completely empty interior flooring/);
+  // 2026-08-26：墙面装饰只允许海报/画作等装饰品，禁止与主角无关的人像照片。
+  assert.match(interior, /wall décor rule: anything framed or hung on the walls is decorative media only/);
+  assert.match(interior, /never personal or family portrait photographs/);
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
   assert.match(imageServiceSource, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
