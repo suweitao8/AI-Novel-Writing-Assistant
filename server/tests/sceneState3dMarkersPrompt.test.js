@@ -23,14 +23,21 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v5");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v5/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v6");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v6/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
     analysisNote: "识别到室内主要固定家具。",
   });
   assert.equal(output.markers[0].kind, "bed");
+  assert.equal(
+    sceneState3dMarkersPrompt.outputSchema.safeParse({
+      markers: [{ ...marker, kind: "floor" }],
+    }).success,
+    false,
+    "可行走地面不是视觉模型的输出类别",
+  );
   assert.equal(output.markers[0].position[2], 2.4);
 });
 test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间物体", () => {
