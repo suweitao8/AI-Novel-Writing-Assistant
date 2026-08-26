@@ -56,6 +56,20 @@ export interface StoryAssetStateVoice {
 
 export type StoryAssetAgeGroup = "child" | "youth" | "middle" | "elder";
 
+/** 角色状态手动身高的统一边界（单位：米）；空值表示使用角色级 AI 估算。 */
+export const STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS = 0.7;
+export const STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS = 2.4;
+
+export function normalizeStoryAssetHeightMeters(value: unknown): number | undefined {
+  if (typeof value !== "number"
+    || !Number.isFinite(value)
+    || value < STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS
+    || value > STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS) {
+    return undefined;
+  }
+  return value;
+}
+
 /** 场景状态的结构化环境字段；它们随场景状态变化，不再绑定在场景资产顶层。 */
 export type StoryAssetSceneType = "interior" | "exterior" | "nature";
 export type StoryAssetTimeOfDay = "morning" | "noon" | "night";
@@ -148,6 +162,8 @@ export interface StoryAssetState {
   voicePrompt?: string;
   /** 角色状态的年龄段；场景/道具状态不使用。 */
   ageGroup?: StoryAssetAgeGroup;
+  /** 角色状态的人工身高（米）；不填写时由分镜沿用角色级 AI 估算。 */
+  heightMeters?: number;
   /** 场景状态的空间类型；角色/道具状态不使用。 */
   sceneType?: StoryAssetSceneType | null;
   /** 场景状态的时间；角色/道具状态不使用。 */
@@ -197,6 +213,7 @@ export interface StoryAssetStateDefaults {
   description?: string | null;
   imagePrompt?: string | null;
   ageGroup?: StoryAssetAgeGroup | null;
+  heightMeters?: number | null;
   sceneType?: StoryAssetSceneType | null;
   timeOfDay?: StoryAssetTimeOfDay | null;
   weather?: StoryAssetWeather | null;
@@ -209,6 +226,7 @@ export interface StoryAssetStateDefaults {
 export function createStoryAssetInitialState(
   input: StoryAssetStateDefaults = {},
 ): StoryAssetState {
+  const heightMeters = normalizeStoryAssetHeightMeters(input.heightMeters);
   const description = input.description?.trim() || "资产默认状态";
   // 初始提示词可能来自旧角色字段（facePrompt/environmentPrompt…），同样过纯度剥离。
   const imagePrompt = stripAssetImagePromptNoise(input.imagePrompt ?? "") || description;
@@ -218,6 +236,9 @@ export function createStoryAssetInitialState(
     description,
     imagePrompt,
     ...(input.ageGroup ? { ageGroup: input.ageGroup } : {}),
+    ...(heightMeters !== undefined
+      ? { heightMeters }
+      : {}),
     ...(input.sceneType !== undefined && input.sceneType !== null ? { sceneType: input.sceneType } : {}),
     ...(input.timeOfDay !== undefined && input.timeOfDay !== null ? { timeOfDay: input.timeOfDay } : {}),
     ...(input.weather !== undefined && input.weather !== null ? { weather: input.weather } : {}),
@@ -270,9 +291,11 @@ export function normalizeStoryAssetStates(
       const {
         wearTags: legacyWearTags,
         scene3dMarkers: rawScene3dMarkers,
+        heightMeters: rawHeightMeters,
         ...stateWithoutRuntimeMarkers
       } = state;
       const canonicalWearTags = canonicalizeWearTags(legacyWearTags);
+      const heightMeters = normalizeStoryAssetHeightMeters(rawHeightMeters);
       const scene3dMarkers = isStoryScene3DMarkerSet(rawScene3dMarkers)
         ? rawScene3dMarkers
         : undefined;
@@ -294,6 +317,7 @@ export function normalizeStoryAssetStates(
           ? { weather: initialState.weather }
           : {}),
         ...(canonicalWearTags ? { wearTags: canonicalWearTags } : {}),
+        ...(heightMeters !== undefined ? { heightMeters } : {}),
         ...(scene3dMarkers ? { scene3dMarkers } : {}),
       };
     })
@@ -372,6 +396,10 @@ function isStoryAssetStateRecord(value: unknown): value is StoryAssetStateInput 
       || !STORY_ASSET_AGE_GROUPS.has(state.ageGroup as StoryAssetAgeGroup))) {
     return false;
   }
+  if (state.heightMeters !== undefined && state.heightMeters !== null
+    && normalizeStoryAssetHeightMeters(state.heightMeters) === undefined) {
+    return false;
+  }
   if (state.sceneType !== undefined && state.sceneType !== null
     && (typeof state.sceneType !== "string"
       || !STORY_ASSET_SCENE_TYPES.has(state.sceneType as StoryAssetSceneType))) {
@@ -423,7 +451,7 @@ export interface StoryAssetStatesJsonParseResult {
  * 图片/音色继承在不同入口得到不同结果，因此服务端写入前必须拒绝它们。
  */
 export function validateStoryAssetStateList(
-  states: Array<Pick<StoryAssetStateInput, "id" | "referenceStateId">>,
+  states: Array<Pick<StoryAssetStateInput, "id" | "referenceStateId" | "heightMeters">>,
 ): string | null {
   const ids = new Set<string>();
   for (const state of states) {
@@ -435,6 +463,12 @@ export function validateStoryAssetStateList(
       return "状态 ID 不能重复。";
     }
     ids.add(id);
+  }
+  for (const state of states) {
+    if (state.heightMeters !== undefined && state.heightMeters !== null
+      && normalizeStoryAssetHeightMeters(state.heightMeters) === undefined) {
+      return "角色状态身高需填写 0.70 到 2.40 米之间的数字。";
+    }
   }
   for (const state of states) {
     const referenceStateId = typeof state.referenceStateId === "string"

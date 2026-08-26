@@ -267,7 +267,7 @@ export interface DramaShotBlockingSketchEditorContext {
     imageUrl?: string;
     sourceImageKind: "state_sheet" | "portrait" | "placeholder";
     heightMeters: number;
-    heightSource: "ai" | "fallback" | "legacy";
+    heightSource: "ai" | "fallback" | "manual" | "legacy";
     heightConfidence?: number;
   }>;
 }

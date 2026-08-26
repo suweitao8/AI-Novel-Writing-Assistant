@@ -2,6 +2,10 @@ import type { Router } from "express";
 import fs from "fs";
 import { z } from "zod";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
+import {
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import { validate } from "../../../../middleware/validate";
 import {
   storySettingsService,
@@ -125,6 +129,10 @@ const assetStateSchema = z.object({
 // 与未知值由 normalizeStoryAssetStates 的 canonicalizeWearTags 迁移/过滤。
 const characterAssetStateSchema = assetStateSchema.extend({
   imagePrompt: z.string().trim().max(600).optional(),
+  heightMeters: z.number()
+    .min(STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS)
+    .max(STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS)
+    .optional(),
   wearTags: z.array(z.string().trim().min(1).max(20)).max(8).optional(),
 });
 

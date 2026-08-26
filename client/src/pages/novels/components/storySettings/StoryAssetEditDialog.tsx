@@ -32,6 +32,7 @@ import {
   EMPTY_CHARACTER_FORM,
   EMPTY_PROP_FORM,
   EMPTY_SCENE_FORM,
+  getCharacterStateHeightError,
   normalizeStatesForSave,
   PropAssetFormFields,
   SceneAssetFormFields,
@@ -158,7 +159,20 @@ export default function StoryAssetEditDialog(props: {
   const statesValid = states.length > 0 && states.every((state) => Boolean(
     state.label.trim() && state.description.trim()
     && (kind === "character" || state.imagePrompt.trim()),
-  ));
+  ) && !getCharacterStateHeightError(state.heightMeters));
+
+  const initialStateHeight = typeof states[0]?.heightMeters === "number" && Number.isFinite(states[0].heightMeters)
+    ? states[0].heightMeters
+    : null;
+  const characterHeight = initialStateHeight
+    ?? ((asset as StorySettingsCharacter | null)?.heightProfile?.heightMeters ?? null);
+  const characterHeightSource = initialStateHeight !== null
+    ? "手动设定"
+    : (asset as StorySettingsCharacter | null)?.heightProfile?.source === "ai"
+      ? "AI 估算"
+      : (asset as StorySettingsCharacter | null)?.heightProfile
+        ? "兼容基准"
+        : null;
 
   const invalidate = async () => {
     const listKey = kind === "character"
@@ -345,14 +359,14 @@ export default function StoryAssetEditDialog(props: {
                 value={form as CharacterAssetFormState}
                 onChange={(patch) => setForm((prev) => ({ ...prev, ...patch } as AssetFormState))}
               />
-              {(asset as StorySettingsCharacter | null)?.heightProfile ? (
+              {characterHeight !== null && characterHeightSource ? (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/70 bg-muted/25 px-3 py-2 text-xs" aria-label="分镜比例基准">
                   <span className="text-muted-foreground">分镜比例基准</span>
                   <span className="font-medium text-foreground">
-                    约 {((asset as StorySettingsCharacter).heightProfile?.heightMeters ?? 0).toFixed(1)} 米
+                    约 {characterHeight.toFixed(1)} 米
                   </span>
                   <span className="text-muted-foreground">
-                    {(asset as StorySettingsCharacter).heightProfile?.source === "ai" ? "AI 估算" : "兼容基准"}
+                    {characterHeightSource}
                   </span>
                 </div>
               ) : null}
