@@ -129,9 +129,12 @@ export function projectStoryScene3dMarkerPosition(
     const downward = -ray[1];
     const groundRadius = downward > 0.08
       ? environment.projectionCenterHeight * horizontalLength / downward
-      : depthHint;
+      // The fixed 50% panorama contract can keep a furniture box above the
+      // horizon. Its ray points upward, so the model's radial hint is not a
+      // reliable ground depth; use the available ground edge instead.
+      : safeMaxRadius;
     const radius = clamp(
-      Number.isFinite(groundRadius) ? groundRadius : depthHint,
+      Number.isFinite(groundRadius) ? groundRadius : safeMaxRadius,
       0.25,
       safeMaxRadius,
     );

@@ -37,6 +37,32 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   assert.equal(result.analysisNote, "室内主要家具");
 });
 
+test("场景标记服务把固定 50% 上半区的地面家具放到半球外圈", () => {
+  const result = serviceModule.buildStoryScene3dMarkerSet({
+    markers: [{
+      kind: "table",
+      label: "桌子",
+      anchor: "floor",
+      position: [0, 0.4, 0],
+      size: [1.2, 0.8, 0.8],
+      yawDeg: 15,
+      confidence: 0.9,
+      imageRegion: { x: 0.4, y: 0.3, width: 0.2, height: 0.16 },
+    }],
+    analysisNote: "固定家具",
+  }, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    yawDeg: 0,
+    intensity: 1,
+  }, { artifactId: "artifact-table" });
+
+  const position = result.markers[0]?.position;
+  assert.ok(position);
+  assert.ok(Math.hypot(position[0], position[2]) > 6.6, "桌子应落在半球可用地面外圈");
+  assert.equal(position[1], 0.4);
+});
+
 test("场景标记服务保存结果时以图像区域纠正墙面物体方向", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{

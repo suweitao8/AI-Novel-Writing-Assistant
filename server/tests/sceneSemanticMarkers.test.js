@@ -136,6 +136,20 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
   assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
 });
 
+test("固定 50% 全景中家具框底在地平线上方时仍落在半球地面外圈", () => {
+  const marker = {
+    anchor: "floor",
+    position: [0, 0.5, 0],
+    size: [1.2, 0.8, 0.8],
+    imageRegion: { x: 0.4, y: 0.3, width: 0.2, height: 0.16 },
+  };
+  const projected = projectStoryScene3dMarkerPosition(marker, environment);
+
+  assert.ok(Math.abs(projected[0]) < 0.05, "水平中心仍应保持在世界 Z 轴附近");
+  assert.ok(projected[2] > 6.6, "地面物体应落在当前半球的可用外圈，而不是球体中心");
+  assert.equal(projected[1], 0.4, "floor 标记中心高度应由物体尺寸决定");
+});
+
 test("投射中心高度和半球直径会参与标记反算，历史分界值不再改变结果", () => {
   const marker = {
     anchor: "wall",
