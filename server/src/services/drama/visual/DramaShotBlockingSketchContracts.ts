@@ -330,6 +330,7 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   return {
     projectionCenterHeight: clampedEnvironmentNumber(environment.projectionCenterHeight, "HDRI 环境投射中心高度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max, 0.5, 10),
     domeRadius: clampedEnvironmentNumber(environment.domeRadius, "HDRI 环境半球直径", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max, 5, 100),
+    // 接受带保留旧版 0.40–0.65，历史快照能读入后裁剪到当前可调范围。
     panoramaHorizonV: clampedEnvironmentNumber(environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V, "HDRI 环境分界线", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max, 0.4, 0.65),
     yawDeg: 0,
     intensity: 1,

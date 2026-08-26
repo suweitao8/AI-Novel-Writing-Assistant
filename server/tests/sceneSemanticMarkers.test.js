@@ -172,7 +172,7 @@ test("投射中心高度、半球直径和全景分界都会参与标记反算",
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
-    panoramaHorizonV: 0.58,
+    panoramaHorizonV: 0.52,
   });
   const expandedWithDefaultHorizon = project({
     ...environment,
@@ -189,7 +189,7 @@ test("投射中心高度、半球直径和全景分界都会参与标记反算",
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
-    panoramaHorizonV: 0.65,
+    panoramaHorizonV: 0.45,
   });
 
   assert.ok(expanded[1] > compact[1], "投射中心升高后墙面标记高度应随之变化");
@@ -238,7 +238,7 @@ test("空间标记环境快照的半球直径归一化到 5 到 20", () => {
     sourceEnvironment: { projectionCenterHeight: 2, domeRadius: 15, panoramaHorizonV: 0.9 },
     markers: [],
   }));
-  assert.equal(upperHorizon?.sourceEnvironment?.panoramaHorizonV, 0.65);
+  assert.equal(upperHorizon?.sourceEnvironment?.panoramaHorizonV, 0.55);
 });
 
 test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据仍保持过期", () => {
