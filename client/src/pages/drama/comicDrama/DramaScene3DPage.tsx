@@ -432,7 +432,7 @@ export default function DramaScene3DPage() {
                       <span>分界线</span>
                       <output className="tabular-nums text-foreground">{Math.round(environmentSettings.panoramaHorizonV * 100)}%</output>
                     </span>
-                    <input type="range" aria-label="分界线" min="40" max="65" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
+                    <input type="range" aria-label="分界线" min="45" max="55" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
                   </label>
                 </div>
 
