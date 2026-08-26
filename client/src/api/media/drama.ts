@@ -244,6 +244,7 @@ export interface DramaShotBlockingSketchData {
   version: number;
   url?: string;
   generatedAt?: string;
+  compositionNote?: string;
   scene: DramaShotBlockingSketchScene;
   actors: DramaShotBlockingSketchActor[];
   layout3d?: DramaShotBlockingSketch3DLayout;
