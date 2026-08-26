@@ -37,9 +37,25 @@ test("对象树只显示图标和名称，属性面板固定并在内容区滚�
   assert.doesNotMatch(objectPanel, /item\.trailing/);
   assert.doesNotMatch(scenePage, /\n\s+meta:/);
   assert.doesNotMatch(blockingPage, /\n\s+meta:/);
-  assert.match(shell, /grid-rows-\[minmax\(10rem,15rem\)_minmax\(0,1fr\)\]/);
+  assert.match(shell, /grid-rows-\[minmax\(0,33\.333%\)_minmax\(0,1fr\)\]/);
+  assert.match(shell, /gap-2/);
   assert.match(shell, /aria-label="属性面板"/);
   assert.match(objectPanel, /h-full min-h-0/);
+  assert.match(objectPanel, /CardHeader className="shrink-0 px-3 pb-2 pt-2\.5"/);
+});
+
+test("对象列表使用世界和参考角色语义，并直接列出空间标记", () => {
+  assert.match(scenePage, /label: "世界"/);
+  assert.match(scenePage, /label: "参考角色"/);
+  assert.match(scenePage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
+  assert.match(scenePage, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
+  assert.match(scenePage, /visibleSceneMarkers\.map/);
+  assert.doesNotMatch(scenePage, /label: "场景对象"/);
+  assert.doesNotMatch(scenePage, /label: "比例参照"/);
+
+  assert.match(blockingPage, /label: "世界"/);
+  assert.match(blockingPage, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
+  assert.match(blockingPage, /context\.scene\.markers\.map/);
 });
 
 test("可移动角色属性包含位置、旋转和大小", () => {

@@ -108,7 +108,7 @@ test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", ()
   assert.match(viewerSource, /setEntityMaterial\(actor\.animEntity, actor\.color/);
 });
 
-test("选中角色和比例参照使用 3D 外轮廓反馈", () => {
+test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
   assert.match(viewerSource, /drawEntitySelectionOutline/);
   assert.match(viewerSource, /selectedActor\(\)/);
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
@@ -127,11 +127,23 @@ test("分镜 3D 草图从场景资产继承 HDRI 参数，不再单独编辑", (
   assert.doesNotMatch(pageSource, /type=\"range\"/);
 });
 
-test("场景 3D 编辑页只允许相机交互，比例参照角色固定在 1.7 米", () => {
-  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "比例参照（约1\.7m）"/);
+test("场景 3D 编辑页只允许相机交互，参考角色固定在 1.7 米", () => {
+  assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "参考角色（约1\.7m）"/);
   assert.match(scene3dPageSource, /nextViewer\.addActor\(REFERENCE_ACTOR_LABEL, 0, REFERENCE_ACTOR_HEIGHT_METERS/);
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
-  assert.match(scene3dPageSource, /参照角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+  assert.match(scene3dPageSource, /参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+});
+
+test("对象树保留全部空间标记并使用世界/参考角色名称", () => {
+  assert.match(scene3dPageSource, /label: "世界"/);
+  assert.match(scene3dPageSource, /label: "参考角色"/);
+  assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
+  assert.match(scene3dPageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
+  assert.match(scene3dPageSource, /selectedObjectId === REFERENCE_OBJECT_ID \? "参考角色"/);
+  assert.match(pageSource, /label: "世界"/);
+  assert.match(pageSource, /context\.scene\.markers\.map/);
+  assert.match(pageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
+  assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
