@@ -17,6 +17,10 @@ import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { runImageGeneration, safeJsonParse, type ImageTargetAdapter } from "../image/runtime";
 import { resolveComicStyleKeywords } from "./comicStylePrompt";
 import { REFERENCE_IMAGE_PROVIDER } from "../image/assetProviderRouting";
+import {
+  SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
+  SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
+} from "../image/panorama/scenePanoramaLayout";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +112,7 @@ function buildSceneSheetPrompt(params: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
+    ...SCENE_PANORAMA_LAYOUT_PROMPT_LINES,
     "environment concept art, NO characters or only tiny background figures",
   ];
   if (bible.palette) lines.push(`color palette: ${bible.palette}`);
@@ -264,6 +269,7 @@ export class ComicSceneService {
       provider: REFERENCE_IMAGE_PROVIDER,
       prompt: overrides?.promptOverride ?? ctx.prompt,
       size: IMAGE_SPECS.scenePanorama,
+      negativePrompt: SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
     });
   }
 

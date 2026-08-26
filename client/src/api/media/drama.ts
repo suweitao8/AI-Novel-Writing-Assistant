@@ -227,7 +227,6 @@ export interface DramaShotBlockingSketch3DActor {
 export interface DramaShotBlockingSketch3DEnvironment {
   projectionCenterHeight: number;
   domeRadius: number;
-  panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
 }

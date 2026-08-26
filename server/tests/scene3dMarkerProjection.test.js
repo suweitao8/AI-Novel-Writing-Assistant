@@ -9,7 +9,6 @@ const {
 const environment = {
   projectionCenterHeight: 2,
   domeRadius: 15,
-  panoramaHorizonV: 0.5,
 };
 
 function marker(overrides = {}) {

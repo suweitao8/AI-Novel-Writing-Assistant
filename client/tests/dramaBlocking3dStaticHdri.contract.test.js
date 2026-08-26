@@ -120,15 +120,14 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
-test("HDRI 环境提供投射中心高度、半球直径和全景地面分界，旋转与亮度固定", () => {
+test("HDRI 环境只提供投射中心高度和半球直径，地面分界固定为 50%", () => {
   assert.match(viewerSource, /projectionCenterHeight: 2/);
   assert.match(viewerSource, /domeRadius: 15/);
-  assert.match(viewerSource, /panoramaHorizonV: 0\.5/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);
   assert.match(viewerSource, /domeRadius[^\n]*10, 50/);
-  assert.match(viewerSource, /panoramaHorizonV[^\n]*0\.4, 0\.65/);
+  assert.doesNotMatch(viewerSource, /panoramaHorizonV/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /yawDeg: 0/);
   assert.match(viewerSource, /intensity: 1/);
@@ -146,7 +145,7 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
   assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
-  assert.match(environmentProjectionSource, /uPanoramaHorizonV/);
+  assert.doesNotMatch(environmentProjectionSource, /uPanoramaHorizonV/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(environmentSource, /ADDRESS_REPEAT/);
@@ -214,7 +213,7 @@ test("HDRI 等距投影数学在地平线、两极和经度循环处连续", asy
   assert.ok(horizon.u >= 0 && horizon.u <= 1);
   assert.ok(opposite.u >= 0 && opposite.u <= 1);
   assert.deepEqual(scaled, horizon, "投影只由方向决定，与距离无关");
-  assert.equal(shifted.v, 0.58, "全景地面分界应改变采样 V 坐标");
+  assert.equal(shifted.v, 0.5, "历史全景地面分界不能改变固定采样 V 坐标");
   assert.equal(projectEquirectangularDirection([0, 1, 0]).u, 0.5, "上极点使用固定经度");
   assert.equal(projectEquirectangularDirection([0, -1, 0]).u, 0.5, "下极点使用固定经度");
 });

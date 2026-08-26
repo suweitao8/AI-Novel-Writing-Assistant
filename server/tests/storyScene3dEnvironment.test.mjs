@@ -14,7 +14,6 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   assert.deepEqual(DEFAULT_STORY_SCENE_3D_ENVIRONMENT, {
     projectionCenterHeight: 2,
     domeRadius: 15,
-    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
@@ -27,7 +26,6 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   }), {
     projectionCenterHeight: 4.5,
     domeRadius: 32,
-    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
@@ -38,37 +36,38 @@ test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
   assert.deepEqual(parseStoryScene3dEnvironment(JSON.stringify({
     projectionCenterHeight: 0.6,
     domeRadius: 96,
+    panoramaHorizonV: 0.65,
   })), {
     projectionCenterHeight: 1,
     domeRadius: 50,
-    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
 });
 
-test("场景资产 HDRI 参数序列化后可恢复", () => {
+test("旧全景地面分界只兼容读取，归一化固定为 50% 且新 JSON 不再写出该字段", () => {
   const value = { projectionCenterHeight: 2.5, domeRadius: 20, panoramaHorizonV: 0.58 };
-  assert.deepEqual(parseStoryScene3dEnvironment(serializeStoryScene3dEnvironment(value)), {
+  const serialized = serializeStoryScene3dEnvironment(value);
+  assert.doesNotMatch(serialized, /panoramaHorizonV/);
+  assert.deepEqual(parseStoryScene3dEnvironment(serialized), {
     projectionCenterHeight: 2.5,
     domeRadius: 20,
-    panoramaHorizonV: 0.58,
     yawDeg: 0,
     intensity: 1,
   });
 });
 
-test("场景资产 HDRI 全景地面分界按 40% 到 65% 归一化", () => {
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.39 }).panoramaHorizonV, 0.4);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.66 }).panoramaHorizonV, 0.65);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.58 }).panoramaHorizonV, 0.58);
+test("任意历史全景地面分界都被忽略，运行时统一使用固定 50% 合同", () => {
+  for (const panoramaHorizonV of [0.39, 0.4, 0.58, 0.65, 0.9]) {
+    const normalized = normalizeStoryScene3dEnvironment({ panoramaHorizonV });
+    assert.equal("panoramaHorizonV" in normalized, false);
+  }
 });
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
   assert.deepEqual(getDefaultStoryScene3dEnvironment("interior"), {
     projectionCenterHeight: 2,
     domeRadius: 10,
-    panoramaHorizonV: 0.5,
     yawDeg: 0,
     intensity: 1,
   });
@@ -96,7 +95,6 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), {
     projectionCenterHeight: 4.5,
     domeRadius: 15,
-    panoramaHorizonV: 0.58,
     yawDeg: 0,
     intensity: 1,
   });

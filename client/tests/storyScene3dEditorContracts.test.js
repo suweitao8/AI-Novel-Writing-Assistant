@@ -33,9 +33,8 @@ test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", (
   assert.match(page, /场景资产 HDRI/);
   assert.match(page, /min="1" max="10" step="0\.1"/);
   assert.match(page, /min="10" max="50" step="1"/);
-  assert.match(page, /aria-label="全景地面分界" min="40" max="65" step="1"/);
-  assert.match(page, /panoramaHorizonV/);
-  assert.match(page, /panoramaHorizonV: environmentSettings\.panoramaHorizonV/);
+  assert.doesNotMatch(page, /aria-label="全景地面分界"/);
+  assert.doesNotMatch(page, /panoramaHorizonV/);
   assert.match(page, /saveBeforeExit/);
   assert.match(page, /await saveBeforeExit\(\)/);
   assert.match(page, /updateStorySettingsScene/);

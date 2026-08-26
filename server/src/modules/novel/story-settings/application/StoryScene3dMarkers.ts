@@ -7,7 +7,10 @@ import type {
   StoryScene3DMarkerKind,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
-import { STORY_SCENE_3D_MARKER_KINDS } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_MARKER_KINDS,
+  STORY_SCENE_3D_PANORAMA_HORIZON_V,
+} from "@ai-novel/shared/types/comicDrama";
 import { equirectangularRegionCenterToHorizontalDirection } from "@ai-novel/shared/utils/scene3dProjection";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
@@ -26,7 +29,7 @@ const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceil
 
 export type StoryScene3dMarkerProjectionEnvironment = Pick<
   StoryScene3DEnvironment,
-  "projectionCenterHeight" | "domeRadius" | "panoramaHorizonV"
+  "projectionCenterHeight" | "domeRadius"
 > & Partial<Pick<StoryScene3DEnvironment, "yawDeg" | "intensity">>;
 
 function finiteOr(value: unknown, fallback: number): number {
@@ -65,16 +68,13 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
   const source = value as Record<string, unknown>;
   const projectionCenterHeight = finiteOr(source.projectionCenterHeight, Number.NaN);
   const domeRadius = finiteOr(source.domeRadius, Number.NaN);
-  const panoramaHorizonV = finiteOr(source.panoramaHorizonV, Number.NaN);
   if (!Number.isFinite(projectionCenterHeight)
-    || !Number.isFinite(domeRadius)
-    || !Number.isFinite(panoramaHorizonV)) {
+    || !Number.isFinite(domeRadius)) {
     return undefined;
   }
   return {
     projectionCenterHeight: clamp(projectionCenterHeight, 1, 10),
     domeRadius: clamp(domeRadius, 10, 50),
-    panoramaHorizonV: clamp(panoramaHorizonV, 0.4, 0.65),
   };
 }
 
@@ -86,7 +86,7 @@ function resolveProjectionRay(
   const imageV = anchor === "floor"
     ? region.y + region.height
     : region.y + region.height / 2;
-  const latitude = (environment.panoramaHorizonV - imageV) * Math.PI;
+  const latitude = (STORY_SCENE_3D_PANORAMA_HORIZON_V - imageV) * Math.PI;
   const horizontalLength = Math.cos(latitude);
   const direction = equirectangularRegionCenterToHorizontalDirection(region, environment);
   return [
@@ -323,7 +323,6 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
     sourceEnvironment: {
       projectionCenterHeight: environment.projectionCenterHeight,
       domeRadius: environment.domeRadius,
-      panoramaHorizonV: environment.panoramaHorizonV,
     },
   };
 }

@@ -52,7 +52,6 @@ export function buildStoryScene3dMarkerSet(
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
       domeRadius: normalizedEnvironment.domeRadius,
-      panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
     analysisNote: output.analysisNote,
     sourceImageArtifactId: imageMeta.artifactId,
@@ -69,7 +68,6 @@ export function buildStoryScene3dMarkerSet(
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
       domeRadius: normalizedEnvironment.domeRadius,
-      panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
     markers: [],
     analyzedAt: new Date().toISOString(),
