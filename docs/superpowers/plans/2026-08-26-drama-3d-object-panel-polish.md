@@ -82,4 +82,3 @@
 - [ ] **Step 3: 提交并集成**
 
 使用 `git commit -s` 提交；从干净 main 运行 `pnpm workflow:integrate codex/scene-object-panel-polish --verify "pnpm typecheck" --push`，确认 `HEAD == origin/main` 后清理本 worktree。
-
