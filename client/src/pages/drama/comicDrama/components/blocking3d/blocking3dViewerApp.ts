@@ -39,6 +39,7 @@ const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
+const SELECTION_RING_OPACITY = 0.5;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   domeRadius: 15,
@@ -99,6 +100,8 @@ interface Blocking3dViewerActor {
   material: pc.StandardMaterial;
 }
 
+type Blocking3dActorPosition = [number, number, number];
+
 export interface Blocking3dViewerOptions {
   canvas: HTMLCanvasElement;
   environmentUrl?: string | null;
@@ -114,7 +117,12 @@ export interface Blocking3dViewer {
   onMarkerSelection: (listener: (id: string | null) => void) => () => void;
   onChange: (listener: () => void) => () => void;
   onStatus: (listener: (status: string) => void) => () => void;
-  addActor: (label: string, index: number, heightMeters?: number) => boolean;
+  addActor: (
+    label: string,
+    index: number,
+    heightMeters?: number,
+    initialPosition?: Blocking3dActorPosition,
+  ) => boolean;
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
   selectMarker: (id: string | null) => boolean;
@@ -263,6 +271,8 @@ function loadAsset(app: pc.AppBase, url: string, type: "container" | "texture"):
 function setEntityMaterial(entity: pc.Entity, color: [number, number, number], material = new pc.StandardMaterial()): pc.StandardMaterial {
   material.diffuse = new pc.Color(color[0], color[1], color[2]);
   material.metalness = 0;
+  material.useLighting = true;
+  material.useSkybox = true;
   material.update();
   for (const render of entity.findComponents("render") as pc.RenderComponent[]) {
     for (const mesh of render.meshInstances ?? []) mesh.material = material;
@@ -386,7 +396,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   }
 
   const selectionColor = new pc.Color(0.02, 0.32, 0.1);
-  const selectionMaterial = createMaterial(selectionColor);
+  const selectionMaterial = createMaterial(selectionColor, SELECTION_RING_OPACITY);
+  selectionMaterial.depthWrite = false;
+  selectionMaterial.useLighting = false;
+  selectionMaterial.useSkybox = false;
   selectionMaterial.emissive = selectionColor.clone();
   selectionMaterial.emissiveIntensity = 0.35;
   selectionMaterial.update();
@@ -852,6 +865,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     label: string,
     index: number,
     heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
+    initialPosition?: Blocking3dActorPosition,
   ): Blocking3dViewerActor => {
     const resource = actorAsset.resource as ContainerResource;
     const model = resource.instantiateRenderEntity?.({ castShadows: false });
@@ -865,7 +879,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     root.addChild(model);
     model.addComponent("anim", { activate: true });
     if (model.anim) model.anim.rootBone = model;
-    root.setPosition((index - 1) * 1.6, 0, 0);
+    const placement = initialPosition ?? [(index - 1) * 1.6, 0, 0];
+    root.setPosition(placement[0], placement[1], placement[2]);
     root.setEulerAngles(0, 180, 0);
     const normalizedHeightMeters = normalizeBlocking3dHeight(heightMeters);
     const proxyScale = heightToBlocking3dScale(normalizedHeightMeters);
@@ -925,9 +940,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);
     },
-    addActor(label, index, heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS) {
+    addActor(label, index, heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS, initialPosition) {
       if (!label.trim() || actors.has(label)) return false;
-      const actor = createActor(label.trim(), index, heightMeters);
+      const actor = createActor(label.trim(), index, heightMeters, initialPosition);
       actors.set(label.trim(), actor);
       if (!selectedLabel) select(label.trim());
       emitChange();

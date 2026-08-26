@@ -26,6 +26,10 @@ const selectionRingSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dSelectionRing.ts", import.meta.url),
   "utf8",
 );
+const scaleSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dScale.ts", import.meta.url),
+  "utf8",
+);
 const environmentSource = `${viewerSource}\n${environmentGeometrySource}\n${environmentProjectionSource}`;
 
 test("3D 草图只显示静态姿势控制，不提供动态播放入口", () => {
@@ -216,12 +220,22 @@ test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI �
   assert.doesNotMatch(viewerSource, /estimateHdriLightDirection|getImageData|setFromDirections\(pc\.Vec3\.DOWN/);
 });
 
+test("参考角色材质显式使用 HDRI 环境光", () => {
+  assert.match(viewerSource, /material\.useLighting = true/);
+  assert.match(viewerSource, /material\.useSkybox = true/);
+  assert.match(viewerSource, /pc\.EnvLighting\.generateLightingSource/);
+  assert.match(viewerSource, /app\.scene\.envAtlas = environmentAtlas/);
+});
+
 test("选中角色使用深绿色空心圆环，场景参照角色支持锁定位置移动", () => {
   assert.match(selectionRingSource, /SELECTION_RING_INNER_RADIUS/);
   assert.match(selectionRingSource, /SELECTION_RING_OUTER_RADIUS/);
   assert.match(selectionRingSource, /data\.indices\.push\(outer, inner, nextOuter\)/);
   assert.match(viewerSource, /createSelectionRingGeometryData\(\)/);
   assert.match(viewerSource, /new pc\.Color\(0\.02, 0\.32, 0\.1\)/);
+  assert.match(viewerSource, /SELECTION_RING_OPACITY = 0\.5/);
+  assert.match(viewerSource, /createMaterial\(selectionColor, SELECTION_RING_OPACITY\)/);
+  assert.match(viewerSource, /selectionMaterial\.depthWrite = false/);
   assert.match(viewerSource, /meshInstances: \[selectionMeshInstance\]/);
   assert.doesNotMatch(viewerSource, /type: "cylinder"/);
   assert.match(viewerSource, /setActorMovementEnabled/);
@@ -232,9 +246,15 @@ test("选中角色使用深绿色空心圆环，场景参照角色支持锁定�
   assert.doesNotMatch(scene3dPageSource, /左键拖参照角色/);
 });
 
+test("场景编辑参考角色固定为 1.7 米并放在世界中心", () => {
+  assert.match(scene3dPageSource, /REFERENCE_ACTOR_HEIGHT_METERS = 1\.7/);
+  assert.match(scene3dPageSource, /比例参照（约1\.7m）/);
+  assert.match(scene3dPageSource, /addActor\(REFERENCE_ACTOR_LABEL, 0, REFERENCE_ACTOR_HEIGHT_METERS, \[0, 0, 0\]\)/);
+  assert.match(viewerSource, /initialPosition/);
+});
+
 test("代理角色按 1.8 米实际高度校准", () => {
-  assert.match(viewerSource, /ACTOR_REFERENCE_HEIGHT_METERS = 1\.8/);
-  assert.match(viewerSource, /ACTOR_PROXY_NATIVE_HEIGHT_METERS = 1\.8287/);
-  assert.match(viewerSource, /ACTOR_REFERENCE_SCALE/);
-  assert.match(viewerSource, /root\.setLocalScale\(ACTOR_REFERENCE_SCALE/);
+  assert.match(scaleSource, /DEFAULT_BLOCKING_3D_HEIGHT_METERS = 1\.8/);
+  assert.match(viewerSource, /heightToBlocking3dScale/);
+  assert.match(viewerSource, /root\.setLocalScale\(proxyScale, proxyScale, proxyScale\)/);
 });

@@ -25,7 +25,8 @@ import {
 } from "./components/blocking3d/blocking3dViewerApp";
 import { resolveStudioReturnPath } from "./navigation/studioNavigation";
 
-const REFERENCE_ACTOR_LABEL = "比例参照（约1.8m）";
+const REFERENCE_ACTOR_HEIGHT_METERS = 1.7;
+const REFERENCE_ACTOR_LABEL = "比例参照（约1.7m）";
 
 function resolveSceneState(scene: StorySettingsScene, stateId?: string): StorySettingsScene["states"][number] | null {
   if (stateId?.trim()) {
@@ -98,7 +99,7 @@ export default function DramaScene3DPage() {
       }
       viewerRef.current = nextViewer;
       setViewer(nextViewer);
-      nextViewer.addActor(REFERENCE_ACTOR_LABEL, 0);
+      nextViewer.addActor(REFERENCE_ACTOR_LABEL, 0, REFERENCE_ACTOR_HEIGHT_METERS, [0, 0, 0]);
       nextViewer.setActorMovementEnabled(false);
       nextViewer.setEnvironmentSettings(scene.scene3dEnvironment);
       nextViewer.fitView();
