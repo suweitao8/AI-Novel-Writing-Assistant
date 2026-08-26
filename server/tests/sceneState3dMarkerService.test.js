@@ -166,3 +166,9 @@ test("场景标记服务必须走真实图片制品、结构化 Prompt 和状态
   assert.match(serviceSource, /sceneState3dMarkersPrompt/);
   assert.doesNotMatch(serviceSource, /床.*坐标|桌.*坐标|椅.*坐标/);
 });
+
+test("空间识别默认路由到视觉槽，并把视觉通道传入结构化调用", () => {
+  assert.match(serviceSource, /const effectiveProvider = options\.provider \?\? getVisionModelProvider\(\)/);
+  assert.match(serviceSource, /provider: effectiveProvider/);
+  assert.doesNotMatch(serviceSource, /getTextModelProvider/);
+});

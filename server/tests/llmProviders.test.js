@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const { z } = require("zod");
 const { PROVIDERS, SUPPORTED_PROVIDERS } = require("../dist/llm/providers.js");
-const { getTextModelProvider } = require("../dist/llm/modelCategories.js");
+const { getTextModelProvider, getVisionModelProvider } = require("../dist/llm/modelCategories.js");
 const {
   getJsonCapability,
   getModelParameterCompatibility,
@@ -29,6 +29,11 @@ test("local Grok Build providers are registered as subscription-backed channels"
   assert.equal(PROVIDERS["grok-cli"].defaultModel, "grok-cli/grok-4.6");
   assert.equal(PROVIDERS.grok_build.requiresApiKey, false);
   assert.equal(PROVIDERS.grok_build.defaultModel, "grok-build-image");
+  assert.equal(getTextModelProvider(), "opencode");
+});
+
+test("视觉槽位固定走 grok-cli，文本任务保持 OpenCode Go 通道", () => {
+  assert.equal(getVisionModelProvider(), "grok-cli");
   assert.equal(getTextModelProvider(), "opencode");
 });
 

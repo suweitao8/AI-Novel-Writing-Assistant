@@ -2,25 +2,30 @@ import type { BuiltinLLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../db/prisma";
 import { getProviderEnvModel, PROVIDERS } from "./providers";
 
-// 产品对用户只暴露“文本 / 图片 / 音频”三类模型能力，每类能力对应一个内部槽位：
+// 产品对用户只暴露“文本 / 视觉 / 图片 / 音频”四类模型能力，每类能力对应一个内部槽位：
 // - 文本槽承担大纲、正文、审校、修复等全部文字任务；
+// - 视觉槽承担需要送图理解的任务（空间标记识别、画风识别）；
 // - 图片槽承担封面、角色立绘、场景插图等图片生成任务；
 // - 音频槽承担角色配音与朗读任务，默认走本机 VoxCPM2 语音服务。
 // 槽位的服务地址、API Key、模型均可编辑：更换供应商时修改槽位配置即可，
 // 产品不再提供按“厂商”维度逐个配置的界面。
-// Grok Build 免费额度耗尽期间的临时切换：文本槽走 OpenCode Go（另一份
-// 订阅额度）。Grok 额度恢复后把 text 槽改回 "grok-cli" 即可；视觉任务
-// （空间标记识别）仍需 grok-cli，OpenCode Go 桥接不支持送图。
+// 文本槽走 OpenCode Go（另一份订阅额度）；OpenCode Go 桥接不支持送图，
+// 因此送图理解任务固定走视觉槽 grok-cli（Grok Build 订阅），与文本任务并行使用。
 export const MODEL_CATEGORY_PROVIDERS = {
   text: "opencode",
+  vision: "grok-cli",
   image: "grok_build",
   audio: "voxcpm2",
-} as const satisfies Record<"text" | "image" | "audio", BuiltinLLMProvider>;
+} as const satisfies Record<"text" | "vision" | "image" | "audio", BuiltinLLMProvider>;
 
 export type ModelCategoryKey = keyof typeof MODEL_CATEGORY_PROVIDERS;
 
 export function getTextModelProvider(): BuiltinLLMProvider {
   return MODEL_CATEGORY_PROVIDERS.text;
+}
+
+export function getVisionModelProvider(): BuiltinLLMProvider {
+  return MODEL_CATEGORY_PROVIDERS.vision;
 }
 
 export function getImageModelProvider(): BuiltinLLMProvider {
