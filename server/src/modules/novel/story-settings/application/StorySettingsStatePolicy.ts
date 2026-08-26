@@ -1,4 +1,3 @@
-import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
 import {
   normalizeStoryAssetStates,
   normalizeStoryCharacterStates,
@@ -6,17 +5,12 @@ import {
   validateStoryAssetStateList,
   type StoryAssetState,
   type StoryAssetStateInput,
-  type StoryAssetSceneType,
-  type StoryAssetTimeOfDay,
-  type StoryAssetWeather,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
-import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
 import { AppError } from "../../../../middleware/errorHandler";
-import {
-  adoptLegacyStoryScene3dMarkerEnvironment,
-  normalizeStoryScene3dMarkerSet,
-} from "./StoryScene3dMarkers";
+import { normalizeSceneStates } from "@ai-novel/shared/utils/storyAssetSceneStates";
+
+export { normalizeSceneStates };
 
 /**
  * 设定中心状态持久化策略。
@@ -51,55 +45,6 @@ export function normalizeCharacterStates(
   legacy: StoryCharacterLegacyFields,
 ): StoryAssetState[] {
   return normalizeStoryCharacterStates(states, legacy);
-}
-
-export function normalizeSceneStates(
-  states: StoryAssetStateInput[] | null | undefined,
-  input: {
-    name: string;
-    summary?: string | null;
-    environmentPrompt?: string | null;
-    sceneType?: string | null;
-    timeOfDay?: string | null;
-    weather?: string | null;
-    scene3dEnvironment?: StoryScene3DEnvironmentInput | null;
-  },
-): StoryAssetState[] {
-  const description = input.summary?.trim() || input.environmentPrompt?.trim() || `${input.name.trim()}默认状态`;
-  const imagePrompt = input.environmentPrompt?.trim() || description;
-  const sceneType: StoryAssetSceneType | null = input.sceneType === "interior"
-    || input.sceneType === "exterior"
-    || input.sceneType === "nature"
-    ? input.sceneType
-    : null;
-  const timeOfDay: StoryAssetTimeOfDay | null = input.timeOfDay === "morning"
-    || input.timeOfDay === "noon"
-    || input.timeOfDay === "night"
-    ? input.timeOfDay
-    : null;
-  const weather: StoryAssetWeather | null = input.weather === "sunny"
-    || input.weather === "cloudy"
-    || input.weather === "rainy"
-    ? input.weather
-    : null;
-  return normalizeStoryAssetStates(states, {
-    description,
-    imagePrompt,
-    sceneType,
-    timeOfDay,
-    weather,
-  }).map((state) => {
-    const scene3dMarkers = adoptLegacyStoryScene3dMarkerEnvironment(
-      normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
-        ...(input.scene3dEnvironment ? {
-          maxRadius: input.scene3dEnvironment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
-          environment: input.scene3dEnvironment,
-        } : {}),
-      }),
-      input.scene3dEnvironment,
-    );
-    return scene3dMarkers ? { ...state, scene3dMarkers } : state;
-  });
 }
 
 export function normalizePropStates(

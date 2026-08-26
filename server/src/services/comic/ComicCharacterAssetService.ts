@@ -16,6 +16,7 @@ import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
 import { filterImageGenerationReferences, runImageGeneration, safeJsonParse } from "../image/runtime";
 import { IMAGE_SPECS } from "../image/imageSpecs";
+import { sniffImageMimeType } from "../image/imageMimeType";
 import { buildGenderLockPrompt, resolveComicStyleKeywords } from "./comicStylePrompt";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -239,9 +240,13 @@ export class ComicCharacterAssetService {
 
   // ── 图片上传 ──────────────────────────────────────────────────────────────
 
-  async uploadAssetImage(assetId: string, fileBuffer: Buffer, mimeType: string): Promise<{ url: string }> {
+  async uploadAssetImage(assetId: string, fileBuffer: Buffer, _mimeType: string): Promise<{ url: string }> {
     const asset = await this.getAsset(assetId);
-    const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
+    const sniffedMime = sniffImageMimeType(fileBuffer);
+    if (!sniffedMime) {
+      throw new AppError("仅支持上传 PNG/JPEG/WebP 图片。", 400);
+    }
+    const ext = sniffedMime === "image/jpeg" ? "jpg" : sniffedMime === "image/webp" ? "webp" : "png";
     const dir = assetDir(assetId);
     await fs.mkdir(dir, { recursive: true });
     const filePath = path.join(dir, `asset.${ext}`);

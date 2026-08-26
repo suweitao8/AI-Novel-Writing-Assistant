@@ -28,7 +28,7 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   }), {
     projectionCenterHeight: 2,
     domeRadius: 20,
-    panoramaHorizonV: 0.65,
+    panoramaHorizonV: 0.55,
     yawDeg: 0,
     intensity: 1,
   });
@@ -43,7 +43,7 @@ test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
   })), {
     projectionCenterHeight: 0.6,
     domeRadius: 20,
-    panoramaHorizonV: 0.65,
+    panoramaHorizonV: 0.55,
     yawDeg: 0,
     intensity: 1,
   });
@@ -61,14 +61,14 @@ test("场景资产 HDRI 半球直径的可调范围是 5 到 20", () => {
   assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 21 }).domeRadius, 20);
 });
 
-test("全景地面分界会被保存并按 40% 到 65% 归一化", () => {
-  const value = { projectionCenterHeight: 1.5, domeRadius: 20, panoramaHorizonV: 0.58 };
+test("全景地面分界会被保存并按 45% 到 55% 归一化", () => {
+  const value = { projectionCenterHeight: 1.5, domeRadius: 20, panoramaHorizonV: 0.52 };
   const serialized = serializeStoryScene3dEnvironment(value);
   assert.match(serialized, /panoramaHorizonV/);
   assert.deepEqual(parseStoryScene3dEnvironment(serialized), {
     projectionCenterHeight: 1.5,
     domeRadius: 20,
-    panoramaHorizonV: 0.58,
+    panoramaHorizonV: 0.52,
     yawDeg: 0,
     intensity: 1,
   });
@@ -76,10 +76,12 @@ test("全景地面分界会被保存并按 40% 到 65% 归一化", () => {
 
 test("缺失或越界的全景地面分界使用默认值或边界值", () => {
   assert.equal(normalizeStoryScene3dEnvironment({}).panoramaHorizonV, 0.5);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.39 }).panoramaHorizonV, 0.4);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.4 }).panoramaHorizonV, 0.4);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.65 }).panoramaHorizonV, 0.65);
-  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.9 }).panoramaHorizonV, 0.65);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.44 }).panoramaHorizonV, 0.45);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.4 }).panoramaHorizonV, 0.45);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.45 }).panoramaHorizonV, 0.45);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.55 }).panoramaHorizonV, 0.55);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.65 }).panoramaHorizonV, 0.55);
+  assert.equal(normalizeStoryScene3dEnvironment({ panoramaHorizonV: 0.9 }).panoramaHorizonV, 0.55);
 });
 
 test("场景类型决定 3D 默认高度和半球直径", () => {
@@ -129,13 +131,13 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
   }
 
   const custom = serializeStoryScene3dEnvironment(
-    { projectionCenterHeight: 1.2, domeRadius: 15, panoramaHorizonV: 0.58 },
+    { projectionCenterHeight: 1.2, domeRadius: 15, panoramaHorizonV: 0.52 },
     { customized: true },
   );
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), {
     projectionCenterHeight: 1.2,
     domeRadius: 15,
-    panoramaHorizonV: 0.58,
+    panoramaHorizonV: 0.52,
     yawDeg: 0,
     intensity: 1,
   });

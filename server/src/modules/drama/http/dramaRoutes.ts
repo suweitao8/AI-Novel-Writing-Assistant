@@ -4,6 +4,7 @@ import { Router } from "express";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { z } from "zod";
 import { validate } from "../../../middleware/validate";
+import { readBoundedRawBody } from "../../../middleware/rawBody";
 import { prisma } from "../../../db/prisma";
 import { dramaCharacterImageService } from "../../../services/drama/DramaCharacterImageService";
 import { dramaCharacterService } from "../../../services/drama/DramaCharacterService";
@@ -146,7 +147,7 @@ const blockingSketch3dActorSchema = z.object({
 const blockingSketch3dEnvironmentSchema = z.object({
   projectionCenterHeight: z.number().min(0.5).max(2),
   domeRadius: z.number().min(5).max(20),
-  panoramaHorizonV: z.number().min(0.4).max(0.65).optional(),
+  panoramaHorizonV: z.number().min(0.45).max(0.55).optional(),
   yawDeg: z.number().min(-180).max(180),
   intensity: z.number().min(0.6).max(1.6),
 });
@@ -1077,9 +1078,7 @@ router.post(
 router.post("/projects/:id/shots/:shotId/blocking-sketch/image", validate({ params: shotParamsSchema }), async (req, res, next) => {
   try {
     const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(chunk as Buffer);
-    const data = await dramaShotBlockingSketchService.uploadSketchPng(id, shotId, Buffer.concat(chunks));
+    const data = await dramaShotBlockingSketchService.uploadSketchPng(id, shotId, await readBoundedRawBody(req));
     res.status(200).json({ success: true, data });
   } catch (error) {
     next(error);

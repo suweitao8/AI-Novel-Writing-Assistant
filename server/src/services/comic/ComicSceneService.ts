@@ -11,6 +11,7 @@ import fs from "fs/promises";
 import path from "path";
 
 import { IMAGE_SPECS } from "../image/imageSpecs";
+import { sniffImageMimeType } from "../image/imageMimeType";
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import { resolveGeneratedImagesRoot } from "../../runtime/appPaths";
@@ -184,9 +185,13 @@ export class ComicSceneService {
 
   // ── 图片上传 ──────────────────────────────────────────────────────────────
 
-  async uploadSceneImage(sceneId: string, fileBuffer: Buffer, mimeType: string): Promise<{ url: string }> {
+  async uploadSceneImage(sceneId: string, fileBuffer: Buffer, _mimeType: string): Promise<{ url: string }> {
     await this.getScene(sceneId);
-    const ext = mimeType === "image/jpeg" ? "jpg" : mimeType === "image/webp" ? "webp" : "png";
+    const sniffedMime = sniffImageMimeType(fileBuffer);
+    if (!sniffedMime) {
+      throw new AppError("仅支持上传 PNG/JPEG/WebP 图片。", 400);
+    }
+    const ext = sniffedMime === "image/jpeg" ? "jpg" : sniffedMime === "image/webp" ? "webp" : "png";
     const dir = sceneDir(sceneId);
     await fs.mkdir(dir, { recursive: true });
     const filePath = path.join(dir, `scene-sheet.${ext}`);

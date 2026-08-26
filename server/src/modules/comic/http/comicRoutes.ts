@@ -4,6 +4,7 @@ import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { z } from "zod";
 import { validate } from "../../../middleware/validate";
+import { readBoundedRawBody } from "../../../middleware/rawBody";
 import { ComicProjectService } from "../../../services/comic/ComicProjectService";
 import { ComicEpisodePlanService } from "../../../services/comic/ComicEpisodePlanService";
 import { ComicPanelScriptService } from "../../../services/comic/ComicPanelScriptService";
@@ -964,9 +965,7 @@ router.post(
     try {
       const { assetId } = req.params as z.infer<typeof assetIdParams>;
       const mimeType = req.headers["content-type"] ?? "image/png";
-      const chunks: Buffer[] = [];
-      for await (const chunk of req) chunks.push(chunk as Buffer);
-      const buffer = Buffer.concat(chunks);
+      const buffer = await readBoundedRawBody(req);
       if (buffer.length === 0) throw new Error("未收到图片数据");
       const data = await comicCharacterAssetService.uploadAssetImage(assetId, buffer, mimeType);
       res.json({ success: true, data } satisfies ApiResponse<typeof data>);
@@ -1079,9 +1078,7 @@ router.post("/scenes/:sceneId/upload-image", validate({ params: sceneIdParams })
   try {
     const { sceneId } = req.params as z.infer<typeof sceneIdParams>;
     const mimeType = req.headers["content-type"] ?? "image/png";
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) chunks.push(chunk as Buffer);
-    const buffer = Buffer.concat(chunks);
+    const buffer = await readBoundedRawBody(req);
     if (buffer.length === 0) throw new Error("未收到图片数据");
     const data = await comicSceneService.uploadSceneImage(sceneId, buffer, mimeType);
     res.json({ success: true, data } satisfies ApiResponse<typeof data>);
