@@ -89,7 +89,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   DramaShotBlockingAutoPlanOutput
 > = {
   id: "drama.shot.blocking.autoPlan",
-  version: "v3",
+  version: "v4",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -111,6 +111,11 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       "角色活动范围以场景投射中心为圆心限制在可用站位半径内：任何角色的站位，包括跑动、追逐等大幅度动作的目标位置，都不得超出该半径；靠边约 1 米永远保留为运动缓冲，不要把角色安排到那里。若 floor 地面范围比该半径更小，以更小者为准。",
       "相机拍摄位固定放在场景投射中心 [0, projectionCenterHeight, 0]，高度与投射中心一致：你只能调整视线方向、拍摄距离和焦段来构图，相当于站在场景全景的原始取景点拍摄；服务端会把相机位置重写到投射中心，所以 azim/elev/distance 决定视角与取景，focalPoint 填希望看清的主体位置。",
       "相机必须能同时看清镜头主体，fovDeg、裁剪面和景深参数要与景别、主体距离匹配；景深焦点应落在主要叙事主体，景深范围不能让应当清楚的角色完全失焦。",
+      "景别定距离：特写约脸部占画面高一半（distance≈1.5–2）、近景胸部以上（≈2.5–3.5）、中景腰部以上（≈4–6）、全景全身可见且头顶脚下留余量（≈5–8）、远景环境为主（≥10）；focalPoint 高度随景别落在头/胸/重心附近，不要所有景别都挤在同一个 distance。",
+      "主体摆放按三分法：主要角色放在画面左右三分线附近而不是正中心；运动、奔跑或指向动作要在其朝向前方留白；头顶保留少量呼吸空间，不要顶到画面边缘或被裁切。",
+      "双人对话遵守 180° 轴线规则：两人相向而立（yawDeg 互指对方），相机放在二人连线的同一侧让左右关系清楚；正在说话的角色面向听者，DoF 焦点与 focusDistance 落在说话者身上；三人以上按主次分前后层次，避免所有人并排一条直线。",
+      "相机高度用 elev 表达叙事态度：elev 为负是俯拍（展现场面全貌、削弱人物），为正是仰拍（强调高大威压），默认接近平视（-10°到+10°），大俯仰角只用于镜头内容明确需要时。",
+      "输出前自检：全部出场角色必须完整位于 16:9 取景框内且不被互相遮挡关键动作部位（服务端会按水平视野兜底扩角，但构图质量以你的一次规划为准）。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
     ].join("\n")),
     new HumanMessage([
