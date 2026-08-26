@@ -78,7 +78,7 @@ pnpm build
 **Files:**
 - Modify: `docs/releases/release-notes.md`
 - Modify: `README.md`
-- Modify: `docs/wiki/product/` 或现有相关 UI 规则页（仅在已有页面明确适合时更新）
+- Wiki: 本次是共用表单的局部视觉排列调整，不引入新的模块边界或运行时规则，因此不新增 wiki 条目。
 
 - [ ] **Step 1: 更新用户可见发布说明**
 

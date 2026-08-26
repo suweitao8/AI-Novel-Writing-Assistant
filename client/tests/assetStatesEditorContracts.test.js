@@ -42,13 +42,13 @@ test("状态详情图片使用独立的大图预览入口", () => {
   assert.match(source, /fit="natural"/);
 });
 
-test("状态详情按图片、图片设定、音色分区，不重复显示可见状态标签", () => {
+test("状态详情按图片、状态资料、音色分区，不重复显示可见状态标签", () => {
   const imageSection = source.indexOf('aria-label="状态图片"');
-  const imageSettingsSection = source.indexOf('aria-label="状态设定"');
+  const assetSettingsSection = source.indexOf('aria-label="状态资料"');
   const voiceSection = source.indexOf('aria-label="状态音色"');
   assert.ok(imageSection >= 0);
-  assert.ok(imageSettingsSection > imageSection);
-  assert.ok(voiceSection > imageSettingsSection);
+  assert.ok(assetSettingsSection > imageSection);
+  assert.ok(voiceSection > assetSettingsSection);
   assert.doesNotMatch(source, /statusLabel|voiceStatusLabel/);
   assert.doesNotMatch(source, /图片：\{statusLabel\}/);
   assert.doesNotMatch(source, /图：\{state\.image\?\.status/);
@@ -57,4 +57,16 @@ test("状态详情按图片、图片设定、音色分区，不重复显示可�
   assert.doesNotMatch(source, /高级提示词/);
   assert.match(source, /音色提示词/);
   assert.match(source, />取消</);
+});
+
+test("状态资料把状态名和时代风格并列，并让场景短字段按两列排列", () => {
+  const assetSettingsLabel = source.indexOf('aria-label="状态资料"');
+  const voiceSection = source.indexOf('aria-label="状态音色"');
+  assert.ok(assetSettingsLabel >= 0);
+  const assetSettingsStart = source.lastIndexOf("<section", assetSettingsLabel);
+  const assetSettings = source.slice(assetSettingsStart, voiceSection >= 0 ? voiceSection : undefined);
+  assert.match(assetSettings, /md:grid-cols-2/);
+  assert.match(assetSettings, /状态名[\s\S]*时代风格/);
+  assert.match(assetSettings, /grid grid-cols-2 gap-2 md:col-span-2/);
+  assert.doesNotMatch(assetSettings, /grid grid-cols-3/);
 });
