@@ -6,6 +6,7 @@ import {
 import {
   clampBlockingActorPositionToStage,
   resolveStoryScene3DActorStageRadius,
+  resolveStoryScene3DDomeWorldRadius,
 } from "@ai-novel/shared/utils/blockingStage";
 
 import type {
@@ -463,29 +464,44 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
 
-  // 舞台边界参考圈：半球半径减去边缘运动缓冲，角色站位不允许越过它。
+  // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
+  // 自身的地面边界（直径的一半处）。调“半球直径”滑块时两条圈同时
+  // 重算，可以直观看到球边和舞台余量的关系。
   const STAGE_BOUNDARY_SEGMENTS = 96;
   const stageBoundaryColor = new pc.Color(0.9, 0.62, 0.2, 0.4);
-  let stageBoundaryLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  const rebuildStageBoundary = () => {
-    stageBoundaryLines = [];
-    const radius = resolveStoryScene3DActorStageRadius(environmentSettings);
+  const domeBoundaryColor = new pc.Color(0.35, 0.75, 0.9, 0.45);
+  type BoundaryLine = { start: pc.Vec3; end: pc.Vec3; color: pc.Color };
+  let stageBoundaryLines: BoundaryLine[] = [];
+  let domeBoundaryLines: BoundaryLine[] = [];
+  const buildBoundaryRing = (radius: number, color: pc.Color): BoundaryLine[] => {
+    const lines: BoundaryLine[] = [];
     const y = 0.012;
     let previousXZ: { x: number; z: number } | null = null;
     for (let index = 0; index <= STAGE_BOUNDARY_SEGMENTS; index += 1) {
       const angle = (index / STAGE_BOUNDARY_SEGMENTS) * Math.PI * 2;
       const xz = { x: Math.cos(angle) * radius, z: Math.sin(angle) * radius };
       if (previousXZ) {
-        stageBoundaryLines.push({
+        lines.push({
           start: new pc.Vec3(previousXZ.x, y, previousXZ.z),
           end: new pc.Vec3(xz.x, y, xz.z),
-          color: stageBoundaryColor,
+          color,
         });
       }
       previousXZ = xz;
     }
+    return lines;
   };
-  rebuildStageBoundary();
+  const rebuildBoundaryRings = () => {
+    stageBoundaryLines = buildBoundaryRing(
+      resolveStoryScene3DActorStageRadius(environmentSettings),
+      stageBoundaryColor,
+    );
+    domeBoundaryLines = buildBoundaryRing(
+      resolveStoryScene3DDomeWorldRadius(environmentSettings),
+      domeBoundaryColor,
+    );
+  };
+  rebuildBoundaryRings();
 
   const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime = createProjectionCenterGizmo(
     app,
@@ -533,7 +549,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
-    rebuildStageBoundary();
+    rebuildBoundaryRings();
     if (environmentBackdrop) {
       environmentBackdrop.setLocalScale(
         environmentSettings.domeRadius,
@@ -898,6 +914,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
     for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    for (const line of domeBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
