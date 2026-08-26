@@ -498,8 +498,8 @@ function resolveChatModel(requestModel, fallbackModel) {
   if (normalized.startsWith("codex/")) {
     normalized = normalized.slice("codex/".length);
   }
-  // 图片模型 id 不是文本模型：回落到文本默认（gpt-5.6-luna）。
-  if (!normalized || normalized === DEFAULT_IMAGE_MODEL) {
+  // 供应商名本身、空值或图片模型 id 都不是文本模型：回落到文本默认（gpt-5.6-luna）。
+  if (!normalized || normalized === "codex" || normalized === DEFAULT_IMAGE_MODEL) {
     return fallbackModel;
   }
   return normalized;
