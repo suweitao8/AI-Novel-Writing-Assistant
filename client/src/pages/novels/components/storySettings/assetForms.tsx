@@ -632,6 +632,59 @@ export function AssetStatesEditor(props: {
       <div className="min-w-0 flex-1 space-y-3 rounded-lg border border-border/60 bg-background p-3">
         {selectedState ? (
           <>
+            <section className="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 md:grid-cols-2" aria-label="状态设定">
+              <label className="block space-y-1">
+                <span className="text-xs font-medium">状态名</span>
+                <Input value={selectedState.label} placeholder="例如：警察制服 / 重伤 / 黑夜" onChange={(event) => updateState(selectedState.id, { label: event.target.value })} />
+              </label>
+              {showVoice ? (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium">年龄段</span>
+                  <SelectControl
+                    className="h-9 w-full rounded-md border bg-background px-2 text-sm"
+                    aria-label="状态年龄段"
+                    value={selectedState.ageGroup ?? "youth"}
+                    onChange={(event) => updateState(selectedState.id, { ageGroup: event.target.value as StoryAssetState["ageGroup"] })}
+                  >
+                    <option value="child">少年/儿童</option>
+                    <option value="youth">青年</option>
+                    <option value="middle">中年</option>
+                    <option value="elder">老年</option>
+                  </SelectControl>
+                </label>
+              ) : null}
+              {showVoice ? (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium">身高（米）</span>
+                  <Input
+                    type="number"
+                    min="0.7"
+                    max="2.4"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="例如 1.75"
+                    aria-label="角色状态身高（米）"
+                    aria-invalid={Boolean(selectedHeightError)}
+                    aria-describedby={selectedHeightError ? "character-state-height-error" : undefined}
+                    value={selectedState.heightMeters ?? ""}
+                    disabled={anyPending}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      if (!raw) {
+                        updateState(selectedState.id, { heightMeters: undefined });
+                        return;
+                      }
+                      const numeric = Number(raw);
+                      if (Number.isFinite(numeric)) {
+                        updateState(selectedState.id, { heightMeters: numeric });
+                      }
+                    }}
+                  />
+                  {selectedHeightError ? <span id="character-state-height-error" className="text-xs text-destructive" role="alert">{selectedHeightError}</span> : null}
+                </label>
+              ) : null}
+            </section>
+
             <section className="space-y-2" aria-label="状态图片">
               <div className="relative overflow-hidden rounded-lg border border-border/60 bg-muted/10">
                 {selectedState.image?.url ? (
@@ -739,57 +792,7 @@ export function AssetStatesEditor(props: {
               ) : null}
             </section>
 
-            <section className="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 md:grid-cols-2" aria-label="状态设定">
-              <label className="block space-y-1">
-                <span className="text-xs font-medium">状态名</span>
-                <Input value={selectedState.label} placeholder="例如：警察制服 / 重伤 / 黑夜" onChange={(event) => updateState(selectedState.id, { label: event.target.value })} />
-              </label>
-              {showVoice ? (
-                <label className="block space-y-1">
-                  <span className="text-xs font-medium">年龄段</span>
-                  <SelectControl
-                    className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-                    aria-label="状态年龄段"
-                    value={selectedState.ageGroup ?? "youth"}
-                    onChange={(event) => updateState(selectedState.id, { ageGroup: event.target.value as StoryAssetState["ageGroup"] })}
-                  >
-                    <option value="child">少年/儿童</option>
-                    <option value="youth">青年</option>
-                    <option value="middle">中年</option>
-                    <option value="elder">老年</option>
-                  </SelectControl>
-                </label>
-              ) : null}
-              {showVoice ? (
-                <label className="block space-y-1">
-                  <span className="text-xs font-medium">身高（米）</span>
-                  <Input
-                    type="number"
-                    min="0.7"
-                    max="2.4"
-                    step="0.01"
-                    inputMode="decimal"
-                    placeholder="例如 1.75"
-                    aria-label="角色状态身高（米）"
-                    aria-invalid={Boolean(selectedHeightError)}
-                    aria-describedby={selectedHeightError ? "character-state-height-error" : undefined}
-                    value={selectedState.heightMeters ?? ""}
-                    disabled={anyPending}
-                    onChange={(event) => {
-                      const raw = event.target.value;
-                      if (!raw) {
-                        updateState(selectedState.id, { heightMeters: undefined });
-                        return;
-                      }
-                      const numeric = Number(raw);
-                      if (Number.isFinite(numeric)) {
-                        updateState(selectedState.id, { heightMeters: numeric });
-                      }
-                    }}
-                  />
-                  {selectedHeightError ? <span id="character-state-height-error" className="text-xs text-destructive" role="alert">{selectedHeightError}</span> : null}
-                </label>
-              ) : null}
+            <section className="grid gap-3 rounded-lg border border-border/60 bg-muted/20 p-3 md:grid-cols-2" aria-label="状态细节">
               <label className="block space-y-1">
                 <span className="text-xs font-medium">时代风格</span>
                 <SelectControl
