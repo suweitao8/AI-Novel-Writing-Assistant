@@ -603,7 +603,7 @@ export default function DramaBlocking3DPage() {
                 {cameraActions}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">从上方对象列表选择场景、角色或空间标记。</p>
+              <p className="text-xs text-muted-foreground">从上方对象列表选择世界、角色或空间标记。</p>
             )}
           </CardContent>
         </Card>

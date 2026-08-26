@@ -143,6 +143,7 @@ test("对象树保留全部空间标记并使用世界/参考角色名称", () =
   assert.match(pageSource, /label: "世界"/);
   assert.match(pageSource, /context\.scene\.markers\.map/);
   assert.match(pageSource, /selectedObjectId === SCENE_OBJECT_ID \? "世界"/);
+  assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
