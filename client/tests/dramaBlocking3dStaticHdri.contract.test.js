@@ -75,6 +75,7 @@ test("有限 HDRI 半球不应触发 PlayCanvas 内置无限天空盒", () => {
 test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
   assert.match(viewerSource, /environmentAsset\.unload\(\)/);
   assert.match(viewerSource, /environmentMaterial\?\.destroy\(\)/);
+  assert.match(viewerSource, /environmentBackdropMeshInstance\?\.mesh\?\.destroy\(\)/);
   assert.match(viewerSource, /let environmentRequestId = 0/);
   assert.match(viewerSource, /isCurrentEnvironmentRequest/);
   assert.match(viewerSource, /discardEnvironmentAsset\(asset\)/);
