@@ -195,7 +195,7 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
   };
   return {
     projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 1, 10),
-    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 10, 50),
+    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 30),
     yawDeg: 0,
     intensity: 1,
   };

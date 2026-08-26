@@ -134,7 +134,7 @@ test("HDRI 环境只提供投射中心高度和半球直径，地面分界固定
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);
-  assert.match(viewerSource, /domeRadius[^\n]*10, 50/);
+  assert.match(viewerSource, /domeRadius[^\n]*5, 30/);
   assert.doesNotMatch(viewerSource, /panoramaHorizonV/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /yawDeg: 0/);

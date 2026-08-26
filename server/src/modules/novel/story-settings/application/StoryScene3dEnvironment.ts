@@ -6,7 +6,7 @@ import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceE
 
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   projectionCenterHeight: { min: 1, max: 10 },
-  domeRadius: { min: 10, max: 50 },
+  domeRadius: { min: 5, max: 30 },
 } as const;
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {

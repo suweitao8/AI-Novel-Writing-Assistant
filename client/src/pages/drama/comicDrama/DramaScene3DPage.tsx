@@ -343,7 +343,7 @@ export default function DramaScene3DPage() {
                   <span>半球直径</span>
                   <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
                 </span>
-                    <input type="range" aria-label="半球直径" min="10" max="50" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="半球直径" min="5" max="30" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
               </label>
             </CardContent>
           </Card>
