@@ -51,4 +51,3 @@ node --experimental-strip-types --test client/tests/storyAssetPresentationHeight
 ```
 
 确认工作树只包含本任务改动后，使用签名提交；从干净 `main` 通过 `pnpm workflow:integrate codex/character-height-extraction --verify "..." --push` 合并并推送，最后清理 worktree、检查本地与远端 SHA 一致。
-
