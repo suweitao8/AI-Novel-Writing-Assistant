@@ -37,9 +37,9 @@ test("3D 草图只显示静态姿势控制，不提供动态播放入口", () =>
 });
 
 test("场景状态图作为半球 HDRI 环境，不再作为后置背景平面", () => {
-  assert.match(viewerSource, /createUpperDomeGeometry/);
+  assert.match(viewerSource, /createBackdropGeometry/);
   assert.match(environmentProjectionSource, /material\.cull = pc\.CULLFACE_FRONT/);
-  assert.match(viewerSource, /environmentDome/);
+  assert.match(viewerSource, /environmentBackdrop/);
   assert.match(viewerSource, /environmentUrl/);
   assert.doesNotMatch(viewerSource, /createPlane\(app, "blocking3d-background"/);
 });
@@ -57,8 +57,7 @@ test("HDRI 半球负责弧形地面，纯色地面只在没有 HDRI 时显示", 
 
 test("HDRI 环境固定在世界坐标，旋转相机不会搬动地面", () => {
   assert.match(viewerSource, /environmentWorldPosition/);
-  assert.doesNotMatch(viewerSource, /environmentDome\.setPosition\(cameraPosition\.x, 0, cameraPosition\.z\)/);
-  assert.doesNotMatch(viewerSource, /environmentGround\.setPosition\(cameraPosition\.x, 0, cameraPosition\.z\)/);
+  assert.doesNotMatch(viewerSource, /environmentBackdrop\.setPosition\(cameraPosition\.x, 0, cameraPosition\.z\)/);
   assert.doesNotMatch(viewerSource, /syncEnvironmentDomePosition\(\);/);
 });
 
@@ -75,30 +74,30 @@ test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
 });
 
 test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
-  assert.match(viewerSource, /createUpperDomeGeometry/);
-  assert.match(viewerSource, /createGroundDomeGeometry/);
+  assert.match(viewerSource, /createBackdropGeometry/);
+  assert.match(environmentGeometrySource, /createBackdropGeometryData/);
   assert.match(viewerSource, /createProjectedHdriMaterial/);
-  assert.match(viewerSource, /environmentGround/);
+  assert.match(viewerSource, /environmentBackdrop/);
   assert.match(environmentProjectionSource, /material\.cull = pc\.CULLFACE_FRONT/);
   assert.match(viewerSource, /texture\.mipmaps = false/);
-  assert.doesNotMatch(viewerSource, /environmentGround = createPlane/);
+  assert.doesNotMatch(viewerSource, /environmentBackdrop = createPlane/);
   assert.match(environmentProjectionSource, /uniform sampler2D uEnvironmentMap/);
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
-test("上下半球共用投影材质，并沿用标准材质的颜色空间输出", () => {
+test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空间输出", () => {
   assert.match(viewerSource, /let environmentMaterial: pc\.ShaderMaterial \| null = null/);
   assert.doesNotMatch(viewerSource, /environmentGroundMaterial/);
   assert.match(viewerSource, /const material = createProjectedHdriMaterial\(texture, environmentSettings\)/);
   assert.match(viewerSource, /const meshInstance = new pc\.MeshInstance\(mesh, material\)/);
-  assert.match(viewerSource, /environmentGroundMeshInstance = new pc\.MeshInstance\(groundMesh, material\)/);
+  assert.match(viewerSource, /environmentBackdropMeshInstance = meshInstance/);
   assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
   assert.match(environmentProjectionSource, /#include "gammaPS"/);
   assert.match(environmentProjectionSource, /decodeGamma\(rawColor\)/);
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
-  assert.match(environmentProjectionSource, /if \(vWorldPosition\.y >= edgeHeight\)/);
-  assert.match(environmentProjectionSource, /v = 0\.5 - upperProgress \* 0\.5/);
-  assert.match(environmentProjectionSource, /v = 0\.5 \+ lowerProgress \* 0\.5/);
+  assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
+  assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
+  assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
 test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固定", () => {
@@ -119,12 +118,13 @@ test("HDRI 环境只提供投射中心高度和半球直径，旋转与亮度固
 
 test("普通场景图地面使用连续半球曲面，并由投影材质按世界坐标采样", () => {
   assert.match(environmentSource, /projectionCenterHeight/);
-  assert.match(environmentSource, /createGroundDomeGeometryData\s*\(/);
+  assert.match(environmentSource, /createBackdropGeometryData\s*\(/);
   assert.match(environmentSource, /const edgeHeight/);
   assert.match(environmentProjectionSource, /projectionToSurface/);
+  assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
   assert.match(environmentProjectionSource, /uDomeRadius/);
-  assert.match(environmentProjectionSource, /atan\(uProjectionCenterHeight - vWorldPosition\.y/);
+  assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(environmentSource, /ADDRESS_REPEAT/);
@@ -132,21 +132,18 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.doesNotMatch(environmentSource, /Math\.floor\(/);
   assert.doesNotMatch(environmentSource, /domeRadius \* environmentSettings\.projectionCenterHeight/);
   assert.doesNotMatch(environmentGeometrySource, /projectGroundTextureUv|seamU/);
-  assert.match(environmentSource, /environmentGround/);
+  assert.match(environmentSource, /environmentBackdrop/);
 });
 
 test("半球极点使用精确坐标和经度 UV，避免退化三角面拉伸纹理", () => {
-  assert.match(viewerSource, /const rawSinTheta = Math\.sin\(theta\)/);
-  assert.match(viewerSource, /const isPole = Math\.abs\(rawSinTheta\) < 1e-8/);
-  assert.match(viewerSource, /const sinTheta = isPole \? 0 : rawSinTheta/);
-  assert.match(viewerSource, /const poleU = 1 - lon \/ longitudeBands/);
-  assert.match(viewerSource, /uvs\.push\(isPole \? poleU : u, v\)/);
+  assert.match(environmentGeometrySource, /const rawSinTheta = Math\.sin\(theta\)/);
+  assert.match(environmentGeometrySource, /const isPole = Math\.abs\(rawSinTheta\) < 1e-8/);
+  assert.match(environmentGeometrySource, /const sinTheta = isPole \? 0 : rawSinTheta/);
 });
 
 test("半球极点保留每个经度的 UV，避免极点三角扇跨纹理拉伸", () => {
-  assert.match(viewerSource, /const poleU = 1 - lon \/ longitudeBands/);
-  assert.match(viewerSource, /uvs\.push\(isPole \? poleU : u, v\)/);
-  assert.doesNotMatch(viewerSource, /uvs\.push\(isPole \? 0\.5 : u, v\)/);
+  assert.match(environmentGeometrySource, /addUpperRing/);
+  assert.match(environmentGeometrySource, /isPole/);
 });
 
 test("下半球在投射中心附近使用有限平底，避免尖点三角面拉伸", () => {
@@ -155,8 +152,25 @@ test("下半球在投射中心附近使用有限平底，避免尖点三角面�
   assert.match(environmentGeometrySource, /function createGroundDomeGeometryData/);
   assert.match(environmentGeometrySource, /const centerIndex = addVertex/);
   assert.match(environmentGeometrySource, /Texture projection is intentionally not encoded in the vertex/);
-  assert.match(environmentProjectionSource, /atan\(projectionToSurface\.z, projectionToSurface\.x\)/);
+  assert.match(environmentProjectionSource, /atan\(projectionDirection\.z, projectionDirection\.x\)/);
   assert.match(environmentProjectionSource, /fract\(/);
+});
+
+test("HDRI EnviroDome 使用一份连续网格，避免上下 MeshInstance 的交界光栅缝", () => {
+  assert.match(environmentGeometrySource, /export function createBackdropGeometryData/);
+  assert.match(environmentGeometrySource, /UPPER_DOME_LATITUDE_BANDS/);
+  assert.match(viewerSource, /createBackdropGeometryData\(/);
+  assert.match(viewerSource, /let environmentBackdrop: pc\.Entity \| null = null/);
+  assert.match(viewerSource, /environmentBackdrop\.addComponent\("render"/);
+  assert.doesNotMatch(viewerSource, /environmentDome|environmentGround/);
+});
+
+test("HDRI 投影使用投射中心方向的连续等距坐标，不在地平线切换两套 V 映射", () => {
+  assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
+  assert.match(environmentProjectionSource, /asin\(clamp\(projectionDirection\.y/);
+  assert.match(environmentProjectionSource, /fract\(/);
+  assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
+  assert.doesNotMatch(environmentProjectionSource, /if \(vWorldPosition\.y >= edgeHeight\)/);
 });
 
 test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI 环境", () => {
