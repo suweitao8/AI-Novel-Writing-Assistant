@@ -48,7 +48,9 @@ import {
 import { persistStorySettingsCategories } from "./StorySettingsBundlePersistence";
 import { scopeStateImageUrls } from "./StoryAssetStateImageStorage";
 import {
-  parseStoryScene3dEnvironment,
+  getDefaultStoryScene3dEnvironment,
+  resolveStoryScene3dEnvironment,
+  resolveStorySceneType,
   serializeStoryScene3dEnvironment,
 } from "./StoryScene3dEnvironment";
 import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
@@ -109,7 +111,7 @@ export interface StorySettingsScene {
   sortOrder: number;
   source: string;
   states: StoryAssetState[];
-  scene3dEnvironment: ReturnType<typeof parseStoryScene3dEnvironment>;
+  scene3dEnvironment: ReturnType<typeof resolveStoryScene3dEnvironment>;
   updatedAt: string;
 }
 
@@ -583,6 +585,11 @@ export class StorySettingsService {
     });
     return Promise.all(rows.map(async (row) => {
       const states = normalizeSceneStates(parseStates(row.statesJson), row);
+      const environment = resolveStoryScene3dEnvironment(
+        row.sceneType,
+        row.scene3dEnvironmentJson,
+        states[0]?.sceneType,
+      );
       if (canSafelyRewriteStates(row.statesJson)) {
         const normalizedStatesJson = serializeStates(states);
         if (normalizedStatesJson !== (row.statesJson?.trim() || null)) {
@@ -607,7 +614,7 @@ export class StorySettingsService {
         sortOrder: row.sortOrder,
         source: row.source,
         states: scopeStateImageUrls(states, novelId, "scene", row.id),
-        scene3dEnvironment: parseStoryScene3dEnvironment(row.scene3dEnvironmentJson),
+        scene3dEnvironment: environment,
         updatedAt: row.updatedAt.toISOString(),
       };
     }));
@@ -633,6 +640,7 @@ export class StorySettingsService {
       select: { sortOrder: true },
     });
     const states = normalizeSceneStates(input.states, input);
+    const resolvedSceneType = resolveStorySceneType(input.sceneType, states[0]?.sceneType);
     const row = await prisma.novelScene.create({
       data: {
         novelId,
@@ -645,7 +653,10 @@ export class StorySettingsService {
         weather: normalizeSceneWeather(input.weather),
         mapNodeId: input.mapNodeId ?? null,
         statesJson: serializeStates(states),
-        scene3dEnvironmentJson: serializeStoryScene3dEnvironment(input.scene3dEnvironment),
+        scene3dEnvironmentJson: serializeStoryScene3dEnvironment(
+          input.scene3dEnvironment ?? getDefaultStoryScene3dEnvironment(resolvedSceneType),
+          { customized: input.scene3dEnvironment != null },
+        ),
         sortOrder: (maxOrder?.sortOrder ?? 0) + 1,
         source: "manual",
       },
@@ -707,7 +718,12 @@ export class StorySettingsService {
           ...(input.mapNodeId !== undefined ? { mapNodeId: input.mapNodeId } : {}),
           ...(statesJson !== undefined ? { statesJson } : {}),
           ...(input.scene3dEnvironment !== undefined
-            ? { scene3dEnvironmentJson: serializeStoryScene3dEnvironment(input.scene3dEnvironment) }
+            ? {
+              scene3dEnvironmentJson: serializeStoryScene3dEnvironment(
+                input.scene3dEnvironment,
+                { customized: input.scene3dEnvironment !== null },
+              ),
+            }
             : {}),
         },
       });

@@ -6,7 +6,10 @@ import {
   normalizeSceneStates,
   serializeStates,
 } from "./StorySettingsStatePolicy";
-import { serializeStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
+import {
+  getDefaultStoryScene3dEnvironment,
+  serializeStoryScene3dEnvironment,
+} from "./StoryScene3dEnvironment";
 
 export type StorySettingsPersistenceCategory = "characters" | "scenes" | "props" | "world";
 
@@ -105,7 +108,10 @@ export async function persistStorySettingsCategories(
           timeOfDay: scene.timeOfDay,
           weather: scene.weather,
         })),
-        scene3dEnvironmentJson: serializeStoryScene3dEnvironment(undefined),
+        scene3dEnvironmentJson: serializeStoryScene3dEnvironment(
+          getDefaultStoryScene3dEnvironment(scene.sceneType),
+          { customized: false },
+        ),
         mapNodeId: locationIdByName.get(scene.mapLocationName) ?? null,
         sortOrder: index + 1,
         source: "ai",

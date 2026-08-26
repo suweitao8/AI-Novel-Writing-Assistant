@@ -15,7 +15,7 @@ import {
   parseStates,
   updateStoryAssetStateJsonWithCas,
 } from "./StorySettingsStatePolicy";
-import { parseStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
+import { resolveStoryScene3dEnvironment } from "./StoryScene3dEnvironment";
 import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
 
@@ -111,7 +111,11 @@ export class StoryScene3dMarkerService {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
     }
 
-    const environment = parseStoryScene3dEnvironment(initialRow.scene3dEnvironmentJson);
+    const environment = resolveStoryScene3dEnvironment(
+      initialRow.sceneType,
+      initialRow.scene3dEnvironmentJson,
+      initialStates[0]?.sceneType,
+    );
     const imageFingerprint = stateImageFingerprint(initialState);
     const result = await runStructuredPrompt({
       asset: sceneState3dMarkersPrompt,
