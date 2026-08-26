@@ -13,6 +13,7 @@ import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/
 const environment = {
   projectionCenterHeight: 2,
   domeRadius: 15,
+  panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
 };
@@ -136,7 +137,7 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
   assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
 });
 
-test("固定 50% 全景中家具框底在地平线上方时仍落在半球地面外圈", () => {
+test("默认 50% 全景中家具框底在地平线上方时仍落在半球地面外圈", () => {
   const marker = {
     anchor: "floor",
     position: [0, 0.5, 0],
@@ -150,7 +151,7 @@ test("固定 50% 全景中家具框底在地平线上方时仍落在半球地面
   assert.ok(projected[1] > 0.4, "图片证据参与尺寸校准后仍必须落地");
 });
 
-test("投射中心高度和半球直径会参与标记反算，历史分界值不再改变结果", () => {
+test("投射中心高度、半球直径和全景分界都会参与标记反算", () => {
   const marker = {
     anchor: "wall",
     position: [2, 2, -2],
@@ -164,15 +165,28 @@ test("投射中心高度和半球直径会参与标记反算，历史分界值�
     domeRadius: 30,
     panoramaHorizonV: 0.58,
   });
-  const expandedWithoutLegacyHorizon = projectStoryScene3dMarkerPosition(marker, {
+  const expandedWithDefaultHorizon = projectStoryScene3dMarkerPosition(marker, {
     ...environment,
     projectionCenterHeight: 4,
     domeRadius: 30,
   });
+  const expandedAtCenterHorizon = projectStoryScene3dMarkerPosition(marker, {
+    ...environment,
+    projectionCenterHeight: 4,
+    domeRadius: 30,
+    panoramaHorizonV: 0.5,
+  });
+  const shifted = projectStoryScene3dMarkerPosition(marker, {
+    ...environment,
+    projectionCenterHeight: 4,
+    domeRadius: 30,
+    panoramaHorizonV: 0.65,
+  });
 
   assert.ok(expanded[1] > compact[1], "投射中心升高后墙面标记高度应随之变化");
   assert.ok(expanded[2] > compact[2], "半球直径变化后同一图像位置的深度应重新估算");
-  assert.deepEqual(expanded, expandedWithoutLegacyHorizon, "历史分界值不能改变固定 50% 投射");
+  assert.deepEqual(expandedWithDefaultHorizon, expandedAtCenterHorizon, "缺失分界值应回退到 50% 投射");
+  assert.notDeepEqual(shifted, expanded, "分界变化后同一图像区域应重新计算高度");
   assert.notDeepEqual(expanded, compact, "环境参数变化不能继续复用旧的世界坐标");
 });
 
@@ -183,12 +197,14 @@ test("空间标记没有匹配当前环境快照时必须失效，不能流入�
     sourceEnvironment: {
       projectionCenterHeight: 2,
       domeRadius: 15,
+      panoramaHorizonV: 0.5,
     },
     markers: [],
   };
   assert.equal(isCurrentMarkerSet(markerSet, environment), true);
   assert.equal(isCurrentMarkerSet(markerSet, { ...environment, domeRadius: 30 }), false);
   assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: undefined }, environment), false);
+  assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: { ...markerSet.sourceEnvironment, panoramaHorizonV: 0.58 } }, environment), false);
 });
 
 test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
@@ -199,6 +215,7 @@ test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
     markers: [],
   }));
   assert.equal(normalized?.sourceEnvironment?.domeRadius, 30);
+  assert.equal(normalized?.sourceEnvironment?.panoramaHorizonV, 0.5);
   const lower = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
     status: "ready",
@@ -206,6 +223,13 @@ test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
     markers: [],
   }));
   assert.equal(lower?.sourceEnvironment?.domeRadius, 5);
+  const upperHorizon = parseStoryScene3dMarkerSet(JSON.stringify({
+    schemaVersion: 1,
+    status: "ready",
+    sourceEnvironment: { projectionCenterHeight: 2, domeRadius: 15, panoramaHorizonV: 0.9 },
+    markers: [],
+  }));
+  assert.equal(upperHorizon?.sourceEnvironment?.panoramaHorizonV, 0.65);
 });
 
 test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据仍保持过期", () => {
@@ -229,6 +253,7 @@ test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据�
   assert.deepEqual(migrated?.sourceEnvironment, {
     projectionCenterHeight: 2,
     domeRadius: 15,
+    panoramaHorizonV: 0.5,
   });
   assert.ok((migrated?.markers[0]?.position[0] ?? 0) > 0);
 

@@ -4,7 +4,7 @@ import type {
   StoryScene3DMarkerImageRegion,
   StoryScene3DMarkerKind,
 } from "../types/comicDrama";
-import { STORY_SCENE_3D_PANORAMA_HORIZON_V } from "../types/comicDrama.js";
+import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "../types/comicDrama.js";
 
 const TWO_PI = Math.PI * 2;
 const MIN_MARKER_RADIUS = 0.5;
@@ -109,12 +109,17 @@ interface StoryScene3dProjectionRay {
 function resolveProjectionRay(
   region: StoryScene3DMarkerImageRegion,
   anchor: StoryScene3DMarker["anchor"],
-  environment: Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius" | "yawDeg">>,
+  environment: Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius" | "panoramaHorizonV" | "yawDeg">>,
 ): StoryScene3dProjectionRay {
   const imageV = anchor === "floor"
     ? region.y + region.height
     : region.y + region.height / 2;
-  const latitude = (STORY_SCENE_3D_PANORAMA_HORIZON_V - imageV) * Math.PI;
+  const panoramaHorizonV = clamp(
+    finiteOr(environment.panoramaHorizonV, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V),
+    0,
+    1,
+  );
+  const latitude = (panoramaHorizonV - imageV) * Math.PI;
   const horizontalLength = Math.max(0, Math.cos(latitude));
   const direction = equirectangularRegionCenterToHorizontalDirection(region, environment);
   return {
@@ -202,7 +207,7 @@ function calibrateMarkerSize(
 export function projectStoryScene3dMarkerFromImageRegion(
   marker: Pick<StoryScene3DMarker, "anchor" | "position" | "size" | "imageRegion">
     & Partial<Pick<StoryScene3DMarker, "kind" | "yawDeg" | "source">>,
-  environment: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "yawDeg">>,
+  environment: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "panoramaHorizonV" | "yawDeg">>,
   maxRadius = finiteOr(environment.domeRadius, 15) * 0.45,
 ): StoryScene3dMarkerProjection {
   const originalPosition: [number, number, number] = [

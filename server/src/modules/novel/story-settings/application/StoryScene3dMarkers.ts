@@ -7,7 +7,10 @@ import type {
   StoryScene3DMarkerKind,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
-import { STORY_SCENE_3D_MARKER_KINDS } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_MARKER_KINDS,
+} from "@ai-novel/shared/types/comicDrama";
 import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
@@ -24,7 +27,7 @@ const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceil
 export type StoryScene3dMarkerProjectionEnvironment = Pick<
   StoryScene3DEnvironment,
   "projectionCenterHeight" | "domeRadius"
-> & Partial<Pick<StoryScene3DEnvironment, "yawDeg" | "intensity">>;
+> & Partial<Pick<StoryScene3DEnvironment, "panoramaHorizonV" | "yawDeg" | "intensity">>;
 
 function finiteOr(value: unknown, fallback: number): number {
   const numeric = Number(value);
@@ -69,6 +72,11 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
   return {
     projectionCenterHeight: clamp(projectionCenterHeight, 1, 10),
     domeRadius: clamp(domeRadius, 5, 30),
+    panoramaHorizonV: clamp(
+      finiteOr(source.panoramaHorizonV, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V),
+      0.4,
+      0.65,
+    ),
   };
 }
 
@@ -256,6 +264,7 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
     sourceEnvironment: {
       projectionCenterHeight: environment.projectionCenterHeight,
       domeRadius: environment.domeRadius,
+      panoramaHorizonV: environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     },
   };
 }

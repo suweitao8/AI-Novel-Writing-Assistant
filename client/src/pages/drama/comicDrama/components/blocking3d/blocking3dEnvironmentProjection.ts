@@ -1,8 +1,10 @@
 import * as pc from "playcanvas";
-import { STORY_SCENE_3D_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
+import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
 
 export interface ProjectedHdriMaterialSettings {
   projectionCenterHeight: number;
+  /** Source-image V coordinate that should land on the 3D projection horizon. */
+  panoramaHorizonV: number;
 }
 
 export interface ProjectedHdriCoordinates {
@@ -26,6 +28,7 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
  */
 export function projectEquirectangularDirection(
   direction: [number, number, number],
+  panoramaHorizonV = STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
 ): ProjectedHdriCoordinates {
   const length = Math.hypot(direction[0], direction[1], direction[2]);
   const projectionDirection: [number, number, number] = length > 0
@@ -42,9 +45,10 @@ export function projectEquirectangularDirection(
     const poleProgress = smoothstep(0.94, 0.999, Math.abs(projectionDirection[1]));
     u = u * (1 - poleProgress) + 0.5 * poleProgress;
   }
+  const horizonV = Number.isFinite(panoramaHorizonV) ? clamp(panoramaHorizonV, 0, 1) : STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V;
   return {
     u,
-    v: clamp(STORY_SCENE_3D_PANORAMA_HORIZON_V - Math.asin(clamp(projectionDirection[1], -1, 1)) / Math.PI, 0, 1),
+    v: clamp(horizonV - Math.asin(clamp(projectionDirection[1], -1, 1)) / Math.PI, 0, 1),
   };
 }
 
@@ -80,13 +84,18 @@ precision highp float;
 
 uniform samplerCube uEnvironmentMap;
 uniform float uProjectionCenterHeight;
+uniform float uPanoramaHorizonV;
 
 varying vec3 vWorldPosition;
 
 void main(void) {
   vec3 projectionToSurface = vWorldPosition - vec3(0.0, uProjectionCenterHeight, 0.0);
   vec3 projectionDirection = normalize(projectionToSurface);
-  float sourceLatitude = clamp(asin(clamp(projectionDirection.y, -1.0, 1.0)), -1.57079633, 1.57079633);
+  float sourceLatitude = clamp(
+      asin(clamp(projectionDirection.y, -1.0, 1.0)) + 3.14159265 * (0.5 - uPanoramaHorizonV),
+      -1.57079633,
+      1.57079633
+  );
   vec3 projectedDirection = normalize(vec3(
       projectionDirection.x,
       sin(sourceLatitude),
@@ -123,5 +132,6 @@ export function updateProjectedHdriMaterial(
 ): void {
   material.setParameter("uEnvironmentMap", texture);
   material.setParameter("uProjectionCenterHeight", settings.projectionCenterHeight);
+  material.setParameter("uPanoramaHorizonV", settings.panoramaHorizonV);
   material.update();
 }
