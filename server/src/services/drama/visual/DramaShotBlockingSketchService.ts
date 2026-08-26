@@ -5,10 +5,11 @@ import {
   hasStoryAssetStateImageUrl,
   type StoryAssetState,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
-import type {
-  StoryScene3DEnvironment,
-  StoryScene3DMarker,
-  StoryScene3DMarkerSet,
+import {
+  isStoryScene3DMarkerSetCurrent,
+  type StoryScene3DEnvironment,
+  type StoryScene3DMarker,
+  type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
 
 import { prisma } from "../../../db/prisma";
@@ -320,6 +321,8 @@ export class DramaShotBlockingSketchService {
     const sceneImageUrl = hasStoryAssetStateImageUrl(matchedSceneState?.image)
       ? matchedSceneState.image.url.trim()
       : null;
+    const markerAnalysis = matchedSceneState?.scene3dMarkers ?? null;
+    const markersAreCurrent = isStoryScene3DMarkerSetCurrent(markerAnalysis, matchedScene?.environment);
     const scene = matchedScene && sceneImageUrl
       ? {
         name: matchedScene.name,
@@ -327,8 +330,8 @@ export class DramaShotBlockingSketchService {
         stateId: matchedScene.state.id,
         imageUrl: stateImageUrl(novelId, "scene", matchedScene.assetId, matchedScene.state.id),
         environment: matchedScene.environment,
-        markers: matchedScene.state.scene3dMarkers?.markers ?? [],
-        markerAnalysis: matchedScene.state.scene3dMarkers ?? null,
+        markers: markersAreCurrent ? markerAnalysis?.markers ?? [] : [],
+        markerAnalysis,
       }
       : null;
 

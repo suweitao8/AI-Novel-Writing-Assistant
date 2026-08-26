@@ -39,6 +39,7 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /床|桌|椅/);
   assert.match(text, /固定空间物体|家具/);
   assert.match(text, /不要.*人物|不得.*人物/);
+  assert.match(text, /imageRegion/);
   assert.equal(messages.at(-1)?.content?.[1]?.type, "image_url");
 });
 

@@ -61,10 +61,40 @@ test("场景标记服务保存结果时以图像区域纠正墙面物体方向",
   assert.ok(result.markers[0].position[2] < 0);
   assert.ok(result.markers[0].yawDeg > 90);
 });
+
+test("场景标记服务保存投射环境快照，并用图像区域重算位置", () => {
+  const result = serviceModule.buildStoryScene3dMarkerSet({
+    markers: [{
+      kind: "door",
+      label: "正前方的门",
+      anchor: "wall",
+      position: [8, 4, -8],
+      size: [1.2, 2.2, 0.2],
+      yawDeg: 0,
+      confidence: 0.92,
+      imageRegion: { x: 0.4, y: 0.28, width: 0.2, height: 0.32 },
+    }],
+  }, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    panoramaHorizonV: 0.5,
+    yawDeg: 0,
+    intensity: 1,
+  }, {});
+
+  assert.deepEqual(result.sourceEnvironment, {
+    projectionCenterHeight: 2,
+    domeRadius: 15,
+    panoramaHorizonV: 0.5,
+  });
+  assert.ok(Math.abs(result.markers[0].position[0]) < 0.05);
+  assert.ok(result.markers[0].position[2] > 0);
+});
 test("场景标记服务必须走真实图片制品、结构化 Prompt 和状态 CAS", () => {
   assert.match(serviceSource, /runStructuredPrompt/);
   assert.match(serviceSource, /resolveStateImagePath/);
   assert.match(serviceSource, /updateStoryAssetStateJsonWithCas/);
+  assert.match(serviceSource, /scene3dEnvironmentJson/);
   assert.match(serviceSource, /sceneState3dMarkersPrompt/);
   assert.doesNotMatch(serviceSource, /床.*坐标|桌.*坐标|椅.*坐标/);
 });

@@ -98,6 +98,8 @@ export const sceneState3dMarkersPrompt: PromptAsset<
       "floor 锚点的 position.y 仍填写物体中心高度；wall/ceiling 物体按其在空间中的中心高度填写。坐标和尺寸只需近似，宁可少标也不要编造。",
       "每一个返回的 marker 都必须对应输入图片中实际可见的固定物体，并且必须填写 imageRegion；imageRegion 是该物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高。不要只根据场景名称或文字描述生成 marker。",
       "服务端会把 imageRegion 的水平中心作为物体的真实全景经度，重新计算世界 X/Z 方向；position.x/z 只填写粗略的径向距离提示，不要用它抵消或猜测 imageRegion 的左右位置。confidence 反映图像证据强度。",
+      "position 只填写物体相对投射中心的距离和高度估计，不能把图片像素、归一化比例或框坐标直接填进 position；服务端会根据 imageRegion 和当前环境重新反算最终世界坐标。floor 物体的框底部应贴近地面接触位置。",
+      "当前投射中心高度、半球直径和全景地面分界只用于理解场景尺度；不要根据这些参数手工平移图片框，服务端会统一重算。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
       `可用类别：${(STORY_SCENE_3D_MARKER_KINDS as readonly StoryScene3DMarkerKind[]).join("、")}`,
     ].join("\n")),
