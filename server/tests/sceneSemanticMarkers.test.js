@@ -191,14 +191,14 @@ test("空间标记没有匹配当前环境快照时必须失效，不能流入�
   assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: undefined }, environment), false);
 });
 
-test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
+test("空间标记环境快照的半球直径归一化到 5 到 20", () => {
   const normalized = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
     status: "ready",
     sourceEnvironment: { projectionCenterHeight: 2, domeRadius: 31 },
     markers: [],
   }));
-  assert.equal(normalized?.sourceEnvironment?.domeRadius, 30);
+  assert.equal(normalized?.sourceEnvironment?.domeRadius, 20);
   const lower = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
     status: "ready",

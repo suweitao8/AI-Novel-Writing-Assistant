@@ -413,14 +413,14 @@ export default function DramaScene3DPage() {
                       <span>投射中心高度</span>
                       <output className="tabular-nums text-foreground">{environmentSettings.projectionCenterHeight.toFixed(1)}</output>
                     </span>
-                    <input type="range" aria-label="投射中心高度" min="1" max="10" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="投射中心高度" min="0.5" max="2" step="0.1" value={environmentSettings.projectionCenterHeight} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeight", Number(event.target.value))} className="w-full accent-primary" />
                   </label>
                   <label className="block space-y-1.5 text-xs text-muted-foreground">
                     <span className="flex items-center justify-between gap-2">
                       <span>半球直径</span>
                       <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
                     </span>
-                    <input type="range" aria-label="半球直径" min="5" max="30" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                    <input type="range" aria-label="半球直径" min="5" max="20" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
                   </label>
                 </div>
 

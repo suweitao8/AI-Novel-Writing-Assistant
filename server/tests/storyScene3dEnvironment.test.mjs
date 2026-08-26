@@ -24,8 +24,8 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
     yawDeg: 120,
     intensity: 0.7,
   }), {
-    projectionCenterHeight: 4.5,
-    domeRadius: 30,
+    projectionCenterHeight: 2,
+    domeRadius: 20,
     yawDeg: 0,
     intensity: 1,
   });
@@ -38,25 +38,31 @@ test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
     domeRadius: 96,
     panoramaHorizonV: 0.65,
   })), {
-    projectionCenterHeight: 1,
-    domeRadius: 30,
+    projectionCenterHeight: 0.6,
+    domeRadius: 20,
     yawDeg: 0,
     intensity: 1,
   });
 });
 
-test("场景资产 HDRI 半球直径的可调范围是 5 到 30", () => {
+test("场景资产 HDRI 投射中心高度的可调范围是 0.5 到 2", () => {
+  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 0.5 }).projectionCenterHeight, 0.5);
+  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 2 }).projectionCenterHeight, 2);
+  assert.equal(normalizeStoryScene3dEnvironment({ projectionCenterHeight: 2.1 }).projectionCenterHeight, 2);
+});
+
+test("场景资产 HDRI 半球直径的可调范围是 5 到 20", () => {
   assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 5 }).domeRadius, 5);
-  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 30 }).domeRadius, 30);
-  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 31 }).domeRadius, 30);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 20 }).domeRadius, 20);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 21 }).domeRadius, 20);
 });
 
 test("旧全景地面分界只兼容读取，归一化固定为 50% 且新 JSON 不再写出该字段", () => {
-  const value = { projectionCenterHeight: 2.5, domeRadius: 20, panoramaHorizonV: 0.58 };
+  const value = { projectionCenterHeight: 1.5, domeRadius: 20, panoramaHorizonV: 0.58 };
   const serialized = serializeStoryScene3dEnvironment(value);
   assert.doesNotMatch(serialized, /panoramaHorizonV/);
   assert.deepEqual(parseStoryScene3dEnvironment(serialized), {
-    projectionCenterHeight: 2.5,
+    projectionCenterHeight: 1.5,
     domeRadius: 20,
     yawDeg: 0,
     intensity: 1,
@@ -114,11 +120,11 @@ test("历史固定默认快照按场景类型迁移，已标记自定义值保�
   }
 
   const custom = serializeStoryScene3dEnvironment(
-    { projectionCenterHeight: 4.5, domeRadius: 15, panoramaHorizonV: 0.58 },
+    { projectionCenterHeight: 1.2, domeRadius: 15, panoramaHorizonV: 0.58 },
     { customized: true },
   );
   assert.deepEqual(resolveStoryScene3dEnvironment("interior", custom), {
-    projectionCenterHeight: 4.5,
+    projectionCenterHeight: 1.2,
     domeRadius: 15,
     yawDeg: 0,
     intensity: 1,

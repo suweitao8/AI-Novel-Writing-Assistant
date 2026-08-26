@@ -370,7 +370,7 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     },
   };
   for (const [key, value] of [
-    ["projectionCenterHeight", 0.5],
+    ["projectionCenterHeight", 0.4],
     ["projectionCenterHeight", 10.1],
     ["domeRadius", 4],
     ["domeRadius", 100.1],
@@ -389,18 +389,19 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ...validSketch,
     layout3d: {
       ...baseLayout,
-      environment: { ...baseLayout.environment, projectionCenterHeight: 10, domeRadius: 30 },
+      environment: { ...baseLayout.environment, projectionCenterHeight: 2, domeRadius: 20 },
     },
   });
-  assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 10);
-  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 30);
+  assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 2);
+  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 20);
   const atLowerBoundary = normalizeBlockingSketchData({
     ...validSketch,
     layout3d: {
       ...baseLayout,
-      environment: { ...baseLayout.environment, domeRadius: 5 },
+      environment: { ...baseLayout.environment, projectionCenterHeight: 0.5, domeRadius: 5 },
     },
   });
+  assert.equal(atLowerBoundary.layout3d?.environment?.projectionCenterHeight, 0.5);
   assert.equal(atLowerBoundary.layout3d?.environment?.domeRadius, 5);
   const aboveNewBoundary = normalizeBlockingSketchData({
     ...validSketch,
@@ -409,7 +410,7 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
       environment: { ...baseLayout.environment, domeRadius: 31 },
     },
   });
-  assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 30);
+  assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 20);
   const legacyHorizon = normalizeBlockingSketchData({
     ...validSketch,
     layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.39 } },
@@ -434,8 +435,26 @@ test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆�
       },
     },
   });
-  assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 1);
-  assert.equal(legacy.layout3d?.environment?.domeRadius, 30);
+  assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 0.6);
+  assert.equal(legacy.layout3d?.environment?.domeRadius, 20);
+  const legacyHighCenter = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: { azim: 0, elev: 0, distance: 3, focalPoint: [0, 0, 0] },
+      actors: [],
+      environment: {
+        projectionCenterHeight: 6,
+        domeRadius: 18,
+        panoramaHorizonV: 0.5,
+        yawDeg: 80,
+        intensity: 1.5,
+      },
+    },
+  });
+  assert.equal(legacyHighCenter.layout3d?.environment?.projectionCenterHeight, 2);
+  assert.equal(legacyHighCenter.layout3d?.environment?.domeRadius, 18);
   assert.equal("panoramaHorizonV" in (legacy.layout3d?.environment ?? {}), false);
   assert.equal(legacy.layout3d?.environment?.yawDeg, 0);
   assert.equal(legacy.layout3d?.environment?.intensity, 1);

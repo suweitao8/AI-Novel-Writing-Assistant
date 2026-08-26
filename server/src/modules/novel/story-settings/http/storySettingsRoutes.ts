@@ -18,6 +18,7 @@ import { worldMapService } from "../application/WorldMapService";
 import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 import { storyScene3dMarkerService } from "../application/StoryScene3dMarkerService";
+import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
 import { llmProviderSchema } from "../../../../llm/providerSchema";
 
 const novelParams = z.object({ id: z.string().trim().min(1) });
@@ -98,8 +99,14 @@ const scene3dMarkerSetSchema = z.object({
   sourceImageArtifactId: z.string().trim().max(160).optional(),
   sourceImageGeneratedAt: z.string().max(80).optional(),
   sourceEnvironment: z.object({
-    projectionCenterHeight: z.number().min(1).max(10),
-    domeRadius: z.number().min(5).max(30),
+    projectionCenterHeight: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    domeRadius: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
   }).optional(),
   analyzedAt: z.string().max(80).optional(),
   analysisNote: z.string().max(500).optional(),
@@ -253,8 +260,14 @@ const sceneCreateSchema = z.object({
   mapNodeId: z.string().trim().max(60).optional(),
   states: z.array(assetStateSchema).max(24).optional(),
   scene3dEnvironment: z.object({
-    projectionCenterHeight: z.number().min(1).max(10),
-    domeRadius: z.number().min(5).max(30),
+    projectionCenterHeight: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    domeRadius: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
   }).strict().nullable().optional(),
 });
 
@@ -269,8 +282,14 @@ const sceneUpdateSchema = z.object({
   mapNodeId: z.string().trim().max(60).nullable().optional(),
   states: z.array(assetStateSchema).max(24).optional(),
   scene3dEnvironment: z.object({
-    projectionCenterHeight: z.number().min(1).max(10),
-    domeRadius: z.number().min(5).max(30),
+    projectionCenterHeight: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+    domeRadius: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
   }).strict().nullable().optional(),
 });
 

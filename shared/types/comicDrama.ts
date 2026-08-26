@@ -21,6 +21,12 @@ export interface StoryScene3DEnvironment {
 
 export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">;
 
+/** 投射中心高度和半球直径的可调范围，场景编辑、空间标记和分镜草图共用同一份合同。 */
+export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
+  projectionCenterHeight: { min: 0.5, max: 2 },
+  domeRadius: { min: 5, max: 20 },
+} as const;
+
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [
   "bed",
