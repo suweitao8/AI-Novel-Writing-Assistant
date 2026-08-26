@@ -65,7 +65,7 @@
 - 舞台半径：角色可活动范围是以投射中心为圆心、半球真实半径内缩 1 米的圆（`STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M = 1`），合同实现在 `shared/utils/blockingStage.ts`。注意量纲：环境字段 `domeRadius` 按产品语义存的是半球直径（设置页滑块即“半球直径”，dome 几何按 0.5 半径基础网格 × domeRadius 缩放），世界真实半径 = `domeRadius / 2`，舞台半径 = `domeRadius / 2 − 1`。把字段直接当半径用会把边界圈画到半球外、允许角色穿出球边（历史上踩过此坑，`blockingStageContract.test.js` 固定了直径语义的期望值）。强制点只有两处——AI 自动构图出口的程序化 clamp 与 viewer 交互输入（拖拽/nudge）的实时 clamp；保存路径不做破坏性 clamp，旧布局里越界的角色不会被静默改动。
 - 相机锚定：自动构图的拍摄位必须落在投射中心 `[0, projectionCenterHeight, 0]`（全景图的原始取景点）。实现方式是 `anchorBlockingCameraAtProjectionCenter`：保持 LLM 给出的视线方向与拍摄距离不变，仅把 focalPoint 重写为 `投射中心 − D*distance`，因此构图朝向、取景远近和 fov/DOF 全部保留，只有相机位置被归中。fov/裁剪面/景深不参与锚定。
 - Prompt 合同：`drama.shot.blocking.autoPlan@v3` 在 system 中声明舞台半径规则与"拍摄位固定在投射中心"，并在 HumanMessage 追加【摆位限制】数值行（可用站位半径 X 米 + 投射中心高度）；服务端程序化合同是兜底而不是唯一约束。
-- Viewer 常驻绘制舞台边界参考圈（96 段线、琥珀色半透明），随环境参数实时重算；actor 拖拽和 nudge 的落点径向 clamp 到舞台半径并保持方位角。手动相机导航保留自由度——锚定合同只约束自动构图产出；用户若手动挪动相机再保存，属于显式创作调整。
+- Viewer 常驻绘制两条参考圈（各 96 段线、随环境参数实时重算）：琥珀色半透明是舞台余量边界，青色半透明是半球自身的地面边界（直径的一半处）。调“半球直径”滑块时两圈同时重算，便于对照球边与舞台余量的关系。半球世界半径换算统一走 `resolveStoryScene3DDomeWorldRadius`，视图代码不得自行做 `/2` 以外的临时推导。actor 拖拽和 nudge 的落点径向 clamp 到舞台半径并保持方位角。手动相机导航保留自由度——锚定合同只约束自动构图产出；用户若手动挪动相机再保存，属于显式创作调整。
 - 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回同时以 `statesJson` 和 `scene3dEnvironmentJson` 做 CAS，并在写入前复核图片制品指纹与环境快照，防止慢分析覆盖新图片或新投射参数。
 
 ### 静态姿势与关键帧
