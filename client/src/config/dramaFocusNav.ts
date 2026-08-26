@@ -30,3 +30,19 @@ export function isNavRouteVisible(to: string): boolean {
   }
   return !DRAMA_FOCUS_HIDDEN_NAV_ROUTES.has(to);
 }
+
+export interface DramaFocusNavItem {
+  to: string;
+  label: string;
+}
+
+const DRAMA_FOCUS_NAV_ITEMS: DramaFocusNavItem[] = [
+  { to: "/drama", label: "漫剧" },
+  { to: "/tasks", label: "记录" },
+  { to: "/art-style", label: "画风" },
+  { to: "/settings", label: "系统" },
+];
+
+export function getDramaFocusNavItems(): DramaFocusNavItem[] {
+  return DRAMA_FOCUS_NAV_ITEMS;
+}
