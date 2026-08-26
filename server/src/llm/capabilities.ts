@@ -24,10 +24,9 @@ export interface ModelParameterCompatibility {
 }
 
 const TEXT_ONLY_PROVIDERS = new Set<BuiltinLLMProvider>([
-  // OpenCode Go 桥接是纯文本通道：image_url 内容会被替换成占位文本，
-  // 送图任务（如空间标记识别）在这些通道上必须快速失败而不是静默丢图。
-  "opencode",
   // 图片/音频专用本地通道，不承担文本或视觉理解任务。
+  // opencode 不在此列：桥接自 2026-08-27 起把 image_url 透传为 opencode FilePart，
+  // 由视觉模型（opencode-go/mimo-v2.5）消费；送图任务不再需要快速失败。
   "codex",
   "grok_build",
   "voxcpm2",

@@ -9,11 +9,12 @@ import { getProviderEnvModel, PROVIDERS } from "./providers";
 // - 音频槽承担角色配音与朗读任务，默认走本机 VoxCPM2 语音服务。
 // 槽位的服务地址、API Key、模型均可编辑：更换供应商时修改槽位配置即可，
 // 产品不再提供按“厂商”维度逐个配置的界面。
-// 文本槽走 OpenCode Go（另一份订阅额度）；OpenCode Go 桥接不支持送图，
-// 因此送图理解任务固定走视觉槽 grok-cli（Grok Build 订阅），与文本任务并行使用。
+// 文本槽与视觉槽都走 OpenCode Go 订阅（MiMo 多模态）：桥接自 2026-08-27 起
+// 把图片透传为 opencode FilePart，送图理解（空间标记识别、画风识别）不再依赖
+// grok-cli（Grok Build 订阅已退订，通道保留注册以便恢复订阅后切回）。
 export const MODEL_CATEGORY_PROVIDERS = {
   text: "opencode",
-  vision: "grok-cli",
+  vision: "opencode",
   image: "grok_build",
   audio: "voxcpm2",
 } as const satisfies Record<"text" | "vision" | "image" | "audio", BuiltinLLMProvider>;
