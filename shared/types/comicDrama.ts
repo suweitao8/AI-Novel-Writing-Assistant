@@ -36,7 +36,7 @@ export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projec
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   projectionCenterHeight: { min: 0.5, max: 2 },
   domeRadius: { min: 5, max: 20 },
-  panoramaHorizonV: { min: 0.4, max: 0.65 },
+  panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */

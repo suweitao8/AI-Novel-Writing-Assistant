@@ -38,9 +38,9 @@ test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参�
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
 
-test("场景 3D 编辑器可调分界线并沿用半球直径范围", () => {
+test("场景 3D 编辑器可调分界线（45%–55%）并沿用半球直径范围", () => {
   assert.match(page, /aria-label="分界线"/);
-  assert.match(page, /min="40" max="65" step="1"/);
+  assert.match(page, /min="45" max="55" step="1"/);
   assert.match(page, /panoramaHorizonV/);
   assert.match(viewer, /panoramaHorizonV/);
 });

@@ -34,7 +34,7 @@ test("场景 3D 编辑器用角色代理校准比例并保存场景级参数", (
   assert.match(page, /min="0.5" max="2" step="0\.1"/);
   assert.match(page, /min="5" max="20" step="1"/);
   assert.match(page, /aria-label="分界线"/);
-  assert.match(page, /min="40" max="65" step="1"/);
+  assert.match(page, /min="45" max="55" step="1"/);
   assert.match(page, /panoramaHorizonV/);
   assert.match(page, /saveBeforeExit/);
   assert.match(page, /await saveBeforeExit\(\)/);

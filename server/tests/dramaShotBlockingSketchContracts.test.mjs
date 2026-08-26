@@ -255,7 +255,7 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
     environment: {
       projectionCenterHeight: 1.2,
       domeRadius: 20,
-      panoramaHorizonV: 0.58,
+      panoramaHorizonV: 0.52,
       yawDeg: -25,
       intensity: 1.1,
     },
@@ -418,7 +418,8 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ...validSketch,
     layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.65 } },
   });
-  assert.equal(atHorizonBoundaries.layout3d?.environment?.panoramaHorizonV, 0.65);
+  // 旧可调范围的上界 0.65 读入后裁剪到当前范围上界 0.55。
+  assert.equal(atHorizonBoundaries.layout3d?.environment?.panoramaHorizonV, 0.55);
 });
 
 test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆位失效", () => {
