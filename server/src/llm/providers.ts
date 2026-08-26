@@ -167,12 +167,13 @@ export const PROVIDERS: Record<BuiltinLLMProvider, ProviderConfig> = {
     supportsModelList: false,
   },
   codex: {
-    // 2026-08-27 起 codex 桥同时承载图片与文本/视觉：chat completions 走
-    // codex exec（默认 gpt-5.5 + low 推理档 = fast 模式），图片仍走 image_generation 工具。
+    // codex 桥同时承载图片与文本/视觉：chat completions 走 codex exec
+    // （默认 gpt-5.6-luna + low 推理档 = fast 模式），图片仍走 image_generation 工具。
+    // gpt-5.6-luna 需要较新的 codex CLI（旧版会报 "requires a newer version of Codex"）。
     name: "Codex 订阅",
     baseURL: "http://127.0.0.1:18766/v1",
-    defaultModel: "gpt-5.5",
-    models: ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-image-2"],
+    defaultModel: "gpt-5.6-luna",
+    models: ["gpt-5.6-luna", "gpt-5.5", "gpt-5.4", "gpt-5.4-mini", "gpt-image-2"],
     envKey: "CODEX_API_KEY",
     envBaseURLKey: "CODEX_BASE_URL",
     envModelKey: "CODEX_MODEL",

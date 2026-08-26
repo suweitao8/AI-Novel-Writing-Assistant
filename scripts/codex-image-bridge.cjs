@@ -14,10 +14,10 @@
 //   codex exec --ignore-user-config --ephemeral --json --color never
 //          -C <workdir> --skip-git-repo-check -s read-only -m <model>
 //          -c model_reasoning_effort="<effort>" [-i image ...] -
-//   默认 gpt-5.5 + low 推理档（官方描述 fast responses with lighter reasoning，即「fast 模式」）。
-//   注意：ChatGPT 账号的 Codex 不提供 luna 模型（服务端 400 明确拒绝），可用模型为
-//   gpt-5.5 / gpt-5.4 / gpt-5.4-mini（均支持图片输入）；模型可用 -m / CODEX_TEXT_MODEL 覆盖，
-//   若日后账号开放 luna，改一个环境变量即可切换。
+//   默认 gpt-5.6-luna + low 推理档（官方描述 fast responses with lighter reasoning，即「fast 模式」）。
+//   注意：gpt-5.6-luna 需要较新的 codex CLI；旧版 CLI 会收到服务端 400
+//   "The 'gpt-5.6-luna' model requires a newer version of Codex"，npm i -g @openai/codex@latest 即可。
+//   备选模型 gpt-5.5 / gpt-5.4 / gpt-5.4-mini（均支持图片输入）；模型可用 -m / CODEX_TEXT_MODEL 覆盖。
 //
 // 对外暴露：
 //   GET  /health                  -> { ready, provider, runtime }
@@ -39,13 +39,13 @@ const DEFAULT_HOST = "0.0.0.0";
 const DEFAULT_PORT = 18766;
 const DEFAULT_API_KEY = "codex-bridge-local";
 const DEFAULT_IMAGE_MODEL = "gpt-image-2";
-const DEFAULT_AGENT_MODEL = "gpt-5.5";
+const DEFAULT_AGENT_MODEL = "gpt-5.6-luna";
 const DEFAULT_TIMEOUT_SECONDS = 900;
 const DEFAULT_MAX_CONCURRENCY = 4;
 const MAX_REQUEST_BYTES = 20 * 1024 * 1024;
 const IMAGE_SUFFIXES = new Set([".png", ".jpg", ".jpeg", ".webp"]);
 // 文本/视觉通道：fast 模式 = low 推理档（Fast responses with lighter reasoning）。
-const DEFAULT_TEXT_MODEL = "gpt-5.5";
+const DEFAULT_TEXT_MODEL = "gpt-5.6-luna";
 const DEFAULT_TEXT_EFFORT = "low";
 const DEFAULT_TEXT_TIMEOUT_SECONDS = 300;
 const DEFAULT_TEXT_MAX_CONCURRENCY = 2;
@@ -498,7 +498,7 @@ function resolveChatModel(requestModel, fallbackModel) {
   if (normalized.startsWith("codex/")) {
     normalized = normalized.slice("codex/".length);
   }
-  // 图片模型 id 不是文本模型：回落到文本默认（gpt-5.5）。
+  // 图片模型 id 不是文本模型：回落到文本默认（gpt-5.6-luna）。
   if (!normalized || normalized === DEFAULT_IMAGE_MODEL) {
     return fallbackModel;
   }

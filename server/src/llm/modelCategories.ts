@@ -9,9 +9,8 @@ import { getProviderEnvModel, PROVIDERS } from "./providers";
 // - 音频槽承担角色配音与朗读任务，默认走本机 VoxCPM2 语音服务。
 // 槽位的服务地址、API Key、模型均可编辑：更换供应商时修改槽位配置即可，
 // 产品不再提供按“厂商”维度逐个配置的界面。
-// 2026-08-27 起 Grok 与 OpenCode Go 额度均不可用，文本/视觉/图片槽统一走
-// Codex 订阅额度：文本与视觉经 codex 桥的 chat completions（默认 gpt-5.5 +
-// low 推理档 = fast 模式，图片输入走 -i 附件），图片仍走 image_generation 工具。
+// 文本/视觉/图片槽统一走 Codex 订阅额度：文本与视觉经 codex 桥的 chat completions
+// （默认 gpt-5.6-luna + low 推理档 = fast 模式，图片输入走 -i 附件），图片仍走 image_generation 工具。
 // 音频保持本机 VoxCPM2，不消耗订阅额度。grok-cli / opencode 通道保留注册，
 // 额度恢复后可在设置页切回。
 export const MODEL_CATEGORY_PROVIDERS = {
