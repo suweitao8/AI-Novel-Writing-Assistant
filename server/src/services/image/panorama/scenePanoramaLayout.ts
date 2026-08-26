@@ -35,8 +35,10 @@ export const SCENE_PANORAMA_INTERIOR_PROMPT_LINES = [
   "interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon, as if every piece of furniture were pushed flat against the far walls and viewed from across the room",
   "the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it onto the floor texture",
   "the floor half stays completely empty interior flooring — no beds, tables, chairs, sofas, cabinets, rugs with objects, clutter or furniture imprints drawn on the floor",
-  // 2026-08-26 用户要求：这是主角的房间，墙上挂陌生人的人像照片很出戏；海报/画作属于装饰，允许。
-  "wall décor rule: anything framed or hung on the walls is decorative media only — movie, music, anime, sports or idol posters, paintings, illustrations, prints, clocks or mirrors; never personal or family portrait photographs, and never a framed photo of a person that could read as the inhabitant's own picture",
+  // 2026-08-26 用户要求（两轮收敛）：提示词明确写了的照片（如老照片）允许上墙且必须有相框；
+  // 没写数量的最多一张，不得额外铺开照片墙；提示词完全没提照片时一张都不出。
+  "wall décor rule: anything framed or hung on the walls is decorative media — movie, music, anime, sports or idol posters, paintings, illustrations, prints, clocks or mirrors; photographs appear on walls only when the scene description explicitly mentions them (for example an old family photo), and each must sit inside a proper picture frame",
+  "photo restraint: render at most one framed photograph unless the scene description explicitly names a larger amount; never add extra photographs, grids of frames or a photo collage wall beyond what the description asks for",
 ] as const;
 
 /** Layout lines for a scene type; interiors append the reinforcement lines. */
@@ -50,4 +52,4 @@ export function scenePanoramaLayoutLinesFor(
 
 /** Negative constraints for objects that would be split or stretched after projection. */
 export const SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT =
-  "furniture or objects in the lower half, furniture painted or cloned on the floor, furniture legs below the horizon, skirting board or wall base in the lower half, furniture legs crossing the horizon, objects crossing the center line, object fragments in the center safety band, split furniture, structure tops or distant objects above the sky line, objects crossing the sky boundary, visible horizon line, seam, stripe, split-screen, collage, stretched props on the ground, cluttered floor, repeated ground objects, framed personal portraits, family photographs on walls, photo frames with people, framed photos of strangers";
+  "furniture or objects in the lower half, furniture painted or cloned on the floor, furniture legs below the horizon, skirting board or wall base in the lower half, furniture legs crossing the horizon, objects crossing the center line, object fragments in the center safety band, split furniture, structure tops or distant objects above the sky line, objects crossing the sky boundary, visible horizon line, seam, stripe, split-screen, collage, stretched props on the ground, cluttered floor, repeated ground objects, unprompted framed portraits, extra photographs beyond the described one, many framed photos on one wall, photo collage wall, frameless loose photos";
