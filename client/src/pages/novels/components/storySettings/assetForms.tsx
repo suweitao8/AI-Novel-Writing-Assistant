@@ -186,6 +186,30 @@ export function getCharacterStateHeightError(value: number | null | undefined): 
     : `请输入 ${STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS.toFixed(2)}–${STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS.toFixed(2)} 米。`;
 }
 
+/** 场景全景构图参考线：50% 地平线（地面分界）与 70%（从底部计）天空分界，对应生成契约的三区布局。
+ *  标注按用户视角从底部计；线压在照片上，用虚线加高对比保证可见。 */
+function ScenePanoramaGuides() {
+  return (
+    <>
+      {[
+        { v: STORY_SCENE_3D_PANORAMA_SKY_V, label: "70%" },
+        { v: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V, label: "50%" },
+      ].map((guide) => (
+        <div
+          key={guide.label}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 border-t-2 border-dashed border-foreground/80"
+          style={{ top: `${guide.v * 100}%` }}
+        >
+          <span className="absolute right-1.5 -top-2.5 rounded-sm bg-background/90 px-1 text-[10px] font-medium leading-4 text-foreground shadow-sm">
+            {guide.label}
+          </span>
+        </div>
+      ))}
+    </>
+  );
+}
+
 // 状态编辑器（角色/场景/道具编辑弹窗共用）：左列状态列表 + 右侧当前状态直接编辑。
 // 2026-08-22 用户决定的交互：
 // - 所有字段行内直接可编辑，统一由弹窗「保存」一次落库（状态不单独保存，2026-08-22
@@ -650,6 +674,7 @@ export function AssetStatesEditor(props: {
                     fit="natural"
                     blurBackdrop={false}
                     className="w-full rounded-lg border-0"
+                    overlay={showScene ? <ScenePanoramaGuides /> : undefined}
                   />
                 ) : (
                   <div
@@ -658,17 +683,6 @@ export function AssetStatesEditor(props: {
                     aria-label={`${getAssetStateLabel(selectedState, selectedIndex)}尚未生成图片`}
                   />
                 )}
-                {/* 场景全景的构图参考线：50% 地平线与 70%（从底部计）天空分界，对应生成契约的三区布局。 */}
-                {showScene && selectedState.image?.url
-                  ? [STORY_SCENE_3D_PANORAMA_SKY_V, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V].map((v) => (
-                    <div
-                      key={v}
-                      aria-hidden="true"
-                      className="pointer-events-none absolute inset-x-0 h-px bg-foreground/55"
-                      style={{ top: `${v * 100}%` }}
-                    />
-                  ))
-                  : null}
               </div>
               <div className="flex flex-wrap items-end justify-between gap-2">
                 <label className="min-w-40 flex-1 space-y-1">
