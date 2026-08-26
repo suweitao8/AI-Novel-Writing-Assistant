@@ -35,6 +35,8 @@ export const SCENE_PANORAMA_INTERIOR_PROMPT_LINES = [
   "interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon, as if every piece of furniture were pushed flat against the far walls and viewed from across the room",
   "the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it onto the floor texture",
   "the floor half stays completely empty interior flooring — no beds, tables, chairs, sofas, cabinets, rugs with objects, clutter or furniture imprints drawn on the floor",
+  // 2026-08-26 用户要求：这是主角的房间，墙上挂陌生人的人像照片很出戏；海报/画作属于装饰，允许。
+  "wall décor rule: anything framed or hung on the walls is decorative media only — movie, music, anime, sports or idol posters, paintings, illustrations, prints, clocks or mirrors; never personal or family portrait photographs, and never a framed photo of a person that could read as the inhabitant's own picture",
 ] as const;
 
 /** Layout lines for a scene type; interiors append the reinforcement lines. */
@@ -48,4 +50,4 @@ export function scenePanoramaLayoutLinesFor(
 
 /** Negative constraints for objects that would be split or stretched after projection. */
 export const SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT =
-  "furniture or objects in the lower half, furniture painted or cloned on the floor, furniture legs below the horizon, skirting board or wall base in the lower half, furniture legs crossing the horizon, objects crossing the center line, object fragments in the center safety band, split furniture, structure tops or distant objects above the sky line, objects crossing the sky boundary, visible horizon line, seam, stripe, split-screen, collage, stretched props on the ground, cluttered floor, repeated ground objects";
+  "furniture or objects in the lower half, furniture painted or cloned on the floor, furniture legs below the horizon, skirting board or wall base in the lower half, furniture legs crossing the horizon, objects crossing the center line, object fragments in the center safety band, split furniture, structure tops or distant objects above the sky line, objects crossing the sky boundary, visible horizon line, seam, stripe, split-screen, collage, stretched props on the ground, cluttered floor, repeated ground objects, framed personal portraits, family photographs on walls, photo frames with people, framed photos of strangers";
