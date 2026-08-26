@@ -617,28 +617,28 @@ function ShotDesignSummary({ shot }: { shot: DramaShot }) {
     ...characterStates.map((entry) => entry.name),
   ]));
   const action = shot.action?.trim();
-  const cameraMove = shot.cameraMove?.trim();
   const location = shot.location?.trim();
-  const visualPrompt = shot.visualPrompt?.trim();
 
   return (
-    <section
+    <div
       aria-label={`第 ${shot.order} 镜分镜设计`}
-      className="space-y-1.5 rounded-lg border border-border/60 bg-muted/10 p-2.5"
+      className="space-y-1"
     >
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-[11px] font-semibold text-foreground">分镜设计</span>
-        {cameraMove ? <Badge variant="secondary" className="text-[10px]">运镜 {cameraMove}</Badge> : null}
-        {location ? <span className="text-[11px] text-muted-foreground">场景：{location}</span> : null}
+      <div className="flex min-w-0 items-start gap-2 text-sm leading-5">
+        <span className="shrink-0 pt-0.5 text-[11px] font-semibold text-muted-foreground">分镜设计</span>
+        {action ? (
+          <p className="min-w-0 line-clamp-2 text-foreground">{action}</p>
+        ) : (
+          <p className="min-w-0 text-xs text-muted-foreground">暂无分镜设计</p>
+        )}
       </div>
-      {action ? (
-        <p className="text-sm leading-6 text-foreground">{action}</p>
-      ) : (
-        <p className="text-xs text-muted-foreground">暂无分镜设计</p>
-      )}
-      {characterNames.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-1.5" aria-label="出场角色">
-          <span className="text-[11px] text-muted-foreground">出场角色</span>
+      {location || characterNames.length > 0 ? (
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground"
+          aria-label={`第 ${shot.order} 镜场景与出场角色`}
+        >
+          <span className="shrink-0 font-medium">场景/角色</span>
+          {location ? <span className="max-w-full truncate text-foreground">{location}</span> : null}
           {characterNames.map((name) => {
             const state = stateByName.get(name);
             return (
@@ -649,15 +649,7 @@ function ShotDesignSummary({ shot }: { shot: DramaShot }) {
           })}
         </div>
       ) : null}
-      {visualPrompt ? (
-        <details className="rounded-md border border-border/50 bg-background/50 px-2 py-1">
-          <summary className="cursor-pointer text-[11px] font-medium text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            画面提示词
-          </summary>
-          <p className="mt-1 whitespace-pre-wrap text-xs leading-5 text-muted-foreground">{visualPrompt}</p>
-        </details>
-      ) : null}
-    </section>
+    </div>
   );
 }
 
@@ -857,8 +849,8 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
         </div>
       </div>
 
-      {/* 分镜信息 + 配音段 */}
-      <div className="min-w-0 flex-1 space-y-1.5">
+      {/* 分镜信息 + 配音 */}
+      <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="text-xs font-semibold tabular-nums text-foreground">第 {shot.order} 镜</span>
           {shotMeta ? <span className="text-[11px] text-muted-foreground">{shotMeta}</span> : null}
@@ -867,30 +859,32 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
         <ShotDesignSummary shot={shot} />
 
         {segments.length > 0 ? (
-          <div className="space-y-0.5" aria-label={`第 ${shot.order} 镜台词与旁白`}>
-            {segments.map((segment) => (
-              <p key={`${segment.shotId}-${segment.lineIndex}`} className="line-clamp-2 text-sm leading-6 text-foreground">
-                <span className="font-medium text-muted-foreground">{audioSegmentLabel(segment)}：</span>
-                {segment.text}
-              </p>
-            ))}
+          <div className="flex min-w-0 items-start gap-2 text-sm leading-5" aria-label={`第 ${shot.order} 镜旁白与对白`}>
+            <span className="shrink-0 pt-0.5 text-[11px] font-medium text-muted-foreground">旁白/对白</span>
+            <p className="min-w-0 line-clamp-2 text-foreground">
+              {segments.map((segment, index) => (
+                <span key={`${segment.shotId}-${segment.lineIndex}`}>
+                  {index > 0 ? <span className="mx-1 text-muted-foreground/70">·</span> : null}
+                  <span className="font-medium text-muted-foreground">{audioSegmentLabel(segment)}：</span>
+                  {segment.text}
+                </span>
+              ))}
+            </p>
           </div>
         ) : shot.dialogue?.trim() ? (
-          <div aria-label={`第 ${shot.order} 镜台词与旁白`}>
-            <span className="text-[11px] font-medium text-muted-foreground">台词/旁白</span>
-            <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">{shot.dialogue}</p>
+          <div className="flex min-w-0 items-start gap-2 text-sm leading-5" aria-label={`第 ${shot.order} 镜旁白与对白`}>
+            <span className="shrink-0 pt-0.5 text-[11px] font-medium text-muted-foreground">旁白/对白</span>
+            <p className="min-w-0 line-clamp-2 whitespace-pre-wrap text-foreground">{shot.dialogue}</p>
           </div>
         ) : null}
 
-        {segments.length > 0 ? (
-          <div className={cn(
-            "mt-2 flex min-w-0 flex-col gap-2 rounded-lg border border-border/60 bg-muted/10 p-2",
-            hasReadyAudio ? "sm:flex-row sm:items-center" : "justify-end",
-          )}>
+        {segments.length > 0 || Boolean(shot.dialogue?.trim()) ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 pt-0.5" aria-label={`第 ${shot.order} 镜配音`}>
+            <span className="shrink-0 text-[11px] font-medium text-muted-foreground">配音</span>
             {hasReadyAudio ? (
-              <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
                 {readySegments.map((segment) => (
-                  <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 items-center gap-2">
+                  <div key={`${segment.shotId}-${segment.lineIndex}`} className="flex min-w-0 flex-1 basis-[16rem] items-center gap-2">
                     <span className="shrink-0 text-[11px] font-medium text-muted-foreground">
                       {audioSegmentLabel(segment)}
                       {segment.type === "dialogue" && segment.emotion ? (
@@ -906,10 +900,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
               type="button"
               variant="outline"
               size="sm"
-              className={cn(
-                "h-8 shrink-0 self-start px-2.5 text-xs sm:self-center",
-                !hasReadyAudio && "ml-auto",
-              )}
+              className="ml-auto h-8 shrink-0 px-2.5 text-xs"
               disabled={props.regenerating}
               onClick={() => props.onRegenerate(shot, shouldForceRegenerate)}
               title={`${audioActionLabel}这一镜的配音`}
