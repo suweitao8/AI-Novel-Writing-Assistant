@@ -1161,9 +1161,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return { ...environmentSettings };
     },
     setEnvironmentSettings(settings) {
-      environmentSettings = normalizeEnvironmentSettings(settings);
+      const next = normalizeEnvironmentSettings(settings);
+      // 背景网格只由投射中心高度和半球半径决定；分界线等参数是纯着色器
+      // uniform，拖动时重建网格会造成无意义的 GPU 抖动。
+      const geometryChanged = next.projectionCenterHeight !== environmentSettings.projectionCenterHeight
+        || next.domeRadius !== environmentSettings.domeRadius;
+      environmentSettings = next;
       applyEnvironmentSettings();
-      rebuildEnvironmentBackdropMesh();
+      if (geometryChanged) rebuildEnvironmentBackdropMesh();
       emitChange();
       return true;
     },

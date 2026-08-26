@@ -93,6 +93,7 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 - 不能把 AI 自动构图结果直接落库后再校验；必须先校验角色集合、相机范围和 3D 快照，再由前端加载并在退出保存链路中统一确认。
 - 不能删除旧二维数据或要求已有项目重新摆位；缺少 3D 快照时必须能够从旧二维布局恢复一个可编辑的默认 3D 场景，但前端只暴露 3D 草图入口。
 - 姿势枚举是业务契约，代理 GLB 的剪辑名可以变化。若某个代理缺少剪辑，应明确报出资源能力问题或采用已定义的近似剪辑，不得静默把用户选择改成站立。
+- viewer 的销毁重建只能由环境图变化触发。任何从环境参数派生的状态（例如空间标记的“当前有效”判定）不得进入 viewer 创建 effect 的依赖数组：拖动环境滑块会持续翻转该判定，导致 viewer 连续整体重建（HDRI 重载 + EnvAtlas + 立方体重投影），页面卡死且视口黑屏。标记显隐必须走 `viewer.setSceneMarkers` 增量更新。
 
 ### HDRI 环境
 
@@ -119,6 +120,8 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLighting.generateLightingSource` 和 `EnvLighting.generateAtlas` 生成 `Scene.envAtlas`。该 atlas 负责角色代理的环境反射、环境漫反射和整体明暗底色；半球自发光材质只负责显示原始场景图。由于 EnvAtlas 的漫反射是低频环境光，它不会自动把窗户、太阳等高亮区域变成明显的直射光，因此 viewer 还要从 HDRI 上半部的高亮像素估算方向、颜色和受限强度，更新一盏只存在于 viewer 生命周期的 `directional` key light。它与 EnvAtlas 叠加，用来让角色呈现与窗户/太阳方向一致的受光面；不增加固定补光，也不把估算结果写入 `layout3d` 或场景环境参数。像素读取失败时使用稳定的斜上方后备主光，不能让一次 canvas/CORS 读取失败阻断 HDRI 半球和 EnvAtlas。
 
 由于 PlayCanvas 在没有显式 skybox 时会把 `envAtlas` 作为无限天空盒的回退纹理，3D blocking camera 必须排除 `LAYERID_SKYBOX`，有限 HDRI 半球和地面改放在 `LAYERID_WORLD`；不能为了保留环境光照而让引擎内置无限天空盒覆盖半球直径设置。没有可用 HDRI 时关闭派生方向光，并使用低强度中性 `Scene.ambientLight` 兜底。lighting source、envAtlas 和 HDRI 派生方向光都只存在于 viewer 生命周期，切换、加载失败和销毁时必须释放或关闭。
+
+场景 3D 编辑页的 viewer 生命周期只跟随环境图地址（`environmentUrl`）与场景数据重建；空间标记列表通过创建时的 ref 快照注入初始状态，之后一律由专用同步 effect 调 `viewer.setSceneMarkers` 增量更新。环境滑块（投射中心高度、半球直径、分界线）拖动时只调用 `viewer.setEnvironmentSettings`：分界线是纯着色器 uniform，不触发网格重建；只有投射中心高度或半球直径变化才重建背景网格。重建 viewer 是昂贵操作（HDRI 纹理重载、`EnvLighting` 生成、`reprojectTexture`），且每次重建都会新建 PlayCanvas Application，绝不能被高频用户输入触发。2026-08-26 的卡死黑屏事故即因 viewer 创建 effect 依赖了从环境参数派生的标记可见性引用：拖动分界线让“标记当前有效”翻转 → viewer 销毁重建 → 重建完成时 `fitView()` 触发 onChange 把环境状态重置回服务端保存值 → 判定再翻转 → 再次重建，形成重建风暴。用户侧界面中该参数的显示名为「分界线」（数据字段仍为 `panoramaHorizonV`）。
 
 ## Related Modules
 
