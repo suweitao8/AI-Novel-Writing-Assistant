@@ -81,13 +81,15 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /the lower half is not a perspective view of the space: it renders as one seamless floor material seen from directly above/);
   assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground/);
   assert.match(scene, /center band v=0\.48-0\.52 remains empty and uncluttered/);
+  assert.match(scene, /hard middle-line ceiling: the lowest point of every object/);
+  assert.match(scene, /redraw the whole room smaller and farther away instead of crossing the line/);
   assert.match(scene, /middle distant zone v=0\.3-0\.5 holds the distant view/);
   assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object kept complete and fully contained between v=0\.3 and v=0\.48/);
   assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
   assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
   // 室内强化行只进 interior 场景，室外不得混入。
-  assert.doesNotMatch(scene, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band/);
+  assert.doesNotMatch(scene, /interior composition: build the picture like a theater set poster/);
   assert.doesNotMatch(scene, /wall décor rule/);
   const interior = buildStateImagePrompt({
     kind: "scene",
@@ -103,9 +105,13 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   }, []);
   // 2026-08-26：室内场景追加强化行——家具/墙根全部留在地平线以上，下半区只有纯地板
   //（用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
-  assert.match(interior, /interior rule: walls, windows, doors and all furniture form one continuous eye-level band strictly above the horizon/);
-  assert.match(interior, /the wall-to-floor junction lies exactly on the horizon line; no skirting board, wall base, furniture legs or lower cabinet bodies drop below it/);
-  assert.match(interior, /the floor half stays completely empty interior flooring/);
+  // 2026-08-26 二轮重构：物理自洽的「舞台背景板双层构图」——放弃真实房间透视框架。
+  assert.match(interior, /interior composition: build the picture like a theater set poster in two flat layers/);
+  assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls/);
+  assert.match(interior, /treat all furniture like flat stage-prop cutouts standing on the backdrop's bottom edge/);
+  assert.match(interior, /a deep, small-looking room always wins over an object crossing the line/);
+  assert.match(interior, /keep furniture small, flat and backdrop-like, never large foreground pieces/);
+  assert.match(interior, /the flooring swatch stays completely empty/);
   // 2026-08-26（二轮收敛）：提示词明确写了的照片（如老照片）允许上墙且必须带相框；
   // 没写数量最多一张；提示词没提照片时一张都不出。
   assert.match(interior, /wall décor rule: anything framed or hung on the walls is decorative media/);
@@ -115,6 +121,21 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.doesNotMatch(scene, /uniform detail and sharpness across the whole 360-degree view/);
   assert.doesNotMatch(scene, /strong subject focus/);
   assert.match(imageServiceSource, /SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT/);
+  // 2026-08-26：带参考图的场景明确「构图不随参考图」，防止越线构图代代相传。
+  const sceneWithRef = buildStateImagePrompt({
+    kind: "scene",
+    assetName: "出租屋",
+    baseAppearance: null,
+    state: {
+      label: "白天",
+      description: "空房间",
+      imagePrompt: "木地板，白墙",
+      sceneType: "interior",
+    },
+    hasReference: true,
+  }, []);
+  assert.match(sceneWithRef, /the reference image locks materials, lighting and scene identity only/);
+  assert.match(sceneWithRef, /the layout rules above always override the reference's composition/);
   const prop = buildStateImagePrompt({
     kind: "prop",
     assetName: "军刀",

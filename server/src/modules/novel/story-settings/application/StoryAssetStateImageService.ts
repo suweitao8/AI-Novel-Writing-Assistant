@@ -450,6 +450,11 @@ export function buildStateImagePrompt(
         // 室内场景追加强化行：家具/墙根必须留在地平线以上，下半区只出纯地板材质
         //（2026-08-26 用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
         ...scenePanoramaLayoutLinesFor(input.state.sceneType),
+        // 参考图往往本身就越线：若允许模型照抄参考图构图，越线会代代相传（2026-08-26 用户
+        // 反馈重新生成仍越线的主要泄漏点）。参考图只锁材质/光照/身份，垂直构图一律随契约。
+        ...(input.hasReference
+          ? ["the reference image locks materials, lighting and scene identity only; never copy its furniture placement, object sizes or vertical composition — the layout rules above always override the reference's composition"]
+          : []),
         "pure empty environment reference",
         "no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects",
         "narrative living subjects remain off-screen and may appear only as environmental traces",
