@@ -1,5 +1,8 @@
 import * as pc from "playcanvas";
-import type { StoryScene3DMarker } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  type StoryScene3DMarker,
+} from "@ai-novel/shared/types/comicDrama";
 
 import type {
   DramaShotBlockingSketch3DActor,
@@ -56,6 +59,7 @@ const SELECTION_OUTLINE_COLOR = new pc.Color(0.18, 0.95, 0.52, 0.98);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 1.7,
   domeRadius: 10,
+  panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
   intensity: 1,
 };
@@ -196,6 +200,7 @@ function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettin
   return {
     projectionCenterHeight: clamp(numberOr(input?.projectionCenterHeight, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeight), 0.5, 2),
     domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 20),
+    panoramaHorizonV: clamp(numberOr(input?.panoramaHorizonV, DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV), 0.4, 0.65),
     yawDeg: 0,
     intensity: 1,
   };

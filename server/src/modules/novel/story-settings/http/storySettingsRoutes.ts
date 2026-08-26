@@ -107,6 +107,11 @@ const scene3dMarkerSetSchema = z.object({
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
       .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    panoramaHorizonV: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
+      .optional(),
   }).optional(),
   analyzedAt: z.string().max(80).optional(),
   analysisNote: z.string().max(500).optional(),
@@ -268,6 +273,11 @@ const sceneCreateSchema = z.object({
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
       .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    panoramaHorizonV: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
+      .optional(),
   }).strict().nullable().optional(),
 });
 
@@ -290,6 +300,11 @@ const sceneUpdateSchema = z.object({
       .number()
       .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
       .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
+    panoramaHorizonV: z
+      .number()
+      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
+      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
+      .optional(),
   }).strict().nullable().optional(),
 });
 

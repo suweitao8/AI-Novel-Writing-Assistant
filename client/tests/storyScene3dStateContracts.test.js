@@ -38,13 +38,16 @@ test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参�
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
 
-test("场景 3D 编辑器不再暴露可调全景地面分界", () => {
-  assert.doesNotMatch(page, /全景地面分界/);
-  assert.doesNotMatch(page, /panoramaHorizonV/);
-  assert.doesNotMatch(viewer, /panoramaHorizonV/);
+test("场景 3D 编辑器可调全景地面分界并沿用半球直径范围", () => {
+  assert.match(page, /aria-label="全景地面分界"/);
+  assert.match(page, /min="40" max="65" step="1"/);
+  assert.match(page, /panoramaHorizonV/);
+  assert.match(viewer, /panoramaHorizonV/);
 });
 
-test("场景 3D 编辑器半球直径统一限制为 5 到 30", () => {
-  assert.match(page, /min="5" max="30" step="1"/);
-  assert.match(viewer, /domeRadius: clamp\(numberOr\(input\?\.domeRadius,[\s\S]*?, 5, 30\)/);
+test("场景 3D 编辑器投射中心高度限制为 0.5 到 2、半球直径限制为 5 到 20", () => {
+  assert.match(page, /min="0.5" max="2" step="0.1"/);
+  assert.match(page, /min="5" max="20" step="1"/);
+  assert.match(viewer, /projectionCenterHeight: clamp\(numberOr\(input\?\.projectionCenterHeight,[\s\S]*?, 0\.5, 2\)/);
+  assert.match(viewer, /domeRadius: clamp\(numberOr\(input\?\.domeRadius,[\s\S]*?, 5, 20\)/);
 });

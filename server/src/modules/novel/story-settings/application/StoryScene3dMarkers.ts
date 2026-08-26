@@ -8,6 +8,7 @@ import type {
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
 import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
 } from "@ai-novel/shared/types/comicDrama";
@@ -27,7 +28,7 @@ const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceil
 export type StoryScene3dMarkerProjectionEnvironment = Pick<
   StoryScene3DEnvironment,
   "projectionCenterHeight" | "domeRadius"
-> & Partial<Pick<StoryScene3DEnvironment, "yawDeg" | "intensity">>;
+> & Partial<Pick<StoryScene3DEnvironment, "panoramaHorizonV" | "yawDeg" | "intensity">>;
 
 function finiteOr(value: unknown, fallback: number): number {
   const numeric = Number(value);
@@ -79,6 +80,11 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
       domeRadius,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
+    ),
+    panoramaHorizonV: clamp(
+      finiteOr(source.panoramaHorizonV, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V),
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
     ),
   };
 }
@@ -267,6 +273,7 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
     sourceEnvironment: {
       projectionCenterHeight: environment.projectionCenterHeight,
       domeRadius: environment.domeRadius,
+      panoramaHorizonV: environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     },
   };
 }

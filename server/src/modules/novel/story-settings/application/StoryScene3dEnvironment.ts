@@ -2,7 +2,10 @@ import type {
   StoryScene3DEnvironment,
   StoryScene3DEnvironmentInput,
 } from "@ai-novel/shared/types/comicDrama";
-import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+} from "@ai-novel/shared/types/comicDrama";
 
 export { STORY_SCENE_3D_ENVIRONMENT_LIMITS };
 import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -10,6 +13,7 @@ import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceE
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
   projectionCenterHeight: 1.7,
   domeRadius: 10,
+  panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
   intensity: 1,
 };
@@ -27,12 +31,12 @@ export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE: Record<Sto
 };
 
 const LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS: readonly StoryScene3DEnvironment[] = [
-  { projectionCenterHeight: 2, domeRadius: 10, yawDeg: 0, intensity: 1 },
-  { projectionCenterHeight: 2, domeRadius: 15, yawDeg: 0, intensity: 1 },
-  { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 },
-  { projectionCenterHeight: 1, domeRadius: 8, yawDeg: 0, intensity: 1 },
-  { projectionCenterHeight: 1.7, domeRadius: 10, yawDeg: 0, intensity: 1 },
-  { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 2, domeRadius: 10, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 2, domeRadius: 15, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 2, domeRadius: 20, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1, domeRadius: 8, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1.7, domeRadius: 10, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1, domeRadius: 20, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
 ];
 
 function clamp(value: number, min: number, max: number): number {
@@ -82,6 +86,11 @@ export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvi
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
     ),
+    panoramaHorizonV: clamp(
+      finiteOr(source?.panoramaHorizonV, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.panoramaHorizonV),
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
+    ),
     yawDeg: 0,
     intensity: 1,
   };
@@ -107,6 +116,7 @@ export function serializeStoryScene3dEnvironment(
   return JSON.stringify({
     projectionCenterHeight: normalized.projectionCenterHeight,
     domeRadius: normalized.domeRadius,
+    panoramaHorizonV: normalized.panoramaHorizonV,
     yawDeg: normalized.yawDeg,
     intensity: normalized.intensity,
     customized: options.customized ?? input != null,
@@ -117,6 +127,7 @@ function isUncustomizedDefaultEnvironment(input: StoryScene3DEnvironment): boole
   return LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS.some((candidate) => (
     input.projectionCenterHeight === candidate.projectionCenterHeight
     && input.domeRadius === candidate.domeRadius
+    && input.panoramaHorizonV === candidate.panoramaHorizonV
     && input.yawDeg === candidate.yawDeg
     && input.intensity === candidate.intensity
   ));

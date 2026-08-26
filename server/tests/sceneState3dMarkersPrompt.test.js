@@ -38,7 +38,7 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
     sceneName: "叶城大学宿舍",
     stateLabel: "默认",
     sceneType: "interior",
-    environmentJson: JSON.stringify({ projectionCenterHeight: 2, domeRadius: 15 }),
+    environmentJson: JSON.stringify({ projectionCenterHeight: 2, domeRadius: 15, panoramaHorizonV: 0.58 }),
     imageBase64: "aGVsbG8=",
     mimeType: "image/png",
   });
@@ -51,6 +51,7 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /不.*墙面.*深度|不.*深度/);
   assert.match(text, /v=0\.5/);
   assert.match(text, /v=0\.48–0\.52/);
+  assert.match(JSON.stringify(messages), /panoramaHorizonV.*0\.58/);
   assert.match(text, /不得.*跨越|不能.*跨越/);
   assert.match(text, /家具|床|桌|椅/);
   assert.equal(messages.at(-1)?.content?.[1]?.type, "image_url");
