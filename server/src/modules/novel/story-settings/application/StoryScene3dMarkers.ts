@@ -1,10 +1,12 @@
 import type {
+  StoryScene3DEnvironment,
   StoryScene3DMarker,
   StoryScene3DMarkerAnchor,
   StoryScene3DMarkerKind,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
 import { STORY_SCENE_3D_MARKER_KINDS } from "@ai-novel/shared/types/comicDrama";
+import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
   maxMarkers: 32,
@@ -39,6 +41,7 @@ function normalizeMarker(
   raw: unknown,
   index: number,
   maxRadius: number,
+  environment?: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>,
 ): StoryScene3DMarker | null {
   if (!raw || typeof raw !== "object") return null;
   const source = raw as Record<string, unknown>;
@@ -94,12 +97,20 @@ function normalizeMarker(
       height,
     };
   }
+  if (environment && marker.imageRegion && marker.source !== "manual") {
+    const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment, maxRadius);
+    marker.position = projected.position;
+    marker.yawDeg = projected.yawDeg;
+  }
   return marker;
 }
 
 export function normalizeStoryScene3dMarkerSet(
   input: unknown,
-  options: { maxRadius?: number } = {},
+  options: {
+    maxRadius?: number;
+    environment?: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>;
+  } = {},
 ): StoryScene3DMarkerSet | null {
   if (!input || typeof input !== "object") return null;
   const source = input as Record<string, unknown>;
@@ -111,7 +122,7 @@ export function normalizeStoryScene3dMarkerSet(
   );
   const markers = rawMarkers
     .slice(0, STORY_SCENE_3D_MARKER_LIMITS.maxMarkers)
-    .map((marker, index) => normalizeMarker(marker, index, maxRadius))
+    .map((marker, index) => normalizeMarker(marker, index, maxRadius, options.environment))
     .filter((marker): marker is StoryScene3DMarker => Boolean(marker));
   const usedIds = new Set<string>();
   for (const [index, marker] of markers.entries()) {
@@ -149,16 +160,28 @@ export function normalizeStoryScene3dMarkerSet(
   return result;
 }
 
-export function parseStoryScene3dMarkerSet(raw: string | null | undefined): StoryScene3DMarkerSet | null {
+export function parseStoryScene3dMarkerSet(
+  raw: string | null | undefined,
+  options?: {
+    maxRadius?: number;
+    environment?: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>;
+  },
+): StoryScene3DMarkerSet | null {
   if (!raw?.trim()) return null;
   try {
-    return normalizeStoryScene3dMarkerSet(JSON.parse(raw));
+    return normalizeStoryScene3dMarkerSet(JSON.parse(raw), options);
   } catch {
     return null;
   }
 }
 
-export function serializeStoryScene3dMarkerSet(input: unknown, options?: { maxRadius?: number }): string | null {
+export function serializeStoryScene3dMarkerSet(
+  input: unknown,
+  options?: {
+    maxRadius?: number;
+    environment?: Pick<StoryScene3DEnvironment, "domeRadius"> & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>;
+  },
+): string | null {
   const normalized = normalizeStoryScene3dMarkerSet(input, options);
   return normalized ? JSON.stringify(normalized) : null;
 }

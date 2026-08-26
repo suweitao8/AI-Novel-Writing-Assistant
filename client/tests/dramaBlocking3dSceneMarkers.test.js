@@ -16,6 +16,13 @@ const viewerSource = fs.readFileSync(
   ),
   "utf8",
 );
+const gizmoSource = fs.readFileSync(
+  new URL(
+    "../src/pages/drama/comicDrama/components/blocking3d/blocking3dProjectionCenterGizmo.ts",
+    import.meta.url,
+  ),
+  "utf8",
+);
 
 test("PlayCanvas 空间标记使用半透明盒体、语义颜色和轮廓", () => {
   assert.match(markerSource, /type: "box"/);
@@ -29,4 +36,15 @@ test("viewer 支持空间标记射线选择、聚焦和运行时更新", () => {
   assert.match(viewerSource, /focusMarker/);
   assert.match(viewerSource, /setSceneMarkers/);
   assert.match(viewerSource, /onMarkerSelection/);
+});
+
+test("共享 viewer 显示不可拾取的投射中心方形和高度线，并随环境设置更新", () => {
+  assert.match(gizmoSource, /type: "box"/);
+  assert.match(gizmoSource, /projectionCenterHeight/);
+  assert.match(gizmoSource, /app\.drawLine/);
+  assert.match(gizmoSource, /depthTest = false/);
+  assert.match(viewerSource, /createProjectionCenterGizmo/);
+  assert.match(viewerSource, /updateProjectionCenterGizmo/);
+  assert.match(viewerSource, /drawProjectionCenterGizmo/);
+  assert.match(viewerSource, /destroyProjectionCenterGizmo/);
 });

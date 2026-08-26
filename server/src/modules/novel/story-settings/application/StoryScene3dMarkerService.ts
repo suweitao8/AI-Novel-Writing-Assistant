@@ -45,7 +45,10 @@ export function buildStoryScene3dMarkerSet(
     sourceImageArtifactId: imageMeta.artifactId,
     sourceImageGeneratedAt: imageMeta.generatedAt,
     analyzedAt: new Date().toISOString(),
-  }, { maxRadius: environment.domeRadius * 0.45 });
+  }, {
+    maxRadius: environment.domeRadius * 0.45,
+    environment,
+  });
 
   return normalized ?? {
     schemaVersion: 1,
@@ -86,7 +89,16 @@ export class StoryScene3dMarkerService {
       throw new AppError("没有找到这个场景。", 404);
     }
 
-    const initialStates = normalizeSceneStates(parseStates(initialRow.statesJson), initialRow);
+    const initialBaseStates = normalizeSceneStates(parseStates(initialRow.statesJson), initialRow);
+    const environment = resolveStoryScene3dEnvironment(
+      initialRow.sceneType,
+      initialRow.scene3dEnvironmentJson,
+      initialBaseStates[0]?.sceneType,
+    );
+    const initialStates = normalizeSceneStates(initialBaseStates, {
+      ...initialRow,
+      scene3dEnvironment: environment,
+    });
     const initialState = initialStates.find((state) => state.id === stateId);
     if (!initialState) {
       throw new AppError("未找到场景状态。", 404);
@@ -111,11 +123,6 @@ export class StoryScene3dMarkerService {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
     }
 
-    const environment = resolveStoryScene3dEnvironment(
-      initialRow.sceneType,
-      initialRow.scene3dEnvironmentJson,
-      initialStates[0]?.sceneType,
-    );
     const imageFingerprint = stateImageFingerprint(initialState);
     const result = await runStructuredPrompt({
       asset: sceneState3dMarkersPrompt,
@@ -156,6 +163,7 @@ export class StoryScene3dMarkerService {
             sceneType: true,
             timeOfDay: true,
             weather: true,
+            scene3dEnvironmentJson: true,
           },
         });
         if (!row) {
@@ -163,8 +171,14 @@ export class StoryScene3dMarkerService {
         }
         return {
           raw: row.statesJson,
-          fallbackStates: normalizeSceneStates(parseStates(row.statesJson), row),
-          normalize: (states: StoryAssetState[]) => normalizeSceneStates(states, row),
+          fallbackStates: normalizeSceneStates(parseStates(row.statesJson), {
+            ...row,
+            scene3dEnvironment: environment,
+          }),
+          normalize: (states: StoryAssetState[]) => normalizeSceneStates(states, {
+            ...row,
+            scene3dEnvironment: environment,
+          }),
         };
       },
       write: async (expectedRaw, nextRaw) => {

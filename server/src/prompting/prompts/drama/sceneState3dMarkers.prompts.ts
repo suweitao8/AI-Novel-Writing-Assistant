@@ -30,7 +30,7 @@ const markerSchema = z.object({
     y: z.number().min(0).max(1),
     width: z.number().min(0).max(1),
     height: z.number().min(0).max(1),
-  }).optional(),
+  }),
   evidence: z.string().trim().max(240).optional(),
 });
 
@@ -76,7 +76,7 @@ export const sceneState3dMarkersPrompt: PromptAsset<
   SceneState3dMarkersOutput
 > = {
   id: "drama.scene.state.3d_markers",
-  version: "v1",
+  version: "v2",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -96,7 +96,8 @@ export const sceneState3dMarkersPrompt: PromptAsset<
       "不要标注人物、动物、怪物、临时物品、衣物、食物、文字、装饰小件或仅凭常识猜测且画面中不可见的物体。室外/自然场景没有可信固定物体时返回空数组。",
       "坐标单位按米估算，并以约 1.8 米高的人物作为尺度参照：地面为 y=0，+Z 指向全景图正前方/水平中心，+X 指向画面右侧；position 是长方体中心，size 是 X/Y/Z 尺寸。",
       "floor 锚点的 position.y 仍填写物体中心高度；wall/ceiling 物体按其在空间中的中心高度填写。坐标和尺寸只需近似，宁可少标也不要编造。",
-      "imageRegion 是物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高。confidence 反映图像证据强度。",
+      "每一个返回的 marker 都必须对应输入图片中实际可见的固定物体，并且必须填写 imageRegion；imageRegion 是该物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高。不要只根据场景名称或文字描述生成 marker。",
+      "服务端会把 imageRegion 的水平中心作为物体的真实全景经度，重新计算世界 X/Z 方向；position.x/z 只填写粗略的径向距离提示，不要用它抵消或猜测 imageRegion 的左右位置。confidence 反映图像证据强度。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
       `可用类别：${(STORY_SCENE_3D_MARKER_KINDS as readonly StoryScene3DMarkerKind[]).join("、")}`,
     ].join("\n")),

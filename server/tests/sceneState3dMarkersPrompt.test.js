@@ -17,7 +17,7 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v1");
+  assert.equal(sceneState3dMarkersPrompt.version, "v2");
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
@@ -40,4 +40,11 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /固定空间物体|家具/);
   assert.match(text, /不要.*人物|不得.*人物/);
   assert.equal(messages.at(-1)?.content?.[1]?.type, "image_url");
+});
+
+test("场景空间标记 Prompt 不接受缺少图像证据区域的 marker", () => {
+  assert.throws(() => sceneState3dMarkersPrompt.outputSchema.parse({
+    markers: [{ ...marker, imageRegion: undefined }],
+    analysisNote: "缺少证据区域",
+  }));
 });

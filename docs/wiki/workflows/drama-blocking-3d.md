@@ -32,9 +32,10 @@
 ### 场景状态空间语义标记
 
 - 固定空间物体标记属于场景状态，而不是场景资产顶层或镜头 `layout3d`。不同状态图可能对应不同家具布局，因此 `StoryAssetState.scene3dMarkers` 必须与产生它的状态图片制品绑定。
-- 「识别空间」使用注册的多模态结构化 Prompt `drama.scene.state.3d_markers@v1`，输入当前状态的真实图片制品和场景环境参数，输出床、桌、椅、门窗等固定物体的类别、近似米制位置、长方体尺寸、朝向、置信度和图像证据区域。人物、动物和临时物品不进入标记集合；室外/自然场景可以返回空集合。
-- 世界坐标合同固定为地面 `y=0`、`+Z` 指向全景水平中心、`+X` 指向右侧；`position` 是长方体中心，地面锚点由服务端归一化到 `size.y / 2`。服务端只做结构校验、范围裁剪、地面落地和唯一 ID 处理，不用关键词或固定坐标替代 AI 识别。
-- 场景资产 3D 编辑器和分镜 3D 草图都渲染同一份半透明 PlayCanvas 长方体。用户可以从列表或直接点击标记选择并聚焦；标记不会写进镜头 `layout3d`，只作为构图参照和自动构图上下文。
+- 「识别空间」使用注册的多模态结构化 Prompt `drama.scene.state.3d_markers@v2`，输入当前状态的真实图片制品和场景环境参数，输出床、桌、椅、门窗等固定物体的类别、近似米制位置、长方体尺寸、朝向、置信度和必填图像证据区域。人物、动物和临时物品不进入标记集合；室外/自然场景可以返回空集合。
+- 世界坐标合同固定为地面 `y=0`、`+Z` 指向全景水平中心、`+X` 指向右侧；`position` 是长方体中心，地面锚点由服务端归一化到 `size.y / 2`。对 AI 标记，图像区域中心的全景经度是水平 X/Z 方向的唯一依据，服务端按等距柱状图公式确定性投影；模型返回的 X/Z 只作为粗略半径提示，不得抵消图片左右位置。墙面标记的 yaw 同步朝向径向方向，地面物体保留自身朝向。
+- 单张全景图不能可靠测量绝对深度，因此投影优先继承已有 marker 的水平半径，缺失时使用场景半径的保守比例；空间标记仍是构图参照，不能当作精确测绘或碰撞几何。没有 `imageRegion` 的旧 AI 数据继续保留原位置，`source: "manual"` 的标记优先级最高，归一化必须幂等。
+- 场景资产 3D 编辑器和分镜 3D 草图都渲染同一份半透明 PlayCanvas 长方体。共享 viewer 额外显示一个位于 `[0, projectionCenterHeight, 0]` 的半透明方形投射中心参考体，以及从地面到参考体中心的高度线；它不进入角色/标记拾取和 `layout3d` 保存，只随环境高度预览实时更新。用户可以从列表或直接点击空间标记选择并聚焦。
 - 自动构图 Prompt 接收 `sceneJson.markers`，需要避开固定物体体积，并用相邻位置表达坐、倚靠、经过等空间关系；没有标记时不得自行编造障碍物坐标。
 - 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回使用 `statesJson` CAS，并在写入前复核图片制品指纹，防止旧分析覆盖新图片。
 
@@ -65,7 +66,7 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 - 不能把通用代理模型当成最终角色渲染结果，否则会把低模、临时材质和动画库限制带进成片。
 - 空间标记不是精确测绘数据，不能把低置信度长方体当成碰撞检测或最终布景；它只用于快速判断角色与固定物体的相对关系。
 - 不能把标记存到场景顶层或镜头快照，否则切换状态图后会继续显示旧家具，或者同一场景的镜头之间出现不可解释的状态漂移。
-- 图片制品变更后如果仍存在旧标记，说明图片提交路径绕过了场景状态失效策略；应先检查最终制品提交分支和 `statesJson` CAS，不要在前端单独清空来掩盖数据竞态。
+- 图片制品变更后如果仍存在旧标记，说明图片提交路径绕过了场景状态失效策略；应先检查最终制品提交分支和 `statesJson` CAS，不要在前端单独清空来掩盖数据竞态。若图像区域与世界方向不一致，应先检查多模态桥是否把真实图片传给了模型，再检查全景 `u` 到 X/Z 的投影合同。
 - 不能只保存 PNG 而丢失 `layout3d`，否则用户无法继续调整空间关系和姿势。
 - 不能把 3D 草图确认前的图片注入分镜生成或批量任务；确认状态仍是参考图锁定的闸门。
 - 不能把 AI 自动构图结果直接落库后再校验；必须先校验角色集合、相机范围和 3D 快照，再由前端加载并在退出保存链路中统一确认。
@@ -111,6 +112,8 @@ HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLi
 - `server/src/modules/novel/story-settings/application/StoryScene3dEnvironment.ts`
 - `server/src/modules/novel/story-settings/application/StoryScene3dMarkers.ts`
 - `server/src/modules/novel/story-settings/application/StoryScene3dMarkerService.ts`
+- `shared/utils/scene3dProjection.ts`
+- `client/src/pages/drama/comicDrama/components/blocking3d/blocking3dProjectionCenterGizmo.ts`
 - `server/src/prompting/prompts/drama/sceneState3dMarkers.prompts.ts`
 - `server/src/modules/novel/story-settings/application/StorySettingsService.ts`
 - `server/src/modules/drama/http/dramaRoutes.ts`

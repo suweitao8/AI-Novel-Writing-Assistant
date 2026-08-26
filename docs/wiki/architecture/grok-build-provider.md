@@ -23,6 +23,7 @@
 - 老的 `ImageGenerationService` 角色任务同样按参考图资产 ID 选择默认 provider：没有参考图走 Grok Build，有参考图走图片槽位；显式指定 provider 仍保留给用户或上层工作流。
 - 图片 runtime 在重试时先进入 `generating` 并清除旧错误；成功后写入 `done` 时也必须清除 `error`，避免一次失败后的旧提示残留在成功资产上。
 - bridge 启动器只负责本机文本/图片子进程，不负责 API、前端或数据库。`pnpm grok:bridge` 会复用健康的 18764/18767 服务，并等待两个 `/health` 都 ready；`pnpm dev` 会在开发服务启动前执行同一检查。
+- 多模态文本任务不能把 `image_url` 当作普通 transcript 文本。OpenAI 兼容消息进入 `scripts/grok-cli-core.cjs` 后，内联图片先写入 bridge 生命周期内的临时目录，再通过 `--prompt-json` 以 ACP `resource_link` 传给 Grok CLI；纯文本请求继续使用 `--prompt-file`，任务结束后临时目录统一清理。这样场景空间标记等视觉任务使用的是真实图片，而不是只让模型看到一段被丢弃的图片 URL。
 - 自动化测试默认使用注入的 executor/generator，避免无意消耗订阅额度；需要验收真实生成时，应明确记录调用样本、耗时、provider、模型和产物尺寸。
 - 角色四视图一次状态生成只产生一次图片调用，真实验收要记录整板生成耗时、provider、模型和最终产物尺寸；不能把“固定四栏”误解成四次彼此独立的角色生图。
 
@@ -31,8 +32,9 @@
 1. 页面提示本地创作服务未连接：先在项目根目录执行 `pnpm grok:bridge`，确认 `http://127.0.0.1:18764/health` 与 `http://127.0.0.1:18767/health` 返回 `ready: true`，再重试页面。
 2. `/health` 返回 `ready: false`：检查 `grok` CLI 是否安装并且本机登录态有效；可用 `GROK_CLI_PATH` 指定 CLI 路径。不要把订阅 token 写入项目 `.env` 或日志。
 3. 文本结构化任务失败但普通调用正常：检查文本 bridge 是否仍为本项目版本；旧的只支持一次性返回、拒绝 SSE 的桥不能直接替代本项目 bridge。
-4. 参考图任务报“不支持参考图”：这是能力边界保护，应该让任务使用 Codex 或其他支持 `/images/edits` 的图片槽位，而不是重试 Grok Build。
-5. 生成超时或没有图片产物：查看 `%LOCALAPPDATA%\\AINovel\\grok-build-bridge\\logs` 下对应 bridge 日志，确认订阅额度、CLI 登录态和本机图片工具可用性。
+4. 视觉任务返回的空间位置明显与图片左右相反：先检查 bridge 日志和命令参数是否出现 `--prompt-json` 与资源链接，再检查临时图片是否成功物化；不要通过 Prompt 里增加固定坐标来掩盖图片没有送达的问题。
+5. 参考图任务报“不支持参考图”：这是能力边界保护，应该让任务使用 Codex 或其他支持 `/images/edits` 的图片槽位，而不是重试 Grok Build。
+6. 生成超时或没有图片产物：查看 `%LOCALAPPDATA%\\AINovel\\grok-build-bridge\\logs` 下对应 bridge 日志，确认订阅额度、CLI 登录态和本机图片工具可用性。
 
 ## 相关模块
 

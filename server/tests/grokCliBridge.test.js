@@ -1,10 +1,17 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const { EventEmitter } = require("node:events");
+const fsp = require("node:fs/promises");
+const os = require("node:os");
+const { fileURLToPath } = require("node:url");
 
 const {
   buildGrokCliCommand,
+  buildGrokPromptJson,
   buildGrokTranscript,
+  materializeGrokPromptImages,
   parseGrokCliOutput,
+  runGrokCli,
 } = require("../../scripts/grok-cli-core.cjs");
 const { createGrokCliBridgeServer } = require("../../scripts/grok-cli-bridge.cjs");
 
@@ -67,6 +74,103 @@ test("Grok CLI transcript and output parsing preserve structured assistant conte
   assert.equal(parseGrokCliOutput(JSON.stringify({ text: "```json\n{\"ok\":true}\n```" })), "```json\n{\"ok\":true}\n```");
   assert.equal(parseGrokCliOutput(`log\n${JSON.stringify({ text: "prefixed answer" })}\ntrailer`), "prefixed answer");
   assert.throws(() => parseGrokCliOutput(JSON.stringify({ text: "" })), /assistant message/i);
+});
+
+test("Grok CLI prompt JSON keeps image inputs as ACP resource links", () => {
+  const prompt = JSON.parse(buildGrokPromptJson([
+    { role: "system", content: "system rule" },
+    {
+      role: "user",
+      content: [
+        { type: "text", text: "识别图片中的固定家具" },
+        { type: "image_url", image_url: { url: "data:image/png;base64,not-inline" } },
+      ],
+    },
+  ], [
+    {
+      uri: "file:///C:/temp/grok-cli-bridge/input-image-1.png",
+      name: "input-image-1.png",
+      mimeType: "image/png",
+    },
+  ]));
+
+  assert.deepEqual(prompt, [
+    { type: "text", text: "[user]" },
+    { type: "text", text: "识别图片中的固定家具" },
+    {
+      type: "resource_link",
+      uri: "file:///C:/temp/grok-cli-bridge/input-image-1.png",
+      name: "input-image-1.png",
+      mimeType: "image/png",
+    },
+    { type: "text", text: "[/user]" },
+  ]);
+});
+
+test("Grok CLI materializes inline image data outside the command line", async () => {
+  const tempDir = await fsp.mkdtemp(`${os.tmpdir()}\\grok-cli-test-`);
+  try {
+    const imageData = Buffer.from("test-image-data");
+    const references = await materializeGrokPromptImages([
+      {
+        role: "user",
+        content: [{
+          type: "image_url",
+          image_url: { url: `data:image/png;base64,${imageData.toString("base64")}` },
+        }],
+      },
+    ], tempDir);
+    assert.equal(references.length, 1);
+    assert.deepEqual(await fsp.readFile(fileURLToPath(references[0].uri)), imageData);
+
+    const args = buildGrokCliCommand({
+      executable: "grok.exe",
+      promptJson: JSON.stringify([{ type: "resource_link", uri: references[0].uri }]),
+      promptPath: "C:/temp/unused-prompt.txt",
+      model: "grok-4.6",
+    });
+    assert.ok(args.includes("--prompt-json"));
+    assert.ok(!args.includes("--prompt-file"));
+    assert.ok(!args.some((value) => value.includes(imageData.toString("base64"))));
+  } finally {
+    await fsp.rm(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("Grok CLI execution switches to prompt-json for a multimodal request", async () => {
+  let captured;
+  const spawnImpl = (executable, args, options) => {
+    captured = { executable, args, options };
+    const child = new EventEmitter();
+    child.stdout = new EventEmitter();
+    child.stderr = new EventEmitter();
+    process.nextTick(() => {
+      child.stdout.emit("data", JSON.stringify({ text: '{"ok":true}' }));
+      child.emit("close", 0);
+    });
+    return child;
+  };
+  const imageData = Buffer.from("test-image-data");
+  const result = await runGrokCli({
+    executable: "grok.exe",
+    model: "grok-4.6",
+    timeoutSeconds: 5,
+    systemPrompt: "return JSON",
+    messages: [{
+      role: "user",
+      content: [
+        { type: "text", text: "识别图片" },
+        { type: "image_url", image_url: { url: `data:image/png;base64,${imageData.toString("base64")}` } },
+      ],
+    }],
+  }, { spawnImpl });
+
+  assert.equal(result, '{"ok":true}');
+  assert.equal(captured.executable, "grok.exe");
+  assert.ok(captured.args.includes("--prompt-json"));
+  assert.ok(!captured.args.includes("--prompt-file"));
+  assert.ok(!captured.args.some((value) => value.includes(imageData.toString("base64"))));
+  assert.equal(captured.options.cwd.startsWith(os.tmpdir()), true);
 });
 
 test("Grok CLI bridge rejects requests without its local bearer", async () => {
