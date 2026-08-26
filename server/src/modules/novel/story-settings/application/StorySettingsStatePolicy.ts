@@ -12,7 +12,10 @@ import {
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
 import { AppError } from "../../../../middleware/errorHandler";
-import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
+import {
+  adoptLegacyStoryScene3dMarkerEnvironment,
+  normalizeStoryScene3dMarkerSet,
+} from "./StoryScene3dMarkers";
 
 /**
  * 设定中心状态持久化策略。
@@ -85,12 +88,15 @@ export function normalizeSceneStates(
     timeOfDay,
     weather,
   }).map((state) => {
-    const scene3dMarkers = normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
-      ...(input.scene3dEnvironment ? {
-        maxRadius: input.scene3dEnvironment.domeRadius * 0.45,
-        environment: input.scene3dEnvironment,
-      } : {}),
-    });
+    const scene3dMarkers = adoptLegacyStoryScene3dMarkerEnvironment(
+      normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
+        ...(input.scene3dEnvironment ? {
+          maxRadius: input.scene3dEnvironment.domeRadius * 0.45,
+          environment: input.scene3dEnvironment,
+        } : {}),
+      }),
+      input.scene3dEnvironment,
+    );
     return scene3dMarkers ? { ...state, scene3dMarkers } : state;
   });
 }

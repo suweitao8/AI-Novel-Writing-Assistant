@@ -302,3 +302,28 @@ export function serializeStoryScene3dMarkerSet(
   const normalized = normalizeStoryScene3dMarkerSet(input, options);
   return normalized ? JSON.stringify(normalized) : null;
 }
+
+/**
+ * Give legacy AI marker sets a current environment snapshot only when every
+ * marker has image evidence that can be deterministically projected again.
+ * Manual or coordinate-only legacy data stays stale and must be re-identified.
+ */
+export function adoptLegacyStoryScene3dMarkerEnvironment(
+  markerSet: StoryScene3DMarkerSet | null | undefined,
+  environment: StoryScene3DEnvironmentInput | null | undefined,
+): StoryScene3DMarkerSet | null {
+  if (!markerSet || !environment || markerSet.status !== "ready" || markerSet.sourceEnvironment) {
+    return markerSet ?? null;
+  }
+  if (markerSet.markers.length === 0 || markerSet.markers.some((marker) => marker.source === "manual" || !marker.imageRegion)) {
+    return markerSet;
+  }
+  return {
+    ...markerSet,
+    sourceEnvironment: {
+      projectionCenterHeight: environment.projectionCenterHeight,
+      domeRadius: environment.domeRadius,
+      panoramaHorizonV: environment.panoramaHorizonV,
+    },
+  };
+}
