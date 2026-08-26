@@ -20,6 +20,11 @@ import {
   type DramaShotBlockingAutoPlanOutput,
 } from "../../../prompting/prompts/drama/shotBlockingAutoPlan.prompts";
 import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
+import {
+  anchorBlockingCameraAtProjectionCenter,
+  clampBlockingActorPositionToStage,
+  resolveStoryScene3DActorStageRadius,
+} from "@ai-novel/shared/utils/blockingStage";
 import { resolveGeneratedImagesRoot } from "../../../runtime/appPaths";
 import type { DramaLLMOptions } from "../DramaStrategyService";
 import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
@@ -412,6 +417,8 @@ export class DramaShotBlockingSketchService {
         }),
         sceneJson: JSON.stringify(context.scene),
         actorsJson: JSON.stringify(context.actors),
+        stageRadiusMeters: resolveStoryScene3DActorStageRadius(context.scene.environment),
+        projectionCenterHeight: context.scene.environment.projectionCenterHeight,
       },
       options: {
         provider: options.provider,
@@ -527,10 +534,19 @@ export function buildDramaShotBlockingAutoPlanLayout(
   }
   try {
     const actorByName = new Map(actors.map((actor) => [normalizedName(actor.characterName), actor]));
+    // 舞台合同：角色站位（含跑动等大幅动作落点）不进入半球边缘 1 米缓冲；
+    // 拍摄位锚定在投射中心，构图自由度只保留视线方向、拍摄距离与焦段。
+    const stageCamera = anchorBlockingCameraAtProjectionCenter(output.camera, environment);
     const layout = normalizeBlockingSketch3dLayout({
       schemaVersion: 1,
       engine: "playcanvas",
-      camera: output.camera,
+      camera: {
+        ...output.camera,
+        azim: stageCamera.azim,
+        elev: stageCamera.elev,
+        distance: stageCamera.distance,
+        focalPoint: stageCamera.focalPoint,
+      },
       actors: output.actors.map((actor) => ({
         ...(() => {
           const source = actorByName.get(normalizedName(actor.characterName));
@@ -542,7 +558,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
           };
         })(),
         characterName: actor.characterName.trim(),
-        position: actor.position,
+        position: clampBlockingActorPositionToStage(actor.position, environment),
         yawDeg: actor.yawDeg,
         pose: actor.pose as DramaShotBlockingSketchPose,
         actionPlaying: false,

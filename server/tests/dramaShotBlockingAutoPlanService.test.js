@@ -35,6 +35,37 @@ const planOutput = {
   compositionNote: "双人关系清楚",
 };
 
+test("自动构图把越界角色 clamp 回舞台半径并把相机锚定到投射中心", () => {
+  const {
+    resolveBlockingCameraWorldPlacement,
+    resolveStoryScene3DActorStageRadius,
+  } = require("../../shared/dist/utils/blockingStage.js");
+  const environment = { projectionCenterHeight: 3, domeRadius: 20, yawDeg: 0, intensity: 1 };
+  const outOfStage = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], position: [28, 0, -4] },
+      planOutput.actors[1],
+    ],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(outOfStage, actors, environment);
+  const clamped = result.layout.actors[0].position;
+  const expectedRadius = resolveStoryScene3DActorStageRadius(environment);
+  assert.ok(
+    Math.abs(Math.hypot(clamped[0], clamped[2]) - expectedRadius) < 1e-9,
+    `跑动落点必须回到舞台半径 ${expectedRadius} 内`,
+  );
+  assert.ok(clamped[0] > 0 && clamped[2] < 0, "clamp 后方位角不变");
+  assert.equal(clamped[1], 0);
+
+  const placement = resolveBlockingCameraWorldPlacement(result.layout.camera);
+  assert.ok(Math.abs(placement.position[0]) < 1e-9, "相机 x 在投射中心");
+  assert.ok(Math.abs(placement.position[1] - 3) < 1e-9, "相机高度等于投射中心高度");
+  assert.ok(Math.abs(placement.position[2]) < 1e-9, "相机 z 在投射中心");
+  assert.match(serviceSource, /stageRadiusMeters/);
+  assert.match(serviceSource, /resolveStoryScene3DActorStageRadius|anchorBlockingCameraAtProjectionCenter/);
+});
+
 test("自动构图服务把 AI 输出归一化为完整 PlayCanvas 布局", () => {
   assert.equal(typeof serviceModule.buildDramaShotBlockingAutoPlanLayout, "function");
   const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
