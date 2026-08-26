@@ -38,6 +38,7 @@ const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
 const MAX_DEVICE_PIXEL_RATIO = 1.5;
 const DEFAULT_FOV = 52;
+const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
@@ -202,6 +203,37 @@ function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void
   texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
   texture.addressU = pc.ADDRESS_REPEAT;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+}
+
+function createVisibleHdriCubemap(app: pc.AppBase, source: pc.Texture): pc.Texture {
+  const cubemap = new pc.Texture(app.graphicsDevice, {
+    name: "blocking3d-hdri-projection-cubemap",
+    cubemap: true,
+    width: VISIBLE_HDRI_CUBEMAP_SIZE,
+    height: VISIBLE_HDRI_CUBEMAP_SIZE,
+    format: pc.PIXELFORMAT_RGBA8,
+    type: pc.TEXTURETYPE_DEFAULT,
+    mipmaps: false,
+    addressU: pc.ADDRESS_CLAMP_TO_EDGE,
+    addressV: pc.ADDRESS_CLAMP_TO_EDGE,
+    addressW: pc.ADDRESS_CLAMP_TO_EDGE,
+  });
+  cubemap.projection = pc.TEXTUREPROJECTION_CUBE;
+  try {
+    const reprojected = pc.reprojectTexture(source, cubemap, {
+      // The visible backdrop only needs one filtered lookup per destination
+      // texel. PlayCanvas defaults this utility to 1024 samples, which is
+      // intended for prefiltered lighting and would make every environment
+      // load unnecessarily expensive.
+      numSamples: 1,
+      seamPixels: 1,
+    });
+    if (!reprojected) throw new Error("HDRI 全景图无法重投影为立方体纹理。");
+    return cubemap;
+  } catch (error) {
+    cubemap.destroy();
+    throw error instanceof Error ? error : new Error(String(error));
+  }
 }
 
 function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
@@ -403,6 +435,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   let environmentBackdrop: pc.Entity | null = null;
   let environmentAsset: pc.Asset | null = null;
+  let environmentProjectionCube: pc.Texture | null = null;
   let environmentMaterial: pc.ShaderMaterial | null = null;
   let environmentBackdropMeshInstance: pc.MeshInstance | null = null;
   let environmentLightingSource: pc.Texture | null = null;
@@ -455,10 +488,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       environmentBackdrop.setEulerAngles(0, 0, 0);
     }
     if (environmentMaterial) {
-      if (environmentAsset?.resource instanceof pc.Texture) {
+      if (environmentProjectionCube) {
         updateProjectedHdriMaterial(
           environmentMaterial,
-          environmentAsset.resource,
+          environmentProjectionCube,
           environmentSettings,
         );
       }
@@ -471,6 +504,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     environmentBackdropMeshInstance = null;
     environmentMaterial?.destroy();
     environmentMaterial = null;
+    environmentProjectionCube?.destroy();
+    environmentProjectionCube = null;
     if (environmentAsset) {
       environmentAsset.unload();
       app.assets.remove(environmentAsset);
@@ -1061,30 +1096,45 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         return;
       }
       environmentAsset = asset;
-      const texture = asset.resource as pc.Texture;
-      configureEnvironmentTexture(texture, app);
-      applyEnvironmentLighting(texture);
-      // EnviroDome uses one continuous surface for the sky and the floor.
-      // Sharing the equator ring is important: two independent draw calls
-      // can leave a raster gap even when their positions appear identical.
-      const mesh = pc.Mesh.fromGeometry(
-        app.graphicsDevice,
-        createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-      );
-      const material = createProjectedHdriMaterial(texture, environmentSettings);
-      environmentMaterial = material;
-      const meshInstance = new pc.MeshInstance(mesh, material);
-      environmentBackdropMeshInstance = meshInstance;
-      environmentBackdrop = new pc.Entity("blocking3d-hdri-backdrop");
-      environmentBackdrop.addComponent("render", {
-        meshInstances: [meshInstance],
-        layers: [pc.LAYERID_WORLD],
-      });
-      environmentBackdrop.setPosition(environmentWorldPosition);
-      app.root.addChild(environmentBackdrop);
-      applyEnvironmentSettings();
-      ground.enabled = false;
-      setStatus("3D 草图已就绪");
+      try {
+        const texture = asset.resource as pc.Texture;
+        configureEnvironmentTexture(texture, app);
+        applyEnvironmentLighting(texture);
+        const projectionCube = createVisibleHdriCubemap(app, texture);
+        if (!isCurrentEnvironmentRequest(requestId)) {
+          projectionCube.destroy();
+          return;
+        }
+        environmentProjectionCube = projectionCube;
+        // EnviroDome uses one continuous surface for the sky and the floor.
+        // Sharing the equator ring is important: two independent draw calls
+        // can leave a raster gap even when their positions appear identical.
+        const mesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        );
+        const material = createProjectedHdriMaterial(projectionCube, environmentSettings);
+        environmentMaterial = material;
+        const meshInstance = new pc.MeshInstance(mesh, material);
+        environmentBackdropMeshInstance = meshInstance;
+        environmentBackdrop = new pc.Entity("blocking3d-hdri-backdrop");
+        environmentBackdrop.addComponent("render", {
+          meshInstances: [meshInstance],
+          layers: [pc.LAYERID_WORLD],
+        });
+        environmentBackdrop.setPosition(environmentWorldPosition);
+        app.root.addChild(environmentBackdrop);
+        applyEnvironmentSettings();
+        ground.enabled = false;
+        setStatus("3D 草图已就绪");
+      } catch (error) {
+        if (isCurrentEnvironmentRequest(requestId)) {
+          clearEnvironmentLighting();
+          clearEnvironmentVisuals();
+          ground.enabled = true;
+        }
+        throw error;
+      }
     },
     getEnvironmentSettings() {
       return { ...environmentSettings };
