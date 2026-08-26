@@ -7,7 +7,7 @@
 ## 决策
 
 - 模型配置面向能力而不是厂商：文本模型 / 图片模型 / 音频模型。
-- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=grok-cli`（Grok Build 文本本地桥）、`image=grok_build`（Grok Build 图片本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音 API）。带参考图的图片任务由业务路由自动回退到兼容 `/images/edits` 的 Codex 图片桥。
+- 每类能力绑定一个内部 provider 槽位，定义在 `server/src/llm/modelCategories.ts`：`text=opencode`（OpenCode Go 文本本地桥；Grok Build 免费额度耗尽期间的临时切换，额度恢复后改回 `grok-cli`）、`image=grok_build`（Grok Build 图片本地桥）、`audio=voxcpm2`（VoxCPM2 本地语音 API）。带参考图的图片任务由业务路由自动回退到兼容 `/images/edits` 的 Codex 图片桥。
 - 槽位的服务地址、API Key、模型均可编辑；更换供应商时修改槽位配置即可，产品不再提供按厂商维度逐个配置的界面。
 - 所有任务路由统一解析到文本槽：`resolveModel` 的 provider/model 一律来自文本槽当前配置，路由行仅保留温度与结构化协议偏好，避免历史路由把任务钉在已不再使用的供应商上。
 
@@ -33,6 +33,8 @@
 
 - 文本槽未配置且无环境变量时，全部文字任务会在构建客户端阶段报“未配置 … 的 API Key”，需要在模型设置中配置文本模型。
 - 历史路由行指向旧供应商时不再生效，统一回落文本槽；排障时可检查 `modelRouteConfig` 行的协议偏好是否异常（协议偏好仍会被采用）。
+- 订阅额度类故障要在应用侧给出可读原因，而不是让 CLI 噪音淹没：Grok Build 免费额度耗尽时 grok-cli 桥返回 502 且 stderr 夹杂插件警告，真正原因（usage limit）在 CLI stdout 的 JSON error 里；OpenCode Go 余额不足时上游把错误放在响应的 `info.error`，桥接会提取 `info.error.data.message` 原样透出（如 `Insufficient balance`）。
+- OpenCode Go 文本桥（18762）不在 `pnpm dev` 自动启动链里，需要 `pnpm opencode:bridge` 单独启动；它是纯文本通道（`capabilities.supportsVisionInput` 为 false），空间标记识别等送图任务在纯文本通道上必须快速失败并提示改用视觉通道，禁止把图片静默替换成占位文本后照常调用。
 - 本地桥接服务未启动（18764 Grok Build 文本 / 18767 Grok Build 图片 / 18766 Codex 参考图图片 / 18761 VoxCPM2 音频 API）时连通测试失败；`pnpm dev` 会自动启动这些开发依赖，单独启动服务端时分别执行 `pnpm grok:bridge`、`pnpm codex:image`、`pnpm voxcpm2:bridge`。音频 API 的正式实现与健康校验见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。
 
 ## 相关模块

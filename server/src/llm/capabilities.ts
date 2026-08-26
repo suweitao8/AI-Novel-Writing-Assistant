@@ -23,6 +23,25 @@ export interface ModelParameterCompatibility {
   maximumTemperature?: number;
 }
 
+const TEXT_ONLY_PROVIDERS = new Set<BuiltinLLMProvider>([
+  // OpenCode Go 桥接是纯文本通道：image_url 内容会被替换成占位文本，
+  // 送图任务（如空间标记识别）在这些通道上必须快速失败而不是静默丢图。
+  "opencode",
+  // 图片/音频专用本地通道，不承担文本或视觉理解任务。
+  "codex",
+  "grok_build",
+  "voxcpm2",
+  "indextts25",
+]);
+
+/** 判断通道能否把 image_url 内容真正交给模型；未知通道按可发送处理。 */
+export function supportsVisionInput(provider: LLMProvider, model?: string): boolean {
+  if (!isBuiltinLLMProvider(provider)) {
+    return true;
+  }
+  return !TEXT_ONLY_PROVIDERS.has(provider);
+}
+
 export function supportsForcedJsonOutput(provider: LLMProvider, model?: string, baseURL?: string): boolean {
   return canUseForcedJsonOutput(resolveStructuredOutputProfile({
     provider,

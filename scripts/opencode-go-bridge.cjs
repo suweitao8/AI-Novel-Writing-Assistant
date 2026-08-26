@@ -262,9 +262,24 @@ class OpenCodeServerClient {
 
   expectObject(value) {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
-      throw new OpenCodeGoError("OpenCode 服务返回了非对象响应");
+      throw new OpenCodeGoError("OpenCode 服务返回了意外的数据结构");
     }
     return value;
+  }
+
+  extractUpstreamError(result) {
+    const candidates = [
+      result?.info?.error,
+      result?.error,
+    ];
+    for (const error of candidates) {
+      if (!error || typeof error !== "object") continue;
+      const data = error.data && typeof error.data === "object" ? error.data : null;
+      const message = [data?.message, error.message]
+        .find((value) => typeof value === "string" && value.trim());
+      if (message) return message.trim().slice(0, 500);
+    }
+    return null;
   }
 
   async complete({ systemPrompt, transcript, model }) {
@@ -297,7 +312,14 @@ class OpenCodeServerClient {
         }
         const text = textParts.filter(Boolean).join("\n").trim();
         if (!text) {
-          throw new OpenCodeGoError("OpenCode 服务没有返回文本内容");
+          // OpenCode 会把上游错误（余额不足、鉴权失败等）放在 info.error
+          // 而不返回文本 parts；必须原样透出，否则只能看到笼统的空响应。
+          const upstreamError = this.extractUpstreamError(result);
+          throw new OpenCodeGoError(
+            upstreamError
+              ? `OpenCode 服务返回错误：${upstreamError}`
+              : "OpenCode 服务没有返回文本内容",
+          );
         }
         return text;
       } catch (error) {
