@@ -15,6 +15,10 @@ const viewerSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts"),
   "utf8",
 );
+const selectionOutlineSource = fs.readFileSync(
+  path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dSelectionOutline.ts"),
+  "utf8",
+);
 const mathSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dMath.ts"),
   "utf8",
@@ -110,14 +114,22 @@ test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", ()
 });
 
 test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
-  assert.match(viewerSource, /drawEntitySelectionOutline/);
+  assert.match(selectionOutlineSource, /new pc\.OutlineRenderer/);
+  assert.match(selectionOutlineSource, /insertOpaque/);
+  assert.match(selectionOutlineSource, /frameUpdate/);
+  assert.match(selectionOutlineSource, /removeEntity/);
+  assert.match(selectionOutlineSource, /destroy/);
+  assert.match(viewerSource, /createBlocking3dSelectionOutline/);
+  assert.match(viewerSource, /selectionOutline\.setEntity/);
+  assert.match(viewerSource, /selectionOutline\.frameUpdate/);
+  assert.doesNotMatch(viewerSource, /drawEntitySelectionOutline/);
   assert.match(viewerSource, /selectedActor\(\)/);
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
 });
 
-test("选中角色保留外轮廓但移除脚下圆盘", () => {
-  assert.match(viewerSource, /drawEntitySelectionOutline/);
-  assert.doesNotMatch(viewerSource, /selectionRing|SELECTION_RING_OPACITY|createSelectionRingGeometryData/);
+test("3D 草图 PNG 捕获期间不包含选中外描边", () => {
+  assert.match(viewerSource, /capturePng\(\)[\s\S]*selectionOutline\.setEntity\(null\)/);
+  assert.match(viewerSource, /selectionOutline\.frameUpdate\(\)/);
 });
 
 test("分镜列表只进入独立 3D 草图，不再保留 2D 草图入口", () => {
