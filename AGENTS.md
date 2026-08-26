@@ -188,19 +188,21 @@ These areas have the highest priority for wiki accumulation:
 - Run the self-test inside the session worktree, targeted to the change scope:
   - server or client code changes: the matching typecheck or build check, plus focused tests for the touched behavior;
   - prompt schema, runtime contract, task recovery, database behavior, or cross-module flow changes: the narrowest service-level or schema-level check that actually exercises the contract;
-  - UI-facing changes: code-level checks such as typecheck and focused tests; interactive and visual acceptance stays with the user as the final manual step;
+  - UI-facing changes: code-level checks such as typecheck and focused tests, plus the browser smoke self-test defined below;
   - documentation or rule-file changes: a consistency review against the existing rules and affected docs; no build required.
+- The browser smoke self-test for UI changes runs against the local dev services (`http://127.0.0.1:3100`, `http://127.0.0.1:5174`), in an isolated browser instance or a dedicated tab so the user's open windows are never touched. Walk the primary user path of the changed page, verify rendering and key interactions with no console errors, and capture key screenshots as evidence.
+- Browser smoke tests may write dev-database rows: use clearly-marked test data, clean it up afterwards, and state any leftover test data explicitly when cleanup is not feasible.
 - Self-acceptance means reviewing the diff against the original requirement before committing: confirm the requested behavior is actually implemented, not just that files changed.
 - Reused verification satisfies the gate only under the Verification Reuse Rules and must be stated explicitly: which check, when it ran, and which changes it covered.
 - If the self-test fails, fix and re-test before committing; never commit a known-failing change. If a gap cannot be closed in-session, keep the change uncommitted, or state the concrete failure and the reason it is still being delivered.
 - For worktree changes with a runnable focused check, prefer carrying that check into `pnpm workflow:integrate codex/<task> --push --verify "<command>"` so integration mechanically re-runs it.
-- When reporting completion to the user, include a self-test summary: what was implemented, what was self-tested with concrete commands and results, and what is explicitly left for the user's manual acceptance.
+- When reporting completion to the user, include a self-test summary: what was implemented, what was self-tested with concrete commands and results, and what is explicitly left for the user's manual acceptance. For UI changes, include the browser smoke result: pages visited, actions performed, console/network status, and key screenshots.
 
 ## Verification Reuse Rules
 
 - These rules define how to satisfy the Self-Test Rules gate efficiently; they never allow skipping the gate itself.
 - Prefer targeted verification that matches the actual change scope.
-- For UI-facing project modifications, do not run browser, screenshot, Playwright, visual, or manual interaction verification by default; the user will perform UI acceptance testing. Use code-level checks such as typecheck or focused tests when they fit the change, and clearly state that UI verification is left to the user.
+- For UI-facing project modifications, perform the browser smoke self-test required by the Self-Test Rules instead of an exhaustive visual or manual test suite; final interactive polish and acceptance stay with the user. Use code-level checks such as typecheck or focused tests alongside it.
 - If a recent build, typecheck, packaging check, or test run already covers the same code paths after the relevant files last changed, do not repeat the same expensive verification by default.
 - Before reusing recent verification, confirm the evidence is recent, tied to the same branch or commit range, and not invalidated by subsequent changes.
 - Build commands can take significant time. Avoid repeated `pnpm build`, `pnpm typecheck`, or full test-suite runs when the current diff is documentation-only or already covered by a recent successful run.
