@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import { parseStoryAssetStatesJson } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  normalizeStoryAssetHeightMeters,
+  parseStoryAssetStatesJson,
+  type StoryAssetState,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
@@ -26,6 +30,12 @@ export interface CharacterHeightProfile {
   source: CharacterHeightProfileSource;
   inputFingerprint: string;
   generatedAt: string;
+}
+
+export interface CharacterHeightResolution {
+  heightMeters: number;
+  heightSource: CharacterHeightProfileSource | "manual" | "legacy";
+  heightConfidence?: number;
 }
 
 export interface CharacterHeightInput {
@@ -201,6 +211,28 @@ export function createFallbackCharacterHeightProfile(inputFingerprint: string): 
     inputFingerprint,
     generatedAt: new Date().toISOString(),
   };
+}
+
+/**
+ * 分镜实际使用的角色高度：当前状态的人工值优先于角色级 AI 档案，历史角色再回退到兼容基准。
+ * 该函数保持纯逻辑，供 blocking 和契约测试复用，避免各入口各自实现优先级。
+ */
+export function resolveCharacterHeightForState(
+  state: Pick<StoryAssetState, "heightMeters"> | null | undefined,
+  profile: CharacterHeightProfile | null | undefined,
+): CharacterHeightResolution {
+  const manualHeight = normalizeStoryAssetHeightMeters(state?.heightMeters);
+  if (manualHeight !== undefined) {
+    return { heightMeters: manualHeight, heightSource: "manual" };
+  }
+  if (profile) {
+    return {
+      heightMeters: profile.heightMeters,
+      heightSource: profile.source,
+      heightConfidence: profile.confidence,
+    };
+  }
+  return { heightMeters: CHARACTER_HEIGHT_DEFAULT_METERS, heightSource: "legacy" };
 }
 
 export function heightToProxyScale(heightMeters: number): number {

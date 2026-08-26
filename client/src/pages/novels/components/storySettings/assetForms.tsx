@@ -27,6 +27,8 @@ import { cn } from "@/lib/utils";
 import SelectControl from "@/components/common/SelectControl";
 import {
   createStoryCharacterInitialState,
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
   STORY_ASSET_WEAR_TAG_OPTIONS,
   type StoryAssetState,
   type StoryAssetWearTag,
@@ -108,6 +110,7 @@ export function createInitialCharacterState(
     ...(input.image ? { image: input.image } : {}),
     ...(input.voice ? { voice: input.voice } : {}),
     ...(input.eraStyle?.trim() ? { eraStyle: input.eraStyle.trim() } : {}),
+    ...(input.heightMeters !== undefined && input.heightMeters !== null ? { heightMeters: input.heightMeters } : {}),
   };
 }
 
@@ -151,6 +154,10 @@ export function normalizeStatesForSave(source: StoryAssetState[]): StoryAssetSta
   if (invalid) {
     throw new Error(`状态「${invalid.label.trim() || "未命名"}」还缺状态名。`);
   }
+  const invalidHeight = source.find((state) => getCharacterStateHeightError(state.heightMeters));
+  if (invalidHeight) {
+    throw new Error(`状态「${invalidHeight.label.trim() || "未命名"}」的身高需填写 ${STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS.toFixed(2)} 到 ${STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS.toFixed(2)} 米。`);
+  }
   return source.map((state) => {
     const label = state.label.trim();
     const description = state.description.trim() || label;
@@ -164,11 +171,22 @@ export function normalizeStatesForSave(source: StoryAssetState[]): StoryAssetSta
   });
 }
 
+export function getCharacterStateHeightError(value: number | null | undefined): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return Number.isFinite(value)
+    && value >= STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS
+    && value <= STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS
+    ? null
+    : `请输入 ${STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS.toFixed(2)}–${STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS.toFixed(2)} 米。`;
+}
+
 // 状态编辑器（角色/场景/道具编辑弹窗共用）：左列状态列表 + 右侧当前状态直接编辑。
 // 2026-08-22 用户决定的交互：
 // - 所有字段行内直接可编辑，统一由弹窗「保存」一次落库（状态不单独保存，2026-08-22
 //   用户决定）；点「生成图片/生成音色」会先把未保存的状态自动存好再生成；
-// - 状态字段只有 状态名+年龄段（场景为类型/时间/天气）与图片提示词——状态名已能表达
+// - 状态字段包含状态名、角色年龄段/身高（场景为类型/时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
 //   场景状态图按普通 2:1 图片展示；需要空间预览或摆位时进入独立的 3D 编辑；
@@ -518,6 +536,7 @@ export function AssetStatesEditor(props: {
     || Boolean(serverImageGenerating)
     || imageRequestActive;
   const serverVoiceGenerating = selectedState?.voice?.status === "generating";
+  const selectedHeightError = showVoice ? getCharacterStateHeightError(selectedState?.heightMeters) : null;
 
   return (
     <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
@@ -739,6 +758,36 @@ export function AssetStatesEditor(props: {
                     <option value="middle">中年</option>
                     <option value="elder">老年</option>
                   </SelectControl>
+                </label>
+              ) : null}
+              {showVoice ? (
+                <label className="block space-y-1">
+                  <span className="text-xs font-medium">身高（米）</span>
+                  <Input
+                    type="number"
+                    min="0.7"
+                    max="2.4"
+                    step="0.01"
+                    inputMode="decimal"
+                    placeholder="例如 1.75"
+                    aria-label="角色状态身高（米）"
+                    aria-invalid={Boolean(selectedHeightError)}
+                    aria-describedby={selectedHeightError ? "character-state-height-error" : undefined}
+                    value={selectedState.heightMeters ?? ""}
+                    disabled={anyPending}
+                    onChange={(event) => {
+                      const raw = event.target.value;
+                      if (!raw) {
+                        updateState(selectedState.id, { heightMeters: undefined });
+                        return;
+                      }
+                      const numeric = Number(raw);
+                      if (Number.isFinite(numeric)) {
+                        updateState(selectedState.id, { heightMeters: numeric });
+                      }
+                    }}
+                  />
+                  {selectedHeightError ? <span id="character-state-height-error" className="text-xs text-destructive" role="alert">{selectedHeightError}</span> : null}
                 </label>
               ) : null}
               <label className="block space-y-1">
