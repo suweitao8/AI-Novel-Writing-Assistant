@@ -142,4 +142,3 @@ actualScale = baseScale × shotScaleMultiplier
 - Drama blocking 上下文、自动构图契约、3D layout 契约和 PlayCanvas viewer。
 - 设定中心角色 DTO 与只读展示。
 - 对应单元/契约测试、开发 wiki 与用户可见 release note。
-
