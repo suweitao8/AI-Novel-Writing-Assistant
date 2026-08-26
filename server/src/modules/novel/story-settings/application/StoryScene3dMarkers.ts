@@ -7,11 +7,8 @@ import type {
   StoryScene3DMarkerKind,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
-import {
-  STORY_SCENE_3D_MARKER_KINDS,
-  STORY_SCENE_3D_PANORAMA_HORIZON_V,
-} from "@ai-novel/shared/types/comicDrama";
-import { equirectangularRegionCenterToHorizontalDirection } from "@ai-novel/shared/utils/scene3dProjection";
+import { STORY_SCENE_3D_MARKER_KINDS } from "@ai-novel/shared/types/comicDrama";
+import { projectStoryScene3dMarkerFromImageRegion } from "@ai-novel/shared/utils/scene3dProjection";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
   maxMarkers: 32,
@@ -20,9 +17,6 @@ export const STORY_SCENE_3D_MARKER_LIMITS = {
   size: { min: 0.05, max: 30 },
   confidence: { min: 0, max: 1 },
 } as const;
-
-/** 模型返回的径向深度提示按默认 15m 半球直径归一化，再映射到当前环境。 */
-const REFERENCE_MARKER_RADIUS = 15 * 0.45;
 
 const MARKER_KINDS = new Set<string>(STORY_SCENE_3D_MARKER_KINDS);
 const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceiling"]);
@@ -78,83 +72,19 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
   };
 }
 
-function resolveProjectionRay(
-  region: StoryScene3DMarkerImageRegion,
-  anchor: StoryScene3DMarkerAnchor,
-  environment: StoryScene3dMarkerProjectionEnvironment,
-): [number, number, number] {
-  const imageV = anchor === "floor"
-    ? region.y + region.height
-    : region.y + region.height / 2;
-  const latitude = (STORY_SCENE_3D_PANORAMA_HORIZON_V - imageV) * Math.PI;
-  const horizontalLength = Math.cos(latitude);
-  const direction = equirectangularRegionCenterToHorizontalDirection(region, environment);
-  return [
-    horizontalLength * direction.x,
-    Math.sin(latitude),
-    horizontalLength * direction.z,
-  ];
-}
-
-function resolveDepthHint(position: [number, number, number], maxRadius: number): number {
-  const rawRadial = Math.hypot(position[0], position[2]);
-  const normalizedDepth = rawRadial > 0.05
-    ? clamp(rawRadial / REFERENCE_MARKER_RADIUS, 0.12, 1)
-    : 0.58;
-  return clamp(normalizedDepth * maxRadius, 0.5, maxRadius);
-}
-
 /**
  * 把多模态模型识别的 equirectangular 框反算到当前 3D 投射空间。
  *
- * imageRegion 决定水平经度和垂直射线，模型 position 只保留为径向深度提示。
- * 这样既保留模型对遮挡/距离的判断，又避免模型把图片像素坐标直接当成世界坐标；
- * floor 标记用框底部射线与 y=0 相交，wall/ceiling 标记用框中心射线落到当前半球。
+ * 共享投影函数同时负责位置、尺寸和朝向，避免服务端与 shared 各自维护
+ * 一套会逐渐漂移的全景坐标规则。这个导出保留给已有服务端调用方，只返回位置。
  */
 export function projectStoryScene3dMarkerPosition(
-  marker: Pick<StoryScene3DMarker, "anchor" | "position" | "size" | "imageRegion">,
+  marker: Pick<StoryScene3DMarker, "anchor" | "position" | "size" | "imageRegion">
+    & Partial<Pick<StoryScene3DMarker, "kind" | "source" | "yawDeg">>,
   environment: StoryScene3dMarkerProjectionEnvironment,
   maxRadius = environment.domeRadius * 0.45,
 ): [number, number, number] {
-  if (!marker.imageRegion) return [...marker.position];
-  const safeMaxRadius = clamp(maxRadius, 1, STORY_SCENE_3D_MARKER_LIMITS.maxRadius);
-  const ray = resolveProjectionRay(marker.imageRegion, marker.anchor, environment);
-  const horizontalLength = Math.hypot(ray[0], ray[2]);
-  const horizontalUnit: [number, number] = horizontalLength > 0.0001
-    ? [ray[0] / horizontalLength, ray[2] / horizontalLength]
-    : [0, 1];
-  const depthHint = resolveDepthHint(marker.position, safeMaxRadius);
-
-  if (marker.anchor === "floor") {
-    const downward = -ray[1];
-    const groundRadius = downward > 0.08
-      ? environment.projectionCenterHeight * horizontalLength / downward
-      // The fixed 50% panorama contract can keep a furniture box above the
-      // horizon. Its ray points upward, so the model's radial hint is not a
-      // reliable ground depth; use the available ground edge instead.
-      : safeMaxRadius;
-    const radius = clamp(
-      Number.isFinite(groundRadius) ? groundRadius : safeMaxRadius,
-      0.25,
-      safeMaxRadius,
-    );
-    return [
-      horizontalUnit[0] * radius,
-      marker.size[1] / 2,
-      horizontalUnit[1] * radius,
-    ];
-  }
-
-  const rayDistance = depthHint / Math.max(horizontalLength, 0.08);
-  return [
-    ray[0] * rayDistance,
-    clamp(
-      environment.projectionCenterHeight + ray[1] * rayDistance,
-      marker.size[1] / 2,
-      STORY_SCENE_3D_MARKER_LIMITS.positionY.max,
-    ),
-    ray[2] * rayDistance,
-  ];
+  return projectStoryScene3dMarkerFromImageRegion(marker, environment, maxRadius).position;
 }
 
 function normalizeMarker(
@@ -210,10 +140,10 @@ function normalizeMarker(
   if (imageRegion) {
     marker.imageRegion = imageRegion;
     if (environment && marker.source !== "manual") {
-      marker.position = projectStoryScene3dMarkerPosition(marker, environment, maxRadius);
-      if (marker.anchor === "wall" || marker.anchor === "ceiling") {
-        marker.yawDeg = equirectangularRegionCenterToHorizontalDirection(imageRegion, environment).azimuthDeg;
-      }
+      const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment, maxRadius);
+      marker.position = projected.position;
+      marker.size = projected.size;
+      marker.yawDeg = projected.yawDeg;
     }
   }
   return marker;

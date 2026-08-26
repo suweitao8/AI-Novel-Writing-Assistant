@@ -159,12 +159,15 @@ git commit -s -m "fix: calibrate scene marker placement and size"
 
 **Files:**
 - Modify: `server/src/prompting/prompts/drama/sceneState3dMarkers.prompts.ts`
+- Modify: `server/src/prompting/registry/promptAssetLoaderEntries.ts`
 - Modify: `server/tests/sceneState3dMarkersPrompt.test.js`
 - Modify: `docs/wiki/workflows/drama-blocking-3d.md`
 
 - [ ] **Step 1: Version and clarify the Prompt.**
 
 Change the Prompt asset version from `v3` to `v4`. Add direct instructions that `imageRegion` must tightly contain the visible body of each fixed object, `position.x/z` is only a legacy rough field and must not be used to force wall depth, and `size` is an approximate hint that the service will reconcile with the visible region and structured kind. Keep the fixed `v=0.5` and no-keyword behavior intact.
+
+Update the matching loader key in `promptAssetLoaderEntries.ts` from `drama.scene.state.3d_markers@v3` to `drama.scene.state.3d_markers@v4` so the registry and Prompt asset version remain consistent.
 
 - [ ] **Step 2: Update the Prompt regression test.**
 
@@ -188,7 +191,7 @@ git diff --check
 - [ ] **Step 5: Commit the Prompt and wiki unit.**
 
 ```powershell
-git add server/src/prompting/prompts/drama/sceneState3dMarkers.prompts.ts server/tests/sceneState3dMarkersPrompt.test.js docs/wiki/workflows/drama-blocking-3d.md
+git add server/src/prompting/prompts/drama/sceneState3dMarkers.prompts.ts server/src/prompting/registry/promptAssetLoaderEntries.ts server/tests/sceneState3dMarkersPrompt.test.js docs/wiki/workflows/drama-blocking-3d.md docs/superpowers/plans/2026-08-26-scene-marker-placement-size.md
 git commit -s -m "docs: align scene marker prompt and workflow rules"
 ```
 
