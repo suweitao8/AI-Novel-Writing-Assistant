@@ -96,7 +96,9 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 
 普通场景图的下半球在投射中心附近使用有限平底，半径 `0.95` 以内保持可用地面，最外侧弧面连续过渡到随投射中心和实际半球尺寸计算的地平线高度；弧面的外缘切线应接近垂直地接入上半球，内缘切线应水平落到平底，不能用固定斜率的窄带直接切断半球。当前弧面使用足够的径向细分，并把这两个切线条件作为几何回归约束。这是网格形状约束，不是纹理 UV 的硬裁切。平底中心只保留一个几何顶点，不能继续用下半球极点复制一整圈经度，否则地面三角扇会把纹理压成尖刺。地面顶点只使用常量占位 UV，投影材质在片元阶段按实际世界坐标、投射中心和半球尺寸计算 `u/v`，避免中心三角扇插值角度 UV 形成圆形漩涡；经度采样使用循环寻址，不能把贴图重复铺成普通地面纹理。旧快照中的 `groundTextureScale` 作为未知字段被忽略，新的导出数据不会再写回。
 
-HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLighting.generateLightingSource` 和 `EnvLighting.generateAtlas` 生成 `Scene.envAtlas`。该 atlas 是角色代理的环境光、反射和漫反射明暗的唯一运行时来源；半球自发光材质只负责显示原始场景图，不再叠加方向光或补光。由于 PlayCanvas 在没有显式 skybox 时会把 `envAtlas` 作为无限天空盒的回退纹理，3D blocking camera 必须排除 `LAYERID_SKYBOX`，有限 HDRI 半球和地面改放在 `LAYERID_WORLD`；不能为了保留环境光照而让引擎内置无限天空盒覆盖半球直径设置。没有可用 HDRI 时才使用低强度中性 `Scene.ambientLight` 兜底，不能通过读取亮部或固定方向重新创建人工主光。派生的 lighting source/atlas 只存在于 viewer 生命周期，不能写入 `layout3d` 或场景环境参数。
+HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLighting.generateLightingSource` 和 `EnvLighting.generateAtlas` 生成 `Scene.envAtlas`。该 atlas 负责角色代理的环境反射、环境漫反射和整体明暗底色；半球自发光材质只负责显示原始场景图。由于 EnvAtlas 的漫反射是低频环境光，它不会自动把窗户、太阳等高亮区域变成明显的直射光，因此 viewer 还要从 HDRI 上半部的高亮像素估算方向、颜色和受限强度，更新一盏只存在于 viewer 生命周期的 `directional` key light。它与 EnvAtlas 叠加，用来让角色呈现与窗户/太阳方向一致的受光面；不增加固定补光，也不把估算结果写入 `layout3d` 或场景环境参数。像素读取失败时使用稳定的斜上方后备主光，不能让一次 canvas/CORS 读取失败阻断 HDRI 半球和 EnvAtlas。
+
+由于 PlayCanvas 在没有显式 skybox 时会把 `envAtlas` 作为无限天空盒的回退纹理，3D blocking camera 必须排除 `LAYERID_SKYBOX`，有限 HDRI 半球和地面改放在 `LAYERID_WORLD`；不能为了保留环境光照而让引擎内置无限天空盒覆盖半球直径设置。没有可用 HDRI 时关闭派生方向光，并使用低强度中性 `Scene.ambientLight` 兜底。lighting source、envAtlas 和 HDRI 派生方向光都只存在于 viewer 生命周期，切换、加载失败和销毁时必须释放或关闭。
 
 ## Related Modules
 

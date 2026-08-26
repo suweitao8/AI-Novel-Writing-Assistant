@@ -22,6 +22,14 @@ const environmentProjectionSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentProjection.ts", import.meta.url),
   "utf8",
 );
+const environmentLightingSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentLighting.ts", import.meta.url),
+  "utf8",
+);
+const environmentKeyLightSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentKeyLight.ts", import.meta.url),
+  "utf8",
+);
 const selectionRingSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dSelectionRing.ts", import.meta.url),
   "utf8",
@@ -218,7 +226,7 @@ test("HDRI 等距投影数学在地平线、两极和经度循环处连续", asy
   assert.equal(projectEquirectangularDirection([0, -1, 0]).u, 0.5, "下极点使用固定经度");
 });
 
-test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI 环境", () => {
+test("中键平移使用摄像机屏幕坐标，角色光照由 HDRI 环境和亮部方向光共同提供", () => {
   assert.match(viewerSource, /const screenRight = new pc\.Vec3\(Math\.cos\(azimuth\)/);
   assert.match(viewerSource, /const screenUp/);
   assert.match(viewerSource, /panCamera/);
@@ -228,9 +236,24 @@ test("中键平移使用摄像机屏幕坐标，角色光照完全来自 HDRI �
   assert.match(viewerSource, /app\.scene\.envAtlas/);
   assert.match(viewerSource, /pc\.TEXTUREPROJECTION_EQUIRECT/);
   assert.match(viewerSource, /app\.scene\.ambientLight/);
-  assert.doesNotMatch(viewerSource, /type: "directional"/);
-  assert.doesNotMatch(viewerSource, /type: "omni"/);
-  assert.doesNotMatch(viewerSource, /estimateHdriLightDirection|getImageData|setFromDirections\(pc\.Vec3\.DOWN/);
+  assert.match(viewerSource, /const environmentKeyLight = createHdriKeyLight\(\)/);
+  assert.match(viewerSource, /applyHdriKeyLight\(environmentKeyLight, texture\)/);
+  assert.match(environmentKeyLightSource, /new pc\.Entity\("blocking3d-hdri-key-light"\)/);
+  assert.match(environmentKeyLightSource, /type: "directional"/);
+  assert.match(environmentKeyLightSource, /estimateHdriLightFromTexture\(texture\)/);
+  assert.match(environmentKeyLightSource, /setFromDirections\(pc\.Vec3\.UP, sourceDirection\)/);
+  assert.match(environmentLightingSource, /export function estimateHdriLightFromPixels/);
+  assert.match(environmentLightingSource, /export function estimateHdriLightFromTexture/);
+  assert.doesNotMatch(`${viewerSource}\n${environmentKeyLightSource}`, /type: "omni"/);
+  assert.doesNotMatch(viewerSource, /fixed|固定.*补光/);
+});
+
+test("HDRI 派生方向光只在 viewer 生命周期内存在，并在清理时关闭", () => {
+  assert.match(viewerSource, /const clearEnvironmentKeyLight = \(\) =>/);
+  assert.match(environmentKeyLightSource, /entity\.enabled = false/);
+  assert.match(environmentKeyLightSource, /export function clearHdriKeyLight/);
+  assert.match(viewerSource, /clearEnvironmentKeyLight\(\);/);
+  assert.match(viewerSource, /environmentKeyLight\.destroy\(\)/);
 });
 
 test("参考角色材质显式使用 HDRI 环境光", () => {
