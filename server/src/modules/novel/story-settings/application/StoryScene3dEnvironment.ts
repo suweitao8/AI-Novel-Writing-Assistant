@@ -2,14 +2,13 @@ import type {
   StoryScene3DEnvironment,
   StoryScene3DEnvironmentInput,
 } from "@ai-novel/shared/types/comicDrama";
-import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
-import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceExtraction";
+import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+} from "@ai-novel/shared/types/comicDrama";
 
-export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
-  projectionCenterHeight: { min: 1, max: 10 },
-  domeRadius: { min: 5, max: 30 },
-  panoramaHorizonV: { min: 0.4, max: 0.65 },
-} as const;
+export { STORY_SCENE_3D_ENVIRONMENT_LIMITS };
+import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
   projectionCenterHeight: 1.7,

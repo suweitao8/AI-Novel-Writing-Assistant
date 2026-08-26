@@ -132,8 +132,8 @@ test("HDRI 环境提供投射中心、高度、半球直径和可调地面分界
   assert.match(viewerSource, /panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
-  assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);
-  assert.match(viewerSource, /domeRadius[^\n]*5, 30/);
+  assert.match(viewerSource, /projectionCenterHeight[^\n]*0\.5, 2/);
+  assert.match(viewerSource, /domeRadius[^\n]*5, 20/);
   assert.match(viewerSource, /panoramaHorizonV[^\n]*0\.4, 0\.65/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /yawDeg: 0/);

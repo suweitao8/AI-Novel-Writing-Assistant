@@ -9,6 +9,7 @@ import type {
 } from "@ai-novel/shared/types/comicDrama";
 import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
 } from "@ai-novel/shared/types/comicDrama";
 import {
@@ -73,12 +74,20 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
     return undefined;
   }
   return {
-    projectionCenterHeight: clamp(projectionCenterHeight, 1, 10),
-    domeRadius: clamp(domeRadius, 5, 30),
+    projectionCenterHeight: clamp(
+      projectionCenterHeight,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max,
+    ),
+    domeRadius: clamp(
+      domeRadius,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
+    ),
     panoramaHorizonV: clamp(
       finiteOr(source.panoramaHorizonV, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V),
-      0.4,
-      0.65,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
+      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
     ),
   };
 }
