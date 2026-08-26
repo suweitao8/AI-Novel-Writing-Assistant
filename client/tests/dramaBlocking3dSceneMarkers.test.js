@@ -38,11 +38,13 @@ test("viewer 支持空间标记射线选择、聚焦和运行时更新", () => {
   assert.match(viewerSource, /onMarkerSelection/);
 });
 
-test("共享 viewer 显示不可拾取的投射中心方形和高度线，并随环境设置更新", () => {
-  assert.match(gizmoSource, /type: "box"/);
+test("共享 viewer 显示不遮挡原图的投射中心线框和高度线，并随环境设置更新", () => {
+  assert.doesNotMatch(gizmoSource, /type: "box"/);
+  assert.match(gizmoSource, /GIZMO_SIZE_RATIO = 0\.007/);
+  assert.match(gizmoSource, /new pc\.Color\(0\.2, 0\.9, 1, 1\)/);
   assert.match(gizmoSource, /projectionCenterHeight/);
   assert.match(gizmoSource, /app\.drawLine/);
-  assert.match(gizmoSource, /depthTest = false/);
+  assert.match(gizmoSource, /false\);/);
   assert.match(viewerSource, /createProjectionCenterGizmo/);
   assert.match(viewerSource, /updateProjectionCenterGizmo/);
   assert.match(viewerSource, /drawProjectionCenterGizmo/);
