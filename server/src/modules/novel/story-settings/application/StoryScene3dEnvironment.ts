@@ -10,17 +10,32 @@ export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
 } as const;
 
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
-  projectionCenterHeight: 2,
-  domeRadius: 15,
+  projectionCenterHeight: 1.7,
+  domeRadius: 10,
   yawDeg: 0,
   intensity: 1,
 };
 
 export const STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE: Record<StoryAssetSceneType, number> = {
-  interior: 10,
-  exterior: 15,
+  interior: 8,
+  exterior: 10,
   nature: 20,
 };
+
+export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE: Record<StoryAssetSceneType, number> = {
+  interior: 1,
+  exterior: 1.7,
+  nature: 1,
+};
+
+const LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS: readonly StoryScene3DEnvironment[] = [
+  { projectionCenterHeight: 2, domeRadius: 10, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 2, domeRadius: 15, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1, domeRadius: 8, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1.7, domeRadius: 10, yawDeg: 0, intensity: 1 },
+  { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -51,6 +66,7 @@ export function getDefaultStoryScene3dEnvironment(sceneType?: unknown): StorySce
   const resolvedType = resolveStorySceneType(sceneType);
   return {
     ...DEFAULT_STORY_SCENE_3D_ENVIRONMENT,
+    projectionCenterHeight: STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE[resolvedType],
     domeRadius: STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE[resolvedType],
   };
 }
@@ -99,11 +115,13 @@ export function serializeStoryScene3dEnvironment(
   });
 }
 
-function isLegacyDefaultEnvironment(input: StoryScene3DEnvironment): boolean {
-  return input.projectionCenterHeight === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeight
-    && input.domeRadius === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius
-    && input.yawDeg === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.yawDeg
-    && input.intensity === DEFAULT_STORY_SCENE_3D_ENVIRONMENT.intensity;
+function isUncustomizedDefaultEnvironment(input: StoryScene3DEnvironment): boolean {
+  return LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS.some((candidate) => (
+    input.projectionCenterHeight === candidate.projectionCenterHeight
+    && input.domeRadius === candidate.domeRadius
+    && input.yawDeg === candidate.yawDeg
+    && input.intensity === candidate.intensity
+  ));
 }
 
 export function resolveStoryScene3dEnvironment(
@@ -121,7 +139,7 @@ export function resolveStoryScene3dEnvironment(
     const parsed = JSON.parse(raw) as Record<string, unknown> & { customized?: unknown };
     const normalized = normalizeStoryScene3dEnvironment(parsed);
     const customized = parsed.customized === true
-      || (parsed.customized === undefined && !isLegacyDefaultEnvironment(normalized));
+      || (parsed.customized === undefined && !isUncustomizedDefaultEnvironment(normalized));
     return customized ? normalized : defaultEnvironment;
   } catch {
     return defaultEnvironment;

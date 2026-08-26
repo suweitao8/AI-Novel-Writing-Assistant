@@ -129,8 +129,8 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
 });
 
 test("HDRI 环境只提供投射中心高度和半球直径，地面分界固定为 50%", () => {
-  assert.match(viewerSource, /projectionCenterHeight: 2/);
-  assert.match(viewerSource, /domeRadius: 15/);
+  assert.match(viewerSource, /projectionCenterHeight: 1\.7/);
+  assert.match(viewerSource, /domeRadius: 10/);
   assert.match(viewerSource, /projectionCenterHeight/);
   assert.match(viewerSource, /domeRadius/);
   assert.match(viewerSource, /projectionCenterHeight[^\n]*1, 10/);

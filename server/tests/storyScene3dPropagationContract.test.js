@@ -20,16 +20,16 @@ test("场景资产持久化 HDRI 参数，并由分镜上下文统一读取", ()
   assert.match(markerService, /resolveStoryScene3dEnvironment\(/);
   assert.match(blockingService, /resolveStoryScene3dEnvironment\(/);
   assert.match(blockingService, /scene3dEnvironmentJson: true/);
-  assert.match(blockingService, /environment: resolveStoryScene3dEnvironment\(/);
+  assert.match(blockingService, /const environment = resolveStoryScene3dEnvironment\(/);
   assert.match(blockingService, /environment: matchedScene\.environment/);
 });
 
-test("场景级 3D 环境始终使用默认状态类型，分析其他状态不改变半球直径", () => {
+test("场景级 3D 环境始终使用默认状态类型，分析其他状态不改变环境参数", () => {
   const environmentBlock = markerService.match(
     /const environment = resolveStoryScene3dEnvironment\([\s\S]*?\n    \);/,
   );
   assert.ok(environmentBlock, "空间标记分析必须解析场景级 3D 环境");
-  assert.match(environmentBlock[0], /initialStates\[0\]\?\.sceneType/);
+  assert.match(environmentBlock[0], /initialBaseStates\[0\]\?\.sceneType/);
   assert.doesNotMatch(environmentBlock[0], /initialState\.sceneType/);
 });
 
