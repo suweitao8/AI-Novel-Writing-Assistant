@@ -456,7 +456,17 @@ function normalizeCharacterAgeGroup(value: string | null | undefined): string | 
 
 export class StorySettingsService {
   private readonly worldContextGateway = new WorldContextGateway();
-  private readonly workflowService = new NovelWorkflowService();
+  private workflowServiceInstance: NovelWorkflowService | null = null;
+
+  /**
+   * 惰性创建：NovelWorkflowService 的加载链会绕回本模块（经
+   * GenerationContextAssembler → storySettingsService），顶层直接 new 会因
+   * 循环 require 拿到未初始化的导出。
+   */
+  private get workflowService(): NovelWorkflowService {
+    this.workflowServiceInstance ??= new NovelWorkflowService();
+    return this.workflowServiceInstance;
+  }
 
   // ---- 实体级 AI 生成 ----
 
