@@ -14,10 +14,13 @@
 //   codex exec --ignore-user-config --ephemeral --json --color never
 //          -C <workdir> --skip-git-repo-check -s read-only -m <model>
 //          -c model_reasoning_effort="<effort>" [-i image ...] -
-//   默认 gpt-5.6-luna + low 推理档（官方描述 fast responses with lighter reasoning，即「fast 模式」）。
+//   默认 gpt-5.6-luna + high 推理档。实测小任务 high 与 low 总耗时几乎持平
+//   （12.5s vs 13.7s，CLI 启动与注入内容等固定开销占大头），复杂结构化任务才是
+//   推理耗时增长点、也正是质量收益点；花费过多可用 CODEX_TEXT_REASONING_EFFORT 降档。
 //   注意：gpt-5.6-luna 需要较新的 codex CLI；旧版 CLI 会收到服务端 400
 //   "The 'gpt-5.6-luna' model requires a newer version of Codex"，npm i -g @openai/codex@latest 即可。
-//   备选模型 gpt-5.5 / gpt-5.4 / gpt-5.4-mini（均支持图片输入）；模型可用 -m / CODEX_TEXT_MODEL 覆盖。
+//   模型策略：订阅额度统一锁定在 gpt-5.6-luna 一个模型上（文本/视觉/图片同一 agent），
+//   CODEX_TEXT_MODEL / CODEX_IMAGE_AGENT_MODEL 仅作运维兜底，请求侧不可改选其它模型。
 //
 // 对外暴露：
 //   GET  /health                  -> { ready, provider, runtime }
@@ -44,11 +47,13 @@ const DEFAULT_TIMEOUT_SECONDS = 900;
 const DEFAULT_MAX_CONCURRENCY = 4;
 const MAX_REQUEST_BYTES = 20 * 1024 * 1024;
 const IMAGE_SUFFIXES = new Set([".png", ".jpg", ".jpeg", ".webp"]);
-// 文本/视觉通道：fast 模式 = low 推理档（Fast responses with lighter reasoning）。
+// 文本/视觉通道：high 思考档为默认性价比点（见文件头实测数据）。
 const DEFAULT_TEXT_MODEL = "gpt-5.6-luna";
-const DEFAULT_TEXT_EFFORT = "low";
+const DEFAULT_TEXT_EFFORT = "high";
 const DEFAULT_TEXT_TIMEOUT_SECONDS = 300;
 const DEFAULT_TEXT_MAX_CONCURRENCY = 2;
+// 图片通道的 agent 只做轻量规划（耗大头在 image_generation 工具本身），固定 low 保证出图速度。
+const DEFAULT_IMAGE_AGENT_EFFORT = "low";
 const CHAT_IMAGE_SUFFIX_BY_MIME = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
@@ -70,6 +75,7 @@ function parseArgs(argv) {
     maxConcurrency: Math.max(1, Math.min(envNumber("CODEX_IMAGE_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY), 4)),
     textModel: (process.env.CODEX_TEXT_MODEL || DEFAULT_TEXT_MODEL).trim(),
     textEffort: (process.env.CODEX_TEXT_REASONING_EFFORT || DEFAULT_TEXT_EFFORT).trim(),
+    imageAgentEffort: (process.env.CODEX_IMAGE_AGENT_EFFORT || DEFAULT_IMAGE_AGENT_EFFORT).trim(),
     textTimeoutSeconds: envNumber("CODEX_TEXT_TIMEOUT_SECONDS", DEFAULT_TEXT_TIMEOUT_SECONDS),
     textMaxConcurrency: Math.max(1, envNumber("CODEX_TEXT_MAX_CONCURRENCY", DEFAULT_TEXT_MAX_CONCURRENCY)),
   };
@@ -269,6 +275,8 @@ async function generateCodexImage(input) {
       "danger-full-access",
       "-m",
       input.agentModel,
+      "-c",
+      `model_reasoning_effort="${input.agentEffort}"`,
     ];
     for (const ref of input.referencePaths) {
       commandArgs.push("-i", ref);
@@ -494,15 +502,9 @@ function buildChatPrompt(messages, responseFormat, tools) {
 }
 
 function resolveChatModel(requestModel, fallbackModel) {
-  let normalized = String(requestModel || "").trim();
-  if (normalized.startsWith("codex/")) {
-    normalized = normalized.slice("codex/".length);
-  }
-  // 供应商名本身、空值或图片模型 id 都不是文本模型：回落到文本默认（gpt-5.6-luna）。
-  if (!normalized || normalized === "codex" || normalized === DEFAULT_IMAGE_MODEL) {
-    return fallbackModel;
-  }
-  return normalized;
+  // 模型锁：订阅额度统一在配置的文本模型（默认 gpt-5.6-luna）上，请求侧
+  // （codex/ 前缀、供应商名、图片 id、其它任何模型名）一律回落，不允许改选。
+  return fallbackModel;
 }
 
 async function saveChatImages(images, workdir) {
@@ -896,6 +898,7 @@ async function main() {
         transparent,
         referenceLabels,
         agentModel: args.agentModel,
+        agentEffort: args.imageAgentEffort,
         timeoutMs: args.timeoutSeconds * 1000,
         signal,
       }));
@@ -924,6 +927,8 @@ async function main() {
           version: null,
           textModel: bridge.textModel,
           textEffort: bridge.textEffort,
+          imageAgentModel: args.agentModel,
+          imageAgentEffort: args.imageAgentEffort,
         },
       });
       return;
@@ -1059,7 +1064,7 @@ async function main() {
 
   server.listen(args.port, args.host, () => {
     console.log(`[codex-image-bridge] listening on http://${args.host}:${args.port}/v1/images/generations + /v1/chat/completions`);
-    console.log(`[codex-image-bridge] executable=${executable} imageAgentModel=${args.agentModel} textModel=${args.textModel} textEffort=${args.textEffort} timeout=${args.timeoutSeconds}s textTimeout=${args.textTimeoutSeconds}s`);
+    console.log(`[codex-image-bridge] executable=${executable} imageAgentModel=${args.agentModel}(effort=${args.imageAgentEffort}) textModel=${args.textModel} textEffort=${args.textEffort} timeout=${args.timeoutSeconds}s textTimeout=${args.textTimeoutSeconds}s`);
     if (!executableAvailable) {
       console.warn("[codex-image-bridge] 未找到 codex CLI，请设置 CODEX_IMAGE_EXECUTABLE 或安装 codex。");
     }
