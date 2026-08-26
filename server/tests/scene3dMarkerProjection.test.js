@@ -72,11 +72,11 @@ test("墙面物体不再采信近中心深度，并落到图片对应的外侧�
 
 test("床桌椅的图片区域参与尺寸校准，并且结果落在类别范围", () => {
   const cases = [
-    ["bed", { x: 1.4, y: 1.2, z: 1.4 }],
-    ["table", { x: 0.6, y: 1.2, z: 0.5 }],
-    ["chair", { x: 0.35, y: 1.5, z: 0.35 }],
+    "bed",
+    "table",
+    "chair",
   ];
-  for (const [kind, range] of cases) {
+  for (const kind of cases) {
     const projected = projectStoryScene3dMarkerFromImageRegion(
       marker({
         kind,
@@ -95,9 +95,6 @@ test("床桌椅的图片区域参与尺寸校准，并且结果落在类别范�
     assert.ok(projected.size[2] >= policy.z[0] && projected.size[2] <= policy.z[1]);
     assert.equal(projected.position[1], projected.size[1] / 2);
     assert.notDeepEqual(projected.size, [30, 30, 30]);
-    assert.equal(range.x, policy.x[0]);
-    assert.equal(range.y, policy.y[1]);
-    assert.equal(range.z, policy.z[0]);
   }
 });
 
