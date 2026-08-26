@@ -25,7 +25,8 @@ export const STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE: Record<StoryAssetSceneT
 };
 
 export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_BY_TYPE: Record<StoryAssetSceneType, number> = {
-  interior: 0.8,
+  // 室内空间较小，投射中心放低并配合小的半球直径，避免角色在 3D 预览里显得过小。
+  interior: 0.5,
   exterior: 1.7,
   nature: 1,
 };
@@ -37,6 +38,8 @@ const LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS: readonly StoryScene3DEnvironme
   { projectionCenterHeight: 1, domeRadius: 8, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
   { projectionCenterHeight: 1.7, domeRadius: 10, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
   { projectionCenterHeight: 1, domeRadius: 20, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
+  // 历任室内默认值：无 customized 标记的存量记录按未定制处理，回落到当前默认。
+  { projectionCenterHeight: 0.8, domeRadius: 5, panoramaHorizonV: 0.5, yawDeg: 0, intensity: 1 },
 ];
 
 function clamp(value: number, min: number, max: number): number {
