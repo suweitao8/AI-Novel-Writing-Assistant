@@ -57,6 +57,7 @@ export function buildStoryScene3dMarkerSet(
     markers: output.markers,
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
+      projectionCenterHeightRatio: normalizedEnvironment.projectionCenterHeightRatio,
       domeRadius: normalizedEnvironment.domeRadius,
       panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
@@ -74,6 +75,7 @@ export function buildStoryScene3dMarkerSet(
     status: "ready",
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
+      projectionCenterHeightRatio: normalizedEnvironment.projectionCenterHeightRatio,
       domeRadius: normalizedEnvironment.domeRadius,
       panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
