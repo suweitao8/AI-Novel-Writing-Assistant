@@ -1,3 +1,4 @@
+import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
 import {
   normalizeStoryAssetStates,
   normalizeStoryCharacterStates,
@@ -91,7 +92,7 @@ export function normalizeSceneStates(
     const scene3dMarkers = adoptLegacyStoryScene3dMarkerEnvironment(
       normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
         ...(input.scene3dEnvironment ? {
-          maxRadius: input.scene3dEnvironment.domeRadius * 0.45,
+          maxRadius: input.scene3dEnvironment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
           environment: input.scene3dEnvironment,
         } : {}),
       }),

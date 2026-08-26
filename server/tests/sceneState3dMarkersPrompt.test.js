@@ -23,8 +23,8 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v4");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v4/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v5");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v5/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
