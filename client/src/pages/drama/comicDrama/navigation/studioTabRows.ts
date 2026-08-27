@@ -1,6 +1,7 @@
 import type { PageTabRow } from "@/components/layout/PageTabsContext";
 import {
   SETTINGS_TAB_LABELS,
+  STUDIO_STAGE_DIVIDERS,
   STUDIO_STAGE_LABELS,
   type SettingsTab,
   type StudioStage,
@@ -20,6 +21,7 @@ function stageTabs(onSelect: (stage: StudioStage) => void): PageTabRow["tabs"] {
   ] as const).map((key) => ({
     key,
     label: STUDIO_STAGE_LABELS[key],
+    dividerAfter: STUDIO_STAGE_DIVIDERS.has(key),
   }));
 }
 
