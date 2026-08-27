@@ -1,13 +1,10 @@
 import { NavLink } from "react-router-dom";
 import {
   Clapperboard,
-  ImagePlus,
   LayoutDashboard,
-  ListTodo,
   Settings2,
   type LucideIcon,
 } from "lucide-react";
-import AppVersionBadge from "./AppVersionBadge";
 import DesktopBrandMark from "./DesktopBrandMark";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import { Button } from "@/components/ui/button";
@@ -17,8 +14,6 @@ import { usePageTabRows, useSetPageNavActionsSlot, type PageTabRow } from "./Pag
 
 const iconByRoute = new Map<string, LucideIcon>([
   ["/drama", Clapperboard],
-  ["/tasks", ListTodo],
-  ["/art-style", ImagePlus],
   ["/settings", Settings2],
 ]);
 
@@ -31,11 +26,16 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   const pageTabRows = usePageTabRows();
   return (
     <header className="relative flex h-14 min-w-0 shrink-0 items-center border-b bg-muted/20 pl-4 pr-3">
-      <div className="flex min-w-0 items-center gap-2.5">
+      {/* 品牌「工作台」：点击回到漫剧主链路首页。 */}
+      <NavLink
+        to="/drama"
+        aria-label="工作台，进入漫剧"
+        title="工作台"
+        className="flex min-w-0 items-center gap-2.5 rounded-md px-1 py-1 transition-colors hover:bg-muted/60"
+      >
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
-        <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
-        <AppVersionBadge />
-      </div>
+        <span className="truncate text-sm font-semibold">工作台</span>
+      </NavLink>
 
       <nav className="ml-6 flex h-full min-w-0 items-center self-stretch">
         {getDramaFocusNavItems().map((item) => {

@@ -38,8 +38,7 @@ export interface DramaFocusNavItem {
 
 const DRAMA_FOCUS_NAV_ITEMS: DramaFocusNavItem[] = [
   { to: "/drama", label: "漫剧" },
-  { to: "/tasks", label: "记录" },
-  { to: "/art-style", label: "画风" },
+  // 记录与画风收进系统：系统设置总览提供入口卡片，顶部导航只保留主链路。
   { to: "/settings", label: "系统" },
 ];
 
