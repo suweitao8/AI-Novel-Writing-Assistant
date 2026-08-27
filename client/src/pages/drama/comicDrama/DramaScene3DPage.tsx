@@ -33,10 +33,9 @@ import {
 import {
   buildStudioNavigationPath,
   resolveStudioReturnPath,
-  type AssetTab,
   type StudioStage,
 } from "./navigation/studioNavigation";
-import { buildStudioNavAssetSubRow, buildStudioNavStageRow } from "./navigation/studioTabRows";
+import { buildStudioNavStageRow } from "./navigation/studioTabRows";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 
@@ -315,19 +314,13 @@ export default function DramaScene3DPage() {
     }
   }, [navigate, returnPath, saveBeforeExit]);
 
-  // 顶部导航栏的二级/三级页签（当前/资产/设定 + 角色/场景/道具）在场景编辑器内同样显示：
+  // 顶部导航栏的二级页签（角色/场景/道具/章节/设定）在场景编辑器内同样显示：
   // 点击即「先保存再跳转」到工作室对应页签，编辑过程中不丢失这层导航的可见性。
+  // 当前编辑的场景属于「场景」页签，active 恒为 scenes。
   const isMobileViewport = useIsMobileViewport();
-  const returnAssetTab: AssetTab = (() => {
-    const value = searchParams.get("returnAssetTab");
-    return value === "characters" || value === "props" ? value : "scenes";
-  })();
   useRegisterPageTabs(!isMobileViewport, [
-    buildStudioNavStageRow("assets", (stage: StudioStage) => {
-      void leaveEditor(buildStudioNavigationPath(novelId, { stage, assetTab: stage === "assets" ? returnAssetTab : undefined }));
-    }),
-    buildStudioNavAssetSubRow(returnAssetTab, (tab: AssetTab) => {
-      void leaveEditor(buildStudioNavigationPath(novelId, { stage: "assets", assetTab: tab }));
+    buildStudioNavStageRow("scenes", (stage: StudioStage) => {
+      void leaveEditor(buildStudioNavigationPath(novelId, { stage }));
     }),
   ]);
 
