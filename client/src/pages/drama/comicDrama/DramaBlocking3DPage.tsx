@@ -627,7 +627,6 @@ export default function DramaBlocking3DPage() {
                         resolveBlocking3dOrbitPosition(cameraState).y,
                         resolveBlocking3dOrbitPosition(cameraState).z,
                       ]}
-                      suffix="米"
                       disabled={saving || autoPlanning}
                       onCommit={(next) => applyViewerAction((nextViewer) => {
                         nextViewer.setShotCameraPosition(next);
@@ -706,7 +705,7 @@ export default function DramaBlocking3DPage() {
                   value={{
                     position: selectedMarker.position,
                     yawDeg: selectedMarker.yawDeg,
-                    scale: selectedMarker.size,
+                    scale: 1,
                   }}
                   hint={<p className="text-[11px] text-muted-foreground">标记摆放跟随场景设定，请在场景 3D 编辑器中调整。</p>}
                 />
@@ -759,10 +758,14 @@ export default function DramaBlocking3DPage() {
                   value={{
                     position: selectedTransform?.position ?? [0, 0, 0],
                     yawDeg: selectedTransform?.yawDeg ?? 0,
-                    scale: selectedTransform?.scale ?? [1, 1, 1],
+                    scale: selectedTransform?.scale?.[0] ?? 1,
                   }}
                   disabled={saving || autoPlanning || !selectedName}
-                  onCommit={(patch) => applyViewerAction((nextViewer) => nextViewer.setSelectedTransform(patch))}
+                  onCommit={(patch) => applyViewerAction((nextViewer) => nextViewer.setSelectedTransform({
+                    ...(patch.position ? { position: patch.position } : {}),
+                    ...(patch.yawDeg != null ? { yawDeg: patch.yawDeg } : {}),
+                    ...(patch.scale != null ? { scale: [patch.scale, patch.scale, patch.scale] } : {}),
+                  }))}
                   footer={
                     <Button type="button" variant="outline" className="w-full" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>
                       落地

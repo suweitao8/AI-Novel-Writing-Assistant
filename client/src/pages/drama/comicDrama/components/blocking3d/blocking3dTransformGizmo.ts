@@ -40,6 +40,10 @@ export function createBlocking3dTransformGizmo(
   gizmos.rotate.enableShape("x", false);
   gizmos.rotate.enableShape("z", false);
   gizmos.rotate.enableShape("xyz", false);
+  // 缩放只允许整体等比：禁用单轴手柄，只保留中心等比手柄。
+  gizmos.scale.enableShape("x", false);
+  gizmos.scale.enableShape("y", false);
+  gizmos.scale.enableShape("z", false);
 
   let activeTool: Blocking3dTransformTool | null = null;
   let attachedNode: pc.GraphNode | null = null;

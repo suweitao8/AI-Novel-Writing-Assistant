@@ -90,6 +90,9 @@ export default function DramaScene3DPage() {
   const [selectedObjectId, setSelectedObjectId] = useState<SceneObjectSelectionId>(SCENE_OBJECT_ID);
   // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的空间标记。
   const [transformTool, setTransformTool] = useState<Blocking3dTransformTool | null>("translate");
+  // 缩放显示的是相对当前尺寸的等比系数；切换标记时重置为 1。
+  const [markerScaleRatio, setMarkerScaleRatio] = useState(1);
+  const selectedMarkerKey = selectedObjectId.startsWith("marker:") ? selectedObjectId : "";
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
   const markerCommitRef = useRef<(marker: StoryScene3DMarker) => void>(() => {});
@@ -196,6 +199,10 @@ export default function DramaScene3DPage() {
   useEffect(() => {
     viewer?.setTransformTool(transformTool);
   }, [transformTool, viewer]);
+
+  useEffect(() => {
+    setMarkerScaleRatio(1);
+  }, [selectedMarkerKey]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -605,15 +612,30 @@ export default function DramaScene3DPage() {
                   value={{
                     position: selectedMarker.position,
                     yawDeg: selectedMarker.yawDeg,
-                    scale: selectedMarker.size,
+                    scale: markerScaleRatio,
                   }}
                   disabled={saving}
                   onCommit={(patch) => {
-                    void patchMarker(selectedMarker.id, {
-                      ...(patch.position ? { position: patch.position } : {}),
-                      ...(patch.yawDeg != null ? { yawDeg: patch.yawDeg } : {}),
-                      ...(patch.scale ? { size: patch.scale } : {}),
-                    });
+                    const next: {
+                      position?: [number, number, number];
+                      yawDeg?: number;
+                      size?: [number, number, number];
+                    } = {};
+                    if (patch.position) next.position = patch.position;
+                    if (patch.yawDeg != null) next.yawDeg = patch.yawDeg;
+                    if (patch.scale != null) {
+                      // 缩放是相对当前尺寸的等比系数：以最近一次显示的比例为基准换算新尺寸。
+                      const ratio = markerScaleRatio > 0 ? markerScaleRatio : 1;
+                      const factor = patch.scale / ratio;
+                      if (Math.abs(factor - 1) > 1e-4) {
+                        next.size = selectedMarker.size.map(
+                          (axis) => Math.round(axis * factor * 100) / 100,
+                        ) as [number, number, number];
+                        setMarkerScaleRatio(patch.scale);
+                      }
+                    }
+                    if (!Object.keys(next).length) return;
+                    void patchMarker(selectedMarker.id, next);
                   }}
                   footer={
                     <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusMarker(selectedMarker.id)}>
