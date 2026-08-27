@@ -60,17 +60,24 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
         })}
       </nav>
 
-      {/* 页面页签：占用一级导航与右侧操作区之间的中间区域，整组居中，不另起一行；
-          内容超宽时 mx-auto 收敛为左对齐横向滚动，不裁切 */}
+      {/* 页面页签：二级页签固定居中于中间预留区，三级页签锚定在二级右侧固定间距；
+          切换页签导致三级内容变化时，二级位置不漂移 */}
       <nav
         aria-label="页面页签"
         className="flex min-w-0 flex-1 items-center overflow-x-auto px-2"
       >
-        <div className="mx-auto flex shrink-0 items-center gap-1">
-          {pageTabRows.map((row, index) => (
-            <PageTabGroup key={row.id} row={row} separated={index > 0} />
-          ))}
-        </div>
+        {pageTabRows.length > 0 ? (
+          <div className="relative mx-auto flex shrink-0 items-center">
+            <PageTabGroup row={pageTabRows[0]} separated={false} />
+            {pageTabRows.length > 1 ? (
+              <div className="absolute inset-y-0 left-full ml-2 flex items-center">
+                {pageTabRows.slice(1).map((row, index) => (
+                  <PageTabGroup key={row.id} row={row} separated={index > 0} />
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
 
       {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
