@@ -250,8 +250,9 @@ export function createStoryAssetInitialState(
 }
 
 /**
- * 旧状态数据没有 referenceStateId 时的兼容规则：默认引用上一状态；首状态没有上游，
- * 用 null 表示不参考。显式 null 永远保留，代表用户主动选择了不参考。
+ * 参考图是显式选择（2026-08-27 用户要求）：状态没有 referenceStateId 字段、显式 null
+ * 或悬空 id 时一律不参考，直接生成全新形象；只有明确选中某个有效状态 id 才带参考图。
+ * （旧规则「缺省＝引用上一状态」已废除，保证未主动配置的状态每次都是全新生成。）
  */
 export function resolveStoryAssetStateReferenceId(
   states: StoryAssetState[],
@@ -262,8 +263,7 @@ export function resolveStoryAssetStateReferenceId(
       ? state.referenceStateId
       : null;
   }
-  const index = states.findIndex((item) => item.id === state.id);
-  return index > 0 ? states[index - 1]?.id ?? null : null;
+  return null;
 }
 
 /** 读写 statesJson 前统一补齐旧数据的默认参考值，不改变显式取消参考。 */
@@ -322,10 +322,20 @@ export function normalizeStoryAssetStates(
       };
     })
     : [createStoryAssetInitialState(initialState)];
-  return working.map((state, index) => ({
-    ...state,
-    referenceStateId: index === 0 ? null : resolveStoryAssetStateReferenceId(working, state),
-  }));
+  return working.map((state, index) => {
+    // referenceStateId 保留「缺席」语义（2026-08-27）：缺省不写键——状态图解析视为不参考
+    // （全新生成），音色/配音链则按缺省＝上一状态继承；悬空 id 归一为 null。
+    if (index === 0 || state.referenceStateId === undefined) {
+      return index === 0 && state.referenceStateId === undefined
+        ? { ...state, referenceStateId: null }
+        : state;
+    }
+    const dangling = !state.referenceStateId || !working.some((item) => item.id === state.referenceStateId);
+    return {
+      ...state,
+      referenceStateId: dangling ? null : state.referenceStateId,
+    };
+  });
 }
 
 const STORY_ASSET_IMAGE_STATUSES = new Set<StoryAssetStateImage["status"]>([
@@ -523,7 +533,7 @@ export function parseStoryAssetStatesJson(raw: string | null | undefined): Story
   return { states, canSafelyRewrite };
 }
 
-/** 返回当前状态沿 referenceStateId/默认上一状态向前的所有祖先，带循环保护。 */
+/** 返回当前状态沿显式 referenceStateId 向前的所有祖先，带循环保护。 */
 export function resolveStoryAssetStateAncestors(
   states: StoryAssetState[],
   stateId: string,
@@ -537,6 +547,51 @@ export function resolveStoryAssetStateAncestors(
   let cursor: StoryAssetState | undefined = current;
   while (cursor) {
     const parentId = resolveStoryAssetStateReferenceId(states, cursor);
+    if (!parentId || visited.has(parentId)) {
+      break;
+    }
+    const parent = states.find((state) => state.id === parentId);
+    if (!parent) {
+      break;
+    }
+    ancestors.push(parent);
+    visited.add(parent.id);
+    cursor = parent;
+  }
+  return ancestors;
+}
+
+/**
+ * 音色/配音的沿袭链解析：缺省仍沿用「紧邻上一状态」的旧规则（声音要跟随形象连续演进，
+ * 与生图参考的显式选择语义不同）。仅语音侧消费；状态图参考一律走上面的显式版本。
+ */
+function resolveStoryAssetStateInheritanceId(
+  states: StoryAssetState[],
+  state: Pick<StoryAssetState, "id" | "referenceStateId">,
+): string | null {
+  if (state.referenceStateId !== undefined) {
+    return state.referenceStateId && states.some((item) => item.id === state.referenceStateId)
+      ? state.referenceStateId
+      : null;
+  }
+  const index = states.findIndex((item) => item.id === state.id);
+  return index > 0 ? states[index - 1]?.id ?? null : null;
+}
+
+/** 沿音色/配音继承链（缺省＝上一状态）向前的所有祖先，带循环保护。 */
+export function resolveStoryAssetStateAudioAncestors(
+  states: StoryAssetState[],
+  stateId: string,
+): StoryAssetState[] {
+  const current = states.find((state) => state.id === stateId);
+  if (!current) {
+    return [];
+  }
+  const ancestors: StoryAssetState[] = [];
+  const visited = new Set<string>([stateId]);
+  let cursor: StoryAssetState | undefined = current;
+  while (cursor) {
+    const parentId = resolveStoryAssetStateInheritanceId(states, cursor);
     if (!parentId || visited.has(parentId)) {
       break;
     }

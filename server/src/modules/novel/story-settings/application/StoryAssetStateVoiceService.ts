@@ -8,7 +8,7 @@ import {
   normalizeStoryCharacterStates,
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
-  resolveStoryAssetStateAncestors,
+  resolveStoryAssetStateAudioAncestors,
   type StoryCharacterLegacyFields,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
@@ -115,7 +115,7 @@ export function resolvePreviousStateVoice(
   states: StoryAssetState[],
   stateId: string,
 ): PreviousStateVoice | null {
-  for (const previous of resolveStoryAssetStateAncestors(states, stateId)) {
+  for (const previous of resolveStoryAssetStateAudioAncestors(states, stateId)) {
     const sampleAudioUrl = previous.voice?.sampleAudioUrl?.trim();
     if (previous.voice?.status === "done" && sampleAudioUrl) {
       return { stateId: previous.id, sampleAudioUrl };
@@ -144,7 +144,7 @@ function resolveStateVoicePrompt(
 ): string {
   const current = states.find((state) => state.id === stateId);
   const candidates = current
-    ? [current, ...resolveStoryAssetStateAncestors(states, stateId)]
+    ? [current, ...resolveStoryAssetStateAudioAncestors(states, stateId)]
     : [];
   for (const state of candidates) {
     const prompt = [state?.voicePrompt, state?.voice?.prompt]

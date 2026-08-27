@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
-import { resolveStoryAssetStateAncestors } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { resolveStoryAssetStateAudioAncestors } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../db/prisma";
 import { getAudioModelProvider } from "../../../llm/modelCategories";
 import { AppError } from "../../../middleware/errorHandler";
@@ -288,7 +288,7 @@ export function resolveVoiceForCharacterState(
   if (!state) {
     return voice;
   }
-  const candidates = [state, ...resolveStoryAssetStateAncestors(states, state.id)];
+  const candidates = [state, ...resolveStoryAssetStateAudioAncestors(states, state.id)];
   const stateVoice = candidates
     .find((candidate) => candidate.voice?.status === "done" && candidate.voice.sampleAudioUrl?.trim())
     ?.voice?.sampleAudioUrl?.trim();

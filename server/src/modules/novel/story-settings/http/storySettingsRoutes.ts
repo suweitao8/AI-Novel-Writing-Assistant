@@ -675,8 +675,8 @@ export function registerStorySettingsRoutes(router: Router): void {
     }
   });
 
-  // 状态图片生成：按状态的 referenceStateId 配置取同一资产另一状态的图当参考；
-  // 返回更新后的资产（与列表接口同形），前端据此刷新缓存与编辑弹窗里的缩略图。
+  // 状态图片生成：仅当状态显式配置了 referenceStateId 才取同一资产另一状态的图当参考，
+  // 默认不带任何参考、直接生成全新形象；返回更新后的资产（与列表接口同形），前端据此刷新缓存与编辑弹窗里的缩略图。
   // 终止接口（cancel-image，2026-08-23 用户要求）：生成中可手动停止——中止在跑的
   // 请求并写回可重试的 error 态，服务重启残留的僵尸 generating 也一并修复。
   router.post(

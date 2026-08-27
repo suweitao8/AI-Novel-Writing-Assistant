@@ -192,7 +192,7 @@ test("状态图时代风格：eraStyle 未选时兜底内置「现代都市」�
   assert.doesNotMatch(imageServiceSource, /prisma\.chapter\.findMany/);
 });
 
-test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，null 才表示明确不参考", () => {
+test("resolveStateReferenceImageUrl：参考图是显式选择，未指定/悬空/null 一律全新生成不参考", () => {
   const states = [
     { id: "s1", label: "初始", description: "", imagePrompt: "", image: { status: "done", url: "/api/novels/n1/settings/state-images/s1" } },
     { id: "s2", label: "生成中", description: "", imagePrompt: "", image: { status: "generating" } },
@@ -203,24 +203,26 @@ test("resolveStateReferenceImageUrl：未指定参考时默认取上一状态，
     resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s1" }),
     "/api/novels/n1/settings/state-images/s1",
   );
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), "/api/novels/n1/settings/state-images/s1");
-  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), "/api/novels/n1/settings/state-images/s1");
+  // 参考状态本身没有可用图片，且它也没有显式参考链：不再回溯默认上一状态。
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s2" }), null);
+  assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s3" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: "s404" }), null);
   assert.equal(resolveStateReferenceImageUrl(states, { ...states[3], referenceStateId: null }), null);
+  // 未指定参考字段＝全新生成（2026-08-27 用户要求），不再默认引用上一状态。
   assert.equal(
     resolveStateReferenceImageUrl(
-      [states[0], { id: "s5", label: "默认上一状态", description: "", imagePrompt: "" }],
-      { id: "s5", label: "默认上一状态", description: "", imagePrompt: "" },
+      [states[0], { id: "s5", label: "无参考字段", description: "", imagePrompt: "" }],
+      { id: "s5", label: "无参考字段", description: "", imagePrompt: "" },
     ),
-    "/api/novels/n1/settings/state-images/s1",
+    null,
   );
 });
 
-test("resolveStateReferenceImageUrl：直接参考状态没有图片时继续沿祖先链查找", () => {
+test("resolveStateReferenceImageUrl：显式参考链上的状态没图时继续向前找可用图片", () => {
   const states = [
     { id: "s1", label: "初始", description: "正常", imagePrompt: "正常", image: { status: "done", url: "/state/s1" } },
-    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "轻伤" },
-    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤" },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "轻伤", referenceStateId: "s1" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "重伤", referenceStateId: "s2" },
   ];
   assert.equal(resolveStateReferenceImageUrl(states, states[2]), "/state/s1");
 });
