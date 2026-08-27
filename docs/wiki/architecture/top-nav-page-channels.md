@@ -16,7 +16,8 @@
 1. **页签通道（数据注册）**：页面用 `useRegisterPageTabs(enabled, rows)` 声明
    二级/三级页签行（`PageTabRow`：key/label/active/onSelect）。注册内容是可序列化
    数据，effect 以 `JSON.stringify(rows)` 为依赖，只在实际页签结构变化时重注册。
-   TopNav 第二行统一渲染：二级页签居中，三级页签紧随其旁，组间用分隔线区分层级。
+   页签内联渲染在 TopNav 第一行中间（一级导航与右侧操作区之间的 `flex-1` 预留区），
+   整组居中；用户明确要求不单独占用第二行。
 2. **操作区通道（DOM 槽位 + portal）**：TopNav 在「AI 实况」左侧挂出一个
    `navActionsSlot`（一个普通 div，`empty:hidden`，无内容时塌缩）。页面通过
    `usePageNavActionsSlot()` 拿到该 DOM 节点，用 `createPortal` 把自己的工具按钮
@@ -37,8 +38,8 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
 - 分镜页签等「子面板自带工具」沿用双层 portal：页面在操作区里放一个挂 ref 的容器，
   子面板（如 ShotVoiceListPanel）再把自己的工具传送到该容器。ref 挂载条件跟随
   当前子页签，切走子页签时子面板工具自然消失。
-- TopNav 第二行（PageTabsBar）整体 `mx-auto` 居中；页签内容超宽时自动收敛为
-  左对齐横向滚动。
+- TopNav 页签区（第一行中间 `flex-1`）内层 `mx-auto` 居中；页签内容超宽时自动
+  收敛为左对齐横向滚动，不裁切、不换行、不挤掉右侧操作按钮。
 - 操作区槽位为空时必须不可见（`empty:hidden`），避免残留间距。
 
 ## 示例
