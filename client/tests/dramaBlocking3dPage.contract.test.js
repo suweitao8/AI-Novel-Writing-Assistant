@@ -180,3 +180,29 @@ test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () =
   assert.match(pageSource, /await saveBeforeExit\(\)/);
   assert.match(pageSource, /saveBeforeExit\(\)[\s\S]*navigate\(-1\)/);
 });
+
+test("3D 草图编辑器常驻工作室页签，点击先保存再深链回对应页签", () => {
+  // 二级（角色/场景/道具/章节/设定，active=章节）+ 三级章节子页签（active=分镜）。
+  assert.match(pageSource, /useRegisterPageTabs\(!isMobileViewport && Boolean\(novelId\), \[/);
+  assert.match(pageSource, /buildStudioNavStageRow\("current", \(stage\) =>/);
+  assert.match(pageSource, /buildStudioNavCurrentSubRow\("storyboard", \(tab\) =>/);
+  // 跳转前必须先保存当前摆位；保存失败留在本页。
+  assert.match(pageSource, /leaveToStudio[\s\S]*?await saveBeforeExit\(\)[\s\S]*?buildStudioNavigationPath\(/);
+  assert.match(pageSource, /\{ stage, currentTab: tab \} : \{ stage \}/);
+});
+
+test("摆位上下文携带来源小说 id，供常驻页签跳回工作室", () => {
+  const serviceSource = fs.readFileSync(
+    path.join(process.cwd(), "../server/src/services/drama/visual/DramaShotBlockingSketchService.ts"),
+    "utf8",
+  );
+  const apiSource = fs.readFileSync(
+    path.join(process.cwd(), "src/api/media/drama.ts"),
+    "utf8",
+  );
+  assert.match(serviceSource, /novelId: string \| null;/);
+  assert.match(serviceSource, /return \{ sketch, shot: shotSummary, scene, actors, novelId \};/);
+  assert.match(serviceSource, /novelId: null,/);
+  assert.match(apiSource, /novelId: string \| null;/);
+  assert.match(pageSource, /context\?\.novelId \?\? null/);
+});

@@ -1,7 +1,9 @@
 import type { PageTabRow } from "@/components/layout/PageTabsContext";
 import {
+  CURRENT_TAB_LABELS,
   SETTINGS_TAB_LABELS,
   STUDIO_STAGE_LABELS,
+  type CurrentTab,
   type SettingsTab,
   type StudioStage,
 } from "./studioNavigation";
@@ -26,6 +28,22 @@ export function buildStudioNavStageRow(
     tabs: stageTabs(onSelectStage),
     active: activeStage,
     onSelect: (key) => onSelectStage(key as StudioStage),
+  };
+}
+
+/** 三级页签（章节：参考 / 提取 / 脚本 / 分镜 / 视频）。 */
+export function buildStudioNavCurrentSubRow(
+  activeCurrentTab: CurrentTab,
+  onSelectCurrentTab: (tab: CurrentTab) => void,
+): PageTabRow {
+  return {
+    id: "studio-sub",
+    tabs: (Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]).map((key) => ({
+      key,
+      label: CURRENT_TAB_LABELS[key],
+    })),
+    active: activeCurrentTab,
+    onSelect: (key) => onSelectCurrentTab(key as CurrentTab),
   };
 }
 

@@ -45,31 +45,32 @@ function parseValue<T extends string>(value: string | null, values: readonly T[]
 /**
  * 旧链接兼容：拍平前的地址是 ?stage=assets&assetTab=scenes，映射为新的
  * stage=scenes；没有 assetTab 的旧 assets 地址落在「角色」。
+ * 3D 编辑器旧地址的子页签参数名是 returnAssetTab，两个别名都识别。
  */
 function normalizeLegacyAssetsStage(params: URLSearchParams): StudioStage {
-  const assetTab = params.get("assetTab");
+  const assetTab = params.get("assetTab") ?? params.get("returnAssetTab");
   if (assetTab === "scenes") return "scenes";
   if (assetTab === "props") return "props";
   return "characters";
 }
 
-export function readStudioNavigation(search: string): { stage: StudioStage } {
+export function readStudioNavigation(search: string): { stage: StudioStage; currentTab: CurrentTab } {
   const params = new URLSearchParams(search);
-  const stage = parseValue(params.get("stage"), STUDIO_STAGES);
-  if (stage) {
-    return { stage };
-  }
-  if (params.get("stage") === "assets") {
-    return { stage: normalizeLegacyAssetsStage(params) };
-  }
-  return { stage: "current" };
+  const stage = parseValue(params.get("stage"), STUDIO_STAGES)
+    ?? (params.get("stage") === "assets" ? normalizeLegacyAssetsStage(params) : "current");
+  // 章节子页签支持深链（3D 编辑器等深层页面跳回工作室时还原到指定子页签）。
+  const currentTab = parseValue(params.get("tab"), Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]) ?? "script";
+  return { stage, currentTab };
 }
 
 export function buildStudioNavigationPath(
   novelId: string,
-  options: { stage: StudioStage },
+  options: { stage: StudioStage; currentTab?: CurrentTab },
 ): string {
   const params = new URLSearchParams({ stage: options.stage });
+  if (options.stage === "current" && options.currentTab) {
+    params.set("tab", options.currentTab);
+  }
   return `/drama/studio/${encodeURIComponent(novelId)}?${params.toString()}`;
 }
 

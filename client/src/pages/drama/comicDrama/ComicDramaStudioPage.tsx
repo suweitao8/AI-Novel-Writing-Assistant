@@ -75,7 +75,8 @@ export default function ComicDramaStudioPage() {
   const queryClient = useQueryClient();
   const isMobileViewport = useIsMobileViewport();
   const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
-  const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
+  // 章节子页签支持 ?tab= 深链：3D 编辑器等深层页面跳回工作室时还原到指定子页签。
+  const [currentTab, setCurrentTab] = useState<CurrentTab>(() => readStudioNavigation(searchParams.toString()).currentTab);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
