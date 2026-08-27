@@ -1,15 +1,29 @@
-// 资产页签已拍平（2026-08-27 用户决定）：角色 / 场景 / 道具提升为与章节、设定
-// 平级的二级页签，「资产」层不复存在；「当前」同时更名「章节」（内部值仍为 current）。
-export type StudioStage = "characters" | "scenes" | "props" | "current" | "settings";
-export type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
+// 章节工作台的子页签也已拍平（2026-08-27 用户决定）：参考 / 提取 / 脚本 / 分镜 /
+// 视频直接作为二级页签，与角色、场景、道具、设定平级；「章节」与「资产」两个
+// 中间层都不复存在。角色、场景、道具、参考、提取、脚本、分镜、视频始终工作在
+// 「当前选中章节」的上下文里，章节切换仍由导航栏操作区的章节按钮承担。
+export type StudioStage =
+  | "characters"
+  | "scenes"
+  | "props"
+  | "reference"
+  | "extract"
+  | "script"
+  | "storyboard"
+  | "video"
+  | "settings";
 export type SettingsTab = "world" | "map" | "general";
 
-/** 二级页签顺序：角色、场景、道具、章节、设定。 */
+/** 二级页签顺序：角色、场景、道具、参考、提取、脚本、分镜、视频、设定。 */
 export const STUDIO_STAGE_ORDER: readonly StudioStage[] = [
   "characters",
   "scenes",
   "props",
-  "current",
+  "reference",
+  "extract",
+  "script",
+  "storyboard",
+  "video",
   "settings",
 ];
 
@@ -18,17 +32,22 @@ export const STUDIO_STAGE_LABELS: Record<StudioStage, string> = {
   characters: "角色",
   scenes: "场景",
   props: "道具",
-  current: "章节",
-  settings: "设定",
-};
-
-export const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
   reference: "参考",
   extract: "提取",
   script: "脚本",
   storyboard: "分镜",
   video: "视频",
+  settings: "设定",
 };
+
+/** 章节工作台的五个页签（原「章节」子页签），共享章节上下文的操作按钮。 */
+export const CHAPTER_WORKBENCH_STAGES: readonly StudioStage[] = [
+  "reference",
+  "extract",
+  "script",
+  "storyboard",
+  "video",
+];
 
 export const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
   world: "世界观",
@@ -43,34 +62,37 @@ function parseValue<T extends string>(value: string | null, values: readonly T[]
 }
 
 /**
- * 旧链接兼容：拍平前的地址是 ?stage=assets&assetTab=scenes，映射为新的
- * stage=scenes；没有 assetTab 的旧 assets 地址落在「角色」。
- * 3D 编辑器旧地址的子页签参数名是 returnAssetTab，两个别名都识别。
+ * 旧链接兼容（按引入顺序）：
+ * - ?stage=assets&assetTab=scenes（资产拍平前）→ scenes 等；
+ * - ?stage=current（章节拍平前）与缺省 → 脚本；
+ * - ?stage=current&tab=storyboard（章节子页签深链）→ storyboard。
  */
-function normalizeLegacyAssetsStage(params: URLSearchParams): StudioStage {
-  const assetTab = params.get("assetTab") ?? params.get("returnAssetTab");
-  if (assetTab === "scenes") return "scenes";
-  if (assetTab === "props") return "props";
-  return "characters";
+function normalizeLegacyStage(params: URLSearchParams): StudioStage {
+  const legacyTab = parseValue(
+    params.get("tab"),
+    CHAPTER_WORKBENCH_STAGES as readonly StudioStage[],
+  );
+  if (legacyTab) return legacyTab;
+  if (params.get("stage") === "assets") {
+    const assetTab = params.get("assetTab") ?? params.get("returnAssetTab");
+    if (assetTab === "scenes") return "scenes";
+    if (assetTab === "props") return "props";
+    return "characters";
+  }
+  return "script";
 }
 
-export function readStudioNavigation(search: string): { stage: StudioStage; currentTab: CurrentTab } {
+export function readStudioNavigation(search: string): { stage: StudioStage } {
   const params = new URLSearchParams(search);
-  const stage = parseValue(params.get("stage"), STUDIO_STAGES)
-    ?? (params.get("stage") === "assets" ? normalizeLegacyAssetsStage(params) : "current");
-  // 章节子页签支持深链（3D 编辑器等深层页面跳回工作室时还原到指定子页签）。
-  const currentTab = parseValue(params.get("tab"), Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]) ?? "script";
-  return { stage, currentTab };
+  const stage = parseValue(params.get("stage"), STUDIO_STAGES) ?? normalizeLegacyStage(params);
+  return { stage };
 }
 
 export function buildStudioNavigationPath(
   novelId: string,
-  options: { stage: StudioStage; currentTab?: CurrentTab },
+  options: { stage: StudioStage },
 ): string {
   const params = new URLSearchParams({ stage: options.stage });
-  if (options.stage === "current" && options.currentTab) {
-    params.set("tab", options.currentTab);
-  }
   return `/drama/studio/${encodeURIComponent(novelId)}?${params.toString()}`;
 }
 
@@ -82,11 +104,8 @@ export function buildScene3dEditorPath(novelId: string, sceneId: string, stateId
 export function resolveStudioReturnPath(novelId: string, search: string): string | null {
   const params = new URLSearchParams(search);
   const returnStage = params.get("returnStage");
-  // 拍平前生成的 3D 编辑器地址带着 returnStage=assets&returnAssetTab=…，照旧映射。
   if (returnStage === "assets") {
-    return buildStudioNavigationPath(novelId, {
-      stage: normalizeLegacyAssetsStage(params),
-    });
+    return buildStudioNavigationPath(novelId, { stage: normalizeLegacyStage(params) });
   }
   if (returnStage && (STUDIO_STAGES as readonly string[]).includes(returnStage)) {
     return buildStudioNavigationPath(novelId, { stage: returnStage as StudioStage });
