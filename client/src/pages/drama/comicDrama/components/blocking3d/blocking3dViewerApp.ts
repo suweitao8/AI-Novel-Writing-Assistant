@@ -498,6 +498,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
 
+  // 世界根节点：HDRI 背景（对象列表里的「世界」）和空间标记 cube 都作为
+  // 它的子对象统一承载；背景按状态图重建时不会连带销毁或移动标记。
+  const worldEntity = new pc.Entity("blocking3d-world");
+  app.root.addChild(worldEntity);
+
   // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
   // 地面平坦部分的外沿。调“半球直径”滑块时两条圈同时重算，可以直观
   // 看到球边和舞台余量的关系。
@@ -746,7 +751,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (existing) {
         updateSceneMarkerRuntime(existing, marker, marker.id === selectedMarkerId);
       } else {
-        sceneMarkerRuntimes.set(marker.id, createSceneMarkerRuntime(app, marker, marker.id === selectedMarkerId));
+        sceneMarkerRuntimes.set(marker.id, createSceneMarkerRuntime(app, marker, marker.id === selectedMarkerId, worldEntity));
       }
     }
     for (const [id, runtime] of sceneMarkerRuntimes) {
@@ -1276,7 +1281,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
           layers: [pc.LAYERID_WORLD],
         });
         environmentBackdrop.setPosition(environmentWorldPosition);
-        app.root.addChild(environmentBackdrop);
+        worldEntity.addChild(environmentBackdrop);
         applyEnvironmentSettings();
         ground.enabled = false;
         setStatus("3D 草图已就绪");
