@@ -28,8 +28,12 @@ import {
 import {
   Drama3DEditorShell,
   Drama3DObjectPanel,
+  InspectorComponentSection,
+  InspectorGameObjectCard,
+  InspectorPropertyList,
   type Drama3DObjectItem,
 } from "./components/editor3d";
+import { Layers3, MapPin, Ruler } from "lucide-react";
 import {
   buildStudioNavigationPath,
   resolveStudioReturnPath,
@@ -256,6 +260,48 @@ export default function DramaScene3DPage() {
     }
   }, [analyzingMarkers, dirty, novelId, queryClient, saveScene, saving, sceneId, selectedState]);
 
+  const applyStatesUpdate = useCallback(async (payload: Record<string, unknown>, successMessage: string) => {
+    const response = await updateStorySettingsScene(novelId, sceneId, payload);
+    if (response.data) {
+      queryClient.setQueryData(queryKeys.novels.storySettingsScene(novelId, sceneId), response);
+    }
+    await queryClient.invalidateQueries({ queryKey: queryKeys.novels.storySettingsScenes(novelId) });
+    toast.success(successMessage);
+  }, [novelId, sceneId, queryClient]);
+
+  // Unity GameObject 名字段：世界（场景名）与空间标记的 label 都可以改名并立即落库。
+  const renameSelectedObject = useCallback(async (nextName: string): Promise<void> => {
+    const trimmed = nextName.trim();
+    if (!trimmed || !scene || !selectedState) return;
+    try {
+      if (selectedObjectId === SCENE_OBJECT_ID) {
+        if (trimmed === scene.name) return;
+        await applyStatesUpdate({ name: trimmed }, "场景名称已保存。");
+        return;
+      }
+      if (!selectedObjectId.startsWith("marker:")) return;
+      const markerId = selectedObjectId.slice("marker:".length);
+      const markers = selectedState.scene3dMarkers?.markers ?? [];
+      if (!markers.some((marker) => marker.id === markerId && marker.label !== trimmed)) return;
+      const nextMarkers = markers.map((marker) => (
+        marker.id === markerId ? { ...marker, label: trimmed } : marker
+      ));
+      const nextStates = scene.states.map((state) => (
+        state.id === selectedState.id
+          ? {
+            ...state,
+            scene3dMarkers: state.scene3dMarkers
+              ? { ...state.scene3dMarkers, markers: nextMarkers }
+              : state.scene3dMarkers,
+          }
+          : state
+      ));
+      await applyStatesUpdate({ states: nextStates }, "对象名称已保存。");
+    } catch (error) {
+      toast.error("名称保存失败。", { description: error instanceof Error ? error.message : undefined });
+    }
+  }, [applyStatesUpdate, scene, selectedObjectId, selectedState]);
+
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
     viewer.focusMarker(markerId);
@@ -428,103 +474,115 @@ export default function DramaScene3DPage() {
       objects={<Drama3DObjectPanel items={sceneObjectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-3 overflow-y-auto">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">世界</dt>
-                  <dd className="text-right">{scene.name}</dd>
-                  <dt className="text-muted-foreground">当前状态</dt>
-                  <dd className="text-right">{selectedState.label}</dd>
-                  <dt className="text-muted-foreground">环境贴图</dt>
-                  <dd className="text-right">{environmentUrl ? "已加载" : "未生成"}</dd>
-                  <dt className="text-muted-foreground">空间标记</dt>
-                  <dd className="text-right">{sceneMarkersAreCurrent ? `${visibleSceneMarkers.length} 个` : "需要重新识别"}</dd>
-                </dl>
-
-                <div className="space-y-4 border-t border-border/60 pt-4">
-                  <div className="text-xs font-medium">场景环境</div>
-                  <label className="block space-y-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center justify-between gap-2">
-                      <span>投射中心高度</span>
-                      <output className="tabular-nums text-foreground">{Math.round(environmentSettings.projectionCenterHeightRatio * 100)}% · {(environmentSettings.domeRadius * environmentSettings.projectionCenterHeightRatio).toFixed(2)} 米</output>
-                    </span>
-                    <input type="range" aria-label="投射中心高度占比" min="5" max="20" step="0.5" value={Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeightRatio", Number(event.target.value) / 100)} className="w-full accent-primary" />
-                  </label>
-                  <label className="block space-y-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center justify-between gap-2">
-                      <span>半球直径</span>
-                      <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
-                    </span>
-                    <input type="range" aria-label="半球直径" min="5" max="20" step="1" value={environmentSettings.domeRadius} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
-                  </label>
-                  <label className="block space-y-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center justify-between gap-2">
-                      <span>分界线</span>
-                      <output className="tabular-nums text-foreground">{Math.round(environmentSettings.panoramaHorizonV * 100)}%</output>
-                    </span>
-                    <input type="range" aria-label="分界线" min="45" max="55" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value) / 100)} className="w-full accent-primary" />
-                  </label>
-                </div>
-
-                <div className="space-y-2 border-t border-border/60 pt-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs font-medium">空间标记</div>
-                    <AiButton
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!environmentUrl || saving || analyzingMarkers}
-                      onClick={() => void analyzeMarkers()}
-                      title="识别当前场景状态图中的固定空间物体"
-                    >
-                      {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-                      {analyzingMarkers ? "识别中，约 1 分钟" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
-                    </AiButton>
+                <InspectorGameObjectCard
+                  icon={<Layers3 className="h-4 w-4" aria-hidden="true" />}
+                  name={scene.name}
+                  nameEditable
+                  onRename={(next) => void renameSelectedObject(next)}
+                  kindLabel="世界"
+                  disabled={saving || sceneQuery.isFetching}
+                  metaLine={<>当前状态：{selectedState.label} · 空间标记{sceneMarkersAreCurrent ? `${visibleSceneMarkers.length} 个` : "需要重新识别"}</>}
+                />
+                <InspectorComponentSection title="场景环境">
+                  <div className="space-y-4">
+                    <label className="block space-y-1.5 text-xs text-muted-foreground">
+                      <span className="flex items-center justify-between gap-2">
+                        <span>投射中心高度</span>
+                        <output className="tabular-nums text-foreground">{Math.round(environmentSettings.projectionCenterHeightRatio * 100)}% · {(environmentSettings.domeRadius * environmentSettings.projectionCenterHeightRatio).toFixed(2)} 米</output>
+                      </span>
+                      <input type="range" aria-label="投射中心高度占比" min="5" max="20" step="0.5" value={Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeightRatio", Number(event.target.value) / 100)} className="w-full accent-primary" />
+                    </label>
+                    <label className="block space-y-1.5 text-xs text-muted-foreground">
+                      <span className="flex items-center justify-between gap-2">
+                        <span>半球直径</span>
+                        <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
+                      </span>
+                      <input type="range" aria-label="半球直径" min="5" max="20" step="1" value={environmentSettings.domeRadius.toFixed(0)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                    </label>
+                    <label className="block space-y-1.5 text-xs text-muted-foreground">
+                      <span className="flex items-center justify-between gap-2">
+                        <span>分界线</span>
+                        <output className="tabular-nums text-foreground">{Math.round(environmentSettings.panoramaHorizonV * 100)}%</output>
+                      </span>
+                      <input type="range" aria-label="分界线" min="45" max="55" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value))} className="w-full accent-primary" />
+                    </label>
                   </div>
-                  {analyzingMarkers ? (
-                    <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体，请保持页面打开。</p>
-                  ) : null}
-                  {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
-                    <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>
-                  ) : null}
-                  {sceneMarkersAreCurrent ? (
-                    <p className="text-xs text-muted-foreground">{visibleSceneMarkers.length ? `对象列表中有 ${visibleSceneMarkers.length} 个固定物体。` : "尚未识别空间标记。"}</p>
-                  ) : null}
-                </div>
+                </InspectorComponentSection>
+                <InspectorComponentSection title="空间标记">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <AiButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!environmentUrl || saving || analyzingMarkers}
+                        onClick={() => void analyzeMarkers()}
+                        title="识别当前场景状态图中的固定空间物体"
+                      >
+                        {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+                        {analyzingMarkers ? "识别中，约 1 分钟" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
+                      </AiButton>
+                    </div>
+                    {analyzingMarkers ? (
+                      <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体，请保持页面打开。</p>
+                    ) : null}
+                    {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
+                      <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>
+                    ) : null}
+                    {sceneMarkersAreCurrent ? (
+                      <p className="text-xs text-muted-foreground">{visibleSceneMarkers.length ? `对象列表中有 ${visibleSceneMarkers.length} 个固定物体。` : "尚未识别空间标记。"}</p>
+                    ) : null}
+                  </div>
+                </InspectorComponentSection>
               </>
             ) : selectedObjectId === REFERENCE_OBJECT_ID ? (
               <>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">对象</dt>
-                  <dd className="text-right">参考角色</dd>
-                  <dt className="text-muted-foreground">高度</dt>
-                  <dd className="text-right tabular-nums">约 {REFERENCE_ACTOR_HEIGHT_METERS.toFixed(1)} 米</dd>
-                  <dt className="text-muted-foreground">用途</dt>
-                  <dd className="text-right">校准场景尺度</dd>
-                </dl>
-                <p className="border-t border-border/60 pt-4 text-xs leading-5 text-muted-foreground">固定在场景原点，只用于校准投射中心和半球直径，不会保存到分镜。</p>
-                <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => { viewer?.selectActor(REFERENCE_ACTOR_LABEL); viewer?.fitView(); }}>
-                  <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦参考角色
-                </Button>
+                <InspectorGameObjectCard
+                  icon={<Ruler className="h-4 w-4" aria-hidden="true" />}
+                  name={REFERENCE_ACTOR_LABEL}
+                  kindLabel="校准道具"
+                  metaLine="固定在场景原点，只用于校准投射中心和半球直径，不会保存到分镜。"
+                />
+                <InspectorComponentSection title="参考角色">
+                  <InspectorPropertyList
+                    className="text-xs"
+                    items={[
+                      { label: "高度", value: "约 1.7 米" },
+                      { label: "用途", value: "校准场景尺度" },
+                    ]}
+                  />
+                  <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => { viewer?.selectActor(REFERENCE_ACTOR_LABEL); viewer?.fitView(); }}>
+                    <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦参考角色
+                  </Button>
+                </InspectorComponentSection>
               </>
             ) : selectedMarker ? (
               <>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">名称</dt>
-                  <dd className="text-right">{selectedMarker.label}</dd>
-                  <dt className="text-muted-foreground">类型</dt>
-                  <dd className="text-right">{STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}</dd>
-                  <dt className="text-muted-foreground">置信度</dt>
-                  <dd className="text-right tabular-nums">{Math.round(selectedMarker.confidence * 100)}%</dd>
-                  <dt className="text-muted-foreground">位置</dt>
-                  <dd className="text-right tabular-nums">{formatVector(selectedMarker.position)}</dd>
-                  <dt className="text-muted-foreground">尺寸</dt>
-                  <dd className="text-right tabular-nums">{formatVector(selectedMarker.size)}</dd>
-                </dl>
-                <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusMarker(selectedMarker.id)}>
-                  <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦空间标记
-                </Button>
+                <InspectorGameObjectCard
+                  icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
+                  name={selectedMarker.label}
+                  nameEditable
+                  onRename={(next) => void renameSelectedObject(next)}
+                  kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
+                  disabled={saving}
+                  metaLine="改名只影响对象列表与后续生成的提示词称呼，不改变标记在场景里的摆放。"
+                />
+                <InspectorComponentSection title="空间标记">
+                  <InspectorPropertyList
+                    className="text-xs tabular-nums"
+                    items={[
+                      { label: "置信度", value: `${Math.round(selectedMarker.confidence * 100)}%` },
+                      { label: "位置", value: formatVector(selectedMarker.position) },
+                      { label: "尺寸", value: formatVector(selectedMarker.size) },
+                    ]}
+                  />
+                  <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusMarker(selectedMarker.id)}>
+                    <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦空间标记
+                  </Button>
+                </InspectorComponentSection>
               </>
             ) : (
               <p className="text-xs text-muted-foreground">对象已从当前场景状态移除。</p>
