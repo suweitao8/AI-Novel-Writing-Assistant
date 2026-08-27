@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { isNavRouteVisible } from "@/config/dramaFocusNav";
 import { cn } from "@/lib/utils";
 
 const items = [
@@ -14,7 +15,7 @@ const items = [
   // 记录与画风以页签形式并入系统（2026-08-27 用户要求）；旧地址保留重定向。
   { to: "/settings/records", label: "记录" },
   { to: "/settings/art-style", label: "画风" },
-];
+].filter((item) => isNavRouteVisible(item.to));
 
 // 系统设置的二级页签即子路由：桌面端上收到顶部导航栏，移动端保留页内列表。
 export function SettingsShell(props: { title: string; description: string; children: ReactNode }) {
