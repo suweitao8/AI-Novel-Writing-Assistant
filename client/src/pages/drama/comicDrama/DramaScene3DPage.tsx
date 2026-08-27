@@ -518,7 +518,7 @@ export default function DramaScene3DPage() {
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
           {/* 属性卡间距与分镜 3D 草图的属性面板一致（16px），避免相邻卡片视觉上贴在一起。 */}
-          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <InspectorGameObjectCard
