@@ -29,7 +29,6 @@ import { getTaskOverview } from "@/api/tasks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
-import AppVersionBadge from "@/components/layout/AppVersionBadge";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
 import { cn } from "@/lib/utils";
 import { isNavRouteVisible } from "@/config/dramaFocusNav";
@@ -163,10 +162,7 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
     <aside className="flex h-full min-h-0 w-64 flex-col border-r bg-muted/20 p-3">
       <div className="mb-4 flex items-center gap-2.5 px-1">
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
-        <div className="flex min-w-0 items-center gap-1.5">
-          <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
-          <AppVersionBadge />
-        </div>
+        <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
       </div>
 
       <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">

@@ -12,7 +12,6 @@ import {
   X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import AppVersionBadge from "../AppVersionBadge";
 import DesktopBrandMark from "../DesktopBrandMark";
 import ProjectGithubLink from "../ProjectGithubLink";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
@@ -67,8 +66,7 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
               <div className="min-w-0 leading-tight">
                 <div className="flex min-w-0 items-center gap-1.5">
                   <span className="min-w-0 truncate text-sm font-semibold">AI 小说创作工作台</span>
-                  <AppVersionBadge />
-                </div>
+                        </div>
                 <div className="truncate text-[11px] text-muted-foreground">{pageTitle}</div>
               </div>
             </Link>
