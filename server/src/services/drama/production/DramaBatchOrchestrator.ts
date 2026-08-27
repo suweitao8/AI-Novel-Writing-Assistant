@@ -15,7 +15,9 @@ import { runWithConcurrency } from "./batchConcurrency";
 import { failStaleBatchJobs } from "./batchJobRecovery";
 import {
   DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY,
+  DEFAULT_DRAMA_TTS_BATCH_CONCURRENCY,
   normalizeDramaKeyframeBatchConcurrency,
+  normalizeDramaTtsBatchConcurrency,
 } from "./dramaBatchConcurrency";
 
 export type DramaBatchJobType = "keyframes" | "videos" | "tts";
@@ -304,7 +306,9 @@ export class DramaBatchOrchestrator {
         targetShotIds: prepared.targetShotIds,
         concurrency: input.type === "keyframes"
           ? DEFAULT_DRAMA_KEYFRAME_BATCH_CONCURRENCY
-          : undefined,
+          : input.type === "tts"
+            ? DEFAULT_DRAMA_TTS_BATCH_CONCURRENCY
+            : undefined,
         errors: [],
         useCharacterRefImages: resolveDramaBatchUseCharacterRefImages(input.useCharacterRefImages),
         force: input.force ?? false,
@@ -406,16 +410,18 @@ export class DramaBatchOrchestrator {
         errors: [],
         concurrency: job.type === "keyframes"
           ? normalizeDramaKeyframeBatchConcurrency(progress.concurrency)
-          : undefined,
+          : job.type === "tts"
+            ? normalizeDramaTtsBatchConcurrency(progress.concurrency)
+            : undefined,
         cost: progress.cost ? { ...progress.cost, actual: 0, actualUnits: {} } : undefined,
       });
       lastProgress = nextProgress;
       await enqueueProgressWrite("running", nextProgress);
 
       const processShotAt = async (shot: BatchShot) => {
-        // 并发图片任务不再伪造单一 currentShotId；每个镜头自己的 keyframeData
-        // 是前端显示生成中状态的权威来源。
-        if (job.type !== "keyframes") {
+        // 并发批量任务（keyframes/tts）不再伪造单一 currentShotId；每个镜头自己的
+        // keyframeData / 配音状态是前端显示生成中状态的权威来源。
+        if (job.type === "videos") {
           nextProgress.currentShotId = shot.id;
         }
         try {
@@ -452,6 +458,13 @@ export class DramaBatchOrchestrator {
         await runWithConcurrency(
           shots,
           normalizeDramaKeyframeBatchConcurrency(nextProgress.concurrency),
+          processShotAt,
+        );
+      } else if (job.type === "tts") {
+        // 批量配音与图片一样走有界并发；逐行合成仍受全局合成闸门统一限流。
+        await runWithConcurrency(
+          shots,
+          normalizeDramaTtsBatchConcurrency(nextProgress.concurrency),
           processShotAt,
         );
       } else {

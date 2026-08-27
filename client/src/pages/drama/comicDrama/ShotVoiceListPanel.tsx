@@ -178,7 +178,8 @@ const POLL_GRACE_MS = 30_000;
 // 3D图/AI图是整集统一预览模式（放在顶部工具栏「合成」左侧），不是逐镜切换。
 export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, toolbarTarget }: ShotVoiceListPanelProps) {
   const queryClient = useQueryClient();
-  const [regeneratingShotId, setRegeneratingShotId] = useState<string | null>(null);
+  // 多个分镜的配音可以同时生成：逐镜记录在途状态，互不覆盖。
+  const [regeneratingShotIds, setRegeneratingShotIds] = useState<Set<string>>(() => new Set());
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
   const [previewMode, setPreviewMode] = useState<PreviewKind>("ai");
   const activeOrder = chapterOrder;
@@ -308,13 +309,21 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
     mutationFn: ({ shot, force }: { shot: DramaShot; force: boolean }) => {
       return regenerateDramaShotAudio(projectId, shot.id, { force });
     },
-    onMutate: ({ shot }) => setRegeneratingShotId(shot.id),
+    onMutate: ({ shot }) => {
+      setRegeneratingShotIds((prev) => new Set(prev).add(shot.id));
+    },
     onSuccess: () => {
       toast.success("这一镜的配音已更新");
       invalidateAll();
     },
     onError: (error: Error) => toast.error("重配失败", { description: error.message }),
-    onSettled: () => setRegeneratingShotId(null),
+    onSettled: (_data, _error, variables) => {
+      setRegeneratingShotIds((prev) => {
+        const next = new Set(prev);
+        next.delete(variables.shot.id);
+        return next;
+      });
+    },
   });
 
   // 合成可以接管并等待已有的批量画面/配音任务，因此不能把 active batch 当成禁用条件。
@@ -537,7 +546,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
               segments={segmentsByShotId.get(shot.id) ?? EMPTY_SEGMENTS}
               previewMode={previewMode}
               keyframeBusy={keyframeShotId === shot.id || parseKeyframe(shot.keyframeData).status === "generating"}
-              regenerating={regeneratingShotId === shot.id}
+              regenerating={regeneratingShotIds.has(shot.id)}
               projectId={projectId}
               onGenerateKeyframe={handleGenerateKeyframe}
               onRegenerate={handleRegenerate}

@@ -48,6 +48,17 @@
 
 `client/src/pages/settings/views/NarratorVoiceSettingsPage.tsx`：系统级旁白音色页面，提供描述保存、生成/重新生成试听和原生播放器。`client/src/pages/drama/comicDrama/ShotVoiceListPanel.tsx` 只显示当前章节的一行一镜配音列表；批量工具栏固定为「生成分镜 / 生成配音或重新配音 / 合成」，章节由 `ComicDramaStudioPage` 顶栏工作区传入，不再在列表内重复选择章节或维护项目级音色面板。任务运行时轮询项目与分段列表。
 
+### 并发与队列（2026-08-26）
+
+配音的执行负载由两个进程级结构统一约束，单镜接口与批量任务全部经过同一入口（`DramaDialogueAudioService.synthesizeShotDialogue`）：
+
+- **分镜级去重（SingleFlightMap）**：按 shotId 合并在途执行。同镜重复触发（快速连点、「生成配音」与批量任务同时命中同一镜）不会启动第二次合成，也不会互相覆盖 `dialogueAudioData`；后触发者复用前一次的结果（含同享失败），落定后自动允许重新触发新一轮。
+- **全局合成闸门（TtsSynthesisGate）**：所有逐行合成请求都经 `ttsSynthesisGate.run` 排队，进程内在途的语音服务请求数默认不超过 3（`DRAMA_TTS_SYNTHESIS_CONCURRENCY`，可调 1–8）。多个分镜并行时共享这份配额而不是相乘，本地 VoxCPM2 不会被叠加压垮，也没有任何一方会中断另一方。
+- **批量 tts 有界并发**：与 keyframes 一致走 worker 池，默认 2 镜并行，`progress.concurrency` 创建时持久化、恢复执行时按 1–4 规范化；镜头级 worker 只提供流水线重叠，真实合成压力仍由全局闸门封顶。videos 批量保持顺序执行，不再伪造单一 `currentShotId`。
+- **前端在途状态**：`ShotVoiceListPanel` 用 `Set<shotId>` 记录重配中的镜头，多镜同时生成时每行独立显示进行中，不因另一个镜头开始而丢失状态。
+
+禁止回退的模式：不得用「新请求取消旧请求」、不得让批量任务 kill 在途合成、也不得让路由层绕过 service 直连 provider——这些都会让 `dialogueAudioData` 的落库结果相互踩踏（generating/done/error 交错覆盖）。
+
 ## 失败模式 / 注意
 
 - 修改旁白描述或角色音色后，已有音频会自然变为 stale（voiceKey 变化），UI 标「已过期」——这是特性不是 bug，提示用户补配。

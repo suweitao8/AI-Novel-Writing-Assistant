@@ -9,6 +9,7 @@ import { loadNovelCharacterStatesByName } from "../DramaContextAssembler";
 import { globalNarratorVoiceSettingsService, hashNarratorSample } from "../../settings/GlobalNarratorVoiceSettingsService";
 import { selectVoxCPMReferenceAudio } from "../../audio/speechProvider";
 import { isRealTTSProvider, ttsProviderRegistry, type TTSGenerationRequest } from "./TTSProviderPort";
+import { SingleFlightMap, ttsSynthesisGate } from "./ttsSynthesisQueue";
 
 export type DialogueAudioStatus = "idle" | "generating" | "done" | "error";
 /** 台词行类型：旁白标记或无说话人=旁白，其余有说话人=对白（搬自 mydrama 的 narration/dialogue 语义） */
@@ -320,7 +321,18 @@ export function readNarratorVoiceData(raw: string | null | undefined): NarratorV
 }
 
 export class DramaDialogueAudioService {
+  /** 同分镜在途合并：单镜接口与批量任务同时触达一个分镜时只合成一次。 */
+  private readonly singleFlight = new SingleFlightMap<DialogueAudioData>();
+
   async synthesizeShotDialogue(
+    shotId: string,
+    provider = DEFAULT_TTS_PROVIDER,
+    options: { force?: boolean } = {},
+  ): Promise<DialogueAudioData> {
+    return this.singleFlight.run(shotId, () => this.executeShotDialogue(shotId, provider, options));
+  }
+
+  private async executeShotDialogue(
     shotId: string,
     provider = DEFAULT_TTS_PROVIDER,
     options: { force?: boolean } = {},
@@ -436,6 +448,8 @@ export class DramaDialogueAudioService {
         };
       });
       // 有界并发（3 路）合成；任一行失败仍走原有整体失败语义，最终按 lineIndex 排序。
+      // 每路实际合成请求都经过全局闸门：单镜独占时可开满 3 路，多个分镜并行时共享
+      // 同一份配额排队，不会叠加压垮本地语音服务，也不会中断彼此。
       const synthesized: DialogueAudioItem[] = [];
       let cursor = 0;
       let aborted = false;
@@ -443,7 +457,7 @@ export class DramaDialogueAudioService {
         while (!aborted && cursor < prepared.length) {
           const current = prepared[cursor++];
           try {
-            const result = await adapter.synthesize(current.request);
+            const result = await ttsSynthesisGate.run(() => adapter.synthesize(current.request));
             synthesized.push({ ...current.item, audioUrl: result.audioUrl, durationSec: result.durationSec });
           } catch (error) {
             aborted = true;
