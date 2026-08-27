@@ -152,10 +152,21 @@ const blockingSketch3dEnvironmentSchema = z.object({
   intensity: z.number().min(0.6).max(1.6),
 });
 
+const blockingSketch3dShotCameraSchema = z.object({
+  position: z.tuple([
+    z.number().min(-100).max(100),
+    z.number().min(0).max(50),
+    z.number().min(-100).max(100),
+  ]),
+  yawDeg: z.number().min(-180).max(180),
+  pitchDeg: z.number().min(-89).max(89),
+});
+
 const blockingSketch3dLayoutSchema = z.object({
   schemaVersion: z.literal(1),
   engine: z.literal("playcanvas"),
   camera: blockingSketch3dCameraSchema,
+  shotCamera: blockingSketch3dShotCameraSchema.optional(),
   actors: z.array(blockingSketch3dActorSchema).max(12),
   environment: blockingSketch3dEnvironmentSchema.optional(),
 });

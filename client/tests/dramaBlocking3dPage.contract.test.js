@@ -133,7 +133,7 @@ test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
 
 test("选中外描边为 80% 不透明度的橙色，空间标记与场景摄像机共用同一条外轮廓", () => {
   assert.match(viewerCoreSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
-  assert.match(viewerSource, /markerRuntime\?\.entity \?\? \(cameraSelected \? cameraBody : null\)/);
+  assert.match(viewerSource, /markerRuntime\?\.entity \?\? \(cameraSelected \? shotCamera\.body : null\)/);
   // PlayCanvas 默认合成忽略颜色 alpha，描边不透明度必须由替换的合成着色器承载。
   assert.match(selectionOutlineSource, /uOutlineOpacity/);
   assert.match(selectionOutlineSource, /color\.a/);

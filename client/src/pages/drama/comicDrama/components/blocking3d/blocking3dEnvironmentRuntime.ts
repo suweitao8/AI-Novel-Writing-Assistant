@@ -1,0 +1,197 @@
+import * as pc from "playcanvas";
+
+import {
+  applyHdriKeyLight,
+  clearHdriKeyLight,
+  createHdriKeyLight,
+} from "./blocking3dEnvironmentKeyLight";
+import {
+  createProjectedHdriMaterial,
+  updateProjectedHdriMaterial,
+} from "./blocking3dEnvironmentProjection";
+import {
+  configureEnvironmentTexture,
+  createBackdropGeometry,
+  createVisibleHdriCubemap,
+  FALLBACK_AMBIENT_LIGHT,
+  loadAsset,
+  type Blocking3dEnvironmentSettings,
+} from "./blocking3dViewerCore";
+
+/**
+ * HDRI 环境运行时：背景穹顶网格/材质、环境光照 atlas 与瞬态主光的唯一归属。
+ * viewer 只传入世界节点与当前环境参数；加载竞态（旧请求晚到覆盖新请求）用
+ * 请求序号在运行时内部收敛，调用方只关心加载结果是否生效。
+ */
+
+export interface Blocking3dEnvironmentRuntime {
+  /** 清空 HDRI 光照（回落默认环境光）；地面显隐由调用方控制。 */
+  clearEnvironmentLighting(): void;
+  /** 清空背景穹顶、投影材质与纹理资产。 */
+  clearEnvironmentVisuals(): void;
+  /** 加载 HDRI 并在世界节点下重建背景穹顶；返回 false 表示已有更新的加载接管。 */
+  load(url: string | null, environmentSettings: Blocking3dEnvironmentSettings): Promise<boolean>;
+  /** 环境参数（半球直径/投射高度/分界线）变化后同步背景缩放与着色器 uniform。 */
+  applySettings(environmentSettings: Blocking3dEnvironmentSettings): void;
+  /** 投射高度或半球直径变化后重建背景网格（顶点几何只由这两个量决定）。 */
+  rebuildEnvironmentBackdropMesh(environmentSettings: Blocking3dEnvironmentSettings): void;
+  destroy(): void;
+}
+
+export function createBlocking3dEnvironmentRuntime(
+  app: pc.AppBase,
+  worldEntity: pc.Entity,
+): Blocking3dEnvironmentRuntime {
+  // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
+  // transient key light makes a bright window or sun patch readable on actors.
+  const environmentKeyLight = createHdriKeyLight();
+  app.root.addChild(environmentKeyLight);
+
+  let environmentAsset: pc.Asset | null = null;
+  let environmentBackdrop: pc.Entity | null = null;
+  let environmentBackdropMeshInstance: pc.MeshInstance | null = null;
+  let environmentMaterial: pc.ShaderMaterial | null = null;
+  let environmentProjectionCube: pc.Texture | null = null;
+  let environmentLightingSource: pc.Texture | null = null;
+  let environmentAtlas: pc.Texture | null = null;
+  const environmentWorldPosition = new pc.Vec3(0, 0, 0);
+  let environmentRequestId = 0;
+  let destroyed = false;
+
+  const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
+  const discardEnvironmentAsset = (asset: pc.Asset) => {
+    asset.unload();
+    app.assets.remove(asset);
+  };
+  const clearEnvironmentKeyLight = () => {
+    clearHdriKeyLight(environmentKeyLight);
+  };
+
+  const runtime: Blocking3dEnvironmentRuntime = {
+    clearEnvironmentLighting() {
+      clearEnvironmentKeyLight();
+      if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
+      environmentAtlas?.destroy();
+      environmentAtlas = null;
+      environmentLightingSource?.destroy();
+      environmentLightingSource = null;
+      app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
+    },
+    clearEnvironmentVisuals() {
+      environmentBackdrop?.destroy();
+      environmentBackdrop = null;
+      environmentBackdropMeshInstance?.mesh?.destroy();
+      environmentBackdropMeshInstance = null;
+      environmentMaterial?.destroy();
+      environmentMaterial = null;
+      environmentProjectionCube?.destroy();
+      environmentProjectionCube = null;
+      if (environmentAsset) {
+        environmentAsset.unload();
+        app.assets.remove(environmentAsset);
+        environmentAsset = null;
+      }
+    },
+    async load(url, environmentSettings) {
+      runtime.clearEnvironmentLighting();
+      runtime.clearEnvironmentVisuals();
+      if (!url?.trim()) return true;
+      const requestId = ++environmentRequestId;
+      let asset: pc.Asset;
+      try {
+        asset = await loadAsset(app, url, "texture");
+      } catch (error) {
+        if (!isCurrentEnvironmentRequest(requestId)) return false;
+        throw error;
+      }
+      if (!isCurrentEnvironmentRequest(requestId)) {
+        discardEnvironmentAsset(asset);
+        return false;
+      }
+      environmentAsset = asset;
+      try {
+        const texture = asset.resource as pc.Texture;
+        configureEnvironmentTexture(texture, app);
+        texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
+        environmentLightingSource = pc.EnvLighting.generateLightingSource(texture, { size: 128 });
+        environmentAtlas = pc.EnvLighting.generateAtlas(environmentLightingSource, {
+          size: 256,
+          numReflectionSamples: 256,
+          numAmbientSamples: 512,
+        });
+        app.scene.envAtlas = environmentAtlas;
+        app.scene.ambientLight = new pc.Color(0, 0, 0);
+        applyHdriKeyLight(environmentKeyLight, texture);
+        const projectionCube = createVisibleHdriCubemap(app, texture);
+        if (!isCurrentEnvironmentRequest(requestId)) {
+          projectionCube.destroy();
+          return false;
+        }
+        environmentProjectionCube = projectionCube;
+        // EnviroDome uses one continuous surface for the sky and the floor.
+        // Sharing the equator ring is important: two independent draw calls
+        // can leave a raster gap even when their positions appear identical.
+        const mesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        );
+        const material = createProjectedHdriMaterial(projectionCube, environmentSettings);
+        environmentMaterial = material;
+        const meshInstance = new pc.MeshInstance(mesh, material);
+        environmentBackdropMeshInstance = meshInstance;
+        environmentBackdrop = new pc.Entity("blocking3d-hdri-backdrop");
+        environmentBackdrop.addComponent("render", {
+          meshInstances: [meshInstance],
+          layers: [pc.LAYERID_WORLD],
+        });
+        environmentBackdrop.setPosition(environmentWorldPosition);
+        worldEntity.addChild(environmentBackdrop);
+        return true;
+      } catch (error) {
+        if (isCurrentEnvironmentRequest(requestId)) {
+          runtime.clearEnvironmentLighting();
+          runtime.clearEnvironmentVisuals();
+        }
+        throw error;
+      }
+    },
+    applySettings(environmentSettings) {
+      if (environmentBackdrop) {
+        environmentBackdrop.setLocalScale(
+          environmentSettings.domeRadius,
+          environmentSettings.domeRadius,
+          environmentSettings.domeRadius,
+        );
+        environmentBackdrop.setEulerAngles(0, 0, 0);
+      }
+      if (environmentMaterial) {
+        if (environmentProjectionCube) {
+          updateProjectedHdriMaterial(
+            environmentMaterial,
+            environmentProjectionCube,
+            environmentSettings,
+          );
+        }
+      }
+    },
+    rebuildEnvironmentBackdropMesh(environmentSettings) {
+      if (environmentBackdropMeshInstance) {
+        const previousBackdropMesh = environmentBackdropMeshInstance.mesh;
+        const nextBackdropMesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        );
+        environmentBackdropMeshInstance.mesh = nextBackdropMesh;
+        previousBackdropMesh.destroy();
+      }
+    },
+    destroy() {
+      environmentRequestId += 1;
+      destroyed = true;
+      runtime.clearEnvironmentLighting();
+      runtime.clearEnvironmentVisuals();
+      environmentKeyLight.destroy();
+    },
+  };
+  return runtime;
+}

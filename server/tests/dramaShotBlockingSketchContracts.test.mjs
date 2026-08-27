@@ -310,6 +310,8 @@ test("3D 相机兼容旧快照并保存镜头与景深参数", () => {
     focusRange: 5,
     blurRadius: 3,
   });
+  // 旧布局没有独立机位字段：shotCamera 保持缺省，由客户端按轨道相机推导。
+  assert.equal(old.layout3d?.shotCamera, undefined);
 
   const next = normalizeBlockingSketchData({
     ...validSketch,
@@ -330,6 +332,45 @@ test("3D 相机兼容旧快照并保存镜头与景深参数", () => {
   assert.equal(next.layout3d?.camera.depthOfFieldEnabled, true);
   assert.equal(next.layout3d?.camera.focusDistance, 4.5);
   assert.equal(next.layout3d?.camera.blurRadius, 4);
+});
+
+test("3D 场景摄像机独立机位随布局保存，并与编辑视角相机解耦", () => {
+  const normalized = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: { azim: 0, elev: -12, distance: 8, focalPoint: [0, 0.8, 0] },
+      shotCamera: { position: [1.5, 0.4, -2], yawDeg: 35, pitchDeg: -20 },
+      actors: [],
+    },
+  });
+  assert.deepEqual(normalized.layout3d?.shotCamera, {
+    position: [1.5, 0.4, -2],
+    yawDeg: 35,
+    pitchDeg: -20,
+  });
+});
+
+test("3D 场景摄像机独立机位拒绝越界位置和朝向", () => {
+  const layout3d = {
+    schemaVersion: 1,
+    engine: "playcanvas",
+    camera: { azim: 0, elev: -12, distance: 8, focalPoint: [0, 0.8, 0] },
+    actors: [],
+  };
+  assert.throws(() => normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: { ...layout3d, shotCamera: { position: [200, 0.4, -2], yawDeg: 0, pitchDeg: 0 } },
+  }));
+  assert.throws(() => normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: { ...layout3d, shotCamera: { position: [0, 0.4, 0], yawDeg: -200, pitchDeg: 0 } },
+  }));
+  assert.throws(() => normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: { ...layout3d, shotCamera: { position: [0, 0.4, 0], yawDeg: 0, pitchDeg: 95 } },
+  }));
 });
 
 test("3D 相机拒绝越界景深字段", () => {

@@ -69,7 +69,7 @@
 - 相机锚定：自动构图的拍摄位必须落在投射中心 `[0, projectionCenterHeight, 0]`（全景图的原始取景点）。实现方式是 `anchorBlockingCameraAtProjectionCenter`：保持 LLM 给出的视线方向与拍摄距离不变，仅把 focalPoint 重写为 `投射中心 − D*distance`，因此构图朝向、取景远近和 fov/DOF 全部保留，只有相机位置被归中。fov/裁剪面/景深不参与锚定。
 - Prompt 合同：`drama.shot.blocking.autoPlan@v3` 在 system 中声明舞台半径规则与"拍摄位固定在投射中心"，并在 HumanMessage 追加【摆位限制】数值行（可用站位半径 X 米 + 投射中心高度）；服务端程序化合同是兜底而不是唯一约束。
 - Viewer 常驻绘制两条参考圈（各 96 段线、随环境参数实时重算）：琥珀色半透明是舞台余量边界，青色半透明是半球自身的地面边界（直径的一半处）。调“半球直径”滑块时两圈同时重算，便于对照球边与舞台余量的关系。半球世界半径换算统一走 `resolveStoryScene3DDomeWorldRadius`，视图代码不得自行做 `/2` 以外的临时推导。actor 拖拽和 nudge 的落点径向 clamp 到舞台半径并保持方位角。手动相机导航保留自由度——锚定合同只约束自动构图产出；用户若手动挪动相机再保存，属于显式创作调整。
-- 场景摄像机实体（Unity 风格，2026-08-27）：viewer 持有常驻实体 `blocking3d-camera-body`（机身+镜头小块，`blocking3dCameraBody.ts`），随 `syncCamera` 停在镜头机位、朝向焦点，尺寸随拍摄距离自适应。它与角色/标记互斥可选中（`selectCamera`/`onCameraSelection`），视口点选机身、对象列表「摄像机」条目、属性面板（位置/方位角/俯仰角/视野角）三条通道编辑同一份 cameraState；`moveShotCameraToPosition` 做位置→轨道参数的反解（保持注视焦点与 FOV）。取景画中画继续由同一参数驱动，即“从摄像机预览”。机身是编辑器辅助对象：`capturePng` 期间与选中描边一样隐藏，导出的摆位草图不包含它。背景/环境重建不得连带销毁该实体。
+- 场景摄像机实体（Unity 风格，2026-08-27）：viewer 里的摄像机是**独立于编辑视角的场景对象**，由 `blocking3dShotCamera.ts` 的运行时承载（机身实体 `blocking3d-camera-body` + 右下角取景画中画），共用一份独立机位 pose `{ position, yawDeg, pitchDeg }`。编辑视角导航（右键旋转/滚轮/中键/WASD）只改轨道 `cameraState`，不会带动机身——机身不再固定停在屏幕中央挡住布景。机位 pose 的编辑通道：视口拖拽机身（地面平移）、移动/旋转变换手柄、对象列表「摄像机」+ 属性面板（位置 X/Y/Z、旋转 Y、俯仰角、FOV）。它与角色/标记互斥可选中（`selectCamera`/`onCameraSelection`）。旧布局没有机位字段时从轨道相机推导（`deriveShotCameraPoseFromOrbit`），新布局把 pose 持久化到 `layout3d.shotCamera`（服务端 `normalizeBlockingSketch3dLayout` 与 HTTP zod 同步校验，越界拒绝）。取景画中画从机位 pose 渲染「这台摄像机拍到的草图内容」：选中摄像机或打开「镜头取景」开关即显示（Unity camera preview 语义），FOV 与轨道相机共用 `cameraState.fovDeg`。机位 gizmo（`blocking3dCameraGizmo`）改为按 pose 画机位十字与 16:9 取景锥，不再画焦点连线。机身与画中画都是编辑器辅助对象：`capturePng` 期间隐藏，导出的摆位草图不包含它们；背景/环境重建不得连带销毁机身。
 - 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回同时以 `statesJson` 和 `scene3dEnvironmentJson` 做 CAS，并在写入前复核图片制品指纹与环境快照，防止慢分析覆盖新图片或新投射参数。
 
 ### 静态姿势与关键帧
@@ -97,7 +97,7 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 
 - `drama.shot.blocking.autoPlan` prompt（当前 v4）承载导演工艺基线：景别→distance/focalPoint 高度基准（特写 1.5–2 至远景 ≥10）、三分法与 headroom/lead room、双人对话 180° 轴线相向站位并把 DoF 焦点锁在说话者、elev 正负对应仰拍/俯拍的叙事语义。这些规则写进 system 而不是运行时校正，因为取景质量属于规划问题；schema 不新增字段，compositionNote 让模型自述构图依据。
 - 构图的几何正确性由服务端确定性兜底：`fitAutoPlanCameraFovToActors` 用与前端一致的 orbit 公式和 16:9 对角半角覆盖判定每个角色的脚点/头顶是否在取景锥内，出界时只放宽 fovDeg（上限 schema 的 100°），绝不改动方向、距离、焦点与景深等创意参数——这是「AI 决策 + 确定性后处理」边界的范例。
-- 编辑器镜头取景辅助由两部分组成：`blocking3dCameraGizmo` 的瞬时线条 gizmo（机位十字、焦点连线、16:9 取景锥）+ 第二台 PlayCanvas 相机以 viewport rect 渲染右下角画中画（与主相机同一机位参数，无 CameraFrame 后效）。二者共用 `setShotCameraHelpersVisible` 开关，AI 构图应用后自动打开；`capturePng` 导出前必须先冲掉上一帧排队的参考线并禁用画中画，保证摆位草图 PNG 只有布景与角色。
+- 编辑器镜头取景辅助由两部分组成：`blocking3dCameraGizmo` 的瞬时线条 gizmo（机位十字、16:9 取景锥，按场景摄像机独立机位绘制）+ 第二台 PlayCanvas 相机以 viewport rect 渲染右下角画中画（从独立机位 pose 渲染，无 CameraFrame 后效）。二者共用 `setShotCameraHelpersVisible` 开关，选中摄像机或打开「镜头取景」时显示，AI 构图应用后自动打开；`capturePng` 导出前必须先冲掉上一帧排队的参考线并隐藏画中画与机身，保证摆位草图 PNG 只有布景与角色。
 ## Failure Modes
 
 - 不能把通用代理模型当成最终角色渲染结果，否则会把低模、临时材质和动画库限制带进成片。

@@ -13,6 +13,7 @@ const scene3dPageSource = readFileSync(
 const viewerSource = [
   "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
   "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentRuntime.ts",
 ].map((p) => readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 const environmentGeometrySource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentGeometry.ts", import.meta.url),
@@ -290,7 +291,7 @@ test("代理角色按 1.8 米实际高度校准", () => {
 test("AI 构图落地时穹顶网格只在几何输入变化时重建，避免整帧卡顿", () => {
   assert.match(
     viewerSource,
-    /loadLayout\(layout\) \{[\s\S]*?const geometryChanged = nextEnvironment\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight[\s\S]*?if \(geometryChanged\) rebuildEnvironmentBackdropMesh\(\);/,
+    /loadLayout\(layout\) \{[\s\S]*?const geometryChanged = nextEnvironment\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight[\s\S]*?if \(geometryChanged\) environment\.rebuildEnvironmentBackdropMesh\(environmentSettings\);/,
   );
   // 不允许回到「先应用设置再无条件重建网格」的旧序列。
   assert.doesNotMatch(viewerSource, /applyEnvironmentSettings\(\);\s*\n\s*rebuildEnvironmentBackdropMesh\(\);/);

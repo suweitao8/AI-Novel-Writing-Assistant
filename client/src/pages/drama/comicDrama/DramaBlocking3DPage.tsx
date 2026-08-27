@@ -45,7 +45,6 @@ import {
   type Blocking3dTransformTool,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
-import { resolveBlocking3dOrbitPosition } from "./components/blocking3d/blocking3dCameraGizmo";
 import {
   Drama3DEditorShell,
   Drama3DObjectPanel,
@@ -168,6 +167,8 @@ export default function DramaBlocking3DPage() {
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
   const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
   const [cameraSelected, setCameraSelected] = useState(false);
+  // 场景摄像机的独立机位（世界坐标位置 + 朝向），与编辑视角解耦。
+  const [shotCameraPose, setShotCameraPoseState] = useState<{ position: [number, number, number]; yawDeg: number; pitchDeg: number }>({ position: [0, 0, 0], yawDeg: 0, pitchDeg: 0 });
   // 镜头取景辅助：机位 gizmo + 右下角取景画中画（默认关，构图完成后自动打开）。
   const [shotPreviewOn, setShotPreviewOn] = useState(false);
   // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的角色。
@@ -188,8 +189,9 @@ export default function DramaBlocking3DPage() {
   }, [context?.sketch?.compositionNote]);
 
   useEffect(() => {
-    viewer?.setShotCameraHelpersVisible(shotPreviewOn);
-  }, [shotPreviewOn, viewer]);
+    // 取景画中画在「镜头取景」开关打开或选中摄像机时显示（Unity camera preview）。
+    viewer?.setShotCameraHelpersVisible(shotPreviewOn || cameraSelected);
+  }, [shotPreviewOn, cameraSelected, viewer]);
 
   useEffect(() => {
     viewer?.setTransformTool(transformTool);
@@ -209,6 +211,7 @@ export default function DramaBlocking3DPage() {
     setSelectedColor(nextViewer.getSelectedColor());
     setSelectedTransform(nextViewer.getSelectedTransform());
     setCameraState(nextViewer.getCameraState());
+    setShotCameraPoseState(nextViewer.getShotCameraPose());
   }, []);
 
   useEffect(() => {
@@ -245,6 +248,7 @@ export default function DramaBlocking3DPage() {
         setCameraSelected(selected);
         setSelectedObjectId(selected ? CAMERA_OBJECT_ID : SCENE_OBJECT_ID);
         setCameraState(nextViewer.getCameraState());
+        setShotCameraPoseState(nextViewer.getShotCameraPose());
       });
       unsubscribeChange = nextViewer.onChange(() => {
         setDirty(true);
@@ -551,7 +555,7 @@ export default function DramaBlocking3DPage() {
                 <Button variant="outline" onClick={() => void goBack()}>返回分镜</Button>
               </div>
             ) : null}
-            {shotPreviewOn && viewer && !viewerError ? (
+            {(shotPreviewOn || cameraSelected) && viewer && !viewerError ? (
               <div className="pointer-events-none absolute bottom-[calc(3%+1.6rem)] right-[2.5%] rounded border border-primary/70 bg-background/85 px-1.5 py-0.5 text-[10px] font-medium text-foreground shadow-sm">
                 镜头取景（导出草图不包含此预览）
               </div>
@@ -562,7 +566,6 @@ export default function DramaBlocking3DPage() {
               onToolChange={setTransformTool}
             />
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色 · 右键旋转 · 滚轮缩放视角 · 中键平移
               <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
             </div>
             <div className="pointer-events-none absolute right-3 top-3">
@@ -622,26 +625,22 @@ export default function DramaBlocking3DPage() {
                   <div className="space-y-2">
                     <InspectorVector3Field
                       label="位置"
-                      value={[
-                        resolveBlocking3dOrbitPosition(cameraState).x,
-                        resolveBlocking3dOrbitPosition(cameraState).y,
-                        resolveBlocking3dOrbitPosition(cameraState).z,
-                      ]}
+                      value={shotCameraPose.position}
                       disabled={saving || autoPlanning}
                       onCommit={(next) => applyViewerAction((nextViewer) => {
-                        nextViewer.setShotCameraPosition(next);
+                        nextViewer.setShotCameraPose({ position: next });
                         return true;
                       })}
                     />
                     <div className="flex items-center gap-2">
-                      <span className="w-10 shrink-0 text-xs text-muted-foreground">方位角</span>
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">旋转 Y</span>
                       <InspectorNumberField
-                        label="X"
-                        value={cameraState.azim}
+                        label="Y"
+                        value={shotCameraPose.yawDeg}
                         suffix="°"
                         disabled={saving || autoPlanning}
                         onCommit={(value) => applyViewerAction((nextViewer) => {
-                          nextViewer.setShotCameraOrientation(value, cameraState.elev);
+                          nextViewer.setShotCameraPose({ yawDeg: value });
                           return true;
                         })}
                       />
@@ -649,12 +648,12 @@ export default function DramaBlocking3DPage() {
                     <div className="flex items-center gap-2">
                       <span className="w-10 shrink-0 text-xs text-muted-foreground">俯仰角</span>
                       <InspectorNumberField
-                        label="Y"
-                        value={cameraState.elev}
+                        label="X"
+                        value={shotCameraPose.pitchDeg}
                         suffix="°"
                         disabled={saving || autoPlanning}
                         onCommit={(value) => applyViewerAction((nextViewer) => {
-                          nextViewer.setShotCameraOrientation(cameraState.azim, value);
+                          nextViewer.setShotCameraPose({ pitchDeg: value });
                           return true;
                         })}
                       />
@@ -676,7 +675,7 @@ export default function DramaBlocking3DPage() {
                       />
                     </div>
                   </div>
-                  <p className="text-[11px] text-muted-foreground">在视口里按住机身拖动即可移动机位，镜头始终看向注视焦点。</p>
+                  <p className="text-[11px] text-muted-foreground">拖动机身或用移动/旋转手柄调整机位；选中摄像机时右下角实时预览镜头画面。</p>
                 </InspectorComponentSection>
                 <div className="space-y-2 border-t border-border/60 pt-4">
                   <div className="text-xs font-medium">镜头朝向</div>
@@ -684,14 +683,6 @@ export default function DramaBlocking3DPage() {
                     <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="镜头向左旋转" title="向左旋转" disabled={saving || autoPlanning} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
                     <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="镜头向右旋转" title="向右旋转" disabled={saving || autoPlanning} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
                   </div>
-                  <InspectorPropertyList
-                    className="text-[11px] text-muted-foreground tabular-nums"
-                    items={[
-                      { label: "拍摄距离", value: `${cameraState.distance.toFixed(2)} 米` },
-                      { label: "景深", value: cameraState.depthOfFieldEnabled ? "开启" : "关闭" },
-                      { label: "焦点距离", value: cameraState.focusDistance.toFixed(2) },
-                    ]}
-                  />
                 </div>
                 {cameraActions}
               </>

@@ -9,13 +9,11 @@ import {
 import type {
   DramaShotBlockingSketch3DActor,
   DramaShotBlockingSketch3DCamera,
+  DramaShotBlockingSketch3DShotCamera,
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import { GROUND_DOME_FLAT_RADIUS } from "./blocking3dEnvironmentGeometry";
-import {
-  createProjectedHdriMaterial,
-  updateProjectedHdriMaterial,
-} from "./blocking3dEnvironmentProjection";
+import { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 import {
@@ -41,17 +39,13 @@ import {
   updateProjectionCenterGizmo,
   type Blocking3dProjectionCenterGizmoRuntime,
 } from "./blocking3dProjectionCenterGizmo";
-import { drawBlocking3dCameraGizmo, resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
+import { drawBlocking3dCameraGizmo } from "./blocking3dCameraGizmo";
 import {
-  createBlocking3dCameraBody,
-  rayHitsBlocking3dCameraBody,
-  syncBlocking3dCameraBody,
-} from "./blocking3dCameraBody";
-import {
-  applyHdriKeyLight,
-  clearHdriKeyLight,
-  createHdriKeyLight,
-} from "./blocking3dEnvironmentKeyLight";
+  createBlocking3dShotCamera,
+  deriveShotCameraPoseFromOrbit,
+  normalizeShotCameraPose,
+  type Blocking3dShotCameraPose,
+} from "./blocking3dShotCamera";
 import {
   createBlocking3dTransformGizmo,
   type Blocking3dTransformTool,
@@ -62,11 +56,8 @@ import {
   BLOCKING_SKETCH_CAPTURE_SIZE,
   clamp,
   colorForIndex,
-  configureEnvironmentTexture,
-  createBackdropGeometry,
   createMaterial,
   createPlane,
-  createVisibleHdriCubemap,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
   DEFAULT_CAMERA,
   DEFAULT_FOV,
@@ -121,10 +112,10 @@ export interface Blocking3dViewer {
   /** 选中/取消选中场景摄像机实体；与角色、标记互斥。 */
   selectCamera: (selected: boolean) => boolean;
   isCameraSelected: () => boolean;
-  /** 把镜头机位实体移动到世界坐标位置，保持注视焦点与 FOV 不变。 */
-  setShotCameraPosition: (position: [number, number, number]) => void;
-  /** 调整镜头朝向（方位角/俯仰角，度）。 */
-  setShotCameraOrientation: (azim: number, elev: number) => void;
+  /** 场景摄像机的独立机位（世界坐标位置 + 朝向），与编辑视角解耦。 */
+  getShotCameraPose: () => { position: [number, number, number]; yawDeg: number; pitchDeg: number };
+  /** 提交场景摄像机机位的部分字段；收敛边界后同步机身与取景画中画。 */
+  setShotCameraPose: (patch: { position?: [number, number, number]; yawDeg?: number; pitchDeg?: number }) => void;
   focusMarker: (id: string) => boolean;
   getSelectedMarker: () => string | null;
   setSceneMarkers: (markers: StoryScene3DMarker[]) => void;
@@ -168,6 +159,7 @@ export interface Blocking3dViewer {
     schemaVersion: 1;
     engine: "playcanvas";
     camera: DramaShotBlockingSketch3DCamera;
+    shotCamera?: DramaShotBlockingSketch3DShotCamera;
     actors: DramaShotBlockingSketch3DActor[];
     environment: Blocking3dEnvironmentSettings;
   };
@@ -175,6 +167,7 @@ export interface Blocking3dViewer {
     schemaVersion: 1;
     engine: "playcanvas";
     camera: DramaShotBlockingSketch3DCamera;
+    shotCamera?: DramaShotBlockingSketch3DShotCamera;
     actors: DramaShotBlockingSketch3DActor[];
     environment?: Blocking3dEnvironmentSettings;
   }) => void;
@@ -217,32 +210,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   cameraFrame.dof.nearBlur = false;
   cameraFrame.dof.highQuality = true;
 
-  // 镜头取景画中画：第二台相机按 layout3d.camera 的机位与参数渲染到右下角小窗，
-  // 编辑者随时能看到「镜头里到底怎么框住角色」。优先级高于主相机，压在其上层。
-  const shotCameraEntity = new pc.Entity("blocking3d-shot-camera");
-  shotCameraEntity.addComponent("camera", {
-    clearColor: new pc.Color(0.02, 0.03, 0.05),
-    fov: DEFAULT_FOV,
-    nearClip: 0.05,
-    farClip: 200,
-  });
-  const shotCameraComponent = shotCameraEntity.camera!;
-  shotCameraComponent.layers = cameraComponent.layers;
-  shotCameraComponent.priority = (cameraComponent.priority ?? 0) + 1;
-  // 取景小窗不挂 CameraFrame（无景深等整屏后效），只做纯净的取景呈现。
-  shotCameraComponent.rect = new pc.Vec4(0.575, 0.04, 0.4, 0.225);
-  shotCameraEntity.enabled = false;
-  app.root.addChild(shotCameraEntity);
-  const SHOT_CAMERA_RECT_WIDTH = 0.4;
-
-  // Unity 风格的场景摄像机实体：常驻在镜头机位上的小机身，可点选、可拖拽
-  // 移动；渲染仍由主相机（编辑视角）与右下角取景画中画承担。
-  const cameraBody = createBlocking3dCameraBody(app);
-
-  // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
-  // transient key light makes a bright window or sun patch readable on actors.
-  const environmentKeyLight = createHdriKeyLight();
-  app.root.addChild(environmentKeyLight);
+  // Unity 风格的场景摄像机运行时：独立机位（世界坐标位置 + 朝向）驱动机身
+  // 实体与右下角取景画中画；编辑视角导航不会带动机身。
+  const shotCamera = createBlocking3dShotCamera(app, canvas, cameraComponent);
 
   const ground = createPlane(
     app,
@@ -269,20 +239,16 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     });
   }
 
-  let environmentBackdrop: pc.Entity | null = null;
-  let environmentAsset: pc.Asset | null = null;
-  let environmentProjectionCube: pc.Texture | null = null;
-  let environmentMaterial: pc.ShaderMaterial | null = null;
-  let environmentBackdropMeshInstance: pc.MeshInstance | null = null;
-  let environmentLightingSource: pc.Texture | null = null;
-  let environmentAtlas: pc.Texture | null = null;
-  const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentSettings = normalizeEnvironmentSettings(undefined);
 
   // 世界根节点：HDRI 背景（对象列表里的「世界」）和空间标记 cube 都作为
   // 它的子对象统一承载；背景按状态图重建时不会连带销毁或移动标记。
   const worldEntity = new pc.Entity("blocking3d-world");
   app.root.addChild(worldEntity);
+
+  // HDRI 环境运行时：背景穹顶、环境光照与瞬态主光的唯一归属；背景按状态图
+  // 重建时不会连带销毁或移动空间标记。
+  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity);
 
   // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
   // 地面平坦部分的外沿。调“半球直径”滑块时两条圈同时重算，可以直观
@@ -330,81 +296,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     app,
     environmentSettings,
   );
-  let environmentRequestId = 0;
-  const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
-  const discardEnvironmentAsset = (asset: pc.Asset) => {
-    asset.unload();
-    app.assets.remove(asset);
-  };
-  const clearEnvironmentKeyLight = () => {
-    clearHdriKeyLight(environmentKeyLight);
-  };
-  const clearEnvironmentLighting = () => {
-    clearEnvironmentKeyLight();
-    if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
-    environmentAtlas?.destroy();
-    environmentAtlas = null;
-    environmentLightingSource?.destroy();
-    environmentLightingSource = null;
-    app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
-  };
-  const applyEnvironmentLighting = (texture: pc.Texture) => {
-    texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
-    environmentLightingSource = pc.EnvLighting.generateLightingSource(texture, { size: 128 });
-    environmentAtlas = pc.EnvLighting.generateAtlas(environmentLightingSource, {
-      size: 256,
-      numReflectionSamples: 256,
-      numAmbientSamples: 512,
-    });
-    app.scene.envAtlas = environmentAtlas;
-    app.scene.ambientLight = new pc.Color(0, 0, 0);
-  };
-  const rebuildEnvironmentBackdropMesh = () => {
-    if (environmentBackdropMeshInstance) {
-      const previousBackdropMesh = environmentBackdropMeshInstance.mesh;
-      const nextBackdropMesh = pc.Mesh.fromGeometry(
-        app.graphicsDevice,
-        createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-      );
-      environmentBackdropMeshInstance.mesh = nextBackdropMesh;
-      previousBackdropMesh.destroy();
-    }
-  };
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
     rebuildBoundaryRings();
-    if (environmentBackdrop) {
-      environmentBackdrop.setLocalScale(
-        environmentSettings.domeRadius,
-        environmentSettings.domeRadius,
-        environmentSettings.domeRadius,
-      );
-      environmentBackdrop.setEulerAngles(0, 0, 0);
-    }
-    if (environmentMaterial) {
-      if (environmentProjectionCube) {
-        updateProjectedHdriMaterial(
-          environmentMaterial,
-          environmentProjectionCube,
-          environmentSettings,
-        );
-      }
-    }
-  };
-  const clearEnvironmentVisuals = () => {
-    environmentBackdrop?.destroy();
-    environmentBackdrop = null;
-    environmentBackdropMeshInstance?.mesh?.destroy();
-    environmentBackdropMeshInstance = null;
-    environmentMaterial?.destroy();
-    environmentMaterial = null;
-    environmentProjectionCube?.destroy();
-    environmentProjectionCube = null;
-    if (environmentAsset) {
-      environmentAsset.unload();
-      app.assets.remove(environmentAsset);
-      environmentAsset = null;
-    }
+    environment.applySettings(environmentSettings);
   };
   let actorAsset: pc.Asset;
   let animationAsset: pc.Asset;
@@ -422,10 +317,18 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     ...DEFAULT_CAMERA,
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
   };
-  // 镜头取景辅助（机位 gizmo + 取景画中画）默认关闭，由页面按钮或 AI 构图完成时打开。
+  // 场景摄像机独立机位：初始落在默认轨道机位上，之后只被拖拽、变换手柄或
+  // 属性面板改写；编辑视角导航不影响它。
+  let shotCameraPose = deriveShotCameraPoseFromOrbit(cameraState);
+  // 镜头取景辅助（机位 gizmo + 取景画中画）默认关闭，由页面按钮、选中摄像
+  // 机或 AI 构图完成时打开。
   let shotCameraHelpersVisible = false;
   // 导出草图瞬间挂起辅助线与画中画：导出的摆位图必须只有布景和角色。
   let shotCameraHelpersSuppressed = false;
+  /** 机位实体与取景画中画统一按独立机位 pose 同步；选中摄像机或打开取景辅助时显示小窗。 */
+  const syncShotCameraVisuals = () => {
+    shotCamera.sync(shotCameraPose, cameraState.fovDeg, (shotCameraHelpersVisible || cameraSelected) && !shotCameraHelpersSuppressed);
+  };
   let destroyed = false;
   const selectionOutline = createBlocking3dSelectionOutline(app, cameraEntity, SELECTION_OUTLINE_COLOR);
   let interactionEnabled = true;
@@ -461,23 +364,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     cameraFrame.dof.blurRadius = cameraState.blurRadius;
     cameraEntity.setPosition(position);
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
-    syncBlocking3dCameraBody(cameraBody, cameraState);
     cameraFrame.update();
-    syncShotCamera(position);
-  };
-
-  /** 取景画中画与主相机共用同一机位参数；小窗保持导出草图的 16:9 画幅。 */
-  const syncShotCamera = (position: pc.Vec3) => {
-    if (!shotCameraComponent.enabled || !shotCameraEntity.camera) return;
-    shotCameraEntity.camera.fov = cameraState.fovDeg;
-    shotCameraEntity.camera.nearClip = Math.min(cameraState.nearClip, 0.05);
-    shotCameraEntity.camera.farClip = cameraState.farClip;
-    const canvasAspect = canvas.width > 0 && canvas.height > 0 ? canvas.width / canvas.height : 16 / 9;
-    // PlayCanvas rect 以画布左下为原点：右下角留边，宽 0.4、按窗口纵横比换算出 16:9 的显示高度。
-    const heightFraction = clamp(SHOT_CAMERA_RECT_WIDTH * canvasAspect * (9 / 16), 0.08, 0.8);
-    shotCameraComponent.rect = new pc.Vec4(0.975 - SHOT_CAMERA_RECT_WIDTH, 0.03, SHOT_CAMERA_RECT_WIDTH, heightFraction);
-    shotCameraEntity.setPosition(position);
-    shotCameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
   };
 
   const emitSelection = () => {
@@ -488,11 +375,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
       : null;
     syncTransformGizmo();
-    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? (cameraSelected ? cameraBody : null));
+    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? (cameraSelected ? shotCamera.body : null));
   };
 
   const emitCameraSelection = () => {
     for (const listener of cameraSelectionListeners) listener(cameraSelected);
+    // 选中摄像机即时显示右下角取景画中画（Unity camera preview 语义）。
+    syncShotCameraVisuals();
   };
 
   const emitMarkerSelection = () => {
@@ -524,6 +413,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       emitChange();
       return;
     }
+    if (!selectedLabel && cameraSelected) {
+      // 摄像机手柄结束：把实体位姿收敛回独立机位 pose。
+      const position = shotCamera.body.getPosition();
+      const rotation = shotCamera.body.getEulerAngles();
+      setShotCameraPose({ position: [position.x, position.y, position.z], yawDeg: rotation.y, pitchDeg: rotation.x });
+      emitChange();
+      return;
+    }
     const markerRuntime = !selectedLabel && selectedMarkerId
       ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
       : null;
@@ -545,6 +442,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const node = interactionEnabled
       ? (actor && actorMovementEnabled ? actor.entity : null)
         ?? (options.markerTransformEditable ? markerRuntime?.entity ?? null : null)
+        ?? (cameraSelected ? shotCamera.body : null)
       : null;
     transformGizmo.attach(node);
   };
@@ -596,18 +494,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     return true;
   };
 
-  /** 保持注视焦点与 FOV 不变，把镜头机位实体移动到指定世界坐标。 */
-  const moveShotCameraToPosition = (position: pc.Vec3) => {
-    const focal = new pc.Vec3(cameraState.focalPoint[0], cameraState.focalPoint[1], cameraState.focalPoint[2]);
-    const offset = position.clone().sub(focal);
-    const distance = clamp(offset.length(), 0.25, 100);
-    if (distance < 1e-4) return;
-    const azimuth = wrapBlocking3dAzimuth(Math.atan2(offset.x, offset.z) * 180 / Math.PI);
-    const elevation = clamp(-Math.asin(clamp(offset.y / distance, -1, 1)) * 180 / Math.PI, -89, 89);
-    cameraState.azim = azimuth;
-    cameraState.elev = elevation;
-    cameraState.distance = distance;
-    syncCamera();
+  /** 场景摄像机独立机位的统一写入口：收敛边界后同步机身与取景画中画。 */
+  const setShotCameraPose = (patch: Partial<Blocking3dShotCameraPose>) => {
+    const merged = { ...shotCameraPose, ...patch };
+    shotCameraPose = {
+      position: [
+        clamp(merged.position[0], -100, 100),
+        clamp(merged.position[1], 0, 50),
+        clamp(merged.position[2], -100, 100),
+      ],
+      yawDeg: wrapBlocking3dAzimuth(merged.yawDeg),
+      pitchDeg: clamp(merged.pitchDeg, -89, 89),
+    };
+    syncShotCameraVisuals();
   };
 
   const setSceneMarkers = (markers: StoryScene3DMarker[]) => {
@@ -686,7 +585,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     }
     canvas.focus();
     const pointerRay = event.button === 0 ? screenRay(event.clientX, event.clientY) : null;
-    const cameraBodyHit = pointerRay ? rayHitsBlocking3dCameraBody(cameraBody, pointerRay) : false;
+    const cameraBodyHit = pointerRay ? shotCamera.rayHitsBody(pointerRay) : false;
     const hit = event.button === 0 && !cameraBodyHit ? pickActor(event.clientX, event.clientY) : null;
     const markerHit = event.button === 0 && !hit && !cameraBodyHit
       ? pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY))
@@ -733,13 +632,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         emitChange();
       }
     } else if (dragState.mode === "camera-body") {
-      // 拖拽镜头实体：沿地面平移机位，注视焦点与 FOV 保持不变。
+      // 拖拽摄像机机身：沿地面平移独立机位，编辑视角保持不动。
       const previousGround = dragState.lastGround;
       const nextGround = raycastGround(event.clientX, event.clientY);
       if (previousGround && nextGround) {
-        const current = resolveBlocking3dOrbitPosition(cameraState);
-        const next = current.clone().add(nextGround.clone().sub(previousGround));
-        moveShotCameraToPosition(next);
+        const next = new pc.Vec3(shotCameraPose.position[0], shotCameraPose.position[1], shotCameraPose.position[2])
+          .add(nextGround.clone().sub(previousGround));
+        setShotCameraPose({ position: [next.x, next.y, next.z] });
         dragState.lastGround = nextGround;
         emitChange();
       }
@@ -763,7 +662,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     try { canvas.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
     if (button === 0 && Math.hypot(dx, dy) < 6) {
       const clickRay = screenRay(event.clientX, event.clientY);
-      if (clickRay && rayHitsBlocking3dCameraBody(cameraBody, clickRay)) {
+      if (clickRay && shotCamera.rayHitsBody(clickRay)) {
         selectCamera(true);
       } else {
         const hit = pickActor(event.clientX, event.clientY);
@@ -861,9 +760,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
     app.resizeCanvas(rect.width, rect.height);
     // 画中画高度按窗口纵横比换算成 16:9，resize 后必须重算视口。
-    if (shotCameraComponent.enabled && shotCameraEntity.camera) {
-      syncShotCamera(resolveBlocking3dOrbitPosition(cameraState));
-    }
+    syncShotCameraVisuals();
   };
   resize();
   const resizeObserver = new ResizeObserver(resize);
@@ -879,7 +776,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     if (shotCameraHelpersVisible && !shotCameraHelpersSuppressed) {
-      drawBlocking3dCameraGizmo(app, { camera: cameraState });
+      drawBlocking3dCameraGizmo(app, {
+        position: new pc.Vec3(shotCameraPose.position[0], shotCameraPose.position[1], shotCameraPose.position[2]),
+        yawDeg: shotCameraPose.yawDeg,
+        pitchDeg: shotCameraPose.pitchDeg,
+        fovDeg: cameraState.fovDeg,
+      });
     }
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     selectionOutline.frameUpdate();
@@ -887,6 +789,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   setSceneMarkers(options.sceneMarkers ?? []);
   app.start();
   syncCamera();
+  syncShotCameraVisuals();
 
   try {
     setStatus("正在加载 3D 代理角色...");
@@ -1000,14 +903,15 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     selectCamera,
     isCameraSelected: () => cameraSelected,
-    setShotCameraPosition(position) {
-      moveShotCameraToPosition(new pc.Vec3(position[0], position[1], position[2]));
-      emitChange();
+    getShotCameraPose() {
+      return {
+        position: [...shotCameraPose.position] as [number, number, number],
+        yawDeg: shotCameraPose.yawDeg,
+        pitchDeg: shotCameraPose.pitchDeg,
+      };
     },
-    setShotCameraOrientation(azim, elev) {
-      cameraState.azim = wrapBlocking3dAzimuth(azim);
-      cameraState.elev = clamp(elev, -89, 89);
-      syncCamera();
+    setShotCameraPose(patch) {
+      setShotCameraPose(patch);
       emitChange();
     },
     onChange(listener) {
@@ -1096,9 +1000,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     rotateSelected(degrees) {
       if (cameraSelected) {
-        // 旋转镜头 = 绕焦点调整方位角；机身与画中画随 syncCamera 同步。
-        cameraState.azim = updateBlocking3dCameraAzimuth(cameraState.azim, degrees);
-        syncCamera();
+        // 旋转摄像机 = 调整独立机位朝向；机身与画中画随 setShotCameraPose 同步。
+        setShotCameraPose({ yawDeg: shotCameraPose.yawDeg + degrees });
         emitChange();
         return true;
       }
@@ -1154,17 +1057,15 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     setCameraState(next) {
       cameraState = normalizeCamera(next);
       syncCamera();
+      // FOV 同时用于取景画中画，机位 pose 保持不变。
+      syncShotCameraVisuals();
     },
     getCameraState() {
       return { ...cameraState, focalPoint: [...cameraState.focalPoint] };
     },
     setShotCameraHelpersVisible(visible) {
       shotCameraHelpersVisible = Boolean(visible);
-      shotCameraComponent.enabled = shotCameraHelpersVisible;
-      if (shotCameraHelpersVisible) {
-        // 打开瞬间重算机位与画中画视口，避免沿用陈旧 rect。
-        syncCamera();
-      }
+      syncShotCameraVisuals();
     },
     getShotCameraHelpersVisible() {
       return shotCameraHelpersVisible;
@@ -1183,64 +1084,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (!enabled && dragState?.mode === "actor") dragState = null;
     },
     async setEnvironment(url) {
-      const requestId = ++environmentRequestId;
       ground.enabled = true;
-      clearEnvironmentLighting();
-      clearEnvironmentVisuals();
-      if (!url?.trim()) return;
-      setStatus("正在加载场景 HDRI 环境...");
-      let asset: pc.Asset;
-      try {
-        asset = await loadAsset(app, url, "texture");
-      } catch (error) {
-        if (!isCurrentEnvironmentRequest(requestId)) return;
-        throw error;
-      }
-      if (!isCurrentEnvironmentRequest(requestId)) {
-        discardEnvironmentAsset(asset);
+      if (!url?.trim()) {
+        environment.clearEnvironmentLighting();
+        environment.clearEnvironmentVisuals();
         return;
       }
-      environmentAsset = asset;
-      try {
-        const texture = asset.resource as pc.Texture;
-        configureEnvironmentTexture(texture, app);
-        applyEnvironmentLighting(texture);
-        applyHdriKeyLight(environmentKeyLight, texture);
-        const projectionCube = createVisibleHdriCubemap(app, texture);
-        if (!isCurrentEnvironmentRequest(requestId)) {
-          projectionCube.destroy();
-          return;
-        }
-        environmentProjectionCube = projectionCube;
-        // EnviroDome uses one continuous surface for the sky and the floor.
-        // Sharing the equator ring is important: two independent draw calls
-        // can leave a raster gap even when their positions appear identical.
-        const mesh = pc.Mesh.fromGeometry(
-          app.graphicsDevice,
-          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-        );
-        const material = createProjectedHdriMaterial(projectionCube, environmentSettings);
-        environmentMaterial = material;
-        const meshInstance = new pc.MeshInstance(mesh, material);
-        environmentBackdropMeshInstance = meshInstance;
-        environmentBackdrop = new pc.Entity("blocking3d-hdri-backdrop");
-        environmentBackdrop.addComponent("render", {
-          meshInstances: [meshInstance],
-          layers: [pc.LAYERID_WORLD],
-        });
-        environmentBackdrop.setPosition(environmentWorldPosition);
-        worldEntity.addChild(environmentBackdrop);
-        applyEnvironmentSettings();
-        ground.enabled = false;
-        setStatus("3D 草图已就绪");
-      } catch (error) {
-        if (isCurrentEnvironmentRequest(requestId)) {
-          clearEnvironmentLighting();
-          clearEnvironmentVisuals();
-          ground.enabled = true;
-        }
-        throw error;
-      }
+      setStatus("正在加载场景 HDRI 环境...");
+      const loaded = await environment.load(url, environmentSettings);
+      // false = 期间已有更新的加载接管，本次结果交给新请求处理。
+      if (!loaded) return;
+      applyEnvironmentSettings();
+      ground.enabled = false;
+      setStatus("3D 草图已就绪");
     },
     getEnvironmentSettings() {
       return { ...environmentSettings };
@@ -1253,7 +1109,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         || next.domeRadius !== environmentSettings.domeRadius;
       environmentSettings = next;
       applyEnvironmentSettings();
-      if (geometryChanged) rebuildEnvironmentBackdropMesh();
+      if (geometryChanged) environment.rebuildEnvironmentBackdropMesh(environmentSettings);
       emitChange();
       return true;
     },
@@ -1262,6 +1118,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         schemaVersion: 1,
         engine: "playcanvas",
         camera: viewer.getCameraState(),
+        shotCamera: {
+          position: [...shotCameraPose.position] as [number, number, number],
+          yawDeg: shotCameraPose.yawDeg,
+          pitchDeg: shotCameraPose.pitchDeg,
+        },
         environment: viewer.getEnvironmentSettings(),
         actors: [...actors.values()].map((actor) => {
           const position = actor.entity.getPosition();
@@ -1287,8 +1148,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         || nextEnvironment.domeRadius !== environmentSettings.domeRadius;
       environmentSettings = nextEnvironment;
       applyEnvironmentSettings();
-      if (geometryChanged) rebuildEnvironmentBackdropMesh();
+      if (geometryChanged) environment.rebuildEnvironmentBackdropMesh(environmentSettings);
       viewer.setCameraState(layout.camera);
+      // 旧布局没有独立机位字段时从轨道相机推导，打开就能看到摄像机实体。
+      shotCameraPose = normalizeShotCameraPose(layout.shotCamera, deriveShotCameraPoseFromOrbit(layout.camera));
+      syncShotCameraVisuals();
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);
         if (!actor) continue;
@@ -1313,12 +1177,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const selectedOutlineEntity = selectionOutline.getEntity();
       selectionOutline.setEntity(null);
       transformGizmo.attach(null);
-      const pipWasEnabled = shotCameraComponent.enabled;
-      if (pipWasEnabled) shotCameraComponent.enabled = false;
-      const bodyWasEnabled = cameraBody.enabled;
-      // 摄像机机身是编辑器辅助对象，导出的摆位草图不包含它。
-      cameraBody.enabled = false;
+      // 摄像机机身与取景画中画是编辑器辅助对象，导出的摆位草图不包含它们。
+      const bodyWasEnabled = shotCamera.body.enabled;
+      shotCamera.body.enabled = false;
+      const helpersWereSuppressed = shotCameraHelpersSuppressed;
       shotCameraHelpersSuppressed = true;
+      syncShotCameraVisuals();
       try {
         app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
         // 第一帧只用于冲掉上一轮 update 排队的参考线（网格/边界/gizmo），
@@ -1333,9 +1197,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         return new Blob([bytes], { type: "image/png" });
       } finally {
         resize();
-        shotCameraHelpersSuppressed = false;
-        shotCameraComponent.enabled = pipWasEnabled;
-        cameraBody.enabled = bodyWasEnabled;
+        shotCameraHelpersSuppressed = helpersWereSuppressed;
+        syncShotCameraVisuals();
+        shotCamera.body.enabled = bodyWasEnabled;
         selectionOutline.setEntity(selectedOutlineEntity);
         selectionOutline.frameUpdate();
         syncTransformGizmo();
@@ -1344,7 +1208,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     },
     destroy() {
       if (destroyed) return;
-      environmentRequestId += 1;
       destroyed = true;
       resizeObserver.disconnect();
       canvas.removeEventListener("pointerdown", onPointerDown);
@@ -1359,15 +1222,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       actors.clear();
       for (const runtime of sceneMarkerRuntimes.values()) destroySceneMarkerRuntime(runtime);
       sceneMarkerRuntimes.clear();
-      clearEnvironmentVisuals();
-      clearEnvironmentLighting();
+      environment.destroy();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
       transformGizmo.destroy();
-      shotCameraEntity.destroy();
-      cameraBody.destroy();
+      shotCamera.destroy();
       selectionOutline.destroy();
       cameraFrame.destroy();
-      environmentKeyLight.destroy();
       app.destroy();
     },
   };

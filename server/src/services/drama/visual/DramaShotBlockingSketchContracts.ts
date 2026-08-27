@@ -142,10 +142,18 @@ export interface DramaShotBlockingSketch3DEnvironment {
   intensity: number;
 }
 
+export interface DramaShotBlockingSketch3DShotCamera {
+  /** 场景摄像机实体的独立机位（世界坐标位置 + 朝向），与编辑视角相机解耦。 */
+  position: [number, number, number];
+  yawDeg: number;
+  pitchDeg: number;
+}
+
 export interface DramaShotBlockingSketch3DLayout {
   schemaVersion: 1;
   engine: "playcanvas";
   camera: DramaShotBlockingSketch3DCamera;
+  shotCamera?: DramaShotBlockingSketch3DShotCamera;
   actors: DramaShotBlockingSketch3DActor[];
   environment?: DramaShotBlockingSketch3DEnvironment;
 }
@@ -342,6 +350,20 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   };
 }
 
+function normalize3dShotCamera(input: unknown): DramaShotBlockingSketch3DShotCamera {
+  const shotCamera = objectValue(input, "场景摄像机机位");
+  const position = array3(shotCamera.position, "场景摄像机位置");
+  return {
+    position: [
+      finiteNumber(position[0], "场景摄像机横向位置", BLOCKING_SKETCH_3D_LIMITS.positionX.min, BLOCKING_SKETCH_3D_LIMITS.positionX.max),
+      finiteNumber(position[1], "场景摄像机高度", BLOCKING_SKETCH_3D_LIMITS.positionY.min, BLOCKING_SKETCH_3D_LIMITS.positionY.max),
+      finiteNumber(position[2], "场景摄像机纵向位置", BLOCKING_SKETCH_3D_LIMITS.positionZ.min, BLOCKING_SKETCH_3D_LIMITS.positionZ.max),
+    ],
+    yawDeg: finiteNumber(shotCamera.yawDeg, "场景摄像机朝向", BLOCKING_SKETCH_3D_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_LIMITS.yawDeg.max),
+    pitchDeg: finiteNumber(shotCamera.pitchDeg, "场景摄像机俯仰角", BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.min, BLOCKING_SKETCH_3D_LIMITS.cameraElevDeg.max),
+  };
+}
+
 export function normalizeBlockingSketch3dLayout(input: unknown): DramaShotBlockingSketch3DLayout {
   const layout = objectValue(input, "3D 摆位");
   if (layout.schemaVersion !== 1) invalid("3D 摆位版本不受支持");
@@ -353,6 +375,7 @@ export function normalizeBlockingSketch3dLayout(input: unknown): DramaShotBlocki
     schemaVersion: 1,
     engine: "playcanvas",
     camera: normalize3dCamera(layout.camera),
+    ...(layout.shotCamera === undefined ? {} : { shotCamera: normalize3dShotCamera(layout.shotCamera) }),
     actors: layout.actors.map(normalize3dActor),
     ...(layout.environment === undefined ? {} : { environment: normalize3dEnvironment(layout.environment) }),
   };
