@@ -31,7 +31,7 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 ## 失败模式
 
 - **前端长时间「生成中」最后超时**：codex 通道单图本来就要数分钟（复杂四视图可能超过 5 分钟），不是卡死。排查顺序：桥日志的 `done/failed in <ms>` 耗时行 → 业务表 `image.status`（`generating` = 还在跑或进程退出未愈合，`error` 带 `timed out after ...ms` = 服务端超时）→ 桥并发槽是否被占满。服务重启时卡在 `generating` 的状态由 `interruptedStateHealer` 启动愈合为 error。
-- codex CLI 未安装：桥 `/health` 返回 `ready: false`，`pnpm codex:image` 会在 120 秒后报错；可设置 `CODEX_IMAGE_EXECUTABLE` 指定路径。
+- codex CLI 未安装或不可达：桥每次调用都重新解析可执行文件，顺序为 `CODEX_IMAGE_EXECUTABLE`（须真实存在）→ `where/which codex` → 确定性兜底（Windows 优先与本桥 `node.exe` 同目录的 `codex.cmd`——npm 前缀指到 node 目录时的位置——再退 `%APPDATA%\npm\codex.cmd`）。PATH 损坏或服务化启动环境缺失用户 npm 目录时不再瘫痪；但 CLI 文件本体被删（如全局包被外部清理）无法自愈，`npm i -g @openai/codex@latest` 重装即可，登录态在 `~/.codex` 不受影响（2026-08-27 实例：node 前缀目录里的全局包被清空导致所有调用 502「未找到 codex CLI」，重装后运行中的桥无需重启即恢复）。
 - codex 登录态失效：CLI 以非零退出码结束，桥返回 502 并透传 stderr 尾部，任务层按现有图片任务重试规则处理。
 - CLI 正常结束但没有新图片文件：桥报「Codex 结束运行但没有产出图片文件」，通常是订阅侧图片工具被拒或额度问题。
 - 分镜结果角色外观漂移或同一场景光线跳变：先查看 `/keyframe/prepare` 返回的 `referenceImages`，再核对桥日志的 `refs` 与 `reference_labels`；如果预览有角色/场景但日志为 `refs=0`，问题在请求组装或 Provider 通道，不在提示词。若 `refs` 正确但仍漂移，再检查场景状态图是否为空、是否选错状态，以及最终提示词末尾的场景光照契约是否存在。
