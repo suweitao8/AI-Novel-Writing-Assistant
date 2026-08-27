@@ -108,7 +108,7 @@ function PageTabGroup({ row, separated }: { row: PageTabRow; separated: boolean 
           type="button"
           onClick={() => row.onSelect(tab.key)}
           className={cn(
-            "flex h-9 items-center rounded-md px-2.5 text-[13px] transition-colors",
+            "flex h-9 items-center rounded-md px-2 text-[13px] transition-colors",
             row.active === tab.key
               ? "bg-primary/10 font-medium text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
