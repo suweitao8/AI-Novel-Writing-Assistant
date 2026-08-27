@@ -520,7 +520,9 @@ export function AssetStatesEditor(props: {
           timeOfDay: previous?.timeOfDay ?? null,
           weather: previous?.weather ?? null,
         } : {}),
-        referenceStateId: previous?.id ?? null,
+        // 参考图是显式选择（2026-08-27 用户要求）：新增状态默认不参考任何旧图，
+        // 直接生成全新形象；需要延续形象时在「参考图」下拉里手动指定。
+        referenceStateId: null,
       };
     }
     onChange([...states, nextState]);

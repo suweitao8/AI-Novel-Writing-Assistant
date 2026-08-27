@@ -47,6 +47,10 @@ import {
   scenePanoramaLayoutLinesFor,
 } from "../../../../services/drama/visual/dramaVisualStyles";
 import {
+  ROOM_ARCHITECTURE_NEGATIVE_PROMPT,
+  ROOM_ARCHITECTURE_PROMPT_LINES,
+} from "../../../../services/image/roomArchitecture";
+import {
   buildCharacterStateSheetPrompt,
   CHARACTER_STATE_SHEET_NEGATIVE_PROMPT,
 } from "../../../../services/drama/visual/characterStateSheet";
@@ -450,6 +454,8 @@ export function buildStateImagePrompt(
         // 室内场景追加强化行：家具/墙根必须留在地平线以上，下半区只出纯地板材质
         //（2026-08-26 用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
         ...scenePanoramaLayoutLinesFor(input.state.sceneType),
+        // 建筑合理性（2026-08-27 用户反馈：卧室出现两个门）：门/窗数量确定性、禁镜像复制墙段。
+        ...ROOM_ARCHITECTURE_PROMPT_LINES,
         // 参考图往往本身就越线：若允许模型照抄参考图构图，越线会代代相传（2026-08-26 用户
         // 反馈重新生成仍越线的主要泄漏点）。参考图只锁材质/光照/身份，垂直构图一律随契约。
         ...(input.hasReference
@@ -888,6 +894,7 @@ export class StoryAssetStateImageService {
         ? [
           "people, characters, persons, animals, monsters, creatures, crowds, living subjects, humanoid silhouettes",
           SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT,
+          ROOM_ARCHITECTURE_NEGATIVE_PROMPT,
         ].join(", ")
         : kind === "prop"
           ? "other objects, multiple objects, extra props, hands, holding, table, cloth, fabric, rag, wooden board, background scenery"
