@@ -11,6 +11,9 @@ const items = [
   { to: "/settings/knowledge", label: "知识库与写法" },
   { to: "/settings/narrator-voice", label: "旁白音色" },
   { to: "/settings/appearance", label: "外观与主题" },
+  // 记录与画风以页签形式并入系统（2026-08-27 用户要求）；旧地址保留重定向。
+  { to: "/settings/records", label: "记录" },
+  { to: "/settings/art-style", label: "画风" },
 ];
 
 // 系统设置的二级页签即子路由：桌面端上收到顶部导航栏，移动端保留页内列表。

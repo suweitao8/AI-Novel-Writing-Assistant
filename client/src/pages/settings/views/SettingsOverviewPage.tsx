@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, AudioLines, BookOpenCheck, Bot, Database, ListTodo, Palette } from "lucide-react";
+import { ArrowRight, AudioLines, BookOpenCheck, Bot, Database } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
   getModelCategories,
@@ -21,9 +21,6 @@ const entries = [
   { to: "/settings/director", title: "自动导演", description: "安排问题处理、确认偏好与提醒方式。", icon: BookOpenCheck },
   { to: "/settings/knowledge", title: "知识库与写法", description: "让资料和写法偏好参与后续创作。", icon: Database },
   { to: "/settings/narrator-voice", title: "旁白音色", description: "试听并设置整个应用统一使用的旁白音色。", icon: AudioLines },
-  // 记录与画风收进系统（2026-08-27 用户要求）：顶部导航不再单列，这里提供入口。
-  { to: "/tasks", title: "记录", description: "查看创作、拆书、知识索引和图片任务的运行历史。", icon: ListTodo },
-  { to: "/art-style", title: "画风", description: "维护资产画风与时代画风，全部小说和漫剧项目共用。", icon: Palette },
 ];
 
 export default function SettingsOverviewPage() {
@@ -57,11 +54,7 @@ export default function SettingsOverviewPage() {
               ? rag?.enabled ? `资料检索已开启 · ${rag.embeddingModel || "未选择向量模型"}` : "可选增强，暂不影响开始创作"
               : title === "旁白音色"
                 ? narratorVoice?.sampleAudioUrl ? "已配置试听样本" : narratorVoice?.description ? "已填写音色描述" : "尚未设置旁白音色"
-              : title === "记录"
-                ? "创作、拆书、知识索引与图片任务的统一记录"
-                : title === "画风"
-                  ? "资产画风与时代画风的集中管理"
-                  : "设置确认偏好、问题处理和通知方式";
+              : "设置确认偏好、问题处理和通知方式";
           return (
             <Card key={to} className="min-w-0">
               <CardHeader>
