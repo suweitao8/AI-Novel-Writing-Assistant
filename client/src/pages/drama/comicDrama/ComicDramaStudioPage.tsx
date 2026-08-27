@@ -30,6 +30,8 @@ import SettingsCharactersTab from "@/pages/novels/components/storySettings/Setti
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import AutoStoryAssetImageGeneration from "@/pages/novels/components/storySettings/AutoStoryAssetImageGeneration";
+import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
@@ -87,14 +89,14 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
 
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 
-// 漫剧工作室：顶栏为返回（图标+项目名，弱化样式）+ 居中的项目级页签（当前/资产/设定），
-// 每个页签下方都有自己的居中子页签条、操作按钮靠右。
-// 「当前」按章推进：顶栏章节管理显示当前章并负责切换，子页签（脚本/分镜/成片）
-// 全部随当前章更新；「解析」按参考文本生成本章脚本与设定提取。
+// 漫剧工作室：项目级页签（当前/资产/设定）与各页签的子页签统一放在顶部导航栏，
+// 页头只保留当前页签的工具按钮（引用/解析/生成/章节管理）；
+// 移动端没有顶部导航栏，页签和子页签条保留在页头内。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
+  const isMobileViewport = useIsMobileViewport();
   const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
   const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
   const [assetTab, setAssetTab] = useState<AssetTab>(() => readStudioNavigation(searchParams.toString()).assetTab);
@@ -102,6 +104,7 @@ export default function ComicDramaStudioPage() {
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [createChapterOpen, setCreateChapterOpen] = useState(false);
+
 
   const overviewQuery = useQuery({
     queryKey: queryKeys.comicDrama.overview(novelId),
@@ -157,6 +160,40 @@ export default function ComicDramaStudioPage() {
 
   const directorTask = overview?.novel.directorTask ?? null;
   const directorActive = directorTask?.status === "running" || directorTask?.status === "queued";
+  // 桌面端项目级页签与子页签统一上收到顶部导航栏；移动端保留页头内页签。
+  const stageTabRow = {
+    id: "studio-stage",
+    tabs: (Object.keys(STAGE_LABELS) as StudioStage[]).map((key) => ({ key, label: STAGE_LABELS[key] })),
+    active: stage,
+    onSelect: (key: string) => setStage(key as StudioStage),
+  };
+  const subTabRow = stage === "current"
+    ? {
+      id: "studio-sub",
+      tabs: (Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]).map((key) => ({
+        key,
+        label: `${CURRENT_TAB_LABELS[key]}${key === "extract" && extractStage.totalItems > 0 ? ` ${extractStage.totalItems}` : ""}`,
+      })),
+      active: currentTab,
+      onSelect: (key: string) => setCurrentTab(key as CurrentTab),
+    }
+    : stage === "assets"
+      ? {
+        id: "studio-sub",
+        tabs: (Object.keys(ASSET_TAB_LABELS) as AssetTab[]).map((key) => ({
+          key,
+          label: `${ASSET_TAB_LABELS[key]}${settingsOverview ? ` ${settingsOverview.counts[key as "characters" | "scenes" | "props"]}` : ""}`,
+        })),
+        active: assetTab,
+        onSelect: (key: string) => setAssetTab(key as AssetTab),
+      }
+      : {
+        id: "studio-sub",
+        tabs: (Object.keys(SETTINGS_TAB_LABELS) as SettingsTab[]).map((key) => ({ key, label: SETTINGS_TAB_LABELS[key] })),
+        active: settingsTab,
+        onSelect: (key: string) => setSettingsTab(key as SettingsTab),
+      };
+  useRegisterPageTabs(!isMobileViewport, [stageTabRow, subTabRow]);
 
   // 分镜自动同步：切换章节或进入「分镜」页签时，静默把小说最新内容打包进分镜项目
   // （幂等：upsert 内容包、重建角色与初始事实），不再依赖手动「同步最新章节」按钮。
@@ -218,28 +255,100 @@ export default function ComicDramaStudioPage() {
     );
   }
 
+  // 「当前」页签的工具区：桌面端放在页头右侧，移动端保留在子页签条右列。
+  const currentToolbar = stage === "current" ? (
+    <div
+      ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+      className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto"
+    >
+      {currentTab === "reference" ? (
+        <>
+          {chapterWorkspace.referenceSavePending ? (
+            <span className="text-xs text-muted-foreground">自动保存中…</span>
+          ) : chapterWorkspace.referenceDirty ? (
+            <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
+          ) : null}
+          {referenceStage.hasReferenceDoc ? (
+            <Button
+              size="sm"
+              onClick={referenceStage.injectReferenceSource}
+              disabled={referenceStage.injectDisabled}
+              title={referenceStage.injectTitle}
+            >
+              引用
+            </Button>
+          ) : null}
+          {referenceStage.parseDisabledReason ? (
+            <span className="text-xs text-muted-foreground">{referenceStage.parseDisabledReason}</span>
+          ) : null}
+          <Button
+            size="sm"
+            onClick={() => referenceStage.parseMutation.mutate()}
+            disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
+            title={referenceStage.parseDisabledReason ?? "按参考文本生成本章脚本"}
+          >
+            {referenceStage.parseMutation.isPending
+              ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
+              : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
+            解析
+          </Button>
+          {referenceStage.parseElapsedLabel ? (
+            <span className="text-xs text-muted-foreground">{referenceStage.parseElapsedLabel}</span>
+          ) : referenceStage.lastParseDurationLabel ? (
+            <span className="text-xs text-muted-foreground">上次解析 {referenceStage.lastParseDurationLabel}</span>
+          ) : null}
+        </>
+      ) : currentTab === "script" ? (
+        <>
+          {chapterWorkspace.savePending ? (
+            <span className="text-xs text-muted-foreground">自动保存中…</span>
+          ) : chapterWorkspace.saveError ? (
+            <span className="inline-flex items-center gap-2 text-xs text-destructive">
+              保存失败
+              <button
+                type="button"
+                className="underline underline-offset-2"
+                onClick={chapterWorkspace.flushExpectationSave}
+              >
+                重试
+              </button>
+            </span>
+          ) : chapterWorkspace.expectationDirty ? (
+            <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
+          ) : null}
+          <AiButton
+            size="sm"
+            disabled={!storyboard.scriptReady || storyboard.generateMutation.isPending}
+            onClick={() => storyboard.generateMutation.mutate()}
+          >
+            {storyboard.generateMutation.isPending ? "生成中…" : "生成"}
+          </AiButton>
+        </>
+      ) : null}
+    </div>
+  ) : null;
+
   return (
     <div className="space-y-4">
       <AutoStoryAssetImageGeneration novelId={novelId} />
       <Tabs value={stage} onValueChange={(value) => setStage(value as StudioStage)}>
+        {isMobileViewport || stage === "current" ? (
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
-          <div className="flex flex-col gap-2.5 px-4 py-3 sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-4 sm:px-5">
-            <Link
-              to="/drama"
-              aria-label="返回漫剧列表"
-              className="flex min-w-0 items-center gap-1.5"
-            >
-              <ArrowLeft className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-              <span className="min-w-0 truncate text-lg font-semibold tracking-tight text-foreground">{overview.novel.title}</span>
-            </Link>
-            <TabsList className="sm:justify-self-center">
-              <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
-              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
-              <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.settings}</TabsTrigger>
-            </TabsList>
-            <div className="flex flex-wrap items-center justify-end gap-2">{headerActions}</div>
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:px-5">
+            {isMobileViewport ? (
+              <TabsList>
+                <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
+                <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
+                <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.settings}</TabsTrigger>
+              </TabsList>
+            ) : null}
+            <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
+              {!isMobileViewport ? currentToolbar : null}
+              {headerActions}
+            </div>
           </div>
-          {stage === "current" ? (
+          {isMobileViewport ? (
+          stage === "current" ? (
             <SubTabRow>
               <span className="hidden sm:block" aria-hidden="true" />
               <Tabs
@@ -257,75 +366,7 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
-              <div
-                ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
-                className="flex w-full flex-wrap items-center justify-center gap-2 sm:w-auto sm:justify-self-end"
-              >
-                {currentTab === "reference" ? (
-                  <>
-                    {chapterWorkspace.referenceSavePending ? (
-                      <span className="text-xs text-muted-foreground">自动保存中…</span>
-                    ) : chapterWorkspace.referenceDirty ? (
-                      <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
-                    ) : null}
-                    {referenceStage.hasReferenceDoc ? (
-                      <Button
-                        size="sm"
-                        onClick={referenceStage.injectReferenceSource}
-                        disabled={referenceStage.injectDisabled}
-                        title={referenceStage.injectTitle}
-                      >
-                        引用
-                      </Button>
-                    ) : null}
-                    {referenceStage.parseDisabledReason ? (
-                      <span className="text-xs text-muted-foreground">{referenceStage.parseDisabledReason}</span>
-                    ) : null}
-                    <Button
-                      size="sm"
-                      onClick={() => referenceStage.parseMutation.mutate()}
-                      disabled={referenceStage.parseMutation.isPending || referenceStage.parseDisabledReason !== null}
-                      title={referenceStage.parseDisabledReason ?? "按参考文本生成本章脚本"}
-                    >
-                      {referenceStage.parseMutation.isPending
-                        ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" />
-                        : <Sparkles className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-                      解析
-                    </Button>
-                    {referenceStage.parseElapsedLabel ? (
-                      <span className="text-xs text-muted-foreground">{referenceStage.parseElapsedLabel}</span>
-                    ) : referenceStage.lastParseDurationLabel ? (
-                      <span className="text-xs text-muted-foreground">上次解析 {referenceStage.lastParseDurationLabel}</span>
-                    ) : null}
-                  </>
-                ) : currentTab === "script" ? (
-                  <>
-                    {chapterWorkspace.savePending ? (
-                      <span className="text-xs text-muted-foreground">自动保存中…</span>
-                    ) : chapterWorkspace.saveError ? (
-                      <span className="inline-flex items-center gap-2 text-xs text-destructive">
-                        保存失败
-                        <button
-                          type="button"
-                          className="underline underline-offset-2"
-                          onClick={chapterWorkspace.flushExpectationSave}
-                        >
-                          重试
-                        </button>
-                      </span>
-                    ) : chapterWorkspace.expectationDirty ? (
-                      <span className="text-xs text-muted-foreground">还有未保存的修改…</span>
-                    ) : null}
-                    <AiButton
-                      size="sm"
-                      disabled={!storyboard.scriptReady || storyboard.generateMutation.isPending}
-                      onClick={() => storyboard.generateMutation.mutate()}
-                    >
-                      {storyboard.generateMutation.isPending ? "生成中…" : "生成"}
-                    </AiButton>
-                  </>
-                ) : null}
-              </div>
+              {currentToolbar}
             </SubTabRow>
           ) : stage === "assets" ? (
             <SubTabRow>
@@ -365,8 +406,10 @@ export default function ComicDramaStudioPage() {
               </Tabs>
               <span className="hidden sm:block" aria-hidden="true" />
             </SubTabRow>
-          )}
+          )
+          ) : null}
         </header>
+        ) : null}
 
         <TabsContent value="current" className="space-y-4">
           {currentTab === "extract" ? (
