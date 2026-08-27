@@ -48,24 +48,21 @@ import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useRefere
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
-  ASSET_TAB_LABELS,
   CURRENT_TAB_LABELS,
   readStudioNavigation,
   SETTINGS_TAB_LABELS,
   STUDIO_STAGE_LABELS,
-  type AssetTab,
+  STUDIO_STAGE_ORDER,
   type CurrentTab,
   type SettingsTab,
   type StudioStage,
 } from "./navigation/studioNavigation";
 
-// 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·通用）。
-// 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
+// 资产页签已拍平：角色 / 场景 / 道具是二级页签本体，与「章节」（原「当前」）、
+// 「设定」平级，没有中间的「资产」层。
+// 「章节」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
-// 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
-// 页签类型与文案统一维护在 navigation/studioNavigation.ts；「当前」的子页签在下面
-// 使用时带提取数量等动态后缀，因此保留本文件内的动态行构建。
 
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 
@@ -79,7 +76,6 @@ export default function ComicDramaStudioPage() {
   const isMobileViewport = useIsMobileViewport();
   const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
   const [currentTab, setCurrentTab] = useState<CurrentTab>("script");
-  const [assetTab, setAssetTab] = useState<AssetTab>(() => readStudioNavigation(searchParams.toString()).assetTab);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
@@ -143,7 +139,7 @@ export default function ComicDramaStudioPage() {
   // 桌面端项目级页签与子页签统一上收到顶部导航栏；移动端保留页头内页签。
   const stageTabRow = {
     id: "studio-stage",
-    tabs: (Object.keys(STUDIO_STAGE_LABELS) as StudioStage[]).map((key) => ({ key, label: STUDIO_STAGE_LABELS[key] })),
+    tabs: STUDIO_STAGE_ORDER.map((key) => ({ key, label: STUDIO_STAGE_LABELS[key] })),
     active: stage,
     onSelect: (key: string) => setStage(key as StudioStage),
   };
@@ -157,23 +153,17 @@ export default function ComicDramaStudioPage() {
       active: currentTab,
       onSelect: (key: string) => setCurrentTab(key as CurrentTab),
     }
-    : stage === "assets"
+    : stage === "settings"
       ? {
-        id: "studio-sub",
-        tabs: (Object.keys(ASSET_TAB_LABELS) as AssetTab[]).map((key) => ({
-          key,
-          label: `${ASSET_TAB_LABELS[key]}${settingsOverview ? ` ${settingsOverview.counts[key as "characters" | "scenes" | "props"]}` : ""}`,
-        })),
-        active: assetTab,
-        onSelect: (key: string) => setAssetTab(key as AssetTab),
-      }
-      : {
         id: "studio-sub",
         tabs: (Object.keys(SETTINGS_TAB_LABELS) as SettingsTab[]).map((key) => ({ key, label: SETTINGS_TAB_LABELS[key] })),
         active: settingsTab,
         onSelect: (key: string) => setSettingsTab(key as SettingsTab),
-      };
-  useRegisterPageTabs(!isMobileViewport, [stageTabRow, subTabRow]);
+      }
+    : null;
+  // 角色 / 场景 / 道具页签没有子页签，三级胶囊只在章节、设定语境下出现。
+  const pageTabRows = subTabRow ? [stageTabRow, subTabRow] : [stageTabRow];
+  useRegisterPageTabs(!isMobileViewport, pageTabRows);
   // 顶部导航栏「AI 实况」左侧的操作区槽位：桌面端把当前页签的工具按钮 portal 进去。
   const navActionsSlot = usePageNavActionsSlot();
 
@@ -343,9 +333,9 @@ export default function ComicDramaStudioPage() {
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:px-5">
             <TabsList>
-              <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.current}</TabsTrigger>
-              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.assets}</TabsTrigger>
-              <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.settings}</TabsTrigger>
+              {STUDIO_STAGE_ORDER.map((key) => (
+                <TabsTrigger key={key} value={key}>{STUDIO_STAGE_LABELS[key]}</TabsTrigger>
+              ))}
             </TabsList>
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
               {headerActions}
@@ -369,29 +359,7 @@ export default function ComicDramaStudioPage() {
               </Tabs>
               {mobileToolbar}
             </SubTabRow>
-          ) : stage === "assets" ? (
-            <SubTabRow>
-              <span className="hidden sm:block" aria-hidden="true" />
-              <Tabs
-                value={assetTab}
-                onValueChange={(value) => setAssetTab(value as AssetTab)}
-                className="sm:justify-self-center"
-              >
-                <TabsList>
-                  <TabsTrigger value="characters">
-                    {ASSET_TAB_LABELS.characters}{settingsOverview ? ` ${settingsOverview.counts.characters}` : ""}
-                  </TabsTrigger>
-                  <TabsTrigger value="scenes">
-                    {ASSET_TAB_LABELS.scenes}{settingsOverview ? ` ${settingsOverview.counts.scenes}` : ""}
-                  </TabsTrigger>
-                  <TabsTrigger value="props">
-                    {ASSET_TAB_LABELS.props}{settingsOverview ? ` ${settingsOverview.counts.props}` : ""}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-              <span className="hidden sm:block" aria-hidden="true" />
-            </SubTabRow>
-          ) : (
+          ) : stage === "settings" ? (
             <SubTabRow>
               <span className="hidden sm:block" aria-hidden="true" />
               <Tabs
@@ -407,7 +375,7 @@ export default function ComicDramaStudioPage() {
               </Tabs>
               <span className="hidden sm:block" aria-hidden="true" />
             </SubTabRow>
-          )}
+          ) : null}
         </header>
         ) : null}
 
@@ -446,15 +414,21 @@ export default function ComicDramaStudioPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="assets" className="space-y-4">
+        <TabsContent value="characters" className="space-y-4">
           <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
-            {assetTab === "characters" ? (
-              <SettingsCharactersTab novelId={novelId} onChanged={invalidateStorySettings} />
-            ) : assetTab === "scenes" ? (
-              <SettingsScenesTab novelId={novelId} onChanged={invalidateStorySettings} />
-            ) : (
-              <SettingsPropsTab novelId={novelId} onChanged={invalidateStorySettings} />
-            )}
+            <SettingsCharactersTab novelId={novelId} onChanged={invalidateStorySettings} />
+          </section>
+        </TabsContent>
+
+        <TabsContent value="scenes" className="space-y-4">
+          <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+            <SettingsScenesTab novelId={novelId} onChanged={invalidateStorySettings} />
+          </section>
+        </TabsContent>
+
+        <TabsContent value="props" className="space-y-4">
+          <section className="overflow-hidden rounded-3xl border border-border bg-background p-4 shadow-sm sm:p-6">
+            <SettingsPropsTab novelId={novelId} onChanged={invalidateStorySettings} />
           </section>
         </TabsContent>
 
