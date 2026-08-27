@@ -562,7 +562,6 @@ export const dramaStoryboardOutputSchema = z.object({
   shots: z.array(z.object({
     order: z.number().int().min(1),
     shotSize: z.string().trim().optional(),
-    cameraMove: z.string().trim().optional(),
     durationSec: z.number().int().min(1).max(30).optional(),
     location: z.string().trim().optional(),
     action: z.string().trim().min(1),

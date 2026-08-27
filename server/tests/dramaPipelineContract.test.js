@@ -395,7 +395,6 @@ function installPipelineStubs() {
               shots: [{
                 order: 1,
                 shotSize: "中近景",
-                cameraMove: "轻微推进",
                 durationSec: 5,
                 location: "公司大厅",
                 action: "林澈被保安拦住，周围员工围观。",

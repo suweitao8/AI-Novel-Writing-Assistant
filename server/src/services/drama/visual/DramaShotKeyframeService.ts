@@ -66,7 +66,6 @@ interface ShotKeyframeSource {
   id: string;
   order: number;
   shotSize?: string | null;
-  cameraMove?: string | null;
   location?: string | null;
   action: string;
   dialogue?: string | null;

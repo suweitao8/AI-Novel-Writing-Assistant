@@ -71,8 +71,6 @@ interface BlockingSketchShot {
   id: string;
   order: number;
   shotSize: string | null;
-  cameraMove: string | null;
-  durationSec: number | null;
   action: string;
   dialogue: string | null;
   location: string | null;
@@ -94,22 +92,18 @@ export interface DramaShotBlockingSketchShotSummary {
   order: number;
   location: string;
   shotSize: string;
-  cameraMove: string;
-  durationSec: number | null;
   action: string;
   dialogue: string;
   visualPrompt: string;
 }
 
 export function buildDramaShotBlockingEditorShotSummary(
-  shot: Pick<BlockingSketchShot, "order" | "location" | "shotSize" | "cameraMove" | "durationSec" | "action" | "dialogue" | "visualPrompt">,
+  shot: Pick<BlockingSketchShot, "order" | "location" | "shotSize" | "action" | "dialogue" | "visualPrompt">,
 ): DramaShotBlockingSketchShotSummary {
   return {
     order: shot.order,
     location: shot.location ?? "",
     shotSize: shot.shotSize ?? "",
-    cameraMove: shot.cameraMove ?? "",
-    durationSec: shot.durationSec ?? null,
     action: shot.action ?? "",
     dialogue: shot.dialogue ?? "",
     visualPrompt: shot.visualPrompt ?? "",
@@ -253,8 +247,6 @@ export class DramaShotBlockingSketchService {
         id: true,
         order: true,
         shotSize: true,
-        cameraMove: true,
-        durationSec: true,
         action: true,
         dialogue: true,
         location: true,
@@ -414,8 +406,6 @@ export class DramaShotBlockingSketchService {
           order: shot.order,
           location: shot.location,
           shotSize: shot.shotSize,
-          cameraMove: shot.cameraMove,
-          durationSec: shot.durationSec,
           action: shot.action,
           dialogue: shot.dialogue,
           visualPrompt: shot.visualPrompt,

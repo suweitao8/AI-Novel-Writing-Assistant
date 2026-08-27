@@ -585,14 +585,12 @@ export default function DramaBlocking3DPage() {
                   name={`第 ${context.shot.order} 镜`}
                 />
                 <div className="text-xs font-medium">镜头设计</div>
-<InspectorPropertyList
-        className="text-xs"
-        items={[
-        { label: "景别", value: context.shot.shotSize || "未设置" },
-        { label: "运镜", value: context.shot.cameraMove || "未设置" },
-        { label: "时长", value: context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒` },
-        ]}
-      />
+                <InspectorPropertyList
+                  className="text-xs"
+                  items={[
+                    { label: "景别", value: context.shot.shotSize || "未设置" },
+                  ]}
+                />
                 <div className="space-y-1.5 border-t border-border/60 pt-4 text-xs">
                   <div className="text-muted-foreground">动作</div>
                   <p className="whitespace-pre-wrap leading-5">{context.shot.action || "未设置"}</p>

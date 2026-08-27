@@ -254,7 +254,6 @@ const shotUpdateSchema = z.object({
   action: z.string().trim().max(1000).optional(),
   dialogue: z.string().trim().max(500).optional(),
   shotSize: z.string().trim().max(40).optional(),
-  cameraMove: z.string().trim().max(40).optional(),
   location: z.string().trim().max(40).optional(),
   durationSec: z.number().int().min(1).max(60).optional(),
 });
@@ -1036,7 +1035,7 @@ router.post("/projects/:id/shots/:shotId/video-prompt", validate({ params: shotP
   }
 });
 
-// 手动编辑镜头（台词/动作/景别/运镜/时长/场景）；台词改动后配音段按指纹自动标记过期
+// 手动编辑镜头（台词/动作/景别/时长/场景）；台词改动后配音段按指纹自动标记过期
 router.put("/projects/:id/shots/:shotId", validate({ params: shotParamsSchema, body: shotUpdateSchema }), async (req, res, next) => {
   try {
     const { id, shotId } = req.params as z.infer<typeof shotParamsSchema>;

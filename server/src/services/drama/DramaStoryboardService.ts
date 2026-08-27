@@ -9,7 +9,6 @@ export interface DramaShotUpdateInput {
   action?: string;
   dialogue?: string;
   shotSize?: string;
-  cameraMove?: string;
   location?: string;
   durationSec?: number;
 }
@@ -18,7 +17,6 @@ const SHOT_TEXT_LIMITS = {
   action: 1000,
   dialogue: 500,
   shotSize: 40,
-  cameraMove: 40,
   location: 40,
 } as const;
 
@@ -55,7 +53,6 @@ export class DramaStoryboardService {
           storyboardId: created.id,
           order: shot.order,
           shotSize: shot.shotSize ?? null,
-          cameraMove: shot.cameraMove ?? null,
           durationSec: shot.durationSec ?? null,
           location: shot.location ?? null,
           action: shot.action,
@@ -81,7 +78,7 @@ export class DramaStoryboardService {
   }
 
   /**
-   * 手动编辑单个镜头（台词/动作/景别/运镜/时长/场景）。
+   * 手动编辑单个镜头（台词/动作/景别/时长/场景）。
    * 台词改动不需要动配音数据：配音段的过期判定基于生成时的台词指纹比对，
    * 改完台词该段会在配音工作台自动标记"已过期，需重配"。首帧同理不动（重生成即可）。
    */
@@ -109,7 +106,7 @@ export class DramaStoryboardService {
       }
       data.dialogue = value || null;
     }
-    for (const key of ["shotSize", "cameraMove", "location"] as const) {
+    for (const key of ["shotSize", "location"] as const) {
       const raw = input[key];
       if (raw === undefined) {
         continue;
