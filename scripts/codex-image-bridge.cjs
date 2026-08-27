@@ -103,7 +103,7 @@ function parseArgs(argv) {
 
 function resolveCodexExecutable() {
   const configured = String(process.env.CODEX_IMAGE_EXECUTABLE || "").trim();
-  if (configured) {
+  if (configured && fs.existsSync(configured)) {
     return configured;
   }
   const finder = process.platform === "win32" ? "where" : "which";
@@ -115,10 +115,32 @@ function resolveCodexExecutable() {
     const cmd = process.platform === "win32"
       ? lines.find((line) => line.toLowerCase().endsWith(".cmd")) || lines[0]
       : lines[0];
-    return cmd || null;
+    if (cmd) {
+      return cmd;
+    }
   } catch {
-    return null;
+    // PATH 上找不到时继续尝试确定性候选位置。
   }
+  // 兜底：服务化/精简环境启动的进程 PATH 可能不含用户 npm 目录，但 CLI 文件本身还在。
+  // 不再 spawn npm（同一套损坏的 PATH 下它同样不可达），直接探测两个常见全局安装位：
+  // Windows 把 npm 全局前缀指到 node 安装目录时，CLI 与本桥的 node.exe 同目录；
+  // 默认前缀则在 %APPDATA%\npm。
+  const candidates = [];
+  if (process.platform === "win32") {
+    const nodeDir = path.dirname(process.execPath);
+    candidates.push(path.join(nodeDir, "codex.cmd"), path.join(nodeDir, "codex"));
+    candidates.push(path.join(os.homedir(), "AppData", "Roaming", "npm", "codex.cmd"));
+  } else {
+    candidates.push(path.join(os.homedir(), ".local", "bin", "codex"), "/usr/local/bin/codex");
+  }
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (found) {
+    return found;
+  }
+  if (configured) {
+    return configured;
+  }
+  return null;
 }
 
 function codexHomeDir() {
