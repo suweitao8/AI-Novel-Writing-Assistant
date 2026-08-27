@@ -1327,9 +1327,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       };
     },
     loadLayout(layout) {
-      environmentSettings = normalizeEnvironmentSettings(layout.environment);
+      const nextEnvironment = normalizeEnvironmentSettings(layout.environment);
+      // AI 构图通常沿用当前环境参数；穹顶网格重建会同步上传顶点缓冲，几何输入
+      // 没变时跳过，避免构图结果落地那一帧整页卡顿。
+      const geometryChanged = nextEnvironment.projectionCenterHeight !== environmentSettings.projectionCenterHeight
+        || nextEnvironment.domeRadius !== environmentSettings.domeRadius;
+      environmentSettings = nextEnvironment;
       applyEnvironmentSettings();
-      rebuildEnvironmentBackdropMesh();
+      if (geometryChanged) rebuildEnvironmentBackdropMesh();
       viewer.setCameraState(layout.camera);
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);

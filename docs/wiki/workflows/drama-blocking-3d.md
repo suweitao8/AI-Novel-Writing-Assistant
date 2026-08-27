@@ -136,7 +136,7 @@ HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLi
 
 由于 PlayCanvas 在没有显式 skybox 时会把 `envAtlas` 作为无限天空盒的回退纹理，3D blocking camera 必须排除 `LAYERID_SKYBOX`，有限 HDRI 半球和地面改放在 `LAYERID_WORLD`；不能为了保留环境光照而让引擎内置无限天空盒覆盖半球直径设置。没有可用 HDRI 时关闭派生方向光，并使用低强度中性 `Scene.ambientLight` 兜底。lighting source、envAtlas 和 HDRI 派生方向光都只存在于 viewer 生命周期，切换、加载失败和销毁时必须释放或关闭。
 
-场景 3D 编辑页的 viewer 生命周期只跟随环境图地址（`environmentUrl`）与场景数据重建；空间标记列表通过创建时的 ref 快照注入初始状态，之后一律由专用同步 effect 调 `viewer.setSceneMarkers` 增量更新。环境滑块（投射中心高度、半球直径、分界线）拖动时只调用 `viewer.setEnvironmentSettings`：分界线是纯着色器 uniform，不触发网格重建；只有投射中心高度或半球直径变化才重建背景网格。重建 viewer 是昂贵操作（HDRI 纹理重载、`EnvLighting` 生成、`reprojectTexture`），且每次重建都会新建 PlayCanvas Application，绝不能被高频用户输入触发。2026-08-26 的卡死黑屏事故即因 viewer 创建 effect 依赖了从环境参数派生的标记可见性引用：拖动分界线让“标记当前有效”翻转 → viewer 销毁重建 → 重建完成时 `fitView()` 触发 onChange 把环境状态重置回服务端保存值 → 判定再翻转 → 再次重建，形成重建风暴。用户侧界面中该参数的显示名为「分界线」（数据字段仍为 `panoramaHorizonV`）。
+场景 3D 编辑页的 viewer 生命周期只跟随环境图地址（`environmentUrl`）与场景数据重建；空间标记列表通过创建时的 ref 快照注入初始状态，之后一律由专用同步 effect 调 `viewer.setSceneMarkers` 增量更新。环境滑块（投射中心高度、半球直径、分界线）拖动时只调用 `viewer.setEnvironmentSettings`：分界线是纯着色器 uniform，不触发网格重建；只有投射中心高度或半球直径变化才重建背景网格。重建 viewer 是昂贵操作（HDRI 纹理重载、`EnvLighting` 生成、`reprojectTexture`），且每次重建都会新建 PlayCanvas Application，绝不能被高频用户输入触发。同理，`viewer.loadLayout`（AI 自动构图结果落地）也只在投射中心高度或半球直径真正变化时才重建背景网格——构图通常沿用当前环境，无条件重建会在结果落地那一帧同步上传穹顶顶点缓冲造成整页卡顿（2026-08-27 修复）。2026-08-26 的卡死黑屏事故即因 viewer 创建 effect 依赖了从环境参数派生的标记可见性引用：拖动分界线让“标记当前有效”翻转 → viewer 销毁重建 → 重建完成时 `fitView()` 触发 onChange 把环境状态重置回服务端保存值 → 判定再翻转 → 再次重建，形成重建风暴。用户侧界面中该参数的显示名为「分界线」（数据字段仍为 `panoramaHorizonV`）。
 
 ## Related Modules
 
