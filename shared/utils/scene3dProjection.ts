@@ -34,18 +34,18 @@ export interface StoryScene3dMarkerSizePolicy {
  * range doubles as the panel thickness pressed against the dome surface.
  */
 export const STORY_SCENE_3D_MARKER_SIZE_POLICIES = {
-  bed: { x: [1.4, 3.2], y: [0.35, 1.2], z: [0.6, 2.8], imageWidthFactor: 0.55, imageHeightFactor: 0.35 },
-  table: { x: [0.6, 2.4], y: [0.55, 1.2], z: [0.35, 1.5], imageWidthFactor: 0.42, imageHeightFactor: 0.42 },
-  chair: { x: [0.35, 1], y: [0.75, 1.5], z: [0.25, 1], imageWidthFactor: 0.5, imageHeightFactor: 0.48 },
-  sofa: { x: [1.4, 3.4], y: [0.55, 1.2], z: [0.5, 1.5], imageWidthFactor: 0.5, imageHeightFactor: 0.45 },
-  desk: { x: [0.8, 2.4], y: [0.6, 1.1], z: [0.35, 1.2], imageWidthFactor: 0.42, imageHeightFactor: 0.45 },
-  cabinet: { x: [0.4, 2], y: [0.8, 2.8], z: [0.3, 1], imageWidthFactor: 0.45, imageHeightFactor: 0.7 },
-  shelf: { x: [0.4, 2.2], y: [0.8, 3], z: [0.25, 0.8], imageWidthFactor: 0.5, imageHeightFactor: 0.75 },
-  door: { x: [0.6, 1.6], y: [1.8, 2.6], z: [0.06, 0.35], imageWidthFactor: 0.8, imageHeightFactor: 0.9 },
-  window: { x: [0.6, 3], y: [0.6, 2.6], z: [0.08, 0.4], imageWidthFactor: 0.75, imageHeightFactor: 0.9 },
-  counter: { x: [0.8, 3], y: [0.7, 1.3], z: [0.4, 1.2], imageWidthFactor: 0.4, imageHeightFactor: 0.45 },
-  stair: { x: [0.8, 3.5], y: [0.5, 2.5], z: [0.5, 4], imageWidthFactor: 0.55, imageHeightFactor: 0.5 },
-  other: { x: [0.25, 3], y: [0.2, 3], z: [0.25, 3], imageWidthFactor: 0.6, imageHeightFactor: 0.6 },
+  bed: { x: [1.4, 3.2], y: [0.35, 1.2], z: [0.6, 2.8], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  table: { x: [0.6, 2.4], y: [0.55, 1.2], z: [0.35, 1.5], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  chair: { x: [0.35, 1], y: [0.75, 1.5], z: [0.25, 1], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  sofa: { x: [1.4, 3.4], y: [0.55, 1.2], z: [0.5, 1.5], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  desk: { x: [0.8, 2.4], y: [0.6, 1.1], z: [0.35, 1.2], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  cabinet: { x: [0.4, 2], y: [0.8, 2.8], z: [0.3, 1], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  shelf: { x: [0.4, 2.2], y: [0.8, 3], z: [0.25, 0.8], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  door: { x: [0.6, 1.6], y: [1.8, 2.6], z: [0.06, 0.35], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  window: { x: [0.6, 3], y: [0.6, 2.6], z: [0.08, 0.4], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  counter: { x: [0.8, 3], y: [0.7, 1.3], z: [0.4, 1.2], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  stair: { x: [0.8, 3.5], y: [0.5, 2.5], z: [0.5, 4], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  other: { x: [0.25, 3], y: [0.2, 3], z: [0.25, 3], imageWidthFactor: 1, imageHeightFactor: 0.9 },
 } as const satisfies Record<StoryScene3DMarkerKind, StoryScene3dMarkerSizePolicy>;
 
 export interface StoryScene3dHorizontalDirection {
@@ -64,7 +64,7 @@ export interface StoryScene3dMarkerProjection {
 export type StoryScene3dProjectionMarker = Pick<
   StoryScene3DMarker,
   "anchor" | "position" | "size" | "imageRegion"
-> & Partial<Pick<StoryScene3DMarker, "kind" | "yawDeg" | "source">>;
+> & Partial<Pick<StoryScene3DMarker, "kind" | "yawDeg" | "source" | "approxDistanceMeters">>;
 
 export type StoryScene3dProjectionEnvironment = Pick<StoryScene3DEnvironment, "domeRadius">
   & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "panoramaHorizonV" | "yawDeg">>;
@@ -196,21 +196,22 @@ function calibrateMarkerSize(
 }
 
 /**
- * Dome-surface placement contract (2026-08-26): depth recovery cannot be read
- * reliably out of a generated or photographed equirect frame, so AI markers no
- * longer estimate distance at all. Each projected marker keeps its exact
- * azimuth from the region's horizontal center and is pressed against the inner
- * side of the panorama hemisphere, directly behind its painted image:
- * - doors and windows sit fully flush — their whole box lies between the
- *   center and the sphere surface with the back face touching it;
- * - floor furniture also hugs the surface so the cube visually overlays the
- *   object pixels users see in the panorama;
+ * Dome-surface placement contract: depth cannot be measured out of an
+ * equirect frame, so pixel-derived estimation is gone. Each projected marker
+ * keeps its exact azimuth from the region's horizontal center and is pressed
+ * against the inner side of the panorama hemisphere:
+ * - doors and windows (wall anchors) sit fully flush — the whole box lies
+ *   between the axis and the sphere surface with the back face touching it;
+ * - floor furniture also hugs the surface by default, but when the vision
+ *   model supplies `approxDistanceMeters` the box is pulled forward along its
+ *   radial direction to that coarse distance (clamped inside the surface), so
+ *   objects in the same azimuth keep their real front-to-back order — a chair
+ *   in front of a desk lands in front of it;
  * - vertical position follows the region's center latitude intersected with
- *   the sphere; ground-standing objects (doors, floor anchors) are pinned to
- *   the floor instead.
+ *   the sphere; ground-standing objects are pinned to the floor instead.
  * Manual markers and markers without an image region keep their stored
- * geometry. The result depends only on the image region and environment, so
- * repeated projection stays idempotent.
+ * geometry. The result depends only on the image region, environment, and the
+ * model's own distance estimate, so repeated projection stays idempotent.
  */
 export function projectStoryScene3dMarkerFromImageRegion(
   marker: StoryScene3dProjectionMarker,
@@ -257,9 +258,17 @@ export function projectStoryScene3dMarkerFromImageRegion(
     ? size[1] / 2
     : clamp(rayCenterY, size[1] / 2, MAX_MARKER_HEIGHT);
 
-  // Pull the center inward by half the thickness so the entire box sits flush
-  // between the axis and the sphere surface.
-  const radialDistance = Math.max(MIN_MARKER_RADIUS, surfaceHorizontalRadius - size[2] / 2);
+  // Default placement is flush: pull the center inward by half the thickness
+  // so the entire box sits between the axis and the sphere surface. Floor
+  // furniture with a model-supplied coarse distance is pulled forward to that
+  // distance instead (clamped inside the surface), preserving front-to-back
+  // order between objects sharing an azimuth; wall anchors always stay flush.
+  const flushRadius = Math.max(MIN_MARKER_RADIUS, surfaceHorizontalRadius - size[2] / 2);
+  let radialDistance = flushRadius;
+  const approxDistance = Number(marker.approxDistanceMeters);
+  if (marker.anchor === "floor" && Number.isFinite(approxDistance) && approxDistance > 0) {
+    radialDistance = clamp(approxDistance - size[2] / 2, MIN_MARKER_RADIUS, flushRadius);
+  }
 
   return {
     position: [

@@ -104,6 +104,8 @@ export interface StoryScene3DMarker {
   yawDeg: number;
   confidence: number;
   imageRegion?: StoryScene3DMarkerImageRegion;
+  /** 视觉模型粗估的到投射中心水平距离（米）。只用于同方位物体的前后排序，不做精确测距。 */
+  approxDistanceMeters?: number;
   evidence?: string;
   source?: "ai" | "manual";
 }

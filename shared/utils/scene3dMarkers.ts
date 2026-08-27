@@ -25,6 +25,12 @@ export const STORY_SCENE_3D_MARKER_LIMITS = {
   confidence: { min: 0, max: 1 },
 } as const;
 
+/** 模型粗估距离的合法区间：只用于同方位前后排序，不做精确测距。 */
+export const STORY_SCENE_3D_MARKER_APPROX_DISTANCE = {
+  min: 0.5,
+  max: 20,
+} as const;
+
 const MARKER_KINDS = new Set<string>(STORY_SCENE_3D_MARKER_KINDS);
 const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceiling"]);
 
@@ -152,6 +158,14 @@ function normalizeMarker(
     ),
     source: source.source === "manual" ? "manual" : "ai",
   };
+  const approxDistance = Number(source.approxDistanceMeters);
+  if (Number.isFinite(approxDistance) && approxDistance > 0) {
+    marker.approxDistanceMeters = clamp(
+      approxDistance,
+      STORY_SCENE_3D_MARKER_APPROX_DISTANCE.min,
+      STORY_SCENE_3D_MARKER_APPROX_DISTANCE.max,
+    );
+  }
   if (source.evidence && typeof source.evidence === "string" && source.evidence.trim()) {
     marker.evidence = source.evidence.trim().slice(0, 240);
   }
