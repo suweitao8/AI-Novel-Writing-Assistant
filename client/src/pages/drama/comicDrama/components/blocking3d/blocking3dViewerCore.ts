@@ -11,7 +11,7 @@ import {
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import { wrapBlocking3dAzimuth } from "./blocking3dMath";
-import { resolveBlocking3dPoseClip } from "./blocking3dPose";
+import { poseSampleTimeFromTrack, resolveBlocking3dPoseClip } from "./blocking3dPose";
 
 export const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
 export const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
@@ -257,7 +257,7 @@ export function setAnimationPose(
   if (layer) {
     layer.play(clip.clipName);
     layer.pause();
-    layer.activeStateCurrentTime = clip.sampleTime;
+    layer.activeStateCurrentTime = poseSampleTimeFromTrack(track, clip.sampleTimeRatio);
   }
   anim.playing = false;
   actor.pose = pose;
