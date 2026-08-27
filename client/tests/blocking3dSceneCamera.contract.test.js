@@ -34,9 +34,20 @@ test("场景摄像机拥有独立机位，不跟随编辑视角移动", () => {
   assert.doesNotMatch(viewerSource, /moveShotCameraToPosition/);
   // 旧布局没有独立机位字段时从轨道相机推导，新布局直接读 shotCamera。
   assert.match(viewerSource, /normalizeShotCameraPose\(layout\.shotCamera, deriveShotCameraPoseFromOrbit\(layout\.camera\)\)/);
-  // 取景锥 gizmo 画的是独立机位，不是编辑轨道相机。
-  assert.match(gizmoSource, /interface Blocking3dCameraGizmoSource/);
-  assert.match(viewerSource, /drawBlocking3dCameraGizmo\(app, \{[\s\S]*?shotCameraPose\.yawDeg/);
+});
+
+test("场景摄像机以 Unity 风格白色线框 gizmo 常驻显示", () => {
+  // 每帧绘制机身 + 镜头盒体线框与取景锥线框；白色线框，选中变橙色。
+  assert.match(shotCameraSource, /drawGizmo\(app: pc\.AppBase, selected: boolean\): void/);
+  assert.match(shotCameraSource, /GIZMO_WIREFRAME = new pc\.Color\(1, 1, 1, 0\.95\)/);
+  assert.match(shotCameraSource, /GIZMO_WIREFRAME_SELECTED = new pc\.Color\(1, 0\.58, 0, 0\.95\)/);
+  assert.match(shotCameraSource, /drawFrustumWireframe\(app, origin, rotation, lastFovDeg, FRUSTUM_LENGTH/);
+  assert.match(viewerSource, /shotCamera\.drawGizmo\(app, cameraSelected\)/);
+  // 实体网格完全透明，只保留拾取命中体；视觉由白色线框承担。
+  assert.match(shotCameraSource, /material\.opacity = 0;/);
+  // 取景锥几何按 16:9 画幅计算。
+  assert.match(gizmoSource, /export const SHOT_FRAME_ASPECT = 16 \/ 9;/);
+  assert.match(gizmoSource, /export function drawFrustumWireframe/);
 });
 
 test("机位可拖拽、可挂手柄、可旋转，并经属性面板提交", () => {

@@ -510,7 +510,7 @@ export default function DramaBlocking3DPage() {
           className="col-span-2 h-9"
           disabled={!viewer}
           aria-pressed={shotPreviewOn}
-          title="显示镜头机位标记，并在右下角实时预览镜头里的画面构图"
+          title="在右下角实时预览摄像机画面，并叠加三分构图线"
           onClick={() => setShotPreviewOn((value) => !value)}
         >
           <Video className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
