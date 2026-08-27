@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   clearErrorLog,
   ERROR_LOG_UPDATED_EVENT,
+  filterErrorLogEntries,
   readErrorLog,
   recordErrorLog,
 } from "./errorLog.ts";
@@ -107,4 +108,21 @@ test("ignores blank messages without touching storage", () => {
 
 test("exported update event name is stable", () => {
   assert.equal(ERROR_LOG_UPDATED_EVENT, "ai-novel:error-log-updated");
+});
+
+test("filter keeps all entries or narrows by source", () => {
+  const entries = [
+    { id: "1", time: "t1", source: "toast", message: "弹窗一" },
+    { id: "2", time: "t2", source: "uncaught", message: "未捕获" },
+    { id: "3", time: "t3", source: "toast", message: "弹窗二" },
+  ];
+  assert.equal(filterErrorLogEntries(entries, "all").length, 3);
+  assert.deepEqual(
+    filterErrorLogEntries(entries, "toast").map((entry) => entry.id),
+    ["1", "3"],
+  );
+  assert.deepEqual(
+    filterErrorLogEntries(entries, "uncaught").map((entry) => entry.id),
+    ["2"],
+  );
 });

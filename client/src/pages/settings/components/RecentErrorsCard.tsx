@@ -7,11 +7,11 @@ import { toast } from "@/components/ui/toast";
 import {
   clearErrorLog,
   ERROR_LOG_UPDATED_EVENT,
+  filterErrorLogEntries,
   readErrorLog,
   type ErrorLogEntry,
+  type ErrorLogFilter,
 } from "@/lib/errorLog";
-
-type ErrorLogFilter = "all" | "toast" | "uncaught";
 
 const FILTER_LABELS: Record<ErrorLogFilter, string> = {
   all: "全部",
@@ -52,7 +52,7 @@ export default function RecentErrorsCard() {
   }), [entries]);
 
   const visibleEntries = useMemo(() => (
-    filter === "all" ? entries : entries.filter((entry) => entry.source === filter)
+    filterErrorLogEntries(entries, filter)
   ), [entries, filter]);
 
   const handleClear = () => {
