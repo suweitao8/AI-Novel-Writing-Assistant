@@ -18,6 +18,20 @@ test("静态首帧合成不再应用运镜或 Ken Burns 动效", () => {
   assert.doesNotMatch(videoPromptService, /cameraMove: shot\.cameraMove/);
 });
 
+test("漫剧只出静态分镜：分镜产出与编辑链路不含运镜字段", () => {
+  const storyboardPrompt = read("prompting/prompts/drama/drama.prompts.ts");
+  const storyboardService = read("services/drama/DramaStoryboardService.ts");
+  const dramaRoutes = read("modules/drama/http/dramaRoutes.ts");
+  const blockingSketchService = read("services/drama/visual/DramaShotBlockingSketchService.ts");
+  const autoPlanPrompt = read("prompting/prompts/drama/shotBlockingAutoPlan.prompts.ts");
+
+  assert.doesNotMatch(storyboardPrompt, /cameraMove/);
+  assert.doesNotMatch(storyboardService, /cameraMove/);
+  assert.doesNotMatch(dramaRoutes, /cameraMove/);
+  assert.doesNotMatch(blockingSketchService, /cameraMove/);
+  assert.doesNotMatch(autoPlanPrompt, /运镜/);
+});
+
 test("整集合成只使用真实配音时长建立镜头时间轴", () => {
   const assembler = read("services/drama/video/DramaRemotionEpisodeAssembler.ts");
 

@@ -260,7 +260,6 @@ export class DramaExportService {
           endSec: shotEnd,
           durationSec: shotEntries.effectiveDurationSec,
           shotSize: shot.shotSize,
-          cameraMove: shot.cameraMove,
           location: shot.location,
           action: shot.action,
           dialogue: shot.dialogue,

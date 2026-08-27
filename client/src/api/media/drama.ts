@@ -269,8 +269,6 @@ export interface DramaShotBlockingSketchEditorContext {
     order: number;
     location: string;
     shotSize: string;
-    cameraMove: string;
-    durationSec: number | null;
     action: string;
     dialogue: string;
     visualPrompt: string;
@@ -337,7 +335,6 @@ export interface DramaShot {
   storyboardId: string;
   order: number;
   shotSize?: string | null;
-  cameraMove?: string | null;
   durationSec?: number | null;
   location?: string | null;
   action: string;
@@ -699,7 +696,7 @@ export async function generateDramaVideoPrompt(id: string, shotId: string, paylo
   return data;
 }
 
-// 手动编辑镜头（台词/动作/景别/运镜/时长/场景）；台词改动后配音段自动标记过期需重配
+// 手动编辑镜头（台词/动作/景别/时长/场景）；台词改动后配音段自动标记过期需重配
 export async function updateDramaShot(
   id: string,
   shotId: string,
@@ -707,7 +704,6 @@ export async function updateDramaShot(
     action: string;
     dialogue: string;
     shotSize: string;
-    cameraMove: string;
     location: string;
     durationSec: number;
   }>,

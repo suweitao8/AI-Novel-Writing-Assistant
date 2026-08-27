@@ -81,11 +81,21 @@ test("编辑器显示当前镜头与 AI 镜头设计面板", () => {
   assert.match(pageSource, /<Card/);
   assert.match(pageSource, /镜头设计/);
   assert.match(pageSource, /景别/);
-  assert.match(pageSource, /运镜/);
-  assert.match(pageSource, /时长/);
   assert.match(pageSource, /AI 构图说明/);
   assert.match(pageSource, /镜头预览/);
   assert.match(pageSource, /context\.shot\.action/);
+});
+
+test("漫剧只出静态分镜，镜头设计不含运镜与时长", () => {
+  assert.doesNotMatch(pageSource, /运镜/);
+  assert.doesNotMatch(pageSource, /时长/);
+  assert.doesNotMatch(pageSource, /cameraMove/);
+  assert.doesNotMatch(pageSource, /context\.shot\.durationSec/);
+  const apiSource = fs.readFileSync(
+    path.join(process.cwd(), "src/api/media/drama.ts"),
+    "utf8",
+  );
+  assert.doesNotMatch(apiSource, /cameraMove/);
 });
 
 test("自动构图或保存期间禁止离开 3D 草图", () => {
