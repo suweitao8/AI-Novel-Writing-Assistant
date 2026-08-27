@@ -152,7 +152,7 @@ export default function ComicDramaStudioPage() {
       id: "studio-sub",
       tabs: (Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]).map((key) => ({
         key,
-        label: `${CURRENT_TAB_LABELS[key]}${key === "extract" && extractStage.totalItems > 0 ? ` ${extractStage.totalItems}` : ""}`,
+        label: CURRENT_TAB_LABELS[key],
       })),
       active: currentTab,
       onSelect: (key: string) => setCurrentTab(key as CurrentTab),
@@ -361,9 +361,7 @@ export default function ComicDramaStudioPage() {
               >
                 <TabsList>
                   <TabsTrigger value="reference">{CURRENT_TAB_LABELS.reference}</TabsTrigger>
-                  <TabsTrigger value="extract">
-                    {CURRENT_TAB_LABELS.extract}{extractStage.totalItems > 0 ? ` ${extractStage.totalItems}` : ""}
-                  </TabsTrigger>
+                  <TabsTrigger value="extract">{CURRENT_TAB_LABELS.extract}</TabsTrigger>
                   <TabsTrigger value="script">{CURRENT_TAB_LABELS.script}</TabsTrigger>
                   <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>

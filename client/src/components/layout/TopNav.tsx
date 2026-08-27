@@ -60,35 +60,29 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
         })}
       </nav>
 
-      {/* 页面页签：二级页签固定居中于中间预留区，三级页签固定在二级右侧；
-          左侧放一份等宽的隐形三级副本作镜像占位，使 [镜像|二级|三级] 整体
-          居中时二级恰好落在区域正中，且三级组不越过右侧操作区。
-          全部走文档流（不做绝对定位）；超宽时 justify-center 会把左侧裁进
-          滚动区，被裁的恰好是隐形镜像，三级组仍可横向滚动到达。 */}
+      {/* 页面页签：二级、三级各自包在独立胶囊体里，中间留固定间距；
+          二级组固定居中于中间预留区（镜像占位法），三级组固定在二级右侧。
+          超宽时 justify-center 把左侧裁进滚动区，被裁的恰好是隐形镜像。 */}
       <nav
         aria-label="页面页签"
         className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto px-2"
       >
         {pageTabRows.length > 0 ? (
-          <div className="flex shrink-0 items-center">
+          <div className="flex shrink-0 items-center gap-3">
             {pageTabRows.length > 1 ? (
               <span
                 aria-hidden="true"
-                className="invisible flex select-none items-center pr-2"
+                className="invisible flex select-none items-center"
               >
-                {pageTabRows.slice(1).map((row, index) => (
-                  <PageTabGroup key={`mirror-${row.id}`} row={row} separated={index > 0} />
+                {pageTabRows.slice(1).map((row) => (
+                  <PageTabGroup key={`mirror-${row.id}`} row={row} />
                 ))}
               </span>
             ) : null}
-            <PageTabGroup row={pageTabRows[0]} separated={false} />
-            {pageTabRows.length > 1 ? (
-              <span className="flex items-center pl-2">
-                {pageTabRows.slice(1).map((row, index) => (
-                  <PageTabGroup key={row.id} row={row} separated={index > 0} />
-                ))}
-              </span>
-            ) : null}
+            <PageTabGroup row={pageTabRows[0]} />
+            {pageTabRows.slice(1).map((row) => (
+              <PageTabGroup key={row.id} row={row} />
+            ))}
           </div>
         ) : null}
       </nav>
@@ -118,23 +112,27 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   );
 }
 
-function PageTabGroup({ row, separated }: { row: PageTabRow; separated: boolean }) {
+// 一级行内的分段胶囊：整组包在一个圆角胶囊容器里，选中项用浮起底色区分。
+function PageTabGroup({ row }: { row: PageTabRow }) {
   return (
-    <div className="flex shrink-0 items-center gap-0.5">
-      {separated ? <span className="mx-2 h-4 w-px shrink-0 bg-border" aria-hidden="true" /> : null}
+    <div
+      role="group"
+      className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/40 p-1"
+    >
       {row.tabs.map((tab) => (
         <button
           key={tab.key}
           type="button"
           onClick={() => row.onSelect(tab.key)}
+          aria-pressed={row.active === tab.key}
           className={cn(
-            "flex h-9 items-center rounded-md px-2 text-[13px] transition-colors",
+            "flex h-7 items-center whitespace-nowrap rounded-full px-3 text-[13px] transition-colors",
             row.active === tab.key
-              ? "bg-primary/10 font-medium text-foreground"
-              : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              ? "bg-background font-medium text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
           )}
         >
-          <span className="whitespace-nowrap">{tab.label}</span>
+          {tab.label}
         </button>
       ))}
     </div>
