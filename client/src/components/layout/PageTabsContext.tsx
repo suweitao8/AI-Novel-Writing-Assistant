@@ -10,6 +10,8 @@ import { createContext, useContext, useEffect } from "react";
 export interface PageTabItem {
   key: string;
   label: string;
+  /** 在该页签右侧画竖线分隔，用于同一胶囊内的语义分组边界。 */
+  dividerAfter?: boolean;
 }
 
 export interface PageTabRow {

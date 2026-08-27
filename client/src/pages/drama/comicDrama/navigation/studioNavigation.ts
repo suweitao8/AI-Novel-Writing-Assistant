@@ -40,6 +40,12 @@ export const STUDIO_STAGE_LABELS: Record<StudioStage, string> = {
   settings: "设定",
 };
 
+/** 在这些页签后面画竖线，把九页签分成 资产 | 章节工作台 | 设定 三段。 */
+export const STUDIO_STAGE_DIVIDERS: ReadonlySet<StudioStage> = new Set([
+  "props",
+  "video",
+]);
+
 /** 章节工作台的五个页签（原「章节」子页签），共享章节上下文的操作按钮。 */
 export const CHAPTER_WORKBENCH_STAGES: readonly StudioStage[] = [
   "reference",

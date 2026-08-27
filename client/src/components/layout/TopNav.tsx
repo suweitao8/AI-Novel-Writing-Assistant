@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { NavLink } from "react-router-dom";
 import {
   Clapperboard,
@@ -105,7 +106,8 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   );
 }
 
-// 一级行内的分段胶囊：整组包在一个圆角胶囊容器里，选中项用浮起底色区分。
+// 一级行内的分段胶囊：整组包在一个圆角胶囊容器里，选中项用浮起底色区分；
+// 语义分组边界（资产 | 章节工作台 | 设定）画竖线分隔。
 function PageTabGroup({ row }: { row: PageTabRow }) {
   return (
     <div
@@ -113,20 +115,24 @@ function PageTabGroup({ row }: { row: PageTabRow }) {
       className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/40 p-1"
     >
       {row.tabs.map((tab) => (
-        <button
-          key={tab.key}
-          type="button"
-          onClick={() => row.onSelect(tab.key)}
-          aria-pressed={row.active === tab.key}
-          className={cn(
-            "flex h-7 items-center whitespace-nowrap rounded-full px-2 text-[13px] transition-colors",
-            row.active === tab.key
-              ? "bg-background font-medium text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          {tab.label}
-        </button>
+        <Fragment key={tab.key}>
+          <button
+            type="button"
+            onClick={() => row.onSelect(tab.key)}
+            aria-pressed={row.active === tab.key}
+            className={cn(
+              "flex h-7 items-center whitespace-nowrap rounded-full px-2 text-[13px] transition-colors",
+              row.active === tab.key
+                ? "bg-background font-medium text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tab.label}
+          </button>
+          {tab.dividerAfter ? (
+            <span className="mx-0.5 h-4 w-px shrink-0 bg-border" aria-hidden="true" />
+          ) : null}
+        </Fragment>
       ))}
     </div>
   );

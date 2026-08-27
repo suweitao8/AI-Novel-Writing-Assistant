@@ -51,6 +51,7 @@ import {
   CHAPTER_WORKBENCH_STAGES,
   readStudioNavigation,
   SETTINGS_TAB_LABELS,
+  STUDIO_STAGE_DIVIDERS,
   STUDIO_STAGE_LABELS,
   STUDIO_STAGE_ORDER,
   type SettingsTab,
@@ -138,7 +139,11 @@ export default function ComicDramaStudioPage() {
   // 桌面端项目级页签与子页签统一上收到顶部导航栏；移动端保留页头内页签。
   const stageTabRow = {
     id: "studio-stage",
-    tabs: STUDIO_STAGE_ORDER.map((key) => ({ key, label: STUDIO_STAGE_LABELS[key] })),
+    tabs: STUDIO_STAGE_ORDER.map((key) => ({
+      key,
+      label: STUDIO_STAGE_LABELS[key],
+      dividerAfter: STUDIO_STAGE_DIVIDERS.has(key),
+    })),
     active: stage,
     onSelect: (key: string) => setStage(key as StudioStage),
   };
