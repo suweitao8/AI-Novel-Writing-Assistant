@@ -304,4 +304,3 @@ test("可坐卧物体的高度钳制在使用面：盒顶就是座面/床垫面�
   const projectedWindow = projectStoryScene3dMarkerFromImageRegion(windowMarker, environment);
   assert.ok(projectedWindow.size[1] > 1, "窗高等非使用面语义的类别保持原校准");
 });
-
