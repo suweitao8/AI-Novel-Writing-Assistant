@@ -12,3 +12,5 @@ export { InspectorComponentSection } from "./inspector/InspectorComponentSection
 export type { InspectorComponentSectionProps } from "./inspector/InspectorComponentSection";
 export { InspectorPropertyList } from "./inspector/InspectorPropertyList";
 export type { InspectorPropertyItem } from "./inspector/InspectorPropertyList";
+export { InspectorVector3Field, InspectorNumberField } from "./inspector/InspectorVector3Field";
+export type { InspectorVector3FieldProps, InspectorNumberFieldProps } from "./inspector/InspectorVector3Field";

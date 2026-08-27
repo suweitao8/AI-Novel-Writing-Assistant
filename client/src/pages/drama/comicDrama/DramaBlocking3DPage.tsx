@@ -56,7 +56,9 @@ import {
   type Drama3DObjectItem,
   InspectorComponentSection,
   InspectorGameObjectCard,
+  InspectorNumberField,
   InspectorPropertyList,
+  InspectorVector3Field,
 } from "./components/editor3d";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
@@ -593,14 +595,40 @@ export default function DramaBlocking3DPage() {
                   name={selectedMarker.label}
                   kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
                 />
-                <InspectorPropertyList
-                  className="text-xs"
-                  items={[
-                    { label: "置信度", value: `${Math.round(selectedMarker.confidence * 100)}%` },
-                    { label: "位置", value: formatVec3(selectedMarker.position) },
-                    { label: "尺寸", value: formatVec3(selectedMarker.size) },
-                  ]}
-                />
+                <InspectorComponentSection title="Transform">
+                  <div className="space-y-2">
+                    <InspectorVector3Field
+                      label="位置"
+                      value={selectedMarker.position}
+                      suffix="米"
+                      disabled
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">旋转</span>
+                      <InspectorNumberField
+                        label="Y"
+                        value={selectedMarker.yawDeg}
+                        suffix="°"
+                        disabled
+                      />
+                    </div>
+                    <InspectorVector3Field
+                      label="缩放"
+                      value={selectedMarker.size}
+                      suffix="米"
+                      disabled
+                    />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">标记摆放跟随场景设定，请在场景 3D 编辑器中调整。</p>
+                </InspectorComponentSection>
+                <InspectorComponentSection title="标记信息" defaultOpen={false}>
+                  <InspectorPropertyList
+                    className="text-xs"
+                    items={[
+                      { label: "置信度", value: `${Math.round(selectedMarker.confidence * 100)}%` },
+                    ]}
+                  />
+                </InspectorComponentSection>
                 <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving || autoPlanning} onClick={() => focusMarker(selectedMarker.id)}>
                   <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦空间标记
                 </Button>
