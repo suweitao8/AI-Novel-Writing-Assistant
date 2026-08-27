@@ -51,6 +51,11 @@ import {
 } from "./blocking3dProjectionCenterGizmo";
 import { drawBlocking3dCameraGizmo, resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
 import {
+  createBlocking3dCameraBody,
+  rayHitsBlocking3dCameraBody,
+  syncBlocking3dCameraBody,
+} from "./blocking3dCameraBody";
+import {
   applyHdriKeyLight,
   clearHdriKeyLight,
   createHdriKeyLight,
@@ -140,6 +145,8 @@ export interface Blocking3dViewer {
   readonly canvas: HTMLCanvasElement;
   onSelectionChange: (listener: (label: string | null) => void) => () => void;
   onMarkerSelection: (listener: (id: string | null) => void) => () => void;
+  /** 场景摄像机（镜头机位实体）的选中状态变化；selected 为 true 表示选中。 */
+  onCameraSelection: (listener: (selected: boolean) => void) => () => void;
   onChange: (listener: () => void) => () => void;
   onStatus: (listener: (status: string) => void) => () => void;
   addActor: (
@@ -151,6 +158,13 @@ export interface Blocking3dViewer {
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
   selectMarker: (id: string | null) => boolean;
+  /** 选中/取消选中场景摄像机实体；与角色、标记互斥。 */
+  selectCamera: (selected: boolean) => boolean;
+  isCameraSelected: () => boolean;
+  /** 把镜头机位实体移动到世界坐标位置，保持注视焦点与 FOV 不变。 */
+  setShotCameraPosition: (position: [number, number, number]) => void;
+  /** 调整镜头朝向（方位角/俯仰角，度）。 */
+  setShotCameraOrientation: (azim: number, elev: number) => void;
   focusMarker: (id: string) => boolean;
   getSelectedMarker: () => string | null;
   setSceneMarkers: (markers: StoryScene3DMarker[]) => void;
@@ -458,6 +472,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   app.root.addChild(shotCameraEntity);
   const SHOT_CAMERA_RECT_WIDTH = 0.4;
 
+  // Unity 风格的场景摄像机实体：常驻在镜头机位上的小机身，可点选、可拖拽
+  // 移动；渲染仍由主相机（编辑视角）与右下角取景画中画承担。
+  const cameraBody = createBlocking3dCameraBody(app);
+
   // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
   // transient key light makes a bright window or sun patch readable on actors.
   const environmentKeyLight = createHdriKeyLight();
@@ -632,9 +650,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
   const selectionListeners = new Set<(label: string | null) => void>();
   const markerSelectionListeners = new Set<(id: string | null) => void>();
+  const cameraSelectionListeners = new Set<(selected: boolean) => void>();
   const statusListeners = new Set<(status: string) => void>();
   let selectedLabel: string | null = null;
   let selectedMarkerId: string | null = null;
+  let cameraSelected = false;
   let cameraState: DramaShotBlockingSketch3DCamera = {
     ...DEFAULT_CAMERA,
     focalPoint: [...DEFAULT_CAMERA.focalPoint],
@@ -647,7 +667,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const selectionOutline = createBlocking3dSelectionOutline(app, cameraEntity, SELECTION_OUTLINE_COLOR);
   let interactionEnabled = true;
   let actorMovementEnabled = true;
-  let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
+  let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera-body" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
   let keyboardInput = new Set<string>();
   const changeListeners = new Set<() => void>();
 
@@ -678,6 +698,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     cameraFrame.dof.blurRadius = cameraState.blurRadius;
     cameraEntity.setPosition(position);
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
+    syncBlocking3dCameraBody(cameraBody, cameraState);
     cameraFrame.update();
     syncShotCamera(position);
   };
@@ -699,11 +720,15 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const emitSelection = () => {
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
-    // 角色与空间标记互斥选中；选中的标记使用与角色同一条外轮廓反馈通道。
+    // 角色、空间标记与场景摄像机三者互斥选中；选中的对象共用同一条外轮廓反馈通道。
     const markerRuntime = !selectedLabel && selectedMarkerId
       ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
       : null;
-    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? null);
+    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? (cameraSelected ? cameraBody : null));
+  };
+
+  const emitCameraSelection = () => {
+    for (const listener of cameraSelectionListeners) listener(cameraSelected);
   };
 
   const emitMarkerSelection = () => {
@@ -720,6 +745,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const select = (label: string | null): boolean => {
     if (label !== null && !actors.has(label)) return false;
     selectedLabel = label;
+    if (cameraSelected) {
+      cameraSelected = false;
+      emitCameraSelection();
+    }
     if (label !== null) {
       selectedMarkerId = null;
       emitMarkerSelection();
@@ -735,11 +764,43 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (id !== null && !sceneMarkerRuntimes.has(id)) return false;
     selectedMarkerId = id;
     if (id !== null) selectedLabel = null;
+    if (cameraSelected) {
+      cameraSelected = false;
+      emitCameraSelection();
+    }
     // 先发角色事件再发标记事件：页面两个监听共用一个选中状态，
     // 后到的标记事件必须覆盖 label=null 引发的“回到世界”回退。
     emitSelection();
     emitMarkerSelection();
     return true;
+  };
+
+  const selectCamera = (selected: boolean): boolean => {
+    const next = selected === true;
+    if (cameraSelected === next) return true;
+    cameraSelected = next;
+    if (next) {
+      selectedLabel = null;
+      selectedMarkerId = null;
+      emitMarkerSelection();
+    }
+    emitSelection();
+    emitCameraSelection();
+    return true;
+  };
+
+  /** 保持注视焦点与 FOV 不变，把镜头机位实体移动到指定世界坐标。 */
+  const moveShotCameraToPosition = (position: pc.Vec3) => {
+    const focal = new pc.Vec3(cameraState.focalPoint[0], cameraState.focalPoint[1], cameraState.focalPoint[2]);
+    const offset = position.clone().sub(focal);
+    const distance = clamp(offset.length(), 0.25, 100);
+    if (distance < 1e-4) return;
+    const azimuth = wrapBlocking3dAzimuth(Math.atan2(offset.x, offset.z) * 180 / Math.PI);
+    const elevation = clamp(-Math.asin(clamp(offset.y / distance, -1, 1)) * 180 / Math.PI, -89, 89);
+    cameraState.azim = azimuth;
+    cameraState.elev = elevation;
+    cameraState.distance = distance;
+    syncCamera();
   };
 
   const setSceneMarkers = (markers: StoryScene3DMarker[]) => {
@@ -812,20 +873,27 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const onPointerDown = (event: PointerEvent) => {
     if (destroyed || !interactionEnabled) return;
     canvas.focus();
-    const hit = event.button === 0 ? pickActor(event.clientX, event.clientY) : null;
-    const markerHit = event.button === 0 && !hit
+    const pointerRay = event.button === 0 ? screenRay(event.clientX, event.clientY) : null;
+    const cameraBodyHit = pointerRay ? rayHitsBlocking3dCameraBody(cameraBody, pointerRay) : false;
+    const hit = event.button === 0 && !cameraBodyHit ? pickActor(event.clientX, event.clientY) : null;
+    const markerHit = event.button === 0 && !hit && !cameraBodyHit
       ? pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY))
       : null;
-    if (hit) select(hit);
+    if (cameraBodyHit) selectCamera(true);
+    else if (hit) select(hit);
     else if (markerHit) selectMarker(markerHit);
     dragState = {
       button: event.button,
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
-      mode: hit && selectedLabel === hit && actorMovementEnabled ? "actor" : event.button === 2 ? "camera" : "none",
-      actorLabel: hit ?? undefined,
-      lastGround: hit ? raycastGround(event.clientX, event.clientY) ?? undefined : undefined,
+      mode: cameraBodyHit
+        ? "camera-body"
+        : hit && selectedLabel === hit && actorMovementEnabled
+          ? "actor"
+          : event.button === 2 ? "camera" : "none",
+      actorLabel: cameraBodyHit ? undefined : hit ?? undefined,
+      lastGround: cameraBodyHit || hit ? raycastGround(event.clientX, event.clientY) ?? undefined : undefined,
     };
     canvas.setPointerCapture(event.pointerId);
   };
@@ -852,6 +920,17 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         emitSelection();
         emitChange();
       }
+    } else if (dragState.mode === "camera-body") {
+      // 拖拽镜头实体：沿地面平移机位，注视焦点与 FOV 保持不变。
+      const previousGround = dragState.lastGround;
+      const nextGround = raycastGround(event.clientX, event.clientY);
+      if (previousGround && nextGround) {
+        const current = resolveBlocking3dOrbitPosition(cameraState);
+        const next = current.clone().add(nextGround.clone().sub(previousGround));
+        moveShotCameraToPosition(next);
+        dragState.lastGround = nextGround;
+        emitChange();
+      }
     } else if (dragState.button === 2) {
       cameraState.azim = updateBlocking3dCameraAzimuth(cameraState.azim, dx);
       cameraState.elev = clamp(cameraState.elev + dy * 0.25, -89, 89);
@@ -871,13 +950,18 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     dragState = null;
     try { canvas.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
     if (button === 0 && Math.hypot(dx, dy) < 6) {
-      const hit = pickActor(event.clientX, event.clientY);
-      if (hit) {
-        select(hit);
+      const clickRay = screenRay(event.clientX, event.clientY);
+      if (clickRay && rayHitsBlocking3dCameraBody(cameraBody, clickRay)) {
+        selectCamera(true);
       } else {
-        const markerHit = pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY));
-        if (markerHit) selectMarker(markerHit);
-        else select(null);
+        const hit = pickActor(event.clientX, event.clientY);
+        if (hit) {
+          select(hit);
+        } else {
+          const markerHit = pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY));
+          if (markerHit) selectMarker(markerHit);
+          else select(null);
+        }
       }
     }
   };
@@ -1097,6 +1181,23 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       listener(selectedMarkerId);
       return () => markerSelectionListeners.delete(listener);
     },
+    onCameraSelection(listener) {
+      cameraSelectionListeners.add(listener);
+      listener(cameraSelected);
+      return () => cameraSelectionListeners.delete(listener);
+    },
+    selectCamera,
+    isCameraSelected: () => cameraSelected,
+    setShotCameraPosition(position) {
+      moveShotCameraToPosition(new pc.Vec3(position[0], position[1], position[2]));
+      emitChange();
+    },
+    setShotCameraOrientation(azim, elev) {
+      cameraState.azim = wrapBlocking3dAzimuth(azim);
+      cameraState.elev = clamp(elev, -89, 89);
+      syncCamera();
+      emitChange();
+    },
     onChange(listener) {
       changeListeners.add(listener);
       return () => changeListeners.delete(listener);
@@ -1182,6 +1283,13 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return true;
     },
     rotateSelected(degrees) {
+      if (cameraSelected) {
+        // 旋转镜头 = 绕焦点调整方位角；机身与画中画随 syncCamera 同步。
+        cameraState.azim = updateBlocking3dCameraAzimuth(cameraState.azim, degrees);
+        syncCamera();
+        emitChange();
+        return true;
+      }
       const actor = selectedActor();
       if (!actor) return false;
       const current = actor.entity.getEulerAngles();
@@ -1366,6 +1474,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       selectionOutline.setEntity(null);
       const pipWasEnabled = shotCameraComponent.enabled;
       if (pipWasEnabled) shotCameraComponent.enabled = false;
+      const bodyWasEnabled = cameraBody.enabled;
+      // 摄像机机身是编辑器辅助对象，导出的摆位草图不包含它。
+      cameraBody.enabled = false;
       shotCameraHelpersSuppressed = true;
       try {
         app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
@@ -1383,6 +1494,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         resize();
         shotCameraHelpersSuppressed = false;
         shotCameraComponent.enabled = pipWasEnabled;
+        cameraBody.enabled = bodyWasEnabled;
         selectionOutline.setEntity(selectedOutlineEntity);
         selectionOutline.frameUpdate();
         app.render();
@@ -1409,6 +1521,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       clearEnvironmentLighting();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
       shotCameraEntity.destroy();
+      cameraBody.destroy();
       selectionOutline.destroy();
       cameraFrame.destroy();
       environmentKeyLight.destroy();

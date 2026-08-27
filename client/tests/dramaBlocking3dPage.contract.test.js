@@ -127,9 +127,9 @@ test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
 });
 
-test("选中外描边为 80% 不透明度的橙色，空间标记共用同一条外轮廓", () => {
+test("选中外描边为 80% 不透明度的橙色，空间标记与场景摄像机共用同一条外轮廓", () => {
   assert.match(viewerSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
-  assert.match(viewerSource, /markerRuntime\?\.entity \?\? null/);
+  assert.match(viewerSource, /markerRuntime\?\.entity \?\? \(cameraSelected \? cameraBody : null\)/);
   // PlayCanvas 默认合成忽略颜色 alpha，描边不透明度必须由替换的合成着色器承载。
   assert.match(selectionOutlineSource, /uOutlineOpacity/);
   assert.match(selectionOutlineSource, /color\.a/);
@@ -167,7 +167,7 @@ test("对象树保留全部空间标记并使用世界/参考角色名称", () =
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
   assert.match(pageSource, /label: "世界"/);
   assert.match(pageSource, /context\.scene\.markers\.map/);
-  assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
+  assert.match(pageSource, /从上方对象列表选择世界、摄像机、角色或空间标记/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
