@@ -29,6 +29,7 @@ function installFakeStorage() {
     get eventCount() {
       return eventCount;
     },
+    storageMap: store,
     savedCount: () => {
       const raw = store.get("ai-novel.error-log.v1");
       return raw ? JSON.parse(raw).length : 0;
@@ -45,11 +46,34 @@ test("records errors newest first and persists to storage", () => {
   assert.equal(entries.length, 2);
   assert.equal(entries[0].message, "第二个错误");
   assert.equal(entries[0].description, "详细描述");
+  assert.equal(entries[0].source, "toast");
   assert.equal(entries[1].message, "第一个错误");
   assert.ok(entries[0].id);
   assert.ok(entries[0].time);
   assert.ok(fake.eventCount >= 2);
   assert.equal(fake.savedCount(), 2);
+});
+
+test("keeps the given source category on each entry", () => {
+  installFakeStorage();
+  recordErrorLog("弹窗报错", undefined, "toast");
+  recordErrorLog("未处理异常", undefined, "uncaught");
+
+  const entries = readErrorLog();
+  assert.equal(entries[0].source, "uncaught");
+  assert.equal(entries[1].source, "toast");
+});
+
+test("legacy entries without a source fall back to toast", () => {
+  const fake = installFakeStorage();
+  // 模拟旧版本写入的无 source 条目
+  fake.storageMap.set("ai-novel.error-log.v1", JSON.stringify([
+    { id: "legacy-1", time: "2026-08-27T00:00:00.000Z", message: "历史报错" },
+  ]));
+
+  const entries = readErrorLog();
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].source, "toast");
 });
 
 test("caps the log at 100 entries", () => {

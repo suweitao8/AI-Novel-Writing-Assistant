@@ -49,6 +49,21 @@ function extractToastDescription(data?: ExternalToast): string | undefined {
   return undefined;
 }
 
+function messageToLogText(message: unknown): string {
+  if (typeof message === "string") {
+    return message;
+  }
+  if (typeof message === "number" || typeof message === "bigint") {
+    return String(message);
+  }
+  // 非 ToasterProps 标准场景：组件/对象消息无法直接展示原文，记一个可辨识的占位。
+  try {
+    return JSON.stringify(message)?.slice(0, 200) || "[非文本报错内容]";
+  } catch {
+    return "[非文本报错内容]";
+  }
+}
+
 const toast = Object.assign(
   (
     message: Parameters<typeof sonnerToast>[0],
@@ -60,9 +75,7 @@ const toast = Object.assign(
       message: Parameters<typeof sonnerToast.error>[0],
       data?: Parameters<typeof sonnerToast.error>[1],
     ) => {
-      if (typeof message === "string" || typeof message === "number") {
-        recordErrorLog(String(message), extractToastDescription(data));
-      }
+      recordErrorLog(messageToLogText(message), extractToastDescription(data), "toast");
       return sonnerToast.error(message, {
         ...ERROR_TOAST_DEFAULTS,
         ...data,
