@@ -11,10 +11,13 @@ test("story asset preview keeps the crop modes and fallback states", () => {
   assert.match(presentation, /character-left-square/);
   assert.match(presentation, /center-square/);
   assert.match(presentation, /label\.trim\(\) === "默认"/);
-  assert.match(preview, /w-\[400%\]/);
+  // 角色头像窗口取状态图最左 1/3 并轻微下移：预览必须是方形头像，不带竖向人体条带。
+  assert.match(preview, /w-\[300%\]/);
   assert.match(preview, /h-auto/);
   assert.match(preview, /CHARACTER_PREVIEW_CROP_TOP/);
-  assert.match(preview, /-62\.5%/);
+  assert.match(preview, /-4%/);
+  assert.doesNotMatch(preview, /w-\[400%\]/);
+  assert.doesNotMatch(preview, /-62\.5%/);
   assert.doesNotMatch(preview, /-58\.3333%/);
   assert.doesNotMatch(preview, /top-1\/2/);
   assert.doesNotMatch(preview, /-translate-y-1\/2/);
