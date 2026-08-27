@@ -23,8 +23,8 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v7");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v7/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v8");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v8/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
@@ -55,7 +55,10 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /不要.*人物|不得.*人物/);
   assert.match(text, /imageRegion/);
   assert.match(text, /紧贴|主体/);
-  assert.match(text, /不.*墙面.*深度|不.*深度/);
+  // v8：服务端不再做图像测距，标记长方体统一贴到半球内表面，门窗完整贴住球面。
+  assert.match(text, /贴到全景半球内表面/);
+  assert.match(text, /门窗完全贴住球面/);
+  assert.doesNotMatch(text, /反算物体深度/);
   // v7：全图覆盖召回——上下半区都要检查，不能只标某一高度带。
   assert.match(text, /上下两半都要逐一检查/);
   assert.match(text, /从左到右.*分段扫描/);

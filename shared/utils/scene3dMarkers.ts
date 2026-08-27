@@ -196,9 +196,7 @@ export function normalizeStoryScene3dMarkerSet(
     marker.id = uniqueId.slice(0, 80);
   }
   if (options.environment && markers.length > 0) {
-    const projections = projectStoryScene3dMarkerSetFromImageRegions(markers, options.environment, {
-      maxRadius,
-    });
+    const projections = projectStoryScene3dMarkerSetFromImageRegions(markers, options.environment);
     for (const [index, projection] of projections.entries()) {
       const marker = markers[index];
       if (!marker || marker.source === "manual" || !marker.imageRegion) continue;
