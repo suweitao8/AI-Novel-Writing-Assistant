@@ -58,6 +58,17 @@ import {
   InspectorGameObjectCard,
   InspectorPropertyList,
 } from "./components/editor3d";
+import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import {
+  buildStudioNavCurrentSubRow,
+  buildStudioNavStageRow,
+} from "./navigation/studioTabRows";
+import {
+  buildStudioNavigationPath,
+  type CurrentTab,
+  type StudioStage,
+} from "./navigation/studioNavigation";
 
 function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShotBlockingSketch3DLayout {
   if (!context.scene) throw new Error("当前镜头没有可用的场景状态图。");
@@ -378,6 +389,31 @@ export default function DramaBlocking3DPage() {
     }
     navigate(-1);
   };
+
+  // 顶部导航栏常驻工作室页签（2026-08-27 用户要求）：进入 3D 草图编辑不掉页签。
+  // 二级=角色/场景/道具/章节/设定（active=章节），三级=参考/提取/脚本/分镜/视频
+  // （active=分镜）；点击先保存当前摆位，再深链回工作室对应页签。保存失败留在本页。
+  const isMobileViewport = useIsMobileViewport();
+  const studioTabNavigateRef = useRef(false);
+  const novelId = context?.novelId ?? null;
+  const leaveToStudio = useCallback(async (stage: StudioStage, tab?: CurrentTab) => {
+    if (studioTabNavigateRef.current) return;
+    studioTabNavigateRef.current = true;
+    try {
+      if (!(await saveBeforeExit())) return;
+      navigate(buildStudioNavigationPath(novelId ?? "", stage === "current" && tab ? { stage, currentTab: tab } : { stage }));
+    } finally {
+      studioTabNavigateRef.current = false;
+    }
+  }, [navigate, novelId, saveBeforeExit]);
+  useRegisterPageTabs(!isMobileViewport && Boolean(novelId), [
+    buildStudioNavStageRow("current", (stage) => {
+      void leaveToStudio(stage);
+    }),
+    buildStudioNavCurrentSubRow("storyboard", (tab) => {
+      void leaveToStudio("current", tab);
+    }),
+  ]);
 
   if (contextQuery.isPending) {
     return <div className="flex min-h-[60vh] items-center justify-center text-sm text-muted-foreground"><Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />载入 3D 草图数据</div>;

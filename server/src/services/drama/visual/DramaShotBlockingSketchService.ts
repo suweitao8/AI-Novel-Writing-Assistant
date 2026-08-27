@@ -142,6 +142,8 @@ export interface DramaShotBlockingSketchEditorContext {
   shot: DramaShotBlockingSketchShotSummary;
   scene: BlockingSketchEditorScene | null;
   actors: BlockingSketchEditorActor[];
+  /** 来源小说 id（novel_import 项目），供深层编辑器常驻显示工作室页签并跳回。 */
+  novelId: string | null;
 }
 
 export interface DramaShotBlockingAutoPlanResult {
@@ -303,6 +305,7 @@ export class DramaShotBlockingSketchService {
         sketch,
         shot: shotSummary,
         scene: null,
+        novelId: null,
         actors: referencedCharacters.map((character) => {
           const profile = heightProfilesById.get(character.id);
           const height = resolveCharacterHeightForState(undefined, profile);
@@ -392,7 +395,7 @@ export class DramaShotBlockingSketchService {
       };
     });
 
-    return { sketch, shot: shotSummary, scene, actors };
+    return { sketch, shot: shotSummary, scene, actors, novelId };
   }
 
   async autoPlan(projectId: string, shotId: string, options: DramaLLMOptions = {}): Promise<DramaShotBlockingAutoPlanResult> {

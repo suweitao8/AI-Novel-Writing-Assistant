@@ -255,6 +255,8 @@ export interface DramaShotBlockingSketchData {
 
 export interface DramaShotBlockingSketchEditorContext {
   sketch: DramaShotBlockingSketchData | null;
+  /** 来源小说 id（novel_import 项目），供常驻工作室页签跳回工作室。 */
+  novelId: string | null;
   shot: {
     order: number;
     location: string;
