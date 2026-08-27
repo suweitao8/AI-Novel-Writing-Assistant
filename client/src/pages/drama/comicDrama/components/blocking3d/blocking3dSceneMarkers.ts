@@ -39,12 +39,14 @@ export function createSceneMarkerRuntime(
   app: pc.AppBase,
   marker: StoryScene3DMarker,
   selected = false,
+  /** 传入世界根节点时标记作为世界的子对象；缺省仍挂场景根。 */
+  parent?: pc.Entity,
 ): Blocking3dSceneMarkerRuntime {
   const entity = new pc.Entity(`blocking3d-scene-marker-${marker.id}`);
   const material = new pc.StandardMaterial();
   applyMarkerMaterial(material, marker, selected);
   entity.addComponent("render", { type: "box", material });
-  app.root.addChild(entity);
+  (parent ?? app.root).addChild(entity);
   const runtime = { marker, entity, material };
   updateSceneMarkerRuntime(runtime, marker, selected);
   return runtime;
