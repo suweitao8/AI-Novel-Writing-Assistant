@@ -12,6 +12,7 @@ const markerSource = fs.readFileSync(
 const viewerSource = [
   "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
   "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentRuntime.ts",
 ].map((p) => fs.readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 const gizmoSource = fs.readFileSync(
   new URL(

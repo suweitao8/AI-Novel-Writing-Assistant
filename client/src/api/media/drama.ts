@@ -234,10 +234,18 @@ export interface DramaShotBlockingSketch3DEnvironment {
   intensity: number;
 }
 
+export interface DramaShotBlockingSketch3DShotCamera {
+  /** 场景摄像机实体的独立机位（世界坐标位置 + 朝向），与编辑视角相机解耦。 */
+  position: [number, number, number];
+  yawDeg: number;
+  pitchDeg: number;
+}
+
 export interface DramaShotBlockingSketch3DLayout {
   schemaVersion: 1;
   engine: "playcanvas";
   camera: DramaShotBlockingSketch3DCamera;
+  shotCamera?: DramaShotBlockingSketch3DShotCamera;
   actors: DramaShotBlockingSketch3DActor[];
   environment?: DramaShotBlockingSketch3DEnvironment;
 }
