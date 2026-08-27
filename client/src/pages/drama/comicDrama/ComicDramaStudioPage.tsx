@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -30,7 +31,7 @@ import SettingsCharactersTab from "@/pages/novels/components/storySettings/Setti
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
 import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsScenesTab";
 import AutoStoryAssetImageGeneration from "@/pages/novels/components/storySettings/AutoStoryAssetImageGeneration";
-import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import { usePageNavActionsSlot, useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
@@ -90,8 +91,8 @@ const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 
 // 漫剧工作室：项目级页签（当前/资产/设定）与各页签的子页签统一放在顶部导航栏，
-// 页头只保留当前页签的工具按钮（引用/解析/生成/章节管理）；
-// 移动端没有顶部导航栏，页签和子页签条保留在页头内。
+// 当前页签的工具按钮（章节/引用/解析/生成/分镜工具）也上收到导航栏「AI 实况」左侧；
+// 移动端没有顶部导航栏，页签、子页签条和工具按钮都保留在页头内。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
   const [searchParams] = useSearchParams();
@@ -194,6 +195,8 @@ export default function ComicDramaStudioPage() {
         onSelect: (key: string) => setSettingsTab(key as SettingsTab),
       };
   useRegisterPageTabs(!isMobileViewport, [stageTabRow, subTabRow]);
+  // 顶部导航栏「AI 实况」左侧的操作区槽位：桌面端把当前页签的工具按钮 portal 进去。
+  const navActionsSlot = usePageNavActionsSlot();
 
   // 分镜自动同步：切换章节或进入「分镜」页签时，静默把小说最新内容打包进分镜项目
   // （幂等：upsert 内容包、重建角色与初始事实），不再依赖手动「同步最新章节」按钮。
@@ -255,12 +258,10 @@ export default function ComicDramaStudioPage() {
     );
   }
 
-  // 「当前」页签的工具区：桌面端放在页头右侧，移动端保留在子页签条右列。
-  const currentToolbar = stage === "current" ? (
-    <div
-      ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
-      className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto"
-    >
+  // 「当前」页签的工具按钮（按子页签变化）：桌面端渲染进顶部导航栏操作区，
+  // 移动端渲染在页头子页签条右列。分镜页签时容器同时充当分镜工具的传送目标。
+  const currentToolbarContent = stage === "current" ? (
+    <>
       {currentTab === "reference" ? (
         <>
           {chapterWorkspace.referenceSavePending ? (
@@ -325,30 +326,53 @@ export default function ComicDramaStudioPage() {
           </AiButton>
         </>
       ) : null}
+    </>
+  ) : null;
+
+  const mobileToolbar = isMobileViewport && stage === "current" ? (
+    <div
+      ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+      className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto"
+    >
+      {currentToolbarContent}
     </div>
   ) : null;
+
+  // 桌面端操作区：整组按钮（子页签工具 + 章节管理）portal 进顶部导航栏，
+  // 位于「AI 实况」左侧；portal 内容仍在本组件树内，按钮状态与页面实时同步。
+  const navActionsPortal = !isMobileViewport && stage === "current" && navActionsSlot
+    ? createPortal(
+        <div className="flex min-w-0 items-center justify-end gap-2">
+          <div
+            ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+            className="flex items-center gap-1.5"
+          >
+            {currentToolbarContent}
+          </div>
+          {headerActions}
+        </div>,
+        navActionsSlot,
+      )
+    : null;
 
   return (
     <div className="space-y-4">
       <AutoStoryAssetImageGeneration novelId={novelId} />
+      {navActionsPortal}
       <Tabs value={stage} onValueChange={(value) => setStage(value as StudioStage)}>
-        {isMobileViewport || stage === "current" ? (
+        {isMobileViewport ? (
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:px-5">
-            {isMobileViewport ? (
-              <TabsList>
-                <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
-                <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
-                <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.settings}</TabsTrigger>
-              </TabsList>
-            ) : null}
+            <TabsList>
+              <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
+              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
+              <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.settings}</TabsTrigger>
+            </TabsList>
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
-              {!isMobileViewport ? currentToolbar : null}
               {headerActions}
             </div>
           </div>
-          {isMobileViewport ? (
-          stage === "current" ? (
+          {stage === "current" ? (
             <SubTabRow>
               <span className="hidden sm:block" aria-hidden="true" />
               <Tabs
@@ -366,7 +390,7 @@ export default function ComicDramaStudioPage() {
                   <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
                 </TabsList>
               </Tabs>
-              {currentToolbar}
+              {mobileToolbar}
             </SubTabRow>
           ) : stage === "assets" ? (
             <SubTabRow>
@@ -406,8 +430,7 @@ export default function ComicDramaStudioPage() {
               </Tabs>
               <span className="hidden sm:block" aria-hidden="true" />
             </SubTabRow>
-          )
-          ) : null}
+          )}
         </header>
         ) : null}
 

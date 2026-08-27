@@ -25,7 +25,11 @@ const DEFAULT_APP_MAIN_CLASS_NAME = "min-h-0 min-w-0 flex-1 overflow-y-auto p-6"
 export default function AppLayout() {
   const location = useLocation();
   const [pageTabRows, setPageTabRows] = useState<PageTabRow[]>([]);
-  const pageTabsContextValue = useMemo(() => ({ rows: pageTabRows, setPageTabRows }), [pageTabRows]);
+  const [navActionsSlot, setNavActionsSlot] = useState<HTMLDivElement | null>(null);
+  const pageTabsContextValue = useMemo(
+    () => ({ rows: pageTabRows, setPageTabRows, navActionsSlot, setNavActionsSlot }),
+    [pageTabRows, navActionsSlot],
+  );
   const [isWorkspaceRailCollapsed, setIsWorkspaceRailCollapsed] = useState(false);
   const [workspaceNavMode, setWorkspaceNavMode] = useState<"workspace" | "project">("project");
   const isMobileViewport = useIsMobileViewport();

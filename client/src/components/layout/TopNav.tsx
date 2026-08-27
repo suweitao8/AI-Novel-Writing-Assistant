@@ -13,7 +13,7 @@ import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog"
 import { Button } from "@/components/ui/button";
 import { getDramaFocusNavItems } from "@/config/dramaFocusNav";
 import { cn } from "@/lib/utils";
-import { usePageTabRows, type PageTabRow } from "./PageTabsContext";
+import { usePageTabRows, useSetPageNavActionsSlot, type PageTabRow } from "./PageTabsContext";
 
 const iconByRoute = new Map<string, LucideIcon>([
   ["/drama", Clapperboard],
@@ -27,6 +27,7 @@ interface TopNavProps {
 }
 
 export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
+  const setNavActionsSlot = useSetPageNavActionsSlot();
   return (
     <header className="flex shrink-0 flex-col border-b bg-muted/20">
       <div className="flex h-14 min-w-0 items-center pl-4 pr-3">
@@ -50,7 +51,7 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
                         : "border-transparent text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {Icon ? <Icon className="h-4 w-4 shrink-0" /> : null}
+                    {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
                     {item.label}
                   </span>
                 )}
@@ -59,7 +60,12 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
           })}
         </nav>
 
-        <div className="ml-auto flex shrink-0 items-center gap-2">
+        {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
+        <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
+          <div
+            ref={setNavActionsSlot}
+            className="flex min-w-0 items-center gap-1.5 empty:hidden"
+          />
           {onSwitchToWorkspaceNav ? (
             <Button
               type="button"
@@ -89,11 +95,14 @@ function PageTabsBar() {
   return (
     <nav
       aria-label="页面页签"
-      className="flex h-10 min-w-0 shrink-0 items-center gap-1 overflow-x-auto border-t bg-background px-4"
+      className="flex h-10 min-w-0 shrink-0 items-center overflow-x-auto border-t bg-background px-4"
     >
-      {rows.map((row, index) => (
-        <PageTabGroup key={row.id} row={row} separated={index > 0} />
-      ))}
+      {/* 二级页签居中、三级页签紧随其旁；内容超宽时 mx-auto 收敛为左对齐可滚动 */}
+      <div className="mx-auto flex shrink-0 items-center gap-1">
+        {rows.map((row, index) => (
+          <PageTabGroup key={row.id} row={row} separated={index > 0} />
+        ))}
+      </div>
     </nav>
   );
 }
