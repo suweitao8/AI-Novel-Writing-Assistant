@@ -288,7 +288,7 @@ test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据�
 });
 
 
-test("可行走地面薄板由墙面深度推导，角色站位不会越过墙面", () => {
+test("标记集合不再生成可行走地面薄板", () => {
   const normalized = normalizeStoryScene3dMarkerSet({
     schemaVersion: 1,
     status: "ready",
@@ -310,52 +310,10 @@ test("可行走地面薄板由墙面深度推导，角色站位不会越过墙�
     maxRadius: 6,
     environment,
   });
-  const floor = normalized?.markers.find((marker) => marker.kind === "floor");
-  assert.ok(floor, "识别出墙面标记后必须生成可行走地面");
-  assert.equal(floor.id, "scene-floor-walkable");
-  const expectedHalfSide = (2.5 / Math.SQRT2) * 0.95;
-  assert.ok(Math.abs(floor.size[0] - expectedHalfSide * 2) < 1e-6, "地面范围取最近墙面半径的内接方形");
-  assert.ok(Math.abs(floor.size[2] - expectedHalfSide * 2) < 1e-6);
-  assert.ok(floor.size[1] <= 0.12, "地面薄板必须足够薄，不遮挡摆位视线");
-  assert.equal(floor.position[0], 0);
-  assert.equal(floor.position[2], 0);
-  assert.equal(floor.position[1], floor.size[1] / 2);
-  assert.equal(normalized?.markers.length, 2);
+  assert.equal(normalized?.markers.length, 1, "归一化只保留识别到的固定物体本身");
 });
 
-test("没有墙面证据时地面范围回退参考半径，空标记集合不生成地面", () => {
-  const furnitureOnly = normalizeStoryScene3dMarkerSet({
-    schemaVersion: 1,
-    status: "ready",
-    markers: [{
-      id: "bed",
-      kind: "bed",
-      label: "床",
-      anchor: "floor",
-      position: [1.2, 0.45, 2.4],
-      size: [2.2, 0.9, 2],
-      yawDeg: 0,
-      confidence: 0.8,
-      source: "manual",
-    }],
-  }, {
-    maxRadius: 6,
-    environment,
-  });
-  const floor = furnitureOnly?.markers.find((marker) => marker.kind === "floor");
-  assert.ok(floor, "有家具证据时仍要给出地面范围");
-  const expectedHalfSide = (6 / Math.SQRT2) * 0.95;
-  assert.ok(Math.abs(floor.size[0] - expectedHalfSide * 2) < 1e-6);
-
-  const empty = normalizeStoryScene3dMarkerSet({
-    schemaVersion: 1,
-    status: "ready",
-    markers: [],
-  }, { maxRadius: 6, environment });
-  assert.equal(empty?.markers.some((marker) => marker.kind === "floor"), false);
-});
-
-test("地面薄板每次归一化重新推导，模型或旧数据里的地面标记会被替换", () => {
+test("旧数据里的可行走地面薄板会被清掉且保持幂等", () => {
   const input = {
     schemaVersion: 1,
     status: "ready",
@@ -384,11 +342,8 @@ test("地面薄板每次归一化重新推导，模型或旧数据里的地面�
     ],
   };
   const first = normalizeStoryScene3dMarkerSet(input, { maxRadius: 6, environment });
-  const floors = first?.markers.filter((marker) => marker.kind === "floor") ?? [];
-  assert.equal(floors.length, 1, "旧地面标记必须被替换而不是叠加");
+  assert.equal(first?.markers.map((marker) => marker.id).join(","), "door", "历史合成地面直接丢弃");
   const second = normalizeStoryScene3dMarkerSet(first, { maxRadius: 6, environment });
-  const secondFloor = second?.markers.find((marker) => marker.kind === "floor");
-  assert.deepEqual(secondFloor?.size, floors[0]?.size);
-  assert.deepEqual(secondFloor?.position, floors[0]?.position);
   assert.equal(second?.markers.length, first?.markers.length);
 });
+

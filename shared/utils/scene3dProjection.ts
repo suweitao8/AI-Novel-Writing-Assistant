@@ -56,8 +56,6 @@ export const STORY_SCENE_3D_MARKER_SIZE_POLICIES = {
   window: { x: [0.6, 3], y: [0.6, 2.6], z: [0.05, 0.4], imageWidthFactor: 0.75, imageHeightFactor: 0.9, floorDepthRatio: 0.12 },
   counter: { x: [0.8, 3], y: [0.7, 1.3], z: [0.4, 1.2], imageWidthFactor: 0.4, imageHeightFactor: 0.45, floorDepthRatio: 0.5 },
   stair: { x: [0.8, 3.5], y: [0.5, 2.5], z: [0.8, 4], imageWidthFactor: 0.55, imageHeightFactor: 0.5, floorDepthRatio: 1 },
-  /** Derived walkable-floor slab; never comes from the vision model, so the image factors are placeholders. */
-  floor: { x: [0.5, 60], y: [0.02, 0.12], z: [0.5, 60], imageWidthFactor: 0.6, imageHeightFactor: 0.6, floorDepthRatio: 1 },
   other: { x: [0.25, 3], y: [0.2, 3], z: [0.25, 3], imageWidthFactor: 0.6, imageHeightFactor: 0.6, floorDepthRatio: 0.75 },
 } as const satisfies Record<StoryScene3DMarkerKind, StoryScene3dMarkerSizePolicy>;
 
