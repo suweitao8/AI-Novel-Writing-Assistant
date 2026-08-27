@@ -101,15 +101,13 @@ export function StoryAssetCard({
                   <Badge variant="outline" className={cn("shrink-0", tone.badge)}>{asset.typeLabel}</Badge>
                   <span className="min-w-0 truncate font-medium text-foreground">{asset.name}</span>
                 </span>
-                <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                  {asset.summary}
-                </p>
+                {/* 侧栏卡片只保留图片、名称、状态数与少量概要标签（2026-08-26 用户要求） */}
                 <span className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <Badge variant="secondary" className="text-[11px]">{stateCountLabel}</Badge>
                   {asset.badges.map((badge) => (
                     <Badge key={badge} variant="secondary" className="text-[11px]">{badge}</Badge>
                   ))}
                   <AssetImageStatusBadge status={imageStatus} error={defaultState?.imageError ?? ""} />
-                  <Badge variant="secondary" className="text-[11px]">{stateCountLabel}</Badge>
                 </span>
               </span>
             ) : (
