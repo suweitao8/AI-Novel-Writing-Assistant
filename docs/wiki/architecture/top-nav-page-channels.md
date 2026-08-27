@@ -52,6 +52,9 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
   实测 1100–1489px 视口下三级胶囊右缘与操作按钮间隙 7–112px，不遮挡、
   可点击；更窄视口由移动端布局（页内页签）兜底。
   页面页签不显示计数后缀（提取等数字已去掉，用户要求）。
+  胶囊内的语义分组边界（资产 | 章节工作台 | 设定）画竖线：
+  可选字段由页面侧从  填充（props、video 之后），TopNav 只认
+  数据字段——layout 层不反向依赖业务模块。
   资产层与章节层均已拍平（2026-08-27，两轮）：`StudioStage` 为
   characters/scenes/props/reference/extract/script/storyboard/video/settings
   九个平级值（「当前」「章节」「资产」三个中间层都已取消，顺序 `STUDIO_STAGE_ORDER`），
