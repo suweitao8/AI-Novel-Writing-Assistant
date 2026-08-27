@@ -163,7 +163,7 @@ test("reference image anchors identity only; era switching transforms the look b
   assert.match(prompt, /genuine PNG alpha channel/);
 });
 
-test("character sheet template uses four equal native Grok Build columns", () => {
+test("character sheet template uses four equal columns on a 16:9 board", () => {
   assert.deepEqual(CHARACTER_STATE_SHEET_TEMPLATE.size, { width: 1280, height: 720 });
   assert.deepEqual(
     CHARACTER_STATE_SHEET_TEMPLATE.slots.map((slot) => slot.id),

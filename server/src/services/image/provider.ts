@@ -45,18 +45,6 @@ interface ProviderSecret {
   baseURL: string;
 }
 
-function mapSizeToAspectRatio(size: string): string | undefined {
-  const mapping: Record<string, string> = {
-    "512x512": "1:1",
-    "768x768": "1:1",
-    "1024x1024": "1:1",
-    "1024x1536": "2:3",
-    "1536x864": "16:9",
-    "1536x1024": "3:2",
-  };
-  return mapping[size];
-}
-
 async function resolveProviderSecret(provider: LLMProvider): Promise<ProviderSecret> {
   let savedApiKey: string | undefined;
   let savedBaseURL: string | undefined;
@@ -163,54 +151,34 @@ function normalizeOptionalEnum<T extends string>(value: T | undefined, skipValue
 }
 
 export function buildImageGenerationRequestBody(input: ImageProviderGenerateInput): Record<string, unknown> {
-  assertImageProviderReferenceSupport(input);
   const requestBody: Record<string, unknown> = {
     model: input.model,
     prompt: buildPrompt(input.prompt, input.negativePrompt, input.sceneType),
     n: input.count,
   };
 
-  if (input.provider === "grok_build") {
-    requestBody.response_format = "b64_json";
-  } else if (input.provider === "grok") {
-    const aspectRatio = mapSizeToAspectRatio(input.size);
-    if (aspectRatio) {
-      requestBody.aspect_ratio = aspectRatio;
-    }
-    requestBody.resolution = "1k";
-  } else {
-    requestBody.size = input.size;
-    const quality = normalizeOptionalEnum<ImageQuality>(input.quality, ["auto"]);
-    const background = normalizeOptionalEnum<ImageBackground>(input.background, ["auto"]);
-    const moderation = normalizeOptionalEnum<ImageModerationLevel>(input.moderation, ["auto"]);
-    const outputFormat = input.outputFormat;
-    if (quality) {
-      requestBody.quality = quality;
-    }
-    if (background) {
-      requestBody.background = background;
-    }
-    if (moderation) {
-      requestBody.moderation = moderation;
-    }
-    if (outputFormat) {
-      requestBody.output_format = outputFormat;
-    }
-    if (typeof input.outputCompression === "number" && Number.isFinite(input.outputCompression)) {
-      requestBody.output_compression = Math.max(0, Math.min(100, Math.floor(input.outputCompression)));
-    }
+  requestBody.size = input.size;
+  const quality = normalizeOptionalEnum<ImageQuality>(input.quality, ["auto"]);
+  const background = normalizeOptionalEnum<ImageBackground>(input.background, ["auto"]);
+  const moderation = normalizeOptionalEnum<ImageModerationLevel>(input.moderation, ["auto"]);
+  const outputFormat = input.outputFormat;
+  if (quality) {
+    requestBody.quality = quality;
+  }
+  if (background) {
+    requestBody.background = background;
+  }
+  if (moderation) {
+    requestBody.moderation = moderation;
+  }
+  if (outputFormat) {
+    requestBody.output_format = outputFormat;
+  }
+  if (typeof input.outputCompression === "number" && Number.isFinite(input.outputCompression)) {
+    requestBody.output_compression = Math.max(0, Math.min(100, Math.floor(input.outputCompression)));
   }
 
   return requestBody;
-}
-
-export function assertImageProviderReferenceSupport(input: ImageProviderGenerateInput): void {
-  if (
-    (input.provider === "grok_build" || input.provider === "grok")
-    && ((input.refImages?.length ?? 0) > 0 || (input.refImagePaths?.length ?? 0) > 0)
-  ) {
-    throw new Error(`${input.provider} 图片通道不支持参考图，请切换到 Codex 图片通道。`);
-  }
 }
 
 export function isImageProviderSupported(provider: LLMProvider): boolean {
@@ -249,15 +217,13 @@ async function generateWithFileRef(
   form.append("model", input.model);
   form.append("prompt", buildPrompt(input.prompt, input.negativePrompt, input.sceneType));
   form.append("n", String(input.count));
-  if (input.provider !== "grok") {
-    form.append("size", input.size);
-    // 透明底等输出要求在 edits 路径同样透传（gpt-image 系 API 支持）。
-    if (input.background && input.background !== "auto") {
-      form.append("background", input.background);
-    }
-    if (input.outputFormat) {
-      form.append("output_format", input.outputFormat);
-    }
+  form.append("size", input.size);
+  // 透明底等输出要求在 edits 路径同样透传（gpt-image 系 API 支持）。
+  if (input.background && input.background !== "auto") {
+    form.append("background", input.background);
+  }
+  if (input.outputFormat) {
+    form.append("output_format", input.outputFormat);
   }
   for (const refImagePath of refImagePaths) {
     const fileBuffer = await fs.readFile(refImagePath);
@@ -307,7 +273,6 @@ export async function generateImagesByProvider(input: ImageProviderGenerateInput
   if (!isImageProviderSupported(input.provider)) {
     throw new Error(`Provider ${input.provider} does not support image generation currently.`);
   }
-  assertImageProviderReferenceSupport(input);
 
   const controller = new AbortController();
   const timeoutMs = imageGenerationConfig.httpTimeoutMs;

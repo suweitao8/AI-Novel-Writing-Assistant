@@ -11,7 +11,7 @@ test("successful image generation clears a stale error from the persisted state"
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-novel-image-runtime-"));
   let savedState;
   global.fetch = async (url) => {
-    assert.equal(url, "http://127.0.0.1:18767/v1/images/generations");
+    assert.equal(url, "http://127.0.0.1:18766/v1/images/generations");
     return {
       ok: true,
       json: async () => ({ data: [{ b64_json: "AAAA" }] }),
@@ -28,7 +28,7 @@ test("successful image generation clears a stale error from the persisted state"
       diskPath: (extension) => path.join(tempDir, `image.${extension}`),
       publicUrl: () => "/test-image",
     }, {
-      provider: "grok_build",
+      provider: "codex",
       prompt: "test image",
     });
 
@@ -64,7 +64,7 @@ test("character runtime persists the same constrained prompt that it sends to th
       diskPath: (extension) => path.join(tempDir, `image.${extension}`),
       publicUrl: () => "/test-character-image",
     }, {
-      provider: "grok_build",
+      provider: "codex",
       sceneType: "character",
       prompt: "用户自定义角色提示词",
     });

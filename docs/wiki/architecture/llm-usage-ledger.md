@@ -24,8 +24,7 @@
 ## 相关：思考模式开关
 
 - 模型设置（文本模型卡片）暴露 per-provider 的 `reasoningEnabled` 开关，落库到 APIKey 设置，由 `server/src/llm/factory.ts` 读取。
-- 禁用参数只对已知支持思考开关的模型生效：DeepSeek thinking 系列（`thinking: {type:"disabled"}`）、Qwen 系（`enable_thinking: false`）。对不支持的端点关闭是安全的 no-op——**不要**对任意 openai_compatible 端点盲发未知参数（OpenAI 等严格端点会 400）。
-- 本机 OpenCode 订阅桥接通道**天生不思考**：`scripts/opencode-go-text-agent.json` 已设 `reasoningEffort: "none"`，且桥接层不转发任何思考参数。该通道慢的原因是大输出的吞吐速度，不是思考开销。
+- 禁用参数只对已知支持思考开关的模型生效：DeepSeek thinking 系列（`thinking: {type:"disabled"}`）、Qwen 系（`enable_thinking: false`）。对不支持的端点关闭是安全的 no-op——**不要**对任意 openai_compatible 端点盲发未知参数（OpenAI 等严格端点会 400）。codex 订阅桥的思考深度由桥侧 `model_reasoning_effort` 控制（见 codex-image-provider.md），不经 factory 的 reasoningEnabled 开关。
 
 ## 失败模式
 

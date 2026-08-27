@@ -64,9 +64,8 @@
 
 漫剧已在真实环境完成从小说到分镜、首帧、配音和视频素材的链路验证；整集合成的目标合同是横屏 16:9（开发默认 1280×720/24fps，发布可切换 1920×1080/24fps），由 Remotion 统一制作成片。沉淀的运行知识：
 
-- **文本通道**：本机 Grok Build 文本桥（18764），默认使用已登录的 Grok Build 订阅；结构化调用需要 bridge 提供 OpenAI 兼容 SSE，配置在模型设置的文本模型槽位。
-- **基础资产图片通道**：角色/道具透明底和场景 2:1 全景统一走 Codex 图片通道；Grok Build 图片桥（18767）只服务不需要透明底或 2:1 的通用图片，固定输出 1280×720 横版图。服务启动前执行 `pnpm grok:bridge`，已运行的 bridge 会复用。
-- **参考图图片通道**：带参考图的状态图、首帧图和封面由路由自动回退到兼容参考图的 Codex 图片桥（18766），因为 Grok Build 图片桥只承担无参考图任务，不支持 `/images/edits`。这不是链路故障，不能通过静默丢掉参考图来规避；没有参考图的图片任务统一使用 Grok Build（18767）。
+- **文本/视觉通道**：本机 Codex 订阅桥（18766）的 chat completions，gpt-5.6-luna 驱动；配置在模型设置的文本模型槽位。
+- **图片通道**：角色/道具透明底、场景 2:1 全景、带参考图的状态图/首帧图/封面统一走 Codex 图片通道（18766）。这不是可选项：Codex 同时是唯一承载 `/images/edits` 参考图编辑的通道，不能通过静默丢掉参考图来规避。
 - **语音通道**：当前默认使用 VoxCPM2 本机 FastAPI 桥 `D:\Github\VoxCPM\openai_speech_server.py`（默认 18761，开发启动链会先校验 `/health` 与 `/v1/models`）。**台词情绪链路**：分镜台词行约定「角色名（语气）：台词」（`drama.storyboard@v3` 生成时写入，初稿解析 `novel.chapter.reference_parse@v4` 的 mood 同源语义；v3 起两处都要求角色用本名、禁「妹妹」等称谓，drama.storyboard 的 action 另需写明位置姿态且同地点相邻镜头位置连贯，characterRefs 列画面可见角色全名——首帧图按 characterRefs 名字挂角色参考图）；`parseDialogueLines` 把（语气）拆成独立 `emotion` 字段、角色名保持干净用于匹配角色音色；配音时逐行 emotion 交给 VoxCPM2 的 `emotion_prompt`，并按旁白/对白分别传 `audio_type`，有效样本通过 `audio_url` 用作参考音色；行内语气优先于角色默认情绪（voice.emotion/voicePrompt），旁白行（含「旁白：」前缀行）用旁白音色描述；`buildDialogueVoiceKey` 把行内语气纳入音色指纹——语气变化会使已有音频判 stale 需重配。IndexTTS 2.5 仅保留显式兼容入口，不参与默认启动或配音注册。
 - **视频素材通道**：`LocalFfmpegVideoProvider`（provider id `local_ffmpeg`）——首帧图+台词配音 → 横屏 16:9 H.264/AAC 镜头素材，产物在 `server/storage/generated-videos/{taskId}.mp4`，经 `GET /api/drama/video-files/:taskId` 提供。ffmpeg 需在 PATH。整集合成由 `video/` workspace 的 Remotion Composition 完成，ffmpeg 只做音频规范化、最终封装和 ffprobe 校验。
 - **ffmpeg 音频拼接两个坑**：音频 concat demuxer 列表必须 `-f concat -safe 0` 显式声明且列表内用正斜杠（Windows 反斜杠被当转义符）；多段配音文件扩展名按 dataUrl mime 定（wav 别存成 .mp3）。视频画面不再走 ffmpeg concat。
@@ -155,7 +154,7 @@
 
 ### Decision
 
-- `keyframes` 批量任务默认使用 4 路有界 worker 并发，服务端统一将任务进度中的并发裁剪到 1–4 路；当前 Codex 图片桥的硬上限是 4 路，Grok Build bridge 虽未提供 admission control，应用侧仍沿用 4 路保护。恢复任务以 `progress` 中规范化后的并发值启动，不能绕过状态重新读取固定常量。
+- `keyframes` 批量任务默认使用 4 路有界 worker 并发，服务端统一将任务进度中的并发裁剪到 1–4 路；当前 Codex 图片桥的硬上限是 4 路，应用侧沿用 4 路保护。恢复任务以 `progress` 中规范化后的并发值启动，不能绕过状态重新读取固定常量。
 - 每个镜头的 `keyframeData.status` 是镜头级状态的权威来源：`generating` 表示请求已进入生成，`done` 表示图片可用，错误状态恢复为可重试的缺失画面。
 - `DramaBatchJob.progress` 的写入必须串行排队。图片请求可以并发，但完成计数、失败镜头列表和费用累计不能由并发写入互相覆盖。
 - 分镜列表在批量请求创建前先对目标镜头做乐观标记，立即显示高亮的「生成中」缩略图；后端任务状态和镜头数据刷新后，以服务端结果收敛。任务创建失败或结束后，乐观标记只保留仍为 `generating` 的镜头。

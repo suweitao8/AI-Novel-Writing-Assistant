@@ -18,8 +18,8 @@ test("resolveModel keeps route temperature while using the local text slot", asy
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "opencode");
-    assert.equal(resolved.model, "opencode-go/mimo-v2.5");
+    assert.equal(resolved.provider, "codex");
+    assert.equal(resolved.model, "gpt-5.6-luna");
     assert.equal(resolved.temperature, 0.3);
     assert.equal(resolved.maxTokens, 32768);
   } finally {
@@ -61,8 +61,8 @@ test("resolveModel treats legacy 4096 maxTokens as unset", async () => {
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "opencode");
-    assert.equal(resolved.model, "opencode-go/mimo-v2.5");
+    assert.equal(resolved.provider, "codex");
+    assert.equal(resolved.model, "gpt-5.6-luna");
     assert.equal(resolved.temperature, 0.3);
     assert.equal(resolved.maxTokens, undefined);
   } finally {
@@ -70,15 +70,15 @@ test("resolveModel treats legacy 4096 maxTokens as unset", async () => {
   }
 });
 
-test("resolveModel uses the local OpenCode Go text slot by default", async () => {
+test("resolveModel uses the local Codex text slot by default", async () => {
   const originalFindUnique = prisma.modelRouteConfig.findUnique;
 
   prisma.modelRouteConfig.findUnique = async () => null;
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "opencode");
-    assert.equal(resolved.model, "opencode-go/mimo-v2.5");
+    assert.equal(resolved.provider, "codex");
+    assert.equal(resolved.model, "gpt-5.6-luna");
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
   }
@@ -99,8 +99,8 @@ test("resolveModel preserves route protocol and structured response format prefe
 
   try {
     const resolved = await resolveModel("planner");
-    assert.equal(resolved.provider, "opencode");
-    assert.equal(resolved.model, "opencode-go/mimo-v2.5");
+    assert.equal(resolved.provider, "codex");
+    assert.equal(resolved.model, "gpt-5.6-luna");
     assert.equal(resolved.requestProtocol, "openai_compatible");
     assert.equal(resolved.structuredResponseFormat, "json_object");
   } finally {
@@ -184,7 +184,7 @@ test("resolveModel keeps strict routes non-degraded when explicitly configured",
     const resolved = await resolveModel("state_resolution");
     assert.equal(resolved.routeKey, "state_resolution");
     assert.equal(resolved.routeDegraded, false);
-    assert.equal(resolved.model, "opencode-go/mimo-v2.5");
+    assert.equal(resolved.model, "gpt-5.6-luna");
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
   }

@@ -29,8 +29,7 @@ export const CHARACTER_STATE_VIEW_SPECS = [
 export type CharacterStateViewId = (typeof CHARACTER_STATE_VIEW_SPECS)[number]["id"];
 
 /**
- * Grok Build 的原生图片产物是 1280x720。四视图直接由一次生图生成，
- * 因此这里的模板只描述最终板式，不再把四张独立图片裁切成四栏。
+ * 四视图直接由一次生图生成，模板只描述最终板式，不把四张独立图片裁切成四栏。
  */
 export const CHARACTER_STATE_SHEET_TEMPLATE = {
   size: { width: 1280, height: 720 },

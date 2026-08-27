@@ -193,7 +193,7 @@ export class VisualStyleService {
         mimeType,
         userHint: input.userHint,
       },
-      // 送图理解固定走视觉槽（grok-cli），与文本任务的 OpenCode Go 通道分开。
+      // 送图理解固定走视觉槽（Codex 订阅）。
       options: { provider: getVisionModelProvider() },
     });
     return result.output;

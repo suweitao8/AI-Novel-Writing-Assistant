@@ -10,9 +10,8 @@ import { getProviderEnvModel, PROVIDERS } from "./providers";
 // 槽位的服务地址、API Key、模型均可编辑：更换供应商时修改槽位配置即可，
 // 产品不再提供按“厂商”维度逐个配置的界面。
 // 文本/视觉/图片槽统一走 Codex 订阅额度：文本与视觉经 codex 桥的 chat completions
-// （默认 gpt-5.6-luna + low 推理档 = fast 模式，图片输入走 -i 附件），图片仍走 image_generation 工具。
-// 音频保持本机 VoxCPM2，不消耗订阅额度。grok-cli / opencode 通道保留注册，
-// 额度恢复后可在设置页切回。
+// （gpt-5.6-luna + high 思考档，图片输入走 -i 附件），图片由同一 luna agent 经
+// image_generation 工具驱动。音频保持本机 VoxCPM2，不消耗订阅额度。
 export const MODEL_CATEGORY_PROVIDERS = {
   text: "codex",
   vision: "codex",
@@ -38,9 +37,9 @@ export function getAudioModelProvider(): BuiltinLLMProvider {
   return MODEL_CATEGORY_PROVIDERS.audio;
 }
 
-// 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（Grok Build / OpenCode / Codex），
+// 本机订阅通道：通过本地桥接服务使用已登录订阅的额度（Codex），
 // 用户不需要填写 API Key，计费走订阅而非 API 账户。
-const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["opencode", "grok-cli", "codex", "grok_build"]);
+const LOCAL_SUBSCRIPTION_PROVIDERS = new Set<BuiltinLLMProvider>(["codex"]);
 
 export function isLocalSubscriptionProvider(provider: BuiltinLLMProvider): boolean {
   return LOCAL_SUBSCRIPTION_PROVIDERS.has(provider);

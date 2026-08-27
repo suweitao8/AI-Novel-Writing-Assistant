@@ -13,7 +13,7 @@ test("runs every character view before composing and persists one final done sta
   const outputPath = path.join(tempDir, "image.png");
   const adapter = {
     kind: "story.asset.state:test",
-    loadState: async () => ({ status: "done", version: 2, url: "/old.png", provider: "grok_build" }),
+    loadState: async () => ({ status: "done", version: 2, url: "/old.png", provider: "codex" }),
     saveState: async (state) => saved.push(state),
     diskPath: () => outputPath,
     publicUrl: () => "/api/state-images/test",
@@ -22,7 +22,7 @@ test("runs every character view before composing and persists one final done sta
 
   try {
     const result = await runCompositeImageGeneration(adapter, {
-      provider: "grok_build",
+      provider: "codex",
       prompt: "四视图角色状态设计稿",
       viewRequests: [
         { id: "front_portrait", prompt: "头像" },
@@ -56,7 +56,7 @@ test("runs every character view before composing and persists one final done sta
     assert.equal(saved[0].version, 3);
     assert.equal(saved.at(-1).status, "done");
     assert.equal(saved.at(-1).url, "/api/state-images/test");
-    assert.equal(saved.at(-1).provider, "grok_build");
+    assert.equal(saved.at(-1).provider, "codex");
     assert.equal(result.status, "done");
     assert.equal(await fs.readFile(outputPath, "utf8"), "sheet");
   } finally {
@@ -64,7 +64,7 @@ test("runs every character view before composing and persists one final done sta
   }
 });
 
-test("routes reference-backed composite generation away from Grok Build", async () => {
+test("reference-backed composite generation stays on the Codex channel", async () => {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ai-novel-composite-reference-"));
   const providers = [];
   const adapter = {
@@ -77,7 +77,7 @@ test("routes reference-backed composite generation away from Grok Build", async 
 
   try {
     await runCompositeImageGeneration(adapter, {
-      provider: "grok_build",
+      provider: "codex",
       prompt: "参考图四视图",
       referenceImages: [{ kind: "asset", label: "上一状态", url: "/state/previous" }],
       refImages: ["/state/previous"],

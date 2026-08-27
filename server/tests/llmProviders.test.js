@@ -22,13 +22,8 @@ test("supported providers include kimi, minimax, glm, qwen, gemini and ollama", 
   }
 });
 
-test("local Grok Build providers are registered as subscription-backed channels", () => {
-  assert.ok(SUPPORTED_PROVIDERS.includes("grok-cli"));
-  assert.ok(SUPPORTED_PROVIDERS.includes("grok_build"));
-  assert.equal(PROVIDERS["grok-cli"].requiresApiKey, false);
-  assert.equal(PROVIDERS["grok-cli"].defaultModel, "grok-cli/grok-4.6");
-  assert.equal(PROVIDERS.grok_build.requiresApiKey, false);
-  assert.equal(PROVIDERS.grok_build.defaultModel, "grok-build-image");
+test("local Codex bridge is registered as a subscription-backed channel", () => {
+  assert.ok(SUPPORTED_PROVIDERS.includes("codex"));
   assert.equal(getTextModelProvider(), "codex");
 });
 
@@ -43,18 +38,18 @@ test("文本/视觉/图片槽位统一走 Codex 订阅额度", () => {
   assert.equal(PROVIDERS.codex.supportsModelList, false);
 });
 
-test("local Grok Build client options use the bridge bearer by default", async () => {
-  setProviderSecretCache("grok-cli", {
-    model: "grok-cli/grok-4.6",
-    baseURL: "http://127.0.0.1:18764/v1",
+test("local Codex client options use the bridge bearer by default", async () => {
+  setProviderSecretCache("codex", {
+    model: "gpt-5.6-luna",
+    baseURL: "http://127.0.0.1:18766/v1",
     reasoningEnabled: true,
   });
   try {
-    const resolved = await resolveLLMClientOptions("grok-cli");
-    assert.equal(resolved.apiKey, "local-grok-cli");
-    assert.equal(resolved.baseURL, "http://127.0.0.1:18764/v1");
+    const resolved = await resolveLLMClientOptions("codex");
+    assert.equal(resolved.apiKey, "codex-bridge-local");
+    assert.equal(resolved.baseURL, "http://127.0.0.1:18766/v1");
   } finally {
-    setProviderSecretCache("grok-cli", null);
+    setProviderSecretCache("codex", null);
   }
 });
 
@@ -385,13 +380,11 @@ test("structured failure classification separates native-json, thinking and sche
   );
 });
 
-test("视觉能力声明：OpenCode Go 是纯文本通道，未知通道按可送图处理", () => {
-  // 2026-08-27：桥接透传 image_url 为 opencode FilePart，MiMo 视觉可用。
-  assert.equal(supportsVisionInput("opencode"), true);
-  // 2026-08-27：codex 桥新增 chat completions（文本 + -i 图片附件），视觉可用。
+test("视觉能力声明：音频专用通道按纯文本处理，未知通道按可送图处理", () => {
+  // codex 桥新增 chat completions（文本 + -i 图片附件），视觉可用。
   assert.equal(supportsVisionInput("codex"), true);
-  assert.equal(supportsVisionInput("grok-cli"), true);
-  assert.equal(supportsVisionInput("grok_build"), false);
+  // voxcpm2 是音频专用本地通道，不承担送图理解。
+  assert.equal(supportsVisionInput("voxcpm2"), false);
   assert.equal(supportsVisionInput("gemini"), true);
   assert.equal(supportsVisionInput("custom-relay"), true);
 });

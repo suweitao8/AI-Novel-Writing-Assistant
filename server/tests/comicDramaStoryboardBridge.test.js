@@ -80,8 +80,8 @@ test("selected chapter bridge reuses the project and generates only the requeste
   });
 
   const result = await bridge.generateStoryboardFromNovelChapter("novel-1", 2, {
-    provider: "grok-build",
-    model: "grok-test",
+    provider: "codex",
+    model: "gpt-5.6-luna",
     temperature: 0.2,
     visualStyle: "realistic",
   });
@@ -111,7 +111,7 @@ test("selected chapter bridge reuses the project and generates only the requeste
     kind: "storyboard.generate",
     projectId: "project-1",
     order: 2,
-    options: { provider: "grok-build", model: "grok-test", temperature: 0.2 },
+    options: { provider: "codex", model: "gpt-5.6-luna", temperature: 0.2 },
   });
 });
 

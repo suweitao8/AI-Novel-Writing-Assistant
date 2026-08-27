@@ -13,13 +13,13 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - **模型 slug 诊断口径**：服务端 400 有两种语义——「The '<slug>' model is not supported when using Codex with a ChatGPT account」表示该 slug 对账号不存在（如 `luna`、`gpt-5.6`、`gpt-5.6-mini`）；「The 'gpt-5.6-luna' model requires a newer version of Codex」表示 slug 正确但本机 CLI 太旧，`npm i -g @openai/codex@latest` 升级即可（gpt-5.6-luna 实测在 0.149.1 可用，0.137.0 被拒）。另外 CLI 会自动加载 `~/.agents/skills` 与用户指令（约 +2 万 input tokens，大部分命中缓存），属正常现象；`--ignore-user-config` 只屏蔽 config.toml，不屏蔽 skills 注入。
 - 图片模型走 `ProviderImageSettingsService` 的既有通道：`ImageModelProvider` 增加 `codex`，选项显示 `gpt-5.6-luna`（Images 协议占位 id，桥的图片生成实际由同一 luna agent 驱动、忽略请求体 model），env 读取 `CODEX_IMAGE_MODEL`，持久化在 `AppSetting`（key `provider.imageModel.codex`）。
 - 桥接实现为仓库内零依赖 Node 脚本（`scripts/codex-image-bridge.cjs`），从 mydrama 的 Python 桥移植，协议一致；启动器 `scripts/start-codex-image-bridge.cjs` 对应 `pnpm codex:image`。
-- Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality`、参考图（multipart `/images/edits`）与透明背景。**2026-08-22 起角色与道具的资产参考图（状态图/四视图/道具透视图）一律走 Codex 并要求透明底**：CLI 图片工具没有 `background` 字段，桥把 `background=transparent` 翻译成 agent prompt 硬约束（真 alpha 通道 PNG，禁止实底/棋盘格/地面），应用侧提示词与 `TRANSPARENT_IMAGE_OPTIONS`（background=transparent + output_format=png）双保险。Grok Build 固定输出 16:9 横版且不支持透明底与参考图编辑，仍只承担场景全景与无参考图封面。
+- Codex 桥支持 `size` → 宽高比（竖版封面 1024x1536 → 2:3）、`quality`、参考图（multipart `/images/edits`）与透明背景。**2026-08-22 起角色与道具的资产参考图（状态图/四视图/道具透视图）一律走 Codex 并要求透明底**：CLI 图片工具没有 `background` 字段，桥把 `background=transparent` 翻译成 agent prompt 硬约束（真 alpha 通道 PNG，禁止实底/棋盘格/地面），应用侧提示词与 `TRANSPARENT_IMAGE_OPTIONS`（background=transparent + output_format=png）双保险。
 - **edits（带参考图）路径会把透明底压平（2026-08-23 实测确认）**：提示词透明指令在纯生成路径有效（产出带 alpha），但 edits 路径（`-i` 参考附件）实测稳定返回 3 通道不透明纯色底 PNG，提示词救不回来。兜底是服务端确定性抠底 `server/src/services/image/backgroundKeying.ts` 的 `ensureTransparentBackground`：runner 落盘前（`resolveImageBytes` → 抠底 → `writeImageBytes`）对「请求了 background=transparent 且 outputFormat=png 且结果无 alpha」的图，采样四边主色（4bit 量化分桶，占比 ≥50% 才算纯色底——风景/场景底不碰），从边缘洪水填充与主色欧氏距离 ≤30 的连通像素置 alpha=0，主体保留；两个安全阀：边缘无主色原样返回、抠掉比例 >92% 原样返回（防整图纯色抠成空图）。契约锁定在 server/tests/backgroundKeying.test.js（含真实压平图验证口径：背景抠掉、四面板主体保留）。已带 alpha 的图直接原样返回不做二次处理。
 
 ## 当前规则
 
 - 端口约定：`18766` 桥接（绑定 `0.0.0.0`，供 Docker 容器经 `host.docker.internal` 访问）。
-- 业务路由规则（2026-08-22/23 起）：`resolveAssetImageProvider` 里 kind=character/prop（透明底）/kind=scene（2:1 全景）无条件走 Codex；无参考图封面默认 `grok_build`，带参考图回退 Codex。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
+- 业务路由规则：图片生成统一走 Codex 订阅通道——`resolveAssetImageProvider` 与 `resolveImageProviderForReferences` 默认返回 Codex（角色/道具透明底、场景 2:1 全景、无参考图封面都由 Codex 承载）；显式传入的 provider 仍然优先。不要在新调用点绕开 `assetProviderRouting` 硬编码通道。
 - 桥的请求体是 OpenAI Images 兼容：JSON `{model, prompt, n, size, quality, background, response_format}`，`size` 会被翻译成宽高比与目标尺寸、`background=transparent` 会被翻译成透明底硬约束写进 agent prompt；带参考图时先由 `server/src/services/image/referenceImageFiles.ts` 按业务顺序把本地路径、服务端相对 URL、HTTP(S) URL 或 data URL 准备成本地文件，再走 multipart `/images/edits`，每一张图都作为独立 `image` 字段传给 CLI 的 `-i`。桥同时接收 `reference_labels`，把角色、场景、道具和摆位草图的用途按附件顺序写入 agent prompt；不会再把多张参考图压缩成单个 `input_image_url`，JSON 路径收到该字段会明确报错而不是静默丢参考。
 - CLI 调用要点：`codex exec --ignore-user-config --ephemeral --json --enable image_generation -C <workdir> --skip-git-repo-check -s danger-full-access -m <agentModel> -c model_reasoning_effort="<effort>" -`，agent prompt 从 stdin 传入；每次调用使用隔离的临时 `CODEX_HOME`（只复制 `auth.json`/`cap_sid`），产物从该目录的 `generated_images` 下按 mtime 挑选本次新生成的图片。
 - 并发上限默认 4（`CODEX_IMAGE_MAX_CONCURRENCY`），单次生成超时默认 900 秒（`CODEX_IMAGE_TIMEOUT_SECONDS`）。
@@ -44,4 +44,3 @@ mydrama 项目通过本机已登录的 Codex 订阅（Codex CLI 内置 `image_ge
 - `server/src/services/image/provider.ts`：OpenAI Images 兼容请求（JSON + multipart），codex 走通用分支，无特判。
 - `scripts/codex-image-bridge.cjs`、`scripts/start-codex-image-bridge.cjs`：本地桥接与启动器。
 - 前端 `/settings` 供应商卡片与封面 / 角色图对话框：数据驱动渲染，自动出现 codex 选项。
-- 姊妹页面：[OpenCode Go 本地模型供应商与桥接](./opencode-go-provider.md)（文本通道，同为本地订阅桥接模式）。

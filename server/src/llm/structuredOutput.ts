@@ -42,7 +42,6 @@ const GEMINI_HOST_PATTERN = /(?:^|\.)generativelanguage\.googleapis\.com$/i;
 const MOONSHOT_HOST_PATTERN = /(?:^|\.)api\.moonshot\.cn$/i;
 const DEEPSEEK_HOST_PATTERN = /(?:^|\.)api\.deepseek\.com$/i;
 const GLM_HOST_PATTERN = /(?:^|\.)open\.bigmodel\.cn$/i;
-const GROK_HOST_PATTERN = /(?:^|\.)api\.x\.ai$/i;
 const MINIMAX_HOST_PATTERN = /(?:^|\.)api\.minimax(?:i)?\.(?:io|com)$/i;
 
 function normalizeText(value: string | undefined | null): string {
@@ -198,21 +197,6 @@ export function resolveStructuredOutputProfile(input: {
       preferredStructuredStrategy: "json_object",
       requiresNonThinkingForStructured: supportsReasoningToggle,
       supportsReasoningToggle,
-    });
-  }
-  if (input.provider === "grok" || GROK_HOST_PATTERN.test(host) || model.startsWith("grok-")) {
-    return buildProfile({
-      family: "grok",
-      nativeJsonObject: true,
-      preferredStructuredStrategy: "json_object",
-    });
-  }
-  if (input.provider === "grok-cli") {
-    return buildProfile({
-      family: "grok-cli",
-      nativeJsonSchema: true,
-      nativeJsonObject: true,
-      preferredStructuredStrategy: "json_schema",
     });
   }
   if (input.provider === "minimax" || MINIMAX_HOST_PATTERN.test(host) || model.startsWith("minimax-m2")) {
