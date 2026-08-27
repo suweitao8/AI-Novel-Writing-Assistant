@@ -8,6 +8,7 @@ import {
   MapPin,
   Move3D,
   RotateCcw,
+  RotateCw,
   Trash2,
   UserRound,
   Video,
@@ -45,14 +46,17 @@ import {
   type Blocking3dTransformTool,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
+import { resolveBlocking3dOrbitPosition } from "./components/blocking3d/blocking3dCameraGizmo";
 import {
   Drama3DEditorShell,
   Drama3DObjectPanel,
   type Drama3DObjectItem,
   InspectorComponentSection,
   InspectorGameObjectCard,
+  InspectorNumberField,
   InspectorPropertyList,
   InspectorTransformSection,
+  InspectorVector3Field,
   TransformToolToolbar,
 } from "./components/editor3d";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
@@ -112,6 +116,11 @@ function buildSketchData(
   };
 }
 
+function formatVec3(value: [number, number, number] | undefined): string {
+  if (!value) return "—";
+  return value.map((item) => item.toFixed(2)).join(" / ");
+}
+
 function formatHeight(heightMeters: number | undefined): string {
   return typeof heightMeters === "number" && Number.isFinite(heightMeters)
     ? `约 ${heightMeters.toFixed(1)} 米`
@@ -131,8 +140,9 @@ function hexToRgb(value: string): RgbColor | null {
 }
 
 const SCENE_OBJECT_ID = "scene";
+const CAMERA_OBJECT_ID = "camera";
 
-type BlockingObjectSelectionId = typeof SCENE_OBJECT_ID | `actor:${string}` | `marker:${string}`;
+type BlockingObjectSelectionId = typeof SCENE_OBJECT_ID | typeof CAMERA_OBJECT_ID | `actor:${string}` | `marker:${string}`;
 
 function actorObjectId(name: string): `actor:${string}` {
   return `actor:${name}`;
@@ -163,6 +173,7 @@ export default function DramaBlocking3DPage() {
   const [compositionNote, setCompositionNote] = useState("");
   const [savedData, setSavedData] = useState<DramaShotBlockingSketchData | null>(null);
   const [cameraState, setCameraState] = useState(DEFAULT_BLOCKING_3D_CAMERA);
+  const [cameraSelected, setCameraSelected] = useState(false);
   // 镜头取景辅助：机位 gizmo + 右下角取景画中画（默认关，构图完成后自动打开）。
   const [shotPreviewOn, setShotPreviewOn] = useState(false);
   // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的角色。
@@ -191,9 +202,15 @@ export default function DramaBlocking3DPage() {
   }, [transformTool, viewer]);
 
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
+    const nextCameraSelected = nextViewer.isCameraSelected();
     const nextSelectedName = nextViewer.getSelectedActor();
     setSelectedName(nextSelectedName);
-    setSelectedObjectId(nextSelectedName ? actorObjectId(nextSelectedName) : SCENE_OBJECT_ID);
+    setCameraSelected(nextCameraSelected);
+    setSelectedObjectId(
+      nextCameraSelected
+        ? CAMERA_OBJECT_ID
+        : nextSelectedName ? actorObjectId(nextSelectedName) : SCENE_OBJECT_ID,
+    );
     setSelectedPose(nextViewer.getSelectedPose());
     setSelectedColor(nextViewer.getSelectedColor());
     setSelectedTransform(nextViewer.getSelectedTransform());
@@ -206,6 +223,7 @@ export default function DramaBlocking3DPage() {
     let cancelled = false;
     let unsubscribeSelection: (() => void) | undefined;
     let unsubscribeMarkerSelection: (() => void) | undefined;
+    let unsubscribeCameraSelection: (() => void) | undefined;
     let unsubscribeChange: (() => void) | undefined;
     setViewerError(null);
     void createBlocking3dViewer({
@@ -229,6 +247,11 @@ export default function DramaBlocking3DPage() {
       unsubscribeMarkerSelection = nextViewer.onMarkerSelection((markerId) => {
         setSelectedObjectId(markerId ? markerObjectId(markerId) : SCENE_OBJECT_ID);
       });
+      unsubscribeCameraSelection = nextViewer.onCameraSelection((selected) => {
+        setCameraSelected(selected);
+        setSelectedObjectId(selected ? CAMERA_OBJECT_ID : SCENE_OBJECT_ID);
+        setCameraState(nextViewer.getCameraState());
+      });
       unsubscribeChange = nextViewer.onChange(() => {
         setDirty(true);
         syncSelection(nextViewer);
@@ -242,6 +265,7 @@ export default function DramaBlocking3DPage() {
       cancelled = true;
       unsubscribeSelection?.();
       unsubscribeMarkerSelection?.();
+      unsubscribeCameraSelection?.();
       unsubscribeChange?.();
       viewerRef.current?.destroy();
       viewerRef.current = null;
@@ -279,7 +303,13 @@ export default function DramaBlocking3DPage() {
     if (!viewer || saving || autoPlanning) return;
     if (objectId === SCENE_OBJECT_ID) {
       viewer.selectActor(null);
+      viewer.selectCamera(false);
       setSelectedObjectId(SCENE_OBJECT_ID);
+      return;
+    }
+    if (objectId === CAMERA_OBJECT_ID) {
+      viewer.selectCamera(true);
+      setSelectedObjectId(CAMERA_OBJECT_ID);
       return;
     }
     if (objectId.startsWith("marker:")) {
@@ -437,6 +467,13 @@ export default function DramaBlocking3DPage() {
       selected: selectedObjectId === SCENE_OBJECT_ID,
       onSelect: () => selectObject(SCENE_OBJECT_ID),
     },
+    {
+      id: CAMERA_OBJECT_ID,
+      label: "摄像机",
+      kind: "camera",
+      selected: selectedObjectId === CAMERA_OBJECT_ID,
+      onSelect: () => selectObject(CAMERA_OBJECT_ID),
+    },
     ...context.actors.map((actor, index) => {
       const id = actorObjectId(actor.characterName);
       return {
@@ -532,6 +569,7 @@ export default function DramaBlocking3DPage() {
             />
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
               <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色 · 右键旋转 · 滚轮缩放视角 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
             </div>
             <div className="pointer-events-none absolute right-3 top-3">
               <Badge variant="secondary" className="shadow-sm">镜头预览</Badge>
@@ -579,6 +617,92 @@ export default function DramaBlocking3DPage() {
                     </AiButton>
                   </div>
                   <p className="whitespace-pre-wrap leading-5 text-foreground">{compositionNote || "尚未生成构图说明。"}</p>
+                </div>
+                {cameraActions}
+              </>
+            ) : cameraSelected ? (
+              <>
+                <InspectorGameObjectCard
+                  icon={<Video className="h-4 w-4" aria-hidden="true" />}
+                  name="摄像机"
+                  kindLabel="镜头机位"
+                  metaLine={`注视焦点 ${formatVec3(cameraState.focalPoint)}`}
+                />
+                <InspectorComponentSection title="Transform">
+                  <div className="space-y-2">
+                    <InspectorVector3Field
+                      label="位置"
+                      value={[
+                        resolveBlocking3dOrbitPosition(cameraState).x,
+                        resolveBlocking3dOrbitPosition(cameraState).y,
+                        resolveBlocking3dOrbitPosition(cameraState).z,
+                      ]}
+                      suffix="米"
+                      disabled={saving || autoPlanning}
+                      onCommit={(next) => applyViewerAction((nextViewer) => {
+                        nextViewer.setShotCameraPosition(next);
+                        return true;
+                      })}
+                    />
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">方位角</span>
+                      <InspectorNumberField
+                        label="X"
+                        value={cameraState.azim}
+                        suffix="°"
+                        disabled={saving || autoPlanning}
+                        onCommit={(value) => applyViewerAction((nextViewer) => {
+                          nextViewer.setShotCameraOrientation(value, cameraState.elev);
+                          return true;
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">俯仰角</span>
+                      <InspectorNumberField
+                        label="Y"
+                        value={cameraState.elev}
+                        suffix="°"
+                        disabled={saving || autoPlanning}
+                        onCommit={(value) => applyViewerAction((nextViewer) => {
+                          nextViewer.setShotCameraOrientation(cameraState.azim, value);
+                          return true;
+                        })}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="w-10 shrink-0 text-xs text-muted-foreground">视野角</span>
+                      <InspectorNumberField
+                        label="FOV"
+                        value={cameraState.fovDeg}
+                        suffix="°"
+                        disabled={saving || autoPlanning}
+                        onCommit={(value) => applyViewerAction((nextViewer) => {
+                          nextViewer.setCameraState({
+                            ...nextViewer.getCameraState(),
+                            fovDeg: Math.max(10, Math.min(120, value)),
+                          });
+                          return true;
+                        })}
+                      />
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">在视口里按住机身拖动即可移动机位，镜头始终看向注视焦点。</p>
+                </InspectorComponentSection>
+                <div className="space-y-2 border-t border-border/60 pt-4">
+                  <div className="text-xs font-medium">镜头朝向</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="镜头向左旋转" title="向左旋转" disabled={saving || autoPlanning} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
+                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="镜头向右旋转" title="向右旋转" disabled={saving || autoPlanning} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
+                  </div>
+                  <InspectorPropertyList
+                    className="text-[11px] text-muted-foreground tabular-nums"
+                    items={[
+                      { label: "拍摄距离", value: `${cameraState.distance.toFixed(2)} 米` },
+                      { label: "景深", value: cameraState.depthOfFieldEnabled ? "开启" : "关闭" },
+                      { label: "焦点距离", value: cameraState.focusDistance.toFixed(2) },
+                    ]}
+                  />
                 </div>
                 {cameraActions}
               </>
@@ -661,7 +785,7 @@ export default function DramaBlocking3DPage() {
                 {cameraActions}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">从上方对象列表选择世界、角色或空间标记。</p>
+              <p className="text-xs text-muted-foreground">从上方对象列表选择世界、摄像机、角色或空间标记。</p>
             )}
           </CardContent>
         </Card>

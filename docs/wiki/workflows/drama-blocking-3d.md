@@ -69,6 +69,7 @@
 - 相机锚定：自动构图的拍摄位必须落在投射中心 `[0, projectionCenterHeight, 0]`（全景图的原始取景点）。实现方式是 `anchorBlockingCameraAtProjectionCenter`：保持 LLM 给出的视线方向与拍摄距离不变，仅把 focalPoint 重写为 `投射中心 − D*distance`，因此构图朝向、取景远近和 fov/DOF 全部保留，只有相机位置被归中。fov/裁剪面/景深不参与锚定。
 - Prompt 合同：`drama.shot.blocking.autoPlan@v3` 在 system 中声明舞台半径规则与"拍摄位固定在投射中心"，并在 HumanMessage 追加【摆位限制】数值行（可用站位半径 X 米 + 投射中心高度）；服务端程序化合同是兜底而不是唯一约束。
 - Viewer 常驻绘制两条参考圈（各 96 段线、随环境参数实时重算）：琥珀色半透明是舞台余量边界，青色半透明是半球自身的地面边界（直径的一半处）。调“半球直径”滑块时两圈同时重算，便于对照球边与舞台余量的关系。半球世界半径换算统一走 `resolveStoryScene3DDomeWorldRadius`，视图代码不得自行做 `/2` 以外的临时推导。actor 拖拽和 nudge 的落点径向 clamp 到舞台半径并保持方位角。手动相机导航保留自由度——锚定合同只约束自动构图产出；用户若手动挪动相机再保存，属于显式创作调整。
+- 场景摄像机实体（Unity 风格，2026-08-27）：viewer 持有常驻实体 `blocking3d-camera-body`（机身+镜头小块，`blocking3dCameraBody.ts`），随 `syncCamera` 停在镜头机位、朝向焦点，尺寸随拍摄距离自适应。它与角色/标记互斥可选中（`selectCamera`/`onCameraSelection`），视口点选机身、对象列表「摄像机」条目、属性面板（位置/方位角/俯仰角/视野角）三条通道编辑同一份 cameraState；`moveShotCameraToPosition` 做位置→轨道参数的反解（保持注视焦点与 FOV）。取景画中画继续由同一参数驱动，即“从摄像机预览”。机身是编辑器辅助对象：`capturePng` 期间与选中描边一样隐藏，导出的摆位草图不包含它。背景/环境重建不得连带销毁该实体。
 - 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回同时以 `statesJson` 和 `scene3dEnvironmentJson` 做 CAS，并在写入前复核图片制品指纹与环境快照，防止慢分析覆盖新图片或新投射参数。
 
 ### 静态姿势与关键帧

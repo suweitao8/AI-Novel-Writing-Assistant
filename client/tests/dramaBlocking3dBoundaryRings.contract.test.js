@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 
-const viewerSource = readFileSync(
-  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts", import.meta.url),
-  "utf8",
-);
+const viewerSource = [
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+].map((p) => readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 
 test("3D 视口常驻绘制半球地面边界与舞台余量两条参考圈", () => {
   assert.match(viewerSource, /resolveStoryScene3DDomeWorldRadius/);

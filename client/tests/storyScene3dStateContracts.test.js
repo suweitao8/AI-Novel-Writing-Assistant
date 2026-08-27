@@ -9,7 +9,7 @@ const scenesTab = read("src/pages/novels/components/storySettings/SettingsScenes
 const dialog = read("src/pages/novels/components/storySettings/StoryAssetEditDialog.tsx");
 const page = read("src/pages/drama/comicDrama/DramaScene3DPage.tsx");
 const router = read("src/router/index.tsx");
-const viewer = read("src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts");
+const viewer = [read("src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts"), read("src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts")].join(String.fromCharCode(10));
 
 test("场景状态图片操作旁提供携带当前状态的 3D 编辑入口", () => {
   assert.match(assetForms, /fit="natural"/);

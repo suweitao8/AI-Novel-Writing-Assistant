@@ -10,10 +10,10 @@ const scene3dPageSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/DramaScene3DPage.tsx", import.meta.url),
   "utf8",
 );
-const viewerSource = readFileSync(
-  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts", import.meta.url),
-  "utf8",
-);
+const viewerSource = [
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+].map((p) => readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 const environmentGeometrySource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentGeometry.ts", import.meta.url),
   "utf8",

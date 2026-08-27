@@ -15,6 +15,10 @@ const viewerSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts"),
   "utf8",
 );
+const viewerCoreSource = fs.readFileSync(
+  path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts"),
+  "utf8",
+);
 const selectionOutlineSource = fs.readFileSync(
   path.join(process.cwd(), "src/pages/drama/comicDrama/components/blocking3d/blocking3dSelectionOutline.ts"),
   "utf8",
@@ -89,15 +93,15 @@ test("自动构图或保存期间禁止离开 3D 草图", () => {
 });
 
 test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能力", () => {
-  assert.match(viewerSource, /UAL2_Standard\.glb/);
-  assert.match(viewerSource, /UAL1_Standard\.glb/);
+  assert.match(viewerCoreSource, /UAL2_Standard\.glb/);
+  assert.match(viewerCoreSource, /UAL1_Standard\.glb/);
   assert.match(viewerSource, /setSelectedPose/);
   assert.match(viewerSource, /setCameraState/);
   assert.match(viewerSource, /BLOCKING_SKETCH_CAPTURE_SIZE/);
   assert.match(viewerSource, /setInteractionEnabled/);
   assert.match(viewerSource, /setActorMovementEnabled/);
   assert.match(viewerSource, /capturePng/);
-  assert.match(viewerSource, /createBackdropGeometryData/);
+  assert.match(viewerCoreSource, /createBackdropGeometryData/);
   assert.match(viewerSource, /setEnvironment/);
   assert.doesNotMatch(viewerSource, /setSelectedActionPlaying|getSelectedActionPlaying/);
   assert.doesNotMatch(viewerSource, /blocking3d-background/);
@@ -127,9 +131,9 @@ test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL/);
 });
 
-test("选中外描边为 80% 不透明度的橙色，空间标记共用同一条外轮廓", () => {
-  assert.match(viewerSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
-  assert.match(viewerSource, /markerRuntime\?\.entity \?\? null/);
+test("选中外描边为 80% 不透明度的橙色，空间标记与场景摄像机共用同一条外轮廓", () => {
+  assert.match(viewerCoreSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
+  assert.match(viewerSource, /markerRuntime\?\.entity \?\? \(cameraSelected \? cameraBody : null\)/);
   // PlayCanvas 默认合成忽略颜色 alpha，描边不透明度必须由替换的合成着色器承载。
   assert.match(selectionOutlineSource, /uOutlineOpacity/);
   assert.match(selectionOutlineSource, /color\.a/);
@@ -158,7 +162,7 @@ test("场景 3D 编辑页只允许相机交互，参考角色固定在 1.7 米",
   assert.match(scene3dPageSource, /REFERENCE_ACTOR_LABEL = "参考角色（约1\.7m）"/);
   assert.match(scene3dPageSource, /nextViewer\.addActor\(REFERENCE_ACTOR_LABEL, 0, REFERENCE_ACTOR_HEIGHT_METERS/);
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
-  assert.match(scene3dPageSource, /参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+  assert.match(scene3dPageSource, /拖动手柄移动物体 · 右键旋转 · 滚轮缩放 · 中键平移/);
 });
 
 test("对象树保留全部空间标记并使用世界/参考角色名称", () => {
@@ -167,7 +171,7 @@ test("对象树保留全部空间标记并使用世界/参考角色名称", () =
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
   assert.match(pageSource, /label: "世界"/);
   assert.match(pageSource, /context\.scene\.markers\.map/);
-  assert.match(pageSource, /从上方对象列表选择世界、角色或空间标记/);
+  assert.match(pageSource, /从上方对象列表选择世界、摄像机、角色或空间标记/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
@@ -184,11 +188,9 @@ test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () =
 test("3D 草图编辑器常驻工作室页签，点击先保存再深链回对应页签", () => {
   // 二级（角色/场景/道具/章节/设定，active=章节）+ 三级章节子页签（active=分镜）。
   assert.match(pageSource, /useRegisterPageTabs\(!isMobileViewport && Boolean\(novelId\), \[/);
-  assert.match(pageSource, /buildStudioNavStageRow\("current", \(stage\) =>/);
-  assert.match(pageSource, /buildStudioNavCurrentSubRow\("storyboard", \(tab\) =>/);
+  assert.match(pageSource, /buildStudioNavStageRow\("storyboard", \(stage\) =>/);
   // 跳转前必须先保存当前摆位；保存失败留在本页。
   assert.match(pageSource, /leaveToStudio[\s\S]*?await saveBeforeExit\(\)[\s\S]*?buildStudioNavigationPath\(/);
-  assert.match(pageSource, /\{ stage, currentTab: tab \} : \{ stage \}/);
 });
 
 test("摆位上下文携带来源小说 id，供常驻页签跳回工作室", () => {
