@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const AXES = ["X", "Y", "Z"] as const;
-const AXIS_COLORS = ["text-red-500", "text-emerald-500", "text-sky-500"] as const;
 
 function formatNumber(value: number, precision = 2): string {
   return String(Number(value.toFixed(precision)));
@@ -11,7 +10,7 @@ function formatNumber(value: number, precision = 2): string {
 
 /**
  * 单个数值输入：失焦 / 回车提交，非法输入回退到当前值。
- * Unity Transform 数字字段的简化版（无拖拽调值）。
+ * 紧凑布局下不展示步进箭头（number 输入的原生上下按钮会挤占数字宽度）。
  */
 export interface InspectorNumberFieldProps {
   label?: string;
@@ -66,7 +65,7 @@ export function InspectorNumberField({
   return (
     <label className="flex min-w-0 flex-1 items-center gap-1">
       {axis ? (
-        <span className={cn("w-3 shrink-0 text-center text-[11px] font-semibold", AXIS_COLORS[AXES.indexOf(axis)])}>
+        <span className="w-3 shrink-0 text-center text-[11px] font-semibold text-muted-foreground">
           {axis}
         </span>
       ) : label ? (
@@ -79,7 +78,7 @@ export function InspectorNumberField({
           step={step}
           min={min}
           disabled={disabled}
-          aria-label={[label, axis].filter(Boolean).join(" ")}
+          aria-label={[label, axis].filter(Boolean).join(" ") || "数值"}
           onChange={(event) => setDraft(event.target.value)}
           onBlur={commit}
           onKeyDown={(event) => {
@@ -91,6 +90,7 @@ export function InspectorNumberField({
           }}
           className={cn(
             "h-7 min-w-0 w-full rounded-md border border-border bg-background px-1.5 text-xs tabular-nums text-foreground transition-colors focus:border-ring focus-visible:outline-none disabled:cursor-default disabled:bg-muted/40 disabled:text-muted-foreground",
+            "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
             suffix && "pr-6",
           )}
         />
@@ -103,7 +103,7 @@ export function InspectorNumberField({
 }
 
 /**
- * Unity Transform 的 Position / Scale 行：X/Y/Z 三个数字输入。
+ * Unity Transform 的行：三个纯数字输入（无轴标、无单位后缀）。
  * onChange 在任一轴提交时返回完整三元组；不传则整行只读。
  */
 export interface InspectorVector3FieldProps {
@@ -112,8 +112,6 @@ export interface InspectorVector3FieldProps {
   onCommit?: (value: [number, number, number]) => void;
   step?: number;
   min?: number;
-  /** 单位后缀（米）。 */
-  suffix?: string;
   disabled?: boolean;
   /** 按轴锁定（如旋转只有 Y 轴可改时锁定 X/Z，字段展示为禁用）。 */
   disabledAxes?: readonly [boolean, boolean, boolean];
@@ -126,7 +124,6 @@ export function InspectorVector3Field({
   onCommit,
   step = 0.1,
   min,
-  suffix = "",
   disabled = false,
   disabledAxes,
   className,
@@ -144,12 +141,10 @@ export function InspectorVector3Field({
       {AXES.map((axis, index) => (
         <InspectorNumberField
           key={axis}
-          axis={axis}
           value={value[index] ?? 0}
           onCommit={(axisValue) => commitAxis(index, axisValue)}
           step={step}
           min={min}
-          suffix={suffix}
           disabled={disabled || !onCommit || Boolean(disabledAxes?.[index])}
         />
       ))}
