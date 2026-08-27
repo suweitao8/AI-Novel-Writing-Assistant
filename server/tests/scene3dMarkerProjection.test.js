@@ -193,3 +193,56 @@ test("重复投影保持幂等，环境参数变化立即反映到位置", () =>
     "半球直径增大后同方位的贴面半径随之变大",
   );
 });
+
+test("落地家具按粗估距离前移并保持前后顺序，门窗保持完全贴面", () => {
+  // 同一方位：椅子在书桌前方（书桌更远），粗估距离反映这一关系。
+  const chair = marker({
+    kind: "chair",
+    anchor: "floor",
+    label: "椅子1",
+    size: [0.6, 0.9, 0.3],
+    imageRegion: { x: 0.495, y: 0.55, width: 0.06, height: 0.16 },
+    approxDistanceMeters: 2,
+  });
+  const desk = marker({
+    kind: "desk",
+    anchor: "floor",
+    label: "书桌",
+    size: [1.4, 0.9, 0.4],
+    imageRegion: { x: 0.495, y: 0.55, width: 0.06, height: 0.16 },
+    approxDistanceMeters: 4.5,
+  });
+  const projectedChair = projectStoryScene3dMarkerFromImageRegion(chair, environment);
+  const projectedDesk = projectStoryScene3dMarkerFromImageRegion(desk, environment);
+
+  const chairRadius = horizontalRadius(projectedChair.position);
+  const deskRadius = horizontalRadius(projectedDesk.position);
+  assert.ok(
+    Math.abs(chairRadius - (2 - projectedChair.size[2] / 2)) < 1e-9,
+    "椅子按粗估距离前移，盒子仍夹在轴心与球面之间",
+  );
+  assert.ok(chairRadius < deskRadius, "同方位物体保持真实前后顺序：椅子在书桌前方");
+
+  // 距离超过球面时被钳回贴面半径；墙面标记忽略该字段保持贴面。
+  const farChair = marker({
+    kind: "chair",
+    anchor: "floor",
+    label: "远处椅子",
+    size: [0.6, 0.9, 0.3],
+    imageRegion: { x: 0.495, y: 0.55, width: 0.06, height: 0.16 },
+    approxDistanceMeters: 30,
+  });
+  const doorWithDistance = marker({ approxDistanceMeters: 1 });
+  const projectedFar = projectStoryScene3dMarkerFromImageRegion(farChair, environment);
+  const projectedDoorWithDistance = projectStoryScene3dMarkerFromImageRegion(doorWithDistance, environment);
+  const { surfaceRadius } = expectedSurface(marker());
+  const flushDoor = surfaceRadius - STORY_SCENE_3D_MARKER_SIZE_POLICIES.door.z[0] / 2;
+  assert.ok(
+    horizontalRadius(projectedFar.position) <= flushDoor + 1e-9,
+    "粗估距离超出半球时钳回贴面上限",
+  );
+  assert.ok(
+    Math.abs(horizontalRadius(projectedDoorWithDistance.position) - flushDoor) < 0.02,
+    "门窗不受粗估距离影响，始终完整贴住球面",
+  );
+});

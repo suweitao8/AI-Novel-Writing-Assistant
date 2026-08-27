@@ -18,13 +18,14 @@ const marker = {
   yawDeg: 0,
   confidence: 0.9,
   imageRegion: { x: 0.2, y: 0.35, width: 0.2, height: 0.18 },
+  approxDistanceMeters: 3,
   evidence: "靠墙的床面和床头结构",
 };
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v8");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v8/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v9");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v9/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
@@ -37,6 +38,13 @@ test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => 
     }).success,
     false,
     "可行走地面不是视觉模型的输出类别",
+  );
+  assert.equal(
+    sceneState3dMarkersPrompt.outputSchema.safeParse({
+      markers: [{ ...marker, approxDistanceMeters: undefined }],
+    }).success,
+    false,
+    "粗估距离是必填字段，用于同方位物体的前后排序",
   );
   assert.equal(output.markers[0].position[2], 2.4);
 });
@@ -55,6 +63,12 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /不要.*人物|不得.*人物/);
   assert.match(text, /imageRegion/);
   assert.match(text, /紧贴|主体/);
+  // v9：穷尽式覆盖 + 同方位前后排序字段。
+  assert.match(text, /穷尽式覆盖/);
+  assert.match(text, /宁可多标不可漏标/);
+  assert.match(text, /approxDistanceMeters/);
+  assert.match(text, /前后顺序/);
+  assert.match(text, /完整覆盖物体的可见主体/);
   // v8：服务端不再做图像测距，标记长方体统一贴到半球内表面，门窗完整贴住球面。
   assert.match(text, /贴到全景半球内表面/);
   assert.match(text, /门窗完全贴住球面/);
