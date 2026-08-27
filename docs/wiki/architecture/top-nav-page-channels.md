@@ -39,14 +39,16 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
   子面板（如 ShotVoiceListPanel）再把自己的工具传送到该容器。ref 挂载条件跟随
   当前子页签，切走子页签时子面板工具自然消失。
 - TopNav 页签区（第一行中间 `flex-1`，`justify-center + overflow-x-auto`）：
-  二级页签组（第一个 row）固定居中，三级页签组固定在其右侧。实现用「镜像占位」：
-  在二级左侧渲染一份等宽的隐形三级副本（`invisible + aria-hidden`，不可聚焦不可点），
-  [镜像|二级|三级] 整体居中时二级恰好在区域正中；切换页签导致三级宽度变化时二级
-  位置不漂移（用户明确要求）。禁止改回绝对定位锚定（`absolute left-full`）：
-  三级组会延伸到右侧操作按钮下方，分镜/视频页签被 AI 徽标遮挡导致点击无效
-  （Playwright 报 "subtree intercepts pointer events"，2026-08-27 实测踩过）。
-  三级组超宽时（小于约 1500px 视口且当前 stage 有 5 个子页签）justify-center 把左侧
-  裁进滚动区，被裁的是隐形镜像，二级仍贴近视觉中心，三级可横向滚动到达。
+  二级、三级各包在独立胶囊容器里（`rounded-full border bg-muted/40 p-1`），
+  选中项 `bg-background + shadow-sm` 浮起（与全站分段控件一致），两组间距
+  `gap-3`；不画组间竖线。二级组固定居中、三级组固定在其右侧（用户要求）：
+  实现用「镜像占位」——二级左侧渲染一份等宽隐形三级副本（`invisible +
+  aria-hidden`），[镜像|二级|三级] 整体居中时二级恰在正中，三级宽度变化时
+  二级不漂移。禁止改回 `absolute left-full` 锚定（三级组会伸到右侧操作按钮
+  下方被遮挡、点击无效，2026-08-27 实测）。页面页签不显示计数后缀（提取等
+  数字已去掉，用户要求）。
+  测量陷阱：`visibility:hidden` 元素的 `offsetParent` 不为 null，用
+  `offsetParent` 过滤可见组会误把镜像组当二级组；应按 computed visibility 过滤。
 - 操作区槽位为空时必须不可见（`empty:hidden`），避免残留间距。
 
 ## 示例
