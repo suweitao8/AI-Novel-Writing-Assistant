@@ -7,12 +7,15 @@ import {
   ArrowRight,
   ArrowUp,
   Loader2,
+  Layers3,
+  MapPin,
   Minus,
   Move3D,
   Plus,
   RotateCcw,
   RotateCw,
   Trash2,
+  UserRound,
   Video,
   WandSparkles,
 } from "lucide-react";
@@ -51,6 +54,9 @@ import {
   Drama3DEditorShell,
   Drama3DObjectPanel,
   type Drama3DObjectItem,
+  InspectorComponentSection,
+  InspectorGameObjectCard,
+  InspectorPropertyList,
 } from "./components/editor3d";
 
 function initialLayout(context: DramaShotBlockingSketchEditorContext): DramaShotBlockingSketch3DLayout {
@@ -450,13 +456,16 @@ export default function DramaBlocking3DPage() {
           {shotPreviewOn ? "隐藏镜头取景" : "镜头取景"}
         </Button>
       </div>
-      <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-        <dt>视野角</dt><dd className="text-right tabular-nums">{cameraState.fovDeg.toFixed(0)}°</dd>
-        <dt>景深</dt><dd className="text-right">{cameraState.depthOfFieldEnabled ? "开启" : "关闭"}</dd>
-        <dt>焦点距离</dt><dd className="text-right tabular-nums">{cameraState.focusDistance.toFixed(2)}</dd>
-        <dt>清晰范围</dt><dd className="text-right tabular-nums">{cameraState.focusRange.toFixed(2)}</dd>
-        <dt>模糊半径</dt><dd className="text-right tabular-nums">{cameraState.blurRadius.toFixed(2)}</dd>
-      </dl>
+      <InspectorPropertyList
+        className="text-[11px] text-muted-foreground"
+        items={[
+          { label: "视野角", value: `${cameraState.fovDeg.toFixed(0)}°` },
+          { label: "景深", value: cameraState.depthOfFieldEnabled ? "开启" : "关闭" },
+          { label: "焦点距离", value: cameraState.focusDistance.toFixed(2) },
+          { label: "清晰范围", value: cameraState.focusRange.toFixed(2) },
+          { label: "模糊半径", value: cameraState.blurRadius.toFixed(2) },
+        ]}
+      />
     </div>
   );
 
@@ -504,17 +513,21 @@ export default function DramaBlocking3DPage() {
           <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
+                <InspectorGameObjectCard
+                  icon={<Layers3 className="h-4 w-4" aria-hidden="true" />}
+                  name={`第 ${context.shot.order} 镜`}
+                  kindLabel={context.shot.shotSize || "镜头"}
+                  metaLine={`运镜：${context.shot.cameraMove || "未设置"} · 时长：${context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}`}
+                />
                 <div className="text-xs font-medium">镜头设计</div>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">镜头</dt>
-                  <dd className="text-right">第 {context.shot.order} 镜</dd>
-                  <dt className="text-muted-foreground">景别</dt>
-                  <dd className="text-right">{context.shot.shotSize || "未设置"}</dd>
-                  <dt className="text-muted-foreground">运镜</dt>
-                  <dd className="text-right">{context.shot.cameraMove || "未设置"}</dd>
-                  <dt className="text-muted-foreground">时长</dt>
-                  <dd className="text-right tabular-nums">{context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}</dd>
-                </dl>
+<InspectorPropertyList
+        className="text-xs"
+        items={[
+        { label: "景别", value: context.shot.shotSize || "未设置" },
+        { label: "运镜", value: context.shot.cameraMove || "未设置" },
+        { label: "时长", value: context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒` },
+        ]}
+      />
                 <div className="space-y-1.5 border-t border-border/60 pt-4 text-xs">
                   <div className="text-muted-foreground">动作</div>
                   <p className="whitespace-pre-wrap leading-5">{context.shot.action || "未设置"}</p>
@@ -539,13 +552,19 @@ export default function DramaBlocking3DPage() {
               </>
             ) : selectedMarker ? (
               <>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">名称</dt><dd className="text-right">{selectedMarker.label}</dd>
-                  <dt className="text-muted-foreground">类型</dt><dd className="text-right">{STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}</dd>
-                  <dt className="text-muted-foreground">置信度</dt><dd className="text-right tabular-nums">{Math.round(selectedMarker.confidence * 100)}%</dd>
-                  <dt className="text-muted-foreground">位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedMarker.position)}</dd>
-                  <dt className="text-muted-foreground">尺寸</dt><dd className="text-right tabular-nums">{formatVec3(selectedMarker.size)}</dd>
-                </dl>
+                <InspectorGameObjectCard
+                  icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
+                  name={selectedMarker.label}
+                  kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
+                />
+                <InspectorPropertyList
+                  className="text-xs"
+                  items={[
+                    { label: "置信度", value: `${Math.round(selectedMarker.confidence * 100)}%` },
+                    { label: "位置", value: formatVec3(selectedMarker.position) },
+                    { label: "尺寸", value: formatVec3(selectedMarker.size) },
+                  ]}
+                />
                 <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving || autoPlanning} onClick={() => focusMarker(selectedMarker.id)}>
                   <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦空间标记
                 </Button>
@@ -553,11 +572,18 @@ export default function DramaBlocking3DPage() {
               </>
             ) : selectedActorContext ? (
               <>
-                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 text-xs">
-                  <dt className="text-muted-foreground">角色</dt><dd className="text-right">{selectedActorContext.characterName}</dd>
-                  <dt className="text-muted-foreground">身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
-                  <dt className="text-muted-foreground">状态</dt><dd className="text-right">{placedNames.has(selectedActorContext.characterName) ? "已加入镜头" : "未加入镜头"}</dd>
-                </dl>
+                <InspectorGameObjectCard
+                  icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
+                  name={selectedActorContext.characterName}
+                  kindLabel="角色"
+                  metaLine={placedNames.has(selectedActorContext.characterName) ? "已加入镜头" : "未加入镜头"}
+                />
+                <InspectorPropertyList
+                  className="text-xs"
+                  items={[
+                    { label: "身高", value: formatHeight(selectedActorContext.heightMeters) },
+                  ]}
+                />
                 <Button type="button" variant="outline" className="w-full" disabled={saving || autoPlanning || !placedNames.has(selectedActorContext.characterName)} onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(selectedActorContext.characterName))}>
                   <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />从本镜移除
                 </Button>
@@ -595,12 +621,15 @@ export default function DramaBlocking3DPage() {
                     <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向左旋转角色" title="向左旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
                     <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向右旋转角色" title="向右旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
                   </div>
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
-                    <dt>位置</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.position)}</dd>
-                    <dt>旋转</dt><dd className="text-right tabular-nums">{selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—"}</dd>
-                    <dt>大小</dt><dd className="text-right tabular-nums">{formatVec3(selectedTransform?.scale)}</dd>
-                    <dt>身高</dt><dd className="text-right tabular-nums">{formatHeight(selectedActorContext.heightMeters)}</dd>
-                  </dl>
+                  <InspectorPropertyList
+                    className="text-[11px] text-muted-foreground tabular-nums"
+                    items={[
+                      { label: "位置", value: formatVec3(selectedTransform?.position) },
+                      { label: "旋转", value: selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—" },
+                      { label: "大小", value: formatVec3(selectedTransform?.scale) },
+                      { label: "身高", value: formatHeight(selectedActorContext.heightMeters) },
+                    ]}
+                  />
                 </div>
                 {cameraActions}
               </>

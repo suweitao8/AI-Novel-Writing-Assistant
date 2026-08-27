@@ -30,15 +30,19 @@ export interface StoryScene3dMarkerSizePolicy {
 /**
  * Fixed-object dimensions are a deterministic post-processing guard for the
  * structured `kind` returned by the vision model. They are deliberately keyed
- * by the enum, never by a user-facing label or free-form scene text. The `z`
- * range doubles as the panel thickness pressed against the dome surface.
+ * by the enum, never by a user-facing label or free-form scene text.
+ * The `y` range is the USABLE height for character placement: sit/lie targets
+ * (chair, bed, sofa, and other seat-like kinds) are capped at their seat or
+ * mattress plane so an actor placed on top of the box lands on the surface,
+ * never on a backrest or headboard. The `z` range doubles as the panel
+ * thickness pressed against the dome surface.
  */
 export const STORY_SCENE_3D_MARKER_SIZE_POLICIES = {
-  bed: { x: [1.4, 3.2], y: [0.35, 1.2], z: [0.6, 2.8], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  bed: { x: [1.4, 3.2], y: [0.25, 0.9], z: [0.6, 2.8], imageWidthFactor: 1, imageHeightFactor: 0.9 },
   table: { x: [0.6, 2.4], y: [0.55, 1.2], z: [0.35, 1.5], imageWidthFactor: 1, imageHeightFactor: 0.9 },
-  chair: { x: [0.35, 1], y: [0.75, 1.5], z: [0.25, 1], imageWidthFactor: 1, imageHeightFactor: 0.9 },
-  sofa: { x: [1.4, 3.4], y: [0.55, 1.2], z: [0.5, 1.5], imageWidthFactor: 1, imageHeightFactor: 0.9 },
-  desk: { x: [0.8, 2.4], y: [0.6, 1.1], z: [0.35, 1.2], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  chair: { x: [0.35, 1], y: [0.35, 0.65], z: [0.25, 1], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  sofa: { x: [1.4, 3.4], y: [0.35, 0.75], z: [0.5, 1.5], imageWidthFactor: 1, imageHeightFactor: 0.9 },
+  desk: { x: [0.8, 2.4], y: [0.55, 0.95], z: [0.35, 1.2], imageWidthFactor: 1, imageHeightFactor: 0.9 },
   cabinet: { x: [0.4, 2], y: [0.8, 2.8], z: [0.3, 1], imageWidthFactor: 1, imageHeightFactor: 0.9 },
   shelf: { x: [0.4, 2.2], y: [0.8, 3], z: [0.25, 0.8], imageWidthFactor: 1, imageHeightFactor: 0.9 },
   door: { x: [0.6, 1.6], y: [1.8, 2.6], z: [0.06, 0.35], imageWidthFactor: 1, imageHeightFactor: 0.9 },

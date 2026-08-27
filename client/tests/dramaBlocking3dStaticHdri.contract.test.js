@@ -286,3 +286,13 @@ test("代理角色按 1.8 米实际高度校准", () => {
   assert.match(viewerSource, /heightToBlocking3dScale/);
   assert.match(viewerSource, /root\.setLocalScale\(proxyScale, proxyScale, proxyScale\)/);
 });
+
+test("AI 构图落地时穹顶网格只在几何输入变化时重建，避免整帧卡顿", () => {
+  assert.match(
+    viewerSource,
+    /loadLayout\(layout\) \{[\s\S]*?const geometryChanged = nextEnvironment\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight[\s\S]*?if \(geometryChanged\) rebuildEnvironmentBackdropMesh\(\);/,
+  );
+  // 不允许回到「先应用设置再无条件重建网格」的旧序列。
+  assert.doesNotMatch(viewerSource, /applyEnvironmentSettings\(\);\s*\n\s*rebuildEnvironmentBackdropMesh\(\);/);
+  assert.match(viewerSource, /const geometryChanged = next\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight/);
+});

@@ -24,8 +24,8 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v9");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v9/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v10");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v10/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
@@ -63,6 +63,11 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /不要.*人物|不得.*人物/);
   assert.match(text, /imageRegion/);
   assert.match(text, /紧贴|主体/);
+  // v10：高度一律是使用高度——椅子算座面、床算床垫面，靠背不计入 size.y。
+  assert.match(text, /「使用高度」/);
+  assert.match(text, /椅子只算座面到地面的高度/);
+  assert.match(text, /不含床头板和靠背|靠背、扶手、床头板的高度计入 size\.y/);
+  assert.match(text, /钳制在使用面范围/);
   // v9：穷尽式覆盖 + 同方位前后排序字段。
   assert.match(text, /穷尽式覆盖/);
   assert.match(text, /宁可多标不可漏标/);

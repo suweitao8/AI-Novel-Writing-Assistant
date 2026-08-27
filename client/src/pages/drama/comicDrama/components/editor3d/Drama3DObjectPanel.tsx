@@ -33,6 +33,11 @@ function ObjectIcon({ kind }: { kind: Drama3DObjectKind }) {
 export function Drama3DObjectPanel({ items, className }: Drama3DObjectPanelProps) {
   return (
     <Card className={cn("flex h-full min-h-0 flex-col overflow-hidden", className)}>
+      {/* Unity Hierarchy 式表头：对象列表 + 数量。 */}
+      <div className="flex shrink-0 items-center justify-between border-b border-border/60 px-3 py-2">
+        <span className="text-xs font-medium text-foreground">对象列表</span>
+        <span className="rounded-full bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">{items.length}</span>
+      </div>
       <CardContent className="h-full min-h-0 flex-1 overflow-y-auto p-2">
         {items.length ? (
           <div role="list" aria-label="场景对象列表" className="space-y-1">
