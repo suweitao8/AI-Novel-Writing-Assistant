@@ -17,12 +17,15 @@ import {
   shouldUseAutoDirectorMobileFullWidthContent,
 } from "@/mobile/autoDirector";
 import { CreationSetupProvider } from "@/components/onboarding/CreationSetupContext";
+import { PageTabsProvider, type PageTabRow } from "./PageTabsContext";
 
 const WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY = "ai-novel.workspace-rail.collapsed";
 const DEFAULT_APP_MAIN_CLASS_NAME = "min-h-0 min-w-0 flex-1 overflow-y-auto p-6";
 
 export default function AppLayout() {
   const location = useLocation();
+  const [pageTabRows, setPageTabRows] = useState<PageTabRow[]>([]);
+  const pageTabsContextValue = useMemo(() => ({ rows: pageTabRows, setPageTabRows }), [pageTabRows]);
   const [isWorkspaceRailCollapsed, setIsWorkspaceRailCollapsed] = useState(false);
   const [workspaceNavMode, setWorkspaceNavMode] = useState<"workspace" | "project">("project");
   const isMobileViewport = useIsMobileViewport();
@@ -124,6 +127,7 @@ export default function AppLayout() {
   return (
     <CreationSetupProvider>
     <TaskRecoveryProvider>
+    <PageTabsProvider value={pageTabsContextValue}>
       <div className={useTopNavLayout
         ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
         : "flex h-[100dvh] min-h-0 overflow-hidden bg-background"}
@@ -161,6 +165,7 @@ export default function AppLayout() {
         </div>
         <TaskRecoveryDialog />
       </div>
+    </PageTabsProvider>
     </TaskRecoveryProvider>
     </CreationSetupProvider>
   );
