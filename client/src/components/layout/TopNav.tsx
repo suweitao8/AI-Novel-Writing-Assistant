@@ -69,26 +69,28 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
         aria-label="页面页签"
         className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto px-2"
       >
-        <div className="flex shrink-0 items-center">
-          {pageTabRows.length > 1 ? (
-            <span
-              aria-hidden="true"
-              className="invisible flex select-none items-center pr-2"
-            >
-              {pageTabRows.slice(1).map((row, index) => (
-                <PageTabGroup key={`mirror-${row.id}`} row={row} separated={index > 0} />
-              ))}
-            </span>
-          ) : null}
-          <PageTabGroup row={pageTabRows[0]} separated={false} />
-          {pageTabRows.length > 1 ? (
-            <span className="flex items-center pl-2">
-              {pageTabRows.slice(1).map((row, index) => (
-                <PageTabGroup key={row.id} row={row} separated={index > 0} />
-              ))}
-            </span>
-          ) : null}
-        </div>
+        {pageTabRows.length > 0 ? (
+          <div className="flex shrink-0 items-center">
+            {pageTabRows.length > 1 ? (
+              <span
+                aria-hidden="true"
+                className="invisible flex select-none items-center pr-2"
+              >
+                {pageTabRows.slice(1).map((row, index) => (
+                  <PageTabGroup key={`mirror-${row.id}`} row={row} separated={index > 0} />
+                ))}
+              </span>
+            ) : null}
+            <PageTabGroup row={pageTabRows[0]} separated={false} />
+            {pageTabRows.length > 1 ? (
+              <span className="flex items-center pl-2">
+                {pageTabRows.slice(1).map((row, index) => (
+                  <PageTabGroup key={row.id} row={row} separated={index > 0} />
+                ))}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </nav>
 
       {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
