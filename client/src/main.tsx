@@ -6,8 +6,11 @@ import "highlight.js/styles/github.css";
 import ServerStartupGate from "./components/layout/ServerStartupGate";
 import AppRouter from "./router";
 import { Toaster } from "./components/ui/toast";
+import { installGlobalErrorCapture } from "./lib/errorLog";
 import "./index.css";
 import { ThemeProvider } from "./components/theme/ThemeProvider";
+
+installGlobalErrorCapture();
 
 const queryClient = new QueryClient({
   defaultOptions: {

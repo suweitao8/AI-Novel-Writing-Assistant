@@ -1,5 +1,10 @@
 import type { ExternalToast, ToasterProps } from "sonner";
 import { Toaster as SonnerToaster, toast as sonnerToast } from "sonner";
+import { recordErrorLog } from "@/lib/errorLog";
+
+// 弹窗超过 5 秒自动消失；错误弹窗同时记入本地报错日志（系统设置可查），
+// 不会因为自动关闭而丢失线索。
+const TOAST_DURATION_MS = 5000;
 
 function Toaster(props: ToasterProps) {
   const { toastOptions, mobileOffset, offset, ...restProps } = props;
@@ -10,6 +15,7 @@ function Toaster(props: ToasterProps) {
       offset={offset ?? 20}
       mobileOffset={mobileOffset ?? 12}
       toastOptions={{
+        duration: TOAST_DURATION_MS,
         ...toastOptions,
         closeButtonAriaLabel: toastOptions?.closeButtonAriaLabel ?? "关闭提示",
         classNames: {
@@ -27,10 +33,21 @@ function Toaster(props: ToasterProps) {
 }
 
 const ERROR_TOAST_DEFAULTS: ExternalToast = {
-  duration: Number.POSITIVE_INFINITY,
+  duration: TOAST_DURATION_MS,
   closeButton: true,
   dismissible: true,
 };
+
+function extractToastDescription(data?: ExternalToast): string | undefined {
+  if (!data || typeof data !== "object") {
+    return undefined;
+  }
+  const description = (data as { description?: unknown }).description;
+  if (typeof description === "string") {
+    return description;
+  }
+  return undefined;
+}
 
 const toast = Object.assign(
   (
@@ -42,10 +59,15 @@ const toast = Object.assign(
     error: (
       message: Parameters<typeof sonnerToast.error>[0],
       data?: Parameters<typeof sonnerToast.error>[1],
-    ) => sonnerToast.error(message, {
-      ...ERROR_TOAST_DEFAULTS,
-      ...data,
-    }),
+    ) => {
+      if (typeof message === "string" || typeof message === "number") {
+        recordErrorLog(String(message), extractToastDescription(data));
+      }
+      return sonnerToast.error(message, {
+        ...ERROR_TOAST_DEFAULTS,
+        ...data,
+      });
+    },
   },
 );
 
