@@ -4,7 +4,6 @@
  */
 export {
   STORY_SCENE_3D_MARKER_LIMITS,
-  WALKABLE_FLOOR_MARKER_ID,
   adoptLegacyStoryScene3dMarkerEnvironment,
   normalizeStoryScene3dMarkerSet,
   parseStoryScene3dMarkerSet,

@@ -62,7 +62,6 @@ export const STORY_SCENE_3D_MARKER_KINDS = [
   "window",
   "counter",
   "stair",
-  "floor",
   "other",
 ] as const;
 
@@ -80,7 +79,6 @@ export const STORY_SCENE_3D_MARKER_KIND_LABELS: Record<StoryScene3DMarkerKind, s
   window: "窗户",
   counter: "柜台",
   stair: "楼梯",
-  floor: "可行走地面",
   other: "固定物体",
 };
 

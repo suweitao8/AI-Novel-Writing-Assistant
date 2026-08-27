@@ -23,8 +23,8 @@ const marker = {
 
 test("场景空间标记 Prompt 是已注册的多模态结构化资产", () => {
   assert.equal(sceneState3dMarkersPrompt.id, "drama.scene.state.3d_markers");
-  assert.equal(sceneState3dMarkersPrompt.version, "v6");
-  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v6/);
+  assert.equal(sceneState3dMarkersPrompt.version, "v7");
+  assert.match(registrySource, /drama\.scene\.state\.3d_markers@v7/);
   assert.equal(sceneState3dMarkersPrompt.mode, "structured");
   const output = sceneState3dMarkersPrompt.outputSchema.parse({
     markers: [marker],
@@ -56,12 +56,24 @@ test("场景空间标记 Prompt 发送全景图，并要求只识别固定空间
   assert.match(text, /imageRegion/);
   assert.match(text, /紧贴|主体/);
   assert.match(text, /不.*墙面.*深度|不.*深度/);
-  assert.match(text, /v=0\.5/);
-  assert.match(text, /v=0\.48–0\.52/);
+  // v7：全图覆盖召回——上下半区都要检查，不能只标某一高度带。
+  assert.match(text, /上下两半都要逐一检查/);
+  assert.match(text, /从左到右.*分段扫描/);
   assert.match(JSON.stringify(messages), /panoramaHorizonV.*0\.58/);
-  assert.match(text, /不得.*跨越|不能.*跨越/);
-  assert.match(text, /家具|床|桌|椅/);
+  assert.doesNotMatch(text, /安全带|不得跨越|不能跨越/);
+  assert.match(text, /不要输出地面、地板、可行走范围或房间轮廓类的标记/);
   assert.equal(messages.at(-1)?.content?.[1]?.type, "image_url");
+});
+
+test("同名实例经后处理补序号而不是丢弃", () => {
+  const output = sceneState3dMarkersPrompt.postValidate({
+    markers: [
+      { ...marker },
+      { ...marker },
+      { ...marker },
+    ],
+  });
+  assert.deepEqual(output.markers.map((item) => item.label), ["靠墙双人床", "靠墙双人床2", "靠墙双人床3"]);
 });
 
 test("场景空间标记 Prompt 不接受缺少图像证据区域的 marker", () => {
