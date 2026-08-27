@@ -179,7 +179,7 @@ export class StoryScene3dMarkerService {
       throw new AppError("场景状态图过大，请压缩到 8MB 以内。", 400);
     }
 
-    // 送图理解固定走视觉槽（grok-cli）；显式传入的 provider 仍然优先。
+    // 送图理解固定走视觉槽（Codex 订阅）；显式传入的 provider 仍然优先。
     const effectiveProvider = options.provider ?? getVisionModelProvider();
     if (!supportsVisionInput(effectiveProvider)) {
       const providerName = isBuiltinLLMProvider(effectiveProvider)

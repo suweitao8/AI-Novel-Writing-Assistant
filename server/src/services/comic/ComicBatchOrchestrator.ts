@@ -27,7 +27,6 @@ export interface StartBatchOptions {
 const COST_PER_IMAGE_CENTS: Partial<Record<string, number>> = {
   openai: 4,   // gpt-image-1 ~$0.04/image
   jimeng: 0.5, // 即梦约 ¥0.04/张
-  grok: 10,
 };
 
 // ─── Orchestrator ─────────────────────────────────────────────────────────────

@@ -16,8 +16,7 @@ import type { ImageSize } from "./types";
 export const IMAGE_SPECS = {
   /** 角色四视图/表情稿（漫画与漫剧共用）：严格 16:9 横版 */
   characterSheet: "1536x864" as ImageSize,
-  /** 场景 360° 全景参考图：2:1 等距柱状全景（equirectangular 标准比例，2026-08-23 用户要求）。
-   *  只有 Codex 通道支持该比例（grok_build 固定输出 1280x720），场景图因此统一走 Codex。 */
+  /** 场景 360° 全景参考图：2:1 等距柱状全景（equirectangular 标准比例，2026-08-23 用户要求）。 */
   scenePanorama: "2048x1024" as ImageSize,
   /** 服装/武器等角色资产设计参考图：严格 16:9 横版 */
   characterAsset: "1536x864" as ImageSize,

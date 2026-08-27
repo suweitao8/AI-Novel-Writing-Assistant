@@ -17,7 +17,7 @@
 - 内置厂商可以提供推荐图像模型选项；自定义厂商默认不预设选项，但允许手动填写。
 - 图片生成执行时读取任务上的 provider 和 model，再用该 provider 保存的 API 地址和 API Key 调用 `/images/generations`。
 - 自定义或本地 OpenAI 兼容服务可以不填写 API Key；请求会省略 Authorization 头。
-- 角色形象图的前端选择列表必须来自当前设置数据，不能写死为 `openai`、`siliconflow`、`grok` 之类的固定列表。
+- 角色形象图的前端选择列表必须来自当前设置数据，不能写死为 `openai`、`siliconflow` 之类的固定列表。
 
 ## Failure Modes
 

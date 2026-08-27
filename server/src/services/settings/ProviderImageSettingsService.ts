@@ -1,18 +1,16 @@
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import { prisma } from "../../db/prisma";
 
-export type ImageModelProvider = "openai" | "siliconflow" | "grok" | "codex" | "grok_build";
+export type ImageModelProvider = "openai" | "siliconflow" | "codex";
 
 const IMAGE_MODEL_SETTING_PREFIX = "provider.imageModel";
 
 const IMAGE_MODEL_OPTIONS: Record<ImageModelProvider, string[]> = {
   openai: ["gpt-image-2"],
   siliconflow: ["black-forest-labs/FLUX.1-schnell"],
-  grok: ["grok-imagine-image"],
   // codex 桥的图片生成由与文本/视觉相同的 gpt-5.6-luna agent 驱动；
   // 请求体里的 model 只是 Images 协议占位，桥不按它选模型。
   codex: ["gpt-5.6-luna"],
-  grok_build: ["grok-build-image"],
 };
 
 function isMissingTableError(error: unknown): boolean {
@@ -39,9 +37,7 @@ export function supportsImageModelSettings(provider: LLMProvider): boolean {
 function isKnownImageModelProvider(provider: LLMProvider): provider is ImageModelProvider {
   return provider === "openai"
     || provider === "siliconflow"
-    || provider === "grok"
-    || provider === "codex"
-    || provider === "grok_build";
+    || provider === "codex";
 }
 
 export function getImageModelSettingKey(provider: LLMProvider): string | null {
@@ -68,12 +64,8 @@ export function getProviderEnvImageModel(provider: LLMProvider): string | undefi
       return normalizeOptionalText(process.env.OPENAI_IMAGE_MODEL);
     case "siliconflow":
       return normalizeOptionalText(process.env.SILICONFLOW_IMAGE_MODEL);
-    case "grok":
-      return normalizeOptionalText(process.env.XAI_IMAGE_MODEL);
     case "codex":
       return normalizeOptionalText(process.env.CODEX_IMAGE_MODEL);
-    case "grok_build":
-      return normalizeOptionalText(process.env.GROK_IMAGE_MODEL);
     default:
       return undefined;
   }

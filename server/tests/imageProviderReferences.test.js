@@ -106,21 +106,6 @@ test("local reference paths are uploaded as every image part", async () => {
   }
 });
 
-test("an explicitly unsupported provider rejects reference images", async () => {
-  await assert.rejects(
-    generateImagesByProvider({
-      sceneType: "chapter_illustration",
-      provider: "grok",
-      model: "grok-image-1",
-      prompt: "分镜首帧",
-      size: "1536x864",
-      count: 1,
-      refImages: [PNG_DATA_URL],
-    }),
-    /不支持参考图|reference/i,
-  );
-});
-
 test("reference labels must describe the same ordered attachment list", async () => {
   await assert.rejects(
     generateImagesByProvider({

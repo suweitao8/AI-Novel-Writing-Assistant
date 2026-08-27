@@ -270,7 +270,7 @@ export class ComicSceneService {
   ): Promise<void> {
     const ctx = await this.buildSceneGenerationContext(sceneId);
     await runImageGeneration(ctx.adapter, {
-      // 场景全景固定走 Codex，避免 Grok Build 的 1280x720 输出破坏 2:1。
+      // 场景全景固定走 Codex，保证 2:1 等距柱状比例。
       provider: REFERENCE_IMAGE_PROVIDER,
       prompt: overrides?.promptOverride ?? ctx.prompt,
       size: IMAGE_SPECS.scenePanorama,
