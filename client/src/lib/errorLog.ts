@@ -10,9 +10,22 @@ export interface ErrorLogEntry {
   description?: string;
 }
 
+export type ErrorLogFilter = "all" | ErrorLogSource;
+
 const STORAGE_KEY = "ai-novel.error-log.v1";
 const MAX_ENTRIES = 100;
 export const ERROR_LOG_UPDATED_EVENT = "ai-novel:error-log-updated";
+
+/** 按"最近报错日志"卡片当前页签筛选条目。 */
+export function filterErrorLogEntries(
+  entries: ErrorLogEntry[],
+  filter: ErrorLogFilter,
+): ErrorLogEntry[] {
+  if (filter === "all") {
+    return entries;
+  }
+  return entries.filter((entry) => entry.source === filter);
+}
 
 function safeStorage(): Storage | null {
   try {
