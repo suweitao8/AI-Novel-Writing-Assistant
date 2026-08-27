@@ -24,6 +24,10 @@ import {
   resolveAssetImageProvider,
   TRANSPARENT_IMAGE_OPTIONS,
 } from "../../../../services/image/assetProviderRouting";
+import {
+  ROOM_ARCHITECTURE_NEGATIVE_PROMPT,
+  ROOM_ARCHITECTURE_PROMPT_LINES,
+} from "../../../../services/image/roomArchitecture";
 
 const SCENE_DIR = "scenes";
 const PROP_DIR = "props";
@@ -112,6 +116,8 @@ export function buildScenePanoramaPrompt(scene: {
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
     ...scenePanoramaLayoutLinesFor(scene.sceneType),
+    // 建筑合理性（2026-08-27 用户反馈：卧室出现两个门）：门/窗数量确定性、禁镜像复制墙段。
+    ...ROOM_ARCHITECTURE_PROMPT_LINES,
     "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
     "living subjects stay off-screen; translate narrative entities into environmental traces such as footprints, claw marks, blood stains, disturbed vegetation and damaged structures",
   ];
@@ -181,7 +187,7 @@ export class StoryAssetImageService {
         styleContext.assets.scene,
         styleContext.specific,
         styleContext.renderFamily,
-      ) + `, ${SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT}`,
+      ) + `, ${SCENE_PANORAMA_LAYOUT_NEGATIVE_PROMPT}, ${ROOM_ARCHITECTURE_NEGATIVE_PROMPT}`,
     });
     const row = await prisma.novelScene.findUnique({ where: { id: sceneId }, select: { imageData: true } });
     return parseStoryAssetImage(row?.imageData);

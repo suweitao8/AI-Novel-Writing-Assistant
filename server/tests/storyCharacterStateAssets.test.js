@@ -8,6 +8,7 @@ const {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
   resolveStoryAssetStateAncestors,
+  resolveStoryAssetStateReferenceId,
   isCharacterInitialStatePreserved,
   validateStoryAssetStateList,
 } = require("../../shared/dist/types/novelReferenceExtraction.js");
@@ -156,17 +157,20 @@ test("已有状态只补缺省字段，不覆盖人工提示词与已生成资�
   assert.equal(states[1].imagePrompt, "自定义受伤画面");
   assert.deepEqual(states[0].image, originalImage);
   assert.deepEqual(states[0].voice, originalVoice);
-  assert.equal(states[1].referenceStateId, "s1");
+  // 缺席 referenceStateId 不落键：状态图侧解析为不参考，音色链按缺省上一状态继承。
+  assert.equal(states[1].referenceStateId, undefined);
 });
 
-test("明确不参考仍保留 null，缺省参考才继承上一状态", () => {
+test("缺省参考＝全新生成，仅显式选择才引用指定状态", () => {
   const states = normalizeStoryCharacterStates([
     { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
     { id: "s2", label: "换装", description: "制服", imagePrompt: "制服" },
     { id: "s3", label: "独立形象", description: "全新造型", imagePrompt: "全新造型", referenceStateId: null },
   ], {});
 
-  assert.equal(states[1].referenceStateId, "s1");
+  // s2 缺席字段＝缺省（状态图全新生成；音色链隐式继承）；s3 显式取消。
+  assert.equal(resolveStoryAssetStateReferenceId(states, states[1]), null);
+  assert.equal(states[1].referenceStateId, undefined);
   assert.equal(states[2].referenceStateId, null);
 });
 
@@ -221,13 +225,21 @@ test("不存在的参考状态会被清理，避免生成链指向悬空状态",
   assert.equal(states[1].referenceStateId, null);
 });
 
-test("状态资产继承会沿多级参考链找到最近可用的祖先", () => {
-  const states = normalizeStoryCharacterStates([
+test("状态资产继承沿显式参考链向前找祖先；缺省参考不再隐式继承", () => {
+  // 显式链：s3→s2→s1。
+  const chained = normalizeStoryCharacterStates([
+    { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
+    { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "绷带", referenceStateId: "s1" },
+    { id: "s3", label: "重伤", description: "重伤", imagePrompt: "更多绷带", referenceStateId: "s2" },
+  ], {});
+  assert.deepEqual(resolveStoryAssetStateAncestors(chained, "s3").map((state) => state.id), ["s2", "s1"]);
+  // 缺省参考＝全新生成（2026-08-27 用户要求）：没有显式链接就没有祖先。
+  const independent = normalizeStoryCharacterStates([
     { id: "s1", label: "初始", description: "正常", imagePrompt: "正常" },
     { id: "s2", label: "受伤", description: "轻伤", imagePrompt: "绷带" },
     { id: "s3", label: "重伤", description: "重伤", imagePrompt: "更多绷带" },
   ], {});
-  assert.deepEqual(resolveStoryAssetStateAncestors(states, "s3").map((state) => state.id), ["s2", "s1"]);
+  assert.deepEqual(resolveStoryAssetStateAncestors(independent, "s3"), []);
 });
 
 test("角色更新必须保留首个初始状态", () => {
