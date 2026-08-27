@@ -30,7 +30,15 @@ import {
   Drama3DObjectPanel,
   type Drama3DObjectItem,
 } from "./components/editor3d";
-import { resolveStudioReturnPath } from "./navigation/studioNavigation";
+import {
+  buildStudioNavigationPath,
+  resolveStudioReturnPath,
+  type AssetTab,
+  type StudioStage,
+} from "./navigation/studioNavigation";
+import { buildStudioNavAssetSubRow, buildStudioNavStageRow } from "./navigation/studioTabRows";
+import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 
 const REFERENCE_ACTOR_HEIGHT_METERS = 1.7;
 const REFERENCE_ACTOR_LABEL = "参考角色（约1.7m）";
@@ -289,19 +297,39 @@ export default function DramaScene3DPage() {
     return true;
   }, [dirty, saveScene]);
 
-  const goBack = async () => {
+  const goBack = () => void leaveEditor();
+
+  const leaveEditor = useCallback(async (targetPath?: string): Promise<void> => {
     if (leavingRef.current) return;
     leavingRef.current = true;
     if (!(await saveBeforeExit())) {
       leavingRef.current = false;
       return;
     }
-    if (returnPath) {
+    if (targetPath) {
+      navigate(targetPath, { replace: true });
+    } else if (returnPath) {
       navigate(returnPath, { replace: true });
     } else {
       navigate(-1);
     }
-  };
+  }, [navigate, returnPath, saveBeforeExit]);
+
+  // 顶部导航栏的二级/三级页签（当前/资产/设定 + 角色/场景/道具）在场景编辑器内同样显示：
+  // 点击即「先保存再跳转」到工作室对应页签，编辑过程中不丢失这层导航的可见性。
+  const isMobileViewport = useIsMobileViewport();
+  const returnAssetTab: AssetTab = (() => {
+    const value = searchParams.get("returnAssetTab");
+    return value === "characters" || value === "props" ? value : "scenes";
+  })();
+  useRegisterPageTabs(!isMobileViewport, [
+    buildStudioNavStageRow("assets", (stage: StudioStage) => {
+      void leaveEditor(buildStudioNavigationPath(novelId, { stage, assetTab: stage === "assets" ? returnAssetTab : undefined }));
+    }),
+    buildStudioNavAssetSubRow(returnAssetTab, (tab: AssetTab) => {
+      void leaveEditor(buildStudioNavigationPath(novelId, { stage: "assets", assetTab: tab }));
+    }),
+  ]);
 
   if (sceneQuery.isPending) {
     return (

@@ -48,45 +48,24 @@ import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useRefere
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
+  ASSET_TAB_LABELS,
+  CURRENT_TAB_LABELS,
   readStudioNavigation,
+  SETTINGS_TAB_LABELS,
+  STUDIO_STAGE_LABELS,
   type AssetTab,
+  type CurrentTab,
+  type SettingsTab,
   type StudioStage,
 } from "./navigation/studioNavigation";
 
 // 顶层页签是项目级的：当前（章节工作台）/资产（角色场景道具）/设定（世界观·地图·通用）。
 // 「当前」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
 // 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
-type CurrentTab = "reference" | "extract" | "script" | "storyboard" | "video";
 // 「资产」的子页签：角色 / 场景 / 道具（世界观在「设定」页签）。
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
-// 画风不在本项目内维护：资产画风与时代画风库在独立的「画风管理」页（/art-style）；时代风格由各资产状态自带，脚本不再定义章节画风。
-type SettingsTab = "world" | "map" | "general";
-
-const STAGE_LABELS: Record<StudioStage, string> = {
-  current: "当前",
-  assets: "资产",
-  settings: "设定",
-};
-
-const CURRENT_TAB_LABELS: Record<CurrentTab, string> = {
-  reference: "参考",
-  extract: "提取",
-  script: "脚本",
-  storyboard: "分镜",
-  video: "视频",
-};
-
-const ASSET_TAB_LABELS: Record<AssetTab, string> = {
-  characters: "角色",
-  scenes: "场景",
-  props: "道具",
-};
-
-const SETTINGS_TAB_LABELS: Record<SettingsTab, string> = {
-  world: "世界观",
-  map: "地图",
-  general: "通用",
-};
+// 页签类型与文案统一维护在 navigation/studioNavigation.ts；「当前」的子页签在下面
+// 使用时带提取数量等动态后缀，因此保留本文件内的动态行构建。
 
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 
@@ -164,7 +143,7 @@ export default function ComicDramaStudioPage() {
   // 桌面端项目级页签与子页签统一上收到顶部导航栏；移动端保留页头内页签。
   const stageTabRow = {
     id: "studio-stage",
-    tabs: (Object.keys(STAGE_LABELS) as StudioStage[]).map((key) => ({ key, label: STAGE_LABELS[key] })),
+    tabs: (Object.keys(STUDIO_STAGE_LABELS) as StudioStage[]).map((key) => ({ key, label: STUDIO_STAGE_LABELS[key] })),
     active: stage,
     onSelect: (key: string) => setStage(key as StudioStage),
   };
@@ -364,9 +343,9 @@ export default function ComicDramaStudioPage() {
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:px-5">
             <TabsList>
-              <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.current}</TabsTrigger>
-              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.assets}</TabsTrigger>
-              <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STAGE_LABELS.settings}</TabsTrigger>
+              <TabsTrigger value="current"><BookOpenText className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.current}</TabsTrigger>
+              <TabsTrigger value="assets"><Boxes className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.assets}</TabsTrigger>
+              <TabsTrigger value="settings"><Settings className="mr-1.5 h-4 w-4" aria-hidden="true" />{STUDIO_STAGE_LABELS.settings}</TabsTrigger>
             </TabsList>
             <div className="ml-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
               {headerActions}
