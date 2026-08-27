@@ -28,82 +28,73 @@ interface TopNavProps {
 
 export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   const setNavActionsSlot = useSetPageNavActionsSlot();
+  const pageTabRows = usePageTabRows();
   return (
-    <header className="flex shrink-0 flex-col border-b bg-muted/20">
-      <div className="flex h-14 min-w-0 items-center pl-4 pr-3">
-        <div className="flex min-w-0 items-center gap-2.5">
-          <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
-          <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
-          <AppVersionBadge />
-        </div>
-
-        <nav className="ml-8 flex h-full min-w-0 items-center self-stretch">
-          {getDramaFocusNavItems().map((item) => {
-            const Icon = iconByRoute.get(item.to);
-            return (
-              <NavLink key={item.to} to={item.to} className="flex h-full items-center">
-                {({ isActive }) => (
-                  <span
-                    className={cn(
-                      "flex h-full items-center gap-2 border-b-2 px-3 text-sm transition-colors",
-                      isActive
-                        ? "border-primary font-semibold text-foreground"
-                        : "border-transparent text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
-                    {item.label}
-                  </span>
-                )}
-              </NavLink>
-            );
-          })}
-        </nav>
-
-        {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
-        <div className="ml-auto flex min-w-0 items-center justify-end gap-2">
-          <div
-            ref={setNavActionsSlot}
-            className="flex min-w-0 items-center gap-1.5 empty:hidden"
-          />
-          {onSwitchToWorkspaceNav ? (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="gap-2"
-              onClick={onSwitchToWorkspaceNav}
-              title="回到当前小说的创作导航"
-            >
-              <LayoutDashboard className="h-4 w-4" />
-              创作导航
-            </Button>
-          ) : null}
-          <LiveExecutionDialog className="justify-start" />
-        </div>
+    <header className="flex h-14 min-w-0 shrink-0 items-center border-b bg-muted/20 pl-4 pr-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
+        <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
+        <AppVersionBadge />
       </div>
-      <PageTabsBar />
+
+      <nav className="ml-6 flex h-full min-w-0 items-center self-stretch">
+        {getDramaFocusNavItems().map((item) => {
+          const Icon = iconByRoute.get(item.to);
+          return (
+            <NavLink key={item.to} to={item.to} className="flex h-full items-center">
+              {({ isActive }) => (
+                <span
+                  className={cn(
+                    "flex h-full items-center gap-2 border-b-2 px-3 text-sm transition-colors",
+                    isActive
+                      ? "border-primary font-semibold text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
+                  {item.label}
+                </span>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* 页面页签：占用一级导航与右侧操作区之间的中间区域，整组居中，不另起一行；
+          内容超宽时 mx-auto 收敛为左对齐横向滚动，不裁切 */}
+      <nav
+        aria-label="页面页签"
+        className="flex min-w-0 flex-1 items-center overflow-x-auto px-2"
+      >
+        <div className="mx-auto flex shrink-0 items-center gap-1">
+          {pageTabRows.map((row, index) => (
+            <PageTabGroup key={row.id} row={row} separated={index > 0} />
+          ))}
+        </div>
+      </nav>
+
+      {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
+      <div className="flex shrink-0 items-center gap-2">
+        <div
+          ref={setNavActionsSlot}
+          className="flex min-w-0 items-center gap-1.5 empty:hidden"
+        />
+        {onSwitchToWorkspaceNav ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="gap-2"
+            onClick={onSwitchToWorkspaceNav}
+            title="回到当前小说的创作导航"
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            创作导航
+          </Button>
+        ) : null}
+        <LiveExecutionDialog className="justify-start" />
+      </div>
     </header>
-  );
-}
-
-function PageTabsBar() {
-  const rows = usePageTabRows();
-  if (rows.length === 0) {
-    return null;
-  }
-  return (
-    <nav
-      aria-label="页面页签"
-      className="flex h-10 min-w-0 shrink-0 items-center overflow-x-auto border-t bg-background px-4"
-    >
-      {/* 二级页签居中、三级页签紧随其旁；内容超宽时 mx-auto 收敛为左对齐可滚动 */}
-      <div className="mx-auto flex shrink-0 items-center gap-1">
-        {rows.map((row, index) => (
-          <PageTabGroup key={row.id} row={row} separated={index > 0} />
-        ))}
-      </div>
-    </nav>
   );
 }
 
@@ -117,7 +108,7 @@ function PageTabGroup({ row, separated }: { row: PageTabRow; separated: boolean 
           type="button"
           onClick={() => row.onSelect(tab.key)}
           className={cn(
-            "flex h-8 items-center rounded-md px-2.5 text-[13px] transition-colors",
+            "flex h-9 items-center rounded-md px-3 text-[13px] transition-colors",
             row.active === tab.key
               ? "bg-primary/10 font-medium text-foreground"
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
