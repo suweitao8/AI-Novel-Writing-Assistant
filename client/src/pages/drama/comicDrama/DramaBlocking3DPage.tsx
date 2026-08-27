@@ -576,7 +576,7 @@ export default function DramaBlocking3DPage() {
       objects={<Drama3DObjectPanel items={objectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <InspectorGameObjectCard
