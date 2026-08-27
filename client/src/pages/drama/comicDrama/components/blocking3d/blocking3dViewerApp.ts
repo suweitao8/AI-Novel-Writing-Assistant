@@ -205,6 +205,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   // visible in the blocking viewport.
   const cameraComponent = cameraEntity.camera!;
   cameraComponent.layers = cameraComponent.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
+  // 编辑器辅助图层：摄像机机身等只服务编辑视口的对象挂在这里；取景画中画
+  // 只渲染世界内容，不会看到机身和辅助元素。
+  const editorOverlayLayer = new pc.Layer({ name: "blocking3d-editor-overlay" });
+  app.scene.layers.insert(editorOverlayLayer, app.scene.layers.layerList.length);
+  cameraComponent.layers = [...cameraComponent.layers, editorOverlayLayer.id];
   app.root.addChild(cameraEntity);
   const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
   cameraFrame.dof.nearBlur = false;
@@ -212,7 +217,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   // Unity 风格的场景摄像机运行时：独立机位（世界坐标位置 + 朝向）驱动机身
   // 实体与右下角取景画中画；编辑视角导航不会带动机身。
-  const shotCamera = createBlocking3dShotCamera(app, canvas, cameraComponent);
+  const shotCamera = createBlocking3dShotCamera(app, canvas, cameraComponent, editorOverlayLayer.id);
 
   const ground = createPlane(
     app,
@@ -783,6 +788,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         fovDeg: cameraState.fovDeg,
       });
     }
+    // 三分构图线只出现在取景画中画里（内部判断可见性，不可见时为空操作）。
+    shotCamera.drawCompositionGuides(app);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
     selectionOutline.frameUpdate();
   });
