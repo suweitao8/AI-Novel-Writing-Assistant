@@ -12,7 +12,6 @@ import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import DramaVideoRenderProfileCard from "../components/DramaVideoRenderProfileCard";
-import RecentErrorsCard from "../components/RecentErrorsCard";
 import SettingsReadinessCard, { buildSettingsReadinessItems } from "../components/SettingsReadinessCard";
 import { SettingsShell } from "../components/SettingsShell";
 import { isNavRouteVisible } from "@/config/dramaFocusNav";
@@ -44,7 +43,6 @@ export default function SettingsOverviewPage() {
     <SettingsShell title="系统设置" description="查看创作环境状态，并进入需要调整的设置。">
       <SettingsReadinessCard items={items} />
       <DramaVideoRenderProfileCard />
-      <RecentErrorsCard />
       <div className="grid gap-4 md:grid-cols-2">
         {entries.map(({ to, title, description, icon: Icon }) => {
           const summary = title === "模型设置"
