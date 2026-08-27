@@ -61,10 +61,12 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
       </nav>
 
       {/* 页面页签：二级页签固定居中于中间预留区，三级页签锚定在二级右侧固定间距；
-          切换页签导致三级内容变化时，二级位置不漂移 */}
+          切换页签导致三级内容变化时，二级位置不漂移。
+          注意不要加 overflow-x-auto：absolute 三级组会把 mx-auto 的居中变成
+          幻影滚动（scrollWidth 被撑大、居中偏移），根布局已 overflow-hidden */}
       <nav
         aria-label="页面页签"
-        className="flex min-w-0 flex-1 items-center overflow-x-auto px-2"
+        className="relative flex min-w-0 flex-1 items-center px-2"
       >
         {pageTabRows.length > 0 ? (
           <div className="relative mx-auto flex shrink-0 items-center">
