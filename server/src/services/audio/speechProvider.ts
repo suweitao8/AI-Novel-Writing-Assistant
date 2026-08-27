@@ -100,6 +100,14 @@ function buildSpeechEndpoint(baseURL: string): string {
   return normalized.endsWith("/audio/speech") ? normalized : `${normalized}/audio/speech`;
 }
 
+function readEnvNumber(name: string, fallback: number, min: number, max: number): number {
+  const parsed = Number(process.env[name]?.trim());
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.max(min, Math.min(max, parsed));
+}
+
 /** VoxCPM2 只接受 data URL 或宿主机绝对路径，不接受 IndexTTS 的裸音色文件名。 */
 export function isVoxCPMReferenceAudio(value: string | null | undefined): value is string {
   if (typeof value !== "string") {
@@ -125,6 +133,10 @@ export function selectVoxCPMReferenceAudio(
 function buildSpeechMetadata(input: AudioSpeechInput): Record<string, unknown> {
   const metadata: Record<string, unknown> = {
     should_use_prompt_for_emotion: true,
+    // VoxCPM 的 cfg 越低生成越自由发散，听感发虚无力（不贴控制前缀与参考音色）；
+    // 流匹配步数越低质量越差。默认取比引擎内置默认更强的表达档位，可用环境变量回调。
+    cfg_value: readEnvNumber("VOXCPM2_TTS_CFG_VALUE", 2.6, 1, 3),
+    inference_timesteps: Math.round(readEnvNumber("VOXCPM2_TTS_INFERENCE_TIMESTEPS", 20, 1, 50)),
   };
   if (input.audioType) {
     metadata.audio_type = input.audioType;
