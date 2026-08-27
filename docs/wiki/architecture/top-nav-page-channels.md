@@ -52,11 +52,15 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
   实测 1100–1489px 视口下三级胶囊右缘与操作按钮间隙 7–112px，不遮挡、
   可点击；更窄视口由移动端布局（页内页签）兜底。
   页面页签不显示计数后缀（提取等数字已去掉，用户要求）。
-  资产页签已拍平（2026-08-27）：`StudioStage` 为 characters/scenes/props/current/settings
-  五个平级值（「当前」更名「章节」，内部值不变），顺序见 `STUDIO_STAGE_ORDER`。
-  三级胶囊只在 current/settings 语境注册（pageTabRows 条件化）；场景 3D 编辑器注册
-  同一份二级行且 active=scenes。旧地址 `?stage=assets&assetTab=x` 由
-  `readStudioNavigation`/`resolveStudioReturnPath` 兼容映射。胶囊容器
+  资产层与章节层均已拍平（2026-08-27，两轮）：`StudioStage` 为
+  characters/scenes/props/reference/extract/script/storyboard/video/settings
+  九个平级值（「当前」「章节」「资产」三个中间层都已取消，顺序 `STUDIO_STAGE_ORDER`），
+  默认 stage=script。三级胶囊只剩设定语境（世界观/地图/通用）；
+  CHAPTER_WORKBENCH_STAGES 归组五个章节工作台页签（参考/提取/脚本/分镜/视频），
+  共享章节操作按钮（章节管理/新增/分镜工具）。场景与分镜 3D 编辑器注册同一份
+  二级行（active=scenes / storyboard）。旧地址 `?stage=assets&assetTab=x`、
+  `?stage=current&tab=x` 由 `readStudioNavigation`/`resolveStudioReturnPath`
+  兼容映射。胶囊容器
   `rounded-full border bg-muted/40 p-1`，选中项 `bg-background + shadow-sm`
   浮起，两组间距 `ml-3`。
 - 操作区槽位为空时必须不可见（`empty:hidden`），避免残留间距。
