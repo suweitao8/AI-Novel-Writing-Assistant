@@ -60,13 +60,9 @@ import {
 } from "./components/editor3d";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
-import {
-  buildStudioNavCurrentSubRow,
-  buildStudioNavStageRow,
-} from "./navigation/studioTabRows";
+import { buildStudioNavStageRow } from "./navigation/studioTabRows";
 import {
   buildStudioNavigationPath,
-  type CurrentTab,
   type StudioStage,
 } from "./navigation/studioNavigation";
 
@@ -391,27 +387,24 @@ export default function DramaBlocking3DPage() {
   };
 
   // 顶部导航栏常驻工作室页签（2026-08-27 用户要求）：进入 3D 草图编辑不掉页签。
-  // 二级=角色/场景/道具/章节/设定（active=章节），三级=参考/提取/脚本/分镜/视频
-  // （active=分镜）；点击先保存当前摆位，再深链回工作室对应页签。保存失败留在本页。
+  // 二级=角色/场景/道具/参考/提取/脚本/分镜/视频/设定（active=分镜）；
+  // 点击先保存当前摆位，再跳回工作室对应页签。保存失败留在本页。
   const isMobileViewport = useIsMobileViewport();
   const studioTabNavigateRef = useRef(false);
   const novelId = context?.novelId ?? null;
-  const leaveToStudio = useCallback(async (stage: StudioStage, tab?: CurrentTab) => {
+  const leaveToStudio = useCallback(async (stage: StudioStage) => {
     if (studioTabNavigateRef.current) return;
     studioTabNavigateRef.current = true;
     try {
       if (!(await saveBeforeExit())) return;
-      navigate(buildStudioNavigationPath(novelId ?? "", stage === "current" && tab ? { stage, currentTab: tab } : { stage }));
+      navigate(buildStudioNavigationPath(novelId ?? "", { stage }));
     } finally {
       studioTabNavigateRef.current = false;
     }
   }, [navigate, novelId, saveBeforeExit]);
   useRegisterPageTabs(!isMobileViewport && Boolean(novelId), [
-    buildStudioNavStageRow("current", (stage) => {
+    buildStudioNavStageRow("storyboard", (stage) => {
       void leaveToStudio(stage);
-    }),
-    buildStudioNavCurrentSubRow("storyboard", (tab) => {
-      void leaveToStudio("current", tab);
     }),
   ]);
 

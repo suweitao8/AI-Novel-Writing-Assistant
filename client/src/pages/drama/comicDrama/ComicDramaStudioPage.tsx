@@ -48,26 +48,26 @@ import { useReferenceDraftStage } from "@/pages/drama/comicDrama/hooks/useRefere
 import { useReferenceExtractStage } from "@/pages/drama/comicDrama/hooks/useReferenceExtractStage";
 import { invalidateStorySettingsCaches } from "@/pages/drama/comicDrama/storySettingsSync";
 import {
-  CURRENT_TAB_LABELS,
+  CHAPTER_WORKBENCH_STAGES,
   readStudioNavigation,
   SETTINGS_TAB_LABELS,
   STUDIO_STAGE_LABELS,
   STUDIO_STAGE_ORDER,
-  type CurrentTab,
   type SettingsTab,
   type StudioStage,
 } from "./navigation/studioNavigation";
 
-// 资产页签已拍平：角色 / 场景 / 道具是二级页签本体，与「章节」（原「当前」）、
-// 「设定」平级，没有中间的「资产」层。
-// 「章节」的子页签全部作用于当前章：参考→提取→脚本→分镜→成片（脚本是本章的线性分镜脚本，
-// 2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，编辑改成列表而非自由文本）。
+// 章节工作台的子页签也已拍平：参考/提取/脚本/分镜/视频与角色、场景、道具、设定
+// 平级（2026-08-27 用户决定），「章节」「资产」两个中间层都不复存在。
+// 这些页签始终作用于「当前选中章节」：参考→提取→脚本→分镜→成片（脚本是本章的线性
+// 分镜脚本，2026-08-20 用户决定初稿+正文合并为一：解析产出的初稿质量已可当正文，
+// 编辑改成列表而非自由文本）；章节切换由导航栏操作区的章节按钮承担。
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
 
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
 
-// 漫剧工作室：项目级页签（当前/资产/设定）与各页签的子页签统一放在顶部导航栏，
-// 当前页签的工具按钮（章节/引用/解析/生成/分镜工具）也上收到导航栏「AI 实况」左侧；
+// 漫剧工作室：全部项目级页签统一放在顶部导航栏，章节工作台页签的工具按钮
+// （章节/引用/解析/生成/分镜工具）也上收到导航栏「AI 实况」左侧；
 // 移动端没有顶部导航栏，页签、子页签条和工具按钮都保留在页头内。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
@@ -75,8 +75,6 @@ export default function ComicDramaStudioPage() {
   const queryClient = useQueryClient();
   const isMobileViewport = useIsMobileViewport();
   const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
-  // 章节子页签支持 ?tab= 深链：3D 编辑器等深层页面跳回工作室时还原到指定子页签。
-  const [currentTab, setCurrentTab] = useState<CurrentTab>(() => readStudioNavigation(searchParams.toString()).currentTab);
   const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
@@ -113,7 +111,7 @@ export default function ComicDramaStudioPage() {
     novelId,
     workspace: chapterWorkspace,
     referenceDocId: overview?.novel.referenceDocument?.id ?? null,
-    onApplied: () => setCurrentTab("script"),
+    onApplied: () => setStage("script"),
   });
   const extractStage = useReferenceExtractStage({
     novelId,
@@ -132,7 +130,7 @@ export default function ComicDramaStudioPage() {
     novelDefaultStyleId: novelDefaultArtStyle,
     chapterOrder: chapterWorkspace.currentChapter?.order ?? null,
     scriptReady: selectedScriptReady,
-    onGenerated: () => setCurrentTab("storyboard"),
+    onGenerated: () => setStage("storyboard"),
   });
 
   const directorTask = overview?.novel.directorTask ?? null;
@@ -144,22 +142,12 @@ export default function ComicDramaStudioPage() {
     active: stage,
     onSelect: (key: string) => setStage(key as StudioStage),
   };
-  const subTabRow = stage === "current"
+  const subTabRow = stage === "settings"
     ? {
       id: "studio-sub",
-      tabs: (Object.keys(CURRENT_TAB_LABELS) as CurrentTab[]).map((key) => ({
-        key,
-        label: CURRENT_TAB_LABELS[key],
-      })),
-      active: currentTab,
-      onSelect: (key: string) => setCurrentTab(key as CurrentTab),
-    }
-    : stage === "settings"
-      ? {
-        id: "studio-sub",
-        tabs: (Object.keys(SETTINGS_TAB_LABELS) as SettingsTab[]).map((key) => ({ key, label: SETTINGS_TAB_LABELS[key] })),
-        active: settingsTab,
-        onSelect: (key: string) => setSettingsTab(key as SettingsTab),
+      tabs: (Object.keys(SETTINGS_TAB_LABELS) as SettingsTab[]).map((key) => ({ key, label: SETTINGS_TAB_LABELS[key] })),
+      active: settingsTab,
+      onSelect: (key: string) => setSettingsTab(key as SettingsTab),
       }
     : null;
   // 角色 / 场景 / 道具页签没有子页签，三级胶囊只在章节、设定语境下出现。
@@ -174,13 +162,13 @@ export default function ComicDramaStudioPage() {
   const currentChapterId = chapterWorkspace.currentChapter?.id ?? null;
   const lastSyncKeyRef = useRef("");
   useEffect(() => {
-    const syncKey = `${dramaProjectId ?? ""}|${currentChapterId ?? ""}|${currentTab === "storyboard" ? "sb" : "-"}`;
+    const syncKey = `${dramaProjectId ?? ""}|${currentChapterId ?? ""}|${stage === "storyboard" ? "sb" : "-"}`;
     if (!dramaProjectId || syncKey === lastSyncKeyRef.current || storyboard.syncMutation.isPending) {
       return;
     }
     lastSyncKeyRef.current = syncKey;
     storyboard.syncMutation.mutate();
-  }, [dramaProjectId, currentChapterId, currentTab, storyboard.syncMutation]);
+  }, [dramaProjectId, currentChapterId, stage, storyboard.syncMutation]);
 
   if (overviewQuery.isPending) {
     return (
@@ -200,8 +188,10 @@ export default function ComicDramaStudioPage() {
     );
   }
 
+  // 章节工作台五页签（参考/提取/脚本/分镜/视频）共享章节上下文的操作按钮。
+  const isChapterWorkbench = (CHAPTER_WORKBENCH_STAGES as readonly string[]).includes(stage);
   let headerActions: ReactNode = null;
-  if (stage === "current") {
+  if (isChapterWorkbench) {
     const chapter = chapterWorkspace.currentChapter;
     headerActions = (
       <>
@@ -228,11 +218,11 @@ export default function ComicDramaStudioPage() {
     );
   }
 
-  // 「当前」页签的工具按钮（按子页签变化）：桌面端渲染进顶部导航栏操作区，
+  // 章节工作台页签的工具按钮（按页签变化）：桌面端渲染进顶部导航栏操作区，
   // 移动端渲染在页头子页签条右列。分镜页签时容器同时充当分镜工具的传送目标。
-  const currentToolbarContent = stage === "current" ? (
+  const currentToolbarContent = isChapterWorkbench ? (
     <>
-      {currentTab === "reference" ? (
+      {stage === "reference" ? (
         <>
           {chapterWorkspace.referenceSavePending ? (
             <span className="text-xs text-muted-foreground">自动保存中…</span>
@@ -269,7 +259,7 @@ export default function ComicDramaStudioPage() {
             <span className="text-xs text-muted-foreground">上次解析 {referenceStage.lastParseDurationLabel}</span>
           ) : null}
         </>
-      ) : currentTab === "script" ? (
+      ) : stage === "script" ? (
         <>
           {chapterWorkspace.savePending ? (
             <span className="text-xs text-muted-foreground">自动保存中…</span>
@@ -299,22 +289,22 @@ export default function ComicDramaStudioPage() {
     </>
   ) : null;
 
-  const mobileToolbar = isMobileViewport && stage === "current" ? (
+  const mobileToolbar = isMobileViewport && isChapterWorkbench ? (
     <div
-      ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+      ref={stage === "storyboard" ? setStoryboardToolbarTarget : undefined}
       className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto"
     >
       {currentToolbarContent}
     </div>
   ) : null;
 
-  // 桌面端操作区：整组按钮（子页签工具 + 章节管理）portal 进顶部导航栏，
+  // 桌面端操作区：整组按钮（页签工具 + 章节管理）portal 进顶部导航栏，
   // 位于「AI 实况」左侧；portal 内容仍在本组件树内，按钮状态与页面实时同步。
-  const navActionsPortal = !isMobileViewport && stage === "current" && navActionsSlot
+  const navActionsPortal = !isMobileViewport && isChapterWorkbench && navActionsSlot
     ? createPortal(
         <div className="flex min-w-0 items-center justify-end gap-2">
           <div
-            ref={currentTab === "storyboard" ? setStoryboardToolbarTarget : undefined}
+            ref={stage === "storyboard" ? setStoryboardToolbarTarget : undefined}
             className="flex items-center gap-1.5"
           >
             {currentToolbarContent}
@@ -342,25 +332,7 @@ export default function ComicDramaStudioPage() {
               {headerActions}
             </div>
           </div>
-          {stage === "current" ? (
-            <SubTabRow>
-              <span className="hidden sm:block" aria-hidden="true" />
-              <Tabs
-                value={currentTab}
-                onValueChange={(value) => setCurrentTab(value as CurrentTab)}
-                className="sm:justify-self-center"
-              >
-                <TabsList>
-                  <TabsTrigger value="reference">{CURRENT_TAB_LABELS.reference}</TabsTrigger>
-                  <TabsTrigger value="extract">{CURRENT_TAB_LABELS.extract}</TabsTrigger>
-                  <TabsTrigger value="script">{CURRENT_TAB_LABELS.script}</TabsTrigger>
-                  <TabsTrigger value="storyboard">{CURRENT_TAB_LABELS.storyboard}</TabsTrigger>
-                  <TabsTrigger value="video">{CURRENT_TAB_LABELS.video}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-              {mobileToolbar}
-            </SubTabRow>
-          ) : stage === "settings" ? (
+          {stage === "settings" ? (
             <SubTabRow>
               <span className="hidden sm:block" aria-hidden="true" />
               <Tabs
@@ -376,43 +348,55 @@ export default function ComicDramaStudioPage() {
               </Tabs>
               <span className="hidden sm:block" aria-hidden="true" />
             </SubTabRow>
-          ) : null}
+          ) : (
+            <SubTabRow>
+              <span className="hidden sm:block" aria-hidden="true" />
+              {mobileToolbar}
+              <span className="hidden sm:block" aria-hidden="true" />
+            </SubTabRow>
+          )}
         </header>
         ) : null}
 
-        <TabsContent value="current" className="space-y-4">
-          {currentTab === "extract" ? (
-            <ReferenceExtractTab stage={extractStage} />
-          ) : currentTab === "reference" ? (
-            <ReferenceTab
-              value={referenceStage.referenceText}
-              onChange={referenceStage.setReferenceText}
-              placeholder={referenceStage.hasReferenceDoc ? "点「引用」带入参考小说对应章节，或直接粘贴参考文本" : "粘贴参考文本"}
-            />
-          ) : currentTab === "script" ? (
-            <ScriptTab
+        <TabsContent value="reference" className="space-y-4">
+          <ReferenceTab
+            value={referenceStage.referenceText}
+            onChange={referenceStage.setReferenceText}
+            placeholder={referenceStage.hasReferenceDoc ? "点「引用」带入参考小说对应章节，或直接粘贴参考文本" : "粘贴参考文本"}
+          />
+        </TabsContent>
+
+        <TabsContent value="extract" className="space-y-4">
+          <ReferenceExtractTab stage={extractStage} />
+        </TabsContent>
+
+        <TabsContent value="script" className="space-y-4">
+          <ScriptTab
+            novelId={novelId}
+            workspace={chapterWorkspace}
+            onOpenChapterManage={() => setChapterManageOpen(true)}
+          />
+        </TabsContent>
+
+        <TabsContent value="storyboard" className="space-y-4">
+          {overview.drama ? (
+            <ShotVoiceListPanel
               novelId={novelId}
-              workspace={chapterWorkspace}
-              onOpenChapterManage={() => setChapterManageOpen(true)}
+              projectId={overview.drama.projectId}
+              chapterOrder={chapterWorkspace.currentChapter?.order ?? null}
+              toolbarTarget={storyboardToolbarTarget}
             />
-          ) : currentTab === "storyboard" ? (
-            overview.drama ? (
-              <ShotVoiceListPanel
-                novelId={novelId}
-                projectId={overview.drama.projectId}
-                chapterOrder={chapterWorkspace.currentChapter?.order ?? null}
-                toolbarTarget={storyboardToolbarTarget}
-              />
-            ) : (
-              <StoryboardBootstrapCard
-                canGenerate={storyboard.scriptReady}
-                generatePending={storyboard.generateMutation.isPending}
-                onGenerate={() => storyboard.generateMutation.mutate()}
-              />
-            )
           ) : (
-            <VideoSection drama={overview.drama} order={chapterWorkspace.currentChapter?.order ?? 1} />
+            <StoryboardBootstrapCard
+              canGenerate={storyboard.scriptReady}
+              generatePending={storyboard.generateMutation.isPending}
+              onGenerate={() => storyboard.generateMutation.mutate()}
+            />
           )}
+        </TabsContent>
+
+        <TabsContent value="video" className="space-y-4">
+          <VideoSection drama={overview.drama} order={chapterWorkspace.currentChapter?.order ?? 1} />
         </TabsContent>
 
         <TabsContent value="characters" className="space-y-4">
