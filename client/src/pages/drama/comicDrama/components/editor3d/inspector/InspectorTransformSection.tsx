@@ -2,12 +2,13 @@ import { Move3D } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { InspectorComponentSection } from "./InspectorComponentSection";
-import { InspectorVector3Field } from "./InspectorVector3Field";
+import { InspectorNumberField, InspectorVector3Field } from "./InspectorVector3Field";
 
 export interface InspectorTransformValue {
   position: [number, number, number];
   yawDeg: number;
-  scale: [number, number, number];
+  /** 整体等比缩放；不支持单轴缩放。 */
+  scale: number;
 }
 
 export interface InspectorTransformSectionProps {
@@ -21,12 +22,12 @@ export interface InspectorTransformSectionProps {
   className?: string;
 }
 
-// 布局数据只保存 Y 轴旋转（yawDeg），X/Z 两轴按 Unity 字段位展示但锁定。
+// 布局数据只保存 Y 轴旋转（yawDeg），X/Z 两格按 Unity 字段位展示但锁定。
 const ROTATION_LOCKED_AXES = [true, false, true] as const;
 
 /**
- * Unity Inspector 的 Transform 组件节：位置 / 旋转 / 缩放三行，
- * 每行 X/Y/Z 三个轴色数字输入。
+ * Unity Inspector 的 Transform 组件节：位置 / 旋转各三个纯数字输入，
+ * 缩放为单值整体等比缩放。
  */
 export function InspectorTransformSection({
   value,
@@ -43,7 +44,6 @@ export function InspectorTransformSection({
         <InspectorVector3Field
           label="位置"
           value={value.position}
-          suffix="米"
           step={0.1}
           disabled={readOnly}
           onCommit={(position) => onCommit?.({ position })}
@@ -52,20 +52,20 @@ export function InspectorTransformSection({
           label="旋转"
           value={[0, value.yawDeg, 0]}
           disabledAxes={ROTATION_LOCKED_AXES}
-          suffix="°"
           step={5}
           disabled={readOnly}
           onCommit={(rotation) => onCommit?.({ yawDeg: rotation[1] })}
         />
-        <InspectorVector3Field
-          label="缩放"
-          value={value.scale}
-          suffix="米"
-          step={0.1}
-          min={0.05}
-          disabled={readOnly}
-          onCommit={(scale) => onCommit?.({ scale })}
-        />
+        <div className="flex items-center gap-2" data-inspector="uniform-scale">
+          <span className="w-10 shrink-0 text-xs text-muted-foreground">缩放</span>
+          <InspectorNumberField
+            value={value.scale}
+            step={0.1}
+            min={0.05}
+            disabled={readOnly}
+            onCommit={(scale) => onCommit?.({ scale })}
+          />
+        </div>
       </div>
       {hint}
       {footer}
