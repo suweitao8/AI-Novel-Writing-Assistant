@@ -519,9 +519,7 @@ export default function DramaScene3DPage() {
                   name={scene.name}
                   nameEditable
                   onRename={(next) => void renameSelectedObject(next)}
-                  kindLabel="世界"
                   disabled={saving || sceneQuery.isFetching}
-                  metaLine={<>当前状态：{selectedState.label} · 空间标记{sceneMarkersAreCurrent ? `${visibleSceneMarkers.length} 个` : "需要重新识别"}</>}
                 />
                 <InspectorComponentSection title="场景环境">
                   <div className="space-y-4">
@@ -580,8 +578,6 @@ export default function DramaScene3DPage() {
                 <InspectorGameObjectCard
                   icon={<Ruler className="h-4 w-4" aria-hidden="true" />}
                   name={REFERENCE_ACTOR_LABEL}
-                  kindLabel="校准道具"
-                  metaLine="固定在场景原点，只用于校准投射中心和半球直径，不会保存到分镜。"
                 />
                 <InspectorComponentSection title="参考角色">
                   <InspectorPropertyList
@@ -603,9 +599,7 @@ export default function DramaScene3DPage() {
                   name={selectedMarker.label}
                   nameEditable
                   onRename={(next) => void renameSelectedObject(next)}
-                  kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
                   disabled={saving}
-                  metaLine="名称、位置、旋转与缩放都会保存到当前状态的空间标记数据。"
                 />
                 <InspectorTransformSection
                   value={{

@@ -208,3 +208,18 @@ test("摆位上下文携带来源小说 id，供常驻页签跳回工作室", ()
   assert.match(apiSource, /novelId: string \| null;/);
   assert.match(pageSource, /context\?\.novelId \?\? null/);
 });
+
+const gameObjectCardSource = fs.readFileSync(
+  path.join(process.cwd(), "src/pages/drama/comicDrama/components/editor3d/inspector/InspectorGameObjectCard.tsx"),
+  "utf8",
+);
+
+test("属性编辑器对象名称行只显示图标与名字，无卡片包裹和附加说明", () => {
+  // 不再渲染 box 包裹、类型徽标（近景/校准道具/角色…）与 metaLine 补充行。
+  assert.match(gameObjectCardSource, /data-inspector="game-object"/);
+  assert.match(gameObjectCardSource, /aria-label="对象名称"/);
+  assert.doesNotMatch(gameObjectCardSource, /kindLabel|metaLine|rounded-lg border|bg-muted\/30 p-2\.5/);
+  // 两个 3D 编辑器的调用点都不再传这些附加信息。
+  assert.doesNotMatch(pageSource, /kindLabel=|metaLine=|已加入镜头|未加入镜头/);
+  assert.doesNotMatch(scene3dPageSource, /kindLabel=|metaLine=|校准道具/);
+});
