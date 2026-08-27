@@ -3,11 +3,25 @@ import { ImageOff, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { StoryAssetImageStatus, StoryAssetPreviewSource } from "./storyAssetPresentation";
 
-// 角色状态图当前是 1536x1024 双列四格图板：左列为正面大头特写，其余为侧脸与全身像。
-// 头像预览取最左 1/3（512px）的方形窗口并轻微避开图纸顶边，始终输出方形头像，
-// 不把整幅竖向人体或跨格内容带进预览。
-const CHARACTER_PREVIEW_WINDOW_WIDTH = "w-[300%]";
-const CHARACTER_PREVIEW_CROP_TOP = "-4%";
+// 角色状态图按 1536x1024 双列四格图板生成：左上格固定是正面面部特写视图。
+// 头像预览以该视图的面部为中心取 560px 方形窗口（少量下移把眼睛/下巴框进画面，
+// 顶部只裁掉发顶），输出方形头像；常量即大多数图片的固定取景位置。
+const CHARACTER_SHEET_NATURAL_WIDTH = 1536;
+const CHARACTER_AVATAR_FACE_WINDOW = {
+  /** 方形窗口边长（源图像素）。 */
+  size: 560,
+  offsetX: 0,
+  offsetY: 160,
+};
+
+const CHARACTER_AVATAR_WINDOW_STYLE = (() => {
+  const { size, offsetX, offsetY } = CHARACTER_AVATAR_FACE_WINDOW;
+  return {
+    width: `${(CHARACTER_SHEET_NATURAL_WIDTH / size) * 100}%`,
+    left: `${(-offsetX / size) * 100}%`,
+    top: `${(-offsetY / size) * 100}%`,
+  };
+})();
 
 export interface StoryAssetPreviewProps {
   preview: StoryAssetPreviewSource | null;
@@ -88,8 +102,8 @@ function PreviewFrame({
         alt={preview.alt}
         loading="lazy"
         decoding="async"
-        className={character ? `absolute left-0 h-auto ${CHARACTER_PREVIEW_WINDOW_WIDTH} max-w-none` : "absolute inset-0 h-full w-full object-cover object-center"}
-        style={character ? { top: CHARACTER_PREVIEW_CROP_TOP } : undefined}
+        className={character ? "absolute h-auto max-w-none" : "absolute inset-0 h-full w-full object-cover object-center"}
+        style={character ? CHARACTER_AVATAR_WINDOW_STYLE : undefined}
         onError={onError}
       />
       {status === "generating" ? (
