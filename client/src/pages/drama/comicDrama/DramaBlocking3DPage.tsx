@@ -34,7 +34,6 @@ import { Input } from "@/components/ui/input";
 import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
-import { STORY_SCENE_3D_MARKER_KIND_LABELS } from "@ai-novel/shared/types/comicDrama";
 import {
   BLOCKING_3D_POSES,
   BLOCKING_3D_POSE_LABELS,
@@ -114,11 +113,6 @@ function buildSketchData(
     actors,
     layout3d,
   };
-}
-
-function formatVec3(value: [number, number, number] | undefined): string {
-  if (!value) return "—";
-  return value.map((item) => item.toFixed(2)).join(" / ");
 }
 
 function formatHeight(heightMeters: number | undefined): string {
@@ -586,8 +580,6 @@ export default function DramaBlocking3DPage() {
                 <InspectorGameObjectCard
                   icon={<Layers3 className="h-4 w-4" aria-hidden="true" />}
                   name={`第 ${context.shot.order} 镜`}
-                  kindLabel={context.shot.shotSize || "镜头"}
-                  metaLine={`运镜：${context.shot.cameraMove || "未设置"} · 时长：${context.shot.durationSec == null ? "未设置" : `${context.shot.durationSec} 秒`}`}
                 />
                 <div className="text-xs font-medium">镜头设计</div>
 <InspectorPropertyList
@@ -625,8 +617,6 @@ export default function DramaBlocking3DPage() {
                 <InspectorGameObjectCard
                   icon={<Video className="h-4 w-4" aria-hidden="true" />}
                   name="摄像机"
-                  kindLabel="镜头机位"
-                  metaLine={`注视焦点 ${formatVec3(cameraState.focalPoint)}`}
                 />
                 <InspectorComponentSection title="Transform">
                   <div className="space-y-2">
@@ -710,7 +700,6 @@ export default function DramaBlocking3DPage() {
                 <InspectorGameObjectCard
                   icon={<MapPin className="h-4 w-4" aria-hidden="true" />}
                   name={selectedMarker.label}
-                  kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
                 />
                 <InspectorTransformSection
                   value={{
@@ -738,8 +727,6 @@ export default function DramaBlocking3DPage() {
                 <InspectorGameObjectCard
                   icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
                   name={selectedActorContext.characterName}
-                  kindLabel="角色"
-                  metaLine={placedNames.has(selectedActorContext.characterName) ? "已加入镜头" : "未加入镜头"}
                 />
                 <InspectorPropertyList
                   className="text-xs"
