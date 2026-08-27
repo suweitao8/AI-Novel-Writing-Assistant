@@ -38,17 +38,22 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
 - 分镜页签等「子面板自带工具」沿用双层 portal：页面在操作区里放一个挂 ref 的容器，
   子面板（如 ShotVoiceListPanel）再把自己的工具传送到该容器。ref 挂载条件跟随
   当前子页签，切走子页签时子面板工具自然消失。
-- TopNav 页签区（第一行中间 `flex-1`，`justify-center + overflow-x-auto`）：
-  二级、三级各包在独立胶囊容器里（`rounded-full border bg-muted/40 p-1`），
-  选中项 `bg-background + shadow-sm` 浮起（与全站分段控件一致），两组间距
-  `gap-3`；不画组间竖线。二级组固定居中、三级组固定在其右侧（用户要求）：
-  实现用「镜像占位」——二级左侧渲染一份等宽隐形三级副本（`invisible +
-  aria-hidden`），[镜像|二级|三级] 整体居中时二级恰在正中，三级宽度变化时
-  二级不漂移。禁止改回 `absolute left-full` 锚定（三级组会伸到右侧操作按钮
-  下方被遮挡、点击无效，2026-08-27 实测）。页面页签不显示计数后缀（提取等
-  数字已去掉，用户要求）。
-  测量陷阱：`visibility:hidden` 元素的 `offsetParent` 不为 null，用
-  `offsetParent` 过滤可见组会误把镜像组当二级组；应按 computed visibility 过滤。
+- TopNav 页签定位（最终方案，参照旧项目 mydrama
+  `project-header-navigation.tsx`）：header 为 `relative`；二级胶囊
+  `absolute left-1/2 top-1/2 -translate-x/y-1/2` **绝对居中于整个 header**，
+  不参与 flex 流——右侧操作按钮组随 stage 增减（生成/章节按钮只在「当前」
+  出现）也不会推动二级位置（用户明确要求位置恒定）。三级胶囊
+  `absolute left-full top-1/2 ml-3 -translate-y-1/2` 锚定二级右缘。
+  操作区容器必须保留 `ml-auto`（中间没有 flex-1 撑开后，丢了它右侧按钮组
+  会贴到页签旁边）。
+  演进教训：flex 流 + `mx-auto`/镜像占位方案里，居中参照物是「一级导航与
+  操作区之间的剩余宽度」，右侧按钮一变居中点就漂移——这就是用户报告的
+  「切换二级页签位置变化」的根因；absolute 参照整个 header，天然恒定。
+  实测 1100–1489px 视口下三级胶囊右缘与操作按钮间隙 7–112px，不遮挡、
+  可点击；更窄视口由移动端布局（页内页签）兜底。
+  页面页签不显示计数后缀（提取等数字已去掉，用户要求）。胶囊容器
+  `rounded-full border bg-muted/40 p-1`，选中项 `bg-background + shadow-sm`
+  浮起，两组间距 `ml-3`。
 - 操作区槽位为空时必须不可见（`empty:hidden`），避免残留间距。
 
 ## 示例
