@@ -28,7 +28,7 @@ test("场景摄像机拥有独立机位，不跟随编辑视角移动", () => {
   assert.match(shotCameraSource, /interface Blocking3dShotCameraPose/);
   assert.match(shotCameraSource, /deriveShotCameraPoseFromOrbit/);
   assert.match(shotCameraSource, /normalizeShotCameraPose/);
-  assert.match(viewerSource, /const shotCamera = createBlocking3dShotCamera\(app, canvas, cameraComponent\)/);
+  assert.match(viewerSource, /const shotCamera = createBlocking3dShotCamera\(app, canvas, cameraComponent, editorOverlayLayer\.id\)/);
   // 编辑视角相机同步不得再带动机身：旧的轨道跟随入口必须移除。
   assert.doesNotMatch(viewerSource, /syncBlocking3dCameraBody/);
   assert.doesNotMatch(viewerSource, /moveShotCameraToPosition/);
@@ -58,6 +58,21 @@ test("选中摄像机即显示右下角取景画中画，预览摄像机拍到�
   assert.match(shotCameraSource, /0\.975 - PIP_RECT_WIDTH/);
   assert.match(shotCameraSource, /preview\.setEulerAngles\(pose\.pitchDeg, pose\.yawDeg, 0\)/);
   assert.match(pageSource, /shotPreviewOn \|\| cameraSelected/);
+});
+
+test("取景画中画只渲染草图内容，不混入机身与编辑器辅助元素", () => {
+  // 机身与镜头渲染在编辑器辅助图层：取景相机若渲染自己的机身，画面会被机身挡住。
+  assert.match(shotCameraSource, /layers: \[editorOnlyLayerId\]/);
+  // 画中画显式只挂世界图层 + 构图线图层，网格 / 边界圈 / 机位 gizmo 都进不了预览。
+  assert.match(shotCameraSource, /layers: \[pc\.LAYERID_WORLD, compositionLayer\.id\]/);
+  assert.doesNotMatch(viewerSource, /previewComponent\.layers = editorCamera\.layers/);
+});
+
+test("取景画中画叠加三分构图线", () => {
+  assert.match(shotCameraSource, /drawCompositionGuides\(app: pc\.AppBase\): void/);
+  // 构图线画进画中画专属图层，编辑主视口不出现。
+  assert.match(shotCameraSource, /COMPOSITION_GUIDE_COLOR,[\s\S]*?compositionLayer,/);
+  assert.match(viewerSource, /shotCamera\.drawCompositionGuides\(app\)/);
 });
 
 test("摆位快照保存独立机位，导出草图不包含摄像机辅助对象", () => {
