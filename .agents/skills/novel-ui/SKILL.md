@@ -27,7 +27,7 @@ description: AI-Novel-Writing-Assistant 项目专属 UI 设计规范与组件库
 1. **颜色只用语义 token**。写 `bg-primary`、`text-muted-foreground`、`border-border`、`bg-destructive`，不要写 `bg-slate-500`、`#3b82f6`、`bg-[#fff]`。原因：项目有三套调色板（ink/paper/night）× 明暗 × 紧凑密度，语义 token 才能自动适配全部主题。仅在组件内部 tone 语义映射处（如 WorkflowProgressBar 的 waiting=amber-500）允许调色板原色，且新代码默认不用。
 2. **先找组件，再写组件**。写任何 UI 前先查 `references/components.md` 的组件目录——下文速查表覆盖 90% 场景。只有确认无可用组件后才新建，新建后若被 3+ 模块复用，移入 `components/common/`。
 3. **类名合并一律 `cn()`**。条件类名、覆盖默认样式都用 `cn()` 包裹，Tailwind 类冲突靠 tailwind-merge 消解，不要手写模板字符串拼接。
-4. **通知一律走 `toast`**。`import { toast } from "@/components/ui/toast"`；错误必须用 `toast.error()`（自动持久显示 + 关闭按钮）。不要用 alert/confirm/自绘 toast。
+4. **通知一律走 `toast`**。`import { toast } from "@/components/ui/toast"`；错误必须用 `toast.error()`（5 秒自动消失 + 关闭按钮，并自动记入"系统设置 → 最近报错日志"，不要自建报错记录）。不要用 alert/confirm/自绘 toast。
 5. **触发 AI 生成的按钮一律 `AiButton`**。它自带首创引导守卫和 "AI" 徽标，见 `@/components/common/AiButton`。普通操作才用 `Button`。
 
 ## 组件速查表（需求 → 组件）

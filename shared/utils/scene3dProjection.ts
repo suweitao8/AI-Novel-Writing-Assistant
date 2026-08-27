@@ -7,26 +7,15 @@ import type {
 import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "../types/comicDrama.js";
 
 const TWO_PI = Math.PI * 2;
-const MIN_MARKER_RADIUS = 0.5;
+const MIN_MARKER_RADIUS = 0.25;
 const MAX_MARKER_HEIGHT = 30;
 
 /**
- * No-evidence fallback radius shared by every projection entrypoint. Wall and
- * floor markers only fall back to this ratio of the dome radius when the image
- * region provides no usable depth cue (for example a window box without a
- * measurable vertical span).
+ * Legacy fallback cap for coordinate-only normalization without an environment
+ * snapshot. Real placement no longer estimates depth: every projected marker is
+ * snapped onto the dome inner surface along its image azimuth.
  */
 export const STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO = 0.45;
-
-/** Door floor-contact lines are the strongest wall-depth evidence, so they count twice in cluster medians. */
-const GROUND_CONTACT_CLUSTER_WEIGHT = 2;
-const GROUND_CONTACT_MIN_DOWNWARD = 0.08;
-const HEIGHT_SPAN_MIN_TANGENT_DELTA = 0.12;
-const TOP_EDGE_MIN_ABS_TANGENT = 0.06;
-/** Wall markers within this azimuth distance share one unified wall radius. */
-export const STORY_SCENE_3D_MARKER_WALL_CLUSTER_AZIMUTH_TOLERANCE_DEG = 45;
-/** Floor furniture may not sit beyond the wall of the nearest cluster within this azimuth distance. */
-export const STORY_SCENE_3D_MARKER_FLOOR_WALL_AZIMUTH_TOLERANCE_DEG = 60;
 
 type MarkerSizeRange = readonly [number, number];
 
@@ -36,27 +25,27 @@ export interface StoryScene3dMarkerSizePolicy {
   z: MarkerSizeRange;
   imageWidthFactor: number;
   imageHeightFactor: number;
-  floorDepthRatio: number;
 }
 
 /**
  * Fixed-object dimensions are a deterministic post-processing guard for the
  * structured `kind` returned by the vision model. They are deliberately keyed
- * by the enum, never by a user-facing label or free-form scene text.
+ * by the enum, never by a user-facing label or free-form scene text. The `z`
+ * range doubles as the panel thickness pressed against the dome surface.
  */
 export const STORY_SCENE_3D_MARKER_SIZE_POLICIES = {
-  bed: { x: [1.4, 3.2], y: [0.35, 1.2], z: [1.4, 2.8], imageWidthFactor: 0.55, imageHeightFactor: 0.35, floorDepthRatio: 0.86 },
-  table: { x: [0.6, 2.4], y: [0.55, 1.2], z: [0.5, 1.5], imageWidthFactor: 0.42, imageHeightFactor: 0.42, floorDepthRatio: 0.55 },
-  chair: { x: [0.35, 1], y: [0.75, 1.5], z: [0.35, 1], imageWidthFactor: 0.5, imageHeightFactor: 0.48, floorDepthRatio: 0.78 },
-  sofa: { x: [1.4, 3.4], y: [0.55, 1.2], z: [0.7, 1.5], imageWidthFactor: 0.5, imageHeightFactor: 0.45, floorDepthRatio: 0.42 },
-  desk: { x: [0.8, 2.4], y: [0.6, 1.1], z: [0.45, 1.2], imageWidthFactor: 0.42, imageHeightFactor: 0.45, floorDepthRatio: 0.55 },
-  cabinet: { x: [0.4, 2], y: [0.8, 2.8], z: [0.3, 1], imageWidthFactor: 0.45, imageHeightFactor: 0.7, floorDepthRatio: 0.5 },
-  shelf: { x: [0.4, 2.2], y: [0.8, 3], z: [0.25, 0.8], imageWidthFactor: 0.5, imageHeightFactor: 0.75, floorDepthRatio: 0.35 },
-  door: { x: [0.6, 1.6], y: [1.8, 2.6], z: [0.05, 0.35], imageWidthFactor: 0.8, imageHeightFactor: 0.9, floorDepthRatio: 0.12 },
-  window: { x: [0.6, 3], y: [0.6, 2.6], z: [0.05, 0.4], imageWidthFactor: 0.75, imageHeightFactor: 0.9, floorDepthRatio: 0.12 },
-  counter: { x: [0.8, 3], y: [0.7, 1.3], z: [0.4, 1.2], imageWidthFactor: 0.4, imageHeightFactor: 0.45, floorDepthRatio: 0.5 },
-  stair: { x: [0.8, 3.5], y: [0.5, 2.5], z: [0.8, 4], imageWidthFactor: 0.55, imageHeightFactor: 0.5, floorDepthRatio: 1 },
-  other: { x: [0.25, 3], y: [0.2, 3], z: [0.25, 3], imageWidthFactor: 0.6, imageHeightFactor: 0.6, floorDepthRatio: 0.75 },
+  bed: { x: [1.4, 3.2], y: [0.35, 1.2], z: [0.6, 2.8], imageWidthFactor: 0.55, imageHeightFactor: 0.35 },
+  table: { x: [0.6, 2.4], y: [0.55, 1.2], z: [0.35, 1.5], imageWidthFactor: 0.42, imageHeightFactor: 0.42 },
+  chair: { x: [0.35, 1], y: [0.75, 1.5], z: [0.25, 1], imageWidthFactor: 0.5, imageHeightFactor: 0.48 },
+  sofa: { x: [1.4, 3.4], y: [0.55, 1.2], z: [0.5, 1.5], imageWidthFactor: 0.5, imageHeightFactor: 0.45 },
+  desk: { x: [0.8, 2.4], y: [0.6, 1.1], z: [0.35, 1.2], imageWidthFactor: 0.42, imageHeightFactor: 0.45 },
+  cabinet: { x: [0.4, 2], y: [0.8, 2.8], z: [0.3, 1], imageWidthFactor: 0.45, imageHeightFactor: 0.7 },
+  shelf: { x: [0.4, 2.2], y: [0.8, 3], z: [0.25, 0.8], imageWidthFactor: 0.5, imageHeightFactor: 0.75 },
+  door: { x: [0.6, 1.6], y: [1.8, 2.6], z: [0.06, 0.35], imageWidthFactor: 0.8, imageHeightFactor: 0.9 },
+  window: { x: [0.6, 3], y: [0.6, 2.6], z: [0.08, 0.4], imageWidthFactor: 0.75, imageHeightFactor: 0.9 },
+  counter: { x: [0.8, 3], y: [0.7, 1.3], z: [0.4, 1.2], imageWidthFactor: 0.4, imageHeightFactor: 0.45 },
+  stair: { x: [0.8, 3.5], y: [0.5, 2.5], z: [0.5, 4], imageWidthFactor: 0.55, imageHeightFactor: 0.5 },
+  other: { x: [0.25, 3], y: [0.2, 3], z: [0.25, 3], imageWidthFactor: 0.6, imageHeightFactor: 0.6 },
 } as const satisfies Record<StoryScene3DMarkerKind, StoryScene3dMarkerSizePolicy>;
 
 export interface StoryScene3dHorizontalDirection {
@@ -110,12 +99,14 @@ function resolveHorizonV(environment: StoryScene3dProjectionEnvironment): number
   );
 }
 
+/** The stored `domeRadius` field carries the dome DIAMETER in meters. */
+function domeWorldRadius(environment: StoryScene3dProjectionEnvironment): number {
+  return Math.max(0.5, finiteOr(environment.domeRadius, 15) / 2);
+}
+
 /**
  * Convert an equirectangular image rectangle into a horizontal world direction.
- * The shared panorama contract uses u=0.5 as front, +X on the image-right side,
- * and then -Z after the right-side seam. Vertical image coordinates do not
- * provide reliable absolute depth, so they intentionally do not affect this
- * horizontal direction.
+ * The shared panorama contract uses u=0.5 as front, +X on the image-right side.
  */
 export function equirectangularRegionCenterToHorizontalDirection(
   region: StoryScene3DMarkerImageRegion,
@@ -132,12 +123,6 @@ export function equirectangularRegionCenterToHorizontalDirection(
     z,
     azimuthDeg: normalizeDegrees(Math.atan2(x, z) * 180 / Math.PI),
   };
-}
-
-interface StoryScene3dProjectionRay {
-  ray: [number, number, number];
-  horizontalLength: number;
-  direction: StoryScene3dHorizontalDirection;
 }
 
 interface StoryScene3dMarkerVerticalAngles {
@@ -162,234 +147,9 @@ function resolveMarkerVerticalAngles(
   };
 }
 
-function resolveProjectionRay(
-  region: StoryScene3DMarkerImageRegion,
-  anchor: StoryScene3DMarker["anchor"],
-  verticalAngles: StoryScene3dMarkerVerticalAngles,
-  environment: Partial<Pick<StoryScene3DEnvironment, "yawDeg">>,
-): StoryScene3dProjectionRay {
-  const latitude = anchor === "floor"
-    ? verticalAngles.bottomLatitude
-    : verticalAngles.centerLatitude;
-  const horizontalLength = Math.max(0, Math.cos(latitude));
-  const direction = equirectangularRegionCenterToHorizontalDirection(region, environment);
-  return {
-    ray: [
-      horizontalLength * direction.x,
-      Math.sin(latitude),
-      horizontalLength * direction.z,
-    ],
-    horizontalLength,
-    direction,
-  };
-}
-
-/**
- * Depth recovery from one equirect box. Each estimator uses a different edge of
- * the box, so a sloppy edge only biases one candidate and the combined median
- * stays usable:
- * - ground contact: the bottom edge lies on the floor (all floor furniture and
- *   doors), giving radius = camera height / tan(|bottom latitude|);
- * - known top height: the top edge sits at the kind's typical total height
- *   (valid for objects standing on the floor, not for windows);
- * - known vertical span: the box covers the kind's typical total height, giving
- *   radius = height / (tan(top) - tan(bottom)).
- * Estimates deliberately depend only on the image region, environment, and the
- * kind policy midpoint — never on the model's own size/position guesses — so
- * repeated projection is idempotent.
- */
-export interface StoryScene3dMarkerRadiusEstimate {
-  radius: number | null;
-  /** True when the strongest cue was a floor-contact bottom edge (doors). */
-  groundContact: boolean;
-}
-
 function markerPolicy(marker: StoryScene3dProjectionMarker) {
   return (marker.kind && STORY_SCENE_3D_MARKER_SIZE_POLICIES[marker.kind])
     ?? STORY_SCENE_3D_MARKER_SIZE_POLICIES.other;
-}
-
-function expectedMarkerHeight(marker: StoryScene3dProjectionMarker): number {
-  const range = markerPolicy(marker).y;
-  return (range[0] + range[1]) / 2;
-}
-
-function combineRadiusCandidates(candidates: number[]): number | null {
-  const valid = candidates.filter((value) => Number.isFinite(value) && value > 0);
-  if (valid.length === 0) return null;
-  const sorted = [...valid].sort((a, b) => a - b);
-  if (sorted.length % 2 === 1) {
-    return sorted[(sorted.length - 1) / 2];
-  }
-  const first = sorted[sorted.length / 2 - 1];
-  const second = sorted[sorted.length / 2];
-  return Math.sqrt(first * second);
-}
-
-function estimateMarkerRadiusFromRegion(
-  marker: StoryScene3dProjectionMarker,
-  environment: StoryScene3dProjectionEnvironment,
-): StoryScene3dMarkerRadiusEstimate | null {
-  if (!marker.imageRegion || marker.source === "manual" || marker.anchor === "ceiling") {
-    return null;
-  }
-  const projectionCenterHeight = finiteOr(environment.projectionCenterHeight, 1.7);
-  const domeRadius = Math.max(MIN_MARKER_RADIUS, finiteOr(environment.domeRadius, 15));
-  const angles = resolveMarkerVerticalAngles(marker.imageRegion, resolveHorizonV(environment));
-  const expectedHeight = expectedMarkerHeight(marker);
-  // Only objects standing on the floor expose their base on the ground line and
-  // their top edge at the kind's total height. Windows and wall-mounted boxes
-  // float at sill/mount height, so only the vertical-span estimator applies.
-  const standsOnFloor = marker.anchor === "floor" || marker.kind === "door";
-  const candidates: number[] = [];
-
-  // Ground contact: bottom edge on the floor plane.
-  const downward = -Math.sin(angles.bottomLatitude);
-  if (standsOnFloor && downward > GROUND_CONTACT_MIN_DOWNWARD) {
-    candidates.push(projectionCenterHeight * Math.cos(angles.bottomLatitude) / downward);
-  }
-
-  // Known top height: the top edge sits at the kind's typical total height.
-  if (standsOnFloor) {
-    const tanTop = Math.tan(angles.topLatitude);
-    const heightDelta = expectedHeight - projectionCenterHeight;
-    if (Math.abs(tanTop) >= TOP_EDGE_MIN_ABS_TANGENT && tanTop * heightDelta > 0) {
-      candidates.push(heightDelta / tanTop);
-    }
-  }
-
-  // Known vertical span: works for every anchor because the camera height cancels out.
-  const spanDelta = Math.tan(angles.topLatitude) - Math.tan(angles.bottomLatitude);
-  if (spanDelta >= HEIGHT_SPAN_MIN_TANGENT_DELTA) {
-    candidates.push(expectedHeight / spanDelta);
-  }
-
-  const radius = combineRadiusCandidates(
-    candidates.map((value) => clamp(value, MIN_MARKER_RADIUS, domeRadius)),
-  );
-  return {
-    radius,
-    groundContact: standsOnFloor && downward > GROUND_CONTACT_MIN_DOWNWARD && marker.kind === "door",
-  };
-}
-
-/**
- * A wall cluster is one planar wall: all wall markers whose azimuths fall within
- * the tolerance share a single radius so doors and windows on the same wall sit
- * at the same depth. Door floor-contact estimates carry extra weight because a
- * door bottom touching the floor is the most reliable depth cue in the image.
- */
-export interface StoryScene3dWallCluster {
-  azimuthDeg: number;
-  radius: number;
-  markerCount: number;
-}
-
-function azimuthDistance(a: number, b: number): number {
-  return Math.abs(normalizeDegrees(a - b));
-}
-
-function weightedMedianRadius(entries: Array<{ radius: number; weight: number }>): number | null {
-  const sorted = [...entries].sort((a, b) => a.radius - b.radius);
-  const totalWeight = sorted.reduce((sum, entry) => sum + entry.weight, 0);
-  if (totalWeight <= 0) return null;
-  let cumulative = 0;
-  for (const entry of sorted) {
-    cumulative += entry.weight;
-    if (cumulative * 2 >= totalWeight) {
-      return entry.radius;
-    }
-  }
-  return sorted[sorted.length - 1]?.radius ?? null;
-}
-
-interface StoryScene3dWallClusterEntry {
-  azimuth: number;
-  estimate: StoryScene3dMarkerRadiusEstimate | null;
-}
-
-export function resolveStoryScene3dWallClusters(
-  markers: readonly StoryScene3dProjectionMarker[],
-  environment: StoryScene3dProjectionEnvironment,
-  fallbackRadius: number,
-  options: { azimuthToleranceDeg?: number } = {},
-): StoryScene3dWallCluster[] {
-  const tolerance = finiteOr(options.azimuthToleranceDeg, STORY_SCENE_3D_MARKER_WALL_CLUSTER_AZIMUTH_TOLERANCE_DEG);
-  const entries: StoryScene3dWallClusterEntry[] = markers
-    .filter((marker) => marker.anchor === "wall" && marker.source !== "manual" && marker.imageRegion)
-    .map((marker) => ({
-      azimuth: equirectangularRegionCenterToHorizontalDirection(marker.imageRegion as StoryScene3DMarkerImageRegion, environment).azimuthDeg,
-      estimate: estimateMarkerRadiusFromRegion(marker, environment),
-    }));
-  if (entries.length === 0) return [];
-
-  const azimuths = [...entries].sort((a, b) => a.azimuth - b.azimuth).map((entry) => entry.azimuth);
-  // Rotate the circular order so clusters never straddle the sorted ends.
-  let splitIndex = 0;
-  let largestGap = -1;
-  for (let index = 0; index < azimuths.length; index += 1) {
-    const next = azimuths[(index + 1) % azimuths.length];
-    const gap = index === azimuths.length - 1
-      ? azimuths[0] + 360 - azimuths[index]
-      : next - azimuths[index];
-    if (gap > largestGap) {
-      largestGap = gap;
-      splitIndex = (index + 1) % azimuths.length;
-    }
-  }
-  const ordered = [
-    ...entries.slice(splitIndex),
-    ...entries.slice(0, splitIndex),
-  ];
-
-  const clusters: StoryScene3dWallClusterEntry[][] = [];
-  for (const entry of ordered) {
-    const current = clusters[clusters.length - 1];
-    if (current?.length) {
-      const previousAzimuth = current[current.length - 1].azimuth;
-      if (azimuthDistance(entry.azimuth, previousAzimuth) > tolerance) {
-        clusters.push([entry]);
-        continue;
-      }
-    }
-    if (current) {
-      current.push(entry);
-    } else {
-      clusters.push([entry]);
-    }
-  }
-  // Merge the wrap-around ends when they belong to the same wall.
-  if (clusters.length > 1) {
-    const first = clusters[0];
-    const last = clusters[clusters.length - 1];
-    if (azimuthDistance(first[0].azimuth, last[last.length - 1].azimuth) <= tolerance) {
-      clusters[clusters.length - 1] = [...last, ...first];
-      clusters.shift();
-    }
-  }
-
-  return clusters.map((members) => {
-    const radiusEntries: Array<{ radius: number; weight: number }> = [];
-    for (const member of members) {
-      if (member.estimate?.radius == null) continue;
-      radiusEntries.push({
-        radius: member.estimate.radius,
-        weight: member.estimate.groundContact ? GROUND_CONTACT_CLUSTER_WEIGHT : 1,
-      });
-    }
-    let sumX = 0;
-    let sumZ = 0;
-    for (const member of members) {
-      const rad = member.azimuth * Math.PI / 180;
-      sumX += Math.cos(rad);
-      sumZ += Math.sin(rad);
-    }
-    return {
-      azimuthDeg: normalizeDegrees(Math.atan2(sumZ, sumX) * 180 / Math.PI),
-      radius: weightedMedianRadius(radiusEntries) ?? fallbackRadius,
-      markerCount: members.length,
-    };
-  });
 }
 
 function resolveImageSpan(
@@ -411,8 +171,7 @@ function calibrateMarkerSize(
   horizontalRadius: number,
   rayDistance: number,
 ): [number, number, number] {
-  const policy = (marker.kind && STORY_SCENE_3D_MARKER_SIZE_POLICIES[marker.kind])
-    ?? STORY_SCENE_3D_MARKER_SIZE_POLICIES.other;
+  const policy = markerPolicy(marker as StoryScene3dProjectionMarker);
   const imageSpan = resolveImageSpan(region, horizontalRadius, rayDistance);
   const width = clamp(
     imageSpan.width * policy.imageWidthFactor,
@@ -424,40 +183,38 @@ function calibrateMarkerSize(
     policy.y[0],
     policy.y[1],
   );
+  // Thickness is a per-kind panel depth; on the dome every box hugs the wall.
+  const thickness = policy.z[0];
   if (marker.anchor === "floor") {
     return [
       width,
       height,
-      clamp(width * policy.floorDepthRatio, policy.z[0], policy.z[1]),
+      thickness * (marker.kind === "bed" || marker.kind === "stair" ? 1.5 : 1),
     ];
   }
-  const rawDepth = finiteOr(marker.size[2], policy.z[0]);
-  return [
-    width,
-    height,
-    clamp(rawDepth, policy.z[0], policy.z[1]),
-  ];
-}
-
-export interface StoryScene3dMarkerProjectionHints {
-  /** Unified wall-cluster radius for wall/ceiling markers at this azimuth. */
-  wallRadius?: number;
-  /** Upper radius clamp for floor markers derived from the wall in their direction. */
-  floorRadiusLimit?: number;
+  return [width, height, thickness];
 }
 
 /**
- * Project an AI marker onto the panorama's direction and calibrate its box
- * against the visible image region. Depth comes from the image box itself:
- * floor markers blend the floor-contact, known-top-height, and known-span
- * estimators, while wall/ceiling markers use the per-marker estimate, the
- * unified wall-cluster radius, or the stable fallback radius in that order.
+ * Dome-surface placement contract (2026-08-26): depth recovery cannot be read
+ * reliably out of a generated or photographed equirect frame, so AI markers no
+ * longer estimate distance at all. Each projected marker keeps its exact
+ * azimuth from the region's horizontal center and is pressed against the inner
+ * side of the panorama hemisphere, directly behind its painted image:
+ * - doors and windows sit fully flush — their whole box lies between the
+ *   center and the sphere surface with the back face touching it;
+ * - floor furniture also hugs the surface so the cube visually overlays the
+ *   object pixels users see in the panorama;
+ * - vertical position follows the region's center latitude intersected with
+ *   the sphere; ground-standing objects (doors, floor anchors) are pinned to
+ *   the floor instead.
+ * Manual markers and markers without an image region keep their stored
+ * geometry. The result depends only on the image region and environment, so
+ * repeated projection stays idempotent.
  */
 export function projectStoryScene3dMarkerFromImageRegion(
   marker: StoryScene3dProjectionMarker,
   environment: StoryScene3dProjectionEnvironment,
-  maxRadius = finiteOr(environment.domeRadius, 15) * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
-  hints: StoryScene3dMarkerProjectionHints = {},
 ): StoryScene3dMarkerProjection {
   const originalPosition: [number, number, number] = [
     finiteOr(marker.position[0], 0),
@@ -470,120 +227,60 @@ export function projectStoryScene3dMarkerFromImageRegion(
     return {
       position: originalPosition,
       size: originalSize,
-      yawDeg: originalYaw,
-    };
-  }
-
-  const safeMaxRadius = Math.max(MIN_MARKER_RADIUS, finiteOr(maxRadius, 6.75));
-  const projectionCenterHeight = finiteOr(environment.projectionCenterHeight, 1.7);
-  const domeRadius = Math.max(MIN_MARKER_RADIUS, finiteOr(environment.domeRadius, 15));
-  const verticalAngles = resolveMarkerVerticalAngles(marker.imageRegion, resolveHorizonV(environment));
-  const projectionRay = resolveProjectionRay(marker.imageRegion, marker.anchor, verticalAngles, environment);
-  const radiusEstimate = estimateMarkerRadiusFromRegion(marker, environment);
-
-  let horizontalRadius: number;
-  if (marker.anchor === "floor") {
-    const limit = clamp(
-      finiteOr(hints.floorRadiusLimit, safeMaxRadius),
-      MIN_MARKER_RADIUS,
-      safeMaxRadius,
-    );
-    horizontalRadius = radiusEstimate?.radius != null
-      ? clamp(radiusEstimate.radius, 0.25, limit)
-      : limit;
-  } else {
-    const candidate = finiteOr(hints.wallRadius, Number.NaN);
-    horizontalRadius = clamp(
-      Number.isFinite(candidate)
-        ? candidate
-        : radiusEstimate?.radius ?? safeMaxRadius,
-      MIN_MARKER_RADIUS,
-      domeRadius,
-    );
-  }
-  const rayDistance = horizontalRadius / Math.max(projectionRay.horizontalLength, 0.08);
-  const size = calibrateMarkerSize(
-    marker,
-    marker.imageRegion,
-    horizontalRadius,
-    rayDistance,
-  );
-
-  if (marker.anchor === "floor") {
-    return {
-      position: [
-        projectionRay.direction.x * horizontalRadius,
-        size[1] / 2,
-        projectionRay.direction.z * horizontalRadius,
-      ],
-      size,
       yawDeg: normalizeDegrees(originalYaw),
     };
   }
 
-  // Doors always reach the floor, so anchor their calibrated box on it instead
-  // of the region center ray; windows keep the center-ray height.
-  const centerY = projectionCenterHeight + Math.tan(verticalAngles.centerLatitude) * horizontalRadius;
-  const positionY = marker.kind === "door"
+  const projectionCenterHeight = finiteOr(environment.projectionCenterHeight, 1.7);
+  const worldRadius = domeWorldRadius(environment);
+  const region = marker.imageRegion;
+  const angles = resolveMarkerVerticalAngles(region, resolveHorizonV(environment));
+  const direction = equirectangularRegionCenterToHorizontalDirection(region, environment);
+
+  // Far intersection of the region-center ray with the dome sphere centered at
+  // [0, projectionCenterHeight, 0]; this is where the object pixels live.
+  const latitude = angles.centerLatitude;
+  const sinLatitude = Math.sin(latitude);
+  const cosLatitude = Math.max(0.05, Math.cos(latitude));
+  const discriminant = worldRadius ** 2 - (projectionCenterHeight * cosLatitude) ** 2;
+  const rayDistance = Math.max(
+    MIN_MARKER_RADIUS,
+    projectionCenterHeight * sinLatitude + Math.sqrt(Math.max(discriminant, (worldRadius * 0.2) ** 2)),
+  );
+  const surfaceHorizontalRadius = rayDistance * cosLatitude;
+
+  const size = calibrateMarkerSize(marker, region, surfaceHorizontalRadius, rayDistance);
+
+  const standsOnGround = marker.anchor === "floor" || marker.kind === "door";
+  const rayCenterY = projectionCenterHeight + sinLatitude * rayDistance;
+  const positionY = standsOnGround
     ? size[1] / 2
-    : clamp(centerY, size[1] / 2, MAX_MARKER_HEIGHT);
+    : clamp(rayCenterY, size[1] / 2, MAX_MARKER_HEIGHT);
+
+  // Pull the center inward by half the thickness so the entire box sits flush
+  // between the axis and the sphere surface.
+  const radialDistance = Math.max(MIN_MARKER_RADIUS, surfaceHorizontalRadius - size[2] / 2);
 
   return {
     position: [
-      projectionRay.direction.x * horizontalRadius,
+      direction.x * radialDistance,
       positionY,
-      projectionRay.direction.z * horizontalRadius,
+      direction.z * radialDistance,
     ],
     size,
-    yawDeg: normalizeDegrees(projectionRay.direction.azimuthDeg),
+    yawDeg: direction.azimuthDeg,
   };
 }
 
 /**
- * Set-level projection: markers are not independent — doors and windows reveal
- * the wall depth for their azimuth sector, and that wall clamps how far floor
- * furniture may sit. Manual markers and markers without an image region keep
- * their stored geometry. The result depends only on image regions and the
- * environment, so repeated normalization stays idempotent.
+ * Set-level projection applies the same deterministic dome-snap to every AI
+ * marker. Kept as a set entrypoint because normalization and consumers share
+ * one call site; manual markers and markers without an image region keep their
+ * stored geometry.
  */
 export function projectStoryScene3dMarkerSetFromImageRegions(
   markers: readonly StoryScene3dProjectionMarker[],
   environment: StoryScene3dProjectionEnvironment,
-  options: { maxRadius?: number } = {},
 ): StoryScene3dMarkerProjection[] {
-  const safeMaxRadius = Math.max(
-    MIN_MARKER_RADIUS,
-    finiteOr(
-      options.maxRadius,
-      finiteOr(environment.domeRadius, 15) * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
-    ),
-  );
-  const clusters = resolveStoryScene3dWallClusters(markers, environment, safeMaxRadius);
-
-  return markers.map((marker) => {
-    if (marker.source === "manual" || !marker.imageRegion) {
-      return projectStoryScene3dMarkerFromImageRegion(marker, environment, safeMaxRadius);
-    }
-    const hints: StoryScene3dMarkerProjectionHints = {};
-    if (marker.imageRegion) {
-      const azimuth = equirectangularRegionCenterToHorizontalDirection(marker.imageRegion, environment).azimuthDeg;
-      const nearbyClusters = clusters.filter(
-        (cluster) => azimuthDistance(cluster.azimuthDeg, azimuth) <= STORY_SCENE_3D_MARKER_FLOOR_WALL_AZIMUTH_TOLERANCE_DEG,
-      );
-      if (marker.anchor === "floor") {
-        const limit = nearbyClusters.length
-          ? Math.min(...nearbyClusters.map((cluster) => cluster.radius))
-          : safeMaxRadius;
-        hints.floorRadiusLimit = limit;
-      } else {
-        const ownCluster = clusters.find(
-          (cluster) => azimuthDistance(cluster.azimuthDeg, azimuth) <= STORY_SCENE_3D_MARKER_WALL_CLUSTER_AZIMUTH_TOLERANCE_DEG,
-        );
-        if (ownCluster) {
-          hints.wallRadius = ownCluster.radius;
-        }
-      }
-    }
-    return projectStoryScene3dMarkerFromImageRegion(marker, environment, safeMaxRadius, hints);
-  });
+  return markers.map((marker) => projectStoryScene3dMarkerFromImageRegion(marker, environment));
 }
