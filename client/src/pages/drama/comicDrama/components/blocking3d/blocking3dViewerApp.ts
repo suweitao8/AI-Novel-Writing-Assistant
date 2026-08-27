@@ -39,7 +39,6 @@ import {
   updateProjectionCenterGizmo,
   type Blocking3dProjectionCenterGizmoRuntime,
 } from "./blocking3dProjectionCenterGizmo";
-import { drawBlocking3dCameraGizmo } from "./blocking3dCameraGizmo";
 import {
   createBlocking3dShotCamera,
   deriveShotCameraPoseFromOrbit,
@@ -780,14 +779,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     for (const line of domeBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
-    if (shotCameraHelpersVisible && !shotCameraHelpersSuppressed) {
-      drawBlocking3dCameraGizmo(app, {
-        position: new pc.Vec3(shotCameraPose.position[0], shotCameraPose.position[1], shotCameraPose.position[2]),
-        yawDeg: shotCameraPose.yawDeg,
-        pitchDeg: shotCameraPose.pitchDeg,
-        fovDeg: cameraState.fovDeg,
-      });
-    }
+    // Unity 场景视图同款：摄像机 gizmo（白色线框）常驻显示，选中变橙色。
+    shotCamera.drawGizmo(app, cameraSelected);
     // 三分构图线只出现在取景画中画里（内部判断可见性，不可见时为空操作）。
     shotCamera.drawCompositionGuides(app);
     drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);

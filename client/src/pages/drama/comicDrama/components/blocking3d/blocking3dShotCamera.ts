@@ -4,7 +4,7 @@ import type {
   DramaShotBlockingSketch3DCamera,
   DramaShotBlockingSketch3DShotCamera,
 } from "@/api/media/drama";
-import { resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
+import { drawFrustumWireframe, resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
 
 /**
  * Unity 风格的场景摄像机运行时：场景里常驻的机身实体 + 右下角取景画中画，
@@ -12,8 +12,9 @@ import { resolveBlocking3dOrbitPosition } from "./blocking3dCameraGizmo";
  * 不会带动机身；拖拽机身、变换手柄或属性面板改写的都是 pose 本身，取景
  * 画中画始终渲染「这台摄像机拍到的草图内容」。
  *
- * 图层归属：机身渲染在编辑器辅助图层（画中画不渲染，否则取景相机会被
- * 自己的机身挡住）；画中画只渲染世界内容 + 专属的三分构图线图层。
+ * 场景呈现参考 Unity：摄像机本体是**白色线框 gizmo**（机身盒体 + 镜头短筒
+ * + 16:9 取景锥线框，每帧瞬时线条，选中变橙色），实体网格只做不可见的拾取
+ * 体；机身渲染在编辑器辅助图层，画中画只渲染世界内容 + 专属构图线图层。
  */
 
 export interface Blocking3dShotCameraPose {
@@ -30,12 +31,21 @@ export const BLOCKING_3D_SHOT_CAMERA_LIMITS = {
   pitchDeg: { min: -89, max: 89 },
 } as const;
 
-const BODY_COLOR = new pc.Color(0.13, 0.16, 0.2);
-const BODY_ACCENT = new pc.Color(0.16, 0.82, 1);
-/** 取景画中画宽度占视口比例；高度按窗口纵横比换算出 16:9 画幅。 */
-const PIP_RECT_WIDTH = 0.4;
+/** Unity 相机 gizmo 同款白色线框；选中时切换为选中描边同款橙色。 */
+const GIZMO_WIREFRAME = new pc.Color(1, 1, 1, 0.95);
+const GIZMO_WIREFRAME_SELECTED = new pc.Color(1, 0.58, 0, 0.95);
+const GIZMO_FRUSTUM = new pc.Color(1, 1, 1, 0.55);
+const GIZMO_FRUSTUM_SELECTED = new pc.Color(1, 0.58, 0, 0.6);
+/** 取景锥长度：远景不消失、近景不糊脸。 */
+const FRUSTUM_LENGTH = 2.2;
 /** 三分构图线颜色：半透明白，压在画面上但不抢内容。 */
 const COMPOSITION_GUIDE_COLOR = new pc.Color(1, 1, 1, 0.45);
+/** 取景画中画宽度占视口比例；高度按窗口纵横比换算出 16:9 画幅。 */
+const PIP_RECT_WIDTH = 0.4;
+
+const BODY_SCALE: [number, number, number] = [0.42, 0.26, 0.52];
+const LENS_LOCAL_POSITION: [number, number, number] = [0, -0.05, -0.75];
+const LENS_LOCAL_SCALE: [number, number, number] = [0.55, 0.55, 0.5];
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -80,13 +90,44 @@ export function deriveShotCameraPoseFromOrbit(camera: DramaShotBlockingSketch3DC
   };
 }
 
+/** 单位立方体 12 条棱（实体盒体按 localScale 缩放后即为盒体线框）。 */
+const UNIT_BOX_EDGES: Array<[pc.Vec3, pc.Vec3]> = (() => {
+  const corners: pc.Vec3[] = [];
+  for (const x of [-0.5, 0.5]) {
+    for (const y of [-0.5, 0.5]) {
+      for (const z of [-0.5, 0.5]) {
+        corners.push(new pc.Vec3(x, y, z));
+      }
+    }
+  }
+  const pairs: Array<[pc.Vec3, pc.Vec3]> = [];
+  for (let a = 0; a < corners.length; a += 1) {
+    for (let b = a + 1; b < corners.length; b += 1) {
+      const diff = new pc.Vec3().sub2(corners[a], corners[b]);
+      if (Math.abs(diff.x) + Math.abs(diff.y) + Math.abs(diff.z) === 1) {
+        pairs.push([corners[a], corners[b]]);
+      }
+    }
+  }
+  return pairs;
+})();
+
+function drawBoxWireframe(app: pc.AppBase, entity: pc.Entity, color: pc.Color): void {
+  const transform = entity.getWorldTransform();
+  for (const [from, to] of UNIT_BOX_EDGES) {
+    app.drawLine(transform.transformPoint(from.clone()), transform.transformPoint(to.clone()), color, false);
+  }
+}
+
 export interface Blocking3dShotCameraRuntime {
-  /** 场景中的摄像机机身实体：可拾取、可拖拽、可挂变换手柄（仅编辑视角可见）。 */
+  /** 场景中的摄像机机身实体：拾取/拖拽/挂手柄的命中体（视觉是白色线框 gizmo）。 */
   readonly body: pc.Entity;
   /** 取景画中画实体：按机位 pose 渲染，选中摄像机或打开取景辅助时显示。 */
   readonly preview: pc.Entity;
   /** 机位、FOV 或显隐变化后统一调用；机身与画中画一次同步到位。 */
   sync(pose: Blocking3dShotCameraPose, fovDeg: number, previewVisible: boolean): void;
+  /** 每帧调用：画 Unity 风格白色摄像机线框（机身 + 镜头 + 取景锥），选中变橙色。 */
+  drawGizmo(app: pc.AppBase, selected: boolean): void;
   /** 画中画可见时每帧调用：在画中画视口内绘制三分构图线（2 横 2 竖）。 */
   drawCompositionGuides(app: pc.AppBase): void;
   /** 射线是否命中机身（含镜头），用于视口点选。 */
@@ -100,20 +141,21 @@ export function createBlocking3dShotCamera(
   editorCamera: pc.CameraComponent,
   editorOnlyLayerId: number,
 ): Blocking3dShotCameraRuntime {
+  // 实体网格完全透明：视觉由白色线框 gizmo 承担，网格只保留拾取命中体作用。
   const material = new pc.StandardMaterial();
-  material.diffuse = BODY_COLOR;
-  material.emissive = BODY_ACCENT;
-  material.emissiveIntensity = 0.4;
+  material.opacity = 0;
+  material.blendType = pc.BLEND_NORMAL;
+  material.depthWrite = false;
   material.update();
   const body = new pc.Entity("blocking3d-camera-body");
   // 机身在编辑器辅助图层：取景相机的世界图层里没有它，预览不会被自己的机身挡住。
   body.addComponent("render", { type: "box", material, layers: [editorOnlyLayerId] });
+  body.setLocalScale(...BODY_SCALE);
   const lens = new pc.Entity("blocking3d-camera-lens");
   lens.addComponent("render", { type: "box", material, layers: [editorOnlyLayerId] });
-  lens.setLocalPosition(0, -0.05, -0.75);
-  lens.setLocalScale(0.55, 0.55, 0.5);
+  lens.setLocalPosition(...LENS_LOCAL_POSITION);
+  lens.setLocalScale(...LENS_LOCAL_SCALE);
   body.addChild(lens);
-  body.setLocalScale(0.42, 0.26, 0.52);
   app.root.addChild(body);
 
   // 三分构图线专用图层：只挂到取景相机上，编辑主视口不画。
@@ -160,6 +202,18 @@ export function createBlocking3dShotCamera(
       lastAspect = (PIP_RECT_WIDTH * canvas.width) / (heightFraction * canvas.height);
       preview.setPosition(pose.position[0], pose.position[1], pose.position[2]);
       preview.setEulerAngles(pose.pitchDeg, pose.yawDeg, 0);
+    },
+    drawGizmo(app, selected) {
+      const wireframe = selected ? GIZMO_WIREFRAME_SELECTED : GIZMO_WIREFRAME;
+      const frustumColor = selected ? GIZMO_FRUSTUM_SELECTED : GIZMO_FRUSTUM;
+      drawBoxWireframe(app, body, wireframe);
+      drawBoxWireframe(app, lens, wireframe);
+      // 取景锥从镜头前端向前展开，母线不穿过镜头线框。
+      const lensTransform = lens.getWorldTransform();
+      const rotation = new pc.Quat().setFromMat4(lensTransform);
+      const forward = rotation.transformVector(new pc.Vec3(0, 0, -1));
+      const origin = lensTransform.getTranslation().clone().add(forward.clone().scale(0.14));
+      drawFrustumWireframe(app, origin, rotation, lastFovDeg, FRUSTUM_LENGTH, frustumColor);
     },
     drawCompositionGuides(app) {
       if (!preview.enabled) return;
