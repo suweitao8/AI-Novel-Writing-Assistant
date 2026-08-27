@@ -68,6 +68,20 @@ export function setSceneMarkerSelected(runtime: Blocking3dSceneMarkerRuntime, se
   applyMarkerMaterial(runtime.material, runtime.marker, selected);
 }
 
+/** gizmo 拖拽结束后把实体最终 transform 读回标记数据；旋转只保留可落库的 Y 轴。 */
+export function applySceneMarkerEntityTransform(runtime: Blocking3dSceneMarkerRuntime): StoryScene3DMarker {
+  const position = runtime.entity.getPosition();
+  const rotation = runtime.entity.getEulerAngles();
+  const scale = runtime.entity.getLocalScale();
+  runtime.marker = {
+    ...runtime.marker,
+    position: [position.x, position.y, position.z],
+    size: [scale.x, scale.y, scale.z],
+    yawDeg: Math.round(Math.max(-180, Math.min(180, rotation.y)) * 100) / 100,
+  };
+  return runtime.marker;
+}
+
 export function pickSceneMarker(
   runtimes: Iterable<Blocking3dSceneMarkerRuntime>,
   ray: pc.Ray | null,
