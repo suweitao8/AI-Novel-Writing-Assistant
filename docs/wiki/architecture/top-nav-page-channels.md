@@ -51,7 +51,12 @@ ReactNode 存进 context state，页面每次渲染产生新节点，effect 依�
   「切换二级页签位置变化」的根因；absolute 参照整个 header，天然恒定。
   实测 1100–1489px 视口下三级胶囊右缘与操作按钮间隙 7–112px，不遮挡、
   可点击；更窄视口由移动端布局（页内页签）兜底。
-  页面页签不显示计数后缀（提取等数字已去掉，用户要求）。胶囊容器
+  页面页签不显示计数后缀（提取等数字已去掉，用户要求）。
+  资产页签已拍平（2026-08-27）：`StudioStage` 为 characters/scenes/props/current/settings
+  五个平级值（「当前」更名「章节」，内部值不变），顺序见 `STUDIO_STAGE_ORDER`。
+  三级胶囊只在 current/settings 语境注册（pageTabRows 条件化）；场景 3D 编辑器注册
+  同一份二级行且 active=scenes。旧地址 `?stage=assets&assetTab=x` 由
+  `readStudioNavigation`/`resolveStudioReturnPath` 兼容映射。胶囊容器
   `rounded-full border bg-muted/40 p-1`，选中项 `bg-background + shadow-sm`
   浮起，两组间距 `ml-3`。
 - 操作区槽位为空时必须不可见（`empty:hidden`），避免残留间距。
