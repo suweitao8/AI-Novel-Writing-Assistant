@@ -2,16 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowRight,
-  ArrowUp,
   Loader2,
   Layers3,
   MapPin,
-  Minus,
   Move3D,
-  Plus,
   RotateCcw,
   RotateCw,
   Trash2,
@@ -48,6 +43,7 @@ import {
 } from "./components/blocking3d/blocking3dMath";
 import {
   createBlocking3dViewer,
+  type Blocking3dTransformTool,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
 import { resolveBlocking3dOrbitPosition } from "./components/blocking3d/blocking3dCameraGizmo";
@@ -59,7 +55,9 @@ import {
   InspectorGameObjectCard,
   InspectorNumberField,
   InspectorPropertyList,
+  InspectorTransformSection,
   InspectorVector3Field,
+  TransformToolToolbar,
 } from "./components/editor3d";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
@@ -178,6 +176,8 @@ export default function DramaBlocking3DPage() {
   const [cameraSelected, setCameraSelected] = useState(false);
   // 镜头取景辅助：机位 gizmo + 右下角取景画中画（默认关，构图完成后自动打开）。
   const [shotPreviewOn, setShotPreviewOn] = useState(false);
+  // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的角色。
+  const [transformTool, setTransformTool] = useState<Blocking3dTransformTool | null>("translate");
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
 
@@ -196,6 +196,10 @@ export default function DramaBlocking3DPage() {
   useEffect(() => {
     viewer?.setShotCameraHelpersVisible(shotPreviewOn);
   }, [shotPreviewOn, viewer]);
+
+  useEffect(() => {
+    viewer?.setTransformTool(transformTool);
+  }, [transformTool, viewer]);
 
   const syncSelection = useCallback((nextViewer: Blocking3dViewer) => {
     const nextCameraSelected = nextViewer.isCameraSelected();
@@ -558,8 +562,14 @@ export default function DramaBlocking3DPage() {
                 镜头取景（导出草图不包含此预览）
               </div>
             ) : null}
+            <TransformToolToolbar
+              tool={transformTool}
+              disabled={!viewer || saving || autoPlanning}
+              onToolChange={setTransformTool}
+            />
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />左键拖角色或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色 · 右键旋转 · 滚轮缩放视角 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动角色或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
             </div>
             <div className="pointer-events-none absolute right-3 top-3">
               <Badge variant="secondary" className="shadow-sm">镜头预览</Badge>
@@ -703,32 +713,14 @@ export default function DramaBlocking3DPage() {
                   name={selectedMarker.label}
                   kindLabel={STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind]}
                 />
-                <InspectorComponentSection title="Transform">
-                  <div className="space-y-2">
-                    <InspectorVector3Field
-                      label="位置"
-                      value={selectedMarker.position}
-                      suffix="米"
-                      disabled
-                    />
-                    <div className="flex items-center gap-2">
-                      <span className="w-10 shrink-0 text-xs text-muted-foreground">旋转</span>
-                      <InspectorNumberField
-                        label="Y"
-                        value={selectedMarker.yawDeg}
-                        suffix="°"
-                        disabled
-                      />
-                    </div>
-                    <InspectorVector3Field
-                      label="缩放"
-                      value={selectedMarker.size}
-                      suffix="米"
-                      disabled
-                    />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">标记摆放跟随场景设定，请在场景 3D 编辑器中调整。</p>
-                </InspectorComponentSection>
+                <InspectorTransformSection
+                  value={{
+                    position: selectedMarker.position,
+                    yawDeg: selectedMarker.yawDeg,
+                    scale: selectedMarker.size,
+                  }}
+                  hint={<p className="text-[11px] text-muted-foreground">标记摆放跟随场景设定，请在场景 3D 编辑器中调整。</p>}
+                />
                 <InspectorComponentSection title="标记信息" defaultOpen={false}>
                   <InspectorPropertyList
                     className="text-xs"
@@ -776,33 +768,20 @@ export default function DramaBlocking3DPage() {
                     <Input type="color" aria-label="模型颜色" value={rgbToHex(selectedColor)} disabled={saving || autoPlanning || !selectedName} onChange={(event) => { const color = hexToRgb(event.target.value); if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color)); }} className="h-10 cursor-pointer p-1" />
                   </label>
                 </div>
-                <div className="space-y-3 border-t border-border/60 pt-4">
-                  <div className="text-xs font-medium">空间摆放</div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向左移动" title="向左移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(-0.2, 0, 0))}><ArrowLeft className="h-4 w-4" aria-hidden="true" /></Button>
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向前移动" title="向前移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, -0.2))}><ArrowUp className="h-4 w-4" aria-hidden="true" /></Button>
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向右移动" title="向右移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0.2, 0, 0))}><ArrowRight className="h-4 w-4" aria-hidden="true" /></Button>
-                    <span />
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色向后移动" title="向后移动" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0, 0.2))}><ArrowDown className="h-4 w-4" aria-hidden="true" /></Button>
-                    <span />
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色升高" title="升高" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, 0.2, 0))}><Plus className="h-4 w-4" aria-hidden="true" /></Button>
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="角色降低" title="降低" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.nudgeSelected(0, -0.2, 0))}><Minus className="h-4 w-4" aria-hidden="true" /></Button>
-                    <Button type="button" variant="outline" size="sm" className="h-9 px-2 text-xs" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>落地</Button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向左旋转角色" title="向左旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(-15))}><RotateCcw className="h-4 w-4" aria-hidden="true" /></Button>
-                    <Button type="button" variant="outline" size="icon" className="h-9 w-full" aria-label="向右旋转角色" title="向右旋转" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.rotateSelected(15))}><RotateCw className="h-4 w-4" aria-hidden="true" /></Button>
-                  </div>
-                  <InspectorPropertyList
-                    className="text-[11px] text-muted-foreground tabular-nums"
-                    items={[
-                      { label: "位置", value: formatVec3(selectedTransform?.position) },
-                      { label: "旋转", value: selectedTransform ? `${selectedTransform.yawDeg.toFixed(0)}°` : "—" },
-                      { label: "大小", value: formatVec3(selectedTransform?.scale) },
-                      { label: "身高", value: formatHeight(selectedActorContext.heightMeters) },
-                    ]}
-                  />
-                </div>
+                <InspectorTransformSection
+                  value={{
+                    position: selectedTransform?.position ?? [0, 0, 0],
+                    yawDeg: selectedTransform?.yawDeg ?? 0,
+                    scale: selectedTransform?.scale ?? [1, 1, 1],
+                  }}
+                  disabled={saving || autoPlanning || !selectedName}
+                  onCommit={(patch) => applyViewerAction((nextViewer) => nextViewer.setSelectedTransform(patch))}
+                  footer={
+                    <Button type="button" variant="outline" className="w-full" disabled={saving || autoPlanning || !selectedName} onClick={() => applyViewerAction((nextViewer) => nextViewer.groundSelected())}>
+                      落地
+                    </Button>
+                  }
+                />
                 {cameraActions}
               </>
             ) : (

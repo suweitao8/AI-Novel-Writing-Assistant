@@ -3,10 +3,10 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 
 const scale = await import("../src/pages/drama/comicDrama/components/blocking3d/blocking3dScale.ts");
-const viewerSource = readFileSync(
-  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts", import.meta.url),
-  "utf8",
-);
+const viewerSource = [
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+].map((p) => readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 const pageSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/DramaBlocking3DPage.tsx", import.meta.url),
   "utf8",

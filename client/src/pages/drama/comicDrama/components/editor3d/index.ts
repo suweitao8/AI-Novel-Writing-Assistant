@@ -14,3 +14,7 @@ export { InspectorPropertyList } from "./inspector/InspectorPropertyList";
 export type { InspectorPropertyItem } from "./inspector/InspectorPropertyList";
 export { InspectorVector3Field, InspectorNumberField } from "./inspector/InspectorVector3Field";
 export type { InspectorVector3FieldProps, InspectorNumberFieldProps } from "./inspector/InspectorVector3Field";
+export { InspectorTransformSection } from "./inspector/InspectorTransformSection";
+export type { InspectorTransformSectionProps, InspectorTransformValue } from "./inspector/InspectorTransformSection";
+export { TransformToolToolbar } from "./TransformToolToolbar";
+export type { TransformToolToolbarProps, TransformToolbarTool } from "./TransformToolToolbar";

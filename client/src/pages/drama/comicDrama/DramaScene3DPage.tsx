@@ -18,11 +18,13 @@ import { toast } from "@/components/ui/toast";
 import {
   isStoryScene3DMarkerSetCurrent,
   STORY_SCENE_3D_MARKER_KIND_LABELS,
+  type StoryScene3DMarker,
 } from "@ai-novel/shared/types/comicDrama";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
   type Blocking3dEnvironmentSettings,
+  type Blocking3dTransformTool,
   type Blocking3dViewer,
 } from "./components/blocking3d/blocking3dViewerApp";
 import {
@@ -30,9 +32,9 @@ import {
   Drama3DObjectPanel,
   InspectorComponentSection,
   InspectorGameObjectCard,
-  InspectorNumberField,
   InspectorPropertyList,
-  InspectorVector3Field,
+  InspectorTransformSection,
+  TransformToolToolbar,
   type Drama3DObjectItem,
 } from "./components/editor3d";
 import { Layers3, MapPin, Ruler } from "lucide-react";
@@ -86,8 +88,11 @@ export default function DramaScene3DPage() {
   const [saving, setSaving] = useState(false);
   const [analyzingMarkers, setAnalyzingMarkers] = useState(false);
   const [selectedObjectId, setSelectedObjectId] = useState<SceneObjectSelectionId>(SCENE_OBJECT_ID);
+  // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的空间标记。
+  const [transformTool, setTransformTool] = useState<Blocking3dTransformTool | null>("translate");
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const markerCommitRef = useRef<(marker: StoryScene3DMarker) => void>(() => {});
 
   const sceneQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId),
@@ -131,6 +136,8 @@ export default function DramaScene3DPage() {
       canvas,
       environmentUrl,
       sceneMarkers: visibleSceneMarkersRef.current,
+      markerTransformEditable: true,
+      onMarkerTransformCommit: (marker) => markerCommitRef.current(marker),
     }).then((nextViewer) => {
       if (cancelled) {
         nextViewer.destroy();
@@ -185,6 +192,10 @@ export default function DramaScene3DPage() {
   useEffect(() => {
     viewer?.setInteractionEnabled(!sceneQuery.isFetching && !saving);
   }, [saving, sceneQuery.isFetching, viewer]);
+
+  useEffect(() => {
+    viewer?.setTransformTool(transformTool);
+  }, [transformTool, viewer]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -268,15 +279,14 @@ export default function DramaScene3DPage() {
 
 
 
-  // Unity Transform：空间标记的位置 / 旋转 / 缩放可直接改数值，提交即落库并同步 3D 视图。
-  const patchSelectedMarker = useCallback(async (patch: {
+  // Unity Transform：空间标记的位置 / 旋转 / 缩放可直接改数值或拖手柄，提交即落库并同步 3D 视图。
+  const patchMarker = useCallback(async (markerId: string, patch: {
     label?: string;
     position?: [number, number, number];
     size?: [number, number, number];
     yawDeg?: number;
   }): Promise<void> => {
-    if (!scene || !selectedState || !selectedObjectId.startsWith("marker:")) return;
-    const markerId = selectedObjectId.slice("marker:".length);
+    if (!scene || !selectedState) return;
     const markers = selectedState.scene3dMarkers?.markers ?? [];
     const target = markers.find((marker) => marker.id === markerId);
     if (!target) return;
@@ -298,7 +308,18 @@ export default function DramaScene3DPage() {
     } catch (error) {
       toast.error("标记保存失败。", { description: error instanceof Error ? error.message : undefined });
     }
-  }, [applyStatesUpdate, scene, selectedObjectId, selectedState]);
+  }, [applyStatesUpdate, scene, selectedState]);
+
+  // gizmo 拖拽结束的回写入口（通过 ref 转发，避免 viewer 创建时的闭包过期）。
+  useEffect(() => {
+    markerCommitRef.current = (marker) => {
+      void patchMarker(marker.id, {
+        position: marker.position,
+        size: marker.size,
+        yawDeg: marker.yawDeg,
+      });
+    };
+  }, [patchMarker]);
 
   // Unity GameObject 名字段：世界（场景名）与空间标记的 label 都可以改名并立即落库。
   const renameSelectedObject = useCallback(async (nextName: string): Promise<void> => {
@@ -311,11 +332,11 @@ export default function DramaScene3DPage() {
         return;
       }
       if (!selectedObjectId.startsWith("marker:")) return;
-      await patchSelectedMarker({ label: trimmed });
+      await patchMarker(selectedObjectId.slice("marker:".length), { label: trimmed });
     } catch (error) {
       toast.error("名称保存失败。", { description: error instanceof Error ? error.message : undefined });
     }
-  }, [applyStatesUpdate, patchSelectedMarker, scene, selectedObjectId, selectedState]);
+  }, [applyStatesUpdate, patchMarker, scene, selectedObjectId, selectedState]);
 
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
@@ -474,8 +495,14 @@ export default function DramaScene3DPage() {
                 场景默认状态图生成后会显示环境贴图
               </div>
             ) : null}
+            <TransformToolToolbar
+              tool={transformTool}
+              disabled={!viewer || saving || sceneQuery.isFetching}
+              onToolChange={setTransformTool}
+              className={environmentUrl ? "" : "left-3 top-12"}
+            />
             <div className="pointer-events-none absolute bottom-3 left-3 rounded-md border border-border bg-background/80 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm">
-              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移
+              <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄移动物体 · 右键旋转 · 滚轮缩放 · 中键平移
             </div>
           </CardContent>
         </Card>
@@ -580,41 +607,26 @@ export default function DramaScene3DPage() {
                   disabled={saving}
                   metaLine="名称、位置、旋转与缩放都会保存到当前状态的空间标记数据。"
                 />
-                <InspectorComponentSection title="Transform">
-                  <div className="space-y-2">
-                    <InspectorVector3Field
-                      label="位置"
-                      value={selectedMarker.position}
-                      suffix="米"
-                      step={0.1}
-                      disabled={saving}
-                      onCommit={(position) => void patchSelectedMarker({ position })}
-                    />
-                    <div className="flex items-center gap-2" data-inspector="yaw">
-                      <span className="w-10 shrink-0 text-xs text-muted-foreground">旋转</span>
-                      <InspectorNumberField
-                        label="Y"
-                        value={selectedMarker.yawDeg}
-                        suffix="°"
-                        step={5}
-                        disabled={saving}
-                        onCommit={(yawDeg) => void patchSelectedMarker({ yawDeg })}
-                      />
-                    </div>
-                    <InspectorVector3Field
-                      label="缩放"
-                      value={selectedMarker.size}
-                      suffix="米"
-                      step={0.1}
-                      min={0.1}
-                      disabled={saving}
-                      onCommit={(size) => void patchSelectedMarker({ size })}
-                    />
-                  </div>
-                  <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusMarker(selectedMarker.id)}>
-                    <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦此标记
-                  </Button>
-                </InspectorComponentSection>
+                <InspectorTransformSection
+                  value={{
+                    position: selectedMarker.position,
+                    yawDeg: selectedMarker.yawDeg,
+                    scale: selectedMarker.size,
+                  }}
+                  disabled={saving}
+                  onCommit={(patch) => {
+                    void patchMarker(selectedMarker.id, {
+                      ...(patch.position ? { position: patch.position } : {}),
+                      ...(patch.yawDeg != null ? { yawDeg: patch.yawDeg } : {}),
+                      ...(patch.scale ? { size: patch.scale } : {}),
+                    });
+                  }}
+                  footer={
+                    <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusMarker(selectedMarker.id)}>
+                      <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦此标记
+                    </Button>
+                  }
+                />
                 <InspectorComponentSection title="标记信息" defaultOpen={false}>
                   <InspectorPropertyList
                     className="text-xs"

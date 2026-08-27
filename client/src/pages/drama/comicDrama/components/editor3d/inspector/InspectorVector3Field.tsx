@@ -115,6 +115,8 @@ export interface InspectorVector3FieldProps {
   /** 单位后缀（米）。 */
   suffix?: string;
   disabled?: boolean;
+  /** 按轴锁定（如旋转只有 Y 轴可改时锁定 X/Z，字段展示为禁用）。 */
+  disabledAxes?: readonly [boolean, boolean, boolean];
   className?: string;
 }
 
@@ -126,6 +128,7 @@ export function InspectorVector3Field({
   min,
   suffix = "",
   disabled = false,
+  disabledAxes,
   className,
 }: InspectorVector3FieldProps) {
   const commitAxis = (axisIndex: number, axisValue: number) => {
@@ -147,7 +150,7 @@ export function InspectorVector3Field({
           step={step}
           min={min}
           suffix={suffix}
-          disabled={disabled || !onCommit}
+          disabled={disabled || !onCommit || Boolean(disabledAxes?.[index])}
         />
       ))}
     </div>

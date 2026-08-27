@@ -2,10 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(
-  new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts", import.meta.url),
-  "utf8",
-);
+const source = [
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+].map((p) => readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 
 test("PlayCanvas 预览使用相机裁剪面和真实景深参数", () => {
   assert.match(source, /new pc\.CameraFrame/);

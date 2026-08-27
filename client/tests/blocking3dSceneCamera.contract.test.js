@@ -9,13 +9,10 @@ const bodySource = fs.readFileSync(
   ),
   "utf8",
 );
-const viewerSource = fs.readFileSync(
-  new URL(
-    "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
-    import.meta.url,
-  ),
-  "utf8",
-);
+const viewerSource = [
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+].map((p) => fs.readFileSync(new URL(p, import.meta.url), "utf8")).join(String.fromCharCode(10));
 const pageSource = fs.readFileSync(
   new URL("../src/pages/drama/comicDrama/DramaBlocking3DPage.tsx", import.meta.url),
   "utf8",
