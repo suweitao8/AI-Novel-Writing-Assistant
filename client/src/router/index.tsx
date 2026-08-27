@@ -25,6 +25,8 @@ const CreativeHubPage = lazy(() => import("@/pages/creativeHub/CreativeHubPage")
 const ChatPage = lazy(() => import("@/pages/chat/ChatPage"));
 const BookAnalysisPage = lazy(() => import("@/pages/bookAnalysis/BookAnalysisPage"));
 const TaskCenterPage = lazy(() => import("@/pages/tasks/TaskCenterPage"));
+const ArtStyleSettingsPage = lazy(() => import("@/pages/settings/views/ArtStyleSettingsPage"));
+const RecordsSettingsPage = lazy(() => import("@/pages/settings/views/RecordsSettingsPage"));
 const AutoDirectorFollowUpCenterPage = lazy(() => import("@/pages/autoDirectorFollowUps/AutoDirectorFollowUpCenterPage"));
 const KnowledgePage = lazy(() => import("@/pages/knowledge/KnowledgePage"));
 const GenreManagementPage = lazy(() => import("@/pages/genres/GenreManagementPage"));
@@ -38,7 +40,6 @@ const DirectorSettingsPage = lazy(() => import("@/pages/settings/views/DirectorS
 const KnowledgeSettingsPage = lazy(() => import("@/pages/settings/views/KnowledgeSettingsPage"));
 const AppearanceSettingsPage = lazy(() => import("@/pages/settings/views/AppearanceSettingsPage"));
 const NarratorVoiceSettingsPage = lazy(() => import("@/pages/settings/views/NarratorVoiceSettingsPage"));
-const ArtStyleLibraryPage = lazy(() => import("@/pages/artStyle/ArtStyleLibraryPage"));
 const WorldList = lazy(() => import("@/pages/worlds/WorldList"));
 const WorldGenerator = lazy(() => import("@/pages/worlds/WorldGenerator"));
 const WorldWorkspace = lazy(() => import("@/pages/worlds/WorldWorkspace"));
@@ -88,8 +89,9 @@ const routes: RouteObject[] = [
       { path: "settings/knowledge", element: <KnowledgeSettingsPage /> },
       { path: "settings/narrator-voice", element: <NarratorVoiceSettingsPage /> },
       { path: "settings/appearance", element: <AppearanceSettingsPage /> },
-      { path: "settings/art-style", element: <Navigate to="/art-style" replace /> },
-      { path: "art-style", element: <ArtStyleLibraryPage /> },
+      { path: "settings/art-style", element: <ArtStyleSettingsPage /> },
+      { path: "art-style", element: <Navigate to="/settings/art-style" replace /> },
+      { path: "settings/records", element: <RecordsSettingsPage /> },
       { path: "settings", element: <SettingsOverviewPage /> },
       { path: "worlds", element: <WorldList /> },
       {

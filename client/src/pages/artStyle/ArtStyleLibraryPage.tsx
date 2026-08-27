@@ -278,12 +278,8 @@ export default function ArtStyleLibraryPage() {
   const presets = (visualStylesQuery.data?.data ?? []).filter((style) => style.styleFamily !== "custom");
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold text-foreground">画风管理</h1>
-        <p className="text-sm leading-6 text-muted-foreground">通用美术风格：写实影视化。资产画风与时代画风，全部小说和漫剧项目共用。</p>
-      </header>
-
+    <>
+      {/* 页面标题与容器由系统设置的 SettingsShell 提供；本组件只渲染画风内容本身。 */}
       {stylesQuery.isPending ? (
         <div className="flex items-center gap-2 rounded-lg border border-border px-4 py-6 text-sm text-muted-foreground" aria-live="polite">
           <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -308,6 +304,6 @@ export default function ArtStyleLibraryPage() {
       )}
 
       <EraStyleSection presets={presets} />
-    </div>
+    </>
   );
 }
