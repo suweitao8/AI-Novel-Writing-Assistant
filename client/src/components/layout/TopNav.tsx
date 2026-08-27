@@ -25,7 +25,7 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   const setNavActionsSlot = useSetPageNavActionsSlot();
   const pageTabRows = usePageTabRows();
   return (
-    <header className="flex h-14 min-w-0 shrink-0 items-center border-b bg-muted/20 pl-4 pr-3">
+    <header className="relative flex h-14 min-w-0 shrink-0 items-center border-b bg-muted/20 pl-4 pr-3">
       {/* 品牌「工作台」：点击回到漫剧主链路首页。 */}
       <NavLink
         to="/drama"
@@ -60,35 +60,28 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
         })}
       </nav>
 
-      {/* 页面页签：二级、三级各自包在独立胶囊体里，中间留固定间距；
-          二级组固定居中于中间预留区（镜像占位法），三级组固定在二级右侧。
-          超宽时 justify-center 把左侧裁进滚动区，被裁的恰好是隐形镜像。 */}
-      <nav
-        aria-label="页面页签"
-        className="flex min-w-0 flex-1 items-center justify-center overflow-x-auto px-2"
-      >
-        {pageTabRows.length > 0 ? (
-          <div className="flex shrink-0 items-center gap-3">
-            {pageTabRows.length > 1 ? (
-              <span
-                aria-hidden="true"
-                className="invisible flex select-none items-center"
-              >
-                {pageTabRows.slice(1).map((row) => (
-                  <PageTabGroup key={`mirror-${row.id}`} row={row} />
-                ))}
-              </span>
-            ) : null}
-            <PageTabGroup row={pageTabRows[0]} />
-            {pageTabRows.slice(1).map((row) => (
-              <PageTabGroup key={row.id} row={row} />
-            ))}
-          </div>
-        ) : null}
-      </nav>
+      {/* 页面页签：参照旧项目（mydrama）的固定位置做法——二级胶囊绝对定位在
+          整个 header 的水平中心，不参与 flex 流，右侧操作按钮组随页签增减时
+          二级位置恒定不动；三级胶囊锚定在二级右缘固定间距。 */}
+      {pageTabRows.length > 0 ? (
+        <nav
+          aria-label="页面页签"
+          className="absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center"
+        >
+          <PageTabGroup row={pageTabRows[0]} />
+          {pageTabRows.slice(1).map((row) => (
+            <div
+              key={row.id}
+              className="absolute left-full top-1/2 ml-3 flex -translate-y-1/2 items-center"
+            >
+              <PageTabGroup row={row} />
+            </div>
+          ))}
+        </nav>
+      ) : null}
 
       {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <div
           ref={setNavActionsSlot}
           className="flex min-w-0 items-center gap-1.5 empty:hidden"
