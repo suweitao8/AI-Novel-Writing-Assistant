@@ -482,6 +482,8 @@ test("drama service pipeline keeps repairable quality issues before storyboard a
         contentType: "audio/wav",
         byteLength: 44,
       }),
+      // 配音链在构建请求时还会读取 VoxCPM2 参考音频选择器，需与真实模块面保持一致。
+      selectVoxCPMReferenceAudio: () => undefined,
     },
   };
   const { DramaScriptService } = require("../dist/services/drama/DramaScriptService.js");
