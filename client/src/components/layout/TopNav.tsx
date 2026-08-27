@@ -81,7 +81,7 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
       ) : null}
 
       {/* 页面操作区槽位：页面把当前页的工具按钮 portal 进来，紧贴「AI 实况」左侧 */}
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-2">
         <div
           ref={setNavActionsSlot}
           className="flex min-w-0 items-center gap-1.5 empty:hidden"
