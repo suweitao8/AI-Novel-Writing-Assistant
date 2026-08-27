@@ -5,7 +5,7 @@ const { dramaShotBlockingAutoPlanPrompt } = require("../dist/prompting/prompts/d
 
 test("自动构图 Prompt 输出完整角色摆位与相机景深合同", () => {
   assert.equal(dramaShotBlockingAutoPlanPrompt.id, "drama.shot.blocking.autoPlan");
-  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v4");
+  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v5");
   assert.equal(dramaShotBlockingAutoPlanPrompt.mode, "structured");
   const output = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: [{ characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" }],
@@ -39,8 +39,9 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /16:9/);
   assert.match(text, /空间固定物体标记/);
   assert.match(text, /不要与.*重叠/);
-  assert.match(text, /kind 为 floor.*可行走地面/);
-  assert.match(text, /站立区域而不是障碍物/);
+  // v5：可行走地面薄板已移除，站位只受投射中心半径约束。
+  assert.doesNotMatch(text, /floor|可行走地面/);
+  assert.match(text, /可用站位半径/);
   assert.match(text, /投射中心/);
   // v4：构图工艺基线——景别距离、三分法、轴线、相机高度语义与出画自检。
   assert.match(text, /景别定距离/);

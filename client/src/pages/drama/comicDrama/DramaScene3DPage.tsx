@@ -455,7 +455,7 @@ export default function DramaScene3DPage() {
                     </AiButton>
                   </div>
                   {analyzingMarkers ? (
-                    <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体和可行走地面，请保持页面打开。</p>
+                    <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体，请保持页面打开。</p>
                   ) : null}
                   {!sceneMarkersAreCurrent && selectedState.scene3dMarkers ? (
                     <p className="text-xs text-amber-700 dark:text-amber-300" role="status">场景投射参数已改变，请重新识别空间标记。</p>

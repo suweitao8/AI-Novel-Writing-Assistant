@@ -6,10 +6,11 @@ import {
 } from "@ai-novel/shared/types/comicDrama";
 import type { PromptAsset } from "../../core/promptTypes";
 
-/** 可行走地面薄板由服务端从墙面标记深度推导，不是视觉模型的输出类别。 */
-const VISION_MARKER_KINDS = STORY_SCENE_3D_MARKER_KINDS.filter(
-  (kind) => kind !== "floor",
-) as unknown as [StoryScene3DMarkerKind, ...StoryScene3DMarkerKind[]];
+/** 视觉模型可输出的固定物体类别，与服务端共享的标记类别保持一致。 */
+const VISION_MARKER_KINDS = STORY_SCENE_3D_MARKER_KINDS as unknown as [
+  StoryScene3DMarkerKind,
+  ...StoryScene3DMarkerKind[],
+];
 
 const markerKindSchema = z.enum(VISION_MARKER_KINDS);
 const markerAnchorSchema = z.enum(["floor", "wall", "ceiling"]);
@@ -40,7 +41,7 @@ const markerSchema = z.object({
 });
 
 export const sceneState3dMarkersOutputSchema = z.object({
-  markers: z.array(markerSchema).max(32),
+  markers: z.array(markerSchema).max(48),
   analysisNote: z.string().trim().max(500).optional(),
 });
 
@@ -59,19 +60,25 @@ function validateSceneState3dMarkersOutput(
   output: SceneState3dMarkersOutput,
 ): SceneState3dMarkersOutput {
   const seenLabels = new Set<string>();
+  const markers = output.markers
+    .map((marker) => ({
+      ...marker,
+      label: marker.label.trim(),
+      evidence: marker.evidence?.trim() || undefined,
+    }))
+    .map((marker) => {
+      // 同名实例不丢弃，按顺序补序号，保留模型标出的全部物体。
+      let uniqueLabel = marker.label;
+      let suffix = 2;
+      while (seenLabels.has(`${marker.kind}:${uniqueLabel}`)) {
+        uniqueLabel = `${marker.label}${suffix}`;
+        suffix += 1;
+      }
+      seenLabels.add(`${marker.kind}:${uniqueLabel}`);
+      return { ...marker, label: uniqueLabel.slice(0, 80) };
+    });
   return {
-    markers: output.markers
-      .map((marker) => ({
-        ...marker,
-        label: marker.label.trim(),
-        evidence: marker.evidence?.trim() || undefined,
-      }))
-      .filter((marker) => {
-        const key = `${marker.kind}:${marker.label}`;
-        if (seenLabels.has(key)) return false;
-        seenLabels.add(key);
-        return true;
-      }),
+    markers,
     analysisNote: output.analysisNote?.trim() || undefined,
   };
 }
@@ -81,7 +88,7 @@ export const sceneState3dMarkersPrompt: PromptAsset<
   SceneState3dMarkersOutput
 > = {
   id: "drama.scene.state.3d_markers",
-  version: "v6",
+  version: "v7",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -100,15 +107,15 @@ export const sceneState3dMarkersPrompt: PromptAsset<
       "输入是一张 360° 等距柱状全景图或场景状态图；只识别床、桌子、椅子、沙发、书桌、柜子、架子、门、窗户、柜台、楼梯等固定物体，输出的是可用于摆位的固定空间物体/家具标记。",
       "不要标注人物、动物、怪物、临时物品、衣物、食物、文字、装饰小件或仅凭常识猜测且画面中不可见的物体。室外/自然场景没有可信固定物体时返回空数组。",
       "坐标单位按米估算，并以约 1.8 米高的人物作为尺度参照：地面为 y=0，+Z 指向全景图正前方/水平中心，+X 指向画面右侧；position 是长方体中心，size 是 X/Y/Z 尺寸。",
-      "floor 锚点的 position.y 仍填写物体中心高度；wall/ceiling 物体按其在空间中的中心高度填写。坐标和尺寸只需近似，宁可少标也不要编造。",
+      "floor 锚点的 position.y 仍填写物体中心高度；wall/ceiling 物体按其在空间中的中心高度填写。坐标和尺寸只需近似估算，但不能因为保守而漏标：物体可见且属于可用类别就必须输出。",
       "每一个返回的 marker 都必须对应输入图片中实际可见的固定物体，并且必须填写 imageRegion；imageRegion 是该物体在等距柱状输入图中的归一化矩形区域，x/y 是左上角，width/height 为宽高，矩形应尽量紧贴物体可见主体，不要把大块墙面、地面或天空一起框进去。不要只根据场景名称或文字描述生成 marker。",
       "服务端会把 imageRegion 的水平中心作为物体的真实全景经度，重新计算世界 X/Z 方向；还会用框的垂直位置和跨度反算物体深度：门的框底部就是地面接触线，物体在图中的垂直跨度结合类别典型高度决定它离投射中心多远。position.x/z 只是兼容用的粗略字段，不能用它抵消或猜测深度，也不要把图片像素、归一化比例或框坐标直接填进 position。confidence 反映图像证据强度。",
       "size 只填写按人物尺度估算的近似米制尺寸；服务端会结合 imageRegion 的可见跨度和 kind 类别范围校准最终长方体大小。框必须紧贴物体可见边缘，否则深度和尺寸反算都会偏移：门的框底部必须贴住门底与地面的接触线；窗户的框要紧贴可见窗框边缘，不要把整段墙面框进去；家具的框要包含腿脚或落地部分，底部贴近物体与地面的接触线。",
-      "生成规范默认把全景图垂直中心 v=0.5 作为地面安全分界：v=0.48–0.52 是必须保持空净的中心安全带。上区 v=0.0–0.48 放完整家具、墙面和远景，下区 v=0.52–1.0 只允许连续地面/地板/地形和少量低矮细节；当前 3D 投射分界以输入环境参数 panoramaHorizonV 为准。",
-      "床、桌子、椅子、沙发、柜体、门窗、楼梯及其他固定物体的主体、腿脚和硬边缘必须完整位于生成图安全带上方，不得跨越生成图中心安全带；如果物体在分界附近被切开、只露出碎片或无法判断完整轮廓，不要标注它。",
-      "不要把分界画成可见横线、接缝、色带或拼贴边界；只按真实图片证据填写 imageRegion，服务端会按当前 3D 环境参数统一反算。",
+      "识别范围覆盖整张图片：等距柱状全景图的垂直中部（v≈0.5）大致是拍摄时的视线高度，家具、门、桌椅大多位于这条线以下的下半区，窗户、柜顶等位于上半区，上下两半都要逐一检查标注，不能只标某一侧或某个高度带。",
+      "按从左到右的顺序分段扫描整条 360° 水平视野，同一类别的所有可见实例分别输出独立 marker，并用不同 label 区分（例如 椅子1、椅子2）；被其他物体部分遮挡但仍能辨认轮廓的固定物体也要标注，框贴住可见主体即可，只有完全无法辨认是什么的碎片才跳过。",
+      "不要把任何推断出的分界、接缝或色带当作标注依据；只按真实图片证据填写 imageRegion，服务端会按当前 3D 环境参数统一反算。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
-      "不要输出地面、可行走范围或房间轮廓类的标记；角色可行走地面由服务端根据门窗墙面深度自动推导。",
+      "不要输出地面、地板、可行走范围或房间轮廓类的标记。",
       `可用类别：${VISION_MARKER_KINDS.join("、")}`,
     ].join("\n")),
     new HumanMessage({
@@ -120,7 +127,7 @@ export const sceneState3dMarkersPrompt: PromptAsset<
             `场景状态：${input.stateLabel.trim()}`,
             `空间类型：${input.sceneType?.trim() || "未指定"}`,
             `当前 3D 环境参数：${input.environmentJson}`,
-            "请先读取当前 3D 环境参数中的 panoramaHorizonV，再识别可用于角色空间摆位的完整固定物体，并返回标记数组。",
+            "请识别这张全景图中可用于角色空间摆位与分镜参照的全部完整固定物体，按从左到右分段扫描并返回标记数组。",
           ].join("\n"),
         },
         {
