@@ -346,4 +346,3 @@ test("旧数据里的可行走地面薄板会被清掉且保持幂等", () => {
   const second = normalizeStoryScene3dMarkerSet(first, { maxRadius: 6, environment });
   assert.equal(second?.markers.length, first?.markers.length);
 });
-
