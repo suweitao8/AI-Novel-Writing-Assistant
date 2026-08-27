@@ -9,7 +9,6 @@ import {
   Move3D,
   RotateCcw,
   RotateCw,
-  Trash2,
   UserRound,
   Video,
   WandSparkles,
@@ -577,7 +576,7 @@ export default function DramaBlocking3DPage() {
       objects={<Drama3DObjectPanel items={objectItems} />}
       actions={
         <Card className="flex h-full min-h-0 flex-col overflow-hidden">
-          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto">
+          <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
             {selectedObjectId === SCENE_OBJECT_ID ? (
               <>
                 <InspectorGameObjectCard
@@ -719,32 +718,6 @@ export default function DramaBlocking3DPage() {
                   icon={<UserRound className="h-4 w-4" aria-hidden="true" />}
                   name={selectedActorContext.characterName}
                 />
-                <InspectorPropertyList
-                  className="text-xs"
-                  items={[
-                    { label: "身高", value: formatHeight(selectedActorContext.heightMeters) },
-                  ]}
-                />
-                <Button type="button" variant="outline" className="w-full" disabled={saving || autoPlanning || !placedNames.has(selectedActorContext.characterName)} onClick={() => applyViewerAction((nextViewer) => nextViewer.removeActor(selectedActorContext.characterName))}>
-                  <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />从本镜移除
-                </Button>
-                <div className="space-y-3 border-t border-border/60 pt-4">
-                  <div className="text-xs font-medium">静态姿势</div>
-                  <label className="block space-y-1.5 text-xs text-muted-foreground">
-                    <span>姿势</span>
-                    <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={saving || autoPlanning || !selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
-                      <option value="" disabled>选择姿势</option>
-                      {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
-                    </SelectControl>
-                  </label>
-                </div>
-                <div className="space-y-3 border-t border-border/60 pt-4">
-                  <div className="text-xs font-medium">模型外观</div>
-                  <label className="block space-y-1.5 text-xs text-muted-foreground">
-                    <span className="flex items-center justify-between gap-2"><span>模型颜色</span><span className="font-mono text-[11px] uppercase">{selectedColor ? rgbToHex(selectedColor) : "—"}</span></span>
-                    <Input type="color" aria-label="模型颜色" value={rgbToHex(selectedColor)} disabled={saving || autoPlanning || !selectedName} onChange={(event) => { const color = hexToRgb(event.target.value); if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color)); }} className="h-10 cursor-pointer p-1" />
-                  </label>
-                </div>
                 <InspectorTransformSection
                   value={{
                     position: selectedTransform?.position ?? [0, 0, 0],
@@ -763,7 +736,29 @@ export default function DramaBlocking3DPage() {
                     </Button>
                   }
                 />
-                {cameraActions}
+                <InspectorComponentSection title="基础属性">
+                  <InspectorPropertyList
+                    className="text-xs"
+                    items={[
+                      { label: "身高", value: formatHeight(selectedActorContext.heightMeters) },
+                    ]}
+                  />
+                </InspectorComponentSection>
+                <InspectorComponentSection title="静态姿势">
+                  <label className="block space-y-1.5 text-xs text-muted-foreground">
+                    <span>姿势</span>
+                    <SelectControl aria-label="角色姿势" value={selectedPose ?? ""} disabled={saving || autoPlanning || !selectedName} onChange={(event) => applyViewerAction((nextViewer) => nextViewer.setSelectedPose(event.target.value as DramaShotBlockingSketchPose))} className="h-9 w-full">
+                      <option value="" disabled>选择姿势</option>
+                      {BLOCKING_3D_POSES.map((pose) => <option key={pose} value={pose}>{BLOCKING_3D_POSE_LABELS[pose]}</option>)}
+                    </SelectControl>
+                  </label>
+                </InspectorComponentSection>
+                <InspectorComponentSection title="模型外观">
+                  <label className="block space-y-1.5 text-xs text-muted-foreground">
+                    <span className="flex items-center justify-between gap-2"><span>模型颜色</span><span className="font-mono text-[11px] uppercase">{selectedColor ? rgbToHex(selectedColor) : "—"}</span></span>
+                    <Input type="color" aria-label="模型颜色" value={rgbToHex(selectedColor)} disabled={saving || autoPlanning || !selectedName} onChange={(event) => { const color = hexToRgb(event.target.value); if (color) applyViewerAction((nextViewer) => nextViewer.setSelectedColor(color)); }} className="h-10 cursor-pointer p-1" />
+                  </label>
+                </InspectorComponentSection>
               </>
             ) : (
               <p className="text-xs text-muted-foreground">从上方对象列表选择世界、摄像机、角色或空间标记。</p>
