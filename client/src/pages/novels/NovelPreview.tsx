@@ -3,7 +3,7 @@ import type { Chapter, ChapterStatus } from "@ai-novel/shared/types/novel";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Check, Copy, Download, Edit3, List, Settings2, X } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { downloadNovelExport, getNovelChapters, getNovelDetail } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { Button } from "@/components/ui/button";

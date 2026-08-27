@@ -1,8 +1,11 @@
-// 客户端本地报错日志：所有 toast.error 与未捕获异常都会记入，
-// 供"系统设置 → 最近报错日志"展示。数据只存本机 localStorage，不上传。
+// 客户端本地报错日志：所有 toast.error 与未捕获异常都会记入（带来源分类），
+// 供"系统设置 → 最近报错日志"按类型查看。数据只存本机 localStorage，不上传。
+export type ErrorLogSource = "toast" | "uncaught";
+
 export interface ErrorLogEntry {
   id: string;
   time: string;
+  source: ErrorLogSource;
   message: string;
   description?: string;
 }
@@ -20,6 +23,10 @@ function safeStorage(): Storage | null {
   } catch {
     return null;
   }
+}
+
+function normalizeSource(value: unknown): ErrorLogSource {
+  return value === "uncaught" ? "uncaught" : "toast";
 }
 
 export function readErrorLog(): ErrorLogEntry[] {
@@ -41,13 +48,21 @@ export function readErrorLog(): ErrorLogEntry[] {
       && typeof (item as ErrorLogEntry).id === "string"
       && typeof (item as ErrorLogEntry).time === "string"
       && typeof (item as ErrorLogEntry).message === "string"
-    )).slice(0, MAX_ENTRIES);
+    )).slice(0, MAX_ENTRIES).map((item) => ({
+      // 历史条目没有 source 字段：弹窗报错是最早的记录来源，按 toast 归类。
+      ...item,
+      source: normalizeSource(item.source),
+    }));
   } catch {
     return [];
   }
 }
 
-export function recordErrorLog(message: string, description?: string): void {
+export function recordErrorLog(
+  message: string,
+  description?: string,
+  source: ErrorLogSource = "toast",
+): void {
   const normalizedMessage = message?.trim();
   if (!normalizedMessage) {
     return;
@@ -56,6 +71,7 @@ export function recordErrorLog(message: string, description?: string): void {
   entries.unshift({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     time: new Date().toISOString(),
+    source,
     message: normalizedMessage.slice(0, 500),
     ...(description?.trim() ? { description: description.trim().slice(0, 1000) } : {}),
   });
@@ -93,9 +109,11 @@ export function installGlobalErrorCapture(): void {
     const reason = event.reason;
     recordErrorLog(
       reason instanceof Error ? reason.message : String(reason ?? "未处理的 Promise 异常"),
+      undefined,
+      "uncaught",
     );
   });
   window.addEventListener("error", (event) => {
-    recordErrorLog(event.message || "页面运行错误");
+    recordErrorLog(event.message || "页面运行错误", undefined, "uncaught");
   });
 }
