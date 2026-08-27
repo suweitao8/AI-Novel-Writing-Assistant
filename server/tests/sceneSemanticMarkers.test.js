@@ -138,24 +138,28 @@ test("空间标记优先使用图像区域反算水平位置，而不是直接�
   assert.notDeepEqual(front, marker.position, "不能继续直接保存模型给出的世界坐标");
 });
 
-test("默认 50% 全景中家具框底在地平线上方时用类别高度跨度反算深度", () => {
+test("AI 标记不再估算深度，统一贴到半球内表面并落地", () => {
   const marker = {
     anchor: "floor",
     position: [0, 0.5, 0],
     size: [1.2, 0.8, 0.8],
     imageRegion: { x: 0.4, y: 0.3, width: 0.2, height: 0.16 },
   };
-  const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment).position;
+  const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment);
 
-  // 类别 other 的典型高度 1.6m ÷ 垂直跨度 tan(0.6283)-tan(0.1257)。
-  const expectedRadius = 1.6 / (Math.tan(Math.PI * 0.2) - Math.tan(Math.PI * 0.04));
-  assert.ok(Math.abs(projected[0]) < 0.05, "水平中心仍应保持在世界 Z 轴附近");
+  // 半球世界半径 = 直径 15 / 2；前向区域中心纬度按射线与球面求交。
+  const worldRadius = 7.5;
+  const latitude = (0.5 - (0.3 + 0.16 / 2)) * Math.PI;
+  const sinLatitude = Math.sin(latitude);
+  const cosLatitude = Math.cos(latitude);
+  const rayDistance = 2 * sinLatitude + Math.sqrt(worldRadius ** 2 - (2 * cosLatitude) ** 2);
+  const surfaceRadius = rayDistance * cosLatitude;
+  assert.ok(Math.abs(projected.position[0]) < 0.05, "水平中心仍应保持在世界 Z 轴附近");
   assert.ok(
-    Math.abs(Math.hypot(projected[0], projected[2]) - expectedRadius) < 0.02,
-    "框底没有落地证据时应按类别高度与跨度反算深度",
+    Math.abs(Math.hypot(projected.position[0], projected.position[2]) - (surfaceRadius - 0.125)) < 0.02,
+    "标记长方体应贴在半球内表面上（other 类别厚度 0.25m）",
   );
-  assert.ok(Math.hypot(projected[0], projected[2]) > 1, "不能塌缩回投射中心脚下");
-  assert.ok(projected[1] > 0.1, "图片证据参与尺寸校准后仍必须落地");
+  assert.equal(projected.position[1], projected.size[1] / 2, "地面锚点保持落地");
 });
 
 test("投射中心高度、半球直径和全景分界都会参与标记反算", () => {

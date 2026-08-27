@@ -4,6 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const serviceModule = require("../dist/modules/novel/story-settings/application/StoryScene3dMarkerService.js");
+const { STORY_SCENE_3D_MARKER_SIZE_POLICIES } = require("../../shared/dist/utils/scene3dProjection.js");
 const serviceSource = fs.readFileSync(
   path.join(__dirname, "../src/modules/novel/story-settings/application/StoryScene3dMarkerService.ts"),
   "utf8",
@@ -38,7 +39,7 @@ test("场景标记服务把识别结果绑定到当前图片制品并归一化�
   assert.equal(result.analysisNote, "室内主要家具");
 });
 
-test("场景标记服务把上半区的地面家具按类别高度跨度反算深度", () => {
+test("场景标记服务把上半区的地面家具贴到半球内表面", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "table",
@@ -62,11 +63,17 @@ test("场景标记服务把上半区的地面家具按类别高度跨度反算�
   const size = result.markers[0]?.size;
   assert.ok(position);
   assert.ok(size);
-  // 桌类典型高度 0.875m ÷ 垂直跨度，框底没有落地证据时不再推到半球外圈。
-  const expectedRadius = 0.875 / (Math.tan(Math.PI * 0.2) - Math.tan(Math.PI * 0.04));
+  // 不再估算深度：长方体贴到半球内表面，桌类面板厚度 0.35m。
+  const worldRadius = 7.5;
+  const latitude = (0.5 - (0.3 + 0.16 / 2)) * Math.PI;
+  const sinLatitude = Math.sin(latitude);
+  const cosLatitude = Math.cos(latitude);
+  const rayDistance = 2 * sinLatitude + Math.sqrt(worldRadius ** 2 - (2 * cosLatitude) ** 2);
+  const surfaceRadius = rayDistance * cosLatitude;
+  const expectedRadius = surfaceRadius - STORY_SCENE_3D_MARKER_SIZE_POLICIES.table.z[0] / 2;
   assert.ok(
     Math.abs(Math.hypot(position[0], position[2]) - expectedRadius) < 0.02,
-    `桌子应按图像跨度反算深度，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(position[0], position[2]).toFixed(3)}`,
+    `桌子应贴在半球内表面，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(position[0], position[2]).toFixed(3)}`,
   );
   assert.ok(Math.hypot(position[0], position[2]) > 0.8, "桌子不能塌缩回投射中心");
   assert.equal(position[1], size[1] / 2);
@@ -97,7 +104,7 @@ test("场景标记服务保存结果时以图像区域纠正墙面物体方向",
   assert.ok(result.markers[0].yawDeg > 90);
 });
 
-test("场景标记服务用图像跨度反算窗户深度，不保存近中心坐标", () => {
+test("场景标记服务把窗户标记完整贴到半球内表面，不保存近中心坐标", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "window",
@@ -118,11 +125,17 @@ test("场景标记服务用图像跨度反算窗户深度，不保存近中心�
 
   const marker = result.markers[0];
   assert.ok(marker);
-  // 窗类典型高度 1.6m ÷ 框的垂直跨度：跨过地平线的窗不再贴到参考半径。
-  const expectedRadius = 1.6 / (Math.tan(Math.PI * 0.16) + Math.tan(Math.PI * 0.02));
+  // 不再估算深度：窗体按面板厚度完整贴在球面上。
+  const worldRadius = 7.5;
+  const latitude = (0.5 - (0.34 + 0.18 / 2)) * Math.PI;
+  const sinLatitude = Math.sin(latitude);
+  const cosLatitude = Math.cos(latitude);
+  const rayDistance = 2 * sinLatitude + Math.sqrt(worldRadius ** 2 - (2 * cosLatitude) ** 2);
+  const surfaceRadius = rayDistance * cosLatitude;
+  const expectedRadius = surfaceRadius - STORY_SCENE_3D_MARKER_SIZE_POLICIES.window.z[0] / 2;
   assert.ok(
     Math.abs(Math.hypot(marker.position[0], marker.position[2]) - expectedRadius) < 0.02,
-    `窗应按图像跨度反算深度，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(marker.position[0], marker.position[2]).toFixed(3)}`,
+    `窗应贴住半球内表面，期望 ${expectedRadius.toFixed(3)}，实际 ${Math.hypot(marker.position[0], marker.position[2]).toFixed(3)}`,
   );
   assert.ok(Math.hypot(marker.position[0], marker.position[2]) > 1, "窗不能停留在投射中心");
   assert.ok(marker.size[0] >= 0.6 && marker.size[0] <= 3, "窗宽保持在类别范围内");
