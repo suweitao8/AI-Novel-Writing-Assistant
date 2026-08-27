@@ -246,3 +246,61 @@ test("落地家具按粗估距离前移并保持前后顺序，门窗保持完�
     "门窗不受粗估距离影响，始终完整贴住球面",
   );
 });
+
+test("可坐卧物体的高度钳制在使用面：盒顶就是座面/床垫面，不含靠背", () => {
+  // 高背椅：区域垂直跨度覆盖整个靠背，但标记高度必须收敛到座面。
+  const tallChair = marker({
+    kind: "chair",
+    anchor: "floor",
+    label: "高背椅",
+    size: [0.6, 1.3, 0.3],
+    imageRegion: { x: 0.495, y: 0.42, width: 0.06, height: 0.26 },
+  });
+  const projectedChair = projectStoryScene3dMarkerFromImageRegion(tallChair, environment);
+  assert.ok(
+    projectedChair.size[1] <= STORY_SCENE_3D_MARKER_SIZE_POLICIES.chair.y[1] + 1e-9,
+    `椅子高度不得包含靠背（上限 ${STORY_SCENE_3D_MARKER_SIZE_POLICIES.chair.y[1]} 米）`,
+  );
+  assert.equal(
+    projectedChair.position[1],
+    projectedChair.size[1] / 2,
+    "椅子盒子从地面起算，顶面正好是座面",
+  );
+
+  // 床垫面 + 床头板：同样只保留床垫高度。
+  const tallBed = marker({
+    kind: "bed",
+    anchor: "floor",
+    label: "双人床",
+    size: [2, 1.2, 2],
+    imageRegion: { x: 0.4, y: 0.34, width: 0.16, height: 0.24 },
+  });
+  const projectedBed = projectStoryScene3dMarkerFromImageRegion(tallBed, environment);
+  assert.ok(
+    projectedBed.size[1] <= STORY_SCENE_3D_MARKER_SIZE_POLICIES.bed.y[1] + 1e-9,
+    "床高度按床垫面封顶",
+  );
+
+  const sofa = marker({
+    kind: "sofa",
+    anchor: "floor",
+    label: "沙发",
+    size: [2.2, 1.1, 0.8],
+    imageRegion: { x: 0.35, y: 0.44, width: 0.12, height: 0.22 },
+  });
+  const projectedSofa = projectStoryScene3dMarkerFromImageRegion(sofa, environment);
+  assert.ok(
+    projectedSofa.size[1] <= STORY_SCENE_3D_MARKER_SIZE_POLICIES.sofa.y[1] + 1e-9,
+    "沙发高度只算座面",
+  );
+
+  // 非坐卧参照不受影响：窗户仍保持画面实际跨度。
+  const windowMarker = marker({
+    kind: "window",
+    anchor: "wall",
+    label: "窗",
+    imageRegion: { x: 0.78, y: 0.22, width: 0.08, height: 0.18 },
+  });
+  const projectedWindow = projectStoryScene3dMarkerFromImageRegion(windowMarker, environment);
+  assert.ok(projectedWindow.size[1] > 1, "窗高等非使用面语义的类别保持原校准");
+});
