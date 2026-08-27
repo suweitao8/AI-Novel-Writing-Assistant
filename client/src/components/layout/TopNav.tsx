@@ -126,7 +126,7 @@ function PageTabGroup({ row }: { row: PageTabRow }) {
           onClick={() => row.onSelect(tab.key)}
           aria-pressed={row.active === tab.key}
           className={cn(
-            "flex h-7 items-center whitespace-nowrap rounded-full px-2.5 text-[13px] transition-colors",
+            "flex h-7 items-center whitespace-nowrap rounded-full px-2 text-[13px] transition-colors",
             row.active === tab.key
               ? "bg-background font-medium text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
