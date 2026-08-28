@@ -32,24 +32,24 @@ test("场景资产 HDRI 参数有稳定默认值并固定旋转和亮度", () =>
   });
   assert.deepEqual(normalizeStoryScene3dEnvironment(undefined), DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
   // 高度由直径 × 占比派生：隐含占比 4.5/32≈14% 落在范围内，
-  // 直径裁剪到 20 后高度等比跟随 → 2.81 米。
+  // 直径裁剪到 30 后高度等比跟随 → 4.22 米。
   assert.deepEqual(normalizeStoryScene3dEnvironment({
     projectionCenterHeight: 4.5,
     domeRadius: 32,
     panoramaHorizonV: 0.65,
     yawDeg: 120,
     intensity: 0.7,
-  }), withRatio(20, 0.1406, 0.55));
+  }), withRatio(30, 0.1406, 0.55));
 });
 
 test("场景资产 HDRI 参数兼容空值和历史越界快照", () => {
   assert.deepEqual(parseStoryScene3dEnvironment(null), DEFAULT_STORY_SCENE_3D_ENVIRONMENT);
-  // 直径裁剪到 20 后按存量高度推导占比：0.6/20=3% 低于下限，收敛到 5% → 高度 1 米。
+  // 直径裁剪到 30 后按存量高度推导占比：0.6/96 低于下限，收敛到 5% → 高度 1.5 米。
   assert.deepEqual(parseStoryScene3dEnvironment(JSON.stringify({
     projectionCenterHeight: 0.6,
     domeRadius: 96,
     panoramaHorizonV: 0.9,
-  })), withRatio(20, 0.05, 0.55));
+  })), withRatio(30, 0.05, 0.55));
 });
 
 test("投射中心高度由直径 × 占比派生，占比可调范围是 5% 到 20%", () => {
@@ -64,16 +64,25 @@ test("投射中心高度由直径 × 占比派生，占比可调范围是 5% 到
   assert.equal(large.projectionCenterHeight, 1.2);
 });
 
+test("半球直径扩展到 30 米时投射中心高度仍按占比完整派生", () => {
+  const normalized = normalizeStoryScene3dEnvironment({
+    domeRadius: 30,
+    projectionCenterHeightRatio: 0.2,
+  });
+  assert.equal(normalized.domeRadius, 30);
+  assert.equal(normalized.projectionCenterHeight, 6);
+});
+
 test("旧快照没有占比时按存量高度与直径推导", () => {
   const normalized = normalizeStoryScene3dEnvironment({ projectionCenterHeight: 1.7, domeRadius: 10 });
   assert.equal(normalized.projectionCenterHeightRatio, 0.17);
   assert.equal(normalized.projectionCenterHeight, 1.7);
 });
 
-test("场景资产 HDRI 半球直径的可调范围是 5 到 20", () => {
+test("场景资产 HDRI 半球直径的可调范围是 5 到 30", () => {
   assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 5 }).domeRadius, 5);
-  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 20 }).domeRadius, 20);
-  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 21 }).domeRadius, 20);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 30 }).domeRadius, 30);
+  assert.equal(normalizeStoryScene3dEnvironment({ domeRadius: 31 }).domeRadius, 30);
 });
 
 test("全景地面分界会被保存并按 45% 到 55% 归一化", () => {

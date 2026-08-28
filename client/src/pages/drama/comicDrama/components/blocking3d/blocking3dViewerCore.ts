@@ -102,10 +102,10 @@ export function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmen
     projectionCenterHeight: (() => {
       // 高度由直径 × 占比派生，直径拖动时投射中心等比跟随。
       const ratio = clamp(numberOr(input?.projectionCenterHeightRatio, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio), 0.05, 0.2);
-      const diameter = clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 20);
+      const diameter = clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 30);
       return Math.round(diameter * ratio * 100) / 100;
     })(),
-    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 20),
+    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 30),
     panoramaHorizonV: clamp(numberOr(input?.panoramaHorizonV, DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV), 0.45, 0.55),
     yawDeg: 0,
     intensity: 1,
