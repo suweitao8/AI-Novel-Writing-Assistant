@@ -19,6 +19,8 @@ const ComicDramaStudioPage = lazy(() => import("@/pages/drama/comicDrama/ComicDr
 const DramaBlocking3DPage = lazy(() => import("@/pages/drama/comicDrama/DramaBlocking3DPage"));
 const DramaScene3DPage = lazy(() => import("@/pages/drama/comicDrama/DramaScene3DPage"));
 const DramaProjectPage = lazy(() => import("@/pages/drama/DramaProjectPage"));
+const ModelLibraryPage = lazy(() => import("@/pages/models/ModelLibraryPage"));
+const ModelEditorPage = lazy(() => import("@/pages/models/ModelEditorPage"));
 const ComicWorkspacePage = lazy(() => import("@/pages/comic/ComicWorkspacePage"));
 const ComicProjectPage = lazy(() => import("@/pages/comic/ComicProjectPage"));
 const CreativeHubPage = lazy(() => import("@/pages/creativeHub/CreativeHubPage"));
@@ -67,6 +69,8 @@ const routes: RouteObject[] = [
       { path: "drama/studio/:novelId/scenes/:sceneId/3d", element: <DramaScene3DPage /> },
       { path: "drama/projects/:id/shots/:shotId/blocking-3d", element: <DramaBlocking3DPage /> },
       { path: "drama/projects/:id", element: <DramaProjectPage /> },
+      { path: "models", element: <ModelLibraryPage /> },
+      { path: "models/:modelId", element: <ModelEditorPage /> },
       { path: "comic", element: <ComicWorkspacePage /> },
       { path: "comic/projects/:id", element: <ComicProjectPage /> },
       { path: "creative-hub", element: <CreativeHubPage /> },

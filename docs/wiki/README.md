@@ -51,6 +51,7 @@ Wiki 不记录单次提交改了什么，也不替代 release notes。它只记�
 
 - [新手优先与整本小说完成原则](./product/beginner-first-novel-completion.md)
 - [工作台状态表达与下一步合同](./product/workspace-status-expression.md)
+- [模型库（/models）](./product/model-library.md)
 
 ## 写作边界
 
