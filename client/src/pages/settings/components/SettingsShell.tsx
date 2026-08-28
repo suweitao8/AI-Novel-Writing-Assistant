@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
-import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import { useRegisterPageTabs, type PageTabRow } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { isNavRouteVisible } from "@/config/dramaFocusNav";
 import { cn } from "@/lib/utils";
@@ -18,19 +18,29 @@ const items = [
 ].filter((item) => isNavRouteVisible(item.to));
 
 // 系统设置的二级页签即子路由：桌面端上收到顶部导航栏，移动端保留页内列表。
-export function SettingsShell(props: { title: string; description: string; children: ReactNode }) {
+// 部分页面（记录）还有自己的三级页签，通过 subTabs 并排注册到导航栏。
+export function SettingsShell(props: {
+  title?: string;
+  description?: string;
+  subTabs?: PageTabRow;
+  children: ReactNode;
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobileViewport = useIsMobileViewport();
   const activeItem = items.find((item) => (
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
   )) ?? items[0];
-  useRegisterPageTabs(!isMobileViewport, [{
+  const sectionsRow = {
     id: "settings-sections",
     tabs: items.map((item) => ({ key: item.to, label: item.label })),
     active: activeItem.to,
-    onSelect: (key) => navigate(key),
-  }]);
+    onSelect: (key: string) => navigate(key),
+  };
+  useRegisterPageTabs(
+    !isMobileViewport,
+    props.subTabs ? [sectionsRow, props.subTabs] : [sectionsRow],
+  );
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -56,10 +66,12 @@ export function SettingsShell(props: { title: string; description: string; child
         </nav>
       ) : null}
       <main className="min-w-0 space-y-6">
-        <header className="space-y-1">
-          <h1 className="text-2xl font-semibold text-foreground">{props.title}</h1>
-          <p className="text-sm leading-6 text-muted-foreground">{props.description}</p>
-        </header>
+        {props.title || props.description ? (
+          <header className="space-y-1">
+            {props.title ? <h1 className="text-2xl font-semibold text-foreground">{props.title}</h1> : null}
+            {props.description ? <p className="text-sm leading-6 text-muted-foreground">{props.description}</p> : null}
+          </header>
+        ) : null}
         {props.children}
       </main>
     </div>
