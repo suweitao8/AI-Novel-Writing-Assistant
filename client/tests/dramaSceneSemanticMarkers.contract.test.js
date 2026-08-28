@@ -11,7 +11,7 @@ const blockingPageSource = fs.readFileSync(
   "utf8",
 );
 
-test("场景 3D 编辑器提供状态级 AI 空间识别和标记聚焦", () => {
+test("场景 3D 编辑器提供状态级 AI 空间识别和标记聚焦，入口由功能开关门控", () => {
   assert.match(pageSource, /analyzeStoryScene3dMarkers/);
   assert.match(pageSource, /sceneMarkers:/);
   assert.match(pageSource, /onMarkerSelection/);
@@ -20,6 +20,11 @@ test("场景 3D 编辑器提供状态级 AI 空间识别和标记聚焦", () => 
   assert.match(pageSource, /isStoryScene3DMarkerSetCurrent/);
   assert.match(pageSource, /场景投射参数已改变，请重新识别空间标记/);
   assert.match(pageSource, /dirty && !\(await saveScene\(\)\)/);
+  // 空间标记暂关：识别入口所在的检查器分区整体不再渲染。
+  assert.match(
+    pageSource,
+    /\{STORY_SCENE_3D_MARKERS_ENABLED \? \(\s*<InspectorComponentSection title="空间标记">/,
+  );
 });
 
 test("分镜 3D 编辑器复用场景状态标记而不把标记写进镜头角色布局", () => {

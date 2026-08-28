@@ -83,8 +83,14 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /center band v=0\.48-0\.52 remains empty and uncluttered/);
   assert.match(scene, /hard middle-line ceiling: the lowest point of every object/);
   assert.match(scene, /redraw the whole room smaller and farther away instead of crossing the line/);
-  assert.match(scene, /middle distant zone v=0\.3-0\.5 holds the distant view/);
-  assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object kept complete and fully contained between v=0\.3 and v=0\.48/);
+  // 2026-08-29：全景只做背景——前景道具（室内家具、室外石块/草丛/灌木）改为后续摆放
+  // 3D 模型，任何区域都不得出现可摆放道具；中景带只保留远景背景。
+  assert.match(scene, /background-only panorama: this image is a pure backdrop for a 3D scene/);
+  assert.match(scene, /no near-field rocks, stones, grass tufts, bushes, shrubs, plants, logs, crates or ground clutter/);
+  assert.match(scene, /middle distant zone v=0\.3-0\.5 holds only the far background of the space/);
+  assert.match(scene, /fully contained between v=0\.3 and v=0\.48/);
+  assert.doesNotMatch(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object/);
+  assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground, floor or terrain surface and nothing placed on it/);
   assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
   assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
@@ -103,14 +109,17 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
     },
     hasReference: false,
   }, []);
-  // 2026-08-26：室内场景追加强化行——家具/墙根全部留在地平线以上，下半区只有纯地板
-  //（用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
+  // 2026-08-26：室内场景追加强化行——下半区只有纯地板（用户反馈：室内图床桌椅被画进
+  // 下半区，3D 投射后地板上长家具，影响分镜摆位）。
   // 2026-08-26 二轮重构：物理自洽的「舞台背景板双层构图」——放弃真实房间透视框架。
+  // 2026-08-29：室内只画裸建筑（门窗+固定装修），家具一律不入图、后续摆放 3D 模型。
   assert.match(interior, /interior composition: build the picture like a theater set poster in two flat layers/);
   assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls/);
-  assert.match(interior, /treat all furniture like flat stage-prop cutouts standing on the backdrop's bottom edge/);
-  assert.match(interior, /a deep, small-looking room always wins over an object crossing the line/);
-  assert.match(interior, /keep furniture small, flat and backdrop-like, never large foreground pieces/);
+  assert.match(interior, /the room is completely unfurnished: no beds, tables, chairs, sofas, desks, cabinets, shelves, counters, stoves, rugs with objects or any other furniture or standing props anywhere in the image/);
+  assert.match(interior, /furniture is placed later as separate 3D models in the scene editor/);
+  assert.match(interior, /keep the backdrop walls bare of standing objects/);
+  assert.doesNotMatch(interior, /treat all furniture like flat stage-prop cutouts/);
+  assert.doesNotMatch(interior, /keep furniture small, flat and backdrop-like/);
   assert.match(interior, /the flooring swatch stays completely empty/);
   // 2026-08-26（二轮收敛）：提示词明确写了的照片（如老照片）允许上墙且必须带相框；
   // 没写数量最多一张；提示词没提照片时一张都不出。

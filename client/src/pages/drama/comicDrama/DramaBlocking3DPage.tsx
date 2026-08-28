@@ -25,6 +25,7 @@ import {
   type DramaShotBlockingSketchEditorContext,
   type DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
+import { STORY_SCENE_3D_MARKERS_ENABLED } from "@ai-novel/shared/utils/scene3dMarkers";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -481,7 +482,7 @@ export default function DramaBlocking3DPage() {
         onSelect: () => selectObject(id),
       };
     }),
-    ...context.scene.markers.map((marker) => {
+    ...(STORY_SCENE_3D_MARKERS_ENABLED ? context.scene.markers.map((marker) => {
       const id = markerObjectId(marker.id);
       return {
         id,
@@ -490,7 +491,7 @@ export default function DramaBlocking3DPage() {
         selected: selectedObjectId === id,
         onSelect: () => selectObject(id),
       };
-    }),
+    }) : []),
   ];
 
   const cameraActions = (
@@ -759,7 +760,7 @@ export default function DramaBlocking3DPage() {
                 </InspectorComponentSection>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">从上方对象列表选择世界、摄像机、角色或空间标记。</p>
+              <p className="text-xs text-muted-foreground">{STORY_SCENE_3D_MARKERS_ENABLED ? "从上方对象列表选择世界、摄像机、角色或空间标记。" : "从上方对象列表选择世界、摄像机或角色。"}</p>
             )}
           </CardContent>
         </Card>

@@ -20,6 +20,7 @@ import {
   STORY_SCENE_3D_MARKER_KIND_LABELS,
   type StoryScene3DMarker,
 } from "@ai-novel/shared/types/comicDrama";
+import { STORY_SCENE_3D_MARKERS_ENABLED } from "@ai-novel/shared/utils/scene3dMarkers";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -553,6 +554,7 @@ export default function DramaScene3DPage() {
                     </label>
                   </div>
                 </InspectorComponentSection>
+                {STORY_SCENE_3D_MARKERS_ENABLED ? (
                 <InspectorComponentSection title="空间标记">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2">
@@ -579,6 +581,7 @@ export default function DramaScene3DPage() {
                     ) : null}
                   </div>
                 </InspectorComponentSection>
+                ) : null}
               </>
             ) : selectedObjectId === REFERENCE_OBJECT_ID ? (
               <>

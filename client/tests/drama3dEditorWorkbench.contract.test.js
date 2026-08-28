@@ -51,7 +51,7 @@ test("对象树只显示图标和名称，列表与属性内容各自在区域�
   assert.match(blockingPage, /overflow-y-auto/);
 });
 
-test("对象列表使用世界和参考角色语义，并直接列出空间标记", () => {
+test("对象列表使用世界和参考角色语义，空间标记条目由功能开关门控", () => {
   assert.match(scenePage, /label: "世界"/);
   assert.match(scenePage, /label: "参考角色"/);
   assert.match(scenePage, /visibleSceneMarkers\.map/);
@@ -59,7 +59,7 @@ test("对象列表使用世界和参考角色语义，并直接列出空间标�
   assert.doesNotMatch(scenePage, /label: "比例参照"/);
 
   assert.match(blockingPage, /label: "世界"/);
-  assert.match(blockingPage, /context\.scene\.markers\.map/);
+  assert.match(blockingPage, /STORY_SCENE_3D_MARKERS_ENABLED \? context\.scene\.markers\.map/);
 });
 
 test("对象卡和属性卡不重复显示标题与标题图标", () => {

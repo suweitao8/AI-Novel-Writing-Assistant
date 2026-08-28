@@ -38,8 +38,10 @@ test("室内场景全景提示词追加强化行：家具与墙根不落下半�
   }, []);
 
   assert.match(prompt, /interior composition: build the picture like a theater set poster in two flat layers/);
-  assert.match(prompt, /treat all furniture like flat stage-prop cutouts standing on the backdrop's bottom edge/);
-  assert.match(prompt, /a deep, small-looking room always wins over an object crossing the line/);
+  // 2026-08-29：室内只画裸建筑，家具不入图、后续摆放 3D 模型。
+  assert.match(prompt, /the room is completely unfurnished: no beds, tables, chairs, sofas, desks, cabinets, shelves, counters, stoves, rugs with objects or any other furniture or standing props anywhere in the image/);
+  assert.match(prompt, /furniture is placed later as separate 3D models in the scene editor/);
+  assert.match(prompt, /background-only panorama: this image is a pure backdrop for a 3D scene/);
   assert.match(prompt, /the flooring swatch stays completely empty/);
   assert.match(prompt, /wall décor rule: anything framed or hung on the walls is decorative media/);
   assert.match(prompt, /photographs appear on walls only when the scene description explicitly mentions them/);

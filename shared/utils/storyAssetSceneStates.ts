@@ -9,6 +9,7 @@ import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReference
 import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
 import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
 import {
+  STORY_SCENE_3D_MARKERS_ENABLED,
   adoptLegacyStoryScene3dMarkerEnvironment,
   normalizeStoryScene3dMarkerSet,
 } from "@ai-novel/shared/utils/scene3dMarkers";
@@ -53,6 +54,10 @@ export function normalizeSceneStates(
     timeOfDay,
     weather,
   }).map((state) => {
+    if (!STORY_SCENE_3D_MARKERS_ENABLED) {
+      const { scene3dMarkers: _disabled, ...withoutMarkers } = state;
+      return withoutMarkers;
+    }
     const scene3dMarkers = adoptLegacyStoryScene3dMarkerEnvironment(
       normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
         ...(input.scene3dEnvironment ? {
