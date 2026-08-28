@@ -1,6 +1,7 @@
 import * as pc from "playcanvas";
 
 import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
+import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
 import {
   createBlocking3dTransformGizmo,
   clamp,
@@ -22,6 +23,8 @@ export interface ModelViewerOptions {
   modelUrl: string;
   /** 源文件几何单位到米的换算；UE 静态网格（厘米）传 0.01。 */
   unitScale?: number;
+  /** 材质回填映射（GLB 里只有 FBX 占位材质，无贴图）。 */
+  materials?: ModelMaterialMap;
   onStatus?: (status: string) => void;
   /** gizmo 拖拽过程中的实时回读（面板数值跟手）。 */
   onTransformLive?: () => void;
@@ -281,8 +284,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 先在恒等变换下求源几何的世界包围盒（节点偏移参与计算），再一次性
   // 应用「米换算 + 底部中心落原点」的偏移。
   modelAdjust.addChild(inner);
-  app.root.syncHierarchy();
-  const bounds = computeSourceBounds(inner);
+  app.root.syncHierarchy();  const bounds = computeSourceBounds(inner);
   modelAdjust.setLocalScale(unitScale, unitScale, unitScale);
   if (bounds) {
     modelAdjust.setPosition(
@@ -299,6 +301,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   }
   fitView();
   options.onStatus?.("");
+  // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。
+  void applyModelMaterials(app, modelRoot, options.materials);
 
   // ── 相机导航：右键环绕 / 中键平移 / 滚轮缩放 / WASD+QE 飞行 ──
   let keyboardInput = new Set<string>();
