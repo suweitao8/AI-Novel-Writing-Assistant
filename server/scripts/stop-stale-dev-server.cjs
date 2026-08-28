@@ -45,7 +45,7 @@ function readWindowsNodeProcesses() {
   const output = execFileSync(
     powershellPath,
     ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true },
   ).trim();
 
   if (!output) {
@@ -76,7 +76,7 @@ function stopWindowsProcesses(processes) {
       "-Command",
       `Stop-Process -Id ${quotedIds} -Force -ErrorAction SilentlyContinue`,
     ],
-    { stdio: "ignore" },
+    { stdio: "ignore", windowsHide: true },
   );
 
   return targetIds.length;

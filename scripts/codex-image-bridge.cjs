@@ -108,7 +108,7 @@ function resolveCodexExecutable() {
   }
   const finder = process.platform === "win32" ? "where" : "which";
   try {
-    const lines = execFileSync(finder, ["codex"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] })
+    const lines = execFileSync(finder, ["codex"], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true })
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean);
@@ -159,7 +159,7 @@ function killProcessTree(child) {
   }
   if (process.platform === "win32") {
     try {
-      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+      spawn("taskkill", ["/pid", String(child.pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
     } catch {
       child.kill();
     }
