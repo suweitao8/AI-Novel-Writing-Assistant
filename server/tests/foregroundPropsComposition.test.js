@@ -144,7 +144,7 @@ test("keyframe 首帧提示词携带前景家具摘要", () => {
 
 test("全景图负向约束禁止一切可移动家具", () => {
   const panorama = read("src/services/image/panorama/scenePanoramaLayout.ts");
-  assert.match(panorama, /any bed, table, chair, sofa, desk, cabinet, shelf or counter anywhere in the image/);
-  assert.match(panorama, /furniture-free background/);
-  assert.match(panorama, /furniture-free backdrop/);
+  assert.match(panorama, /any furniture anywhere in the image/);
+  assert.match(panorama, /background-only panorama/);
+  assert.match(panorama, /the room is completely unfurnished/);
 });

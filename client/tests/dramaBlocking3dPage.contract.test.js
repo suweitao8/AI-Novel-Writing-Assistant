@@ -175,13 +175,14 @@ test("场景 3D 编辑页只允许相机交互，参考角色固定在 1.7 米",
   assert.match(scene3dPageSource, /拖动手柄移动物体 · 右键旋转 · 滚轮缩放 · 中键平移/);
 });
 
-test("对象树保留全部空间标记并使用世界/参考角色名称", () => {
+test("对象树由功能开关门控空间标记并使用世界/参考角色名称", () => {
   assert.match(scene3dPageSource, /label: "世界"/);
   assert.match(scene3dPageSource, /label: "参考角色"/);
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
   assert.match(pageSource, /label: "世界"/);
-  assert.match(pageSource, /context\.scene\.markers\.map/);
-  assert.match(pageSource, /从上方对象列表选择世界、摄像机、角色或空间标记/);
+  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED \? context\.scene\.markers\.map/);
+  // 空间标记暂关后，占位提示只引导到仍在对象列表中的对象。
+  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED \? "从上方对象列表选择世界、摄像机、角色或空间标记。" : "从上方对象列表选择世界、摄像机或角色。"/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {

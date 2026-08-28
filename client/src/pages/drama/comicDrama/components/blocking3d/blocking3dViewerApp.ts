@@ -5,6 +5,7 @@ import {
   resolveStoryScene3DActorStageRadius,
   resolveStoryScene3DDomeWorldRadius,
 } from "@ai-novel/shared/utils/blockingStage";
+import { STORY_SCENE_3D_MARKERS_ENABLED } from "@ai-novel/shared/utils/scene3dMarkers";
 
 import type {
   DramaShotBlockingSketch3DActor,
@@ -514,8 +515,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
 
   const setSceneMarkers = (markers: StoryScene3DMarker[]) => {
+    // 空间标记功能暂关：全景只做背景，道具改为摆放 3D 模型，视图不再渲染标记。
+    const accepted = STORY_SCENE_3D_MARKERS_ENABLED ? markers : [];
     const nextIds = new Set<string>();
-    for (const marker of markers) {
+    for (const marker of accepted) {
       if (!marker.id.trim()) continue;
       nextIds.add(marker.id);
       const existing = sceneMarkerRuntimes.get(marker.id);

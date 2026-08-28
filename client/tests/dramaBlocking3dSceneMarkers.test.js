@@ -36,6 +36,14 @@ test("viewer 支持空间标记射线选择、聚焦和运行时更新", () => {
   assert.match(viewerSource, /onMarkerSelection/);
 });
 
+test("空间标记功能暂关：viewer 丢弃全部标记输入，不渲染任何标记实体", () => {
+  assert.match(
+    viewerSource,
+    /STORY_SCENE_3D_MARKERS_ENABLED \? markers : \[\]/,
+  );
+  assert.match(viewerSource, /import \{ STORY_SCENE_3D_MARKERS_ENABLED \} from "@ai-novel\/shared\/utils\/scene3dMarkers"/);
+});
+
 test("空间标记 cube 挂在世界节点下，与 HDRI 背景同一父对象", () => {
   assert.match(viewerSource, /new pc\.Entity\("blocking3d-world"\)/);
   assert.match(

@@ -27,6 +27,15 @@ export const STORY_SCENE_3D_MARKER_LIMITS = {
   confidence: { min: 0, max: 1 },
 } as const;
 
+/**
+ * 空间标记功能总开关（当前关闭）。
+ *
+ * 产品方向：全景图只做背景，桌椅床等前景道具改为后续摆放可交互 3D 模型，
+ * 识别自全景图的空间标记失去意义。关闭后归一化层直接丢弃 scene3dMarkers，
+ * 3D 视图与设定中心不再产出/下发标记；恢复功能时改回 true 即可。
+ */
+export const STORY_SCENE_3D_MARKERS_ENABLED = false;
+
 /** 模型粗估距离的合法区间：只用于同方位前后排序，不做精确测距。 */
 export const STORY_SCENE_3D_MARKER_APPROX_DISTANCE = {
   min: 0.5,
