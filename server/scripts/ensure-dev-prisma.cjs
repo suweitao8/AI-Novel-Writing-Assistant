@@ -50,6 +50,7 @@ function runPrisma(args) {
     cwd: rootDir,
     stdio: "inherit",
     env: process.env,
+    windowsHide: true,
   });
   if (result.status !== 0) {
     process.exit(result.status ?? 1);
@@ -61,6 +62,7 @@ function runNodeProbe(script, cwd) {
     cwd,
     env: process.env,
     encoding: "utf8",
+    windowsHide: true,
   });
 }
 
@@ -130,6 +132,7 @@ function repairBetterSqlite3Binding(betterSqlite3Dir) {
     cwd: betterSqlite3Dir,
     stdio: "inherit",
     env: process.env,
+    windowsHide: true,
   });
 
   if (result.status !== 0) {

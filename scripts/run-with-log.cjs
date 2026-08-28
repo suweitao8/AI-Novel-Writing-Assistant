@@ -295,6 +295,7 @@ async function main() {
     },
     shell: process.platform === "win32",
     stdio: ["inherit", "pipe", "pipe"],
+    windowsHide: true,
   });
 
   if (child.stdout) {
