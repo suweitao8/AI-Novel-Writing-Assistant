@@ -87,13 +87,19 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 3D 模型，任何区域都不得出现可摆放道具；中景带只保留远景背景。
   assert.match(scene, /background-only panorama: this image is a pure backdrop for a 3D scene/);
   assert.match(scene, /no near-field rocks, stones, grass tufts, bushes, shrubs, plants, logs, crates or ground clutter/);
+  assert.match(scene, /even when the scene description mentions them/);
   assert.match(scene, /middle distant zone v=0\.3-0\.5 holds only the far background of the space/);
+  assert.match(scene, /windows, doors, stairs and other fixed architecture/);
   assert.match(scene, /fully contained between v=0\.3 and v=0\.48/);
   assert.doesNotMatch(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object/);
   assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground, floor or terrain surface and nothing placed on it/);
   assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
   assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
   assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
+  // 2026-08-28：全景图只做背景——可移动家具（床桌椅沙发柜）一律不入画，
+  // 前景家具由用户在 3D 场景摆放道具标记；场景文案提到家具也不画。
+  assert.match(scene, /background-only panorama: this image is a pure backdrop for a 3D scene/);
+  assert.doesNotMatch(scene, /every bed, table, chair, sofa, cabinet/);
   // 室内强化行只进 interior 场景，室外不得混入。
   assert.doesNotMatch(scene, /interior composition: build the picture like a theater set poster/);
   assert.doesNotMatch(scene, /wall décor rule/);
@@ -114,10 +120,11 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   // 2026-08-26 二轮重构：物理自洽的「舞台背景板双层构图」——放弃真实房间透视框架。
   // 2026-08-29：室内只画裸建筑（门窗+固定装修），家具一律不入图、后续摆放 3D 模型。
   assert.match(interior, /interior composition: build the picture like a theater set poster in two flat layers/);
-  assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls/);
-  assert.match(interior, /the room is completely unfurnished: no beds, tables, chairs, sofas, desks, cabinets, shelves, counters, stoves, rugs with objects or any other furniture or standing props anywhere in the image/);
+  assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls with windows, doors and fixed décor only/);
+  assert.match(interior, /the room is completely unfurnished: no beds, tables, chairs, sofas, desks, cabinets, shelves, counters, stoves, rugs with objects or any other furniture or standing props anywhere on the backdrop or the floor/);
   assert.match(interior, /furniture is placed later as separate 3D models in the scene editor/);
   assert.match(interior, /keep the backdrop walls bare of standing objects/);
+  assert.match(interior, /a deep, small-looking room always wins over an object crossing the line/);
   assert.doesNotMatch(interior, /treat all furniture like flat stage-prop cutouts/);
   assert.doesNotMatch(interior, /keep furniture small, flat and backdrop-like/);
   assert.match(interior, /the flooring swatch stays completely empty/);

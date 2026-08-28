@@ -38,7 +38,7 @@ export function buildDramaShotKeyframePrompt(input: DramaShotKeyframePromptInput
 
 export const dramaShotKeyframePrompt: PromptAsset<DramaShotKeyframePromptInput, string> = {
   id: "drama.shot.keyframe",
-  version: "v2",
+  version: "v3",
   taskType: "planner",
   mode: "text",
   language: "zh",

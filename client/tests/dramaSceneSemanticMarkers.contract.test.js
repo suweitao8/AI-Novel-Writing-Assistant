@@ -33,3 +33,14 @@ test("分镜 3D 编辑器复用场景状态标记而不把标记写进镜头角�
   assert.match(blockingPageSource, /场景空间标记/);
   assert.doesNotMatch(blockingPageSource, /layout3d\.markers/);
 });
+
+test("场景 3D 编辑器支持手动添加前景道具标记", () => {
+  assert.match(pageSource, /createStoryScene3dMarker/);
+  assert.match(pageSource, /STORY_SCENE_3D_MARKER_KINDS\.map/);
+  assert.match(pageSource, /aria-label="前景道具类型"/);
+  assert.match(pageSource, /添加标记/);
+  assert.match(pageSource, /标记已添加。/);
+  // 新建标记集合必须带当前投射参数快照，否则标记不会进入当前可用集合。
+  assert.match(pageSource, /sourceEnvironment: \{/);
+  assert.match(pageSource, /panoramaHorizonV: environmentSettings\.panoramaHorizonV/);
+});

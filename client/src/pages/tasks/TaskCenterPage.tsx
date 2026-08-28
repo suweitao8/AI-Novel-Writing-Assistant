@@ -59,7 +59,7 @@ function normalizeTaskSteps(steps: unknown): UnifiedTaskStep[] {
   return Array.isArray(steps) ? (steps as UnifiedTaskStep[]) : [];
 }
 
-export default function TaskCenterPage() {
+export default function TaskCenterPage({ compact = false }: { compact?: boolean } = {}) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const llm = useLLMStore();
@@ -530,12 +530,8 @@ export default function TaskCenterPage() {
 
   return (
     <div className="space-y-5">
-      <WorkspaceHeader
-        icon={ListChecks}
-        context="执行历史与恢复"
-        title="运行记录"
-        description="查看创作、拆书、知识索引和图片任务，优先处理需要你介入的记录。实时生成过程可从顶部“AI 实况”查看。"
-        actions={(
+      {compact ? (
+        <div className="flex justify-end">
           <Button
             type="button"
             variant="outline"
@@ -545,10 +541,28 @@ export default function TaskCenterPage() {
             <RefreshCw className={overviewQuery.isFetching || recoveryCandidatesQuery.isFetching || listQuery.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
             刷新记录
           </Button>
-        )}
-      />
+        </div>
+      ) : (
+        <>
+          <WorkspaceHeader
+            icon={ListChecks}
+            context="执行历史与恢复"
+            title="运行记录"
+            description="查看创作、拆书、知识索引和图片任务，优先处理需要你介入的记录。实时生成过程可从顶部“AI 实况”查看。"
+            actions={(
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void Promise.all([overviewQuery.refetch(), recoveryCandidatesQuery.refetch(), listQuery.refetch()])}
+                disabled={overviewQuery.isFetching || recoveryCandidatesQuery.isFetching || listQuery.isFetching}
+              >
+                <RefreshCw className={overviewQuery.isFetching || recoveryCandidatesQuery.isFetching || listQuery.isFetching ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
+                刷新记录
+              </Button>
+            )}
+          />
 
-      <WorkspaceNextAction
+          <WorkspaceNextAction
         className="rounded-2xl border-transparent px-5 py-3 shadow-none"
         icon={overviewErrorMessage ? RefreshCw : hasMustHandleTask ? ShieldAlert : Activity}
         tone={overviewQuery.isLoading ? "info" : overviewErrorMessage ? "danger" : hasMustHandleTask ? "danger" : waitingActionCount > 0 ? "info" : qualityReminderCount > 0 ? "warning" : runningCount + queuedCount > 0 ? "info" : allRows.length > 0 ? "success" : "neutral"}
@@ -612,6 +626,8 @@ export default function TaskCenterPage() {
           </Button>
         ) : undefined}
       />
+        </>
+      )}
 
       <TaskCenterSummaryCards
         activeCount={runningCount + queuedCount}
