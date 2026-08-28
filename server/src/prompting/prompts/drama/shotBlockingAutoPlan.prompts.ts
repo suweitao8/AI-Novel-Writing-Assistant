@@ -34,6 +34,8 @@ const autoPlanActorSchema = z.object({
     z.number().min(0.1).max(10),
   ]),
   pose: blockingPoseSchema,
+  /** 前景道具交互：角色与本镜动作发生坐/躺/倚靠等交互的空间标记 id（必须来自 sceneJson）。 */
+  interactionMarkerId: z.string().trim().max(80).optional(),
 });
 
 const blockingRelationSchema = z.object({
@@ -112,6 +114,24 @@ function parsePromptActorNames(raw: string | undefined): Set<string> {
   }
 }
 
+/** sceneJson 里真实存在的前景道具标记 id 集合；解析失败按空集合处理。 */
+export function parseSceneJsonMarkerIds(raw: string | undefined): Set<string> {
+  if (!raw?.trim()) return new Set();
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return new Set();
+    const markers = (parsed as { markers?: unknown }).markers;
+    if (!Array.isArray(markers)) return new Set();
+    return new Set(
+      markers
+        .map((marker) => (marker && typeof marker === "object" ? (marker as { id?: unknown }).id : undefined))
+        .filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
 function validateAutoPlanOutput(
   output: DramaShotBlockingAutoPlanOutput,
   input?: DramaShotBlockingAutoPlanPromptInput,
@@ -154,9 +174,23 @@ function validateAutoPlanOutput(
   if (names.length > 1 && relations.length === 0) {
     throw new Error("多角色自动构图必须明确输出角色关系。");
   }
+  // 前景道具交互必须指向 sceneJson 里真实存在的空间标记；
+  // 指向不存在的 id 属于 AI 幻觉，交给结构化重试修复而不是静默丢弃。
+  const markerIds = parseSceneJsonMarkerIds(input?.sceneJson);
+  for (const actor of output.actors) {
+    const interactionMarkerId = actor.interactionMarkerId?.trim();
+    if (!interactionMarkerId) continue;
+    if (markerIds.size === 0 || !markerIds.has(interactionMarkerId)) {
+      throw new Error(`自动构图的道具交互指向了不存在的空间标记：${interactionMarkerId}`);
+    }
+  }
   return {
     ...output,
-    actors: output.actors.map((actor) => ({ ...actor, characterName: actor.characterName.trim() })),
+    actors: output.actors.map((actor) => ({
+      ...actor,
+      characterName: actor.characterName.trim(),
+      interactionMarkerId: actor.interactionMarkerId?.trim() || undefined,
+    })),
     relations,
     compositionNote: output.compositionNote?.trim() || undefined,
   };
@@ -167,7 +201,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   DramaShotBlockingAutoPlanOutput
 > = {
   id: "drama.shot.blocking.autoPlan",
-  version: "v6",
+  version: "v7",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -186,6 +220,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
         "上一版自动构图的角色关系没有通过校验，请重新输出完整 JSON。",
         `校验信息：${validationError}`,
         "必须让 relations 中的 subjectCharacterName 和 objectCharacterName 都来自 actors，且每个 subject/object/relation 组合只能出现一次；多角色不能返回空 relations。",
+        "如果校验信息提到空间标记，说明 interactionMarkerId 指向了不存在的道具：必须改用 sceneJson 中真实存在的 marker id，或在没有道具交互时省略该字段。",
         "对于 on_top_of，subject 是上方主体，object 是下方承载者：object 贴地并使用 lying/prone，subject 使用 crouching/prone；sizeRelation 必须表达真实体量关系。",
         "不要输出解释文字、Markdown 或自定义 pose，只输出符合 schema 的完整 JSON。",
       ].join("\n")),
@@ -201,7 +236,10 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       "on_top_of 表示 subject 位于 object 上方：object 必须是贴地的承载者并使用 lying 或 prone，subject 必须使用 crouching、prone 或 kneeling 等兼容姿势；不要把上下角色颠倒。under 表示 subject 在 object 下方。",
       "sizeRelation 必须填写 subject 相对 object 的真实体量：larger 表示 subject 更大，smaller 表示 subject 更小，similar 表示体量接近；不能只依赖局部 scale 抹平输入角色的身高差。",
       "多角色镜头 relations 不能留空；每条关系的两端都必须是 actors 中的角色，方向必须和动作语义一致，不能重复或自指。",
-      "如果 sceneJson 提供了空间固定物体标记，必须把它们当作场景中的真实障碍和叙事参照：角色不要与床、桌、椅、柜子、门窗等标记长方体重叠；需要坐下、倚靠或经过时，使用相邻位置表达关系。没有标记时不要自行编造固定物体坐标。",
+      "如果 sceneJson 提供了空间标记，它们是真实存在的前景道具（床、桌、椅、沙发、书桌、柜子等）和固定结构（门窗、楼梯）：场景里的每一件道具都按其 marker id、label、位置和尺寸理解，规划时优先让角色用上与动作相关的道具。",
+      "道具交互规则：动作涉及坐下时，把角色直接摆到椅子/沙发/床沿的座位处——座面高约 0.4-0.5 米（position.y≈0.45），身体落在该道具长方体范围内，pose=sitting，并把该道具的 marker id 填入 interactionMarkerId；动作涉及躺下或睡觉时，把角色摆到床面/沙发上（position.y≈床垫面 0.5 米左右），pose=lying，interactionMarkerId 指向该床或沙发；动作涉及伏案、倚靠桌柜时，角色紧贴道具边缘，pose 用 sitting 或 interacting，interactionMarkerId 指向该道具。交互角色的朝向按动作语义面向谈话对象、桌面或镜头焦点。",
+      "未参与交互的道具仍是障碍：角色不得与门窗、楼梯、柜子以及本镜动作没有用到的桌椅床沙发重叠，也不要站进任何标记长方体内部；只有 interactionMarkerId 指向的道具才允许身体进入其范围。没有标记时不要自行编造固定物体坐标。",
+      "interactionMarkerId 只能填 sceneJson 里真实存在的 marker id，每个角色最多指向一个道具；本镜没有道具交互时省略该字段。compositionNote 里用一句话点出谁坐在/躺在了什么道具上。",
       "角色活动范围以场景投射中心为圆心限制在可用站位半径内：任何角色的站位，包括跑动、追逐等大幅度动作的目标位置，都不得超出该半径；靠边约 1 米永远保留为运动缓冲，不要把角色安排到那里。",
       "相机拍摄位固定放在场景投射中心 [0, projectionCenterHeight, 0]，高度与投射中心一致：你只能调整视线方向、拍摄距离和焦段来构图，相当于站在场景全景的原始取景点拍摄；服务端会把相机位置重写到投射中心，所以 azim/elev/distance 决定视角与取景，focalPoint 填希望看清的主体位置。",
       "相机必须能同时看清镜头主体，fovDeg、裁剪面和景深参数要与景别、主体距离匹配；景深焦点应落在主要叙事主体，景深范围不能让应当清楚的角色完全失焦。",

@@ -2,6 +2,7 @@ import { getImageModelProvider } from "../../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
+import { STORY_SCENE_3D_MARKER_KIND_LABELS, type StoryScene3DMarkerKind } from "@ai-novel/shared/types/comicDrama";
 import {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
@@ -95,6 +96,8 @@ interface SceneSettingLite {
   weather: string | null;
   /** 场景初始状态图（生成过且成功才有）。 */
   imageUrl: string | null;
+  /** 各状态前景道具标记的类型汇总（去重计数），供首帧把家具画进画面。 */
+  foregroundProps: string[];
 }
 
 interface PropSettingLite {
@@ -103,6 +106,22 @@ interface PropSettingLite {
   description: string | null;
   /** 45° 透视参考图（生成过且成功才有）。 */
   imageUrl: string | null;
+}
+
+/** 汇总各状态的前景道具标记类型（同类合并计数），用于首帧提示词。 */
+function collectForegroundProps(states: StoryAssetState[]): string[] {
+  const counts = new Map<StoryScene3DMarkerKind, number>();
+  for (const state of states) {
+    for (const marker of state.scene3dMarkers?.markers ?? []) {
+      counts.set(marker.kind, (counts.get(marker.kind) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .slice(0, 12)
+    .map(([kind, count]) => {
+      const label = STORY_SCENE_3D_MARKER_KIND_LABELS[kind] ?? kind;
+      return count > 1 ? `${label}×${count}` : label;
+    });
 }
 
 function resolveInitialSettingState(
@@ -123,10 +142,11 @@ function resolveInitialSettingState(
   sceneType?: string | null;
   timeOfDay?: string | null;
   weather?: string | null;
+  foregroundProps: string[];
 } {
   const fallbackDescription = fallback.description?.trim() || fallback.imagePrompt?.trim() || `${fallback.name}默认状态`;
   const fallbackImagePrompt = fallback.imagePrompt?.trim() || fallbackDescription;
-  const initial = normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
+  const states = normalizeStoryAssetStates(parseStoryAssetStatesJson(statesJson).states, {
     description: fallbackDescription,
     imagePrompt: fallbackImagePrompt,
     sceneType: fallback.sceneType === "interior" || fallback.sceneType === "exterior" || fallback.sceneType === "nature"
@@ -138,7 +158,8 @@ function resolveInitialSettingState(
     weather: fallback.weather === "sunny" || fallback.weather === "cloudy" || fallback.weather === "rainy"
       ? fallback.weather
       : null,
-  })[0];
+  });
+  const initial = states[0];
   const initialImage = initial?.image;
   return {
     stateLabel: initial?.label?.trim() || "默认",
@@ -149,6 +170,9 @@ function resolveInitialSettingState(
     sceneType: initial?.sceneType ?? null,
     timeOfDay: initial?.timeOfDay ?? null,
     weather: initial?.weather ?? null,
+    // 全景图只做背景后，前景家具由 3D 标记承载：把标记类型汇总进首帧提示词，
+    // 保证画面里仍然出现这些家具。
+    foregroundProps: collectForegroundProps(states),
   };
 }
 
@@ -375,6 +399,7 @@ async function resolveNovelSettingSources(project: { source: string; sourceRef?:
         sceneType: initial.sceneType ?? null,
         timeOfDay: initial.timeOfDay ?? null,
         weather: initial.weather ?? null,
+        foregroundProps: initial.foregroundProps,
       };
     }),
     props: props.map(({ id, imageData, statesJson, ...rest }) => {
@@ -466,6 +491,9 @@ function buildSettingPromptLines(shot: ShotKeyframeSource, settings: { scenes: S
     }
     if (environment) {
       lines.push(`场景环境：${environment}`);
+    }
+    if (scene.foregroundProps.length > 0) {
+      lines.push(`场景内前景家具（按摆位草图的位置与朝向呈现）：${scene.foregroundProps.join("、")}`);
     }
   }
   const matchedProps = matchPropsInShotText(settings.props, shot);
