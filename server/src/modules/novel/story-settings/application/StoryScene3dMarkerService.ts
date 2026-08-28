@@ -30,6 +30,7 @@ import {
 } from "./StoryScene3dEnvironment";
 import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
+import { mergeStoryScene3dMarkerSets } from "@ai-novel/shared/utils/scene3dMarkers";
 import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
 
 const MAX_ANALYZE_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -279,7 +280,9 @@ export class StoryScene3dMarkerService {
         if (!storyScene3DEnvironmentMatches(liveEnvironment, environment)) {
           throw new AppError("场景投射参数已改变，请重新识别空间标记。", 409);
         }
-        return { ...state, scene3dMarkers: markerSet };
+        // 全景图只做背景后，前景家具主要靠手动摆放：重新识别整体替换 AI 标记，
+        // 但必须原样保留用户手动放置的前景道具标记。
+        return { ...state, scene3dMarkers: mergeStoryScene3dMarkerSets(markerSet, state.scene3dMarkers) };
       },
     });
 

@@ -6,11 +6,13 @@ import type {
   StoryScene3DMarkerImageRegion,
   StoryScene3DMarkerKind,
   StoryScene3DMarkerSet,
+  StoryScene3DVector3,
 } from "@ai-novel/shared/types/comicDrama";
 import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
+  STORY_SCENE_3D_MARKER_KIND_LABELS,
 } from "@ai-novel/shared/types/comicDrama";
 import {
   projectStoryScene3dMarkerSetFromImageRegions,
@@ -300,5 +302,75 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
       domeRadius: environment.domeRadius,
       panoramaHorizonV: environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     },
+  };
+}
+
+/** 手动创建前景道具时的默认长方体尺寸（米）：X 宽 / Y 使用高度 / Z 深。 */
+export const STORY_SCENE_3D_MARKER_DEFAULT_SIZES: Record<StoryScene3DMarkerKind, StoryScene3DVector3> = {
+  bed: [2.0, 0.55, 1.5],
+  table: [1.2, 0.75, 0.8],
+  chair: [0.5, 0.45, 0.5],
+  sofa: [1.8, 0.45, 0.85],
+  desk: [1.2, 0.75, 0.6],
+  cabinet: [1.0, 1.8, 0.5],
+  shelf: [1.0, 1.8, 0.35],
+  door: [0.95, 2.05, 0.12],
+  window: [1.4, 1.4, 0.12],
+  counter: [1.6, 0.95, 0.65],
+  stair: [1.2, 1.8, 2.4],
+  other: [0.8, 0.9, 0.8],
+};
+
+const WALL_ANCHOR_MARKER_KINDS = new Set<StoryScene3DMarkerKind>(["door", "window"]);
+
+/**
+ * 手动摆放一个前景道具标记（2026-08-28 前景/背景分层契约）：
+ * 全景图只做背景，桌椅床等家具由用户在 3D 场景里以标记形式摆放，
+ * 角色摆位可与其交互（坐椅子、躺床）。坐标是粗略落点，用户随后
+ * 用手柄或数值微调；floor 锚点的落地高度由归一化器统一处理。
+ */
+export function createStoryScene3dMarker(
+  kind: StoryScene3DMarkerKind,
+  options: {
+    id?: string;
+    label?: string;
+    /** 相对投射中心的前向落点（米），默认放在投射中心前方 1.5 米。 */
+    forwardMeters?: number;
+  } = {},
+): StoryScene3DMarker {
+  const size = [...STORY_SCENE_3D_MARKER_DEFAULT_SIZES[kind]] as StoryScene3DVector3;
+  const anchor: StoryScene3DMarkerAnchor = WALL_ANCHOR_MARKER_KINDS.has(kind) ? "wall" : "floor";
+  const forward = options.forwardMeters ?? 1.5;
+  const generatedId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `manual-${kind}-${Math.random().toString(36).slice(2, 10)}`;
+  return {
+    id: options.id ?? generatedId,
+    kind,
+    label: options.label?.trim() || STORY_SCENE_3D_MARKER_KIND_LABELS[kind],
+    anchor,
+    position: [0, anchor === "wall" ? size[1] / 2 : 0, forward],
+    size,
+    yawDeg: 0,
+    confidence: 1,
+    source: "manual",
+  };
+}
+
+/**
+ * 重新空间识别时保留用户手动摆放的前景道具：AI 识别结果整体替换，
+ * 手动标记按原坐标原样带回（同 id 视为已被识别覆盖，不重复携带）。
+ */
+export function mergeStoryScene3dMarkerSets(
+  next: StoryScene3DMarkerSet,
+  previous: StoryScene3DMarkerSet | null | undefined,
+): StoryScene3DMarkerSet {
+  const manual = (previous?.markers ?? []).filter((marker) => marker.source === "manual");
+  if (manual.length === 0) return next;
+  const nextIds = new Set(next.markers.map((marker) => marker.id));
+  const carried = manual.filter((marker) => !nextIds.has(marker.id));
+  return {
+    ...next,
+    markers: [...next.markers, ...carried].slice(0, STORY_SCENE_3D_MARKER_LIMITS.maxMarkers),
   };
 }

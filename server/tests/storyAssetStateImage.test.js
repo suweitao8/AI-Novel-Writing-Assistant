@@ -82,12 +82,17 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   assert.match(scene, /lower ground zone v=0\.52-1\.0 \(the whole bottom half below v=0\.5\) contains only one continuous clean ground/);
   assert.match(scene, /center band v=0\.48-0\.52 remains empty and uncluttered/);
   assert.match(scene, /hard middle-line ceiling: the lowest point of every object/);
-  assert.match(scene, /redraw the whole room smaller and farther away instead of crossing the line/);
+  assert.match(scene, /redraw the whole view smaller and farther away instead of crossing the line/);
   assert.match(scene, /middle distant zone v=0\.3-0\.5 holds the distant view/);
-  assert.match(scene, /every bed, table, chair, sofa, cabinet, tree, building, rock and other tall object kept complete and fully contained between v=0\.3 and v=0\.48/);
+  assert.match(scene, /windows, doors, stairs and other fixed architecture or natural tall elements \(trees, rocks\) kept complete and fully contained between v=0\.3 and v=0\.48/);
   assert.match(scene, /upper sky zone v=0\.0-0\.3 contains only clean sky or ceiling/);
   assert.match(scene, /no distant objects, structure tops, floating fragments or debris reach above the sky line/);
-  assert.match(scene, /no object, furniture leg, hard contact fragment or large shadow crosses it/);
+  assert.match(scene, /no object, hard contact fragment or large shadow crosses it/);
+  // 2026-08-28：全景图只做背景——可移动家具（床桌椅沙发柜）一律不入画，
+  // 前景家具由用户在 3D 场景摆放道具标记；场景文案提到家具也不画。
+  assert.match(scene, /furniture-free background: this panorama is a pure background backdrop/);
+  assert.match(scene, /never render beds, tables, chairs, sofas, desks, cabinets, shelves, counters/);
+  assert.doesNotMatch(scene, /every bed, table, chair, sofa, cabinet/);
   // 室内强化行只进 interior 场景，室外不得混入。
   assert.doesNotMatch(scene, /interior composition: build the picture like a theater set poster/);
   assert.doesNotMatch(scene, /wall décor rule/);
@@ -107,10 +112,9 @@ test("buildStateImagePrompt：不参考时不输出一致性指令；场景/道�
   //（用户反馈：室内图床桌椅被画进下半区，3D 投射后地板上长家具，影响分镜摆位）。
   // 2026-08-26 二轮重构：物理自洽的「舞台背景板双层构图」——放弃真实房间透视框架。
   assert.match(interior, /interior composition: build the picture like a theater set poster in two flat layers/);
-  assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls/);
-  assert.match(interior, /treat all furniture like flat stage-prop cutouts standing on the backdrop's bottom edge/);
+  assert.match(interior, /the top half is a straight-on backdrop painting of the room's far walls with windows, doors and fixed décor only/);
+  assert.match(interior, /furniture-free backdrop: no beds, tables, chairs, sofas, desks, cabinets, shelves, counters or loose props anywhere on the backdrop or the floor/);
   assert.match(interior, /a deep, small-looking room always wins over an object crossing the line/);
-  assert.match(interior, /keep furniture small, flat and backdrop-like, never large foreground pieces/);
   assert.match(interior, /the flooring swatch stays completely empty/);
   // 2026-08-26（二轮收敛）：提示词明确写了的照片（如老照片）允许上墙且必须带相框；
   // 没写数量最多一张；提示词没提照片时一张都不出。

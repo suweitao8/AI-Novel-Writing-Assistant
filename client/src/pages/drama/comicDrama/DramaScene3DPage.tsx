@@ -17,9 +17,13 @@ import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import {
   isStoryScene3DMarkerSetCurrent,
+  STORY_SCENE_3D_MARKER_KINDS,
   STORY_SCENE_3D_MARKER_KIND_LABELS,
   type StoryScene3DMarker,
+  type StoryScene3DMarkerKind,
+  type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
+import { createStoryScene3dMarker } from "@ai-novel/shared/utils/scene3dMarkers";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -38,6 +42,7 @@ import {
   type Drama3DObjectItem,
 } from "./components/editor3d";
 import { Layers3, MapPin, Ruler } from "lucide-react";
+import SelectControl from "@/components/common/SelectControl";
 import {
   buildStudioNavigationPath,
   resolveStudioReturnPath,
@@ -87,6 +92,8 @@ export default function DramaScene3DPage() {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [analyzingMarkers, setAnalyzingMarkers] = useState(false);
+  // 前景道具：全景图只做背景，桌椅床等家具在这里手动摆放，供角色摆位交互。
+  const [newMarkerKind, setNewMarkerKind] = useState<StoryScene3DMarkerKind>("chair");
   const [selectedObjectId, setSelectedObjectId] = useState<SceneObjectSelectionId>(SCENE_OBJECT_ID);
   // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的空间标记。
   const [transformTool, setTransformTool] = useState<Blocking3dTransformTool | null>("translate");
@@ -328,6 +335,42 @@ export default function DramaScene3DPage() {
     };
   }, [patchMarker]);
 
+  // 手动摆放前景道具：按当前类型追加一个默认尺寸的标记，落地高度由归一化器处理，
+  // 添加后用移动/旋转/缩放手柄或 Transform 数值微调到目标位置。
+  const addMarker = useCallback(async (): Promise<void> => {
+    if (!scene || !selectedState || saving) return;
+    const existing = selectedState.scene3dMarkers?.markers ?? [];
+    const sameKindCount = existing.filter((marker) => marker.kind === newMarkerKind).length;
+    const baseLabel = STORY_SCENE_3D_MARKER_KIND_LABELS[newMarkerKind];
+    const marker = createStoryScene3dMarker(newMarkerKind, {
+      label: sameKindCount > 0 ? `${baseLabel}${sameKindCount + 1}` : baseLabel,
+    });
+    const markerSet: StoryScene3DMarkerSet = selectedState.scene3dMarkers
+      ? { ...selectedState.scene3dMarkers, markers: [...existing, marker] }
+      : {
+        schemaVersion: 1,
+        status: "ready",
+        markers: [marker],
+        sourceEnvironment: {
+          projectionCenterHeight: environmentSettings.projectionCenterHeight,
+          ...(environmentSettings.projectionCenterHeightRatio != null
+            ? { projectionCenterHeightRatio: environmentSettings.projectionCenterHeightRatio }
+            : {}),
+          domeRadius: environmentSettings.domeRadius,
+          panoramaHorizonV: environmentSettings.panoramaHorizonV,
+        },
+      };
+    const nextStates = scene.states.map((state) => (
+      state.id === selectedState.id ? { ...state, scene3dMarkers: markerSet } : state
+    ));
+    try {
+      await applyStatesUpdate({ states: nextStates }, "标记已添加。");
+      setSelectedObjectId(markerObjectId(marker.id));
+    } catch (error) {
+      toast.error("标记添加失败。", { description: error instanceof Error ? error.message : undefined });
+    }
+  }, [applyStatesUpdate, environmentSettings, newMarkerKind, saving, scene, selectedState]);
+
   // Unity GameObject 名字段：世界（场景名）与空间标记的 label 都可以改名并立即落库。
   const renameSelectedObject = useCallback(async (nextName: string): Promise<void> => {
     const trimmed = nextName.trim();
@@ -567,6 +610,28 @@ export default function DramaScene3DPage() {
                         {analyzingMarkers ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
                         {analyzingMarkers ? "识别中，约 1 分钟" : selectedState.scene3dMarkers ? "重新识别" : "识别空间"}
                       </AiButton>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <SelectControl
+                        aria-label="前景道具类型"
+                        value={newMarkerKind}
+                        disabled={saving}
+                        onChange={(event) => setNewMarkerKind(event.target.value as StoryScene3DMarkerKind)}
+                        className="h-8 min-w-0 flex-1 text-xs"
+                      >
+                        {STORY_SCENE_3D_MARKER_KINDS.map((kind) => (
+                          <option key={kind} value={kind}>{STORY_SCENE_3D_MARKER_KIND_LABELS[kind]}</option>
+                        ))}
+                      </SelectControl>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={saving}
+                        onClick={() => void addMarker()}
+                      >
+                        <MapPin className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />添加标记
+                      </Button>
                     </div>
                     {analyzingMarkers ? (
                       <p className="text-xs text-muted-foreground" role="status">正在读取全景图中的固定物体，请保持页面打开。</p>
