@@ -39,6 +39,7 @@ export default function ModelEditorPage() {
       canvas,
       modelUrl: entry.fileUrl,
       unitScale: entry.unitScale,
+      materials: entry.materials,
       onStatus: (next) => setStatus(next || "就绪"),
       onTransformLive: () => setTransform(viewerRef.current?.getTransform() ?? transform),
       onTransformCommit: () => setTransform(viewerRef.current?.getTransform() ?? transform),

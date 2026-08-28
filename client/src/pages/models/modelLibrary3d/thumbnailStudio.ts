@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import { clamp, createMaterial, createPlane, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
+import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
 
 /**
@@ -11,7 +12,7 @@ import { computeSourceBounds } from "./modelViewerApp";
  */
 
 const THUMBNAIL_SIZE = { width: 360, height: 270 } as const;
-const STORAGE_KEY = "model-library:thumbnails:v5";
+const STORAGE_KEY = "model-library:thumbnails:v7";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -227,6 +228,8 @@ function createThumbnailStudio(): Promise<{
           centerY = bounds.halfExtents[1] * unitScale;
           radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]) * unitScale;
         }
+        // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
+        await applyModelMaterials(app, root, entry.materials);
         frame(centerY, radius);
         drawFrame();
         drawFrame();
