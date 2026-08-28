@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   BookOpenText,
+  Box,
   Braces,
   Clapperboard,
   Database,
@@ -51,6 +52,7 @@ const navGroups: NavGroup[] = [
       { to: "/", label: "首页", icon: House },
       { to: "/novels", label: "小说列表", icon: BookOpenText },
       { to: "/drama", label: "漫剧", icon: Clapperboard },
+      { to: "/models", label: "模型库", icon: Box },
       { to: "/comic", label: "漫画工作台", icon: SquareStack },
       { to: "/creative-hub", label: "创作中枢", icon: LayoutDashboard },
       { to: "/book-analysis", label: "拆书", icon: ScanSearch },

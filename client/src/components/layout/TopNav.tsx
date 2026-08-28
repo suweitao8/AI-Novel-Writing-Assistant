@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { NavLink } from "react-router-dom";
 import {
+  Box,
   Clapperboard,
   LayoutDashboard,
   Settings2,
@@ -15,6 +16,7 @@ import { usePageTabRows, useSetPageNavActionsSlot, type PageTabRow } from "./Pag
 
 const iconByRoute = new Map<string, LucideIcon>([
   ["/drama", Clapperboard],
+  ["/models", Box],
   ["/settings", Settings2],
 ]);
 
