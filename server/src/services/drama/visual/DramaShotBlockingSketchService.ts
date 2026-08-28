@@ -46,6 +46,7 @@ import {
   type DramaShotBlockingSketch3DLayout,
   type DramaShotBlockingSketchActor,
   type DramaShotBlockingSketchData,
+  type DramaShotBlockingSketch3DActor,
   type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
 import { resolveStoryScene3dEnvironment } from "@ai-novel/shared/utils/scene3dEnvironment";
@@ -510,6 +511,144 @@ function normalizedName(value: string): string {
   return value.trim().toLocaleLowerCase();
 }
 
+const AUTO_PLAN_RELATION_TYPES = new Set([
+  "on_top_of",
+  "under",
+  "beside",
+  "in_front_of",
+  "behind",
+  "facing",
+  "holding",
+  "attacking",
+  "following",
+]);
+const AUTO_PLAN_SIZE_RELATION_TYPES = new Set(["larger", "smaller", "similar"]);
+const AUTO_PLAN_ON_TOP_OF_MAX_HORIZONTAL_GAP_METERS = 0.9;
+const AUTO_PLAN_ON_TOP_OF_SUPPORT_HEIGHT_RATIO = 0.18;
+const AUTO_PLAN_RELATIVE_SIZE_MARGIN = 1.15;
+const AUTO_PLAN_GROUND_POSES = new Set<DramaShotBlockingSketchPose>(["lying", "prone"]);
+const AUTO_PLAN_UPPER_POSES = new Set<DramaShotBlockingSketchPose>(["crouching", "prone", "kneeling"]);
+
+type DramaShotBlockingAutoPlanRelation = DramaShotBlockingAutoPlanOutput["relations"][number];
+
+function clampAutoPlanNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function invalidAutoPlanRelation(message: string): never {
+  throw new AppError(`自动构图关系无效：${message}`, 422);
+}
+
+function enforceAutoPlanRelativeSize(
+  subject: DramaShotBlockingSketch3DActor,
+  object: DramaShotBlockingSketch3DActor,
+  sizeRelation: DramaShotBlockingAutoPlanRelation["sizeRelation"],
+): void {
+  if (sizeRelation === "similar") return;
+  const subjectScale = subject.scale[1];
+  const objectScale = object.scale[1];
+  const targetScale = sizeRelation === "larger"
+    ? objectScale * AUTO_PLAN_RELATIVE_SIZE_MARGIN
+    : objectScale / AUTO_PLAN_RELATIVE_SIZE_MARGIN;
+  const factor = sizeRelation === "larger"
+    ? Math.max(1, targetScale / subjectScale)
+    : Math.min(1, targetScale / subjectScale);
+  if (Math.abs(factor - 1) < 1e-9) return;
+  const nextScale = subject.scale.map((axis) => axis * factor) as [number, number, number];
+  if (nextScale.some((axis) => axis < 0.1 || axis > 10)) {
+    invalidAutoPlanRelation(
+      `关系要求角色“${subject.characterName}”${sizeRelation === "larger" ? "更大" : "更小"}，但缩放会超出 3D 角色的安全范围。`,
+    );
+  }
+  subject.scale = nextScale;
+}
+
+function enforceAutoPlanOnTopOf(
+  upper: DramaShotBlockingSketch3DActor,
+  grounded: DramaShotBlockingSketch3DActor,
+  environment: StoryScene3DEnvironment,
+): void {
+  grounded.position = [grounded.position[0], 0, grounded.position[2]];
+  if (!AUTO_PLAN_GROUND_POSES.has(grounded.pose)) grounded.pose = "lying";
+  if (!AUTO_PLAN_UPPER_POSES.has(upper.pose)) upper.pose = "crouching";
+
+  const dx = upper.position[0] - grounded.position[0];
+  const dz = upper.position[2] - grounded.position[2];
+  const horizontalGap = Math.hypot(dx, dz);
+  const gapScale = horizontalGap > AUTO_PLAN_ON_TOP_OF_MAX_HORIZONTAL_GAP_METERS
+    ? AUTO_PLAN_ON_TOP_OF_MAX_HORIZONTAL_GAP_METERS / horizontalGap
+    : 1;
+  const supportHeight = clampAutoPlanNumber(
+    (grounded.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS) * AUTO_PLAN_ON_TOP_OF_SUPPORT_HEIGHT_RATIO,
+    0.15,
+    0.75,
+  );
+  upper.position = clampBlockingActorPositionToStage([
+    grounded.position[0] + dx * gapScale,
+    supportHeight,
+    grounded.position[2] + dz * gapScale,
+  ], environment);
+}
+
+/**
+ * 把模型输出的语义关系落实为可渲染的角色几何：关系决定上下层级，
+ * sizeRelation 决定实际归一化代理比例。关系只存在于本次规划结果，
+ * 不写入旧的 layout3d 合同，避免把临时语义扩散到持久化快照。
+ */
+function enforceAutoPlanRelations(
+  layoutActors: DramaShotBlockingSketch3DActor[],
+  relations: readonly DramaShotBlockingAutoPlanRelation[],
+  authoritativeActors: readonly BlockingSketchEditorActor[],
+  environment: StoryScene3DEnvironment,
+): void {
+  const actorByName = new Map(layoutActors.map((actor) => [normalizedName(actor.characterName), actor]));
+  const authoritativeNames = new Set(authoritativeActors.map((actor) => normalizedName(actor.characterName)));
+  const relationKeys = new Set<string>();
+
+  const resolvedRelations = relations.map((relation) => {
+    const subjectName = normalizedName(relation.subjectCharacterName);
+    const objectName = normalizedName(relation.objectCharacterName);
+    if (!AUTO_PLAN_RELATION_TYPES.has(relation.relation)) {
+      invalidAutoPlanRelation(`不支持关系“${String(relation.relation)}”。`);
+    }
+    if (!AUTO_PLAN_SIZE_RELATION_TYPES.has(relation.sizeRelation)) {
+      invalidAutoPlanRelation(`不支持体量关系“${String(relation.sizeRelation)}”。`);
+    }
+    if (!subjectName || !objectName || subjectName === objectName) {
+      invalidAutoPlanRelation("关系必须连接两个不同角色。");
+    }
+    if (!authoritativeNames.has(subjectName) || !authoritativeNames.has(objectName)) {
+      invalidAutoPlanRelation("关系引用了当前镜头之外的角色。");
+    }
+    const subject = actorByName.get(subjectName);
+    const object = actorByName.get(objectName);
+    if (!subject || !object) {
+      invalidAutoPlanRelation("关系引用了无法落位的角色。");
+    }
+    const key = `${subjectName}|${relation.relation}|${objectName}`;
+    if (relationKeys.has(key)) {
+      invalidAutoPlanRelation("输出包含重复的有向关系。");
+    }
+    relationKeys.add(key);
+    return { relation, subject, object };
+  });
+
+  if (layoutActors.length > 1 && resolvedRelations.length === 0) {
+    invalidAutoPlanRelation("多角色镜头不能缺少角色关系。");
+  }
+
+  for (const { relation, subject, object } of resolvedRelations) {
+    if (relation.relation === "on_top_of") {
+      enforceAutoPlanOnTopOf(subject, object, environment);
+    } else if (relation.relation === "under") {
+      enforceAutoPlanOnTopOf(object, subject, environment);
+    }
+  }
+  for (const { relation, subject, object } of resolvedRelations) {
+    enforceAutoPlanRelativeSize(subject, object, relation.sizeRelation);
+  }
+}
+
 /** 导出草图固定 16:9；视野兜底按同一画幅计算，与前端取景小窗一致。 */
 const SHOT_FRAME_ASPECT = 16 / 9;
 
@@ -580,6 +719,23 @@ export function buildDramaShotBlockingAutoPlanLayout(
     // 舞台合同：角色站位（含跑动等大幅动作落点）不进入半球边缘 1 米缓冲；
     // 拍摄位锚定在投射中心，构图自由度只保留视线方向、拍摄距离与焦段。
     const stageCamera = anchorBlockingCameraAtProjectionCenter(output.camera, environment);
+    const plannedActors: DramaShotBlockingSketch3DActor[] = output.actors.map((actor) => ({
+      ...(() => {
+        const source = actorByName.get(normalizedName(actor.characterName));
+        const heightMeters = source?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
+        const baseScale = heightToProxyScale(heightMeters);
+        return {
+          scale: actor.scale.map((value) => Math.max(0.1, Math.min(10, value * baseScale))) as [number, number, number],
+          heightMeters,
+        };
+      })(),
+      characterName: actor.characterName.trim(),
+      position: clampBlockingActorPositionToStage(actor.position, environment),
+      yawDeg: actor.yawDeg,
+      pose: actor.pose as DramaShotBlockingSketchPose,
+      actionPlaying: false,
+    }));
+    enforceAutoPlanRelations(plannedActors, output.relations, actors, environment);
     const layout = normalizeBlockingSketch3dLayout({
       schemaVersion: 1,
       engine: "playcanvas",
@@ -590,22 +746,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
         distance: stageCamera.distance,
         focalPoint: stageCamera.focalPoint,
       },
-      actors: output.actors.map((actor) => ({
-        ...(() => {
-          const source = actorByName.get(normalizedName(actor.characterName));
-          const heightMeters = source?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
-          const baseScale = heightToProxyScale(heightMeters);
-          return {
-            scale: actor.scale.map((value) => Math.max(0.1, Math.min(10, value * baseScale))) as [number, number, number],
-            heightMeters,
-          };
-        })(),
-        characterName: actor.characterName.trim(),
-        position: clampBlockingActorPositionToStage(actor.position, environment),
-        yawDeg: actor.yawDeg,
-        pose: actor.pose as DramaShotBlockingSketchPose,
-        actionPlaying: false,
-      })),
+      actors: plannedActors,
       environment,
     });
     // AI 规划后的确定性出画兜底：任何角色落在取景锥外时只放宽 fovDeg。

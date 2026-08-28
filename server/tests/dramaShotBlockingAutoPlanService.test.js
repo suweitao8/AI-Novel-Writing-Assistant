@@ -19,6 +19,12 @@ const planOutput = {
     { characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" },
     { characterName: "血角兽", position: [-1, 0, 0], yawDeg: 0, scale: [1.2, 1.2, 1.2], pose: "fighting" },
   ],
+  relations: [{
+    subjectCharacterName: "血角兽",
+    objectCharacterName: "沈烬",
+    relation: "on_top_of",
+    sizeRelation: "larger",
+  }],
   camera: {
     azim: -35,
     elev: -10,
@@ -124,6 +130,12 @@ test("自动构图把局部缩放乘到角色身高基准上并保存身高元�
       { ...planOutput.actors[0], characterName: "高个成年人", scale: [1, 1, 1] },
       { ...planOutput.actors[1], characterName: "小孩", scale: [1, 1, 1] },
     ],
+    relations: [{
+      subjectCharacterName: "小孩",
+      objectCharacterName: "高个成年人",
+      relation: "beside",
+      sizeRelation: "similar",
+    }],
   };
   const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
     heightAwareOutput,
@@ -135,6 +147,84 @@ test("自动构图把局部缩放乘到角色身高基准上并保存身高元�
   assert.equal(tall.heightMeters, 1.8);
   assert.equal(child.heightMeters, 0.9);
   assert.ok(Math.abs(tall.scale[0] / child.scale[0] - 2) < 0.0001);
+});
+
+test("第一镜头的关系归一化不会把承载者和上方主体反过来，并保留血角兽更大", () => {
+  const firstShotActors = [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },
+    { characterName: "血角兽", sourceImageKind: "state_sheet", heightMeters: 2.2, heightSource: "ai" },
+  ];
+  const invertedFirstShotOutput = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "叶晨", position: [0.4, 0.25, 0.1], pose: "standing", scale: [1, 1, 1] },
+      { ...planOutput.actors[1], characterName: "血角兽", position: [-0.4, 0, -0.1], pose: "prone", scale: [0.7, 0.7, 0.7] },
+    ],
+    relations: [{
+      subjectCharacterName: "血角兽",
+      objectCharacterName: "叶晨",
+      relation: "on_top_of",
+      sizeRelation: "larger",
+    }],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+    invertedFirstShotOutput,
+    firstShotActors,
+    { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+  );
+  const yechen = result.layout.actors.find((actor) => actor.characterName === "叶晨");
+  const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
+  assert.equal(yechen.pose, "lying");
+  assert.equal(yechen.position[1], 0);
+  assert.ok(["crouching", "prone", "kneeling"].includes(beast.pose));
+  assert.ok(beast.position[1] > yechen.position[1]);
+  assert.ok(Math.hypot(beast.position[0] - yechen.position[0], beast.position[2] - yechen.position[2]) <= 0.9);
+  assert.ok(beast.scale[1] > yechen.scale[1]);
+});
+
+test("自动构图服务拒绝关系中的未知角色、重复关系和多角色空关系", () => {
+  const firstShotActors = [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },
+    { characterName: "血角兽", sourceImageKind: "state_sheet", heightMeters: 2.2, heightSource: "ai" },
+  ];
+  const valid = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "叶晨", pose: "lying" },
+      { ...planOutput.actors[1], characterName: "血角兽", pose: "crouching" },
+    ],
+    relations: [{
+      subjectCharacterName: "血角兽",
+      objectCharacterName: "叶晨",
+      relation: "on_top_of",
+      sizeRelation: "larger",
+    }],
+  };
+  const environment = { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 };
+  assert.throws(
+    () => serviceModule.buildDramaShotBlockingAutoPlanLayout(
+      { ...valid, relations: [{ ...valid.relations[0], objectCharacterName: "不存在" }] },
+      firstShotActors,
+      environment,
+    ),
+    /关系.*角色|未知|不一致/,
+  );
+  assert.throws(
+    () => serviceModule.buildDramaShotBlockingAutoPlanLayout(
+      { ...valid, relations: [...valid.relations, valid.relations[0]] },
+      firstShotActors,
+      environment,
+    ),
+    /重复|关系/,
+  );
+  assert.throws(
+    () => serviceModule.buildDramaShotBlockingAutoPlanLayout(
+      { ...valid, relations: [] },
+      firstShotActors,
+      environment,
+    ),
+    /关系/,
+  );
 });
 
 test("自动构图服务通过注册 Prompt 获取镜头上下文并返回未落库布局", () => {
