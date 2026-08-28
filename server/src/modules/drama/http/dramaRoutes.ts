@@ -145,8 +145,10 @@ const blockingSketch3dActorSchema = z.object({
 });
 
 const blockingSketch3dEnvironmentSchema = z.object({
-  projectionCenterHeight: z.number().min(0.5).max(2),
-  domeRadius: z.number().min(5).max(20),
+  projectionCenterHeight: z.number().min(0.25).max(6),
+  projectionCenterHeightRatio: z.number().min(0.05).max(0.2).optional(),
+  // 接受旧快照的直径上限，随后由 normalizeBlockingSketchData 收敛到当前 5–30。
+  domeRadius: z.number().min(5).max(100),
   panoramaHorizonV: z.number().min(0.45).max(0.55).optional(),
   yawDeg: z.number().min(-180).max(180),
   intensity: z.number().min(0.6).max(1.6),

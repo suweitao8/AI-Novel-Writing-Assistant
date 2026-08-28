@@ -263,6 +263,7 @@ test("3D 摆位保存 HDRI 环境参数，并兼容没有环境字段的旧快�
   const normalized = normalizeBlockingSketchData({ ...validSketch, layout3d });
   assert.deepEqual(normalized.layout3d?.environment, {
     projectionCenterHeight: layout3d.environment.projectionCenterHeight,
+    projectionCenterHeightRatio: 0.06,
     domeRadius: layout3d.environment.domeRadius,
     panoramaHorizonV: layout3d.environment.panoramaHorizonV,
     yawDeg: 0,
@@ -412,8 +413,8 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     },
   };
   for (const [key, value] of [
-    ["projectionCenterHeight", 0.4],
-    ["projectionCenterHeight", 10.1],
+    ["projectionCenterHeightRatio", 0.01],
+    ["projectionCenterHeightRatio", 0.61],
     ["domeRadius", 4],
     ["domeRadius", 100.1],
     ["panoramaHorizonV", 0.39],
@@ -433,19 +434,24 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
     ...validSketch,
     layout3d: {
       ...baseLayout,
-      environment: { ...baseLayout.environment, projectionCenterHeight: 2, domeRadius: 20 },
+      environment: {
+        ...baseLayout.environment,
+        projectionCenterHeight: 6,
+        projectionCenterHeightRatio: 0.2,
+        domeRadius: 30,
+      },
     },
   });
-  assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 2);
-  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 20);
+  assert.equal(atUpperBoundary.layout3d?.environment?.projectionCenterHeight, 6);
+  assert.equal(atUpperBoundary.layout3d?.environment?.domeRadius, 30);
   const atLowerBoundary = normalizeBlockingSketchData({
     ...validSketch,
     layout3d: {
       ...baseLayout,
-      environment: { ...baseLayout.environment, projectionCenterHeight: 0.5, domeRadius: 5 },
+      environment: { ...baseLayout.environment, projectionCenterHeight: 0.25, projectionCenterHeightRatio: 0.05, domeRadius: 5 },
     },
   });
-  assert.equal(atLowerBoundary.layout3d?.environment?.projectionCenterHeight, 0.5);
+  assert.equal(atLowerBoundary.layout3d?.environment?.projectionCenterHeight, 0.25);
   assert.equal(atLowerBoundary.layout3d?.environment?.domeRadius, 5);
   const aboveNewBoundary = normalizeBlockingSketchData({
     ...validSketch,
@@ -454,7 +460,7 @@ test("HDRI 环境参数拒绝超出视口可控范围的值", () => {
       environment: { ...baseLayout.environment, domeRadius: 31 },
     },
   });
-  assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 20);
+  assert.equal(aboveNewBoundary.layout3d?.environment?.domeRadius, 30);
   const atHorizonBoundaries = normalizeBlockingSketchData({
     ...validSketch,
     layout3d: { ...baseLayout, environment: { ...baseLayout.environment, panoramaHorizonV: 0.65 } },
@@ -480,8 +486,9 @@ test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆�
       },
     },
   });
-  assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 0.6);
-  assert.equal(legacy.layout3d?.environment?.domeRadius, 20);
+  assert.equal(legacy.layout3d?.environment?.projectionCenterHeight, 1.5);
+  assert.equal(legacy.layout3d?.environment?.projectionCenterHeightRatio, 0.05);
+  assert.equal(legacy.layout3d?.environment?.domeRadius, 30);
   assert.equal(legacy.layout3d?.environment?.panoramaHorizonV, 0.5);
   const legacyHighCenter = normalizeBlockingSketchData({
     ...validSketch,
@@ -499,7 +506,8 @@ test("旧 HDRI 范围内的快照会裁剪到新范围，不会使整张 3D 摆�
       },
     },
   });
-  assert.equal(legacyHighCenter.layout3d?.environment?.projectionCenterHeight, 2);
+  assert.equal(legacyHighCenter.layout3d?.environment?.projectionCenterHeight, 3.6);
+  assert.equal(legacyHighCenter.layout3d?.environment?.projectionCenterHeightRatio, 0.2);
   assert.equal(legacyHighCenter.layout3d?.environment?.domeRadius, 18);
   assert.equal(legacy.layout3d?.environment?.yawDeg, 0);
   assert.equal(legacy.layout3d?.environment?.intensity, 1);

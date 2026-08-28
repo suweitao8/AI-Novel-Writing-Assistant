@@ -40,9 +40,10 @@ export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projec
 
 /** 投射中心高度、半球直径和全景地面分界的可调范围，场景编辑、空间标记和分镜草图共用同一份合同。 */
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
-  projectionCenterHeight: { min: 0.25, max: 4 },
+  // 投射高度由直径 × 5%–20% 派生；直径上限 30 时最大派生高度为 6 米。
+  projectionCenterHeight: { min: 0.25, max: 6 },
   projectionCenterHeightRatio: { min: 0.05, max: 0.2 },
-  domeRadius: { min: 5, max: 20 },
+  domeRadius: { min: 5, max: 30 },
   panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
 
