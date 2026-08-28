@@ -6,6 +6,7 @@
 
 const { spawn } = require("node:child_process");
 const fs = require("node:fs");
+const net = require("node:net");
 const path = require("node:path");
 
 const REPO_ROOT = path.resolve(__dirname, "..");
@@ -113,10 +114,30 @@ function spawnDetached(command, args, options) {
   return child;
 }
 
+/** 端口被任何进程占用即视为已有实例（健康或正在加载模型），绝不重复拉起。 */
+function isPortOccupied(port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.once("error", () => resolve(true));
+    probe.once("listening", () => {
+      probe.close(() => resolve(false));
+    });
+    probe.listen(port, "127.0.0.1");
+  });
+}
+
 async function ensureBridge(args, fetchImpl = fetch) {
   const healthURL = `http://127.0.0.1:${args.port}/health`;
   if (await isHttpReady(healthURL, fetchImpl)) {
     console.log(`VoxCPM2 音频桥已在运行：${healthURL}`);
+    return;
+  }
+
+  if (await isPortOccupied(args.port)) {
+    // 端口已被占用：现有实例要么健康检查瞬时不通过，要么模型还在加载。
+    // 再 spawn 一个只会造成多份模型互抢 GPU/内存，因此只等待、不重复启动。
+    console.log(`端口 ${args.port} 已被占用，等待现有 VoxCPM2 音频桥就绪：${healthURL}`);
+    await waitForHttpReady(healthURL, "VoxCPM2 音频桥", args.timeoutSeconds, fetchImpl);
     return;
   }
 
@@ -158,6 +179,7 @@ module.exports = {
   READY_TIMEOUT_SECONDS,
   isCanonicalBridgeHealth,
   isHttpReady,
+  isPortOccupied,
   parseArgs,
   resolveLogsDir,
   resolvePaths,
