@@ -2,123 +2,35 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const { prisma } = require("../dist/db/prisma.js");
-const { secretStore } = require("../dist/services/settings/secretStore/index.js");
-const { llmConnectivityService } = require("../dist/llm/connectivity.js");
-const quickSetup = require("../dist/modules/setup/onboarding/application/QuickSetupService.js");
+const creationEnvironment = require("../dist/modules/setup/onboarding/application/CreationEnvironmentService.js");
 const firstNovel = require("../dist/modules/setup/onboarding/application/FirstNovelOnboardingService.js");
 
-function restore(target, originals) {
-  for (const [key, value] of Object.entries(originals)) {
-    target[key] = value;
-  }
-}
+test("first novel onboarding sends an unready environment to model settings", async () => {
+  const chapterOriginal = prisma.chapter.findFirst;
+  const taskOriginal = prisma.novelWorkflowTask.findFirst;
+  const novelOriginal = prisma.novel.findFirst;
+  const environmentOriginal = creationEnvironment.getCreationEnvironmentReadiness;
 
-test("quick setup applies a verified model to every core creative route without exposing the key", async () => {
-  const secretOriginals = {
-    getProvider: secretStore.getProvider,
-    upsertProvider: secretStore.upsertProvider,
-    listProviders: secretStore.listProviders,
-  };
-  const connectivityOriginal = llmConnectivityService.testConnection;
-  const appSettingOriginals = {
-    findUnique: prisma.appSetting.findUnique,
-    upsert: prisma.appSetting.upsert,
-  };
-  const routeOriginals = {
-    findUnique: prisma.modelRouteConfig.findUnique,
-    upsert: prisma.modelRouteConfig.upsert,
-  };
-  const savedRoutes = new Map();
-  let savedProvider = null;
-  let selection = null;
-
-  secretStore.getProvider = async () => null;
-  secretStore.upsertProvider = async (provider, input) => {
-    savedProvider = { provider, ...input };
-    return {
-      provider,
-      displayName: input.displayName ?? null,
-      key: input.key ?? null,
-      model: input.model ?? null,
-      baseURL: input.baseURL ?? null,
-      isActive: true,
-      reasoningEnabled: true,
-      concurrencyLimit: 0,
-      requestIntervalMs: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-  };
-  secretStore.listProviders = async () => savedProvider ? [{
-    ...savedProvider,
-    displayName: null,
-    isActive: true,
-    reasoningEnabled: true,
-    concurrencyLimit: 0,
-    requestIntervalMs: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }] : [];
-  llmConnectivityService.testConnection = async ({ provider, model }) => ({
-    provider,
-    model,
-    ok: true,
-    latency: 5,
-    error: null,
-    requestProtocol: "openai_compatible",
-    plain: {
-      ok: true,
-      latency: 3,
-      error: null,
-      requestProtocol: "openai_compatible",
-    },
-    structured: {
-      ok: true,
-      latency: 5,
-      error: null,
-      requestProtocol: "openai_compatible",
-      strategy: "json_object",
-      reasoningForcedOff: false,
-      fallbackAvailable: false,
-      fallbackUsed: false,
-      errorCategory: null,
-      nativeJsonObject: true,
-      nativeJsonSchema: false,
-      profileFamily: "openai",
-    },
+  creationEnvironment.getCreationEnvironmentReadiness = async () => ({
+    ready: false,
+    provider: "codex",
+    model: "gpt-5.6-luna",
   });
-  prisma.appSetting.findUnique = async () => selection
-    ? { key: "llm.currentSelection", value: selection }
-    : null;
-  prisma.appSetting.upsert = async ({ update }) => {
-    selection = update.value;
-    return { key: "llm.currentSelection", value: selection };
-  };
-  prisma.modelRouteConfig.findUnique = async ({ where }) => savedRoutes.get(where.taskType) ?? null;
-  prisma.modelRouteConfig.upsert = async ({ where, create, update }) => {
-    const value = { ...(savedRoutes.get(where.taskType) ? update : create) };
-    savedRoutes.set(where.taskType, value);
-    return value;
-  };
+  prisma.chapter.findFirst = async () => null;
+  prisma.novelWorkflowTask.findFirst = async () => null;
+  prisma.novel.findFirst = async () => null;
 
   try {
-    const result = await quickSetup.completeQuickSetup({
-      providerKind: "builtin",
-      provider: "deepseek",
-      apiKey: "secret-test-key",
-      baseURL: "https://api.deepseek.com/v1",
-      model: "deepseek-chat",
-    });
-    assert.equal(result.status.readyForCreation, true);
-    assert.equal(result.status.routeCoverage.configured, result.status.routeCoverage.total);
-    assert.equal(savedRoutes.size, result.status.routeCoverage.total);
-    assert.equal(result.provider, "deepseek");
-    assert.equal(JSON.stringify(result).includes("secret-test-key"), false);
+    const projection = await firstNovel.getFirstNovelOnboardingProjection();
+    assert.equal(projection.currentMilestone, "environment");
+    assert.equal(projection.primaryAction.kind, "navigate");
+    assert.equal(projection.primaryAction.route, "/settings/models");
+    assert.equal(projection.primaryAction.label, "配置文本模型");
   } finally {
-    restore(secretStore, secretOriginals);
-    llmConnectivityService.testConnection = connectivityOriginal;
-    restore(prisma.appSetting, appSettingOriginals);
-    restore(prisma.modelRouteConfig, routeOriginals);
+    prisma.chapter.findFirst = chapterOriginal;
+    prisma.novelWorkflowTask.findFirst = taskOriginal;
+    prisma.novel.findFirst = novelOriginal;
+    creationEnvironment.getCreationEnvironmentReadiness = environmentOriginal;
   }
 });
 
@@ -126,16 +38,12 @@ test("first novel onboarding graduates only when a readable completed chapter ex
   const chapterOriginal = prisma.chapter.findFirst;
   const taskOriginal = prisma.novelWorkflowTask.findFirst;
   const novelOriginal = prisma.novel.findFirst;
-  const quickStatusOriginal = quickSetup.getQuickSetupStatus;
+  const environmentOriginal = creationEnvironment.getCreationEnvironmentReadiness;
 
-  quickSetup.getQuickSetupStatus = async () => ({
-    readyForCreation: true,
-    providers: [],
-    selectedProvider: "deepseek",
-    selectedModel: "deepseek-chat",
-    routeCoverage: { configured: 11, total: 11, missingTaskTypes: [] },
-    blockingReasons: [],
-    recommendedAction: "start_creating",
+  creationEnvironment.getCreationEnvironmentReadiness = async () => ({
+    ready: true,
+    provider: "codex",
+    model: "gpt-5.6-luna",
   });
   prisma.chapter.findFirst = async () => ({
     id: "chapter-1",
@@ -174,7 +82,7 @@ test("first novel onboarding graduates only when a readable completed chapter ex
     prisma.chapter.findFirst = chapterOriginal;
     prisma.novelWorkflowTask.findFirst = taskOriginal;
     prisma.novel.findFirst = novelOriginal;
-    quickSetup.getQuickSetupStatus = quickStatusOriginal;
+    creationEnvironment.getCreationEnvironmentReadiness = environmentOriginal;
   }
 });
 
@@ -182,16 +90,12 @@ test("first novel onboarding exposes production handoff as the single next actio
   const chapterOriginal = prisma.chapter.findFirst;
   const taskOriginal = prisma.novelWorkflowTask.findFirst;
   const novelOriginal = prisma.novel.findFirst;
-  const quickStatusOriginal = quickSetup.getQuickSetupStatus;
+  const environmentOriginal = creationEnvironment.getCreationEnvironmentReadiness;
 
-  quickSetup.getQuickSetupStatus = async () => ({
-    readyForCreation: true,
-    providers: [],
-    selectedProvider: "deepseek",
-    selectedModel: "deepseek-chat",
-    routeCoverage: { configured: 11, total: 11, missingTaskTypes: [] },
-    blockingReasons: [],
-    recommendedAction: "start_creating",
+  creationEnvironment.getCreationEnvironmentReadiness = async () => ({
+    ready: true,
+    provider: "codex",
+    model: "gpt-5.6-luna",
   });
   prisma.chapter.findFirst = async () => null;
   prisma.novelWorkflowTask.findFirst = async () => ({
@@ -224,6 +128,6 @@ test("first novel onboarding exposes production handoff as the single next actio
     prisma.chapter.findFirst = chapterOriginal;
     prisma.novelWorkflowTask.findFirst = taskOriginal;
     prisma.novel.findFirst = novelOriginal;
-    quickSetup.getQuickSetupStatus = quickStatusOriginal;
+    creationEnvironment.getCreationEnvironmentReadiness = environmentOriginal;
   }
 });

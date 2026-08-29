@@ -24,7 +24,7 @@
 - 音频槽的合成入口统一走 `server/src/services/audio/speechProvider.ts`（`synthesizeAudioSpeech`），配置解析顺序与文本/图片槽一致（已保存配置 > 环境变量 > 注册表默认值）；当前默认通过 `services/drama/audio/VoxCPM2TTSProvider.ts` 接入本机 VoxCPM2，协议契约见 `docs/wiki/architecture/voxcpm2-audio-provider.md`。IndexTTS 2.5 仅保留显式兼容适配，不属于默认启动链。
 - 音频槽的连通测试走 `POST /api/settings/model-categories/audio/test`：合成一句固定短语验证地址、密钥与模型整体可用，不复用文本模型的对话探测。
 - `LLMSelector` 只展示文本槽的模型列表；`llm-selection` 保存的历史选择只有落在文本槽供应商上时才沿用其模型，否则回落文本槽当前模型（`client/src/lib/llmSelection.ts` 的 `resolvePreferredLLMSelection`）。
-- 新手引导（QuickSetup）只配置文本槽：检测通过后写入全部任务路由的温度与协议偏好，并保存全局选择。
+- 文本槽只在模型设置页配置；文本任务运行时统一解析到文本槽当前模型，不再需要独立的快捷配置流程去探测模型、写入全部任务路由或保存另一份全局选择。
 - 订阅通道判定：槽位供应商为本机桥（codex）且服务地址仍指向本机地址时，`/model-categories` 返回 `usesLocalSubscription=true`，设置页显示“已连接本机订阅通道”说明而不是密钥输入框；服务地址改为外部供应商后自动恢复密钥填写方式。状态中的 `hasApiKey` 表示已保存或环境变量提供的密钥是否生效（界面不回显密钥内容）。
 - 结构化备用模型（structured-fallback）机制保留在服务端，无设置入口；存量启用配置继续生效。
 - 存量数据兼容：`APIKey` 表与 `modelRouteConfig` 表结构不变；旧路由行的 provider/model 字段被忽略，只读温度与协议。
@@ -42,7 +42,8 @@
 - `server/src/llm/modelRouter.ts`：任务路由解析（统一走文本槽）。
 - `server/src/llm/factory.ts`：LLM 客户端构建与密钥/地址解析。
 - `server/src/routes/settings.ts`：`/api/settings/model-categories`。
-- `server/src/modules/setup/onboarding/application/QuickSetupService.ts`：新手引导。
+- `server/src/modules/setup/onboarding/application/CreationEnvironmentService.ts`：只读判断文本槽是否具备首书创作条件。
+- `server/src/modules/setup/onboarding/application/FirstNovelOnboardingService.ts`：首书进度投影，不负责写入模型配置或生产任务。
 - `client/src/pages/settings/models/`：设置页三卡片。
 - `client/src/components/common/LLMSelector.tsx`、`client/src/components/layout/LLMSelectionBootstrap.tsx`、`client/src/lib/llmSelection.ts`。
 - `server/src/services/audio/speechProvider.ts`：音频槽语音合成入口；`server/src/services/drama/audio/VoxCPM2TTSProvider.ts`：当前配音链适配器；`server/src/services/audio/indexTTS25.ts`：暂存的 IndexTTS 显式兼容实现。

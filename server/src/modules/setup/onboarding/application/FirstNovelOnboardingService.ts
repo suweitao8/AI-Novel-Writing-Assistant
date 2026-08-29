@@ -6,7 +6,7 @@ import type {
 import type { NovelWorkflowCheckpoint } from "@ai-novel/shared/types/novelWorkflow";
 import type { TaskStatus } from "@ai-novel/shared/types/task";
 import { prisma } from "../../../../db/prisma";
-import { getQuickSetupStatus } from "./QuickSetupService";
+import { getCreationEnvironmentReadiness } from "./CreationEnvironmentService";
 
 const MILESTONE_DEFINITIONS: Array<Pick<FirstNovelMilestone, "key" | "title" | "description">> = [
   { key: "environment", title: "创作环境", description: "配置一个能完成规划、正文和审校的文本模型。" },
@@ -38,8 +38,8 @@ function buildMilestones(
 }
 
 export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnboardingProjection> {
-  const [setup, firstReadableChapter, latestTask, latestNovel] = await Promise.all([
-    getQuickSetupStatus(),
+  const [environment, firstReadableChapter, latestTask, latestNovel] = await Promise.all([
+    getCreationEnvironmentReadiness(),
     prisma.chapter.findFirst({
       where: {
         content: { not: "" },
@@ -106,7 +106,7 @@ export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnb
     || latestTask?.status === "cancelled"
     || Boolean(latestTask?.lastError);
   const summaries: Partial<Record<FirstNovelMilestoneKey, string>> = {
-    ...(setup.readyForCreation ? { environment: `${setup.selectedProvider ?? "模型"} · ${setup.selectedModel ?? "可用"}` } : {}),
+    ...(environment.ready ? { environment: `${environment.provider} · ${environment.model ?? "可用"}` } : {}),
     ...(novel ? { idea_direction: `《${novel.title}》` } : {}),
     ...(latestTask?.novelId ? { preparation: latestTask.currentItemLabel ?? "开书资源正在准备" } : {}),
     ...(novel?.creationExperience ? {
@@ -116,16 +116,16 @@ export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnb
   };
 
   let currentMilestone: FirstNovelMilestoneKey = "environment";
-  let headline = "先完成一次快捷配置";
-  let description = "只需要一个可用文本模型，系统会自动准备整条创作链的任务路由。";
-  let reason = "自动导演、正文生成和审校都需要稳定的模型连接。";
+  let headline = "配置文本模型后开始创作";
+  let description = "在模型设置中配置一个文本模型，系统会自动将它用于全部文字任务。";
+  let reason = "全部文字任务都使用模型设置中的文本模型。";
   let primaryAction: FirstNovelOnboardingProjection["primaryAction"] = {
-    label: "快捷配置模型",
-    route: "/help",
-    kind: "open_quick_setup",
+    label: "配置文本模型",
+    route: "/settings/models",
+    kind: "navigate",
   };
 
-  if (setup.readyForCreation) {
+  if (environment.ready) {
     currentMilestone = "idea_direction";
     headline = "用一句灵感开始第一本小说";
     description = "不需要先写大纲，AI 会整理出两套完整方向供你选择。";
@@ -137,7 +137,7 @@ export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnb
     };
   }
 
-  if (setup.readyForCreation && latestTask) {
+  if (environment.ready && latestTask) {
     if (latestTask.checkpointType === "candidate_selection_required" || !latestTask.novelId) {
       primaryAction = {
         label: latestTask.checkpointType === "candidate_selection_required" ? "选择整书方向" : "查看方向生成进度",
@@ -195,7 +195,7 @@ export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnb
         kind: isAttention ? "resume" : "navigate",
       };
     }
-  } else if (setup.readyForCreation && novel) {
+  } else if (environment.ready && novel) {
     currentMilestone = "first_chapter";
     headline = "继续完成第一章";
     description = "项目可继续推进，进入工作台准备或生成首章正文。";
@@ -207,7 +207,7 @@ export async function getFirstNovelOnboardingProjection(): Promise<FirstNovelOnb
     };
   }
 
-  const graduated = Boolean(firstReadableChapter && setup.readyForCreation);
+  const graduated = Boolean(firstReadableChapter && environment.ready);
   if (graduated && firstReadableChapter) {
     currentMilestone = "first_chapter";
     headline = "第一章可以阅读";

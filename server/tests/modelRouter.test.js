@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { prisma } = require("../dist/db/prisma.js");
-const { resolveModel } = require("../dist/llm/modelRouter.js");
+const {
+  MODEL_ROUTE_TASK_TYPES,
+  resolveModel,
+} = require("../dist/llm/modelRouter.js");
 
 test("resolveModel keeps route temperature while using the local text slot", async () => {
   const originalFindUnique = prisma.modelRouteConfig.findUnique;
@@ -79,6 +82,26 @@ test("resolveModel uses the local Codex text slot by default", async () => {
     const resolved = await resolveModel("planner");
     assert.equal(resolved.provider, "codex");
     assert.equal(resolved.model, "gpt-5.6-luna");
+  } finally {
+    prisma.modelRouteConfig.findUnique = originalFindUnique;
+  }
+});
+
+test("all creative text routes resolve to the configured text slot", async () => {
+  const originalFindUnique = prisma.modelRouteConfig.findUnique;
+
+  prisma.modelRouteConfig.findUnique = async () => null;
+
+  try {
+    const resolvedRoutes = await Promise.all(
+      MODEL_ROUTE_TASK_TYPES.map((taskType) => resolveModel(taskType)),
+    );
+
+    assert.ok(resolvedRoutes.length > 0);
+    for (const resolved of resolvedRoutes) {
+      assert.equal(resolved.provider, "codex");
+      assert.equal(resolved.model, "gpt-5.6-luna");
+    }
   } finally {
     prisma.modelRouteConfig.findUnique = originalFindUnique;
   }
