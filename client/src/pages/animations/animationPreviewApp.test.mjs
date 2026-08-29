@@ -22,6 +22,34 @@ const studioSource = readFileSync(
   path.join(import.meta.dirname, "animationThumbnailStudio.ts"),
   "utf8",
 );
+const storageSource = readFileSync(
+  path.join(import.meta.dirname, "animationPreviewStorage.ts"),
+  "utf8",
+);
+const blockingCoreSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dViewerCore.ts",
+  ),
+  "utf8",
+);
+const blockingIndexSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "index.ts",
+  ),
+  "utf8",
+);
 const modelPageSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "ModelLibraryPage.tsx"),
   "utf8",
@@ -62,6 +90,29 @@ test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () 
   assert.doesNotMatch(previewSource, /UAL1_Standard\.glb/);
 });
 
+test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
+  assert.match(
+    blockingCoreSource,
+    /export const BLOCKING_3D_BLUE_ACTOR_COLOR = \[0\.24, 0\.52, 0\.82\]/,
+  );
+  assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
+  assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
+  assert.match(blockingIndexSource, /setEntityMaterial/);
+  assert.match(
+    previewSource,
+    /setEntityMaterial\(model, BLOCKING_3D_BLUE_ACTOR_COLOR\)/,
+  );
+  assert.match(
+    studioSource,
+    /setEntityMaterial\(model, BLOCKING_3D_BLUE_ACTOR_COLOR\)/,
+  );
+});
+
+test("材质变更后不继续使用旧颜色的截图缓存", () => {
+  assert.match(storageSource, /animation-library:keyframes:v2/);
+  assert.match(studioSource, /animation-library:thumbnails:v4/);
+});
+
 test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
   const restoreBlock =
     previewSource.match(
@@ -96,7 +147,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v3/);
+  assert.match(studioSource, /animation-library:thumbnails:v4/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
