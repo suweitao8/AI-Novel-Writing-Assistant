@@ -8,8 +8,10 @@ const read = (path) => {
 };
 
 const presetSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentPresets.ts");
-const backdropSource = read("../src/pages/models/modelLibrary3d/studioBackdrop.ts");
 const runtimeSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentRuntime.ts");
+const blockingEnvironmentRuntimeSource = read(
+  "../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentRuntime.ts",
+);
 const viewerSource = read("../src/pages/models/modelLibrary3d/modelViewerApp.ts");
 const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio.ts");
 const animationThumbnailSource = read("../src/pages/animations/animationThumbnailStudio.ts");
@@ -23,25 +25,25 @@ test("模型环境预设使用 5 到 30 米的半球直径", () => {
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
   assert.match(presetSource, /min:\s*5/);
   assert.match(presetSource, /max:\s*30/);
-  assert.match(presetSource, /diameterMeters:\s*10/);
-  assert.match(presetSource, /diameterMeters:\s*20/);
-  assert.match(presetSource, /diameterMeters:\s*30/);
+  assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 3);
+  assert.match(presetSource, /projectionCenterHeightMeters:\s*2/);
+  assert.match(presetSource, /panoramaHorizonV:\s*0\.5/);
   assert.match(presetSource, /getStudioEnvironmentDiameterMeters\(diameterMeters\)\s*\/\s*2/);
 });
 
 test("模型可见穹顶不接收相机且固定在原点", () => {
-  assert.doesNotMatch(backdropSource, /camera\??\s*:/);
-  assert.doesNotMatch(backdropSource, /app\.on\(["']update/);
-  assert.doesNotMatch(backdropSource, /getPosition\(\)/);
-  assert.match(backdropSource, /setPosition\(0,\s*0,\s*0\)/);
-  assert.match(backdropSource, /getStudioEnvironmentDiameterMeters/);
-  assert.match(backdropSource, /preset\.sourceUrl/);
+  assert.match(runtimeSource, /new pc\.Entity\("studio-environment-world"\)/);
+  assert.match(runtimeSource, /createBlocking3dEnvironmentRuntime/);
+  assert.match(blockingEnvironmentRuntimeSource, /setPosition\(environmentWorldPosition\)/);
+  assert.doesNotMatch(runtimeSource, /camera\??\s*:/);
 });
 
 test("模型环境运行时同时装配可见穹顶和环境光", () => {
-  assert.match(runtimeSource, /upgradeStudioEnvironment\(app,\s*preset\.id\)/);
-  assert.match(runtimeSource, /attachStudioBackdrop\(app/);
-  assert.match(runtimeSource, /Promise\.all/);
+  assert.match(runtimeSource, /createBlocking3dEnvironmentRuntime/);
+  assert.match(runtimeSource, /environment\.load\(/);
+  assert.doesNotMatch(runtimeSource, /upgradeStudioEnvironment\(app/);
+  assert.doesNotMatch(runtimeSource, /attachStudioBackdrop\(app/);
+  assert.doesNotMatch(runtimeSource, /Promise\.all/);
   assert.match(runtimeSource, /hasVisibleBackdrop/);
 });
 
@@ -51,14 +53,20 @@ test("模型查看器固定相机轨道并支持异步切换环境", () => {
   assert.match(viewerSource, /environmentDiameterMeters\?: number/);
   assert.match(viewerSource, /setEnvironmentDiameter: \(diameterMeters: number\)/);
   assert.match(viewerSource, /loadStudioEnvironment\(app, presetId,/);
+  assert.match(viewerSource, /studioEnvironmentLoadQueue/);
+  assert.match(viewerSource, /buildBlocking3dGroundGridLines/);
+  assert.match(viewerSource, /rebuildEnvironmentBackdropMesh/);
   assert.match(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
   assert.doesNotMatch(viewerSource, /attachStudioBackdrop\(app/);
 });
 
 test("卡片缩略图使用共享室内默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app\)/);
-  assert.match(thumbnailSource, /model-library:thumbnails:v16/);
-  assert.match(animationThumbnailSource, /loadStudioEnvironment\(app, undefined, \{ diameterMeters: 30 \}\)/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v17/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v3/);
+  assert.match(animationThumbnailSource, /loadStudioEnvironment\(app\)/);
+  assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);
+  assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
 });
 
 test("模型编辑器提供三套 HDRI 环境选择和 5 到 30 米直径调节", () => {

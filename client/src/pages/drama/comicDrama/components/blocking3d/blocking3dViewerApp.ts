@@ -14,6 +14,11 @@ import type {
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import { GROUND_DOME_FLAT_RADIUS } from "./blocking3dEnvironmentGeometry";
+import {
+  buildBlocking3dGroundGridLines,
+  drawBlocking3dGroundGrid,
+  type Blocking3dGroundGridLine,
+} from "./blocking3dEnvironmentOverlay";
 import { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
@@ -228,23 +233,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   );
   ground.render!.receiveShadows = true;
 
-  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  for (let value = -10; value <= 10; value += 1) {
-    const major = value % 5 === 0;
-    const color = new pc.Color(major ? 0.46 : 0.28, major ? 0.5 : 0.32, major ? 0.58 : 0.4, major ? 0.62 : 0.38);
-    gridLines.push({
-      start: new pc.Vec3(value, 0.005, -10),
-      end: new pc.Vec3(value, 0.005, 10),
-      color,
-    });
-    gridLines.push({
-      start: new pc.Vec3(-10, 0.005, value),
-      end: new pc.Vec3(10, 0.005, value),
-      color,
-    });
-  }
-
   let environmentSettings = normalizeEnvironmentSettings(undefined);
+  let gridLines: Blocking3dGroundGridLine[] = buildBlocking3dGroundGridLines(environmentSettings);
 
   // 世界根节点：HDRI 背景（对象列表里的「世界」）和空间标记 cube 都作为
   // 它的子对象统一承载；背景按状态图重建时不会连带销毁或移动标记。
@@ -303,6 +293,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   );
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
+    gridLines = buildBlocking3dGroundGridLines(environmentSettings);
     rebuildBoundaryRings();
     environment.applySettings(environmentSettings);
   };
@@ -778,7 +769,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
-    for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    drawBlocking3dGroundGrid(app, gridLines);
     for (const line of domeBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);

@@ -68,7 +68,7 @@ normalized settings -> backdrop + shadow catcher + projection uniforms
 camera orbit --------> camera only; dome/entity remains at world origin
 ```
 
-加载失败时保留现有程序化三灯布光，并让调用方收到无可见 HDR 背景的句柄状态；销毁时必须释放 cubemap、atlas、原始 asset、穹顶和 shadow catcher，且不能残留 WebGL 应用或事件监听器。
+加载失败时由 blocking3d 运行时恢复默认环境光，并让调用方收到无可见 HDR 背景的句柄状态；模型和动画入口会把该状态转成可见错误，不输出没有场景背景的预览。销毁时必须释放 cubemap、atlas、原始 asset、穹顶和 shadow catcher，且不能残留 WebGL 应用或事件监听器。
 
 ## 验证
 
@@ -77,4 +77,3 @@ camera orbit --------> camera only; dome/entity remains at world origin
 - 模型与动画缩略图测试证明使用相同的环境装配入口和默认设置。
 - 客户端 typecheck 与相关测试通过。
 - 在隔离浏览器标签中打开模型库、动画库及可用的 3D 预览路径，检查 HDR 半圆背景、相机旋转时背景固定、地面网格一致，并确认无新增 console error；若本地数据库没有可用资产，则记录具体受限路径，不把基础页面响应误当作 3D 验收。
-

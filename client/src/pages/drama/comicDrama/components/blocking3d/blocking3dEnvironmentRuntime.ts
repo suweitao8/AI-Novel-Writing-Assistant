@@ -75,12 +75,13 @@ export function createBlocking3dEnvironmentRuntime(
   const runtime: Blocking3dEnvironmentRuntime = {
     clearEnvironmentLighting() {
       clearEnvironmentKeyLight();
-      if (app.scene.envAtlas === environmentAtlas) app.scene.envAtlas = null;
+      const ownsEnvironmentLighting = app.scene.envAtlas === environmentAtlas;
+      if (ownsEnvironmentLighting) app.scene.envAtlas = null;
       environmentAtlas?.destroy();
       environmentAtlas = null;
       environmentLightingSource?.destroy();
       environmentLightingSource = null;
-      app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
+      if (ownsEnvironmentLighting) app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
     },
     clearEnvironmentVisuals() {
       environmentShadowCatcher?.destroy();

@@ -15,13 +15,15 @@ import {
   loadStudioEnvironment,
   type StudioEnvironmentHandle,
 } from "./studioEnvironmentRuntime";
-import { setupStudioLighting } from "./studioLighting";
 import {
+  buildBlocking3dGroundGridLines,
   createBlocking3dTransformGizmo,
   clamp,
   DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
+  normalizeEnvironmentSettings,
   updateBlocking3dCameraAzimuth,
   wrapBlocking3dAzimuth,
   type Blocking3dTransformTool,
@@ -166,19 +168,27 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 场景一致，把 SKYBOX 层从相机移除——envAtlas 只承担光照，可视背景只留
   // 半圆球穹顶。
   camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
-  setupStudioLighting(app, camera, { castShadows: true });
-  // 先用程序化布光启动，真实 HDRI 异步装配完成后再整体替换；环境资源
-  // 的生命周期与模型查看器绑定，避免切换或销毁时留下漂浮穹顶。
+  camera.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
+  // HDRI 环境异步装配；环境资源的生命周期与模型查看器绑定，避免切换或
+  // 销毁时留下漂浮穹顶。
   const initialEnvironmentPresetId =
     options.environmentPresetId ?? DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID;
   let destroyed = false;
   let studioEnvironmentRequestId = 0;
+  // 每个 loadStudioEnvironment 都拥有自己的 blocking3d runtime，但它们最终
+  // 共享 app.scene.envAtlas；串行化切换，避免旧请求在新请求之后写回全局环境光。
+  let studioEnvironmentLoadQueue: Promise<void> = Promise.resolve();
   let currentStudioEnvironment: StudioEnvironmentHandle | null = null;
   let currentEnvironmentPresetId = initialEnvironmentPresetId;
   let currentEnvironmentDiameterMeters = getStudioEnvironmentDiameterMeters(
     options.environmentDiameterMeters ?? getStudioEnvironmentDiameterPreference(initialEnvironmentPresetId),
   );
   let currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(currentEnvironmentDiameterMeters);
+  let currentEnvironmentSettings = normalizeEnvironmentSettings({
+    domeRadius: currentEnvironmentDiameterMeters,
+  });
+  let environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
 
   const disposeStudioEnvironment = () => {
     studioEnvironmentRequestId += 1;
@@ -217,41 +227,48 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   };
   syncCamera();
 
-  const loadEnvironmentPreset = async (
+  const loadEnvironmentPreset = (
     presetId: StudioEnvironmentPresetId,
     diameterMeters?: number,
   ): Promise<boolean> => {
-    if (destroyed) return false;
     const requestId = ++studioEnvironmentRequestId;
-    const preset = getStudioEnvironmentPreset(presetId);
-    const nextDiameterMeters = getStudioEnvironmentDiameterMeters(
-      diameterMeters ?? getStudioEnvironmentDiameterPreference(presetId) ?? preset.diameterMeters,
-    );
-    let nextEnvironment: StudioEnvironmentHandle;
-    try {
-      nextEnvironment = await loadStudioEnvironment(app, presetId, {
-        diameterMeters: nextDiameterMeters,
-      });
-    } catch {
-      return false;
-    }
-    if (destroyed || requestId !== studioEnvironmentRequestId) {
-      nextEnvironment.destroy();
-      return false;
-    }
-    if (!nextEnvironment.hasVisibleBackdrop) {
-      nextEnvironment.destroy();
-      return false;
-    }
-    const previousEnvironment = currentStudioEnvironment;
-    currentStudioEnvironment = nextEnvironment;
-    currentEnvironmentPresetId = nextEnvironment.presetId;
-    currentEnvironmentDiameterMeters = nextEnvironment.diameterMeters;
-    currentEnvironmentRadiusMeters = nextEnvironment.radiusMeters;
-    saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
-    previousEnvironment?.destroy();
-    syncCamera();
-    return true;
+    const run = async (): Promise<boolean> => {
+      if (destroyed) return false;
+      const preset = getStudioEnvironmentPreset(presetId);
+      const nextDiameterMeters = getStudioEnvironmentDiameterMeters(
+        diameterMeters ?? getStudioEnvironmentDiameterPreference(presetId) ?? preset.diameterMeters,
+      );
+      let nextEnvironment: StudioEnvironmentHandle;
+      try {
+        nextEnvironment = await loadStudioEnvironment(app, presetId, {
+          diameterMeters: nextDiameterMeters,
+        });
+      } catch {
+        return false;
+      }
+      if (destroyed || requestId !== studioEnvironmentRequestId) {
+        nextEnvironment.destroy();
+        return false;
+      }
+      if (!nextEnvironment.hasVisibleBackdrop) {
+        nextEnvironment.destroy();
+        return false;
+      }
+      const previousEnvironment = currentStudioEnvironment;
+      currentStudioEnvironment = nextEnvironment;
+      currentEnvironmentPresetId = nextEnvironment.presetId;
+      currentEnvironmentDiameterMeters = nextEnvironment.diameterMeters;
+      currentEnvironmentRadiusMeters = nextEnvironment.radiusMeters;
+      currentEnvironmentSettings = nextEnvironment.settings;
+      environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
+      saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
+      previousEnvironment?.destroy();
+      syncCamera();
+      return true;
+    };
+    const result = studioEnvironmentLoadQueue.then(run, run);
+    studioEnvironmentLoadQueue = result.then(() => undefined, () => undefined);
+    return result;
   };
 
   void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
@@ -469,6 +486,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   app.on("update", (dt: number) => {
     if (destroyed) return;
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
+    drawBlocking3dGroundGrid(app, environmentGridLines);
   });
   app.start();
 
@@ -523,7 +541,23 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       return loadEnvironmentPreset(presetId);
     },
     setEnvironmentDiameter(diameterMeters) {
-      return loadEnvironmentPreset(currentEnvironmentPresetId, diameterMeters);
+      const nextDiameterMeters = getStudioEnvironmentDiameterMeters(diameterMeters);
+      if (!currentStudioEnvironment) return loadEnvironmentPreset(currentEnvironmentPresetId, nextDiameterMeters);
+      const nextSettings = normalizeEnvironmentSettings({
+        ...currentEnvironmentSettings,
+        domeRadius: nextDiameterMeters,
+      });
+      const geometryChanged = nextSettings.projectionCenterHeight !== currentEnvironmentSettings.projectionCenterHeight
+        || nextSettings.domeRadius !== currentEnvironmentSettings.domeRadius;
+      currentEnvironmentSettings = nextSettings;
+      currentEnvironmentDiameterMeters = nextSettings.domeRadius;
+      currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(nextSettings.domeRadius);
+      environmentGridLines = buildBlocking3dGroundGridLines(nextSettings);
+      currentStudioEnvironment.applySettings(nextSettings);
+      if (geometryChanged) currentStudioEnvironment.rebuildEnvironmentBackdropMesh(nextSettings);
+      saveStudioEnvironmentDiameterPreference(currentEnvironmentPresetId, nextSettings.domeRadius);
+      syncCamera();
+      return Promise.resolve(true);
     },
     capturePng() {
       transformGizmo.attach(null);

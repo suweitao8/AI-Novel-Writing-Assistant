@@ -2,15 +2,19 @@ import * as pc from "playcanvas";
 
 import {
   clamp,
-  createMaterial,
-  createPlane,
+  buildBlocking3dGroundGridLines,
   DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
   updateBlocking3dCameraAzimuth,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
+import {
+  loadStudioEnvironment,
+  type StudioEnvironmentHandle,
+} from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
@@ -51,7 +55,6 @@ interface AnimComponentLike {
   assignAnimation: (name: string, track: unknown, layer?: number, speed?: number, loop?: boolean) => void;
 }
 
-const GROUND_HALF_SIZE = 3;
 const DEFAULT_VIEW = { azim: -155, elev: -8 } as const;
 
 /**
@@ -76,8 +79,6 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   });
   app.setCanvasFillMode(pc.FILLMODE_NONE);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
-  app.scene.exposure = 1;
-  app.scene.ambientLight = new pc.Color(0.42, 0.42, 0.46);
 
   const cameraEntity = new pc.Entity("animation-preview-camera");
   cameraEntity.addComponent("camera", {
@@ -87,35 +88,19 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     farClip: 200,
   });
   app.root.addChild(cameraEntity);
-
-  const keyLight = new pc.Entity("animation-preview-key-light");
-  keyLight.addComponent("light", {
-    type: "directional",
-    intensity: 1.1,
-    castShadows: true,
-    shadowBias: 0.35,
-    normalOffsetBias: 0.05,
-    shadowDistance: 15,
-  });
-  keyLight.setEulerAngles(48, 32, 0);
-  app.root.addChild(keyLight);
-
-  const fillLight = new pc.Entity("animation-preview-fill-light");
-  fillLight.addComponent("light", { type: "directional", intensity: 0.32 });
-  fillLight.setEulerAngles(-28, -142, 0);
-  app.root.addChild(fillLight);
-
-  const ground = createPlane(
-    app,
-    "animation-preview-ground",
-    [0, -0.01, 0],
-    [GROUND_HALF_SIZE * 2, 1, GROUND_HALF_SIZE * 2],
-    createMaterial(new pc.Color(0.12, 0.15, 0.19)),
+  // 与漫剧场景视图一致：envAtlas 只承担 HDR 照明，可见背景由固定在世界
+  // 原点的有限半圆穹顶提供，避免天空球随相机轨道旋转。
+  cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
+    (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  ground.render!.receiveShadows = true;
+  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
 
   const characterRoot = new pc.Entity("animation-preview-character");
   app.root.addChild(characterRoot);
+
+  let studioEnvironment: StudioEnvironmentHandle | null = null;
+  let groundGridLines: ReturnType<typeof buildBlocking3dGroundGridLines> = [];
 
   const cameraState: { azim: number; elev: number; distance: number } = {
     azim: DEFAULT_VIEW.azim,
@@ -192,6 +177,8 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("contextmenu", onContextMenu);
+    studioEnvironment?.destroy();
+    studioEnvironment = null;
     characterRoot.destroy();
     app.destroy();
   };
@@ -200,67 +187,91 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
 
   let asset: pc.Asset | null = null;
   const ready = (async (): Promise<AnimationPreview> => {
-    asset = await loadAsset(app, options.glbUrl, "container");
-    if (destroyed) throw new Error("预览已关闭。");
-
-    const resource = asset.resource as ContainerResource | null;
-    const model = resource?.instantiateRenderEntity?.({ castShadows: true });
-    if (!model) {
-      throw new Error("动作文件里没有可显示的角色。");
-    }
-
-    // 底部中心落到原点：先在恒等变换下求源几何包围盒，再一次性平移。
-    characterRoot.addChild(model);
-    app.root.syncHierarchy();
-    const bounds = computeSourceBounds(model);
-    if (bounds) {
-      model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
-    }
-
-    const tracks = new Map<string, unknown>();
-    for (const clipAsset of resource?.animations ?? []) {
-      const track = clipAsset.resource as AnimTrackLike | null;
-      if (track && typeof track.name === "string") tracks.set(track.name, track);
-    }
-    if (tracks.size === 0) {
-      throw new Error("动作文件里没有可播放的动作片段。");
-    }
-
-    model.addComponent("anim", { activate: true });
-    const anim = model.anim as unknown as AnimComponentLike | undefined;
-    if (!anim) {
-      throw new Error("角色缺少可用的动作组件。");
-    }
-    anim.rootBone = model;
-
-    const playClip = (clipName: string) => {
-      const track = tracks.get(clipName);
-      if (!track) {
-        options.onError?.(`动作片段「${clipName}」不在当前文件里。`);
-        return;
+    try {
+      const assetPromise = loadAsset(app, options.glbUrl, "container");
+      const environmentPromise = loadStudioEnvironment(app);
+      const [assetResult, environmentResult] = await Promise.allSettled([
+        assetPromise,
+        environmentPromise,
+      ]);
+      if (assetResult.status === "rejected" || environmentResult.status === "rejected") {
+        if (assetResult.status === "fulfilled") app.assets.remove(assetResult.value);
+        if (environmentResult.status === "fulfilled") environmentResult.value.destroy();
+        if (assetResult.status === "rejected") throw assetResult.reason;
+        if (environmentResult.status === "rejected") throw environmentResult.reason;
+        throw new Error("预览资源加载失败。");
       }
-      anim.assignAnimation(clipName, track, 0, 1, true);
-      anim.playing = true;
-      anim.baseLayer?.play(clipName);
-    };
-    playClip(options.clipName);
-    options.onStatus?.("");
-
-    app.on("update", () => {
-      if (destroyed) return;
-      for (let value = -GROUND_HALF_SIZE; value <= GROUND_HALF_SIZE; value += 0.5) {
-        const major = Number.isInteger(value) && value % 3 === 0;
-        const color = new pc.Color(major ? 0.4 : 0.24, major ? 0.44 : 0.28, major ? 0.52 : 0.36, major ? 0.6 : 0.36);
-        app.drawLine(new pc.Vec3(value, 0.004, -GROUND_HALF_SIZE), new pc.Vec3(value, 0.004, GROUND_HALF_SIZE), color, false);
-        app.drawLine(new pc.Vec3(-GROUND_HALF_SIZE, 0.004, value), new pc.Vec3(GROUND_HALF_SIZE, 0.004, value), color, false);
+      asset = assetResult.value;
+      studioEnvironment = environmentResult.value;
+      if (destroyed) throw new Error("预览已关闭。");
+      if (!studioEnvironment.hasVisibleBackdrop) {
+        throw new Error("HDRI 场景环境加载失败。");
       }
-    });
-    app.start();
+      groundGridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
-    return {
-      play: playClip,
-      destroy: cleanup,
-    };
+      const resource = asset.resource as ContainerResource | null;
+      const model = resource?.instantiateRenderEntity?.({ castShadows: true });
+      if (!model) {
+        throw new Error("动作文件里没有可显示的角色。");
+      }
+
+      // 底部中心落到原点：先在恒等变换下求源几何包围盒，再一次性平移。
+      characterRoot.addChild(model);
+      app.root.syncHierarchy();
+      const bounds = computeSourceBounds(model);
+      if (bounds) {
+        model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
+      }
+
+      const tracks = new Map<string, unknown>();
+      for (const clipAsset of resource?.animations ?? []) {
+        const track = clipAsset.resource as AnimTrackLike | null;
+        if (track && typeof track.name === "string") tracks.set(track.name, track);
+      }
+      if (tracks.size === 0) {
+        throw new Error("动作文件里没有可播放的动作片段。");
+      }
+
+      model.addComponent("anim", { activate: true });
+      const anim = model.anim as unknown as AnimComponentLike | undefined;
+      if (!anim) {
+        throw new Error("角色缺少可用的动作组件。");
+      }
+      anim.rootBone = model;
+
+      const playClip = (clipName: string) => {
+        const track = tracks.get(clipName);
+        if (!track) {
+          options.onError?.(`动作片段「${clipName}」不在当前文件里。`);
+          return;
+        }
+        anim.assignAnimation(clipName, track, 0, 1, true);
+        anim.playing = true;
+        anim.baseLayer?.play(clipName);
+      };
+      playClip(options.clipName);
+      options.onStatus?.("");
+
+      app.on("update", () => {
+        if (destroyed) return;
+        drawBlocking3dGroundGrid(app, groundGridLines);
+      });
+      app.start();
+
+      return {
+        play: playClip,
+        destroy: cleanup,
+      };
+    } catch (error) {
+      if (asset) {
+        app.assets.remove(asset);
+        asset = null;
+      }
+      studioEnvironment?.destroy();
+      studioEnvironment = null;
+      cleanup();
+      throw error;
+    }
   })();
 
   return {

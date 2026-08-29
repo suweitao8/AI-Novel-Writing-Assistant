@@ -21,6 +21,10 @@ const catalogSource = readFileSync(
   path.join(import.meta.dirname, "..", "..", "config", "animationLibrary.ts"),
   "utf8",
 );
+const environmentRuntimeSource = readFileSync(
+  path.join(import.meta.dirname, "..", "models", "modelLibrary3d", "studioEnvironmentRuntime.ts"),
+  "utf8",
+);
 
 test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
@@ -30,6 +34,15 @@ test("预览器同步构建应用，异步加载后装配动画组件并循环�
   assert.match(previewSource, /assignAnimation\(clipName, track, 0, 1, true\)/);
   assert.match(previewSource, /baseLayer\?\.play\(clipName\)/);
   assert.match(previewSource, /app\.start\(\)/);
+});
+
+test("动画预览使用固定半圆 HDR 环境和共享地面网格", () => {
+  assert.match(previewSource, /loadStudioEnvironment/);
+  assert.match(previewSource, /buildBlocking3dGroundGridLines/);
+  assert.match(previewSource, /LAYERID_SKYBOX/);
+  assert.doesNotMatch(previewSource, /GROUND_HALF_SIZE/);
+  assert.doesNotMatch(previewSource, /createPlane\(/);
+  assert.match(environmentRuntimeSource, /createBlocking3dEnvironmentRuntime/);
 });
 
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
@@ -50,7 +63,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v2/);
+  assert.match(studioSource, /animation-library:thumbnails:v3/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);

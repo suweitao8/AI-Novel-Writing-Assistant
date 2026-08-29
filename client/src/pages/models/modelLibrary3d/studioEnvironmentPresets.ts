@@ -30,24 +30,24 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "interior",
     label: "室内客厅",
     sourceUrl: "/models/env/model-indoor-living-room.hdr",
-    diameterMeters: 10,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
   exterior: {
     id: "exterior",
     label: "中央广场",
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
-    diameterMeters: 20,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
   nature: {
     id: "nature",
     label: "草地自然",
     sourceUrl: "/models/env/model-nature-grassland.hdr",
-    diameterMeters: 30,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
 };
@@ -76,7 +76,7 @@ export function getStudioEnvironmentRadiusMeters(diameterMeters: number): number
   return getStudioEnvironmentDiameterMeters(diameterMeters) / 2;
 }
 
-const STUDIO_ENVIRONMENT_DIAMETER_STORAGE_KEY = "model-preview:environment-diameters:v1";
+const STUDIO_ENVIRONMENT_DIAMETER_STORAGE_KEY = "model-preview:environment-diameters:v2";
 
 type StudioEnvironmentDiameterPreferences = Record<StudioEnvironmentPresetId, number>;
 
