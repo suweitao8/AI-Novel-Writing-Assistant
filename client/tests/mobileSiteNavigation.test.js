@@ -73,6 +73,7 @@ test("mobile more menu only contains focus-mode support entries", () => {
     morePaths,
     [
       "/models",
+      "/animations",
       "/tasks",
       "/art-style",
       "/settings",

@@ -13,6 +13,7 @@ test("漫剧专注模式隐藏小说生产导航并保留漫剧设置入口", ()
   assert.equal(isNavRouteVisible("/creative-hub"), false);
   assert.equal(isNavRouteVisible("/drama"), true);
   assert.equal(isNavRouteVisible("/models"), true);
+  assert.equal(isNavRouteVisible("/animations"), true);
   assert.equal(isNavRouteVisible("/settings"), true);
   assert.equal(isNavRouteVisible("/settings/models"), true);
   assert.equal(isNavRouteVisible("/settings/narrator-voice"), true);

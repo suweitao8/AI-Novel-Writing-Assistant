@@ -10,7 +10,7 @@ import {
   updateBlocking3dCameraAzimuth,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
-import { computeSourceBounds } from "./modelViewerApp";
+import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
