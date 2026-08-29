@@ -157,7 +157,8 @@ export default function ModelEditorPage() {
           description: error instanceof Error ? error.message : undefined,
         });
       } finally {
-        if (requestId === environmentDiameterRequestRef.current) setEnvironmentSwitching(false);
+        if (requestId !== environmentDiameterRequestRef.current) return;
+        setEnvironmentSwitching(false);
       }
     },
     [environmentDiameterMeters],

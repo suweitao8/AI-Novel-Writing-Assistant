@@ -16,7 +16,7 @@ import { toast } from "@/components/ui/toast";
 import {
   STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   STUDIO_ENVIRONMENT_PRESET_IDS,
-  getStudioEnvironmentDiameterPreference,
+  getStudioEnvironmentDiameterPreferences,
   getStudioEnvironmentPreset,
   saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
@@ -34,10 +34,8 @@ export default function NarratorVoiceSettingsPage() {
     queryFn: getGlobalNarratorVoice,
   });
   const [draft, setDraft] = useState("");
-  const [environmentDiameters, setEnvironmentDiameters] = useState<Record<StudioEnvironmentPresetId, number>>(
-    () => Object.fromEntries(
-      STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => [id, getStudioEnvironmentDiameterPreference(id)]),
-    ) as Record<StudioEnvironmentPresetId, number>,
+  const [environmentDiameters, setEnvironmentDiameters] = useState(
+    getStudioEnvironmentDiameterPreferences,
   );
   const hasEditedDraft = useRef(false);
 
@@ -72,11 +70,8 @@ export default function NarratorVoiceSettingsPage() {
   const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
-  const handleEnvironmentDiameterChange = (id: StudioEnvironmentPresetId, value: number) => {
-    const diameterMeters = saveStudioEnvironmentDiameterPreference(id, Math.min(
-      STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max,
-      Math.max(STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min, value),
-    ));
+  const updateEnvironmentDiameter = (id: StudioEnvironmentPresetId, value: number) => {
+    const diameterMeters = saveStudioEnvironmentDiameterPreference(id, value);
     setEnvironmentDiameters((current) => ({ ...current, [id]: diameterMeters }));
   };
 
@@ -174,7 +169,7 @@ export default function NarratorVoiceSettingsPage() {
                 <tr>
                   <th scope="col" className="w-44 px-4 py-3 font-medium">资产</th>
                   <th scope="col" className="w-52 px-4 py-3 font-medium">用途</th>
-                  <th scope="col" className="min-w-[220px] px-4 py-3 font-medium">半球直径</th>
+                  <th scope="col" className="min-w-[280px] px-4 py-3 font-medium">半球直径</th>
                   <th scope="col" className="min-w-[250px] px-4 py-3 font-medium">资源</th>
                   <th scope="col" className="w-32 px-4 py-3 text-right font-medium">操作</th>
                 </tr>
@@ -182,29 +177,30 @@ export default function NarratorVoiceSettingsPage() {
               <tbody>
                 {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
                   const preset = getStudioEnvironmentPreset(id);
+                  const diameterMeters = environmentDiameters[id];
                   return (
                     <tr key={id} className="border-t border-border align-middle">
                       <th scope="row" className="px-4 py-4 text-left font-medium text-foreground">{preset.label}</th>
                       <td className="px-4 py-4 text-muted-foreground">模型与动画预览</td>
                       <td className="px-4 py-4">
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-2 text-xs">
-                            <span className="text-muted-foreground">
-                              {STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}–{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米
-                            </span>
-                            <output className="tabular-nums text-foreground">{environmentDiameters[id]} 米</output>
-                          </div>
+                        <label className="block space-y-2" htmlFor={`studio-environment-diameter-${id}`}>
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="sr-only">{preset.label}半球直径</span>
+                            <span className="text-xs text-muted-foreground">{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}–{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米</span>
+                            <output className="tabular-nums text-foreground">{diameterMeters} 米</output>
+                          </span>
                           <input
+                            id={`studio-environment-diameter-${id}`}
                             type="range"
                             min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
                             max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
                             step={1}
-                            value={environmentDiameters[id]}
+                            value={diameterMeters}
                             aria-label={`${preset.label}半球直径`}
-                            onChange={(event) => handleEnvironmentDiameterChange(id, Number(event.target.value))}
+                            onChange={(event) => updateEnvironmentDiameter(id, Number(event.target.value))}
                             className="w-full accent-primary"
                           />
-                        </div>
+                        </label>
                       </td>
                       <td className="px-4 py-4">
                         <code className="break-all text-xs text-muted-foreground">{preset.sourceUrl}</code>

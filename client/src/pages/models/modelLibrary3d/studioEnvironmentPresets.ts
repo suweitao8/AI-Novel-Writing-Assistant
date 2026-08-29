@@ -1,7 +1,7 @@
 /**
  * 模型预览使用的固定 HDRI 环境预设。
  *
- * diameterMeters 是用户可见的半球直径，所有可调入口统一限制在 5–30 米。
+ * diameterMeters 是用户可调的半球直径，界面和预览运行时统一使用 5–30 米。
  * blocking3d 的基础穹顶半径是 0.5，因此交给几何模块时可直接使用这个直径
  * 作为实体缩放值；只有相机边界等内部计算需要换算成真实半径。
  */
@@ -30,24 +30,24 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "interior",
     label: "室内客厅",
     sourceUrl: "/models/env/model-indoor-living-room.hdr",
-    diameterMeters: 10,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
   exterior: {
     id: "exterior",
     label: "中央广场",
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
-    diameterMeters: 20,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
   nature: {
     id: "nature",
     label: "草地自然",
     sourceUrl: "/models/env/model-nature-grassland.hdr",
-    diameterMeters: 30,
-    projectionCenterHeightMeters: 1.7,
+    diameterMeters: 15,
+    projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
   },
 };
@@ -76,7 +76,7 @@ export function getStudioEnvironmentRadiusMeters(diameterMeters: number): number
   return getStudioEnvironmentDiameterMeters(diameterMeters) / 2;
 }
 
-const STUDIO_ENVIRONMENT_DIAMETER_STORAGE_KEY = "model-preview:environment-diameters:v1";
+const STUDIO_ENVIRONMENT_DIAMETER_STORAGE_KEY = "model-preview:environment-diameters:v2";
 
 type StudioEnvironmentDiameterPreferences = Record<StudioEnvironmentPresetId, number>;
 
@@ -125,20 +125,4 @@ export function saveStudioEnvironmentDiameterPreference(
     // 偏好保存失败不应阻断当前预览。
   }
   return diameterMeters;
-}
-
-/** 兼容动画预览等内部调用方传入的真实半径。 */
-export function normalizeStudioEnvironmentRadiusMeters(value: number, fallbackRadiusMeters?: number): number {
-  const numeric = Number(value);
-  if (Number.isFinite(numeric) && numeric > 0) return numeric;
-  const fallback = Number(fallbackRadiusMeters);
-  if (Number.isFinite(fallback) && fallback > 0) return fallback;
-  return getStudioEnvironmentRadiusMeters(
-    STUDIO_ENVIRONMENT_PRESETS[DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID].diameterMeters,
-  );
-}
-
-/** 把真实环境半径换算为 blocking3d 基础半径 0.5 的实体缩放值。 */
-export function getStudioEnvironmentDomeDiameterMeters(radiusMeters: number): number {
-  return normalizeStudioEnvironmentRadiusMeters(radiusMeters) * 2;
 }

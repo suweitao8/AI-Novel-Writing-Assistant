@@ -1,10 +1,14 @@
 import * as pc from "playcanvas";
 
 import {
+  buildBlocking3dGroundGridLines,
   clamp,
   DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
   MAX_DEVICE_PIXEL_RATIO,
+  normalizeEnvironmentSettings,
   updateBlocking3dCameraAzimuth,
+  type Blocking3dEnvironmentSettings,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
@@ -78,9 +82,8 @@ export async function createStudioEnvironmentPreview(
   const camera = cameraEntity.camera!;
   // envAtlas 只负责环境光；可见内容交给有限半球，避免无限天空盒盖掉直径变化。
   camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
-
-  const { setupStudioLighting } = await import("./studioLighting");
-  setupStudioLighting(app, camera, { castShadows: false });
+  camera.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
 
   let destroyed = false;
   let environmentRequestId = 0;
@@ -91,6 +94,10 @@ export async function createStudioEnvironmentPreview(
     options.environmentDiameterMeters ?? getStudioEnvironmentDiameterPreference(initialPresetId),
   );
   let currentRadiusMeters = getStudioEnvironmentRadiusMeters(currentDiameterMeters);
+  let currentEnvironmentSettings: Blocking3dEnvironmentSettings = normalizeEnvironmentSettings({
+    domeRadius: currentDiameterMeters,
+  });
+  let environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
 
   const cameraState: OrbitState = {
     ...DEFAULT_VIEW,
@@ -152,6 +159,8 @@ export async function createStudioEnvironmentPreview(
     currentPresetId = nextEnvironment.presetId;
     currentDiameterMeters = nextEnvironment.diameterMeters;
     currentRadiusMeters = nextEnvironment.radiusMeters;
+    currentEnvironmentSettings = nextEnvironment.settings;
+    environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
     saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
     previousEnvironment?.destroy();
     syncCamera();
@@ -219,6 +228,9 @@ export async function createStudioEnvironmentPreview(
     syncCamera();
   };
   const onContextMenu = (event: MouseEvent) => event.preventDefault();
+  const onUpdate = () => {
+    if (!destroyed) drawBlocking3dGroundGrid(app, environmentGridLines);
+  };
 
   canvas.tabIndex = 0;
   canvas.addEventListener("pointerdown", onPointerDown);
@@ -237,6 +249,7 @@ export async function createStudioEnvironmentPreview(
   resize();
   const resizeObserver = new ResizeObserver(resize);
   if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
+  app.on("update", onUpdate);
   syncCamera();
   app.start();
 
@@ -247,6 +260,7 @@ export async function createStudioEnvironmentPreview(
     currentEnvironment?.destroy();
     currentEnvironment = null;
     resizeObserver.disconnect();
+    app.off("update", onUpdate);
     canvas.removeEventListener("pointerdown", onPointerDown);
     canvas.removeEventListener("pointermove", onPointerMove);
     canvas.removeEventListener("pointerup", onPointerUp);
@@ -276,7 +290,23 @@ export async function createStudioEnvironmentPreview(
       return loadEnvironmentPreset(presetId);
     },
     setEnvironmentDiameter(diameterMeters) {
-      return loadEnvironmentPreset(currentPresetId, diameterMeters);
+      if (!currentEnvironment) return Promise.resolve(false);
+      const nextDiameterMeters = getStudioEnvironmentDiameterMeters(diameterMeters);
+      const nextSettings = normalizeEnvironmentSettings({
+        ...currentEnvironmentSettings,
+        domeRadius: nextDiameterMeters,
+      });
+      const geometryChanged = nextSettings.projectionCenterHeight !== currentEnvironmentSettings.projectionCenterHeight
+        || nextSettings.domeRadius !== currentEnvironmentSettings.domeRadius;
+      currentEnvironmentSettings = nextSettings;
+      currentDiameterMeters = nextSettings.domeRadius;
+      currentRadiusMeters = getStudioEnvironmentRadiusMeters(nextSettings.domeRadius);
+      environmentGridLines = buildBlocking3dGroundGridLines(nextSettings);
+      currentEnvironment.applySettings(nextSettings);
+      if (geometryChanged) currentEnvironment.rebuildEnvironmentBackdropMesh(nextSettings);
+      saveStudioEnvironmentDiameterPreference(currentPresetId, nextSettings.domeRadius);
+      syncCamera();
+      return Promise.resolve(true);
     },
     resetView() {
       cameraState.azim = DEFAULT_VIEW.azim;

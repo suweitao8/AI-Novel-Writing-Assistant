@@ -2,10 +2,10 @@ import * as pc from "playcanvas";
 
 import {
   clamp,
+  buildBlocking3dGroundGridLines,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
-  createMaterial,
-  createPlane,
   DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
   setEntityMaterial,
@@ -13,8 +13,10 @@ import {
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
-import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
-import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLighting";
+import {
+  loadStudioEnvironment,
+  type StudioEnvironmentHandle,
+} from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
@@ -89,7 +91,6 @@ interface CameraState {
   focalPoint: [number, number, number];
 }
 
-const GROUND_HALF_SIZE = 5;
 const CAPTURE_SIZE = { width: 640, height: 360 } as const;
 const DEFAULT_VIEW = { azim: -35, elev: -12 } as const;
 
@@ -127,40 +128,19 @@ export function openAnimationPreview(
   });
   app.root.addChild(cameraEntity);
   const camera = cameraEntity.camera!;
-  // envAtlas 只负责光照，摄影棚穹顶负责可视背景，避免天空层与穹顶重叠。
+  // 与漫剧场景视图一致：envAtlas 只承担 HDR 照明，可见背景由固定在世界
+  // 原点的有限半圆穹顶提供，避免天空球随相机轨道旋转。
   camera.layers = camera.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  setupStudioLighting(app, camera, { castShadows: true });
-
-  let studioEnvDisposed = false;
-  let studioEnvironmentCleanup: (() => void) | null = null;
-  const disposeStudioEnv = () => {
-    studioEnvDisposed = true;
-    studioEnvironmentCleanup?.();
-    studioEnvironmentCleanup = null;
-  };
-  const studioEnvironmentReady = loadStudioEnvironment(app, undefined, {
-    radiusMeters: 12,
-  }).then((environment) => {
-    if (studioEnvDisposed) {
-      environment.destroy();
-      return;
-    }
-    studioEnvironmentCleanup = environment.destroy;
-  });
-
-  const ground = createPlane(
-    app,
-    "animation-preview-ground",
-    [0, -0.01, 0],
-    [GROUND_HALF_SIZE * 2, 1, GROUND_HALF_SIZE * 2],
-    createMaterial(new pc.Color(0.12, 0.15, 0.19)),
-  );
-  ground.render!.receiveShadows = true;
+  camera.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
 
   const characterRoot = new pc.Entity("animation-preview-character");
   app.root.addChild(characterRoot);
+
+  let studioEnvironment: StudioEnvironmentHandle | null = null;
+  let groundGridLines: ReturnType<typeof buildBlocking3dGroundGridLines> = [];
 
   const cameraState: CameraState = {
     azim: DEFAULT_VIEW.azim,
@@ -281,9 +261,13 @@ export function openAnimationPreview(
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("contextmenu", onContextMenu);
-    if (asset) app.assets.remove(asset);
+    if (asset) {
+      app.assets.remove(asset);
+      asset = null;
+    }
+    studioEnvironment?.destroy();
+    studioEnvironment = null;
     characterRoot.destroy();
-    disposeStudioEnv();
     app.destroy();
   };
 
@@ -291,13 +275,27 @@ export function openAnimationPreview(
 
   const ready = (async (): Promise<AnimationPreview> => {
     try {
-      // The page must not expose capture controls until both the lighting
-      // environment and the visible studio dome have finished loading.
-      await studioEnvironmentReady;
+      const assetPromise = loadAsset(app, options.glbUrl, "container");
+      const environmentPromise = loadStudioEnvironment(app);
+      const [assetResult, environmentResult] = await Promise.allSettled([
+        assetPromise,
+        environmentPromise,
+      ]);
+      if (assetResult.status === "rejected" || environmentResult.status === "rejected") {
+        if (assetResult.status === "fulfilled") app.assets.remove(assetResult.value);
+        if (environmentResult.status === "fulfilled") environmentResult.value.destroy();
+        if (assetResult.status === "rejected") throw assetResult.reason;
+        if (environmentResult.status === "rejected") throw environmentResult.reason;
+        throw new Error("预览资源加载失败。");
+      }
+      asset = assetResult.value;
+      studioEnvironment = environmentResult.value;
       if (destroyed) throw new Error("预览已关闭。");
+      if (!studioEnvironment.hasVisibleBackdrop) {
+        throw new Error("HDRI 场景环境加载失败。");
+      }
+      groundGridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
       options.onStatus?.("正在加载动作");
-      asset = await loadAsset(app, options.glbUrl, "container");
-      if (destroyed) throw new Error("预览已关闭。");
 
       const resource = asset.resource as ContainerResource | null;
       const model = resource?.instantiateRenderEntity?.({ castShadows: true });
@@ -450,31 +448,7 @@ export function openAnimationPreview(
 
       app.on("update", () => {
         if (destroyed) return;
-        for (
-          let value = -GROUND_HALF_SIZE;
-          value <= GROUND_HALF_SIZE;
-          value += 0.5
-        ) {
-          const major = Number.isInteger(value) && value % 3 === 0;
-          const color = new pc.Color(
-            major ? 0.4 : 0.24,
-            major ? 0.44 : 0.28,
-            major ? 0.52 : 0.36,
-            major ? 0.6 : 0.36,
-          );
-          app.drawLine(
-            new pc.Vec3(value, 0.004, -GROUND_HALF_SIZE),
-            new pc.Vec3(value, 0.004, GROUND_HALF_SIZE),
-            color,
-            false,
-          );
-          app.drawLine(
-            new pc.Vec3(-GROUND_HALF_SIZE, 0.004, value),
-            new pc.Vec3(GROUND_HALF_SIZE, 0.004, value),
-            color,
-            false,
-          );
-        }
+        drawBlocking3dGroundGrid(app, groundGridLines);
         if (anim.playing) notifyTime();
       });
       app.start();
