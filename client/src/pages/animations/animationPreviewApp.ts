@@ -11,11 +11,8 @@ import {
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
-import { attachStudioBackdrop } from "@/pages/models/modelLibrary3d/studioBackdrop";
-import {
-  setupStudioLighting,
-  upgradeStudioEnvironment,
-} from "@/pages/models/modelLibrary3d/studioLighting";
+import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
+import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLighting";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
@@ -135,34 +132,20 @@ export function openAnimationPreview(
   setupStudioLighting(app, camera, { castShadows: true });
 
   let studioEnvDisposed = false;
-  let studioEnvCleanup: (() => void) | null = null;
-  let studioBackdropCleanup: (() => void) | null = null;
+  let studioEnvironmentCleanup: (() => void) | null = null;
   const disposeStudioEnv = () => {
     studioEnvDisposed = true;
-    studioEnvCleanup?.();
-    studioBackdropCleanup?.();
-    studioEnvCleanup = null;
-    studioBackdropCleanup = null;
+    studioEnvironmentCleanup?.();
+    studioEnvironmentCleanup = null;
   };
-  const studioEnvironmentReady = upgradeStudioEnvironment(app).then(
-    (cleanup) => {
-      if (studioEnvDisposed) {
-        cleanup();
-        return;
-      }
-      studioEnvCleanup = cleanup;
-    },
-  );
-  const studioBackdropReady = attachStudioBackdrop(app, {
-    camera: cameraEntity,
-    radius: 12,
-  }).then((handle) => {
-    if (!handle) return;
+  const studioEnvironmentReady = loadStudioEnvironment(app, undefined, {
+    radiusMeters: 12,
+  }).then((environment) => {
     if (studioEnvDisposed) {
-      handle.destroy();
+      environment.destroy();
       return;
     }
-    studioBackdropCleanup = handle.destroy;
+    studioEnvironmentCleanup = environment.destroy;
   });
 
   const ground = createPlane(
@@ -308,7 +291,7 @@ export function openAnimationPreview(
     try {
       // The page must not expose capture controls until both the lighting
       // environment and the visible studio dome have finished loading.
-      await Promise.all([studioEnvironmentReady, studioBackdropReady]);
+      await studioEnvironmentReady;
       if (destroyed) throw new Error("预览已关闭。");
       options.onStatus?.("正在加载动作");
       asset = await loadAsset(app, options.glbUrl, "container");

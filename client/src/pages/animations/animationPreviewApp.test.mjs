@@ -47,8 +47,7 @@ test("预览器同步构建应用，异步加载后装配动画组件并循环�
 
 test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () => {
   assert.match(previewSource, /setupStudioLighting\(app/);
-  assert.match(previewSource, /upgradeStudioEnvironment\(app/);
-  assert.match(previewSource, /attachStudioBackdrop\(app/);
+  assert.match(previewSource, /loadStudioEnvironment\(app/);
   assert.match(previewSource, /initialTimeSeconds/);
   assert.match(previewSource, /onTimeChange/);
   assert.match(previewSource, /pause: /);
@@ -108,7 +107,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /activeStateCurrentTime = /);
   assert.match(studioSource, /app\.assets\.remove\(asset\)/);
   assert.match(studioSource, /model\?\.destroy\(\)/);
-  assert.match(studioSource, /studioEnvironmentCleanup/);
+  assert.match(studioSource, /studioEnvironment\.destroy\(\)/);
   assert.match(studioSource, /app\.destroy\(\)/);
 });
 
@@ -119,11 +118,8 @@ test("缩略图工作室初始化失败后会清空失败 Promise，允许后续
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
   assert.match(previewSource, /studioEnvironmentReady/);
-  assert.match(previewSource, /studioBackdropReady/);
-  assert.match(
-    previewSource,
-    /await Promise\.all\(\[studioEnvironmentReady, studioBackdropReady\]\)/,
-  );
+  assert.match(previewSource, /await studioEnvironmentReady/);
+  assert.match(previewSource, /studioEnvironmentCleanup/);
 });
 
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
