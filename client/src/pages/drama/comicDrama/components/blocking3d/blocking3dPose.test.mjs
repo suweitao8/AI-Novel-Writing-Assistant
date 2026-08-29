@@ -23,6 +23,12 @@ test("躺姿片段的稳定姿势在开头，保留开头附近取样", () => {
   assert.ok(clip.sampleTimeRatio < 0.1);
 });
 
+test("没有专用趴姿动画时，趴姿回退到蹲伏而不是仰卧", () => {
+  const clip = resolveBlocking3dPoseClip("prone", ["LayToIdle", "Crouch_Idle_Loop"]);
+  assert.equal(clip.clipName, "Crouch_Idle_Loop");
+  assert.equal(clip.sampleTimeRatio, DEFAULT_POSE_SAMPLE_TIME_RATIO);
+});
+
 test("比例按片段实际时长换算成具体时间", () => {
   assert.equal(poseSampleTimeFromTrack({ duration: 3.2 }, 0.5), 1.6);
   assert.ok(Math.abs(poseSampleTimeFromTrack({ duration: 1.4 }, 0.05) - 0.07) < 1e-9);

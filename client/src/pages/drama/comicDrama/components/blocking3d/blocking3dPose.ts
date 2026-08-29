@@ -17,10 +17,10 @@ const POSE_CLIPS: Record<DramaShotBlockingSketchPose, Blocking3dPoseClipConfig> 
   kneeling: { names: ["Fixing_Kneeling"] },
   // LayToIdle 从躺姿过渡到站姿，躺姿只在片段开头；取中段会截到半起身动作。
   lying: { names: ["LayToIdle", "Death01"], sampleTimeRatio: 0.05 },
-  // Quaternius UAL1/UAL2 does not publish a separate prone clip. The same
-  // LayToIdle clip is the closest stable ground pose; the semantic name is
-  // kept in the snapshot so a future prone-specific rig can be swapped in.
-  prone: { names: ["LayToIdle", "Death01"], sampleTimeRatio: 0.05 },
+  // Quaternius UAL1/UAL2 does not publish a separate prone clip. Falling back
+  // to LayToIdle makes the actor visibly supine, so use the supported crouch
+  // pose until a prone-specific rig is available.
+  prone: { names: ["Prone_Idle_Loop", "Crouch_Idle_Loop", "Crouch_Fwd_Loop"] },
   walking: { names: ["Walk_Loop", "Walk_Formal_Loop", "Walk_Carry_Loop"] },
   running: { names: ["Sprint_Loop", "Jog_Fwd_Loop"] },
   pointing: { names: ["Pistol_Aim_Neutral", "Spell_Simple_Shoot", "OverhandThrow"] },
