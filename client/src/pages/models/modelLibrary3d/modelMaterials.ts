@@ -76,17 +76,33 @@ export async function applyModelMaterials(
       if (tex) material.normalMap = tex;
     }
     if (info.rma) {
-      // UE 的 RMA 打包与 glTF metallicRoughness 同构：G=粗糙度、B=金属度。
-      // 引擎按 metallicRoughness 约定读 glossMap 的 G 通道（glossInvert 取反
-      // 后即粗糙度）与 metalnessMap 的 B 通道，共用同一张贴图。
+      // UE 的 RMA 打包里 G 通道是粗糙度，与 glTF metallicRoughness 同构；
+      // 引擎按该约定读 glossMap 的 G 通道（glossInvert 取反后即粗糙度）。
+      // 金属度不启用：场景没有环境反射贴图，金属面会把整块涂黑。
       const tex = await loadTexture(info.rma);
       if (tex) {
         material.glossMap = tex;
-        material.metalnessMap = tex;
         material.gloss = 1;
         material.glossInvert = true;
-        material.useMetalness = true;
       }
+    }
+    // 纯材质图槽位（UE 里没有贴图参数的玻璃/铬金属/灯罩等）走标量声明。
+    if (info.opacityValue !== undefined && info.opacityValue < 0.98) {
+      material.blendType = pc.BLEND_NORMAL;
+      material.opacity = info.opacityValue;
+      material.depthWrite = true;
+    }
+    if (info.metallic !== undefined && info.metallic > 0) {
+      material.useMetalness = true;
+      material.metalness = info.metallic;
+    }
+    if (info.roughness !== undefined) {
+      material.gloss = 1 - info.roughness;
+      material.glossInvert = false;
+    }
+    if (info.emissive) {
+      // 2.21 没有 useEmissive 开关，直接设 emissive 颜色即可点亮
+      material.emissive = new pc.Color(info.emissive[0], info.emissive[1], info.emissive[2]);
     }
     material.update();
     return material;
