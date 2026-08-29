@@ -214,7 +214,7 @@ function ScenePanoramaGuides() {
 // 2026-08-22 用户决定的交互：
 // - 所有字段行内直接可编辑，统一由弹窗「保存」一次落库（状态不单独保存，2026-08-22
 //   用户决定）；点「生成图片/生成音色」会先把未保存的状态自动存好再生成；
-// - 状态字段包含状态名、角色年龄段/身高（场景为类型/时间/天气）与图片提示词——状态名已能表达
+// - 状态字段包含状态名、角色年龄段/身高（场景为时间/天气）与图片提示词——状态名已能表达
 //   成因，不再单列「状态变化」，保存时说明留空按状态名回填；
 // - 图片：生成前在这里选参考图（任意其他状态的图）或留空直接生成全新形象；
 //   场景状态图按普通 2:1 图片展示，叠加 50%/70% 构图参考线；需要空间预览或摆位时进入独立的 3D 编辑；
@@ -875,20 +875,6 @@ export function AssetStatesEditor(props: {
               ) : null}
               {showScene ? (
                 <div className="grid grid-cols-2 gap-2 md:col-span-2">
-                  <label className="block min-w-0 space-y-1">
-                    <span className="text-xs font-medium">场景类型</span>
-                    <SelectControl
-                      className="h-9 w-full rounded-md border bg-background px-2 text-sm"
-                      aria-label="状态场景类型"
-                      value={selectedState.sceneType ?? ""}
-                      onChange={(event) => updateState(selectedState.id, { sceneType: event.target.value ? event.target.value as StoryAssetState["sceneType"] : null })}
-                    >
-                      <option value="">未设定</option>
-                      <option value="interior">室内</option>
-                      <option value="exterior">室外</option>
-                      <option value="nature">自然</option>
-                    </SelectControl>
-                  </label>
                   <label className="block min-w-0 space-y-1">
                     <span className="text-xs font-medium">时间</span>
                     <SelectControl

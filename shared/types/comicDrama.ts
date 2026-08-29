@@ -25,13 +25,43 @@ export interface StoryScene3DEnvironment {
    * domeRadius × projectionCenterHeightRatio，由归一化器派生，不单独编辑。
    */
   projectionCenterHeight: number;
-  /** 投射中心高度相对半球直径的比例（5%–20%，默认 10%），是用户实际调节的参数。 */
+  /** 投射中心高度相对半球直径的比例（5%–20%，默认 2/15≈13.33%），是用户实际调节的参数。 */
   projectionCenterHeightRatio: number;
   domeRadius: number;
   /** Source-image V coordinate that should land on the 3D projection horizon. */
   panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
+  /** 场景全景图视觉估算的来源与图片指纹；手动环境仍可不带此字段。 */
+  analysis?: StoryScene3dEnvironmentAnalysis;
+  /** 服务端投影参数是否由用户明确保存；自动视觉估算不会把它标记为手动。 */
+  customized?: boolean;
+}
+
+export type StoryScene3dEnvironmentAnalysisSource = "vision" | "fallback";
+
+export interface StoryScene3dEnvironmentAnalysis {
+  source: StoryScene3dEnvironmentAnalysisSource;
+  fallbackUsed: boolean;
+  confidence: number;
+  evidence: string | null;
+  sourceImageArtifactId: string | null;
+  sourceImageGeneratedAt: string | null;
+  sourceImageUrl: string | null;
+  analyzedAt: string | null;
+}
+
+/** 视觉模型提交给 3D 环境归一化器的近似估算结果。 */
+export interface StoryScene3dEnvironmentVisionEstimate {
+  domeDiameterMeters?: number | null;
+  projectionCenterHeightMeters?: number | null;
+  panoramaHorizonV?: number | null;
+  confidence?: number | null;
+  evidence?: string | null;
+  sourceImageArtifactId?: string | null;
+  sourceImageGeneratedAt?: string | null;
+  sourceImageUrl?: string | null;
+  analyzedAt?: string | null;
 }
 
 /** 场景参数写入和旧空间标记快照允许缺少新字段，服务端会回退到默认比例。 */
@@ -47,8 +77,8 @@ export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
 
-/** 用户未显式选择比例时的默认投射占比：投射高度 = 半球直径 × 10%。 */
-export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO = 0.1 as const;
+/** 用户未显式选择比例时的默认投射占比：投射高度 = 半球直径 × 2/15。 */
+export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO = 2 / 15;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [

@@ -1,10 +1,10 @@
 import fs from "fs/promises";
-import sharp from "sharp";
 import {
   storyScene3DEnvironmentMatches,
   type StoryScene3DEnvironment,
   type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
+import { buildStoryScene3dImageFingerprint } from "@ai-novel/shared/utils/scene3dEnvironment";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import { prisma } from "../../../../db/prisma";
 import { AppError } from "../../../../middleware/errorHandler";
@@ -32,6 +32,7 @@ import { storySettingsService } from "./StorySettingsService";
 import { normalizeStoryScene3dMarkerSet } from "./StoryScene3dMarkers";
 import { mergeStoryScene3dMarkerSets } from "@ai-novel/shared/utils/scene3dMarkers";
 import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
+import { prepareStoryScene3dVisionImage } from "./StoryScene3dVisionImage";
 
 const MAX_ANALYZE_IMAGE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
@@ -39,11 +40,6 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp
 export interface StoryScene3dMarkerImageMeta {
   artifactId?: string | null;
   generatedAt?: string | null;
-}
-
-function stateImageFingerprint(state: StoryAssetState | undefined): string {
-  const image = state?.image;
-  return [image?.artifactId ?? "", image?.generatedAt ?? "", image?.url ?? ""].join("|");
 }
 
 export function buildStoryScene3dMarkerSet(
@@ -89,36 +85,6 @@ function assertAnalysisImage(image: StoryAssetState["image"]): asserts image is 
   if (!image?.url?.trim()) {
     throw new AppError("当前场景状态没有可读取的图片，请先生成状态图。", 409);
   }
-}
-
-const ANALYSIS_IMAGE_MAX_EDGE = 2048;
-
-/**
- * 全景状态图通常是数 MB 的 PNG，直接送视觉模型会显著拉长识别等待。
- * imageRegion 只用归一化坐标，2048px 长边已足够定位，识别前统一压成
- * JPEG 小图；压缩失败时回退原图，不影响识别可用性。
- */
-async function prepareAnalysisImage(
-  buffer: Buffer,
-  mimeType: string,
-): Promise<{ imageBase64: string; mimeType: string }> {
-  try {
-    const image = sharp(buffer, { failOn: "none" });
-    const metadata = await image.metadata();
-    const longestEdge = Math.max(metadata.width ?? 0, metadata.height ?? 0);
-    if (longestEdge > ANALYSIS_IMAGE_MAX_EDGE) {
-      const compressed = await image
-        .resize({ width: ANALYSIS_IMAGE_MAX_EDGE, height: ANALYSIS_IMAGE_MAX_EDGE, fit: "inside" })
-        .jpeg({ quality: 82 })
-        .toBuffer();
-      if (compressed.byteLength > 0 && compressed.byteLength < buffer.byteLength) {
-        return { imageBase64: compressed.toString("base64"), mimeType: "image/jpeg" };
-      }
-    }
-  } catch {
-    // 解码失败时按原图继续，让后续结构化调用暴露真正的格式问题。
-  }
-  return { imageBase64: buffer.toString("base64"), mimeType };
 }
 
 export class StoryScene3dMarkerService {
@@ -192,8 +158,8 @@ export class StoryScene3dMarkerService {
       );
     }
 
-    const analysisImage = await prepareAnalysisImage(imageBuffer, sourceImage.mimeType);
-    const imageFingerprint = stateImageFingerprint(initialState);
+    const analysisImage = await prepareStoryScene3dVisionImage(imageBuffer, sourceImage.mimeType);
+    const imageFingerprint = buildStoryScene3dImageFingerprint(initialState.image);
     const result = await runStructuredPrompt({
       asset: sceneState3dMarkersPrompt,
       promptInput: {
@@ -274,7 +240,7 @@ export class StoryScene3dMarkerService {
         return writeResult.count === 1;
       },
       patch: (state) => {
-        if (stateImageFingerprint(state) !== imageFingerprint) {
+        if (buildStoryScene3dImageFingerprint(state.image) !== imageFingerprint) {
           throw new AppError("场景图片已更新，请重新识别空间标记。", 409);
         }
         if (!storyScene3DEnvironmentMatches(liveEnvironment, environment)) {

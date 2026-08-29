@@ -33,6 +33,17 @@ test("半球世界半径是直径的一半，舞台边界必须落在它之内",
   }
 });
 
+test("缺少环境快照时使用 15 米直径和 2 米投射中心的当前默认值", () => {
+  assert.equal(resolveStoryScene3DDomeWorldRadius(undefined), 7.5);
+  const anchored = anchorBlockingCameraAtProjectionCenter({
+    azim: 0,
+    elev: 0,
+    distance: 8,
+    focalPoint: [0, 0, 0],
+  }, undefined);
+  assert.equal(anchored.focalPoint[1], 2);
+});
+
 test("角色位置径向 clamp 进舞台圆周并保持方位角与高度", () => {
   const environment = { domeRadius: 10, projectionCenterHeight: 1.7 };
   const inside = clampBlockingActorPositionToStage([2, 0.9, -3], environment);

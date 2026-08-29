@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2, Move3D, WandSparkles } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
+  analyzeStoryScene3dEnvironment,
   analyzeStoryScene3dMarkers,
   getStorySettingsScene,
   updateStorySettingsScene,
@@ -24,6 +25,10 @@ import {
   type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
 import { STORY_SCENE_3D_MARKERS_ENABLED, createStoryScene3dMarker } from "@ai-novel/shared/utils/scene3dMarkers";
+import {
+  buildStoryScene3dImageFingerprint,
+  shouldAutoAnalyzeStoryScene3dEnvironment,
+} from "@ai-novel/shared/utils/scene3dEnvironment";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -91,6 +96,7 @@ export default function DramaScene3DPage() {
   });
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [analyzingEnvironment, setAnalyzingEnvironment] = useState(false);
   const [analyzingMarkers, setAnalyzingMarkers] = useState(false);
   // 前景道具：全景图只做背景，桌椅床等家具在这里手动摆放，供角色摆位交互。
   const [newMarkerKind, setNewMarkerKind] = useState<StoryScene3DMarkerKind>("chair");
@@ -102,6 +108,9 @@ export default function DramaScene3DPage() {
   const selectedMarkerKey = selectedObjectId.startsWith("marker:") ? selectedObjectId : "";
   const leavingRef = useRef(false);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  const environmentAnalysisAttemptRef = useRef<string | null>(null);
+  const environmentAnalysisRequestRef = useRef(0);
+  const dirtyRef = useRef(false);
   const markerCommitRef = useRef<(marker: StoryScene3DMarker) => void>(() => {});
 
   const sceneQuery = useQuery({
@@ -113,6 +122,14 @@ export default function DramaScene3DPage() {
   const scene = sceneQuery.data?.data ?? null;
   const selectedState = useMemo(() => (scene ? resolveSceneState(scene, stateId) : null), [scene, stateId]);
   const environmentUrl = useMemo(() => resolveSceneEnvironmentUrl(selectedState), [selectedState]);
+  const environmentImageFingerprint = useMemo(
+    () => selectedState?.image ? buildStoryScene3dImageFingerprint(selectedState.image) : null,
+    [selectedState?.image?.artifactId, selectedState?.image?.generatedAt, selectedState?.image?.url],
+  );
+  const environmentAnalysisKey = environmentImageFingerprint && selectedState
+    ? `${sceneId}:${selectedState.id}:${environmentImageFingerprint}`
+    : null;
+  dirtyRef.current = dirty;
   const returnPath = resolveStudioReturnPath(novelId, searchParams.toString());
   const sceneMarkersAreCurrent = useMemo(
     () => isStoryScene3DMarkerSetCurrent(selectedState?.scene3dMarkers, environmentSettings),
@@ -132,6 +149,33 @@ export default function DramaScene3DPage() {
     setEnvironmentSettings({ ...DEFAULT_BLOCKING_3D_ENVIRONMENT, ...scene.scene3dEnvironment });
     setDirty(false);
   }, [scene, selectedState]);
+
+  // 场景状态图是 2:1 全景图时，进入编辑器自动估算 3D 投影参数；没有可信尺度时
+  // 服务端会记录一次 15m/2m 的中性兜底，图片不变就不重复调用视觉模型。
+  useEffect(() => {
+    if (!scene || !selectedState || !environmentUrl || !environmentAnalysisKey || dirty) return;
+    if (!shouldAutoAnalyzeStoryScene3dEnvironment(scene.scene3dEnvironment, selectedState.image)) return;
+    if (environmentAnalysisAttemptRef.current === environmentAnalysisKey) return;
+
+    environmentAnalysisAttemptRef.current = environmentAnalysisKey;
+    const requestId = environmentAnalysisRequestRef.current + 1;
+    environmentAnalysisRequestRef.current = requestId;
+    setAnalyzingEnvironment(true);
+    void analyzeStoryScene3dEnvironment(novelId, sceneId, selectedState.id)
+      .then((response) => {
+        if (requestId !== environmentAnalysisRequestRef.current || dirtyRef.current || !response.data) return;
+        queryClient.setQueryData(queryKeys.novels.storySettingsScene(novelId, sceneId), response);
+      })
+      .catch((error: unknown) => {
+        if (requestId !== environmentAnalysisRequestRef.current) return;
+        toast.error("场景环境自动分析失败。", { description: error instanceof Error ? error.message : "请稍后重试。" });
+      })
+      .finally(() => {
+        if (requestId === environmentAnalysisRequestRef.current) {
+          setAnalyzingEnvironment(false);
+        }
+      });
+  }, [dirty, environmentAnalysisKey, environmentUrl, novelId, queryClient, scene, sceneId, selectedState]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -526,7 +570,7 @@ export default function DramaScene3DPage() {
             <canvas
               ref={canvasRef}
               aria-label={`${scene.name} 3D 场景预览`}
-              aria-busy={!viewer || saving}
+              aria-busy={!viewer || saving || analyzingEnvironment}
               className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             {!viewer && !viewerError ? (
@@ -594,6 +638,11 @@ export default function DramaScene3DPage() {
                       </span>
                       <input type="range" aria-label="分界线" min="45" max="55" step="1" value={Math.round(environmentSettings.panoramaHorizonV * 100)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("panoramaHorizonV", Number(event.target.value))} className="w-full accent-primary" />
                     </label>
+                    {analyzingEnvironment ? (
+                      <p className="text-xs text-muted-foreground" role="status">
+                        <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" aria-hidden="true" />正在根据全景图估算场景尺度
+                      </p>
+                    ) : null}
                   </div>
                 </InspectorComponentSection>
                 {STORY_SCENE_3D_MARKERS_ENABLED ? (

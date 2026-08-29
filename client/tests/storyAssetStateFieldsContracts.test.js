@@ -7,7 +7,7 @@ const assetForms = read("pages/novels/components/storySettings/assetForms.tsx");
 const scenes = read("pages/novels/components/storySettings/SettingsScenesTab.tsx");
 const props = read("pages/novels/components/storySettings/SettingsPropsTab.tsx");
 const characters = read("pages/novels/components/storySettings/SettingsCharactersTab.tsx");
-const detail = read("components/storyAssets/StoryAssetDetailDialog.tsx");
+const detail = read("pages/novels/components/storySettings/StoryAssetEditDialog.tsx");
 const extractionDialog = read("pages/drama/comicDrama/components/ExtractApplyDialog.tsx");
 const extractionStage = read("pages/drama/comicDrama/hooks/useReferenceExtractStage.ts");
 
@@ -20,26 +20,21 @@ test("场景和道具资产级表单只保留名称", () => {
   assert.doesNotMatch(propForm, /visualPrompt/);
 });
 
-test("场景状态编辑器承载类型、时间、天气和图片提示词", () => {
+test("场景状态编辑器承载时间、天气和图片提示词", () => {
   assert.match(assetForms, /kind === "scene"/);
-  assert.match(assetForms, /场景类型/);
+  assert.doesNotMatch(assetForms, /场景类型/);
   assert.match(assetForms, /时间/);
   assert.match(assetForms, /天气/);
   assert.match(assetForms, /图片提示词/);
-  assert.match(scenes, /<AssetStatesEditor[\s\S]*kind="scene"/);
-  assert.match(props, /<AssetStatesEditor[\s\S]*kind="prop"/);
+  assert.match(detail, /<AssetStatesEditor[\s\S]*kind=\{kind\}/);
 });
 
 test("三类资产创建时都显示状态编辑器，且编辑弹窗统一放大", () => {
-  assert.match(scenes, /<AssetStatesEditor states=\{states\}/);
-  assert.match(props, /<AssetStatesEditor states=\{states\}/);
-  assert.match(scenes, /setStates\(\[createInitialSceneState\(\{ name: "" \}\)\]\)/);
-  assert.match(props, /setStates\(\[createInitialPropState\(\{ name: "" \}\)\]\)/);
-  assert.match(characters, /setStates\(\[createInitialCharacterState/);
-  assert.match(characters, /className="max-w-6xl"/);
-  assert.match(scenes, /className="max-w-6xl"/);
-  assert.match(props, /className="max-w-6xl"/);
-  assert.match(detail, /className="max-w-5xl"/);
+  assert.match(detail, /<AssetStatesEditor[\s\S]*states=\{states\}/);
+  assert.match(detail, /kind === "scene"[\s\S]*?setStates\(scene[\s\S]*?createInitialSceneState/);
+  assert.match(detail, /kind === "scene"[\s\S]*?setStates\(prop[\s\S]*?createInitialPropState/);
+  assert.match(detail, /kind === "character"[\s\S]*?setStates\(character[\s\S]*?createInitialCharacterState/);
+  assert.match(detail, /className="max-w-6xl"/);
 });
 
 test("道具正式编辑入口不再单独维护旧透视图", () => {

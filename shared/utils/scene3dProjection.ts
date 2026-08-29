@@ -236,7 +236,7 @@ export function projectStoryScene3dMarkerFromImageRegion(
     };
   }
 
-  const projectionCenterHeight = finiteOr(environment.projectionCenterHeight, 1.7);
+  const projectionCenterHeight = finiteOr(environment.projectionCenterHeight, 2);
   const worldRadius = domeWorldRadius(environment);
   const region = marker.imageRegion;
   const angles = resolveMarkerVerticalAngles(region, resolveHorizonV(environment));
