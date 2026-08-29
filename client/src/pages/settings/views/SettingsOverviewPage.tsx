@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import DramaVideoRenderProfileCard from "../components/DramaVideoRenderProfileCard";
 import SettingsReadinessCard, { buildSettingsReadinessItems } from "../components/SettingsReadinessCard";
 import { SettingsShell } from "../components/SettingsShell";
-import { isNavRouteVisible } from "@/config/dramaFocusNav";
+import { isDramaFocusFeatureVisible, isNavRouteVisible } from "@/config/dramaFocusNav";
 
 const entries = [
   { to: "/settings/models", title: "模型设置", description: "配置文本模型与图片模型，并检查连接状态。", icon: Bot },
@@ -23,25 +23,34 @@ const entries = [
   { to: "/settings/narrator-voice", title: "旁白音色", description: "试听并设置整个应用统一使用的旁白音色。", icon: AudioLines },
 ].filter((entry) => isNavRouteVisible(entry.to));
 
+const SHOW_NOVEL_READINESS = isDramaFocusFeatureVisible("novel-readiness");
+
 export default function SettingsOverviewPage() {
   const categoriesQuery = useQuery({ queryKey: queryKeys.settings.modelCategories, queryFn: getModelCategories });
-  const ragQuery = useQuery({ queryKey: queryKeys.settings.rag, queryFn: getRagSettings });
-  const styleQuery = useQuery({ queryKey: queryKeys.settings.styleEngineRuntime, queryFn: getStyleEngineRuntimeSettings });
+  const ragQuery = useQuery({ queryKey: queryKeys.settings.rag, queryFn: getRagSettings, enabled: SHOW_NOVEL_READINESS });
+  const styleQuery = useQuery({ queryKey: queryKeys.settings.styleEngineRuntime, queryFn: getStyleEngineRuntimeSettings, enabled: SHOW_NOVEL_READINESS });
   const narratorVoiceQuery = useQuery({ queryKey: queryKeys.settings.narratorVoice, queryFn: getGlobalNarratorVoice });
-  const items = useMemo(() => buildSettingsReadinessItems({
-    categories: categoriesQuery.data?.data,
-    ragSettings: ragQuery.data?.data,
-    styleSettings: styleQuery.data?.data,
-    isStyleSettingsLoaded: styleQuery.isSuccess,
-  }), [categoriesQuery.data?.data, ragQuery.data?.data, styleQuery.data?.data, styleQuery.isSuccess]);
+  const items = useMemo(() => SHOW_NOVEL_READINESS
+    ? buildSettingsReadinessItems({
+      categories: categoriesQuery.data?.data,
+      ragSettings: ragQuery.data?.data,
+      styleSettings: styleQuery.data?.data,
+      isStyleSettingsLoaded: styleQuery.isSuccess,
+    })
+    : [], [categoriesQuery.data?.data, ragQuery.data?.data, styleQuery.data?.data, styleQuery.isSuccess]);
   const categories = categoriesQuery.data?.data;
   const textReady = Boolean(categories?.text?.isConfigured && categories.text.currentModel);
   const rag = ragQuery.data?.data;
   const narratorVoice = narratorVoiceQuery.data?.data;
 
   return (
-    <SettingsShell title="系统设置" description="查看创作环境状态，并进入需要调整的设置。">
-      <SettingsReadinessCard items={items} />
+    <SettingsShell
+      title="系统设置"
+      description={SHOW_NOVEL_READINESS
+        ? "查看创作环境状态，并进入需要调整的设置。"
+        : "配置漫剧所需的模型、音色、画风和输出设置。"}
+    >
+      {SHOW_NOVEL_READINESS ? <SettingsReadinessCard items={items} /> : null}
       <DramaVideoRenderProfileCard />
       <div className="grid gap-4 md:grid-cols-2">
         {entries.map(({ to, title, description, icon: Icon }) => {

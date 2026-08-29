@@ -201,7 +201,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   DramaShotBlockingAutoPlanOutput
 > = {
   id: "drama.shot.blocking.autoPlan",
-  version: "v7",
+  version: "v8",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -221,7 +221,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
         `校验信息：${validationError}`,
         "必须让 relations 中的 subjectCharacterName 和 objectCharacterName 都来自 actors，且每个 subject/object/relation 组合只能出现一次；多角色不能返回空 relations。",
         "如果校验信息提到空间标记，说明 interactionMarkerId 指向了不存在的道具：必须改用 sceneJson 中真实存在的 marker id，或在没有道具交互时省略该字段。",
-        "对于 on_top_of，subject 是上方主体，object 是下方承载者：object 贴地并使用 lying/prone，subject 使用 crouching/prone；sizeRelation 必须表达真实体量关系。",
+        "对于 on_top_of，subject 是上方主体，object 是下方承载者：object 贴地并使用 lying/prone，subject 只能使用 crouching 或 kneeling；不要给 subject 使用 prone 或 lying，因为当前 UAL 运行时没有专用趴姿，会错误表现为仰卧；sizeRelation 必须表达真实体量关系。",
         "不要输出解释文字、Markdown 或自定义 pose，只输出符合 schema 的完整 JSON。",
       ].join("\n")),
     ],
@@ -233,7 +233,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       "输入角色带有 heightMeters 近似身高。保持角色之间的身高差；输出的 scale 是针对镜头构图的局部乘数，默认接近 [1,1,1]，不能用它把儿童、高个角色和普通成年人缩放成同样高。",
       "输出 actors 时必须使用输入名单中的全部角色，每个角色恰好出现一次，不得遗漏、改名、合并或创造角色；角色必须落在地面并保持画面关系清楚。",
       "先从镜头动作中识别有方向的角色关系，再根据关系规划坐标、姿势和大小；relations 的 subject 是有向关系的主动/参照方，object 是被作用/承载方；仅在 on_top_of 中 subject 是上方主体。",
-      "on_top_of 表示 subject 位于 object 上方：object 必须是贴地的承载者并使用 lying 或 prone，subject 必须使用 crouching、prone 或 kneeling 等兼容姿势；不要把上下角色颠倒。under 表示 subject 在 object 下方。",
+      "on_top_of 表示 subject 位于 object 上方：object 必须是贴地的承载者并使用 lying 或 prone，subject 只能使用 crouching 或 kneeling；不要给 subject 使用 prone 或 lying，因为当前 UAL 运行时没有专用趴姿，会错误表现为仰卧；不要把上下角色颠倒。under 表示 subject 在 object 下方。",
       "sizeRelation 必须填写 subject 相对 object 的真实体量：larger 表示 subject 更大，smaller 表示 subject 更小，similar 表示体量接近；不能只依赖局部 scale 抹平输入角色的身高差。",
       "多角色镜头 relations 不能留空；每条关系的两端都必须是 actors 中的角色，方向必须和动作语义一致，不能重复或自指。",
       "如果 sceneJson 提供了空间标记，它们是真实存在的前景道具（床、桌、椅、沙发、书桌、柜子等）和固定结构（门窗、楼梯）：场景里的每一件道具都按其 marker id、label、位置和尺寸理解，规划时优先让角色用上与动作相关的道具。",

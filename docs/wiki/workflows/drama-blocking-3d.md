@@ -43,6 +43,7 @@
 ### 编辑器内 AI 构图
 
 - AI 摆位的唯一入口是每一镜的「编辑3D」页面；分镜列表不再直接发起 AI 摆位请求。
+- 桌面端的「AI 构图」操作通过页面导航操作槽位显示在顶部「AI 实况」左侧；移动端在 3D 草图编辑器标题栏保留同一操作，避免把高频构图入口埋在世界属性面板中。
 - 打开编辑器只恢复已有布局。用户点击「AI 自动构图」后，模型返回的角色、相机和景深布局立即进入当前镜头预览，但在用户检查前只属于未保存编辑状态。
 - AI 返回的 `compositionNote` 与镜头景别、动作和对白在编辑器的「镜头设计」面板中展示，并随草图 JSON 保存；保存仍需同时完成 PNG 上传和确认。漫剧只出静态分镜：镜头设计不展示运镜与时长，分镜产出与编辑链路（`drama.storyboard` schema、手动编辑路由、3D 草图上下文、自动构图 shotJson、导出时间轴）均已不含 `cameraMove`；DB 旧列保留只读兼容，不再写入。
 - AI 请求失败时保留当前布局和已有说明，不离开编辑器，不写入半成品。
@@ -50,9 +51,9 @@
 #### AI 关系构图
 
 - **Background：** 只为每个角色独立规划坐标、姿势和缩放时，模型可能把“承载者”和“位于其上方的主体”反过来；第一个镜头曾因此呈现为叶晨站立、血角兽趴在地面，且血角兽的体量没有保留下来。
-- **Decision：** 注册的 `drama.shot.blocking.autoPlan@v6` 先让 AI 输出有向 `relations`，再输出角色坐标、姿势和相机。`subjectCharacterName` / `objectCharacterName` 是有向关系两端；`on_top_of` 固定解释为 subject 在上方、object 是地面承载者；`sizeRelation` 表达 subject 相对 object 的 `larger` / `smaller` / `similar` 体量。
-- **Current Rule：** 多角色结果必须至少有一条关系，关系两端必须来自本镜角色清单，不能自指或重复。服务端先按角色状态身高合成绝对代理比例，再按关系落实接地姿势、上下位置和相对体量，最后才执行舞台半径与 FOV 兜底；关系只用于本次自动构图，不写入旧的 `layout3d` 结构。
-- **Failure Modes：** 如果模型没有输出关系、关系端点不属于本镜、关系重复，或模型返回不兼容姿势，自动构图应触发语义重试或返回错误，并保留当前编辑布局。不要在服务端读取叶晨、血角兽等角色名，也不要从 `action`、对白或提示词用关键词猜测关系；需要改变语义时只能扩展 Prompt 的结构化输出合同。
+- **Decision：** 注册的 `drama.shot.blocking.autoPlan@v8` 先让 AI 输出有向 `relations`，再输出角色坐标、姿势和相机。`subjectCharacterName` / `objectCharacterName` 是有向关系两端；`on_top_of` 固定解释为 subject 在上方、object 是地面承载者；`sizeRelation` 表达 subject 相对 object 的 `larger` / `smaller` / `similar` 体量。
+- **Current Rule：** 多角色结果必须至少有一条关系，关系两端必须来自本镜角色清单，不能自指或重复。服务端先按角色状态身高合成绝对代理比例，再按关系落实接地姿势、上下位置和相对体量，最后才执行舞台半径与 FOV 兜底；`on_top_of` 的上方 subject 只能使用 `crouching` 或 `kneeling`，`prone` / `lying` 会被归一化为蹲伏，因为当前 UAL 运行时没有专用趴姿动画；关系只用于本次自动构图，不写入旧的 `layout3d` 结构。
+- **Failure Modes：** 如果模型没有输出关系、关系端点不属于本镜或关系重复，自动构图应触发语义重试或返回错误，并保留当前编辑布局。上方 subject 即使返回 `prone` / `lying`，也不能交给客户端的 `LayToIdle` 仰卧片段，服务端必须归一化为 `crouching`。不要在服务端读取叶晨、血角兽等角色名，也不要从 `action`、对白或提示词用关键词猜测关系；需要改变语义时只能扩展 Prompt 的结构化输出合同。
 - **Related Modules：** `shotBlockingAutoPlan.prompts.ts` 负责关系 schema 与方向语义；`DramaShotBlockingSketchService.ts` 负责端点校验、接地/上方几何和身高归一化后的体量约束；`DramaBlocking3DPage.tsx` 只应用未保存的服务端布局并沿用原有退出保存链路。
 - **Source Documents：** `docs/superpowers/specs/2026-08-28-drama-ai-composition-relations-design.md`、`docs/superpowers/plans/2026-08-28-drama-ai-composition-relations.md`。
 
@@ -70,7 +71,7 @@
 - 投影合同（2026-08-27 起，半球贴面 dome-snap）：AI 标记不做图像测距。`projectStoryScene3dMarkerFromImageRegion` 只用 `imageRegion` 的两个可靠信息——水平中心确定方位（u=0.5 为正前 +Z），区域中心纬度与半球球面求交确定贴面点（球心在 `[0, projectionCenterHeight, 0]`，世界半径 = 直径字段 / 2）；随后把长方体沿径向内缩 `size.z / 2`，让整个盒子夹在轴心与球面之间：门、窗等 wall 锚点完全贴合球面（back face 触球），落地物体（door 与 floor 锚点）固定 `y=size.y/2` 落地，浮空墙面物（窗）保持交点高度。厚度取类别策略 `z` 下限做面板化；宽度取完整图像跨度、高度取 0.9 跨度并 clamp 到类别范围（v9 起覆盖系数统一放大，保证盒子盖得住物体）。标记朝向统一为径向方位角。手工标记与无 `imageRegion` 的旧 AI 数据保留原坐标；结果只依赖图像区域、环境参数与模型粗估距离，重复归一化幂等。空间标记仍是构图参照，不能当作精确测绘或碰撞几何。
 - 历史背景：v6/v7 曾实现"三路深度估计 + 45° 方位墙聚类共享墙距"的测距方案（落地线/顶边高度/垂直跨度取中位、门权重加倍、60° 内墙距封顶）。它依赖生成图符合真实透视的假设，实际摆位经常看起来不对，且对初学者不可解释；2026-08-27 整体移除，改为可预期的"图像在哪、长方体就贴在哪"。墙聚类相关导出常量已随实现删除，新代码不要再引入测距逻辑——若未来确需深度差，先扩展 AI 结构化输出（例如让模型给出相对层级），不要回到像素猜测。
 - 可行走地面薄板已整体移除（2026-08-26）：`STORY_SCENE_3D_MARKER_KINDS` 不再包含 `floor`，服务端不再从墙面深度合成 `scene-floor-walkable` 薄板，3D 视图也没有对应参考层。原因：它是叠加在真实全景上的合成参照物，视觉上盖住地面细节且与用户的直觉空间感冲突；角色站位约束已由舞台半径（半球边缘 1 米内缩，见下节）统一保证，薄板没有不可替代的价值。兼容规则：`normalizeMarker` 显式丢弃 `source.kind === "floor"` 的历史持久化行（缺这一步会让旧薄板被 coerce 成 `other` 类别残留），归一化幂等；`StoryScene3DMarkerAnchor` 的 `"floor"` 锚点是落地语义，与已移除的 floor 类别无关，不要混淆。
-- 自动构图 Prompt `drama.shot.blocking.autoPlan@v7` 的道具语义（2026-08-28 起）见下节「前景道具与交互构图」：标记不再只是障碍，交互构图是首选；多角色结果仍必须输出有向角色关系，关系由服务端落实为接地/上方位置与相对体量。
+- 自动构图 Prompt `drama.shot.blocking.autoPlan@v8` 的道具语义（2026-08-28 起）见下节「前景道具与交互构图」：标记不再只是障碍，交互构图是首选；多角色结果仍必须输出有向角色关系，关系由服务端落实为接地/上方位置与相对体量。
 - 每次识别结果都保存 `sourceEnvironment` 快照。新结果缺少快照、标记状态不是 `ready` 或快照与当前环境任一参数不一致时，结果通常视为过期；但旧 AI 结果若每个标记都有 `imageRegion`，服务端会先用图像区域重新投影并绑定当前环境，完成一次兼容迁移。仍缺少图像证据或含手工标记的旧数据会在场景 3D 编辑器清空并提示重新识别，分镜上下文不会把它交给角色自动摆位。用户在未保存参数时点击重新识别，编辑器会先保存当前投射参数，再启动识别。
 - 场景资产 3D 编辑器和分镜 3D 草图都渲染同一份半透明 PlayCanvas 长方体。共享 viewer 的场景层级：`app.root` 下有稳定的 `blocking3d-world` 世界节点，HDRI 背景（对象列表里的「世界」）和全部空间标记 cube 都是它的子对象；背景按状态图重建时不会连带销毁或移动标记，`createSceneMarkerRuntime` 通过可选 parent 参数把标记挂到该节点。共享 viewer 额外显示一个位于 `[0, projectionCenterHeight, 0]` 的半透明方形投射中心参考体，以及从地面到参考体中心的高度线；它不进入角色/标记拾取和 `layout3d` 保存，只随环境高度预览实时更新。用户可以从列表或直接点击空间标记选择并聚焦；标记不会写进镜头 `layout3d`，只作为构图参照和自动构图上下文。
 - 自动构图 Prompt 接收 `sceneJson.markers`，需要避开固定物体体积，并用相邻位置表达坐、倚靠、经过等空间关系；没有标记时不得自行编造障碍物坐标。空间标记暂关期间 `sceneJson.markers` 恒为空数组，自动构图只依赖站位半径约束。
@@ -81,12 +82,12 @@
 > 本节合同随空间标记功能整体暂关（见节首说明）进入休眠：添加标记入口、标记数据与 `interactionMarkerId` 构图在开关改回 `true` 前不可达。合同文本保留为恢复时的实现依据。
 
 - **Background：** 2026-08-28 用户决定漫剧场景按"背景 + 前景"分层生产——全景图只画固定装修与环境（墙、地面、门窗、天空、远景），桌椅床沙发等可移动家具不再画进全景图，由用户在 3D 场景里以前景道具标记的形式自己摆放；角色摆位要能与前景道具交互（坐在椅子上、躺在床上、倚靠桌柜），而不是只能"在道具旁边"表达关系。
-- **Decision：** 三条链路同步改造。① 生成合同：`scenePanoramaLayout.ts` 增加 furniture-free background/backdrop 规则并把家具全量列入负向提示词（场景文案提到家具也不画）；② 前景摆放：`createStoryScene3dMarker`（shared/utils/scene3dMarkers.ts）按类别默认尺寸创建 `source:"manual"` 标记，场景 3D 编辑器「空间标记」区提供类型选择 +「添加标记」，新建标记集合必须带当前 `sourceEnvironment` 快照（否则 `sceneMarkersAreCurrent` 判定不过、标记不渲染）；③ 交互构图：`drama.shot.blocking.autoPlan@v7` 的 actor 增加可选 `interactionMarkerId`。
+- **Decision：** 三条链路同步改造。① 生成合同：`scenePanoramaLayout.ts` 增加 furniture-free background/backdrop 规则并把家具全量列入负向提示词（场景文案提到家具也不画）；② 前景摆放：`createStoryScene3dMarker`（shared/utils/scene3dMarkers.ts）按类别默认尺寸创建 `source:"manual"` 标记，场景 3D 编辑器「空间标记」区提供类型选择 +「添加标记」，新建标记集合必须带当前 `sourceEnvironment` 快照（否则 `sceneMarkersAreCurrent` 判定不过、标记不渲染）；③ 交互构图：`drama.shot.blocking.autoPlan@v8` 的 actor 增加可选 `interactionMarkerId`。
 - **Current Rule：** 自动构图的道具交互规则——动作涉及坐下 → 角色落在椅子/沙发/床沿座位处（`position.y≈0.45` 座面高）、`pose=sitting` 并填 `interactionMarkerId`；躺/睡 → 床面或沙发上（`position.y≈0.5` 床垫面）、`pose=lying`；伏案/倚靠 → 紧贴道具边缘、`pose=sitting/interacting`。`interactionMarkerId` 只能指向 `sceneJson.markers` 里真实存在的标记，`postValidate`（`parseSceneJsonMarkerIds`）校验，指向不存在的 id 属于 AI 幻觉、报错走语义重试，不静默丢弃。未被动作引用的道具与门窗楼梯仍是障碍，角色不得站进其长方体；只有 `interactionMarkerId` 指向的道具才允许身体进入。
 - **识别与手动的共存：** 重新空间识别整体替换 AI 标记，但 `mergeStoryScene3dMarkerSets` 会把此前的手动前景道具按原坐标原样带回（同 id 不重复）；环境参数变化仍触发 CAS 报错要求重新识别，手动标记不豁免。
 - **下游一致性：** 全景图不含家具后，首帧画面的家具来源=摆位草图 PNG 中的道具长方体 + keyframe 提示词的家具摘要行。`DramaShotKeyframeService.collectForegroundProps` 汇总场景各状态标记的类型（同类合并计数如「椅子×2」，上限 12 类），注入「场景内前景家具（按摆位草图的位置与朝向呈现）」提示词行（`drama.shot.keyframe@v3`）。
 - **Failure Modes：** 新建标记集合漏带 `sourceEnvironment` → 标记不显示且分镜上下文拿不到（表现为"添加成功但列表没有"）；识别 Prompt 恢复家具穷举措辞 → 模型在空背景图上编造家具标记；autoPlan 校验跳过 marker id → AI 幻觉 id 落进 layout 且无人发现。不要把交互角色的 y 钳回地面——坐/躺落点依赖 AI 输出的座面/床垫面高度。
-- **Related Modules：** `shared/utils/scene3dMarkers.ts`（工厂/默认尺寸/合并）、`DramaScene3DPage.tsx`（添加标记 UI）、`StoryScene3dMarkerService.ts`（识别保留手动）、`shotBlockingAutoPlan.prompts.ts@v7`、`DramaShotBlockingSketchService.ts`（editor context）、`DramaShotKeyframeService.ts` + `shotKeyframe.prompts.ts@v3`（家具摘要）、`scenePanoramaLayout.ts`（纯背景合同）。
+- **Related Modules：** `shared/utils/scene3dMarkers.ts`（工厂/默认尺寸/合并）、`DramaScene3DPage.tsx`（添加标记 UI）、`StoryScene3dMarkerService.ts`（识别保留手动）、`shotBlockingAutoPlan.prompts.ts@v8`、`DramaShotBlockingSketchService.ts`（editor context）、`DramaShotKeyframeService.ts` + `shotKeyframe.prompts.ts@v3`（家具摘要）、`scenePanoramaLayout.ts`（纯背景合同）。
 
 ### 舞台余量与相机锚定合同
 
@@ -122,7 +123,7 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 - 分镜预览的「3D 草图」和「AI 图」是两个独立来源：当 AI 图尚未生成或加载失败而存在已保存的 3D 草图时，必须优先显示 3D 草图；AI 图标签保持禁用，避免分镜落入空白预览。AI 构图只从 3D 草图编辑器内显式触发，复用结构化自动构图并在退出时统一保存 JSON、PNG 和确认状态。只有两种图片都不可用时才显示 AI 图空状态和重新生成入口，不能用场景状态图冒充 AI 首帧。AI 首帧生成结果如果与任一参考图逐字节相同，统一运行时会把任务写为失败，历史上已经落盘的同类文件则由图片路由隐藏。
 
 
-- `drama.shot.blocking.autoPlan` prompt（当前 v6）承载导演工艺基线：景别→distance/focalPoint 高度基准（特写 1.5–2 至远景 ≥10）、三分法与 headroom/lead room、双人对话 180° 轴线相向站位并把 DoF 焦点锁在说话者、elev 正负对应仰拍/俯拍的叙事语义，以及先识别有向角色关系再规划坐标。结构化 `relations` 明确 `on_top_of` 的上下方向和 `sizeRelation` 的体量方向；这些语义由 Prompt 判断，服务端只落实已经结构化的关系，`compositionNote` 继续让模型自述构图依据。
+- `drama.shot.blocking.autoPlan` prompt（当前 v8）承载导演工艺基线：景别→distance/focalPoint 高度基准（特写 1.5–2 至远景 ≥10）、三分法与 headroom/lead room、双人对话 180° 轴线相向站位并把 DoF 焦点锁在说话者、elev 正负对应仰拍/俯拍的叙事语义，以及先识别有向角色关系再规划坐标。结构化 `relations` 明确 `on_top_of` 的上下方向和 `sizeRelation` 的体量方向；上方 subject 只能使用 `crouching` 或 `kneeling`，不使用当前 UAL 无法正确呈现的 `prone` / `lying`；这些语义由 Prompt 判断，服务端只落实已经结构化的关系并对不兼容姿势做确定性归一化，`compositionNote` 继续让模型自述构图依据。
 - 构图的几何正确性由服务端确定性兜底：`fitAutoPlanCameraFovToActors` 用与前端一致的 orbit 公式和 16:9 对角半角覆盖判定每个角色的脚点/头顶是否在取景锥内，出界时只放宽 fovDeg（上限 schema 的 100°），绝不改动方向、距离、焦点与景深等创意参数——这是「AI 决策 + 确定性后处理」边界的范例。
 - 编辑器镜头取景辅助由两部分组成：场景摄像机的白色线框 gizmo（常驻，见上）+ 第二台 PlayCanvas 相机以 viewport rect 渲染右下角画中画（从独立机位 pose 渲染，无 CameraFrame 后效，画面上叠加三分构图线）。画中画由 `setShotCameraHelpersVisible` 开关控制，选中摄像机或打开「镜头取景」时显示，AI 构图应用后自动打开；`capturePng` 导出前必须先冲掉上一帧排队的参考线并隐藏画中画与机身，保证摆位草图 PNG 只有布景与角色。
 ## Failure Modes

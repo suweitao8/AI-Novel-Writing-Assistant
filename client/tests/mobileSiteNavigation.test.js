@@ -11,14 +11,14 @@ import {
 
 const routedPaths = [
   "/",
-  "/help",
   "/novels",
   "/novels/create",
   "/novels/demo/preview",
   "/novels/demo/edit",
   "/novels/demo/chapters/chapter-1",
-  "/creative-hub",
   "/drama",
+  "/models",
+  "/creative-hub",
   "/chat-legacy",
   "/book-analysis",
   "/tasks",
@@ -28,10 +28,14 @@ const routedPaths = [
   "/story-modes",
   "/titles",
   "/prompt-workbench",
+  "/art-style",
   "/settings/models",
   "/settings/director",
   "/settings/knowledge",
-  "/settings/maintenance",
+  "/settings/narrator-voice",
+  "/settings/appearance",
+  "/settings/records",
+  "/settings/art-style",
   "/settings",
   "/worlds",
   "/worlds/generator",
@@ -51,41 +55,29 @@ test("mobile route metadata covers every registered page", () => {
   }
 });
 
-test("mobile primary nav keeps core beginner actions visible", () => {
+test("mobile primary nav keeps the drama focus actions visible", () => {
   assert.deepEqual(
     getMobilePrimaryNavItems().map((item) => [item.key, item.to, item.label]),
     [
-      ["home", "/", "首页"],
-      ["novels", "/novels", "小说"],
-      ["creation", "/creative-hub", "创作"],
+      ["creation", "/drama", "漫剧"],
       ["tasks", "/tasks", "任务"],
       ["more", "", "更多"],
     ],
   );
 });
 
-test("mobile more menu contains all non-primary registered pages", () => {
+test("mobile more menu only contains focus-mode support entries", () => {
   const morePaths = getMobileMoreNavGroups().flatMap((group) => group.items.map((item) => item.to));
 
   assert.deepEqual(
     morePaths,
     [
-      "/help",
-      "/drama",
-      "/book-analysis",
-      "/auto-director/follow-ups",
-      "/chat-legacy",
-      "/knowledge",
-      "/genres",
-      "/story-modes",
-      "/titles",
-      "/style-engine",
-      "/anti-ai-rules",
-      "/base-characters",
-      "/worlds",
-      "/worlds/generator",
-      "/prompt-workbench",
+      "/models",
+      "/tasks",
+      "/art-style",
       "/settings",
     ],
   );
+  assert.equal(getMobilePageTitle("/drama"), "漫剧");
+  assert.equal(getMobilePageTitle("/settings/narrator-voice"), "旁白音色");
 });
