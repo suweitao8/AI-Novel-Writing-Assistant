@@ -19,11 +19,25 @@ const DRAMA_FOCUS_HIDDEN_NAV_ROUTES = new Set<string>([
   "/genres",
   "/story-modes",
   "/chat-legacy",
+  "/worlds/generator",
   // 系统设置的二级页签：小说链路配置与外观，漫剧开发期暂时收起。
   "/settings/director",
   "/settings/knowledge",
   "/settings/appearance",
 ]);
+
+export type DramaFocusFeature = "novel-readiness";
+
+const DRAMA_FOCUS_HIDDEN_FEATURES = new Set<DramaFocusFeature>([
+  "novel-readiness",
+]);
+
+export function isDramaFocusFeatureVisible(
+  feature: DramaFocusFeature,
+  focusMode = DRAMA_FOCUS_MODE,
+): boolean {
+  return !focusMode || !DRAMA_FOCUS_HIDDEN_FEATURES.has(feature);
+}
 
 export function isNavRouteVisible(to: string): boolean {
   if (!to) {

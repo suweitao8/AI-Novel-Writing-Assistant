@@ -1,11 +1,18 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const { dramaShotBlockingAutoPlanPrompt } = require("../dist/prompting/prompts/drama/shotBlockingAutoPlan.prompts.js");
+const promptRegistrySource = fs.readFileSync(
+  path.join(__dirname, "../src/prompting/registry/promptAssetLoaderEntries.ts"),
+  "utf8",
+);
 
 test("自动构图 Prompt 输出完整角色摆位与相机景深合同", () => {
   assert.equal(dramaShotBlockingAutoPlanPrompt.id, "drama.shot.blocking.autoPlan");
-  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v7");
+  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v8");
+  assert.match(promptRegistrySource, /drama\.shot\.blocking\.autoPlan@v8/);
   assert.equal(dramaShotBlockingAutoPlanPrompt.mode, "structured");
   const output = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: [{ characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" }],
@@ -92,6 +99,8 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /on_top_of|上方/);
   assert.match(text, /larger|更大|体量/);
   assert.match(text, /先识别关系.*再规划坐标|关系.*坐标/);
+  assert.match(text, /subject.*crouching.*kneeling/);
+  assert.match(text, /不要.*prone|禁止.*prone/);
 
   const constrained = dramaShotBlockingAutoPlanPrompt.render({
     shotJson: "动作：沈烬奔跑",

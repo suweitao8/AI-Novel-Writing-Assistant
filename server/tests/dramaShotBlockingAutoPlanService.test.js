@@ -176,7 +176,7 @@ test("第一镜头的关系归一化不会把承载者和上方主体反过来�
   const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
   assert.equal(yechen.pose, "lying");
   assert.equal(yechen.position[1], 0);
-  assert.ok(["crouching", "prone", "kneeling"].includes(beast.pose));
+  assert.equal(beast.pose, "crouching");
   assert.ok(beast.position[1] > yechen.position[1]);
   assert.ok(Math.hypot(beast.position[0] - yechen.position[0], beast.position[2] - yechen.position[2]) <= 0.9);
   assert.ok(beast.scale[1] > yechen.scale[1]);

@@ -527,7 +527,10 @@ const AUTO_PLAN_ON_TOP_OF_MAX_HORIZONTAL_GAP_METERS = 0.9;
 const AUTO_PLAN_ON_TOP_OF_SUPPORT_HEIGHT_RATIO = 0.18;
 const AUTO_PLAN_RELATIVE_SIZE_MARGIN = 1.15;
 const AUTO_PLAN_GROUND_POSES = new Set<DramaShotBlockingSketchPose>(["lying", "prone"]);
-const AUTO_PLAN_UPPER_POSES = new Set<DramaShotBlockingSketchPose>(["crouching", "prone", "kneeling"]);
+// UAL1/UAL2 has no prone animation; the client safely renders that semantic
+// pose as a crouch, but auto composition should emit the supported pose
+// directly so an upper actor can never be mistaken for a supine actor.
+const AUTO_PLAN_UPPER_POSES = new Set<DramaShotBlockingSketchPose>(["crouching", "kneeling"]);
 
 type DramaShotBlockingAutoPlanRelation = DramaShotBlockingAutoPlanOutput["relations"][number];
 
