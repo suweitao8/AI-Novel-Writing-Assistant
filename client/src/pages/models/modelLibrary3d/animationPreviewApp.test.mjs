@@ -54,6 +54,14 @@ test("动画表格与模型表格同款分类页签（计数 + 过滤）", () =>
   assert.match(catalogSource, /ANIMATION_LIBRARY_CATEGORIES = \["待机", "移动", "坐姿"\] as const/);
 });
 
+test("动画表格在宽屏位于模型网格旁、窄屏置顶，不再被网格压到底部", () => {
+  const page = pageSource.replace(/\r\n/g, "\n");
+  const animIdx = page.indexOf("data-animation-aside");
+  const gridIdx = page.indexOf("data-model-grid");
+  assert.ok(animIdx >= 0 && gridIdx >= 0 && animIdx < gridIdx, "动画区应在 DOM 中先于模型网格");
+  assert.match(page, /xl:w-80 xl:shrink-0 xl:order-2" data-animation-aside/);
+});
+
 test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => {
   assert.match(catalogSource, /ANIMATION_LIBRARY_SOURCE = "Cine57"/);
   assert.match(catalogSource, /clipName: "A_INP_Idle"/);
