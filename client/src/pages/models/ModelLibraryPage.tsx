@@ -1,9 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
+import { ANIMATION_LIBRARY, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import { MODEL_LIBRARY, MODEL_LIBRARY_CATEGORIES, type ModelLibraryEntry } from "@/config/modelLibrary";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, AppDialogContent } from "@/components/ui/dialog";
+import { toast } from "@/components/ui/toast";
+import {
+  openAnimationPreview,
+  type AnimationPreview,
+} from "./modelLibrary3d/animationPreviewApp";
 import { ensureThumbnail, getThumbnail, subscribeThumbnails } from "./modelLibrary3d/thumbnailStudio";
 
 function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
@@ -42,8 +51,114 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
   );
 }
 
+function AnimationPreviewDialog({ entry, onClose }: { entry: AnimationLibraryEntry | null; onClose: () => void }) {
+  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
+  const previewRef = useRef<AnimationPreview | null>(null);
+  const [status, setStatus] = useState("");
+
+  useEffect(() => {
+    if (!entry || !canvasEl || previewRef.current) return undefined;
+    let disposed = false;
+    setStatus("正在加载动作");
+    const handle = openAnimationPreview({
+      canvas: canvasEl,
+      glbUrl: entry.fileUrl,
+      clipName: entry.clipName,
+      onStatus: setStatus,
+      onError: (message) => toast.error("动作预览失败", { description: message }),
+    });
+    handle.ready
+      .then((preview) => {
+        if (disposed) {
+          preview.destroy();
+          return;
+        }
+        previewRef.current = preview;
+        setStatus("");
+      })
+      .catch((error: unknown) => {
+        if (disposed) return;
+        setStatus("");
+        toast.error("动作预览初始化失败", {
+          description: error instanceof Error ? error.message : String(error),
+        });
+      });
+    return () => {
+      disposed = true;
+      handle.cancel();
+      previewRef.current = null;
+    };
+  }, [entry, canvasEl]);
+
+  return (
+    <Dialog open={entry !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <AppDialogContent
+        title={entry ? `${entry.name} 预览` : "动画预览"}
+        footer={
+          <Button variant="outline" onClick={onClose}>
+            关闭
+          </Button>
+        }
+      >
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted">
+          <canvas
+            key={entry?.id ?? "empty"}
+            ref={setCanvasEl}
+            className="block h-full w-full"
+            data-animation-preview-canvas
+          />
+          {status ? (
+            <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              {status}
+            </div>
+          ) : null}
+        </div>
+      </AppDialogContent>
+    </Dialog>
+  );
+}
+
+function AnimationTable({ onPreview }: { onPreview: (entry: AnimationLibraryEntry) => void }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-border bg-card" data-animation-table>
+      <div className="flex items-center justify-between border-b border-border px-3 py-2">
+        <span className="text-sm font-medium">动画</span>
+        <span className="text-xs text-muted-foreground">{ANIMATION_LIBRARY.length}</span>
+      </div>
+      <table className="w-full text-[13px]">
+        <thead>
+          <tr className="border-b border-border text-left text-xs text-muted-foreground">
+            <th scope="col" className="px-3 py-1.5 font-normal">名称</th>
+            <th scope="col" className="px-3 py-1.5 font-normal">分类</th>
+            <th scope="col" className="px-3 py-1.5 font-normal">时长</th>
+            <th scope="col" className="px-3 py-1.5 text-right font-normal">操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ANIMATION_LIBRARY.map((entry) => (
+            <tr key={entry.id} className="border-b border-border last:border-b-0" data-animation-row={entry.id}>
+              <td className="px-3 py-2 text-foreground">{entry.name}</td>
+              <td className="px-3 py-2">
+                <Badge variant="secondary">{entry.category}</Badge>
+              </td>
+              <td className="px-3 py-2 text-muted-foreground">{entry.durationSeconds.toFixed(1)} 秒</td>
+              <td className="px-3 py-2 text-right">
+                <Button variant="outline" size="sm" onClick={() => onPreview(entry)}>
+                  预览
+                </Button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
 export default function ModelLibraryPage() {
   const [category, setCategory] = useState<string>("全部");
+  const [previewEntry, setPreviewEntry] = useState<AnimationLibraryEntry | null>(null);
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of MODEL_LIBRARY) {
@@ -96,6 +211,10 @@ export default function ModelLibraryPage() {
           <ModelCard key={entry.id} entry={entry} />
         ))}
       </section>
+
+      <AnimationTable onPreview={setPreviewEntry} />
+
+      <AnimationPreviewDialog entry={previewEntry} onClose={() => setPreviewEntry(null)} />
     </div>
   );
 }
