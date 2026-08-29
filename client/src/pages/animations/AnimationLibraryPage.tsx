@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Play } from "lucide-react";
 
 import { ANIMATION_LIBRARY, ANIMATION_LIBRARY_CATEGORIES, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import { cn } from "@/lib/utils";
@@ -7,9 +7,65 @@ import { Button } from "@/components/ui/button";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import {
+  ensureAnimationThumbnail,
+  getAnimationThumbnail,
+  subscribeAnimationThumbnails,
+} from "./animationThumbnailStudio";
+import {
   openAnimationPreview,
   type AnimationPreview,
 } from "./animationPreviewApp";
+
+function AnimationCard({
+  entry,
+  onPreview,
+}: {
+  entry: AnimationLibraryEntry;
+  onPreview: (entry: AnimationLibraryEntry) => void;
+}) {
+  const [thumbnail, setThumbnail] = useState<string | null>(() => getAnimationThumbnail(entry.id));
+  useEffect(() => {
+    if (ensureAnimationThumbnail(entry)) return;
+    return subscribeAnimationThumbnails(() => {
+      const next = getAnimationThumbnail(entry.id);
+      if (next) setThumbnail(next);
+    });
+  }, [entry]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => onPreview(entry)}
+      className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60"
+      data-animation-card={entry.id}
+      title={`播放 ${entry.name}`}
+    >
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
+        {thumbnail ? (
+          <img
+            src={thumbnail}
+            alt={`${entry.name} 预览`}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          </div>
+        )}
+        <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm">
+          <Play className="h-2.5 w-2.5" aria-hidden="true" />
+        </span>
+      </div>
+      <div className="px-1.5 py-1.5">
+        <div className="truncate text-[11px] text-foreground">{entry.name}</div>
+        <div className="truncate text-[10px] text-muted-foreground">
+          {entry.category} · {entry.durationSeconds.toFixed(1)} 秒
+        </div>
+      </div>
+    </button>
+  );
+}
 
 function AnimationPreviewDialog({ entry, onClose }: { entry: AnimationLibraryEntry | null; onClose: () => void }) {
   const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
@@ -132,31 +188,10 @@ export default function AnimationLibraryPage() {
         ))}
       </section>
 
-      <section className="overflow-hidden rounded-xl border border-border bg-card" data-animation-table>
-        <table className="w-full text-[13px]">
-          <thead>
-            <tr className="border-b border-border text-left text-xs text-muted-foreground">
-              <th scope="col" className="px-3 py-1.5 font-normal">名称</th>
-              <th scope="col" className="px-3 py-1.5 font-normal">分类</th>
-              <th scope="col" className="px-3 py-1.5 font-normal">时长</th>
-              <th scope="col" className="px-3 py-1.5 text-right font-normal">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.id} className="border-b border-border last:border-b-0" data-animation-row={entry.id}>
-                <td className="px-3 py-2 text-foreground">{entry.name}</td>
-                <td className="px-3 py-2 text-muted-foreground">{entry.category}</td>
-                <td className="px-3 py-2 text-muted-foreground">{entry.durationSeconds.toFixed(1)} 秒</td>
-                <td className="px-3 py-2 text-right">
-                  <Button variant="outline" size="sm" onClick={() => setPreviewEntry(entry)}>
-                    预览
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" data-animation-grid>
+        {entries.map((entry) => (
+          <AnimationCard key={entry.id} entry={entry} onPreview={setPreviewEntry} />
+        ))}
       </section>
 
       <AnimationPreviewDialog entry={previewEntry} onClose={() => setPreviewEntry(null)} />

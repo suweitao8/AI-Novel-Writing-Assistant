@@ -8,6 +8,7 @@ import test from "node:test";
 // 可取消销毁」链路，特别是同一画布同一时刻只能存在一个 PlayCanvas 应用。
 const previewSource = readFileSync(path.join(import.meta.dirname, "animationPreviewApp.ts"), "utf8");
 const pageSource = readFileSync(path.join(import.meta.dirname, "AnimationLibraryPage.tsx"), "utf8");
+const studioSource = readFileSync(path.join(import.meta.dirname, "animationThumbnailStudio.ts"), "utf8");
 const modelPageSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "ModelLibraryPage.tsx"),
   "utf8",
@@ -45,17 +46,37 @@ test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () =
   assert.match(previewSource, /resizeObserver\.disconnect\(\)/);
 });
 
-test("动画库是独立页面：分类页签 + 动画表格 + 预览弹窗", () => {
+test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存进 localStorage", () => {
+  assert.match(studioSource, /export function ensureAnimationThumbnail/);
+  assert.match(studioSource, /export function getAnimationThumbnail/);
+  assert.match(studioSource, /export function subscribeAnimationThumbnails/);
+  assert.match(studioSource, /animation-library:thumbnails:v1/);
+  assert.match(studioSource, /preserveDrawingBuffer: true/);
+  assert.match(studioSource, /addComponent\("anim"/);
+  assert.match(studioSource, /anim\.rootBone = model/);
+  assert.match(studioSource, /assignAnimation\(entry\.clipName, track, 0, 1, true\)/);
+  assert.match(studioSource, /activeStateCurrentTime = /);
+  assert.match(studioSource, /app\.assets\.remove\(asset\)/);
+  assert.match(studioSource, /app\.destroy\(\)/);
+});
+
+test("动画库是独立页面：分类页签 + 动画卡片（预览图 + 名字）+ 预览弹窗", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
   assert.match(pageSource, /aria-label="动画分类"/);
   assert.match(pageSource, /\["全部", \.\.\.ANIMATION_LIBRARY_CATEGORIES\]/);
-  assert.match(pageSource, /data-animation-table/);
-  assert.match(pageSource, /data-animation-row/);
+  assert.match(pageSource, /data-animation-grid/);
+  assert.match(pageSource, /data-animation-card/);
+  assert.match(pageSource, /ensureAnimationThumbnail\(entry\)/);
+  assert.match(pageSource, /getAnimationThumbnail\(entry\.id\)/);
+  assert.match(pageSource, /subscribeAnimationThumbnails/);
+  assert.match(pageSource, /alt=\{`\$\{entry\.name\} 预览`\}/);
   assert.match(pageSource, /ANIMATION_LIBRARY\.filter/);
   assert.match(pageSource, /openAnimationPreview\(/);
   assert.match(pageSource, /data-animation-preview-canvas/);
   assert.match(pageSource, /toast\.error\(/);
+  // 卡片网格取代旧表格：页面不再渲染 <table>
+  assert.doesNotMatch(pageSource, /<table/);
 });
 
 test("顶部导航在模型与系统之间提供动画入口，模型页不再内嵌动画", () => {
