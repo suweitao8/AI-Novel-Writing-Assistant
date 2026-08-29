@@ -70,6 +70,7 @@ const moreNavGroups: MobileNavGroup[] = [
     title: "创作辅助",
     items: [
       { key: "models", label: "模型库", to: "/models", group: "creation" },
+      { key: "animations", label: "动画库", to: "/animations", group: "creation" },
       { key: "book-analysis", label: "拆书", to: "/book-analysis", group: "creation" },
       { key: "chat-legacy", label: "旧版聊天", to: "/chat-legacy", group: "creation" },
     ],

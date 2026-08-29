@@ -7,9 +7,17 @@ import test from "node:test";
 // 断言读取源码，守住「同步构建 → 加载 GLB → 装配动画组件 → 循环播放 →
 // 可取消销毁」链路，特别是同一画布同一时刻只能存在一个 PlayCanvas 应用。
 const previewSource = readFileSync(path.join(import.meta.dirname, "animationPreviewApp.ts"), "utf8");
-const pageSource = readFileSync(path.join(import.meta.dirname, "..", "ModelLibraryPage.tsx"), "utf8");
+const pageSource = readFileSync(path.join(import.meta.dirname, "AnimationLibraryPage.tsx"), "utf8");
+const modelPageSource = readFileSync(
+  path.join(import.meta.dirname, "..", "models", "ModelLibraryPage.tsx"),
+  "utf8",
+);
+const navSource = readFileSync(
+  path.join(import.meta.dirname, "..", "..", "config", "dramaFocusNav.ts"),
+  "utf8",
+);
 const catalogSource = readFileSync(
-  path.join(import.meta.dirname, "..", "..", "..", "config", "animationLibrary.ts"),
+  path.join(import.meta.dirname, "..", "..", "config", "animationLibrary.ts"),
   "utf8",
 );
 
@@ -37,9 +45,12 @@ test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () =
   assert.match(previewSource, /resizeObserver\.disconnect\(\)/);
 });
 
-test("页面在模型表格旁渲染动画表格并提供预览弹窗", () => {
+test("动画库是独立页面：分类页签 + 动画表格 + 预览弹窗", () => {
+  assert.match(pageSource, /data-animation-page/);
+  assert.match(pageSource, /data-animation-category-table/);
+  assert.match(pageSource, /aria-label="动画分类"/);
+  assert.match(pageSource, /\["全部", \.\.\.ANIMATION_LIBRARY_CATEGORIES\]/);
   assert.match(pageSource, /data-animation-table/);
-  assert.match(pageSource, /data-animation-row-table/);
   assert.match(pageSource, /data-animation-row/);
   assert.match(pageSource, /ANIMATION_LIBRARY\.filter/);
   assert.match(pageSource, /openAnimationPreview\(/);
@@ -47,19 +58,12 @@ test("页面在模型表格旁渲染动画表格并提供预览弹窗", () => {
   assert.match(pageSource, /toast\.error\(/);
 });
 
-test("动画表格与模型表格同款分类页签（计数 + 过滤）", () => {
-  assert.match(pageSource, /data-animation-category-table/);
-  assert.match(pageSource, /aria-label="动画分类"/);
-  assert.match(pageSource, /\["全部", \.\.\.ANIMATION_LIBRARY_CATEGORIES\]/);
-  assert.match(catalogSource, /ANIMATION_LIBRARY_CATEGORIES = \["待机", "移动", "坐姿"\] as const/);
-});
-
-test("动画表格在宽屏位于模型网格旁、窄屏置顶，不再被网格压到底部", () => {
-  const page = pageSource.replace(/\r\n/g, "\n");
-  const animIdx = page.indexOf("data-animation-aside");
-  const gridIdx = page.indexOf("data-model-grid");
-  assert.ok(animIdx >= 0 && gridIdx >= 0 && animIdx < gridIdx, "动画区应在 DOM 中先于模型网格");
-  assert.match(page, /xl:w-80 xl:shrink-0 xl:order-2" data-animation-aside/);
+test("顶部导航在模型与系统之间提供动画入口，模型页不再内嵌动画", () => {
+  const items = navSource.indexOf('to: "/animations", label: "动画"');
+  const models = navSource.indexOf('to: "/models", label: "模型"');
+  const settings = navSource.indexOf('to: "/settings", label: "系统"');
+  assert.ok(items > models && items < settings, "动画入口应位于模型与系统之间");
+  assert.doesNotMatch(modelPageSource, /AnimationTable|data-animation-table|openAnimationPreview/);
 });
 
 test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => {

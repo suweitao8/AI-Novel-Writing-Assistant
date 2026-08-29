@@ -26,8 +26,8 @@
   **可视背景用半圆球穹顶**（`studioBackdrop.ts` 的 `attachStudioBackdrop`）：全景图重投影成 cubemap 贴到半圆球内壁（几何/材质复用 blocking3d 的 `createBackdropGeometry`/`createProjectedHdriMaterial`，几何 0.5 单位半径 + 实体按 domeRadius 缩放），与漫剧场景同款；编辑器 radius 30、panoramaHorizonV 0.56（对齐生成全景的地平线位置）。env atlas 只管光照，穹顶只管可见背景，二者并存。注意 PlayCanvas 2.21 的 `toneMapping` 挂在 **CameraComponent** 上而非 Scene；粗糙度体系叫 **gloss**（`glossMap`/`glossInvert`，G 通道），没有 `roughnessMap`。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
-- **动画库沿用静态目录模式**：动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
-- **动画预览器独占创建应用**：`modelLibrary3d/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载 GLB，返回 `ready`/`cancel` 句柄；调用方（模型库页弹窗）在 effect 清理时必须同步 `cancel()`。
+- **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；页面结构与模型库同构（分类页签 + 内容列表 + 预览）。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
+- **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载 GLB，返回 `ready`/`cancel` 句柄；调用方（动画库页弹窗）在 effect 清理时必须同步 `cancel()`。
 - **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → 仓库外 `gltf-tools/final_retarget.py` 按「绑定位姿差」离线重定向到 UAL2 骨架（`W_t(b) := W_t0(b) · inv(W_s0(b)) · W_s(b)`，逐帧解局部四元数，半球连续性防插值过零）→ 链式合并进一个 GLB。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。
 
 ## 现行规则
@@ -61,4 +61,4 @@
 - `pages/drama/comicDrama/components/blocking3d/`：gizmo、资源加载、相机数学的门面提供方（`index.ts`）。
 - `pages/drama/comicDrama/components/editor3d/`：Inspector 面板与变换工具条（`index.ts`）。
 - `config/modelLibrary.ts`：模型目录数据（构建产物，勿手改）；`config/animationLibrary.ts`：动画目录数据；`config/dramaFocusNav.ts`：顶部导航入口。
-- `pages/models/modelLibrary3d/animationPreviewApp.ts`：动画循环播放预览器。
+- `pages/animations/`：动画库独立页与循环播放预览器（`animationPreviewApp.ts`）。
