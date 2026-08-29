@@ -7,8 +7,6 @@ import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting"
 import {
   createBlocking3dTransformGizmo,
   clamp,
-  createMaterial,
-  createPlane,
   DEFAULT_FOV,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
@@ -46,7 +44,6 @@ export interface ModelViewer {
   destroy: () => void;
 }
 
-const GROUND_HALF_SIZE = 6;
 const CAPTURE_SIZE = { width: 1280, height: 720 } as const;
 const DEFAULT_VIEW = { azim: -35, elev: -18 } as const;
 
@@ -169,7 +166,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     studioEnvCleanup = cleanup;
   });
   // 半圆球穹顶：与漫剧场景一致，把摄影棚全景投射在半球内壁作可视背景。
-  void attachStudioBackdrop(app, { radius: 30 }).then((handle) => {
+  void attachStudioBackdrop(app, { camera: cameraEntity }).then((handle) => {
     if (!handle) return;
     if (studioEnvDisposed) {
       handle.destroy();
@@ -177,36 +174,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     }
     studioBackdropCleanup = handle.destroy;
   });
-
-  const ground = createPlane(
-    app,
-    "model-editor-ground",
-    [0, -0.01, 0],
-    [GROUND_HALF_SIZE * 2, 1, GROUND_HALF_SIZE * 2],
-    createMaterial(new pc.Color(0.12, 0.15, 0.19)),
-  );
-  ground.render!.receiveShadows = true;
-
-  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  for (let value = -GROUND_HALF_SIZE; value <= GROUND_HALF_SIZE; value += 0.5) {
-    const major = Number.isInteger(value) && value % 3 === 0;
-    const color = new pc.Color(
-      major ? 0.46 : 0.28,
-      major ? 0.5 : 0.32,
-      major ? 0.58 : 0.4,
-      major ? 0.62 : 0.38,
-    );
-    gridLines.push({
-      start: new pc.Vec3(value, 0.004, -GROUND_HALF_SIZE),
-      end: new pc.Vec3(value, 0.004, GROUND_HALF_SIZE),
-      color,
-    });
-    gridLines.push({
-      start: new pc.Vec3(-GROUND_HALF_SIZE, 0.004, value),
-      end: new pc.Vec3(GROUND_HALF_SIZE, 0.004, value),
-      color,
-    });
-  }
 
   // modelRoot 承载用户编辑的 transform（gizmo 目标）；modelAdjust 把源模型
   // 换算到米并平移到底部中心落在原点，导入即「落地居中」。
@@ -443,7 +410,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   app.on("update", (dt: number) => {
     if (destroyed) return;
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
-    for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
   });
   app.start();
 
