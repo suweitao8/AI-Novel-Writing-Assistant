@@ -7,7 +7,6 @@ import {
   getStudioEnvironmentDiameterMeters,
   getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentRadiusMeters,
-  getStudioEnvironmentPreset,
   saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
@@ -39,7 +38,7 @@ export interface ModelViewerOptions {
   materials?: ModelMaterialMap;
   /** 模型预览使用的固定 HDRI 环境预设。 */
   environmentPresetId?: StudioEnvironmentPresetId;
-  /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
+  /** 模型编辑器使用的半球直径；未传入时读取对应 HDRI 的本机偏好。 */
   environmentDiameterMeters?: number;
   onStatus?: (status: string) => void;
   /** gizmo 拖拽过程中的实时回读（面板数值跟手）。 */
@@ -200,13 +199,13 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     focalPoint: [0, 0.5, 0],
   };
 
-  const getCameraMaxDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
+  const getMaxCameraDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
 
   const syncCamera = () => {
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
-    const distance = clamp(cameraState.distance, 0.2, getCameraMaxDistance());
+    const distance = clamp(cameraState.distance, 0.2, getMaxCameraDistance());
     cameraState.distance = distance;
     cameraEntity.setPosition(
       cameraState.focalPoint[0] + Math.sin(azimuth) * cosElevation * distance,
@@ -219,13 +218,12 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
 
   const loadEnvironmentPreset = async (
     presetId: StudioEnvironmentPresetId,
-    diameterMeters?: number,
+    diameterOverride?: number,
   ): Promise<boolean> => {
     if (destroyed) return false;
     const requestId = ++studioEnvironmentRequestId;
-    const preset = getStudioEnvironmentPreset(presetId);
     const nextDiameterMeters = getStudioEnvironmentDiameterMeters(
-      diameterMeters ?? getStudioEnvironmentDiameterPreference(presetId) ?? preset.diameterMeters,
+      diameterOverride ?? getStudioEnvironmentDiameterPreference(presetId),
     );
     let nextEnvironment: StudioEnvironmentHandle;
     try {
@@ -254,8 +252,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     return true;
   };
 
-  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
-
   let gizmoDragging = false;
   const transformGizmo = createBlocking3dTransformGizmo(app, camera, {
     onTransformStart: () => {
@@ -279,7 +275,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
     cameraState.focalPoint = [modelRoot.getPosition().x, centerY, modelRoot.getPosition().z];
-    cameraState.distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
+    cameraState.distance = clamp(
+      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
+      0.35,
+      getMaxCameraDistance(),
+    );
     syncCamera();
   };
 
@@ -418,7 +418,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     cameraState.distance = clamp(
       cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
       0.2,
-      getCameraMaxDistance(),
+      getMaxCameraDistance(),
     );
     syncCamera();
   };
@@ -471,6 +471,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
   });
   app.start();
+  // 等应用进入帧循环后再加载环境，避免环境异步任务与模型加载失败清理竞态。
+  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
 
   const readTransform = (): InspectorTransformValue => {
     const position = modelRoot.getPosition();

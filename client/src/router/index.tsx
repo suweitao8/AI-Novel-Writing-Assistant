@@ -22,6 +22,7 @@ const DramaProjectPage = lazy(() => import("@/pages/drama/DramaProjectPage"));
 const ModelLibraryPage = lazy(() => import("@/pages/models/ModelLibraryPage"));
 const ModelEditorPage = lazy(() => import("@/pages/models/ModelEditorPage"));
 const AnimationLibraryPage = lazy(() => import("@/pages/animations/AnimationLibraryPage"));
+const AnimationPreviewPage = lazy(() => import("@/pages/animations/AnimationPreviewPage"));
 const ComicWorkspacePage = lazy(() => import("@/pages/comic/ComicWorkspacePage"));
 const ComicProjectPage = lazy(() => import("@/pages/comic/ComicProjectPage"));
 const CreativeHubPage = lazy(() => import("@/pages/creativeHub/CreativeHubPage"));
@@ -74,6 +75,7 @@ const routes: RouteObject[] = [
       { path: "models", element: <ModelLibraryPage /> },
       { path: "models/:modelId", element: <ModelEditorPage /> },
       { path: "animations", element: <AnimationLibraryPage /> },
+      { path: "animations/:animationId", element: <AnimationPreviewPage /> },
       { path: "comic", element: <ComicWorkspacePage /> },
       { path: "comic/projects/:id", element: <ComicProjectPage /> },
       { path: "creative-hub", element: <CreativeHubPage /> },

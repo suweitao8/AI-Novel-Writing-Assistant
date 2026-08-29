@@ -12,6 +12,7 @@ import {
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
 import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
 import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLighting";
+import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 /**
  * 动画库缩略图生成器：与模型库缩略图同一套「离屏 PlayCanvas 画布 + localStorage
@@ -21,7 +22,7 @@ import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLightin
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v2";
+const STORAGE_KEY = "animation-library:thumbnails:v3";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -108,11 +109,14 @@ function scheduleIdleDestroy(): void {
 /** 请求一张动画缩略图；已缓存返回 true，否则进入生成队列（完成后广播订阅者）。 */
 export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean {
   loadStorageCache();
+  if (getAnimationKeyframe(entry.id)) return true;
   if (memoryCache.has(entry.id)) return true;
   if (!pendingEntries.has(entry.id)) {
     pendingEntries.set(entry.id, entry);
-    void processQueue();
   }
+  // A previous studio initialization may have rejected. Keep the entry
+  // queued, but let a later request start a fresh initialization attempt.
+  if (!processing) void processQueue();
   scheduleIdleDestroy();
   return false;
 }
@@ -120,12 +124,23 @@ export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean 
 async function processQueue(): Promise<void> {
   if (processing) return;
   processing = true;
+  let active: Awaited<ReturnType<typeof createAnimationThumbnailStudio>>;
   try {
     if (!studioPromise) {
       studioPromise = createAnimationThumbnailStudio();
     }
-    const active = await studioPromise;
+    active = await studioPromise;
     studio = active;
+  } catch {
+    // Do not cache a rejected Promise forever. A later card request can retry
+    // after WebGL, the browser, or the asset server becomes available again.
+    studioPromise = null;
+    processing = false;
+    scheduleIdleDestroy();
+    return;
+  }
+
+  try {
     for (;;) {
       const next = pendingEntries.values().next();
       if (next.done) break;
@@ -180,7 +195,7 @@ async function createAnimationThumbnailStudio(): Promise<{
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
   setupStudioLighting(app, cameraEntity.camera!);
-  const studioEnvironment = await loadStudioEnvironment(app, undefined, { diameterMeters: 30 });
+  const studioEnvironment = await loadStudioEnvironment(app, undefined, { radiusMeters: 30 });
 
   const ground = createPlane(
     app,
@@ -226,9 +241,10 @@ async function createAnimationThumbnailStudio(): Promise<{
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
       const asset = await loadAsset(app, entry.fileUrl, "container");
+      let model: pc.Entity | null = null;
       try {
         const resource = asset.resource as ContainerResource | null;
-        const model = resource?.instantiateRenderEntity?.({ castShadows: false });
+        model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
         if (!model) throw new Error("动作文件里没有可显示的角色。");
         model.addComponent("anim", { activate: true });
         const anim = model.anim as unknown as AnimComponentLike | undefined;
@@ -272,9 +288,9 @@ async function createAnimationThumbnailStudio(): Promise<{
         drawFrame();
         const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
         if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
-        model.destroy();
         return dataUrl;
       } finally {
+        model?.destroy();
         app.assets.remove(asset);
       }
     },

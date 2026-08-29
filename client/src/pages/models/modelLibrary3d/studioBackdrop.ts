@@ -10,7 +10,9 @@ import {
 
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-  getStudioEnvironmentDiameterMeters,
+  getStudioEnvironmentDomeDiameterMeters,
+  getStudioEnvironmentRadiusMeters,
+  normalizeStudioEnvironmentRadiusMeters,
   getStudioEnvironmentPreset,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
@@ -31,8 +33,10 @@ export interface StudioBackdropHandle {
 
 export interface StudioBackdropOptions {
   presetId?: StudioEnvironmentPresetId;
-  /** 覆盖预设的半球直径；范围由环境预设合同统一收敛到 5–30 米。 */
+  /** 用户可见的半球直径；优先于内部兼容用的 radiusMeters。 */
   diameterMeters?: number;
+  /** 覆盖预设的真实水平半径；模型编辑器使用预设值，缩略图可使用固定取景半径。 */
+  radiusMeters?: number;
   projectionCenterHeightMeters?: number;
   panoramaHorizonV?: number;
 }
@@ -78,9 +82,10 @@ export async function attachStudioBackdrop(
     configureEnvironmentTexture(texture, app);
     cubemap = createVisibleHdriCubemap(app, texture);
 
-    const domeDiameterMeters = getStudioEnvironmentDiameterMeters(
-      options.diameterMeters ?? preset.diameterMeters,
-    );
+    const radiusMeters = typeof options.diameterMeters === "number"
+      ? getStudioEnvironmentRadiusMeters(options.diameterMeters)
+      : normalizeStudioEnvironmentRadiusMeters(options.radiusMeters ?? getStudioEnvironmentRadiusMeters(preset.diameterMeters), getStudioEnvironmentRadiusMeters(preset.diameterMeters));
+    const domeDiameterMeters = getStudioEnvironmentDomeDiameterMeters(radiusMeters);
     const centerHeight =
       typeof options.projectionCenterHeightMeters === "number" &&
       Number.isFinite(options.projectionCenterHeightMeters)

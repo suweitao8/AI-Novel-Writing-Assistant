@@ -4,7 +4,7 @@
 
 **Goal:** 为模型编辑器和缩略图提供三种固定中心的 HDRI 环境，并消除模型页旋转摄像机时 HDR 穹顶跟随、放大导致的背景漂移。
 
-**Architecture:** 在 `client/src/pages/models/modelLibrary3d/` 建立环境预设目录与加载门面。预设用 `diameterMeters` 表达半球直径，统一限制在 5–30 米，默认值为 10/20/30；只有相机边界等内部计算才换算为 `diameterMeters / 2` 的真实半径。可见穹顶固定在世界原点，环境切换采用新资源加载完成后替换旧资源的生命周期。系统设置用资产预设表管理旁白音色与三套 HDRI 直径偏好；漫剧场景继续使用自身状态图和既有 `domeRadius` 直径合同，不做数据库迁移或字段重解释。
+**Architecture:** 在 `client/src/pages/models/modelLibrary3d/` 建立环境预设目录与加载门面。预设用 `radiusMeters` 表达中心到边界的真实水平半径，固定为 10/20/50；只有交给基础半径为 0.5 的 blocking3d 穹顶几何时才换算为 `radiusMeters * 2` 的实体缩放。可见穹顶固定在世界原点，环境切换采用新资源加载完成后替换旧资源的生命周期。系统设置用资产预设表展示旁白音色与三套固定 HDRI 半径；漫剧场景继续使用自身状态图和既有 `domeRadius` 直径合同，不做数据库迁移或字段重解释。
 
 **Tech Stack:** React 19、TypeScript、Vite、PlayCanvas 2.21、Node.js `node:test`、现有 `SelectControl`、独立 Playwright CLI 浏览器。
 
@@ -12,19 +12,19 @@
 
 ## 文件责任地图
 
-- Create: `client/src/pages/models/modelLibrary3d/studioEnvironmentPresets.ts` — 三个预设的 ID、显示名、源图、默认半球直径、投影中心、5–30 归一化和本机偏好。
+- Create: `client/src/pages/models/modelLibrary3d/studioEnvironmentPresets.ts` — 三个预设的 ID、显示名、源图、固定中心到边界半径和投影中心。
 - Create: `client/src/pages/models/modelLibrary3d/studioEnvironmentRuntime.ts` — 同一源图的环境光/可见背景原子加载、过期请求丢弃和释放。
 - Create: `client/tests/modelStudioEnvironment.contract.test.js` — 预设数值、资源路径、静态穹顶和缓存契约。
 - Modify: `client/src/pages/models/modelLibrary3d/studioBackdrop.ts` — 使用预设源图，固定原点和固定几何尺寸，移除相机跟随。
 - Modify: `client/src/pages/models/modelLibrary3d/studioLighting.ts` — 按预设生成 `envAtlas`，保留程序化与旧 HDRI 回退。
 - Modify: `client/src/pages/models/modelLibrary3d/modelViewerApp.ts` — 接入环境运行时、异步切换、取景距离限制和销毁竞态处理。
-- Modify: `client/src/pages/models/ModelEditorPage.tsx` — 添加环境预设选择控件、5–30 米半球直径滑块和切换状态。
-- Modify: `client/src/pages/settings/views/NarratorVoiceSettingsPage.tsx` — 用两张资产表展示旁白音色与三套 HDRI 预设。
+- Modify: `client/src/pages/models/ModelEditorPage.tsx` — 添加环境预设选择控件和切换状态，选项展示固定半径。
+- Modify: `client/src/pages/settings/views/NarratorVoiceSettingsPage.tsx` — 用两张资产表展示旁白音色与三套固定 HDRI 预设。
 - Modify: `client/src/pages/models/modelLibrary3d/thumbnailStudio.ts` — 固定使用室内预设并提升缩略图缓存版本。
-- Modify: `client/src/pages/animations/animationThumbnailStudio.ts` — 使用共享环境运行时和明确的半球直径参数。
-- Create: `client/public/models/env/model-indoor-living-room.hdr` — 室内客厅 2:1 等距柱状 HDRI，默认直径 10 m。
-- Create: `client/public/models/env/model-outdoor-central-plaza.hdr` — 中央广场 2:1 等距柱状 HDRI，默认直径 20 m。
-- Create: `client/public/models/env/model-nature-grassland.hdr` — 草地自然场景 2:1 等距柱状 HDRI，默认直径 30 m。
+- Modify: `client/src/pages/animations/animationThumbnailStudio.ts` — 使用共享环境运行时和明确的固定半径参数。
+- Create: `client/public/models/env/model-indoor-living-room.hdr` — 室内客厅 2:1 等距柱状 HDRI，中心到边界半径 10 m。
+- Create: `client/public/models/env/model-outdoor-central-plaza.hdr` — 中央广场 2:1 等距柱状 HDRI，中心到边界半径 20 m。
+- Create: `client/public/models/env/model-nature-grassland.hdr` — 草地自然场景 2:1 等距柱状 HDRI，中心到边界半径 50 m。
 - Modify: `docs/wiki/product/model-library.md` — 记录环境预设、静态投影和资源失败模式。
 - Modify: `docs/releases/release-notes.md` — 记录用户可见的环境选择和旋转稳定性。
 - Modify: `README.md` — 刷新「最新更新」到最新日期块。
@@ -51,17 +51,15 @@ const presetSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentP
 const backdropSource = read("../src/pages/models/modelLibrary3d/studioBackdrop.ts");
 const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio.ts");
 
-test("模型环境预设使用 5 到 30 米的半球直径", () => {
+test("模型环境预设使用固定 10、20、50 米真实半径", () => {
   assert.match(presetSource, /interior/);
   assert.match(presetSource, /exterior/);
   assert.match(presetSource, /nature/);
-  assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
-  assert.match(presetSource, /min:\s*5/);
-  assert.match(presetSource, /max:\s*30/);
-  assert.match(presetSource, /diameterMeters:\s*10/);
-  assert.match(presetSource, /diameterMeters:\s*20/);
-  assert.match(presetSource, /diameterMeters:\s*30/);
-  assert.match(presetSource, /getStudioEnvironmentDiameterMeters\(diameterMeters\)\s*\/\s*2/);
+  assert.match(presetSource, /radiusMeters:\s*10/);
+  assert.match(presetSource, /radiusMeters:\s*20/);
+  assert.match(presetSource, /radiusMeters:\s*50/);
+  assert.match(presetSource, /getStudioEnvironmentDomeDiameterMeters/);
+  assert.match(presetSource, /normalizeStudioEnvironmentRadiusMeters\(radiusMeters\)\s*\*\s*2/);
 });
 
 test("模型可见穹顶不接收相机且固定在原点", () => {
@@ -81,7 +79,7 @@ test("卡片缩略图使用共享室内默认值并刷新缓存版本", () => {
 
 Run: `pnpm --filter @ai-novel/client exec node --experimental-strip-types --test tests/modelStudioEnvironment.contract.test.js`
 
-Expected: FAIL，因为预设目录不存在、模型穹顶仍接收 `camera`，且缓存仍为 `v15`。
+Expected: FAIL，因为固定半径预设、共享运行时和静态穹顶契约尚未实现。
 
 - [ ] **Step 3: 提交测试基线**
 
@@ -105,7 +103,7 @@ git commit -s -m "test: define model HDR environment contracts"
 
 - [ ] **Step 1: 添加纯数据预设目录**
 
-使用以下接口和常量，产品界面只使用半球直径；真实半径只在运行时内部派生：
+使用以下接口和常量，产品界面直接展示中心到边界的真实半径；只有几何模块需要直径缩放值：
 
 ```ts
 export const STUDIO_ENVIRONMENT_PRESET_IDS = ["interior", "exterior", "nature"] as const;
@@ -115,7 +113,7 @@ export interface StudioEnvironmentPreset {
   id: StudioEnvironmentPresetId;
   label: string;
   sourceUrl: string;
-  diameterMeters: number;
+  radiusMeters: number;
   projectionCenterHeightMeters: number;
   panoramaHorizonV: number;
 }
@@ -129,7 +127,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "interior",
     label: "室内客厅",
     sourceUrl: "/models/env/model-indoor-living-room.hdr",
-    diameterMeters: 10,
+    radiusMeters: 10,
     projectionCenterHeightMeters: 1.7,
     panoramaHorizonV: 0.5,
   },
@@ -137,7 +135,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "exterior",
     label: "中央广场",
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
-    diameterMeters: 20,
+    radiusMeters: 20,
     projectionCenterHeightMeters: 1.7,
     panoramaHorizonV: 0.5,
   },
@@ -145,7 +143,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "nature",
     label: "草地自然",
     sourceUrl: "/models/env/model-nature-grassland.hdr",
-    diameterMeters: 30,
+    radiusMeters: 50,
     projectionCenterHeightMeters: 1.7,
     panoramaHorizonV: 0.5,
   },
@@ -155,12 +153,8 @@ export function getStudioEnvironmentPreset(id: StudioEnvironmentPresetId): Studi
   return STUDIO_ENVIRONMENT_PRESETS[id] ?? STUDIO_ENVIRONMENT_PRESETS[DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID];
 }
 
-export function getStudioEnvironmentDiameterMeters(diameterMeters: number): number {
-  return Math.min(30, Math.max(5, Number(diameterMeters)));
-}
-
-export function getStudioEnvironmentRadiusMeters(diameterMeters: number): number {
-  return getStudioEnvironmentDiameterMeters(diameterMeters) / 2;
+export function getStudioEnvironmentDomeDiameterMeters(radiusMeters: number): number {
+  return normalizeStudioEnvironmentRadiusMeters(radiusMeters) * 2;
 }
 ```
 
@@ -203,7 +197,7 @@ git commit -s -m "feat: add model HDR environment presets"
 
 - [ ] **Step 1: 先定义运行时门面**
 
-新增 `loadStudioEnvironment(app, presetId)`，返回 `{ presetId, diameterMeters, radiusMeters, destroy }`。它并发调用 `upgradeStudioEnvironment(app, presetId)` 和 `attachStudioBackdrop(app, { presetId, diameterMeters })`；任一请求过期、应用已销毁或新选择已经接管时，立刻销毁新返回的两套资源，不得替换当前句柄。
+新增 `loadStudioEnvironment(app, presetId)`，返回 `{ presetId, radiusMeters, destroy }`。它并发调用 `upgradeStudioEnvironment(app, presetId)` 和 `attachStudioBackdrop(app, { presetId, radiusMeters })`；任一请求过期、应用已销毁或新选择已经接管时，立刻销毁新返回的两套资源，不得替换当前句柄。
 
 - [ ] **Step 2: 修改 `studioBackdrop` 的几何和锚点**
 
@@ -211,16 +205,17 @@ git commit -s -m "feat: add model HDR environment presets"
 
 ```ts
 const preset = getStudioEnvironmentPreset(options.presetId ?? DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID);
-const diameterMeters = getStudioEnvironmentDiameterMeters(
-  options.diameterMeters ?? preset.diameterMeters,
+const radiusMeters = normalizeStudioEnvironmentRadiusMeters(
+  options.radiusMeters ?? preset.radiusMeters,
+  preset.radiusMeters,
 );
-const radiusMeters = getStudioEnvironmentRadiusMeters(diameterMeters);
+const domeDiameterMeters = getStudioEnvironmentDomeDiameterMeters(radiusMeters);
 const centerHeight = options.projectionCenterHeightMeters ?? preset.projectionCenterHeightMeters;
 const mesh = pc.Mesh.fromGeometry(
   app.graphicsDevice,
-  createBackdropGeometry(centerHeight, diameterMeters),
+  createBackdropGeometry(centerHeight, domeDiameterMeters),
 );
-dome.setLocalScale(diameterMeters, diameterMeters, diameterMeters);
+dome.setLocalScale(domeDiameterMeters, domeDiameterMeters, domeDiameterMeters);
 dome.setPosition(0, 0, 0);
 ```
 
@@ -256,24 +251,21 @@ git commit -s -m "fix: anchor model HDR environment to world origin"
 
 - [ ] **Step 1: 写入切换和距离边界合同**
 
-增加源码合同，断言 `ModelViewer` 暴露异步 `setEnvironmentPreset` 与 `setEnvironmentDiameter`，初始值为室内，环境切换不会调用 `fitView`/重置 transform，并且正常轨道距离由内部 `diameterMeters / 2` 限制。
+增加源码合同，断言 `ModelViewer` 暴露异步 `setEnvironmentPreset`，初始值为室内，环境切换不会调用 `fitView`/重置 transform，并且正常轨道距离由当前固定预设半径限制。
 
 - [ ] **Step 2: 在 `modelViewerApp` 接入运行时**
 
 初始化 `environmentRequestId`、`currentStudioEnvironment` 和 `destroyed`；新请求完成后才释放旧句柄。销毁时递增 request id 并释放当前句柄。环境切换只调用运行时门面和 `syncCamera()`，不触碰 `modelRoot`、`cameraState.azim/elev/focalPoint` 或 transform。
 
-`syncCamera` 的 distance 上限用 `Math.max(0.35, radiusMeters * 0.85)`；滚轮、`fitCameraTo` 和切换预设都使用同一上限，保证常规相机不会越过有限穹顶边界。用户输入和运行时都先把半球直径裁剪到 5–30 米。
+`syncCamera` 的 distance 上限用 `Math.max(0.35, radiusMeters * 0.85)`；滚轮、`fitCameraTo` 和切换预设都使用同一上限，保证常规相机不会越过有限穹顶边界。模型编辑器只切换固定预设，不提供环境动态缩放。
 
 - [ ] **Step 3: 在模型页添加可访问选择控件**
 
-使用 `@/components/common/SelectControl` 和 range 控件，环境项显示半球直径，滑块使用共享的 5–30 米边界：
+使用 `@/components/common/SelectControl`，环境项显示中心到边界的固定半径：
 
 ```tsx
 <label className="block space-y-1.5 text-xs text-muted-foreground">
-  <span className="flex items-center justify-between gap-2">
-    <span>预览环境</span>
-    <output className="text-foreground">{environmentDiameterMeters} 米</output>
-  </span>
+  <span>预览环境</span>
   <SelectControl
     aria-label="预览环境"
     value={environmentPresetId}
@@ -282,7 +274,7 @@ git commit -s -m "fix: anchor model HDR environment to world origin"
   >
     {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
       const preset = getStudioEnvironmentPreset(id);
-      return <option key={id} value={id}>{preset.label}（直径 {preset.diameterMeters} 米）</option>;
+      return <option key={id} value={id}>{preset.label}（半径 {preset.radiusMeters} 米）</option>;
     })}
   </SelectControl>
 </label>
@@ -318,7 +310,7 @@ git commit -s -m "feat: let model previews choose HDR environments"
 
 - [ ] **Step 2: 更新动画缩略图**
 
-使用共享运行时的室内默认值；动画缩略图需要扩大取景时显式传入 `diameterMeters: 30`，保留原有取景尺寸而不让它回到相机跟随。
+使用共享运行时的室内默认值；动画缩略图需要扩大取景时显式传入固定的 `radiusMeters: 30`，保留原有取景尺寸而不让它回到相机跟随。
 
 - [ ] **Step 3: 运行缩略图合同与完整客户端测试**
 
@@ -344,11 +336,11 @@ git commit -s -m "fix: stabilize model and animation thumbnails"
 
 - [ ] **Step 1: 更新模型库 wiki**
 
-在“环境反射”后加入稳定知识：三种预设的默认半球直径 10/20/30、统一 5–30 米范围、2:1 等距源图、内部直径到半径换算、固定世界原点、模型页和资产预设表共享范围、卡片室内默认值、过期加载必须释放，以及 `domeRadius` 仍是漫剧历史直径字段。按 `Background / Decision / Current Rule / Failure Modes / Related Modules` 结构写，不写逐提交文件清单。
+在“环境反射”后加入稳定知识：三种预设的固定中心到边界半径 10/20/50、2:1 等距源图、几何装配时的半径到直径缩放、固定世界原点、模型页和资产预设表共享固定预设、卡片室内默认值、过期加载必须释放，以及 `domeRadius` 仍是漫剧历史直径字段。按 `Background / Decision / Current Rule / Failure Modes / Related Modules` 结构写，不写逐提交文件清单。
 
 - [ ] **Step 2: 使用 readme-release-updater skill 检查 Git 范围**
 
-确认此次有用户可见变化，更新 `docs/releases/release-notes.md` 当前日期块，描述“模型预览可切换室内客厅、中央广场、草地自然三种环境，半球直径可在 5–30 米调节；资产预设表统一管理旁白音色与 HDRI 直径；环绕查看时环境中心和尺度保持稳定”。同步更新 `README.md` 的 `## 最新更新`，只保留最新日期块并链接完整发布记录。
+确认此次有用户可见变化，更新 `docs/releases/release-notes.md` 当前日期块，描述“模型预览可切换室内客厅、中央广场、草地自然三种环境，中心到边界半径固定为 10/20/50 米；资产预设表统一展示旁白音色与 HDRI；环绕查看时环境中心和尺度保持稳定”。同步更新 `README.md` 的 `## 最新更新`，只保留最新日期块并链接完整发布记录。
 
 - [ ] **Step 3: 文档一致性检查并提交**
 
@@ -397,9 +389,9 @@ Invoke-WebRequest http://127.0.0.1:3100/api/health
 使用 `$PWCLI` 的独立 session 打开 `http://127.0.0.1:5174/models/bed-12a`：
 
 1. 等待模型、室内客厅 HDRI 和“预览环境”选择控件出现；检查 console 关键错误为 0、三张资源请求为 200。
-2. 选择“中央广场（直径 20 米）”和“草地自然（直径 30 米）”，把半球直径调到 5 米和 30 米，确认模型不消失、直径文本更新。
+2. 选择“中央广场（半径 20 米）”和“草地自然（半径 50 米）”，确认模型不消失、模型变换不被重置。
 3. 记录右键环绕前截图，进行大幅水平旋转，再截图；确认墙面/地面边界只发生正常视角变化，没有因穹顶重定位或缩放产生跳变。
-4. 回到 `/models`，确认卡片仍显示图像，并且新 localStorage 键已生成。
+4. 回到 `/models`，确认卡片仍显示图像，并且模型缩略图使用固定室内环境。
 
 截图保存到 `C:\Users\su\AppData\Local\Temp\ai-novel-hdr-qa-20260830`，不要将 Playwright 输出留在主工作区。
 
