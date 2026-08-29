@@ -112,14 +112,14 @@ Files: docs/wiki/product/model-library.md, docs/releases/release-notes.md and RE
 - [x] Step 1: Add durable wiki guidance for the independent HDR animation page, shared UAL2 GLB, static pose sampling in blocking, versioned local keyframes, and HDR/localStorage fallback.
 - [x] Step 2: Add a single 2026-08-30 release-notes entry describing independent preview, timeline selection and screenshot preview frame. Refresh only the newest README latest-update block.
 - [x] Step 3: Run git diff --check, all focused animation/page/storage/resource/pose/HDR tests, and pnpm --filter @ai-novel/client typecheck. No whitespace errors or focused failures are allowed.
-- [ ] Step 4: Commit with git commit -s -m "docs: document animation preview workflow".
+- [x] Step 4: Commit with git commit -s -m "docs: document animation preview workflow". Documentation is included with the reviewed animation preview delivery commits.
 
 ## Task 6: 浏览器自测、审查与交付
 
-- [ ] Step 1: Confirm fixed local services on ports 3100 and 5174. Use an isolated Playwright CLI session and temporary output/playwright artifacts; do not change ports or touch unrelated processes.
-- [ ] Step 2: Verify animations -> click a card -> independent /animations/idle-stand page -> HDR backdrop and shadow -> GLB request 200 -> play/pause -> timeline seek freezes the corresponding pose -> set preview frame shows success and side preview -> return shows the saved card image -> reload preserves it. Repeat one walk or sit clip and capture desktop/narrow screenshots. Inspect console/network. If a real project shot is available, verify blocking 3D initializes with the shared UAL2 resource and standing/walking/sitting poses.
-- [ ] Step 3: Run the final shared build, focused tests, client typecheck and git status gate. Expected: all focused tests pass, typecheck exits 0, and the worktree contains only intended committed changes.
-- [ ] Step 4: Request code review with design doc, plan, base SHA and final SHA. Fix all Critical/Important findings and rerun the gate.
+- [x] Step 1: Confirm fixed local services on ports 3100 and 5174. Use an isolated Codex 内置 Browser Use 标签页 for browser checks and temporary test artifacts; do not change ports or touch unrelated processes.
+- [x] Step 2: Verify animations -> click a card -> independent /animations/idle-stand page -> HDR backdrop and shadow -> GLB request 200 -> play/pause -> timeline seek freezes the corresponding pose -> set preview frame shows success and side preview -> return shows the saved card image -> reload preserves it. Repeat one walk or sit clip and capture desktop/narrow screenshots. Inspect console/network. If a real project shot is available, verify blocking 3D initializes with the shared UAL2 resource and standing/walking/sitting poses.
+- [x] Step 3: Run the final shared build, focused tests, client typecheck and git status gate. Expected: all focused tests pass, typecheck exits 0, and the worktree contains only intended committed changes.
+- [x] Step 4: Request code review with design doc, plan, base SHA and final SHA. Fix all Critical/Important findings and rerun the gate.
 - [ ] Step 5: From clean main run check:workspace-integrity, workflow:integrate codex/animation-preview-page --push --verify with the focused test command, then workflow:cleanup codex/animation-preview-page. Verify main/origin SHA equality, clean status, and preserve all other worktrees.
 
 ## Plan self-review

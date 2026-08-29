@@ -113,8 +113,10 @@ export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean 
   if (memoryCache.has(entry.id)) return true;
   if (!pendingEntries.has(entry.id)) {
     pendingEntries.set(entry.id, entry);
-    void processQueue();
   }
+  // A previous studio initialization may have rejected. Keep the entry
+  // queued, but let a later request start a fresh initialization attempt.
+  if (!processing) void processQueue();
   scheduleIdleDestroy();
   return false;
 }
@@ -122,12 +124,23 @@ export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean 
 async function processQueue(): Promise<void> {
   if (processing) return;
   processing = true;
+  let active: Awaited<ReturnType<typeof createAnimationThumbnailStudio>>;
   try {
     if (!studioPromise) {
       studioPromise = createAnimationThumbnailStudio();
     }
-    const active = await studioPromise;
+    active = await studioPromise;
     studio = active;
+  } catch {
+    // Do not cache a rejected Promise forever. A later card request can retry
+    // after WebGL, the browser, or the asset server becomes available again.
+    studioPromise = null;
+    processing = false;
+    scheduleIdleDestroy();
+    return;
+  }
+
+  try {
     for (;;) {
       const next = pendingEntries.values().next();
       if (next.done) break;
@@ -228,9 +241,10 @@ async function createAnimationThumbnailStudio(): Promise<{
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
       const asset = await loadAsset(app, entry.fileUrl, "container");
+      let model: pc.Entity | null = null;
       try {
         const resource = asset.resource as ContainerResource | null;
-        const model = resource?.instantiateRenderEntity?.({ castShadows: false });
+        model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
         if (!model) throw new Error("动作文件里没有可显示的角色。");
         model.addComponent("anim", { activate: true });
         const anim = model.anim as unknown as AnimComponentLike | undefined;
@@ -274,9 +288,9 @@ async function createAnimationThumbnailStudio(): Promise<{
         drawFrame();
         const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
         if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
-        model.destroy();
         return dataUrl;
       } finally {
+        model?.destroy();
         app.assets.remove(asset);
       }
     },

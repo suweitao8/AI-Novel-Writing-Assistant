@@ -15,7 +15,10 @@ import {
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import { wrapBlocking3dAzimuth } from "./blocking3dMath";
-import { poseSampleTimeFromTrack, resolveBlocking3dPoseClip } from "./blocking3dPose";
+import {
+  poseSampleTimeFromTrack,
+  resolveBlocking3dPoseClip,
+} from "./blocking3dPose";
 
 /**
  * 分镜草图与动画库共用的角色动画资源：模型和动作必须来自同一套 UAL2
@@ -61,7 +64,8 @@ const ACTOR_COLORS = [
   [0.84, 0.42, 0.64],
 ] as const;
 
-export type Blocking3dEnvironmentSettings = DramaShotBlockingSketch3DEnvironment;
+export type Blocking3dEnvironmentSettings =
+  DramaShotBlockingSketch3DEnvironment;
 
 export interface ContainerResource {
   instantiateRenderEntity?: (options?: { castShadows?: boolean }) => pc.Entity;
@@ -77,7 +81,13 @@ export interface AnimLayer {
 export interface AnimComponent {
   baseLayer?: AnimLayer | null;
   playing: boolean;
-  assignAnimation: (name: string, track: unknown, layer?: number, speed?: number, loop?: boolean) => void;
+  assignAnimation: (
+    name: string,
+    track: unknown,
+    layer?: number,
+    speed?: number,
+    loop?: boolean,
+  ) => void;
 }
 
 export interface Blocking3dViewerActor {
@@ -95,25 +105,52 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-export function normalizeEnvironmentSettings(input: Partial<Blocking3dEnvironmentSettings> | undefined): Blocking3dEnvironmentSettings {
+export function normalizeEnvironmentSettings(
+  input: Partial<Blocking3dEnvironmentSettings> | undefined,
+): Blocking3dEnvironmentSettings {
   const numberOr = (value: unknown, fallback: number): number => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
   };
   return {
     projectionCenterHeightRatio: clamp(
-      numberOr(input?.projectionCenterHeightRatio, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio),
+      numberOr(
+        input?.projectionCenterHeightRatio,
+        DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio,
+      ),
       0.05,
       0.2,
     ),
     projectionCenterHeight: (() => {
       // 高度由直径 × 占比派生，直径拖动时投射中心等比跟随。
-      const ratio = clamp(numberOr(input?.projectionCenterHeightRatio, DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio), 0.05, 0.2);
-      const diameter = clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 30);
+      const ratio = clamp(
+        numberOr(
+          input?.projectionCenterHeightRatio,
+          DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio,
+        ),
+        0.05,
+        0.2,
+      );
+      const diameter = clamp(
+        numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
+        5,
+        30,
+      );
       return Math.round(diameter * ratio * 100) / 100;
     })(),
-    domeRadius: clamp(numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius), 5, 30),
-    panoramaHorizonV: clamp(numberOr(input?.panoramaHorizonV, DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV), 0.45, 0.55),
+    domeRadius: clamp(
+      numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
+      5,
+      30,
+    ),
+    panoramaHorizonV: clamp(
+      numberOr(
+        input?.panoramaHorizonV,
+        DEFAULT_BLOCKING_3D_ENVIRONMENT.panoramaHorizonV,
+      ),
+      0.45,
+      0.55,
+    ),
     yawDeg: 0,
     intensity: 1,
   };
@@ -129,12 +166,22 @@ function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
   return geometry;
 }
 
-export function createBackdropGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
-  return createPlayCanvasGeometry(createBackdropGeometryData(projectionCenterHeight, domeRadius));
+export function createBackdropGeometry(
+  projectionCenterHeight: number,
+  domeRadius: number,
+): pc.Geometry {
+  return createPlayCanvasGeometry(
+    createBackdropGeometryData(projectionCenterHeight, domeRadius),
+  );
 }
 
-export function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
-  return createPlayCanvasGeometry(createGroundDomeGeometryData(projectionCenterHeight, domeRadius));
+export function createGroundDomeGeometry(
+  projectionCenterHeight: number,
+  domeRadius: number,
+): pc.Geometry {
+  return createPlayCanvasGeometry(
+    createGroundDomeGeometryData(projectionCenterHeight, domeRadius),
+  );
 }
 
 /**
@@ -161,17 +208,26 @@ export function createShadowCatcherMaterial(): pc.StandardMaterial {
   return material;
 }
 
-export function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {
+export function configureEnvironmentTexture(
+  texture: pc.Texture,
+  app: pc.AppBase,
+): void {
   texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
   texture.minFilter = pc.FILTER_LINEAR;
   texture.magFilter = pc.FILTER_LINEAR;
   texture.mipmaps = false;
-  texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
+  texture.anisotropy = Math.max(
+    1,
+    Math.min(app.graphicsDevice.maxAnisotropy, 8),
+  );
   texture.addressU = pc.ADDRESS_REPEAT;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
 }
 
-export function createVisibleHdriCubemap(app: pc.AppBase, source: pc.Texture): pc.Texture {
+export function createVisibleHdriCubemap(
+  app: pc.AppBase,
+  source: pc.Texture,
+): pc.Texture {
   const cubemap = new pc.Texture(app.graphicsDevice, {
     name: "blocking3d-hdri-projection-cubemap",
     cubemap: true,
@@ -202,17 +258,30 @@ export function createVisibleHdriCubemap(app: pc.AppBase, source: pc.Texture): p
   }
 }
 
-export function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaShotBlockingSketch3DCamera {
+export function normalizeCamera(
+  input: DramaShotBlockingSketch3DCamera,
+): DramaShotBlockingSketch3DCamera {
   const numberOr = (value: unknown, fallback: number): number => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
   };
-  const nearClip = clamp(numberOr(input.nearClip, DEFAULT_CAMERA.nearClip), 0.05, 5);
-  const farClip = Math.max(nearClip + 0.05, clamp(numberOr(input.farClip, DEFAULT_CAMERA.farClip), 20, 300));
+  const nearClip = clamp(
+    numberOr(input.nearClip, DEFAULT_CAMERA.nearClip),
+    0.05,
+    5,
+  );
+  const farClip = Math.max(
+    nearClip + 0.05,
+    clamp(numberOr(input.farClip, DEFAULT_CAMERA.farClip), 20, 300),
+  );
   return {
     azim: wrapBlocking3dAzimuth(numberOr(input.azim, 0)),
     elev: clamp(numberOr(input.elev, 0), -89, 89),
-    distance: clamp(numberOr(input.distance, DEFAULT_CAMERA.distance), 0.25, 100),
+    distance: clamp(
+      numberOr(input.distance, DEFAULT_CAMERA.distance),
+      0.25,
+      100,
+    ),
     focalPoint: [
       clamp(numberOr(input.focalPoint?.[0], 0), -100, 100),
       clamp(numberOr(input.focalPoint?.[1], 0.8), -100, 100),
@@ -221,20 +290,41 @@ export function normalizeCamera(input: DramaShotBlockingSketch3DCamera): DramaSh
     fovDeg: clamp(numberOr(input.fovDeg, DEFAULT_CAMERA.fovDeg), 30, 100),
     nearClip,
     farClip,
-    depthOfFieldEnabled: typeof input.depthOfFieldEnabled === "boolean"
-      ? input.depthOfFieldEnabled
-      : DEFAULT_CAMERA.depthOfFieldEnabled,
-    focusDistance: clamp(numberOr(input.focusDistance, DEFAULT_CAMERA.focusDistance), 0.25, 100),
-    focusRange: clamp(numberOr(input.focusRange, DEFAULT_CAMERA.focusRange), 0.1, 100),
-    blurRadius: clamp(numberOr(input.blurRadius, DEFAULT_CAMERA.blurRadius), 0, 10),
+    depthOfFieldEnabled:
+      typeof input.depthOfFieldEnabled === "boolean"
+        ? input.depthOfFieldEnabled
+        : DEFAULT_CAMERA.depthOfFieldEnabled,
+    focusDistance: clamp(
+      numberOr(input.focusDistance, DEFAULT_CAMERA.focusDistance),
+      0.25,
+      100,
+    ),
+    focusRange: clamp(
+      numberOr(input.focusRange, DEFAULT_CAMERA.focusRange),
+      0.1,
+      100,
+    ),
+    blurRadius: clamp(
+      numberOr(input.blurRadius, DEFAULT_CAMERA.blurRadius),
+      0,
+      10,
+    ),
   };
 }
 
 export function colorForIndex(index: number): [number, number, number] {
-  return [...ACTOR_COLORS[index % ACTOR_COLORS.length]] as [number, number, number];
+  return [...ACTOR_COLORS[index % ACTOR_COLORS.length]] as [
+    number,
+    number,
+    number,
+  ];
 }
 
-export function loadAsset(app: pc.AppBase, url: string, type: "container" | "texture"): Promise<pc.Asset> {
+export function loadAsset(
+  app: pc.AppBase,
+  url: string,
+  type: "container" | "texture",
+): Promise<pc.Asset> {
   return new Promise((resolve, reject) => {
     const asset = new pc.Asset(`blocking3d-${type}-${url}`, type, { url });
     const cleanup = () => {
@@ -248,9 +338,10 @@ export function loadAsset(app: pc.AppBase, url: string, type: "container" | "tex
     asset.once("error", (error: unknown) => {
       cleanup();
       app.assets.remove(asset);
-      const message = error && typeof error === "object" && "message" in error
-        ? String((error as { message?: unknown }).message ?? "资源加载失败")
-        : String(error ?? "资源加载失败");
+      const message =
+        error && typeof error === "object" && "message" in error
+          ? String((error as { message?: unknown }).message ?? "资源加载失败")
+          : String(error ?? "资源加载失败");
       reject(new Error(`3D 资源加载失败：${message}`));
     });
     app.assets.add(asset);
@@ -258,13 +349,19 @@ export function loadAsset(app: pc.AppBase, url: string, type: "container" | "tex
   });
 }
 
-export function setEntityMaterial(entity: pc.Entity, color: [number, number, number], material = new pc.StandardMaterial()): pc.StandardMaterial {
+export function setEntityMaterial(
+  entity: pc.Entity,
+  color: [number, number, number],
+  material = new pc.StandardMaterial(),
+): pc.StandardMaterial {
   material.diffuse = new pc.Color(color[0], color[1], color[2]);
   material.metalness = 0;
   material.useLighting = true;
   material.useSkybox = true;
   material.update();
-  for (const render of entity.findComponents("render") as pc.RenderComponent[]) {
+  for (const render of entity.findComponents(
+    "render",
+  ) as pc.RenderComponent[]) {
     for (const mesh of render.meshInstances ?? []) mesh.material = material;
   }
   for (const model of entity.findComponents("model") as pc.ModelComponent[]) {
@@ -273,8 +370,14 @@ export function setEntityMaterial(entity: pc.Entity, color: [number, number, num
   return material;
 }
 
-export function normalizeActorColor(color: [number, number, number]): [number, number, number] {
-  return color.map((channel) => clamp(Number(channel), 0, 1)) as [number, number, number];
+export function normalizeActorColor(
+  color: [number, number, number],
+): [number, number, number] {
+  return color.map((channel) => clamp(Number(channel), 0, 1)) as [
+    number,
+    number,
+    number,
+  ];
 }
 
 export function setAnimationPose(
@@ -284,7 +387,18 @@ export function setAnimationPose(
 ): void {
   const anim = actor.animEntity.anim as unknown as AnimComponent | undefined;
   if (!anim) throw new Error(`角色“${actor.label}”没有可用的动作组件。`);
-  const clip = resolveBlocking3dPoseClip(pose, tracks.keys());
+  let appliedPose = pose;
+  let clip: ReturnType<typeof resolveBlocking3dPoseClip>;
+  try {
+    clip = resolveBlocking3dPoseClip(pose, tracks.keys());
+  } catch (error) {
+    // UAL2 intentionally contains a smaller, verified pose set than the
+    // legacy schema. A saved layout may still contain an old pose; normalize
+    // that actor to standing instead of aborting the entire blocking scene.
+    if (pose === "standing") throw error;
+    appliedPose = "standing";
+    clip = resolveBlocking3dPoseClip(appliedPose, tracks.keys());
+  }
   const track = tracks.get(clip.clipName);
   if (!track) throw new Error(`角色“${actor.label}”的动作片段不可用。`);
   anim.assignAnimation(clip.clipName, track, 0, 1, false);
@@ -292,14 +406,20 @@ export function setAnimationPose(
   if (layer) {
     layer.play(clip.clipName);
     layer.pause();
-    layer.activeStateCurrentTime = poseSampleTimeFromTrack(track, clip.sampleTimeRatio);
+    layer.activeStateCurrentTime = poseSampleTimeFromTrack(
+      track,
+      clip.sampleTimeRatio,
+    );
   }
   anim.playing = false;
-  actor.pose = pose;
+  actor.pose = appliedPose;
   actor.actionPlaying = false;
 }
 
-export function createMaterial(color: pc.Color, opacity = 1): pc.StandardMaterial {
+export function createMaterial(
+  color: pc.Color,
+  opacity = 1,
+): pc.StandardMaterial {
   const material = new pc.StandardMaterial();
   material.diffuse = color;
   material.opacity = opacity;

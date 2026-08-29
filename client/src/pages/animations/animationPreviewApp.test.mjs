@@ -6,10 +6,22 @@ import test from "node:test";
 // 预览器依赖 playcanvas 与 @/ 路径别名，Node 里不可直接导入；这里的契约
 // 断言读取源码，守住「同步构建 → 加载 GLB → 装配动画组件 → 循环播放 →
 // 可取消销毁」链路，特别是同一画布同一时刻只能存在一个 PlayCanvas 应用。
-const previewSource = readFileSync(path.join(import.meta.dirname, "animationPreviewApp.ts"), "utf8");
-const pageSource = readFileSync(path.join(import.meta.dirname, "AnimationLibraryPage.tsx"), "utf8");
-const previewPageSource = readFileSync(path.join(import.meta.dirname, "AnimationPreviewPage.tsx"), "utf8");
-const studioSource = readFileSync(path.join(import.meta.dirname, "animationThumbnailStudio.ts"), "utf8");
+const previewSource = readFileSync(
+  path.join(import.meta.dirname, "animationPreviewApp.ts"),
+  "utf8",
+);
+const pageSource = readFileSync(
+  path.join(import.meta.dirname, "AnimationLibraryPage.tsx"),
+  "utf8",
+);
+const previewPageSource = readFileSync(
+  path.join(import.meta.dirname, "AnimationPreviewPage.tsx"),
+  "utf8",
+);
+const studioSource = readFileSync(
+  path.join(import.meta.dirname, "animationThumbnailStudio.ts"),
+  "utf8",
+);
 const modelPageSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "ModelLibraryPage.tsx"),
   "utf8",
@@ -52,17 +64,25 @@ test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () 
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
-  const restoreBlock = previewSource.match(
-    /if \(typeof options\.initialTimeSeconds === "number"\) \{([\s\S]*?)\n      \}/,
-  )?.[1] ?? "";
+  const restoreBlock =
+    previewSource.match(
+      /if \(typeof options\.initialTimeSeconds === "number"\) \{([\s\S]*?)\n      \}/,
+    )?.[1] ?? "";
   assert.match(restoreBlock, /baseLayer\?\.play\(activeClipName\)/);
-  assert.match(restoreBlock, /baseLayer\?\.play\(activeClipName\)[\s\S]*applyTime\(initialTime\)/);
+  assert.match(
+    restoreBlock,
+    /baseLayer\?\.play\(activeClipName\)[\s\S]*applyTime\(initialTime\)/,
+  );
+  assert.match(restoreBlock, /applyTime\(initialTime\)[\s\S]*pause\(\)/);
 });
 
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
   assert.match(previewSource, /cancel: \(\) =>/);
   assert.match(previewSource, /cleanup\(\)/);
-  assert.match(previewSource, /if \(destroyed\) throw new Error\("预览已关闭。"\)/);
+  assert.match(
+    previewSource,
+    /if \(destroyed\) throw new Error\("预览已关闭。"\)/,
+  );
   // 完整预览页 effect 清理必须调用 cancel（而不是等加载完成后销毁）
   assert.match(previewPageSource, /handle\.cancel\(\)/);
 });
@@ -81,10 +101,29 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
-  assert.match(studioSource, /assignAnimation\(entry\.clipName, track, 0, 1, true\)/);
+  assert.match(
+    studioSource,
+    /assignAnimation\(entry\.clipName, track, 0, 1, true\)/,
+  );
   assert.match(studioSource, /activeStateCurrentTime = /);
   assert.match(studioSource, /app\.assets\.remove\(asset\)/);
+  assert.match(studioSource, /model\?\.destroy\(\)/);
+  assert.match(studioSource, /studioEnvironmentCleanup/);
   assert.match(studioSource, /app\.destroy\(\)/);
+});
+
+test("缩略图工作室初始化失败后会清空失败 Promise，允许后续请求重试", () => {
+  assert.match(studioSource, /studioPromise = null/);
+  assert.match(studioSource, /if \(!processing\)\s+void processQueue\(\)/);
+});
+
+test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
+  assert.match(previewSource, /studioEnvironmentReady/);
+  assert.match(previewSource, /studioBackdropReady/);
+  assert.match(
+    previewSource,
+    /await Promise\.all\(\[studioEnvironmentReady, studioBackdropReady\]\)/,
+  );
 });
 
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
@@ -126,7 +165,10 @@ test("顶部导航在模型与系统之间提供动画入口，模型页不再�
   const models = navSource.indexOf('to: "/models", label: "模型"');
   const settings = navSource.indexOf('to: "/settings", label: "系统"');
   assert.ok(items > models && items < settings, "动画入口应位于模型与系统之间");
-  assert.doesNotMatch(modelPageSource, /AnimationTable|data-animation-table|openAnimationPreview/);
+  assert.doesNotMatch(
+    modelPageSource,
+    /AnimationTable|data-animation-table|openAnimationPreview/,
+  );
 });
 
 test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => {

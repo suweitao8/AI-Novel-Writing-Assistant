@@ -12,7 +12,10 @@ import {
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
 import { attachStudioBackdrop } from "@/pages/models/modelLibrary3d/studioBackdrop";
-import { setupStudioLighting, upgradeStudioEnvironment } from "@/pages/models/modelLibrary3d/studioLighting";
+import {
+  setupStudioLighting,
+  upgradeStudioEnvironment,
+} from "@/pages/models/modelLibrary3d/studioLighting";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
@@ -26,7 +29,11 @@ export interface AnimationPreviewOptions {
   /** 片段加载或播放出错（切换片段失败等）。 */
   onError?: (message: string) => void;
   /** 播放或拖动时间轴时回传当前时间、时长和播放状态。 */
-  onTimeChange?: (timeSeconds: number, durationSeconds: number, playing: boolean) => void;
+  onTimeChange?: (
+    timeSeconds: number,
+    durationSeconds: number,
+    playing: boolean,
+  ) => void;
 }
 
 export interface AnimationPreview {
@@ -67,7 +74,13 @@ interface AnimComponentLike {
   baseLayer?: AnimLayerLike | null;
   playing: boolean;
   rootBone: unknown;
-  assignAnimation: (name: string, track: unknown, layer?: number, speed?: number, loop?: boolean) => void;
+  assignAnimation: (
+    name: string,
+    track: unknown,
+    layer?: number,
+    speed?: number,
+    loop?: boolean,
+  ) => void;
 }
 
 interface CameraState {
@@ -90,7 +103,9 @@ const DEFAULT_VIEW = { azim: -35, elev: -12 } as const;
  * 时的典型场景）会共享同一个 WebGL 上下文，先销毁的那个会破坏存活一方的
  * 渲染循环，因此暴露 cancel() 让调用方在 effect 清理时同步销毁未就绪的应用。
  */
-export function openAnimationPreview(options: AnimationPreviewOptions): AnimationPreviewHandle {
+export function openAnimationPreview(
+  options: AnimationPreviewOptions,
+): AnimationPreviewHandle {
   const { canvas } = options;
   const app = new pc.Application(canvas, {
     mouse: new pc.Mouse(canvas),
@@ -114,7 +129,9 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   app.root.addChild(cameraEntity);
   const camera = cameraEntity.camera!;
   // envAtlas 只负责光照，摄影棚穹顶负责可视背景，避免天空层与穹顶重叠。
-  camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
+  camera.layers = camera.layers.filter(
+    (layerId) => layerId !== pc.LAYERID_SKYBOX,
+  );
   setupStudioLighting(app, camera, { castShadows: true });
 
   let studioEnvDisposed = false;
@@ -127,14 +144,19 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     studioEnvCleanup = null;
     studioBackdropCleanup = null;
   };
-  void upgradeStudioEnvironment(app).then((cleanup) => {
-    if (studioEnvDisposed) {
-      cleanup();
-      return;
-    }
-    studioEnvCleanup = cleanup;
-  });
-  void attachStudioBackdrop(app, { camera: cameraEntity, radius: 12 }).then((handle) => {
+  const studioEnvironmentReady = upgradeStudioEnvironment(app).then(
+    (cleanup) => {
+      if (studioEnvDisposed) {
+        cleanup();
+        return;
+      }
+      studioEnvCleanup = cleanup;
+    },
+  );
+  const studioBackdropReady = attachStudioBackdrop(app, {
+    camera: cameraEntity,
+    radius: 12,
+  }).then((handle) => {
     if (!handle) return;
     if (studioEnvDisposed) {
       handle.destroy();
@@ -180,7 +202,11 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
     cameraState.focalPoint = [0, centerY, 0];
-    cameraState.distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 1, 60);
+    cameraState.distance = clamp(
+      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
+      1,
+      60,
+    );
     syncCamera();
   };
   const fitView = () => fitCameraTo(modelCenterY, modelRadius);
@@ -191,16 +217,27 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   };
 
   let destroyed = false;
-  let dragState: { button: number; pointerId: number; x: number; y: number } | null = null;
+  let dragState: {
+    button: number;
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null = null;
 
   const onPointerDown = (event: PointerEvent) => {
     if (destroyed) return;
     if (event.button !== 2) return;
-    dragState = { button: event.button, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    dragState = {
+      button: event.button,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
     canvas.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: PointerEvent) => {
-    if (destroyed || !dragState || event.pointerId !== dragState.pointerId) return;
+    if (destroyed || !dragState || event.pointerId !== dragState.pointerId)
+      return;
     const dx = event.clientX - dragState.x;
     const dy = event.clientY - dragState.y;
     dragState.x = event.clientX;
@@ -221,7 +258,11 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   const onWheel = (event: WheelEvent) => {
     if (destroyed) return;
     event.preventDefault();
-    cameraState.distance = clamp(cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92), 1, 60);
+    cameraState.distance = clamp(
+      cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
+      1,
+      60,
+    );
     syncCamera();
   };
   const onContextMenu = (event: MouseEvent) => event.preventDefault();
@@ -235,7 +276,10 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   const resize = () => {
     const rect = canvas.parentElement?.getBoundingClientRect();
     if (!rect) return;
-    app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+    app.graphicsDevice.maxPixelRatio = Math.min(
+      window.devicePixelRatio || 1,
+      MAX_DEVICE_PIXEL_RATIO,
+    );
     app.resizeCanvas(rect.width, rect.height);
   };
   resize();
@@ -258,10 +302,15 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     app.destroy();
   };
 
-  options.onStatus?.("正在加载动作");
+  options.onStatus?.("正在加载 HDR 棚拍场景");
 
   const ready = (async (): Promise<AnimationPreview> => {
     try {
+      // The page must not expose capture controls until both the lighting
+      // environment and the visible studio dome have finished loading.
+      await Promise.all([studioEnvironmentReady, studioBackdropReady]);
+      if (destroyed) throw new Error("预览已关闭。");
+      options.onStatus?.("正在加载动作");
       asset = await loadAsset(app, options.glbUrl, "container");
       if (destroyed) throw new Error("预览已关闭。");
 
@@ -276,16 +325,25 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       app.root.syncHierarchy();
       const bounds = computeSourceBounds(model);
       if (bounds) {
-        model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
+        model.setPosition(
+          -bounds.center[0],
+          -(bounds.center[1] - bounds.halfExtents[1]),
+          -bounds.center[2],
+        );
         modelCenterY = bounds.halfExtents[1];
-        modelRadius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]);
+        modelRadius = Math.hypot(
+          bounds.halfExtents[0],
+          bounds.halfExtents[1],
+          bounds.halfExtents[2],
+        );
       }
       fitView();
 
       const tracks = new Map<string, AnimTrackLike>();
       for (const clipAsset of resource?.animations ?? []) {
         const track = clipAsset.resource as AnimTrackLike | null;
-        if (track && typeof track.name === "string") tracks.set(track.name, track);
+        if (track && typeof track.name === "string")
+          tracks.set(track.name, track);
       }
       if (tracks.size === 0) {
         throw new Error("动作文件里没有可播放的动作片段。");
@@ -303,10 +361,12 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       let durationSeconds = 0;
 
       const readDuration = (track: AnimTrackLike | null): number => {
-        const trackDuration = typeof track?.duration === "number" ? track.duration : 0;
-        const layerDuration = typeof anim.baseLayer?.activeStateDuration === "number"
-          ? anim.baseLayer.activeStateDuration
-          : 0;
+        const trackDuration =
+          typeof track?.duration === "number" ? track.duration : 0;
+        const layerDuration =
+          typeof anim.baseLayer?.activeStateDuration === "number"
+            ? anim.baseLayer.activeStateDuration
+            : 0;
         return Math.max(trackDuration, layerDuration, 0);
       };
       const clampTime = (timeSeconds: number) => {
@@ -318,16 +378,26 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       const readCurrentTime = () => {
         const layerTime = anim.baseLayer?.activeStateCurrentTime;
         if (typeof layerTime === "number" && Number.isFinite(layerTime)) {
-          currentTime = durationSeconds > 0 ? clamp(layerTime, 0, durationSeconds) : Math.max(0, layerTime);
+          currentTime =
+            durationSeconds > 0
+              ? clamp(layerTime, 0, durationSeconds)
+              : Math.max(0, layerTime);
         }
         return currentTime;
       };
       const notifyTime = () => {
-        options.onTimeChange?.(readCurrentTime(), durationSeconds, anim.playing);
+        options.onTimeChange?.(
+          readCurrentTime(),
+          durationSeconds,
+          anim.playing,
+        );
       };
       const applyTime = (timeSeconds: number) => {
         currentTime = clampTime(timeSeconds);
-        if (anim.baseLayer && typeof anim.baseLayer.activeStateCurrentTime === "number") {
+        if (
+          anim.baseLayer &&
+          typeof anim.baseLayer.activeStateCurrentTime === "number"
+        ) {
           anim.baseLayer.activeStateCurrentTime = currentTime;
         }
         app.render();
@@ -370,7 +440,13 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
         target.height = CAPTURE_SIZE.height;
         const context = target.getContext("2d");
         if (!context) throw new Error("无法创建关键帧截图。");
-        context.drawImage(canvas, 0, 0, CAPTURE_SIZE.width, CAPTURE_SIZE.height);
+        context.drawImage(
+          canvas,
+          0,
+          0,
+          CAPTURE_SIZE.width,
+          CAPTURE_SIZE.height,
+        );
         return target.toDataURL("image/jpeg", 0.86);
       };
 
@@ -382,12 +458,17 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
         // on the frame the user selected.
         anim.baseLayer?.play(activeClipName);
         applyTime(initialTime);
+        pause();
       }
       options.onStatus?.("");
 
       app.on("update", () => {
         if (destroyed) return;
-        for (let value = -GROUND_HALF_SIZE; value <= GROUND_HALF_SIZE; value += 0.5) {
+        for (
+          let value = -GROUND_HALF_SIZE;
+          value <= GROUND_HALF_SIZE;
+          value += 0.5
+        ) {
           const major = Number.isInteger(value) && value % 3 === 0;
           const color = new pc.Color(
             major ? 0.4 : 0.24,
