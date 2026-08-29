@@ -164,4 +164,3 @@ Expected: all tests pass with zero failures。
 Run: `git diff --check; git status --short; git diff --stat`
 
 逐条核对设计文档目标，确认没有把模型直径解释成半径、没有残留动画平面地面、没有重复 HDR 加载、没有在主工作树产生改动。
-
