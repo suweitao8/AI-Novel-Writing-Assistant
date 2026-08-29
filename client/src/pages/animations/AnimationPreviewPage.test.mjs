@@ -27,5 +27,6 @@ test("独立预览页提供可访问时间轴和关键帧保存流程", () => {
   assert.match(pageSource, /clearAnimationKeyframe\(/);
   assert.match(pageSource, /viewer\?\.fitView\(\)/);
   assert.match(pageSource, /viewer\?\.resetView\(\)/);
+  assert.match(pageSource, /重新加载/);
   assert.match(pageSource, /handle\.cancel\(\)/);
 });

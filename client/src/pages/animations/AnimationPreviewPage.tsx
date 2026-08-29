@@ -42,6 +42,7 @@ export default function AnimationPreviewPage() {
   const [playing, setPlaying] = useState(false);
   const [keyframe, setKeyframe] = useState<AnimationKeyframe | null>(null);
   const [savingKeyframe, setSavingKeyframe] = useState(false);
+  const [viewerAttempt, setViewerAttempt] = useState(0);
 
   useEffect(() => {
     if (!entry) {
@@ -107,7 +108,7 @@ export default function AnimationPreviewPage() {
       viewerRef.current = null;
       setViewer(null);
     };
-  }, [entry?.id]);
+  }, [entry?.id, viewerAttempt]);
 
   if (!entry) {
     return <Navigate to="/animations" replace />;
@@ -256,6 +257,9 @@ export default function AnimationPreviewPage() {
               {viewerError ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-background/90 p-6 text-center">
                   <p className="text-sm text-destructive">{viewerError}</p>
+                  <Button type="button" variant="outline" onClick={() => setViewerAttempt((attempt) => attempt + 1)}>
+                    重新加载
+                  </Button>
                   <Button variant="outline" asChild>
                     <Link to="/animations">返回动画库</Link>
                   </Button>
