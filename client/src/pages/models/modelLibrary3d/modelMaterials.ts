@@ -76,12 +76,17 @@ export async function applyModelMaterials(
       if (tex) material.normalMap = tex;
     }
     if (info.rma) {
-      // UE 的 RMA 打包里 G 通道是粗糙度，与 glTF metallicRoughness 同构；
-      // 引擎按该约定读 glossMap 的 G 通道（glossInvert 取反后即粗糙度）。
-      // 金属度不启用：场景没有环境反射贴图，金属面会把整块涂黑。
+      // UE 的 RMA 打包只取 G 通道粗糙度（glossInvert 取反后即粗糙度）。
+      // B 与 R 通道经全库审计不可用：这包资产的 ORM 语义与 glTF 约定不符
+      // （地毯/岩石/布艺的 B≈0.7-1.0、砖炉≈0，无金属度规律；R 通道在平整
+      // 表面也压到 0.36，当 AO 会把物件压暗）。金属观感由真 HDR 环境 +
+      // 漫反射色承担；金属度与 AO 待接入校准过的 PBR 数据后再启用。
+      // 另注意：引擎 metalnessMap/glossMap 的默认采样通道与 glTF 约定
+      // 不一致（glTF 加载器自己显式设了通道），手动接图必须写死通道。
       const tex = await loadTexture(info.rma);
       if (tex) {
         material.glossMap = tex;
+        material.glossMapChannel = "g";
         material.gloss = 1;
         material.glossInvert = true;
       }
