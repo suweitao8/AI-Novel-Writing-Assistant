@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -58,7 +59,7 @@ import {
   TransformToolToolbar,
 } from "./components/editor3d";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
-import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
+import { usePageNavActionsSlot, useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { buildStudioNavStageRow } from "./navigation/studioTabRows";
 import {
   buildStudioNavigationPath,
@@ -149,6 +150,7 @@ export default function DramaBlocking3DPage() {
   const { id: projectId = "", shotId = "" } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const navActionsSlot = usePageNavActionsSlot();
   const [searchParams] = useSearchParams();
   const shotOrder = searchParams.get("order");
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -454,6 +456,29 @@ export default function DramaBlocking3DPage() {
     );
   }
 
+  const renderAutoCompositionButton = () => (
+    <AiButton
+      type="button"
+      data-ai-composition-button="true"
+      variant="outline"
+      size="sm"
+      disabled={!viewer || saving || autoPlanning || context.actors.length === 0}
+      onClick={() => void handleAutoPlan()}
+      title="按本镜角色、动作和场景自动规划 3D 构图"
+    >
+      {autoPlanning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
+      {autoPlanning ? "自动构图中" : context.sketch?.layout3d ? "重新构图" : "AI 构图"}
+    </AiButton>
+  );
+  const autoCompositionNavPortal = !isMobileViewport && navActionsSlot
+    ? createPortal(
+      <div data-ai-composition-action="true" className="flex shrink-0 items-center">
+        {renderAutoCompositionButton()}
+      </div>,
+      navActionsSlot,
+    )
+    : null;
+
   const selectedMarker = selectedObjectId.startsWith("marker:")
     ? context.scene.markers.find((marker) => marker.id === selectedObjectId.slice("marker:".length)) ?? null
     : null;
@@ -532,15 +557,22 @@ export default function DramaBlocking3DPage() {
   );
 
   return (
-    <Drama3DEditorShell
-      header={
-        <div data-editor-header="primary" className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-          <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          </Button>
-          <h1 className="min-w-0 truncate text-sm font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
-        </div>
-      }
+    <>
+      {autoCompositionNavPortal}
+      <Drama3DEditorShell
+        header={
+          <div data-editor-header="primary" className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+            <Button type="button" variant="ghost" size="icon" aria-label="返回分镜" title="返回分镜" disabled={saving || autoPlanning} onClick={() => void goBack()}>
+              <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+            <h1 className="min-w-0 truncate text-sm font-semibold">{shotOrder ? `第 ${shotOrder} 镜 3D 草图` : "3D 草图"}</h1>
+            {isMobileViewport ? (
+              <div data-ai-composition-action="true" className="ml-auto flex shrink-0 items-center">
+                {renderAutoCompositionButton()}
+              </div>
+            ) : null}
+          </div>
+        }
       viewport={
         <Card className="h-full min-h-0 w-full overflow-hidden">
           <CardContent className="relative h-full min-h-0 w-full p-0">
@@ -602,13 +634,7 @@ export default function DramaBlocking3DPage() {
                   ) : null}
                 </div>
                 <div className="space-y-2 border-t border-border/60 pt-4 text-xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-muted-foreground">AI 构图说明</div>
-                    <AiButton type="button" variant="outline" size="sm" disabled={!viewer || saving || autoPlanning || context.actors.length === 0} onClick={() => void handleAutoPlan()} title="按本镜角色、动作和场景自动规划 3D 构图">
-                      {autoPlanning ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <WandSparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />}
-                      {autoPlanning ? "自动构图中" : context.sketch?.layout3d ? "重新构图" : "AI 构图"}
-                    </AiButton>
-                  </div>
+                  <div className="text-muted-foreground">AI 构图说明</div>
                   <p className="whitespace-pre-wrap leading-5 text-foreground">{compositionNote || "尚未生成构图说明。"}</p>
                 </div>
                 {cameraActions}
@@ -764,7 +790,8 @@ export default function DramaBlocking3DPage() {
             )}
           </CardContent>
         </Card>
-      }
-    />
+        }
+      />
+    </>
   );
 }

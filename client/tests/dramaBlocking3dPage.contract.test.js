@@ -77,6 +77,19 @@ test("编辑器按钮调用自动构图并把镜头设计说明留在未保存�
   assert.doesNotMatch(pageSource, /autoPlan=1/);
 });
 
+test("AI 构图入口固定在 AI 实况左侧，并不再占用世界属性面板", () => {
+  assert.match(pageSource, /createPortal/);
+  assert.match(pageSource, /usePageNavActionsSlot/);
+  assert.match(pageSource, /data-ai-composition-action/);
+  assert.match(pageSource, /createPortal\([\s\S]*?data-ai-composition-action[\s\S]*?navActionsSlot/);
+  const worldInspector = pageSource.match(
+    /selectedObjectId === SCENE_OBJECT_ID \? \([\s\S]*?\) : cameraSelected \?/,
+  );
+  assert.ok(worldInspector, "应能定位世界属性面板");
+  assert.doesNotMatch(worldInspector[0], /<AiButton/);
+  assert.match(pageSource, /isMobileViewport[\s\S]*?renderAutoCompositionButton/);
+});
+
 test("编辑器显示当前镜头与 AI 镜头设计面板", () => {
   assert.match(pageSource, /<Card/);
   assert.match(pageSource, /镜头设计/);
