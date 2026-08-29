@@ -9,10 +9,10 @@ export interface Blocking3dPoseClipConfig {
   sampleTimeRatio?: number;
 }
 const POSE_CLIPS: Record<DramaShotBlockingSketchPose, Blocking3dPoseClipConfig> = {
-  standing: { names: ["Idle_Loop", "Idle_No_Loop", "A_TPose"] },
+  standing: { names: ["Idle_Loop", "Idle_No_Loop", "A_INP_Idle", "A_TPose"] },
   talking: { names: ["Idle_Talking_Loop", "Idle_Rail_Call", "Yes"] },
   arms_crossed: { names: ["Idle_FoldArms_Loop", "Idle_No_Loop"] },
-  sitting: { names: ["Sitting_Idle_Loop", "Sitting_Talking_Loop", "Sitting_Enter"] },
+  sitting: { names: ["Sitting_Idle_Loop", "Sitting_Talking_Loop", "Sitting_Enter", "A_chair_loop01"] },
   crouching: { names: ["Crouch_Idle_Loop", "Crouch_Fwd_Loop"] },
   kneeling: { names: ["Fixing_Kneeling"] },
   // LayToIdle 从躺姿过渡到站姿，躺姿只在片段开头；取中段会截到半起身动作。
@@ -21,7 +21,7 @@ const POSE_CLIPS: Record<DramaShotBlockingSketchPose, Blocking3dPoseClipConfig> 
   // to LayToIdle makes the actor visibly supine, so use the supported crouch
   // pose until a prone-specific rig is available.
   prone: { names: ["Prone_Idle_Loop", "Crouch_Idle_Loop", "Crouch_Fwd_Loop"] },
-  walking: { names: ["Walk_Loop", "Walk_Formal_Loop", "Walk_Carry_Loop"] },
+  walking: { names: ["Walk_Loop", "Walk_Formal_Loop", "Walk_Carry_Loop", "A_INP_WalkFwd_Loop"] },
   running: { names: ["Sprint_Loop", "Jog_Fwd_Loop"] },
   pointing: { names: ["Pistol_Aim_Neutral", "Spell_Simple_Shoot", "OverhandThrow"] },
   holding: { names: ["Walk_Carry_Loop", "Idle_Lantern_Loop", "PickUp_Table"] },

@@ -8,6 +8,7 @@ import test from "node:test";
 // 可取消销毁」链路，特别是同一画布同一时刻只能存在一个 PlayCanvas 应用。
 const previewSource = readFileSync(path.join(import.meta.dirname, "animationPreviewApp.ts"), "utf8");
 const pageSource = readFileSync(path.join(import.meta.dirname, "AnimationLibraryPage.tsx"), "utf8");
+const previewPageSource = readFileSync(path.join(import.meta.dirname, "AnimationPreviewPage.tsx"), "utf8");
 const studioSource = readFileSync(path.join(import.meta.dirname, "animationThumbnailStudio.ts"), "utf8");
 const modelPageSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "ModelLibraryPage.tsx"),
@@ -32,12 +33,30 @@ test("预览器同步构建应用，异步加载后装配动画组件并循环�
   assert.match(previewSource, /app\.start\(\)/);
 });
 
+test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () => {
+  assert.match(previewSource, /setupStudioLighting\(app/);
+  assert.match(previewSource, /upgradeStudioEnvironment\(app/);
+  assert.match(previewSource, /attachStudioBackdrop\(app/);
+  assert.match(previewSource, /initialTimeSeconds/);
+  assert.match(previewSource, /onTimeChange/);
+  assert.match(previewSource, /pause: /);
+  assert.match(previewSource, /setTime: /);
+  assert.match(previewSource, /getTime: /);
+  assert.match(previewSource, /getDuration: /);
+  assert.match(previewSource, /isPlaying: /);
+  assert.match(previewSource, /fitView: /);
+  assert.match(previewSource, /resetView: /);
+  assert.match(previewSource, /capturePreviewFrame: /);
+  assert.match(previewSource, /toDataURL\("image\/jpeg"/);
+  assert.doesNotMatch(previewSource, /UAL1_Standard\.glb/);
+});
+
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
   assert.match(previewSource, /cancel: \(\) =>/);
   assert.match(previewSource, /cleanup\(\)/);
   assert.match(previewSource, /if \(destroyed\) throw new Error\("预览已关闭。"\)/);
-  // 页面 effect 清理必须调用 cancel（而不是等加载完成后销毁）
-  assert.match(pageSource, /handle\.cancel\(\)/);
+  // 完整预览页 effect 清理必须调用 cancel（而不是等加载完成后销毁）
+  assert.match(previewPageSource, /handle\.cancel\(\)/);
 });
 
 test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () => {
@@ -50,7 +69,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v2/);
+  assert.match(studioSource, /animation-library:thumbnails:v3/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -60,7 +79,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /app\.destroy\(\)/);
 });
 
-test("动画库是独立页面：分类页签 + 动画卡片（预览图 + 名字）+ 预览弹窗", () => {
+test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
   assert.match(pageSource, /aria-label="动画分类"/);
@@ -72,11 +91,26 @@ test("动画库是独立页面：分类页签 + 动画卡片（预览图 + 名�
   assert.match(pageSource, /subscribeAnimationThumbnails/);
   assert.match(pageSource, /alt=\{`\$\{entry\.name\} 预览`\}/);
   assert.match(pageSource, /ANIMATION_LIBRARY\.filter/);
-  assert.match(pageSource, /openAnimationPreview\(/);
-  assert.match(pageSource, /data-animation-preview-canvas/);
-  assert.match(pageSource, /toast\.error\(/);
+  assert.match(pageSource, /Link/);
+  assert.match(pageSource, /to=\{`\/animations\/\$\{entry\.id\}`\}/);
+  assert.doesNotMatch(pageSource, /Dialog/);
   // 卡片网格取代旧表格：页面不再渲染 <table>
   assert.doesNotMatch(pageSource, /<table/);
+});
+
+test("动画预览页包含 3D 画布、时间轴、播放控制和关键帧操作", () => {
+  assert.match(previewPageSource, /useParams/);
+  assert.match(previewPageSource, /openAnimationPreview\(/);
+  assert.match(previewPageSource, /data-animation-preview-page/);
+  assert.match(previewPageSource, /data-animation-preview-canvas/);
+  assert.match(previewPageSource, /type="range"/);
+  assert.match(previewPageSource, /setTime\(/);
+  assert.match(previewPageSource, /capturePreviewFrame\(/);
+  assert.match(previewPageSource, /setAnimationKeyframe\(/);
+  assert.match(previewPageSource, /clearAnimationKeyframe\(/);
+  assert.match(previewPageSource, /fitView\(/);
+  assert.match(previewPageSource, /resetView\(/);
+  assert.match(previewPageSource, /handle\.cancel\(\)/);
 });
 
 test("顶部导航在模型与系统之间提供动画入口，模型页不再内嵌动画", () => {

@@ -17,8 +17,11 @@ import {
 import { wrapBlocking3dAzimuth } from "./blocking3dMath";
 import { poseSampleTimeFromTrack, resolveBlocking3dPoseClip } from "./blocking3dPose";
 
-export const ACTOR_PROXY_URL = "/viewer-kit/quaternius/ual2/UAL2_Standard.glb";
-export const ACTOR_ANIMATION_URL = "/viewer-kit/quaternius/ual1/UAL1_Standard.glb";
+/**
+ * 分镜草图与动画库共用的角色动画资源：模型和动作必须来自同一套 UAL2
+ * 骨架，避免把 UAL1 动画轨道套到 UAL2 代理模型上造成关节错乱或 T-pose。
+ */
+export const ACTOR_PROXY_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 export const MAX_DEVICE_PIXEL_RATIO = 1.5;
 export const DEFAULT_FOV = 52;
 export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;

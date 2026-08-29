@@ -8,6 +8,14 @@ import { ANIMATION_LIBRARY } from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const clientDir = path.resolve(configDir, "../..");
+const blockingCoreSource = fs.readFileSync(
+  path.join(clientDir, "src", "pages", "drama", "comicDrama", "components", "blocking3d", "blocking3dViewerCore.ts"),
+  "utf8",
+);
+const blockingAppSource = fs.readFileSync(
+  path.join(clientDir, "src", "pages", "drama", "comicDrama", "components", "blocking3d", "blocking3dViewerApp.ts"),
+  "utf8",
+);
 const IDENTITY = [0, 0, 0, 1];
 
 function readGlb(filePath) {
@@ -205,6 +213,18 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
       }
     }
   }
+});
+
+test("动画库与分镜草图共用含 UAL2 角色和动作的单一 GLB", () => {
+  const glb = readGlb(assetPath());
+  const animationNames = new Set((glb.json.animations ?? []).map(({ name }) => name));
+  for (const name of ["A_INP_Idle", "A_INP_WalkFwd_Loop", "A_chair_loop01"]) {
+    assert.ok(animationNames.has(name), `统一动画文件缺少目录片段：${name}`);
+  }
+  assert.ok((glb.json.skins ?? []).some((skin) => (skin.joints ?? []).length > 0), "统一动画文件必须包含 UAL2 skin");
+  assert.match(blockingCoreSource, /ACTOR_PROXY_URL = ["']\/anims\/cine57\/UAL2_UE_Anims\.glb["']/);
+  assert.doesNotMatch(blockingCoreSource, /UAL1_Standard\.glb/);
+  assert.doesNotMatch(blockingAppSource, /ACTOR_ANIMATION_URL|animationAsset/);
 });
 
 test("行走片段保留双脚的明显交替运动", () => {

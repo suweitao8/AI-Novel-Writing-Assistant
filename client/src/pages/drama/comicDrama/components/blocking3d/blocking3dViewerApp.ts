@@ -51,7 +51,6 @@ import {
   type Blocking3dTransformTool,
 } from "./blocking3dTransformGizmo";
 import {
-  ACTOR_ANIMATION_URL,
   ACTOR_PROXY_URL,
   BLOCKING_SKETCH_CAPTURE_SIZE,
   clamp,
@@ -307,7 +306,6 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     environment.applySettings(environmentSettings);
   };
   let actorAsset: pc.Asset;
-  let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
   const actors = new Map<string, Blocking3dViewerActor>();
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
@@ -796,16 +794,9 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   try {
     setStatus("正在加载 3D 代理角色...");
-    [actorAsset, animationAsset] = await Promise.all([
-      loadAsset(app, ACTOR_PROXY_URL, "container"),
-      loadAsset(app, ACTOR_ANIMATION_URL, "container"),
-    ]);
+    actorAsset = await loadAsset(app, ACTOR_PROXY_URL, "container");
     const proxyResource = actorAsset.resource as ContainerResource;
-    const animationResources = [
-      ...(proxyResource.animations ?? []),
-      ...(((animationAsset.resource as ContainerResource).animations ?? [])),
-    ];
-    for (const clipAsset of animationResources) {
+    for (const clipAsset of proxyResource.animations ?? []) {
       const track = clipAsset.resource;
       const name = (track as { name?: unknown } | null | undefined)?.name;
       if (track && typeof name === "string") animationTracks.set(name, track);

@@ -17,6 +17,13 @@ test("静态姿势默认按片段时长中段取样，避开开头过渡帧", ()
   }
 });
 
+test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () => {
+  const available = ["A_INP_Idle", "A_INP_WalkFwd_Loop", "A_chair_loop01"];
+  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, "A_INP_Idle");
+  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, "A_INP_WalkFwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("sitting", available).clipName, "A_chair_loop01");
+});
+
 test("躺姿片段的稳定姿势在开头，保留开头附近取样", () => {
   const clip = resolveBlocking3dPoseClip("lying", ["LayToIdle", "Idle_Loop"]);
   assert.equal(clip.clipName, "LayToIdle");
