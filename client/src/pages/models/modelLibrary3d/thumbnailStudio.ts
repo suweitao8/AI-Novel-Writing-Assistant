@@ -4,7 +4,7 @@ import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import { clamp, createMaterial, createPlane, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
-import { setupStudioLighting } from "./studioLighting";
+import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
@@ -15,7 +15,7 @@ import { setupStudioLighting } from "./studioLighting";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v10";
+const STORAGE_KEY = "model-library:thumbnails:v11";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -127,7 +127,7 @@ async function processQueue(): Promise<void> {
   scheduleIdleDestroy();
 }
 
-function createThumbnailStudio(): Promise<{
+async function createThumbnailStudio(): Promise<{
   render: (entry: ModelLibraryEntry) => Promise<string>;
   destroy: () => void;
 }> {
@@ -152,6 +152,8 @@ function createThumbnailStudio(): Promise<{
   });
   app.root.addChild(cameraEntity);
   setupStudioLighting(app, cameraEntity.camera!);
+  // 缩略图必须等真 HDR 环境就绪再出图，否则卡片外观和编辑器不一致。
+  await upgradeStudioEnvironment(app);
 
   const ground = createPlane(
     app,
@@ -190,7 +192,7 @@ function createThumbnailStudio(): Promise<{
 
   let destroyed = false;
 
-  return Promise.resolve({
+  return {
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
       const asset = await loadAsset(app, entry.fileUrl, "container");
@@ -239,5 +241,5 @@ function createThumbnailStudio(): Promise<{
       destroyed = true;
       app.destroy();
     },
-  });
+  }
 }

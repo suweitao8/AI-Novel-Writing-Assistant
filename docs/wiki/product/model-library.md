@@ -20,8 +20,9 @@
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
 - **tint 只属于无贴图槽位（硬规则）**：UE 清单里的 `slot.tint` 是母材质向量参数的默认值/实例值，**不是**漫反射——当槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。构建规则：有 baseColor 贴图的槽位一律丢弃 tint；tint 只作为纯材质槽（无任何贴图）的主色（床品深红、婴儿床蓝等这类外观是合法用途）。
 - **环境反射（IBL）是质感前提**：`studioLighting.ts` 运行时生成程序化棚拍环境（竖向渐变等距柱状图 → `EnvLighting.generatePrefilteredAtlas`）挂到 `scene.envAtlas`。没有它：玻璃/金属要么发白发平、要么金属整面发黑。实拍确认烛台"玻璃罩"其实是源资产的不透明磨砂材质，观感成立靠的就是环境反射。
-- **RMA 只取粗糙度通道**：按资产 RMA（排除共享 Fill_01 占位）套 `glossMap`+`glossInvert`；金属度通道弃用——场景无真实 HDR 环境，金属面会涂黑。
-- **棚拍布光是共享模块**：三灯 + 程序化 IBL + ACES 色调映射，编辑器与缩略图工坊共用。注意 PlayCanvas 2.21 的 `toneMapping` 挂在 **CameraComponent** 上而非 Scene；粗糙度体系叫 **gloss**（`glossMap`/`glossInvert`，G 通道），没有 `roughnessMap`。
+- **RMA 只取 G 通道粗糙度（全库审计后的硬规则）**：按资产 RMA（排除共享 Fill_01 占位）套 `glossMap`+`glossMapChannel:"g"`+`glossInvert`。**B/R 通道经逐张贴图审计确认不可用**（2026-08-29）：这包 Cine57 资产的 ORM 语义与 glTF 约定不符——地毯/岩石/布艺等纯电介质的 B（按约定=金属度）高达 0.66-0.98，砖炉金属板反而 0.01；R（按约定=AO）在平整表面也压到 0.36，当 AO 会把物件整体压暗。金属观感由真 HDR 环境 + 漫反射色承担；接入校准过的 PBR 数据前不要开 `metalnessMap`/`aoMap`。
+- **引擎贴图通道默认值坑**：PlayCanvas StandardMaterial 的 `metalnessMap`/`glossMap` 默认采样通道与 glTF 约定不一致（glTF 加载器是自己显式设 `metalnessMapChannel="b"`、`glossMapChannel="g"` 的）。手动接 ORM/未校准贴图必须把 `glossMapChannel`/`metalnessMapChannel`/`aoMapChannel` 全部显式写死，否则金属度读错通道会把非金属整块渲染成镜面金属。
+- **棚拍布光是共享模块**：三灯 + 环境反射（真 HDR）+ ACES 色调映射，编辑器与缩略图工坊共用。真 HDR 走 `upgradeStudioEnvironment()`：内置中性棚拍等距柱状 HDRI（Poly Haven `studio_small_03_1k`，CC0，放 `client/public/models/env/`）→ `EnvLighting.generateLightingSource` → `generateAtlas` → `scene.envAtlas`，加载失败静默回落程序化渐变环境；三灯强度按真环境调低（1.2/0.35/0.55）。接了真环境也不要把 `ambientLight` 拉高——atlas 已接管环境光贡献。注意 PlayCanvas 2.21 的 `toneMapping` 挂在 **CameraComponent** 上而非 Scene；粗糙度体系叫 **gloss**（`glossMap`/`glossInvert`，G 通道），没有 `roughnessMap`。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库沿用静态目录模式**：动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
@@ -30,7 +31,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v9`，**改生成逻辑必须升版本**）。
+- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v11`，**改生成逻辑必须升版本**）。
 - 缩略图队列串行、闲置 8 秒销毁离线画布；44 个模型全队列约 3 秒。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。

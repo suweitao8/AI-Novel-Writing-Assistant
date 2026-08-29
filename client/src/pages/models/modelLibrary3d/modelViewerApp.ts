@@ -2,7 +2,7 @@ import * as pc from "playcanvas";
 
 import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
-import { setupStudioLighting } from "./studioLighting";
+import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting";
 import {
   createBlocking3dTransformGizmo,
   clamp,
@@ -145,6 +145,22 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   app.root.addChild(cameraEntity);
   const camera = cameraEntity.camera!;
   setupStudioLighting(app, camera, { castShadows: true });
+  // 同步布光先行（程序化环境兜底），真 HDR 环境异步就位后替换；
+  // 任何提前销毁路径都要跳过/执行环境清理，避免碰到已销毁的 scene。
+  let studioEnvDisposed = false;
+  let studioEnvCleanup: (() => void) | null = null;
+  const takeStudioEnvCleanup = (): (() => void) | null => studioEnvCleanup;
+  const disposeStudioEnv = () => {
+    studioEnvDisposed = true;
+    takeStudioEnvCleanup()?.();
+  };
+  void upgradeStudioEnvironment(app).then((cleanup) => {
+    if (studioEnvDisposed) {
+      cleanup();
+      return;
+    }
+    studioEnvCleanup = cleanup;
+  });
 
   const ground = createPlane(
     app,
@@ -252,6 +268,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     asset = await loadAsset(app, options.modelUrl, "container");
   } catch (error) {
     // 加载失败时不能把 WebGL 上下文留在页面上。
+    disposeStudioEnv();
     app.destroy();
     throw error;
   }
@@ -259,6 +276,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const inner = resource?.instantiateRenderEntity?.({ castShadows: true });
   if (!inner) {
     app.assets.remove(asset);
+    disposeStudioEnv();
     app.destroy();
     throw new Error("模型文件里没有可显示的网格。");
   }
@@ -487,6 +505,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       window.removeEventListener("blur", onBlur);
       transformGizmo.destroy();
       modelRoot.destroy();
+      disposeStudioEnv();
       app.destroy();
     },
   };

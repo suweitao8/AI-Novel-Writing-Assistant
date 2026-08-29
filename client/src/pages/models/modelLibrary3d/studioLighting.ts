@@ -1,10 +1,15 @@
 import * as pc from "playcanvas";
 
+import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
+
 /**
- * 模型库的棚拍布光：主光 + 补光 + 轮廓光 + 程序化环境反射 + ACES 色调映射。
- * 编辑器与缩略图工坊共用，保证卡片预览和 3D 编辑里看到的是同一套外观。
- * 色调映射在 2.21 里挂在相机组件上，需要传入已创建的 camera。
+ * 模型库的棚拍布光：主光 + 补光 + 轮廓光 + 环境反射（真实 HDR，程序化兜底）
+ * + ACES 色调映射。编辑器与缩略图工坊共用，保证卡片预览和 3D 编辑里看到的
+ * 是同一套外观。色调映射在 2.21 里挂在相机组件上，需要传入已创建的 camera。
  */
+
+/** 内置中性棚拍 HDRI（Poly Haven studio_small_03，CC0）。等距柱状 RGBE。 */
+const STUDIO_ENV_URL = "/models/env/studio_small_03_1k.hdr";
 
 /**
  * 程序化棚拍环境：竖向渐变的等距柱状图（顶部冷白天光、中性地面），运行时
@@ -81,7 +86,7 @@ export function setupStudioLighting(
   const keyLight = new pc.Entity("studio-key-light");
   keyLight.addComponent("light", {
     type: "directional",
-    intensity: 1.7,
+    intensity: 1.2,
     castShadows: options.castShadows ?? false,
     shadowBias: 0.35,
     normalOffsetBias: 0.05,
@@ -93,13 +98,56 @@ export function setupStudioLighting(
 
   // 补光：右后上方弱光，抬亮暗面
   const fillLight = new pc.Entity("studio-fill-light");
-  fillLight.addComponent("light", { type: "directional", intensity: 0.55 });
+  fillLight.addComponent("light", { type: "directional", intensity: 0.35 });
   fillLight.setEulerAngles(-30, -150, 0);
   app.root.addChild(fillLight);
 
   // 轮廓光：模型背后勾边，把主体从背景里剥出来
   const rimLight = new pc.Entity("studio-rim-light");
-  rimLight.addComponent("light", { type: "directional", intensity: 0.85 });
+  rimLight.addComponent("light", { type: "directional", intensity: 0.55 });
   rimLight.setEulerAngles(18, 148, 0);
   app.root.addChild(rimLight);
+}
+
+/**
+ * 用真实 HDR 替换程序化环境：加载内置棚拍 HDRI，预滤波成引擎 env atlas。
+ * 真环境给金属/釉面提供可读的反射内容，也让 RMA 的金属度通道可以安全启用。
+ * 加载或预滤波失败时静默保留程序化环境（三灯方案不受影响）。
+ * 返回的清理函数用于销毁加载出的纹理与 atlas（调用方销毁应用时调用）。
+ */
+export async function upgradeStudioEnvironment(
+  app: pc.AppBase,
+): Promise<() => void> {
+  const previousAtlas = app.scene.envAtlas;
+  let loadedTexture: pc.Texture | null = null;
+  try {
+    const asset = await loadAsset(app, STUDIO_ENV_URL, "texture");
+    const texture = asset.resource as pc.Texture;
+    loadedTexture = texture;
+    texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
+    texture.minFilter = pc.FILTER_LINEAR;
+    texture.magFilter = pc.FILTER_LINEAR;
+    texture.mipmaps = false;
+    texture.anisotropy = Math.max(1, Math.min(app.graphicsDevice.maxAnisotropy, 8));
+    texture.addressU = pc.ADDRESS_REPEAT;
+    texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
+    const lightingSource = pc.EnvLighting.generateLightingSource(texture, { size: 128 });
+    const atlas = pc.EnvLighting.generateAtlas(lightingSource, {
+      size: 256,
+      numReflectionSamples: 256,
+      numAmbientSamples: 512,
+    });
+    lightingSource.destroy();
+    app.scene.envAtlas = atlas;
+    // 环境 atlas 已接管环境光贡献，恒定环境光归零避免叠加过曝。
+    app.scene.ambientLight = new pc.Color(0.02, 0.02, 0.022);
+    return () => {
+      if (app.scene.envAtlas === atlas) app.scene.envAtlas = previousAtlas;
+      atlas.destroy();
+      asset.unload();
+    };
+  } catch {
+    if (loadedTexture) loadedTexture.destroy();
+    return () => {};
+  }
 }
