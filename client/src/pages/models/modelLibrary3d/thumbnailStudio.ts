@@ -4,8 +4,8 @@ import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import { clamp, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
-import { attachStudioBackdrop } from "./studioBackdrop";
-import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting";
+import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
+import { setupStudioLighting } from "./studioLighting";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
@@ -16,7 +16,7 @@ import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting"
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v15";
+const STORAGE_KEY = "model-library:thumbnails:v16";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -157,9 +157,8 @@ async function createThumbnailStudio(): Promise<{
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
   setupStudioLighting(app, cameraEntity.camera!);
-  // 缩略图必须等真 HDR 环境就绪再出图，否则卡片外观和编辑器不一致。
-  await upgradeStudioEnvironment(app);
-  const backdrop = await attachStudioBackdrop(app, { camera: cameraEntity });
+  // 卡片统一使用室内默认环境，并等待可见穹顶与环境光都装配完成后再出图。
+  const studioEnvironment = await loadStudioEnvironment(app);
 
   const frame = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -228,7 +227,7 @@ async function createThumbnailStudio(): Promise<{
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      backdrop?.destroy();
+      studioEnvironment.destroy();
       app.destroy();
     },
   }

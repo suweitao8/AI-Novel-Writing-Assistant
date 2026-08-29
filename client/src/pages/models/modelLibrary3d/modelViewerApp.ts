@@ -2,8 +2,20 @@ import * as pc from "playcanvas";
 
 import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
-import { attachStudioBackdrop } from "./studioBackdrop";
-import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting";
+import {
+  DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  getStudioEnvironmentDiameterMeters,
+  getStudioEnvironmentDiameterPreference,
+  getStudioEnvironmentRadiusMeters,
+  getStudioEnvironmentPreset,
+  saveStudioEnvironmentDiameterPreference,
+  type StudioEnvironmentPresetId,
+} from "./studioEnvironmentPresets";
+import {
+  loadStudioEnvironment,
+  type StudioEnvironmentHandle,
+} from "./studioEnvironmentRuntime";
+import { setupStudioLighting } from "./studioLighting";
 import {
   createBlocking3dTransformGizmo,
   clamp,
@@ -25,6 +37,10 @@ export interface ModelViewerOptions {
   unitScale?: number;
   /** 材质回填映射（GLB 里只有 FBX 占位材质，无贴图）。 */
   materials?: ModelMaterialMap;
+  /** 模型预览使用的固定 HDRI 环境预设。 */
+  environmentPresetId?: StudioEnvironmentPresetId;
+  /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
+  environmentDiameterMeters?: number;
   onStatus?: (status: string) => void;
   /** gizmo 拖拽过程中的实时回读（面板数值跟手）。 */
   onTransformLive?: () => void;
@@ -40,6 +56,10 @@ export interface ModelViewer {
   getTransformTool: () => ModelViewerTool | null;
   getTransform: () => InspectorTransformValue;
   setTransform: (patch: Partial<InspectorTransformValue>) => boolean;
+  getEnvironmentPreset: () => StudioEnvironmentPresetId;
+  getEnvironmentDiameter: () => number;
+  setEnvironmentPreset: (presetId: StudioEnvironmentPresetId) => Promise<boolean>;
+  setEnvironmentDiameter: (diameterMeters: number) => Promise<boolean>;
   capturePng: () => Blob;
   destroy: () => void;
 }
@@ -147,33 +167,24 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 半圆球穹顶。
   camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
   setupStudioLighting(app, camera, { castShadows: true });
-  // 同步布光先行（程序化环境兜底），真 HDR 环境异步就位后替换；
-  // 任何提前销毁路径都要跳过/执行环境清理，避免碰到已销毁的 scene。
-  let studioEnvDisposed = false;
-  let studioEnvCleanup: (() => void) | null = null;
-  let studioBackdropCleanup: (() => void) | null = null;
-  const takeStudioEnvCleanup = (): (() => void) | null => studioEnvCleanup;
-  const disposeStudioEnv = () => {
-    studioEnvDisposed = true;
-    takeStudioEnvCleanup()?.();
-    studioBackdropCleanup?.();
+  // 先用程序化布光启动，真实 HDRI 异步装配完成后再整体替换；环境资源
+  // 的生命周期与模型查看器绑定，避免切换或销毁时留下漂浮穹顶。
+  const initialEnvironmentPresetId =
+    options.environmentPresetId ?? DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID;
+  let destroyed = false;
+  let studioEnvironmentRequestId = 0;
+  let currentStudioEnvironment: StudioEnvironmentHandle | null = null;
+  let currentEnvironmentPresetId = initialEnvironmentPresetId;
+  let currentEnvironmentDiameterMeters = getStudioEnvironmentDiameterMeters(
+    options.environmentDiameterMeters ?? getStudioEnvironmentDiameterPreference(initialEnvironmentPresetId),
+  );
+  let currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(currentEnvironmentDiameterMeters);
+
+  const disposeStudioEnvironment = () => {
+    studioEnvironmentRequestId += 1;
+    currentStudioEnvironment?.destroy();
+    currentStudioEnvironment = null;
   };
-  void upgradeStudioEnvironment(app).then((cleanup) => {
-    if (studioEnvDisposed) {
-      cleanup();
-      return;
-    }
-    studioEnvCleanup = cleanup;
-  });
-  // 半圆球穹顶：与漫剧场景一致，把摄影棚全景投射在半球内壁作可视背景。
-  void attachStudioBackdrop(app, { camera: cameraEntity }).then((handle) => {
-    if (!handle) return;
-    if (studioEnvDisposed) {
-      handle.destroy();
-      return;
-    }
-    studioBackdropCleanup = handle.destroy;
-  });
 
   // modelRoot 承载用户编辑的 transform（gizmo 目标）；modelAdjust 把源模型
   // 换算到米并平移到底部中心落在原点，导入即「落地居中」。
@@ -189,11 +200,14 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     focalPoint: [0, 0.5, 0],
   };
 
+  const getCameraMaxDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
+
   const syncCamera = () => {
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
-    const distance = cameraState.distance;
+    const distance = clamp(cameraState.distance, 0.2, getCameraMaxDistance());
+    cameraState.distance = distance;
     cameraEntity.setPosition(
       cameraState.focalPoint[0] + Math.sin(azimuth) * cosElevation * distance,
       cameraState.focalPoint[1] + Math.sin(-elevation) * distance,
@@ -202,6 +216,45 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
   };
   syncCamera();
+
+  const loadEnvironmentPreset = async (
+    presetId: StudioEnvironmentPresetId,
+    diameterMeters?: number,
+  ): Promise<boolean> => {
+    if (destroyed) return false;
+    const requestId = ++studioEnvironmentRequestId;
+    const preset = getStudioEnvironmentPreset(presetId);
+    const nextDiameterMeters = getStudioEnvironmentDiameterMeters(
+      diameterMeters ?? getStudioEnvironmentDiameterPreference(presetId) ?? preset.diameterMeters,
+    );
+    let nextEnvironment: StudioEnvironmentHandle;
+    try {
+      nextEnvironment = await loadStudioEnvironment(app, presetId, {
+        diameterMeters: nextDiameterMeters,
+      });
+    } catch {
+      return false;
+    }
+    if (destroyed || requestId !== studioEnvironmentRequestId) {
+      nextEnvironment.destroy();
+      return false;
+    }
+    if (!nextEnvironment.hasVisibleBackdrop) {
+      nextEnvironment.destroy();
+      return false;
+    }
+    const previousEnvironment = currentStudioEnvironment;
+    currentStudioEnvironment = nextEnvironment;
+    currentEnvironmentPresetId = nextEnvironment.presetId;
+    currentEnvironmentDiameterMeters = nextEnvironment.diameterMeters;
+    currentEnvironmentRadiusMeters = nextEnvironment.radiusMeters;
+    saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
+    previousEnvironment?.destroy();
+    syncCamera();
+    return true;
+  };
+
+  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
 
   let gizmoDragging = false;
   const transformGizmo = createBlocking3dTransformGizmo(app, camera, {
@@ -251,7 +304,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     asset = await loadAsset(app, options.modelUrl, "container");
   } catch (error) {
     // 加载失败时不能把 WebGL 上下文留在页面上。
-    disposeStudioEnv();
+    destroyed = true;
+    disposeStudioEnvironment();
     app.destroy();
     throw error;
   }
@@ -259,7 +313,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const inner = resource?.instantiateRenderEntity?.({ castShadows: true });
   if (!inner) {
     app.assets.remove(asset);
-    disposeStudioEnv();
+    destroyed = true;
+    disposeStudioEnvironment();
     app.destroy();
     throw new Error("模型文件里没有可显示的网格。");
   }
@@ -268,7 +323,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 先在恒等变换下求源几何的世界包围盒（节点偏移参与计算），再一次性
   // 应用「米换算 + 底部中心落原点」的偏移。
   modelAdjust.addChild(inner);
-  app.root.syncHierarchy();  const bounds = computeSourceBounds(inner);
+  app.root.syncHierarchy();
+  const bounds = computeSourceBounds(inner);
   modelAdjust.setLocalScale(unitScale, unitScale, unitScale);
   if (bounds) {
     modelAdjust.setPosition(
@@ -291,7 +347,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // ── 相机导航：右键环绕 / 中键平移 / 滚轮缩放 / WASD+QE 飞行 ──
   let keyboardInput = new Set<string>();
   let dragState: { button: number; pointerId: number; x: number; y: number } | null = null;
-  let destroyed = false;
 
   const moveCamera = (dx: number, dy: number, dz: number) => {
     cameraState.focalPoint = [
@@ -360,7 +415,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const onWheel = (event: WheelEvent) => {
     if (destroyed) return;
     event.preventDefault();
-    cameraState.distance = clamp(cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92), 0.2, 80);
+    cameraState.distance = clamp(
+      cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
+      0.2,
+      getCameraMaxDistance(),
+    );
     syncCamera();
   };
 
@@ -454,6 +513,18 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       }
       return true;
     },
+    getEnvironmentPreset() {
+      return currentEnvironmentPresetId;
+    },
+    getEnvironmentDiameter() {
+      return currentEnvironmentDiameterMeters;
+    },
+    setEnvironmentPreset(presetId) {
+      return loadEnvironmentPreset(presetId);
+    },
+    setEnvironmentDiameter(diameterMeters) {
+      return loadEnvironmentPreset(currentEnvironmentPresetId, diameterMeters);
+    },
     capturePng() {
       transformGizmo.attach(null);
       try {
@@ -487,7 +558,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       window.removeEventListener("blur", onBlur);
       transformGizmo.destroy();
       modelRoot.destroy();
-      disposeStudioEnv();
+      disposeStudioEnvironment();
       app.destroy();
     },
   };

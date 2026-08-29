@@ -8,78 +8,127 @@ import {
   loadAsset,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 
+import {
+  DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  getStudioEnvironmentDiameterMeters,
+  getStudioEnvironmentPreset,
+  type StudioEnvironmentPresetId,
+} from "./studioEnvironmentPresets";
+
 /**
  * 模型预览的摄影棚穹顶：与漫剧 3D 场景的 HDRI 背景穹顶同一套投射方案——
  * 等距柱状全景图重投影成 cubemap，贴到半圆球内壁上（几何/材质复用
  * blocking3d 的穹顶模块）。环境光仍由 studioLighting 的 env atlas 承担，
- * 穹顶只负责"身处摄影棚房间"的可视背景。
+ * 穹顶只负责“身处摄影棚房间”的可视背景。
  */
 
-/** 场景全景图管线产出的室内工作室全景（编辑器穹顶与环境共用）。 */
+/** 旧版场景全景图，保留为新 HDRI 资源不可用时的可视背景兜底。 */
 export const STUDIO_PANORAMA_URL = "/models/env/studio_panorama.png";
 
 export interface StudioBackdropHandle {
   destroy: () => void;
 }
 
+export interface StudioBackdropOptions {
+  presetId?: StudioEnvironmentPresetId;
+  /** 覆盖预设的半球直径；范围由环境预设合同统一收敛到 5–30 米。 */
+  diameterMeters?: number;
+  projectionCenterHeightMeters?: number;
+  panoramaHorizonV?: number;
+}
+
+interface LoadedEnvironmentTexture {
+  asset: pc.Asset;
+  texture: pc.Texture;
+}
+
+async function loadEnvironmentTexture(
+  app: pc.AppBase,
+  urls: readonly string[],
+): Promise<LoadedEnvironmentTexture | null> {
+  for (const url of urls) {
+    try {
+      const asset = await loadAsset(app, url, "texture");
+      const texture = asset.resource as pc.Texture | null;
+      if (texture) return { asset, texture };
+      asset.unload();
+    } catch {
+      // 资源缺失时继续尝试兼容的旧版全景图。
+    }
+  }
+  return null;
+}
+
 export async function attachStudioBackdrop(
   app: pc.AppBase,
-  options: {
-    radius?: number;
-    centerHeightRatio?: number;
-    panoramaHorizonV?: number;
-    /** 提供相机实体时，穹顶每帧水平跟随相机（y 固定），取景再远也在球内。 */
-    camera?: pc.Entity;
-  } = {},
+  options: StudioBackdropOptions = {},
 ): Promise<StudioBackdropHandle | null> {
+  const preset = getStudioEnvironmentPreset(
+    options.presetId ?? DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  );
+  const loaded = await loadEnvironmentTexture(app, [preset.sourceUrl, STUDIO_PANORAMA_URL]);
+  if (!loaded) return null;
+
+  const { asset, texture } = loaded;
+  let cubemap: pc.Texture | null = null;
+  let mesh: pc.Mesh | null = null;
+  let material: pc.Material | null = null;
+  let dome: pc.Entity | null = null;
   try {
-    const asset = await loadAsset(app, STUDIO_PANORAMA_URL, "texture");
-    const texture = asset.resource as pc.Texture;
     configureEnvironmentTexture(texture, app);
-    const cubemap = createVisibleHdriCubemap(app, texture);
-    // 与漫剧一致：几何按 0.5 单位半径构建，实体再用 domeRadius 缩放。
-    const radius = options.radius ?? 10;
-    const centerHeight = radius * (options.centerHeightRatio ?? 0.17);
-    const mesh = pc.Mesh.fromGeometry(
-      app.graphicsDevice,
-      createBackdropGeometry(centerHeight, radius),
+    cubemap = createVisibleHdriCubemap(app, texture);
+
+    const domeDiameterMeters = getStudioEnvironmentDiameterMeters(
+      options.diameterMeters ?? preset.diameterMeters,
     );
-    const material = createProjectedHdriMaterial(cubemap, {
+    const centerHeight =
+      typeof options.projectionCenterHeightMeters === "number" &&
+      Number.isFinite(options.projectionCenterHeightMeters)
+        ? Math.max(0, options.projectionCenterHeightMeters)
+        : preset.projectionCenterHeightMeters;
+
+    // blocking3d 的基础几何半径是 0.5，半球直径可以直接作为几何缩放值。
+    mesh = pc.Mesh.fromGeometry(
+      app.graphicsDevice,
+      createBackdropGeometry(centerHeight, domeDiameterMeters),
+    );
+    material = createProjectedHdriMaterial(cubemap, {
       projectionCenterHeight: centerHeight,
-      panoramaHorizonV: options.panoramaHorizonV ?? 0.47,
+      panoramaHorizonV: options.panoramaHorizonV ?? preset.panoramaHorizonV,
     });
     const meshInstance = new pc.MeshInstance(mesh, material);
-    const dome = new pc.Entity("studio-panorama-dome");
-    dome.addComponent("render", { meshInstances: [meshInstance], layers: [pc.LAYERID_WORLD] });
-    dome.setLocalScale(radius, radius, radius);
+    dome = new pc.Entity("studio-panorama-dome");
+    dome.addComponent("render", {
+      meshInstances: [meshInstance],
+      layers: [pc.LAYERID_WORLD],
+    });
+    dome.setLocalScale(domeDiameterMeters, domeDiameterMeters, domeDiameterMeters);
+    // 模型预览穹顶是世界空间背景，永远固定在原点，不能随相机漂移。
     dome.setPosition(0, 0, 0);
     app.root.addChild(dome);
-    // 穹顶标称直径 10 米且每帧水平跟随相机（y 固定 0 保持地平线稳定）；
-    // 取景拉远、相机连同模型要超出 10 米球时按需放大，模型永远不会被
-    // 球壁挡住，也不会露出球外的深色背景。
-    const followCamera = options.camera;
-    const modelAnchor = new pc.Vec3(0, 0.5, 0);
-    const onFrame = () => {
-      if (!followCamera) return;
-      const pos = followCamera.getPosition();
-      dome.setPosition(pos.x, 0, pos.z);
-      const needed = modelAnchor.distance(pos) + 1.5;
-      const worldRadius = Math.max(radius * 0.5, needed);
-      const scale = worldRadius * 2;
-      dome.setLocalScale(scale, scale, scale);
-    };
-    app.on("update", onFrame);
+
+    let destroyed = false;
     return {
       destroy() {
-        app.off("update", onFrame);
-        dome.destroy();
-        mesh.destroy();
-        material.destroy();
-        cubemap.destroy();
+        if (destroyed) return;
+        destroyed = true;
+        dome?.destroy();
+        mesh?.destroy();
+        material?.destroy();
+        cubemap?.destroy();
         asset.unload();
+        dome = null;
+        mesh = null;
+        material = null;
+        cubemap = null;
       },
     };
   } catch {
+    dome?.destroy();
+    mesh?.destroy();
+    material?.destroy();
+    cubemap?.destroy();
+    asset.unload();
     return null;
   }
 }

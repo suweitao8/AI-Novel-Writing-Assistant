@@ -2,6 +2,11 @@ import * as pc from "playcanvas";
 
 import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
 
+import {
+  DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  getStudioEnvironmentPreset,
+  type StudioEnvironmentPresetId,
+} from "./studioEnvironmentPresets";
 import { STUDIO_PANORAMA_URL } from "./studioBackdrop";
 
 /**
@@ -146,18 +151,25 @@ async function tryBuildEnvAtlasFromUrl(
 }
 
 /**
- * 用真实环境替换程序化环境：优先加载场景全景图管线产出的摄影棚全景图，
- * 失败再退到内置 HDRI；两者都不可用时静默保留程序化环境（三灯方案不受
- * 影响）。真环境给金属/釉面提供可读的反射内容。
+ * 用真实环境替换程序化环境：优先加载当前模型预览预设的 HDRI，失败再退到
+ * 旧版全景图与内置棚拍 HDRI；都不可用时静默保留程序化环境（三灯方案不受
+ * 影响）。同一预设会同时供可见穹顶与 env atlas 使用。
  * 返回的清理函数用于销毁加载出的纹理与 atlas（调用方销毁应用时调用）。
  */
 export async function upgradeStudioEnvironment(
   app: pc.AppBase,
+  presetId: StudioEnvironmentPresetId = DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
 ): Promise<() => void> {
   const previousAtlas = app.scene.envAtlas;
-  const env =
-    (await tryBuildEnvAtlasFromUrl(app, STUDIO_PANORAMA_URL)) ??
-    (await tryBuildEnvAtlasFromUrl(app, STUDIO_ENV_URL));
+  const preset = getStudioEnvironmentPreset(presetId);
+  const urls = [preset.sourceUrl, STUDIO_PANORAMA_URL, STUDIO_ENV_URL].filter(
+    (url, index, all) => all.indexOf(url) === index,
+  );
+  let env: { atlas: pc.Texture; dispose: () => void } | null = null;
+  for (const url of urls) {
+    env = await tryBuildEnvAtlasFromUrl(app, url);
+    if (env) break;
+  }
   if (!env) return () => {};
   const { atlas, dispose } = env;
   app.scene.envAtlas = atlas;

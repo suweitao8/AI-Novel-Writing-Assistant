@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, Camera, Crosshair, Loader2, Move3D, RotateCcw } from "lucide-react";
 
+import SelectControl from "@/components/common/SelectControl";
 import { getModelLibraryEntry } from "@/config/modelLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,14 @@ import {
   TransformToolToolbar,
   type InspectorTransformValue,
 } from "@/pages/drama/comicDrama/components/editor3d";
+import {
+  DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
+  STUDIO_ENVIRONMENT_PRESET_IDS,
+  getStudioEnvironmentDiameterPreference,
+  getStudioEnvironmentPreset,
+  type StudioEnvironmentPresetId,
+} from "./modelLibrary3d/studioEnvironmentPresets";
 import { createModelViewer, type ModelViewer, type ModelViewerTool } from "./modelLibrary3d/modelViewerApp";
 
 export default function ModelEditorPage() {
@@ -29,17 +38,30 @@ export default function ModelEditorPage() {
     yawDeg: 0,
     scale: 1,
   });
+  const [environmentPresetId, setEnvironmentPresetId] = useState<StudioEnvironmentPresetId>(
+    DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+  );
+  const [environmentDiameterMeters, setEnvironmentDiameterMeters] = useState(
+    getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
+  );
+  const [environmentSwitching, setEnvironmentSwitching] = useState(false);
+  const environmentDiameterRequestRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !entry || viewerRef.current) return undefined;
     let cancelled = false;
     setViewerError(null);
+    setEnvironmentPresetId(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID);
+    setEnvironmentDiameterMeters(getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID));
+    setEnvironmentSwitching(false);
     void createModelViewer({
       canvas,
       modelUrl: entry.fileUrl,
       unitScale: entry.unitScale,
       materials: entry.materials,
+      environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+      environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
       onStatus: (next) => setStatus(next || "就绪"),
       onTransformLive: () => setTransform(viewerRef.current?.getTransform() ?? transform),
       onTransformCommit: () => setTransform(viewerRef.current?.getTransform() ?? transform),
@@ -78,6 +100,68 @@ export default function ModelEditorPage() {
       setTransform(viewerRef.current.getTransform());
     },
     [],
+  );
+
+  const handleEnvironmentChange = useCallback(
+    async (nextId: StudioEnvironmentPresetId) => {
+      const current = viewerRef.current;
+      if (!current || environmentSwitching || nextId === environmentPresetId) return;
+      const previousId = environmentPresetId;
+      setEnvironmentPresetId(nextId);
+      setEnvironmentSwitching(true);
+      try {
+        const switched = await current.setEnvironmentPreset(nextId);
+        if (!switched) {
+          setEnvironmentPresetId(previousId);
+          toast.error("HDRI 环境加载失败。");
+        } else {
+          setEnvironmentDiameterMeters(current.getEnvironmentDiameter());
+        }
+      } catch (error) {
+        setEnvironmentPresetId(previousId);
+        toast.error("HDRI 环境加载失败。", {
+          description: error instanceof Error ? error.message : undefined,
+        });
+      } finally {
+        setEnvironmentSwitching(false);
+      }
+    },
+    [environmentPresetId, environmentSwitching],
+  );
+
+  const handleEnvironmentDiameterChange = useCallback(
+    async (value: number) => {
+      const current = viewerRef.current;
+      if (!current) return;
+      const requestId = ++environmentDiameterRequestRef.current;
+      const previousDiameter = environmentDiameterMeters;
+      const nextDiameter = Math.min(
+        STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max,
+        Math.max(STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min, value),
+      );
+      setEnvironmentDiameterMeters(nextDiameter);
+      setEnvironmentSwitching(true);
+      try {
+        const switched = await current.setEnvironmentDiameter(nextDiameter);
+        if (requestId !== environmentDiameterRequestRef.current) return;
+        if (!switched) {
+          setEnvironmentDiameterMeters(previousDiameter);
+          toast.error("HDRI 环境加载失败。");
+        } else {
+          setEnvironmentDiameterMeters(current.getEnvironmentDiameter());
+        }
+      } catch (error) {
+        if (requestId !== environmentDiameterRequestRef.current) return;
+        setEnvironmentDiameterMeters(previousDiameter);
+        toast.error("HDRI 环境加载失败。", {
+          description: error instanceof Error ? error.message : undefined,
+        });
+      } finally {
+        if (requestId !== environmentDiameterRequestRef.current) return;
+        setEnvironmentSwitching(false);
+      }
+    },
+    [environmentDiameterMeters],
   );
 
   const handleCapture = useCallback(() => {
@@ -135,6 +219,56 @@ export default function ModelEditorPage() {
                 <dd className="font-medium">{entry.sizeKb} KB</dd>
               </div>
             </dl>
+          </InspectorComponentSection>
+
+          <InspectorComponentSection title="预览环境">
+            <label className="space-y-1 text-xs text-muted-foreground">
+              <span>HDRI 场景</span>
+              <SelectControl
+                value={environmentPresetId}
+                onChange={(event) => {
+                  void handleEnvironmentChange(event.target.value as StudioEnvironmentPresetId);
+                }}
+                disabled={!viewer || environmentSwitching}
+                aria-label="模型预览 HDRI 场景"
+                className="h-9 w-full bg-background text-sm"
+              >
+                {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
+                  const preset = getStudioEnvironmentPreset(id);
+                  const label = `${preset.label}（直径 ${preset.diameterMeters} 米）`;
+                  return (
+                    <option key={id} value={id}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </SelectControl>
+            </label>
+            <label className="mt-3 block space-y-1 text-xs text-muted-foreground" htmlFor="model-environment-diameter">
+              <span className="flex items-center justify-between gap-2">
+                <span>半球直径</span>
+                <output className="tabular-nums text-foreground">{environmentDiameterMeters} 米</output>
+              </span>
+              <input
+                id="model-environment-diameter"
+                type="range"
+                min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
+                max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
+                step={1}
+                value={environmentDiameterMeters}
+                disabled={!viewer}
+                aria-label="模型预览半球直径"
+                onChange={(event) => {
+                  void handleEnvironmentDiameterChange(Number(event.target.value));
+                }}
+                className="w-full accent-primary"
+              />
+            </label>
+            {environmentSwitching ? (
+              <span role="status" className="text-xs text-muted-foreground">
+                环境加载中…
+              </span>
+            ) : null}
           </InspectorComponentSection>
 
           <InspectorTransformSection value={transform} onCommit={commitTransform} />

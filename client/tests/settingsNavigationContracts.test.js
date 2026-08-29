@@ -24,7 +24,7 @@ test("系统设置页签保留漫剧配置并通过统一策略收起小说配�
     read("src/pages/settings/components/SettingsShell.tsx"),
   ]);
   assert.doesNotMatch(sidebar, /label: "模型路由"/);
-  for (const label of ["设置总览", "模型设置", "自动导演", "知识库与写法", "旁白音色", "外观与主题", "记录", "画风"]) {
+  for (const label of ["设置总览", "模型设置", "自动导演", "知识库与写法", "资产预设", "外观与主题", "记录", "画风"]) {
     assert.match(shell, new RegExp(label));
   }
   assert.match(shell, /isNavRouteVisible/);
