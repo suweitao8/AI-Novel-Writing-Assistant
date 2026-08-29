@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 
 import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
+import { attachStudioBackdrop } from "./studioBackdrop";
 import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting";
 import {
   createBlocking3dTransformGizmo,
@@ -149,10 +150,12 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 任何提前销毁路径都要跳过/执行环境清理，避免碰到已销毁的 scene。
   let studioEnvDisposed = false;
   let studioEnvCleanup: (() => void) | null = null;
+  let studioBackdropCleanup: (() => void) | null = null;
   const takeStudioEnvCleanup = (): (() => void) | null => studioEnvCleanup;
   const disposeStudioEnv = () => {
     studioEnvDisposed = true;
     takeStudioEnvCleanup()?.();
+    studioBackdropCleanup?.();
   };
   void upgradeStudioEnvironment(app).then((cleanup) => {
     if (studioEnvDisposed) {
@@ -160,6 +163,15 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       return;
     }
     studioEnvCleanup = cleanup;
+  });
+  // 半圆球穹顶：与漫剧场景一致，把摄影棚全景投射在半球内壁作可视背景。
+  void attachStudioBackdrop(app, { radius: 30 }).then((handle) => {
+    if (!handle) return;
+    if (studioEnvDisposed) {
+      handle.destroy();
+      return;
+    }
+    studioBackdropCleanup = handle.destroy;
   });
 
   const ground = createPlane(

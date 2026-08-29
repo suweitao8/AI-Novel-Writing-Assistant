@@ -15,3 +15,10 @@ export {
   DEFAULT_FOV,
   type ContainerResource,
 } from "./blocking3dViewerCore";
+export {
+  createBackdropGeometry,
+  configureEnvironmentTexture,
+  createVisibleHdriCubemap,
+} from "./blocking3dViewerCore";
+export { createProjectedHdriMaterial } from "./blocking3dEnvironmentProjection";
+export type { ProjectedHdriMaterialSettings } from "./blocking3dEnvironmentProjection";

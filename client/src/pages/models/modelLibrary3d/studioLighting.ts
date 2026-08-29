@@ -2,6 +2,8 @@ import * as pc from "playcanvas";
 
 import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
 
+import { STUDIO_PANORAMA_URL } from "./studioBackdrop";
+
 /**
  * 模型库的棚拍布光：主光 + 补光 + 轮廓光 + 环境反射（真实 HDR，程序化兜底）
  * + ACES 色调映射。编辑器与缩略图工坊共用，保证卡片预览和 3D 编辑里看到的
@@ -10,8 +12,6 @@ import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
 
 /** 内置中性棚拍 HDRI（Poly Haven studio_small_03，CC0）。等距柱状 RGBE。 */
 const STUDIO_ENV_URL = "/models/env/studio_small_03_1k.hdr";
-/** 场景全景图管线产出的摄影棚全景（AI 生成等距柱状图），作为首选环境。 */
-const STUDIO_PANORAMA_URL = "/models/env/studio_panorama.png";
 
 /**
  * 程序化棚拍环境：竖向渐变的等距柱状图（顶部冷白天光、中性地面），运行时
