@@ -1,7 +1,7 @@
 import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
-import { clamp, createMaterial, createPlane, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
+import { clamp, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
 import { attachStudioBackdrop } from "./studioBackdrop";
@@ -16,7 +16,7 @@ import { setupStudioLighting, upgradeStudioEnvironment } from "./studioLighting"
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v13";
+const STORAGE_KEY = "model-library:thumbnails:v15";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -159,23 +159,7 @@ async function createThumbnailStudio(): Promise<{
   setupStudioLighting(app, cameraEntity.camera!);
   // 缩略图必须等真 HDR 环境就绪再出图，否则卡片外观和编辑器不一致。
   await upgradeStudioEnvironment(app);
-  const backdrop = await attachStudioBackdrop(app, { radius: 30 });
-
-  const ground = createPlane(
-    app,
-    "thumb-ground",
-    [0, -0.01, 0],
-    [12, 1, 12],
-    createMaterial(new pc.Color(0.16, 0.18, 0.22)),
-  );
-  ground.render!.receiveShadows = false;
-
-  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  for (let value = -3; value <= 3; value += 0.5) {
-    const color = new pc.Color(0.3, 0.34, 0.42, 0.4);
-    gridLines.push({ start: new pc.Vec3(value, 0.004, -3), end: new pc.Vec3(value, 0.004, 3), color });
-    gridLines.push({ start: new pc.Vec3(-3, 0.004, value), end: new pc.Vec3(3, 0.004, value), color });
-  }
+  const backdrop = await attachStudioBackdrop(app, { camera: cameraEntity });
 
   const frame = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -192,7 +176,6 @@ async function createThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
-    for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
     app.render();
   };
 

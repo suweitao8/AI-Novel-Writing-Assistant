@@ -24,7 +24,13 @@ export interface StudioBackdropHandle {
 
 export async function attachStudioBackdrop(
   app: pc.AppBase,
-  options: { radius?: number; centerHeightRatio?: number; panoramaHorizonV?: number } = {},
+  options: {
+    radius?: number;
+    centerHeightRatio?: number;
+    panoramaHorizonV?: number;
+    /** 提供相机实体时，穹顶每帧水平跟随相机（y 固定），取景再远也在球内。 */
+    camera?: pc.Entity;
+  } = {},
 ): Promise<StudioBackdropHandle | null> {
   try {
     const asset = await loadAsset(app, STUDIO_PANORAMA_URL, "texture");
@@ -32,15 +38,15 @@ export async function attachStudioBackdrop(
     configureEnvironmentTexture(texture, app);
     const cubemap = createVisibleHdriCubemap(app, texture);
     // 与漫剧一致：几何按 0.5 单位半径构建，实体再用 domeRadius 缩放。
-    const radius = options.radius ?? 30;
-    const centerHeight = radius * (options.centerHeightRatio ?? 0.12);
+    const radius = options.radius ?? 10;
+    const centerHeight = radius * (options.centerHeightRatio ?? 0.17);
     const mesh = pc.Mesh.fromGeometry(
       app.graphicsDevice,
       createBackdropGeometry(centerHeight, radius),
     );
     const material = createProjectedHdriMaterial(cubemap, {
       projectionCenterHeight: centerHeight,
-      panoramaHorizonV: options.panoramaHorizonV ?? 0.56,
+      panoramaHorizonV: options.panoramaHorizonV ?? 0.47,
     });
     const meshInstance = new pc.MeshInstance(mesh, material);
     const dome = new pc.Entity("studio-panorama-dome");
@@ -48,8 +54,18 @@ export async function attachStudioBackdrop(
     dome.setLocalScale(radius, radius, radius);
     dome.setPosition(0, 0, 0);
     app.root.addChild(dome);
+    // 穹顶半径只有 10 米：取景拉远时相机会穿出球壁。让穹顶每帧水平跟随
+    // 相机（y 固定 0 保持地平线稳定），相机永远位于球心。
+    const followCamera = options.camera;
+    const onFrame = () => {
+      if (!followCamera) return;
+      const pos = followCamera.getPosition();
+      dome.setPosition(pos.x, 0, pos.z);
+    };
+    app.on("update", onFrame);
     return {
       destroy() {
+        app.off("update", onFrame);
         dome.destroy();
         mesh.destroy();
         material.destroy();
