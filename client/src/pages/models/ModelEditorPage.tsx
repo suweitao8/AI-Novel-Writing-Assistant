@@ -265,7 +265,7 @@ export default function ModelEditorPage() {
               />
             </label>
             {environmentSwitching ? (
-              <span role="status" className="text-xs text-muted-foreground">
+              <span role="status" className="block text-xs text-muted-foreground" aria-live="polite">
                 环境加载中…
               </span>
             ) : null}

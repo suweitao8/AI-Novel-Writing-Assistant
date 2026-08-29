@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   DEFAULT_POSE_SAMPLE_TIME_RATIO,
+  getAvailableBlocking3dPoses,
   getBlocking3dPoseClipConfig,
   poseSampleTimeFromTrack,
   resolveBlocking3dPoseClip,
@@ -17,21 +18,69 @@ test("静态姿势默认按片段时长中段取样，避开开头过渡帧", ()
   }
 });
 
+test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () => {
+  const available = ["A_INP_Idle", "A_INP_WalkFwd_Loop", "A_chair_loop01"];
+  assert.equal(
+    resolveBlocking3dPoseClip("standing", available).clipName,
+    "A_INP_Idle",
+  );
+  assert.equal(
+    resolveBlocking3dPoseClip("walking", available).clipName,
+    "A_INP_WalkFwd_Loop",
+  );
+  assert.equal(
+    resolveBlocking3dPoseClip("sitting", available).clipName,
+    "A_chair_loop01",
+  );
+});
+
 test("躺姿片段的稳定姿势在开头，保留开头附近取样", () => {
   const clip = resolveBlocking3dPoseClip("lying", ["LayToIdle", "Idle_Loop"]);
   assert.equal(clip.clipName, "LayToIdle");
   assert.ok(clip.sampleTimeRatio < 0.1);
 });
 
-test("没有专用趴姿动画时，趴姿回退到蹲伏而不是仰卧", () => {
-  const clip = resolveBlocking3dPoseClip("prone", ["LayToIdle", "Crouch_Idle_Loop"]);
-  assert.equal(clip.clipName, "Crouch_Idle_Loop");
-  assert.equal(clip.sampleTimeRatio, DEFAULT_POSE_SAMPLE_TIME_RATIO);
+test("UAL2 没有对应动作时不会把趴姿误映射成蹲伏", () => {
+  assert.throws(
+    () => resolveBlocking3dPoseClip("prone", ["LayToIdle", "A_INP_Idle"]),
+    /没有可用的动作片段/,
+  );
+});
+
+test("动画文件只向分镜姿势选择器暴露真实存在的 UAL2 片段", () => {
+  const available = [
+    "A_INP_Idle",
+    "Idle_Rail_Call",
+    "Idle_FoldArms_Loop",
+    "A_chair_loop01",
+    "LayToIdle",
+    "A_INP_WalkFwd_Loop",
+    "OverhandThrow",
+    "Walk_Carry_Loop",
+    "Chest_Open",
+    "Melee_Hook",
+    "Sword_Block",
+  ];
+  assert.deepEqual(getAvailableBlocking3dPoses(available), [
+    "standing",
+    "talking",
+    "arms_crossed",
+    "sitting",
+    "lying",
+    "walking",
+    "pointing",
+    "holding",
+    "interacting",
+    "fighting",
+    "sword",
+  ]);
 });
 
 test("比例按片段实际时长换算成具体时间", () => {
   assert.equal(poseSampleTimeFromTrack({ duration: 3.2 }, 0.5), 1.6);
-  assert.ok(Math.abs(poseSampleTimeFromTrack({ duration: 1.4 }, 0.05) - 0.07) < 1e-9);
+  assert.ok(
+    Math.abs(poseSampleTimeFromTrack({ duration: 1.4 }, 0.05) - 0.07) < 1e-9,
+  );
   assert.ok(poseSampleTimeFromTrack({ duration: 2 }, 1.5) <= 2);
 });
 
@@ -44,9 +93,21 @@ test("片段缺少有效时长时回退到开头，不产生 NaN", () => {
 
 test("每个姿势都声明了动作片段且比例在 0 到 1 之间", () => {
   const poses = [
-    "standing", "talking", "arms_crossed", "sitting", "crouching", "kneeling",
-    "lying", "prone", "walking", "running", "pointing", "holding",
-    "interacting", "fighting", "sword",
+    "standing",
+    "talking",
+    "arms_crossed",
+    "sitting",
+    "crouching",
+    "kneeling",
+    "lying",
+    "prone",
+    "walking",
+    "running",
+    "pointing",
+    "holding",
+    "interacting",
+    "fighting",
+    "sword",
   ];
   for (const pose of poses) {
     const config = getBlocking3dPoseClipConfig(pose);

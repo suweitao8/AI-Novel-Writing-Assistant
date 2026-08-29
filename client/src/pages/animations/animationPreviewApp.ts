@@ -22,14 +22,31 @@ export interface AnimationPreviewOptions {
   glbUrl: string;
   /** 初始播放的动作片段名。 */
   clipName: string;
+  /** 打开页面时从已保存关键帧恢复到的时间。 */
+  initialTimeSeconds?: number;
   onStatus?: (status: string) => void;
   /** 片段加载或播放出错（切换片段失败等）。 */
   onError?: (message: string) => void;
+  /** 播放或拖动时间轴时回传当前时间、时长和播放状态。 */
+  onTimeChange?: (
+    timeSeconds: number,
+    durationSeconds: number,
+    playing: boolean,
+  ) => void;
 }
 
 export interface AnimationPreview {
   /** 切换播放的动作片段（同一 GLB 内）。 */
-  play: (clipName: string) => void;
+  play: (clipName?: string) => void;
+  pause: () => void;
+  setTime: (timeSeconds: number) => void;
+  getTime: () => number;
+  getDuration: () => number;
+  isPlaying: () => boolean;
+  fitView: () => void;
+  resetView: () => void;
+  /** 抓取当前已渲染帧，返回适合动画卡片使用的 JPEG data URL。 */
+  capturePreviewFrame: () => string;
   destroy: () => void;
 }
 
@@ -42,31 +59,51 @@ export interface AnimationPreviewHandle {
 
 interface AnimTrackLike {
   name?: unknown;
+  duration?: unknown;
 }
 
 interface AnimLayerLike {
   play: (name: string) => void;
+  pause?: () => void;
+  activeStateCurrentTime?: number;
+  activeStateDuration?: number;
 }
 
 interface AnimComponentLike {
   baseLayer?: AnimLayerLike | null;
   playing: boolean;
   rootBone: unknown;
-  assignAnimation: (name: string, track: unknown, layer?: number, speed?: number, loop?: boolean) => void;
+  assignAnimation: (
+    name: string,
+    track: unknown,
+    layer?: number,
+    speed?: number,
+    loop?: boolean,
+  ) => void;
 }
 
-const DEFAULT_VIEW = { azim: -155, elev: -8 } as const;
+interface CameraState {
+  azim: number;
+  elev: number;
+  distance: number;
+  focalPoint: [number, number, number];
+}
+
+const CAPTURE_SIZE = { width: 640, height: 360 } as const;
+const DEFAULT_VIEW = { azim: -35, elev: -12 } as const;
 
 /**
- * 动画库预览器：加载「角色 + 动作片段」GLB，循环播放指定片段。
- * 相机与布光和模型 3D 编辑器同一套 Orbit 方案，但不带 gizmo 与变换编辑。
+ * 动画库完整预览器：加载「角色 + 动作片段」统一 GLB，使用模型库相同的
+ * HDR 棚拍环境，并提供时间轴、关键帧截图和基础 Orbit 相机控制。
  *
  * 画布上的 PlayCanvas 应用必须独占创建：应用构造是同步的，加载是异步的。
  * 同一个 canvas 上并发存在两个 Application（React StrictMode 双执行 effect
  * 时的典型场景）会共享同一个 WebGL 上下文，先销毁的那个会破坏存活一方的
  * 渲染循环，因此暴露 cancel() 让调用方在 effect 清理时同步销毁未就绪的应用。
  */
-export function openAnimationPreview(options: AnimationPreviewOptions): AnimationPreviewHandle {
+export function openAnimationPreview(
+  options: AnimationPreviewOptions,
+): AnimationPreviewHandle {
   const { canvas } = options;
   const app = new pc.Application(canvas, {
     mouse: new pc.Mouse(canvas),
@@ -88,12 +125,13 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     farClip: 200,
   });
   app.root.addChild(cameraEntity);
+  const camera = cameraEntity.camera!;
   // 与漫剧场景视图一致：envAtlas 只承担 HDR 照明，可见背景由固定在世界
   // 原点的有限半圆穹顶提供，避免天空球随相机轨道旋转。
-  cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
+  camera.layers = camera.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
+  camera.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
 
   const characterRoot = new pc.Entity("animation-preview-character");
@@ -102,37 +140,73 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   let studioEnvironment: StudioEnvironmentHandle | null = null;
   let groundGridLines: ReturnType<typeof buildBlocking3dGroundGridLines> = [];
 
-  const cameraState: { azim: number; elev: number; distance: number } = {
+  const cameraState: CameraState = {
     azim: DEFAULT_VIEW.azim,
     elev: DEFAULT_VIEW.elev,
     distance: 3.4,
+    focalPoint: [0, 0.85, 0],
   };
   const syncCamera = () => {
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
+    const distance = cameraState.distance;
     cameraEntity.setPosition(
-      Math.sin(azimuth) * cosElevation * cameraState.distance,
-      0.9 + Math.sin(-elevation) * cameraState.distance,
-      Math.cos(azimuth) * cosElevation * cameraState.distance,
+      cameraState.focalPoint[0] + Math.sin(azimuth) * cosElevation * distance,
+      cameraState.focalPoint[1] + Math.sin(-elevation) * distance,
+      cameraState.focalPoint[2] + Math.cos(azimuth) * cosElevation * distance,
     );
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
   };
   syncCamera();
 
+  let modelCenterY = 0.85;
+  let modelRadius = 0.85;
+  const fitCameraTo = (centerY: number, radius: number) => {
+    const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
+    cameraState.focalPoint = [0, centerY, 0];
+    cameraState.distance = clamp(
+      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
+      1,
+      60,
+    );
+    syncCamera();
+  };
+  const fitView = () => fitCameraTo(modelCenterY, modelRadius);
+  const resetView = () => {
+    cameraState.azim = DEFAULT_VIEW.azim;
+    cameraState.elev = DEFAULT_VIEW.elev;
+    fitView();
+  };
+
   let destroyed = false;
-  let dragState: { pointerId: number; x: number } | null = null;
+  let dragState: {
+    button: number;
+    pointerId: number;
+    x: number;
+    y: number;
+  } | null = null;
 
   const onPointerDown = (event: PointerEvent) => {
-    if (destroyed || event.button !== 2) return;
-    dragState = { pointerId: event.pointerId, x: event.clientX };
+    if (destroyed) return;
+    if (event.button !== 2) return;
+    dragState = {
+      button: event.button,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+    };
     canvas.setPointerCapture(event.pointerId);
   };
   const onPointerMove = (event: PointerEvent) => {
-    if (destroyed || !dragState || event.pointerId !== dragState.pointerId) return;
+    if (destroyed || !dragState || event.pointerId !== dragState.pointerId)
+      return;
     const dx = event.clientX - dragState.x;
+    const dy = event.clientY - dragState.y;
     dragState.x = event.clientX;
+    dragState.y = event.clientY;
     cameraState.azim = updateBlocking3dCameraAzimuth(cameraState.azim, dx);
+    cameraState.elev = clamp(cameraState.elev + dy * 0.25, -89, 89);
     syncCamera();
   };
   const onPointerUp = (event: PointerEvent) => {
@@ -147,7 +221,11 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   const onWheel = (event: WheelEvent) => {
     if (destroyed) return;
     event.preventDefault();
-    cameraState.distance = clamp(cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92), 1, 20);
+    cameraState.distance = clamp(
+      cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
+      1,
+      60,
+    );
     syncCamera();
   };
   const onContextMenu = (event: MouseEvent) => event.preventDefault();
@@ -161,13 +239,17 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
   const resize = () => {
     const rect = canvas.parentElement?.getBoundingClientRect();
     if (!rect) return;
-    app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+    app.graphicsDevice.maxPixelRatio = Math.min(
+      window.devicePixelRatio || 1,
+      MAX_DEVICE_PIXEL_RATIO,
+    );
     app.resizeCanvas(rect.width, rect.height);
   };
   resize();
   const resizeObserver = new ResizeObserver(resize);
   if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
 
+  let asset: pc.Asset | null = null;
   const cleanup = () => {
     if (destroyed) return;
     destroyed = true;
@@ -177,15 +259,18 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
     canvas.removeEventListener("pointerup", onPointerUp);
     canvas.removeEventListener("wheel", onWheel);
     canvas.removeEventListener("contextmenu", onContextMenu);
+    if (asset) {
+      app.assets.remove(asset);
+      asset = null;
+    }
     studioEnvironment?.destroy();
     studioEnvironment = null;
     characterRoot.destroy();
     app.destroy();
   };
 
-  options.onStatus?.("正在加载动作");
+  options.onStatus?.("正在加载 HDR 棚拍场景");
 
-  let asset: pc.Asset | null = null;
   const ready = (async (): Promise<AnimationPreview> => {
     try {
       const assetPromise = loadAsset(app, options.glbUrl, "container");
@@ -208,6 +293,7 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
         throw new Error("HDRI 场景环境加载失败。");
       }
       groundGridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
+      options.onStatus?.("正在加载动作");
 
       const resource = asset.resource as ContainerResource | null;
       const model = resource?.instantiateRenderEntity?.({ castShadows: true });
@@ -220,13 +306,25 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       app.root.syncHierarchy();
       const bounds = computeSourceBounds(model);
       if (bounds) {
-        model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
+        model.setPosition(
+          -bounds.center[0],
+          -(bounds.center[1] - bounds.halfExtents[1]),
+          -bounds.center[2],
+        );
+        modelCenterY = bounds.halfExtents[1];
+        modelRadius = Math.hypot(
+          bounds.halfExtents[0],
+          bounds.halfExtents[1],
+          bounds.halfExtents[2],
+        );
       }
+      fitView();
 
-      const tracks = new Map<string, unknown>();
+      const tracks = new Map<string, AnimTrackLike>();
       for (const clipAsset of resource?.animations ?? []) {
         const track = clipAsset.resource as AnimTrackLike | null;
-        if (track && typeof track.name === "string") tracks.set(track.name, track);
+        if (track && typeof track.name === "string")
+          tracks.set(track.name, track);
       }
       if (tracks.size === 0) {
         throw new Error("动作文件里没有可播放的动作片段。");
@@ -239,36 +337,132 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       }
       anim.rootBone = model;
 
-      const playClip = (clipName: string) => {
+      let activeClipName = options.clipName;
+      let currentTime = 0;
+      let durationSeconds = 0;
+
+      const readDuration = (track: AnimTrackLike | null): number => {
+        const trackDuration =
+          typeof track?.duration === "number" ? track.duration : 0;
+        const layerDuration =
+          typeof anim.baseLayer?.activeStateDuration === "number"
+            ? anim.baseLayer.activeStateDuration
+            : 0;
+        return Math.max(trackDuration, layerDuration, 0);
+      };
+      const clampTime = (timeSeconds: number) => {
+        if (!Number.isFinite(timeSeconds)) return 0;
+        return durationSeconds > 0
+          ? clamp(timeSeconds, 0, durationSeconds)
+          : Math.max(0, timeSeconds);
+      };
+      const readCurrentTime = () => {
+        const layerTime = anim.baseLayer?.activeStateCurrentTime;
+        if (typeof layerTime === "number" && Number.isFinite(layerTime)) {
+          currentTime =
+            durationSeconds > 0
+              ? clamp(layerTime, 0, durationSeconds)
+              : Math.max(0, layerTime);
+        }
+        return currentTime;
+      };
+      const notifyTime = () => {
+        options.onTimeChange?.(
+          readCurrentTime(),
+          durationSeconds,
+          anim.playing,
+        );
+      };
+      const applyTime = (timeSeconds: number) => {
+        currentTime = clampTime(timeSeconds);
+        if (
+          anim.baseLayer &&
+          typeof anim.baseLayer.activeStateCurrentTime === "number"
+        ) {
+          anim.baseLayer.activeStateCurrentTime = currentTime;
+        }
+        app.render();
+        notifyTime();
+      };
+
+      const playClip = (clipName = activeClipName) => {
         const track = tracks.get(clipName);
         if (!track) {
           options.onError?.(`动作片段「${clipName}」不在当前文件里。`);
           return;
         }
+        activeClipName = clipName;
         anim.assignAnimation(clipName, track, 0, 1, true);
+        durationSeconds = readDuration(track);
         anim.playing = true;
         anim.baseLayer?.play(clipName);
+        applyTime(currentTime);
       };
+
+      const pause = () => {
+        readCurrentTime();
+        anim.playing = false;
+        anim.baseLayer?.pause?.();
+        notifyTime();
+      };
+      const setTime = (timeSeconds: number) => {
+        anim.playing = false;
+        anim.baseLayer?.pause?.();
+        applyTime(timeSeconds);
+      };
+      const getTime = () => readCurrentTime();
+      const getDuration = () => durationSeconds;
+      const isPlaying = () => anim.playing;
+      const capturePreviewFrame = () => {
+        if (destroyed) throw new Error("预览已关闭。");
+        app.render();
+        const target = document.createElement("canvas");
+        target.width = CAPTURE_SIZE.width;
+        target.height = CAPTURE_SIZE.height;
+        const context = target.getContext("2d");
+        if (!context) throw new Error("无法创建关键帧截图。");
+        context.drawImage(
+          canvas,
+          0,
+          0,
+          CAPTURE_SIZE.width,
+          CAPTURE_SIZE.height,
+        );
+        return target.toDataURL("image/jpeg", 0.86);
+      };
+
       playClip(options.clipName);
+      if (typeof options.initialTimeSeconds === "number") {
+        const initialTime = options.initialTimeSeconds;
+        // AnimLayer.play resets the active state time. Activate the state first,
+        // then write the saved keyframe time so reopening the page really lands
+        // on the frame the user selected.
+        anim.baseLayer?.play(activeClipName);
+        applyTime(initialTime);
+        pause();
+      }
       options.onStatus?.("");
 
       app.on("update", () => {
         if (destroyed) return;
         drawBlocking3dGroundGrid(app, groundGridLines);
+        if (anim.playing) notifyTime();
       });
       app.start();
 
       return {
         play: playClip,
+        pause,
+        setTime,
+        getTime,
+        getDuration,
+        isPlaying,
+        fitView,
+        resetView,
+        capturePreviewFrame,
         destroy: cleanup,
       };
     } catch (error) {
-      if (asset) {
-        app.assets.remove(asset);
-        asset = null;
-      }
-      studioEnvironment?.destroy();
-      studioEnvironment = null;
       cleanup();
       throw error;
     }
@@ -276,9 +470,6 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
 
   return {
     ready,
-    cancel: () => {
-      if (asset) app.assets.remove(asset);
-      cleanup();
-    },
+    cancel: cleanup,
   };
 }

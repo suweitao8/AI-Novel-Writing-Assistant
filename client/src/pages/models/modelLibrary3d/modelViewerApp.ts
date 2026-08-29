@@ -271,8 +271,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     return result;
   };
 
-  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
-
   let gizmoDragging = false;
   const transformGizmo = createBlocking3dTransformGizmo(app, camera, {
     onTransformStart: () => {
@@ -296,7 +294,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
     cameraState.focalPoint = [modelRoot.getPosition().x, centerY, modelRoot.getPosition().z];
-    cameraState.distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
+    cameraState.distance = clamp(
+      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
+      0.35,
+      getCameraMaxDistance(),
+    );
     syncCamera();
   };
 
@@ -489,6 +491,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     drawBlocking3dGroundGrid(app, environmentGridLines);
   });
   app.start();
+  // 等应用进入帧循环后再加载环境，避免环境异步任务与模型加载失败清理竞态。
+  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
 
   const readTransform = (): InspectorTransformValue => {
     const position = modelRoot.getPosition();
