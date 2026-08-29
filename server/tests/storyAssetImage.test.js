@@ -48,3 +48,24 @@ test("室内场景全景提示词追加强化行：家具与墙根不落下半�
   assert.match(prompt, /each must sit inside a proper picture frame/);
   assert.match(prompt, /photo restraint: render at most one framed photograph unless the scene description explicitly names a larger amount/);
 });
+
+test("场景全景提示词把原始描述放在背景语境中，并在末尾收口前景排除规则", () => {
+  const prompt = buildScenePanoramaPrompt({
+    name: "空置猎场",
+    environmentPrompt: "白墙、远处山体，房间里有一张床，前景有石头",
+    timeOfDay: null,
+    weather: null,
+    sceneType: "interior",
+  }, []);
+
+  const contextIndex = prompt.indexOf("environment-only description:");
+  const policyIndex = prompt.indexOf("background layer allowed content:");
+  assert.ok(contextIndex >= 0, "原始环境描述必须保留为背景语境");
+  assert.ok(policyIndex >= 0, "必须声明允许的背景内容");
+  assert.ok(contextIndex < policyIndex, "共享分层规则必须位于原始场景描述之后");
+  assert.match(prompt, /fixed non-interactive surfaces and architecture such as walls, ceilings, floor or terrain materials/);
+  assert.match(prompt, /foreground exclusion is absolute: beds, tables, chairs, sofas, desks, cabinets, shelves, counters/);
+  assert.match(prompt, /near-field natural-object exclusion is absolute: never render individual rocks, stones, boulders/);
+  assert.match(prompt, /scene descriptions are background context only, not an object inventory/);
+  assert.match(prompt, /白墙、远处山体，房间里有一张床，前景有石头/);
+});
