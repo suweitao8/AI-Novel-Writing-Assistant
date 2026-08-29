@@ -33,7 +33,7 @@ export type BlockingStageEnvironment = Pick<StoryScene3DEnvironment, "domeRadius
  * 不要直接拿字段当半径用。
  */
 export function resolveStoryScene3DDomeWorldRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
-  return finiteOr(environment?.domeRadius, 10) / 2;
+  return finiteOr(environment?.domeRadius, 15) / 2;
 }
 
 /**
@@ -119,7 +119,7 @@ export function anchorBlockingCameraAtProjectionCenter(
   camera: BlockingCameraOrbitGeometry,
   environment: Partial<BlockingStageEnvironment> | null | undefined,
 ): BlockingCameraOrbitGeometry {
-  const projectionCenterHeight = finiteOr(environment?.projectionCenterHeight, 1.7);
+  const projectionCenterHeight = finiteOr(environment?.projectionCenterHeight, 2);
   const azimuthRad = finiteOr(camera.azim, 0) * Math.PI / 180;
   const elevationRad = finiteOr(camera.elev, 0) * Math.PI / 180;
   const distance = finiteOr(camera.distance, 8);
