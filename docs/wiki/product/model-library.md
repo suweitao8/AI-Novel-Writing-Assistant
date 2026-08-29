@@ -22,8 +22,11 @@
 - **环境反射（IBL）是质感前提**：`studioLighting.ts` 运行时生成程序化棚拍环境（竖向渐变等距柱状图 → `EnvLighting.generatePrefilteredAtlas`）挂到 `scene.envAtlas`。没有它：玻璃/金属要么发白发平、要么金属整面发黑。实拍确认烛台"玻璃罩"其实是源资产的不透明磨砂材质，观感成立靠的就是环境反射。
 - **RMA 只取 G 通道粗糙度（全库审计后的硬规则）**：按资产 RMA（排除共享 Fill_01 占位）套 `glossMap`+`glossMapChannel:"g"`+`glossInvert`。**B/R 通道经逐张贴图审计确认不可用**（2026-08-29）：这包 Cine57 资产的 ORM 语义与 glTF 约定不符——地毯/岩石/布艺等纯电介质的 B（按约定=金属度）高达 0.66-0.98，砖炉金属板反而 0.01；R（按约定=AO）在平整表面也压到 0.36，当 AO 会把物件整体压暗。金属观感由真 HDR 环境 + 漫反射色承担；接入校准过的 PBR 数据前不要开 `metalnessMap`/`aoMap`。
 - **引擎贴图通道默认值坑**：PlayCanvas StandardMaterial 的 `metalnessMap`/`glossMap` 默认采样通道与 glTF 约定不一致（glTF 加载器是自己显式设 `metalnessMapChannel="b"`、`glossMapChannel="g"` 的）。手动接 ORM/未校准贴图必须把 `glossMapChannel`/`metalnessMapChannel`/`aoMapChannel` 全部显式写死，否则金属度读错通道会把非金属整块渲染成镜面金属。
-- **棚拍布光是共享模块**：三灯 + 环境反射（真 HDR）+ ACES 色调映射，编辑器与缩略图工坊共用。真环境走 `upgradeStudioEnvironment()`，环境源按优先级回退：① `client/public/models/env/studio_panorama.png`——**场景全景图管线产出的摄影棚全景**（复用 `buildScenePanoramaPrompt` 契约 + `generateImagesByProvider` + `IMAGE_SPECS.scenePanorama`（2048x1024），一次性生成脚本落在生成时的 server 目录下，产物入库）；② 内置 HDRI（Poly Haven `studio_small_03_1k`，CC0）；③ 程序化渐变。LDR 等距柱状图与 HDR 同一条 `EnvLighting.generateLightingSource` → `generateAtlas` → `scene.envAtlas` 管线；三灯强度按真环境调低（1.2/0.35/0.55）。接了真环境也不要把 `ambientLight` 拉高——atlas 已接管环境光贡献。
-  **可视背景用半圆球穹顶**（`studioBackdrop.ts` 的 `attachStudioBackdrop`）：全景图重投影成 cubemap 贴到半圆球内壁（几何/材质复用 blocking3d 的 `createBackdropGeometry`/`createProjectedHdriMaterial`，几何 0.5 单位半径 + 实体按 domeRadius 缩放），与漫剧场景同款；编辑器 radius 10（直径 10 米，同漫剧默认）、panoramaHorizonV 0.47（对齐生成全景的地平线位置）。穹顶每帧水平跟随相机并**按取景距离动态放大**（`max(10m 直径, 相机距离+余量)`），大件模型拉远取景时球壁不会切进画面；编辑器不再自带地面/网格，可视地板完全来自全景图。env atlas 只管光照，穹顶只管可见背景，二者并存。**必须把 `LAYERID_SKYBOX` 从相机层移除**（`camera.layers.filter(id => id !== pc.LAYERID_SKYBOX)`）：PlayCanvas 会拿 scene.envAtlas 当内建无限天空球渲染，不移除的话背景就是整球包裹的全景（用户要的是有限半圆穹顶），漫剧 blocking3dViewerApp 也是这么做的。注意 PlayCanvas 2.21 的 `toneMapping` 挂在 **CameraComponent** 上而非 Scene；粗糙度体系叫 **gloss**（`glossMap`/`glossInvert`，G 通道），没有 `roughnessMap`。
+- **棚拍布光是共享模块**：三灯 + 环境反射（真 HDR）+ ACES 色调映射，模型编辑器、模型缩略图和动画缩略图共用。环境 atlas 通过 `EnvLighting.generateLightingSource` → `generateAtlas` → `scene.envAtlas` 建立；三灯强度为 1.2/0.35/0.55，接入真环境后不再额外提高 `ambientLight`。
+- **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 固定提供室内客厅、中央广场、草地自然三套环境，默认半球直径为 10m、20m、30m，用户可在 5–30m 范围内调节；对应 `.hdr` 资源放在 `client/public/models/env/`。产品字段使用 `diameterMeters`，只有相机边界等内部计算才换算为真实半径 `diameterMeters / 2`，避免把“半径”和“直径”混用。
+- **资产预设表是统一入口**：系统设置的资产预设页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI。旁白描述、试听和重新生成沿用全局旁白 API；HDRI 半球直径偏好按预设 ID 保存在浏览器本机，模型编辑器、模型缩略图和动画缩略图读取同一份偏好，不写入模型资产或漫剧场景数据。
+- **模型可视穹顶固定在世界原点**：`attachStudioBackdrop` 从当前预设加载全景并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前预设半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
+- **环境切换与缩略图规则**：模型编辑器的“预览环境”选择器异步同时加载可见穹顶和环境光，完整加载后才替换当前环境；切换失败保留原环境。模型卡片与动画卡片固定使用室内默认预设，模型缩略图缓存键为 `model-library:thumbnails:v16`，改动环境或投影逻辑必须升版本，避免旧截图继续冒充新环境。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；页面结构与模型库同构（分类页签 + 卡片网格 + 预览弹窗），卡片与模型库同款：预览图 + 名字 + 分类·时长。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
@@ -53,7 +56,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v11`，**改生成逻辑必须升版本**）。
+- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v16`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用室内默认 HDRI；生成逻辑与环境预设变更必须同步刷新缓存版本。
 - 缩略图队列串行、闲置 8 秒销毁离线画布；44 个模型全队列约 3 秒。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。

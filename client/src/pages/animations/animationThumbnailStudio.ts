@@ -10,8 +10,8 @@ import {
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
-import { setupStudioLighting, upgradeStudioEnvironment } from "@/pages/models/modelLibrary3d/studioLighting";
-import { attachStudioBackdrop } from "@/pages/models/modelLibrary3d/studioBackdrop";
+import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
+import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLighting";
 
 /**
  * 动画库缩略图生成器：与模型库缩略图同一套「离屏 PlayCanvas 画布 + localStorage
@@ -180,8 +180,7 @@ async function createAnimationThumbnailStudio(): Promise<{
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
   setupStudioLighting(app, cameraEntity.camera!);
-  await upgradeStudioEnvironment(app);
-  const backdrop = await attachStudioBackdrop(app, { radius: 30 });
+  const studioEnvironment = await loadStudioEnvironment(app, undefined, { diameterMeters: 30 });
 
   const ground = createPlane(
     app,
@@ -282,7 +281,7 @@ async function createAnimationThumbnailStudio(): Promise<{
     destroy() {
       if (destroyed) return;
       destroyed = true;
-      backdrop?.destroy();
+      studioEnvironment.destroy();
       app.destroy();
     },
   };
