@@ -8,6 +8,7 @@ import type {
 } from "@/api/media/drama";
 import {
   createBackdropGeometryData,
+  createGroundDomeGeometryData,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
 import { wrapBlocking3dAzimuth } from "./blocking3dMath";
@@ -124,6 +125,34 @@ function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
 
 export function createBackdropGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
   return createPlayCanvasGeometry(createBackdropGeometryData(projectionCenterHeight, domeRadius));
+}
+
+export function createGroundDomeGeometry(projectionCenterHeight: number, domeRadius: number): pc.Geometry {
+  return createPlayCanvasGeometry(createGroundDomeGeometryData(projectionCenterHeight, domeRadius));
+}
+
+/**
+ * Render only directional-light shadows over the projected HDRI floor.
+ *
+ * The visible HDRI backdrop is intentionally a custom unlit shader, so it
+ * cannot participate in PlayCanvas' regular shadow chunks. A standard
+ * shadow-catcher material gives us a transparent multiplicative pass that
+ * darkens only the lower dome while leaving the sky projection untouched.
+ */
+export function createShadowCatcherMaterial(): pc.StandardMaterial {
+  const material = new pc.StandardMaterial();
+  material.shadowCatcher = true;
+  material.blendType = pc.BLEND_MULTIPLICATIVE;
+  // The shared lower-dome topology is wound for the inside-facing HDRI
+  // projection material. Render both sides here so the catcher still
+  // receives shadows from the editor camera's normal above-floor view.
+  material.cull = pc.CULLFACE_NONE;
+  material.useSkybox = false;
+  material.depthWrite = false;
+  material.diffuse.set(0, 0, 0);
+  material.specular.set(0, 0, 0);
+  material.update();
+  return material;
 }
 
 export function configureEnvironmentTexture(texture: pc.Texture, app: pc.AppBase): void {

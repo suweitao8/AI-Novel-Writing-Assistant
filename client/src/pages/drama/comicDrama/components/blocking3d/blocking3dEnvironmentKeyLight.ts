@@ -16,7 +16,11 @@ export function createHdriKeyLight(): pc.Entity {
       DEFAULT_HDRI_LIGHT_ESTIMATE.color[2],
     ),
     intensity: DEFAULT_HDRI_LIGHT_ESTIMATE.intensity,
-    castShadows: false,
+    castShadows: true,
+    shadowBias: 0.05,
+    normalOffsetBias: 0.05,
+    shadowDistance: 25,
+    shadowResolution: 2048,
   });
   entity.enabled = false;
   return entity;
