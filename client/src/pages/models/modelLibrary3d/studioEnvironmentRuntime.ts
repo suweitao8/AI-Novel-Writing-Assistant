@@ -6,8 +6,7 @@ import {
 } from "./studioBackdrop";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-  getStudioEnvironmentDiameterMeters,
-  getStudioEnvironmentRadiusMeters,
+  normalizeStudioEnvironmentRadiusMeters,
   getStudioEnvironmentPreset,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
@@ -15,12 +14,11 @@ import { upgradeStudioEnvironment } from "./studioLighting";
 
 export type StudioEnvironmentRuntimeOptions = Pick<
   StudioBackdropOptions,
-  "diameterMeters" | "projectionCenterHeightMeters" | "panoramaHorizonV"
+  "radiusMeters" | "projectionCenterHeightMeters" | "panoramaHorizonV"
 >;
 
 export interface StudioEnvironmentHandle {
   readonly presetId: StudioEnvironmentPresetId;
-  readonly diameterMeters: number;
   readonly radiusMeters: number;
   readonly hasVisibleBackdrop: boolean;
   destroy: () => void;
@@ -37,18 +35,18 @@ export async function loadStudioEnvironment(
   options: StudioEnvironmentRuntimeOptions = {},
 ): Promise<StudioEnvironmentHandle> {
   const preset = getStudioEnvironmentPreset(presetId);
-  const diameterMeters = getStudioEnvironmentDiameterMeters(
-    options.diameterMeters ?? preset.diameterMeters,
+  const radiusMeters = normalizeStudioEnvironmentRadiusMeters(
+    options.radiusMeters ?? preset.radiusMeters,
+    preset.radiusMeters,
   );
   const [lightingCleanup, backdrop] = await Promise.all([
     upgradeStudioEnvironment(app, preset.id),
-    attachStudioBackdrop(app, { presetId: preset.id, ...options, diameterMeters }),
+    attachStudioBackdrop(app, { presetId: preset.id, ...options, radiusMeters }),
   ]);
   let destroyed = false;
   return {
     presetId: preset.id,
-    diameterMeters,
-    radiusMeters: getStudioEnvironmentRadiusMeters(diameterMeters),
+    radiusMeters,
     hasVisibleBackdrop: Boolean(backdrop),
     destroy() {
       if (destroyed) return;

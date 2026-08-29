@@ -4,11 +4,8 @@ import type { InspectorTransformValue } from "@/pages/drama/comicDrama/component
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-  getStudioEnvironmentDiameterMeters,
-  getStudioEnvironmentDiameterPreference,
-  getStudioEnvironmentRadiusMeters,
   getStudioEnvironmentPreset,
-  saveStudioEnvironmentDiameterPreference,
+  normalizeStudioEnvironmentRadiusMeters,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
 import {
@@ -39,8 +36,8 @@ export interface ModelViewerOptions {
   materials?: ModelMaterialMap;
   /** 模型预览使用的固定 HDRI 环境预设。 */
   environmentPresetId?: StudioEnvironmentPresetId;
-  /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
-  environmentDiameterMeters?: number;
+  /** 仅供需要特殊取景半径的缩略图调用方覆盖；编辑器使用固定预设半径。 */
+  environmentRadiusMeters?: number;
   onStatus?: (status: string) => void;
   /** gizmo 拖拽过程中的实时回读（面板数值跟手）。 */
   onTransformLive?: () => void;
@@ -57,9 +54,7 @@ export interface ModelViewer {
   getTransform: () => InspectorTransformValue;
   setTransform: (patch: Partial<InspectorTransformValue>) => boolean;
   getEnvironmentPreset: () => StudioEnvironmentPresetId;
-  getEnvironmentDiameter: () => number;
   setEnvironmentPreset: (presetId: StudioEnvironmentPresetId) => Promise<boolean>;
-  setEnvironmentDiameter: (diameterMeters: number) => Promise<boolean>;
   capturePng: () => Blob;
   destroy: () => void;
 }
@@ -175,10 +170,10 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   let studioEnvironmentRequestId = 0;
   let currentStudioEnvironment: StudioEnvironmentHandle | null = null;
   let currentEnvironmentPresetId = initialEnvironmentPresetId;
-  let currentEnvironmentDiameterMeters = getStudioEnvironmentDiameterMeters(
-    options.environmentDiameterMeters ?? getStudioEnvironmentDiameterPreference(initialEnvironmentPresetId),
+  let currentEnvironmentRadiusMeters = normalizeStudioEnvironmentRadiusMeters(
+    options.environmentRadiusMeters ?? getStudioEnvironmentPreset(initialEnvironmentPresetId).radiusMeters,
+    getStudioEnvironmentPreset(initialEnvironmentPresetId).radiusMeters,
   );
-  let currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(currentEnvironmentDiameterMeters);
 
   const disposeStudioEnvironment = () => {
     studioEnvironmentRequestId += 1;
@@ -200,13 +195,13 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     focalPoint: [0, 0.5, 0],
   };
 
-  const getCameraMaxDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
+  const getMaxCameraDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
 
   const syncCamera = () => {
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
-    const distance = clamp(cameraState.distance, 0.2, getCameraMaxDistance());
+    const distance = clamp(cameraState.distance, 0.2, getMaxCameraDistance());
     cameraState.distance = distance;
     cameraEntity.setPosition(
       cameraState.focalPoint[0] + Math.sin(azimuth) * cosElevation * distance,
@@ -219,18 +214,19 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
 
   const loadEnvironmentPreset = async (
     presetId: StudioEnvironmentPresetId,
-    diameterMeters?: number,
+    radiusOverride?: number,
   ): Promise<boolean> => {
     if (destroyed) return false;
     const requestId = ++studioEnvironmentRequestId;
     const preset = getStudioEnvironmentPreset(presetId);
-    const nextDiameterMeters = getStudioEnvironmentDiameterMeters(
-      diameterMeters ?? getStudioEnvironmentDiameterPreference(presetId) ?? preset.diameterMeters,
+    const nextRadiusMeters = normalizeStudioEnvironmentRadiusMeters(
+      radiusOverride ?? preset.radiusMeters,
+      preset.radiusMeters,
     );
     let nextEnvironment: StudioEnvironmentHandle;
     try {
       nextEnvironment = await loadStudioEnvironment(app, presetId, {
-        diameterMeters: nextDiameterMeters,
+        radiusMeters: nextRadiusMeters,
       });
     } catch {
       return false;
@@ -246,15 +242,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     const previousEnvironment = currentStudioEnvironment;
     currentStudioEnvironment = nextEnvironment;
     currentEnvironmentPresetId = nextEnvironment.presetId;
-    currentEnvironmentDiameterMeters = nextEnvironment.diameterMeters;
     currentEnvironmentRadiusMeters = nextEnvironment.radiusMeters;
-    saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
     previousEnvironment?.destroy();
     syncCamera();
     return true;
   };
-
-  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
 
   let gizmoDragging = false;
   const transformGizmo = createBlocking3dTransformGizmo(app, camera, {
@@ -279,7 +271,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
     cameraState.focalPoint = [modelRoot.getPosition().x, centerY, modelRoot.getPosition().z];
-    cameraState.distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
+    cameraState.distance = clamp(
+      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
+      0.35,
+      getMaxCameraDistance(),
+    );
     syncCamera();
   };
 
@@ -418,7 +414,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     cameraState.distance = clamp(
       cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
       0.2,
-      getCameraMaxDistance(),
+      getMaxCameraDistance(),
     );
     syncCamera();
   };
@@ -471,6 +467,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
   });
   app.start();
+  // 等应用进入帧循环后再加载环境，避免环境异步任务与模型加载失败清理竞态。
+  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentRadiusMeters);
 
   const readTransform = (): InspectorTransformValue => {
     const position = modelRoot.getPosition();
@@ -516,14 +514,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     getEnvironmentPreset() {
       return currentEnvironmentPresetId;
     },
-    getEnvironmentDiameter() {
-      return currentEnvironmentDiameterMeters;
-    },
     setEnvironmentPreset(presetId) {
       return loadEnvironmentPreset(presetId);
-    },
-    setEnvironmentDiameter(diameterMeters) {
-      return loadEnvironmentPreset(currentEnvironmentPresetId, diameterMeters);
     },
     capturePng() {
       transformGizmo.attach(null);
