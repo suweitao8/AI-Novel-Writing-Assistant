@@ -28,8 +28,28 @@
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；页面结构与模型库同构（分类页签 + 卡片网格 + 预览弹窗），卡片与模型库同款：预览图 + 名字 + 分类·时长。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载 GLB，返回 `ready`/`cancel` 句柄；调用方（动画库页弹窗）在 effect 清理时必须同步 `cancel()`。
-- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v1`）+ 队列闲置销毁」结构，差别是先把 `clipName` 装配到 anim 组件、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图。
-- **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → 仓库外 `gltf-tools/final_retarget.py` 按「绑定位姿差」离线重定向到 UAL2 骨架（`W_t(b) := W_t0(b) · inv(W_s0(b)) · W_s(b)`，逐帧解局部四元数，半球连续性防插值过零）→ 链式合并进一个 GLB。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。
+- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v2`）+ 队列闲置销毁」结构，差别是先把 `clipName` 装配到 anim 组件、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源或生成逻辑变化时必须升缓存版本。
+- **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 按「绑定位姿差」离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。世界旋转使用 `W_t(b) := W_s(b) · inv(W_s0(b)) · W_t0(b)`，再按目标父节点解局部四元数；根/骨盆平移使用绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
+
+## 动画导出边界
+
+### Background
+
+源骨架和 UAL2 的绑定姿态、局部轴方向与根/骨盆平移基准并不相同。直接把源动画局部四元数写入目标骨架，或把源的绝对平移按分量比例套到目标骨架，会把本来正确的动作变成 T 姿、扭曲姿态或异常深度位移。
+
+### Decision
+
+动画导出工具先读取源动画与源绑定姿态，再把源动画相对源绑定姿态的世界旋转增量应用到目标绑定姿态；根/骨盆只传递相对绑定姿态的平移增量。GLB 写入器显式声明旋转和平移 accessor 的分量数，并在发布前用公开 GLB 数据做内容门禁。
+
+### Current Rule
+
+- 源动画必须在导出时包含完整绝对姿态；如果源是加法动画或带未烘焙分层轨道，先在 UE 中烘焙，再进入 FBX → GLB → 重定向链路。
+- 重定向旋转遵循 `W_s · inv(W_s0) · W_t0`，平移遵循 rest-relative delta；不能用不同绑定姿态之间的世界四元数直接作相等校验。
+- 发布门禁同时检查动作语义（待机手臂下垂、行走双脚有轨迹、坐姿骨盆不跳离角色）与 GLB 结构（旋转为 VEC4 单位四元数、平移为 VEC3、通道目标属于 skin joints）。
+
+### Failure Modes
+
+- 用户看到 T 姿或坐姿深度异常时，先解析源动画相对源绑定姿态的实际变化，再检查重定向乘法方向和根/骨盆平移公式，最后检查 accessor 分量数与目标骨骼映射；不要只看“脚本运行成功”或旧的 SVG/dot 校验。
 
 ## 现行规则
 
@@ -55,7 +75,7 @@
 - **骨骼名匹配必须限定目标骨架 joints**：UAL2 的网格包装节点叫 `Mannequin`，UE 导出骨架的根骨也叫 `Mannequin`；按名字裸匹配会给网格包装节点写入旋转通道，整只模型被动画带飞。目标侧只允许 `skins[].joints` 内的节点参与匹配，源侧（纯动画导出，可能没有 skins）用全部命名节点。
 - **同一 canvas 上并发两个 PlayCanvas Application 会互相摧毁**：React StrictMode 下 effect 双执行很容易造出这种局面——两个应用共享同一个 WebGL 上下文，先销毁的一方会破坏存活方的渲染循环（`app.frame` 恒 0、画面永远停在某一帧）。预览器因此提供同步 `cancel()`；页面 effect 清理同步取消，保证任一时刻只有一个应用。
 - **Radix Dialog 里拿不到 canvas ref**：`useRef` + `useEffect` 在弹窗首次打开时 `canvasRef.current` 可能为 null（effect 先于 ref 就绪执行），创建逻辑会被静默跳过且不再重试。用回调 ref 写入 state、把画布元素作为 effect 依赖来触发创建。
-- **当前入库的 3 条 UE 动画贴绑定位姿（已知内容问题）**：`A_INP_Idle`、`A_INP_WalkFwd_Loop` 全程与源骨架绑定位姿的旋转偏差极小（手臂 ≤13°，疑似加法动画或 FBX 导出丢失姿态），重定向后接近 T-pose；`A_chair_loop01` 腿部有真实动作。后续扩库选片时需在 UE 侧确认 `AdditiveAnimType` 或导出前烘焙，再用解析 GLB 的方式抽查源动画与绑定位姿的偏差。
+- **动画内容门禁必须覆盖源姿态与目标语义**：源 FBX/GLB 可能已经包含真实的绝对姿态；如果目标仍呈 T 姿，优先检查世界空间重定向乘法方向，不能先假定源片段是加法动画。坐姿则要单独检查骨盆的 rest-relative 平移，逐分量绝对比例会把源坐标写成目标深度偏移。扩库仍需在 UE 侧确认加法层已烘焙，并按公开 GLB 数据抽查源动画偏差、目标动作语义和 accessor 结构。
 
 ## 相关模块
 
