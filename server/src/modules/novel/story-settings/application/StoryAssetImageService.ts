@@ -115,9 +115,6 @@ export function buildScenePanoramaPrompt(scene: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama in standard 2:1 aspect ratio",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
-    ...scenePanoramaLayoutLinesFor(scene.sceneType),
-    // 建筑合理性（2026-08-27 用户反馈：卧室出现两个门）：门/窗数量确定性、禁镜像复制墙段。
-    ...ROOM_ARCHITECTURE_PROMPT_LINES,
     "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
     "living subjects stay off-screen; translate narrative entities into environmental traces such as footprints, claw marks, blood stains, disturbed vegetation and damaged structures",
   ];
@@ -132,6 +129,10 @@ export function buildScenePanoramaPrompt(scene: {
   }
   lines.push(...styleLines);
   lines.push("clean composition, no text labels, no watermark, high quality environment art");
+  // 建筑合理性（2026-08-27 用户反馈：卧室出现两个门）：门/窗数量确定性、禁镜像复制墙段。
+  lines.push(...ROOM_ARCHITECTURE_PROMPT_LINES);
+  // 把共享全景合同放在全部场景语境之后，避免原始描述覆盖背景/前景分层规则。
+  lines.push(...scenePanoramaLayoutLinesFor(scene.sceneType));
   return lines.join(", ");
 }
 

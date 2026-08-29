@@ -187,6 +187,31 @@ test("场景状态提示词会把叙事里的生物改写为环境痕迹", () =>
   assert.doesNotMatch(prompt, /怪物/);
 });
 
+test("场景状态图保留合法背景语境，并把家具和近景自然物交给后续 3D 摆放", () => {
+  const prompt = buildStateImagePrompt({
+    kind: "scene",
+    assetName: "空置猎场",
+    baseAppearance: null,
+    state: {
+      label: "白天",
+      description: "白墙和远处山体，前景有石头，房间里有一张床",
+      imagePrompt: "木地板，床靠墙，角色近处有石块",
+      sceneType: "interior",
+    },
+    hasReference: false,
+  }, []);
+
+  const contextIndex = prompt.indexOf("state image prompt: 木地板，床靠墙，活动痕迹近处有石块");
+  const policyIndex = prompt.indexOf("background layer allowed content:");
+  assert.ok(contextIndex >= 0, "状态图片提示词必须保留为背景语境");
+  assert.ok(policyIndex >= 0, "场景状态图必须使用共享背景分层规则");
+  assert.ok(contextIndex < policyIndex, "共享分层规则必须位于状态原文之后");
+  assert.match(prompt, /fixed non-interactive surfaces and architecture such as walls, ceilings, floor or terrain materials/);
+  assert.match(prompt, /foreground exclusion is absolute: beds, tables, chairs, sofas, desks, cabinets, shelves, counters/);
+  assert.match(prompt, /near-field natural-object exclusion is absolute: never render individual rocks, stones, boulders/);
+  assert.match(prompt, /scene descriptions are background context only, not an object inventory/);
+});
+
 test("角色状态图一次生成完整四视图，不再四次独立生图后裁切", () => {
   assert.match(imageServiceSource, /runImageGeneration/);
   assert.match(imageServiceSource, /buildCharacterStateSheetPrompt/);
