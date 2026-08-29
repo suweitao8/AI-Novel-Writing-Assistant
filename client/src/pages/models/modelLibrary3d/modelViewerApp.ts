@@ -145,6 +145,10 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   });
   app.root.addChild(cameraEntity);
   const camera = cameraEntity.camera!;
+  // PlayCanvas 会把 scene.envAtlas 当作内建无限天空球渲染；这里与漫剧 3D
+  // 场景一致，把 SKYBOX 层从相机移除——envAtlas 只承担光照，可视背景只留
+  // 半圆球穹顶。
+  camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
   setupStudioLighting(app, camera, { castShadows: true });
   // 同步布光先行（程序化环境兜底），真 HDR 环境异步就位后替换；
   // 任何提前销毁路径都要跳过/执行环境清理，避免碰到已销毁的 scene。

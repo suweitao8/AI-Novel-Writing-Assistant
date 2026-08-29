@@ -152,6 +152,10 @@ async function createThumbnailStudio(): Promise<{
     farClip: 200,
   });
   app.root.addChild(cameraEntity);
+  // 与编辑器一致：envAtlas 只承担光照，不渲染成无限天空球，背景只留穹顶。
+  cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
+    (layerId) => layerId !== pc.LAYERID_SKYBOX,
+  );
   setupStudioLighting(app, cameraEntity.camera!);
   // 缩略图必须等真 HDR 环境就绪再出图，否则卡片外观和编辑器不一致。
   await upgradeStudioEnvironment(app);
