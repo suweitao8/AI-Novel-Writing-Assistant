@@ -73,6 +73,7 @@ import {
   type Blocking3dViewerActor,
   type ContainerResource,
 } from "./blocking3dViewerCore";
+import { resolveBlocking3dPoseClip } from "./blocking3dPose";
 
 export { BLOCKING_SKETCH_CAPTURE_SIZE, DEFAULT_BLOCKING_3D_ENVIRONMENT };
 export type { Blocking3dEnvironmentSettings };
@@ -801,7 +802,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const name = (track as { name?: unknown } | null | undefined)?.name;
       if (track && typeof name === "string") animationTracks.set(name, track);
     }
-    if (!animationTracks.has("Idle_Loop")) throw new Error("3D 代理角色缺少基础待机动作。");
+    try {
+      resolveBlocking3dPoseClip("standing", animationTracks.keys());
+    } catch {
+      throw new Error("3D 代理角色缺少基础待机动作。");
+    }
     setStatus("3D 草图已就绪");
   } catch (error) {
     resizeObserver.disconnect();

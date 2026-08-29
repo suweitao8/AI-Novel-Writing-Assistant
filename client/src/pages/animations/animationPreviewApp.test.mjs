@@ -51,6 +51,14 @@ test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () 
   assert.doesNotMatch(previewSource, /UAL1_Standard\.glb/);
 });
 
+test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
+  const restoreBlock = previewSource.match(
+    /if \(typeof options\.initialTimeSeconds === "number"\) \{([\s\S]*?)\n      \}/,
+  )?.[1] ?? "";
+  assert.match(restoreBlock, /baseLayer\?\.play\(activeClipName\)/);
+  assert.match(restoreBlock, /baseLayer\?\.play\(activeClipName\)[\s\S]*applyTime\(initialTime\)/);
+});
+
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
   assert.match(previewSource, /cancel: \(\) =>/);
   assert.match(previewSource, /cleanup\(\)/);

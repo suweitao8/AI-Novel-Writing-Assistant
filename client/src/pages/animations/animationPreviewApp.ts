@@ -377,10 +377,11 @@ export function openAnimationPreview(options: AnimationPreviewOptions): Animatio
       playClip(options.clipName);
       if (typeof options.initialTimeSeconds === "number") {
         const initialTime = options.initialTimeSeconds;
-        applyTime(initialTime);
-        anim.playing = true;
+        // AnimLayer.play resets the active state time. Activate the state first,
+        // then write the saved keyframe time so reopening the page really lands
+        // on the frame the user selected.
         anim.baseLayer?.play(activeClipName);
-        notifyTime();
+        applyTime(initialTime);
       }
       options.onStatus?.("");
 

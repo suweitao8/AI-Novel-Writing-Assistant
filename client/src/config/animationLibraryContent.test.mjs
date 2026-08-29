@@ -227,6 +227,14 @@ test("动画库与分镜草图共用含 UAL2 角色和动作的单一 GLB", () =
   assert.doesNotMatch(blockingAppSource, /ACTOR_ANIMATION_URL|animationAsset/);
 });
 
+test("分镜运行时用姿势解析器校验统一文件的基础待机动作", () => {
+  assert.match(
+    blockingAppSource,
+    /resolveBlocking3dPoseClip\("standing", animationTracks\.keys\(\)\)/,
+  );
+  assert.doesNotMatch(blockingAppSource, /animationTracks\.has\("Idle_Loop"\)/);
+});
+
 test("行走片段保留双脚的明显交替运动", () => {
   const glb = readGlb(assetPath());
   const nodes = nodeIndexByName(glb);
