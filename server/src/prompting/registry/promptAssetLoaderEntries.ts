@@ -234,6 +234,10 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/sceneState3dMarkers.prompts").sceneState3dMarkersPrompt as UnknownPromptAsset,
   },
   {
+    key: "drama.scene.state.3d_environment@v1",
+    load: () => require("../prompts/drama/sceneState3dEnvironment.prompts").sceneState3dEnvironmentPrompt as UnknownPromptAsset,
+  },
+  {
     key: "comic.episodeOutline@v1",
     load: () => require("../prompts/comic/comic.prompts").comicEpisodeOutlinePrompt as UnknownPromptAsset,
   },

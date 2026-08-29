@@ -86,7 +86,7 @@ test("详情字段会过滤空值并保留状态图片与音色信息", () => {
   assert.equal(view.states[0].voicePrompt, "沙哑");
 });
 
-test("场景的类型、时间、天气从状态展示而不是依赖资产顶层", () => {
+test("场景只展示时间和天气，场景类型不进入用户卡片", () => {
   const view = buildStoryAssetPresentation({
     kind: "scene",
     asset: {
@@ -108,10 +108,10 @@ test("场景的类型、时间、天气从状态展示而不是依赖资产顶�
     },
   });
 
-  assert.equal(view.badges.includes("自然"), true);
+  assert.equal(view.badges.includes("自然"), false);
   assert.equal(view.badges.includes("晚上"), true);
   assert.equal(view.badges.includes("雨天"), true);
-  assert.equal(view.states[0].sceneTypeLabel, "自然");
+  assert.equal("sceneTypeLabel" in view.states[0], false);
   assert.equal(view.states[0].timeOfDayLabel, "晚上");
   assert.equal(view.states[0].weatherLabel, "雨天");
 });

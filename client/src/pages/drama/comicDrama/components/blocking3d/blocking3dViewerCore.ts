@@ -1,5 +1,8 @@
 import * as pc from "playcanvas";
-import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
+} from "@ai-novel/shared/types/comicDrama";
 
 import type {
   DramaShotBlockingSketch3DCamera,
@@ -22,9 +25,9 @@ export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
-  projectionCenterHeight: Math.round(10 * 0.17 * 100) / 100,
-  projectionCenterHeightRatio: 0.17,
-  domeRadius: 10,
+  projectionCenterHeight: 2,
+  projectionCenterHeightRatio: STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
+  domeRadius: 15,
   panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
   intensity: 1,

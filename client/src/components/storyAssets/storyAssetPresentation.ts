@@ -39,7 +39,6 @@ export interface StoryAssetStatePresentation {
   imagePrompt: string;
   voicePrompt: string;
   ageLabel: string;
-  sceneTypeLabel: string;
   timeOfDayLabel: string;
   weatherLabel: string;
   chapterLabel: string;
@@ -81,12 +80,6 @@ const AGE_LABELS: Record<string, string> = {
   youth: "青年",
   middle: "中年",
   elder: "老年",
-};
-
-const SCENE_TYPE_LABELS: Record<string, string> = {
-  interior: "室内",
-  exterior: "室外",
-  nature: "自然",
 };
 
 const SCENE_TIME_LABELS: Record<string, string> = {
@@ -148,7 +141,6 @@ function buildStatePresentation(state: StoryAssetState): StoryAssetStatePresenta
     imagePrompt: clean(state.imagePrompt),
     voicePrompt: clean(state.voicePrompt),
     ageLabel: labelFor(AGE_LABELS, state.ageGroup),
-    sceneTypeLabel: labelFor(SCENE_TYPE_LABELS, state.sceneType),
     timeOfDayLabel: labelFor(SCENE_TIME_LABELS, state.timeOfDay),
     weatherLabel: labelFor(SCENE_WEATHER_LABELS, state.weather),
     chapterLabel: state.chapterOrder ? `第 ${state.chapterOrder} 章` : "",
@@ -216,7 +208,6 @@ function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPrese
   const sceneStates = asset.states.map((state, index) => index === 0
     ? {
       ...state,
-      sceneType: state.sceneType ?? (asset.sceneType === "interior" || asset.sceneType === "exterior" || asset.sceneType === "nature" ? asset.sceneType : null),
       timeOfDay: state.timeOfDay ?? (asset.timeOfDay === "morning" || asset.timeOfDay === "noon" || asset.timeOfDay === "night" ? asset.timeOfDay : null),
       weather: state.weather ?? (asset.weather === "sunny" || asset.weather === "cloudy" || asset.weather === "rainy" ? asset.weather : null),
     }
@@ -224,7 +215,6 @@ function buildScenePresentation(asset: StorySettingsScene): Omit<StoryAssetPrese
   const initialState = sceneStates[0];
   const states = sceneStates.map(buildStatePresentation);
   const badges = [
-    labelFor(SCENE_TYPE_LABELS, initialState?.sceneType),
     labelFor(SCENE_TIME_LABELS, initialState?.timeOfDay),
     labelFor(SCENE_WEATHER_LABELS, initialState?.weather),
   ].filter(Boolean);

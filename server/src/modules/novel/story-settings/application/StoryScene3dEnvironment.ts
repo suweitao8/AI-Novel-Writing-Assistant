@@ -4,13 +4,15 @@
  */
 export {
   DEFAULT_STORY_SCENE_3D_ENVIRONMENT,
-  STORY_SCENE_3D_DEFAULT_DOME_RADIUS_BY_TYPE,
-  STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO_BY_TYPE,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
   normalizeStorySceneType,
   resolveStorySceneType,
   getDefaultStoryScene3dEnvironment,
   normalizeStoryScene3dEnvironment,
+  normalizeVisionStoryScene3dEnvironment,
+  buildStoryScene3dImageFingerprint,
+  isStoryScene3dEnvironmentAnalysisCurrent,
+  shouldAutoAnalyzeStoryScene3dEnvironment,
   parseStoryScene3dEnvironment,
   serializeStoryScene3dEnvironment,
   resolveStoryScene3dEnvironment,

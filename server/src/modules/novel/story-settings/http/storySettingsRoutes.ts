@@ -18,6 +18,7 @@ import { worldMapService } from "../application/WorldMapService";
 import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 import { storyScene3dMarkerService } from "../application/StoryScene3dMarkerService";
+import { storyScene3dEnvironmentAnalysisService } from "../application/StoryScene3dEnvironmentAnalysisService";
 import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
 import { llmProviderSchema } from "../../../../llm/providerSchema";
 
@@ -413,6 +414,31 @@ export function registerStorySettingsRoutes(router: Router): void {
           req.body,
         );
         res.json({ success: true, data, message: "场景空间标记已识别。" } satisfies ApiResponse<typeof data>);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/settings/scenes/:sceneId/states/:stateId/3d-environment/analyze",
+    validate({
+      params: sceneStateParams,
+      body: z.object({
+        provider: llmProviderSchema.optional(),
+        model: z.string().trim().max(160).optional(),
+        temperature: z.number().min(0).max(2).optional(),
+      }).strict().default({}),
+    }),
+    async (req, res, next) => {
+      try {
+        const data = await storyScene3dEnvironmentAnalysisService.analyzeSceneState(
+          String(req.params.id),
+          String(req.params.sceneId),
+          String(req.params.stateId),
+          req.body,
+        );
+        res.json({ success: true, data, message: "场景 3D 环境已自动分析。" } satisfies ApiResponse<typeof data>);
       } catch (error) {
         next(error);
       }
