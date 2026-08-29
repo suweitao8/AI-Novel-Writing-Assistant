@@ -1,4 +1,4 @@
-import { DRAMA_FOCUS_MODE, isNavRouteVisible } from "@/config/dramaFocusNav";
+import { DRAMA_FOCUS_MODE, isNavRouteVisible } from "../../../config/dramaFocusNav.ts";
 
 export type MobilePrimaryNavKey = "home" | "novels" | "creation" | "tasks" | "more";
 
@@ -28,7 +28,7 @@ export const MOBILE_ROUTE_PATTERNS: MobileRoutePattern[] = [
   { key: "novel-preview", pattern: /^\/novels\/[^/]+\/preview\/?$/, title: "小说预览", group: "novels" },
   { key: "novel-edit", pattern: /^\/novels\/[^/]+\/edit\/?$/, title: "小说工作区", group: "novels" },
   { key: "chapter-edit", pattern: /^\/novels\/[^/]+\/chapters\/[^/]+\/?$/, title: "章节正文", group: "novels" },
-  { key: "drama", pattern: /^\/drama\/?$/, title: "短剧", group: "creation" },
+  { key: "drama", pattern: /^\/drama\/?$/, title: "漫剧", group: "creation" },
   { key: "models", pattern: /^\/models(\/|$)/, title: "模型库", group: "creation" },
   { key: "creative-hub", pattern: /^\/creative-hub\/?$/, title: "创作中枢", group: "creation" },
   { key: "chat-legacy", pattern: /^\/chat-legacy\/?$/, title: "旧版聊天", group: "creation" },
@@ -44,6 +44,10 @@ export const MOBILE_ROUTE_PATTERNS: MobileRoutePattern[] = [
   { key: "settings-models", pattern: /^\/settings\/models\/?$/, title: "模型设置", group: "more" },
   { key: "settings-director", pattern: /^\/settings\/director\/?$/, title: "自动导演设置", group: "more" },
   { key: "settings-knowledge", pattern: /^\/settings\/knowledge\/?$/, title: "知识库与写法", group: "more" },
+  { key: "settings-narrator-voice", pattern: /^\/settings\/narrator-voice\/?$/, title: "旁白音色", group: "more" },
+  { key: "settings-appearance", pattern: /^\/settings\/appearance\/?$/, title: "外观与主题", group: "more" },
+  { key: "settings-records", pattern: /^\/settings\/records\/?$/, title: "记录", group: "more" },
+  { key: "settings-art-style", pattern: /^\/settings\/art-style\/?$/, title: "画风", group: "more" },
   { key: "settings", pattern: /^\/settings\/?$/, title: "系统设置", group: "more" },
   { key: "worlds", pattern: /^\/worlds\/?$/, title: "世界样本库", group: "more" },
   { key: "world-generator", pattern: /^\/worlds\/generator\/?$/, title: "创建世界样本", group: "more" },
@@ -97,15 +101,14 @@ const moreNavGroups: MobileNavGroup[] = [
 ];
 
 export function getMobilePrimaryNavItems(): MobileNavItem[] {
-  const items = primaryNavItems.filter((item) => isNavRouteVisible(item.to));
-  if (!DRAMA_FOCUS_MODE) {
-    return items;
-  }
-  return items.map((item) => (
-    item.key === "creation"
-      ? { ...item, label: "漫剧", to: "/drama" }
-      : item
-  ));
+  const modeItems = DRAMA_FOCUS_MODE
+    ? primaryNavItems.map((item) => (
+      item.key === "creation"
+        ? { ...item, label: "漫剧", to: "/drama" }
+        : item
+    ))
+    : primaryNavItems;
+  return modeItems.filter((item) => isNavRouteVisible(item.to));
 }
 
 export function getMobileMoreNavGroups(): MobileNavGroup[] {
