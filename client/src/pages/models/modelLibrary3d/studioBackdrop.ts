@@ -54,13 +54,19 @@ export async function attachStudioBackdrop(
     dome.setLocalScale(radius, radius, radius);
     dome.setPosition(0, 0, 0);
     app.root.addChild(dome);
-    // 穹顶半径只有 10 米：取景拉远时相机会穿出球壁。让穹顶每帧水平跟随
-    // 相机（y 固定 0 保持地平线稳定），相机永远位于球心。
+    // 穹顶标称直径 10 米且每帧水平跟随相机（y 固定 0 保持地平线稳定）；
+    // 取景拉远、相机连同模型要超出 10 米球时按需放大，模型永远不会被
+    // 球壁挡住，也不会露出球外的深色背景。
     const followCamera = options.camera;
+    const modelAnchor = new pc.Vec3(0, 0.5, 0);
     const onFrame = () => {
       if (!followCamera) return;
       const pos = followCamera.getPosition();
       dome.setPosition(pos.x, 0, pos.z);
+      const needed = modelAnchor.distance(pos) + 1.5;
+      const worldRadius = Math.max(radius * 0.5, needed);
+      const scale = worldRadius * 2;
+      dome.setLocalScale(scale, scale, scale);
     };
     app.on("update", onFrame);
     return {
