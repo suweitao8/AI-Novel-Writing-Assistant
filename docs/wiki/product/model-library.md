@@ -26,14 +26,18 @@
 - **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 提供室内客厅、中央广场、草地自然三套环境；每套默认半球直径 15m、投射中心高度 2m，直径可在 5–30m 范围调节。对应 `.hdr` 资源放在 `client/public/models/env/`，本机直径偏好由模型编辑器和系统资产预设页共享。
 - **资产预设表是统一入口**：系统设置的资产预设页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI，并提供统一的半球直径调节。模型编辑器、模型缩略图和动画缩略图读取同一套预设规则，不写入模型资产或漫剧场景数据。
 - **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前环境真实半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境切换与缩略图规则**：模型编辑器的“预览环境”选择器完整加载可见穹顶和环境光后才替换当前环境；直径调整只重建依赖几何和投影参数，不重复下载 HDR；切换失败保留原环境。模型卡片与动画卡片固定使用室内默认预设，模型缩略图缓存键为 `model-library:thumbnails:v17`，动画缩略图键为 `animation-library:thumbnails:v3`，改动环境或投影逻辑必须升版本。
+- **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 提供室内客厅、中央广场、草地自然三套环境；每套默认半球直径 15m、投射中心高度 2m，直径可在 5–30m 范围调节。对应 `.hdr` 资源放在 `client/public/models/env/`，本机直径偏好由模型编辑器、通用资产页和独立 HDRI 预览共享。
+- **通用资产是统一入口**：系统设置的「通用资产」页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI，并提供统一的半球直径调节和「3D 预览」入口。独立预览页只加载共享的有限半球环境，不混入模型、角色或道具；本机偏好不写入模型资产或漫剧场景数据。
+- **HDRI 预览交互边界**：独立预览页复用 `studioEnvironmentRuntime` 的环境光、可见投影和地面网格生命周期；左键拖动旋转、中键/右键平移、滚轮缩放，复位只恢复相机视角，不改变环境预设或直径。切换环境在新环境加载成功后替换旧环境，直径调整只更新投影几何与参数，不重复下载 HDR。
+- **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前环境真实半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
+- **环境切换与缩略图规则**：模型编辑器、独立 HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用室内默认预设。模型缩略图缓存键为 `model-library:thumbnails:v17`，动画缩略图键为 `animation-library:thumbnails:v4`，改动环境、投影或材质逻辑必须升版本。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
-- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v3`）+ 队列闲置销毁」结构，差别是先把 `clipName` 装配到 anim 组件、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源或生成逻辑变化时必须升缓存版本。
-- **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前时间轴帧渲染为 JPEG，通过 `animation-library:keyframes:v1` 按动画 ID 保存截图和秒数；动画入口卡片优先显示该截图。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
+- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v4`）+ 队列闲置销毁」结构，差别是先把 `clipName` 装配到 anim 组件、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
+- **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前时间轴帧渲染为 JPEG，通过 `animation-library:keyframes:v2` 按动画 ID 保存截图和秒数；动画入口卡片优先显示该截图。预览材质变化时通过版本号丢弃旧颜色截图，避免黄色旧图继续覆盖新的蓝色渲染结果。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
 - **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 按「绑定位姿差」离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。世界旋转使用 `W_t(b) := W_s(b) · inv(W_s0(b)) · W_t0(b)`，再按目标父节点解局部四元数；根/骨盆平移使用绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
 
 ## 动画导出边界

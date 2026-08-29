@@ -80,5 +80,5 @@ test("mobile more menu only contains focus-mode support entries", () => {
     ],
   );
   assert.equal(getMobilePageTitle("/drama"), "漫剧");
-  assert.equal(getMobilePageTitle("/settings/narrator-voice"), "资产预设");
+  assert.equal(getMobilePageTitle("/settings/narrator-voice"), "通用资产");
 });

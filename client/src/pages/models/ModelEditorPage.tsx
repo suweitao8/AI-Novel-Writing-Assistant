@@ -263,6 +263,10 @@ export default function ModelEditorPage() {
                 }}
                 className="w-full accent-primary"
               />
+              <span className="flex justify-between tabular-nums text-[11px]">
+                <span>{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min} 米</span>
+                <span>{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米</span>
+              </span>
             </label>
             {environmentSwitching ? (
               <span role="status" className="block text-xs text-muted-foreground" aria-live="polite">

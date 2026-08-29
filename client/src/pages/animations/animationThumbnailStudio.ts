@@ -4,9 +4,11 @@ import type { AnimationLibraryEntry } from "@/config/animationLibrary";
 import {
   buildBlocking3dGroundGridLines,
   clamp,
+  BLOCKING_3D_BLUE_ACTOR_COLOR,
   DEFAULT_FOV,
   drawBlocking3dGroundGrid,
   loadAsset,
+  setEntityMaterial,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
@@ -21,7 +23,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v3";
+const STORAGE_KEY = "animation-library:thumbnails:v4";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -236,6 +238,7 @@ async function createAnimationThumbnailStudio(): Promise<{
         const resource = asset.resource as ContainerResource | null;
         model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
         if (!model) throw new Error("动作文件里没有可显示的角色。");
+        setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
         model.addComponent("anim", { activate: true });
         const anim = model.anim as unknown as AnimComponentLike | undefined;
         if (!anim) throw new Error("角色缺少可用的动作组件。");

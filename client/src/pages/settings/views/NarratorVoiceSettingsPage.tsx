@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { AudioLines, Box, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   designGlobalNarratorVoice,
   getGlobalNarratorVoice,
@@ -69,14 +70,13 @@ export default function NarratorVoiceSettingsPage() {
   const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
-
   const updateEnvironmentDiameter = (id: StudioEnvironmentPresetId, value: number) => {
     const diameterMeters = saveStudioEnvironmentDiameterPreference(id, value);
     setEnvironmentDiameters((current) => ({ ...current, [id]: diameterMeters }));
   };
 
   return (
-    <SettingsShell title="资产预设" description="管理创作统一使用的旁白音色与模型预览环境。">
+    <SettingsShell title="通用资产" description="管理网站统一使用的旁白音色与 HDRI 环境。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -163,7 +163,7 @@ export default function NarratorVoiceSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <caption className="sr-only">模型与动画 HDRI 预设</caption>
               <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
                 <tr>
@@ -171,6 +171,7 @@ export default function NarratorVoiceSettingsPage() {
                   <th scope="col" className="w-52 px-4 py-3 font-medium">用途</th>
                   <th scope="col" className="min-w-[280px] px-4 py-3 font-medium">半球直径</th>
                   <th scope="col" className="min-w-[250px] px-4 py-3 font-medium">资源</th>
+                  <th scope="col" className="w-32 px-4 py-3 text-right font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -203,6 +204,14 @@ export default function NarratorVoiceSettingsPage() {
                       </td>
                       <td className="px-4 py-4">
                         <code className="break-all text-xs text-muted-foreground">{preset.sourceUrl}</code>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <Button asChild type="button" variant="outline" size="sm">
+                          <Link to={`/settings/narrator-voice/hdri/${id}`}>
+                            <Box className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            3D 预览
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   );

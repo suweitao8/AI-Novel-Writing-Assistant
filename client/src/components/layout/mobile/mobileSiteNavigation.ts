@@ -44,7 +44,7 @@ export const MOBILE_ROUTE_PATTERNS: MobileRoutePattern[] = [
   { key: "settings-models", pattern: /^\/settings\/models\/?$/, title: "模型设置", group: "more" },
   { key: "settings-director", pattern: /^\/settings\/director\/?$/, title: "自动导演设置", group: "more" },
   { key: "settings-knowledge", pattern: /^\/settings\/knowledge\/?$/, title: "知识库与写法", group: "more" },
-  { key: "settings-narrator-voice", pattern: /^\/settings\/narrator-voice\/?$/, title: "资产预设", group: "more" },
+  { key: "settings-narrator-voice", pattern: /^\/settings\/narrator-voice\/?$/, title: "通用资产", group: "more" },
   { key: "settings-appearance", pattern: /^\/settings\/appearance\/?$/, title: "外观与主题", group: "more" },
   { key: "settings-records", pattern: /^\/settings\/records\/?$/, title: "记录", group: "more" },
   { key: "settings-art-style", pattern: /^\/settings\/art-style\/?$/, title: "画风", group: "more" },
