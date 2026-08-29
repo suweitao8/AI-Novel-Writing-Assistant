@@ -10,7 +10,7 @@
 - **数量决策（2026-08-29 用户拍板）**：曾一次性扩到 509 个，因质量参差回退到人工精选的 44 个；batch3 的 466 个产物保留在 `D:\UnrealWorkspace\Cine57-exported3\`，目录管线支持随时按包扩量（build 脚本把 manifest3 加回 entries 即可）。格式确认用 **GLB**（浏览器通用标准；FBX 浏览器不能直接加载，管线本来就 UE→FBX→GLB）。
 - **入口挂在漫剧主链路旁**：顶部导航「漫剧 / 模型 / 系统」三项（`dramaFocusNav.ts`）；模型库不是通用素材管理后台，只为「查看 → 打开 3D 编辑」这一条主路径服务。
 - **3D 编辑器独立于漫剧场景编辑器**：`pages/models/modelLibrary3d/modelViewerApp.ts` 是单模型查看/变换编辑器，复用 blocking3d 的 gizmo、资源加载与数学原语（通过 `blocking3d/index.ts` 门面导出），但不承载角色、场景标记、镜头等状态。两边共享的是引擎交互方案（Orbit 相机、引擎 gizmo、Inspector 面板），不是数据。
-- **模型入库管线**（仓库外脚本，`D:\UnrealWorkspace\`）：
+- **模型入库管线**（仓库外脚本，`D:\UnrealWorkspace\`；操作手册已封装为项目 skill `.agents/skills/unreal-import/`，UE 项目地址见 AGENTS.md 的 Unreal Asset Pipeline 一节，本页保留决策与失败模式）：
   1. `scan_props.py` 全文件扫描 `/Script/Engine.StaticMesh`，按名字剔除建筑壳体/地形/LOD/碰撞体（源项目 1.1 万+ 静态网格，前景可用约 3100 个）；
   2. `select_batch3.py` 按包配额 + 网格族限量选目标；
   3. `export_cine57_batch3.py` 由 `UnrealEditor-Cmd -run=pythonscript` 无头导出 FBX + 材质贴图 PNG；manifest 用 JSONL 逐条追加（断点续跑），贴图按「贴图资产路径 + 桶」去重；

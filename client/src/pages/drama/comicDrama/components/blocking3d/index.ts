@@ -10,6 +10,7 @@ export {
   clamp,
   createMaterial,
   createPlane,
+  createShadowCatcherMaterial,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
   DEFAULT_FOV,
@@ -17,6 +18,7 @@ export {
 } from "./blocking3dViewerCore";
 export {
   createBackdropGeometry,
+  createGroundDomeGeometry,
   configureEnvironmentTexture,
   createVisibleHdriCubemap,
 } from "./blocking3dViewerCore";

@@ -284,6 +284,13 @@ This project is a pure web product: all development targets the website (`client
 - Update records stay date-based; do not introduce semantic version numbers into release notes or README unless the user explicitly decides to switch.
 - If the diff is purely internal with no user-visible impact, skip release-note updates and state that explicitly instead of forcing a noisy entry.
 
+## Unreal Asset Pipeline
+
+- The external 3D assets for the model library and animation library come from the local Unreal project at `D:\UnrealWorkspace\Cine57` (UE 5.7; editor installed at `D:\Epic Games\UE_5.7`).
+- The full export/import workflow (asset scan, headless FBX export, FBX→GLB conversion, GLB cleanup, texture downscaling, catalog regeneration, offline animation retargeting) is captured in the project skill `.agents/skills/unreal-import/`; follow that skill whenever importing, extending, or debugging UE-sourced models or animations.
+- Out-of-repo helper scripts and export output live under `D:\UnrealWorkspace\` (`scan_props.py`, `export_cine57_batch*.py`, `Cine57-exported*/`, `gltf-tools/`); design rationale and failure modes live in `docs/wiki/product/model-library.md`.
+- Imported assets and regenerated catalogs must land through the normal `codex/*` worktree workflow; never commit export output directly from `D:\UnrealWorkspace` into the repo.
+
 ## Current Product Priorities
 
 1. Stabilize auto-director recovery and chapter production chain.
