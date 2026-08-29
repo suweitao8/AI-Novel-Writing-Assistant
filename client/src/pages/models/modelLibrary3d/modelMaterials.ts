@@ -71,6 +71,23 @@ export async function applyModelMaterials(
         material.blendType = pc.BLEND_NONE;
       }
     }
+    if (info.normal) {
+      const tex = await loadTexture(info.normal);
+      if (tex) material.normalMap = tex;
+    }
+    if (info.rma) {
+      // UE 的 RMA 打包与 glTF metallicRoughness 同构：G=粗糙度、B=金属度。
+      // 引擎按 metallicRoughness 约定读 glossMap 的 G 通道（glossInvert 取反
+      // 后即粗糙度）与 metalnessMap 的 B 通道，共用同一张贴图。
+      const tex = await loadTexture(info.rma);
+      if (tex) {
+        material.glossMap = tex;
+        material.metalnessMap = tex;
+        material.gloss = 1;
+        material.glossInvert = true;
+        material.useMetalness = true;
+      }
+    }
     material.update();
     return material;
   };
