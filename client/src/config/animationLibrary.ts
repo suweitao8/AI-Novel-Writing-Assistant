@@ -23,6 +23,9 @@ export interface AnimationLibraryEntry {
 
 export const ANIMATION_LIBRARY_SOURCE = "Cine57";
 
+/** 动画分类页签（与目录条目的 category 对应）。 */
+export const ANIMATION_LIBRARY_CATEGORIES = ["待机", "移动", "坐姿"] as const;
+
 const UAL2_UE_ANIMS_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 
 export const ANIMATION_LIBRARY: AnimationLibraryEntry[] = [
