@@ -23,10 +23,10 @@
 - **RMA 只取 G 通道粗糙度（全库审计后的硬规则）**：按资产 RMA（排除共享 Fill_01 占位）套 `glossMap`+`glossMapChannel:"g"`+`glossInvert`。**B/R 通道经逐张贴图审计确认不可用**（2026-08-29）：这包 Cine57 资产的 ORM 语义与 glTF 约定不符——地毯/岩石/布艺等纯电介质的 B（按约定=金属度）高达 0.66-0.98，砖炉金属板反而 0.01；R（按约定=AO）在平整表面也压到 0.36，当 AO 会把物件整体压暗。金属观感由真 HDR 环境 + 漫反射色承担；接入校准过的 PBR 数据前不要开 `metalnessMap`/`aoMap`。
 - **引擎贴图通道默认值坑**：PlayCanvas StandardMaterial 的 `metalnessMap`/`glossMap` 默认采样通道与 glTF 约定不一致（glTF 加载器是自己显式设 `metalnessMapChannel="b"`、`glossMapChannel="g"` 的）。手动接 ORM/未校准贴图必须把 `glossMapChannel`/`metalnessMapChannel`/`aoMapChannel` 全部显式写死，否则金属度读错通道会把非金属整块渲染成镜面金属。
 - **棚拍布光是共享模块**：三灯 + 环境反射（真 HDR）+ ACES 色调映射，模型编辑器、模型缩略图和动画缩略图共用。环境 atlas 通过 `EnvLighting.generateLightingSource` → `generateAtlas` → `scene.envAtlas` 建立；三灯强度为 1.2/0.35/0.55，接入真环境后不再额外提高 `ambientLight`。
-- **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 固定提供室内客厅、中央广场、草地自然三套环境，默认半球直径为 10m、20m、30m，用户可在 5–30m 范围内调节；对应 `.hdr` 资源放在 `client/public/models/env/`。产品字段使用 `diameterMeters`，只有相机边界等内部计算才换算为真实半径 `diameterMeters / 2`，避免把“半径”和“直径”混用。
-- **资产预设表是统一入口**：系统设置的资产预设页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI。旁白描述、试听和重新生成沿用全局旁白 API；HDRI 半球直径偏好按预设 ID 保存在浏览器本机，模型编辑器、模型缩略图和动画缩略图读取同一份偏好，不写入模型资产或漫剧场景数据。
+- **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 固定提供室内客厅、中央广场、草地自然三套环境，中心到边界的真实水平半径固定为 10m、20m、50m；对应 `.hdr` 资源放在 `client/public/models/env/`。产品字段使用 `radiusMeters`，交给 blocking3d 几何前才统一换算为基础半径 0.5 所需的直径缩放值，避免把“半径”和历史 `domeRadius` 直径语义混用。
+- **资产预设表是统一入口**：系统设置的资产预设页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI。旁白描述、试听和重新生成沿用全局旁白 API；HDRI 行只展示固定半径，模型编辑器、模型缩略图和动画缩略图读取同一套预设，不写入模型资产或漫剧场景数据。
 - **模型可视穹顶固定在世界原点**：`attachStudioBackdrop` 从当前预设加载全景并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前预设半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境切换与缩略图规则**：模型编辑器的“预览环境”选择器异步同时加载可见穹顶和环境光，完整加载后才替换当前环境；切换失败保留原环境。模型卡片与动画卡片固定使用室内默认预设，模型缩略图缓存键为 `model-library:thumbnails:v16`，改动环境或投影逻辑必须升版本，避免旧截图继续冒充新环境。
+- **环境切换与缩略图规则**：模型编辑器的“预览环境”选择器异步同时加载可见穹顶和环境光，完整加载后才替换当前环境；切换失败保留原环境。模型卡片与动画卡片固定使用室内默认预设，动画离屏取景固定使用 30m 半径，模型缩略图缓存键为 `model-library:thumbnails:v16`，改动环境或投影逻辑必须升版本，避免旧截图继续冒充新环境。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；页面结构与模型库同构（分类页签 + 卡片网格 + 预览弹窗），卡片与模型库同款：预览图 + 名字 + 分类·时长。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
@@ -56,7 +56,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v16`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用室内默认 HDRI；生成逻辑与环境预设变更必须同步刷新缓存版本。
+- 缩略图运行时生成：`thumbnailStudio.ts` 离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键 `model-library:thumbnails:v16`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用室内默认 HDRI，环境半径取固定预设或明确的动画取景覆盖值；生成逻辑与环境预设变更必须同步刷新缓存版本。
 - 缩略图队列串行、闲置 8 秒销毁离线画布；44 个模型全队列约 3 秒。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。

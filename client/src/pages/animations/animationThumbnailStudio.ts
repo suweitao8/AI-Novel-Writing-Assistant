@@ -180,7 +180,7 @@ async function createAnimationThumbnailStudio(): Promise<{
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
   setupStudioLighting(app, cameraEntity.camera!);
-  const studioEnvironment = await loadStudioEnvironment(app, undefined, { diameterMeters: 30 });
+  const studioEnvironment = await loadStudioEnvironment(app, undefined, { radiusMeters: 30 });
 
   const ground = createPlane(
     app,

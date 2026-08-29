@@ -16,9 +16,7 @@ import {
 } from "@/pages/drama/comicDrama/components/editor3d";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   STUDIO_ENVIRONMENT_PRESET_IDS,
-  getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentPreset,
   type StudioEnvironmentPresetId,
 } from "./modelLibrary3d/studioEnvironmentPresets";
@@ -41,11 +39,7 @@ export default function ModelEditorPage() {
   const [environmentPresetId, setEnvironmentPresetId] = useState<StudioEnvironmentPresetId>(
     DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
   );
-  const [environmentDiameterMeters, setEnvironmentDiameterMeters] = useState(
-    getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
-  );
   const [environmentSwitching, setEnvironmentSwitching] = useState(false);
-  const environmentDiameterRequestRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -53,7 +47,6 @@ export default function ModelEditorPage() {
     let cancelled = false;
     setViewerError(null);
     setEnvironmentPresetId(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID);
-    setEnvironmentDiameterMeters(getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID));
     setEnvironmentSwitching(false);
     void createModelViewer({
       canvas,
@@ -61,7 +54,6 @@ export default function ModelEditorPage() {
       unitScale: entry.unitScale,
       materials: entry.materials,
       environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-      environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
       onStatus: (next) => setStatus(next || "就绪"),
       onTransformLive: () => setTransform(viewerRef.current?.getTransform() ?? transform),
       onTransformCommit: () => setTransform(viewerRef.current?.getTransform() ?? transform),
@@ -114,8 +106,6 @@ export default function ModelEditorPage() {
         if (!switched) {
           setEnvironmentPresetId(previousId);
           toast.error("HDRI 环境加载失败。");
-        } else {
-          setEnvironmentDiameterMeters(current.getEnvironmentDiameter());
         }
       } catch (error) {
         setEnvironmentPresetId(previousId);
@@ -127,41 +117,6 @@ export default function ModelEditorPage() {
       }
     },
     [environmentPresetId, environmentSwitching],
-  );
-
-  const handleEnvironmentDiameterChange = useCallback(
-    async (value: number) => {
-      const current = viewerRef.current;
-      if (!current) return;
-      const requestId = ++environmentDiameterRequestRef.current;
-      const previousDiameter = environmentDiameterMeters;
-      const nextDiameter = Math.min(
-        STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max,
-        Math.max(STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min, value),
-      );
-      setEnvironmentDiameterMeters(nextDiameter);
-      setEnvironmentSwitching(true);
-      try {
-        const switched = await current.setEnvironmentDiameter(nextDiameter);
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        if (!switched) {
-          setEnvironmentDiameterMeters(previousDiameter);
-          toast.error("HDRI 环境加载失败。");
-        } else {
-          setEnvironmentDiameterMeters(current.getEnvironmentDiameter());
-        }
-      } catch (error) {
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        setEnvironmentDiameterMeters(previousDiameter);
-        toast.error("HDRI 环境加载失败。", {
-          description: error instanceof Error ? error.message : undefined,
-        });
-      } finally {
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        setEnvironmentSwitching(false);
-      }
-    },
-    [environmentDiameterMeters],
   );
 
   const handleCapture = useCallback(() => {
@@ -235,7 +190,7 @@ export default function ModelEditorPage() {
               >
                 {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
                   const preset = getStudioEnvironmentPreset(id);
-                  const label = `${preset.label}（直径 ${preset.diameterMeters} 米）`;
+                  const label = `${preset.label}（半径 ${preset.radiusMeters} 米）`;
                   return (
                     <option key={id} value={id}>
                       {label}
@@ -244,28 +199,8 @@ export default function ModelEditorPage() {
                 })}
               </SelectControl>
             </label>
-            <label className="mt-3 block space-y-1 text-xs text-muted-foreground" htmlFor="model-environment-diameter">
-              <span className="flex items-center justify-between gap-2">
-                <span>半球直径</span>
-                <output className="tabular-nums text-foreground">{environmentDiameterMeters} 米</output>
-              </span>
-              <input
-                id="model-environment-diameter"
-                type="range"
-                min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
-                max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
-                step={1}
-                value={environmentDiameterMeters}
-                disabled={!viewer}
-                aria-label="模型预览半球直径"
-                onChange={(event) => {
-                  void handleEnvironmentDiameterChange(Number(event.target.value));
-                }}
-                className="w-full accent-primary"
-              />
-            </label>
             {environmentSwitching ? (
-              <span role="status" className="text-xs text-muted-foreground">
+              <span role="status" className="block text-xs text-muted-foreground" aria-live="polite">
                 环境加载中…
               </span>
             ) : null}

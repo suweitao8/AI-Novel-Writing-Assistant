@@ -13,12 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
-  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   STUDIO_ENVIRONMENT_PRESET_IDS,
-  getStudioEnvironmentDiameterPreferences,
   getStudioEnvironmentPreset,
-  saveStudioEnvironmentDiameterPreference,
-  type StudioEnvironmentPresetId,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentPresets";
 import { SettingsShell } from "../components/SettingsShell";
 
@@ -33,9 +29,6 @@ export default function NarratorVoiceSettingsPage() {
     queryFn: getGlobalNarratorVoice,
   });
   const [draft, setDraft] = useState("");
-  const [environmentDiameters, setEnvironmentDiameters] = useState(
-    getStudioEnvironmentDiameterPreferences,
-  );
   const hasEditedDraft = useRef(false);
 
   useEffect(() => {
@@ -69,11 +62,6 @@ export default function NarratorVoiceSettingsPage() {
   const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
-
-  const updateEnvironmentDiameter = (id: StudioEnvironmentPresetId, value: number) => {
-    const diameterMeters = saveStudioEnvironmentDiameterPreference(id, value);
-    setEnvironmentDiameters((current) => ({ ...current, [id]: diameterMeters }));
-  };
 
   return (
     <SettingsShell title="资产预设" description="管理创作统一使用的旁白音色与模型预览环境。">
@@ -169,37 +157,19 @@ export default function NarratorVoiceSettingsPage() {
                 <tr>
                   <th scope="col" className="w-44 px-4 py-3 font-medium">资产</th>
                   <th scope="col" className="w-52 px-4 py-3 font-medium">用途</th>
-                  <th scope="col" className="min-w-[280px] px-4 py-3 font-medium">半球直径</th>
+                  <th scope="col" className="min-w-[180px] px-4 py-3 font-medium">中心到边界半径</th>
                   <th scope="col" className="min-w-[250px] px-4 py-3 font-medium">资源</th>
                 </tr>
               </thead>
               <tbody>
                 {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
                   const preset = getStudioEnvironmentPreset(id);
-                  const diameterMeters = environmentDiameters[id];
                   return (
                     <tr key={id} className="border-t border-border align-middle">
                       <th scope="row" className="px-4 py-4 text-left font-medium text-foreground">{preset.label}</th>
                       <td className="px-4 py-4 text-muted-foreground">模型与动画预览</td>
                       <td className="px-4 py-4">
-                        <label className="block space-y-2" htmlFor={`studio-environment-diameter-${id}`}>
-                          <span className="flex items-center justify-between gap-3">
-                            <span className="sr-only">{preset.label}半球直径</span>
-                            <span className="text-xs text-muted-foreground">{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}–{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米</span>
-                            <output className="tabular-nums text-foreground">{diameterMeters} 米</output>
-                          </span>
-                          <input
-                            id={`studio-environment-diameter-${id}`}
-                            type="range"
-                            min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
-                            max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
-                            step={1}
-                            value={diameterMeters}
-                            aria-label={`${preset.label}半球直径`}
-                            onChange={(event) => updateEnvironmentDiameter(id, Number(event.target.value))}
-                            className="w-full accent-primary"
-                          />
-                        </label>
+                        <output className="tabular-nums text-foreground">{preset.radiusMeters} 米</output>
                       </td>
                       <td className="px-4 py-4">
                         <code className="break-all text-xs text-muted-foreground">{preset.sourceUrl}</code>
