@@ -4,6 +4,7 @@ import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import { clamp, createMaterial, createPlane, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
+import { setupStudioLighting } from "./studioLighting";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
@@ -11,8 +12,10 @@ import { computeSourceBounds } from "./modelViewerApp";
  * 模型文件只生成一次；队列传空且闲置一段时间后销毁画布释放 WebGL 上下文。
  */
 
-const THUMBNAIL_SIZE = { width: 360, height: 270 } as const;
-const STORAGE_KEY = "model-library:thumbnails:v7";
+// 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
+const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
+const JPEG_QUALITY = 0.75;
+const STORAGE_KEY = "model-library:thumbnails:v8";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -37,7 +40,7 @@ function loadStorageCache(): void {
     if (!raw) return;
     const parsed = JSON.parse(raw) as Record<string, string>;
     for (const [id, dataUrl] of Object.entries(parsed)) {
-      if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/png")) memoryCache.set(id, dataUrl);
+      if (typeof dataUrl === "string" && dataUrl.startsWith("data:image/")) memoryCache.set(id, dataUrl);
     }
   } catch {
     storageEnabled = false;
@@ -138,8 +141,6 @@ function createThumbnailStudio(): Promise<{
   // 离屏画布不在 DOM 里：clientWidth 恒为 0，AUTO 分辨率会把画布清成 0×0；
   // FIXED 模式必须显式带上宽高，让引擎直接设定绘图缓冲尺寸。
   app.setCanvasResolution(pc.RESOLUTION_FIXED, THUMBNAIL_SIZE.width, THUMBNAIL_SIZE.height);
-  app.scene.exposure = 1;
-  app.scene.ambientLight = new pc.Color(0.42, 0.42, 0.46);
   app.autoRender = false;
 
   const cameraEntity = new pc.Entity("thumb-camera");
@@ -150,15 +151,7 @@ function createThumbnailStudio(): Promise<{
     farClip: 200,
   });
   app.root.addChild(cameraEntity);
-
-  const keyLight = new pc.Entity("thumb-key-light");
-  keyLight.addComponent("light", { type: "directional", intensity: 1.1 });
-  keyLight.setEulerAngles(48, 32, 0);
-  app.root.addChild(keyLight);
-  const fillLight = new pc.Entity("thumb-fill-light");
-  fillLight.addComponent("light", { type: "directional", intensity: 0.32 });
-  fillLight.setEulerAngles(-28, -142, 0);
-  app.root.addChild(fillLight);
+  setupStudioLighting(app, cameraEntity.camera!);
 
   const ground = createPlane(
     app,
@@ -233,8 +226,8 @@ function createThumbnailStudio(): Promise<{
         frame(centerY, radius);
         drawFrame();
         drawFrame();
-        const dataUrl = canvas.toDataURL("image/png");
-        if (!dataUrl.startsWith("data:image/png")) throw new Error("缩略图画布没有输出有效图像。");
+        const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+        if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
         adjust.destroy();
         return dataUrl;
       } finally {
