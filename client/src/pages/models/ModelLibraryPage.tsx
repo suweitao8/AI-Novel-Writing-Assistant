@@ -214,47 +214,51 @@ export default function ModelLibraryPage() {
   );
 
   return (
-    <div className="space-y-3" data-model-library-page>
-      <section
-        role="tablist"
-        aria-label="模型分类"
-        className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1"
-        data-model-category-table
-      >
-        {["全部", ...MODEL_LIBRARY_CATEGORIES].map((item) => (
-          <button
-            key={item}
-            type="button"
-            role="tab"
-            aria-selected={category === item}
-            onClick={() => setCategory(item)}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
-              category === item
-                ? "bg-primary font-medium text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
-          >
-            {item}
-            <span
+    <div className="space-y-3 xl:flex xl:items-start xl:gap-3 xl:space-y-0" data-model-library-page>
+      <div className="min-w-0 xl:w-80 xl:shrink-0 xl:order-2" data-animation-aside>
+        <AnimationTable onPreview={setPreviewEntry} />
+      </div>
+
+      <div className="min-w-0 flex-1 space-y-3 xl:order-1">
+        <section
+          role="tablist"
+          aria-label="模型分类"
+          className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1"
+          data-model-category-table
+        >
+          {["全部", ...MODEL_LIBRARY_CATEGORIES].map((item) => (
+            <button
+              key={item}
+              type="button"
+              role="tab"
+              aria-selected={category === item}
+              onClick={() => setCategory(item)}
               className={cn(
-                "text-[10px] leading-none",
-                category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                "flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
+                category === item
+                  ? "bg-primary font-medium text-primary-foreground"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground",
               )}
             >
-              {item === "全部" ? MODEL_LIBRARY.length : counts.get(item) ?? 0}
-            </span>
-          </button>
-        ))}
-      </section>
+              {item}
+              <span
+                className={cn(
+                  "text-[10px] leading-none",
+                  category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                )}
+              >
+                {item === "全部" ? MODEL_LIBRARY.length : counts.get(item) ?? 0}
+              </span>
+            </button>
+          ))}
+        </section>
 
-      <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
-        {entries.map((entry) => (
-          <ModelCard key={entry.id} entry={entry} />
-        ))}
-      </section>
-
-      <AnimationTable onPreview={setPreviewEntry} />
+        <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-8" data-model-grid>
+          {entries.map((entry) => (
+            <ModelCard key={entry.id} entry={entry} />
+          ))}
+        </section>
+      </div>
 
       <AnimationPreviewDialog entry={previewEntry} onClose={() => setPreviewEntry(null)} />
     </div>
