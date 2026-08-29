@@ -1,54 +1,5 @@
-import type { LLMProvider } from "./llm";
-import type { ModelRouteTaskType } from "./novel";
 import type { NovelWorkflowCheckpoint } from "./novelWorkflow";
 import type { TaskStatus } from "./task";
-
-export interface QuickSetupProviderOption {
-  id: LLMProvider;
-  kind: "builtin" | "custom";
-  name: string;
-  requiresApiKey: boolean;
-  configured: boolean;
-  active: boolean;
-  currentModel: string;
-  defaultModel: string;
-  currentBaseURL: string;
-  defaultBaseURL: string;
-  models: string[];
-}
-
-export interface QuickSetupRouteCoverage {
-  configured: number;
-  total: number;
-  missingTaskTypes: ModelRouteTaskType[];
-}
-
-export interface QuickSetupStatus {
-  readyForCreation: boolean;
-  providers: QuickSetupProviderOption[];
-  selectedProvider: LLMProvider | null;
-  selectedModel: string | null;
-  routeCoverage: QuickSetupRouteCoverage;
-  blockingReasons: string[];
-  recommendedAction: "configure_provider" | "repair_routes" | "start_creating";
-}
-
-export interface CompleteQuickSetupRequest {
-  providerKind: "builtin" | "custom";
-  provider?: LLMProvider;
-  customProviderName?: string;
-  apiKey?: string;
-  baseURL?: string;
-  model: string;
-}
-
-export interface CompleteQuickSetupResult {
-  status: QuickSetupStatus;
-  provider: LLMProvider;
-  model: string;
-  plainConnectionReady: boolean;
-  structuredConnectionReady: boolean;
-}
 
 export type FirstNovelMilestoneKey =
   | "environment"
@@ -76,7 +27,7 @@ export interface FirstNovelOnboardingProjection {
   primaryAction: {
     label: string;
     route: string;
-    kind: "navigate" | "open_quick_setup" | "resume";
+    kind: "navigate" | "resume";
   };
   novel: {
     id: string;

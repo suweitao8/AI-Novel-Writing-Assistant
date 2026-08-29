@@ -16,7 +16,6 @@ import {
   AUTO_DIRECTOR_MOBILE_CLASSES,
   shouldUseAutoDirectorMobileFullWidthContent,
 } from "@/mobile/autoDirector";
-import { CreationSetupProvider } from "@/components/onboarding/CreationSetupContext";
 import { PageTabsProvider, type PageTabRow } from "./PageTabsContext";
 
 const WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY = "ai-novel.workspace-rail.collapsed";
@@ -78,24 +77,21 @@ export default function AppLayout() {
 
   if (isNovelPreview) {
     return (
-      <CreationSetupProvider>
-        <TaskRecoveryProvider>
-          <div className="h-[100dvh] overflow-hidden bg-background text-foreground">
-            <AutoDirectorPauseNotificationWatcher />
-            <LLMSelectionBootstrap />
-            <Suspense fallback={<AppRouteFallback />}>
-              <Outlet />
-            </Suspense>
-            <TaskRecoveryDialog />
-          </div>
-        </TaskRecoveryProvider>
-      </CreationSetupProvider>
+      <TaskRecoveryProvider>
+        <div className="h-[100dvh] overflow-hidden bg-background text-foreground">
+          <AutoDirectorPauseNotificationWatcher />
+          <LLMSelectionBootstrap />
+          <Suspense fallback={<AppRouteFallback />}>
+            <Outlet />
+          </Suspense>
+          <TaskRecoveryDialog />
+        </div>
+      </TaskRecoveryProvider>
     );
   }
 
   if (useMobileNovelWorkspaceLayout) {
     return (
-      <CreationSetupProvider>
       <TaskRecoveryProvider>
         <div className="min-h-screen bg-background">
           <AutoDirectorPauseNotificationWatcher />
@@ -107,13 +103,11 @@ export default function AppLayout() {
           <TaskRecoveryDialog />
         </div>
       </TaskRecoveryProvider>
-      </CreationSetupProvider>
     );
   }
 
   if (useMobileSiteLayout) {
     return (
-      <CreationSetupProvider>
       <TaskRecoveryProvider>
         <MobileSiteShell>
           <AutoDirectorPauseNotificationWatcher />
@@ -124,53 +118,50 @@ export default function AppLayout() {
           <TaskRecoveryDialog />
         </MobileSiteShell>
       </TaskRecoveryProvider>
-      </CreationSetupProvider>
     );
   }
 
   return (
-    <CreationSetupProvider>
     <TaskRecoveryProvider>
-    <PageTabsProvider value={pageTabsContextValue}>
-      <div className={useTopNavLayout
-        ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
-        : "flex h-[100dvh] min-h-0 overflow-hidden bg-background"}
-      >
-        <AutoDirectorPauseNotificationWatcher />
-        <LLMSelectionBootstrap />
-        {useTopNavLayout ? (
-          <TopNav
-            onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
-          />
-        ) : null}
-        <div className="flex min-h-0 flex-1">
-          {!useTopNavLayout ? (
-            <div className={useMobileFullWidthContent ? "hidden md:block" : "shrink-0"}>
-              {showWorkspaceRail && workspaceRoute ? (
-                <NovelWorkspaceRail
-                  novelId={workspaceRoute.novelId}
-                  chapterId={workspaceRoute.chapterId}
-                  collapsed={isWorkspaceRailCollapsed}
-                  onToggle={() => setIsWorkspaceRailCollapsed((current) => !current)}
-                  onSwitchToProjectNav={() => setWorkspaceNavMode("project")}
-                />
-              ) : (
-                <Sidebar
-                  onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
-                />
-              )}
-            </div>
+      <PageTabsProvider value={pageTabsContextValue}>
+        <div className={useTopNavLayout
+          ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
+          : "flex h-[100dvh] min-h-0 overflow-hidden bg-background"}
+        >
+          <AutoDirectorPauseNotificationWatcher />
+          <LLMSelectionBootstrap />
+          {useTopNavLayout ? (
+            <TopNav
+              onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
+            />
           ) : null}
-          <main className={useMobileFullWidthContent ? AUTO_DIRECTOR_MOBILE_CLASSES.appMain : DEFAULT_APP_MAIN_CLASS_NAME}>
-            <Suspense fallback={<AppRouteFallback />}>
-              <Outlet />
-            </Suspense>
-          </main>
+          <div className="flex min-h-0 flex-1">
+            {!useTopNavLayout ? (
+              <div className={useMobileFullWidthContent ? "hidden md:block" : "shrink-0"}>
+                {showWorkspaceRail && workspaceRoute ? (
+                  <NovelWorkspaceRail
+                    novelId={workspaceRoute.novelId}
+                    chapterId={workspaceRoute.chapterId}
+                    collapsed={isWorkspaceRailCollapsed}
+                    onToggle={() => setIsWorkspaceRailCollapsed((current) => !current)}
+                    onSwitchToProjectNav={() => setWorkspaceNavMode("project")}
+                  />
+                ) : (
+                  <Sidebar
+                    onSwitchToWorkspaceNav={isNovelWorkspace ? () => setWorkspaceNavMode("workspace") : undefined}
+                  />
+                )}
+              </div>
+            ) : null}
+            <main className={useMobileFullWidthContent ? AUTO_DIRECTOR_MOBILE_CLASSES.appMain : DEFAULT_APP_MAIN_CLASS_NAME}>
+              <Suspense fallback={<AppRouteFallback />}>
+                <Outlet />
+              </Suspense>
+            </main>
+          </div>
+          <TaskRecoveryDialog />
         </div>
-        <TaskRecoveryDialog />
-      </div>
-    </PageTabsProvider>
+      </PageTabsProvider>
     </TaskRecoveryProvider>
-    </CreationSetupProvider>
   );
 }
