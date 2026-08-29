@@ -15,6 +15,9 @@ const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio
 const animationThumbnailSource = read("../src/pages/animations/animationThumbnailStudio.ts");
 const editorSource = read("../src/pages/models/ModelEditorPage.tsx");
 const settingsSource = read("../src/pages/settings/views/NarratorVoiceSettingsPage.tsx");
+const routerSource = read("../src/router/index.tsx");
+const previewSource = read("../src/pages/settings/views/StudioEnvironmentPreviewPage.tsx");
+const previewAppSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentPreviewApp.ts");
 
 test("模型环境预设使用 5 到 30 米的半球直径", () => {
   assert.match(presetSource, /interior/);
@@ -75,7 +78,7 @@ test("模型编辑器提供三套 HDRI 环境选择和 5 到 30 米直径调节"
 });
 
 test("系统资产预设页用表格统一管理旁白音色和 HDRI 直径", () => {
-  assert.match(settingsSource, /title="资产预设"/);
+  assert.match(settingsSource, /title="通用资产"/);
   assert.match(settingsSource, /<table/);
   assert.match(settingsSource, /旁白音色预设/);
   assert.match(settingsSource, /模型与动画 HDRI 预设/);
@@ -83,6 +86,24 @@ test("系统资产预设页用表格统一管理旁白音色和 HDRI 直径", ()
   assert.match(settingsSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
   assert.match(settingsSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
   assert.match(settingsSource, /saveStudioEnvironmentDiameterPreference/);
+  assert.match(settingsSource, /3D 预览/);
+  assert.match(settingsSource, /settings\/narrator-voice\/hdri/);
+});
+
+test("HDRI 预览页复用共享环境运行时并提供完整直径交互", () => {
+  assert.match(routerSource, /settings\/narrator-voice\/hdri\/:environmentId/);
+  assert.match(previewSource, /HDRI 3D 预览/);
+  assert.match(previewSource, /返回通用资产/);
+  assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
+  assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
+  assert.match(previewSource, /type="range"/);
+  assert.match(previewSource, /useParams/);
+  assert.match(previewAppSource, /loadStudioEnvironment\(app/);
+  assert.match(previewAppSource, /setEnvironmentPreset/);
+  assert.match(previewAppSource, /setEnvironmentDiameter/);
+  assert.match(previewAppSource, /pointerdown/);
+  assert.match(previewAppSource, /wheel/);
+  assert.match(previewAppSource, /setPosition\(/);
 });
 
 test("三张模型 HDRI 都是 Radiance RGBE 文件", () => {

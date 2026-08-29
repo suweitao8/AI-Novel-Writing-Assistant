@@ -10,7 +10,7 @@ const items = [
   { to: "/settings/models", label: "模型设置" },
   { to: "/settings/director", label: "自动导演" },
   { to: "/settings/knowledge", label: "知识库与写法" },
-  { to: "/settings/narrator-voice", label: "资产预设" },
+  { to: "/settings/narrator-voice", label: "通用资产" },
   { to: "/settings/appearance", label: "外观与主题" },
   // 记录与画风以页签形式并入系统（2026-08-27 用户要求）；旧地址保留重定向。
   { to: "/settings/records", label: "记录" },

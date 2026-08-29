@@ -43,6 +43,7 @@ const DirectorSettingsPage = lazy(() => import("@/pages/settings/views/DirectorS
 const KnowledgeSettingsPage = lazy(() => import("@/pages/settings/views/KnowledgeSettingsPage"));
 const AppearanceSettingsPage = lazy(() => import("@/pages/settings/views/AppearanceSettingsPage"));
 const NarratorVoiceSettingsPage = lazy(() => import("@/pages/settings/views/NarratorVoiceSettingsPage"));
+const StudioEnvironmentPreviewPage = lazy(() => import("@/pages/settings/views/StudioEnvironmentPreviewPage"));
 const WorldList = lazy(() => import("@/pages/worlds/WorldList"));
 const WorldGenerator = lazy(() => import("@/pages/worlds/WorldGenerator"));
 const WorldWorkspace = lazy(() => import("@/pages/worlds/WorldWorkspace"));
@@ -93,6 +94,7 @@ const routes: RouteObject[] = [
       { path: "settings/models", element: <ModelsSettingsPage /> },
       { path: "settings/director", element: <DirectorSettingsPage /> },
       { path: "settings/knowledge", element: <KnowledgeSettingsPage /> },
+      { path: "settings/narrator-voice/hdri/:environmentId", element: <StudioEnvironmentPreviewPage /> },
       { path: "settings/narrator-voice", element: <NarratorVoiceSettingsPage /> },
       { path: "settings/appearance", element: <AppearanceSettingsPage /> },
       { path: "settings/art-style", element: <ArtStyleSettingsPage /> },
