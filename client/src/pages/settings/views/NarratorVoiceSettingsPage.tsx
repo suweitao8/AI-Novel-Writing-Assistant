@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { AudioLines, Box, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
   designGlobalNarratorVoice,
   getGlobalNarratorVoice,
@@ -13,8 +14,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
+  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   STUDIO_ENVIRONMENT_PRESET_IDS,
+  getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentPreset,
+  saveStudioEnvironmentDiameterPreference,
+  type StudioEnvironmentPresetId,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentPresets";
 import { SettingsShell } from "../components/SettingsShell";
 
@@ -29,6 +34,11 @@ export default function NarratorVoiceSettingsPage() {
     queryFn: getGlobalNarratorVoice,
   });
   const [draft, setDraft] = useState("");
+  const [environmentDiameters, setEnvironmentDiameters] = useState<Record<StudioEnvironmentPresetId, number>>(
+    () => Object.fromEntries(
+      STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => [id, getStudioEnvironmentDiameterPreference(id)]),
+    ) as Record<StudioEnvironmentPresetId, number>,
+  );
   const hasEditedDraft = useRef(false);
 
   useEffect(() => {
@@ -62,9 +72,16 @@ export default function NarratorVoiceSettingsPage() {
   const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
+  const handleEnvironmentDiameterChange = (id: StudioEnvironmentPresetId, value: number) => {
+    const diameterMeters = saveStudioEnvironmentDiameterPreference(id, Math.min(
+      STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max,
+      Math.max(STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min, value),
+    ));
+    setEnvironmentDiameters((current) => ({ ...current, [id]: diameterMeters }));
+  };
 
   return (
-    <SettingsShell title="资产预设" description="管理创作统一使用的旁白音色与模型预览环境。">
+    <SettingsShell title="通用资产" description="管理网站统一使用的旁白音色与 HDRI 环境。">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
@@ -151,14 +168,15 @@ export default function NarratorVoiceSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[860px] text-sm">
               <caption className="sr-only">模型与动画 HDRI 预设</caption>
               <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
                 <tr>
                   <th scope="col" className="w-44 px-4 py-3 font-medium">资产</th>
                   <th scope="col" className="w-52 px-4 py-3 font-medium">用途</th>
-                  <th scope="col" className="min-w-[180px] px-4 py-3 font-medium">中心到边界半径</th>
+                  <th scope="col" className="min-w-[220px] px-4 py-3 font-medium">半球直径</th>
                   <th scope="col" className="min-w-[250px] px-4 py-3 font-medium">资源</th>
+                  <th scope="col" className="w-32 px-4 py-3 text-right font-medium">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,10 +187,35 @@ export default function NarratorVoiceSettingsPage() {
                       <th scope="row" className="px-4 py-4 text-left font-medium text-foreground">{preset.label}</th>
                       <td className="px-4 py-4 text-muted-foreground">模型与动画预览</td>
                       <td className="px-4 py-4">
-                        <output className="tabular-nums text-foreground">{preset.radiusMeters} 米</output>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between gap-2 text-xs">
+                            <span className="text-muted-foreground">
+                              {STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}–{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米
+                            </span>
+                            <output className="tabular-nums text-foreground">{environmentDiameters[id]} 米</output>
+                          </div>
+                          <input
+                            type="range"
+                            min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
+                            max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
+                            step={1}
+                            value={environmentDiameters[id]}
+                            aria-label={`${preset.label}半球直径`}
+                            onChange={(event) => handleEnvironmentDiameterChange(id, Number(event.target.value))}
+                            className="w-full accent-primary"
+                          />
+                        </div>
                       </td>
                       <td className="px-4 py-4">
                         <code className="break-all text-xs text-muted-foreground">{preset.sourceUrl}</code>
+                      </td>
+                      <td className="px-4 py-4 text-right">
+                        <Button asChild type="button" variant="outline" size="sm">
+                          <Link to={`/settings/narrator-voice/hdri/${id}`}>
+                            <Box className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            3D 预览
+                          </Link>
+                        </Button>
                       </td>
                     </tr>
                   );
