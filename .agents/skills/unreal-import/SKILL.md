@@ -16,7 +16,7 @@ description: 从本机虚幻项目（D:\UnrealWorkspace\Cine57，UE 5.7）无头
 | 扫描/选型/导出脚本 | `D:\UnrealWorkspace\*.py`（`scan_props.py`、`select_batch3.py`、`export_cine57_batch*.py`） |
 | 导出产物 | `D:\UnrealWorkspace\Cine57-exported*\`（模型：FBX + 贴图 PNG + manifest；动画：`Cine57-exported\anims\`） |
 | FBX→GLB 工具 | `D:\UnrealWorkspace\gltf-tools\`（`node fbx2glb.mjs in.fbx out.glb`，npm fbx2gltf） |
-| 动画重定向脚本 | `D:\UnrealWorkspace\gltf-tools\final_retarget.py`（GLB 层离线重定向） |
+| 动画重定向脚本 | 项目内 `scripts/animation/retarget_ual2.py`（GLB 层离线重定向）；`D:\UnrealWorkspace\gltf-tools\final_retarget.py` 仅保留为历史参考 |
 | 重定向目标骨架 | `client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb`（项目代理角色） |
 | 模型目录构建脚本 | `%TEMP%\fbx2gltf-test\build-library-v3.cjs` |
 | 模型入库落点 | `client/public/models/cine57/`（`*.glb` + `tex/`）+ `client/src/config/modelLibrary.ts` |
@@ -78,9 +78,9 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 ### 步骤
 
-1. **UE 无头导出动画 FBX**：`AnimSequenceExporterFBX` + AssetExportTask（公共基础一节的用法）→ 产物 `D:\UnrealWorkspace\Cine57-exported\anims\`。选片前先在 UE 侧确认 `AdditiveAnimType`（或导出前烘焙）——加法动画导出的 FBX 贴绑定位姿，重定向后接近 T-pose（已入库的 `A_INP_Idle`/`A_INP_WalkFwd_Loop` 就是这个坑，`A_chair_loop01` 腿部有真实动作）。
+1. **UE 无头导出动画 FBX**：`AnimSequenceExporterFBX` + AssetExportTask（公共基础一节的用法）→ 产物 `D:\UnrealWorkspace\Cine57-exported\anims\`。源片段必须包含完整绝对骨骼姿态；先在 UE 侧确认 `AdditiveAnimType`，并把 Additive、Layered 或未烘焙控制器轨道烘焙到骨架后再导出。导出后先解析源 GLB，确认相对源绑定姿态确实存在待机、行走或坐姿变化。
 2. **FBX→GLB**：`node fbx2glb.mjs in.fbx out.glb`。
-3. **GLB 层重定向**：`python final_retarget.py <anim.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：动画、基础角色、输出、名字）。绑定位姿差法：每根骨骼 `W_t := W_t0 · inv(W_s0) · W_s`（`W_*0` = 各自绑定世界朝向），自顶向下解局部旋转；位移只保留 root/pelvis（按静止值逐轴比例缩放）；输出四元数需半球连续（相邻键 dot<0 取反），否则蒙皮插值 NaN。
+3. **GLB 层重定向**：`python scripts/animation/retarget_ual2.py <source.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：源动画、基础角色、输出、名字）。绑定位姿差法：每根骨骼使用 `W_t := W_s · inv(W_s0) · W_t0`（`W_*0` = 各自绑定世界朝向），自顶向下解局部旋转；root/pelvis 平移只传递绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`，不能按绝对分量比例套用；目标侧只允许 `skins[].joints` 中的节点进入映射；输出四元数需为 VEC4、单位化并半球连续（相邻键 dot<0 取反）。
 4. **链式合并进同一个 GLB**：动画体积远小于角色网格体积，后续批量入库往 `UAL2_UE_Anims.glb` 追加，不要一片一段一段文件。目录条目用 `clipName` 指向其中的动画（`animationLibrary.ts`）。
 
 ### 动画硬规则（每条都是实打实的坑）
@@ -88,12 +88,14 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 1. **自写 GLB writer 必须显式传分量数**：曾把拍平的一维数组探测 `len(arr[0])` 恒得标量，所有通道写成 SCALAR——播放时蒙皮矩阵整体错乱（角色不可见/诡异姿势），而内存求解与离线校验全对，极具迷惑性。排查：解析输出 GLB，比对 `accessor.count` vs `sampler.input.count`、`type` 是否 VEC4/VEC3、四元数模长是否恒 1。
 2. **骨骼名匹配必须限定目标侧 `skins[].joints`**：UAL2 的网格包装节点叫 `Mannequin`，UE 骨架根骨也叫 `Mannequin`——裸名匹配会把整只模型当骨骼转，写入旋转通道后整只模型被动画带飞。源侧（纯动画导出，可能没有 skins）用全部命名节点。
 3. **GLB 结构细节**：JSON chunk 必须空格填充（NUL 会炸 `JSON.parse`）；追加 buffer 后要更新 `buffers[0].byteLength`；手写重写时 BIN chunk 长度在 `binOffset` 处读、数据从 `binOffset + 8` 开始（两处错了都顶点错位且 JSON 校验看不出来）。
-4. **`animationLibrary.ts` 是数据目录**：新增动画优先往同一个 GLB 追加 + 加目录条目；缩略图（`animationThumbnailStudio.ts`）进目录即自动生成，无需手工出图，但改缩略图生成逻辑必须升 localStorage 缓存版本。
+4. **`animationLibrary.ts` 是数据目录**：新增动画优先往同一个 GLB 追加 + 加目录条目；缩略图（`animationThumbnailStudio.ts`）进目录即自动生成，无需手工出图，但改缩略图生成逻辑或替换资源必须升 localStorage 缓存版本。
+5. **发布前必须过内容门禁**：除了 GLB 可解析、accessor 类型和四元数模长，还要验证待机手部低于肩部、行走双脚有明显轨迹、坐姿骨盆没有异常深度位移；不能用不同绑定姿态的源/目标世界四元数直接作相等校验。
 
 ## 验证（两条管线通用）
 
 - 仓库自检：`pnpm --filter @ai-novel/client typecheck`；
 - GLB 体检：解析 mesh/node 名单确认无 `UCX_*`/LOD 残留（模型）；解析 accessor 比对 count/type/四元数模长（动画）；
+- 动画内容门禁：`node --experimental-strip-types --test client/src/config/animationLibraryContent.test.mjs`；
 - 浏览器 smoke：模型走 `/models` 页 + 3D 编辑器打开新模型（无白壳、贴图正确）；动画走 `/animations` 页预览弹窗（动作可见、逐帧变化、非 T-pose）；console 无错；
 - 产物入库一律走 AGENTS.md 的 codex/* worktree 工作流。
 

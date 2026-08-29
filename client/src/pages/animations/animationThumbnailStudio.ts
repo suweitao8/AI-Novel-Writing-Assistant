@@ -21,7 +21,7 @@ import { attachStudioBackdrop } from "@/pages/models/modelLibrary3d/studioBackdr
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v1";
+const STORAGE_KEY = "animation-library:thumbnails:v2";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
