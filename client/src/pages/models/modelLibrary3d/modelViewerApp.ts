@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 
 import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
+import { setupStudioLighting } from "./studioLighting";
 import {
   createBlocking3dTransformGizmo,
   clamp,
@@ -133,8 +134,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   });
   app.setCanvasFillMode(pc.FILLMODE_NONE);
   app.setCanvasResolution(pc.RESOLUTION_AUTO);
-  app.scene.exposure = 1;
-  app.scene.ambientLight = new pc.Color(0.42, 0.42, 0.46);
 
   const cameraEntity = new pc.Entity("model-editor-camera");
   cameraEntity.addComponent("camera", {
@@ -145,23 +144,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   });
   app.root.addChild(cameraEntity);
   const camera = cameraEntity.camera!;
-
-  const keyLight = new pc.Entity("model-key-light");
-  keyLight.addComponent("light", {
-    type: "directional",
-    intensity: 1.1,
-    castShadows: true,
-    shadowBias: 0.35,
-    normalOffsetBias: 0.05,
-    shadowDistance: 25,
-  });
-  keyLight.setEulerAngles(48, 32, 0);
-  app.root.addChild(keyLight);
-
-  const fillLight = new pc.Entity("model-fill-light");
-  fillLight.addComponent("light", { type: "directional", intensity: 0.32 });
-  fillLight.setEulerAngles(-28, -142, 0);
-  app.root.addChild(fillLight);
+  setupStudioLighting(app, camera, { castShadows: true });
 
   const ground = createPlane(
     app,

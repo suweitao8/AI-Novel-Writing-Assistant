@@ -99,7 +99,7 @@ export async function resolveSceneFile(sceneId: string): Promise<{ filePath: str
   return null;
 }
 
-function buildSceneSheetPrompt(params: {
+export function buildSceneSheetPrompt(params: {
   name: string;
   sceneType: SceneType;
   bible: SceneBible;
@@ -113,8 +113,7 @@ function buildSceneSheetPrompt(params: {
     "seamless horizontal wrap-around view of the whole space, equirectangular panorama style",
     "camera at eye level in the center of the location, full horizon coverage showing the front, both sides and the back of the space in one continuous image",
     "consistent palette, materials, architecture and lighting across the entire panorama",
-    ...scenePanoramaLayoutLinesFor(sceneType),
-    "environment concept art, NO characters or only tiny background figures",
+    "pure empty environment reference, no people, no characters, no animals, no monsters, no creatures, no crowds, no living subjects, no humanoid silhouettes",
   ];
   if (bible.palette) lines.push(`color palette: ${bible.palette}`);
   if (bible.keyElements) lines.push(`key elements: ${bible.keyElements}`);
@@ -122,6 +121,8 @@ function buildSceneSheetPrompt(params: {
   if (bible.ambiance) lines.push(`ambiance and lighting: ${bible.ambiance}`);
   if (bible.layout) lines.push(`spatial layout: ${bible.layout}`);
   lines.push("clean composition, no text labels, no watermark, high quality background art");
+  // 共享全景合同必须位于 bible 场景语境之后，避免家具/近景物体描述覆盖分层规则。
+  lines.push(...scenePanoramaLayoutLinesFor(sceneType));
   return lines.join(", ");
 }
 
