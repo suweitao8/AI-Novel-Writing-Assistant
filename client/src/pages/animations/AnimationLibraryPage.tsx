@@ -1,44 +1,43 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2, Play } from "lucide-react";
 
 import { ANIMATION_LIBRARY, ANIMATION_LIBRARY_CATEGORIES, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Dialog, AppDialogContent } from "@/components/ui/dialog";
-import { toast } from "@/components/ui/toast";
 import {
   ensureAnimationThumbnail,
   getAnimationThumbnail,
   subscribeAnimationThumbnails,
 } from "./animationThumbnailStudio";
-import {
-  openAnimationPreview,
-  type AnimationPreview,
-} from "./animationPreviewApp";
+import { getAnimationKeyframe, subscribeAnimationKeyframes } from "./animationPreviewStorage";
 
-function AnimationCard({
-  entry,
-  onPreview,
-}: {
-  entry: AnimationLibraryEntry;
-  onPreview: (entry: AnimationLibraryEntry) => void;
-}) {
-  const [thumbnail, setThumbnail] = useState<string | null>(() => getAnimationThumbnail(entry.id));
+function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
+  const [thumbnail, setThumbnail] = useState<string | null>(() => {
+    return getAnimationKeyframe(entry.id)?.dataUrl ?? getAnimationThumbnail(entry.id);
+  });
+
   useEffect(() => {
-    if (ensureAnimationThumbnail(entry)) return;
-    return subscribeAnimationThumbnails(() => {
-      const next = getAnimationThumbnail(entry.id);
-      if (next) setThumbnail(next);
+    const syncThumbnail = () => {
+      setThumbnail(getAnimationKeyframe(entry.id)?.dataUrl ?? getAnimationThumbnail(entry.id));
+    };
+    syncThumbnail();
+    const unsubscribeThumbnails = subscribeAnimationThumbnails(syncThumbnail);
+    const unsubscribeKeyframes = subscribeAnimationKeyframes((changedId) => {
+      if (changedId === entry.id) syncThumbnail();
     });
+    if (!getAnimationKeyframe(entry.id)) ensureAnimationThumbnail(entry);
+    return () => {
+      unsubscribeThumbnails();
+      unsubscribeKeyframes();
+    };
   }, [entry]);
 
   return (
-    <button
-      type="button"
-      onClick={() => onPreview(entry)}
+    <Link
+      to={`/animations/${entry.id}`}
       className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60"
       data-animation-card={entry.id}
-      title={`播放 ${entry.name}`}
+      title={`打开 ${entry.name} 的 3D 预览`}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {thumbnail ? (
@@ -63,81 +62,12 @@ function AnimationCard({
           {entry.category} · {entry.durationSeconds.toFixed(1)} 秒
         </div>
       </div>
-    </button>
-  );
-}
-
-function AnimationPreviewDialog({ entry, onClose }: { entry: AnimationLibraryEntry | null; onClose: () => void }) {
-  const [canvasEl, setCanvasEl] = useState<HTMLCanvasElement | null>(null);
-  const previewRef = useRef<AnimationPreview | null>(null);
-  const [status, setStatus] = useState("");
-
-  useEffect(() => {
-    if (!entry || !canvasEl || previewRef.current) return undefined;
-    let disposed = false;
-    setStatus("正在加载动作");
-    const handle = openAnimationPreview({
-      canvas: canvasEl,
-      glbUrl: entry.fileUrl,
-      clipName: entry.clipName,
-      onStatus: setStatus,
-      onError: (message) => toast.error("动作预览失败", { description: message }),
-    });
-    handle.ready
-      .then((preview) => {
-        if (disposed) {
-          preview.destroy();
-          return;
-        }
-        previewRef.current = preview;
-        setStatus("");
-      })
-      .catch((error: unknown) => {
-        if (disposed) return;
-        setStatus("");
-        toast.error("动作预览初始化失败", {
-          description: error instanceof Error ? error.message : String(error),
-        });
-      });
-    return () => {
-      disposed = true;
-      handle.cancel();
-      previewRef.current = null;
-    };
-  }, [entry, canvasEl]);
-
-  return (
-    <Dialog open={entry !== null} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <AppDialogContent
-        title={entry ? `${entry.name} 预览` : "动画预览"}
-        footer={
-          <Button variant="outline" onClick={onClose}>
-            关闭
-          </Button>
-        }
-      >
-        <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-border bg-muted">
-          <canvas
-            key={entry?.id ?? "empty"}
-            ref={setCanvasEl}
-            className="block h-full w-full"
-            data-animation-preview-canvas
-          />
-          {status ? (
-            <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-              {status}
-            </div>
-          ) : null}
-        </div>
-      </AppDialogContent>
-    </Dialog>
+    </Link>
   );
 }
 
 export default function AnimationLibraryPage() {
   const [category, setCategory] = useState<string>("全部");
-  const [previewEntry, setPreviewEntry] = useState<AnimationLibraryEntry | null>(null);
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of ANIMATION_LIBRARY) {
@@ -190,11 +120,9 @@ export default function AnimationLibraryPage() {
 
       <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" data-animation-grid>
         {entries.map((entry) => (
-          <AnimationCard key={entry.id} entry={entry} onPreview={setPreviewEntry} />
+          <AnimationCard key={entry.id} entry={entry} />
         ))}
       </section>
-
-      <AnimationPreviewDialog entry={previewEntry} onClose={() => setPreviewEntry(null)} />
     </div>
   );
 }

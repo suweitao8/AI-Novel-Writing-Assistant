@@ -8,13 +8,45 @@ import { ANIMATION_LIBRARY } from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const clientDir = path.resolve(configDir, "../..");
+const blockingCoreSource = fs.readFileSync(
+  path.join(
+    clientDir,
+    "src",
+    "pages",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dViewerCore.ts",
+  ),
+  "utf8",
+);
+const blockingAppSource = fs.readFileSync(
+  path.join(
+    clientDir,
+    "src",
+    "pages",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dViewerApp.ts",
+  ),
+  "utf8",
+);
 const IDENTITY = [0, 0, 0, 1];
 
 function readGlb(filePath) {
   const buffer = fs.readFileSync(filePath);
-  assert.equal(buffer.toString("ascii", 0, 4), "glTF", `${filePath} 应是 GLB 文件`);
+  assert.equal(
+    buffer.toString("ascii", 0, 4),
+    "glTF",
+    `${filePath} 应是 GLB 文件`,
+  );
   const jsonLength = buffer.readUInt32LE(12);
-  const json = JSON.parse(buffer.subarray(20, 20 + jsonLength).toString("utf8"));
+  const json = JSON.parse(
+    buffer.subarray(20, 20 + jsonLength).toString("utf8"),
+  );
   const binaryStart = 20 + jsonLength;
   const binaryLength = buffer.readUInt32LE(binaryStart);
   return {
@@ -35,7 +67,9 @@ function readAccessor(glb, accessorIndex) {
     accessor.count * componentCount,
   );
   return Array.from({ length: accessor.count }, (_, index) =>
-    Array.from(values.slice(index * componentCount, (index + 1) * componentCount)),
+    Array.from(
+      values.slice(index * componentCount, (index + 1) * componentCount),
+    ),
   );
 }
 
@@ -62,8 +96,16 @@ function qDot(a, b) {
 
 function qRotate(q, vector) {
   const [x, y, z, w] = q;
-  const uv = [y * vector[2] - z * vector[1], z * vector[0] - x * vector[2], x * vector[1] - y * vector[0]];
-  const uuv = [y * uv[2] - z * uv[1], z * uv[0] - x * uv[2], x * uv[1] - y * uv[0]];
+  const uv = [
+    y * vector[2] - z * vector[1],
+    z * vector[0] - x * vector[2],
+    x * vector[1] - y * vector[0],
+  ];
+  const uuv = [
+    y * uv[2] - z * uv[1],
+    z * uv[0] - x * uv[2],
+    x * uv[1] - y * uv[0],
+  ];
   return vector.map((value, index) => value + 2 * (w * uv[index] + uuv[index]));
 }
 
@@ -104,9 +146,15 @@ function interpolate(track, time) {
   let right = values[index + 1];
   if (left.length === 4) {
     if (qDot(left, right) < 0) right = right.map((value) => -value);
-    return qNormalize(left.map((value, component) => value + (right[component] - value) * fraction));
+    return qNormalize(
+      left.map(
+        (value, component) => value + (right[component] - value) * fraction,
+      ),
+    );
   }
-  return left.map((value, component) => value + (right[component] - value) * fraction);
+  return left.map(
+    (value, component) => value + (right[component] - value) * fraction,
+  );
 }
 
 function makeTracks(glb, animation) {
@@ -124,7 +172,9 @@ function makeTracks(glb, animation) {
 function animationDuration(glb, animation) {
   return Math.max(
     0,
-    ...(animation?.samplers ?? []).flatMap((sampler) => readAccessor(glb, sampler.input).map(([time]) => time)),
+    ...(animation?.samplers ?? []).flatMap((sampler) =>
+      readAccessor(glb, sampler.input).map(([time]) => time),
+    ),
   );
 }
 
@@ -132,27 +182,53 @@ function composePose(glb, animationName = null, time = 0) {
   const nodes = glb.json.nodes;
   const parents = parentMap(nodes);
   const order = topologicalOrder(nodes, parents);
-  const animation = animationName ? glb.json.animations.find(({ name }) => name === animationName) : null;
+  const animation = animationName
+    ? glb.json.animations.find(({ name }) => name === animationName)
+    : null;
   const tracks = makeTracks(glb, animation);
   const worldRotation = new Map();
   const worldPosition = new Map();
 
   for (const index of order) {
     const node = nodes[index];
-    const rotation = interpolate(tracks.get(`${index}:rotation`), time) ?? node.rotation ?? IDENTITY;
-    const translation = interpolate(tracks.get(`${index}:translation`), time) ?? node.translation ?? [0, 0, 0];
+    const rotation =
+      interpolate(tracks.get(`${index}:rotation`), time) ??
+      node.rotation ??
+      IDENTITY;
+    const translation = interpolate(tracks.get(`${index}:translation`), time) ??
+      node.translation ?? [0, 0, 0];
     const parent = parents.get(index);
-    worldRotation.set(index, parent === undefined ? rotation : qMultiply(worldRotation.get(parent), rotation));
+    worldRotation.set(
+      index,
+      parent === undefined
+        ? rotation
+        : qMultiply(worldRotation.get(parent), rotation),
+    );
     worldPosition.set(
       index,
-      parent === undefined ? translation : add(worldPosition.get(parent), qRotate(worldRotation.get(parent), translation)),
+      parent === undefined
+        ? translation
+        : add(
+            worldPosition.get(parent),
+            qRotate(worldRotation.get(parent), translation),
+          ),
     );
   }
-  return { duration: animationDuration(glb, animation), nodes, worldRotation, worldPosition };
+  return {
+    duration: animationDuration(glb, animation),
+    nodes,
+    worldRotation,
+    worldPosition,
+  };
 }
 
 function nodeIndexByName(glb) {
-  return new Map(glb.json.nodes.map((node, index) => [(node.name ?? "").toLowerCase(), index]));
+  return new Map(
+    glb.json.nodes.map((node, index) => [
+      (node.name ?? "").toLowerCase(),
+      index,
+    ]),
+  );
 }
 
 function distance(a, b) {
@@ -195,27 +271,81 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
       const sampler = animation.samplers[channel.sampler];
       const output = glb.json.accessors[sampler.output];
       if (channel.target.path === "rotation") {
-        assert.equal(output.type, "VEC4", `${animation.name} 的旋转通道必须是 VEC4`);
+        assert.equal(
+          output.type,
+          "VEC4",
+          `${animation.name} 的旋转通道必须是 VEC4`,
+        );
         for (const quaternion of readAccessor(glb, sampler.output)) {
-          assert.ok(Math.abs(Math.hypot(...quaternion) - 1) < 1e-4, `${animation.name} 存在非单位四元数`);
+          assert.ok(
+            Math.abs(Math.hypot(...quaternion) - 1) < 1e-4,
+            `${animation.name} 存在非单位四元数`,
+          );
         }
       }
       if (animation.name.startsWith("A_")) {
-        assert.ok(joints.has(channel.target.node), `${animation.name} 驱动了非 skin joint 节点`);
+        assert.ok(
+          joints.has(channel.target.node),
+          `${animation.name} 驱动了非 skin joint 节点`,
+        );
       }
     }
   }
 });
 
+test("动画库与分镜草图共用含 UAL2 角色和动作的单一 GLB", () => {
+  const glb = readGlb(assetPath());
+  const animationNames = new Set(
+    (glb.json.animations ?? []).map(({ name }) => name),
+  );
+  for (const name of ["A_INP_Idle", "A_INP_WalkFwd_Loop", "A_chair_loop01"]) {
+    assert.ok(animationNames.has(name), `统一动画文件缺少目录片段：${name}`);
+  }
+  assert.ok(
+    (glb.json.skins ?? []).some((skin) => (skin.joints ?? []).length > 0),
+    "统一动画文件必须包含 UAL2 skin",
+  );
+  assert.match(
+    blockingCoreSource,
+    /ACTOR_PROXY_URL = ["']\/anims\/cine57\/UAL2_UE_Anims\.glb["']/,
+  );
+  assert.doesNotMatch(blockingCoreSource, /UAL1_Standard\.glb/);
+  assert.doesNotMatch(blockingAppSource, /ACTOR_ANIMATION_URL|animationAsset/);
+});
+
+test("分镜运行时用姿势解析器校验统一文件的基础待机动作", () => {
+  assert.match(
+    blockingAppSource,
+    /resolveBlocking3dPoseClip\("standing", animationTracks\.keys\(\)\)/,
+  );
+  assert.doesNotMatch(blockingAppSource, /animationTracks\.has\("Idle_Loop"\)/);
+});
+
+test("分镜姿势选择器只使用统一 GLB 的可用姿势，旧布局缺失姿势会安全回退", () => {
+  assert.match(blockingAppSource, /getAvailableBlocking3dPoses/);
+  assert.match(blockingCoreSource, /appliedPose = "standing"/);
+  assert.match(blockingAppSource, /getAvailablePoses/);
+});
+
 test("行走片段保留双脚的明显交替运动", () => {
   const glb = readGlb(assetPath());
   const nodes = nodeIndexByName(glb);
-  const animation = glb.json.animations.find(({ name }) => name === "A_INP_WalkFwd_Loop");
+  const animation = glb.json.animations.find(
+    ({ name }) => name === "A_INP_WalkFwd_Loop",
+  );
   const duration = animationDuration(glb, animation);
-  const samples = Array.from({ length: 9 }, (_, index) => composePose(glb, animation.name, (duration * index) / 8));
-  const left = samples.map((pose) => pose.worldPosition.get(nodes.get("foot_l")));
-  const right = samples.map((pose) => pose.worldPosition.get(nodes.get("foot_r")));
-  const range = (points, component) => Math.max(...points.map((point) => point[component])) - Math.min(...points.map((point) => point[component]));
+  const samples = Array.from({ length: 9 }, (_, index) =>
+    composePose(glb, animation.name, (duration * index) / 8),
+  );
+  const left = samples.map((pose) =>
+    pose.worldPosition.get(nodes.get("foot_l")),
+  );
+  const right = samples.map((pose) =>
+    pose.worldPosition.get(nodes.get("foot_r")),
+  );
+  const range = (points, component) =>
+    Math.max(...points.map((point) => point[component])) -
+    Math.min(...points.map((point) => point[component]));
   assert.ok(range(left, 1) > 0.2 || range(left, 2) > 0.2, "左脚没有明显轨迹");
   assert.ok(range(right, 1) > 0.2 || range(right, 2) > 0.2, "右脚没有明显轨迹");
 });

@@ -16,7 +16,10 @@ import type {
 import { GROUND_DOME_FLAT_RADIUS } from "./blocking3dEnvironmentGeometry";
 import { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
-import { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
+import {
+  updateBlocking3dCameraAzimuth,
+  wrapBlocking3dAzimuth,
+} from "./blocking3dMath";
 import {
   DEFAULT_BLOCKING_3D_HEIGHT_METERS,
   heightToBlocking3dScale,
@@ -51,7 +54,6 @@ import {
   type Blocking3dTransformTool,
 } from "./blocking3dTransformGizmo";
 import {
-  ACTOR_ANIMATION_URL,
   ACTOR_PROXY_URL,
   BLOCKING_SKETCH_CAPTURE_SIZE,
   clamp,
@@ -74,6 +76,10 @@ import {
   type Blocking3dViewerActor,
   type ContainerResource,
 } from "./blocking3dViewerCore";
+import {
+  getAvailableBlocking3dPoses,
+  resolveBlocking3dPoseClip,
+} from "./blocking3dPose";
 
 export { BLOCKING_SKETCH_CAPTURE_SIZE, DEFAULT_BLOCKING_3D_ENVIRONMENT };
 export type { Blocking3dEnvironmentSettings };
@@ -113,9 +119,17 @@ export interface Blocking3dViewer {
   selectCamera: (selected: boolean) => boolean;
   isCameraSelected: () => boolean;
   /** 场景摄像机的独立机位（世界坐标位置 + 朝向），与编辑视角解耦。 */
-  getShotCameraPose: () => { position: [number, number, number]; yawDeg: number; pitchDeg: number };
+  getShotCameraPose: () => {
+    position: [number, number, number];
+    yawDeg: number;
+    pitchDeg: number;
+  };
   /** 提交场景摄像机机位的部分字段；收敛边界后同步机身与取景画中画。 */
-  setShotCameraPose: (patch: { position?: [number, number, number]; yawDeg?: number; pitchDeg?: number }) => void;
+  setShotCameraPose: (patch: {
+    position?: [number, number, number];
+    yawDeg?: number;
+    pitchDeg?: number;
+  }) => void;
   focusMarker: (id: string) => boolean;
   getSelectedMarker: () => string | null;
   setSceneMarkers: (markers: StoryScene3DMarker[]) => void;
@@ -129,6 +143,8 @@ export interface Blocking3dViewer {
   getActorLabels: () => string[];
   setSelectedPose: (pose: DramaShotBlockingSketchPose) => boolean;
   getSelectedPose: () => DramaShotBlockingSketchPose | null;
+  /** 当前统一动画容器实际能够渲染的姿势；旧布局中的不可用姿势会回退为站立。 */
+  getAvailablePoses: () => DramaShotBlockingSketchPose[];
   setSelectedColor: (color: [number, number, number]) => boolean;
   getSelectedColor: () => [number, number, number] | null;
   nudgeSelected: (dx: number, dy: number, dz: number) => boolean;
@@ -175,7 +191,9 @@ export interface Blocking3dViewer {
   destroy: () => void;
 }
 
-export async function createBlocking3dViewer(options: Blocking3dViewerOptions): Promise<Blocking3dViewer> {
+export async function createBlocking3dViewer(
+  options: Blocking3dViewerOptions,
+): Promise<Blocking3dViewer> {
   const { canvas } = options;
   const app = new pc.Application(canvas, {
     mouse: new pc.Mouse(canvas),
@@ -204,11 +222,18 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   // from this camera so the finite backdrop below remains the only environment
   // visible in the blocking viewport.
   const cameraComponent = cameraEntity.camera!;
-  cameraComponent.layers = cameraComponent.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
+  cameraComponent.layers = cameraComponent.layers.filter(
+    (layerId) => layerId !== pc.LAYERID_SKYBOX,
+  );
   // 编辑器辅助图层：摄像机机身等只服务编辑视口的对象挂在这里；取景画中画
   // 只渲染世界内容，不会看到机身和辅助元素。
-  const editorOverlayLayer = new pc.Layer({ name: "blocking3d-editor-overlay" });
-  app.scene.layers.insert(editorOverlayLayer, app.scene.layers.layerList.length);
+  const editorOverlayLayer = new pc.Layer({
+    name: "blocking3d-editor-overlay",
+  });
+  app.scene.layers.insert(
+    editorOverlayLayer,
+    app.scene.layers.layerList.length,
+  );
   cameraComponent.layers = [...cameraComponent.layers, editorOverlayLayer.id];
   app.root.addChild(cameraEntity);
   const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
@@ -217,7 +242,12 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   // Unity 风格的场景摄像机运行时：独立机位（世界坐标位置 + 朝向）驱动机身
   // 实体与右下角取景画中画；编辑视角导航不会带动机身。
-  const shotCamera = createBlocking3dShotCamera(app, canvas, cameraComponent, editorOverlayLayer.id);
+  const shotCamera = createBlocking3dShotCamera(
+    app,
+    canvas,
+    cameraComponent,
+    editorOverlayLayer.id,
+  );
 
   const ground = createPlane(
     app,
@@ -228,10 +258,16 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   );
   ground.render!.receiveShadows = true;
 
-  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
+  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> =
+    [];
   for (let value = -10; value <= 10; value += 1) {
     const major = value % 5 === 0;
-    const color = new pc.Color(major ? 0.46 : 0.28, major ? 0.5 : 0.32, major ? 0.58 : 0.4, major ? 0.62 : 0.38);
+    const color = new pc.Color(
+      major ? 0.46 : 0.28,
+      major ? 0.5 : 0.32,
+      major ? 0.58 : 0.4,
+      major ? 0.62 : 0.38,
+    );
     gridLines.push({
       start: new pc.Vec3(value, 0.005, -10),
       end: new pc.Vec3(value, 0.005, 10),
@@ -267,7 +303,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   type BoundaryLine = { start: pc.Vec3; end: pc.Vec3; color: pc.Color };
   let stageBoundaryLines: BoundaryLine[] = [];
   let domeBoundaryLines: BoundaryLine[] = [];
-  const buildBoundaryRing = (radius: number, color: pc.Color): BoundaryLine[] => {
+  const buildBoundaryRing = (
+    radius: number,
+    color: pc.Color,
+  ): BoundaryLine[] => {
     const lines: BoundaryLine[] = [];
     const y = 0.012;
     let previousXZ: { x: number; z: number } | null = null;
@@ -291,23 +330,21 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       stageBoundaryColor,
     );
     domeBoundaryLines = buildBoundaryRing(
-      resolveStoryScene3DDomeWorldRadius(environmentSettings) * GROUND_DOME_FLAT_RADIUS,
+      resolveStoryScene3DDomeWorldRadius(environmentSettings) *
+        GROUND_DOME_FLAT_RADIUS,
       domeBoundaryColor,
     );
   };
   rebuildBoundaryRings();
 
-  const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime = createProjectionCenterGizmo(
-    app,
-    environmentSettings,
-  );
+  const projectionCenterGizmo: Blocking3dProjectionCenterGizmoRuntime =
+    createProjectionCenterGizmo(app, environmentSettings);
   const applyEnvironmentSettings = () => {
     updateProjectionCenterGizmo(projectionCenterGizmo, environmentSettings);
     rebuildBoundaryRings();
     environment.applySettings(environmentSettings);
   };
   let actorAsset: pc.Asset;
-  let animationAsset: pc.Asset;
   const animationTracks = new Map<string, unknown>();
   const actors = new Map<string, Blocking3dViewerActor>();
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
@@ -332,13 +369,30 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   let shotCameraHelpersSuppressed = false;
   /** 机位实体与取景画中画统一按独立机位 pose 同步；选中摄像机或打开取景辅助时显示小窗。 */
   const syncShotCameraVisuals = () => {
-    shotCamera.sync(shotCameraPose, cameraState.fovDeg, (shotCameraHelpersVisible || cameraSelected) && !shotCameraHelpersSuppressed);
+    shotCamera.sync(
+      shotCameraPose,
+      cameraState.fovDeg,
+      (shotCameraHelpersVisible || cameraSelected) &&
+        !shotCameraHelpersSuppressed,
+    );
   };
   let destroyed = false;
-  const selectionOutline = createBlocking3dSelectionOutline(app, cameraEntity, SELECTION_OUTLINE_COLOR);
+  const selectionOutline = createBlocking3dSelectionOutline(
+    app,
+    cameraEntity,
+    SELECTION_OUTLINE_COLOR,
+  );
   let interactionEnabled = true;
   let actorMovementEnabled = true;
-  let dragState: { button: number; pointerId: number; x: number; y: number; mode: "actor" | "camera-body" | "camera" | "none"; actorLabel?: string; lastGround?: pc.Vec3 } | null = null;
+  let dragState: {
+    button: number;
+    pointerId: number;
+    x: number;
+    y: number;
+    mode: "actor" | "camera-body" | "camera" | "none";
+    actorLabel?: string;
+    lastGround?: pc.Vec3;
+  } | null = null;
   let keyboardInput = new Set<string>();
   const changeListeners = new Set<() => void>();
 
@@ -376,11 +430,16 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
     // 角色、空间标记与场景摄像机三者互斥选中；选中的对象共用同一条外轮廓反馈通道。
-    const markerRuntime = !selectedLabel && selectedMarkerId
-      ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
-      : null;
+    const markerRuntime =
+      !selectedLabel && selectedMarkerId
+        ? (sceneMarkerRuntimes.get(selectedMarkerId) ?? null)
+        : null;
     syncTransformGizmo();
-    selectionOutline.setEntity(actor?.entity ?? markerRuntime?.entity ?? (cameraSelected ? shotCamera.body : null));
+    selectionOutline.setEntity(
+      actor?.entity ??
+        markerRuntime?.entity ??
+        (cameraSelected ? shotCamera.body : null),
+    );
   };
 
   const emitCameraSelection = () => {
@@ -413,7 +472,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         environmentSettings,
       );
       actor.entity.setPosition(nextX, nextY, nextZ);
-      actor.entity.setEulerAngles(rotation.x, clamp(rotation.y, -180, 180), rotation.z);
+      actor.entity.setEulerAngles(
+        rotation.x,
+        clamp(rotation.y, -180, 180),
+        rotation.z,
+      );
       emitSelection();
       emitChange();
       return;
@@ -422,32 +485,46 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       // 摄像机手柄结束：把实体位姿收敛回独立机位 pose。
       const position = shotCamera.body.getPosition();
       const rotation = shotCamera.body.getEulerAngles();
-      setShotCameraPose({ position: [position.x, position.y, position.z], yawDeg: rotation.y, pitchDeg: rotation.x });
+      setShotCameraPose({
+        position: [position.x, position.y, position.z],
+        yawDeg: rotation.y,
+        pitchDeg: rotation.x,
+      });
       emitChange();
       return;
     }
-    const markerRuntime = !selectedLabel && selectedMarkerId
-      ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
-      : null;
+    const markerRuntime =
+      !selectedLabel && selectedMarkerId
+        ? (sceneMarkerRuntimes.get(selectedMarkerId) ?? null)
+        : null;
     if (markerRuntime && options.markerTransformEditable) {
-      options.onMarkerTransformCommit?.(applySceneMarkerEntityTransform(markerRuntime));
+      options.onMarkerTransformCommit?.(
+        applySceneMarkerEntityTransform(markerRuntime),
+      );
     }
     emitChange();
   };
-  const transformGizmo = createBlocking3dTransformGizmo(app, cameraEntity.camera!, {
-    onTransformMove: () => emitChange(),
-    onTransformEnd: () => handleTransformGizmoEnd(),
-  });
+  const transformGizmo = createBlocking3dTransformGizmo(
+    app,
+    cameraEntity.camera!,
+    {
+      onTransformMove: () => emitChange(),
+      onTransformEnd: () => handleTransformGizmoEnd(),
+    },
+  );
   transformGizmo.setTool(transformTool);
   const syncTransformGizmo = () => {
     const actor = selectedActor();
-    const markerRuntime = !selectedLabel && selectedMarkerId
-      ? sceneMarkerRuntimes.get(selectedMarkerId) ?? null
-      : null;
+    const markerRuntime =
+      !selectedLabel && selectedMarkerId
+        ? (sceneMarkerRuntimes.get(selectedMarkerId) ?? null)
+        : null;
     const node = interactionEnabled
-      ? (actor && actorMovementEnabled ? actor.entity : null)
-        ?? (options.markerTransformEditable ? markerRuntime?.entity ?? null : null)
-        ?? (cameraSelected ? shotCamera.body : null)
+      ? ((actor && actorMovementEnabled ? actor.entity : null) ??
+        (options.markerTransformEditable
+          ? (markerRuntime?.entity ?? null)
+          : null) ??
+        (cameraSelected ? shotCamera.body : null))
       : null;
     transformGizmo.attach(node);
   };
@@ -523,9 +600,21 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       nextIds.add(marker.id);
       const existing = sceneMarkerRuntimes.get(marker.id);
       if (existing) {
-        updateSceneMarkerRuntime(existing, marker, marker.id === selectedMarkerId);
+        updateSceneMarkerRuntime(
+          existing,
+          marker,
+          marker.id === selectedMarkerId,
+        );
       } else {
-        sceneMarkerRuntimes.set(marker.id, createSceneMarkerRuntime(app, marker, marker.id === selectedMarkerId, worldEntity));
+        sceneMarkerRuntimes.set(
+          marker.id,
+          createSceneMarkerRuntime(
+            app,
+            marker,
+            marker.id === selectedMarkerId,
+            worldEntity,
+          ),
+        );
       }
     }
     for (const [id, runtime] of sceneMarkerRuntimes) {
@@ -546,15 +635,24 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     if (!runtime) return false;
     selectMarker(id);
     const marker = runtime.marker;
-    cameraState.focalPoint = [marker.position[0], Math.max(0.5, marker.position[1]), marker.position[2]];
-    cameraState.distance = clamp(Math.max(4, Math.max(...marker.size) * 3 + 3), 0.25, 100);
+    cameraState.focalPoint = [
+      marker.position[0],
+      Math.max(0.5, marker.position[1]),
+      marker.position[2],
+    ];
+    cameraState.distance = clamp(
+      Math.max(4, Math.max(...marker.size) * 3 + 3),
+      0.25,
+      100,
+    );
     cameraState.azim = -35;
     cameraState.elev = -12;
     syncCamera();
     return true;
   };
 
-  const selectedActor = () => (selectedLabel ? actors.get(selectedLabel) ?? null : null);
+  const selectedActor = () =>
+    selectedLabel ? (actors.get(selectedLabel) ?? null) : null;
 
   const moveCamera = (dx: number, dy: number, dz: number) => {
     cameraState.focalPoint = [
@@ -591,12 +689,22 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       return;
     }
     canvas.focus();
-    const pointerRay = event.button === 0 ? screenRay(event.clientX, event.clientY) : null;
-    const cameraBodyHit = pointerRay ? shotCamera.rayHitsBody(pointerRay) : false;
-    const hit = event.button === 0 && !cameraBodyHit ? pickActor(event.clientX, event.clientY) : null;
-    const markerHit = event.button === 0 && !hit && !cameraBodyHit
-      ? pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY))
-      : null;
+    const pointerRay =
+      event.button === 0 ? screenRay(event.clientX, event.clientY) : null;
+    const cameraBodyHit = pointerRay
+      ? shotCamera.rayHitsBody(pointerRay)
+      : false;
+    const hit =
+      event.button === 0 && !cameraBodyHit
+        ? pickActor(event.clientX, event.clientY)
+        : null;
+    const markerHit =
+      event.button === 0 && !hit && !cameraBodyHit
+        ? pickSceneMarker(
+            sceneMarkerRuntimes.values(),
+            screenRay(event.clientX, event.clientY),
+          )
+        : null;
     if (cameraBodyHit) selectCamera(true);
     else if (hit) select(hit);
     else if (markerHit) selectMarker(markerHit);
@@ -609,15 +717,25 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         ? "camera-body"
         : hit && selectedLabel === hit && actorMovementEnabled
           ? "actor"
-          : event.button === 2 ? "camera" : "none",
-      actorLabel: cameraBodyHit ? undefined : hit ?? undefined,
-      lastGround: cameraBodyHit || hit ? raycastGround(event.clientX, event.clientY) ?? undefined : undefined,
+          : event.button === 2
+            ? "camera"
+            : "none",
+      actorLabel: cameraBodyHit ? undefined : (hit ?? undefined),
+      lastGround:
+        cameraBodyHit || hit
+          ? (raycastGround(event.clientX, event.clientY) ?? undefined)
+          : undefined,
     };
     canvas.setPointerCapture(event.pointerId);
   };
 
   const onPointerMove = (event: PointerEvent) => {
-    if (!interactionEnabled || !dragState || event.pointerId !== dragState.pointerId) return;
+    if (
+      !interactionEnabled ||
+      !dragState ||
+      event.pointerId !== dragState.pointerId
+    )
+      return;
     const dx = event.clientX - dragState.x;
     const dy = event.clientY - dragState.y;
     dragState.x = event.clientX;
@@ -628,11 +746,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const nextGround = raycastGround(event.clientX, event.clientY);
       if (actor && previousGround && nextGround) {
         const position = actor.entity.getPosition();
-        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage([
-          position.x + nextGround.x - previousGround.x,
-          position.y,
-          position.z + nextGround.z - previousGround.z,
-        ], environmentSettings);
+        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+          [
+            position.x + nextGround.x - previousGround.x,
+            position.y,
+            position.z + nextGround.z - previousGround.z,
+          ],
+          environmentSettings,
+        );
         actor.entity.setPosition(nextX, nextY, nextZ);
         dragState.lastGround = nextGround;
         emitSelection();
@@ -643,8 +764,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const previousGround = dragState.lastGround;
       const nextGround = raycastGround(event.clientX, event.clientY);
       if (previousGround && nextGround) {
-        const next = new pc.Vec3(shotCameraPose.position[0], shotCameraPose.position[1], shotCameraPose.position[2])
-          .add(nextGround.clone().sub(previousGround));
+        const next = new pc.Vec3(
+          shotCameraPose.position[0],
+          shotCameraPose.position[1],
+          shotCameraPose.position[2],
+        ).add(nextGround.clone().sub(previousGround));
         setShotCameraPose({ position: [next.x, next.y, next.z] });
         dragState.lastGround = nextGround;
         emitChange();
@@ -666,7 +790,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const dy = event.clientY - dragState.y;
     const button = dragState.button;
     dragState = null;
-    try { canvas.releasePointerCapture(event.pointerId); } catch { /* no-op */ }
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      /* no-op */
+    }
     if (button === 0 && Math.hypot(dx, dy) < 6) {
       const clickRay = screenRay(event.clientX, event.clientY);
       if (clickRay && shotCamera.rayHitsBody(clickRay)) {
@@ -676,7 +804,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         if (hit) {
           select(hit);
         } else {
-          const markerHit = pickSceneMarker(sceneMarkerRuntimes.values(), screenRay(event.clientX, event.clientY));
+          const markerHit = pickSceneMarker(
+            sceneMarkerRuntimes.values(),
+            screenRay(event.clientX, event.clientY),
+          );
           if (markerHit) selectMarker(markerHit);
           else select(null);
         }
@@ -687,7 +818,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const onWheel = (event: WheelEvent) => {
     if (!interactionEnabled) return;
     event.preventDefault();
-    cameraState.distance = clamp(cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92), 0.25, 100);
+    cameraState.distance = clamp(
+      cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
+      0.25,
+      100,
+    );
     syncCamera();
     emitChange();
   };
@@ -696,16 +831,24 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const onKeyDown = (event: KeyboardEvent) => {
     if (!interactionEnabled || document.activeElement !== canvas) return;
     keyboardInput.add(event.key.toLowerCase());
-    if (["w", "a", "s", "d", "q", "e", " "].includes(event.key.toLowerCase())) event.preventDefault();
+    if (["w", "a", "s", "d", "q", "e", " "].includes(event.key.toLowerCase()))
+      event.preventDefault();
   };
-  const onKeyUp = (event: KeyboardEvent) => keyboardInput.delete(event.key.toLowerCase());
-  const onBlur = () => { keyboardInput = new Set(); };
+  const onKeyUp = (event: KeyboardEvent) =>
+    keyboardInput.delete(event.key.toLowerCase());
+  const onBlur = () => {
+    keyboardInput = new Set();
+  };
 
   const screenRay = (clientX: number, clientY: number): pc.Ray | null => {
     if (!cameraEntity.camera) return null;
     const rect = canvas.getBoundingClientRect();
     const start = cameraEntity.getPosition().clone();
-    const end = cameraEntity.camera.screenToWorld(clientX - rect.left, clientY - rect.top, 1);
+    const end = cameraEntity.camera.screenToWorld(
+      clientX - rect.left,
+      clientY - rect.top,
+      1,
+    );
     const direction = end.sub(start);
     if (direction.lengthSq() < 1e-8) return null;
     return new pc.Ray(start, direction.normalize());
@@ -729,11 +872,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     let closest: { label: string; distance: number } | null = null;
     const hit = new pc.Vec3();
     for (const actor of actors.values()) {
-      for (const render of actor.entity.findComponents("render") as pc.RenderComponent[]) {
+      for (const render of actor.entity.findComponents(
+        "render",
+      ) as pc.RenderComponent[]) {
         for (const mesh of render.meshInstances ?? []) {
           if (!mesh.aabb.intersectsRay(ray, hit)) continue;
           const distance = hit.distance(ray.origin);
-          if (!closest || distance < closest.distance) closest = { label: actor.label, distance };
+          if (!closest || distance < closest.distance)
+            closest = { label: actor.label, distance };
         }
       }
     }
@@ -764,7 +910,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const resize = () => {
     const rect = canvas.parentElement?.getBoundingClientRect();
     if (!rect) return;
-    app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
+    app.graphicsDevice.maxPixelRatio = Math.min(
+      window.devicePixelRatio || 1,
+      MAX_DEVICE_PIXEL_RATIO,
+    );
     app.resizeCanvas(rect.width, rect.height);
     // 画中画高度按窗口纵横比换算成 16:9，resize 后必须重算视口。
     syncShotCameraVisuals();
@@ -778,15 +927,22 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
-    for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
-    for (const line of domeBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
-    for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
+    for (const line of gridLines)
+      app.drawLine(line.start, line.end, line.color, false);
+    for (const line of domeBoundaryLines)
+      app.drawLine(line.start, line.end, line.color, false);
+    for (const line of stageBoundaryLines)
+      app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     // Unity 场景视图同款：摄像机 gizmo（白色线框）常驻显示，选中变橙色。
     shotCamera.drawGizmo(app, cameraSelected);
     // 三分构图线只出现在取景画中画里（内部判断可见性，不可见时为空操作）。
     shotCamera.drawCompositionGuides(app);
-    drawSceneMarkerOutlines(app, sceneMarkerRuntimes.values(), selectedMarkerId);
+    drawSceneMarkerOutlines(
+      app,
+      sceneMarkerRuntimes.values(),
+      selectedMarkerId,
+    );
     selectionOutline.frameUpdate();
   });
   setSceneMarkers(options.sceneMarkers ?? []);
@@ -796,21 +952,18 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
 
   try {
     setStatus("正在加载 3D 代理角色...");
-    [actorAsset, animationAsset] = await Promise.all([
-      loadAsset(app, ACTOR_PROXY_URL, "container"),
-      loadAsset(app, ACTOR_ANIMATION_URL, "container"),
-    ]);
+    actorAsset = await loadAsset(app, ACTOR_PROXY_URL, "container");
     const proxyResource = actorAsset.resource as ContainerResource;
-    const animationResources = [
-      ...(proxyResource.animations ?? []),
-      ...(((animationAsset.resource as ContainerResource).animations ?? [])),
-    ];
-    for (const clipAsset of animationResources) {
+    for (const clipAsset of proxyResource.animations ?? []) {
       const track = clipAsset.resource;
       const name = (track as { name?: unknown } | null | undefined)?.name;
       if (track && typeof name === "string") animationTracks.set(name, track);
     }
-    if (!animationTracks.has("Idle_Loop")) throw new Error("3D 代理角色缺少基础待机动作。");
+    try {
+      resolveBlocking3dPoseClip("standing", animationTracks.keys());
+    } catch {
+      throw new Error("3D 代理角色缺少基础待机动作。");
+    }
     setStatus("3D 草图已就绪");
   } catch (error) {
     resizeObserver.disconnect();
@@ -870,17 +1023,32 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   const fitView = () => {
     const values = [...actors.values()];
     if (!values.length) {
-      cameraState = { ...DEFAULT_CAMERA, focalPoint: [...DEFAULT_CAMERA.focalPoint] };
+      cameraState = {
+        ...DEFAULT_CAMERA,
+        focalPoint: [...DEFAULT_CAMERA.focalPoint],
+      };
       syncCamera();
       emitChange();
       return;
     }
-    const minX = Math.min(...values.map((actor) => actor.entity.getPosition().x));
-    const maxX = Math.max(...values.map((actor) => actor.entity.getPosition().x));
-    const minZ = Math.min(...values.map((actor) => actor.entity.getPosition().z));
-    const maxZ = Math.max(...values.map((actor) => actor.entity.getPosition().z));
+    const minX = Math.min(
+      ...values.map((actor) => actor.entity.getPosition().x),
+    );
+    const maxX = Math.max(
+      ...values.map((actor) => actor.entity.getPosition().x),
+    );
+    const minZ = Math.min(
+      ...values.map((actor) => actor.entity.getPosition().z),
+    );
+    const maxZ = Math.max(
+      ...values.map((actor) => actor.entity.getPosition().z),
+    );
     cameraState.focalPoint = [(minX + maxX) / 2, 0.8, (minZ + maxZ) / 2];
-    cameraState.distance = clamp(Math.max(5, Math.max(maxX - minX, maxZ - minZ) * 2.3 + 4), 0.25, 100);
+    cameraState.distance = clamp(
+      Math.max(5, Math.max(maxX - minX, maxZ - minZ) * 2.3 + 4),
+      0.25,
+      100,
+    );
     cameraState.azim = -35;
     cameraState.elev = -12;
     syncCamera();
@@ -925,9 +1093,19 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       statusListeners.add(listener);
       return () => statusListeners.delete(listener);
     },
-    addActor(label, index, heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS, initialPosition) {
+    addActor(
+      label,
+      index,
+      heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
+      initialPosition,
+    ) {
       if (!label.trim() || actors.has(label)) return false;
-      const actor = createActor(label.trim(), index, heightMeters, initialPosition);
+      const actor = createActor(
+        label.trim(),
+        index,
+        heightMeters,
+        initialPosition,
+      );
       actors.set(label.trim(), actor);
       if (!selectedLabel) select(label.trim());
       emitChange();
@@ -949,7 +1127,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     focusMarker,
     getSelectedMarker: () => selectedMarkerId,
     setSceneMarkers,
-    getSceneMarkers: () => [...sceneMarkerRuntimes.values()].map((runtime) => runtime.marker),
+    getSceneMarkers: () =>
+      [...sceneMarkerRuntimes.values()].map((runtime) => runtime.marker),
     getSelectedActor: () => selectedLabel,
     getSelectedTransform() {
       const actor = selectedActor();
@@ -958,12 +1137,18 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const rotation = actor.entity.getEulerAngles();
       const scale = actor.entity.getLocalScale();
       return {
-        position: [position.x, position.y, position.z] as [number, number, number],
+        position: [position.x, position.y, position.z] as [
+          number,
+          number,
+          number,
+        ],
         yawDeg: clamp(rotation.y, -180, 180),
         scale: [scale.x, scale.y, scale.z] as [number, number, number],
       };
     },
     getActorLabels: () => [...actors.keys()],
+    getAvailablePoses: () =>
+      getAvailableBlocking3dPoses(animationTracks.keys()),
     setSelectedPose(pose) {
       const actor = selectedActor();
       if (!actor) return false;
@@ -975,27 +1160,31 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     getSelectedPose: () => selectedActor()?.pose ?? null,
     setSelectedColor(color) {
       const actor = selectedActor();
-      if (!actor || color.some((channel) => !Number.isFinite(channel))) return false;
+      if (!actor || color.some((channel) => !Number.isFinite(channel)))
+        return false;
       const nextColor = normalizeActorColor(color);
       actor.color = nextColor;
-      actor.material = setEntityMaterial(actor.animEntity, nextColor, actor.material);
+      actor.material = setEntityMaterial(
+        actor.animEntity,
+        nextColor,
+        actor.material,
+      );
       emitChange();
       return true;
     },
     getSelectedColor() {
       const color = selectedActor()?.color;
-      return color ? [...color] as [number, number, number] : null;
+      return color ? ([...color] as [number, number, number]) : null;
     },
     nudgeSelected(dx, dy, dz) {
       if (!actorMovementEnabled) return false;
       const actor = selectedActor();
       if (!actor) return false;
       const position = actor.entity.getPosition();
-      const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage([
-        position.x + dx,
-        clamp(position.y + dy, 0, 50),
-        position.z + dz,
-      ], environmentSettings);
+      const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+        [position.x + dx, clamp(position.y + dy, 0, 50), position.z + dz],
+        environmentSettings,
+      );
       actor.entity.setPosition(nextX, nextY, nextZ);
       emitSelection();
       emitChange();
@@ -1011,7 +1200,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const actor = selectedActor();
       if (!actor) return false;
       const current = actor.entity.getEulerAngles();
-      actor.entity.setEulerAngles(current.x, clamp(current.y + degrees, -180, 180), current.z);
+      actor.entity.setEulerAngles(
+        current.x,
+        clamp(current.y + degrees, -180, 180),
+        current.z,
+      );
       emitChange();
       return true;
     },
@@ -1031,14 +1224,27 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       if (!actor) return false;
       const position = actor.entity.getPosition();
       const rotation = actor.entity.getEulerAngles();
-      const nextPosition = patch.position ?? [position.x, position.y, position.z];
-      const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(nextPosition, environmentSettings);
+      const nextPosition = patch.position ?? [
+        position.x,
+        position.y,
+        position.z,
+      ];
+      const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+        nextPosition,
+        environmentSettings,
+      );
       actor.entity.setPosition(nextX, clamp(nextY, 0, 50), nextZ);
       if (patch.yawDeg != null) {
-        actor.entity.setEulerAngles(rotation.x, clamp(patch.yawDeg, -180, 180), rotation.z);
+        actor.entity.setEulerAngles(
+          rotation.x,
+          clamp(patch.yawDeg, -180, 180),
+          rotation.z,
+        );
       }
       if (patch.scale) {
-        const nextScale = patch.scale.map((axis) => clamp(Number.isFinite(axis) ? axis : 1, 0.05, 20));
+        const nextScale = patch.scale.map((axis) =>
+          clamp(Number.isFinite(axis) ? axis : 1, 0.05, 20),
+        );
         actor.entity.setLocalScale(nextScale[0], nextScale[1], nextScale[2]);
       }
       emitSelection();
@@ -1053,7 +1259,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     getTransformTool: () => transformTool,
     fitView,
     resetCamera() {
-      cameraState = { ...DEFAULT_CAMERA, focalPoint: [...DEFAULT_CAMERA.focalPoint] };
+      cameraState = {
+        ...DEFAULT_CAMERA,
+        focalPoint: [...DEFAULT_CAMERA.focalPoint],
+      };
       syncCamera();
       emitChange();
     },
@@ -1108,11 +1317,14 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const next = normalizeEnvironmentSettings(settings);
       // 背景网格只由投射中心高度和半球半径决定；分界线等参数是纯着色器
       // uniform，拖动时重建网格会造成无意义的 GPU 抖动。
-      const geometryChanged = next.projectionCenterHeight !== environmentSettings.projectionCenterHeight
-        || next.domeRadius !== environmentSettings.domeRadius;
+      const geometryChanged =
+        next.projectionCenterHeight !==
+          environmentSettings.projectionCenterHeight ||
+        next.domeRadius !== environmentSettings.domeRadius;
       environmentSettings = next;
       applyEnvironmentSettings();
-      if (geometryChanged) environment.rebuildEnvironmentBackdropMesh(environmentSettings);
+      if (geometryChanged)
+        environment.rebuildEnvironmentBackdropMesh(environmentSettings);
       emitChange();
       return true;
     },
@@ -1133,7 +1345,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
           return {
             characterName: actor.label,
             heightMeters: actor.heightMeters,
-            position: [position.x, position.y, position.z] as [number, number, number],
+            position: [position.x, position.y, position.z] as [
+              number,
+              number,
+              number,
+            ],
             yawDeg: clamp(actor.entity.getEulerAngles().y, -180, 180),
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
@@ -1147,19 +1363,29 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       const nextEnvironment = normalizeEnvironmentSettings(layout.environment);
       // AI 构图通常沿用当前环境参数；穹顶网格重建会同步上传顶点缓冲，几何输入
       // 没变时跳过，避免构图结果落地那一帧整页卡顿。
-      const geometryChanged = nextEnvironment.projectionCenterHeight !== environmentSettings.projectionCenterHeight
-        || nextEnvironment.domeRadius !== environmentSettings.domeRadius;
+      const geometryChanged =
+        nextEnvironment.projectionCenterHeight !==
+          environmentSettings.projectionCenterHeight ||
+        nextEnvironment.domeRadius !== environmentSettings.domeRadius;
       environmentSettings = nextEnvironment;
       applyEnvironmentSettings();
-      if (geometryChanged) environment.rebuildEnvironmentBackdropMesh(environmentSettings);
+      if (geometryChanged)
+        environment.rebuildEnvironmentBackdropMesh(environmentSettings);
       viewer.setCameraState(layout.camera);
       // 旧布局没有独立机位字段时从轨道相机推导，打开就能看到摄像机实体。
-      shotCameraPose = normalizeShotCameraPose(layout.shotCamera, deriveShotCameraPoseFromOrbit(layout.camera));
+      shotCameraPose = normalizeShotCameraPose(
+        layout.shotCamera,
+        deriveShotCameraPoseFromOrbit(layout.camera),
+      );
       syncShotCameraVisuals();
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);
         if (!actor) continue;
-        actor.entity.setPosition(saved.position[0], saved.position[1], saved.position[2]);
+        actor.entity.setPosition(
+          saved.position[0],
+          saved.position[1],
+          saved.position[2],
+        );
         actor.entity.setEulerAngles(0, saved.yawDeg, 0);
         const scale = scaleSavedActorForCurrentHeight(
           saved.scale,
@@ -1169,7 +1395,11 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         actor.entity.setLocalScale(scale[0], scale[1], scale[2]);
         if (saved.color) {
           actor.color = normalizeActorColor(saved.color);
-          actor.material = setEntityMaterial(actor.animEntity, actor.color, actor.material);
+          actor.material = setEntityMaterial(
+            actor.animEntity,
+            actor.color,
+            actor.material,
+          );
         }
         setAnimationPose(actor, animationTracks, saved.pose);
       }
@@ -1187,7 +1417,10 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       shotCameraHelpersSuppressed = true;
       syncShotCameraVisuals();
       try {
-        app.resizeCanvas(BLOCKING_SKETCH_CAPTURE_SIZE.width, BLOCKING_SKETCH_CAPTURE_SIZE.height);
+        app.resizeCanvas(
+          BLOCKING_SKETCH_CAPTURE_SIZE.width,
+          BLOCKING_SKETCH_CAPTURE_SIZE.height,
+        );
         // 第一帧只用于冲掉上一轮 update 排队的参考线（网格/边界/gizmo），
         // 第二帧才是干净的摆位画面：导出草图不能带编辑器辅助元素。
         app.render();
@@ -1196,7 +1429,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
         const base64 = dataUrl.split(",", 2)[1] ?? "";
         const binary = window.atob(base64);
         const bytes = new Uint8Array(binary.length);
-        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+        for (let index = 0; index < binary.length; index += 1)
+          bytes[index] = binary.charCodeAt(index);
         return new Blob([bytes], { type: "image/png" });
       } finally {
         resize();
@@ -1223,7 +1457,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
       window.removeEventListener("blur", onBlur);
       for (const actor of actors.values()) actor.entity.destroy();
       actors.clear();
-      for (const runtime of sceneMarkerRuntimes.values()) destroySceneMarkerRuntime(runtime);
+      for (const runtime of sceneMarkerRuntimes.values())
+        destroySceneMarkerRuntime(runtime);
       sceneMarkerRuntimes.clear();
       environment.destroy();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
@@ -1236,7 +1471,8 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
   };
 
   try {
-    if (options.environmentUrl) await viewer.setEnvironment(options.environmentUrl);
+    if (options.environmentUrl)
+      await viewer.setEnvironment(options.environmentUrl);
     return viewer;
   } catch (error) {
     viewer.destroy();
