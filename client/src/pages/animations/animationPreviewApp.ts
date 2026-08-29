@@ -2,11 +2,13 @@ import * as pc from "playcanvas";
 
 import {
   clamp,
+  BLOCKING_3D_BLUE_ACTOR_COLOR,
   createMaterial,
   createPlane,
   DEFAULT_FOV,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
+  setEntityMaterial,
   updateBlocking3dCameraAzimuth,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
@@ -302,6 +304,7 @@ export function openAnimationPreview(
       if (!model) {
         throw new Error("动作文件里没有可显示的角色。");
       }
+      setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
 
       // 底部中心落到原点：先在恒等变换下求源几何包围盒，再一次性平移。
       characterRoot.addChild(model);
