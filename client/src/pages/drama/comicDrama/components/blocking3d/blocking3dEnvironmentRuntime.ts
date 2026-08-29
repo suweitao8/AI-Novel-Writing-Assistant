@@ -12,6 +12,8 @@ import {
 import {
   configureEnvironmentTexture,
   createBackdropGeometry,
+  createGroundDomeGeometry,
+  createShadowCatcherMaterial,
   createVisibleHdriCubemap,
   FALLBACK_AMBIENT_LIGHT,
   loadAsset,
@@ -50,6 +52,9 @@ export function createBlocking3dEnvironmentRuntime(
   let environmentAsset: pc.Asset | null = null;
   let environmentBackdrop: pc.Entity | null = null;
   let environmentBackdropMeshInstance: pc.MeshInstance | null = null;
+  let environmentShadowCatcher: pc.Entity | null = null;
+  let environmentShadowCatcherMeshInstance: pc.MeshInstance | null = null;
+  let environmentShadowCatcherMaterial: pc.StandardMaterial | null = null;
   let environmentMaterial: pc.ShaderMaterial | null = null;
   let environmentProjectionCube: pc.Texture | null = null;
   let environmentLightingSource: pc.Texture | null = null;
@@ -78,6 +83,12 @@ export function createBlocking3dEnvironmentRuntime(
       app.scene.ambientLight = FALLBACK_AMBIENT_LIGHT.clone();
     },
     clearEnvironmentVisuals() {
+      environmentShadowCatcher?.destroy();
+      environmentShadowCatcher = null;
+      environmentShadowCatcherMeshInstance?.mesh?.destroy();
+      environmentShadowCatcherMeshInstance = null;
+      environmentShadowCatcherMaterial?.destroy();
+      environmentShadowCatcherMaterial = null;
       environmentBackdrop?.destroy();
       environmentBackdrop = null;
       environmentBackdropMeshInstance?.mesh?.destroy();
@@ -120,6 +131,7 @@ export function createBlocking3dEnvironmentRuntime(
           numAmbientSamples: 512,
         });
         app.scene.envAtlas = environmentAtlas;
+        app.scene.lighting.shadowsEnabled = true;
         app.scene.ambientLight = new pc.Color(0, 0, 0);
         applyHdriKeyLight(environmentKeyLight, texture);
         const projectionCube = createVisibleHdriCubemap(app, texture);
@@ -146,6 +158,26 @@ export function createBlocking3dEnvironmentRuntime(
         });
         environmentBackdrop.setPosition(environmentWorldPosition);
         worldEntity.addChild(environmentBackdrop);
+
+        const shadowCatcherMesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        );
+        environmentShadowCatcherMaterial = createShadowCatcherMaterial();
+        environmentShadowCatcherMeshInstance = new pc.MeshInstance(
+          shadowCatcherMesh,
+          environmentShadowCatcherMaterial,
+        );
+        environmentShadowCatcherMeshInstance.castShadow = false;
+        environmentShadowCatcherMeshInstance.receiveShadow = true;
+        environmentShadowCatcherMeshInstance.drawBucket = 250;
+        environmentShadowCatcher = new pc.Entity("blocking3d-hdri-shadow-catcher");
+        environmentShadowCatcher.addComponent("render", {
+          meshInstances: [environmentShadowCatcherMeshInstance],
+          layers: [pc.LAYERID_WORLD],
+        });
+        environmentShadowCatcher.setPosition(environmentWorldPosition);
+        worldEntity.addChild(environmentShadowCatcher);
         return true;
       } catch (error) {
         if (isCurrentEnvironmentRequest(requestId)) {
@@ -163,6 +195,14 @@ export function createBlocking3dEnvironmentRuntime(
           environmentSettings.domeRadius,
         );
         environmentBackdrop.setEulerAngles(0, 0, 0);
+      }
+      if (environmentShadowCatcher) {
+        environmentShadowCatcher.setLocalScale(
+          environmentSettings.domeRadius,
+          environmentSettings.domeRadius,
+          environmentSettings.domeRadius,
+        );
+        environmentShadowCatcher.setEulerAngles(0, 0, 0);
       }
       if (environmentMaterial) {
         if (environmentProjectionCube) {
@@ -183,6 +223,15 @@ export function createBlocking3dEnvironmentRuntime(
         );
         environmentBackdropMeshInstance.mesh = nextBackdropMesh;
         previousBackdropMesh.destroy();
+      }
+      if (environmentShadowCatcherMeshInstance) {
+        const previousShadowCatcherMesh = environmentShadowCatcherMeshInstance.mesh;
+        const nextShadowCatcherMesh = pc.Mesh.fromGeometry(
+          app.graphicsDevice,
+          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+        );
+        environmentShadowCatcherMeshInstance.mesh = nextShadowCatcherMesh;
+        previousShadowCatcherMesh.destroy();
       }
     },
     destroy() {

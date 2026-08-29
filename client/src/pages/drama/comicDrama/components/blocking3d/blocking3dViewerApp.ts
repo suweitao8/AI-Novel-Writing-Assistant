@@ -835,7 +835,7 @@ export async function createBlocking3dViewer(options: Blocking3dViewerOptions): 
     initialPosition?: Blocking3dActorPosition,
   ): Blocking3dViewerActor => {
     const resource = actorAsset.resource as ContainerResource;
-    const model = resource.instantiateRenderEntity?.({ castShadows: false });
+    const model = resource.instantiateRenderEntity?.({ castShadows: true });
     if (!model) throw new Error("3D 代理角色模型无法实例化。");
     const color = colorForIndex(index);
     const root = new pc.Entity(`blocking3d-actor-${label}`);

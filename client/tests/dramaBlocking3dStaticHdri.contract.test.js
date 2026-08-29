@@ -248,6 +248,26 @@ test("中键平移使用摄像机屏幕坐标，角色光照由 HDRI 环境和�
   assert.doesNotMatch(viewerSource, /fixed|固定.*补光/);
 });
 
+test("HDRI 派生方向光和 3D 代理角色都参与地面阴影投射", () => {
+  assert.match(environmentKeyLightSource, /castShadows: true/);
+  assert.match(viewerSource, /app\.scene\.lighting\.shadowsEnabled = true/);
+  assert.match(viewerSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+});
+
+test("HDRI 下半部使用独立 shadow catcher 接收角色阴影，并随环境网格一起重建和释放", () => {
+  assert.match(viewerSource, /createGroundDomeGeometry/);
+  assert.match(viewerSource, /environmentShadowCatcher/);
+  assert.match(viewerSource, /environmentShadowCatcherMeshInstance/);
+  assert.match(viewerSource, /shadowCatcher = true/);
+  assert.match(viewerSource, /pc\.BLEND_MULTIPLICATIVE/);
+  assert.match(viewerSource, /pc\.CULLFACE_NONE/);
+  assert.match(viewerSource, /receiveShadow = true/);
+  assert.match(viewerSource, /castShadow = false/);
+  assert.match(viewerSource, /environmentShadowCatcher\?\.destroy\(\)/);
+  assert.match(viewerSource, /environmentShadowCatcherMaterial\?\.destroy\(\)/);
+  assert.match(viewerSource, /environmentShadowCatcherMeshInstance\.mesh =/);
+});
+
 test("HDRI 派生方向光只在 viewer 生命周期内存在，并在清理时关闭", () => {
   assert.match(viewerSource, /const clearEnvironmentKeyLight = \(\) =>/);
   assert.match(environmentKeyLightSource, /entity\.enabled = false/);
