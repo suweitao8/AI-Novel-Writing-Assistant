@@ -39,11 +39,19 @@ test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () =
 
 test("页面在模型表格旁渲染动画表格并提供预览弹窗", () => {
   assert.match(pageSource, /data-animation-table/);
+  assert.match(pageSource, /data-animation-row-table/);
   assert.match(pageSource, /data-animation-row/);
-  assert.match(pageSource, /ANIMATION_LIBRARY\.map/);
+  assert.match(pageSource, /ANIMATION_LIBRARY\.filter/);
   assert.match(pageSource, /openAnimationPreview\(/);
   assert.match(pageSource, /data-animation-preview-canvas/);
   assert.match(pageSource, /toast\.error\(/);
+});
+
+test("动画表格与模型表格同款分类页签（计数 + 过滤）", () => {
+  assert.match(pageSource, /data-animation-category-table/);
+  assert.match(pageSource, /aria-label="动画分类"/);
+  assert.match(pageSource, /\["全部", \.\.\.ANIMATION_LIBRARY_CATEGORIES\]/);
+  assert.match(catalogSource, /ANIMATION_LIBRARY_CATEGORIES = \["待机", "移动", "坐姿"\] as const/);
 });
 
 test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => {
