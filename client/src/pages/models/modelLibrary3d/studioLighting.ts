@@ -10,6 +10,8 @@ import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
 
 /** 内置中性棚拍 HDRI（Poly Haven studio_small_03，CC0）。等距柱状 RGBE。 */
 const STUDIO_ENV_URL = "/models/env/studio_small_03_1k.hdr";
+/** 场景全景图管线产出的摄影棚全景（AI 生成等距柱状图），作为首选环境。 */
+const STUDIO_PANORAMA_URL = "/models/env/studio_panorama.png";
 
 /**
  * 程序化棚拍环境：竖向渐变的等距柱状图（顶部冷白天光、中性地面），运行时
@@ -109,21 +111,14 @@ export function setupStudioLighting(
   app.root.addChild(rimLight);
 }
 
-/**
- * 用真实 HDR 替换程序化环境：加载内置棚拍 HDRI，预滤波成引擎 env atlas。
- * 真环境给金属/釉面提供可读的反射内容，也让 RMA 的金属度通道可以安全启用。
- * 加载或预滤波失败时静默保留程序化环境（三灯方案不受影响）。
- * 返回的清理函数用于销毁加载出的纹理与 atlas（调用方销毁应用时调用）。
- */
-export async function upgradeStudioEnvironment(
+/** 从等距柱状环境图（HDR 或全景图）构建引擎 env atlas；失败返回 null。 */
+async function tryBuildEnvAtlasFromUrl(
   app: pc.AppBase,
-): Promise<() => void> {
-  const previousAtlas = app.scene.envAtlas;
-  let loadedTexture: pc.Texture | null = null;
+  url: string,
+): Promise<{ atlas: pc.Texture; dispose: () => void } | null> {
   try {
-    const asset = await loadAsset(app, STUDIO_ENV_URL, "texture");
+    const asset = await loadAsset(app, url, "texture");
     const texture = asset.resource as pc.Texture;
-    loadedTexture = texture;
     texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
     texture.minFilter = pc.FILTER_LINEAR;
     texture.magFilter = pc.FILTER_LINEAR;
@@ -138,16 +133,38 @@ export async function upgradeStudioEnvironment(
       numAmbientSamples: 512,
     });
     lightingSource.destroy();
-    app.scene.envAtlas = atlas;
-    // 环境 atlas 已接管环境光贡献，恒定环境光归零避免叠加过曝。
-    app.scene.ambientLight = new pc.Color(0.02, 0.02, 0.022);
-    return () => {
-      if (app.scene.envAtlas === atlas) app.scene.envAtlas = previousAtlas;
-      atlas.destroy();
-      asset.unload();
+    return {
+      atlas,
+      dispose: () => {
+        atlas.destroy();
+        asset.unload();
+      },
     };
   } catch {
-    if (loadedTexture) loadedTexture.destroy();
-    return () => {};
+    return null;
   }
+}
+
+/**
+ * 用真实环境替换程序化环境：优先加载场景全景图管线产出的摄影棚全景图，
+ * 失败再退到内置 HDRI；两者都不可用时静默保留程序化环境（三灯方案不受
+ * 影响）。真环境给金属/釉面提供可读的反射内容。
+ * 返回的清理函数用于销毁加载出的纹理与 atlas（调用方销毁应用时调用）。
+ */
+export async function upgradeStudioEnvironment(
+  app: pc.AppBase,
+): Promise<() => void> {
+  const previousAtlas = app.scene.envAtlas;
+  const env =
+    (await tryBuildEnvAtlasFromUrl(app, STUDIO_PANORAMA_URL)) ??
+    (await tryBuildEnvAtlasFromUrl(app, STUDIO_ENV_URL));
+  if (!env) return () => {};
+  const { atlas, dispose } = env;
+  app.scene.envAtlas = atlas;
+  // 环境 atlas 已接管环境光贡献，恒定环境光归零避免叠加过曝。
+  app.scene.ambientLight = new pc.Color(0.02, 0.02, 0.022);
+  return () => {
+    if (app.scene.envAtlas === atlas) app.scene.envAtlas = previousAtlas;
+    dispose();
+  };
 }
