@@ -9,7 +9,7 @@
 - **静态目录，不做服务端 CRUD**：模型清单是 `client/src/config/modelLibrary.ts` 里的纯数据数组（当前 44 个精选模型、8 类）；模型文件放 `client/public/models/` 由前端静态服务（GLB 15MB + 贴图 4.4MB）。模型库是"策展型"资产（由开发流程提取入库），不是用户上传型资产。将来若需要用户上传，再引入服务端存储与接口，不要提前给目录加运行时探测。
 - **数量决策（2026-08-29 用户拍板）**：曾一次性扩到 509 个，因质量参差回退到人工精选的 44 个；batch3 的 466 个产物保留在 `D:\UnrealWorkspace\Cine57-exported3\`，目录管线支持随时按包扩量（build 脚本把 manifest3 加回 entries 即可）。格式确认用 **GLB**（浏览器通用标准；FBX 浏览器不能直接加载，管线本来就 UE→FBX→GLB）。
 - **入口挂在漫剧主链路旁**：顶部导航「漫剧 / 模型 / 系统」三项（`dramaFocusNav.ts`）；模型库不是通用素材管理后台，只为「查看 → 打开 3D 编辑」这一条主路径服务。
-- **3D 编辑器独立于漫剧场景编辑器**：`pages/models/modelLibrary3d/modelViewerApp.ts` 是单模型查看/变换编辑器，复用 blocking3d 的 gizmo、资源加载与数学原语（通过 `blocking3d/index.ts` 门面导出），但不承载角色、场景标记、镜头等状态。两边共享的是引擎交互方案（Orbit 相机、引擎 gizmo、Inspector 面板），不是数据。
+- **模型编辑与 HDRI 环境预览分工**：`pages/models/modelLibrary3d/modelViewerApp.ts` 仍是单模型查看/变换编辑器，复用 blocking3d 的资源加载与数学原语，不承载漫剧角色、场景标记和镜头状态；通用资产的 HDRI 3D 预览则直接复用漫剧场景的 `createBlocking3dViewer`，以 `loadProxyActor: false` 只显示环境。这样模型编辑器可以保留模型专属变换交互，HDRI 环境编辑只维护一套场景相机、投影网格和生命周期。
 - **模型入库管线**（仓库外脚本，`D:\UnrealWorkspace\`；操作手册已封装为项目 skill `.agents/skills/unreal-import/`，UE 项目地址见 AGENTS.md 的 Unreal Asset Pipeline 一节，本页保留决策与失败模式）：
   1. `scan_props.py` 全文件扫描 `/Script/Engine.StaticMesh`，按名字剔除建筑壳体/地形/LOD/碰撞体（源项目 1.1 万+ 静态网格，前景可用约 3100 个）；
   2. `select_batch3.py` 按包配额 + 网格族限量选目标；
@@ -24,8 +24,8 @@
 - **引擎贴图通道默认值坑**：PlayCanvas StandardMaterial 的 `metalnessMap`/`glossMap` 默认采样通道与 glTF 约定不一致（glTF 加载器是自己显式设 `metalnessMapChannel="b"`、`glossMapChannel="g"` 的）。手动接 ORM/未校准贴图必须把 `glossMapChannel`/`metalnessMapChannel`/`aoMapChannel` 全部显式写死，否则金属度读错通道会把非金属整块渲染成镜面金属。
 - **棚拍布光是共享模块**：三灯 + 环境反射（真 HDR）+ ACES 色调映射，模型编辑器、模型缩略图和动画缩略图共用。环境 atlas 通过 `EnvLighting.generateLightingSource` → `generateAtlas` → `scene.envAtlas` 建立；三灯强度为 1.2/0.35/0.55，接入真环境后不再额外提高 `ambientLight`。
 - **模型预览使用独立 HDRI 预设目录**：`studioEnvironmentPresets.ts` 固定提供室内客厅、中央广场、草地自然三套环境，默认半球直径为 10m、20m、30m，用户可在 5–30m 范围内调节；对应 `.hdr` 资源放在 `client/public/models/env/`。产品字段使用 `diameterMeters`，只有相机边界等内部计算才换算为真实半径 `diameterMeters / 2`，避免把“半径”和“直径”混用。
-- **通用资产是统一入口**：系统设置的「通用资产」页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI。旁白描述、试听和重新生成沿用全局旁白 API；每套 HDRI 的「3D 预览」进入独立 PlayCanvas 视口，只加载共享的有限半球环境，不混入模型、角色或道具。HDRI 半球直径偏好按预设 ID 保存在浏览器本机，统一限制为 5–30 米，模型编辑器、模型缩略图、动画缩略图和 HDRI 预览读取同一份偏好，不写入模型资产或漫剧场景数据。
-- **HDRI 预览交互边界**：独立预览页复用 `studioEnvironmentRuntime` 的环境光与可见投影生命周期；左键拖动旋转、中键/右键平移、滚轮缩放，复位只恢复相机视角，不改变环境预设或直径。切换环境和调整直径采用“新环境加载成功后替换旧环境”的顺序，失败时保留当前环境并释放过期资源。
+- **通用资产是统一入口**：系统设置的「通用资产」页用表格展示唯一的系统旁白音色和三套模型/动画 HDRI。旁白描述、试听和重新生成沿用全局旁白 API；每套 HDRI 同时提供仓库内可直接显示的 2D 平面全景预览和「3D 预览」入口，表格不展示内部 `.hdr` 资源路径。HDRI 半球直径偏好按预设 ID 保存在浏览器本机，统一限制为 5–30 米，模型编辑器、模型缩略图、动画缩略图和 HDRI 预览读取同一份偏好，不写入模型资产或漫剧场景数据。
+- **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期；通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角，不改变环境预设或直径。切换环境才异步加载新 HDRI；拖动 5–30 米半球直径只调用 `setEnvironmentSettings` 重建环境网格，不重复创建 PlayCanvas Application。
 - **模型可视穹顶固定在世界原点**：`attachStudioBackdrop` 从当前预设加载全景并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前预设半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
 - **环境切换与缩略图规则**：模型编辑器的“预览环境”选择器异步同时加载可见穹顶和环境光，完整加载后才替换当前环境；切换失败保留原环境。模型卡片与动画卡片固定使用室内默认预设，动画离屏取景固定使用 30m 半径，模型缩略图缓存键为 `model-library:thumbnails:v16`，改动环境或投影逻辑必须升版本，避免旧截图继续冒充新环境。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
