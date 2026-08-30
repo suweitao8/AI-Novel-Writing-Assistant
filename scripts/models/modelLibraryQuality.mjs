@@ -310,28 +310,43 @@ function validateModelUsage(entry, errors) {
 export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
+  const staticEntries = entries.filter((entry) => !entry.previewAppearance);
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
   const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
   const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
   const requiredCategories = new Set(CINE57_REQUIRED_CATEGORIES);
   const ids = new Set();
   const fileNames = new Set();
+  const staticFileNames = new Set();
 
-  if (entries.length < CINE57_MINIMUM_MODEL_COUNT) {
-    addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${entries.length}`);
+  if (staticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
+    addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${staticEntries.length}`);
   }
 
   for (const entry of entries) {
     if (ids.has(entry.id)) addError(errors, `duplicate model id: ${entry.id}`);
     ids.add(entry.id);
+    if (fileNames.has(entry.fileName)) addError(errors, `duplicate model file: ${entry.fileName}`);
+    fileNames.add(entry.fileName);
+
+    if (typeof entry.fileUrl !== "string" || typeof entry.fileName !== "string") {
+      addError(errors, `${entry.id} must declare a fileUrl and fileName`);
+      continue;
+    }
+    validateModelUsage(entry, errors);
+    if (entry.previewAppearance) {
+      if (typeof entry.previewAppearance !== "string") {
+        addError(errors, `${entry.id} previewAppearance must be a string`);
+      }
+      continue;
+    }
+
     if (!allowedIds.has(entry.id)) addError(errors, `model id is not in the curated allowlist: ${entry.id}`);
     if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
     if (!allowedCategories.has(entry.category)) {
       addError(errors, `${entry.id} uses unknown model category: ${entry.category}`);
     }
-    if (fileNames.has(entry.fileName)) addError(errors, `duplicate model file: ${entry.fileName}`);
-    fileNames.add(entry.fileName);
-    validateModelUsage(entry, errors);
+    staticFileNames.add(entry.fileName);
     if (!entry.fileUrl.endsWith(`/models/cine57/${entry.fileName}`)) {
       addError(errors, `${entry.id} fileUrl does not match fileName`);
     }
@@ -366,7 +381,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   }
 
   for (const requiredCategory of requiredCategories) {
-    if (!entries.some((entry) => entry.category === requiredCategory)) {
+    if (!staticEntries.some((entry) => entry.category === requiredCategory)) {
       addError(errors, `required model category is empty: ${requiredCategory}`);
     }
   }
@@ -375,7 +390,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     if (!ids.has(allowedId)) addError(errors, `curated model is missing from catalog: ${allowedId}`);
   }
 
-  const foodContainerEntries = entries.filter(isFoodContainerModel);
+  const foodContainerEntries = staticEntries.filter(isFoodContainerModel);
   if (foodContainerEntries.length > CINE57_MAX_FOOD_CONTAINER_ENTRIES) {
     addError(
       errors,
@@ -385,7 +400,7 @@ export function validateModelLibrary({ library, modelsDir }) {
 
   if (fs.existsSync(modelsDir)) {
     for (const fileName of fs.readdirSync(modelsDir).filter((file) => file.endsWith(".glb"))) {
-      if (!fileNames.has(fileName)) addError(errors, `orphan GLB is not in catalog: ${fileName}`);
+      if (!staticFileNames.has(fileName)) addError(errors, `orphan GLB is not in catalog: ${fileName}`);
     }
   } else {
     addError(errors, `model directory is missing: ${modelsDir}`);

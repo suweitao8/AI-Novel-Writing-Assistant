@@ -20,6 +20,7 @@ import {
 } from "./modelLibrary3d/studioEnvironmentPresets";
 import { formatModelDimension } from "./modelLibrary3d/modelGeometryStats";
 import { createModelViewer, type ModelViewer } from "./modelLibrary3d/modelViewerApp";
+import type { CharacterAppearanceMode } from "./modelLibrary3d/characterAppearance";
 
 export default function ModelEditorPage() {
   const { modelId } = useParams<{ modelId: string }>();
@@ -32,6 +33,14 @@ export default function ModelEditorPage() {
   const showBoundsRef = useRef(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
+  const isCharacterTextureExperiment = entry?.previewAppearance === "character-texture-test";
+  const [appearanceMode, setAppearanceMode] = useState<CharacterAppearanceMode>(
+    isCharacterTextureExperiment ? "male-college-student" : "blue",
+  );
+
+  useEffect(() => {
+    setAppearanceMode(isCharacterTextureExperiment ? "male-college-student" : "blue");
+  }, [entry?.id, isCharacterTextureExperiment]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -46,6 +55,7 @@ export default function ModelEditorPage() {
       modelUrl: entry.fileUrl,
       unitScale: entry.unitScale,
       materials: entry.materials,
+      previewAppearance: entry.previewAppearance,
       environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
       environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
       showBounds: showBoundsRef.current,
@@ -92,6 +102,18 @@ export default function ModelEditorPage() {
       toast.error("快照导出失败。", { description: error instanceof Error ? error.message : undefined });
     }
   }, [entry]);
+
+  const handleAppearanceChange = useCallback(
+    (nextMode: CharacterAppearanceMode) => {
+      if (!isCharacterTextureExperiment || !viewerRef.current) return;
+      if (viewerRef.current.setAppearance(nextMode)) {
+        setAppearanceMode(nextMode);
+      } else {
+        toast.error("角色外观切换失败。");
+      }
+    },
+    [isCharacterTextureExperiment],
+  );
 
   if (!entry) {
     return <Navigate to="/models" replace />;
@@ -187,6 +209,35 @@ export default function ModelEditorPage() {
               </p>
             </InspectorComponentSection>
           </div>
+
+          {isCharacterTextureExperiment ? (
+            <InspectorComponentSection title="角色外观">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="角色外观">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={appearanceMode === "male-college-student" ? "default" : "outline"}
+                  aria-pressed={appearanceMode === "male-college-student"}
+                  data-character-appearance="male-college-student"
+                  onClick={() => handleAppearanceChange("male-college-student")}
+                  disabled={!viewer}
+                >
+                  男大学生测试纹理
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={appearanceMode === "blue" ? "default" : "outline"}
+                  aria-pressed={appearanceMode === "blue"}
+                  data-character-appearance="blue"
+                  onClick={() => handleAppearanceChange("blue")}
+                  disabled={!viewer}
+                >
+                  蓝色模型
+                </Button>
+              </div>
+            </InspectorComponentSection>
+          ) : null}
 
           <label
             className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm"

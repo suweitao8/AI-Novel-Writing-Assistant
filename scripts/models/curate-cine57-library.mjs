@@ -15,7 +15,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const MODELS_DIR = path.join(REPO_ROOT, "client/public/models/cine57");
 const TEXTURES_DIR = path.join(MODELS_DIR, "tex");
 const CATALOG_PATH = path.join(REPO_ROOT, "client/src/config/modelLibrary.ts");
-const CATEGORY_ORDER = CINE57_CATEGORY_ORDER;
+const CATEGORY_ORDER = [...CINE57_CATEGORY_ORDER, "角色"];
 const ALLOWED_IDS = new Set(CINE57_ALLOWED_MODEL_IDS);
 const REMOVED_IDS = new Set(CINE57_REMOVED_MODEL_IDS);
 
@@ -29,7 +29,7 @@ function parseCatalog(source) {
     const category = /\bcategory: "([^"]+)"/.exec(line)?.[1];
     const fileName = /\bfileName: "([^"]+)"/.exec(line)?.[1];
     if (!id || !name || !category || !fileName) throw new Error(`Cannot parse catalog entry at line ${lineIndex + 1}`);
-    entries.push({ id, name, category, fileName, lineIndex });
+    entries.push({ id, name, category, fileName, lineIndex, previewAppearance: /\bpreviewAppearance: "/.test(line) });
   });
   if (entries.length === 0) throw new Error(`No generated model entries found in ${CATALOG_PATH}`);
   return { lines, entries };
@@ -47,6 +47,7 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
   const outputLines = parsed.lines.flatMap((line, index) => {
     const entry = entryByLineIndex.get(index);
     if (!entry) return [line];
+    if (entry.previewAppearance) return [line];
     if (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)) return [];
     const filePath = path.join(modelsDir, entry.fileName);
     if (!fs.existsSync(filePath)) throw new Error(`Cannot update size for missing ${entry.fileName}`);
@@ -63,6 +64,7 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
   });
   const categories = CATEGORY_ORDER.filter((category) =>
     parsed.entries.some((entry) => {
+      if (entry.previewAppearance) return entry.category === category;
       if (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)) return false;
       return (getCatalogOverride(entry.id)?.category ?? entry.category) === category;
     }),
@@ -94,8 +96,8 @@ async function main() {
   const checkOnly = process.argv.includes("--check");
   const source = fs.readFileSync(CATALOG_PATH, "utf8");
   const parsed = parseCatalog(source);
-  const removedEntries = parsed.entries.filter((entry) => REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id));
-  const keptEntries = parsed.entries.filter((entry) => ALLOWED_IDS.has(entry.id) && !REMOVED_IDS.has(entry.id));
+  const removedEntries = parsed.entries.filter((entry) => !entry.previewAppearance && (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)));
+  const keptEntries = parsed.entries.filter((entry) => !entry.previewAppearance && ALLOWED_IDS.has(entry.id) && !REMOVED_IDS.has(entry.id));
   if (keptEntries.length !== ALLOWED_IDS.size) {
     throw new Error(`Curation expects ${ALLOWED_IDS.size} allowlisted entries, found ${keptEntries.length}`);
   }

@@ -95,7 +95,7 @@ const CEILING_HUNG = Object.freeze<ModelUsageInstruction>({
 });
 
 /**
- * 每个静态模型 ID 都必须在这里出现。共享 profile 只复用相同的安装语义，
+ * 每个模型库条目 ID 都必须在这里出现。共享 profile 只复用相同的安装语义，
  * 经过 attachModelUsageInstructions 后每个目录条目仍会拥有自己的 usage 字段。
  */
 export const MODEL_USAGE_INSTRUCTIONS: Readonly<Record<string, ModelUsageInstruction>> = Object.freeze({
@@ -178,6 +178,7 @@ export const MODEL_USAGE_INSTRUCTIONS: Readonly<Record<string, ModelUsageInstruc
   "shrub-b": GROUND_UPRIGHT,
   "grass-01-1": GROUND_UPRIGHT,
   "flower-01-01": GROUND_UPRIGHT,
+  "ual2-college-student": GROUND_UPRIGHT,
 });
 
 export function attachModelUsageInstructions<T extends { id: string }>(

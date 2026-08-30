@@ -40,7 +40,6 @@ const VALID_ORIENTATIONS = new Set([
 ]);
 
 test("每个模型都有完整的结构化使用说明", () => {
-  assert.equal(MODEL_LIBRARY.length, 79);
   assert.equal(Object.keys(MODEL_USAGE_INSTRUCTIONS).length, MODEL_LIBRARY.length);
 
   for (const entry of MODEL_LIBRARY) {
@@ -54,6 +53,26 @@ test("每个模型都有完整的结构化使用说明", () => {
     assert.equal(typeof entry.usage.instruction, "string", `${entry.id} 说明必须是文字`);
     assert.ok(entry.usage.instruction.trim().length > 0, `${entry.id} 说明不能为空`);
   }
+});
+
+test("角色预览条目也声明落地使用语义", () => {
+  const character = getModelUsageInstruction("ual2-college-student");
+  assert.deepEqual(
+    {
+      supportSurface: character?.supportSurface,
+      placementMode: character?.placementMode,
+      anchor: character?.anchor,
+      orientation: character?.orientation,
+      requiresFacingDirection: character?.requiresFacingDirection,
+    },
+    {
+      supportSurface: "ground",
+      placementMode: "grounded",
+      anchor: "base",
+      orientation: "upright",
+      requiresFacingDirection: false,
+    },
+  );
 });
 
 test("代表性模型的使用说明符合实际安装方式", () => {

@@ -21,6 +21,7 @@
 - **分类与容器配额**：页面继续使用平面分类页签；自然资产固定细分为「石头 / 灌木 / 树木 / 草 / 花 / 盆栽」，小摆件、雕像、奖杯和花瓶归入「玩具/装饰品」，箱子、纸盒、木桶和篮筐归入「容器与箱子」。食材/纸箱同族最多发布两个代表模型，当前保留一组食材纸箱和一个纸盒；后续扩容必须先更新策略并通过质量门禁。
 - **UCX 碰撞体剔除是硬规则**：UE 静态网格导出 FBX 会带上碰撞壳（`UCX_*`，无贴图的凸包）与 LOD1-3。UE 引擎从不渲染碰撞壳，网页端不剔除就会看到一个包住模型的白色占位壳（用户报告的"白色包裹"元凶）。必须同时检查 `json.nodes[].name` 和 `json.meshes[].name`：碰撞节点可能没有 mesh，不能只依赖 mesh 名过滤。清洗器改写 GLB JSON chunk，BIN 数据保持不变。
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
+- **角色外观预览边界**：模型库的「角色」条目可以复用动画库已有 UAL2 角色 GLB，但它不是 Cine57 静态道具入库清单的一部分。当前测试外观由 `modelLibrary3d/characterAppearance.ts` 生成 512×512 确定性颜色纹理，利用模型位置做圆柱投影；原因是当前 UAL2 文件的 UV 坐标退化，不能把普通 UV 图片当作生产贴图。模型库详情页可在测试纹理与蓝色代理之间切换，分镜、动画预览和动画缩略图始终使用蓝色材质。正式角色纹理必须换成带有效 UV 的角色资产，再接入真实纹理生成/保存链路。
 - **tint 只属于无贴图槽位（硬规则）**：UE 清单里的 `slot.tint` 是母材质向量参数的默认值/实例值，**不是**漫反射——当槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。构建规则：有 baseColor 贴图的槽位一律丢弃 tint；tint 只作为纯材质槽（无任何贴图）的主色（床品深红、婴儿床蓝等这类外观是合法用途）。
 - **环境反射（IBL）是质感前提**：模型、动画和漫剧都通过 `blocking3dEnvironmentRuntime.ts` 从同一张 HDR 资源生成可见投影与 `scene.envAtlas`。`envAtlas` 只负责环境光照，有限半圆穹顶负责可见背景；没有这套真实 HDR 环境，玻璃/金属容易发白发平或整面发黑。
 - **HDRI 穹顶只接收阴影，不得投射阴影**：可视半圆穹顶和地面阴影接收器的 `render` 组件必须在创建时同时设置 `castShadows: false`、`receiveShadows: true`。PlayCanvas 的 `RenderComponent` 默认会把 `castShadows` 写回它接管的 `MeshInstance`，只在 `addComponent` 前设置 `meshInstance.castShadow = false` 会被覆盖，导致穹顶把主光挡到地面上形成整片黑块；角色仍通过独立阴影接收器保留落地阴影。
@@ -34,10 +35,11 @@
 - **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期，通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角；拖动 5–30 米半球直径只重建环境网格，不重复创建 PlayCanvas Application。
 - **实时预览色调映射统一为 PlayCanvas 默认 Linear**（2026-08-30）：模型查看器（modelViewerApp）与动画预览（animationPreviewApp）不要单独设置 TONEMAP_ACES——blocking3d 视图（漫剧场景、HDRI 预览页）用默认 Linear，ACES 会对高饱和环境整体去饱和提亮，同一张 HDR 在模型编辑器和预览页会呈现两种颜色（草地自然环境曾因此整体发白，该环境现已下线）。离屏缩略图（thumbnailStudio/animationThumbnailStudio）目前仍是 ACES，若出现色差需同步调整。
 - **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器的缩放距离不使用环境半径作为边界，而是按当前模型显示包围球动态适配；相机近/远裁剪面也随模型和相机距离更新，避免 HDRI 尺寸限制大模型取景；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v19`，动画缩略图键为 `animation-library:thumbnails:v6`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
+- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v20`，动画缩略图键为 `animation-library:thumbnails:v6`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
 - **贴图降采样与编码质量**：baseColor 桶按 2048 上限 JPEG，normal/RMA 桶按 1024 上限 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），不能使用会造成严重马赛克的高数值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
+- **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。角色预览条目可以引用动画库资源，不参与 Cine57 静态 GLB 清单和尺寸统计。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
 - **模型使用说明是摆放契约**：每个 `ModelLibraryEntry` 都必须带 `usage`，由 `config/modelLibraryUsage.ts` 按模型 ID 提供 `supportSurface`、`placementMode`、`anchor`、`orientation`、`requiresFacingDirection` 和 `instruction`。墙挂模型必须声明墙面/背面/正面朝向，吊顶模型必须声明天花板/顶部/主体朝下，落地模型必须声明地面/底部；后续分镜摆放只读取这些结构化字段，不解析中文说明或模型名称。
 - **使用说明按实际接触面分类**：家具、容器、自然物和地面物件通常落地；书堆、餐食、摆件、办公小物等使用水平支撑面；时钟是墙面挂装，宫灯是天花板悬挂，双筒望远镜是需要目标方向的水平支撑物。说明中的 `anchor` 用于将模型的底部、背面、顶部或支撑中心对齐到对应表面。
 - **使用说明完整性是发布门禁**：`attachModelUsageInstructions` 会拒绝目录漏配或出现孤立 ID，`modelLibraryQuality.mjs` 会拒绝非法枚举、空文案和墙挂/吊顶字段组合矛盾。新增或重新策展模型时，必须同步补充使用 profile 和代表性测试；不能用落地默认值静默掩盖未知安装方式。
@@ -70,8 +72,8 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v19`、`animation-library:thumbnails:v6`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑与环境预设变更必须同步刷新缓存版本。
-- 缩略图队列串行、闲置 8 秒销毁离线画布；当前 79 个模型全队列仍按同一队列逐个生成。
+- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v20`、`animation-library:thumbnails:v6`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑与环境预设变更必须同步刷新缓存版本。
+- 缩略图队列串行、闲置 8 秒销毁离屏画布；当前 79 个模型全队列仍按同一队列逐个生成，角色预览条目复用同一离屏工作室。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。
 - 页面分类表完全由目录数据驱动；目录再生成即页面更新，前端无需改代码。
