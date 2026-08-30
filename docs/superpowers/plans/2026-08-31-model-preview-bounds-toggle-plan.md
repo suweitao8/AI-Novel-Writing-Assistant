@@ -16,7 +16,7 @@
 
 - Modify: `client/tests/modelPreviewReadonly.contract.test.js:15-36`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在现有只读预览合约测试后增加以下测试，锁定用户可见入口和查看器边界：
 
@@ -34,7 +34,7 @@ test("模型包围盒默认隐藏，并可通过复选框切换为灰色线框",
 });
 ```
 
-- [ ] **Step 2: 运行测试确认按预期失败**
+- [x] **Step 2: 运行测试确认按预期失败**
 
 Run:
 
@@ -50,7 +50,7 @@ Expected: FAIL，失败原因是当前源码还没有 checkbox、`setBoundsVisib
 
 - Modify: `client/src/pages/models/modelLibrary3d/modelViewerApp.ts:40-60,360-365,483-505`
 
-- [ ] **Step 1: 扩展查看器选项和接口**
+- [x] **Step 1: 扩展查看器选项和接口**
 
 在 `ModelViewerOptions` 增加可选的 `showBounds?: boolean`，在 `ModelViewer` 增加：
 
@@ -67,7 +67,7 @@ const MODEL_BOUNDS_COLOR = new pc.Color(0.68, 0.68, 0.68, 0.9);
 
 这样未传入选项时始终默认隐藏，并把颜色集中为中性灰色。
 
-- [ ] **Step 2: 让帧绘制和 setter 只影响包围盒**
+- [x] **Step 2: 让帧绘制和 setter 只影响包围盒**
 
 将现有包围盒绘制条件改为：
 
@@ -92,7 +92,7 @@ setBoundsVisible(visible) {
 
 不得把开关接入 `modelAdjust`、相机状态、拾取器、变换 gizmo 或 HDRI setter。
 
-- [ ] **Step 3: 运行测试确认查看器部分转绿**
+- [x] **Step 3: 运行测试确认查看器部分转绿**
 
 Run:
 
@@ -108,7 +108,7 @@ Expected: 新增可见性合约与已有只读边界测试 PASS；如果失败�
 
 - Modify: `client/src/pages/models/ModelEditorPage.tsx:18-83,145-163`
 
-- [ ] **Step 1: 增加页面状态和异步同步机制**
+- [x] **Step 1: 增加页面状态和异步同步机制**
 
 增加一个默认值为 `false` 的状态及 ref：
 
@@ -119,7 +119,7 @@ const showBoundsRef = useRef(false);
 
 创建查看器时传入 `showBounds: showBoundsRef.current`；查看器完成加载后调用 `nextViewer.setBoundsVisible(showBoundsRef.current)`，保证用户在异步加载期间做出的选择不会被旧闭包覆盖。模型条目变化时重置 ref 和状态为 `false`。
 
-- [ ] **Step 2: 添加可访问的 checkbox 控件**
+- [x] **Step 2: 添加可访问的 checkbox 控件**
 
 在“模型信息”与聚焦按钮之间加入：
 
@@ -147,7 +147,7 @@ const showBoundsRef = useRef(false);
 
 控件使用现有语义 token，不增加持久化，不禁用加载期间的选择；它只改变包围盒可见性。
 
-- [ ] **Step 3: 运行页面合约测试**
+- [x] **Step 3: 运行页面合约测试**
 
 Run:
 
@@ -165,11 +165,11 @@ Expected: PASS，且原有“无 Transform/HDRI 编辑入口、保留系统 HDRI
 - Modify: `docs/releases/release-notes.md`
 - Modify: `README.md`
 
-- [ ] **Step 1: 更新架构规则**
+- [x] **Step 1: 更新架构规则**
 
 将“3D 画面显示非交互式线框包围盒”改为“3D 画面提供可选的非交互式线框包围盒，默认隐藏；显示开关只改变绘制状态”。在失败模式中补充：可见性默认不持久化，详情页重新进入仍隐藏；颜色和状态不能成为模型变换或环境设置入口。
 
-- [ ] **Step 2: 更新用户视角的 release notes 与 README 最新更新**
+- [x] **Step 2: 更新用户视角的 release notes 与 README 最新更新**
 
 在现有 `2026-08-31` 日期块合并一条简短说明：模型详情预览默认隐藏包围盒，用户可通过“显示包围盒”查看灰色尺寸线框。README 只保留最新日期摘要和 release notes 链接，不写内部文件、测试或实现过程。
 
@@ -179,7 +179,7 @@ Expected: PASS，且原有“无 Transform/HDRI 编辑入口、保留系统 HDRI
 
 - No new source files.
 
-- [ ] **Step 1: 运行完整模型预览聚焦测试**
+- [x] **Step 1: 运行完整模型预览聚焦测试**
 
 Run:
 
@@ -189,7 +189,7 @@ pnpm --filter @ai-novel/client exec node --experimental-strip-types --test src/p
 
 Expected: 现有模型预览相关测试全部 PASS，新增的默认隐藏、灰色和 checkbox 合约包含在通过结果中。
 
-- [ ] **Step 2: 运行客户端类型检查、构建和 diff 检查**
+- [x] **Step 2: 运行客户端类型检查、构建和 diff 检查**
 
 Run:
 
