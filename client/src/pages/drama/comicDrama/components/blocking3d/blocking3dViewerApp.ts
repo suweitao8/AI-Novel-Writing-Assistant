@@ -282,7 +282,11 @@ export async function createBlocking3dViewer(
 
   // HDRI 环境运行时：背景穹顶、环境光照与瞬态主光的唯一归属；背景按状态图
   // 重建时不会连带销毁或移动空间标记。
-  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity);
+  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
+    // 通用 HDRI 页不加载代理角色；没有投影物时不创建空 shadow catcher，
+    // 避免空阴影贴图把可见穹顶的地面乘成黑色。
+    enableShadowCatcher: options.loadProxyActor !== false,
+  });
 
   // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
   // 地面平坦部分的外沿。调“半球直径”滑块时两条圈同时重算，可以直观
