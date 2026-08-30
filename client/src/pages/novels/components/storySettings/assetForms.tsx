@@ -61,6 +61,11 @@ export interface AssetStatesEditorOps {
   refreshServerStates: () => void;
   /** 渲染在图片操作区的额外动作（如环境的「设为当前全景」）。 */
   renderExtraImageAction?: (state: StoryAssetState | null) => ReactNode;
+  /**
+   * 状态没有生成图时，大图预览区回落显示的内置环境全景（仅环境编辑使用；
+   * 卡片与 3D 预览未生成时同样回落内置全景，编辑器保持同一观感）。
+   */
+  stateImageFallbackUrl?: string;
 }
 
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
@@ -658,6 +663,8 @@ export function AssetStatesEditor(props: {
               >
                 {state.image?.url ? (
                   <img src={buildStateImageSrc(state.image.url, state.image.generatedAt)} alt={`${stateLabel} 状态图`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
+                ) : ops?.stateImageFallbackUrl && stateIndex === 0 ? (
+                  <img src={ops.stateImageFallbackUrl} alt={`${stateLabel}当前使用内置环境全景`} className="h-10 w-14 shrink-0 rounded-md border border-border object-cover" />
                 ) : (
                   <div className="h-10 w-14 shrink-0 rounded-md border border-dashed border-border bg-muted/20" aria-label={`${stateLabel}尚未生成图片`} />
                 )}
@@ -729,6 +736,15 @@ export function AssetStatesEditor(props: {
                   <LightboxImage
                     src={buildStateImageSrc(selectedState.image.url, selectedState.image.generatedAt)}
                     alt={`${getAssetStateLabel(selectedState, selectedIndex)} 状态图`}
+                    fit="natural"
+                    blurBackdrop={false}
+                    className="w-full rounded-lg border-0"
+                    overlay={showScene ? <ScenePanoramaGuides /> : undefined}
+                  />
+                ) : ops?.stateImageFallbackUrl ? (
+                  <LightboxImage
+                    src={ops.stateImageFallbackUrl}
+                    alt={`${getAssetStateLabel(selectedState, selectedIndex)}当前使用内置环境全景`}
                     fit="natural"
                     blurBackdrop={false}
                     className="w-full rounded-lg border-0"
