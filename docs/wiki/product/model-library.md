@@ -30,9 +30,9 @@
 - **环境列表与编辑完全照抄场景资产交互**（2026-08-30 用户要求：不要表格 + 双按钮的自造布局）：通用资产页的 HDRI 环境用与场景资产同一张 `StoryAssetCard`（`buildEnvironmentAssetPresentation` 构建展示，卡片预览 = 生效状态全景优先、未生成回落内置 `previewImageUrl`）卡片展示，点卡片直接打开编辑弹窗；弹窗与 `StoryAssetEditDialog` 同构（`AppDialogContent` max-w-6xl + 环境描述字段 + `AssetStatesEditor` + 取消/保存脚注），不设独立的「编辑环境」「3D 预览」按钮。状态图生成后编辑器内出现与场景一致的「3D编辑」按钮，跳整页 HDRI 预览；半球直径只在 3D 预览页（和模型编辑器）调节，列表页不再放直径滑杆。`dismiss-image-error` 与小说资产同契约：body 传 `error`/`attemptId` 做乐观校验（`canDismissStudioEnvironmentImageError` 守卫），只清除用户看到的那次失败，避免悄悄关掉没见过的新错误。教训：列表/入口层也要照抄既有交互，"表格 + 多按钮"式的自造入口会被用户当作另一套产品。
 - **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期，通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角；拖动 5–30 米半球直径只重建环境网格，不重复创建 PlayCanvas Application。
 - **实时预览色调映射统一为 PlayCanvas 默认 Linear**（2026-08-30）：模型查看器（modelViewerApp）与动画预览（animationPreviewApp）不要单独设置 TONEMAP_ACES——blocking3d 视图（漫剧场景、HDRI 预览页）用默认 Linear，ACES 会对高饱和环境整体去饱和提亮，同一张 HDR 在模型编辑器和预览页会呈现两种颜色（草地自然环境曾因此整体发白，该环境现已下线）。离屏缩略图（thumbnailStudio/animationThumbnailStudio）目前仍是 ACES，若出现色差需同步调整。
-- **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前环境真实半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v18`，动画缩略图键为 `animation-library:thumbnails:v5`，改动环境、投影或材质逻辑必须升版本。
-- **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
+- **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器的缩放距离不使用环境半径作为边界，而是按当前模型显示包围球动态适配；相机近/远裁剪面也随模型和相机距离更新，避免 HDRI 尺寸限制大模型取景；`LAYERID_SKYBOX` 仍必须从相机层移除。
+- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v19`，动画缩略图键为 `animation-library:thumbnails:v5`，改动环境、投影或材质逻辑必须升版本。
+- **贴图降采样与编码质量**：baseColor 桶按 2048 上限 JPEG，normal/RMA 桶按 1024 上限 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），不能使用会造成严重马赛克的高数值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
@@ -63,7 +63,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v17`、`animation-library:thumbnails:v3`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用室内默认 HDRI，地面网格与半圆环境按同一套直径规则计算；生成逻辑与环境预设变更必须同步刷新缓存版本。
+- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v19`、`animation-library:thumbnails:v5`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用中央广场默认 HDRI，地面网格与半圆环境按同一套直径规则计算；生成逻辑与环境预设变更必须同步刷新缓存版本。
 - 缩略图队列串行、闲置 8 秒销毁离线画布；44 个模型全队列约 3 秒。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。

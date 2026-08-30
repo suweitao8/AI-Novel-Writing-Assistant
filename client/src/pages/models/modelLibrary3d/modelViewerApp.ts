@@ -16,6 +16,10 @@ import {
   type StudioEnvironmentHandle,
 } from "./studioEnvironmentRuntime";
 import {
+  getModelViewerCameraClipPlanes,
+  normalizeModelViewerCameraDistance,
+} from "./modelViewerCamera";
+import {
   buildBlocking3dGroundGridLines,
   createBlocking3dTransformGizmo,
   clamp,
@@ -205,6 +209,10 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const modelAdjust = new pc.Entity("model-adjust");
   modelRoot.addChild(modelAdjust);
 
+  // 模型在 modelRoot 本地空间里的显示尺寸（米），用于取景和相机裁剪面。
+  let modelCenterY = 0.5;
+  let modelRadius = 0.5;
+
   const cameraState: OrbitState = {
     azim: DEFAULT_VIEW.azim,
     elev: DEFAULT_VIEW.elev,
@@ -212,13 +220,17 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     focalPoint: [0, 0.5, 0],
   };
 
-  const getCameraMaxDistance = () => Math.max(0.35, currentEnvironmentRadiusMeters * 0.85);
+  const getVisibleModelRadius = () => modelRadius * Math.abs(modelRoot.getLocalScale().x);
 
   const syncCamera = () => {
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const cosElevation = Math.cos(elevation);
-    const distance = clamp(cameraState.distance, 0.2, getCameraMaxDistance());
+    const modelDisplayRadius = getVisibleModelRadius();
+    const distance = normalizeModelViewerCameraDistance(cameraState.distance, modelDisplayRadius);
+    const clipPlanes = getModelViewerCameraClipPlanes(distance, modelDisplayRadius);
+    camera.nearClip = clipPlanes.nearClip;
+    camera.farClip = clipPlanes.farClip;
     cameraState.distance = distance;
     cameraEntity.setPosition(
       cameraState.focalPoint[0] + Math.sin(azimuth) * cosElevation * distance,
@@ -290,24 +302,20 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   transformGizmo.setTool("translate");
   transformGizmo.attach(modelRoot);
 
-  // 模型在 modelRoot 本地空间里的显示尺寸（米），用于取景。
-  let modelCenterY = 0.5;
-  let modelRadius = 0.5;
-
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
+    const fitRadius = Number.isFinite(radius) && radius > 0 ? radius : Number.EPSILON;
     cameraState.focalPoint = [modelRoot.getPosition().x, centerY, modelRoot.getPosition().z];
-    cameraState.distance = clamp(
-      (Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3,
-      0.35,
-      getCameraMaxDistance(),
+    cameraState.distance = normalizeModelViewerCameraDistance(
+      (fitRadius / Math.sin(fovRad / 2)) * 1.3,
+      fitRadius,
     );
     syncCamera();
   };
 
   const fitView = () => {
     // 包围球半径与 Y 轴旋转无关，可以直接用 modelRoot 的位置 + 本地中心高度取景。
-    const scale = modelRoot.getLocalScale().x;
+    const scale = Math.abs(modelRoot.getLocalScale().x);
     const position = modelRoot.getPosition();
     fitCameraTo(position.y + modelCenterY * scale, modelRadius * scale);
   };
@@ -437,11 +445,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const onWheel = (event: WheelEvent) => {
     if (destroyed) return;
     event.preventDefault();
-    cameraState.distance = clamp(
-      cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
-      0.2,
-      getCameraMaxDistance(),
-    );
+    cameraState.distance *= event.deltaY > 0 ? 1.08 : 0.92;
     syncCamera();
   };
 
@@ -536,6 +540,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
         const clamped = clamp(patch.scale, 0.05, 20);
         modelRoot.setLocalScale(clamped, clamped, clamped);
       }
+      syncCamera();
       return true;
     },
     getEnvironmentPreset() {
