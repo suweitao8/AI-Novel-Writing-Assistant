@@ -22,6 +22,8 @@ export default function ModelEditorPage() {
   const viewerRef = useRef<ModelViewer | null>(null);
   const [viewer, setViewer] = useState<ModelViewer | null>(null);
   const [geometryStats, setGeometryStats] = useState<ModelViewer["geometryStats"]>(null);
+  const [showBounds, setShowBounds] = useState(false);
+  const showBoundsRef = useRef(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
 
@@ -29,6 +31,8 @@ export default function ModelEditorPage() {
     const canvas = canvasRef.current;
     if (!canvas || !entry || viewerRef.current) return undefined;
     let cancelled = false;
+    showBoundsRef.current = false;
+    setShowBounds(false);
     setViewerError(null);
     setGeometryStats(null);
     void createModelViewer({
@@ -38,6 +42,7 @@ export default function ModelEditorPage() {
       materials: entry.materials,
       environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
       environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
+      showBounds: showBoundsRef.current,
       onStatus: (next) => setStatus(next || "就绪"),
     })
       .then((nextViewer) => {
@@ -46,6 +51,7 @@ export default function ModelEditorPage() {
           return;
         }
         viewerRef.current = nextViewer;
+        nextViewer.setBoundsVisible(showBoundsRef.current);
         setViewer(nextViewer);
         setGeometryStats(nextViewer.geometryStats);
       })
@@ -144,6 +150,26 @@ export default function ModelEditorPage() {
               </div>
             </dl>
           </InspectorComponentSection>
+
+          <label
+            className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm"
+            data-model-bounds-toggle
+          >
+            <input
+              id="model-bounds-visibility"
+              type="checkbox"
+              checked={showBounds}
+              onChange={(event) => {
+                const nextVisible = event.target.checked;
+                showBoundsRef.current = nextVisible;
+                setShowBounds(nextVisible);
+                viewerRef.current?.setBoundsVisible(nextVisible);
+              }}
+              aria-label="显示模型包围盒"
+              className="h-4 w-4 accent-primary"
+            />
+            <span>显示包围盒</span>
+          </label>
 
           <div className="grid grid-cols-3 gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => viewer?.fitView()} disabled={!viewer}>
