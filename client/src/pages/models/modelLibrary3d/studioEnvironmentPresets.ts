@@ -1,3 +1,5 @@
+import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
+
 /**
  * 模型预览使用的固定 HDRI 环境预设。
  *
@@ -9,15 +11,14 @@ export const STUDIO_ENVIRONMENT_PRESET_IDS = ["interior", "exterior", "nature"] 
 
 export type StudioEnvironmentPresetId = typeof STUDIO_ENVIRONMENT_PRESET_IDS[number];
 
-export const STUDIO_ENVIRONMENT_DIAMETER_LIMITS = {
-  min: 5,
-  max: 30,
-} as const;
+export const STUDIO_ENVIRONMENT_DIAMETER_LIMITS = STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius;
 
 export interface StudioEnvironmentPreset {
   id: StudioEnvironmentPresetId;
   label: string;
   sourceUrl: string;
+  /** 浏览器可直接显示的平面全景预览，不替代运行时使用的 HDR 资源。 */
+  previewImageUrl: string;
   diameterMeters: number;
   projectionCenterHeightMeters: number;
   panoramaHorizonV: number;
@@ -30,6 +31,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "interior",
     label: "室内客厅",
     sourceUrl: "/models/env/model-indoor-living-room.hdr",
+    previewImageUrl: "/models/env/model-indoor-living-room-preview.png",
     diameterMeters: 15,
     projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
@@ -38,6 +40,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "exterior",
     label: "中央广场",
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
+    previewImageUrl: "/models/env/model-outdoor-central-plaza-preview.png",
     diameterMeters: 15,
     projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,
@@ -46,6 +49,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     id: "nature",
     label: "草地自然",
     sourceUrl: "/models/env/model-nature-grassland.hdr",
+    previewImageUrl: "/models/env/model-nature-grassland-preview.png",
     diameterMeters: 15,
     projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,

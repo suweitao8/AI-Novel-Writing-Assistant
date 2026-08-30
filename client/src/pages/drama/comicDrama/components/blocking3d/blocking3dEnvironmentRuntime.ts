@@ -163,6 +163,8 @@ export function createBlocking3dEnvironmentRuntime(
         environmentBackdrop.addComponent("render", {
           meshInstances: [meshInstance],
           layers: [pc.LAYERID_WORLD],
+          castShadows: false,
+          receiveShadows: true,
         });
         environmentBackdrop.setPosition(environmentWorldPosition);
         worldEntity.addChild(environmentBackdrop);
@@ -184,6 +186,8 @@ export function createBlocking3dEnvironmentRuntime(
           environmentShadowCatcher.addComponent("render", {
             meshInstances: [environmentShadowCatcherMeshInstance],
             layers: [pc.LAYERID_WORLD],
+            castShadows: false,
+            receiveShadows: true,
           });
           environmentShadowCatcher.setPosition(environmentWorldPosition);
           worldEntity.addChild(environmentShadowCatcher);

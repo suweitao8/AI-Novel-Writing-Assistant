@@ -11,6 +11,7 @@ import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
@@ -25,6 +26,36 @@ import { SettingsShell } from "../components/SettingsShell";
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback;
+}
+
+function StudioEnvironmentPanoramaPreview({
+  label,
+  imageUrl,
+}: {
+  label: string;
+  imageUrl: string;
+}) {
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          className="group h-20 w-36 overflow-hidden rounded-md border border-border p-0 hover:bg-muted"
+          aria-label={`${label} 2D 全景预览`}
+        >
+          <img src={imageUrl} alt={`${label} 全景图`} className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-6xl border-border bg-background/95">
+        <DialogTitle>{label} 2D 全景预览</DialogTitle>
+        <DialogDescription className="sr-only">查看当前 HDRI 的平面全景图。</DialogDescription>
+        <div className="overflow-hidden rounded-lg border border-border bg-muted">
+          <img src={imageUrl} alt={`${label} 全景图大图`} className="block max-h-[75vh] w-full object-contain" />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export default function NarratorVoiceSettingsPage() {
@@ -91,7 +122,7 @@ export default function NarratorVoiceSettingsPage() {
             </div>
           ) : null}
           <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <caption className="sr-only">旁白音色预设</caption>
               <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
                 <tr>
@@ -163,14 +194,13 @@ export default function NarratorVoiceSettingsPage() {
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[860px] text-sm">
+            <table className="w-full min-w-[760px] text-sm">
               <caption className="sr-only">模型与动画 HDRI 预设</caption>
               <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
                 <tr>
                   <th scope="col" className="w-44 px-4 py-3 font-medium">资产</th>
-                  <th scope="col" className="w-52 px-4 py-3 font-medium">用途</th>
-                  <th scope="col" className="min-w-[280px] px-4 py-3 font-medium">半球直径</th>
-                  <th scope="col" className="min-w-[250px] px-4 py-3 font-medium">资源</th>
+                  <th scope="col" className="w-44 px-4 py-3 font-medium">2D 全景</th>
+                  <th scope="col" className="min-w-[220px] px-4 py-3 font-medium">半球直径</th>
                   <th scope="col" className="w-32 px-4 py-3 text-right font-medium">操作</th>
                 </tr>
               </thead>
@@ -181,7 +211,9 @@ export default function NarratorVoiceSettingsPage() {
                   return (
                     <tr key={id} className="border-t border-border align-middle">
                       <th scope="row" className="px-4 py-4 text-left font-medium text-foreground">{preset.label}</th>
-                      <td className="px-4 py-4 text-muted-foreground">模型与动画预览</td>
+                      <td className="px-4 py-4">
+                        <StudioEnvironmentPanoramaPreview label={preset.label} imageUrl={preset.previewImageUrl} />
+                      </td>
                       <td className="px-4 py-4">
                         <label className="block space-y-2" htmlFor={`studio-environment-diameter-${id}`}>
                           <span className="flex items-center justify-between gap-3">
@@ -201,9 +233,6 @@ export default function NarratorVoiceSettingsPage() {
                             className="w-full accent-primary"
                           />
                         </label>
-                      </td>
-                      <td className="px-4 py-4">
-                        <code className="break-all text-xs text-muted-foreground">{preset.sourceUrl}</code>
                       </td>
                       <td className="px-4 py-4 text-right">
                         <Button asChild type="button" variant="outline" size="sm">

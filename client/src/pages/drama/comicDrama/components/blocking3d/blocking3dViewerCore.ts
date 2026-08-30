@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
 } from "@ai-novel/shared/types/comicDrama";
 
 import type {
@@ -30,6 +31,8 @@ export const DEFAULT_FOV = 52;
 export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
+/** 场景编辑器和通用 HDRI 预览共用的半球直径范围。 */
+export const BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS = STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   projectionCenterHeightRatio: STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
@@ -135,15 +138,15 @@ export function normalizeEnvironmentSettings(
       );
       const diameter = clamp(
         numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
-        5,
-        30,
+        BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.min,
+        BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.max,
       );
       return Math.round(diameter * ratio * 100) / 100;
     })(),
     domeRadius: clamp(
       numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
-      5,
-      30,
+      BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.min,
+      BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.max,
     ),
     panoramaHorizonV: clamp(
       numberOr(
