@@ -1,12 +1,13 @@
 // 通用环境资产（HDRI 全景环境）的设置存储：AppSetting 单 key JSON，
 // 模式与 GlobalNarratorVoiceSettingsService / DramaAssetArtStyleSettingsService 一致。
 // 环境本体（id/label/默认描述）与静态 .hdr 预设留在客户端常量里；这里只存
-// 可被用户修改的部分：环境描述、状态列表（名称/描述/图片提示词/生成结果）、活跃状态。
+// 可被用户修改的部分：环境描述、状态列表（名称/描述/图片提示词/生成结果）。
+// 三套环境按应用方向（室内/城市户外/自然）由使用场景选择，环境内部没有"当前"切换。
 import { prisma } from "../../db/prisma";
 import { AppError } from "../../middleware/errorHandler";
 import {
   isStudioEnvironmentId,
-  resolveActiveStudioEnvironmentState,
+  resolveEffectiveStudioEnvironmentState,
   STUDIO_ENVIRONMENT_ASSET_SETTING_KEY,
   STUDIO_ENVIRONMENT_DEFAULT_DESCRIPTIONS,
   STUDIO_ENVIRONMENT_IDS,
@@ -103,7 +104,6 @@ function defaultEnvironment(id: StudioEnvironmentId): StudioEnvironmentAsset {
     id,
     label: STUDIO_ENVIRONMENT_LABELS[id],
     description: STUDIO_ENVIRONMENT_DEFAULT_DESCRIPTIONS[id],
-    activeStateId: DEFAULT_STUDIO_ENVIRONMENT_STATE_ID,
     states: [defaultState()],
   };
 }
@@ -125,19 +125,14 @@ export function parseStudioEnvironmentAssetDocument(value: unknown): {
     const entry = raw as Record<string, unknown>;
     const states = normalizeStates(entry.states);
     const label = readString(entry.label, MAX_ENVIRONMENT_STATE_LABEL_LENGTH) ?? STUDIO_ENVIRONMENT_LABELS[id];
+    // 旧存储里的 activeStateId 字段随"当前全景"概念一并废弃：白名单直接丢弃。
     const asset: StudioEnvironmentAsset = {
       id,
       label,
-      activeStateId: DEFAULT_STUDIO_ENVIRONMENT_STATE_ID,
       states: states.length > 0 ? states : fallback.states,
     };
     const description = readString(entry.description, MAX_ENVIRONMENT_DESCRIPTION_LENGTH);
     if (description) asset.description = description;
-    if (states.some((state) => state.id === entry.activeStateId) && typeof entry.activeStateId === "string") {
-      asset.activeStateId = entry.activeStateId;
-    } else {
-      asset.activeStateId = asset.states[0].id;
-    }
     environments[id] = asset;
   }
   return { environments };
@@ -199,24 +194,12 @@ export async function saveStudioEnvironmentAsset(
   const next: StudioEnvironmentAsset = {
     ...existing,
     states: mergedStates,
-    activeStateId: mergedStates.some((state) => state.id === existing.activeStateId)
-      ? existing.activeStateId
-      : mergedStates[0].id,
   };
   if (patch.description !== undefined) {
     const description = readString(patch.description, MAX_ENVIRONMENT_DESCRIPTION_LENGTH);
     if (description) next.description = description;
     else delete next.description;
   }
-  await persistEnvironment(next);
-  return next;
-}
-
-export async function setActiveStudioEnvironmentState(environmentId: string, stateId: string): Promise<StudioEnvironmentAsset> {
-  const document = await getStudioEnvironmentAssetDocument();
-  const environment = getStoredStudioEnvironmentAsset(document, environmentId);
-  assertStateExists(environment, stateId);
-  const next = { ...environment, activeStateId: stateId };
   await persistEnvironment(next);
   return next;
 }
@@ -261,6 +244,7 @@ async function persistEnvironment(environment: StudioEnvironmentAsset): Promise<
   });
 }
 
-export function resolveStudioEnvironmentActiveState(environment: StudioEnvironmentAsset): StudioEnvironmentAssetState {
-  return resolveActiveStudioEnvironmentState(environment) ?? environment.states[0];
+/** 环境内生效状态：默认状态优先，缺失时第一个状态；环境之间按应用方向选择，没有"当前"切换。 */
+export function resolveStudioEnvironmentEffectiveState(environment: StudioEnvironmentAsset): StudioEnvironmentAssetState {
+  return resolveEffectiveStudioEnvironmentState(environment) ?? environment.states[0];
 }

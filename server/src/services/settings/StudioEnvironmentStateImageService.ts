@@ -30,7 +30,7 @@ import {
 import {
   getStudioEnvironmentAssetDocument,
   getStoredStudioEnvironmentAsset,
-  resolveStudioEnvironmentActiveState,
+  resolveStudioEnvironmentEffectiveState,
   updateStudioEnvironmentStateImage,
 } from "./StudioEnvironmentAssetSettingsService";
 import type {
@@ -272,13 +272,13 @@ export class StudioEnvironmentStateImageService {
   }
 }
 
-/** 供客户端解析「当前生效的环境源」：活跃状态图就绪时返回其 URL。 */
-export async function getActiveStudioEnvironmentImageUrl(
+/** 供客户端解析该应用方向的环境源：生效状态（默认状态优先）的全景就绪时返回其 URL。 */
+export async function getEffectiveStudioEnvironmentImageUrl(
   environmentId: StudioEnvironmentId,
 ): Promise<string | null> {
   const document = await getStudioEnvironmentAssetDocument();
   const environment = getStoredStudioEnvironmentAsset(document, environmentId);
-  const state = resolveStudioEnvironmentActiveState(environment);
+  const state = resolveStudioEnvironmentEffectiveState(environment);
   if (state && state.image?.status === "done" && state.image.url) {
     return state.image.url;
   }

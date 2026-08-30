@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, Box, CircleCheck, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { AudioLines, Box, Image, Loader2, Save, WandSparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import type {
   StudioEnvironmentAsset,
-  StudioEnvironmentAssetState,
 } from "@ai-novel/shared/types/studioEnvironmentAssets";
 import type { StoryAssetState } from "@ai-novel/shared/types/novelReferenceExtraction";
 import {
@@ -16,7 +15,6 @@ import {
   getStudioEnvironmentAssets,
   saveGlobalNarratorVoiceDescription,
   saveStudioEnvironmentAsset,
-  setActiveStudioEnvironmentState,
   tweakStudioEnvironmentStateImagePrompt,
 } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
@@ -121,19 +119,7 @@ function StudioEnvironmentEditorDialog({
     setStatesDraft(next);
   };
 
-  const activeStateMutation = useMutation({
-    mutationFn: async (stateId: string) => {
-      await ensureSaved();
-      return setActiveStudioEnvironmentState(environment.id, stateId);
-    },
-    onSuccess: () => {
-      invalidate();
-      toast.success("当前全景已切换。");
-    },
-    onError: (error) => toast.error(errorMessage(error, "切换当前全景失败，请重试。")),
-  });
-
-  const isBusy = saveMutation.isPending || activeStateMutation.isPending;
+  const isBusy = saveMutation.isPending;
   const ops = useMemo(() => ({
     generateImage: async (stateId: string) => {
       await ensureSaved();
@@ -150,7 +136,8 @@ function StudioEnvironmentEditorDialog({
       const response = await dismissStudioEnvironmentStateImageError(environment.id, stateId, expectedError, expectedAttemptId);
       statesDirtyRef.current = false;
       return response;
-    },    tweakImagePrompt: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
+    },
+    tweakImagePrompt: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
       const state = statesDraft.find((item) => item.id === stateId);
       const response = await tweakStudioEnvironmentStateImagePrompt(environment.id, {
         stateLabel: state?.label?.trim() || undefined,
@@ -161,34 +148,20 @@ function StudioEnvironmentEditorDialog({
     },
     serverStates: environment.states,
     refreshServerStates: invalidate,
-    renderExtraImageAction: (state: StudioEnvironmentAssetState | StoryAssetState | null) => (
-      <>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-8 px-2 text-xs shadow-sm"
-          aria-label={`编辑${environment.label}的 3D 环境`}
-          onClick={() => navigate(`/settings/narrator-voice/hdri/${environment.id}`)}
-        >
-          <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-          3D编辑
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-8"
-          disabled={isBusy || !state || state.id === environment.activeStateId}
-          aria-label="设为当前全景"
-          onClick={() => {
-            if (state) activeStateMutation.mutate(state.id);
-          }}
-        >
-          <CircleCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-          设为当前全景
-        </Button>
-      </>
+    // 三套环境按应用方向（室内/城市户外/自然）由使用场景选择，环境内没有"当前全景"切换；
+    // 这里只提供与场景资产一致的 3D编辑 入口。
+    renderExtraImageAction: () => (
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="h-8 px-2 text-xs shadow-sm"
+        aria-label={`编辑${environment.label}的 3D 环境`}
+        onClick={() => navigate(`/settings/narrator-voice/hdri/${environment.id}`)}
+      >
+        <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+        3D编辑
+      </Button>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [environment, statesDraft, isBusy]);

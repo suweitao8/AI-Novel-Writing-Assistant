@@ -1,13 +1,13 @@
 /**
- * 通用环境资产的「当前生效环境源」解析。
+ * 通用环境资产的「生效环境源」解析。
  *
  * 通用资产页为每套 HDRI 环境维护可生成的状态（提示词 → 2:1 全景图），
- * 活跃状态图生成后即成为模型库 / 动画库预览使用的 HDR 环境；
+ * 生效状态（默认状态优先）的全景生成后即成为该应用方向使用的 HDR 环境；
  * 未生成或解析失败时回落静态 .hdr 预设（studioEnvironmentPresets）。
  *
  * 解析结果短缓存：缩略图工厂会批量触发加载，不能每次都打设置接口。
  */
-import { resolveActiveStudioEnvironmentState, type StudioEnvironmentAssetDocument, type StudioEnvironmentId } from "@ai-novel/shared/types/studioEnvironmentAssets";
+import { resolveEffectiveStudioEnvironmentState, type StudioEnvironmentAssetDocument, type StudioEnvironmentId } from "@ai-novel/shared/types/studioEnvironmentAssets";
 
 import { buildStateImageSrc } from "@/components/storyAssets/storyAssetPresentation";
 import { getStudioEnvironmentAssets } from "@/api/settings";
@@ -44,14 +44,14 @@ export async function fetchStudioEnvironmentAssetDocument(force = false): Promis
   return inFlight;
 }
 
-/** 环境资产文档就绪时返回活跃状态的全景 URL（带破缓存参数），否则 null。 */
+/** 环境资产文档就绪时返回该环境生效状态（默认状态优先）的全景 URL（带破缓存参数），否则 null。 */
 export function resolveStudioEnvironmentSourceUrl(
   presetId: StudioEnvironmentId,
   document: StudioEnvironmentAssetDocument | null,
 ): string | null {
   const asset = document?.environments?.[presetId];
   if (!asset) return null;
-  const state = resolveActiveStudioEnvironmentState(asset);
+  const state = resolveEffectiveStudioEnvironmentState(asset);
   if (!state || state.image?.status !== "done" || !state.image.url) return null;
   return buildStateImageSrc(state.image.url, state.image.generatedAt);
 }

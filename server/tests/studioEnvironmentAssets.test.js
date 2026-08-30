@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 
 const {
   parseStudioEnvironmentAssetDocument,
+  resolveStudioEnvironmentEffectiveState,
 } = require("../dist/services/settings/StudioEnvironmentAssetSettingsService.js");
 
 const {
@@ -19,7 +20,6 @@ test("环境资产文档缺失时三个环境都有默认状态", () => {
   for (const asset of Object.values(document.environments)) {
     assert.equal(asset.states.length, 1);
     assert.equal(asset.states[0].label, "默认");
-    assert.equal(asset.activeStateId, asset.states[0].id);
     assert.ok(asset.description);
   }
   assert.equal(document.environments.interior.label, "室内客厅");
@@ -46,7 +46,8 @@ test("存储文档保留状态资料与生成图，非法字段被剔除", () =>
   const interior = document.environments.interior;
   assert.equal(interior.description, "自定义描述");
   assert.equal(interior.states.length, 2);
-  assert.equal(interior.activeStateId, "night");
+  // "当前全景"概念已废弃：旧文档里的 activeStateId 被白名单丢弃。
+  assert.equal(interior.activeStateId, undefined);
   assert.equal(interior.states[0].image.status, "done");
   assert.equal(interior.states[0].image.url, "/api/x");
   assert.equal(interior.states[1].description, "夜间氛围");
@@ -71,16 +72,19 @@ test("时代风格/时间/天气的非法值被剔除", () => {
   assert.equal(state.weather, undefined);
 });
 
-test("activeStateId 悬空时回落第一个状态", () => {
+test("生效状态按默认状态优先解析，环境之间没有当前切换", () => {
   const document = parseStudioEnvironmentAssetDocument({
     environments: {
       nature: {
-        activeStateId: "missing",
         states: [{ id: "a", label: "清晨" }, { id: "b", label: "黄昏" }],
       },
     },
   });
-  assert.equal(document.environments.nature.activeStateId, "a");
+  const nature = document.environments.nature;
+  // 没有"默认"状态时回落第一个状态。
+  assert.equal(resolveStudioEnvironmentEffectiveState(nature).id, "a");
+  nature.states.unshift({ id: "d", label: "默认", description: "默认", imagePrompt: "默认" });
+  assert.equal(resolveStudioEnvironmentEffectiveState(nature).id, "d");
 });
 
 test("超长文本被截断而不是拒绝整个文档", () => {
