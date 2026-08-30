@@ -65,28 +65,26 @@ test("模型环境运行时同时装配可见穹顶和环境光", () => {
   assert.doesNotMatch(runtimeSource, /localStorage/);
 });
 
-test("模型查看器固定相机轨道并支持异步切换环境", () => {
+test("模型查看器固定相机轨道并只读消费系统环境", () => {
   assert.match(viewerSource, /environmentPresetId\?: StudioEnvironmentPresetId/);
-  assert.match(viewerSource, /setEnvironmentPreset: \(presetId: StudioEnvironmentPresetId\)/);
   assert.match(viewerSource, /environmentDiameterMeters\?: number/);
-  assert.match(viewerSource, /setEnvironmentDiameter: \(diameterMeters: number\)/);
   assert.match(viewerSource, /loadStudioEnvironment\(app, presetId,/);
   assert.match(viewerSource, /studioEnvironmentLoadQueue/);
   assert.match(viewerSource, /buildBlocking3dGroundGridLines/);
-  assert.match(viewerSource, /rebuildEnvironmentBackdropMesh/);
   assert.match(viewerSource, /normalizeModelViewerCameraDistance/);
   assert.match(viewerSource, /getModelViewerCameraClipPlanes/);
   assert.doesNotMatch(viewerSource, /getCameraMaxDistance/);
   assert.doesNotMatch(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
   assert.doesNotMatch(viewerSource, /Math\.max\(radius, 0\.25\)/);
   assert.match(viewerSource, /getStudioEnvironmentDiameterMeters/);
+  assert.doesNotMatch(viewerSource, /setEnvironmentPreset|setEnvironmentDiameter|saveStudioEnvironmentDiameterPreference/);
   assert.doesNotMatch(viewerSource, /attachStudioBackdrop\(app/);
 });
 
 test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
   assert.match(thumbnailSource, /model-library:thumbnails:v19/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v5/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v6/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app\)/);
   assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
@@ -94,17 +92,20 @@ test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", ()
   assert.doesNotMatch(animationThumbnailSource, /setupStudioLighting/);
 });
 
-test("模型编辑器固定中央广场环境并提供 5 到 30 米直径调节", () => {
-  assert.match(editorSource, /模型预览统一使用中央广场环境/);
+test("模型编辑器只读消费通用中央广场环境并显示几何信息", () => {
+  assert.match(editorSource, /geometryStats/);
+  assert.match(editorSource, /顶点数量/);
+  assert.match(editorSource, />长<\/dt>/);
+  assert.match(editorSource, />宽<\/dt>/);
+  assert.match(editorSource, />高<\/dt>/);
   assert.doesNotMatch(editorSource, /HDRI 场景/);
   assert.doesNotMatch(editorSource, /setEnvironmentPreset\(/);
-  assert.match(editorSource, /半球直径/);
-  assert.match(editorSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
-  assert.match(editorSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
-  assert.match(editorSource, /environmentSwitching/);
-  assert.match(editorSource, /environmentDiameterRequestRef/);
-  assert.match(editorSource, /requestId !== environmentDiameterRequestRef\.current/);
-  assert.match(editorSource, /disabled=\{!viewer\}/);
+  assert.doesNotMatch(editorSource, /半球直径|STUDIO_ENVIRONMENT_DIAMETER_LIMITS|setEnvironmentDiameter/);
+  assert.doesNotMatch(editorSource, /InspectorTransformSection|TransformToolToolbar|onTransformLive|onTransformCommit/);
+  assert.match(editorSource, /getStudioEnvironmentDiameterPreference/);
+  assert.match(editorSource, /environmentDiameterMeters:/);
+  assert.match(viewerSource, /drawWireAlignedBox/);
+  assert.doesNotMatch(viewerSource, /createBlocking3dTransformGizmo|setTransformTool|getTransformTool/);
 });
 
 test("场景 blocking viewer 支持只加载环境而不加载代理角色", () => {

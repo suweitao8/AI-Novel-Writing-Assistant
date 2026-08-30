@@ -1,14 +1,19 @@
 import * as pc from "playcanvas";
 
-import type { InspectorTransformValue } from "@/pages/drama/comicDrama/components/editor3d";
 import { applyModelMaterials, type ModelMaterialMap } from "./modelMaterials";
+import {
+  getNormalizedModelBounds,
+  summarizeModelGeometry,
+  type ModelGeometryBounds,
+  type ModelGeometryPart,
+  type ModelGeometryStats,
+} from "./modelGeometryStats";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
   getStudioEnvironmentDiameterMeters,
   getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentRadiusMeters,
   getStudioEnvironmentPreset,
-  saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
 import {
@@ -21,7 +26,6 @@ import {
 } from "./modelViewerCamera";
 import {
   buildBlocking3dGroundGridLines,
-  createBlocking3dTransformGizmo,
   clamp,
   DEFAULT_FOV,
   drawBlocking3dGroundGrid,
@@ -29,12 +33,8 @@ import {
   MAX_DEVICE_PIXEL_RATIO,
   normalizeEnvironmentSettings,
   updateBlocking3dCameraAzimuth,
-  wrapBlocking3dAzimuth,
-  type Blocking3dTransformTool,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
-
-export type ModelViewerTool = Blocking3dTransformTool;
 
 export interface ModelViewerOptions {
   canvas: HTMLCanvasElement;
@@ -48,24 +48,13 @@ export interface ModelViewerOptions {
   /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
   environmentDiameterMeters?: number;
   onStatus?: (status: string) => void;
-  /** gizmo 拖拽过程中的实时回读（面板数值跟手）。 */
-  onTransformLive?: () => void;
-  /** gizmo 拖拽结束（数值定格）。 */
-  onTransformCommit?: () => void;
 }
 
 export interface ModelViewer {
   readonly canvas: HTMLCanvasElement;
+  readonly geometryStats: ModelGeometryStats | null;
   fitView: () => void;
   resetView: () => void;
-  setTransformTool: (tool: ModelViewerTool | null) => void;
-  getTransformTool: () => ModelViewerTool | null;
-  getTransform: () => InspectorTransformValue;
-  setTransform: (patch: Partial<InspectorTransformValue>) => boolean;
-  getEnvironmentPreset: () => StudioEnvironmentPresetId;
-  getEnvironmentDiameter: () => number;
-  setEnvironmentPreset: (presetId: StudioEnvironmentPresetId) => Promise<boolean>;
-  setEnvironmentDiameter: (diameterMeters: number) => Promise<boolean>;
   capturePng: () => Blob;
   destroy: () => void;
 }
@@ -80,57 +69,79 @@ interface SourceBounds {
   halfExtents: [number, number, number];
 }
 
+function getTransformedMeshBounds(meshInstance: pc.MeshInstance): ModelGeometryBounds | null {
+  const aabb = meshInstance.mesh?.aabb;
+  const world = meshInstance.node?.getWorldTransform();
+  if (!aabb || !world) return null;
+
+  const min: [number, number, number] = [
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+    Number.POSITIVE_INFINITY,
+  ];
+  const max: [number, number, number] = [
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+  ];
+  const corner = new pc.Vec3();
+  const absorb = (x: number, y: number, z: number) => {
+    min[0] = Math.min(min[0], x); min[1] = Math.min(min[1], y); min[2] = Math.min(min[2], z);
+    max[0] = Math.max(max[0], x); max[1] = Math.max(max[1], y); max[2] = Math.max(max[2], z);
+  };
+
+  for (let ix = -1; ix <= 1; ix += 2) {
+    for (let iy = -1; iy <= 1; iy += 2) {
+      for (let iz = -1; iz <= 1; iz += 2) {
+        corner.set(
+          aabb.center.x + ix * aabb.halfExtents.x,
+          aabb.center.y + iy * aabb.halfExtents.y,
+          aabb.center.z + iz * aabb.halfExtents.z,
+        );
+        world.transformPoint(corner, corner);
+        absorb(corner.x, corner.y, corner.z);
+      }
+    }
+  }
+
+  return { min, max };
+}
+
+function collectModelGeometryParts(entity: pc.Entity): ModelGeometryPart[] {
+  const parts: ModelGeometryPart[] = [];
+  for (const render of entity.findComponents("render") as pc.RenderComponent[]) {
+    for (const meshInstance of render.meshInstances ?? []) {
+      const bounds = getTransformedMeshBounds(meshInstance);
+      const vertexBuffer = meshInstance.mesh?.vertexBuffer;
+      if (!bounds || !vertexBuffer) continue;
+      parts.push({
+        vertexBuffer,
+        vertexCount: vertexBuffer.getNumVertices(),
+        bounds,
+      });
+    }
+  }
+  return parts;
+}
+
 /**
  * 从 mesh 局部包围盒按节点世界矩阵变换 8 个角点后求并集。
  * GLB 的子节点可能带偏移变换，直接并集 mesh 局部盒会漏掉节点偏移；
  * 调用前需要 app.root.syncHierarchy() 让世界矩阵生效。
  */
 export function computeSourceBounds(entity: pc.Entity): SourceBounds | null {
-  let minX = 0;
-  let minY = 0;
-  let minZ = 0;
-  let maxX = 0;
-  let maxY = 0;
-  let maxZ = 0;
-  let first = true;
-  const corner = new pc.Vec3();
-  const absorb = (x: number, y: number, z: number) => {
-    if (first) {
-      minX = x; minY = y; minZ = z;
-      maxX = x; maxY = y; maxZ = z;
-      first = false;
-      return;
-    }
-    minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
-    maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
-  };
-  for (const render of entity.findComponents("render") as pc.RenderComponent[]) {
-    for (const meshInstance of render.meshInstances ?? []) {
-      const aabb = meshInstance.mesh?.aabb;
-      const world = meshInstance.node?.getWorldTransform();
-      if (!aabb || !world) continue;
-      const cx = aabb.center.x;
-      const cy = aabb.center.y;
-      const cz = aabb.center.z;
-      const hx = aabb.halfExtents.x;
-      const hy = aabb.halfExtents.y;
-      const hz = aabb.halfExtents.z;
-      for (let ix = -1; ix <= 1; ix += 2) {
-        for (let iy = -1; iy <= 1; iy += 2) {
-          for (let iz = -1; iz <= 1; iz += 2) {
-            corner.set(cx + ix * hx, cy + iy * hy, cz + iz * hz);
-            world.transformPoint(corner, corner);
-            absorb(corner.x, corner.y, corner.z);
-          }
-        }
-      }
-    }
-  }
-  if (first) return null;
+  const stats = summarizeModelGeometry(collectModelGeometryParts(entity));
+  if (!stats) return null;
+  const [minX, minY, minZ] = stats.bounds.min;
+  const [maxX, maxY, maxZ] = stats.bounds.max;
   return {
     center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
     halfExtents: [(maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2],
   };
+}
+
+export function collectModelGeometryStats(entity: pc.Entity, unitScale = 1): ModelGeometryStats | null {
+  return summarizeModelGeometry(collectModelGeometryParts(entity), unitScale);
 }
 
 interface OrbitState {
@@ -141,9 +152,9 @@ interface OrbitState {
 }
 
 /**
- * 模型库 3D 编辑器：单个 GLB 模型的查看与变换编辑。
- * 结构与漫剧 3D 编辑器同一套 Orbit 相机 + 引擎 gizmo 方案，
- * 但不承载角色/场景状态，模型导入后自动按真实比例落地居中。
+ * 模型库 3D 查看器：单个 GLB 模型的只读预览。
+ * 复用漫剧 3D 查看器的 Orbit 相机，但不承载角色/场景状态，
+ * 模型导入后自动按真实比例落地居中。
  */
 export async function createModelViewer(options: ModelViewerOptions): Promise<ModelViewer> {
   const { canvas } = options;
@@ -186,13 +197,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 共享 app.scene.envAtlas；串行化切换，避免旧请求在新请求之后写回全局环境光。
   let studioEnvironmentLoadQueue: Promise<void> = Promise.resolve();
   let currentStudioEnvironment: StudioEnvironmentHandle | null = null;
-  let currentEnvironmentPresetId = initialEnvironmentPresetId;
-  let currentEnvironmentDiameterMeters = getStudioEnvironmentDiameterMeters(
+  const initialEnvironmentDiameterMeters = getStudioEnvironmentDiameterMeters(
     options.environmentDiameterMeters ?? getStudioEnvironmentDiameterPreference(initialEnvironmentPresetId),
   );
-  let currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(currentEnvironmentDiameterMeters);
   let currentEnvironmentSettings = normalizeEnvironmentSettings({
-    radiusMeters: currentEnvironmentRadiusMeters,
+    radiusMeters: getStudioEnvironmentRadiusMeters(initialEnvironmentDiameterMeters),
   });
   let environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
 
@@ -202,8 +211,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     currentStudioEnvironment = null;
   };
 
-  // modelRoot 承载用户编辑的 transform（gizmo 目标）；modelAdjust 把源模型
-  // 换算到米并平移到底部中心落在原点，导入即「落地居中」。
+  // modelAdjust 把源模型换算到米并平移到底部中心落在原点，导入即「落地居中」。
   const modelRoot = new pc.Entity("model-root");
   app.root.addChild(modelRoot);
   const modelAdjust = new pc.Entity("model-adjust");
@@ -271,12 +279,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       }
       const previousEnvironment = currentStudioEnvironment;
       currentStudioEnvironment = nextEnvironment;
-      currentEnvironmentPresetId = nextEnvironment.presetId;
-      currentEnvironmentDiameterMeters = nextEnvironment.diameterMeters;
-      currentEnvironmentRadiusMeters = nextEnvironment.radiusMeters;
       currentEnvironmentSettings = nextEnvironment.settings;
       environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
-      saveStudioEnvironmentDiameterPreference(nextEnvironment.presetId, nextEnvironment.diameterMeters);
       previousEnvironment?.destroy();
       syncCamera();
       return true;
@@ -285,22 +289,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     studioEnvironmentLoadQueue = result.then(() => undefined, () => undefined);
     return result;
   };
-
-  let gizmoDragging = false;
-  const transformGizmo = createBlocking3dTransformGizmo(app, camera, {
-    onTransformStart: () => {
-      gizmoDragging = true;
-    },
-    onTransformMove: () => {
-      options.onTransformLive?.();
-    },
-    onTransformEnd: () => {
-      gizmoDragging = false;
-      options.onTransformCommit?.();
-    },
-  });
-  transformGizmo.setTool("translate");
-  transformGizmo.attach(modelRoot);
 
   const fitCameraTo = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -354,6 +342,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 应用「米换算 + 底部中心落原点」的偏移。
   modelAdjust.addChild(inner);
   app.root.syncHierarchy();
+  const geometryStats = collectModelGeometryStats(inner, unitScale);
   const bounds = computeSourceBounds(inner);
   modelAdjust.setLocalScale(unitScale, unitScale, unitScale);
   if (bounds) {
@@ -369,6 +358,10 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     modelCenterY = 0.5;
     modelRadius = 0.5;
   }
+  const modelDisplayBounds = geometryStats ? getNormalizedModelBounds(geometryStats) : null;
+  const modelDisplayBoundsMin = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.min) : null;
+  const modelDisplayBoundsMax = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.max) : null;
+  const modelDisplayBoundsColor = new pc.Color(0.27, 0.74, 0.96, 0.9);
   fitView();
   options.onStatus?.("");
   // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。
@@ -407,11 +400,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
 
   const onPointerDown = (event: PointerEvent) => {
     if (destroyed) return;
-    // 左键落在 gizmo 手柄上时交给手柄，不启动相机拖拽。
-    if (event.button === 0 && transformGizmo.isPointerOnGizmo()) {
-      canvas.focus();
-      return;
-    }
     canvas.focus();
     dragState = { button: event.button, pointerId: event.pointerId, x: event.clientX, y: event.clientY };
     canvas.setPointerCapture(event.pointerId);
@@ -496,99 +484,37 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     if (destroyed) return;
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
     drawBlocking3dGroundGrid(app, environmentGridLines);
+    if (modelDisplayBoundsMin && modelDisplayBoundsMax) {
+      app.drawWireAlignedBox(
+        modelDisplayBoundsMin,
+        modelDisplayBoundsMax,
+        modelDisplayBoundsColor,
+        false,
+      );
+    }
   });
   app.start();
   // 等应用进入帧循环后再加载环境，避免环境异步任务与模型加载失败清理竞态。
-  void loadEnvironmentPreset(initialEnvironmentPresetId, currentEnvironmentDiameterMeters);
-
-  const readTransform = (): InspectorTransformValue => {
-    const position = modelRoot.getPosition();
-    const angles = modelRoot.getEulerAngles();
-    const scale = modelRoot.getLocalScale();
-    return {
-      position: [
-        Math.round(position.x * 100) / 100,
-        Math.round(position.y * 100) / 100,
-        Math.round(position.z * 100) / 100,
-      ],
-      yawDeg: Math.round(wrapBlocking3dAzimuth(angles.y) * 10) / 10,
-      scale: Math.round(scale.x * 100) / 100,
-    };
-  };
+  void loadEnvironmentPreset(initialEnvironmentPresetId, initialEnvironmentDiameterMeters);
 
   return {
     canvas,
+    geometryStats,
     fitView,
     resetView,
-    setTransformTool(tool) {
-      transformGizmo.setTool(tool);
-    },
-    getTransformTool() {
-      return transformGizmo.getTool();
-    },
-    getTransform: readTransform,
-    setTransform(patch) {
-      if (gizmoDragging) return false;
-      if (patch.position) {
-        modelRoot.setPosition(patch.position[0], patch.position[1], patch.position[2]);
-      }
-      if (typeof patch.yawDeg === "number") {
-        const angles = modelRoot.getEulerAngles();
-        modelRoot.setEulerAngles(angles.x, patch.yawDeg, angles.z);
-      }
-      if (typeof patch.scale === "number") {
-        const clamped = clamp(patch.scale, 0.05, 20);
-        modelRoot.setLocalScale(clamped, clamped, clamped);
-      }
-      syncCamera();
-      return true;
-    },
-    getEnvironmentPreset() {
-      return currentEnvironmentPresetId;
-    },
-    getEnvironmentDiameter() {
-      return currentEnvironmentDiameterMeters;
-    },
-    setEnvironmentPreset(presetId) {
-      return loadEnvironmentPreset(presetId);
-    },
-    setEnvironmentDiameter(diameterMeters) {
-      const nextDiameterMeters = getStudioEnvironmentDiameterMeters(diameterMeters);
-      if (!currentStudioEnvironment) return loadEnvironmentPreset(currentEnvironmentPresetId, nextDiameterMeters);
-      const nextSettings = normalizeEnvironmentSettings({
-        ...currentEnvironmentSettings,
-        radiusMeters: getStudioEnvironmentRadiusMeters(nextDiameterMeters),
-      });
-      const geometryChanged = nextSettings.projectionCenterHeight !== currentEnvironmentSettings.projectionCenterHeight
-        || nextSettings.radiusMeters !== currentEnvironmentSettings.radiusMeters;
-      currentEnvironmentSettings = nextSettings;
-      currentEnvironmentDiameterMeters = nextSettings.radiusMeters * 2;
-      currentEnvironmentRadiusMeters = nextSettings.radiusMeters;
-      environmentGridLines = buildBlocking3dGroundGridLines(nextSettings);
-      currentStudioEnvironment.applySettings(nextSettings);
-      if (geometryChanged) currentStudioEnvironment.rebuildEnvironmentBackdropMesh(nextSettings);
-      saveStudioEnvironmentDiameterPreference(currentEnvironmentPresetId, currentEnvironmentDiameterMeters);
-      syncCamera();
-      return Promise.resolve(true);
-    },
     capturePng() {
-      transformGizmo.attach(null);
-      try {
-        app.resizeCanvas(CAPTURE_SIZE.width, CAPTURE_SIZE.height);
-        // 两帧冲掉上一轮排队的网格线，第二帧才是干净画面。
-        app.render();
-        app.render();
-        const dataUrl = canvas.toDataURL("image/png");
-        const base64 = dataUrl.split(",", 2)[1] ?? "";
-        const binary = window.atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
-        return new Blob([bytes], { type: "image/png" });
-      } finally {
-        resize();
-        transformGizmo.attach(modelRoot);
-        app.render();
-      }
+      app.resizeCanvas(CAPTURE_SIZE.width, CAPTURE_SIZE.height);
+      // 两帧冲掉上一轮排队的网格线，第二帧才是完整预览画面。
+      app.render();
+      app.render();
+      const dataUrl = canvas.toDataURL("image/png");
+      const base64 = dataUrl.split(",", 2)[1] ?? "";
+      const binary = window.atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+      resize();
+      app.render();
+      return new Blob([bytes], { type: "image/png" });
     },
     destroy() {
       if (destroyed) return;
@@ -602,7 +528,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
-      transformGizmo.destroy();
       modelRoot.destroy();
       disposeStudioEnvironment();
       app.destroy();
