@@ -102,7 +102,10 @@ void main(void) {
       projectionDirection.z
   ));
   vec4 rawColor = textureCube(uEnvironmentMap, projectedDirection);
-    vec3 linearColor = decodeGamma(rawColor);
+    // The visible cubemap is RGBA8/RGBP, not an sRGB texture. Decode the
+    // packing written by reprojectTexture before tone mapping; decoding it as
+    // gamma makes the low-luminance floor collapse to black.
+    vec3 linearColor = decodeRGBP(rawColor);
     gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
 `;

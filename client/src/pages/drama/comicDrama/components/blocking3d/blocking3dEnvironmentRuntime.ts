@@ -40,9 +40,15 @@ export interface Blocking3dEnvironmentRuntime {
   destroy(): void;
 }
 
+export interface Blocking3dEnvironmentRuntimeOptions {
+  /** 无角色的纯环境预览不需要阴影接收器，避免空阴影贴图压黑地面。 */
+  enableShadowCatcher?: boolean;
+}
+
 export function createBlocking3dEnvironmentRuntime(
   app: pc.AppBase,
   worldEntity: pc.Entity,
+  options: Blocking3dEnvironmentRuntimeOptions = {},
 ): Blocking3dEnvironmentRuntime {
   // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
   // transient key light makes a bright window or sun patch readable on actors.
@@ -62,6 +68,7 @@ export function createBlocking3dEnvironmentRuntime(
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
   let environmentRequestId = 0;
   let destroyed = false;
+  const enableShadowCatcher = options.enableShadowCatcher !== false;
 
   const isCurrentEnvironmentRequest = (requestId: number) => !destroyed && requestId === environmentRequestId;
   const discardEnvironmentAsset = (asset: pc.Asset) => {
@@ -160,25 +167,27 @@ export function createBlocking3dEnvironmentRuntime(
         environmentBackdrop.setPosition(environmentWorldPosition);
         worldEntity.addChild(environmentBackdrop);
 
-        const shadowCatcherMesh = pc.Mesh.fromGeometry(
-          app.graphicsDevice,
-          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
-        );
-        environmentShadowCatcherMaterial = createShadowCatcherMaterial();
-        environmentShadowCatcherMeshInstance = new pc.MeshInstance(
-          shadowCatcherMesh,
-          environmentShadowCatcherMaterial,
-        );
-        environmentShadowCatcherMeshInstance.castShadow = false;
-        environmentShadowCatcherMeshInstance.receiveShadow = true;
-        environmentShadowCatcherMeshInstance.drawBucket = 250;
-        environmentShadowCatcher = new pc.Entity("blocking3d-hdri-shadow-catcher");
-        environmentShadowCatcher.addComponent("render", {
-          meshInstances: [environmentShadowCatcherMeshInstance],
-          layers: [pc.LAYERID_WORLD],
-        });
-        environmentShadowCatcher.setPosition(environmentWorldPosition);
-        worldEntity.addChild(environmentShadowCatcher);
+        if (enableShadowCatcher) {
+          const shadowCatcherMesh = pc.Mesh.fromGeometry(
+            app.graphicsDevice,
+            createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+          );
+          environmentShadowCatcherMaterial = createShadowCatcherMaterial();
+          environmentShadowCatcherMeshInstance = new pc.MeshInstance(
+            shadowCatcherMesh,
+            environmentShadowCatcherMaterial,
+          );
+          environmentShadowCatcherMeshInstance.castShadow = false;
+          environmentShadowCatcherMeshInstance.receiveShadow = true;
+          environmentShadowCatcherMeshInstance.drawBucket = 250;
+          environmentShadowCatcher = new pc.Entity("blocking3d-hdri-shadow-catcher");
+          environmentShadowCatcher.addComponent("render", {
+            meshInstances: [environmentShadowCatcherMeshInstance],
+            layers: [pc.LAYERID_WORLD],
+          });
+          environmentShadowCatcher.setPosition(environmentWorldPosition);
+          worldEntity.addChild(environmentShadowCatcher);
+        }
         return true;
       } catch (error) {
         if (isCurrentEnvironmentRequest(requestId)) {

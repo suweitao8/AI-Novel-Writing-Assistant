@@ -140,6 +140,7 @@ export async function createStudioEnvironmentPreview(
     try {
       nextEnvironment = await loadStudioEnvironment(app, presetId, {
         diameterMeters: nextDiameterMeters,
+        enableShadowCatcher: false,
       });
     } catch {
       if (requestId === environmentRequestId) options.onStatus?.("HDRI 环境加载失败");

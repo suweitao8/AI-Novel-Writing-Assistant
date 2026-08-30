@@ -28,3 +28,7 @@ test("HDRI 投影着色器绑定可调全景地面分界 uniform", () => {
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /0\.5 - uPanoramaHorizonV/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /textureCube\(uEnvironmentMap, projectedDirection\)/);
 });
+
+test("可见 HDRI cubemap 使用 RGBP 解码，避免 RGBA8 暗部变黑", () => {
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /decodeRGBP\(rawColor\)/);
+});

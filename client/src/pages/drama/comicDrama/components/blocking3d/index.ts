@@ -24,7 +24,10 @@ export {
 } from "./blocking3dViewerCore";
 export type { Blocking3dEnvironmentSettings } from "./blocking3dViewerCore";
 export { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
-export type { Blocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
+export type {
+  Blocking3dEnvironmentRuntime,
+  Blocking3dEnvironmentRuntimeOptions,
+} from "./blocking3dEnvironmentRuntime";
 export {
   createBackdropGeometry,
   createGroundDomeGeometry,

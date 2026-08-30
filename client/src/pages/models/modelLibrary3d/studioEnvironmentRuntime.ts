@@ -4,6 +4,7 @@ import {
   createBlocking3dEnvironmentRuntime,
   normalizeEnvironmentSettings,
   type Blocking3dEnvironmentRuntime,
+  type Blocking3dEnvironmentRuntimeOptions,
   type Blocking3dEnvironmentSettings,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 
@@ -20,6 +21,7 @@ export interface StudioEnvironmentRuntimeOptions {
   diameterMeters?: number;
   projectionCenterHeightMeters?: number;
   panoramaHorizonV?: number;
+  enableShadowCatcher?: Blocking3dEnvironmentRuntimeOptions["enableShadowCatcher"];
 }
 
 export interface StudioEnvironmentHandle {
@@ -109,7 +111,9 @@ export async function loadStudioEnvironment(
   const settings = createStudioEnvironmentSettings(preset.id, options);
   const worldEntity = new pc.Entity("studio-environment-world");
   app.root.addChild(worldEntity);
-  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity);
+  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
+    enableShadowCatcher: options.enableShadowCatcher,
+  });
   const urls = uniqueUrls([
     preset.sourceUrl,
     STUDIO_PANORAMA_URL,

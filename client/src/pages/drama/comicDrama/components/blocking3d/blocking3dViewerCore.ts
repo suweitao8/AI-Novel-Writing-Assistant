@@ -236,7 +236,10 @@ export function createVisibleHdriCubemap(
     width: VISIBLE_HDRI_CUBEMAP_SIZE,
     height: VISIBLE_HDRI_CUBEMAP_SIZE,
     format: pc.PIXELFORMAT_RGBA8,
-    type: pc.TEXTURETYPE_DEFAULT,
+    // RGBA8 stores the reprojected HDR values in PlayCanvas' RGBP packing.
+    // Keeping the target as DEFAULT silently clamps bright HDR samples and
+    // makes the custom backdrop shader interpret the packed data incorrectly.
+    type: pc.TEXTURETYPE_RGBP,
     mipmaps: false,
     addressU: pc.ADDRESS_CLAMP_TO_EDGE,
     addressV: pc.ADDRESS_CLAMP_TO_EDGE,
