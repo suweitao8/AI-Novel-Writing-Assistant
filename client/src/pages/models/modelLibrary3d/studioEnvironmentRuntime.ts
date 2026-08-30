@@ -14,6 +14,7 @@ import {
   getStudioEnvironmentRadiusMeters,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
+import { getStudioEnvironmentSourceUrl } from "./studioEnvironmentAssetSource";
 
 /** 可覆盖的用户入口仍然保留；内部会统一转换为漫剧 3D 环境设置。 */
 export interface StudioEnvironmentRuntimeOptions {
@@ -111,7 +112,10 @@ export async function loadStudioEnvironment(
   const worldEntity = new pc.Entity("studio-environment-world");
   app.root.addChild(worldEntity);
   const environment = createBlocking3dEnvironmentRuntime(app, worldEntity);
+  // 通用资产页为环境生成的状态全景图优先；失败/未生成时按静态 HDR 预设兜底。
+  const generatedSourceUrl = await getStudioEnvironmentSourceUrl(presetId);
   const urls = uniqueUrls([
+    ...(generatedSourceUrl ? [generatedSourceUrl] : []),
     preset.sourceUrl,
     STUDIO_PANORAMA_URL,
     STUDIO_ENVIRONMENT_FALLBACK_URL,

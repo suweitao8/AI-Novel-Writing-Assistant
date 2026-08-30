@@ -31,6 +31,7 @@ import {
   saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentPresets";
+import { getStudioEnvironmentSourceUrl } from "@/pages/models/modelLibrary3d/studioEnvironmentAssetSource";
 import { useSettingsSectionsRow } from "../components/SettingsShell";
 
 const WORLD_OBJECT_ID = "world";
@@ -99,15 +100,18 @@ export default function StudioEnvironmentPreviewPage() {
     setEnvironmentSettings(buildPresetEnvironmentSettings(presetId, initialDiameter));
     setEnvironmentSwitching(false);
 
-    void createBlocking3dViewer({
-      canvas,
-      environmentUrl: getStudioEnvironmentPreset(presetId).sourceUrl,
-      loadProxyActor: false,
-      showShotCameraHelpers: false,
-      onStatus: (next) => {
-        if (!cancelled) setStatus(next || "就绪");
-      },
-    })
+    void (async () => {
+      const generatedSource = await getStudioEnvironmentSourceUrl(presetId);
+      return createBlocking3dViewer({
+        canvas,
+        environmentUrl: generatedSource ?? getStudioEnvironmentPreset(presetId).sourceUrl,
+        loadProxyActor: false,
+        showShotCameraHelpers: false,
+        onStatus: (next) => {
+          if (!cancelled) setStatus(next || "就绪");
+        },
+      });
+    })()
       .then((nextViewer) => {
         if (cancelled) {
           nextViewer.destroy();
@@ -155,7 +159,8 @@ export default function StudioEnvironmentPreviewPage() {
       setEnvironmentDiameterMeters(nextDiameter);
       setEnvironmentSwitching(true);
       try {
-        await current.setEnvironment(nextPreset.sourceUrl);
+        const generatedSource = await getStudioEnvironmentSourceUrl(nextId);
+        await current.setEnvironment(generatedSource ?? nextPreset.sourceUrl);
         if (requestId !== environmentRequestRef.current) return;
         current.setEnvironmentSettings(buildPresetEnvironmentSettings(nextId, nextDiameter));
         setEnvironmentSettings(current.getEnvironmentSettings());

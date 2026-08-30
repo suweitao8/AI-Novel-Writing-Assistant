@@ -172,6 +172,7 @@ export const queryKeys = {
     dramaVideoRenderProfile: ["settings", "drama-video-render-profile"] as const,
     dramaAssetArtStyles: ["settings", "drama-asset-styles"] as const,
     narratorVoice: ["settings", "narrator-voice"] as const,
+    environmentAssets: ["settings", "environment-assets"] as const,
     indexTTS25Catalog: ["settings", "index-tts25-catalog"] as const,
     autoDirectorChannels: ["settings", "auto-director-channels"] as const,
     autoDirectorIssuePolicy: ["settings", "auto-director-issue-policy"] as const,
