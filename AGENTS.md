@@ -272,7 +272,7 @@ This project is a pure web product: all development targets the website (`client
 - Approved exceptions are limited to:
   - JSON repair inside `server/src/llm/structuredInvoke.ts`
   - connectivity / probe prompts such as `server/src/llm/connectivity.ts`
-  - phase-two flow adapters in `graphs/*`, `routes/chat.ts`, `services/novel/runtime/*`, and other stream bridge code explicitly kept outside the registry for now
+  - phase-two flow adapters in `graphs/*`, `services/novel/runtime/*`, and other stream bridge code explicitly kept outside the registry for now
 - For naming and registration workflow, follow `server/src/prompting/README.md`.
 
 ## Release Notes Workflow
