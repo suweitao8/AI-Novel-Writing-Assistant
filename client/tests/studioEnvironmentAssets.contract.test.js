@@ -25,7 +25,7 @@ test("运行时优先使用生成的环境状态全景图，静态 HDR 只作兜
 
 test("环境源解析器带短缓存且失败回落静态预设", () => {
   assert.match(sourceResolver, /SOURCE_CACHE_TTL_MS/);
-  assert.match(sourceResolver, /resolveActiveStudioEnvironmentState/);
+  assert.match(sourceResolver, /resolveEffectiveStudioEnvironmentState/);
   assert.match(sourceResolver, /buildStateImageSrc/);
   assert.match(sourceResolver, /return null;/);
 });
@@ -36,7 +36,9 @@ test("预设 id 与显示名来自 shared 环境资产契约", () => {
   assert.match(sharedContract, /export const STUDIO_ENVIRONMENT_IDS = \["interior", "exterior", "nature"\]/);
   // 环境状态就是场景资产状态：编辑器、归一化与生成契约全部同源。
   assert.match(sharedContract, /export type StudioEnvironmentAssetState = StoryAssetState;/);
-  assert.match(sharedContract, /resolveActiveStudioEnvironmentState/);
+  // 环境按应用方向（室内/城市户外/自然）由使用场景选择：没有"当前全景"概念。
+  assert.match(sharedContract, /resolveEffectiveStudioEnvironmentState/);
+  assert.doesNotMatch(sharedContract, /activeStateId|resolveActiveStudioEnvironmentState/);
 });
 
 test("环境编辑完全复用场景资产的 AssetStatesEditor 并注入设置域后端", () => {
@@ -51,11 +53,12 @@ test("环境编辑完全复用场景资产的 AssetStatesEditor 并注入设置�
   assert.match(settingsPageSource, /generateStudioEnvironmentStateImage/);
   assert.match(settingsPageSource, /cancelStudioEnvironmentStateImage/);
   assert.match(settingsPageSource, /dismissStudioEnvironmentStateImageError/);
-  assert.match(settingsPageSource, /setActiveStudioEnvironmentState/);
   assert.match(settingsPageSource, /tweakStudioEnvironmentStateImagePrompt/);
   assert.match(settingsPageSource, /renderExtraImageAction/);
-  assert.match(settingsPageSource, /设为当前全景/);
   assert.match(settingsPageSource, /编辑环境/);
+  // 环境按应用方向选择，编辑器里没有"设为当前全景"切换。
+  assert.doesNotMatch(settingsPageSource, /设为当前全景/);
+  assert.doesNotMatch(settingsPageSource, /setActiveStudioEnvironmentState/);
   // 环境列表与场景资产同一套卡片：点卡片进编辑，编辑器内提供同款 3D编辑 按钮。
   assert.match(settingsPageSource, /StoryAssetCard/);
   assert.match(settingsPageSource, /3D编辑/);

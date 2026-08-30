@@ -225,14 +225,6 @@ export async function tweakStudioEnvironmentStateImagePrompt(
   return data;
 }
 
-export async function setActiveStudioEnvironmentState(environmentId: StudioEnvironmentId, stateId: string) {
-  const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
-    `/settings/environment-assets/${environmentId}/active-state`,
-    { stateId },
-  );
-  return data;
-}
-
 export async function generateStudioEnvironmentStateImage(environmentId: StudioEnvironmentId, stateId: string) {
   const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
     `/settings/environment-assets/${environmentId}/states/${stateId}/generate-image`,

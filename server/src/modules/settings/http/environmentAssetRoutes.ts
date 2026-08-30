@@ -12,7 +12,6 @@ import {
   getStudioEnvironmentAssetDocument,
   getStoredStudioEnvironmentAsset,
   saveStudioEnvironmentAsset,
-  setActiveStudioEnvironmentState,
   MAX_ENVIRONMENT_STATES,
 } from "../../../services/settings/StudioEnvironmentAssetSettingsService";
 import { storyStateImagePromptService } from "../../../services/image/StoryStateImagePromptService";
@@ -46,8 +45,6 @@ const environmentStatesSchema = z.object({
   description: z.string().trim().max(1000).nullable().optional(),
   states: z.array(stateSchema).min(1).max(MAX_ENVIRONMENT_STATES),
 });
-
-const activeStateSchema = z.object({ stateId: stateIdSchema });
 
 const tweakPromptSchema = z.object({
   stateLabel: z.string().trim().max(50).optional(),
@@ -93,25 +90,6 @@ router.put(
         success: true,
         data: environment,
         message: "环境资产已保存。",
-      } satisfies ApiResponse<typeof environment>);
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
-router.post(
-  "/environment-assets/:environmentId/active-state",
-  validate({ params: z.object({ environmentId: environmentIdSchema }), body: activeStateSchema }),
-  async (req, res, next) => {
-    try {
-      const { environmentId } = req.params as { environmentId: string };
-      const { stateId } = req.body as z.infer<typeof activeStateSchema>;
-      const environment = await setActiveStudioEnvironmentState(environmentId, stateId);
-      res.status(200).json({
-        success: true,
-        data: environment,
-        message: "当前全景已切换。",
       } satisfies ApiResponse<typeof environment>);
     } catch (error) {
       next(error);
