@@ -2,6 +2,9 @@
 # Usage: python retarget_ual2.py <anim.glb> <ual2.glb> <out.glb> <animName>
 import struct, json, math, sys
 
+TARGET_POSE_ANIMATION = "Idle_No_Loop"
+TARGET_POSE_FRACTION = 0.4
+
 # ---------- verified quat math ----------
 def qmul(a, b):
     ax, ay, az, aw = a; bx, by, bz, bw = b
@@ -54,7 +57,12 @@ def load_tracks(j, buf, anim_name=None):
     anims = j.get("animations", [])
     if not anims:
         raise ValueError("source GLB has no animations")
-    anim = next((a for a in anims if a.get("name") == anim_name), anims[0])
+    if anim_name is None:
+        anim = anims[0]
+    else:
+        anim = next((a for a in anims if a.get("name") == anim_name), None)
+        if anim is None:
+            raise ValueError(f"animation not found: {anim_name}")
     tracks = {}
     for ch in anim["channels"]:
         s = anim["samplers"][ch["sampler"]]
@@ -105,18 +113,46 @@ def resample_vec(tt, grid):
         out.append(tuple(a[k]+(b[k]-a[k])*f for k in range(len(a))))
     return out
 
+def sample_rot(tt, time):
+    times, vals = tt
+    if time <= times[0]: return vals[0]
+    if time >= times[-1]: return vals[-1]
+    jj = 0
+    while jj < len(times)-2 and times[jj+1] <= time: jj += 1
+    f = (time - times[jj]) / (times[jj+1] - times[jj])
+    return qslerp(vals[jj], vals[jj+1], f)
+
+def sample_vec(tt, time):
+    times, vals = tt
+    if time <= times[0]: return vals[0]
+    if time >= times[-1]: return vals[-1]
+    jj = 0
+    while jj < len(times)-2 and times[jj+1] <= time: jj += 1
+    f = (time - times[jj]) / (times[jj+1] - times[jj])
+    a, b = vals[jj], vals[jj+1]
+    return tuple(a[k]+(b[k]-a[k])*f for k in range(len(a)))
+
 # ---------- inputs ----------
-if len(sys.argv) != 5:
+if len(sys.argv) == 2 and sys.argv[1] in ("-h", "--help"):
+    print(
+        "usage: python retarget_ual2.py <source.glb> <target.glb> "
+        "<output.glb> <animation-name> [target-pose-animation]"
+    )
+    raise SystemExit(0)
+if len(sys.argv) not in (5, 6):
     raise SystemExit(
-        "usage: python retarget_ual2.py <source.glb> <target.glb> <output.glb> <animation-name>"
+        "usage: python retarget_ual2.py <source.glb> <target.glb> "
+        "<output.glb> <animation-name> [target-pose-animation]"
     )
 
-anim_path, base_path, out_path, anim_name = sys.argv[1:]
+anim_path, base_path, out_path, anim_name = sys.argv[1:5]
+target_pose_name = sys.argv[5] if len(sys.argv) == 6 else TARGET_POSE_ANIMATION
 aj, abuf = read_glb(anim_path)
 bj, bbuf = read_glb(base_path)
 anodes, bnodes = aj["nodes"], bj["nodes"]
 aparent, bparent = parents(aj), parents(bj)
 atracks = load_tracks(aj, abuf)
+base_tracks = load_tracks(bj, bbuf, target_pose_name)
 
 grid = next((t["rotation"][0] for t in atracks.values() if "rotation" in t), None)
 if not grid:
@@ -156,35 +192,49 @@ for ui in b_order:
     nm = (bnodes[ui].get("name") or "").lower()
     if nm in a_by_name: t2s[ui] = a_by_name[nm]
 
-# 世界空间绑定姿态差重定向：
-#   W_t(b) := W_s(b) · inv(W_s0(b)) · W_t0(b)
-# 把源骨骼从绑定姿态到动画姿态的世界旋转增量应用到目标绑定姿态。
-# 右乘目标绑定姿态会把源骨架的局部轴差错带到目标骨骼，表现为待机仍近似 T
-# 姿；左乘的世界空间形式才会保留源动作的实际下垂、屈膝和坐姿方向。
-# 其中 W_*0 为各骨架静止（bind）世界朝向，W_s(b) 为源动画世界朝向。
+# 目标站立基准：UAL2 的绑定节点是 T-Pose，而 Idle_No_Loop 的固定采样帧才是
+# 角色在分镜和动画预览中应继承的自然站姿。使用固定帧避免把另一个循环动作
+# 的时间变化带进每个导入片段，同时让导出结果不依赖 PlayCanvas 运行时补偿。
+base_rotation_times = [
+    time
+    for tracks in base_tracks.values()
+    for time in tracks.get("rotation", ([], []))[0]
+]
+if not base_rotation_times:
+    raise ValueError(f"target pose has no rotation tracks: {target_pose_name}")
+base_duration = max(base_rotation_times)
+base_time = base_duration * TARGET_POSE_FRACTION
+target_base_local_rot, target_base_local_trans, target_base_world = {}, {}, {}
+for ui in b_order:
+    rotation_track = base_tracks.get(ui, {}).get("rotation")
+    translation_track = base_tracks.get(ui, {}).get("translation")
+    local_rot = qnorm(sample_rot(rotation_track, base_time)) if rotation_track else rest_rot(bnodes[ui])
+    local_trans = sample_vec(translation_track, base_time) if translation_track else rest_trans(bnodes[ui])
+    target_base_local_rot[ui] = local_rot
+    target_base_local_trans[ui] = local_trans
+    p = bparent.get(ui)
+    target_base_world[ui] = local_rot if p is None else qmul(target_base_world[p], local_rot)
+
+# 世界空间姿态差重定向：
+#   W_t(b) := W_s(b) · inv(W_s0(b)) · W_t_standing_base(b)
+# 把源骨骼从绑定姿态到动画姿态的世界旋转增量应用到 UAL2 的自然站姿。
+# 这样源文件即使带有与目标 T-Pose 不同的基准姿态，也不会把目标手臂带回水平。
 src_rest_world = {}
 for i in topo(aj, aparent):
     p = aparent.get(i)
     lq = rest_rot(anodes[i])
     src_rest_world[i] = lq if p is None else qmul(src_rest_world[p], lq)
-tgt_rest_world = {}
-for ui in b_order:
-    p = bparent.get(ui)
-    lq = rest_rot(bnodes[ui])
-    tgt_rest_world[ui] = lq if p is None else qmul(tgt_rest_world[p], lq)
-
 out_rot, out_trans, bt_worldF = {}, {}, {}
 for ui in b_order:
     p = bparent.get(ui)
     src = t2s.get(ui)
-    restL = rest_rot(bnodes[ui])
     if src is not None and src in a_worldF:
         locals_, worlds = [], []
         prev = None
         for f in range(F):
             desired = qmul(
                 qmul(a_worldF[src][f], qconj(src_rest_world[src])),
-                tgt_rest_world[ui],
+                target_base_world[ui],
             )
             pw = bt_worldF.get(p, [None]*F)[f] if (p is not None and p in bt_worldF) else None
             lq = qnorm(desired if pw is None else qmul(qconj(pw), desired))
@@ -195,14 +245,25 @@ for ui in b_order:
         out_rot[ui] = locals_
         bt_worldF[ui] = worlds
     else:
-        # 未匹配节点（如 Armature 包装）不输出通道，保留其静止变换
-        bt_worldF[ui] = [restL]*F if p is None else [qmul(bt_worldF[p][f], restL) for f in range(F)]
+        # 未匹配节点（如 Armature 包装）不输出通道，但其父级可能已经进入
+        # 动画姿态，因此使用目标站姿的局部旋转重组世界朝向。
+        baseL = target_base_local_rot[ui]
+        bt_worldF[ui] = [target_base_world[ui]]*F if p is None else [qmul(bt_worldF[p][f], baseL) for f in range(F)]
+
+# 目标站姿中有变化的局部平移也作为固定基线写出。绝大多数 UAL2 关节平移
+# 与绑定姿态相同，只有 pelvis 等少数节点会被真正写入源动画的相对增量。
+for ui in b_joints:
+    baseT = target_base_local_trans[ui]
+    restT = rest_trans(bnodes[ui])
+    if any(abs(baseT[k] - restT[k]) > 1e-6 for k in range(3)):
+        out_trans[ui] = [baseT] * F
+
 for ui in b_order:
     nm = (bnodes[ui].get("name") or "").lower()
     if nm not in ("pelvis", "root"): continue
     src = t2s.get(ui)
     if src is None or src not in src_trans: continue
-    u_rest, a_rest = rest_trans(bnodes[ui]), rest_trans(anodes[src])
+    u_rest, a_rest = target_base_local_trans[ui], rest_trans(anodes[src])
     # 平移轨道的值是源骨架父空间中的绝对姿态。只传递相对源绑定姿态的增量，
     # 再按绑定骨骼长度缩放；直接做 u_rest * (v / a_rest) 会把坐姿的源空间
     # 位移误写成目标深度位移（例如骨盆被推到 -1.6m）。
@@ -218,32 +279,14 @@ def compose(tracks_override, t):
     W, P = {}, {}
     for i in b_order:
         tr = tracks_override.get(i)
-        lq = qnorm(sample_rot(tr["rotation"], t)) if tr and "rotation" in tr else rest_rot(bnodes[i])
-        lt = sample_vec(tr["translation"], t) if tr and "translation" in tr else rest_trans(bnodes[i])
+        lq = qnorm(sample_rot(tr["rotation"], t)) if tr and "rotation" in tr else target_base_local_rot[i]
+        lt = sample_vec(tr["translation"], t) if tr and "translation" in tr else target_base_local_trans[i]
         p = bparent.get(i)
         W[i] = lq if p is None else qmul(W[p], lq)
         pv = qrot_vec(W[p] if p is not None else (0, 0, 0, 1), lt) if p is not None else lt
         base = P[p] if p is not None else (0.0, 0.0, 0.0)
         P[i] = (base[0]+pv[0], base[1]+pv[1], base[2]+pv[2])
     return W, P
-def sample_rot(tt, time):
-    times, vals = tt
-    if time <= times[0]: return vals[0]
-    if time >= times[-1]: return vals[-1]
-    jj = 0
-    while jj < len(times)-2 and times[jj+1] <= time: jj += 1
-    f = (time - times[jj]) / (times[jj+1] - times[jj])
-    return qslerp(vals[jj], vals[jj+1], f)
-def sample_vec(tt, time):
-    times, vals = tt
-    if time <= times[0]: return vals[0]
-    if time >= times[-1]: return vals[-1]
-    jj = 0
-    while jj < len(times)-2 and times[jj+1] <= time: jj += 1
-    f = (time - times[jj]) / (times[jj+1] - times[jj])
-    a, b = vals[jj], vals[jj+1]
-    return tuple(a[k]+(b[k]-a[k])*f for k in range(len(a)))
-
 # write temporary track map from solved arrays
 solved_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
 for ui, frames in out_trans.items():
@@ -257,17 +300,20 @@ for ui, w in Wt.items():
     if src is None: continue
     expected = qmul(
         qmul(a_worldF[src][F//2], qconj(src_rest_world[src])),
-        tgt_rest_world[ui],
+        target_base_world[ui],
     )
     d = abs(qdot(w, expected))
     if d < worst: worst, worst_nm = d, bnodes[ui].get("name")
-print(f"verify @t={tm:.3f}: worst |dot| = {worst:.5f} ({worst_nm}) -> {'PASS' if worst > 0.999 else 'FAIL'}")
+print(f"verify @t={tm:.3f}: target pose={target_pose_name}@{TARGET_POSE_FRACTION:.2f}, worst |dot| = {worst:.5f} ({worst_nm}) -> {'PASS' if worst > 0.999 else 'FAIL'}")
 def wpos(name):
     ui = tidx2(name)
     return tuple(round(v, 3) for v in Pt[ui])
 def tidx2(nm): return next(k for k, n in enumerate(bnodes) if n.get("name", "").lower() == nm.lower())
+def wdelta(hand, shoulder):
+    return round(Pt[tidx2(hand)][1] - Pt[tidx2(shoulder)][1], 3)
 for nm in ["pelvis", "Head", "foot_l", "foot_r", "hand_l", "hand_r"]:
     print("  ", nm, wpos(nm))
+print("  hand_y_minus_shoulder:", wdelta("hand_l", "clavicle_l"), wdelta("hand_r", "clavicle_r"))
 
 # ---------- write output GLB ----------
 uJson = json.loads(json.dumps(bj))

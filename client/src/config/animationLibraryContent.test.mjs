@@ -254,6 +254,32 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     idleHand[1] - idleShoulder[1] < -0.1,
     `待机左手应低于肩部，实际差值为 ${(idleHand[1] - idleShoulder[1]).toFixed(3)}`,
   );
+  assert.ok(
+    idleHand[1] - idleShoulder[1] < -0.4,
+    `待机手部仍接近错误的 T-Pose 基准，实际差值为 ${(idleHand[1] - idleShoulder[1]).toFixed(3)}`,
+  );
+
+  const walkAnimation = glb.json.animations.find(
+    ({ name }) => name === "A_INP_WalkFwd_Loop",
+  );
+  assert.ok(walkAnimation, "统一 GLB 必须包含导入的行走片段");
+  const walk = composePose(
+    glb,
+    walkAnimation.name,
+    animationDuration(glb, walkAnimation) * 0.4,
+  );
+  const handDelta = (pose, handName, shoulderName) => {
+    const hand = pose.worldPosition.get(nodes.get(handName));
+    const shoulder = pose.worldPosition.get(nodes.get(shoulderName));
+    return hand[1] - shoulder[1];
+  };
+  assert.ok(
+    (handDelta(walk, "hand_l", "clavicle_l") +
+      handDelta(walk, "hand_r", "clavicle_r")) /
+      2 <
+      -0.32,
+    "行走双手平均高度仍接近错误的水平基准",
+  );
 
   const restPelvis = rest.worldPosition.get(nodes.get("pelvis"));
   const chairPelvis = chair.worldPosition.get(nodes.get("pelvis"));

@@ -31,15 +31,15 @@
 - **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期，通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角；拖动 5–30 米半球直径只重建环境网格，不重复创建 PlayCanvas Application。
 - **实时预览色调映射统一为 PlayCanvas 默认 Linear**（2026-08-30）：模型查看器（modelViewerApp）与动画预览（animationPreviewApp）不要单独设置 TONEMAP_ACES——blocking3d 视图（漫剧场景、HDRI 预览页）用默认 Linear，ACES 会对高饱和环境整体去饱和提亮，同一张 HDR 在模型编辑器和预览页会呈现两种颜色（草地自然环境曾因此整体发白，该环境现已下线）。离屏缩略图（thumbnailStudio/animationThumbnailStudio）目前仍是 ACES，若出现色差需同步调整。
 - **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器把可用取景距离限制在当前环境真实半径的 85% 内，防止相机越过环境边界；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v18`，动画缩略图键为 `animation-library:thumbnails:v5`，改动环境、投影或材质逻辑必须升版本。
+- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v18`，动画缩略图键为 `animation-library:thumbnails:v6`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
 - **贴图降采样**：baseColor 桶按 2048 上限 JPEG（质量 82）——3D 编辑器支持近距离观察，1024 会顶到明显的马赛克像素；法线/RMA 桶 1024 强制 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
-- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v4`）+ 队列闲置销毁」结构，差别是先把 `clipName` 装配到 anim 组件、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
+- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v6`）+ 队列闲置销毁」结构，创建工作室时加载一次统一 GLB，之后逐个把 `clipName` 装配到独立角色实例、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
 - **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前时间轴帧渲染为 JPEG，通过 `animation-library:keyframes:v2` 按动画 ID 保存截图和秒数；动画入口卡片优先显示该截图。预览材质变化时通过版本号丢弃旧颜色截图，避免黄色旧图继续覆盖新的蓝色渲染结果。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
-- **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 按「绑定位姿差」离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。世界旋转使用 `W_t(b) := W_s(b) · inv(W_s0(b)) · W_t0(b)`，再按目标父节点解局部四元数；根/骨盆平移使用绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
+- **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。源动画相对源绑定姿态的世界旋转增量应用到 UAL2 `Idle_No_Loop` 的固定 40% 站立基准：`W_t(b) := W_s(b) · inv(W_s0(b)) · W_t_standing_base(b)`，再按目标父节点解局部四元数；根/骨盆平移使用目标站立基准加源绑定姿态相对增量 `T_t := T_t_standing_base + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UAL1 是另一套骨架，不能把它的动画直接追加到 UAL2 角色。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
 
 ## 动画导出边界
 
@@ -54,7 +54,7 @@
 ### Current Rule
 
 - 源动画必须在导出时包含完整绝对姿态；如果源是加法动画或带未烘焙分层轨道，先在 UE 中烘焙，再进入 FBX → GLB → 重定向链路。
-- 重定向旋转遵循 `W_s · inv(W_s0) · W_t0`，平移遵循 rest-relative delta；不能用不同绑定姿态之间的世界四元数直接作相等校验。
+- 重定向旋转遵循 `W_s · inv(W_s0) · W_t_standing_base`，目标站立基准默认取 UAL2 `Idle_No_Loop` 的 40% 固定帧；平移遵循目标基准加 rest-relative delta；不能用不同绑定姿态之间的世界四元数直接作相等校验。
 - 发布门禁同时检查动作语义（待机手臂下垂、行走双脚有轨迹、坐姿骨盆不跳离角色）与 GLB 结构（旋转为 VEC4 单位四元数、平移为 VEC3、通道目标属于 skin joints）。
 
 ### Failure Modes
@@ -63,7 +63,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v17`、`animation-library:thumbnails:v3`，**改生成逻辑必须升版本**）。模型和动画缩略图都使用室内默认 HDRI，地面网格与半圆环境按同一套直径规则计算；生成逻辑与环境预设变更必须同步刷新缓存版本。
+- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v18`、`animation-library:thumbnails:v6`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑与环境预设变更必须同步刷新缓存版本。
 - 缩略图队列串行、闲置 8 秒销毁离线画布；44 个模型全队列约 3 秒。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。
@@ -85,7 +85,7 @@
 - **骨骼名匹配必须限定目标骨架 joints**：UAL2 的网格包装节点叫 `Mannequin`，UE 导出骨架的根骨也叫 `Mannequin`；按名字裸匹配会给网格包装节点写入旋转通道，整只模型被动画带飞。目标侧只允许 `skins[].joints` 内的节点参与匹配，源侧（纯动画导出，可能没有 skins）用全部命名节点。
 - **同一 canvas 上并发两个 PlayCanvas Application 会互相摧毁**：React StrictMode 下 effect 双执行很容易造出这种局面——两个应用共享同一个 WebGL 上下文，先销毁的一方会破坏存活方的渲染循环（`app.frame` 恒 0、画面永远停在某一帧）。预览器因此提供同步 `cancel()`；页面 effect 清理同步取消，保证任一时刻只有一个应用。
 - **Radix Dialog 里拿不到 canvas ref**：`useRef` + `useEffect` 在弹窗首次打开时 `canvasRef.current` 可能为 null（effect 先于 ref 就绪执行），创建逻辑会被静默跳过且不再重试。用回调 ref 写入 state、把画布元素作为 effect 依赖来触发创建。
-- **动画内容门禁必须覆盖源姿态与目标语义**：源 FBX/GLB 可能已经包含真实的绝对姿态；如果目标仍呈 T 姿，优先检查世界空间重定向乘法方向，不能先假定源片段是加法动画。坐姿则要单独检查骨盆的 rest-relative 平移，逐分量绝对比例会把源坐标写成目标深度偏移。扩库仍需在 UE 侧确认加法层已烘焙，并按公开 GLB 数据抽查源动画偏差、目标动作语义和 accessor 结构。
+- **动画内容门禁必须覆盖源姿态与目标语义**：源 FBX/GLB 可能已经包含真实的绝对姿态；如果目标仍呈 T 姿，先检查源绑定姿态与 UAL2 站立基准是否明确，再检查世界空间重定向乘法方向，不能把运行时首帧补偿当成导出修复。坐姿则要单独检查骨盆的目标基准加 rest-relative 平移，逐分量绝对比例会把源坐标写成目标深度偏移。扩库仍需在 UE 侧确认加法层已烘焙，并按公开 GLB 数据抽查源动画偏差、目标动作语义和 accessor 结构。
 
 ## 相关模块
 

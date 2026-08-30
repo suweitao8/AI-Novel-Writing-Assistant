@@ -39,7 +39,10 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
     assert.match(entry.id, /^[a-z0-9-]+$/);
     assert.ok(entry.name.length > 0);
     assert.ok(entry.clipName.length > 0);
-    assert.equal(entry.source, "Cine57");
+    assert.ok(
+      entry.source === "UAL2" || entry.source === "Cine57",
+      `目录来源必须是 UAL2 或 Cine57：${entry.source}`,
+    );
 
     const publicPath = path.join(clientDir, "public", entry.fileUrl);
     assert.ok(fs.existsSync(publicPath), `目录文件应存在：${entry.fileUrl}`);
@@ -54,6 +57,21 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
       `${entry.clipName} 时长应与 GLB 一致`,
     );
   }
+
+  const actualClipNames = new Set(
+    [...durationsByFile.values()].flatMap((durations) => [...durations.keys()]),
+  );
+  const catalogClipNames = new Set(ANIMATION_LIBRARY.map((entry) => entry.clipName));
+  assert.equal(ANIMATION_LIBRARY.length, actualClipNames.size);
+  assert.deepEqual(catalogClipNames, actualClipNames);
+  assert.equal(
+    ANIMATION_LIBRARY.filter((entry) => entry.source === "UAL2").length,
+    43,
+  );
+  assert.equal(
+    ANIMATION_LIBRARY.filter((entry) => entry.source === "Cine57").length,
+    3,
+  );
 });
 
 test("动画库目录 id 唯一，同文件条目共享一个 GLB", () => {
@@ -61,7 +79,7 @@ test("动画库目录 id 唯一，同文件条目共享一个 GLB", () => {
   assert.equal(ids.size, ANIMATION_LIBRARY.length);
   const files = new Set(ANIMATION_LIBRARY.map((entry) => entry.fileUrl));
   assert.ok(files.size <= ANIMATION_LIBRARY.length);
-  // 所有条目合并进同一个 GLB：文件数应远小于条目数（当前 3 条 1 文件）。
+  // 所有条目合并进同一个 GLB：文件数应远小于条目数。
   assert.equal(files.size, 1);
 });
 

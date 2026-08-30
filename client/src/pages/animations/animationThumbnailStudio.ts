@@ -1,6 +1,6 @@
 import * as pc from "playcanvas";
 
-import type { AnimationLibraryEntry } from "@/config/animationLibrary";
+import { ANIMATION_LIBRARY_FILE_URL, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import {
   buildBlocking3dGroundGridLines,
   clamp,
@@ -23,7 +23,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v5";
+const STORAGE_KEY = "animation-library:thumbnails:v6";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -204,6 +204,26 @@ async function createAnimationThumbnailStudio(): Promise<{
     throw new Error("HDRI 场景环境加载失败。");
   }
   const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
+  let asset: pc.Asset;
+  try {
+    asset = await loadAsset(app, ANIMATION_LIBRARY_FILE_URL, "container");
+  } catch (error) {
+    studioEnvironment.destroy();
+    app.destroy();
+    throw error;
+  }
+  const resource = asset.resource as ContainerResource | null;
+  if (!resource) {
+    app.assets.remove(asset);
+    studioEnvironment.destroy();
+    app.destroy();
+    throw new Error("动画文件里没有可显示的角色资源。");
+  }
+  const tracks = new Map<string, unknown>();
+  for (const clipAsset of resource.animations ?? []) {
+    const track = clipAsset.resource as AnimTrackLike | null;
+    if (track && typeof track.name === "string") tracks.set(track.name, track);
+  }
 
   const frame = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -232,10 +252,8 @@ async function createAnimationThumbnailStudio(): Promise<{
   return {
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
-      const asset = await loadAsset(app, entry.fileUrl, "container");
       let model: pc.Entity | null = null;
       try {
-        const resource = asset.resource as ContainerResource | null;
         model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
         if (!model) throw new Error("动作文件里没有可显示的角色。");
         setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
@@ -255,11 +273,6 @@ async function createAnimationThumbnailStudio(): Promise<{
           radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]);
         }
 
-        const tracks = new Map<string, unknown>();
-        for (const clipAsset of resource?.animations ?? []) {
-          const track = clipAsset.resource as AnimTrackLike | null;
-          if (track && typeof track.name === "string") tracks.set(track.name, track);
-        }
         const track = tracks.get(entry.clipName);
         if (!track) throw new Error(`动作片段「${entry.clipName}」不在当前文件里。`);
         anim.rootBone = model;
@@ -284,12 +297,12 @@ async function createAnimationThumbnailStudio(): Promise<{
         return dataUrl;
       } finally {
         model?.destroy();
-        app.assets.remove(asset);
       }
     },
     destroy() {
       if (destroyed) return;
       destroyed = true;
+      app.assets.remove(asset);
       studioEnvironment.destroy();
       app.destroy();
     },
