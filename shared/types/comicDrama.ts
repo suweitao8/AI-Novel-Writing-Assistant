@@ -91,10 +91,16 @@ export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
   panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
 
-/** 历史 domeRadius/domeDiameterMeters 的直径范围，仅用于兼容读取。 */
-export const STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS = {
+/** 当前场景 3D 编辑器展示给用户的半球直径范围。内部仍以圆半径持久化。 */
+export const STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS = {
   min: STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.min * 2,
   max: STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.max * 2,
+} as const;
+
+/** 历史 domeRadius/domeDiameterMeters 的直径范围，仅用于兼容读取。 */
+export const STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS = {
+  min: STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS.min,
+  max: STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS.max,
 } as const;
 
 /** 用户未显式选择比例时的默认投射占比：投射高度 = 半球圆半径 × 4/15。 */
