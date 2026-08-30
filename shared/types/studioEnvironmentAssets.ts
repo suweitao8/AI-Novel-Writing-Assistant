@@ -2,8 +2,10 @@
  * 通用环境资产（HDRI 全景环境）的状态契约。
  *
  * 通用资产页的三套 HDRI 环境复用漫剧场景资产的"状态 + 提示词 + 生成图片"逻辑：
- * 每个环境拥有若干状态，状态可生成 2:1 等距柱状全景图，活跃状态的全景图
- * 作为模型库 / 动画库预览使用的 HDR 环境源；未生成时回落到静态 .hdr 预设。
+ * 每个环境拥有若干状态，状态可生成 2:1 等距柱状全景图。三套环境按应用方向区分
+ * （室内用室内客厅、城市户外用中央广场、纯自然户外用草地自然），由使用场景选择
+ * 环境，环境内部不存在"当前全景"切换；生效状态恒为默认状态（缺失时第一个状态），
+ * 其生成全景作为该方向的 HDR 环境源，未生成时回落到静态 .hdr 预设。
  */
 import type { StoryAssetState } from "./novelReferenceExtraction";
 
@@ -36,8 +38,6 @@ export interface StudioEnvironmentAsset {
   id: StudioEnvironmentId;
   label: string;
   description?: string;
-  /** 当前作为 HDR 全景源的状态；缺省为第一个状态。 */
-  activeStateId: string;
   states: StudioEnvironmentAssetState[];
 }
 
@@ -51,9 +51,9 @@ export function isStudioEnvironmentId(value: unknown): value is StudioEnvironmen
   return typeof value === "string" && (STUDIO_ENVIRONMENT_IDS as readonly string[]).includes(value);
 }
 
-/** 活跃状态缺省解析：activeStateId 失效或缺失时回落第一个状态。 */
-export function resolveActiveStudioEnvironmentState(asset: StudioEnvironmentAsset): StudioEnvironmentAssetState | null {
+/** 生效状态解析：默认状态优先，缺失时回落第一个状态；环境之间按应用方向选择，没有"当前"切换。 */
+export function resolveEffectiveStudioEnvironmentState(asset: StudioEnvironmentAsset): StudioEnvironmentAssetState | null {
   const states = Array.isArray(asset.states) ? asset.states : [];
   if (states.length === 0) return null;
-  return states.find((state) => state.id === asset.activeStateId) ?? states[0];
+  return states.find((state) => state.label.trim() === "默认") ?? states[0];
 }
