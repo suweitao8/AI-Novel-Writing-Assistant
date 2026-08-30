@@ -50,9 +50,9 @@
 
 在已有的三内容源 / 节奏引擎 / 台本产线 / 分镜 / 视频提示词基础上，补齐"能产出可发布成片"还缺的环节（角色合图、镜头连贯、成片导出等）。
 
-### Creative Hub 升级为 LangGraph 运行时
+### Creative Hub 运行时
 
-把当前自定义 `/chat + SSE + IndexedDB` 的聊天工作台，按并行迁移策略升级为基于 `assistant-ui + useLangGraphRuntime` 的创作中枢。
+Creative Hub 使用 `assistant-ui + useLangGraphRuntime` 承载创作中枢的线程、对话、工具调用、任务状态和中断恢复；旧版独立聊天工作台不再属于当前路线。
 
 ## 下一步关注
 

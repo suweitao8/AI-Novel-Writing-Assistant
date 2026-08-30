@@ -16,7 +16,7 @@
 
 - `server/src/llm/structuredInvoke.ts` 内部 JSON repair prompt。
 - `server/src/llm/connectivity.ts` 这类探活/连通性探针。
-- 二期范围内的 `graphs/*`、`routes/chat.ts`、`services/novel/runtime/*`、以及其他流式桥接代码。
+- 二期范围内的 `graphs/*`、`services/novel/runtime/*`、以及其他仍在迁移中的流式桥接代码。
 
 ## Asset Checklist
 

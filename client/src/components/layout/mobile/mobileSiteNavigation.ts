@@ -31,7 +31,6 @@ export const MOBILE_ROUTE_PATTERNS: MobileRoutePattern[] = [
   { key: "drama", pattern: /^\/drama\/?$/, title: "漫剧", group: "creation" },
   { key: "models", pattern: /^\/models(\/|$)/, title: "模型库", group: "creation" },
   { key: "creative-hub", pattern: /^\/creative-hub\/?$/, title: "创作中枢", group: "creation" },
-  { key: "chat-legacy", pattern: /^\/chat-legacy\/?$/, title: "旧版聊天", group: "creation" },
   { key: "book-analysis", pattern: /^\/book-analysis\/?$/, title: "拆书", group: "creation" },
   { key: "tasks", pattern: /^\/tasks\/?$/, title: "任务", group: "tasks" },
   { key: "auto-director-follow-ups", pattern: /^\/auto-director\/follow-ups\/?$/, title: "导演跟进", group: "tasks" },
@@ -72,7 +71,6 @@ const moreNavGroups: MobileNavGroup[] = [
       { key: "models", label: "模型库", to: "/models", group: "creation" },
       { key: "animations", label: "动画库", to: "/animations", group: "creation" },
       { key: "book-analysis", label: "拆书", to: "/book-analysis", group: "creation" },
-      { key: "chat-legacy", label: "旧版聊天", to: "/chat-legacy", group: "creation" },
     ],
   },
   {

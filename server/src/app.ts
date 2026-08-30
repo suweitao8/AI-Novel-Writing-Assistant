@@ -11,7 +11,6 @@ import { healInterruptedImageGenerationStates } from "./services/image/runtime/i
 import { recoverInterruptedDramaBatchJobs } from "./services/drama/production/batchJobRecovery";
 import { errorHandler } from "./middleware/errorHandler";
 import { loadProviderApiKeys } from "./llm/factory";
-import astrologyRouter from "./modules/astrology/http/astrologyRoutes";
 import agentCatalogRouter from "./agents/http/agentCatalogRoutes";
 import agentRunsRouter from "./agents/http/agentRunsRoutes";
 import autoDirectorChannelCallbacksRouter from "./services/novel/director/http/autoDirectorChannelCallbackRoutes";
@@ -19,7 +18,6 @@ import autoDirectorFollowUpsRouter from "./services/novel/director/http/autoDire
 import bookAnalysisRouter from "./modules/bookAnalysis/http/bookAnalysisRoutes";
 import characterRouter from "./modules/character/http/characterRoutes";
 import characterConversationRouter from "./modules/characterConversation/http/characterConversationRoutes";
-import chatRouter from "./creativeHub/http/chatRoutes";
 import creativeHubRouter from "./creativeHub/http/creativeHubRoutes";
 import genreRouter from "./modules/genre/http/genreRoutes";
 import healthRouter from "./platform/http/healthRoutes";
@@ -149,7 +147,6 @@ export function createApp() {
   app.use("/api/base-characters", characterRouter);
   app.use("/api/character-conversations", characterConversationRouter);
   app.use("/api/writing-formula", writingFormulaRouter);
-  app.use("/api/chat", chatRouter);
   app.use("/api/creative-hub", creativeHubRouter);
   app.use("/api/prompt-workbench", promptWorkbenchRouter);
   app.use("/api/images", imagesRouter);
@@ -160,8 +157,6 @@ export function createApp() {
   app.use("/api/auto-director/channel-callbacks", autoDirectorChannelCallbacksRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api", onboardingRoutes);
-  app.use("/api/astrology", astrologyRouter);
-
   app.use((_req, res) => {
     const response: ApiResponse<null> = {
       success: false,
