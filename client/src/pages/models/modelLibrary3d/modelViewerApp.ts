@@ -47,12 +47,15 @@ export interface ModelViewerOptions {
   environmentPresetId?: StudioEnvironmentPresetId;
   /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
   environmentDiameterMeters?: number;
+  /** 只读包围盒的初始显示状态，缺省关闭。 */
+  showBounds?: boolean;
   onStatus?: (status: string) => void;
 }
 
 export interface ModelViewer {
   readonly canvas: HTMLCanvasElement;
   readonly geometryStats: ModelGeometryStats | null;
+  setBoundsVisible: (visible: boolean) => void;
   fitView: () => void;
   resetView: () => void;
   capturePng: () => Blob;
@@ -61,6 +64,7 @@ export interface ModelViewer {
 
 const CAPTURE_SIZE = { width: 1280, height: 720 } as const;
 const DEFAULT_VIEW = { azim: -35, elev: -18 } as const;
+const MODEL_BOUNDS_COLOR = new pc.Color(0.68, 0.68, 0.68, 0.9);
 
 interface SourceBounds {
   /** 源几何包围盒中心（源单位）。 */
@@ -192,6 +196,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const initialEnvironmentPresetId =
     options.environmentPresetId ?? DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID;
   let destroyed = false;
+  let boundsVisible = options.showBounds ?? false;
   let studioEnvironmentRequestId = 0;
   // 每个 loadStudioEnvironment 都拥有自己的 blocking3d runtime，但它们最终
   // 共享 app.scene.envAtlas；串行化切换，避免旧请求在新请求之后写回全局环境光。
@@ -361,7 +366,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const modelDisplayBounds = geometryStats ? getNormalizedModelBounds(geometryStats) : null;
   const modelDisplayBoundsMin = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.min) : null;
   const modelDisplayBoundsMax = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.max) : null;
-  const modelDisplayBoundsColor = new pc.Color(0.27, 0.74, 0.96, 0.9);
   fitView();
   options.onStatus?.("");
   // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。
@@ -484,11 +488,11 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     if (destroyed) return;
     if (keyboardInput.size > 0) handleKeyboardCamera(dt);
     drawBlocking3dGroundGrid(app, environmentGridLines);
-    if (modelDisplayBoundsMin && modelDisplayBoundsMax) {
+    if (boundsVisible && modelDisplayBoundsMin && modelDisplayBoundsMax) {
       app.drawWireAlignedBox(
         modelDisplayBoundsMin,
         modelDisplayBoundsMax,
-        modelDisplayBoundsColor,
+        MODEL_BOUNDS_COLOR,
         false,
       );
     }
@@ -500,6 +504,9 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   return {
     canvas,
     geometryStats,
+    setBoundsVisible(visible) {
+      boundsVisible = visible;
+    },
     fitView,
     resetView,
     capturePng() {

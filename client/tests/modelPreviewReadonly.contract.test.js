@@ -39,3 +39,16 @@ test("通用资产 HDRI 预览页仍是环境参数的编辑入口", () => {
   assert.match(systemEnvironmentSource, /setEnvironmentSettings/);
   assert.match(systemEnvironmentSource, /handleEnvironmentDiameterChange/);
 });
+
+test("模型包围盒默认隐藏，并可通过复选框切换为灰色线框", () => {
+  assert.match(editorSource, /data-model-bounds-toggle/);
+  assert.match(editorSource, /type="checkbox"/);
+  assert.match(editorSource, /显示包围盒/);
+  assert.match(editorSource, /setBoundsVisible/);
+  assert.match(viewerSource, /let boundsVisible = options\.showBounds \?\? false/);
+  assert.match(viewerSource, /setBoundsVisible: \(visible: boolean\) => void/);
+  assert.match(viewerSource, /setBoundsVisible\(visible\)/);
+  assert.match(viewerSource, /if \(boundsVisible && modelDisplayBoundsMin && modelDisplayBoundsMax\)/);
+  assert.match(viewerSource, /const MODEL_BOUNDS_COLOR = new pc\.Color\(0\.68, 0\.68, 0\.68, 0\.9\)/);
+  assert.doesNotMatch(viewerSource, /new pc\.Color\(0\.27, 0\.74, 0\.96/);
+});
