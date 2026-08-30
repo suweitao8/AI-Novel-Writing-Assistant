@@ -64,7 +64,7 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 1. **UCX 碰撞体 + LOD1+ 必须剔除**。UE 导出的 FBX 默认带碰撞壳（`UCX_*`，无贴图凸包），网页端不剔除就是用户看到的"白色包裹"。构建脚本在转换后直接改写 GLB JSON chunk 剔除（BIN 不动）。
 2. **tint 只属于无贴图槽位**。UE 清单里的 `slot.tint` 是母材质向量参数默认值，不是漫反射；槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。
 3. **RMA 只用 G 通道粗糙度**（`glossMap` + `glossMapChannel:"g"` + `glossInvert`）。这包资产的 ORM 的 B（约定金属度）/R（约定 AO）通道经逐张审计语义错误（地毯金属度 0.98、砖炉金属板 0.01），**禁开 `metalnessMap`/`aoMap`**，除非接入了校准过的 PBR 数据。PlayCanvas 手动接贴图必须显式写死通道：引擎默认通道与 glTF 约定不一致。
-4. **贴图桶**：baseColor ≤2048 JPEG（质量 82，编辑器支持近距离观察，1024 有明显像素）；normal/RMA ≤1024 JPEG；源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1` 且放在输出文件名之前。
+4. **贴图桶与编码质量**：baseColor ≤2048 JPEG，normal/RMA ≤1024 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），禁止使用会造成明显马赛克的高量化值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1` 且放在输出文件名之前；已有输出需要重建时显式设置 `CINE57_REBUILD_TEXTURES=1`，日常增量构建默认跳过已有文件。
 5. **`unitScale` 保持 1**：Cine57 几何单位是米（拿 POSITION accessor min/max 实测确认，别猜）。单件源资产超 12MB 不入库。
 6. **`modelLibrary.ts` 是构建产物，勿手改**；条目的 `materials` 映射按「UE 材质资产名 → 贴图/标量」由构建脚本再生。
 

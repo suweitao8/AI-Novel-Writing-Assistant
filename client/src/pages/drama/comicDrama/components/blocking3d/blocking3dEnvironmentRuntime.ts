@@ -6,6 +6,11 @@ import {
   createHdriKeyLight,
 } from "./blocking3dEnvironmentKeyLight";
 import {
+  DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
+  resolveBlocking3dLightingProfile,
+  type Blocking3dLightingProfile,
+} from "./blocking3dEnvironmentLightingProfile";
+import {
   createProjectedHdriMaterial,
   updateProjectedHdriMaterial,
 } from "./blocking3dEnvironmentProjection";
@@ -43,6 +48,8 @@ export interface Blocking3dEnvironmentRuntime {
 export interface Blocking3dEnvironmentRuntimeOptions {
   /** 无角色的纯环境预览不需要阴影接收器，避免空阴影贴图压黑地面。 */
   enableShadowCatcher?: boolean;
+  /** Preview-owned lighting override; omitted callers retain the existing baseline. */
+  lightingProfile?: Blocking3dLightingProfile;
 }
 
 export function createBlocking3dEnvironmentRuntime(
@@ -52,7 +59,9 @@ export function createBlocking3dEnvironmentRuntime(
 ): Blocking3dEnvironmentRuntime {
   // EnvAtlas provides the HDRI's ambient/reflection contribution, while the
   // transient key light makes a bright window or sun patch readable on actors.
-  const environmentKeyLight = createHdriKeyLight();
+  const lightingProfile = options.lightingProfile ?? DEFAULT_BLOCKING_3D_LIGHTING_PROFILE;
+  const lighting = resolveBlocking3dLightingProfile(lightingProfile);
+  const environmentKeyLight = createHdriKeyLight(lightingProfile);
   app.root.addChild(environmentKeyLight);
 
   let environmentAsset: pc.Asset | null = null;
@@ -140,7 +149,11 @@ export function createBlocking3dEnvironmentRuntime(
         });
         app.scene.envAtlas = environmentAtlas;
         app.scene.lighting.shadowsEnabled = true;
-        app.scene.ambientLight = new pc.Color(0, 0, 0);
+        app.scene.ambientLight = new pc.Color(
+          lighting.ambientLight[0],
+          lighting.ambientLight[1],
+          lighting.ambientLight[2],
+        );
         applyHdriKeyLight(environmentKeyLight, texture);
         const projectionCube = createVisibleHdriCubemap(app, texture);
         if (!isCurrentEnvironmentRequest(requestId)) {

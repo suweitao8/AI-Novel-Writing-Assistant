@@ -73,14 +73,18 @@ test("模型查看器固定相机轨道并支持异步切换环境", () => {
   assert.match(viewerSource, /studioEnvironmentLoadQueue/);
   assert.match(viewerSource, /buildBlocking3dGroundGridLines/);
   assert.match(viewerSource, /rebuildEnvironmentBackdropMesh/);
-  assert.match(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
+  assert.match(viewerSource, /normalizeModelViewerCameraDistance/);
+  assert.match(viewerSource, /getModelViewerCameraClipPlanes/);
+  assert.doesNotMatch(viewerSource, /getCameraMaxDistance/);
+  assert.doesNotMatch(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
+  assert.doesNotMatch(viewerSource, /Math\.max\(radius, 0\.25\)/);
   assert.match(viewerSource, /getStudioEnvironmentDiameterMeters/);
   assert.doesNotMatch(viewerSource, /attachStudioBackdrop\(app/);
 });
 
 test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
-  assert.match(thumbnailSource, /loadStudioEnvironment\(app\)/);
-  assert.match(thumbnailSource, /model-library:thumbnails:v18/);
+  assert.match(thumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v19/);
   assert.match(animationThumbnailSource, /animation-library:thumbnails:v5/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app\)/);
   assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);

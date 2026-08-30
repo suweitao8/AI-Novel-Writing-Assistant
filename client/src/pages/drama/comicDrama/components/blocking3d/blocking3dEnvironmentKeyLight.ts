@@ -4,9 +4,17 @@ import {
   DEFAULT_HDRI_LIGHT_ESTIMATE,
   estimateHdriLightFromTexture,
 } from "./blocking3dEnvironmentLighting";
+import {
+  DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
+  resolveBlocking3dLightingProfile,
+  type Blocking3dLightingProfile,
+} from "./blocking3dEnvironmentLightingProfile";
 
 /** Create the one transient key light reused by a viewer across environments. */
-export function createHdriKeyLight(): pc.Entity {
+export function createHdriKeyLight(
+  profile: Blocking3dLightingProfile = DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
+): pc.Entity {
+  const lighting = resolveBlocking3dLightingProfile(profile);
   const entity = new pc.Entity("blocking3d-hdri-key-light");
   entity.addComponent("light", {
     type: "directional",
@@ -17,10 +25,12 @@ export function createHdriKeyLight(): pc.Entity {
     ),
     intensity: DEFAULT_HDRI_LIGHT_ESTIMATE.intensity,
     castShadows: true,
-    shadowBias: 0.05,
-    normalOffsetBias: 0.05,
-    shadowDistance: 25,
-    shadowResolution: 2048,
+    shadowType: lighting.shadowType,
+    shadowBias: lighting.shadowBias,
+    normalOffsetBias: lighting.normalOffsetBias,
+    shadowDistance: lighting.shadowDistance,
+    shadowResolution: lighting.shadowResolution,
+    shadowIntensity: lighting.shadowIntensity,
   });
   entity.enabled = false;
   return entity;

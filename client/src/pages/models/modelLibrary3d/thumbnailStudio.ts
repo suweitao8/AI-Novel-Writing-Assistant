@@ -22,7 +22,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v18";
+const STORAGE_KEY = "model-library:thumbnails:v19";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -165,7 +165,9 @@ async function createThumbnailStudio(): Promise<{
   cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
   // 卡片统一使用室内默认环境，并等待可见穹顶与环境光都装配完成后再出图。
-  const studioEnvironment = await loadStudioEnvironment(app);
+  const studioEnvironment = await loadStudioEnvironment(app, undefined, {
+    lightingProfile: "model-preview",
+  });
   if (!studioEnvironment.hasVisibleBackdrop) {
     studioEnvironment.destroy();
     app.destroy();
