@@ -142,6 +142,24 @@ test("HDRI 预览页复用场景编辑器布局并提供完整直径交互", () 
   assert.doesNotMatch(previewSource, /studioEnvironmentPreviewApp/);
 });
 
+test("纯 HDRI 预览关闭空阴影接收器，场景预览仍保留阴影路径", () => {
+  assert.match(blockingEnvironmentRuntimeSource, /enableShadowCatcher/);
+  assert.match(blockingEnvironmentRuntimeSource, /if \(enableShadowCatcher\)/);
+  assert.match(previewSource, /loadProxyActor:\s*false/);
+  assert.match(blockingViewerSource, /enableShadowCatcher:\s*options\.loadProxyActor\s*!==\s*false/);
+});
+
+test("可见 HDRI cubemap 使用 RGBP 编码并按 RGBP 解码", () => {
+  const coreSource = read(
+    "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
+  );
+  assert.match(coreSource, /type:\s*pc\.TEXTURETYPE_RGBP/);
+  assert.match(
+    read("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentProjection.ts"),
+    /decodeRGBP\(rawColor\)/,
+  );
+});
+
 test("三张模型 HDRI 都是 Radiance RGBE 文件", () => {
   for (const fileName of [
     "model-indoor-living-room.hdr",
