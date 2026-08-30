@@ -370,9 +370,9 @@ export function openAnimationPreview(
         }
         return currentTime;
       };
-      const notifyTime = () => {
+      const notifyTime = (timeOverride?: number) => {
         options.onTimeChange?.(
-          readCurrentTime(),
+          timeOverride ?? readCurrentTime(),
           durationSeconds,
           anim.playing,
         );
@@ -386,7 +386,9 @@ export function openAnimationPreview(
           anim.baseLayer.activeStateCurrentTime = currentTime;
         }
         app.render();
-        notifyTime();
+        // 手动拖动时间轴时，以用户刚选中的时间立即同步 UI；动画层的
+        // getter 在某些状态切换中仍可能返回上一个采样时间。
+        notifyTime(currentTime);
       };
 
       const playClip = (clipName = activeClipName) => {
