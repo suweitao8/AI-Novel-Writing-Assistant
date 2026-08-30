@@ -148,8 +148,9 @@ function StudioEnvironmentEditorDialog({
     },
     serverStates: environment.states,
     refreshServerStates: invalidate,
-    // 三套环境按应用方向（室内/城市户外/自然）由使用场景选择，环境内没有"当前全景"切换；
-    // 这里只提供与场景资产一致的 3D编辑 入口。
+    // 未生成图的状态回落内置环境全景：与卡片预览、3D 编辑的实际生效画面保持一致。
+    stateImageFallbackUrl: getStudioEnvironmentPreset(environment.id).previewImageUrl,
+    // 编辑器内提供与场景资产一致的 3D编辑 入口。
     renderExtraImageAction: () => (
       <Button
         type="button"
