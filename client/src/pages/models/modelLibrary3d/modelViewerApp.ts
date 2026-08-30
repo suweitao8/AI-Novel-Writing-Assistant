@@ -230,7 +230,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   modelRoot.addChild(modelAdjust);
 
   // 模型在 modelRoot 本地空间里的显示尺寸（米），用于取景和相机裁剪面。
-  let modelCenterY = 0.5;
   let modelRadius = 0.5;
   let modelPreviewBounds: ModelPreviewBounds = {
     min: [-0.5, 0, -0.5],
@@ -371,11 +370,9 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       -(bounds.center[1] - bounds.halfExtents[1]) * unitScale,
       -bounds.center[2] * unitScale,
     );
-    modelCenterY = bounds.halfExtents[1] * unitScale;
     modelRadius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]) * unitScale;
   } else {
     modelAdjust.setPosition(0, 0, 0);
-    modelCenterY = 0.5;
     modelRadius = 0.5;
   }
   const modelDisplayBounds = geometryStats ? getNormalizedModelBounds(geometryStats) : null;
