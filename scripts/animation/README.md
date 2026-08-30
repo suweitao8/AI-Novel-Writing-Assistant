@@ -14,13 +14,24 @@
 python scripts/animation/retarget_ual2.py <source.glb> <ual2.glb> <output.glb> <animation-name>
 ```
 
-工具只把目标 `skins[].joints` 中的同名节点作为骨骼映射，使用世界空间绑定姿态差：
+工具只把目标 `skins[].joints` 中的同名节点作为骨骼映射。默认从目标 UAL2 的
+`Idle_No_Loop` 片段固定取 40% 时间点作为自然站立基准（也可通过最后一个参数
+指定同一目标文件中的其他基准片段），使用世界空间姿态差：
 
 ```text
-W_target = W_source_animation * inverse(W_source_bind) * W_target_bind
+W_target = W_source_animation * inverse(W_source_bind) * W_target_standing_base
 ```
 
-根/骨盆平移使用相对源绑定姿态的增量并按绑定骨骼长度缩放。这样坐姿的骨盆下降会留在角色骨架附近，不会因为源/目标局部坐标分量不同而产生异常深度位移。
+这样源文件即使以 A-Pose 或其他不同于 UAL2 T-Pose 的节点默认姿态导出，导入动作
+也不会把目标角色的手臂重新放到水平 T-Pose。根/骨盆平移使用相对源绑定姿态的
+增量并按绑定骨骼长度缩放，同时叠加到目标站立基准，坐姿的骨盆下降会留在角色
+骨架附近，不会因为源/目标局部坐标分量不同而产生异常深度位移。
+
+完整命令格式：
+
+```text
+python scripts/animation/retarget_ual2.py <source.glb> <ual2.glb> <output.glb> <animation-name> [target-pose-animation]
+```
 
 ## 发布前检查
 

@@ -123,7 +123,7 @@ test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v2/);
-  assert.match(studioSource, /animation-library:thumbnails:v4/);
+  assert.match(studioSource, /animation-library:thumbnails:v6/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
@@ -160,7 +160,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v4/);
+  assert.match(studioSource, /animation-library:thumbnails:v6/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -169,7 +169,15 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
     /assignAnimation\(entry\.clipName, track, 0, 1, true\)/,
   );
   assert.match(studioSource, /activeStateCurrentTime = /);
+  assert.match(
+    studioSource,
+    /asset = await loadAsset\(app, ANIMATION_LIBRARY_FILE_URL, "container"\)/,
+  );
   assert.match(studioSource, /app\.assets\.remove\(asset\)/);
+  assert.doesNotMatch(
+    studioSource,
+    /render\(entry\)[\s\S]*?loadAsset\(app, entry\.fileUrl/,
+  );
   assert.match(studioSource, /model\?\.destroy\(\)/);
   assert.match(studioSource, /studioEnvironment\.destroy\(\)/);
   assert.match(studioSource, /app\.destroy\(\)/);
