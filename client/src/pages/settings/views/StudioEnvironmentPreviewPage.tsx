@@ -3,10 +3,8 @@ import { ArrowLeft, Layers3, Loader2, RotateCcw } from "lucide-react";
 import { Link, Navigate, useParams } from "react-router-dom";
 
 import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
-import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { toast } from "@/components/ui/toast";
 import {
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
@@ -73,7 +71,6 @@ export default function StudioEnvironmentPreviewPage() {
   const [viewer, setViewer] = useState<Blocking3dViewer | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 HDRI 预览");
-  const [environmentPresetId, setEnvironmentPresetId] = useState<StudioEnvironmentPresetId>(presetId);
   const [environmentDiameterMeters, setEnvironmentDiameterMeters] = useState(
     getStudioEnvironmentDiameterPreference(presetId),
   );
@@ -82,7 +79,7 @@ export default function StudioEnvironmentPreviewPage() {
   ));
   const [environmentSwitching, setEnvironmentSwitching] = useState(false);
   const environmentRequestRef = useRef(0);
-  const activePreset = getStudioEnvironmentPreset(environmentPresetId);
+  const activePreset = getStudioEnvironmentPreset(presetId);
   useSettingsSectionsRow();
 
   useEffect(() => {
@@ -95,7 +92,6 @@ export default function StudioEnvironmentPreviewPage() {
     setViewer(null);
     setViewerError(null);
     setStatus("正在初始化 HDRI 预览");
-    setEnvironmentPresetId(presetId);
     setEnvironmentDiameterMeters(initialDiameter);
     setEnvironmentSettings(buildPresetEnvironmentSettings(presetId, initialDiameter));
     setEnvironmentSwitching(false);
@@ -146,41 +142,6 @@ export default function StudioEnvironmentPreviewPage() {
     };
   }, [presetId]);
 
-  const handleEnvironmentChange = useCallback(
-    async (nextId: StudioEnvironmentPresetId) => {
-      const current = viewerRef.current;
-      if (!current || environmentSwitching || nextId === environmentPresetId) return;
-      const requestId = ++environmentRequestRef.current;
-      const previousId = environmentPresetId;
-      const previousSettings = environmentSettings;
-      const nextPreset = getStudioEnvironmentPreset(nextId);
-      const nextDiameter = getStudioEnvironmentDiameterPreference(nextId);
-      setEnvironmentPresetId(nextId);
-      setEnvironmentDiameterMeters(nextDiameter);
-      setEnvironmentSwitching(true);
-      try {
-        const generatedSource = await getStudioEnvironmentSourceUrl(nextId);
-        await current.setEnvironment(generatedSource ?? nextPreset.sourceUrl);
-        if (requestId !== environmentRequestRef.current) return;
-        current.setEnvironmentSettings(buildPresetEnvironmentSettings(nextId, nextDiameter));
-        setEnvironmentSettings(current.getEnvironmentSettings());
-        saveStudioEnvironmentDiameterPreference(nextId, nextDiameter);
-      } catch (error) {
-        if (requestId !== environmentRequestRef.current) return;
-        setEnvironmentPresetId(previousId);
-        current.setEnvironmentSettings(previousSettings);
-        setEnvironmentDiameterMeters(previousSettings.radiusMeters * 2);
-        setEnvironmentSettings(previousSettings);
-        toast.error("HDRI 环境加载失败。", {
-          description: error instanceof Error ? error.message : undefined,
-        });
-      } finally {
-        if (requestId === environmentRequestRef.current) setEnvironmentSwitching(false);
-      }
-    },
-    [environmentPresetId, environmentSettings, environmentSwitching],
-  );
-
   const handleEnvironmentDiameterChange = useCallback((value: number) => {
     const current = viewerRef.current;
     if (!current) return;
@@ -195,8 +156,8 @@ export default function StudioEnvironmentPreviewPage() {
     const nextSettings = current.getEnvironmentSettings();
     setEnvironmentDiameterMeters(nextSettings.radiusMeters * 2);
     setEnvironmentSettings(nextSettings);
-    saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.radiusMeters * 2);
-  }, [environmentPresetId]);
+    saveStudioEnvironmentDiameterPreference(presetId, nextSettings.radiusMeters * 2);
+  }, [presetId]);
 
   const updateEnvironmentSetting = useCallback(
     (key: "projectionCenterHeightRatio" | "radiusMeters" | "panoramaHorizonV", value: number) => {
@@ -210,10 +171,10 @@ export default function StudioEnvironmentPreviewPage() {
       setEnvironmentSettings(nextSettings);
       if (key === "radiusMeters") {
         setEnvironmentDiameterMeters(nextSettings.radiusMeters * 2);
-        saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.radiusMeters * 2);
+        saveStudioEnvironmentDiameterPreference(presetId, nextSettings.radiusMeters * 2);
       }
     },
-    [environmentPresetId],
+    [presetId],
   );
 
   const sceneObjectItems = useMemo<Drama3DObjectItem[]>(() => ([
@@ -278,19 +239,7 @@ export default function StudioEnvironmentPreviewPage() {
             <CardContent className="h-full min-h-0 flex-1 space-y-4 overflow-y-auto pt-4">
               <InspectorGameObjectCard icon={<Layers3 className="h-4 w-4" aria-hidden="true" />} name={activePreset.label} />
               <InspectorComponentSection title="环境预设">
-                <SelectControl
-                  value={environmentPresetId}
-                  onChange={(event) => {
-                    void handleEnvironmentChange(event.target.value as StudioEnvironmentPresetId);
-                  }}
-                  disabled={!viewer || environmentSwitching}
-                  aria-label="HDRI 场景"
-                  className="h-9 w-full bg-background text-sm"
-                >
-                  {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => (
-                    <option key={id} value={id}>{getStudioEnvironmentPreset(id).label}</option>
-                  ))}
-                </SelectControl>
+                <p className="text-xs text-muted-foreground">模型与动画预览统一使用{activePreset.label}环境。</p>
                 {environmentSwitching ? (
                   <p className="text-xs text-muted-foreground" role="status">正在加载 HDRI 环境…</p>
                 ) : null}

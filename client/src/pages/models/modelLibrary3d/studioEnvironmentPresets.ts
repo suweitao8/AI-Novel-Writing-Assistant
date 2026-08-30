@@ -1,12 +1,12 @@
 /**
- * 模型预览使用的固定 HDRI 环境预设。
+ * 模型/动画预览使用的固定 HDRI 环境预设：统一使用中央广场（2026-08-30 用户决定）。
  *
  * diameterMeters 是用户可调的半球直径，界面和预览运行时统一使用 5–30 米。
  * blocking3d 的基础穹顶半径是 0.5，因此交给几何模块时可直接使用这个直径
  * 作为实体缩放值；只有相机边界等内部计算需要换算成真实半径。
  *
  * 环境 id 与显示名与通用环境资产契约共享（@ai-novel/shared）：
- * 通用资产页为每个环境维护可生成的状态，运行时优先使用活跃状态的全景图，
+ * 通用资产页为该环境维护可生成的状态，运行时优先使用默认状态的全景图，
  * 未生成时回落这里的静态 .hdr 资源。
  */
 import {
@@ -33,32 +33,14 @@ export interface StudioEnvironmentPreset {
   panoramaHorizonV: number;
 }
 
-export const DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID: StudioEnvironmentPresetId = "interior";
+export const DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID: StudioEnvironmentPresetId = "exterior";
 
 export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPresetId, StudioEnvironmentPreset>> = {
-  interior: {
-    id: "interior",
-    label: STUDIO_ENVIRONMENT_LABELS.interior,
-    sourceUrl: "/models/env/model-indoor-living-room.hdr",
-    previewImageUrl: "/models/env/model-indoor-living-room-preview.png",
-    diameterMeters: 15,
-    projectionCenterHeightMeters: 2,
-    panoramaHorizonV: 0.5,
-  },
   exterior: {
     id: "exterior",
     label: STUDIO_ENVIRONMENT_LABELS.exterior,
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
     previewImageUrl: "/models/env/model-outdoor-central-plaza-preview.png",
-    diameterMeters: 15,
-    projectionCenterHeightMeters: 2,
-    panoramaHorizonV: 0.5,
-  },
-  nature: {
-    id: "nature",
-    label: STUDIO_ENVIRONMENT_LABELS.nature,
-    sourceUrl: "/models/env/model-nature-grassland.hdr",
-    previewImageUrl: "/models/env/model-nature-grassland-preview.png",
     diameterMeters: 15,
     projectionCenterHeightMeters: 2,
     panoramaHorizonV: 0.5,

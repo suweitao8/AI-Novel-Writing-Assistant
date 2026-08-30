@@ -156,7 +156,7 @@ export class StudioEnvironmentStateImageService {
             description: state.description ?? "",
             imagePrompt: state.imagePrompt ?? "",
             ageGroup: undefined,
-            sceneType: environmentId === "interior" ? ("interior" as const) : ("exterior" as const),
+            sceneType: "exterior",
             timeOfDay: state.timeOfDay ?? undefined,
             weather: state.weather ?? undefined,
           },
