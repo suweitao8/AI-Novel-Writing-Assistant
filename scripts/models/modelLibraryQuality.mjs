@@ -2,19 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { getUnsupportedNameReason, readGlb } from "./glbSanitizer.mjs";
+import {
+  CINE57_ALLOWED_MODEL_IDS,
+  CINE57_CATEGORY_ORDER,
+  CINE57_MAX_FOOD_CONTAINER_ENTRIES,
+  CINE57_MINIMUM_MODEL_COUNT,
+  CINE57_REMOVED_MODEL_IDS,
+  CINE57_REQUIRED_CATEGORIES,
+  isFoodContainerModel,
+} from "./modelLibraryPolicy.mjs";
 
-export const CINE57_REMOVED_MODEL_IDS = Object.freeze([
-  "z-backdrop-01a",
-  "big-rock-01",
-  "flat-rock-01",
-  "brick-stove-1",
-  "brick-stove-2",
-  "brick-stove-3",
-  "decorative-1",
-  "decorative-2",
-]);
-
-export const CINE57_EXPECTED_MODEL_COUNT = 36;
 export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
 
 const POSITION_COMPONENT_TYPE = 5126;
@@ -239,17 +236,24 @@ export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
+  const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
+  const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
+  const requiredCategories = new Set(CINE57_REQUIRED_CATEGORIES);
   const ids = new Set();
   const fileNames = new Set();
 
-  if (entries.length !== CINE57_EXPECTED_MODEL_COUNT) {
-    addError(errors, `expected ${CINE57_EXPECTED_MODEL_COUNT} Cine57 entries, found ${entries.length}`);
+  if (entries.length < CINE57_MINIMUM_MODEL_COUNT) {
+    addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${entries.length}`);
   }
 
   for (const entry of entries) {
     if (ids.has(entry.id)) addError(errors, `duplicate model id: ${entry.id}`);
     ids.add(entry.id);
+    if (!allowedIds.has(entry.id)) addError(errors, `model id is not in the curated allowlist: ${entry.id}`);
     if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
+    if (!allowedCategories.has(entry.category)) {
+      addError(errors, `${entry.id} uses unknown model category: ${entry.category}`);
+    }
     if (fileNames.has(entry.fileName)) addError(errors, `duplicate model file: ${entry.fileName}`);
     fileNames.add(entry.fileName);
     if (!entry.fileUrl.endsWith(`/models/cine57/${entry.fileName}`)) {
@@ -283,6 +287,24 @@ export function validateModelLibrary({ library, modelsDir }) {
     } catch (error) {
       addError(errors, `${entry.id} GLB inspection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  for (const requiredCategory of requiredCategories) {
+    if (!entries.some((entry) => entry.category === requiredCategory)) {
+      addError(errors, `required model category is empty: ${requiredCategory}`);
+    }
+  }
+
+  for (const allowedId of allowedIds) {
+    if (!ids.has(allowedId)) addError(errors, `curated model is missing from catalog: ${allowedId}`);
+  }
+
+  const foodContainerEntries = entries.filter(isFoodContainerModel);
+  if (foodContainerEntries.length > CINE57_MAX_FOOD_CONTAINER_ENTRIES) {
+    addError(
+      errors,
+      `food/box model family allows at most ${CINE57_MAX_FOOD_CONTAINER_ENTRIES} entries, found ${foodContainerEntries.length}`,
+    );
   }
 
   if (fs.existsSync(modelsDir)) {
