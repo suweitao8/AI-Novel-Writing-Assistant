@@ -168,7 +168,9 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 场景一致，把 SKYBOX 层从相机移除——envAtlas 只承担光照，可视背景只留
   // 半圆球穹顶。
   camera.layers = camera.layers.filter((layerId) => layerId !== pc.LAYERID_SKYBOX);
-  camera.toneMapping = pc.TONEMAP_ACES;
+  // 色调映射保持 PlayCanvas 默认（Linear），与漫剧场景/HDRI 预览的 blocking3d
+  // 视图同基准：ACES 会对高饱和环境（如草地自然）整体去饱和发白，同一张 HDR
+  // 在两类页面会呈现两种颜色。
   app.scene.exposure = 1;
   // HDRI 环境异步装配；环境资源的生命周期与模型查看器绑定，避免切换或
   // 销毁时留下漂浮穹顶。

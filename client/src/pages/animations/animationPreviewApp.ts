@@ -133,7 +133,8 @@ export function openAnimationPreview(
   camera.layers = camera.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  camera.toneMapping = pc.TONEMAP_ACES;
+  // 色调映射保持 PlayCanvas 默认（Linear），与漫剧场景/HDRI 预览的 blocking3d
+  // 视图同基准：ACES 会对高饱和环境（如草地自然）整体去饱和发白。
   app.scene.exposure = 1;
 
   const characterRoot = new pc.Entity("animation-preview-character");
