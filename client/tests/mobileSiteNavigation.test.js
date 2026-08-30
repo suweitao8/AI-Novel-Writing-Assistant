@@ -19,7 +19,6 @@ const routedPaths = [
   "/drama",
   "/models",
   "/creative-hub",
-  "/chat-legacy",
   "/book-analysis",
   "/tasks",
   "/auto-director/follow-ups",

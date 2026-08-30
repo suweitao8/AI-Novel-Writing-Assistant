@@ -13,12 +13,10 @@ const {
 const GOVERNED_DIRECTORIES = [
   path.join(SOURCE_ROOT, "services"),
   path.join(SOURCE_ROOT, "agents"),
-  path.join(SOURCE_ROOT, "routes"),
   path.join(SOURCE_ROOT, "graphs"),
 ];
 
 const INLINE_PROMPT_ALLOWED_FILES = new Set([
-  "src/routes/chat.ts",
   "src/services/title/titlePromptBuilder.ts",
   "src/services/novel/novelCoreGenerationService.ts",
 ]);
@@ -28,20 +26,16 @@ const INLINE_PROMPT_ALLOWED_PREFIXES = [
 ];
 
 const DIRECT_GET_LLM_ALLOWED_FILES = new Set([
-  "src/routes/chat.ts",
   "src/services/world/worldDraftGeneration.ts",
   "src/services/novel/novelCoreGenerationService.ts",
 ]);
 
 const SYSTEM_PROMPT_BUILDER_ALLOWED_FILES = new Set([
-  "src/routes/chat.ts",
   "src/agents/planner/intentPromptSupport.ts",
   "src/services/novel/director/novelDirectorPrompts.ts",
 ]);
 
-const DIRECT_STRUCTURED_INVOKE_ALLOWED_FILES = new Set([
-  "src/routes/chat.ts",
-]);
+const DIRECT_STRUCTURED_INVOKE_ALLOWED_FILES = new Set();
 
 const PROMPT_SCHEMA_SERVICE_IMPORT_DENYLIST = [
   "../../../services/character/characterSchemas",
