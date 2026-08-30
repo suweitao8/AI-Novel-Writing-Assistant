@@ -14,6 +14,7 @@ import {
   STUDIO_ENVIRONMENT_LABELS,
   type StudioEnvironmentId,
 } from "@ai-novel/shared/types/studioEnvironmentAssets";
+import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
 
 export const STUDIO_ENVIRONMENT_PRESET_IDS = STUDIO_ENVIRONMENT_IDS;
 
@@ -29,7 +30,8 @@ export interface StudioEnvironmentPreset {
   /** 浏览器可直接显示的平面全景预览，不替代运行时使用的 HDR 资源。 */
   previewImageUrl: string;
   diameterMeters: number;
-  projectionCenterHeightMeters: number;
+  /** 投射中心高度相对半球圆半径的默认比例；实际高度随直径等比派生。 */
+  projectionCenterHeightRatio: number;
   panoramaHorizonV: number;
 }
 
@@ -42,7 +44,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
     previewImageUrl: "/models/env/model-outdoor-central-plaza-preview.png",
     diameterMeters: 15,
-    projectionCenterHeightMeters: 2,
+    projectionCenterHeightRatio: 0.1,
     panoramaHorizonV: 0.5,
   },
 };
@@ -69,6 +71,32 @@ export function getStudioEnvironmentDiameterMeters(value: number): number {
 /** 把用户可见的半球直径换算成内部相机和边界计算使用的真实半径。 */
 export function getStudioEnvironmentRadiusMeters(diameterMeters: number): number {
   return getStudioEnvironmentDiameterMeters(diameterMeters) / 2;
+}
+
+/** 读取并约束通用 HDRI 的投射中心比例，默认与场景约定保持 10%。 */
+export function getStudioEnvironmentProjectionCenterHeightRatio(
+  value: number | null | undefined,
+): number {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) {
+    return STUDIO_ENVIRONMENT_PRESETS[DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID].projectionCenterHeightRatio;
+  }
+  return Math.min(
+    STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
+    Math.max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min, numeric),
+  );
+}
+
+/** 根据通用 HDRI 直径和默认比例派生投射中心世界高度。 */
+export function getStudioEnvironmentProjectionCenterHeightMeters(
+  presetId: StudioEnvironmentPresetId,
+  diameterMeters: number,
+): number {
+  const radiusMeters = getStudioEnvironmentRadiusMeters(diameterMeters);
+  const ratio = getStudioEnvironmentProjectionCenterHeightRatio(
+    getStudioEnvironmentPreset(presetId).projectionCenterHeightRatio,
+  );
+  return Math.round(radiusMeters * ratio * 100) / 100;
 }
 
 const STUDIO_ENVIRONMENT_DIAMETER_STORAGE_KEY = "model-preview:environment-diameters:v2";
