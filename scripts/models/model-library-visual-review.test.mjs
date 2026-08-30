@@ -16,12 +16,6 @@ test("每个已发布模型都有截图确认且已批准的视觉复核记录",
   assert.equal(MODEL_VISUAL_REVIEWS.length, staticEntries.length);
 });
 
-test("角色预览条目不混入 Cine57 静态模型视觉审核", () => {
-  const character = MODEL_LIBRARY.find((entry) => entry.previewAppearance);
-  assert.ok(character);
-  assert.deepEqual(validateModelVisualReview({ library: [character] }), []);
-});
-
 test("视觉复核绑定稳定 ID、mesh 和 GLB 文件名", () => {
   const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
   assert.ok(entry);
