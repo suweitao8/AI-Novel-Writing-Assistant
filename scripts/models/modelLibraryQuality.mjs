@@ -14,6 +14,40 @@ import {
 
 export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
 
+const MODEL_USAGE_SUPPORT_SURFACES = new Set([
+  "ground",
+  "wall",
+  "ceiling",
+  "horizontal-surface",
+  "handheld",
+  "free",
+]);
+const MODEL_USAGE_PLACEMENT_MODES = new Set([
+  "grounded",
+  "wall-mounted",
+  "ceiling-hung",
+  "surface-placed",
+  "handheld",
+  "free",
+]);
+const MODEL_USAGE_ANCHORS = new Set(["base", "back", "top", "support-center", "center"]);
+const MODEL_USAGE_ORIENTATIONS = new Set([
+  "upright",
+  "horizontal",
+  "wall-facing",
+  "downward",
+  "directional",
+  "free",
+]);
+const MODEL_USAGE_SURFACE_BY_PLACEMENT = {
+  grounded: "ground",
+  "wall-mounted": "wall",
+  "ceiling-hung": "ceiling",
+  "surface-placed": "horizontal-surface",
+  handheld: "handheld",
+  free: "free",
+};
+
 const POSITION_COMPONENT_TYPE = 5126;
 const IDENTITY_MATRIX = Object.freeze([
   1, 0, 0, 0,
@@ -231,6 +265,47 @@ function addError(errors, message) {
   errors.push(message);
 }
 
+function validateModelUsage(entry, errors) {
+  const usage = entry.usage;
+  if (!usage || typeof usage !== "object") {
+    addError(errors, `${entry.id} is missing model usage instructions`);
+    return;
+  }
+  if (!MODEL_USAGE_SUPPORT_SURFACES.has(usage.supportSurface)) {
+    addError(errors, `${entry.id} uses unknown model usage support surface: ${usage.supportSurface}`);
+  }
+  if (!MODEL_USAGE_PLACEMENT_MODES.has(usage.placementMode)) {
+    addError(errors, `${entry.id} uses unknown model usage placement mode: ${usage.placementMode}`);
+  }
+  if (!MODEL_USAGE_ANCHORS.has(usage.anchor)) {
+    addError(errors, `${entry.id} uses unknown model usage anchor: ${usage.anchor}`);
+  }
+  if (!MODEL_USAGE_ORIENTATIONS.has(usage.orientation)) {
+    addError(errors, `${entry.id} uses unknown model usage orientation: ${usage.orientation}`);
+  }
+  if (typeof usage.requiresFacingDirection !== "boolean") {
+    addError(errors, `${entry.id} model usage direction flag must be boolean`);
+  }
+  if (typeof usage.instruction !== "string" || usage.instruction.trim().length === 0) {
+    addError(errors, `${entry.id} model usage instruction must be non-empty text`);
+  }
+  if (usage.placementMode === "wall-mounted"
+    && (usage.supportSurface !== "wall" || usage.anchor !== "back" || usage.orientation !== "wall-facing")) {
+    addError(errors, `${entry.id} wall-mounted usage must use wall/back/wall-facing semantics`);
+  }
+  if (usage.placementMode === "ceiling-hung"
+    && (usage.supportSurface !== "ceiling" || usage.anchor !== "top" || usage.orientation !== "downward")) {
+    addError(errors, `${entry.id} ceiling-hung usage must use ceiling/top/downward semantics`);
+  }
+  const expectedSurface = MODEL_USAGE_SURFACE_BY_PLACEMENT[usage.placementMode];
+  if (expectedSurface && usage.supportSurface !== expectedSurface) {
+    addError(errors, `${entry.id} model usage surface does not match placement mode`);
+  }
+  if (usage.orientation === "directional" && usage.requiresFacingDirection !== true) {
+    addError(errors, `${entry.id} directional usage must require a facing direction`);
+  }
+}
+
 /** Return every static model-library content violation; an empty array means valid. */
 export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
@@ -258,6 +333,7 @@ export function validateModelLibrary({ library, modelsDir }) {
       addError(errors, `${entry.id} must declare a fileUrl and fileName`);
       continue;
     }
+    validateModelUsage(entry, errors);
     if (entry.previewAppearance) {
       if (typeof entry.previewAppearance !== "string") {
         addError(errors, `${entry.id} previewAppearance must be a string`);
@@ -270,7 +346,6 @@ export function validateModelLibrary({ library, modelsDir }) {
     if (!allowedCategories.has(entry.category)) {
       addError(errors, `${entry.id} uses unknown model category: ${entry.category}`);
     }
-
     staticFileNames.add(entry.fileName);
     if (!entry.fileUrl.endsWith(`/models/cine57/${entry.fileName}`)) {
       addError(errors, `${entry.id} fileUrl does not match fileName`);

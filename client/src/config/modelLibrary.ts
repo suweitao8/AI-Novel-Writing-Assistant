@@ -8,6 +8,8 @@
  * modelLibrary3d/modelMaterials.ts 回填到 PlayCanvas 材质上。
  */
 
+import { attachModelUsageInstructions, type ModelUsageInstruction } from "./modelLibraryUsage.ts";
+
 /** 单个材质的外观声明。 */
 export interface ModelMaterialInfo {
   /** 漫反射贴图 URL。 */
@@ -45,6 +47,8 @@ export interface ModelLibraryEntry {
   unitScale: number;
   source: string;
   sizeKb: number;
+  /** 模型在分镜中的支撑面、安装方式和朝向说明。 */
+  usage: ModelUsageInstruction;
   /** 材质回填映射：GLB 里只有 FBX 占位材质，无贴图。 */
   materials?: ModelMaterialMap;
   /** 可选的模型库专用预览外观。未声明时沿用普通材质回填。 */
@@ -55,7 +59,7 @@ export const MODEL_LIBRARY_CATEGORIES = ["家具","容器与箱子","厨房与�
 
 const CINE57_SOURCE = "Cine57";
 
-export const MODEL_LIBRARY: ModelLibraryEntry[] = [
+const MODEL_LIBRARY_BASE: Omit<ModelLibraryEntry, "usage">[] = [
   { id: "bed-12a", name: "双人床 A", category: "家具", fileName: "SM_Bed_12a.glb", fileUrl: "/models/cine57/SM_Bed_12a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 2429, materials: {"MI_Bed_12a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12a_ALB.TX_Bed_12a_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12a_NRM.TX_Bed_12a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12a_RMA.TX_Bed_12a_RMA.jpg"},"MI_Bed_12b":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12b_ALB.TX_Bed_12b_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12b_NRM.TX_Bed_12b_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12b_RMA.TX_Bed_12b_RMA.jpg"},"MI_Bed_12c":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12c_ALB.TX_Bed_12c_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12c_NRM.TX_Bed_12c_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12c_RMA.TX_Bed_12c_RMA.jpg"}} },
   { id: "bed-19a", name: "单人床", category: "家具", fileName: "SM_Bed_19a.glb", fileUrl: "/models/cine57/SM_Bed_19a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 1714, materials: {"MI_Bed_19b":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19b_ALB.TX_Bed_19b_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19b_NRM.TX_Bed_19b_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19b_RMA.TX_Bed_19b_RMA.jpg"},"MI_Bed_19a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19a_ALB.TX_Bed_19a_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19a_NRM.TX_Bed_19a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19a_RMA.TX_Bed_19a_RMA.jpg"},"MI_Bed_19c":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19c_ALB.TX_Bed_19c_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19c_NRM.TX_Bed_19c_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19c_RMA.TX_Bed_19c_RMA.jpg"}} },
   { id: "bed-frame-01a", name: "床架", category: "家具", fileName: "SM_Bed_Frame_01a.glb", fileUrl: "/models/cine57/SM_Bed_Frame_01a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 1491, materials: {"MI_Bed_Frame_01a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_01a_ALB.TX_Bed_Frame_01a_ALB_baseColor.jpg","opacity":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Fill_01_RMA.TX_Fill_01_RMA_opacity.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_01a_NRM.TX_Bed_Frame_01a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_01a_RMA.TX_Bed_Frame_01a_RMA.jpg"}} },
@@ -137,6 +141,8 @@ export const MODEL_LIBRARY: ModelLibraryEntry[] = [
   { id: "flower-01-01", name: "花丛 A", category: "花", fileName: "sm_Flower_01_01.glb", fileUrl: "/models/cine57/sm_Flower_01_01.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 158, materials: {"mi_Flower_01_01":{"baseColor":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_bc.t_Flower_01_01_bc_baseColor.jpg","opacity":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_m.t_Flower_01_01_m_opacity.jpg","normal":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_n.t_Flower_01_01_n_normal.jpg"}} },
   { id: "ual2-college-student", name: "男大学生角色（纹理测试）", category: "角色", fileName: "UAL2_UE_Anims.glb", fileUrl: "/anims/cine57/UAL2_UE_Anims.glb", unitScale: 1, source: "Cine57 / UAL2", sizeKb: 8242, previewAppearance: "character-texture-test" },
 ];
+
+export const MODEL_LIBRARY: ModelLibraryEntry[] = attachModelUsageInstructions(MODEL_LIBRARY_BASE);
 
 export function getModelLibraryEntry(id: string | undefined): ModelLibraryEntry | null {
   if (!id) return null;

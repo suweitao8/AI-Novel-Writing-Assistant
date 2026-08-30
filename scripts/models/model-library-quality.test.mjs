@@ -122,6 +122,33 @@ test("模型库质量门禁汇总所有违规", () => {
   assert.deepEqual(errors, []);
 });
 
+test("模型库质量门禁拒绝缺少使用说明的条目", () => {
+  const libraryWithoutUsage = MODEL_LIBRARY.map((entry, index) => (
+    index === 0 ? { ...entry, usage: undefined } : entry
+  ));
+  const errors = validateModelLibrary({ library: libraryWithoutUsage, modelsDir: MODELS_DIR });
+  assert.ok(errors.includes(`${MODEL_LIBRARY[0].id} is missing model usage instructions`));
+});
+
+test("模型库质量门禁也校验角色预览条目的使用说明", () => {
+  const libraryWithoutCharacterUsage = MODEL_LIBRARY.map((entry) => (
+    entry.id === "ual2-college-student" ? { ...entry, usage: undefined } : entry
+  ));
+  const errors = validateModelLibrary({ library: libraryWithoutCharacterUsage, modelsDir: MODELS_DIR });
+  assert.ok(errors.includes("ual2-college-student is missing model usage instructions"));
+});
+
+test("模型库质量门禁拒绝互相矛盾的使用说明字段", () => {
+  const libraryWithContradictoryUsage = MODEL_LIBRARY.map((entry, index) => (
+    index === 0
+      ? { ...entry, usage: { ...entry.usage, placementMode: "wall-mounted" } }
+      : entry
+  ));
+  const errors = validateModelLibrary({ library: libraryWithContradictoryUsage, modelsDir: MODELS_DIR });
+  assert.ok(errors.includes(`${MODEL_LIBRARY[0].id} wall-mounted usage must use wall/back/wall-facing semantics`));
+  assert.ok(errors.includes(`${MODEL_LIBRARY[0].id} model usage surface does not match placement mode`));
+});
+
 test("目录中的 GLB 大小元数据与实际文件一致", () => {
   for (const entry of STATIC_MODEL_LIBRARY) {
     const actualSizeKb = Math.round(fs.statSync(path.join(MODELS_DIR, entry.fileName)).size / 1024);

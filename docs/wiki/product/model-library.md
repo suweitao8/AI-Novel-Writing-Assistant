@@ -40,6 +40,9 @@
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
 - **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。角色预览条目可以引用动画库资源，不参与 Cine57 静态 GLB 清单和尺寸统计。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
+- **模型使用说明是摆放契约**：每个 `ModelLibraryEntry` 都必须带 `usage`，由 `config/modelLibraryUsage.ts` 按模型 ID 提供 `supportSurface`、`placementMode`、`anchor`、`orientation`、`requiresFacingDirection` 和 `instruction`。墙挂模型必须声明墙面/背面/正面朝向，吊顶模型必须声明天花板/顶部/主体朝下，落地模型必须声明地面/底部；后续分镜摆放只读取这些结构化字段，不解析中文说明或模型名称。
+- **使用说明按实际接触面分类**：家具、容器、自然物和地面物件通常落地；书堆、餐食、摆件、办公小物等使用水平支撑面；时钟是墙面挂装，宫灯是天花板悬挂，双筒望远镜是需要目标方向的水平支撑物。说明中的 `anchor` 用于将模型的底部、背面、顶部或支撑中心对齐到对应表面。
+- **使用说明完整性是发布门禁**：`attachModelUsageInstructions` 会拒绝目录漏配或出现孤立 ID，`modelLibraryQuality.mjs` 会拒绝非法枚举、空文案和墙挂/吊顶字段组合矛盾。新增或重新策展模型时，必须同步补充使用 profile 和代表性测试；不能用落地默认值静默掩盖未知安装方式。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；手动定位时以请求时间直接回调 UI，再由动画层持续时间校正播放状态，避免旧采样时间覆盖时间轴；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
@@ -105,6 +108,7 @@
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。
 - 页面分类表完全由目录数据驱动；目录再生成即页面更新，前端无需改代码。
+- 模型卡片只显示支撑面/摆放方式的紧凑标签，详情页显示完整使用说明；两处都直接读取 `entry.usage`。说明是静态策展数据，页面只读，不写入服务端或用户资产。
 
 ## 失败模式（调试结论）
 
