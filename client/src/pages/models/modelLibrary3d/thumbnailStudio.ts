@@ -1,11 +1,17 @@
 import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
-import { clamp, DEFAULT_FOV, loadAsset, type ContainerResource } from "@/pages/drama/comicDrama/components/blocking3d";
+import {
+  buildBlocking3dGroundGridLines,
+  clamp,
+  DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
+  loadAsset,
+  type ContainerResource,
+} from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
 import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
-import { setupStudioLighting } from "./studioLighting";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
@@ -16,7 +22,7 @@ import { setupStudioLighting } from "./studioLighting";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v16";
+const STORAGE_KEY = "model-library:thumbnails:v17";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -156,9 +162,16 @@ async function createThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  setupStudioLighting(app, cameraEntity.camera!);
+  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
   // 卡片统一使用室内默认环境，并等待可见穹顶与环境光都装配完成后再出图。
   const studioEnvironment = await loadStudioEnvironment(app);
+  if (!studioEnvironment.hasVisibleBackdrop) {
+    studioEnvironment.destroy();
+    app.destroy();
+    throw new Error("HDRI 场景环境加载失败。");
+  }
+  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
   const frame = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -175,6 +188,7 @@ async function createThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
+    drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
 

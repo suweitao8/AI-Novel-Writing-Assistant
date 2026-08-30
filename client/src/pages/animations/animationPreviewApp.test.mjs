@@ -62,6 +62,10 @@ const catalogSource = readFileSync(
   path.join(import.meta.dirname, "..", "..", "config", "animationLibrary.ts"),
   "utf8",
 );
+const environmentRuntimeSource = readFileSync(
+  path.join(import.meta.dirname, "..", "models", "modelLibrary3d", "studioEnvironmentRuntime.ts"),
+  "utf8",
+);
 
 test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
@@ -73,8 +77,17 @@ test("预览器同步构建应用，异步加载后装配动画组件并循环�
   assert.match(previewSource, /app\.start\(\)/);
 });
 
+test("动画预览使用固定半圆 HDR 环境和共享地面网格", () => {
+  assert.match(previewSource, /loadStudioEnvironment/);
+  assert.match(previewSource, /buildBlocking3dGroundGridLines/);
+  assert.match(previewSource, /LAYERID_SKYBOX/);
+  assert.doesNotMatch(previewSource, /GROUND_HALF_SIZE/);
+  assert.doesNotMatch(previewSource, /createPlane\(/);
+  assert.doesNotMatch(previewSource, /setupStudioLighting\(/);
+  assert.match(environmentRuntimeSource, /createBlocking3dEnvironmentRuntime/);
+});
+
 test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () => {
-  assert.match(previewSource, /setupStudioLighting\(app/);
   assert.match(previewSource, /loadStudioEnvironment\(app/);
   assert.match(previewSource, /initialTimeSeconds/);
   assert.match(previewSource, /onTimeChange/);
@@ -168,9 +181,10 @@ test("缩略图工作室初始化失败后会清空失败 Promise，允许后续
 });
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
-  assert.match(previewSource, /studioEnvironmentReady/);
-  assert.match(previewSource, /await studioEnvironmentReady/);
-  assert.match(previewSource, /studioEnvironmentCleanup/);
+  assert.match(previewSource, /const environmentPromise = loadStudioEnvironment\(app\)/);
+  assert.match(previewSource, /Promise\.allSettled\(\[\s*assetPromise,\s*environmentPromise/);
+  assert.match(previewSource, /studioEnvironment = environmentResult\.value/);
+  assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
 });
 
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {

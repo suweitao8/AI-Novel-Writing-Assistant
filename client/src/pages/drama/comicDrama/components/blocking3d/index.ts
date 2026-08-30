@@ -19,6 +19,13 @@ export {
   type ContainerResource,
 } from "./blocking3dViewerCore";
 export {
+  DEFAULT_BLOCKING_3D_ENVIRONMENT,
+  normalizeEnvironmentSettings,
+} from "./blocking3dViewerCore";
+export type { Blocking3dEnvironmentSettings } from "./blocking3dViewerCore";
+export { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
+export type { Blocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
+export {
   createBackdropGeometry,
   createGroundDomeGeometry,
   configureEnvironmentTexture,
@@ -26,3 +33,8 @@ export {
 } from "./blocking3dViewerCore";
 export { createProjectedHdriMaterial } from "./blocking3dEnvironmentProjection";
 export type { ProjectedHdriMaterialSettings } from "./blocking3dEnvironmentProjection";
+export {
+  buildBlocking3dGroundGridLines,
+  drawBlocking3dGroundGrid,
+} from "./blocking3dEnvironmentOverlay";
+export type { Blocking3dGroundGridLine } from "./blocking3dEnvironmentOverlay";

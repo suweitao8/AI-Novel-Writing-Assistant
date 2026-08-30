@@ -2,18 +2,17 @@ import * as pc from "playcanvas";
 
 import type { AnimationLibraryEntry } from "@/config/animationLibrary";
 import {
+  buildBlocking3dGroundGridLines,
   clamp,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
-  createMaterial,
-  createPlane,
   DEFAULT_FOV,
+  drawBlocking3dGroundGrid,
   loadAsset,
   setEntityMaterial,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
 import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
-import { setupStudioLighting } from "@/pages/models/modelLibrary3d/studioLighting";
 import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 /**
@@ -196,24 +195,15 @@ async function createAnimationThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  setupStudioLighting(app, cameraEntity.camera!);
-  const studioEnvironment = await loadStudioEnvironment(app, undefined, { radiusMeters: 30 });
-
-  const ground = createPlane(
-    app,
-    "anim-thumb-ground",
-    [0, -0.01, 0],
-    [12, 1, 12],
-    createMaterial(new pc.Color(0.16, 0.18, 0.22)),
-  );
-  ground.render!.receiveShadows = false;
-
-  const gridLines: Array<{ start: pc.Vec3; end: pc.Vec3; color: pc.Color }> = [];
-  for (let value = -3; value <= 3; value += 0.5) {
-    const color = new pc.Color(0.3, 0.34, 0.42, 0.4);
-    gridLines.push({ start: new pc.Vec3(value, 0.004, -3), end: new pc.Vec3(value, 0.004, 3), color });
-    gridLines.push({ start: new pc.Vec3(-3, 0.004, value), end: new pc.Vec3(3, 0.004, value), color });
+  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
+  app.scene.exposure = 1;
+  const studioEnvironment = await loadStudioEnvironment(app);
+  if (!studioEnvironment.hasVisibleBackdrop) {
+    studioEnvironment.destroy();
+    app.destroy();
+    throw new Error("HDRI 场景环境加载失败。");
   }
+  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
   const frame = (centerY: number, radius: number) => {
     const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
@@ -230,7 +220,7 @@ async function createAnimationThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
-    for (const line of gridLines) app.drawLine(line.start, line.end, line.color, false);
+    drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
 
