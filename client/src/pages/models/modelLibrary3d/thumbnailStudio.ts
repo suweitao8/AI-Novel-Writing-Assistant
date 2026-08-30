@@ -9,6 +9,10 @@ import {
   loadAsset,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
+import {
+  createCharacterAppearanceController,
+  type CharacterAppearanceController,
+} from "./characterAppearance";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
 import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
@@ -22,7 +26,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v19";
+const STORAGE_KEY = "model-library:thumbnails:v20";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -200,6 +204,7 @@ async function createThumbnailStudio(): Promise<{
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
       const asset = await loadAsset(app, entry.fileUrl, "container");
+      let appearanceController: CharacterAppearanceController | null = null;
       try {
         const resource = asset.resource as ContainerResource | null;
         const inner = resource?.instantiateRenderEntity?.({ castShadows: false });
@@ -227,8 +232,13 @@ async function createThumbnailStudio(): Promise<{
           centerY = bounds.halfExtents[1] * unitScale;
           radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]) * unitScale;
         }
-        // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
-        await applyModelMaterials(app, root, entry.materials);
+        if (entry.previewAppearance) {
+          appearanceController = createCharacterAppearanceController(app, root);
+          appearanceController.setMode("male-college-student");
+        } else {
+          // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
+          await applyModelMaterials(app, root, entry.materials);
+        }
         frame(centerY, radius);
         drawFrame();
         drawFrame();
@@ -237,6 +247,7 @@ async function createThumbnailStudio(): Promise<{
         adjust.destroy();
         return dataUrl;
       } finally {
+        appearanceController?.destroy();
         app.assets.remove(asset);
       }
     },

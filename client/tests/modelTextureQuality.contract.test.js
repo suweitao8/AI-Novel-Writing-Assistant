@@ -28,7 +28,7 @@ test("representative baseColor texture keeps enough encoded detail for close 3D 
 });
 
 test("model thumbnails use a cache version newer than the pre-quality-fix cache", () => {
-  assert.match(thumbnailStudioSource, /model-library:thumbnails:v19/);
+  assert.match(thumbnailStudioSource, /model-library:thumbnails:v20/);
   assert.doesNotMatch(thumbnailStudioSource, /model-library:thumbnails:v18/);
 });
 
