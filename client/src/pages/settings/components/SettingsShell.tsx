@@ -19,12 +19,7 @@ const items = [
 
 // 系统设置的二级页签即子路由：桌面端上收到顶部导航栏，移动端保留页内列表。
 // 部分页面（记录）还有自己的三级页签，通过 subTabs 并排注册到导航栏。
-export function SettingsShell(props: {
-  title?: string;
-  description?: string;
-  subTabs?: PageTabRow;
-  children: ReactNode;
-}) {
+export function useSettingsSectionsRow(subTabs?: PageTabRow): void {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobileViewport = useIsMobileViewport();
@@ -39,8 +34,20 @@ export function SettingsShell(props: {
   };
   useRegisterPageTabs(
     !isMobileViewport,
-    props.subTabs ? [sectionsRow, props.subTabs] : [sectionsRow],
+    subTabs ? [sectionsRow, subTabs] : [sectionsRow],
   );
+}
+
+export function SettingsShell(props: {
+  title?: string;
+  description?: string;
+  subTabs?: PageTabRow;
+  children: ReactNode;
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isMobileViewport = useIsMobileViewport();
+  useSettingsSectionsRow(props.subTabs);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
