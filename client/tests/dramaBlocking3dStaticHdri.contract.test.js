@@ -236,7 +236,7 @@ test("中键平移使用摄像机屏幕坐标，角色光照由 HDRI 环境和�
   assert.match(viewerSource, /app\.scene\.envAtlas/);
   assert.match(viewerSource, /pc\.TEXTUREPROJECTION_EQUIRECT/);
   assert.match(viewerSource, /app\.scene\.ambientLight/);
-  assert.match(viewerSource, /const environmentKeyLight = createHdriKeyLight\(\)/);
+  assert.match(viewerSource, /const environmentKeyLight = createHdriKeyLight\(lightingProfile\)/);
   assert.match(viewerSource, /applyHdriKeyLight\(environmentKeyLight, texture\)/);
   assert.match(environmentKeyLightSource, /new pc\.Entity\("blocking3d-hdri-key-light"\)/);
   assert.match(environmentKeyLightSource, /type: "directional"/);

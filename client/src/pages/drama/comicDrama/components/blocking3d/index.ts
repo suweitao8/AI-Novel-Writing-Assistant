@@ -29,6 +29,15 @@ export type {
   Blocking3dEnvironmentRuntimeOptions,
 } from "./blocking3dEnvironmentRuntime";
 export {
+  DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
+  MODEL_PREVIEW_LIGHTING_PROFILE,
+  resolveBlocking3dLightingProfile,
+} from "./blocking3dEnvironmentLightingProfile";
+export type {
+  Blocking3dLightingProfile,
+  Blocking3dLightingProfileConfig,
+} from "./blocking3dEnvironmentLightingProfile";
+export {
   createBackdropGeometry,
   createGroundDomeGeometry,
   configureEnvironmentTexture,

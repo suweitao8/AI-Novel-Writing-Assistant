@@ -256,6 +256,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       try {
         nextEnvironment = await loadStudioEnvironment(app, presetId, {
           diameterMeters: nextDiameterMeters,
+          lightingProfile: "model-preview",
         });
       } catch {
         return false;
