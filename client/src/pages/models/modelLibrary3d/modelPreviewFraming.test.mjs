@@ -75,6 +75,26 @@ test("取景优先按实际顶点投影，避免薄圆模型被 AABB 过度留�
   );
 });
 
+test("实际顶点的透视投影会回正到画面中心，避免模型偏向边缘", () => {
+  const points = [
+    [-0.2, 0, 0],
+    [0.8, 0, 0],
+    [0.3, 1, 0],
+    [0.3, 0, 0.2],
+  ];
+  const bounds = { min: [-0.2, 0, 0], max: [0.8, 1, 0.2] };
+  const fit = fitModelPreviewCamera(bounds, 898 / 544, points);
+  const projection = projectModelPreviewPoints(points, fit, 898 / 544);
+
+  assert.ok(Math.abs(projection.centerX) < 1e-5, `centerX=${projection.centerX}`);
+  assert.ok(Math.abs(projection.centerY) < 1e-5, `centerY=${projection.centerY}`);
+  assert.ok(
+    projection.maxOccupancy >= MODEL_PREVIEW_FRAMING.minOccupancy
+      && projection.maxOccupancy <= MODEL_PREVIEW_FRAMING.maxOccupancy,
+    `occupancy=${projection.maxOccupancy}`,
+  );
+});
+
 test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓冲比例", () => {
   assert.equal(
     getModelPreviewAspectRatio({ clientWidth: 898, clientHeight: 544, width: 300, height: 150 }),
@@ -87,7 +107,8 @@ test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓
 });
 
 test("取景合同变化时缩略图缓存使用新版本", () => {
-  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
+  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v23/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
 });

@@ -130,6 +130,11 @@ function normalizePreviewPoints(
     .map((point) => [point[0], point[1], point[2]]);
 }
 
+interface ProjectionMetrics extends ModelPreviewProjection {
+  centerX: number;
+  centerY: number;
+}
+
 function projectAtDistance(
   bounds: ModelPreviewBounds,
   target: ModelPreviewVector,
@@ -137,7 +142,7 @@ function projectAtDistance(
   aspectRatio: number,
   basis: ReturnType<typeof getCameraBasis>,
   points?: readonly ModelPreviewVector[],
-): ModelPreviewProjection {
+): ProjectionMetrics {
   const safeDistance = Math.max(EPSILON, finiteNumber(distance, MODEL_PREVIEW_FRAMING.maxDistance));
   const safeAspect = Math.max(EPSILON, finiteNumber(aspectRatio, 1));
   const tanHalfFov = Math.tan(MODEL_PREVIEW_FRAMING.fovDegrees * Math.PI / 360);
@@ -157,13 +162,76 @@ function projectAtDistance(
 
   const horizontalValues = projected.map(([horizontal]) => horizontal);
   const verticalValues = projected.map(([, vertical]) => vertical);
-  const widthOccupancy = Math.max(0, (Math.max(...horizontalValues) - Math.min(...horizontalValues)) / 2);
-  const heightOccupancy = Math.max(0, (Math.max(...verticalValues) - Math.min(...verticalValues)) / 2);
+  const minHorizontal = Math.min(...horizontalValues);
+  const maxHorizontal = Math.max(...horizontalValues);
+  const minVertical = Math.min(...verticalValues);
+  const maxVertical = Math.max(...verticalValues);
+  const widthOccupancy = Math.max(0, (maxHorizontal - minHorizontal) / 2);
+  const heightOccupancy = Math.max(0, (maxVertical - minVertical) / 2);
   return {
     widthOccupancy,
     heightOccupancy,
     maxOccupancy: Math.max(widthOccupancy, heightOccupancy),
+    centerX: (minHorizontal + maxHorizontal) / 2,
+    centerY: (minVertical + maxVertical) / 2,
   };
+}
+
+function solveModelPreviewDistance(
+  bounds: ModelPreviewBounds,
+  target: ModelPreviewVector,
+  aspectRatio: number,
+  basis: ReturnType<typeof getCameraBasis>,
+  points: readonly ModelPreviewVector[],
+): number {
+  const diagonal = Math.hypot(
+    bounds.max[0] - bounds.min[0],
+    bounds.max[1] - bounds.min[1],
+    bounds.max[2] - bounds.min[2],
+  );
+  if (!Number.isFinite(diagonal) || diagonal < EPSILON) return MODEL_PREVIEW_FRAMING.minDistance;
+
+  let high = Math.max(MODEL_PREVIEW_FRAMING.minDistance, diagonal);
+  while (
+    projectAtDistance(bounds, target, high, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy
+    && high < MODEL_PREVIEW_FRAMING.maxDistance
+  ) {
+    high *= 2;
+  }
+  high = Math.min(high, MODEL_PREVIEW_FRAMING.maxDistance);
+  let low: number = MODEL_PREVIEW_FRAMING.minDistance;
+  for (let iteration = 0; iteration < 48; iteration += 1) {
+    const middle = (low + high) / 2;
+    if (projectAtDistance(bounds, target, middle, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy) {
+      low = middle;
+    } else {
+      high = middle;
+    }
+  }
+  return Number.isFinite(high) && high > 0 ? high : MODEL_PREVIEW_FRAMING.minDistance;
+}
+
+function recenterModelPreviewTarget(
+  bounds: ModelPreviewBounds,
+  inputTarget: ModelPreviewVector,
+  distance: number,
+  aspectRatio: number,
+  basis: ReturnType<typeof getCameraBasis>,
+  points: readonly ModelPreviewVector[],
+): ModelPreviewVector {
+  const target: [number, number, number] = [inputTarget[0], inputTarget[1], inputTarget[2]];
+  const tanHalfFov = Math.tan(MODEL_PREVIEW_FRAMING.fovDegrees * Math.PI / 360);
+  const safeAspect = Math.max(EPSILON, finiteNumber(aspectRatio, 1));
+  for (let iteration = 0; iteration < 6; iteration += 1) {
+    const projection = projectAtDistance(bounds, target, distance, safeAspect, basis, points);
+    const horizontalShift = projection.centerX * tanHalfFov * safeAspect * distance;
+    const verticalShift = projection.centerY * tanHalfFov * distance;
+    if (Math.hypot(horizontalShift, verticalShift) < EPSILON) break;
+    for (let axis = 0; axis < 3; axis += 1) {
+      target[axis] += basis.right[axis] * horizontalShift + basis.up[axis] * verticalShift;
+    }
+  }
+  return target;
 }
 
 export function projectModelPreviewBounds(
@@ -207,13 +275,8 @@ export function fitModelPreviewCamera(
 ): ModelPreviewCameraFit {
   const bounds = normalizeBounds(inputBounds);
   const points = normalizePreviewPoints(inputPoints);
-  const target = boundsCenter(bounds);
+  let target = boundsCenter(bounds);
   const basis = getCameraBasis(MODEL_PREVIEW_FRAMING);
-  const diagonal = Math.hypot(
-    bounds.max[0] - bounds.min[0],
-    bounds.max[1] - bounds.min[1],
-    bounds.max[2] - bounds.min[2],
-  );
   const fit: ModelPreviewCameraFit = {
     target,
     distance: MODEL_PREVIEW_FRAMING.minDistance,
@@ -221,25 +284,20 @@ export function fitModelPreviewCamera(
     elevationDegrees: MODEL_PREVIEW_FRAMING.elevationDegrees,
   };
 
-  if (!Number.isFinite(diagonal) || diagonal < EPSILON) return fit;
+  if (!Number.isFinite(
+    Math.hypot(
+      bounds.max[0] - bounds.min[0],
+      bounds.max[1] - bounds.min[1],
+      bounds.max[2] - bounds.min[2],
+    ),
+  )) return fit;
 
-  let high = Math.max(MODEL_PREVIEW_FRAMING.minDistance, diagonal);
-  while (
-    projectAtDistance(bounds, target, high, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy
-    && high < MODEL_PREVIEW_FRAMING.maxDistance
-  ) {
-    high *= 2;
+  let distance = solveModelPreviewDistance(bounds, target, aspectRatio, basis, points);
+  for (let iteration = 0; iteration < 4; iteration += 1) {
+    target = recenterModelPreviewTarget(bounds, target, distance, aspectRatio, basis, points);
+    distance = solveModelPreviewDistance(bounds, target, aspectRatio, basis, points);
   }
-  high = Math.min(high, MODEL_PREVIEW_FRAMING.maxDistance);
-  let low: number = MODEL_PREVIEW_FRAMING.minDistance;
-  for (let iteration = 0; iteration < 48; iteration += 1) {
-    const middle = (low + high) / 2;
-    if (projectAtDistance(bounds, target, middle, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy) {
-      low = middle;
-    } else {
-      high = middle;
-    }
-  }
-  fit.distance = Number.isFinite(high) && high > 0 ? high : MODEL_PREVIEW_FRAMING.minDistance;
+  fit.target = target;
+  fit.distance = distance;
   return fit;
 }
