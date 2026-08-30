@@ -1,28 +1,24 @@
 /**
  * 通用环境资产（HDRI 全景环境）的状态契约。
  *
- * 通用资产页的三套 HDRI 环境复用漫剧场景资产的"状态 + 提示词 + 生成图片"逻辑：
- * 每个环境拥有若干状态，状态可生成 2:1 等距柱状全景图。三套环境按应用方向区分
- * （室内用室内客厅、城市户外用中央广场、纯自然户外用草地自然），由使用场景选择
- * 环境，环境内部不存在"当前全景"切换；生效状态恒为默认状态（缺失时第一个状态），
- * 其生成全景作为该方向的 HDR 环境源，未生成时回落到静态 .hdr 预设。
+ * 模型库与动画库的预览统一使用同一套 HDRI 环境：中央广场（2026-08-30 用户决定，
+ * 不再按室内/城市/自然区分多套预览环境）。环境复用漫剧场景资产的
+ * "状态 + 提示词 + 生成图片"逻辑：环境可拥有若干状态，状态可生成 2:1 等距柱状
+ * 全景图；环境内部不存在"当前全景"切换，生效状态恒为默认状态（缺失时第一个
+ * 状态），其生成全景作为 HDR 环境源，未生成时回落到静态 .hdr 预设。
  */
 import type { StoryAssetState } from "./novelReferenceExtraction";
 
-export const STUDIO_ENVIRONMENT_IDS = ["interior", "exterior", "nature"] as const;
+export const STUDIO_ENVIRONMENT_IDS = ["exterior"] as const;
 
 export type StudioEnvironmentId = (typeof STUDIO_ENVIRONMENT_IDS)[number];
 
 export const STUDIO_ENVIRONMENT_LABELS: Record<StudioEnvironmentId, string> = {
-  interior: "室内客厅",
   exterior: "中央广场",
-  nature: "草地自然",
 };
 
 export const STUDIO_ENVIRONMENT_DEFAULT_DESCRIPTIONS: Record<StudioEnvironmentId, string> = {
-  interior: "现代住宅的客厅与开放走廊，浅色木地板与白墙，自然光从窗户进入。",
   exterior: "欧式老城的中央广场，环形拱廊建筑围绕，白天晴朗。",
-  nature: "开阔的草地平原，远处有低矮树林，天空有少量云。",
 };
 
 export type StudioEnvironmentAssetImageStatus = "idle" | "generating" | "done" | "error";
