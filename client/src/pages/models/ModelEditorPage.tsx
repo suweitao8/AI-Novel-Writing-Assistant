@@ -7,18 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
-import {
-  InspectorComponentSection,
-  InspectorTransformSection,
-  TransformToolToolbar,
-  type InspectorTransformValue,
-} from "@/pages/drama/comicDrama/components/editor3d";
+import { InspectorComponentSection } from "@/pages/drama/comicDrama/components/editor3d";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   getStudioEnvironmentDiameterPreference,
 } from "./modelLibrary3d/studioEnvironmentPresets";
-import { createModelViewer, type ModelViewer, type ModelViewerTool } from "./modelLibrary3d/modelViewerApp";
+import { formatModelDimension } from "./modelLibrary3d/modelGeometryStats";
+import { createModelViewer, type ModelViewer } from "./modelLibrary3d/modelViewerApp";
 
 export default function ModelEditorPage() {
   const { modelId } = useParams<{ modelId: string }>();
@@ -26,27 +21,16 @@ export default function ModelEditorPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<ModelViewer | null>(null);
   const [viewer, setViewer] = useState<ModelViewer | null>(null);
+  const [geometryStats, setGeometryStats] = useState<ModelViewer["geometryStats"]>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
-  const [tool, setTool] = useState<ModelViewerTool | null>("translate");
-  const [transform, setTransform] = useState<InspectorTransformValue>({
-    position: [0, 0, 0],
-    yawDeg: 0,
-    scale: 1,
-  });
-  const [environmentDiameterMeters, setEnvironmentDiameterMeters] = useState(
-    getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
-  );
-  const [environmentSwitching, setEnvironmentSwitching] = useState(false);
-  const environmentDiameterRequestRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || !entry || viewerRef.current) return undefined;
     let cancelled = false;
     setViewerError(null);
-    setEnvironmentDiameterMeters(getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID));
-    setEnvironmentSwitching(false);
+    setGeometryStats(null);
     void createModelViewer({
       canvas,
       modelUrl: entry.fileUrl,
@@ -55,8 +39,6 @@ export default function ModelEditorPage() {
       environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
       environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
       onStatus: (next) => setStatus(next || "就绪"),
-      onTransformLive: () => setTransform(viewerRef.current?.getTransform() ?? transform),
-      onTransformCommit: () => setTransform(viewerRef.current?.getTransform() ?? transform),
     })
       .then((nextViewer) => {
         if (cancelled) {
@@ -65,7 +47,7 @@ export default function ModelEditorPage() {
         }
         viewerRef.current = nextViewer;
         setViewer(nextViewer);
-        setTransform(nextViewer.getTransform());
+        setGeometryStats(nextViewer.geometryStats);
       })
       .catch((error: unknown) => {
         if (!cancelled) {
@@ -77,57 +59,10 @@ export default function ModelEditorPage() {
       viewerRef.current?.destroy();
       viewerRef.current = null;
       setViewer(null);
+      setGeometryStats(null);
     };
-    // transform 只用于回退读数，不参与视口生命周期。
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry?.id]);
-
-  useEffect(() => {
-    viewer?.setTransformTool(tool);
-  }, [tool, viewer]);
-
-  const commitTransform = useCallback(
-    (patch: Partial<InspectorTransformValue>) => {
-      if (!viewerRef.current?.setTransform(patch)) return;
-      setTransform(viewerRef.current.getTransform());
-    },
-    [],
-  );
-
-  const handleEnvironmentDiameterChange = useCallback(
-    async (value: number) => {
-      const current = viewerRef.current;
-      if (!current) return;
-      const requestId = ++environmentDiameterRequestRef.current;
-      const previousDiameter = environmentDiameterMeters;
-      const nextDiameter = Math.min(
-        STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max,
-        Math.max(STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min, value),
-      );
-      setEnvironmentDiameterMeters(nextDiameter);
-      setEnvironmentSwitching(true);
-      try {
-        const switched = await current.setEnvironmentDiameter(nextDiameter);
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        if (!switched) {
-          setEnvironmentDiameterMeters(previousDiameter);
-          toast.error("HDRI 环境加载失败。");
-        } else {
-          setEnvironmentDiameterMeters(current.getEnvironmentDiameter());
-        }
-      } catch (error) {
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        setEnvironmentDiameterMeters(previousDiameter);
-        toast.error("HDRI 环境加载失败。", {
-          description: error instanceof Error ? error.message : undefined,
-        });
-      } finally {
-        if (requestId !== environmentDiameterRequestRef.current) return;
-        setEnvironmentSwitching(false);
-      }
-    },
-    [environmentDiameterMeters],
-  );
 
   const handleCapture = useCallback(() => {
     const current = viewerRef.current;
@@ -183,43 +118,32 @@ export default function ModelEditorPage() {
                 <dt className="text-muted-foreground">大小</dt>
                 <dd className="font-medium">{entry.sizeKb} KB</dd>
               </div>
+              <div className="flex items-center justify-between gap-2" data-model-geometry-stats>
+                <dt className="text-muted-foreground">顶点数量</dt>
+                <dd className="font-medium tabular-nums">
+                  {geometryStats ? geometryStats.vertexCount.toLocaleString("zh-CN") : "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">长</dt>
+                <dd className="font-medium tabular-nums">
+                  {geometryStats ? formatModelDimension(geometryStats.dimensions.length) : "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">宽</dt>
+                <dd className="font-medium tabular-nums">
+                  {geometryStats ? formatModelDimension(geometryStats.dimensions.width) : "—"}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <dt className="text-muted-foreground">高</dt>
+                <dd className="font-medium tabular-nums">
+                  {geometryStats ? formatModelDimension(geometryStats.dimensions.height) : "—"}
+                </dd>
+              </div>
             </dl>
           </InspectorComponentSection>
-
-          <InspectorComponentSection title="预览环境">
-            <p className="text-xs text-muted-foreground">模型预览统一使用中央广场环境。</p>
-            <label className="mt-3 block space-y-1 text-xs text-muted-foreground" htmlFor="model-environment-diameter">
-              <span className="flex items-center justify-between gap-2">
-                <span>半球直径</span>
-                <output className="tabular-nums text-foreground">{environmentDiameterMeters} 米</output>
-              </span>
-              <input
-                id="model-environment-diameter"
-                type="range"
-                min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
-                max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
-                step={1}
-                value={environmentDiameterMeters}
-                disabled={!viewer}
-                aria-label="模型预览半球直径"
-                onChange={(event) => {
-                  void handleEnvironmentDiameterChange(Number(event.target.value));
-                }}
-                className="w-full accent-primary"
-              />
-              <span className="flex justify-between tabular-nums text-[11px]">
-                <span>{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min} 米</span>
-                <span>{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米</span>
-              </span>
-            </label>
-            {environmentSwitching ? (
-              <span role="status" className="block text-xs text-muted-foreground" aria-live="polite">
-                环境加载中…
-              </span>
-            ) : null}
-          </InspectorComponentSection>
-
-          <InspectorTransformSection value={transform} onCommit={commitTransform} />
 
           <div className="grid grid-cols-3 gap-2">
             <Button type="button" variant="outline" size="sm" onClick={() => viewer?.fitView()} disabled={!viewer}>
@@ -245,9 +169,6 @@ export default function ModelEditorPage() {
               aria-busy={!viewer}
               className="block h-full w-full touch-none bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
-            {viewer ? (
-              <TransformToolToolbar tool={tool} onToolChange={setTool} className="z-10" />
-            ) : null}
             {!viewer && !viewerError ? (
               <div className="absolute inset-0 flex items-center justify-center gap-2 bg-background/70 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -264,7 +185,7 @@ export default function ModelEditorPage() {
             ) : null}
             {viewer ? (
               <p className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground backdrop-blur">
-                <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />拖动手柄变换模型 · 右键旋转 · 滚轮缩放 · 中键平移
+                <Move3D className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />右键旋转视角 · 滚轮缩放 · 中键平移
               </p>
             ) : null}
           </CardContent>
