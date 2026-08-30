@@ -7,23 +7,23 @@ import { fileURLToPath } from "node:url";
 import { MODEL_LIBRARY } from "../../client/src/config/modelLibrary.ts";
 import { readGlb, stripUnsupportedGlb } from "./glbSanitizer.mjs";
 import {
-  MAX_FOREGROUND_MODEL_DIMENSION_METERS,
   inspectGlb,
+  MAX_FOREGROUND_MODEL_DIMENSION_METERS,
   validateModelLibrary,
 } from "./modelLibraryQuality.mjs";
+import {
+  CINE57_MAX_FOOD_CONTAINER_ENTRIES,
+  CINE57_MINIMUM_MODEL_COUNT,
+  CINE57_REMOVED_MODEL_IDS,
+  CINE57_REQUIRED_CATEGORIES,
+  isFoodContainerModel,
+} from "./modelLibraryPolicy.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const MODELS_DIR = path.join(REPO_ROOT, "client/public/models/cine57");
-const REMOVED_IDS = new Set([
-  "z-backdrop-01a",
-  "big-rock-01",
-  "flat-rock-01",
-  "brick-stove-1",
-  "brick-stove-2",
-  "brick-stove-3",
-  "decorative-1",
-  "decorative-2",
-]);
+const REMOVED_IDS = new Set(CINE57_REMOVED_MODEL_IDS);
+const REQUIRED_FINE_GRAINED_CATEGORIES = CINE57_REQUIRED_CATEGORIES;
+const STATIC_MODEL_LIBRARY = MODEL_LIBRARY.filter((entry) => !entry.previewAppearance);
 
 function hasUnsupportedName(name) {
   return /^(?:UCX|UBX)(?:[_-]|$)/i.test(name)
@@ -72,16 +72,32 @@ function makeSanitizerFixture() {
   return { buffer: makeGlb(json, bin), bin };
 }
 
-test("Cine57 目录只发布前景交互资产", () => {
-  assert.equal(MODEL_LIBRARY.length, 36);
+test("Cine57 目录只发布前景交互资产，角色预览条目独立计数", () => {
+  assert.ok(STATIC_MODEL_LIBRARY.length >= CINE57_MINIMUM_MODEL_COUNT, `expected expanded library, found ${STATIC_MODEL_LIBRARY.length}`);
+  assert.equal(MODEL_LIBRARY.filter((entry) => entry.previewAppearance).length, 1);
   assert.deepEqual(
-    MODEL_LIBRARY.filter((entry) => REMOVED_IDS.has(entry.id)).map((entry) => entry.id),
+    STATIC_MODEL_LIBRARY.filter((entry) => REMOVED_IDS.has(entry.id)).map((entry) => entry.id),
     [],
   );
 });
 
+test("模型库按自然和摆件细分类别发布", () => {
+  const categories = new Set(MODEL_LIBRARY.map((entry) => entry.category));
+  for (const category of REQUIRED_FINE_GRAINED_CATEGORIES) {
+    assert.ok(categories.has(category), `missing category: ${category}`);
+  }
+});
+
+test("纸箱/食材箱只保留两个代表模型", () => {
+  const shipmentEntries = STATIC_MODEL_LIBRARY.filter(isFoodContainerModel);
+  assert.ok(
+    shipmentEntries.length <= CINE57_MAX_FOOD_CONTAINER_ENTRIES,
+    `too many box variants: ${shipmentEntries.map((entry) => entry.id).join(", ")}`,
+  );
+});
+
 test("目录引用的 GLB 不包含碰撞体或高阶 LOD 节点", () => {
-  for (const entry of MODEL_LIBRARY) {
+  for (const entry of STATIC_MODEL_LIBRARY) {
     const names = inspectGlb(fs.readFileSync(path.join(MODELS_DIR, entry.fileName))).unsupportedNames;
     assert.equal(
       names.length,
@@ -92,7 +108,7 @@ test("目录引用的 GLB 不包含碰撞体或高阶 LOD 节点", () => {
 });
 
 test("前景模型最大尺寸不超过 5 米", () => {
-  for (const entry of MODEL_LIBRARY) {
+  for (const entry of STATIC_MODEL_LIBRARY) {
     const inspection = inspectGlb(fs.readFileSync(path.join(MODELS_DIR, entry.fileName)));
     assert.ok(
       inspection.maxDimensionMeters <= MAX_FOREGROUND_MODEL_DIMENSION_METERS,
@@ -107,7 +123,7 @@ test("模型库质量门禁汇总所有违规", () => {
 });
 
 test("目录中的 GLB 大小元数据与实际文件一致", () => {
-  for (const entry of MODEL_LIBRARY) {
+  for (const entry of STATIC_MODEL_LIBRARY) {
     const actualSizeKb = Math.round(fs.statSync(path.join(MODELS_DIR, entry.fileName)).size / 1024);
     assert.equal(entry.sizeKb, actualSizeKb, `${entry.id}: catalog=${entry.sizeKb}KB actual=${actualSizeKb}KB`);
   }

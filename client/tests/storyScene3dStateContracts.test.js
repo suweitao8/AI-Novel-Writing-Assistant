@@ -54,11 +54,15 @@ test("环境滑块拖动不得触发 3D 视图整体重建", () => {
   assert.doesNotMatch(page, /\[environmentUrl, scene, selectedState, visibleSceneMarkers\]/);
 });
 
-test("场景 3D 编辑器投射中心高度按占比调节（10%–40%），圆半径限制为 2.5 到 15", () => {
+test("场景 3D 编辑器投射中心高度按占比调节（10%–40%），半球直径限制为 5 到 30", () => {
   assert.match(page, /aria-label="投射中心高度占比"/);
   assert.match(page, /min="10" max="40" step="0\.5"/);
   assert.match(page, /projectionCenterHeightRatio/);
-  assert.match(page, /min="2\.5" max="15" step="0\.5" value=\{environmentSettings\.radiusMeters(?:\.toFixed\(1\))?\}/);
+  assert.match(page, /STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS\.min/);
+  assert.match(page, /STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS\.max/);
+  assert.match(page, /value=\{environmentSettings\.radiusMeters \* 2\}/);
+  assert.match(page, /Number\(event\.target\.value\) \/ 2/);
   assert.match(page, /round\(next\.radiusMeters \* next\.projectionCenterHeightRatio \* 100\) \/ 100/);
-  assert.match(page, /圆半径/);
+  assert.match(page, /半球直径/);
+  assert.doesNotMatch(page, /aria-label="圆半径"/);
 });

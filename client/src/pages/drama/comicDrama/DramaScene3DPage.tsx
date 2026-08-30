@@ -18,6 +18,7 @@ import AiButton from "@/components/common/AiButton";
 import { toast } from "@/components/ui/toast";
 import {
   isStoryScene3DMarkerSetCurrent,
+  STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
   STORY_SCENE_3D_MARKER_KIND_LABELS,
   type StoryScene3DMarker,
@@ -460,7 +461,7 @@ export default function DramaScene3DPage() {
       yawDeg: 0,
       intensity: 1,
     } satisfies Blocking3dEnvironmentSettings;
-    // 投射中心高度恒为圆半径 × 占比：调圆半径保持等比，调占比直接换算。
+    // 投射中心高度恒为圆半径 × 占比：调半球直径保持等比，调占比直接换算。
     next.projectionCenterHeight = Math.round(next.radiusMeters * next.projectionCenterHeightRatio * 100) / 100;
     setEnvironmentSettings(next);
     viewer?.setEnvironmentSettings(next);
@@ -626,10 +627,10 @@ export default function DramaScene3DPage() {
                     </label>
                     <label className="block space-y-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center justify-between gap-2">
-                        <span>圆半径</span>
-                        <output className="tabular-nums text-foreground">{environmentSettings.radiusMeters.toFixed(1)} 米</output>
+                        <span>半球直径</span>
+                        <output className="tabular-nums text-foreground">{(environmentSettings.radiusMeters * 2).toFixed(1)} 米</output>
                       </span>
-                      <input type="range" aria-label="圆半径" min="2.5" max="15" step="0.5" value={environmentSettings.radiusMeters} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("radiusMeters", Number(event.target.value))} className="w-full accent-primary" />
+                      <input type="range" aria-label="半球直径" min={STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS.min} max={STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS.max} step="1" value={environmentSettings.radiusMeters * 2} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("radiusMeters", Number(event.target.value) / 2)} className="w-full accent-primary" />
                     </label>
                     <label className="block space-y-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center justify-between gap-2">
