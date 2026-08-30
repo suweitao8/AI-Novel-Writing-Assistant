@@ -51,7 +51,7 @@
 
 漫剧场景已有的 `NovelScene.scene3dEnvironmentJson` 和状态图优先级不改；已有状态图仍是场景环境的权威来源，不能被模型预设替换。漫剧运行时继续使用现有固定原点的环境实现。
 
-历史场景字段 `domeRadius` 的产品语义是“半球直径”，基础几何半径仍为 0.5；当前场景环境的业务字段已经统一为真实圆半径 `radiusMeters`，旧场景只在兼容读取时把 `domeRadius` 除以二，不做数据库迁移。模型预设同样使用显式 `radiusMeters`，仅在几何装配时换算为 `radiusMeters * 2` 的实体缩放，避免历史快照整体放大或缩小一倍。
+历史场景字段 `domeRadius` 的产品语义仍是“半球直径”，基础几何半径仍为 0.5；本设计不直接把它重解释为真实半径，也不做数据库迁移。模型预设使用新的显式 `radiusMeters`，仅在几何装配时换算为 `radiusMeters * 2` 的实体缩放，避免历史快照整体放大或缩小一倍。
 
 ## Data flow
 
@@ -95,7 +95,7 @@ studioEnvironmentPresets (id, sourceUrl, radiusMeters, projection settings)
 - A late environment request must never replace a newer selection or resurrect a destroyed PlayCanvas application.
 - Every model environment uses one of the three fixed 10/20/50 meter radii; the only conversion is to the blocking3d dome's diameter scale at geometry assembly time.
 - The model page does not persist the selector or modify model records, so no database migration, localStorage preference, or new server API is required.
-- Scene-generated panorama URLs, scene environment JSON, scene marker snapshots and the current `radiusMeters` range remain backward compatible; historical `domeRadius` snapshots continue to be read as diameters.
+- Scene-generated panorama URLs, scene environment JSON, scene marker snapshots and the current `domeRadius` range remain backward compatible.
 - The model thumbnail cache key is incremented so existing localStorage thumbnails cannot conceal the new environment or stale projection behavior.
 
 ## Verification

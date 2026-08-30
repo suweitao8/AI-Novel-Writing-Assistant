@@ -55,9 +55,11 @@ export const DEFAULT_CAMERA: DramaShotBlockingSketch3DCamera = {
   focusRange: 5,
   blurRadius: 3,
 };
+/** 分镜草图里用于蓝色代理角色的共享材质颜色。 */
+export const BLOCKING_3D_BLUE_ACTOR_COLOR = [0.24, 0.52, 0.82] as const;
 const ACTOR_COLORS = [
   [0.78, 0.32, 0.28],
-  [0.24, 0.52, 0.82],
+  BLOCKING_3D_BLUE_ACTOR_COLOR,
   [0.82, 0.59, 0.22],
   [0.39, 0.67, 0.44],
   [0.58, 0.39, 0.72],
@@ -229,7 +231,10 @@ export function createVisibleHdriCubemap(
     width: VISIBLE_HDRI_CUBEMAP_SIZE,
     height: VISIBLE_HDRI_CUBEMAP_SIZE,
     format: pc.PIXELFORMAT_RGBA8,
-    type: pc.TEXTURETYPE_DEFAULT,
+    // RGBA8 stores the reprojected HDR values in PlayCanvas' RGBP packing.
+    // Keeping the target as DEFAULT silently clamps bright HDR samples and
+    // makes the custom backdrop shader interpret the packed data incorrectly.
+    type: pc.TEXTURETYPE_RGBP,
     mipmaps: false,
     addressU: pc.ADDRESS_CLAMP_TO_EDGE,
     addressV: pc.ADDRESS_CLAMP_TO_EDGE,
@@ -346,7 +351,7 @@ export function loadAsset(
 
 export function setEntityMaterial(
   entity: pc.Entity,
-  color: [number, number, number],
+  color: readonly [number, number, number],
   material = new pc.StandardMaterial(),
 ): pc.StandardMaterial {
   material.diffuse = new pc.Color(color[0], color[1], color[2]);

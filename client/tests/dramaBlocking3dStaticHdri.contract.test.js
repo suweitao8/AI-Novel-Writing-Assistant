@@ -119,7 +119,7 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.match(viewerSource, /environmentBackdropMeshInstance = meshInstance/);
   assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
   assert.match(environmentProjectionSource, /#include "gammaPS"/);
-  assert.match(environmentProjectionSource, /decodeGamma\(rawColor\)/);
+  assert.match(environmentProjectionSource, /decodeRGBP\(rawColor\)/);
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
   assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
