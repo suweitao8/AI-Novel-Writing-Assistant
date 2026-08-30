@@ -103,6 +103,12 @@ test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () 
   assert.doesNotMatch(previewSource, /UAL1_Standard\.glb/);
 });
 
+test("手动定位时间直接同步到界面，不被动画层旧时间覆盖", () => {
+  assert.match(previewSource, /const notifyTime = \(timeOverride\?: number\) =>/);
+  assert.match(previewSource, /timeOverride \?\? readCurrentTime\(\)/);
+  assert.match(previewSource, /app\.render\(\);[\s\S]*?notifyTime\(currentTime\);/);
+});
+
 test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
   assert.match(
     blockingCoreSource,
