@@ -5,6 +5,8 @@
  * 每个环境拥有若干状态，状态可生成 2:1 等距柱状全景图，活跃状态的全景图
  * 作为模型库 / 动画库预览使用的 HDR 环境源；未生成时回落到静态 .hdr 预设。
  */
+import type { StoryAssetState } from "./novelReferenceExtraction";
+
 export const STUDIO_ENVIRONMENT_IDS = ["interior", "exterior", "nature"] as const;
 
 export type StudioEnvironmentId = (typeof STUDIO_ENVIRONMENT_IDS)[number];
@@ -23,28 +25,12 @@ export const STUDIO_ENVIRONMENT_DEFAULT_DESCRIPTIONS: Record<StudioEnvironmentId
 
 export type StudioEnvironmentAssetImageStatus = "idle" | "generating" | "done" | "error";
 
-export interface StudioEnvironmentAssetStateImage {
-  status: StudioEnvironmentAssetImageStatus;
-  url?: string;
-  generatedAt?: string;
-  /** 本次生成尝试的唯一标识，用于终止/失效旧请求。 */
-  attemptId?: string;
-  error?: string;
-}
-
-export interface StudioEnvironmentAssetState {
-  id: string;
-  label: string;
-  description?: string;
-  imagePrompt?: string;
-  /** 参考状态 id：重新生成时以该状态的已生成图为参考（同环境内）。 */
-  referenceStateId?: string;
-  /** 状态时代风格（值用画风库名称，与场景状态同一命名空间）；未选时服务端按「现代都市」兜底。 */
-  eraStyle?: string;
-  timeOfDay?: "morning" | "noon" | "night" | null;
-  weather?: "sunny" | "cloudy" | "rainy" | null;
-  image?: StudioEnvironmentAssetStateImage;
-}
+/**
+ * 环境状态就是场景资产状态（StoryAssetState）：编辑器、归一化、提示词与生成
+ * 契约全部复用同一套；服务端只保留环境相关的字段白名单（名称/描述/图片提示词/
+ * 参考状态/时代风格/时间/天气/生成图），角色专属字段（音色/身高/穿着等）不入库。
+ */
+export type StudioEnvironmentAssetState = StoryAssetState;
 
 export interface StudioEnvironmentAsset {
   id: StudioEnvironmentId;
