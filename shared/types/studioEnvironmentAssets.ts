@@ -39,6 +39,10 @@ export interface StudioEnvironmentAssetState {
   imagePrompt?: string;
   /** 参考状态 id：重新生成时以该状态的已生成图为参考（同环境内）。 */
   referenceStateId?: string;
+  /** 状态时代风格（值用画风库名称，与场景状态同一命名空间）；未选时服务端按「现代都市」兜底。 */
+  eraStyle?: string;
+  timeOfDay?: "morning" | "noon" | "night" | null;
+  weather?: "sunny" | "cloudy" | "rainy" | null;
   image?: StudioEnvironmentAssetStateImage;
 }
 
