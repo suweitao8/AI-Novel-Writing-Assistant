@@ -35,6 +35,7 @@ import {
   getModelPreviewAspectRatio,
   MODEL_PREVIEW_FRAMING,
   type ModelPreviewBounds,
+  type ModelPreviewVector,
 } from "./modelPreviewFraming";
 import {
   buildBlocking3dGroundGridLines,
@@ -83,7 +84,7 @@ const DEFAULT_VIEW = {
 } as const;
 const MODEL_BOUNDS_COLOR = new pc.Color(0.68, 0.68, 0.68, 0.9);
 
-interface SourceBounds {
+export interface SourceBounds {
   /** 源几何包围盒中心（源单位）。 */
   center: [number, number, number];
   /** 源几何包围盒半尺寸（源单位）。 */
@@ -159,6 +160,61 @@ export function computeSourceBounds(entity: pc.Entity): SourceBounds | null {
     center: [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2],
     halfExtents: [(maxX - minX) / 2, (maxY - minY) / 2, (maxZ - minZ) / 2],
   };
+}
+
+/** 读取模型真实顶点并转换到实体世界空间，供屏幕空间取景使用。 */
+export function collectModelPreviewPoints(entity: pc.Entity): ModelPreviewVector[] {
+  const points: ModelPreviewVector[] = [];
+  for (const render of entity.findComponents("render") as pc.RenderComponent[]) {
+    for (const meshInstance of render.meshInstances ?? []) {
+      const mesh = meshInstance.mesh;
+      const world = meshInstance.node?.getWorldTransform();
+      const vertexCount = mesh?.vertexBuffer?.getNumVertices?.() ?? 0;
+      if (!mesh || !world || !Number.isFinite(vertexCount) || vertexCount <= 0) continue;
+      const positions = new Float32Array(Math.floor(vertexCount) * 3);
+      const positionCount = mesh.getPositions(positions);
+      if (!Number.isFinite(positionCount) || positionCount <= 0) continue;
+      const point = new pc.Vec3();
+      for (let index = 0; index < Math.min(Math.floor(positionCount), vertexCount); index += 1) {
+        const offset = index * 3;
+        point.set(positions[offset], positions[offset + 1], positions[offset + 2]);
+        world.transformPoint(point, point);
+        if (Number.isFinite(point.x) && Number.isFinite(point.y) && Number.isFinite(point.z)) {
+          points.push([point.x, point.y, point.z]);
+        }
+      }
+    }
+  }
+  return points;
+}
+
+export function getNormalizedModelPreviewBounds(
+  sourceBounds: SourceBounds,
+  unitScale = 1,
+): ModelPreviewBounds {
+  const scale = Number.isFinite(unitScale) && unitScale > 0 ? unitScale : 1;
+  return {
+    min: [-sourceBounds.halfExtents[0] * scale, 0, -sourceBounds.halfExtents[2] * scale],
+    max: [
+      sourceBounds.halfExtents[0] * scale,
+      sourceBounds.halfExtents[1] * 2 * scale,
+      sourceBounds.halfExtents[2] * scale,
+    ],
+  };
+}
+
+export function normalizeModelPreviewPoints(
+  points: readonly ModelPreviewVector[],
+  sourceBounds: SourceBounds,
+  unitScale = 1,
+): ModelPreviewVector[] {
+  const scale = Number.isFinite(unitScale) && unitScale > 0 ? unitScale : 1;
+  const baseY = sourceBounds.center[1] - sourceBounds.halfExtents[1];
+  return points.map((point) => [
+    (point[0] - sourceBounds.center[0]) * scale,
+    (point[1] - baseY) * scale,
+    (point[2] - sourceBounds.center[2]) * scale,
+  ]);
 }
 
 export function collectModelGeometryStats(entity: pc.Entity, unitScale = 1): ModelGeometryStats | null {
@@ -245,6 +301,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     min: [-0.5, 0, -0.5],
     max: [0.5, 1, 0.5],
   };
+  let modelPreviewPoints: ModelPreviewVector[] = [];
   let characterAppearance: CharacterAppearanceController | null = null;
 
   const cameraState: OrbitState = {
@@ -316,8 +373,18 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     return result;
   };
 
+  const getModelCanvasAspectRatio = () => {
+    const parentRect = canvas.parentElement?.getBoundingClientRect();
+    return getModelPreviewAspectRatio({
+      clientWidth: parentRect?.width,
+      clientHeight: parentRect?.height,
+      width: canvas.width,
+      height: canvas.height,
+    });
+  };
+
   const fitCameraTo = () => {
-    const fit = fitModelPreviewCamera(modelPreviewBounds, getModelPreviewAspectRatio(canvas));
+    const fit = fitModelPreviewCamera(modelPreviewBounds, getModelCanvasAspectRatio(), modelPreviewPoints);
     const fitRadius = Math.max(modelRadius, Number.EPSILON);
     const modelPosition = modelRoot.getPosition();
     cameraState.azim = fit.azimuthDegrees;
@@ -374,6 +441,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   app.root.syncHierarchy();
   const geometryStats = collectModelGeometryStats(inner, unitScale);
   const bounds = computeSourceBounds(inner);
+  const sourcePoints = collectModelPreviewPoints(inner);
   modelAdjust.setLocalScale(unitScale, unitScale, unitScale);
   if (bounds) {
     modelAdjust.setPosition(
@@ -387,6 +455,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     modelRadius = 0.5;
   }
   const modelDisplayBounds = geometryStats ? getNormalizedModelBounds(geometryStats) : null;
+  if (bounds) modelPreviewPoints = normalizeModelPreviewPoints(sourcePoints, bounds, unitScale);
   const modelDisplayBoundsMin = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.min) : null;
   const modelDisplayBoundsMax = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.max) : null;
   if (modelDisplayBounds) modelPreviewBounds = modelDisplayBounds;
@@ -508,6 +577,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     if (!rect) return;
     app.graphicsDevice.maxPixelRatio = Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO);
     app.resizeCanvas(rect.width, rect.height);
+    if (!destroyed) fitCameraTo();
   };
   resize();
   const resizeObserver = new ResizeObserver(resize);

@@ -8,6 +8,7 @@ import {
   MODEL_PREVIEW_FRAMING,
   fitModelPreviewCamera,
   getModelPreviewAspectRatio,
+  projectModelPreviewPoints,
   projectModelPreviewBounds,
 } from "./modelPreviewFraming.ts";
 
@@ -54,6 +55,26 @@ test("退化包围盒也不会把 NaN 或 Infinity 传入渲染器", () => {
   assert.ok(fit.distance > 0);
 });
 
+test("取景优先按实际顶点投影，避免薄圆模型被 AABB 过度留白", () => {
+  const points = [
+    [-0.35, 0, 0],
+    [0.35, 0, 0],
+    [0, 0.18, -0.18],
+    [0, 0.18, 0.18],
+  ];
+  const bounds = { min: [-0.5, 0, -0.5], max: [0.5, 0.3, 0.5] };
+  const conservativeFit = fitModelPreviewCamera(bounds, 4 / 3);
+  const tightFit = fitModelPreviewCamera(bounds, 4 / 3, points);
+  const projection = projectModelPreviewPoints(points, tightFit, 4 / 3);
+
+  assert.ok(tightFit.distance < conservativeFit.distance);
+  assert.ok(
+    projection.maxOccupancy >= MODEL_PREVIEW_FRAMING.minOccupancy
+      && projection.maxOccupancy <= MODEL_PREVIEW_FRAMING.maxOccupancy,
+    `occupancy=${projection.maxOccupancy}`,
+  );
+});
+
 test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓冲比例", () => {
   assert.equal(
     getModelPreviewAspectRatio({ clientWidth: 898, clientHeight: 544, width: 300, height: 150 }),
@@ -66,6 +87,7 @@ test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓
 });
 
 test("取景合同变化时缩略图缓存使用新版本", () => {
-  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
+  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
 });
