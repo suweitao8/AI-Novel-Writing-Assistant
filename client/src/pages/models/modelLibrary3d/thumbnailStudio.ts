@@ -7,6 +7,10 @@ import {
   loadAsset,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
+import {
+  createCharacterAppearanceController,
+  type CharacterAppearanceController,
+} from "./characterAppearance";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
 import {
@@ -203,6 +207,7 @@ async function createThumbnailStudio(): Promise<{
     async render(entry) {
       if (destroyed) throw new Error("缩略图画布已销毁。");
       const asset = await loadAsset(app, entry.fileUrl, "container");
+      let appearanceController: CharacterAppearanceController | null = null;
       try {
         const resource = asset.resource as ContainerResource | null;
         const inner = resource?.instantiateRenderEntity?.({ castShadows: false });
@@ -242,8 +247,13 @@ async function createThumbnailStudio(): Promise<{
             ],
           };
         }
-        // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
-        await applyModelMaterials(app, root, entry.materials);
+        if (entry.previewAppearance) {
+          appearanceController = createCharacterAppearanceController(app, root);
+          appearanceController.setMode("male-college-student");
+        } else {
+          // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
+          await applyModelMaterials(app, root, entry.materials);
+        }
         frame(previewBounds);
         drawFrame();
         drawFrame();
@@ -252,6 +262,7 @@ async function createThumbnailStudio(): Promise<{
         adjust.destroy();
         return dataUrl;
       } finally {
+        appearanceController?.destroy();
         app.assets.remove(asset);
       }
     },

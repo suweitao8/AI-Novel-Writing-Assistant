@@ -3,6 +3,12 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, Camera, Crosshair, Loader2, Move3D, RotateCcw } from "lucide-react";
 
 import { getModelLibraryEntry } from "@/config/modelLibrary";
+import {
+  getModelUsageAnchorLabel,
+  getModelUsageOrientationLabel,
+  getModelUsagePlacementLabel,
+  getModelUsageSurfaceLabel,
+} from "@/config/modelLibraryUsage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +20,7 @@ import {
 } from "./modelLibrary3d/studioEnvironmentPresets";
 import { formatModelDimension } from "./modelLibrary3d/modelGeometryStats";
 import { createModelViewer, type ModelViewer } from "./modelLibrary3d/modelViewerApp";
+import type { CharacterAppearanceMode } from "./modelLibrary3d/characterAppearance";
 
 export default function ModelEditorPage() {
   const { modelId } = useParams<{ modelId: string }>();
@@ -26,6 +33,14 @@ export default function ModelEditorPage() {
   const showBoundsRef = useRef(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
+  const isCharacterTextureExperiment = entry?.previewAppearance === "character-texture-test";
+  const [appearanceMode, setAppearanceMode] = useState<CharacterAppearanceMode>(
+    isCharacterTextureExperiment ? "male-college-student" : "blue",
+  );
+
+  useEffect(() => {
+    setAppearanceMode(isCharacterTextureExperiment ? "male-college-student" : "blue");
+  }, [entry?.id, isCharacterTextureExperiment]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -40,6 +55,7 @@ export default function ModelEditorPage() {
       modelUrl: entry.fileUrl,
       unitScale: entry.unitScale,
       materials: entry.materials,
+      previewAppearance: entry.previewAppearance,
       environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
       environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
       showBounds: showBoundsRef.current,
@@ -86,6 +102,18 @@ export default function ModelEditorPage() {
       toast.error("快照导出失败。", { description: error instanceof Error ? error.message : undefined });
     }
   }, [entry]);
+
+  const handleAppearanceChange = useCallback(
+    (nextMode: CharacterAppearanceMode) => {
+      if (!isCharacterTextureExperiment || !viewerRef.current) return;
+      if (viewerRef.current.setAppearance(nextMode)) {
+        setAppearanceMode(nextMode);
+      } else {
+        toast.error("角色外观切换失败。");
+      }
+    },
+    [isCharacterTextureExperiment],
+  );
 
   if (!entry) {
     return <Navigate to="/models" replace />;
@@ -150,6 +178,66 @@ export default function ModelEditorPage() {
               </div>
             </dl>
           </InspectorComponentSection>
+
+          <div data-model-usage>
+            <InspectorComponentSection title="使用说明">
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="secondary" data-model-usage-support-surface={entry.usage.supportSurface}>
+                  {getModelUsageSurfaceLabel(entry.usage.supportSurface)}
+                </Badge>
+                <Badge variant="outline" data-model-usage-placement-mode={entry.usage.placementMode}>
+                  {getModelUsagePlacementLabel(entry.usage.placementMode)}
+                </Badge>
+                <Badge variant="outline" data-model-usage-orientation={entry.usage.orientation}>
+                  {getModelUsageOrientationLabel(entry.usage.orientation)}
+                </Badge>
+              </div>
+              <dl className="space-y-1.5 text-xs" data-model-usage-fields>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">定位基准</dt>
+                  <dd className="font-medium" data-model-usage-anchor={entry.usage.anchor}>{getModelUsageAnchorLabel(entry.usage.anchor)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">方向要求</dt>
+                  <dd className="font-medium" data-model-usage-direction={entry.usage.requiresFacingDirection ? "required" : "not-required"}>
+                    {entry.usage.requiresFacingDirection ? "需要指定方向" : "无需指定方向"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs leading-5 text-foreground" data-model-usage-instruction>
+                {entry.usage.instruction}
+              </p>
+            </InspectorComponentSection>
+          </div>
+
+          {isCharacterTextureExperiment ? (
+            <InspectorComponentSection title="角色外观">
+              <div className="grid grid-cols-2 gap-2" role="group" aria-label="角色外观">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={appearanceMode === "male-college-student" ? "default" : "outline"}
+                  aria-pressed={appearanceMode === "male-college-student"}
+                  data-character-appearance="male-college-student"
+                  onClick={() => handleAppearanceChange("male-college-student")}
+                  disabled={!viewer}
+                >
+                  男大学生测试纹理
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={appearanceMode === "blue" ? "default" : "outline"}
+                  aria-pressed={appearanceMode === "blue"}
+                  data-character-appearance="blue"
+                  onClick={() => handleAppearanceChange("blue")}
+                  disabled={!viewer}
+                >
+                  蓝色模型
+                </Button>
+              </div>
+            </InspectorComponentSection>
+          ) : null}
 
           <label
             className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm"

@@ -46,7 +46,9 @@ function hasMeshName(meshNames, expected) {
  */
 export function validateModelVisualReview({ library = [], reviews = MODEL_VISUAL_REVIEWS, meshNamesById } = {}) {
   const errors = [];
-  const entries = Array.isArray(library) ? library : [];
+  // 角色预览条目复用动画库 GLB，并由专用外观控制器负责语义；本门禁只覆盖
+  // Cine57 静态道具，避免把动画资源误当成静态模型审核。
+  const entries = Array.isArray(library) ? library.filter((entry) => !entry?.previewAppearance) : [];
   const reviewEntries = Array.isArray(reviews) ? reviews : [];
   const catalogById = new Map(entries.map((entry) => [entry.id, entry]));
   const reviewById = new Map();

@@ -12,7 +12,14 @@ import { getCatalogOverride } from "./modelLibraryPolicy.mjs";
 test("每个已发布模型都有截图确认且已批准的视觉复核记录", () => {
   const errors = validateModelVisualReview({ library: MODEL_LIBRARY });
   assert.deepEqual(errors, []);
-  assert.equal(MODEL_VISUAL_REVIEWS.length, MODEL_LIBRARY.length);
+  const staticEntries = MODEL_LIBRARY.filter((entry) => !entry.previewAppearance);
+  assert.equal(MODEL_VISUAL_REVIEWS.length, staticEntries.length);
+});
+
+test("角色预览条目不混入 Cine57 静态模型视觉审核", () => {
+  const character = MODEL_LIBRARY.find((entry) => entry.previewAppearance);
+  assert.ok(character);
+  assert.deepEqual(validateModelVisualReview({ library: [character] }), []);
 });
 
 test("视觉复核绑定稳定 ID、mesh 和 GLB 文件名", () => {

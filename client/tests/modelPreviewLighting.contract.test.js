@@ -43,7 +43,7 @@ test("模型详情与模型缩略图显式使用模型 profile，其他预览不
 
   assert.match(modelViewerSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(modelThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(modelThumbnailSource, /model-library:thumbnails:v19/);
+  assert.match(modelThumbnailSource, /model-library:thumbnails:v20/);
   assert.doesNotMatch(animationSource, /lightingProfile:\s*["']model-preview["']/);
   assert.doesNotMatch(blockingSource, /lightingProfile:\s*["']model-preview["']/);
 });
