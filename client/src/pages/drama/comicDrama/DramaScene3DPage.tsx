@@ -30,7 +30,6 @@ import {
   shouldAutoAnalyzeStoryScene3dEnvironment,
 } from "@ai-novel/shared/utils/scene3dEnvironment";
 import {
-  BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS,
   createBlocking3dViewer,
   DEFAULT_BLOCKING_3D_ENVIRONMENT,
   type Blocking3dEnvironmentSettings,
@@ -152,7 +151,7 @@ export default function DramaScene3DPage() {
   }, [scene, selectedState]);
 
   // 场景状态图是 2:1 全景图时，进入编辑器自动估算 3D 投影参数；没有可信尺度时
-  // 服务端会记录一次 15m/2m 的中性兜底，图片不变就不重复调用视觉模型。
+  // 服务端会记录一次 7.5m 圆半径/2m 的中性兜底，图片不变就不重复调用视觉模型。
   useEffect(() => {
     if (!scene || !selectedState || !environmentUrl || !environmentAnalysisKey || dirty) return;
     if (!shouldAutoAnalyzeStoryScene3dEnvironment(scene.scene3dEnvironment, selectedState.image)) return;
@@ -272,7 +271,7 @@ export default function DramaScene3DPage() {
     const snapshot = {
       projectionCenterHeight: environmentSettings.projectionCenterHeight,
       projectionCenterHeightRatio: environmentSettings.projectionCenterHeightRatio,
-      domeRadius: environmentSettings.domeRadius,
+      radiusMeters: environmentSettings.radiusMeters,
       panoramaHorizonV: environmentSettings.panoramaHorizonV,
     };
     const promise = (async () => {
@@ -307,7 +306,7 @@ export default function DramaScene3DPage() {
       if (savePromiseRef.current === promise) savePromiseRef.current = null;
     });
     return promise;
-  }, [environmentSettings.domeRadius, environmentSettings.panoramaHorizonV, environmentSettings.projectionCenterHeight, environmentSettings.projectionCenterHeightRatio, novelId, queryClient, scene, sceneId, viewer]);
+  }, [environmentSettings.panoramaHorizonV, environmentSettings.projectionCenterHeight, environmentSettings.projectionCenterHeightRatio, environmentSettings.radiusMeters, novelId, queryClient, scene, sceneId, viewer]);
 
   const analyzeMarkers = useCallback(async () => {
     if (!selectedState || analyzingMarkers || saving) return;
@@ -401,7 +400,7 @@ export default function DramaScene3DPage() {
           ...(environmentSettings.projectionCenterHeightRatio != null
             ? { projectionCenterHeightRatio: environmentSettings.projectionCenterHeightRatio }
             : {}),
-          domeRadius: environmentSettings.domeRadius,
+          radiusMeters: environmentSettings.radiusMeters,
           panoramaHorizonV: environmentSettings.panoramaHorizonV,
         },
       };
@@ -454,15 +453,15 @@ export default function DramaScene3DPage() {
     focusMarker(objectId.slice("marker:".length));
   }, [focusMarker, viewer]);
 
-  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeightRatio" | "domeRadius" | "panoramaHorizonV", value: number) => {
+  const updateEnvironmentSetting = useCallback((key: "projectionCenterHeightRatio" | "radiusMeters" | "panoramaHorizonV", value: number) => {
     const next = {
       ...environmentSettings,
       [key]: value,
       yawDeg: 0,
       intensity: 1,
     } satisfies Blocking3dEnvironmentSettings;
-    // 投射中心高度恒为直径 × 占比：调直径保持等比，调占比直接换算。
-    next.projectionCenterHeight = Math.round(next.domeRadius * next.projectionCenterHeightRatio * 100) / 100;
+    // 投射中心高度恒为圆半径 × 占比：调圆半径保持等比，调占比直接换算。
+    next.projectionCenterHeight = Math.round(next.radiusMeters * next.projectionCenterHeightRatio * 100) / 100;
     setEnvironmentSettings(next);
     viewer?.setEnvironmentSettings(next);
     setDirty(true);
@@ -621,16 +620,16 @@ export default function DramaScene3DPage() {
                     <label className="block space-y-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center justify-between gap-2">
                         <span>投射中心高度</span>
-                        <output className="tabular-nums text-foreground">{Math.round(environmentSettings.projectionCenterHeightRatio * 100)}% · {(environmentSettings.domeRadius * environmentSettings.projectionCenterHeightRatio).toFixed(2)} 米</output>
+                        <output className="tabular-nums text-foreground">{(Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10).toFixed(1)}% · {(environmentSettings.radiusMeters * environmentSettings.projectionCenterHeightRatio).toFixed(2)} 米</output>
                       </span>
-                      <input type="range" aria-label="投射中心高度占比" min="5" max="20" step="0.5" value={Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeightRatio", Number(event.target.value) / 100)} className="w-full accent-primary" />
+                      <input type="range" aria-label="投射中心高度占比" min="10" max="40" step="0.5" value={Math.round(environmentSettings.projectionCenterHeightRatio * 1000) / 10} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("projectionCenterHeightRatio", Number(event.target.value) / 100)} className="w-full accent-primary" />
                     </label>
                     <label className="block space-y-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center justify-between gap-2">
-                        <span>半球直径</span>
-                        <output className="tabular-nums text-foreground">{environmentSettings.domeRadius.toFixed(0)}</output>
+                        <span>圆半径</span>
+                        <output className="tabular-nums text-foreground">{environmentSettings.radiusMeters.toFixed(1)} 米</output>
                       </span>
-                      <input type="range" aria-label="半球直径" min={BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.min} max={BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.max} step="1" value={environmentSettings.domeRadius.toFixed(0)} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("domeRadius", Number(event.target.value))} className="w-full accent-primary" />
+                      <input type="range" aria-label="圆半径" min="2.5" max="15" step="0.5" value={environmentSettings.radiusMeters} disabled={!viewer || saving} onChange={(event) => updateEnvironmentSetting("radiusMeters", Number(event.target.value))} className="w-full accent-primary" />
                     </label>
                     <label className="block space-y-1.5 text-xs text-muted-foreground">
                       <span className="flex items-center justify-between gap-2">

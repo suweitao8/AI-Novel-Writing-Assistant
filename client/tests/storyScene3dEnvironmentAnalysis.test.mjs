@@ -29,7 +29,7 @@ test("环境分析期间不锁死 3D 预览和参数滑块", () => {
   assert.doesNotMatch(page, /disabled=\{!viewer \|\| saving \|\| analyzingEnvironment\}/);
 });
 
-test("客户端 3D 预览默认使用 15 米半球直径和 2 米投射中心", () => {
+test("客户端 3D 预览默认使用 7.5 米圆半径和 2 米投射中心", () => {
   assert.match(viewerCore, /projectionCenterHeight: 2/);
-  assert.match(viewerCore, /domeRadius: 15/);
+  assert.match(viewerCore, /radiusMeters: 7\.5/);
 });

@@ -143,7 +143,7 @@ test("场景标记服务把窗户标记完整贴到半球内表面，不保存�
   assert.equal(marker.position[1] >= marker.size[1] / 2, true);
 });
 
-test("场景标记服务保存投射环境快照，并用图像区域重算位置", () => {
+test("场景标记服务保存圆半径环境快照，并用图像区域重算位置", () => {
   const result = serviceModule.buildStoryScene3dMarkerSet({
     markers: [{
       kind: "door",
@@ -165,8 +165,8 @@ test("场景标记服务保存投射环境快照，并用图像区域重算位�
 
   assert.deepEqual(result.sourceEnvironment, {
     projectionCenterHeight: 2,
-    projectionCenterHeightRatio: 0.1333,
-    domeRadius: 15,
+    projectionCenterHeightRatio: 0.2667,
+    radiusMeters: 7.5,
     panoramaHorizonV: 0.5,
   });
   assert.ok(Math.abs(result.markers[0].position[0]) < 0.05);

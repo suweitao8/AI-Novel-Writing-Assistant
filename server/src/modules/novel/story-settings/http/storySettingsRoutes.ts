@@ -19,7 +19,10 @@ import { storyAssetImageService } from "../application/StoryAssetImageService";
 import { shortStoryProductionService } from "../../short-story/application/ShortStoryProductionService";
 import { storyScene3dMarkerService } from "../application/StoryScene3dMarkerService";
 import { storyScene3dEnvironmentAnalysisService } from "../application/StoryScene3dEnvironmentAnalysisService";
-import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+  STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS,
+} from "@ai-novel/shared/types/comicDrama";
 import { llmProviderSchema } from "../../../../llm/providerSchema";
 
 const novelParams = z.object({ id: z.string().trim().min(1) });
@@ -94,26 +97,54 @@ const scene3dMarkerSchema = z.object({
   source: z.enum(["ai", "manual"]).optional(),
 }).strict();
 
+const storyScene3dEnvironmentSchema = z.object({
+  projectionCenterHeight: z
+    .number()
+    .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
+    .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
+  // 旧快照的比例仍允许进入兼容层；新 radiusMeters 输入由归一化器约束为 10%–40%。
+  projectionCenterHeightRatio: z
+    .number()
+    .min(0.05)
+    .max(0.4)
+    .optional(),
+  radiusMeters: z
+    .number()
+    .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.min)
+    .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.max)
+    .optional(),
+  // 历史 domeRadius 表示直径；这里放行旧数据，写回时统一转换为 radiusMeters。
+  domeRadius: z
+    .number()
+    .min(STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS.min)
+    .max(100)
+    .optional(),
+  panoramaHorizonV: z
+    .number()
+    .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
+    .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
+    .optional(),
+}).strict().superRefine((value, context) => {
+  if (value.radiusMeters === undefined && value.domeRadius === undefined) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["radiusMeters"], message: "必须提供圆半径或历史半球直径" });
+  }
+  if (value.radiusMeters !== undefined && value.projectionCenterHeightRatio !== undefined
+    && value.projectionCenterHeightRatio < STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["projectionCenterHeightRatio"], message: "当前圆半径的投射占比必须在 10% 到 40% 之间" });
+  }
+  if (value.radiusMeters === undefined && value.domeRadius !== undefined
+    && value.projectionCenterHeightRatio !== undefined
+    && value.projectionCenterHeightRatio > 0.2) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["projectionCenterHeightRatio"], message: "历史半球直径的投射占比必须在 5% 到 20% 之间" });
+  }
+});
+
 const scene3dMarkerSetSchema = z.object({
   schemaVersion: z.literal(1),
   status: z.enum(["ready", "error", "stale"]),
   sourceImageArtifactId: z.string().trim().max(160).optional(),
   sourceImageGeneratedAt: z.string().max(80).optional(),
-  sourceEnvironment: z.object({
-    projectionCenterHeight: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
-    domeRadius: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
-    panoramaHorizonV: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
-      .optional(),
-  }).optional(),
+  sourceEnvironment: storyScene3dEnvironmentSchema.optional(),
   analyzedAt: z.string().max(80).optional(),
   analysisNote: z.string().max(500).optional(),
   error: z.string().max(600).optional(),
@@ -265,26 +296,7 @@ const sceneCreateSchema = z.object({
   weather: z.enum(["sunny", "cloudy", "rainy"]).optional(),
   mapNodeId: z.string().trim().max(60).optional(),
   states: z.array(assetStateSchema).max(24).optional(),
-  scene3dEnvironment: z.object({
-    projectionCenterHeight: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
-    projectionCenterHeightRatio: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max)
-      .optional(),
-    domeRadius: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
-    panoramaHorizonV: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
-      .optional(),
-  }).strict().nullable().optional(),
+  scene3dEnvironment: storyScene3dEnvironmentSchema.nullable().optional(),
 });
 
 const sceneUpdateSchema = z.object({
@@ -297,26 +309,7 @@ const sceneUpdateSchema = z.object({
   weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
   mapNodeId: z.string().trim().max(60).nullable().optional(),
   states: z.array(assetStateSchema).max(24).optional(),
-  scene3dEnvironment: z.object({
-    projectionCenterHeight: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max),
-    projectionCenterHeightRatio: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max)
-      .optional(),
-    domeRadius: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max),
-    panoramaHorizonV: z
-      .number()
-      .min(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min)
-      .max(STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max)
-      .optional(),
-  }).strict().nullable().optional(),
+  scene3dEnvironment: storyScene3dEnvironmentSchema.nullable().optional(),
 });
 
 const propCreateSchema = z.object({

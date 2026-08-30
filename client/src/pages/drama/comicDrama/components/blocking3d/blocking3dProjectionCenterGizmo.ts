@@ -2,7 +2,7 @@ import * as pc from "playcanvas";
 
 export interface Blocking3dProjectionCenterGizmoSettings {
   projectionCenterHeight: number;
-  domeRadius: number;
+  radiusMeters: number;
 }
 
 export interface Blocking3dProjectionCenterGizmoRuntime {
@@ -27,8 +27,8 @@ function finiteOr(value: unknown, fallback: number): number {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-function resolveGizmoSize(domeRadius: number): number {
-  return clamp(finiteOr(domeRadius, 15) * GIZMO_SIZE_RATIO, MIN_GIZMO_SIZE, MAX_GIZMO_SIZE);
+function resolveGizmoSize(radiusMeters: number): number {
+  return clamp(finiteOr(radiusMeters, 7.5) * GIZMO_SIZE_RATIO, MIN_GIZMO_SIZE, MAX_GIZMO_SIZE);
 }
 
 export function createProjectionCenterGizmo(
@@ -36,7 +36,7 @@ export function createProjectionCenterGizmo(
   settings: Blocking3dProjectionCenterGizmoSettings,
 ): Blocking3dProjectionCenterGizmoRuntime {
   const runtime: Blocking3dProjectionCenterGizmoRuntime = {
-    size: resolveGizmoSize(settings.domeRadius),
+    size: resolveGizmoSize(settings.radiusMeters),
     height: 0,
   };
   updateProjectionCenterGizmo(runtime, settings);
@@ -48,7 +48,7 @@ export function updateProjectionCenterGizmo(
   settings: Blocking3dProjectionCenterGizmoSettings,
 ): void {
   runtime.height = Math.max(0, finiteOr(settings.projectionCenterHeight, 2));
-  runtime.size = resolveGizmoSize(settings.domeRadius);
+  runtime.size = resolveGizmoSize(settings.radiusMeters);
 }
 
 function cubeCorners(runtime: Blocking3dProjectionCenterGizmoRuntime): pc.Vec3[] {

@@ -25,9 +25,8 @@ test("模型环境预设使用 5 到 30 米的半球直径", () => {
   assert.match(presetSource, /interior/);
   assert.match(presetSource, /exterior/);
   assert.match(presetSource, /nature/);
-  assert.match(presetSource, /STORY_SCENE_3D_ENVIRONMENT_LIMITS/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
-  assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\s*=\s*STORY_SCENE_3D_ENVIRONMENT_LIMITS\.domeRadius/);
+  assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\s*=\s*\{\s*min:\s*5,\s*max:\s*30\s*\}/);
   assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 3);
   assert.match(presetSource, /projectionCenterHeightMeters:\s*2/);
   assert.match(presetSource, /panoramaHorizonV:\s*0\.5/);

@@ -119,23 +119,23 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.match(viewerSource, /environmentBackdropMeshInstance = meshInstance/);
   assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
   assert.match(environmentProjectionSource, /#include "gammaPS"/);
-  assert.match(environmentProjectionSource, /decodeGamma\(rawColor\)/);
+  assert.match(environmentProjectionSource, /decodeRGBP\(rawColor\)/);
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
   assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
-test("HDRI 环境提供投射中心、高度、半球直径和可调地面分界", () => {
-  assert.match(viewerSource, /projectionCenterHeight: 1\.7/);
-  assert.match(viewerSource, /domeRadius: 10/);
+test("HDRI 环境提供投射中心、高度、圆半径和可调地面分界", () => {
+  assert.match(viewerSource, /projectionCenterHeight: 2/);
+  assert.match(viewerSource, /radiusMeters: 7\.5/);
   assert.match(viewerSource, /STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V/);
   assert.match(viewerSource, /panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V/);
   assert.match(viewerSource, /projectionCenterHeight/);
-  assert.match(viewerSource, /domeRadius/);
-  assert.match(viewerSource, /projectionCenterHeight[^\n]*0\.5, 2/);
-  assert.match(viewerSource, /domeRadius[^\n]*5, 30/);
-  assert.match(viewerSource, /panoramaHorizonV[^\n]*0\.45, 0\.55/);
+  assert.match(viewerSource, /radiusMeters/);
+  assert.match(viewerSource, /const ratio = clamp\([\s\S]*?0\.1,\s*0\.4/);
+  assert.match(viewerSource, /const radiusMeters = clamp\([\s\S]*?2\.5,\s*15/);
+  assert.match(viewerSource, /panoramaHorizonV: clamp\([\s\S]*?0\.45,\s*0\.55/);
   assert.match(viewerSource, /yawDeg/);
   assert.match(viewerSource, /yawDeg: 0/);
   assert.match(viewerSource, /intensity: 1/);
@@ -189,7 +189,7 @@ test("下半球在投射中心附近使用有限平底，避免尖点三角面�
 test("HDRI EnviroDome 使用一份连续网格，避免上下 MeshInstance 的交界光栅缝", () => {
   assert.match(environmentGeometrySource, /export function createBackdropGeometryData/);
   assert.match(environmentGeometrySource, /UPPER_DOME_LATITUDE_BANDS/);
-  assert.match(environmentGeometrySource, /projectionCenterHeight \* 2/);
+  assert.match(environmentGeometrySource, /projectionCenterHeight \/ radiusMeters/);
   assert.match(viewerSource, /createBackdropGeometryData\(/);
   assert.match(viewerSource, /let environmentBackdrop: pc\.Entity \| null = null/);
   assert.match(viewerSource, /environmentBackdrop\.addComponent\("render"/);
@@ -289,9 +289,12 @@ test("选中角色使用外轮廓反馈，场景参照角色支持锁定位置�
   assert.doesNotMatch(viewerSource, /type: "cylinder"/);
   assert.match(viewerSource, /setActorMovementEnabled/);
   assert.match(viewerSource, /let actorMovementEnabled = true/);
-  assert.match(viewerSource, /mode: hit && selectedLabel === hit && actorMovementEnabled \? "actor"/);
+  assert.match(
+    viewerSource,
+    /mode: cameraBodyHit[\s\S]*?hit && selectedLabel === hit && actorMovementEnabled[\s\S]*?\? "actor"/,
+  );
   assert.match(scene3dPageSource, /nextViewer\.setActorMovementEnabled\(false\)/);
-  assert.match(scene3dPageSource, /参考角色固定 · 右键旋转 · 滚轮缩放 · 中键平移/);
+  assert.match(scene3dPageSource, /拖动手柄移动物体 · 右键旋转 · 滚轮缩放 · 中键平移/);
   assert.doesNotMatch(scene3dPageSource, /左键拖参照角色/);
 });
 
@@ -311,9 +314,12 @@ test("代理角色按 1.8 米实际高度校准", () => {
 test("AI 构图落地时穹顶网格只在几何输入变化时重建，避免整帧卡顿", () => {
   assert.match(
     viewerSource,
-    /loadLayout\(layout\) \{[\s\S]*?const geometryChanged = nextEnvironment\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight[\s\S]*?if \(geometryChanged\) environment\.rebuildEnvironmentBackdropMesh\(environmentSettings\);/,
+    /loadLayout\(layout\) \{[\s\S]*?const geometryChanged\s*=\s*nextEnvironment\.projectionCenterHeight\s*!==\s*environmentSettings\.projectionCenterHeight[\s\S]*?if \(geometryChanged\)\s*environment\.rebuildEnvironmentBackdropMesh\(environmentSettings\);/,
   );
   // 不允许回到「先应用设置再无条件重建网格」的旧序列。
   assert.doesNotMatch(viewerSource, /applyEnvironmentSettings\(\);\s*\n\s*rebuildEnvironmentBackdropMesh\(\);/);
-  assert.match(viewerSource, /const geometryChanged = next\.projectionCenterHeight !== environmentSettings\.projectionCenterHeight/);
+  assert.match(
+    viewerSource,
+    /const geometryChanged\s*=\s*next\.projectionCenterHeight\s*!==\s*environmentSettings\.projectionCenterHeight/,
+  );
 });

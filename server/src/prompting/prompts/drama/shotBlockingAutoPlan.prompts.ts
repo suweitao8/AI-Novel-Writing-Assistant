@@ -88,7 +88,7 @@ export interface DramaShotBlockingAutoPlanPromptInput {
   shotJson: string;
   sceneJson: string;
   actorsJson: string;
-  /** domeRadius − 边缘缓冲后的角色可站位半径（米）。 */
+  /** radiusMeters − 边缘缓冲后的角色可站位半径（米）。 */
   stageRadiusMeters?: number;
   /** 3D 拍摄位所在的投射中心高度（米）。 */
   projectionCenterHeight?: number;

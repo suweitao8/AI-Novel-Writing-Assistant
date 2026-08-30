@@ -227,7 +227,8 @@ export interface DramaShotBlockingSketch3DActor {
 export interface DramaShotBlockingSketch3DEnvironment {
   projectionCenterHeight: number;
   projectionCenterHeightRatio: number;
-  domeRadius: number;
+  /** True horizontal radius from the projection center to the dome boundary. */
+  radiusMeters: number;
   /** Source-image V coordinate used as the 3D panorama ground boundary. */
   panoramaHorizonV: number;
   yawDeg: number;

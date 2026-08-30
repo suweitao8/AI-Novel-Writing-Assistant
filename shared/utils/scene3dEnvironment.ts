@@ -8,10 +8,14 @@ import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+  STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS,
 } from "@ai-novel/shared/types/comicDrama";
 import type { StoryAssetSceneType } from "@ai-novel/shared/types/novelReferenceExtraction";
 
-export { STORY_SCENE_3D_ENVIRONMENT_LIMITS };
+export {
+  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+  STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS,
+};
 
 export interface StoryScene3dImageFingerprintInput {
   artifactId?: string | null;
@@ -58,15 +62,15 @@ export function shouldAutoAnalyzeStoryScene3dEnvironment(
 }
 
 /**
- * 投射中心高度的用户参数是“相对半球直径的百分比”（5%–20%），
- * 世界高度恒为 domeRadius × ratio 并在此处派生；这样拖动直径时投射中心
+ * 投射中心高度的用户参数是“相对半球圆半径的百分比”（10%–40%），
+ * 世界高度恒为 radiusMeters × ratio 并在此处派生；这样拖动圆半径时投射中心
  * 保持同一比例，整体等比缩放。
  */
 export const DEFAULT_STORY_SCENE_3D_ENVIRONMENT: StoryScene3DEnvironment = {
-  // 视觉模型无法可靠判断绝对尺度时使用中性组合：直径 15、中心高度 2 米。
+  // 视觉模型无法可靠判断绝对尺度时使用中性组合：圆半径 7.5、中心高度 2 米。
   projectionCenterHeight: 2,
   projectionCenterHeightRatio: STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
-  domeRadius: 15,
+  radiusMeters: 7.5,
   panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
   intensity: 1,
@@ -121,20 +125,22 @@ function normalizeAnalysis(value: unknown): StoryScene3dEnvironmentAnalysis | un
   };
 }
 
-/** 高度按直径 × 占比派生并保留两位小数，避免浮点误差在往返中累积。 */
-function deriveHeight(domeRadius: number, ratio: number): number {
-  return Math.round(domeRadius * ratio * 100) / 100;
+/** 高度按圆半径 × 占比派生并保留两位小数，避免浮点误差在往返中累积。 */
+function deriveHeight(radiusMeters: number, ratio: number): number {
+  return Math.round(radiusMeters * ratio * 100) / 100;
 }
 
 /** 构造与旧绝对高度快照等价的“历史默认”条目，供未定制回落判断使用。 */
-function legacyDefault(height: number, domeRadius: number, ratio: number): StoryScene3DEnvironment {
+function legacyDefault(height: number, legacyDiameter: number, legacyRatio: number): StoryScene3DEnvironment {
+  const radiusMeters = legacyDiameter / 2;
+  const ratio = Math.round(legacyRatio * 2 * 10000) / 10000;
   return {
     projectionCenterHeight: height,
     // 与 normalize 的推导精度一致（万分比圆整），保证未定制比较逐字段相等。
     projectionCenterHeightRatio: Math.round(clamp(ratio,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max) * 10000) / 10000,
-    domeRadius,
+    radiusMeters,
     panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     yawDeg: 0,
     intensity: 1,
@@ -161,27 +167,56 @@ export function getDefaultStoryScene3dEnvironment(_sceneType?: unknown): StorySc
   return { ...DEFAULT_STORY_SCENE_3D_ENVIRONMENT };
 }
 
+/** 读取环境的真实圆半径；旧 domeRadius 仅作为直径兼容输入。 */
+export function resolveStoryScene3dEnvironmentRadius(
+  input: Partial<StoryScene3DEnvironment> | Record<string, unknown> | null | undefined,
+): number {
+  const source = input as Record<string, unknown> | null | undefined;
+  const currentRadius = Number(source?.radiusMeters);
+  if (Number.isFinite(currentRadius) && currentRadius > 0) {
+    return currentRadius;
+  }
+  const legacyDiameter = Number(source?.domeRadius);
+  if (Number.isFinite(legacyDiameter) && legacyDiameter > 0) {
+    return legacyDiameter / 2;
+  }
+  return DEFAULT_STORY_SCENE_3D_ENVIRONMENT.radiusMeters;
+}
+
 export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvironment> | Record<string, unknown> | null | undefined): StoryScene3DEnvironment {
   const source = input as Record<string, unknown> | null | undefined;
-  const rawDomeRadius = finiteOr(source?.domeRadius, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.domeRadius);
-  const domeRadius = clamp(
-    rawDomeRadius,
-    STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
-    STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
+  const rawRadiusMeters = finiteOr(
+    source?.radiusMeters,
+    finiteOr(source?.domeRadius, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.radiusMeters * 2) / 2,
   );
-  // 占比是权威调节参数；缺失时按存量高度与原始直径推导（clamp 进合同范围），
-  // 高度随后一律由 裁剪后直径 × 占比 派生，保证拖动直径时投射中心等比跟随。
-  const derivedFromStoredHeight = rawDomeRadius > 0
+  const hasCurrentRadius = Number.isFinite(Number(source?.radiusMeters)) && Number(source?.radiusMeters) > 0;
+  const radiusMeters = clamp(
+    rawRadiusMeters,
+    STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.min,
+    STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.max,
+  );
+  const hasLegacyDiameter = !hasCurrentRadius
+    && Number.isFinite(Number(source?.domeRadius))
+    && Number(source?.domeRadius) > 0;
+  // 新字段直接按圆半径读取；历史 domeRadius 是直径，兼容时先除以二。
+  // 占比是权威调节参数；缺失时按存量高度与原始半径推导，随后一律由
+  // 裁剪后圆半径 × 占比派生高度，保证拖动圆半径时投射中心等比跟随。
+  const derivedFromStoredHeight = rawRadiusMeters > 0
     && typeof source?.projectionCenterHeight === "number"
     && Number.isFinite(source.projectionCenterHeight)
-    ? source.projectionCenterHeight / rawDomeRadius
+    ? source.projectionCenterHeight / rawRadiusMeters
     : Number.NaN;
-  const ratioSource = finiteOr(
+  const rawRatio = finiteOr(
     source?.projectionCenterHeightRatio,
     Number.isFinite(derivedFromStoredHeight)
       ? derivedFromStoredHeight
       : DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeightRatio,
   );
+  const hasExplicitRatio = typeof source?.projectionCenterHeightRatio === "number"
+    && Number.isFinite(source.projectionCenterHeightRatio);
+  const ratioSource = hasLegacyDiameter && hasExplicitRatio
+    ? rawRatio * 2
+    : rawRatio;
   const clampedRatio = clamp(
     ratioSource,
     STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
@@ -193,12 +228,12 @@ export function normalizeStoryScene3dEnvironment(input: Partial<StoryScene3DEnvi
   const analysis = normalizeAnalysis(source?.analysis);
   return {
     projectionCenterHeight: clamp(
-      deriveHeight(domeRadius, ratio),
+      deriveHeight(radiusMeters, ratio),
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min,
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max,
     ),
     projectionCenterHeightRatio: ratio,
-    domeRadius,
+    radiusMeters,
     panoramaHorizonV: clamp(
       finiteOr(source?.panoramaHorizonV, DEFAULT_STORY_SCENE_3D_ENVIRONMENT.panoramaHorizonV),
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
@@ -219,11 +254,14 @@ export function normalizeVisionStoryScene3dEnvironment(
 ): { environment: StoryScene3DEnvironment; analysis: StoryScene3dEnvironmentAnalysis } {
   const source = input ?? {};
   const confidence = clamp(finiteOr(source.confidence, 0), 0, 1);
-  const diameter = Number(source.domeDiameterMeters);
+  const currentRadius = Number(source.radiusMeters);
+  const legacyDiameter = Number(source.domeDiameterMeters);
+  const hasCurrentRadius = Number.isFinite(currentRadius) && currentRadius > 0;
+  const radius = hasCurrentRadius ? currentRadius : legacyDiameter / 2;
   const height = Number(source.projectionCenterHeightMeters);
-  const hasDiameter = Number.isFinite(diameter) && diameter > 0;
+  const hasRadius = Number.isFinite(radius) && radius > 0;
   const hasHeight = Number.isFinite(height) && height > 0;
-  const canUseVision = confidence >= VISION_CONFIDENCE_THRESHOLD && hasDiameter;
+  const canUseVision = confidence >= VISION_CONFIDENCE_THRESHOLD && hasRadius;
   const analyzedAt = optionalTrimmed(source.analyzedAt, 80);
   const imageMeta = {
     sourceImageArtifactId: optionalTrimmed(source.sourceImageArtifactId, 160),
@@ -244,16 +282,16 @@ export function normalizeVisionStoryScene3dEnvironment(
     };
   }
 
-  const normalizedDiameter = clamp(
-    diameter,
-    STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
-    STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
+  const normalizedRadius = clamp(
+    radius,
+    STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.min,
+    STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.max,
   );
   const ratio = hasHeight
-    ? height / normalizedDiameter
+    ? height / normalizedRadius
     : DEFAULT_STORY_SCENE_3D_ENVIRONMENT.projectionCenterHeightRatio;
   const environment = normalizeStoryScene3dEnvironment({
-    domeRadius: normalizedDiameter,
+    radiusMeters: normalizedRadius,
     projectionCenterHeightRatio: ratio,
     panoramaHorizonV: source.panoramaHorizonV,
   });
@@ -290,7 +328,7 @@ export function serializeStoryScene3dEnvironment(
   return JSON.stringify({
     projectionCenterHeight: normalized.projectionCenterHeight,
     projectionCenterHeightRatio: normalized.projectionCenterHeightRatio,
-    domeRadius: normalized.domeRadius,
+    radiusMeters: normalized.radiusMeters,
     panoramaHorizonV: normalized.panoramaHorizonV,
     yawDeg: normalized.yawDeg,
     intensity: normalized.intensity,
@@ -303,7 +341,7 @@ function isUncustomizedDefaultEnvironment(input: StoryScene3DEnvironment): boole
   return LEGACY_DEFAULT_STORY_SCENE_3D_ENVIRONMENTS.some((candidate) => (
     input.projectionCenterHeight === candidate.projectionCenterHeight
     && input.projectionCenterHeightRatio === candidate.projectionCenterHeightRatio
-    && input.domeRadius === candidate.domeRadius
+    && input.radiusMeters === candidate.radiusMeters
     && input.panoramaHorizonV === candidate.panoramaHorizonV
     && input.yawDeg === candidate.yawDeg
     && input.intensity === candidate.intensity

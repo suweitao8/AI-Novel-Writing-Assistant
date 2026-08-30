@@ -27,6 +27,7 @@ import {
   getStudioEnvironmentDiameterMeters,
   getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentPreset,
+  getStudioEnvironmentRadiusMeters,
   saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentPresets";
@@ -44,18 +45,19 @@ function buildPresetEnvironmentSettings(
 ): Blocking3dEnvironmentSettings {
   const preset = getStudioEnvironmentPreset(presetId);
   const diameter = getStudioEnvironmentDiameterMeters(diameterMeters);
+  const radius = getStudioEnvironmentRadiusMeters(diameter);
   const projectionCenterHeightRatio = Math.min(
     STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
     Math.max(
       STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
-      preset.projectionCenterHeightMeters / diameter,
+      preset.projectionCenterHeightMeters / radius,
     ),
   );
   return {
     ...DEFAULT_BLOCKING_3D_ENVIRONMENT,
-    projectionCenterHeight: Math.round(diameter * projectionCenterHeightRatio * 100) / 100,
+    projectionCenterHeight: Math.round(radius * projectionCenterHeightRatio * 100) / 100,
     projectionCenterHeightRatio,
-    domeRadius: diameter,
+    radiusMeters: radius,
     panoramaHorizonV: preset.panoramaHorizonV,
   };
 }
@@ -161,7 +163,7 @@ export default function StudioEnvironmentPreviewPage() {
         if (requestId !== environmentRequestRef.current) return;
         setEnvironmentPresetId(previousId);
         current.setEnvironmentSettings(previousSettings);
-        setEnvironmentDiameterMeters(previousSettings.domeRadius);
+        setEnvironmentDiameterMeters(previousSettings.radiusMeters * 2);
         setEnvironmentSettings(previousSettings);
         toast.error("HDRI 环境加载失败。", {
           description: error instanceof Error ? error.message : undefined,
@@ -182,16 +184,16 @@ export default function StudioEnvironmentPreviewPage() {
     );
     current.setEnvironmentSettings({
       ...current.getEnvironmentSettings(),
-      domeRadius: nextDiameter,
+      radiusMeters: getStudioEnvironmentRadiusMeters(nextDiameter),
     });
     const nextSettings = current.getEnvironmentSettings();
-    setEnvironmentDiameterMeters(nextSettings.domeRadius);
+    setEnvironmentDiameterMeters(nextSettings.radiusMeters * 2);
     setEnvironmentSettings(nextSettings);
-    saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.domeRadius);
+    saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.radiusMeters * 2);
   }, [environmentPresetId]);
 
   const updateEnvironmentSetting = useCallback(
-    (key: "projectionCenterHeightRatio" | "domeRadius" | "panoramaHorizonV", value: number) => {
+    (key: "projectionCenterHeightRatio" | "radiusMeters" | "panoramaHorizonV", value: number) => {
       const current = viewerRef.current;
       if (!current) return;
       current.setEnvironmentSettings({
@@ -200,9 +202,9 @@ export default function StudioEnvironmentPreviewPage() {
       });
       const nextSettings = current.getEnvironmentSettings();
       setEnvironmentSettings(nextSettings);
-      if (key === "domeRadius") {
-        setEnvironmentDiameterMeters(nextSettings.domeRadius);
-        saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.domeRadius);
+      if (key === "radiusMeters") {
+        setEnvironmentDiameterMeters(nextSettings.radiusMeters * 2);
+        saveStudioEnvironmentDiameterPreference(environmentPresetId, nextSettings.radiusMeters * 2);
       }
     },
     [environmentPresetId],

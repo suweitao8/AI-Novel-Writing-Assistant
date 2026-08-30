@@ -134,9 +134,10 @@ export interface DramaShotBlockingSketch3DActor {
 
 export interface DramaShotBlockingSketch3DEnvironment {
   projectionCenterHeight: number;
-  /** 投射中心高度相对半球直径的比例（5%–20%），高度恒为直径 × 占比。 */
+  /** 投射中心高度相对半球圆半径的比例（10%–40%），高度恒为半径 × 占比。 */
   projectionCenterHeightRatio: number;
-  domeRadius: number;
+  /** 投射中心到半球边界的真实水平圆半径（米）。 */
+  radiusMeters: number;
   panoramaHorizonV: number;
   yawDeg: number;
   intensity: number;
@@ -338,41 +339,56 @@ function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnviro
   const environment = objectValue(input, "HDRI 环境");
   finiteNumber(environment.yawDeg, "HDRI 环境水平旋转", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.yawDeg.max);
   finiteNumber(environment.intensity, "HDRI 环境亮度", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.intensity.max);
-  const rawDomeRadius = finiteNumber(environment.domeRadius, "HDRI 环境半球直径", 5, 100);
-  const domeRadius = Math.max(
-    BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.min,
-    Math.min(BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.domeRadius.max, rawDomeRadius),
-  );
-  // 新快照以比例为权威字段；旧快照没有比例时，用存量高度 ÷ 原始直径恢复
-  // 旧设置，再按当前范围裁剪，避免直径扩展或历史直径裁剪后高度突然跳变。
+  const hasCurrentRadius = environment.radiusMeters !== undefined && environment.radiusMeters !== null;
+  const radiusMeters = hasCurrentRadius
+    ? finiteNumber(
+      environment.radiusMeters,
+      "HDRI 环境圆半径",
+      BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.radiusMeters.min,
+      BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.radiusMeters.max,
+    )
+    : finiteNumber(environment.domeRadius, "HDRI 环境历史半球直径", 5, 100) / 2;
+  const normalizedRadiusMeters = hasCurrentRadius
+    ? radiusMeters
+    : Math.max(
+      BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.radiusMeters.min,
+      Math.min(BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.radiusMeters.max, radiusMeters),
+    );
+  // 新快照以圆半径比例为权威字段；旧快照的显式比例仍按“直径比例”读取并
+  // 乘二，缺失比例时则用存量高度 ÷ 原始半径恢复实际投射尺度。
   const storedHeight = typeof environment.projectionCenterHeight === "number"
     && Number.isFinite(environment.projectionCenterHeight)
     ? environment.projectionCenterHeight
     : undefined;
-  const legacyRatio = storedHeight === undefined || rawDomeRadius <= 0
+  const derivedRatio = storedHeight === undefined || radiusMeters <= 0
     ? STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO
-    : storedHeight / rawDomeRadius;
+    : storedHeight / radiusMeters;
   const hasStoredRatio = environment.projectionCenterHeightRatio !== undefined
     && environment.projectionCenterHeightRatio !== null;
   const projectionCenterHeightRatio = hasStoredRatio
-    ? clampedEnvironmentNumber(
-      environment.projectionCenterHeightRatio,
-      "HDRI 环境投射占比",
-      BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
-      BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
-      0.02,
-      0.6,
-    )
-    // 派生的历史比例允许先落在旧合同之外，再收敛到当前 5%–20% 范围。
+    ? (hasCurrentRadius
+      ? finiteNumber(
+        environment.projectionCenterHeightRatio,
+        "HDRI 环境投射占比",
+        BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
+        BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
+      )
+      : finiteNumber(
+        environment.projectionCenterHeightRatio,
+        "HDRI 环境历史投射占比",
+        0.05,
+        0.2,
+      ) * 2)
+    // 派生的历史比例允许先落在旧合同之外，再收敛到当前 10%–40% 范围。
     : Math.max(
       BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
-      Math.min(BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max, legacyRatio),
+      Math.min(BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max, derivedRatio),
     );
   return {
     projectionCenterHeightRatio,
-    // 高度由直径 × 占比派生，等比缩放时不需要分别校准两个量。
-    projectionCenterHeight: Math.round(domeRadius * projectionCenterHeightRatio * 100) / 100,
-    domeRadius,
+    // 高度由圆半径 × 占比派生，等比缩放时不需要分别校准两个量。
+    projectionCenterHeight: Math.round(normalizedRadiusMeters * projectionCenterHeightRatio * 100) / 100,
+    radiusMeters: normalizedRadiusMeters,
     // 接受带保留旧版 0.40–0.65，历史快照能读入后裁剪到当前可调范围。
     panoramaHorizonV: clampedEnvironmentNumber(environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V, "HDRI 环境分界线", BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min, BLOCKING_SKETCH_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max, 0.4, 0.65),
     yawDeg: 0,

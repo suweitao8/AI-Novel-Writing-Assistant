@@ -40,7 +40,7 @@ test("所有模型 HDR 预设遵守 15 米直径、2 米投射中心和半数地
 test("漫剧、模型和动画使用同一套半径驱动地面网格", () => {
   assert.match(overlaySource, /export function buildBlocking3dGroundGridLines/);
   assert.match(overlaySource, /GROUND_DOME_FLAT_RADIUS/);
-  assert.match(overlaySource, /resolveStoryScene3DDomeWorldRadius/);
+  assert.match(overlaySource, /resolveStoryScene3DWorldRadius/);
   assert.match(modelSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationPreviewSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);

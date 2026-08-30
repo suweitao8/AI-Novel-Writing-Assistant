@@ -53,11 +53,12 @@ function createStudioEnvironmentSettings(
   const projectionCenterHeightMeters = Number.isFinite(options.projectionCenterHeightMeters)
     ? Math.max(0, Number(options.projectionCenterHeightMeters))
     : preset.projectionCenterHeightMeters;
-  const projectionCenterHeightRatio = diameterMeters > 0
-    ? projectionCenterHeightMeters / diameterMeters
+  const radiusMeters = getStudioEnvironmentRadiusMeters(diameterMeters);
+  const projectionCenterHeightRatio = radiusMeters > 0
+    ? projectionCenterHeightMeters / radiusMeters
     : undefined;
   return normalizeEnvironmentSettings({
-    domeRadius: diameterMeters,
+    radiusMeters,
     projectionCenterHeightRatio,
     panoramaHorizonV: options.panoramaHorizonV ?? preset.panoramaHorizonV,
   });
@@ -73,8 +74,8 @@ function createUnavailableHandle(
   return {
     presetId,
     sourceUrl: null,
-    diameterMeters: settings.domeRadius,
-    radiusMeters: getStudioEnvironmentRadiusMeters(settings.domeRadius),
+    diameterMeters: settings.radiusMeters * 2,
+    radiusMeters: settings.radiusMeters,
     settings,
     hasVisibleBackdrop: false,
     applySettings(nextSettings) {
@@ -137,8 +138,8 @@ export async function loadStudioEnvironment(
     return {
       presetId: preset.id,
       sourceUrl,
-      diameterMeters: settings.domeRadius,
-      radiusMeters: getStudioEnvironmentRadiusMeters(settings.domeRadius),
+      diameterMeters: settings.radiusMeters * 2,
+      radiusMeters: settings.radiusMeters,
       settings,
       hasVisibleBackdrop: true,
       applySettings(nextSettings) {

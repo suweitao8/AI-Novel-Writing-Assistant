@@ -186,7 +186,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   );
   let currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(currentEnvironmentDiameterMeters);
   let currentEnvironmentSettings = normalizeEnvironmentSettings({
-    domeRadius: currentEnvironmentDiameterMeters,
+    radiusMeters: currentEnvironmentRadiusMeters,
   });
   let environmentGridLines = buildBlocking3dGroundGridLines(currentEnvironmentSettings);
 
@@ -549,17 +549,17 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       if (!currentStudioEnvironment) return loadEnvironmentPreset(currentEnvironmentPresetId, nextDiameterMeters);
       const nextSettings = normalizeEnvironmentSettings({
         ...currentEnvironmentSettings,
-        domeRadius: nextDiameterMeters,
+        radiusMeters: getStudioEnvironmentRadiusMeters(nextDiameterMeters),
       });
       const geometryChanged = nextSettings.projectionCenterHeight !== currentEnvironmentSettings.projectionCenterHeight
-        || nextSettings.domeRadius !== currentEnvironmentSettings.domeRadius;
+        || nextSettings.radiusMeters !== currentEnvironmentSettings.radiusMeters;
       currentEnvironmentSettings = nextSettings;
-      currentEnvironmentDiameterMeters = nextSettings.domeRadius;
-      currentEnvironmentRadiusMeters = getStudioEnvironmentRadiusMeters(nextSettings.domeRadius);
+      currentEnvironmentDiameterMeters = nextSettings.radiusMeters * 2;
+      currentEnvironmentRadiusMeters = nextSettings.radiusMeters;
       environmentGridLines = buildBlocking3dGroundGridLines(nextSettings);
       currentStudioEnvironment.applySettings(nextSettings);
       if (geometryChanged) currentStudioEnvironment.rebuildEnvironmentBackdropMesh(nextSettings);
-      saveStudioEnvironmentDiameterPreference(currentEnvironmentPresetId, nextSettings.domeRadius);
+      saveStudioEnvironmentDiameterPreference(currentEnvironmentPresetId, currentEnvironmentDiameterMeters);
       syncCamera();
       return Promise.resolve(true);
     },

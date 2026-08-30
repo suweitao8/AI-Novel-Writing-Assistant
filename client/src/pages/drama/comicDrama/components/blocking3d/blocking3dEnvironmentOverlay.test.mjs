@@ -6,17 +6,17 @@ import { buildBlocking3dGroundGridLines } from "./blocking3dEnvironmentOverlay.t
 
 const DEFAULT_BLOCKING_3D_ENVIRONMENT = {
   projectionCenterHeight: 2,
-  projectionCenterHeightRatio: 2 / 15,
-  domeRadius: 15,
+  projectionCenterHeightRatio: 4 / 15,
+  radiusMeters: 7.5,
   panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
 };
 
-const normalizeEnvironmentSettings = ({ domeRadius }) => ({
+const normalizeEnvironmentSettings = ({ radiusMeters }) => ({
   ...DEFAULT_BLOCKING_3D_ENVIRONMENT,
-  domeRadius,
-  projectionCenterHeight: Math.round(domeRadius * (2 / 15) * 100) / 100,
+  radiusMeters,
+  projectionCenterHeight: Math.round(radiusMeters * (4 / 15) * 100) / 100,
 });
 
 function maxCoordinate(lines) {
@@ -27,9 +27,9 @@ function maxCoordinate(lines) {
   );
 }
 
-test("默认环境的地面网格以完整直径换算的半径为边界", () => {
+test("默认环境的地面网格以真实圆半径为边界", () => {
   const lines = buildBlocking3dGroundGridLines(DEFAULT_BLOCKING_3D_ENVIRONMENT);
-  const expectedExtent = (DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius / 2) * GROUND_DOME_FLAT_RADIUS;
+  const expectedExtent = DEFAULT_BLOCKING_3D_ENVIRONMENT.radiusMeters * GROUND_DOME_FLAT_RADIUS;
 
   assert.ok(lines.length > 0);
   assert.ok(maxCoordinate(lines) <= expectedExtent + 1e-8);
@@ -37,9 +37,9 @@ test("默认环境的地面网格以完整直径换算的半径为边界", () =>
   assert.equal(lines.every(({ start, end }) => start.y === 0.005 && end.y === 0.005), true);
 });
 
-test("半球直径变化时网格边界同步变化而不是固定 3 米或 10 米", () => {
-  const small = buildBlocking3dGroundGridLines(normalizeEnvironmentSettings({ domeRadius: 10 }));
-  const large = buildBlocking3dGroundGridLines(normalizeEnvironmentSettings({ domeRadius: 30 }));
+test("圆半径变化时网格边界同步变化而不是固定 3 米或 10 米", () => {
+  const small = buildBlocking3dGroundGridLines(normalizeEnvironmentSettings({ radiusMeters: 5 }));
+  const large = buildBlocking3dGroundGridLines(normalizeEnvironmentSettings({ radiusMeters: 15 }));
 
   assert.ok(maxCoordinate(large) > maxCoordinate(small));
   assert.ok(maxCoordinate(small) <= 5 * GROUND_DOME_FLAT_RADIUS + 1e-8);

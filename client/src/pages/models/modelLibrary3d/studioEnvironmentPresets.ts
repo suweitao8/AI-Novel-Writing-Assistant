@@ -1,5 +1,3 @@
-import { STORY_SCENE_3D_ENVIRONMENT_LIMITS } from "@ai-novel/shared/types/comicDrama";
-
 /**
  * 模型预览使用的固定 HDRI 环境预设。
  *
@@ -11,7 +9,8 @@ export const STUDIO_ENVIRONMENT_PRESET_IDS = ["interior", "exterior", "nature"] 
 
 export type StudioEnvironmentPresetId = typeof STUDIO_ENVIRONMENT_PRESET_IDS[number];
 
-export const STUDIO_ENVIRONMENT_DIAMETER_LIMITS = STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius;
+/** 模型/动画预览的本机直径范围，与漫剧场景的真实圆半径合同分离。 */
+export const STUDIO_ENVIRONMENT_DIAMETER_LIMITS = { min: 5, max: 30 } as const;
 
 export interface StudioEnvironmentPreset {
   id: StudioEnvironmentPresetId;

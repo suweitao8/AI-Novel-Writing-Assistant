@@ -10,7 +10,6 @@ import type {
 } from "@ai-novel/shared/types/comicDrama";
 import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
-  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
   STORY_SCENE_3D_MARKER_KIND_LABELS,
 } from "@ai-novel/shared/types/comicDrama";
@@ -18,6 +17,7 @@ import {
   projectStoryScene3dMarkerSetFromImageRegions,
   STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
 } from "@ai-novel/shared/utils/scene3dProjection";
+import { normalizeStoryScene3dEnvironment } from "@ai-novel/shared/utils/scene3dEnvironment";
 
 export const STORY_SCENE_3D_MARKER_LIMITS = {
   maxMarkers: 48,
@@ -47,8 +47,9 @@ const MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor", "wall", "ceil
 
 export type StoryScene3dMarkerProjectionEnvironment = Pick<
   StoryScene3DEnvironment,
-  "projectionCenterHeight" | "domeRadius"
-> & Partial<Pick<StoryScene3DEnvironment, "panoramaHorizonV" | "yawDeg" | "intensity">>;
+  "projectionCenterHeight"
+> & Partial<Pick<StoryScene3DEnvironment, "radiusMeters" | "panoramaHorizonV" | "yawDeg" | "intensity">>
+  & { domeRadius?: number };
 
 function finiteOr(value: unknown, fallback: number): number {
   const numeric = Number(value);
@@ -85,35 +86,21 @@ function normalizeEnvironmentSnapshot(value: unknown): StoryScene3DEnvironmentIn
   if (!value || typeof value !== "object") return undefined;
   const source = value as Record<string, unknown>;
   const projectionCenterHeight = finiteOr(source.projectionCenterHeight, Number.NaN);
-  const domeRadius = finiteOr(source.domeRadius, Number.NaN);
+  const radiusMeters = finiteOr(
+    source.radiusMeters,
+    finiteOr(source.domeRadius, Number.NaN) / 2,
+  );
   if (!Number.isFinite(projectionCenterHeight)
-    || !Number.isFinite(domeRadius)) {
+    || !Number.isFinite(radiusMeters)
+    || radiusMeters <= 0) {
     return undefined;
   }
+  const normalized = normalizeStoryScene3dEnvironment(source);
   return {
-    projectionCenterHeight: clamp(
-      projectionCenterHeight,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.min,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeight.max,
-    ),
-    projectionCenterHeightRatio: typeof source.projectionCenterHeightRatio === "number"
-      && Number.isFinite(source.projectionCenterHeightRatio)
-      ? clamp(
-        source.projectionCenterHeightRatio,
-        STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
-        STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
-      )
-      : undefined,
-    domeRadius: clamp(
-      domeRadius,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.min,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius.max,
-    ),
-    panoramaHorizonV: clamp(
-      finiteOr(source.panoramaHorizonV, STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V),
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.min,
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.panoramaHorizonV.max,
-    ),
+    projectionCenterHeight: normalized.projectionCenterHeight,
+    projectionCenterHeightRatio: normalized.projectionCenterHeightRatio,
+    radiusMeters: normalized.radiusMeters,
+    panoramaHorizonV: normalized.panoramaHorizonV,
   };
 }
 
@@ -197,13 +184,20 @@ export function normalizeStoryScene3dMarkerSet(
   if (!input || typeof input !== "object") return null;
   const source = input as Record<string, unknown>;
   const rawMarkers = Array.isArray(source.markers) ? source.markers : [];
+  const environmentRadius = Number(options.environment?.radiusMeters);
+  const legacyEnvironmentRadius = Number(options.environment?.domeRadius) / 2;
   const maxRadius = clamp(
-    finiteOr(options.maxRadius, options.environment?.domeRadius
-      ? options.environment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO
+    finiteOr(options.maxRadius, Number.isFinite(environmentRadius) && environmentRadius > 0
+      ? environmentRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO
+      : Number.isFinite(legacyEnvironmentRadius) && legacyEnvironmentRadius > 0
+        ? legacyEnvironmentRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO
       : STORY_SCENE_3D_MARKER_LIMITS.maxRadius),
     1,
     STORY_SCENE_3D_MARKER_LIMITS.maxRadius,
   );
+  const projectionEnvironment = options.environment
+    ? normalizeStoryScene3dEnvironment(options.environment)
+    : undefined;
   const markers = rawMarkers
     .slice(0, STORY_SCENE_3D_MARKER_LIMITS.maxMarkers)
     .map((marker, index) => normalizeMarker(marker, index, maxRadius))
@@ -220,8 +214,8 @@ export function normalizeStoryScene3dMarkerSet(
     usedIds.add(uniqueId);
     marker.id = uniqueId.slice(0, 80);
   }
-  if (options.environment && markers.length > 0) {
-    const projections = projectStoryScene3dMarkerSetFromImageRegions(markers, options.environment);
+  if (projectionEnvironment && markers.length > 0) {
+    const projections = projectStoryScene3dMarkerSetFromImageRegions(markers, projectionEnvironment);
     for (const [index, projection] of projections.entries()) {
       const marker = markers[index];
       if (!marker || marker.source === "manual" || !marker.imageRegion) continue;
@@ -301,15 +295,14 @@ export function adoptLegacyStoryScene3dMarkerEnvironment(
   ))) {
     return markerSet;
   }
+  const normalizedEnvironment = normalizeStoryScene3dEnvironment(environment);
   return {
     ...markerSet,
     sourceEnvironment: {
-      projectionCenterHeight: environment.projectionCenterHeight,
-      ...(environment.projectionCenterHeightRatio != null
-        ? { projectionCenterHeightRatio: environment.projectionCenterHeightRatio }
-        : {}),
-      domeRadius: environment.domeRadius,
-      panoramaHorizonV: environment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+      projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
+      projectionCenterHeightRatio: normalizedEnvironment.projectionCenterHeightRatio,
+      radiusMeters: normalizedEnvironment.radiusMeters,
+      panoramaHorizonV: normalizedEnvironment.panoramaHorizonV ?? STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
     },
   };
 }

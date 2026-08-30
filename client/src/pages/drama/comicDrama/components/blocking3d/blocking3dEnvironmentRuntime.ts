@@ -33,9 +33,9 @@ export interface Blocking3dEnvironmentRuntime {
   clearEnvironmentVisuals(): void;
   /** 加载 HDRI 并在世界节点下重建背景穹顶；返回 false 表示已有更新的加载接管。 */
   load(url: string | null, environmentSettings: Blocking3dEnvironmentSettings): Promise<boolean>;
-  /** 环境参数（半球直径/投射高度/分界线）变化后同步背景缩放与着色器 uniform。 */
+  /** 环境参数（圆半径/投射高度/分界线）变化后同步背景缩放与着色器 uniform。 */
   applySettings(environmentSettings: Blocking3dEnvironmentSettings): void;
-  /** 投射高度或半球直径变化后重建背景网格（顶点几何只由这两个量决定）。 */
+  /** 投射高度或圆半径变化后重建背景网格（顶点几何只由这两个量决定）。 */
   rebuildEnvironmentBackdropMesh(environmentSettings: Blocking3dEnvironmentSettings): void;
   destroy(): void;
 }
@@ -153,7 +153,7 @@ export function createBlocking3dEnvironmentRuntime(
         // can leave a raster gap even when their positions appear identical.
         const mesh = pc.Mesh.fromGeometry(
           app.graphicsDevice,
-          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
         );
         const material = createProjectedHdriMaterial(projectionCube, environmentSettings);
         environmentMaterial = material;
@@ -172,7 +172,7 @@ export function createBlocking3dEnvironmentRuntime(
         if (enableShadowCatcher) {
           const shadowCatcherMesh = pc.Mesh.fromGeometry(
             app.graphicsDevice,
-            createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+            createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
           );
           environmentShadowCatcherMaterial = createShadowCatcherMaterial();
           environmentShadowCatcherMeshInstance = new pc.MeshInstance(
@@ -204,17 +204,17 @@ export function createBlocking3dEnvironmentRuntime(
     applySettings(environmentSettings) {
       if (environmentBackdrop) {
         environmentBackdrop.setLocalScale(
-          environmentSettings.domeRadius,
-          environmentSettings.domeRadius,
-          environmentSettings.domeRadius,
+          environmentSettings.radiusMeters * 2,
+          environmentSettings.radiusMeters * 2,
+          environmentSettings.radiusMeters * 2,
         );
         environmentBackdrop.setEulerAngles(0, 0, 0);
       }
       if (environmentShadowCatcher) {
         environmentShadowCatcher.setLocalScale(
-          environmentSettings.domeRadius,
-          environmentSettings.domeRadius,
-          environmentSettings.domeRadius,
+          environmentSettings.radiusMeters * 2,
+          environmentSettings.radiusMeters * 2,
+          environmentSettings.radiusMeters * 2,
         );
         environmentShadowCatcher.setEulerAngles(0, 0, 0);
       }
@@ -233,7 +233,7 @@ export function createBlocking3dEnvironmentRuntime(
         const previousBackdropMesh = environmentBackdropMeshInstance.mesh;
         const nextBackdropMesh = pc.Mesh.fromGeometry(
           app.graphicsDevice,
-          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+          createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
         );
         environmentBackdropMeshInstance.mesh = nextBackdropMesh;
         previousBackdropMesh.destroy();
@@ -242,7 +242,7 @@ export function createBlocking3dEnvironmentRuntime(
         const previousShadowCatcherMesh = environmentShadowCatcherMeshInstance.mesh;
         const nextShadowCatcherMesh = pc.Mesh.fromGeometry(
           app.graphicsDevice,
-          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.domeRadius),
+          createGroundDomeGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
         );
         environmentShadowCatcherMeshInstance.mesh = nextShadowCatcherMesh;
         previousShadowCatcherMesh.destroy();

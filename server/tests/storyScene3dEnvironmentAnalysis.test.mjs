@@ -1,18 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildStoryScene3dImageFingerprint,
+  isStoryScene3dEnvironmentAnalysisCurrent,
   normalizeVisionStoryScene3dEnvironment,
   shouldAutoAnalyzeStoryScene3dEnvironment,
 } from "../dist/modules/novel/story-settings/application/StoryScene3dEnvironment.js";
-import {
-  buildStoryScene3dImageFingerprint,
-  isStoryScene3dEnvironmentAnalysisCurrent,
-} from "../dist/modules/novel/story-settings/application/StoryScene3dEnvironmentAnalysisService.js";
 import { sceneState3dEnvironmentPrompt } from "../dist/prompting/prompts/drama/sceneState3dEnvironment.prompts.js";
 
-test("视觉估算会保存半球直径、投射中心和图片指纹", () => {
+test("视觉估算会保存圆半径、投射中心和图片指纹", () => {
   const result = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 18.4,
+    radiusMeters: 9.2,
     projectionCenterHeightMeters: 2.2,
     panoramaHorizonV: 0.51,
     confidence: 0.9,
@@ -22,7 +20,7 @@ test("视觉估算会保存半球直径、投射中心和图片指纹", () => {
     sourceImageUrl: "/uploads/scene-1.png",
   });
 
-  assert.equal(result.environment.domeRadius, 18.4);
+  assert.equal(result.environment.radiusMeters, 9.2);
   assert.equal(result.environment.projectionCenterHeight, 2.2);
   assert.equal(result.environment.panoramaHorizonV, 0.51);
   assert.equal(result.analysis.source, "vision");
@@ -33,39 +31,51 @@ test("视觉估算会保存半球直径、投射中心和图片指纹", () => {
   assert.equal(result.analysis.fallbackUsed, false);
 });
 
-test("视觉估算缺少可信尺度时回落到 15 米直径和 2 米中心", () => {
+test("视觉估算缺少可信尺度时回落到 7.5 米半径和 2 米中心", () => {
   const result = normalizeVisionStoryScene3dEnvironment({
     confidence: 0.2,
     sourceImageArtifactId: "artifact-low-confidence",
   });
 
-  assert.equal(result.environment.domeRadius, 15);
+  assert.equal(result.environment.radiusMeters, 7.5);
   assert.equal(result.environment.projectionCenterHeight, 2);
-  assert.equal(result.environment.projectionCenterHeightRatio, 2 / 15);
+  assert.equal(result.environment.projectionCenterHeightRatio, 4 / 15);
   assert.equal(result.environment.panoramaHorizonV, 0.5);
   assert.equal(result.analysis.source, "fallback");
   assert.equal(result.analysis.fallbackUsed, true);
   assert.equal(result.analysis.sourceImageArtifactId, "artifact-low-confidence");
 });
 
-test("视觉估算会把越界数值裁剪到 3D 环境合同范围", () => {
+test("视觉估算会把越界圆半径裁剪到 3D 环境合同范围", () => {
   const result = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 42,
+    radiusMeters: 42,
     projectionCenterHeightMeters: 9,
     panoramaHorizonV: 0.9,
     confidence: 0.8,
   });
 
-  assert.equal(result.environment.domeRadius, 30);
+  assert.equal(result.environment.radiusMeters, 15);
   assert.equal(result.environment.projectionCenterHeight, 6);
-  assert.equal(result.environment.projectionCenterHeightRatio, 0.2);
+  assert.equal(result.environment.projectionCenterHeightRatio, 0.4);
   assert.equal(result.environment.panoramaHorizonV, 0.55);
   assert.equal(result.analysis.source, "vision");
 });
 
+test("视觉估算兼容历史半球直径并保持投射中心实际高度", () => {
+  const result = normalizeVisionStoryScene3dEnvironment({
+    domeDiameterMeters: 18.4,
+    projectionCenterHeightMeters: 2.2,
+    confidence: 0.9,
+  });
+
+  assert.equal(result.environment.radiusMeters, 9.2);
+  assert.equal(result.environment.projectionCenterHeight, 2.2);
+  assert.ok(Math.abs(result.environment.projectionCenterHeightRatio - (2.2 / 9.2)) < 0.0001);
+});
+
 test("视觉模型没有返回地平线时保留 50% 默认分界线", () => {
   const result = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 15,
+    radiusMeters: 7.5,
     projectionCenterHeightMeters: 2,
     panoramaHorizonV: null,
     confidence: 0.8,
@@ -86,6 +96,8 @@ test("环境视觉分析提示词要求识别 2:1 全景图的地平线和尺度
   assert.match(systemText, /2:1/);
   assert.match(systemText, /50%|0\.5/);
   assert.match(systemText, /尺度/);
+  assert.match(systemText, /radiusMeters/);
+  assert.doesNotMatch(systemText, /domeDiameterMeters 是/);
   assert.ok(Array.isArray(humanContent));
   assert.equal(humanContent.some((part) => part?.type === "image_url"), true);
 });
@@ -97,7 +109,7 @@ test("图片指纹只在当前分析对应同一张状态图时命中", () => {
     url: "/uploads/scene-1.png",
   };
   const analysis = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 15,
+    radiusMeters: 7.5,
     projectionCenterHeightMeters: 2,
     confidence: 0.8,
     sourceImageArtifactId: image.artifactId,
@@ -113,7 +125,7 @@ test("图片指纹只在当前分析对应同一张状态图时命中", () => {
 test("自动分析闸门只允许未定制且图片未命中的场景", () => {
   const image = { artifactId: "artifact-1", generatedAt: "2026-08-30T00:00:00.000Z", url: "/scene.png" };
   const currentAnalysis = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 15,
+    radiusMeters: 7.5,
     projectionCenterHeightMeters: 2,
     confidence: 0.8,
     sourceImageArtifactId: image.artifactId,

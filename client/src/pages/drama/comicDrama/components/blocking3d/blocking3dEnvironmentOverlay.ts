@@ -1,6 +1,6 @@
 import * as pc from "playcanvas";
 
-import { resolveStoryScene3DDomeWorldRadius } from "@ai-novel/shared/utils/blockingStage";
+import { resolveStoryScene3DWorldRadius } from "@ai-novel/shared/utils/blockingStage";
 
 import { GROUND_DOME_FLAT_RADIUS } from "./blocking3dEnvironmentGeometry.ts";
 import type { Blocking3dEnvironmentSettings } from "./blocking3dViewerCore.ts";
@@ -26,7 +26,7 @@ function createGridColor(major: boolean): pc.Color {
 /**
  * 构建漫剧 3D 环境同款地面辅助网格。
  *
- * domeRadius 的产品语义是完整直径，因此网格先换算成世界半径，再收进
+ * radiusMeters 是投射中心到边界的真实圆半径，网格直接按世界半径收进
  * 地面平底半径。这样模型、动画和漫剧查看器不会各自使用固定的 3m/10m
  * 范围，也不会把线画到半圆地面的弧形过渡区之外。
  */
@@ -35,7 +35,7 @@ export function buildBlocking3dGroundGridLines(
 ): Blocking3dGroundGridLine[] {
   const floorRadius = Math.max(
     GROUND_GRID_SPACING_METERS,
-    resolveStoryScene3DDomeWorldRadius(environmentSettings) * GROUND_DOME_FLAT_RADIUS,
+    resolveStoryScene3DWorldRadius(environmentSettings) * GROUND_DOME_FLAT_RADIUS,
   );
   const lastGridValue = Math.floor(floorRadius / GROUND_GRID_SPACING_METERS) * GROUND_GRID_SPACING_METERS;
   const lines: Blocking3dGroundGridLine[] = [];

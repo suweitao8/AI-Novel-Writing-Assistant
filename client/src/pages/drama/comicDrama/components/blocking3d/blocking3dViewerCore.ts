@@ -2,7 +2,6 @@ import * as pc from "playcanvas";
 import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
-  STORY_SCENE_3D_ENVIRONMENT_LIMITS,
 } from "@ai-novel/shared/types/comicDrama";
 
 import type {
@@ -31,12 +30,10 @@ export const DEFAULT_FOV = 52;
 export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
-/** 场景编辑器和通用 HDRI 预览共用的半球直径范围。 */
-export const BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS = STORY_SCENE_3D_ENVIRONMENT_LIMITS.domeRadius;
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
   projectionCenterHeight: 2,
   projectionCenterHeightRatio: STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
-  domeRadius: 15,
+  radiusMeters: 7.5,
   panoramaHorizonV: STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   yawDeg: 0,
   intensity: 1,
@@ -111,43 +108,38 @@ export function clamp(value: number, min: number, max: number): number {
 }
 
 export function normalizeEnvironmentSettings(
-  input: Partial<Blocking3dEnvironmentSettings> | undefined,
+  input: (Partial<Blocking3dEnvironmentSettings> & { domeRadius?: number }) | undefined,
 ): Blocking3dEnvironmentSettings {
+  const source = input as (Partial<Blocking3dEnvironmentSettings> & { domeRadius?: number }) | undefined;
   const numberOr = (value: unknown, fallback: number): number => {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : fallback;
   };
+  const hasCurrentRadius = Number.isFinite(Number(source?.radiusMeters)) && Number(source?.radiusMeters) > 0;
+  const hasLegacyDiameter = !hasCurrentRadius
+    && Number.isFinite(Number(source?.domeRadius))
+    && Number(source?.domeRadius) > 0;
+  const radiusMeters = clamp(
+    numberOr(source?.radiusMeters, numberOr(source?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.radiusMeters * 2) / 2),
+    2.5,
+    15,
+  );
+  const rawRatio = numberOr(
+    source?.projectionCenterHeightRatio,
+    DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio,
+  );
+  const ratio = clamp(
+    hasLegacyDiameter && source?.projectionCenterHeightRatio !== undefined
+      ? rawRatio * 2
+      : rawRatio,
+    0.1,
+    0.4,
+  );
   return {
-    projectionCenterHeightRatio: clamp(
-      numberOr(
-        input?.projectionCenterHeightRatio,
-        DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio,
-      ),
-      0.05,
-      0.2,
-    ),
-    projectionCenterHeight: (() => {
-      // 高度由直径 × 占比派生，直径拖动时投射中心等比跟随。
-      const ratio = clamp(
-        numberOr(
-          input?.projectionCenterHeightRatio,
-          DEFAULT_BLOCKING_3D_ENVIRONMENT.projectionCenterHeightRatio,
-        ),
-        0.05,
-        0.2,
-      );
-      const diameter = clamp(
-        numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
-        BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.min,
-        BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.max,
-      );
-      return Math.round(diameter * ratio * 100) / 100;
-    })(),
-    domeRadius: clamp(
-      numberOr(input?.domeRadius, DEFAULT_BLOCKING_3D_ENVIRONMENT.domeRadius),
-      BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.min,
-      BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS.max,
-    ),
+    projectionCenterHeightRatio: ratio,
+    // 高度由圆半径 × 占比派生，圆半径拖动时投射中心等比跟随。
+    projectionCenterHeight: Math.round(radiusMeters * ratio * 100) / 100,
+    radiusMeters,
     panoramaHorizonV: clamp(
       numberOr(
         input?.panoramaHorizonV,
@@ -173,19 +165,19 @@ function createPlayCanvasGeometry(data: Blocking3dGeometryData): pc.Geometry {
 
 export function createBackdropGeometry(
   projectionCenterHeight: number,
-  domeRadius: number,
+  radiusMeters: number,
 ): pc.Geometry {
   return createPlayCanvasGeometry(
-    createBackdropGeometryData(projectionCenterHeight, domeRadius),
+    createBackdropGeometryData(projectionCenterHeight, radiusMeters),
   );
 }
 
 export function createGroundDomeGeometry(
   projectionCenterHeight: number,
-  domeRadius: number,
+  radiusMeters: number,
 ): pc.Geometry {
   return createPlayCanvasGeometry(
-    createGroundDomeGeometryData(projectionCenterHeight, domeRadius),
+    createGroundDomeGeometryData(projectionCenterHeight, radiusMeters),
   );
 }
 

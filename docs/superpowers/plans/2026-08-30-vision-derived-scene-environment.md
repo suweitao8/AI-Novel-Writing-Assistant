@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove the low-value scene-type UI and make scene 3D environment defaults come from a cached vision analysis of the panorama, with bounded 15 m / 2 m fallback values and manual override protection.
+**Goal:** Remove the low-value scene-type UI and make scene 3D environment defaults come from a cached vision analysis of the panorama, with bounded 7.5 m radius / 2 m fallback values and manual override protection.
 
 **Architecture:** Keep legacy `sceneType` data readable but stop using it as the 3D default selector or showing it in the scene asset UI. Add a registered structured vision prompt and a story-settings application service that analyzes a state image, normalizes the result, persists image-fingerprint metadata, and exposes one idempotent API. The 3D page lazily requests analysis when the scene image is available; the existing sliders remain the manual override path.
 
@@ -23,17 +23,17 @@
 Add tests that assert:
 
 ```js
-test("uses 15m diameter and 2m projection center as the type-independent fallback", () => {
+test("uses 7.5m radius and 2m projection center as the type-independent fallback", () => {
   const environment = getDefaultStoryScene3dEnvironment();
-  assert.equal(environment.domeRadius, 15);
+  assert.equal(environment.radiusMeters, 7.5);
   assert.equal(environment.projectionCenterHeight, 2);
-  assert.equal(environment.projectionCenterHeightRatio, 2 / 15);
+  assert.equal(environment.projectionCenterHeightRatio, 2 / 7.5);
   assert.equal(environment.panoramaHorizonV, 0.5);
 });
 
 test("normalizes a vision estimate and keeps its image fingerprint", () => {
   const result = normalizeVisionStoryScene3dEnvironment({
-    domeDiameterMeters: 18.4,
+    radiusMeters: 9.2,
     projectionCenterHeightMeters: 2.2,
     panoramaHorizonV: 0.51,
     confidence: 0.9,
@@ -41,7 +41,7 @@ test("normalizes a vision estimate and keeps its image fingerprint", () => {
     sourceImageArtifactId: "artifact-1",
     sourceImageGeneratedAt: "2026-08-30T00:00:00.000Z",
   });
-  assert.equal(result.environment.domeRadius, 18.4);
+  assert.equal(result.environment.radiusMeters, 9.2);
   assert.equal(result.environment.projectionCenterHeight, 2.2);
   assert.equal(result.analysis.confidence, 0.9);
   assert.equal(result.analysis.sourceImageArtifactId, "artifact-1");
@@ -49,7 +49,7 @@ test("normalizes a vision estimate and keeps its image fingerprint", () => {
 
 test("falls back when the vision result has no trustworthy scale", () => {
   const result = normalizeVisionStoryScene3dEnvironment({ confidence: 0.2 });
-  assert.equal(result.environment.domeRadius, 15);
+  assert.equal(result.environment.radiusMeters, 7.5);
   assert.equal(result.environment.projectionCenterHeight, 2);
   assert.equal(result.analysis.fallbackUsed, true);
 });
@@ -69,9 +69,9 @@ Expected: the new exports are missing or the old type-dependent values fail, pro
 
 Add `StoryScene3dEnvironmentAnalysis` metadata to the shared environment type and implement:
 
-- type-independent fallback constants (`domeRadius=15`, `projectionCenterHeight=2`, `ratio=2/15`, `panoramaHorizonV=0.5`);
+- type-independent fallback constants (`radiusMeters=7.5`, `projectionCenterHeight=2`, `ratio=2/7.5`, `panoramaHorizonV=0.5`);
 - `normalizeVisionStoryScene3dEnvironment` with numeric bounds, confidence threshold, and fallback metadata;
-- serialization/parsing of `analysis` and `customized` without dropping unknown legacy fields;
+- serialization/parsing of `analysis` and `customized` without dropping unknown legacy fields; legacy `domeRadius` is read as a diameter and new output writes `radiusMeters`;
 - `resolveStoryScene3dEnvironment` behavior that preserves custom environments but uses the type-independent fallback for uncustomized legacy rows.
 
 Do not remove the legacy `sceneType` type from storage or unrelated extraction contracts in this task.
@@ -105,11 +105,11 @@ Expected: imports for the new PromptAsset/service fail because the files do not 
 
 - [ ] **Step 3: Implement the registered PromptAsset**
 
-Create `drama.scene.state.3d_environment` with a Zod output schema containing bounded `panoramaHorizonV`, `domeDiameterMeters`, `projectionCenterHeightMeters`, `confidence`, and optional `evidence`. The prompt must explicitly say:
+Create `drama.scene.state.3d_environment` with a Zod output schema containing bounded `panoramaHorizonV`, `radiusMeters`, `projectionCenterHeightMeters`, `confidence`, and optional `evidence`; legacy `domeDiameterMeters` is accepted only by the input adapter. The prompt must explicitly say:
 
 - input is a 2:1 equirectangular scene panorama;
 - v=0.5 is the initial reference line, but return the visually observed projection horizon;
-- estimate diameter only from visible scale cues and floor/ground extent;
+- estimate radius only from visible scale cues and floor/ground extent;
 - do not invent precision when no scale cue is visible;
 - return JSON only.
 
@@ -243,7 +243,7 @@ Use a dedicated browser tab or isolated browser instance against `http://127.0.0
 2. Confirm scene cards no longer show a type badge.
 3. Open a scene 3D editor with an existing state image.
 4. Confirm the analysis request runs at most once for the current image and the environment controls remain usable.
-5. Change the diameter slider and save; confirm the manual value persists after reload.
+5. Change the circle-radius slider and save; confirm the manual value persists after reload.
 6. Check console and network logs for no critical errors or failed API calls.
 
 Capture a screenshot of the simplified scene card and the 3D environment panel as evidence.
