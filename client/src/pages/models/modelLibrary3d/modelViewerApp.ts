@@ -32,6 +32,7 @@ import {
 } from "./modelViewerCamera";
 import {
   fitModelPreviewCamera,
+  getModelPreviewAspectRatio,
   MODEL_PREVIEW_FRAMING,
   type ModelPreviewBounds,
 } from "./modelPreviewFraming";
@@ -316,7 +317,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   };
 
   const fitCameraTo = () => {
-    const fit = fitModelPreviewCamera(modelPreviewBounds, canvas.width / Math.max(canvas.height, 1));
+    const fit = fitModelPreviewCamera(modelPreviewBounds, getModelPreviewAspectRatio(canvas));
     const fitRadius = Math.max(modelRadius, Number.EPSILON);
     const modelPosition = modelRoot.getPosition();
     cameraState.azim = fit.azimuthDegrees;

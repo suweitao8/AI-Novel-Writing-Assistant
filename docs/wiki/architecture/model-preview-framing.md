@@ -11,6 +11,7 @@
 ## Current Rule
 
 - `thumbnailStudio.ts` 与 `modelViewerApp.ts` 必须使用同一套标准姿态和 AABB 拟合函数。
+- 详情页首次拟合必须优先使用 canvas 的 CSS 布局尺寸（`clientWidth/clientHeight`），不能直接使用 PlayCanvas 初始化阶段的默认绘图缓冲尺寸；后者常见为 300×150，会让宽画布中的主体横向偏小。
 - AABB 必须来自带节点世界变换的完整几何边界；不能直接把单个 mesh 的未经验证包围盒当作最终取景依据。
 - 缩略图缓存键包含取景合同版本。取景、投影、材质或环境改变时必须递增版本，避免旧图覆盖新规则。
 - 退化或异常几何只能回退到有限安全距离，不能把 `NaN` 或 `Infinity` 传入 PlayCanvas。

@@ -18,6 +18,13 @@ export interface ModelPreviewProjection {
   maxOccupancy: number;
 }
 
+export interface ModelPreviewCanvasMetrics {
+  width?: number;
+  height?: number;
+  clientWidth?: number;
+  clientHeight?: number;
+}
+
 export const MODEL_PREVIEW_FRAMING = Object.freeze({
   azimuthDegrees: -45,
   elevationDegrees: -25,
@@ -30,6 +37,17 @@ export const MODEL_PREVIEW_FRAMING = Object.freeze({
 });
 
 const EPSILON = 1e-8;
+
+function positiveFinite(value: number | undefined): number | null {
+  return Number.isFinite(value) && (value as number) > EPSILON ? value as number : null;
+}
+
+/** Prefer the CSS layout size so initial fitting is not based on WebGL's default 300x150 canvas. */
+export function getModelPreviewAspectRatio(metrics: ModelPreviewCanvasMetrics): number {
+  const width = positiveFinite(metrics.clientWidth) ?? positiveFinite(metrics.width) ?? 1;
+  const height = positiveFinite(metrics.clientHeight) ?? positiveFinite(metrics.height) ?? 1;
+  return width / height;
+}
 
 function finiteNumber(value: number, fallback: number): number {
   return Number.isFinite(value) ? value : fallback;
