@@ -5,6 +5,10 @@ const {
   parseStudioEnvironmentAssetDocument,
 } = require("../dist/services/settings/StudioEnvironmentAssetSettingsService.js");
 
+const {
+  canDismissStudioEnvironmentImageError,
+} = require("../dist/services/settings/StudioEnvironmentStateImageService.js");
+
 function doneImage(url, generatedAt) {
   return { status: "done", url, generatedAt };
 }
@@ -89,4 +93,14 @@ test("超长文本被截断而不是拒绝整个文档", () => {
   });
   const state = document.environments.exterior.states[0];
   assert.ok(state.imagePrompt.length <= 2000);
+});
+
+test("失败提示只清除用户看到的那一次错误（乐观校验）", () => {
+  const seen = { status: "error", error: "生成失败：上游超时", attemptId: "a-1" };
+  assert.equal(canDismissStudioEnvironmentImageError(seen, "生成失败：上游超时"), true);
+  assert.equal(canDismissStudioEnvironmentImageError(seen, "生成失败：上游超时", "a-1"), true);
+  assert.equal(canDismissStudioEnvironmentImageError(seen, "旧的错误"), false);
+  assert.equal(canDismissStudioEnvironmentImageError(seen, "生成失败：上游超时", "a-2"), false);
+  assert.equal(canDismissStudioEnvironmentImageError({ status: "done", url: "/x" }, "任意"), false);
+  assert.equal(canDismissStudioEnvironmentImageError(undefined, "任意"), false);
 });

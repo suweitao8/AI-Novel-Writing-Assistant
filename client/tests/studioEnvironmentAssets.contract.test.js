@@ -56,6 +56,9 @@ test("环境编辑完全复用场景资产的 AssetStatesEditor 并注入设置�
   assert.match(settingsPageSource, /renderExtraImageAction/);
   assert.match(settingsPageSource, /设为当前全景/);
   assert.match(settingsPageSource, /编辑环境/);
+  // 环境列表与场景资产同一套卡片：点卡片进编辑，编辑器内提供同款 3D编辑 按钮。
+  assert.match(settingsPageSource, /StoryAssetCard/);
+  assert.match(settingsPageSource, /3D编辑/);
   // 环境描述是弹窗级字段，与场景资产的基础字段同级。
   assert.match(settingsPageSource, /环境描述/);
   // 生成期间轮询设置接口，页面外也能跟进结果。
@@ -67,6 +70,9 @@ test("环境接口覆盖资料保存、活跃状态与提示词微调", () => {
   assert.match(apiSettingsSource, /\/settings\/environment-assets/);
   assert.match(apiSettingsSource, /tweak-prompt/);
   assert.match(apiSettingsSource, /eraStyle/);
+  // 失败提示清除与小说资产同契约：body 用 error/attemptId 做乐观校验。
+  assert.match(apiSettingsSource, /dismiss-image-error/);
+  assert.match(apiSettingsSource, /\{ error, \.\.\.\(attemptId \? \{ attemptId \} : \{\}\) \}/);
 });
 
 test("HDRI 3D 预览页经解析器取环境源", () => {

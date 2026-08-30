@@ -252,12 +252,12 @@ export async function cancelStudioEnvironmentStateImage(environmentId: StudioEnv
 export async function dismissStudioEnvironmentStateImageError(
   environmentId: StudioEnvironmentId,
   stateId: string,
-  expectedError: string,
-  expectedAttemptId?: string,
+  error: string,
+  attemptId?: string,
 ) {
   const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
     `/settings/environment-assets/${environmentId}/states/${stateId}/dismiss-image-error`,
-    { expectedError, ...(expectedAttemptId ? { expectedAttemptId } : {}) },
+    { error, ...(attemptId ? { attemptId } : {}) },
   );
   return data;
 }

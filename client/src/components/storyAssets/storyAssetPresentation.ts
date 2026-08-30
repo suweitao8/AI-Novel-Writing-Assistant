@@ -5,6 +5,9 @@ import type {
 } from "@/api/story/storySettings";
 
 import type {
+  StudioEnvironmentAsset,
+} from "@ai-novel/shared/types/studioEnvironmentAssets";
+import type {
   StoryAssetState,
   StoryAssetStateImage,
 } from "@ai-novel/shared/types/novelReferenceExtraction";
@@ -268,4 +271,23 @@ export function buildStoryAssetPresentation(input: StoryAssetInput): StoryAssetP
       : buildPropPresentation(input.asset);
 
   return { ...view, source: input.asset };
+}
+
+/** 通用资产的 HDRI 环境：与场景资产同一套卡片展示（默认状态预览、状态数、生成徽标）。 */
+export function buildEnvironmentAssetPresentation(asset: StudioEnvironmentAsset): StoryAssetPresentation {
+  const states = asset.states.map(buildStatePresentation);
+  return {
+    id: asset.id,
+    updatedAt: "",
+    kind: "scene",
+    typeLabel: "环境",
+    name: asset.label,
+    summary: clean(asset.description) || clean(states[0]?.description) || "暂无补充信息",
+    badges: [],
+    details: [],
+    states,
+    preview: buildStoryAssetPreview("scene", asset.label, states),
+    // 环境卡片只走只读展示；source 的小说设定消费者（脚本侧栏、引用提取）不会收到环境。
+    source: asset as unknown as StoryAssetSource,
+  };
 }

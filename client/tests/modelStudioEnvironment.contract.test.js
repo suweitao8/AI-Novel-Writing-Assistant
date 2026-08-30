@@ -111,19 +111,22 @@ test("场景 blocking viewer 支持只加载环境而不加载代理角色", () 
   assert.match(blockingViewerSource, /if \(options\.loadProxyActor !== false\)/);
 });
 
-test("通用资产页用表格统一管理旁白音色和 HDRI 直径", () => {
+test("通用资产页的 HDRI 环境复用场景资产卡片，直径只在 3D 预览页调节", () => {
   assert.match(settingsSource, /title="通用资产"/);
   assert.match(settingsSource, /<table/);
   assert.match(settingsSource, /旁白音色预设/);
   assert.match(settingsSource, /模型与动画 HDRI 预设/);
   assert.match(settingsSource, /STUDIO_ENVIRONMENT_PRESET_IDS/);
-  assert.match(settingsSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
-  assert.match(settingsSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
-  assert.match(settingsSource, /saveStudioEnvironmentDiameterPreference/);
-  assert.match(settingsSource, /3D 预览/);
+  // 环境列表就是场景资产卡片：点卡片进入编辑，不再有独立的编辑/预览按钮和直径滑杆。
+  assert.match(settingsSource, /StoryAssetCard/);
+  assert.match(settingsSource, /buildEnvironmentAssetPresentation/);
+  assert.match(settingsSource, /onOpen=\{\(\) => setEditingEnvironmentId\(id\)\}/);
+  assert.doesNotMatch(settingsSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
+  assert.doesNotMatch(settingsSource, /saveStudioEnvironmentDiameterPreference/);
+  assert.doesNotMatch(settingsSource, /3D 预览/);
   assert.match(settingsSource, /settings\/narrator-voice\/hdri/);
   assert.match(settingsSource, /previewImageUrl/);
-  assert.match(settingsSource, /Dialog/);
+  assert.match(settingsSource, /AppDialogContent/);
   assert.doesNotMatch(settingsSource, /preset\.sourceUrl/);
 });
 
