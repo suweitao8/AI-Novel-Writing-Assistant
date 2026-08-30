@@ -121,19 +121,29 @@ function getBoundsCorners(bounds: ModelPreviewBounds): ModelPreviewVector[] {
   return corners;
 }
 
+function normalizePreviewPoints(
+  inputPoints: readonly ModelPreviewVector[] | undefined,
+): ModelPreviewVector[] {
+  if (!inputPoints) return [];
+  return inputPoints
+    .filter((point) => point?.length === 3 && point.every((value) => Number.isFinite(value)))
+    .map((point) => [point[0], point[1], point[2]]);
+}
+
 function projectAtDistance(
   bounds: ModelPreviewBounds,
   target: ModelPreviewVector,
   distance: number,
   aspectRatio: number,
   basis: ReturnType<typeof getCameraBasis>,
+  points?: readonly ModelPreviewVector[],
 ): ModelPreviewProjection {
   const safeDistance = Math.max(EPSILON, finiteNumber(distance, MODEL_PREVIEW_FRAMING.maxDistance));
   const safeAspect = Math.max(EPSILON, finiteNumber(aspectRatio, 1));
   const tanHalfFov = Math.tan(MODEL_PREVIEW_FRAMING.fovDegrees * Math.PI / 360);
   const projected: Array<[number, number]> = [];
 
-  for (const corner of getBoundsCorners(bounds)) {
+  for (const corner of points && points.length > 0 ? points : getBoundsCorners(bounds)) {
     const relative: ModelPreviewVector = [
       corner[0] - target[0],
       corner[1] - target[1],
@@ -166,11 +176,37 @@ export function projectModelPreviewBounds(
   return projectAtDistance(bounds, target, fit.distance, aspectRatio, getCameraBasis(fit));
 }
 
+export function projectModelPreviewPoints(
+  inputPoints: readonly ModelPreviewVector[],
+  fit: ModelPreviewCameraFit,
+  aspectRatio: number,
+): ModelPreviewProjection {
+  const points = normalizePreviewPoints(inputPoints);
+  const bounds: ModelPreviewBounds = points.length > 0
+    ? {
+      min: [
+        Math.min(...points.map((point) => point[0])),
+        Math.min(...points.map((point) => point[1])),
+        Math.min(...points.map((point) => point[2])),
+      ],
+      max: [
+        Math.max(...points.map((point) => point[0])),
+        Math.max(...points.map((point) => point[1])),
+        Math.max(...points.map((point) => point[2])),
+      ],
+    }
+    : { min: [0, 0, 0], max: [0, 0, 0] };
+  const target = fit.target ?? boundsCenter(bounds);
+  return projectAtDistance(bounds, target, fit.distance, aspectRatio, getCameraBasis(fit), points);
+}
+
 export function fitModelPreviewCamera(
   inputBounds: ModelPreviewBounds,
   aspectRatio: number,
+  inputPoints?: readonly ModelPreviewVector[],
 ): ModelPreviewCameraFit {
   const bounds = normalizeBounds(inputBounds);
+  const points = normalizePreviewPoints(inputPoints);
   const target = boundsCenter(bounds);
   const basis = getCameraBasis(MODEL_PREVIEW_FRAMING);
   const diagonal = Math.hypot(
@@ -189,7 +225,7 @@ export function fitModelPreviewCamera(
 
   let high = Math.max(MODEL_PREVIEW_FRAMING.minDistance, diagonal);
   while (
-    projectAtDistance(bounds, target, high, aspectRatio, basis).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy
+    projectAtDistance(bounds, target, high, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy
     && high < MODEL_PREVIEW_FRAMING.maxDistance
   ) {
     high *= 2;
@@ -198,7 +234,7 @@ export function fitModelPreviewCamera(
   let low: number = MODEL_PREVIEW_FRAMING.minDistance;
   for (let iteration = 0; iteration < 48; iteration += 1) {
     const middle = (low + high) / 2;
-    if (projectAtDistance(bounds, target, middle, aspectRatio, basis).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy) {
+    if (projectAtDistance(bounds, target, middle, aspectRatio, basis, points).maxOccupancy > MODEL_PREVIEW_FRAMING.targetOccupancy) {
       low = middle;
     } else {
       high = middle;

@@ -12,11 +12,17 @@ import {
   type CharacterAppearanceController,
 } from "./characterAppearance";
 import { applyModelMaterials } from "./modelMaterials";
-import { computeSourceBounds } from "./modelViewerApp";
+import {
+  collectModelPreviewPoints,
+  computeSourceBounds,
+  getNormalizedModelPreviewBounds,
+  normalizeModelPreviewPoints,
+} from "./modelViewerApp";
 import {
   fitModelPreviewCamera,
   MODEL_PREVIEW_FRAMING,
   type ModelPreviewBounds,
+  type ModelPreviewVector,
 } from "./modelPreviewFraming";
 import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 
@@ -29,7 +35,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v21";
+const STORAGE_KEY = "model-library:thumbnails:v22";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -182,12 +188,17 @@ async function createThumbnailStudio(): Promise<{
   }
   const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
-  const frame = (bounds: ModelPreviewBounds) => {
-    const fit = fitModelPreviewCamera(bounds, THUMBNAIL_SIZE.width / THUMBNAIL_SIZE.height);
+  const frame = (bounds: ModelPreviewBounds, points: readonly ModelPreviewVector[] = []) => {
+    const fit = fitModelPreviewCamera(
+      bounds,
+      THUMBNAIL_SIZE.width / THUMBNAIL_SIZE.height,
+      points,
+    );
     const target = new pc.Vec3(...fit.target);
     const azim = fit.azimuthDegrees * pc.math.DEG_TO_RAD;
     const elev = fit.elevationDegrees * pc.math.DEG_TO_RAD;
     const distance = fit.distance;
+    cameraEntity.camera!.nearClip = Math.max(0.001, Math.min(0.05, distance * 0.05));
     cameraEntity.setPosition(
       target.x + Math.sin(azim) * Math.cos(elev) * distance,
       target.y + Math.sin(-elev) * distance,
@@ -223,10 +234,12 @@ async function createThumbnailStudio(): Promise<{
         // 应用米换算与底部中心落原点偏移。
         app.root.syncHierarchy();
         const bounds = computeSourceBounds(inner);
+        const sourcePoints = collectModelPreviewPoints(inner);
         let previewBounds: ModelPreviewBounds = {
           min: [-0.5, 0, -0.5],
           max: [0.5, 1, 0.5],
         };
+        let previewPoints: ModelPreviewVector[] = [];
         if (bounds) {
           adjust.setLocalScale(unitScale, unitScale, unitScale);
           adjust.setPosition(
@@ -234,18 +247,8 @@ async function createThumbnailStudio(): Promise<{
             -(bounds.center[1] - bounds.halfExtents[1]) * unitScale,
             -bounds.center[2] * unitScale,
           );
-          previewBounds = {
-            min: [
-              (bounds.center[0] - bounds.halfExtents[0] - bounds.center[0]) * unitScale,
-              0,
-              (bounds.center[2] - bounds.halfExtents[2] - bounds.center[2]) * unitScale,
-            ],
-            max: [
-              (bounds.center[0] + bounds.halfExtents[0] - bounds.center[0]) * unitScale,
-              bounds.halfExtents[1] * 2 * unitScale,
-              (bounds.center[2] + bounds.halfExtents[2] - bounds.center[2]) * unitScale,
-            ],
-          };
+          previewBounds = getNormalizedModelPreviewBounds(bounds, unitScale);
+          previewPoints = normalizeModelPreviewPoints(sourcePoints, bounds, unitScale);
         }
         if (entry.previewAppearance) {
           appearanceController = createCharacterAppearanceController(app, root);
@@ -254,7 +257,8 @@ async function createThumbnailStudio(): Promise<{
           // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
           await applyModelMaterials(app, root, entry.materials);
         }
-        frame(previewBounds);
+        app.root.syncHierarchy();
+        frame(previewBounds, previewPoints);
         drawFrame();
         drawFrame();
         const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
