@@ -17,6 +17,8 @@
     "workflow:cleanup": "node scripts/cleanup-codex-worktree.cjs",
     "workflow:recover-worktree": "node scripts/recover-orphan-worktree.cjs",
     "test:git-workflow": "node --test scripts/git-workflow-guard.test.cjs",
+    "test:model-library": "node --experimental-strip-types --test scripts/models/model-library-quality.test.mjs",
+    "check:model-library": "node --experimental-strip-types scripts/models/curate-cine57-library.mjs --check",
     "test:workflow": "node --test scripts/git-workflow-guard.test.cjs scripts/workspace-integrity-guard.test.cjs scripts/worktree-filesystem-safety.test.cjs scripts/worktree-lifecycle-audit.test.cjs scripts/create-codex-worktree.test.cjs scripts/integrate-codex-worktree.test.cjs scripts/cleanup-codex-worktree.test.cjs scripts/dev-orchestration-policy.test.cjs scripts/start-voxcpm2-bridge.test.cjs scripts/start-indextts25-api.test.cjs",
     "codex:image": "node scripts/start-codex-image-bridge.cjs",
     "voxcpm2:bridge": "node scripts/start-voxcpm2-bridge.cjs",
@@ -40,7 +42,7 @@
     "typecheck": "pnpm --filter @ai-novel/shared build && pnpm --filter @ai-novel/server typecheck && pnpm --filter @ai-novel/client typecheck",
     "test": "pnpm --filter @ai-novel/server test",
     "test:client": "pnpm --filter @ai-novel/client test",
-    "test:all": "pnpm --filter @ai-novel/server test:all && pnpm --filter @ai-novel/client test",
+    "test:all": "pnpm test:model-library && pnpm --filter @ai-novel/server test:all && pnpm --filter @ai-novel/client test",
     "lint": "pnpm --filter @ai-novel/shared lint && pnpm --filter @ai-novel/server lint && pnpm --filter @ai-novel/client lint"
   },
   "pnpm": {

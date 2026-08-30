@@ -1,0 +1,297 @@
+import fs from "node:fs";
+import path from "node:path";
+
+import { getUnsupportedNameReason, readGlb } from "./glbSanitizer.mjs";
+
+export const CINE57_REMOVED_MODEL_IDS = Object.freeze([
+  "z-backdrop-01a",
+  "big-rock-01",
+  "flat-rock-01",
+  "brick-stove-1",
+  "brick-stove-2",
+  "brick-stove-3",
+  "decorative-1",
+  "decorative-2",
+]);
+
+export const CINE57_EXPECTED_MODEL_COUNT = 36;
+export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
+
+const POSITION_COMPONENT_TYPE = 5126;
+const IDENTITY_MATRIX = Object.freeze([
+  1, 0, 0, 0,
+  0, 1, 0, 0,
+  0, 0, 1, 0,
+  0, 0, 0, 1,
+]);
+
+function multiplyMatrices(a, b) {
+  const output = new Array(16).fill(0);
+  for (let column = 0; column < 4; column += 1) {
+    for (let row = 0; row < 4; row += 1) {
+      for (let k = 0; k < 4; k += 1) {
+        output[column * 4 + row] += a[k * 4 + row] * b[column * 4 + k];
+      }
+    }
+  }
+  return output;
+}
+
+function nodeLocalMatrix(node) {
+  if (Array.isArray(node.matrix) && node.matrix.length === 16) return node.matrix.slice();
+
+  const [x, y, z, w] = node.rotation ?? [0, 0, 0, 1];
+  const [sx, sy, sz] = node.scale ?? [1, 1, 1];
+  const [tx, ty, tz] = node.translation ?? [0, 0, 0];
+  const x2 = x + x;
+  const y2 = y + y;
+  const z2 = z + z;
+  const xx = x * x2;
+  const xy = x * y2;
+  const xz = x * z2;
+  const yy = y * y2;
+  const yz = y * z2;
+  const zz = z * z2;
+  const wx = w * x2;
+  const wy = w * y2;
+  const wz = w * z2;
+
+  return [
+    (1 - (yy + zz)) * sx, (xy + wz) * sx, (xz - wy) * sx, 0,
+    (xy - wz) * sy, (1 - (xx + zz)) * sy, (yz + wx) * sy, 0,
+    (xz + wy) * sz, (yz - wx) * sz, (1 - (xx + yy)) * sz, 0,
+    tx, ty, tz, 1,
+  ];
+}
+
+function transformPoint(matrix, point) {
+  return [
+    matrix[0] * point[0] + matrix[4] * point[1] + matrix[8] * point[2] + matrix[12],
+    matrix[1] * point[0] + matrix[5] * point[1] + matrix[9] * point[2] + matrix[13],
+    matrix[2] * point[0] + matrix[6] * point[1] + matrix[10] * point[2] + matrix[14],
+  ];
+}
+
+function makeEmptyBounds() {
+  return {
+    min: [Infinity, Infinity, Infinity],
+    max: [-Infinity, -Infinity, -Infinity],
+  };
+}
+
+function includePoint(bounds, point) {
+  for (let axis = 0; axis < 3; axis += 1) {
+    bounds.min[axis] = Math.min(bounds.min[axis], point[axis]);
+    bounds.max[axis] = Math.max(bounds.max[axis], point[axis]);
+  }
+}
+
+function includeBounds(bounds, localBounds, matrix) {
+  const [minX, minY, minZ] = localBounds.min;
+  const [maxX, maxY, maxZ] = localBounds.max;
+  for (const x of [minX, maxX]) {
+    for (const y of [minY, maxY]) {
+      for (const z of [minZ, maxZ]) includePoint(bounds, transformPoint(matrix, [x, y, z]));
+    }
+  }
+}
+
+function accessorBounds(accessorIndex, json, bin) {
+  const accessor = json.accessors?.[accessorIndex];
+  if (!accessor) throw new Error(`POSITION accessor ${accessorIndex} is missing`);
+  if (Array.isArray(accessor.min) && Array.isArray(accessor.max)) {
+    return { min: accessor.min.slice(0, 3), max: accessor.max.slice(0, 3) };
+  }
+
+  const view = json.bufferViews?.[accessor.bufferView];
+  if (!view || !bin) throw new Error(`POSITION accessor ${accessorIndex} has no readable buffer view`);
+  if (accessor.componentType !== POSITION_COMPONENT_TYPE || accessor.type !== "VEC3") {
+    throw new Error(`POSITION accessor ${accessorIndex} must be FLOAT VEC3 when min/max are absent`);
+  }
+  const count = Number(accessor.count ?? 0);
+  const stride = Number(view.byteStride ?? 12);
+  const start = Number(view.byteOffset ?? 0) + Number(accessor.byteOffset ?? 0);
+  const data = new DataView(bin.buffer, bin.byteOffset, bin.byteLength);
+  const bounds = makeEmptyBounds();
+  for (let index = 0; index < count; index += 1) {
+    const offset = start + index * stride;
+    includePoint(bounds, [
+      data.getFloat32(offset, true),
+      data.getFloat32(offset + 4, true),
+      data.getFloat32(offset + 8, true),
+    ]);
+  }
+  return bounds;
+}
+
+function computeWorldMatrices(nodes) {
+  const matrices = new Array(nodes.length);
+  const visiting = new Set();
+
+  const visit = (index, parent) => {
+    if (matrices[index]) return;
+    if (visiting.has(index)) throw new Error(`GLB node cycle detected at ${index}`);
+    visiting.add(index);
+    matrices[index] = multiplyMatrices(parent, nodeLocalMatrix(nodes[index] ?? {}));
+    for (const child of nodes[index]?.children ?? []) {
+      if (Number.isInteger(child) && child >= 0 && child < nodes.length) visit(child, matrices[index]);
+    }
+    visiting.delete(index);
+  };
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    if (!matrices[index]) visit(index, IDENTITY_MATRIX);
+  }
+  return matrices;
+}
+
+function collectReferenceErrors(json) {
+  const nodes = Array.isArray(json.nodes) ? json.nodes : [];
+  const meshes = Array.isArray(json.meshes) ? json.meshes : [];
+  const errors = [];
+  nodes.forEach((node, nodeIndex) => {
+    if (node.mesh !== undefined && (!Number.isInteger(node.mesh) || !meshes[node.mesh])) {
+      errors.push(`node ${nodeIndex} references missing mesh ${node.mesh}`);
+    }
+    for (const child of node.children ?? []) {
+      if (!Number.isInteger(child) || child < 0 || child >= nodes.length) {
+        errors.push(`node ${nodeIndex} references missing child ${child}`);
+      }
+    }
+  });
+  for (const [sceneIndex, scene] of (json.scenes ?? []).entries()) {
+    for (const node of scene.nodes ?? []) {
+      if (!Number.isInteger(node) || node < 0 || node >= nodes.length) {
+        errors.push(`scene ${sceneIndex} references missing root node ${node}`);
+      }
+    }
+  }
+  for (const [skinIndex, skin] of (json.skins ?? []).entries()) {
+    for (const node of skin.joints ?? []) {
+      if (!Number.isInteger(node) || node < 0 || node >= nodes.length) {
+        errors.push(`skin ${skinIndex} references missing joint ${node}`);
+      }
+    }
+    if (skin.skeleton !== undefined && (!Number.isInteger(skin.skeleton) || skin.skeleton < 0 || skin.skeleton >= nodes.length)) {
+      errors.push(`skin ${skinIndex} references missing skeleton ${skin.skeleton}`);
+    }
+  }
+  for (const [animationIndex, animation] of (json.animations ?? []).entries()) {
+    for (const [channelIndex, channel] of (animation.channels ?? []).entries()) {
+      const node = channel.target?.node;
+      if (node !== undefined && (!Number.isInteger(node) || node < 0 || node >= nodes.length)) {
+        errors.push(`animation ${animationIndex} channel ${channelIndex} references missing node ${node}`);
+      }
+    }
+  }
+  return errors;
+}
+
+function dimensionsFromBounds(bounds) {
+  if (!bounds) return [0, 0, 0];
+  return bounds.max.map((value, axis) => value - bounds.min[axis]);
+}
+
+/** Inspect names and world-space geometry bounds without loading a renderer. */
+export function inspectGlb(buffer) {
+  const { json, binChunk } = readGlb(buffer);
+  const nodes = Array.isArray(json.nodes) ? json.nodes : [];
+  const meshes = Array.isArray(json.meshes) ? json.meshes : [];
+  const worldMatrices = computeWorldMatrices(nodes);
+  const bounds = makeEmptyBounds();
+  let hasGeometry = false;
+
+  nodes.forEach((node, nodeIndex) => {
+    if (!Number.isInteger(node.mesh) || !meshes[node.mesh]) return;
+    const mesh = meshes[node.mesh];
+    for (const primitive of mesh.primitives ?? []) {
+      const positionIndex = primitive.attributes?.POSITION;
+      if (positionIndex === undefined) continue;
+      const localBounds = accessorBounds(positionIndex, json, binChunk?.data ?? null);
+      includeBounds(bounds, localBounds, worldMatrices[nodeIndex] ?? IDENTITY_MATRIX);
+      hasGeometry = true;
+    }
+  });
+
+  const dimensions = hasGeometry ? dimensionsFromBounds(bounds) : [0, 0, 0];
+  const unsupportedNames = [
+    ...nodes.map((node) => String(node.name ?? "")).filter((name) => getUnsupportedNameReason(name)),
+    ...meshes.map((mesh) => String(mesh.name ?? "")).filter((name) => getUnsupportedNameReason(name)),
+  ];
+
+  return {
+    nodeNames: nodes.map((node) => String(node.name ?? "")),
+    meshNames: meshes.map((mesh) => String(mesh.name ?? "")),
+    unsupportedNames,
+    referenceErrors: collectReferenceErrors(json),
+    bounds: hasGeometry ? { min: bounds.min, max: bounds.max } : null,
+    dimensions,
+    maxDimensionMeters: Math.max(...dimensions),
+  };
+}
+
+function addError(errors, message) {
+  errors.push(message);
+}
+
+/** Return every static model-library content violation; an empty array means valid. */
+export function validateModelLibrary({ library, modelsDir }) {
+  const errors = [];
+  const entries = Array.isArray(library) ? library : [];
+  const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
+  const ids = new Set();
+  const fileNames = new Set();
+
+  if (entries.length !== CINE57_EXPECTED_MODEL_COUNT) {
+    addError(errors, `expected ${CINE57_EXPECTED_MODEL_COUNT} Cine57 entries, found ${entries.length}`);
+  }
+
+  for (const entry of entries) {
+    if (ids.has(entry.id)) addError(errors, `duplicate model id: ${entry.id}`);
+    ids.add(entry.id);
+    if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
+    if (fileNames.has(entry.fileName)) addError(errors, `duplicate model file: ${entry.fileName}`);
+    fileNames.add(entry.fileName);
+    if (!entry.fileUrl.endsWith(`/models/cine57/${entry.fileName}`)) {
+      addError(errors, `${entry.id} fileUrl does not match fileName`);
+    }
+
+    const filePath = path.join(modelsDir, entry.fileName);
+    if (!fs.existsSync(filePath)) {
+      addError(errors, `${entry.id} is missing ${entry.fileName}`);
+      continue;
+    }
+    try {
+      const inspection = inspectGlb(fs.readFileSync(filePath));
+      const actualSizeKb = Math.round(fs.statSync(filePath).size / 1024);
+      if (entry.sizeKb !== actualSizeKb) {
+        addError(errors, `${entry.id} sizeKb is ${entry.sizeKb}, actual file size is ${actualSizeKb}`);
+      }
+      if (inspection.unsupportedNames.length > 0) {
+        addError(errors, `${entry.id} contains unsupported GLB names: ${inspection.unsupportedNames.join(", ")}`);
+      }
+      if (inspection.referenceErrors.length > 0) {
+        addError(errors, `${entry.id} contains dangling GLB references: ${inspection.referenceErrors.join(", ")}`);
+      }
+      if (inspection.maxDimensionMeters > MAX_FOREGROUND_MODEL_DIMENSION_METERS + 1e-6) {
+        addError(
+          errors,
+          `${entry.id} is ${inspection.maxDimensionMeters.toFixed(3)}m wide; `
+            + `foreground limit is ${MAX_FOREGROUND_MODEL_DIMENSION_METERS}m`,
+        );
+      }
+    } catch (error) {
+      addError(errors, `${entry.id} GLB inspection failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (fs.existsSync(modelsDir)) {
+    for (const fileName of fs.readdirSync(modelsDir).filter((file) => file.endsWith(".glb"))) {
+      if (!fileNames.has(fileName)) addError(errors, `orphan GLB is not in catalog: ${fileName}`);
+    }
+  } else {
+    addError(errors, `model directory is missing: ${modelsDir}`);
+  }
+
+  return errors;
+}
