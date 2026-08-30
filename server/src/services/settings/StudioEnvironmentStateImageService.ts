@@ -49,6 +49,17 @@ export function studioEnvironmentStateImageUrl(environmentId: string, stateId: s
   return `/api/settings/environment-assets/${encodeURIComponent(environmentId)}/states/${encodeURIComponent(stateId)}/image`;
 }
 
+/** 只允许清除用户当时看到的那次失败；若已出现新错误则保留，避免把没见过的新错误悄悄关掉。 */
+export function canDismissStudioEnvironmentImageError(
+  image: StudioEnvironmentAssetState["image"],
+  expectedError: string,
+  expectedAttemptId?: string,
+): boolean {
+  if (image?.status !== "error") return false;
+  if (image.error !== expectedError) return false;
+  return expectedAttemptId === undefined || image.attemptId === expectedAttemptId;
+}
+
 export async function resolveStudioEnvironmentStateImagePath(
   environmentId: StudioEnvironmentId,
   stateId: string,
@@ -226,10 +237,15 @@ export class StudioEnvironmentStateImageService {
     return getStoredStudioEnvironmentAsset(document, environmentId);
   }
 
-  async dismissStateImageError(environmentId: StudioEnvironmentId, stateId: string): Promise<StudioEnvironmentAsset> {
+  async dismissStateImageError(
+    environmentId: StudioEnvironmentId,
+    stateId: string,
+    expectedError: string,
+    expectedAttemptId?: string,
+  ): Promise<StudioEnvironmentAsset> {
     const document = await getStudioEnvironmentAssetDocument();
     const { state } = requireEnvironmentState(document, environmentId, stateId);
-    if (state.image?.status !== "error") {
+    if (!canDismissStudioEnvironmentImageError(state.image, expectedError, expectedAttemptId)) {
       return getStoredStudioEnvironmentAsset(document, environmentId);
     }
     return updateStudioEnvironmentStateImage(environmentId, stateId, () => ({ status: "idle" }));

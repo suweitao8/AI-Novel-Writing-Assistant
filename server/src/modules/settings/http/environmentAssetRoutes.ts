@@ -58,8 +58,8 @@ const tweakPromptSchema = z.object({
 const emptyParamsSchema = z.object({}).strict();
 
 const dismissImageErrorSchema = z.object({
-  expectedError: z.string().trim().min(1).max(500),
-  expectedAttemptId: z.string().trim().max(100).optional(),
+  error: z.string().trim().min(1).max(600),
+  attemptId: z.string().trim().min(1).max(120).optional(),
 });
 
 router.get(
@@ -189,11 +189,18 @@ router.post(
 
 router.post(
   "/environment-assets/:environmentId/states/:stateId/dismiss-image-error",
-  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }), body: emptyParamsSchema }),
+  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }), body: dismissImageErrorSchema }),
   async (req, res, next) => {
     try {
       const { environmentId, stateId } = req.params as { environmentId: string; stateId: string };
-      const environment = await studioEnvironmentStateImageService.dismissStateImageError(environmentId as StudioEnvironmentId, stateId);
+      const body = req.body as z.infer<typeof dismissImageErrorSchema>;
+      // 与小说资产状态同契约：只清除用户看到的那次失败（error/attemptId 乐观校验）。
+      const environment = await studioEnvironmentStateImageService.dismissStateImageError(
+        environmentId as StudioEnvironmentId,
+        stateId,
+        body.error,
+        body.attemptId,
+      );
       res.status(200).json({
         success: true,
         data: environment,

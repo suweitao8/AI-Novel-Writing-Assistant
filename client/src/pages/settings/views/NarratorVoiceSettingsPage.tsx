@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AudioLines, Box, CircleCheck, Image, Loader2, Pencil, Save, WandSparkles } from "lucide-react";
-import { Link } from "react-router-dom";
+import { AudioLines, Box, CircleCheck, Image, Loader2, Save, WandSparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import type {
   StudioEnvironmentAsset,
   StudioEnvironmentAssetState,
@@ -20,22 +20,21 @@ import {
   tweakStudioEnvironmentStateImagePrompt,
 } from "@/api/settings";
 import { queryKeys } from "@/api/queryKeys";
-import { buildStateImageSrc } from "@/components/storyAssets";
+import {
+  buildEnvironmentAssetPresentation,
+  StoryAssetCard,
+} from "@/components/storyAssets";
 import AiButton from "@/components/common/AiButton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/toast";
 import {
-  STUDIO_ENVIRONMENT_DIAMETER_LIMITS,
   STUDIO_ENVIRONMENT_PRESET_IDS,
-  getStudioEnvironmentDiameterPreferences,
   getStudioEnvironmentPreset,
-  saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentPresets";
-import { resolveStudioEnvironmentSourceUrl } from "@/pages/models/modelLibrary3d/studioEnvironmentAssetSource";
 import {
   AssetStatesEditor,
   normalizeStatesForSave,
@@ -46,45 +45,20 @@ function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.trim() ? error.message : fallback;
 }
 
-function activeStateImageSrc(asset: StudioEnvironmentAsset | undefined): string | null {
-  const states = asset?.states ?? [];
-  const active = states.find((state) => state.id === asset?.activeStateId) ?? states[0];
-  const image = active?.image;
-  if (!image || image.status !== "done" || !image.url) return null;
-  return buildStateImageSrc(image.url, image.generatedAt);
+/** 环境卡片与场景资产同一套预览：生成全景优先，未生成时回落内置 HDR 预览图。 */
+function environmentCardAsset(id: StudioEnvironmentPresetId, asset: StudioEnvironmentAsset) {
+  const presentation = buildEnvironmentAssetPresentation(asset);
+  if (!presentation.preview) {
+    presentation.preview = {
+      url: getStudioEnvironmentPreset(id).previewImageUrl,
+      alt: `${asset.label}内置环境预览`,
+      mode: "center-square",
+    };
+  }
+  return presentation;
 }
 
-function StudioEnvironmentPanoramaPreview({
-  label,
-  imageUrl,
-}: {
-  label: string;
-  imageUrl: string;
-}) {
-  return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button
-          type="button"
-          variant="ghost"
-          className="group h-20 w-36 overflow-hidden rounded-md border border-border p-0 hover:bg-muted"
-          aria-label={`${label} 2D 全景预览`}
-        >
-          <img src={imageUrl} alt={`${label} 全景图`} className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="max-w-6xl border-border bg-background/95">
-        <DialogTitle>{label} 2D 全景预览</DialogTitle>
-        <DialogDescription className="sr-only">查看当前 HDRI 的平面全景图。</DialogDescription>
-        <div className="overflow-hidden rounded-lg border border-border bg-muted">
-          <img src={imageUrl} alt={`${label} 全景图大图`} className="block max-h-[75vh] w-full object-contain" />
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-/** 环境编辑弹窗：环境描述 + 与场景资产完全同一套 AssetStatesEditor（注入设置域后端）。 */
+/** 环境编辑弹窗：与场景资产的编辑弹窗同构（AppDialogContent + 状态编辑器），状态部分完全复用 AssetStatesEditor。 */
 function StudioEnvironmentEditorDialog({
   environment,
   onClose,
@@ -93,6 +67,7 @@ function StudioEnvironmentEditorDialog({
   onClose: () => void;
 }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [descriptionDraft, setDescriptionDraft] = useState(environment.description ?? "");
   const [statesDraft, setStatesDraft] = useState<StoryAssetState[]>(environment.states);
   const descriptionDirtyRef = useRef(false);
@@ -175,8 +150,7 @@ function StudioEnvironmentEditorDialog({
       const response = await dismissStudioEnvironmentStateImageError(environment.id, stateId, expectedError, expectedAttemptId);
       statesDirtyRef.current = false;
       return response;
-    },
-    tweakImagePrompt: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
+    },    tweakImagePrompt: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
       const state = statesDraft.find((item) => item.id === stateId);
       const response = await tweakStudioEnvironmentStateImagePrompt(environment.id, {
         stateLabel: state?.label?.trim() || undefined,
@@ -188,65 +162,88 @@ function StudioEnvironmentEditorDialog({
     serverStates: environment.states,
     refreshServerStates: invalidate,
     renderExtraImageAction: (state: StudioEnvironmentAssetState | StoryAssetState | null) => (
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        className="h-8"
-        disabled={isBusy || !state || state.id === environment.activeStateId}
-        aria-label="设为当前全景"
-        onClick={() => {
-          if (state) activeStateMutation.mutate(state.id);
-        }}
-      >
-        <CircleCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
-        设为当前全景
-      </Button>
+      <>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="h-8 px-2 text-xs shadow-sm"
+          aria-label={`编辑${environment.label}的 3D 环境`}
+          onClick={() => navigate(`/settings/narrator-voice/hdri/${environment.id}`)}
+        >
+          <Box className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+          3D编辑
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="h-8"
+          disabled={isBusy || !state || state.id === environment.activeStateId}
+          aria-label="设为当前全景"
+          onClick={() => {
+            if (state) activeStateMutation.mutate(state.id);
+          }}
+        >
+          <CircleCheck className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+          设为当前全景
+        </Button>
+      </>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [environment, statesDraft, isBusy]);
 
   return (
-    <DialogContent className="max-h-[85vh] max-w-6xl overflow-y-auto border-border bg-background">
-      <DialogTitle>编辑环境 · {environment.label}</DialogTitle>
-      <DialogDescription className="sr-only">管理环境的描述、状态与全景图生成。</DialogDescription>
-      <div className="space-y-4">
-        <label className="block space-y-1">
-          <span className="text-xs font-medium">环境描述</span>
-          <Textarea
-            value={descriptionDraft}
-            rows={2}
-            disabled={isBusy}
-            aria-label="环境描述"
-            placeholder="描述这个环境的基础画面。"
-            onChange={(event) => {
-              descriptionDirtyRef.current = true;
-              setDescriptionDraft(event.target.value);
-            }}
+    <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
+      <AppDialogContent
+        className="max-w-6xl"
+        title={`编辑环境 · ${environment.label}`}
+        description="管理环境描述，以及每个状态的全景提示词与生成图。"
+        footer={
+          <>
+            <Button variant="outline" onClick={onClose} disabled={saveMutation.isPending}>取消</Button>
+            <Button
+              onClick={async () => {
+                try {
+                  await saveMutation.mutateAsync();
+                  onClose();
+                } catch {
+                  // 保存失败提示已由 toast 呈现，弹窗保持打开。
+                }
+              }}
+              disabled={isBusy}
+            >
+              {saveMutation.isPending ? "保存中..." : "保存"}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <label className="block space-y-1">
+            <span className="text-xs font-medium">环境描述</span>
+            <Textarea
+              value={descriptionDraft}
+              rows={2}
+              disabled={isBusy}
+              aria-label="环境描述"
+              placeholder="描述这个环境的基础画面。"
+              onChange={(event) => {
+                descriptionDirtyRef.current = true;
+                setDescriptionDraft(event.target.value);
+              }}
+            />
+          </label>
+          <AssetStatesEditor
+            states={statesDraft}
+            onChange={handleStatesChange}
+            kind="scene"
+            novelId=""
+            assetName={environment.label}
+            ops={ops}
           />
-        </label>
-        <AssetStatesEditor
-          states={statesDraft}
-          onChange={handleStatesChange}
-          kind="scene"
-          novelId=""
-          assetName={environment.label}
-          ops={ops}
-        />
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isBusy}
-            onClick={() => saveMutation.mutate()}
-          >
-            {saveMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden="true" /> : <Save className="mr-1.5 h-4 w-4" aria-hidden="true" />}
-            保存资料
-          </Button>
-          <Button type="button" variant="outline" onClick={onClose}>完成</Button>
         </div>
-      </div>
-    </DialogContent>
+      </AppDialogContent>
+    </Dialog>
   );
 }
 
@@ -269,9 +266,6 @@ export default function NarratorVoiceSettingsPage() {
   });
   const [editingEnvironmentId, setEditingEnvironmentId] = useState<StudioEnvironmentPresetId | null>(null);
   const [draft, setDraft] = useState("");
-  const [environmentDiameters, setEnvironmentDiameters] = useState(
-    getStudioEnvironmentDiameterPreferences,
-  );
   const hasEditedDraft = useRef(false);
 
   useEffect(() => {
@@ -305,10 +299,6 @@ export default function NarratorVoiceSettingsPage() {
   const voice = designMutation.data?.data ?? narratorVoiceQuery.data?.data;
   const isBusy = narratorVoiceQuery.isLoading || saveMutation.isPending || designMutation.isPending;
   const canSubmit = draft.trim().length >= 4 && !isBusy;
-  const updateEnvironmentDiameter = (id: StudioEnvironmentPresetId, value: number) => {
-    const diameterMeters = saveStudioEnvironmentDiameterPreference(id, value);
-    setEnvironmentDiameters((current) => ({ ...current, [id]: diameterMeters }));
-  };
   const environmentAssets = environmentAssetsQuery.data?.data ?? null;
   const editingEnvironment = editingEnvironmentId ? environmentAssets?.environments?.[editingEnvironmentId] : undefined;
 
@@ -404,91 +394,32 @@ export default function NarratorVoiceSettingsPage() {
               {errorMessage(environmentAssetsQuery.error, "读取环境资产失败，请刷新后重试。")}
             </div>
           ) : null}
-          <div className="overflow-x-auto rounded-md border border-border">
-            <table className="w-full min-w-[760px] text-sm">
-              <caption className="sr-only">模型与动画 HDRI 预设</caption>
-              <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
-                <tr>
-                  <th scope="col" className="w-44 px-4 py-3 font-medium">资产</th>
-                  <th scope="col" className="w-44 px-4 py-3 font-medium">2D 全景</th>
-                  <th scope="col" className="min-w-[220px] px-4 py-3 font-medium">半球直径</th>
-                  <th scope="col" className="w-56 px-4 py-3 text-right font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
-                  const preset = getStudioEnvironmentPreset(id);
-                  const diameterMeters = environmentDiameters[id];
-                  const asset = environmentAssets?.environments?.[id];
-                  const panoramaUrl = activeStateImageSrc(asset)
-                    ?? resolveStudioEnvironmentSourceUrl(id, environmentAssets)
-                    ?? preset.previewImageUrl;
-                  return (
-                    <tr key={id} className="border-t border-border align-middle">
-                      <th scope="row" className="px-4 py-4 text-left font-medium text-foreground">{preset.label}</th>
-                      <td className="px-4 py-4">
-                        <StudioEnvironmentPanoramaPreview label={preset.label} imageUrl={panoramaUrl} />
-                      </td>
-                      <td className="px-4 py-4">
-                        <label className="block space-y-2" htmlFor={`studio-environment-diameter-${id}`}>
-                          <span className="flex items-center justify-between gap-3">
-                            <span className="sr-only">{preset.label}半球直径</span>
-                            <span className="text-xs text-muted-foreground">{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}–{STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max} 米</span>
-                            <output className="tabular-nums text-foreground">{diameterMeters} 米</output>
-                          </span>
-                          <input
-                            id={`studio-environment-diameter-${id}`}
-                            type="range"
-                            min={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.min}
-                            max={STUDIO_ENVIRONMENT_DIAMETER_LIMITS.max}
-                            step={1}
-                            value={diameterMeters}
-                            aria-label={`${preset.label}半球直径`}
-                            onChange={(event) => updateEnvironmentDiameter(id, Number(event.target.value))}
-                            className="w-full accent-primary"
-                          />
-                        </label>
-                      </td>
-                      <td className="px-4 py-4 text-right">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={!asset}
-                            onClick={() => setEditingEnvironmentId(id)}
-                          >
-                            <Pencil className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                            编辑环境
-                          </Button>
-                          <Button asChild type="button" variant="outline" size="sm">
-                            <Link to={`/settings/narrator-voice/hdri/${id}`}>
-                              <Box className="mr-1.5 h-4 w-4" aria-hidden="true" />
-                              3D 预览
-                            </Link>
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {environmentAssetsQuery.isLoading ? (
+            <div className="text-sm text-muted-foreground">正在加载环境...</div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {STUDIO_ENVIRONMENT_PRESET_IDS.map((id) => {
+                const asset = environmentAssets?.environments?.[id];
+                if (!asset) return null;
+                return (
+                  <StoryAssetCard
+                    key={id}
+                    asset={environmentCardAsset(id, asset)}
+                    onOpen={() => setEditingEnvironmentId(id)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Dialog
-        open={Boolean(editingEnvironmentId && editingEnvironment)}
-        onOpenChange={(open) => { if (!open) setEditingEnvironmentId(null); }}
-      >
-        {editingEnvironment ? (
-          <StudioEnvironmentEditorDialog
-            environment={editingEnvironment}
-            onClose={() => setEditingEnvironmentId(null)}
-          />
-        ) : null}
-      </Dialog>
+      {editingEnvironment ? (
+        <StudioEnvironmentEditorDialog
+          environment={editingEnvironment}
+          onClose={() => setEditingEnvironmentId(null)}
+        />
+      ) : null}
     </SettingsShell>
   );
 }
