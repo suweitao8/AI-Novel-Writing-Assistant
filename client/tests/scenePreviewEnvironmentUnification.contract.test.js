@@ -57,7 +57,7 @@ test("动画实时预览完全使用 HDR 半圆环境，不再创建旧平面地
 
 test("两个离屏缩略图都使用统一环境，不再维护独立平面", () => {
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app\)/);
-  assert.match(modelThumbnailSource, /loadStudioEnvironment\(app\)/);
+  assert.match(modelThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{/);
   assert.doesNotMatch(animationThumbnailSource, /anim-thumb-ground/);
   assert.doesNotMatch(modelThumbnailSource, /thumb-ground/);
 });

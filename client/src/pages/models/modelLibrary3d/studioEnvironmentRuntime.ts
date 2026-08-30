@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 
 import {
   createBlocking3dEnvironmentRuntime,
+  type Blocking3dLightingProfile,
   normalizeEnvironmentSettings,
   type Blocking3dEnvironmentRuntime,
   type Blocking3dEnvironmentSettings,
@@ -21,6 +22,7 @@ export interface StudioEnvironmentRuntimeOptions {
   diameterMeters?: number;
   projectionCenterHeightMeters?: number;
   panoramaHorizonV?: number;
+  lightingProfile?: Blocking3dLightingProfile;
 }
 
 export interface StudioEnvironmentHandle {
@@ -111,7 +113,9 @@ export async function loadStudioEnvironment(
   const settings = createStudioEnvironmentSettings(preset.id, options);
   const worldEntity = new pc.Entity("studio-environment-world");
   app.root.addChild(worldEntity);
-  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity);
+  const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
+    lightingProfile: options.lightingProfile,
+  });
   // 通用资产页为环境生成的状态全景图优先；失败/未生成时按静态 HDR 预设兜底。
   const generatedSourceUrl = await getStudioEnvironmentSourceUrl(presetId);
   const urls = uniqueUrls([
