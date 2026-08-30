@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   MODEL_PREVIEW_FRAMING,
   fitModelPreviewCamera,
+  getModelPreviewAspectRatio,
   projectModelPreviewBounds,
 } from "./modelPreviewFraming.ts";
 
@@ -53,7 +54,18 @@ test("退化包围盒也不会把 NaN 或 Infinity 传入渲染器", () => {
   assert.ok(fit.distance > 0);
 });
 
+test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓冲比例", () => {
+  assert.equal(
+    getModelPreviewAspectRatio({ clientWidth: 898, clientHeight: 544, width: 300, height: 150 }),
+    898 / 544,
+  );
+  assert.equal(
+    getModelPreviewAspectRatio({ clientWidth: 0, clientHeight: 0, width: 300, height: 150 }),
+    2,
+  );
+});
+
 test("取景合同变化时缩略图缓存使用新版本", () => {
-  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
-  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v19/);
+  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
 });
