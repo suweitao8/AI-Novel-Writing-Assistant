@@ -60,6 +60,7 @@ import {
 } from "./blocking3dTransformGizmo";
 import {
   ACTOR_PROXY_URL,
+  BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS,
   BLOCKING_SKETCH_CAPTURE_SIZE,
   clamp,
   colorForIndex,
@@ -86,7 +87,11 @@ import {
   resolveBlocking3dPoseClip,
 } from "./blocking3dPose";
 
-export { BLOCKING_SKETCH_CAPTURE_SIZE, DEFAULT_BLOCKING_3D_ENVIRONMENT };
+export {
+  BLOCKING_3D_ENVIRONMENT_DIAMETER_LIMITS,
+  BLOCKING_SKETCH_CAPTURE_SIZE,
+  DEFAULT_BLOCKING_3D_ENVIRONMENT,
+};
 export type { Blocking3dEnvironmentSettings };
 export type { Blocking3dTransformTool };
 
@@ -95,6 +100,10 @@ type Blocking3dActorPosition = [number, number, number];
 export interface Blocking3dViewerOptions {
   canvas: HTMLCanvasElement;
   environmentUrl?: string | null;
+  /** 通用 HDRI 预览只需要环境和场景编辑相机，不加载代理角色资源。 */
+  loadProxyActor?: boolean;
+  /** 通用 HDRI 预览隐藏与环境无关的场景摄像机辅助线。 */
+  showShotCameraHelpers?: boolean;
   sceneMarkers?: StoryScene3DMarker[];
   /** 视口内是否允许直接拖拽空间标记（场景 3D 编辑器开启；分镜草图页只读）。 */
   markerTransformEditable?: boolean;
@@ -329,7 +338,7 @@ export async function createBlocking3dViewer(
     rebuildBoundaryRings();
     environment.applySettings(environmentSettings);
   };
-  let actorAsset: pc.Asset;
+  let actorAsset: pc.Asset | null = null;
   const animationTracks = new Map<string, unknown>();
   const actors = new Map<string, Blocking3dViewerActor>();
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
@@ -358,7 +367,7 @@ export async function createBlocking3dViewer(
       shotCameraPose,
       cameraState.fovDeg,
       (shotCameraHelpersVisible || cameraSelected) &&
-        !shotCameraHelpersSuppressed,
+        !shotCameraHelpersSuppressed && options.showShotCameraHelpers !== false,
     );
   };
   let destroyed = false;
@@ -917,7 +926,9 @@ export async function createBlocking3dViewer(
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     // Unity 场景视图同款：摄像机 gizmo（白色线框）常驻显示，选中变橙色。
-    shotCamera.drawGizmo(app, cameraSelected);
+    if (options.showShotCameraHelpers !== false) {
+      shotCamera.drawGizmo(app, cameraSelected);
+    }
     // 三分构图线只出现在取景画中画里（内部判断可见性，不可见时为空操作）。
     shotCamera.drawCompositionGuides(app);
     drawSceneMarkerOutlines(
@@ -933,20 +944,22 @@ export async function createBlocking3dViewer(
   syncShotCameraVisuals();
 
   try {
-    setStatus("正在加载 3D 代理角色...");
-    actorAsset = await loadAsset(app, ACTOR_PROXY_URL, "container");
-    const proxyResource = actorAsset.resource as ContainerResource;
-    for (const clipAsset of proxyResource.animations ?? []) {
-      const track = clipAsset.resource;
-      const name = (track as { name?: unknown } | null | undefined)?.name;
-      if (track && typeof name === "string") animationTracks.set(name, track);
+    if (options.loadProxyActor !== false) {
+      setStatus("正在加载 3D 代理角色...");
+      actorAsset = await loadAsset(app, ACTOR_PROXY_URL, "container");
+      const proxyResource = actorAsset.resource as ContainerResource;
+      for (const clipAsset of proxyResource.animations ?? []) {
+        const track = clipAsset.resource;
+        const name = (track as { name?: unknown } | null | undefined)?.name;
+        if (track && typeof name === "string") animationTracks.set(name, track);
+      }
+      try {
+        resolveBlocking3dPoseClip("standing", animationTracks.keys());
+      } catch {
+        throw new Error("3D 代理角色缺少基础待机动作。");
+      }
     }
-    try {
-      resolveBlocking3dPoseClip("standing", animationTracks.keys());
-    } catch {
-      throw new Error("3D 代理角色缺少基础待机动作。");
-    }
-    setStatus("3D 草图已就绪");
+    setStatus(options.loadProxyActor === false ? "HDRI 环境已就绪" : "3D 草图已就绪");
   } catch (error) {
     resizeObserver.disconnect();
     canvas.removeEventListener("pointerdown", onPointerDown);
@@ -969,6 +982,7 @@ export async function createBlocking3dViewer(
     heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
     initialPosition?: Blocking3dActorPosition,
   ): Blocking3dViewerActor => {
+    if (!actorAsset) throw new Error("当前 3D 预览未加载代理角色。");
     const resource = actorAsset.resource as ContainerResource;
     const model = resource.instantiateRenderEntity?.({ castShadows: true });
     if (!model) throw new Error("3D 代理角色模型无法实例化。");
@@ -1081,6 +1095,7 @@ export async function createBlocking3dViewer(
       heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
       initialPosition,
     ) {
+      if (!actorAsset) return false;
       if (!label.trim() || actors.has(label)) return false;
       const actor = createActor(
         label.trim(),
@@ -1130,7 +1145,7 @@ export async function createBlocking3dViewer(
     },
     getActorLabels: () => [...actors.keys()],
     getAvailablePoses: () =>
-      getAvailableBlocking3dPoses(animationTracks.keys()),
+      actorAsset ? getAvailableBlocking3dPoses(animationTracks.keys()) : [],
     setSelectedPose(pose) {
       const actor = selectedActor();
       if (!actor) return false;

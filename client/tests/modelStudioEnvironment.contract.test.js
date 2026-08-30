@@ -13,21 +13,21 @@ const blockingEnvironmentRuntimeSource = read(
   "../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentRuntime.ts",
 );
 const viewerSource = read("../src/pages/models/modelLibrary3d/modelViewerApp.ts");
+const blockingViewerSource = read("../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts");
 const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio.ts");
 const animationThumbnailSource = read("../src/pages/animations/animationThumbnailStudio.ts");
 const editorSource = read("../src/pages/models/ModelEditorPage.tsx");
 const settingsSource = read("../src/pages/settings/views/NarratorVoiceSettingsPage.tsx");
 const routerSource = read("../src/router/index.tsx");
 const previewSource = read("../src/pages/settings/views/StudioEnvironmentPreviewPage.tsx");
-const previewAppSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentPreviewApp.ts");
 
 test("模型环境预设使用 5 到 30 米的半球直径", () => {
   assert.match(presetSource, /interior/);
   assert.match(presetSource, /exterior/);
   assert.match(presetSource, /nature/);
+  assert.match(presetSource, /STORY_SCENE_3D_ENVIRONMENT_LIMITS/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
-  assert.match(presetSource, /min:\s*5/);
-  assert.match(presetSource, /max:\s*30/);
+  assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\s*=\s*STORY_SCENE_3D_ENVIRONMENT_LIMITS\.domeRadius/);
   assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 3);
   assert.match(presetSource, /projectionCenterHeightMeters:\s*2/);
   assert.match(presetSource, /panoramaHorizonV:\s*0\.5/);
@@ -35,6 +35,18 @@ test("模型环境预设使用 5 到 30 米的半球直径", () => {
   assert.match(presetSource, /model-indoor-living-room\.hdr/);
   assert.match(presetSource, /model-outdoor-central-plaza\.hdr/);
   assert.match(presetSource, /model-nature-grassland\.hdr/);
+  assert.match(presetSource, /previewImageUrl/);
+  for (const fileName of [
+    "model-indoor-living-room-preview.png",
+    "model-outdoor-central-plaza-preview.png",
+    "model-nature-grassland-preview.png",
+  ]) {
+    assert.equal(
+      existsSync(new URL(`../public/models/env/${fileName}`, import.meta.url)),
+      true,
+      `${fileName} 不存在`,
+    );
+  }
 });
 
 test("模型可见穹顶不接收相机且固定在原点", () => {
@@ -94,6 +106,12 @@ test("模型编辑器提供三套 HDRI 环境选择和 5 到 30 米直径调节"
   assert.match(editorSource, /disabled=\{!viewer\}/);
 });
 
+test("场景 blocking viewer 支持只加载环境而不加载代理角色", () => {
+  assert.match(blockingViewerSource, /loadProxyActor\?: boolean/);
+  assert.match(blockingViewerSource, /loadProxyActor !== false/);
+  assert.match(blockingViewerSource, /if \(options\.loadProxyActor !== false\)/);
+});
+
 test("通用资产页用表格统一管理旁白音色和 HDRI 直径", () => {
   assert.match(settingsSource, /title="通用资产"/);
   assert.match(settingsSource, /<table/);
@@ -105,23 +123,24 @@ test("通用资产页用表格统一管理旁白音色和 HDRI 直径", () => {
   assert.match(settingsSource, /saveStudioEnvironmentDiameterPreference/);
   assert.match(settingsSource, /3D 预览/);
   assert.match(settingsSource, /settings\/narrator-voice\/hdri/);
+  assert.match(settingsSource, /previewImageUrl/);
+  assert.match(settingsSource, /Dialog/);
+  assert.doesNotMatch(settingsSource, /preset\.sourceUrl/);
 });
 
-test("HDRI 预览页复用共享环境运行时并提供完整直径交互", () => {
+test("HDRI 预览页复用场景编辑器布局并提供完整直径交互", () => {
   assert.match(routerSource, /settings\/narrator-voice\/hdri\/:environmentId/);
   assert.match(previewSource, /HDRI 3D 预览/);
   assert.match(previewSource, /返回通用资产/);
+  assert.match(previewSource, /Drama3DEditorShell/);
+  assert.match(previewSource, /Drama3DObjectPanel/);
+  assert.match(previewSource, /createBlocking3dViewer/);
+  assert.match(previewSource, /loadProxyActor:\s*false/);
   assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
   assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
   assert.match(previewSource, /type="range"/);
   assert.match(previewSource, /useParams/);
-  assert.match(previewAppSource, /loadStudioEnvironment\(app/);
-  assert.match(previewAppSource, /setEnvironmentPreset/);
-  assert.match(previewAppSource, /setEnvironmentDiameter/);
-  assert.match(previewAppSource, /pointerdown/);
-  assert.match(previewAppSource, /wheel/);
-  assert.match(previewAppSource, /buildBlocking3dGroundGridLines/);
-  assert.doesNotMatch(previewAppSource, /setupStudioLighting/);
+  assert.doesNotMatch(previewSource, /studioEnvironmentPreviewApp/);
 });
 
 test("三张模型 HDRI 都是 Radiance RGBE 文件", () => {
