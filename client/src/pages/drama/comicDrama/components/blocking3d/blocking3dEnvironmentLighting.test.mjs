@@ -3,8 +3,10 @@ import test from "node:test";
 
 import {
   DEFAULT_HDRI_LIGHT_ESTIMATE,
+  estimateHdriLightFromTexture,
   estimateHdriLightFromPixels,
 } from "./blocking3dEnvironmentLighting.ts";
+import { projectEquirectangularDirection } from "./blocking3dEnvironmentProjection.ts";
 
 function image(width, height, color = [32, 32, 32, 255]) {
   const pixels = new Uint8ClampedArray(width * height * 4);
@@ -46,6 +48,34 @@ test("HDRI 经度首尾的高亮区域按球面方向连续合并", () => {
   assert.equal(estimate.usedFallback, false);
   assert.ok(estimate.direction[2] < -0.7, "图像首尾应共同指向同一个 -Z 经度，而不是相互抵消");
   assert.ok(Math.abs(estimate.direction[0]) < 0.2);
+});
+
+test("PlayCanvas RGBE HDRI 源会解码亮区并与可见等距投影保持同向", () => {
+  const width = 32;
+  const height = 16;
+  const pixels = new Uint8Array(width * height * 4);
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    pixels.set([8, 8, 8, 128], offset);
+  }
+  for (let y = 2; y <= 4; y += 1) {
+    for (let x = 22; x <= 25; x += 1) {
+      pixels.set([255, 230, 80, 140], (y * width + x) * 4);
+    }
+  }
+
+  const estimate = estimateHdriLightFromTexture({
+    width,
+    height,
+    type: "rgbe",
+    getSource: () => pixels,
+  });
+  const projected = projectEquirectangularDirection(estimate.direction);
+
+  assert.equal(estimate.usedFallback, false);
+  assert.ok(estimate.direction[0] > 0.45, "右上亮区应指向世界 +X");
+  assert.ok(estimate.direction[1] > 0.35, "上方亮区应保持正向高度");
+  assert.ok(Math.abs(projected.u - 0.75) < 0.04, "方向光经度应落回亮区所在的图像经度");
+  assert.ok(Math.abs(projected.v - 0.21875) < 0.04, "方向光纬度应落回亮区所在的图像纬度");
 });
 
 test("没有可用高亮时使用稳定的后备主光，而不是生成异常方向", () => {
