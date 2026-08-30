@@ -21,14 +21,15 @@ const settingsSource = read("../src/pages/settings/views/NarratorVoiceSettingsPa
 const routerSource = read("../src/router/index.tsx");
 const previewSource = read("../src/pages/settings/views/StudioEnvironmentPreviewPage.tsx");
 
-test("模型环境预设统一为中央广场并使用 5 到 30 米半球直径", () => {
+test("模型环境预设统一为中央广场并使用 5 到 30 米半球直径与 10% 投射中心默认值", () => {
   assert.match(presetSource, /exterior/);
   assert.doesNotMatch(presetSource, /interior|nature/);
   assert.match(presetSource, /DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID[^=]*= "exterior"/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\s*=\s*\{\s*min:\s*5,\s*max:\s*30\s*\}/);
   assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 1);
-  assert.match(presetSource, /projectionCenterHeightMeters:\s*2/);
+  assert.match(presetSource, /projectionCenterHeightRatio:\s*0\.1/);
+  assert.doesNotMatch(presetSource, /projectionCenterHeightMeters/);
   assert.match(presetSource, /panoramaHorizonV:\s*0\.5/);
   assert.match(presetSource, /getStudioEnvironmentDiameterMeters\(diameterMeters\)\s*\/\s*2/);
   assert.match(presetSource, /model-outdoor-central-plaza\.hdr/);
@@ -141,6 +142,8 @@ test("HDRI 预览页复用场景编辑器布局并提供完整直径交互", () 
   assert.match(previewSource, /loadProxyActor:\s*false/);
   assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
   assert.match(previewSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
+  assert.match(previewSource, /projectionCenterHeightRatio/);
+  assert.doesNotMatch(previewSource, /preset\.projectionCenterHeightMeters/);
   assert.match(previewSource, /type="range"/);
   assert.match(previewSource, /useParams/);
   assert.doesNotMatch(previewSource, /studioEnvironmentPreviewApp/);

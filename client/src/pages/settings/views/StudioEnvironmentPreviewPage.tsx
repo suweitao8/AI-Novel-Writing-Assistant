@@ -25,6 +25,8 @@ import {
   getStudioEnvironmentDiameterMeters,
   getStudioEnvironmentDiameterPreference,
   getStudioEnvironmentPreset,
+  getStudioEnvironmentProjectionCenterHeightMeters,
+  getStudioEnvironmentProjectionCenterHeightRatio,
   getStudioEnvironmentRadiusMeters,
   saveStudioEnvironmentDiameterPreference,
   type StudioEnvironmentPresetId,
@@ -45,16 +47,12 @@ function buildPresetEnvironmentSettings(
   const preset = getStudioEnvironmentPreset(presetId);
   const diameter = getStudioEnvironmentDiameterMeters(diameterMeters);
   const radius = getStudioEnvironmentRadiusMeters(diameter);
-  const projectionCenterHeightRatio = Math.min(
-    STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.max,
-    Math.max(
-      STORY_SCENE_3D_ENVIRONMENT_LIMITS.projectionCenterHeightRatio.min,
-      preset.projectionCenterHeightMeters / radius,
-    ),
+  const projectionCenterHeightRatio = getStudioEnvironmentProjectionCenterHeightRatio(
+    preset.projectionCenterHeightRatio,
   );
   return {
     ...DEFAULT_BLOCKING_3D_ENVIRONMENT,
-    projectionCenterHeight: Math.round(radius * projectionCenterHeightRatio * 100) / 100,
+    projectionCenterHeight: getStudioEnvironmentProjectionCenterHeightMeters(presetId, diameter),
     projectionCenterHeightRatio,
     radiusMeters: radius,
     panoramaHorizonV: preset.panoramaHorizonV,

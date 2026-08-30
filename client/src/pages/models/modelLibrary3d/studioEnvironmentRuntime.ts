@@ -12,6 +12,7 @@ import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
   getStudioEnvironmentDiameterMeters,
   getStudioEnvironmentPreset,
+  getStudioEnvironmentProjectionCenterHeightRatio,
   getStudioEnvironmentRadiusMeters,
   type StudioEnvironmentPresetId,
 } from "./studioEnvironmentPresets";
@@ -20,6 +21,8 @@ import { getStudioEnvironmentSourceUrl } from "./studioEnvironmentAssetSource";
 /** 可覆盖的用户入口仍然保留；内部会统一转换为漫剧 3D 环境设置。 */
 export interface StudioEnvironmentRuntimeOptions {
   diameterMeters?: number;
+  projectionCenterHeightRatio?: number;
+  /** 兼容旧调用方的绝对高度覆盖；未传时使用预设比例。 */
   projectionCenterHeightMeters?: number;
   panoramaHorizonV?: number;
   lightingProfile?: Blocking3dLightingProfile;
@@ -53,13 +56,14 @@ function createStudioEnvironmentSettings(
   const diameterMeters = getStudioEnvironmentDiameterMeters(
     options.diameterMeters ?? preset.diameterMeters,
   );
-  const projectionCenterHeightMeters = Number.isFinite(options.projectionCenterHeightMeters)
-    ? Math.max(0, Number(options.projectionCenterHeightMeters))
-    : preset.projectionCenterHeightMeters;
   const radiusMeters = getStudioEnvironmentRadiusMeters(diameterMeters);
-  const projectionCenterHeightRatio = radiusMeters > 0
-    ? projectionCenterHeightMeters / radiusMeters
-    : undefined;
+  const projectionCenterHeightRatio = Number.isFinite(options.projectionCenterHeightRatio)
+    ? getStudioEnvironmentProjectionCenterHeightRatio(options.projectionCenterHeightRatio)
+    : Number.isFinite(options.projectionCenterHeightMeters)
+      ? getStudioEnvironmentProjectionCenterHeightRatio(
+        Number(options.projectionCenterHeightMeters) / radiusMeters,
+      )
+      : getStudioEnvironmentProjectionCenterHeightRatio(preset.projectionCenterHeightRatio);
   return normalizeEnvironmentSettings({
     radiusMeters,
     projectionCenterHeightRatio,

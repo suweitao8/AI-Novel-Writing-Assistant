@@ -30,9 +30,10 @@ test("模型与动画环境通过漫剧 blocking3d 运行时共享一次 HDR 装
   assert.match(blockingEnvironmentRuntimeSource, /if \(ownsEnvironmentLighting\) app\.scene\.ambientLight/);
 });
 
-test("模型 HDR 预设（中央广场）遵守 15 米直径、2 米投射中心和半数地平线默认值", () => {
+test("模型 HDR 预设（中央广场）遵守 15 米直径、10% 投射中心和半数地平线默认值", () => {
   assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 1);
-  assert.equal((presetSource.match(/projectionCenterHeightMeters:\s*2/g) ?? []).length, 1);
+  assert.equal((presetSource.match(/projectionCenterHeightRatio:\s*0\.1/g) ?? []).length, 1);
+  assert.equal((presetSource.match(/projectionCenterHeightMeters/g) ?? []).length, 0);
   assert.equal((presetSource.match(/panoramaHorizonV:\s*0\.5/g) ?? []).length, 1);
   assert.match(runtimeSource, /normalizeEnvironmentSettings/);
 });
