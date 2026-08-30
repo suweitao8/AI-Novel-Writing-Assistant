@@ -11,6 +11,7 @@ import {
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
 } from "./modelLibraryPolicy.mjs";
+import { validateModelVisualReview } from "./modelLibraryVisualReview.mjs";
 
 export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
 
@@ -317,6 +318,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   const requiredCategories = new Set(CINE57_REQUIRED_CATEGORIES);
   const ids = new Set();
   const fileNames = new Set();
+  const meshNamesById = new Map();
   const staticFileNames = new Set();
 
   if (staticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
@@ -358,6 +360,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     }
     try {
       const inspection = inspectGlb(fs.readFileSync(filePath));
+      meshNamesById.set(entry.id, new Set(inspection.meshNames.filter(Boolean)));
       const actualSizeKb = Math.round(fs.statSync(filePath).size / 1024);
       if (entry.sizeKb !== actualSizeKb) {
         addError(errors, `${entry.id} sizeKb is ${entry.sizeKb}, actual file size is ${actualSizeKb}`);
@@ -379,6 +382,8 @@ export function validateModelLibrary({ library, modelsDir }) {
       addError(errors, `${entry.id} GLB inspection failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
+
+  errors.push(...validateModelVisualReview({ library: entries, meshNamesById }));
 
   for (const requiredCategory of requiredCategories) {
     if (!staticEntries.some((entry) => entry.category === requiredCategory)) {

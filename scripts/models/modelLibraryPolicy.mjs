@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { getVisualReviewById } from "./modelLibraryVisualReview.mjs";
+
 const POLICY_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "model-library-selection.json");
 const policy = JSON.parse(fs.readFileSync(POLICY_PATH, "utf8"));
 
@@ -44,6 +46,10 @@ export function isFoodContainerModel(entry) {
 }
 
 export function getCatalogOverride(id) {
+  const visualReview = getVisualReviewById(id);
+  if (visualReview) {
+    return { name: visualReview.name, category: visualReview.category };
+  }
   return policy.catalogOverrides[id] ?? null;
 }
 

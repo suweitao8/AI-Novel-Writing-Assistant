@@ -56,8 +56,10 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 - `export_cine57_batch4e.py`：MaterialInstance 的标量/向量参数 + 父材质混合模式 → `_mi_params.json`（纯材质的 tint/metallic/roughness/opacity/emissive 从这里合并）。
 
 ### 5. 构建入库
-`%TEMP%\fbx2gltf-test\build-library-v3.cjs` 一次完成：FBX2glTF（4 并发）→ GLB 清洗 → ffmpeg 贴图降采样（6 并发）→ 词库自动命名 + 规则分类 → 再生 `modelLibrary.ts` → 孤儿文件清理。
+`%TEMP%\fbx2gltf-test\build-library-v3.cjs` 一次完成：FBX2glTF（4 并发）→ GLB 清洗 → ffmpeg 贴图降采样（6 并发）→ 词库生成候选名称 + 规则分类 → 再生 `modelLibrary.ts` → 孤儿文件清理。词库名称不是最终语义来源，不能替代截图复核。
 **运行前必须改脚本头部的 `PUBLIC` / `TEX_OUT` / `CATALOG_TS`：里面硬编码的是历史 worktree 路径，要指向当前 worktree 的对应目录。**
+
+构建器生成候选目录后，必须在当前 worktree 执行 `node --experimental-strip-types scripts/models/curate-cine57-library.mjs --apply-review-only`，把 `scripts/models/model-library-visual-review.json` 中已批准的截图语义应用到生成目录；该模式只重写目录名称、分类和尺寸字段，不清理或删除模型资产。随后执行 `pnpm check:model-library`。新增模型如果没有绑定到标准缩略图截图的 `approved` 复核记录，质量门禁必须失败，不能用英文文件名直译或页面隐藏绕过。
 
 ### 模型硬规则（每条都对应一次返工教训）
 

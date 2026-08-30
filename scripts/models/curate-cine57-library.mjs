@@ -94,6 +94,7 @@ function formatErrors(errors) {
 
 async function main() {
   const checkOnly = process.argv.includes("--check");
+  const applyReviewOnly = process.argv.includes("--apply-review-only");
   const source = fs.readFileSync(CATALOG_PATH, "utf8");
   const parsed = parseCatalog(source);
   const removedEntries = parsed.entries.filter((entry) => !entry.previewAppearance && (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)));
@@ -110,35 +111,41 @@ async function main() {
 
   if (!checkOnly) {
     let cleanedGlbs = 0;
-    for (const entry of keptEntries) {
-      const result = cleanGlbFile(path.join(MODELS_DIR, entry.fileName));
-      if (result.changed) cleanedGlbs += 1;
+    if (!applyReviewOnly) {
+      for (const entry of keptEntries) {
+        const result = cleanGlbFile(path.join(MODELS_DIR, entry.fileName));
+        if (result.changed) cleanedGlbs += 1;
+      }
     }
 
     const nextSource = replaceCatalogEntries(source, parsed, MODELS_DIR);
     fs.writeFileSync(CATALOG_PATH, nextSource);
 
-    let removedGlbs = 0;
-    for (const entry of removedEntries) {
-      const filePath = path.join(MODELS_DIR, entry.fileName);
-      if (!fs.existsSync(filePath)) continue;
-      fs.unlinkSync(filePath);
-      removedGlbs += 1;
-    }
+    if (!applyReviewOnly) {
+      let removedGlbs = 0;
+      for (const entry of removedEntries) {
+        const filePath = path.join(MODELS_DIR, entry.fileName);
+        if (!fs.existsSync(filePath)) continue;
+        fs.unlinkSync(filePath);
+        removedGlbs += 1;
+      }
 
-    const usedTextures = referencedTextureNames(nextSource);
-    let removedTextures = 0;
-    if (fs.existsSync(TEXTURES_DIR)) {
-      for (const textureName of fs.readdirSync(TEXTURES_DIR)) {
-        const texturePath = path.join(TEXTURES_DIR, textureName);
-        if (fs.statSync(texturePath).isFile() && !usedTextures.has(textureName)) {
-          fs.unlinkSync(texturePath);
-          removedTextures += 1;
+      const usedTextures = referencedTextureNames(nextSource);
+      let removedTextures = 0;
+      if (fs.existsSync(TEXTURES_DIR)) {
+        for (const textureName of fs.readdirSync(TEXTURES_DIR)) {
+          const texturePath = path.join(TEXTURES_DIR, textureName);
+          if (fs.statSync(texturePath).isFile() && !usedTextures.has(textureName)) {
+            fs.unlinkSync(texturePath);
+            removedTextures += 1;
+          }
         }
       }
+      console.log(`curated catalog: ${parsed.entries.length} -> ${keptEntries.length}`);
+      console.log(`cleaned GLB files: ${cleanedGlbs}; removed GLB files: ${removedGlbs}; removed textures: ${removedTextures}`);
+    } else {
+      console.log("applied visual review to generated catalog without touching model assets");
     }
-    console.log(`curated catalog: ${parsed.entries.length} -> ${keptEntries.length}`);
-    console.log(`cleaned GLB files: ${cleanedGlbs}; removed GLB files: ${removedGlbs}; removed textures: ${removedTextures}`);
   }
 
   const library = await loadCatalog();

@@ -1,0 +1,59 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import test from "node:test";
+import { fileURLToPath } from "node:url";
+
+import {
+  MODEL_PREVIEW_FRAMING,
+  fitModelPreviewCamera,
+  projectModelPreviewBounds,
+} from "./modelPreviewFraming.ts";
+
+const BOXES = {
+  compact: { min: [-0.5, 0, -0.5], max: [0.5, 1, 0.5] },
+  tall: { min: [-0.35, 0, -0.35], max: [0.35, 3, 0.35] },
+  wideFlat: { min: [-2.5, 0, -0.45], max: [2.5, 0.2, 0.45] },
+};
+
+const THUMBNAIL_SOURCE = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "thumbnailStudio.ts"),
+  "utf8",
+);
+
+test("模型预览使用统一的三分之四标准视角", () => {
+  assert.equal(MODEL_PREVIEW_FRAMING.azimuthDegrees, -45);
+  assert.equal(MODEL_PREVIEW_FRAMING.elevationDegrees, -25);
+  assert.equal(MODEL_PREVIEW_FRAMING.fovDegrees, 50);
+  assert.equal(MODEL_PREVIEW_FRAMING.targetOccupancy, 0.8);
+  assert.deepEqual(
+    [MODEL_PREVIEW_FRAMING.minOccupancy, MODEL_PREVIEW_FRAMING.maxOccupancy],
+    [0.76, 0.84],
+  );
+});
+
+for (const [label, bounds] of Object.entries(BOXES)) {
+  test(`${label} 模型按 AABB 八角点计算出有限且约 80% 的构图`, () => {
+    const fit = fitModelPreviewCamera(bounds, 4 / 3);
+    assert.ok(Number.isFinite(fit.distance));
+    assert.ok(fit.distance > 0);
+    const projection = projectModelPreviewBounds(bounds, fit, 4 / 3);
+    assert.ok(Number.isFinite(projection.maxOccupancy));
+    assert.ok(
+      projection.maxOccupancy >= MODEL_PREVIEW_FRAMING.minOccupancy
+        && projection.maxOccupancy <= MODEL_PREVIEW_FRAMING.maxOccupancy,
+      `${label} occupancy=${projection.maxOccupancy}`,
+    );
+  });
+}
+
+test("退化包围盒也不会把 NaN 或 Infinity 传入渲染器", () => {
+  const fit = fitModelPreviewCamera({ min: [0, 0, 0], max: [0, 0, 0] }, 4 / 3);
+  assert.ok(Number.isFinite(fit.distance));
+  assert.ok(fit.distance > 0);
+});
+
+test("取景合同变化时缩略图缓存使用新版本", () => {
+  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v19/);
+});
