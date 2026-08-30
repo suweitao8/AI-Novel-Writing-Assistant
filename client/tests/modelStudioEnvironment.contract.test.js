@@ -73,7 +73,11 @@ test("模型查看器固定相机轨道并支持异步切换环境", () => {
   assert.match(viewerSource, /studioEnvironmentLoadQueue/);
   assert.match(viewerSource, /buildBlocking3dGroundGridLines/);
   assert.match(viewerSource, /rebuildEnvironmentBackdropMesh/);
-  assert.match(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
+  assert.match(viewerSource, /normalizeModelViewerCameraDistance/);
+  assert.match(viewerSource, /getModelViewerCameraClipPlanes/);
+  assert.doesNotMatch(viewerSource, /getCameraMaxDistance/);
+  assert.doesNotMatch(viewerSource, /currentEnvironmentRadiusMeters \* 0\.85/);
+  assert.doesNotMatch(viewerSource, /Math\.max\(radius, 0\.25\)/);
   assert.match(viewerSource, /getStudioEnvironmentDiameterMeters/);
   assert.doesNotMatch(viewerSource, /attachStudioBackdrop\(app/);
 });
