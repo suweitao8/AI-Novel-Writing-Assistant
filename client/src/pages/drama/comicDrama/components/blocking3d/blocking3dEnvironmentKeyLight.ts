@@ -40,11 +40,15 @@ export function clearHdriKeyLight(entity: pc.Entity): void {
   entity.enabled = false;
 }
 
-export function applyHdriKeyLight(entity: pc.Entity, texture: pc.Texture): void {
+export function applyHdriKeyLight(
+  entity: pc.Entity,
+  texture: pc.Texture,
+  panoramaHorizonV = 0.5,
+): void {
   const light = entity.light;
   if (!light) return;
 
-  const estimate = estimateHdriLightFromTexture(texture);
+  const estimate = estimateHdriLightFromTexture(texture, panoramaHorizonV);
   const sourceDirection = new pc.Vec3(
     estimate.direction[0],
     estimate.direction[1],
