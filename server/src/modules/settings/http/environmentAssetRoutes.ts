@@ -10,10 +10,12 @@ import { validate } from "../../../middleware/validate";
 import { AppError } from "../../../middleware/errorHandler";
 import {
   getStudioEnvironmentAssetDocument,
+  getStoredStudioEnvironmentAsset,
   saveStudioEnvironmentAsset,
   setActiveStudioEnvironmentState,
   MAX_ENVIRONMENT_STATES,
 } from "../../../services/settings/StudioEnvironmentAssetSettingsService";
+import { storyStateImagePromptService } from "../../../services/image/StoryStateImagePromptService";
 import {
   resolveStudioEnvironmentStateImagePath,
   studioEnvironmentStateImageService,
@@ -35,6 +37,9 @@ const stateSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   imagePrompt: z.string().trim().max(2000).optional(),
   referenceStateId: stateIdSchema.optional(),
+  eraStyle: z.string().trim().max(100).optional(),
+  timeOfDay: z.enum(["morning", "noon", "night"]).nullable().optional(),
+  weather: z.enum(["sunny", "cloudy", "rainy"]).nullable().optional(),
 });
 
 const environmentStatesSchema = z.object({
@@ -44,7 +49,18 @@ const environmentStatesSchema = z.object({
 
 const activeStateSchema = z.object({ stateId: stateIdSchema });
 
+const tweakPromptSchema = z.object({
+  stateLabel: z.string().trim().max(50).optional(),
+  imagePrompt: z.string().trim().max(2000).optional(),
+  instruction: z.string().trim().min(1).max(500),
+});
+
 const emptyParamsSchema = z.object({}).strict();
+
+const dismissImageErrorSchema = z.object({
+  expectedError: z.string().trim().min(1).max(500),
+  expectedAttemptId: z.string().trim().max(100).optional(),
+});
 
 router.get(
   "/environment-assets",
@@ -97,6 +113,35 @@ router.post(
         data: environment,
         message: "当前全景已切换。",
       } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/environment-assets/:environmentId/tweak-prompt",
+  validate({ params: z.object({ environmentId: environmentIdSchema }), body: tweakPromptSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId } = req.params as { environmentId: string };
+      const body = req.body as z.infer<typeof tweakPromptSchema>;
+      // 与小说场景状态共用同一份微调契约（novel.state_image_prompt.tweak）；
+      // 环境是全局资产，不携带小说上下文。
+      const document = await getStudioEnvironmentAssetDocument();
+      const environment = getStoredStudioEnvironmentAsset(document, environmentId);
+      const result = await storyStateImagePromptService.tweakStateImagePrompt(undefined, {
+        kind: "scene",
+        assetName: environment.label,
+        stateLabel: body.stateLabel,
+        imagePrompt: body.imagePrompt,
+        instruction: body.instruction,
+      });
+      res.status(200).json({
+        success: true,
+        data: result,
+        message: "图片提示词已改写。",
+      } satisfies ApiResponse<typeof result>);
     } catch (error) {
       next(error);
     }

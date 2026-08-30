@@ -32,7 +32,7 @@ test("存储文档保留状态资料与生成图，非法字段被剔除", () =>
         activeStateId: "night",
         states: [
           { id: "default", label: "默认", imagePrompt: "main room", image: doneImage("/api/x", "2026-08-30T01:00:00.000Z") },
-          { id: "night", label: "夜晚", description: "夜间氛围", referenceStateId: "default", image: { status: "error", error: "失败" } },
+          { id: "night", label: "夜晚", description: "夜间氛围", referenceStateId: "default", eraStyle: "末世废土", timeOfDay: "night", weather: "rainy", image: { status: "error", error: "失败" } },
           { id: "bad id!", label: "非法 id" },
           { id: "night", label: "重复 id" },
         ],
@@ -47,7 +47,24 @@ test("存储文档保留状态资料与生成图，非法字段被剔除", () =>
   assert.equal(interior.states[0].image.url, "/api/x");
   assert.equal(interior.states[1].description, "夜间氛围");
   assert.equal(interior.states[1].referenceStateId, "default");
+  assert.equal(interior.states[1].eraStyle, "末世废土");
+  assert.equal(interior.states[1].timeOfDay, "night");
+  assert.equal(interior.states[1].weather, "rainy");
   assert.equal(interior.states[1].image.status, "error");
+});
+
+test("时代风格/时间/天气的非法值被剔除", () => {
+  const document = parseStudioEnvironmentAssetDocument({
+    environments: {
+      exterior: {
+        states: [{ id: "default", label: "默认", eraStyle: 42, timeOfDay: "midnight", weather: "foggy" }],
+      },
+    },
+  });
+  const state = document.environments.exterior.states[0];
+  assert.equal(state.eraStyle, undefined);
+  assert.equal(state.timeOfDay, undefined);
+  assert.equal(state.weather, undefined);
 });
 
 test("activeStateId 悬空时回落第一个状态", () => {

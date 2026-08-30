@@ -10,6 +10,7 @@ const sourceResolver = read("../src/pages/models/modelLibrary3d/studioEnvironmen
 const presetsSource = read("../src/pages/models/modelLibrary3d/studioEnvironmentPresets.ts");
 const settingsPageSource = read("../src/pages/settings/views/NarratorVoiceSettingsPage.tsx");
 const previewPageSource = read("../src/pages/settings/views/StudioEnvironmentPreviewPage.tsx");
+const assetFormsSource = read("../src/pages/novels/components/storySettings/assetForms.tsx");
 const sharedContract = read("../../shared/types/studioEnvironmentAssets.ts");
 const apiSettingsSource = read("../src/api/settings.ts");
 
@@ -33,30 +34,39 @@ test("预设 id 与显示名来自 shared 环境资产契约", () => {
   assert.match(presetsSource, /STUDIO_ENVIRONMENT_IDS/);
   assert.match(presetsSource, /STUDIO_ENVIRONMENT_LABELS/);
   assert.match(sharedContract, /export const STUDIO_ENVIRONMENT_IDS = \["interior", "exterior", "nature"\]/);
-  assert.match(sharedContract, /export interface StudioEnvironmentAssetState/);
+  // 环境状态就是场景资产状态：编辑器、归一化与生成契约全部同源。
+  assert.match(sharedContract, /export type StudioEnvironmentAssetState = StoryAssetState;/);
   assert.match(sharedContract, /resolveActiveStudioEnvironmentState/);
 });
 
-test("通用资产页提供状态编辑、生成、终止、失败关闭与设为当前全景", () => {
-  assert.match(settingsPageSource, /getStudioEnvironmentAssets/);
-  assert.match(settingsPageSource, /saveStudioEnvironmentAsset/);
+test("环境编辑完全复用场景资产的 AssetStatesEditor 并注入设置域后端", () => {
+  assert.match(assetFormsSource, /export interface AssetStatesEditorOps/);
+  assert.match(assetFormsSource, /ops\?: AssetStatesEditorOps/);
+  // 注入后端在生成/终止/失败关闭/微调四个动作上分支，小说路径保持原样。
+  assert.match(assetFormsSource, /if \(ops\) \{\s*return ops\.generateImage\(stateId\);/);
+  assert.match(assetFormsSource, /if \(ops\) \{\s*return ops\.cancelImage\(stateId\);/);
+  assert.match(assetFormsSource, /ops\?\.renderExtraImageAction\?\.\(selectedState\)/);
+  assert.match(settingsPageSource, /AssetStatesEditor/);
+  assert.match(settingsPageSource, /normalizeStatesForSave/);
   assert.match(settingsPageSource, /generateStudioEnvironmentStateImage/);
   assert.match(settingsPageSource, /cancelStudioEnvironmentStateImage/);
   assert.match(settingsPageSource, /dismissStudioEnvironmentStateImageError/);
   assert.match(settingsPageSource, /setActiveStudioEnvironmentState/);
-  assert.match(settingsPageSource, /编辑环境/);
+  assert.match(settingsPageSource, /tweakStudioEnvironmentStateImagePrompt/);
+  assert.match(settingsPageSource, /renderExtraImageAction/);
   assert.match(settingsPageSource, /设为当前全景/);
-  assert.match(settingsPageSource, /环境状态/);
-  assert.match(settingsPageSource, /图片提示词/);
-  assert.match(settingsPageSource, /参考状态/);
+  assert.match(settingsPageSource, /编辑环境/);
+  // 环境描述是弹窗级字段，与场景资产的基础字段同级。
+  assert.match(settingsPageSource, /环境描述/);
   // 生成期间轮询设置接口，页面外也能跟进结果。
   assert.match(settingsPageSource, /refetchInterval/);
   assert.match(settingsPageSource, /3000/);
 });
 
-test("状态图生成请求走设置路由，图片按状态存储", () => {
+test("环境接口覆盖资料保存、活跃状态与提示词微调", () => {
   assert.match(apiSettingsSource, /\/settings\/environment-assets/);
-  assert.match(apiSettingsSource, /states\/\$\{stateId\}\/generate-image/);
+  assert.match(apiSettingsSource, /tweak-prompt/);
+  assert.match(apiSettingsSource, /eraStyle/);
 });
 
 test("HDRI 3D 预览页经解析器取环境源", () => {

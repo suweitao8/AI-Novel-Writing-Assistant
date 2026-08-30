@@ -124,7 +124,7 @@ export class StudioEnvironmentStateImageService {
       const styleContext = await resolveDramaArtStyleContext({
         visualStyle: null,
         sourceRef: null,
-        pinnedStyle: DEFAULT_DRAMA_VISUAL_STYLE_ID,
+        pinnedStyle: state.eraStyle?.trim() || DEFAULT_DRAMA_VISUAL_STYLE_ID,
         pinnedMissFallbackStyle: DEFAULT_DRAMA_VISUAL_STYLE_ID,
       });
       const styleLines = buildAssetStylePromptLines(
@@ -133,8 +133,8 @@ export class StudioEnvironmentStateImageService {
         styleContext.specific,
         styleContext.renderFamily,
       );
-      // 环境状态是全局资产：sceneType 不参与（布局契约里室内/室外的强化行按
-      // 环境语义由描述承担），时间/天气由状态描述直接表达。
+      // 环境状态的时间/天气/时代风格与场景状态同一套语义；室内布局契约（家具不得
+      // 越过地平线）按环境语义映射：interior 走室内行，其余走室外行。
       const prompt = buildStateImagePrompt(
         {
           kind: "scene",
@@ -145,9 +145,9 @@ export class StudioEnvironmentStateImageService {
             description: state.description ?? "",
             imagePrompt: state.imagePrompt ?? "",
             ageGroup: undefined,
-            sceneType: undefined,
-            timeOfDay: undefined,
-            weather: undefined,
+            sceneType: environmentId === "interior" ? ("interior" as const) : ("exterior" as const),
+            timeOfDay: state.timeOfDay ?? undefined,
+            weather: state.weather ?? undefined,
           },
           hasReference: Boolean(state.referenceStateId),
         },
