@@ -1,0 +1,185 @@
+// 通用环境资产（HDRI 全景环境）HTTP 入口：资料读写、活跃状态、状态图生成三件套与图片流式返回。
+import fs from "node:fs";
+import { Router } from "express";
+import { z } from "zod";
+
+import type { ApiResponse } from "@ai-novel/shared/types/api";
+import { STUDIO_ENVIRONMENT_IDS, type StudioEnvironmentId } from "@ai-novel/shared/types/studioEnvironmentAssets";
+import { authMiddleware } from "../../../middleware/auth";
+import { validate } from "../../../middleware/validate";
+import { AppError } from "../../../middleware/errorHandler";
+import {
+  getStudioEnvironmentAssetDocument,
+  saveStudioEnvironmentAsset,
+  setActiveStudioEnvironmentState,
+  MAX_ENVIRONMENT_STATES,
+} from "../../../services/settings/StudioEnvironmentAssetSettingsService";
+import {
+  resolveStudioEnvironmentStateImagePath,
+  studioEnvironmentStateImageService,
+} from "../../../services/settings/StudioEnvironmentStateImageService";
+
+const router = Router();
+
+router.use(authMiddleware);
+
+const environmentIdSchema = z.string().refine((value) => (STUDIO_ENVIRONMENT_IDS as readonly string[]).includes(value), {
+  message: "未知的环境资产。",
+});
+
+const stateIdSchema = z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/, "状态 id 不合法。");
+
+const stateSchema = z.object({
+  id: stateIdSchema,
+  label: z.string().trim().min(1).max(50),
+  description: z.string().trim().max(1000).optional(),
+  imagePrompt: z.string().trim().max(2000).optional(),
+  referenceStateId: stateIdSchema.optional(),
+});
+
+const environmentStatesSchema = z.object({
+  description: z.string().trim().max(1000).nullable().optional(),
+  states: z.array(stateSchema).min(1).max(MAX_ENVIRONMENT_STATES),
+});
+
+const activeStateSchema = z.object({ stateId: stateIdSchema });
+
+const emptyParamsSchema = z.object({}).strict();
+
+router.get(
+  "/environment-assets",
+  async (_req, res, next) => {
+    try {
+      const document = await getStudioEnvironmentAssetDocument();
+      res.status(200).json({
+        success: true,
+        data: document,
+        message: "环境资产已加载。",
+      } satisfies ApiResponse<typeof document>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.put(
+  "/environment-assets/:environmentId",
+  validate({ params: z.object({ environmentId: environmentIdSchema }), body: environmentStatesSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId } = req.params as { environmentId: string };
+      const body = req.body as z.infer<typeof environmentStatesSchema>;
+      const environment = await saveStudioEnvironmentAsset(environmentId, {
+        description: body.description ?? undefined,
+        states: body.states,
+      });
+      res.status(200).json({
+        success: true,
+        data: environment,
+        message: "环境资产已保存。",
+      } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/environment-assets/:environmentId/active-state",
+  validate({ params: z.object({ environmentId: environmentIdSchema }), body: activeStateSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId } = req.params as { environmentId: string };
+      const { stateId } = req.body as z.infer<typeof activeStateSchema>;
+      const environment = await setActiveStudioEnvironmentState(environmentId, stateId);
+      res.status(200).json({
+        success: true,
+        data: environment,
+        message: "当前全景已切换。",
+      } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/environment-assets/:environmentId/states/:stateId/generate-image",
+  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }), body: emptyParamsSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId, stateId } = req.params as { environmentId: string; stateId: string };
+      const environment = await studioEnvironmentStateImageService.generateStateImage(
+        environmentId as StudioEnvironmentId,
+        stateId,
+      );
+      res.status(200).json({
+        success: true,
+        data: environment,
+        message: "环境全景已生成。",
+      } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/environment-assets/:environmentId/states/:stateId/cancel-image",
+  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }), body: emptyParamsSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId, stateId } = req.params as { environmentId: string; stateId: string };
+      const environment = await studioEnvironmentStateImageService.cancelStateImage(environmentId as StudioEnvironmentId, stateId);
+      res.status(200).json({
+        success: true,
+        data: environment,
+        message: "已终止生成。",
+      } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+router.post(
+  "/environment-assets/:environmentId/states/:stateId/dismiss-image-error",
+  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }), body: emptyParamsSchema }),
+  async (req, res, next) => {
+    try {
+      const { environmentId, stateId } = req.params as { environmentId: string; stateId: string };
+      const environment = await studioEnvironmentStateImageService.dismissStateImageError(environmentId as StudioEnvironmentId, stateId);
+      res.status(200).json({
+        success: true,
+        data: environment,
+        message: "已清除失败提示。",
+      } satisfies ApiResponse<typeof environment>);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/** GET 环境状态图文件：与小说状态图一致的流式返回与缓存策略。 */
+router.get(
+  "/environment-assets/:environmentId/states/:stateId/image",
+  validate({ params: z.object({ environmentId: environmentIdSchema, stateId: stateIdSchema }) }),
+  async (req, res, next) => {
+    try {
+      const { environmentId, stateId } = req.params as { environmentId: string; stateId: string };
+      const resolved = await resolveStudioEnvironmentStateImagePath(environmentId as StudioEnvironmentId, stateId);
+      res.setHeader("Content-Type", resolved.mimeType);
+      // URL 稳定但内容会被重新生成覆盖，不能缓存旧图一整天。
+      res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+      fs.createReadStream(resolved.filePath).pipe(res);
+    } catch (error) {
+      if (error instanceof AppError && error.statusCode === 404) {
+        res.status(404).json({ success: false, message: "该状态还没有生成图片。" });
+        return;
+      }
+      next(error);
+    }
+  },
+);
+
+export default router;

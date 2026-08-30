@@ -36,6 +36,7 @@ import novelWorkflowsRouter from "./services/novel/director/http/novelWorkflows"
 import promptWorkbenchRouter from "./prompting/http/promptWorkbenchRoutes";
 import ragRouter from "./modules/rag/http/ragRoutes";
 import settingsAutoDirectorRouter from "./modules/settings/http/settingsAutoDirectorRoutes";
+import environmentAssetRouter from "./modules/settings/http/environmentAssetRoutes";
 import settingsRouter from "./modules/settings/http/settingsRoutes";
 import styleEngineRouter from "./modules/styleEngine/http/styleEngineRoutes";
 import styleEngineExtractionRouter from "./modules/styleEngine/http/styleEngineExtractionRoutes";
@@ -154,6 +155,7 @@ export function createApp() {
   app.use("/api/tasks", tasksRouter);
   app.use("/api/auto-director/follow-ups", autoDirectorFollowUpsRouter);
   app.use("/api/settings/auto-director", settingsAutoDirectorRouter);
+  app.use("/api/settings", environmentAssetRouter);
   app.use("/api/auto-director/channel-callbacks", autoDirectorChannelCallbacksRouter);
   app.use("/api/settings", settingsRouter);
   app.use("/api", onboardingRoutes);

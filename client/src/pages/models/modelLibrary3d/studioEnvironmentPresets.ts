@@ -4,10 +4,20 @@
  * diameterMeters 是用户可调的半球直径，界面和预览运行时统一使用 5–30 米。
  * blocking3d 的基础穹顶半径是 0.5，因此交给几何模块时可直接使用这个直径
  * 作为实体缩放值；只有相机边界等内部计算需要换算成真实半径。
+ *
+ * 环境 id 与显示名与通用环境资产契约共享（@ai-novel/shared）：
+ * 通用资产页为每个环境维护可生成的状态，运行时优先使用活跃状态的全景图，
+ * 未生成时回落这里的静态 .hdr 资源。
  */
-export const STUDIO_ENVIRONMENT_PRESET_IDS = ["interior", "exterior", "nature"] as const;
+import {
+  STUDIO_ENVIRONMENT_IDS,
+  STUDIO_ENVIRONMENT_LABELS,
+  type StudioEnvironmentId,
+} from "@ai-novel/shared/types/studioEnvironmentAssets";
 
-export type StudioEnvironmentPresetId = typeof STUDIO_ENVIRONMENT_PRESET_IDS[number];
+export const STUDIO_ENVIRONMENT_PRESET_IDS = STUDIO_ENVIRONMENT_IDS;
+
+export type StudioEnvironmentPresetId = StudioEnvironmentId;
 
 /** 模型/动画预览的本机直径范围，与漫剧场景的真实圆半径合同分离。 */
 export const STUDIO_ENVIRONMENT_DIAMETER_LIMITS = { min: 5, max: 30 } as const;
@@ -28,7 +38,7 @@ export const DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID: StudioEnvironmentPresetId = "
 export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPresetId, StudioEnvironmentPreset>> = {
   interior: {
     id: "interior",
-    label: "室内客厅",
+    label: STUDIO_ENVIRONMENT_LABELS.interior,
     sourceUrl: "/models/env/model-indoor-living-room.hdr",
     previewImageUrl: "/models/env/model-indoor-living-room-preview.png",
     diameterMeters: 15,
@@ -37,7 +47,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
   },
   exterior: {
     id: "exterior",
-    label: "中央广场",
+    label: STUDIO_ENVIRONMENT_LABELS.exterior,
     sourceUrl: "/models/env/model-outdoor-central-plaza.hdr",
     previewImageUrl: "/models/env/model-outdoor-central-plaza-preview.png",
     diameterMeters: 15,
@@ -46,7 +56,7 @@ export const STUDIO_ENVIRONMENT_PRESETS: Readonly<Record<StudioEnvironmentPreset
   },
   nature: {
     id: "nature",
-    label: "草地自然",
+    label: STUDIO_ENVIRONMENT_LABELS.nature,
     sourceUrl: "/models/env/model-nature-grassland.hdr",
     previewImageUrl: "/models/env/model-nature-grassland-preview.png",
     diameterMeters: 15,

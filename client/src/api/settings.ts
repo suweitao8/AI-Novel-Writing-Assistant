@@ -177,6 +177,76 @@ export async function designGlobalNarratorVoice(
   return data;
 }
 
+// ─── 通用环境资产（HDRI 全景环境的状态/提示词/生成图） ───
+
+import type {
+  StudioEnvironmentAsset,
+  StudioEnvironmentAssetDocument,
+  StudioEnvironmentAssetState,
+  StudioEnvironmentId,
+} from "@ai-novel/shared/types/studioEnvironmentAssets";
+
+export type {
+  StudioEnvironmentAsset,
+  StudioEnvironmentAssetDocument,
+  StudioEnvironmentAssetState,
+  StudioEnvironmentAssetStateImage,
+  StudioEnvironmentId,
+} from "@ai-novel/shared/types/studioEnvironmentAssets";
+
+export async function getStudioEnvironmentAssets() {
+  const { data } = await apiClient.get<ApiResponse<StudioEnvironmentAssetDocument>>(
+    "/settings/environment-assets",
+  );
+  return data;
+}
+
+export async function saveStudioEnvironmentAsset(
+  environmentId: StudioEnvironmentId,
+  payload: {
+    description?: string | null;
+    states: Array<Pick<StudioEnvironmentAssetState, "id" | "label" | "description" | "imagePrompt" | "referenceStateId">>;
+  },
+) {
+  const { data } = await apiClient.put<ApiResponse<StudioEnvironmentAsset>>(
+    `/settings/environment-assets/${environmentId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function setActiveStudioEnvironmentState(environmentId: StudioEnvironmentId, stateId: string) {
+  const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
+    `/settings/environment-assets/${environmentId}/active-state`,
+    { stateId },
+  );
+  return data;
+}
+
+export async function generateStudioEnvironmentStateImage(environmentId: StudioEnvironmentId, stateId: string) {
+  const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
+    `/settings/environment-assets/${environmentId}/states/${stateId}/generate-image`,
+    {},
+  );
+  return data;
+}
+
+export async function cancelStudioEnvironmentStateImage(environmentId: StudioEnvironmentId, stateId: string) {
+  const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
+    `/settings/environment-assets/${environmentId}/states/${stateId}/cancel-image`,
+    {},
+  );
+  return data;
+}
+
+export async function dismissStudioEnvironmentStateImageError(environmentId: StudioEnvironmentId, stateId: string) {
+  const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
+    `/settings/environment-assets/${environmentId}/states/${stateId}/dismiss-image-error`,
+    {},
+  );
+  return data;
+}
+
 export async function getAPIKeySettings() {
   const { data } = await apiClient.get<ApiResponse<APIKeyStatus[]>>("/settings/api-keys");
   return data;
@@ -357,7 +427,7 @@ export async function refreshProviderModelList(provider: LLMProvider) {
     }>
   >(`/settings/api-keys/${provider}/refresh-models`);
   return data;
-}
+}
 
 export async function getAutoDirectorChannelSettings() {
   const { data } = await apiClient.get<ApiResponse<AutoDirectorChannelSettings>>("/settings/auto-director/channels");
