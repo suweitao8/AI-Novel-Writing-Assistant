@@ -190,7 +190,6 @@ export type {
   StudioEnvironmentAsset,
   StudioEnvironmentAssetDocument,
   StudioEnvironmentAssetState,
-  StudioEnvironmentAssetStateImage,
   StudioEnvironmentId,
 } from "@ai-novel/shared/types/studioEnvironmentAssets";
 
@@ -205,11 +204,22 @@ export async function saveStudioEnvironmentAsset(
   environmentId: StudioEnvironmentId,
   payload: {
     description?: string | null;
-    states: Array<Pick<StudioEnvironmentAssetState, "id" | "label" | "description" | "imagePrompt" | "referenceStateId">>;
+    states: Array<Pick<StudioEnvironmentAssetState, "id" | "label" | "description" | "imagePrompt" | "referenceStateId" | "eraStyle" | "timeOfDay" | "weather">>;
   },
 ) {
   const { data } = await apiClient.put<ApiResponse<StudioEnvironmentAsset>>(
     `/settings/environment-assets/${environmentId}`,
+    payload,
+  );
+  return data;
+}
+
+export async function tweakStudioEnvironmentStateImagePrompt(
+  environmentId: StudioEnvironmentId,
+  payload: { stateLabel?: string; imagePrompt?: string; instruction: string },
+) {
+  const { data } = await apiClient.post<ApiResponse<{ imagePrompt: string }>>(
+    `/settings/environment-assets/${environmentId}/tweak-prompt`,
     payload,
   );
   return data;
@@ -239,10 +249,15 @@ export async function cancelStudioEnvironmentStateImage(environmentId: StudioEnv
   return data;
 }
 
-export async function dismissStudioEnvironmentStateImageError(environmentId: StudioEnvironmentId, stateId: string) {
+export async function dismissStudioEnvironmentStateImageError(
+  environmentId: StudioEnvironmentId,
+  stateId: string,
+  expectedError: string,
+  expectedAttemptId?: string,
+) {
   const { data } = await apiClient.post<ApiResponse<StudioEnvironmentAsset>>(
     `/settings/environment-assets/${environmentId}/states/${stateId}/dismiss-image-error`,
-    {},
+    { expectedError, ...(expectedAttemptId ? { expectedAttemptId } : {}) },
   );
   return data;
 }

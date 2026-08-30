@@ -14,9 +14,9 @@ import {
   type StudioEnvironmentAsset,
   type StudioEnvironmentAssetDocument,
   type StudioEnvironmentAssetState,
-  type StudioEnvironmentAssetStateImage,
   type StudioEnvironmentId,
 } from "@ai-novel/shared/types/studioEnvironmentAssets";
+import type { StoryAssetStateImage } from "@ai-novel/shared/types/novelReferenceExtraction";
 
 export const MAX_ENVIRONMENT_STATE_LABEL_LENGTH = 50;
 export const MAX_ENVIRONMENT_STATE_DESCRIPTION_LENGTH = 1000;
@@ -32,14 +32,14 @@ function readString(value: unknown, maxLength: number): string | undefined {
   return trimmed.slice(0, maxLength);
 }
 
-function normalizeStateImage(value: unknown): StudioEnvironmentAssetStateImage | undefined {
+function normalizeStateImage(value: unknown): StoryAssetStateImage | undefined {
   if (!value || typeof value !== "object") return undefined;
   const record = value as Record<string, unknown>;
   const status = record.status;
   if (status !== "idle" && status !== "generating" && status !== "done" && status !== "error") {
     return undefined;
   }
-  const image: StudioEnvironmentAssetStateImage = { status };
+  const image: StoryAssetStateImage = { status };
   if (typeof record.url === "string" && record.url.trim()) image.url = record.url.trim();
   if (typeof record.generatedAt === "string" && record.generatedAt.trim()) image.generatedAt = record.generatedAt.trim();
   if (typeof record.attemptId === "string" && record.attemptId.trim()) image.attemptId = record.attemptId.trim();
@@ -65,13 +65,27 @@ function normalizeStates(value: unknown): StudioEnvironmentAssetState[] {
     const id = normalizeStateId(record.id);
     if (!id || seen.has(id)) continue;
     const label = readString(record.label, MAX_ENVIRONMENT_STATE_LABEL_LENGTH) ?? "未命名状态";
-    const state: StudioEnvironmentAssetState = { id, label };
+    const state: StudioEnvironmentAssetState = {
+      id,
+      label,
+      // StoryAssetState 的说明与图片提示词是必填字段：空值按状态名兜底，与 normalizeStatesForSave 语义一致。
+      description: label,
+      imagePrompt: label,
+    };
     const description = readString(record.description, MAX_ENVIRONMENT_STATE_DESCRIPTION_LENGTH);
     if (description) state.description = description;
     const imagePrompt = readString(record.imagePrompt, MAX_ENVIRONMENT_STATE_IMAGE_PROMPT_LENGTH);
     if (imagePrompt) state.imagePrompt = imagePrompt;
     const referenceStateId = normalizeStateId(record.referenceStateId);
     if (referenceStateId && referenceStateId !== id) state.referenceStateId = referenceStateId;
+    const eraStyle = readString(record.eraStyle, 100);
+    if (eraStyle) state.eraStyle = eraStyle;
+    if (record.timeOfDay === "morning" || record.timeOfDay === "noon" || record.timeOfDay === "night") {
+      state.timeOfDay = record.timeOfDay;
+    }
+    if (record.weather === "sunny" || record.weather === "cloudy" || record.weather === "rainy") {
+      state.weather = record.weather;
+    }
     const image = normalizeStateImage(record.image);
     if (image) state.image = image;
     states.push(state);
@@ -81,7 +95,7 @@ function normalizeStates(value: unknown): StudioEnvironmentAssetState[] {
 }
 
 function defaultState(): StudioEnvironmentAssetState {
-  return { id: DEFAULT_STUDIO_ENVIRONMENT_STATE_ID, label: "默认" };
+  return { id: DEFAULT_STUDIO_ENVIRONMENT_STATE_ID, label: "默认", description: "默认", imagePrompt: "默认" };
 }
 
 function defaultEnvironment(id: StudioEnvironmentId): StudioEnvironmentAsset {
@@ -211,7 +225,7 @@ export async function setActiveStudioEnvironmentState(environmentId: string, sta
 export async function updateStudioEnvironmentStateImage(
   environmentId: StudioEnvironmentId,
   stateId: string,
-  mutate: (current: StudioEnvironmentAssetStateImage | undefined) => StudioEnvironmentAssetStateImage,
+  mutate: (current: StoryAssetStateImage | undefined) => StoryAssetStateImage,
 ): Promise<StudioEnvironmentAsset> {
   for (let attempt = 0; attempt < 3; attempt += 1) {
     const document = await getStudioEnvironmentAssetDocument();

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AudioLines, Box, ImagePlus, Loader2, Mic2, Plus, RefreshCw, Square, Trash2, Wand2, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +42,26 @@ import {
   requestStoryAssetImage,
 } from "./storyAssetImageRequestCoordinator";
 import { buildScene3dEditorPath } from "@/pages/drama/comicDrama/navigation/studioNavigation";
+
+/**
+ * 状态编辑器的后端注入：小说角色/场景/道具走默认的小说域接口；不传 ops 时组件
+ * 行为与历史版本完全一致。通用环境资产（设置域）通过 ops 注入设置接口，复用
+ * 同一份状态列表/生成/终止/失败关闭/提示词微调交互。
+ * 接口返回形状对齐小说接口的 `{ data: { states } }`，成功回调得以完全共用。
+ */
+export interface AssetStatesEditorOps {
+  /** 生成前自动保存未提交修改；返回带最新 states 的响应（失败抛错）。 */
+  generateImage: (stateId: string) => Promise<{ data?: { states?: StoryAssetState[] } }>;
+  cancelImage: (stateId: string) => Promise<{ data?: { states?: StoryAssetState[] } }>;
+  dismissImageError: (stateId: string, expectedError: string, expectedAttemptId?: string) => Promise<{ data?: { states?: StoryAssetState[] } }>;
+  tweakImagePrompt: (input: { stateId: string; instruction: string }) => Promise<string>;
+  /** 服务端最新 states（表单干净时的后台同步源）。 */
+  serverStates: StoryAssetState[] | null;
+  /** 操作成功后刷新服务端数据。 */
+  refreshServerStates: () => void;
+  /** 渲染在图片操作区的额外动作（如环境的「设为当前全景」）。 */
+  renderExtraImageAction?: (state: StoryAssetState | null) => ReactNode;
+}
 
 // 设定资产的共用表单：设定中心三个资产页签的编辑弹窗与漫剧「提取」的应用弹窗
 // 复用同一套字段组件——两边字段、文案、占位完全一致，提取出来的资产和手动建的
@@ -235,8 +255,10 @@ export function AssetStatesEditor(props: {
   assetName?: string;
   /** 编辑已有资产时传入；生成与保存需要它调用接口（新建未保存的资产还没有 id） */
   asset?: { novelId: string; assetId: string };
+  /** 注入非小说域后端（如通用环境资产）；不传时走小说域接口，行为与历史版本一致。 */
+  ops?: AssetStatesEditorOps;
 }) {
-  const { states, onChange, kind, novelId, assetName, asset } = props;
+  const { states, onChange, kind, novelId, assetName, asset, ops } = props;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedStateId, setSelectedStateId] = useState<string | null>(states[0]?.id ?? null);
@@ -308,6 +330,20 @@ export function AssetStatesEditor(props: {
     }
   }, [watchQuery.data, asset, localDirty, states, onChange]);
 
+  // 注入后端模式（如通用环境资产）的后台同步：与小说路径同一「干净表单才跟随服务端」规则。
+  useEffect(() => {
+    if (!ops || localDirty) {
+      return;
+    }
+    const serverStates = ops.serverStates;
+    if (!serverStates?.length) {
+      return;
+    }
+    if (JSON.stringify(serverStates) !== JSON.stringify(states)) {
+      onChange(serverStates);
+    }
+  }, [ops, localDirty, states, onChange]);
+
   // 时代风格选项：全局时代画风库（GET /drama/visual-styles 返回内置预设 + 全局自定义，
   // 2026-08-22 起不再读本书 artStyles）；值用 label，与脚本画风标记同一命名空间；
   // 未选时默认「现代都市」（与服务端生成时的空值兜底一致）。
@@ -363,6 +399,9 @@ export function AssetStatesEditor(props: {
 
   const imageMutation = useMutation({
     mutationFn: async (stateId: string) => {
+      if (ops) {
+        return ops.generateImage(stateId);
+      }
       if (!asset) {
         throw new Error("先保存资产，再生成状态图。");
       }
@@ -377,6 +416,7 @@ export function AssetStatesEditor(props: {
     onSuccess: async (response) => {
       onChange(response.data?.states ?? []);
       setLocalDirty(false);
+      ops?.refreshServerStates();
       await invalidateSettings();
       toast.success("状态图已生成。");
     },
@@ -384,6 +424,10 @@ export function AssetStatesEditor(props: {
       toast.error(error instanceof Error ? error.message : "状态图生成失败，请重试。");
       // 409 可能来自跨进程持久 lease；重新读取列表后，编辑器才能显示真实的生成中状态
       // 并提供终止入口，而不是继续拿旧的 statesJson 判断按钮。
+      if (ops) {
+        ops.refreshServerStates();
+        return;
+      }
       void invalidateSettings();
     },
   });
@@ -391,6 +435,9 @@ export function AssetStatesEditor(props: {
   // 终止生成中的状态图（代理切错、生成卡住时停掉重来，不等超时）。
   const cancelImageMutation = useMutation({
     mutationFn: async (stateId: string) => {
+      if (ops) {
+        return ops.cancelImage(stateId);
+      }
       if (!asset) {
         throw new Error("资产还未保存。");
       }
@@ -398,6 +445,7 @@ export function AssetStatesEditor(props: {
     },
     onSuccess: async (response) => {
       onChange(response.data?.states ?? []);
+      ops?.refreshServerStates();
       await invalidateSettings();
       toast.success("已终止生成，可重新生成。");
     },
@@ -406,6 +454,9 @@ export function AssetStatesEditor(props: {
 
   const dismissImageErrorMutation = useMutation({
     mutationFn: async ({ stateId, expectedError, expectedAttemptId }: { stateId: string; expectedError: string; expectedAttemptId?: string }) => {
+      if (ops) {
+        return ops.dismissImageError(stateId, expectedError, expectedAttemptId);
+      }
       if (!asset) {
         throw new Error("资产还未保存。");
       }
@@ -415,6 +466,7 @@ export function AssetStatesEditor(props: {
     onSuccess: async (response, variables) => {
       onChange(response.data?.states ?? []);
       setLocalDirty(false);
+      ops?.refreshServerStates();
       await invalidateSettings();
       const nextState = response.data?.states?.find((state) => state.id === variables.stateId);
       if (nextState?.image?.error) {
@@ -470,6 +522,9 @@ export function AssetStatesEditor(props: {
   // 提示词微调：AI 只改指令涉及的部分，结果写回当前状态的图片提示词（随状态一起保存）。
   const promptTweakMutation = useMutation({
     mutationFn: async ({ stateId, instruction }: { stateId: string; instruction: string }) => {
+      if (ops) {
+        return ops.tweakImagePrompt({ stateId, instruction });
+      }
       const state = states.find((item) => item.id === stateId);
       const response = await tweakStoryStateImagePrompt(novelId, {
         kind,
@@ -566,7 +621,8 @@ export function AssetStatesEditor(props: {
   const imageRequestActive = imageRequestState === "queued" || imageRequestState === "running";
   // 服务端仍在生成（弹窗重开/轮询读到的 generating 态）：按钮显示生成中并禁用重复触发。
   const serverImageGenerating = selectedState?.image?.status === "generating";
-  const generationDisabled = !asset || anyPending || imageRequestActive || serverImageGenerating;
+  const canUseImageBackend = Boolean(ops || asset);
+  const generationDisabled = !canUseImageBackend || anyPending || imageRequestActive || serverImageGenerating;
   const imageGenerating = (imageMutation.isPending && imageMutation.variables === selectedStateId)
     || Boolean(serverImageGenerating)
     || imageRequestActive;
@@ -723,7 +779,7 @@ export function AssetStatesEditor(props: {
                     size="sm"
                     className="h-8"
                     disabled={generationDisabled}
-                    title={!asset ? "先保存资产，再生成状态图" : undefined}
+                    title={canUseImageBackend ? undefined : "先保存资产，再生成状态图"}
                     onClick={() => imageMutation.mutate(selectedState.id)}
                   >
                     {imageGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : selectedState.image?.url ? <RefreshCw className="h-3.5 w-3.5" /> : <ImagePlus className="h-3.5 w-3.5" />}
@@ -735,7 +791,7 @@ export function AssetStatesEditor(props: {
                       variant="outline"
                       size="sm"
                       className="h-8"
-                      disabled={cancelImageMutation.isPending || !asset || imageRequestState === "queued"}
+                      disabled={cancelImageMutation.isPending || !canUseImageBackend || imageRequestState === "queued"}
                       title={imageRequestState === "queued" ? "图片已排队，开始生成后可终止。" : "停止本次生成，可重新发起"}
                       onClick={() => cancelImageMutation.mutate(selectedState.id)}
                     >
@@ -743,6 +799,7 @@ export function AssetStatesEditor(props: {
                       {cancelImageMutation.isPending && cancelImageMutation.variables === selectedState.id ? "终止中..." : "终止"}
                     </AiButton>
                   ) : null}
+                  {ops?.renderExtraImageAction?.(selectedState) ?? null}
                 </div>
               </div>
               {selectedIndex === 0 ? <p className="text-xs text-muted-foreground">默认状态是基础形象，直接生成。</p> : null}
@@ -1003,7 +1060,7 @@ export function AssetStatesEditor(props: {
               </section>
             ) : null}
 
-            {!asset ? (
+            {!asset && !ops ? (
               <p className="border-t border-border/60 pt-3 text-xs text-muted-foreground">保存资产后，这里可以生成图片{showVoice ? "和音色" : ""}。</p>
             ) : null}
           </>
