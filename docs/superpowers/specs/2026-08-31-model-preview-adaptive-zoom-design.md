@@ -28,4 +28,3 @@
 - `client/src/pages/models/modelLibrary3d/modelViewerApp.ts`：接入自适应距离、动态裁剪面，并移除 HDRI 半径的相机上限。
 - `client/src/pages/models/modelLibrary3d/modelViewerCamera.test.mjs`：覆盖大/小模型、远端缩放和裁剪面关系。
 - `client/tests/modelStudioEnvironment.contract.test.js`：更新模型查看器契约，确保相机不再绑定 HDRI 半径。
-
