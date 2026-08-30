@@ -40,3 +40,13 @@ node --experimental-strip-types --test client/src/config/animationLibraryContent
 ```
 
 这个检查同时验证旋转 accessor 类型、单位四元数、skin joint 目标，以及待机、行走、坐姿的可见动作语义。替换发布 GLB 前必须看到该检查通过。
+
+## Cine57 动画目录扩量
+
+目录扩量先运行 `scan_cine57_animations.py` 生成 Asset Registry 证据，再运行
+`build_animation_catalog_selection.cjs` 固化源组、套装、动作类型和 `dedupeKey`。
+`generate_animation_catalog_entries.cjs` 将策选结果生成前端静态目录。UE 侧用
+`export_cine57_animation_catalog.py` 按清单逐条导出 FBX，最后用
+`assemble_animation_catalog.py` 串行完成 FBX → GLB → UAL2 重定向，并在复制到
+`client/public/anims/cine57/` 前检查最终片段名集合。导出中不能把不同骨架的资产混入
+同一链路，也不能用文件名猜测来替代扫描清单中的真实资产路径。

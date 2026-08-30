@@ -154,10 +154,13 @@ export default function AnimationPreviewPage() {
         </Button>
         <h1 className="min-w-0 truncate text-sm font-semibold">{entry.name}</h1>
         <Badge variant="secondary" className="ml-1 shrink-0">
-          {entry.category}
+          {entry.actionTypeLabel}
         </Badge>
         <Badge variant="outline" className="shrink-0">
-          {entry.source}
+          {entry.sourceLabel}
+        </Badge>
+        <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
+          {entry.packLabel}
         </Badge>
         {keyframe ? <Badge className="shrink-0">已设置预览帧</Badge> : null}
       </div>
@@ -169,7 +172,7 @@ export default function AnimationPreviewPage() {
               <dl className="space-y-2 text-xs" data-animation-info>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">文件</dt>
-                  <dd className="truncate font-medium">UAL2_UE_Anims.glb</dd>
+                  <dd className="truncate font-medium">{entry.fileUrl.split("/").at(-1)}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">格式</dt>
@@ -178,6 +181,14 @@ export default function AnimationPreviewPage() {
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">时长</dt>
                   <dd className="font-medium">{formatTime(displayDuration)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">套装</dt>
+                  <dd className="truncate font-medium">{entry.packLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">来源</dt>
+                  <dd className="font-medium">{entry.sourceLabel}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">当前帧</dt>
