@@ -4,7 +4,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { ANIMATION_LIBRARY, ANIMATION_LIBRARY_CATEGORIES } from "./animationLibrary.ts";
+import { ANIMATION_CATALOG_ENTRIES } from "./animationCatalogEntries.ts";
+import {
+  ANIMATION_LIBRARY,
+  ANIMATION_LIBRARY_CATEGORIES,
+} from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const clientDir = path.resolve(configDir, "../..");
@@ -40,9 +44,10 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
     assert.ok(entry.name.length > 0);
     assert.ok(entry.clipName.length > 0);
     assert.ok(
-      entry.source === "UAL2" || entry.source === "Cine57",
-      `目录来源必须是 UAL2 或 Cine57：${entry.source}`,
+      entry.source === "legacy" || entry.source === "unreal",
+      `目录来源必须是 legacy 或 unreal：${entry.source}`,
     );
+    assert.equal(entry.category, entry.actionTypeLabel);
 
     const publicPath = path.join(clientDir, "public", entry.fileUrl);
     assert.ok(fs.existsSync(publicPath), `目录文件应存在：${entry.fileUrl}`);
@@ -65,12 +70,12 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
   assert.equal(ANIMATION_LIBRARY.length, actualClipNames.size);
   assert.deepEqual(catalogClipNames, actualClipNames);
   assert.equal(
-    ANIMATION_LIBRARY.filter((entry) => entry.source === "UAL2").length,
-    43,
+    ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal").length,
+    ANIMATION_CATALOG_ENTRIES.length,
   );
   assert.equal(
-    ANIMATION_LIBRARY.filter((entry) => entry.source === "Cine57").length,
-    3,
+    ANIMATION_LIBRARY.filter((entry) => entry.source === "legacy").length,
+    46,
   );
 });
 
