@@ -25,9 +25,13 @@ import {
   normalizeModelViewerCameraDistance,
 } from "./modelViewerCamera";
 import {
+  fitModelPreviewCamera,
+  MODEL_PREVIEW_FRAMING,
+  type ModelPreviewBounds,
+} from "./modelPreviewFraming";
+import {
   buildBlocking3dGroundGridLines,
   clamp,
-  DEFAULT_FOV,
   drawBlocking3dGroundGrid,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
@@ -63,7 +67,10 @@ export interface ModelViewer {
 }
 
 const CAPTURE_SIZE = { width: 1280, height: 720 } as const;
-const DEFAULT_VIEW = { azim: -35, elev: -18 } as const;
+const DEFAULT_VIEW = {
+  azim: MODEL_PREVIEW_FRAMING.azimuthDegrees,
+  elev: MODEL_PREVIEW_FRAMING.elevationDegrees,
+} as const;
 const MODEL_BOUNDS_COLOR = new pc.Color(0.68, 0.68, 0.68, 0.9);
 
 interface SourceBounds {
@@ -177,7 +184,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const cameraEntity = new pc.Entity("model-editor-camera");
   cameraEntity.addComponent("camera", {
     clearColor: new pc.Color(0.075, 0.09, 0.115),
-    fov: DEFAULT_FOV,
+    fov: MODEL_PREVIEW_FRAMING.fovDegrees,
     nearClip: 0.05,
     farClip: 200,
   });
@@ -225,6 +232,10 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   // 模型在 modelRoot 本地空间里的显示尺寸（米），用于取景和相机裁剪面。
   let modelCenterY = 0.5;
   let modelRadius = 0.5;
+  let modelPreviewBounds: ModelPreviewBounds = {
+    min: [-0.5, 0, -0.5],
+    max: [0.5, 1, 0.5],
+  };
 
   const cameraState: OrbitState = {
     azim: DEFAULT_VIEW.azim,
@@ -295,22 +306,26 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     return result;
   };
 
-  const fitCameraTo = (centerY: number, radius: number) => {
-    const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
-    const fitRadius = Number.isFinite(radius) && radius > 0 ? radius : Number.EPSILON;
-    cameraState.focalPoint = [modelRoot.getPosition().x, centerY, modelRoot.getPosition().z];
+  const fitCameraTo = () => {
+    const fit = fitModelPreviewCamera(modelPreviewBounds, canvas.width / Math.max(canvas.height, 1));
+    const fitRadius = Math.max(modelRadius, Number.EPSILON);
+    const modelPosition = modelRoot.getPosition();
+    cameraState.azim = fit.azimuthDegrees;
+    cameraState.elev = fit.elevationDegrees;
+    cameraState.focalPoint = [
+      modelPosition.x + fit.target[0],
+      modelPosition.y + fit.target[1],
+      modelPosition.z + fit.target[2],
+    ];
     cameraState.distance = normalizeModelViewerCameraDistance(
-      (fitRadius / Math.sin(fovRad / 2)) * 1.3,
+      fit.distance,
       fitRadius,
     );
     syncCamera();
   };
 
   const fitView = () => {
-    // 包围球半径与 Y 轴旋转无关，可以直接用 modelRoot 的位置 + 本地中心高度取景。
-    const scale = Math.abs(modelRoot.getLocalScale().x);
-    const position = modelRoot.getPosition();
-    fitCameraTo(position.y + modelCenterY * scale, modelRadius * scale);
+    fitCameraTo();
   };
 
   const resetView = () => {
@@ -366,6 +381,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   const modelDisplayBounds = geometryStats ? getNormalizedModelBounds(geometryStats) : null;
   const modelDisplayBoundsMin = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.min) : null;
   const modelDisplayBoundsMax = modelDisplayBounds ? new pc.Vec3(...modelDisplayBounds.max) : null;
+  if (modelDisplayBounds) modelPreviewBounds = modelDisplayBounds;
   fitView();
   options.onStatus?.("");
   // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。

@@ -1,0 +1,797 @@
+{
+  "version": 1,
+  "source": "Cine57 standard model-library thumbnails",
+  "reviewedAt": "2026-08-31",
+  "entries": [
+    {
+      "id": "bed-12a",
+      "meshName": "SM_Bed_12a_LOD0",
+      "fileName": "SM_Bed_12a.glb",
+      "name": "双人床 A",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见双人床 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "bed-19a",
+      "meshName": "SM_Bed_19a_LOD0",
+      "fileName": "SM_Bed_19a.glb",
+      "name": "单人床",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见单人床",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "bed-frame-01a",
+      "meshName": "SM_Bed_Frame_01a_LOD0",
+      "fileName": "SM_Bed_Frame_01a.glb",
+      "name": "床架",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见床架",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "sofa-pullout-01a",
+      "meshName": "SM_Sofa_Pullout_01a_LOD0",
+      "fileName": "SM_Sofa_Pullout_01a.glb",
+      "name": "沙发床",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见沙发床",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "crib-baby-01a",
+      "meshName": "SM_Crib_Baby_01a_LOD0",
+      "fileName": "SM_Crib_Baby_01a.glb",
+      "name": "婴儿床",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见婴儿床",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "pillow-bed-01a",
+      "meshName": "SM_Pillow_Bed_01a_LOD0",
+      "fileName": "SM_Pillow_Bed_01a.glb",
+      "name": "床头枕",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见床头枕",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "desk-office-08a",
+      "meshName": "SM_Desk_Office_08a_LOD0",
+      "fileName": "SM_Desk_Office_08a.glb",
+      "name": "办公桌 A",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见办公桌 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "desk-03a",
+      "meshName": "SM_Desk_03a_LOD0",
+      "fileName": "SM_Desk_03a.glb",
+      "name": "书桌",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见书桌",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chair-desk-01a",
+      "meshName": "SM_Chair_Desk_01a_LOD0",
+      "fileName": "SM_Chair_Desk_01a.glb",
+      "name": "书桌椅",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见书桌椅",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chair-set-05a",
+      "meshName": "SM_Chair_Set_05a_LOD0",
+      "fileName": "SM_Chair_Set_05a.glb",
+      "name": "椅子 A",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见椅子 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chair-set-09a",
+      "meshName": "SM_Chair_Set_09a_LOD0",
+      "fileName": "SM_Chair_Set_09a.glb",
+      "name": "椅子 B",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见椅子 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "table",
+      "meshName": "SM_Table",
+      "fileName": "SM_Table.glb",
+      "name": "餐桌",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见餐桌",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "coffee-table",
+      "meshName": "SM_Coffee_table",
+      "fileName": "SM_Coffee_table.glb",
+      "name": "茶几",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见茶几",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "book-set-01a",
+      "meshName": "SM_Book_Set_01a_LOD0",
+      "fileName": "SM_Book_Set_01a.glb",
+      "name": "书堆 A",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见书堆 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "book-set-05a",
+      "meshName": "SM_Book_Set_05a_LOD0",
+      "fileName": "SM_Book_Set_05a.glb",
+      "name": "书堆 B",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见书堆 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "candle-set-02a",
+      "meshName": "SM_Candle_Set_02a_LOD0",
+      "fileName": "SM_Candle_Set_02a.glb",
+      "name": "烛台组",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见烛台组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "house-decor-11a",
+      "meshName": "SM_House_Decor_11a_LOD0",
+      "fileName": "SM_House_Decor_11a.glb",
+      "name": "家居摆件",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见家居摆件",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "pillow-set-06a",
+      "meshName": "SM_Pillow_Set_06a_LOD0",
+      "fileName": "SM_Pillow_Set_06a.glb",
+      "name": "抱枕组",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见抱枕组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chinese-vases-01a",
+      "meshName": "SM_Chinese_Vases_01a_LOD0",
+      "fileName": "SM_Chinese_Vases_01a.glb",
+      "name": "瓷瓶 A",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见瓷瓶 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chinese-vases-01b",
+      "meshName": "SM_Chinese_Vases_01b_LOD0",
+      "fileName": "SM_Chinese_Vases_01b.glb",
+      "name": "瓷瓶 B",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见瓷瓶 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "knick-knacks-31a",
+      "meshName": "SM_Knick_Knacks_31a_LOD0",
+      "fileName": "SM_Knick_Knacks_31a.glb",
+      "name": "小摆件",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见小摆件",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chinese-lamp-01a",
+      "meshName": "SM_Chinese_Lamp_01a_LOD0",
+      "fileName": "SM_Chinese_Lamp_01a.glb",
+      "name": "宫灯",
+      "category": "灯具",
+      "visualDescription": "标准缩略图中可见宫灯",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "plant-0",
+      "meshName": "SM_plant_0_LOD0",
+      "fileName": "SM_plant_0.glb",
+      "name": "盆栽 A",
+      "category": "盆栽",
+      "visualDescription": "标准缩略图中可见盆栽 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "plant-12",
+      "meshName": "SM_plant_12_LOD0",
+      "fileName": "SM_plant_12.glb",
+      "name": "盆栽 B",
+      "category": "盆栽",
+      "visualDescription": "标准缩略图中可见盆栽 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "palm-tree-house-01a",
+      "meshName": "SM_Palm_Tree_House_01a_LOD0",
+      "fileName": "SM_Palm_Tree_House_01a.glb",
+      "name": "室内棕榈",
+      "category": "盆栽",
+      "visualDescription": "标准缩略图中可见室内棕榈",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "ground-rock-01",
+      "meshName": "SM_ground_rock_01_LOD0",
+      "fileName": "SM_ground_rock_01.glb",
+      "name": "碎石 A",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见碎石 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "ground-rock-02",
+      "meshName": "SM_ground_rock_02_LOD0",
+      "fileName": "SM_ground_rock_02.glb",
+      "name": "碎石 B",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见碎石 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "food-shipment-01a",
+      "meshName": "SM_FoodShipmentSet_01a",
+      "fileName": "SM_FoodShipmentSet_01a.glb",
+      "name": "纸箱·食材组合",
+      "category": "容器与箱子",
+      "visualDescription": "标准缩略图中可见纸箱·食材组合",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "rugs-03a",
+      "meshName": "SM_Rugs_03a_LOD0",
+      "fileName": "SM_Rugs_03a.glb",
+      "name": "地毯 03A",
+      "category": "地面",
+      "visualDescription": "标准缩略图中可见地毯 03A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "rugs-03b",
+      "meshName": "SM_Rugs_03b_LOD0",
+      "fileName": "SM_Rugs_03b.glb",
+      "name": "地毯 03B",
+      "category": "地面",
+      "visualDescription": "标准缩略图中可见地毯 03B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "rugs-03c",
+      "meshName": "SM_Rugs_03c_LOD0",
+      "fileName": "SM_Rugs_03c.glb",
+      "name": "地毯 03C",
+      "category": "地面",
+      "visualDescription": "标准缩略图中可见地毯 03C",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "rug-04a",
+      "meshName": "SM_Rug_04a_LOD0",
+      "fileName": "SM_Rug_04a.glb",
+      "name": "花纹地毯",
+      "category": "地面",
+      "visualDescription": "标准缩略图中可见花纹地毯",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "burger-food-set-01a",
+      "meshName": "SM_Burger_Food_Set_01a_LOD0",
+      "fileName": "SM_Burger_Food_Set_01a.glb",
+      "name": "汉堡餐",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见汉堡餐",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chair-table-set-11a",
+      "meshName": "SM_Chair_Table_Set_11a_LOD0",
+      "fileName": "SM_Chair_Table_Set_11a.glb",
+      "name": "餐桌椅组",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见餐桌椅组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "chinese-food-01a",
+      "meshName": "SM_Chinese_Food_01a_LOD0",
+      "fileName": "SM_Chinese_Food_01a.glb",
+      "name": "中式餐食",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见中式餐食",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "coffee-machine-01a",
+      "meshName": "SM_Coffee_Machine_01a_LOD0",
+      "fileName": "SM_Coffee_Machine_01a.glb",
+      "name": "咖啡机",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见咖啡机",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "cooking-tools-01a",
+      "meshName": "SM_Cooking_Tools_01a_LOD0",
+      "fileName": "SM_Cooking_Tools_01a.glb",
+      "name": "烹饪工具",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见烹饪工具",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "dining-table-set-01a",
+      "meshName": "SM_Dining_Table_Set_01a_LOD0",
+      "fileName": "SM_Dining_Table_Set_01a.glb",
+      "name": "餐桌椅组 B",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见餐桌椅组 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "dinner-desert-set-01a",
+      "meshName": "SM_Dinner_Desert_Set_01a_LOD0",
+      "fileName": "SM_Dinner_Desert_Set_01a.glb",
+      "name": "餐具甜品组",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见餐具甜品组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "armchair",
+      "meshName": "SM_Armchair",
+      "fileName": "SM_Armchair.glb",
+      "name": "扶手椅",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见扶手椅",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "barrel-01",
+      "meshName": "SM_Barrel_01",
+      "fileName": "SM_Barrel_01.glb",
+      "name": "木桶",
+      "category": "容器与箱子",
+      "visualDescription": "标准缩略图中可见木桶",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "barstool-01a",
+      "meshName": "SM_Barstool_01a",
+      "fileName": "SM_Barstool_01a.glb",
+      "name": "吧台凳",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见吧台凳",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "box01",
+      "meshName": "SM_Box01",
+      "fileName": "SM_Box01.glb",
+      "name": "纸盒",
+      "category": "容器与箱子",
+      "visualDescription": "标准缩略图中可见纸盒",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "garbagebasket01",
+      "meshName": "SM_GarbageBasket01",
+      "fileName": "SM_GarbageBasket01.glb",
+      "name": "垃圾篮",
+      "category": "容器与箱子",
+      "visualDescription": "标准缩略图中可见垃圾篮",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "microwave01",
+      "meshName": "SM_Microwave01",
+      "fileName": "SM_Microwave01.glb",
+      "name": "微波炉",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见微波炉",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "binder-01a",
+      "meshName": "SM_Binder_01a_LOD0",
+      "fileName": "SM_Binder_01a.glb",
+      "name": "文件夹",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见文件夹",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "clock-01a",
+      "meshName": "SM_Clock_01a_LOD0",
+      "fileName": "SM_Clock_01a.glb",
+      "name": "时钟",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见时钟",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "coffeecup-01a",
+      "meshName": "SM_CoffeeCup_01a_LOD0",
+      "fileName": "SM_CoffeeCup_01a.glb",
+      "name": "咖啡杯",
+      "category": "厨房与餐具",
+      "visualDescription": "标准缩略图中可见咖啡杯",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "bathroom-sink-01a",
+      "meshName": "SM_Bathroom_Sink_01a_LOD0",
+      "fileName": "SM_Bathroom_Sink_01a.glb",
+      "name": "卫浴水槽",
+      "category": "卫浴",
+      "visualDescription": "标准缩略图中可见卫浴水槽",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "cabinetset-01a",
+      "meshName": "SM_CabinetSet_01a_LOD0",
+      "fileName": "SM_CabinetSet_01a.glb",
+      "name": "收纳柜组",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见收纳柜组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "desk-set-01a",
+      "meshName": "SM_Desk_Set_01a_LOD0",
+      "fileName": "SM_Desk_Set_01a.glb",
+      "name": "烟灰缸",
+      "category": "日用小物",
+      "visualDescription": "黑色烟灰缸，顶部可见烟头和凹槽",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "file-cabinent-03a",
+      "meshName": "SM_File_Cabinent_03a_LOD0",
+      "fileName": "SM_File_Cabinent_03a.glb",
+      "name": "文件柜",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见文件柜",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "office-supplies-set-01a",
+      "meshName": "SM_Office_Supplies_Set_01a_LOD0",
+      "fileName": "SM_Office_Supplies_Set_01a.glb",
+      "name": "办公用品",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见办公用品",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "printer-01a",
+      "meshName": "SM_Printer_01a_LOD0",
+      "fileName": "SM_Printer_01a.glb",
+      "name": "打印机",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见打印机",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "flat-rock-02",
+      "meshName": "SM_flat_rock_02_LOD0",
+      "fileName": "SM_flat_rock_02.glb",
+      "name": "扁石 A",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见扁石 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "flat-rock-03",
+      "meshName": "SM_flat_rock_03_LOD0",
+      "fileName": "SM_flat_rock_03.glb",
+      "name": "扁石 B",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见扁石 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "mountain-rock-small-01-1",
+      "meshName": "SM_mountain_rock_small_01_1_LOD0",
+      "fileName": "SM_mountain_rock_small_01_1.glb",
+      "name": "山石 A",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见山石 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "stone-01",
+      "meshName": "SM_stone_01",
+      "fileName": "SM_stone_01.glb",
+      "name": "石块",
+      "category": "石头",
+      "visualDescription": "标准缩略图中可见石块",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "air-mattress-01",
+      "meshName": "SM_AirMattress_01",
+      "fileName": "SM_AirMattress_01.glb",
+      "name": "充气床垫",
+      "category": "户外",
+      "visualDescription": "标准缩略图中可见充气床垫",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "binoculars-01",
+      "meshName": "SM_Binoculars_01",
+      "fileName": "SM_Binoculars_01.glb",
+      "name": "双筒望远镜",
+      "category": "户外",
+      "visualDescription": "标准缩略图中可见双筒望远镜",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "camping-grill-01",
+      "meshName": "SM_CampingGrill_01",
+      "fileName": "SM_CampingGrill_01.glb",
+      "name": "露营烤架",
+      "category": "户外",
+      "visualDescription": "标准缩略图中可见露营烤架",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "dryer-01a",
+      "meshName": "SM_Dryer_01a_LOD0",
+      "fileName": "SM_Dryer_01a.glb",
+      "name": "烘干机",
+      "category": "卫浴",
+      "visualDescription": "标准缩略图中可见烘干机",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "laundry-basket-01a",
+      "meshName": "SM_Laundry_Basket_01a_LOD0",
+      "fileName": "SM_Laundry_Basket_01a.glb",
+      "name": "洗衣篮",
+      "category": "容器与箱子",
+      "visualDescription": "标准缩略图中可见洗衣篮",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "book-set-01b",
+      "meshName": "SM_Book_Set_01b_LOD0",
+      "fileName": "SM_Book_Set_01b.glb",
+      "name": "书堆 C",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见书堆 C",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "book-set-nn-01a",
+      "meshName": "SM_Book_Set_NN_01a_LOD0",
+      "fileName": "SM_Book_Set_NN_01a.glb",
+      "name": "书堆 D",
+      "category": "书籍与办公",
+      "visualDescription": "标准缩略图中可见书堆 D",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "trophy-set-01a",
+      "meshName": "SM_Trophy_Set_01a_LOD0",
+      "fileName": "SM_Trophy_Set_01a.glb",
+      "name": "奖杯组",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见奖杯组",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "vase-set-01a",
+      "meshName": "SM_Vase_Set_01a_LOD0",
+      "fileName": "SM_Vase_Set_01a.glb",
+      "name": "花瓶组 A",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见花瓶组 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "figurine-01a",
+      "meshName": "SM_Figurine_01a_LOD0",
+      "fileName": "SM_Figurine_01a.glb",
+      "name": "人偶摆件 A",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见人偶摆件 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "figurine-01b",
+      "meshName": "SM_Figurine_01b_LOD0",
+      "fileName": "SM_Figurine_01b.glb",
+      "name": "人偶摆件 B",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见人偶摆件 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "knick-knack-84a",
+      "meshName": "SM_Knick_Knack_84a_LOD0",
+      "fileName": "SM_Knick_Knack_84a.glb",
+      "name": "小摆件 A",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见小摆件 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "knickknacks-05a",
+      "meshName": "SM_Knickknacks_05a_LOD0",
+      "fileName": "SM_Knickknacks_05a.glb",
+      "name": "小摆件 B",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见小摆件 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "shelves-01a",
+      "meshName": "SM_Shelves_01a_LOD0",
+      "fileName": "SM_Shelves_01a.glb",
+      "name": "置物架",
+      "category": "家具",
+      "visualDescription": "标准缩略图中可见置物架",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "wooden-statues-01a",
+      "meshName": "SM_Wooden_Statues_01a_LOD0",
+      "fileName": "SM_Wooden_Statues_01a.glb",
+      "name": "木雕摆件",
+      "category": "玩具/装饰品",
+      "visualDescription": "标准缩略图中可见木雕摆件",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "orange-tree-01-01",
+      "meshName": "sm_OrangeTree_01_01_LOD0",
+      "fileName": "sm_OrangeTree_01_01.glb",
+      "name": "橙树 A",
+      "category": "树木",
+      "visualDescription": "标准缩略图中可见橙树 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "orange-tree-01-02",
+      "meshName": "sm_OrangeTree_01_02_LOD0",
+      "fileName": "sm_OrangeTree_01_02.glb",
+      "name": "橙树 B",
+      "category": "树木",
+      "visualDescription": "标准缩略图中可见橙树 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "shrub-a",
+      "meshName": "KB3D_LND_PropShrub_A_Main_LOD0",
+      "fileName": "KB3D_LND_PropShrub_A_Main.glb",
+      "name": "灌木 A",
+      "category": "灌木",
+      "visualDescription": "标准缩略图中可见灌木 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "shrub-b",
+      "meshName": "KB3D_LND_PropShrub_B_Main_LOD0",
+      "fileName": "KB3D_LND_PropShrub_B_Main.glb",
+      "name": "灌木 B",
+      "category": "灌木",
+      "visualDescription": "标准缩略图中可见灌木 B",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "grass-01-1",
+      "meshName": "SM_grass_01_1",
+      "fileName": "SM_grass_01_1.glb",
+      "name": "草丛 A",
+      "category": "草",
+      "visualDescription": "标准缩略图中可见草丛 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    },
+    {
+      "id": "flower-01-01",
+      "meshName": "sm_Flower_01_01_LOD0",
+      "fileName": "sm_Flower_01_01.glb",
+      "name": "花丛 A",
+      "category": "花",
+      "visualDescription": "标准缩略图中可见花丛 A",
+      "reviewStatus": "approved",
+      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+    }
+  ]
+}

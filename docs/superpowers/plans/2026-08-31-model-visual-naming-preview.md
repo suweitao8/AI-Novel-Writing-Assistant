@@ -53,7 +53,6 @@
 - Create: `client/src/pages/models/modelLibrary3d/modelPreviewFraming.ts`
 - Modify: `client/src/pages/models/modelLibrary3d/thumbnailStudio.ts`
 - Modify: `client/src/pages/models/modelLibrary3d/modelViewerApp.ts`
-- Modify: `client/src/pages/models/modelLibrary3d/modelLibrary3d.tsx`
 - Modify: `client/src/pages/models/modelLibrary3d/modelPreviewFraming.test.mjs`
 
 - [ ] Implement pure perspective projection over transformed AABB corners and a finite binary-search fit that targets 80% occupancy for the actual aspect ratio.

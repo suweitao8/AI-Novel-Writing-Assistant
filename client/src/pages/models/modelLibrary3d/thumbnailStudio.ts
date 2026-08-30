@@ -3,14 +3,17 @@ import * as pc from "playcanvas";
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import {
   buildBlocking3dGroundGridLines,
-  clamp,
-  DEFAULT_FOV,
   drawBlocking3dGroundGrid,
   loadAsset,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { applyModelMaterials } from "./modelMaterials";
 import { computeSourceBounds } from "./modelViewerApp";
+import {
+  fitModelPreviewCamera,
+  MODEL_PREVIEW_FRAMING,
+  type ModelPreviewBounds,
+} from "./modelPreviewFraming";
 import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 
 /**
@@ -22,7 +25,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v19";
+const STORAGE_KEY = "model-library:thumbnails:v20";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -153,7 +156,7 @@ async function createThumbnailStudio(): Promise<{
   const cameraEntity = new pc.Entity("thumb-camera");
   cameraEntity.addComponent("camera", {
     clearColor: new pc.Color(0.13, 0.15, 0.19),
-    fov: DEFAULT_FOV,
+    fov: MODEL_PREVIEW_FRAMING.fovDegrees,
     nearClip: 0.05,
     farClip: 200,
   });
@@ -175,12 +178,12 @@ async function createThumbnailStudio(): Promise<{
   }
   const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
-  const frame = (centerY: number, radius: number) => {
-    const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
-    const distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
-    const azim = -35 * pc.math.DEG_TO_RAD;
-    const elev = -18 * pc.math.DEG_TO_RAD;
-    const target = new pc.Vec3(0, centerY, 0);
+  const frame = (bounds: ModelPreviewBounds) => {
+    const fit = fitModelPreviewCamera(bounds, THUMBNAIL_SIZE.width / THUMBNAIL_SIZE.height);
+    const target = new pc.Vec3(...fit.target);
+    const azim = fit.azimuthDegrees * pc.math.DEG_TO_RAD;
+    const elev = fit.elevationDegrees * pc.math.DEG_TO_RAD;
+    const distance = fit.distance;
     cameraEntity.setPosition(
       target.x + Math.sin(azim) * Math.cos(elev) * distance,
       target.y + Math.sin(-elev) * distance,
@@ -215,8 +218,10 @@ async function createThumbnailStudio(): Promise<{
         // 应用米换算与底部中心落原点偏移。
         app.root.syncHierarchy();
         const bounds = computeSourceBounds(inner);
-        let centerY = 0.5;
-        let radius = 0.5;
+        let previewBounds: ModelPreviewBounds = {
+          min: [-0.5, 0, -0.5],
+          max: [0.5, 1, 0.5],
+        };
         if (bounds) {
           adjust.setLocalScale(unitScale, unitScale, unitScale);
           adjust.setPosition(
@@ -224,12 +229,22 @@ async function createThumbnailStudio(): Promise<{
             -(bounds.center[1] - bounds.halfExtents[1]) * unitScale,
             -bounds.center[2] * unitScale,
           );
-          centerY = bounds.halfExtents[1] * unitScale;
-          radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]) * unitScale;
+          previewBounds = {
+            min: [
+              (bounds.center[0] - bounds.halfExtents[0] - bounds.center[0]) * unitScale,
+              0,
+              (bounds.center[2] - bounds.halfExtents[2] - bounds.center[2]) * unitScale,
+            ],
+            max: [
+              (bounds.center[0] + bounds.halfExtents[0] - bounds.center[0]) * unitScale,
+              bounds.halfExtents[1] * 2 * unitScale,
+              (bounds.center[2] + bounds.halfExtents[2] - bounds.center[2]) * unitScale,
+            ],
+          };
         }
         // 先把真实材质套上再取景，缩略图必须是带纹理的最终外观。
         await applyModelMaterials(app, root, entry.materials);
-        frame(centerY, radius);
+        frame(previewBounds);
         drawFrame();
         drawFrame();
         const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
