@@ -33,10 +33,11 @@ test("环境源解析器带短缓存且失败回落静态预设", () => {
 test("预设 id 与显示名来自 shared 环境资产契约", () => {
   assert.match(presetsSource, /STUDIO_ENVIRONMENT_IDS/);
   assert.match(presetsSource, /STUDIO_ENVIRONMENT_LABELS/);
-  assert.match(sharedContract, /export const STUDIO_ENVIRONMENT_IDS = \["interior", "exterior", "nature"\]/);
+  // 模型/动画预览统一使用中央广场：环境集合只含 exterior。
+  assert.match(sharedContract, /export const STUDIO_ENVIRONMENT_IDS = \["exterior"\]/);
+  assert.match(sharedContract, /export const STUDIO_ENVIRONMENT_LABELS[^=]*= \{\s*exterior: "中央广场",?\s*\}/);
   // 环境状态就是场景资产状态：编辑器、归一化与生成契约全部同源。
   assert.match(sharedContract, /export type StudioEnvironmentAssetState = StoryAssetState;/);
-  // 环境按应用方向（室内/城市户外/自然）由使用场景选择：没有"当前全景"概念。
   assert.match(sharedContract, /resolveEffectiveStudioEnvironmentState/);
   assert.doesNotMatch(sharedContract, /activeStateId|resolveActiveStudioEnvironmentState/);
 });

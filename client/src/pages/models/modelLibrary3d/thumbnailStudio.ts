@@ -22,7 +22,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v17";
+const STORAGE_KEY = "model-library:thumbnails:v18";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;

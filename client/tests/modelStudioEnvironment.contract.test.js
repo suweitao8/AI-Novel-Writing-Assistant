@@ -21,31 +21,28 @@ const settingsSource = read("../src/pages/settings/views/NarratorVoiceSettingsPa
 const routerSource = read("../src/router/index.tsx");
 const previewSource = read("../src/pages/settings/views/StudioEnvironmentPreviewPage.tsx");
 
-test("模型环境预设使用 5 到 30 米的半球直径", () => {
-  assert.match(presetSource, /interior/);
+test("模型环境预设统一为中央广场并使用 5 到 30 米半球直径", () => {
   assert.match(presetSource, /exterior/);
-  assert.match(presetSource, /nature/);
+  assert.doesNotMatch(presetSource, /interior|nature/);
+  assert.match(presetSource, /DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID[^=]*= "exterior"/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS/);
   assert.match(presetSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\s*=\s*\{\s*min:\s*5,\s*max:\s*30\s*\}/);
-  assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 3);
+  assert.equal((presetSource.match(/diameterMeters:\s*15/g) ?? []).length, 1);
   assert.match(presetSource, /projectionCenterHeightMeters:\s*2/);
   assert.match(presetSource, /panoramaHorizonV:\s*0\.5/);
   assert.match(presetSource, /getStudioEnvironmentDiameterMeters\(diameterMeters\)\s*\/\s*2/);
-  assert.match(presetSource, /model-indoor-living-room\.hdr/);
   assert.match(presetSource, /model-outdoor-central-plaza\.hdr/);
-  assert.match(presetSource, /model-nature-grassland\.hdr/);
   assert.match(presetSource, /previewImageUrl/);
-  for (const fileName of [
-    "model-indoor-living-room-preview.png",
-    "model-outdoor-central-plaza-preview.png",
-    "model-nature-grassland-preview.png",
-  ]) {
+  for (const fileName of ["model-outdoor-central-plaza-preview.png"]) {
     assert.equal(
       existsSync(new URL(`../public/models/env/${fileName}`, import.meta.url)),
       true,
       `${fileName} 不存在`,
     );
   }
+  // 已下线的室内/草地静态资产不再随包发布。
+  assert.equal(existsSync(new URL("../public/models/env/model-indoor-living-room.hdr", import.meta.url)), false);
+  assert.equal(existsSync(new URL("../public/models/env/model-nature-grassland.hdr", import.meta.url)), false);
 });
 
 test("模型可见穹顶不接收相机且固定在原点", () => {
@@ -81,10 +78,10 @@ test("模型查看器固定相机轨道并支持异步切换环境", () => {
   assert.doesNotMatch(viewerSource, /attachStudioBackdrop\(app/);
 });
 
-test("卡片缩略图使用共享室内默认值并刷新缓存版本", () => {
+test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app\)/);
-  assert.match(thumbnailSource, /model-library:thumbnails:v17/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v4/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v18/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v5/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app\)/);
   assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
@@ -92,10 +89,10 @@ test("卡片缩略图使用共享室内默认值并刷新缓存版本", () => {
   assert.doesNotMatch(animationThumbnailSource, /setupStudioLighting/);
 });
 
-test("模型编辑器提供三套 HDRI 环境选择和 5 到 30 米直径调节", () => {
-  assert.match(editorSource, /SelectControl/);
-  assert.match(editorSource, /STUDIO_ENVIRONMENT_PRESET_IDS/);
-  assert.match(editorSource, /getStudioEnvironmentPreset\(id\)/);
+test("模型编辑器固定中央广场环境并提供 5 到 30 米直径调节", () => {
+  assert.match(editorSource, /模型预览统一使用中央广场环境/);
+  assert.doesNotMatch(editorSource, /HDRI 场景/);
+  assert.doesNotMatch(editorSource, /setEnvironmentPreset\(/);
   assert.match(editorSource, /半球直径/);
   assert.match(editorSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.min/);
   assert.match(editorSource, /STUDIO_ENVIRONMENT_DIAMETER_LIMITS\.max/);
@@ -163,12 +160,8 @@ test("可见 HDRI cubemap 使用 RGBP 编码并按 RGBP 解码", () => {
   );
 });
 
-test("三张模型 HDRI 都是 Radiance RGBE 文件", () => {
-  for (const fileName of [
-    "model-indoor-living-room.hdr",
-    "model-outdoor-central-plaza.hdr",
-    "model-nature-grassland.hdr",
-  ]) {
+test("模型 HDRI 使用 Radiance RGBE 文件", () => {
+  for (const fileName of ["model-outdoor-central-plaza.hdr"]) {
     const url = new URL(`../public/models/env/${fileName}`, import.meta.url);
     assert.equal(existsSync(url), true, `${fileName} 不存在`);
     const header = readFileSync(url).subarray(0, 10).toString("ascii");
