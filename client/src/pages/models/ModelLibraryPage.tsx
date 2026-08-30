@@ -3,6 +3,11 @@ import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 import { MODEL_LIBRARY, MODEL_LIBRARY_CATEGORIES, type ModelLibraryEntry } from "@/config/modelLibrary";
+import {
+  getModelUsagePlacementLabel,
+  getModelUsageSurfaceLabel,
+} from "@/config/modelLibraryUsage";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { ensureThumbnail, getThumbnail, subscribeThumbnails } from "./modelLibrary3d/thumbnailStudio";
 
@@ -37,7 +42,17 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
           </div>
         )}
       </div>
-      <div className="truncate px-1.5 py-1.5 text-[11px] text-foreground">{entry.name}</div>
+      <div className="truncate px-1.5 pt-1.5 text-[11px] text-foreground">{entry.name}</div>
+      <div className="flex min-w-0 items-center gap-1.5 px-1.5 pb-1.5" data-model-usage-summary>
+        <Badge
+          variant="outline"
+          className="min-w-0 max-w-full truncate px-1.5 py-0 text-[9px] font-medium"
+          data-model-usage-support-surface={entry.usage.supportSurface}
+          data-model-usage-placement-mode={entry.usage.placementMode}
+        >
+          {getModelUsageSurfaceLabel(entry.usage.supportSurface)} · {getModelUsagePlacementLabel(entry.usage.placementMode)}
+        </Badge>
+      </div>
     </Link>
   );
 }

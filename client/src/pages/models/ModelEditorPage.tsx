@@ -3,6 +3,12 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { ArrowLeft, Camera, Crosshair, Loader2, Move3D, RotateCcw } from "lucide-react";
 
 import { getModelLibraryEntry } from "@/config/modelLibrary";
+import {
+  getModelUsageAnchorLabel,
+  getModelUsageOrientationLabel,
+  getModelUsagePlacementLabel,
+  getModelUsageSurfaceLabel,
+} from "@/config/modelLibraryUsage";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -150,6 +156,37 @@ export default function ModelEditorPage() {
               </div>
             </dl>
           </InspectorComponentSection>
+
+          <div data-model-usage>
+            <InspectorComponentSection title="使用说明">
+              <div className="flex flex-wrap gap-1.5">
+                <Badge variant="secondary" data-model-usage-support-surface={entry.usage.supportSurface}>
+                  {getModelUsageSurfaceLabel(entry.usage.supportSurface)}
+                </Badge>
+                <Badge variant="outline" data-model-usage-placement-mode={entry.usage.placementMode}>
+                  {getModelUsagePlacementLabel(entry.usage.placementMode)}
+                </Badge>
+                <Badge variant="outline" data-model-usage-orientation={entry.usage.orientation}>
+                  {getModelUsageOrientationLabel(entry.usage.orientation)}
+                </Badge>
+              </div>
+              <dl className="space-y-1.5 text-xs" data-model-usage-fields>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">定位基准</dt>
+                  <dd className="font-medium" data-model-usage-anchor={entry.usage.anchor}>{getModelUsageAnchorLabel(entry.usage.anchor)}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">方向要求</dt>
+                  <dd className="font-medium" data-model-usage-direction={entry.usage.requiresFacingDirection ? "required" : "not-required"}>
+                    {entry.usage.requiresFacingDirection ? "需要指定方向" : "无需指定方向"}
+                  </dd>
+                </div>
+              </dl>
+              <p className="rounded-md border border-border/70 bg-muted/30 px-3 py-2 text-xs leading-5 text-foreground" data-model-usage-instruction>
+                {entry.usage.instruction}
+              </p>
+            </InspectorComponentSection>
+          </div>
 
           <label
             className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md border border-border bg-background px-3 text-sm"
