@@ -44,7 +44,8 @@ test("场景投影默认值与类型无关，手动环境继续保留", () => {
     { projectionCenterHeightRatio: 0.075, domeRadius: 20, panoramaHorizonV: 0.52 },
     { customized: true },
   );
-  assert.equal(resolveStoryScene3dEnvironment("nature", custom).domeRadius, 20);
+  assert.equal(resolveStoryScene3dEnvironment("nature", custom).radiusMeters, 10);
+  assert.equal(resolveStoryScene3dEnvironment("nature", custom).projectionCenterHeightRatio, 0.15);
   assert.equal(resolveStoryScene3dEnvironment("nature", custom).customized, true);
 });
 

@@ -15,11 +15,11 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-export function getGroundDomeEdgeHeight(projectionCenterHeight: number, domeRadius: number): number {
-  // The base mesh radius is 0.5 and the entity is scaled by domeRadius. Keep
+export function getGroundDomeEdgeHeight(projectionCenterHeight: number, radiusMeters: number): number {
+  // The base mesh radius is 0.5 and the entity is scaled by radiusMeters * 2. Keep
   // the actual seam at the projection center's world-space height so its
   // direction maps to the panorama horizon (v=0.5).
-  return clamp((projectionCenterHeight * 2) / domeRadius, 0.004, 2);
+  return clamp(projectionCenterHeight / radiusMeters, 0.004, 2);
 }
 
 function addVertex(
@@ -115,10 +115,10 @@ function createGeometryData(): Blocking3dGeometryData {
  */
 export function createBackdropGeometryData(
   projectionCenterHeight: number,
-  domeRadius: number,
+  radiusMeters: number,
 ): Blocking3dGeometryData {
   const data = createGeometryData();
-  const edgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
+  const edgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, radiusMeters);
   const upperRings: number[][] = [];
 
   for (let lat = 0; lat <= UPPER_DOME_LATITUDE_BANDS; lat += 1) {
@@ -160,10 +160,10 @@ export function createBackdropGeometryData(
  */
 export function createGroundDomeGeometryData(
   projectionCenterHeight: number,
-  domeRadius: number,
+  radiusMeters: number,
 ): Blocking3dGeometryData {
   const data = createGeometryData();
-  const edgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius);
+  const edgeHeight = getGroundDomeEdgeHeight(projectionCenterHeight, radiusMeters);
   const rings: number[][] = [];
 
   for (let band = 0; band <= GROUND_DOME_RIM_BANDS; band += 1) {

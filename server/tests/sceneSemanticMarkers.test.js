@@ -12,7 +12,7 @@ import { isStoryScene3DMarkerSetCurrent as isCurrentMarkerSet } from "@ai-novel/
 
 const environment = {
   projectionCenterHeight: 2,
-  domeRadius: 15,
+  radiusMeters: 7.5,
   panoramaHorizonV: 0.5,
   yawDeg: 0,
   intensity: 1,
@@ -147,7 +147,7 @@ test("AI 标记不再估算深度，统一贴到半球内表面并落地", () =>
   };
   const projected = projectStoryScene3dMarkerFromImageRegion(marker, environment);
 
-  // 半球世界半径 = 直径 15 / 2；前向区域中心纬度按射线与球面求交。
+  // 兼容输入中的历史直径 15 会归一化为真实圆半径 7.5；前向区域中心纬度按射线与球面求交。
   const worldRadius = 7.5;
   const latitude = (0.5 - (0.3 + 0.16 / 2)) * Math.PI;
   const sinLatitude = Math.sin(latitude);
@@ -162,7 +162,7 @@ test("AI 标记不再估算深度，统一贴到半球内表面并落地", () =>
   assert.equal(projected.position[1], projected.size[1] / 2, "地面锚点保持落地");
 });
 
-test("投射中心高度、半球直径和全景分界都会参与标记反算", () => {
+test("投射中心高度、圆半径和全景分界都会参与标记反算", () => {
   const marker = {
     anchor: "wall",
     position: [2, 2, -2],
@@ -215,19 +215,19 @@ test("空间标记没有匹配当前环境快照时必须失效，不能流入�
     markers: [],
   };
   assert.equal(isCurrentMarkerSet(markerSet, environment), true);
-  assert.equal(isCurrentMarkerSet(markerSet, { ...environment, domeRadius: 30 }), false);
+  assert.equal(isCurrentMarkerSet(markerSet, { ...environment, radiusMeters: 15 }), false);
   assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: undefined }, environment), false);
   assert.equal(isCurrentMarkerSet({ ...markerSet, sourceEnvironment: { ...markerSet.sourceEnvironment, panoramaHorizonV: 0.58 } }, environment), false);
 });
 
-test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
+test("空间标记环境快照的圆半径归一化到 2.5 到 15", () => {
   const normalized = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
     status: "ready",
     sourceEnvironment: { projectionCenterHeight: 2, domeRadius: 31 },
     markers: [],
   }));
-  assert.equal(normalized?.sourceEnvironment?.domeRadius, 30);
+  assert.equal(normalized?.sourceEnvironment?.radiusMeters, 15);
   assert.equal(normalized?.sourceEnvironment?.panoramaHorizonV, 0.5);
   const lower = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
@@ -235,7 +235,7 @@ test("空间标记环境快照的半球直径归一化到 5 到 30", () => {
     sourceEnvironment: { projectionCenterHeight: 2, domeRadius: 4 },
     markers: [],
   }));
-  assert.equal(lower?.sourceEnvironment?.domeRadius, 5);
+  assert.equal(lower?.sourceEnvironment?.radiusMeters, 2.5);
   const upperHorizon = parseStoryScene3dMarkerSet(JSON.stringify({
     schemaVersion: 1,
     status: "ready",
@@ -265,7 +265,8 @@ test("旧 AI 标记有完整图像区域时迁移当前环境，无图像证据�
   const migrated = adoptLegacyStoryScene3dMarkerEnvironment(legacyMarkerSet, environment);
   assert.deepEqual(migrated?.sourceEnvironment, {
     projectionCenterHeight: 2,
-    domeRadius: 15,
+    projectionCenterHeightRatio: 0.2667,
+    radiusMeters: 7.5,
     panoramaHorizonV: 0.5,
   });
   assert.ok((migrated?.markers[0]?.position[0] ?? 0) > 0);

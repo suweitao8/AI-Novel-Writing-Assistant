@@ -18,10 +18,10 @@ function vertex(data, index) {
 }
 
 test("EnviroDome 上下表面共享唯一交界圈，避免两个网格的光栅缝", () => {
-  const data = createBackdropGeometryData(2, 15);
+  const data = createBackdropGeometryData(2, 7.5);
   const ringSize = LONGITUDE_BANDS + 1;
   const seamRingStart = UPPER_DOME_LATITUDE_BANDS * ringSize;
-  const seamHeight = getGroundDomeEdgeHeight(2, 15) * 0.5;
+  const seamHeight = getGroundDomeEdgeHeight(2, 7.5) * 0.5;
   const seamWorldHeight = seamHeight * 15;
   const seamVertices = [];
 
@@ -42,21 +42,21 @@ test("EnviroDome 上下表面共享唯一交界圈，避免两个网格的光栅
   );
 });
 
-test("有效投射中心高度和半球直径都把交界圈放在投射中心水平面", () => {
+test("有效投射中心高度和圆半径都把交界圈放在投射中心水平面", () => {
   const ringSize = LONGITUDE_BANDS + 1;
   const seamRingStart = UPPER_DOME_LATITUDE_BANDS * ringSize;
-  for (const [projectionCenterHeight, domeRadius] of [[1, 5], [2, 15], [10, 10], [10, 30]]) {
-    const data = createBackdropGeometryData(projectionCenterHeight, domeRadius);
+  for (const [projectionCenterHeight, radiusMeters] of [[1, 2.5], [2, 7.5], [10, 5], [10, 15]]) {
+    const data = createBackdropGeometryData(projectionCenterHeight, radiusMeters);
     const seamLocalY = vertex(data, seamRingStart).position[1];
     assert.ok(
-      Math.abs(seamLocalY * domeRadius - projectionCenterHeight) < 1e-8,
-      `交界圈高度应匹配投射中心: h=${projectionCenterHeight}, diameter=${domeRadius}`,
+      Math.abs(seamLocalY * radiusMeters * 2 - projectionCenterHeight) < 1e-8,
+      `交界圈高度应匹配投射中心: h=${projectionCenterHeight}, radius=${radiusMeters}`,
     );
   }
 });
 
 test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉伸", () => {
-  const data = createGroundDomeGeometryData(2, 15);
+  const data = createGroundDomeGeometryData(2, 7.5);
   const vertexCount = data.positions.length / 3;
   const centerIndices = [];
 
@@ -79,15 +79,15 @@ test("地面投影保留连续的半球拓扑，不退化成尖点或竖向拉�
 });
 
 test("地面全景贴图由投影材质按世界坐标计算，不把经度 UV 写进顶点", () => {
-  const data = createGroundDomeGeometryData(2, 15);
+  const data = createGroundDomeGeometryData(2, 7.5);
 
   assert.ok(data.uvs.every((value) => value === 0), "地面投影不应依赖顶点 UV 插值，否则中心会把角度映射成环状漩涡");
 });
 
 test("地面外圈以垂直切线接入半球，并平滑落到平底", () => {
   const projectionCenterHeight = 2;
-  const domeRadius = 15;
-  const data = createGroundDomeGeometryData(projectionCenterHeight, domeRadius);
+  const radiusMeters = 7.5;
+  const data = createGroundDomeGeometryData(projectionCenterHeight, radiusMeters);
   const ringSize = LONGITUDE_BANDS + 1;
   const firstVertexOfRing = (ring) => vertex(data, ring * ringSize).position;
   const radial = (position) => Math.hypot(position[0], position[2]);
@@ -102,6 +102,6 @@ test("地面外圈以垂直切线接入半球，并平滑落到平底", () => {
 
   assert.ok(outerRadialDrop < nextRadialDrop, "接缝第一段应先沿垂直方向过渡，避免地面斜切半球边缘");
   assert.ok(outerHeightDrop > nextHeightDrop, "接缝第一段的高度变化应逐步放缓");
-  assert.ok(Math.abs(outer[1] - getGroundDomeEdgeHeight(projectionCenterHeight, domeRadius) * 0.5) < 1e-8);
+  assert.ok(Math.abs(outer[1] - getGroundDomeEdgeHeight(projectionCenterHeight, radiusMeters) * 0.5) < 1e-8);
   assert.ok(Math.abs(inner[1]) < 1e-8, "外圈弧面应平滑落到平底高度");
 });

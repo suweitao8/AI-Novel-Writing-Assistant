@@ -34,15 +34,15 @@ test("场景级入口不再重复提供 3D 编辑", () => {
 });
 
 test("2:1 全景图也通过连续 EnviroDome 投影，使投射中心高度参与地面重建", () => {
-  assert.match(viewer, /function createBackdropGeometry\(projectionCenterHeight: number, domeRadius: number\)/);
-  assert.match(viewer, /createBackdropGeometryData\(projectionCenterHeight, domeRadius\)/);
-  assert.match(viewer, /createBackdropGeometry\(environmentSettings\.projectionCenterHeight, environmentSettings\.domeRadius\)/);
+  assert.match(viewer, /function createBackdropGeometry\(\s*projectionCenterHeight: number,\s*radiusMeters: number,?\s*\)/);
+  assert.match(viewer, /createBackdropGeometryData\(projectionCenterHeight, radiusMeters\)/);
+  assert.match(viewer, /createBackdropGeometry\(environmentSettings\.projectionCenterHeight, environmentSettings\.radiusMeters\)/);
   assert.doesNotMatch(viewer, /createUpperDomeGeometry/);
-  assert.doesNotMatch(viewer, /createGroundDomeGeometry\(environmentSettings\.projectionCenterHeight/);
+  assert.match(viewer, /createGroundDomeGeometry\(environmentSettings\.projectionCenterHeight, environmentSettings\.radiusMeters\)/);
   assert.doesNotMatch(viewer, /const groundProjection = !isEquirectangular/);
 });
 
-test("场景 3D 编辑器可调分界线（45%–55%）并沿用半球直径范围", () => {
+test("场景 3D 编辑器可调分界线（45%–55%）并沿用圆半径范围", () => {
   assert.match(page, /aria-label="分界线"/);
   assert.match(page, /min="45" max="55" step="1"/);
   assert.match(page, /panoramaHorizonV/);
@@ -54,10 +54,11 @@ test("环境滑块拖动不得触发 3D 视图整体重建", () => {
   assert.doesNotMatch(page, /\[environmentUrl, scene, selectedState, visibleSceneMarkers\]/);
 });
 
-test("场景 3D 编辑器投射中心高度按占比调节（5%–20%），半球直径限制为 5 到 30", () => {
+test("场景 3D 编辑器投射中心高度按占比调节（10%–40%），圆半径限制为 2.5 到 15", () => {
   assert.match(page, /aria-label="投射中心高度占比"/);
-  assert.match(page, /min="5" max="20" step="0\.5"/);
+  assert.match(page, /min="10" max="40" step="0\.5"/);
   assert.match(page, /projectionCenterHeightRatio/);
-  assert.match(page, /min="5" max="30" step="1" value=\{environmentSettings\.domeRadius(?:\.toFixed\(0\))?\}/);
-  assert.match(page, /round\(next\.domeRadius \* next\.projectionCenterHeightRatio \* 100\) \/ 100/);
+  assert.match(page, /min="2\.5" max="15" step="0\.5" value=\{environmentSettings\.radiusMeters(?:\.toFixed\(1\))?\}/);
+  assert.match(page, /round\(next\.radiusMeters \* next\.projectionCenterHeightRatio \* 100\) \/ 100/);
+  assert.match(page, /圆半径/);
 });

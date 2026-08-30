@@ -90,10 +90,10 @@ export async function attachStudioBackdrop(
         ? Math.max(0, options.projectionCenterHeightMeters)
         : preset.projectionCenterHeightMeters;
 
-    // blocking3d 的基础几何半径是 0.5，半球直径可以直接作为几何缩放值。
+    // blocking3d 的基础几何半径是 0.5，运行时统一把真实圆半径换算为直径缩放。
     mesh = pc.Mesh.fromGeometry(
       app.graphicsDevice,
-      createBackdropGeometry(centerHeight, domeDiameterMeters),
+      createBackdropGeometry(centerHeight, radiusMeters),
     );
     material = createProjectedHdriMaterial(cubemap, {
       projectionCenterHeight: centerHeight,

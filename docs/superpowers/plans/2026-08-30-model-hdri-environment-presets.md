@@ -4,7 +4,7 @@
 
 **Goal:** 为模型编辑器和缩略图提供三种固定中心的 HDRI 环境，并消除模型页旋转摄像机时 HDR 穹顶跟随、放大导致的背景漂移。
 
-**Architecture:** 在 `client/src/pages/models/modelLibrary3d/` 建立环境预设目录与加载门面。预设用 `radiusMeters` 表达中心到边界的真实水平半径，固定为 10/20/50；只有交给基础半径为 0.5 的 blocking3d 穹顶几何时才换算为 `radiusMeters * 2` 的实体缩放。可见穹顶固定在世界原点，环境切换采用新资源加载完成后替换旧资源的生命周期。系统设置用资产预设表展示旁白音色与三套固定 HDRI 半径；漫剧场景继续使用自身状态图和既有 `domeRadius` 直径合同，不做数据库迁移或字段重解释。
+**Architecture:** 在 `client/src/pages/models/modelLibrary3d/` 建立环境预设目录与加载门面。预设用 `radiusMeters` 表达中心到边界的真实水平半径，固定为 10/20/50；只有交给基础半径为 0.5 的 blocking3d 穹顶几何时才换算为 `radiusMeters * 2` 的实体缩放。可见穹顶固定在世界原点，环境切换采用新资源加载完成后替换旧资源的生命周期。系统设置用资产预设表展示旁白音色与三套固定 HDRI 半径；漫剧场景同样使用真实 `radiusMeters` 语义，历史 `domeRadius` 仅在兼容读取时按旧直径转换，不做数据库迁移或改变存量场景的物理尺度。
 
 **Tech Stack:** React 19、TypeScript、Vite、PlayCanvas 2.21、Node.js `node:test`、现有 `SelectControl`、独立 Playwright CLI 浏览器。
 

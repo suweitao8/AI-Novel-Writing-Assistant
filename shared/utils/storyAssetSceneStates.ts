@@ -8,6 +8,7 @@ import type {
 import { normalizeStoryAssetStates } from "@ai-novel/shared/types/novelReferenceExtraction";
 import type { StoryScene3DEnvironmentInput } from "@ai-novel/shared/types/comicDrama";
 import { STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO } from "@ai-novel/shared/utils/scene3dProjection";
+import { resolveStoryScene3dEnvironmentRadius } from "@ai-novel/shared/utils/scene3dEnvironment";
 import {
   STORY_SCENE_3D_MARKERS_ENABLED,
   adoptLegacyStoryScene3dMarkerEnvironment,
@@ -58,10 +59,13 @@ export function normalizeSceneStates(
       const { scene3dMarkers: _disabled, ...withoutMarkers } = state;
       return withoutMarkers;
     }
+    const environmentRadius = input.scene3dEnvironment
+      ? resolveStoryScene3dEnvironmentRadius(input.scene3dEnvironment)
+      : null;
     const scene3dMarkers = adoptLegacyStoryScene3dMarkerEnvironment(
       normalizeStoryScene3dMarkerSet(state.scene3dMarkers, {
         ...(input.scene3dEnvironment ? {
-          maxRadius: input.scene3dEnvironment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
+          maxRadius: environmentRadius! * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
           environment: input.scene3dEnvironment,
         } : {}),
       }),

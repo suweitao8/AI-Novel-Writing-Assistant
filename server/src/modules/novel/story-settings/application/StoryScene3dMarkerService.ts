@@ -55,7 +55,7 @@ export function buildStoryScene3dMarkerSet(
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
       projectionCenterHeightRatio: normalizedEnvironment.projectionCenterHeightRatio,
-      domeRadius: normalizedEnvironment.domeRadius,
+      radiusMeters: normalizedEnvironment.radiusMeters,
       panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
     analysisNote: output.analysisNote,
@@ -63,7 +63,7 @@ export function buildStoryScene3dMarkerSet(
     sourceImageGeneratedAt: imageMeta.generatedAt,
     analyzedAt: new Date().toISOString(),
   }, {
-    maxRadius: normalizedEnvironment.domeRadius * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
+    maxRadius: normalizedEnvironment.radiusMeters * STORY_SCENE_3D_MARKER_FALLBACK_WALL_RADIUS_RATIO,
     environment: normalizedEnvironment,
   });
 
@@ -73,7 +73,7 @@ export function buildStoryScene3dMarkerSet(
     sourceEnvironment: {
       projectionCenterHeight: normalizedEnvironment.projectionCenterHeight,
       projectionCenterHeightRatio: normalizedEnvironment.projectionCenterHeightRatio,
-      domeRadius: normalizedEnvironment.domeRadius,
+      radiusMeters: normalizedEnvironment.radiusMeters,
       panoramaHorizonV: normalizedEnvironment.panoramaHorizonV,
     },
     markers: [],

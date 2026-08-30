@@ -15,19 +15,20 @@ export const STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V = 0.5 as const;
 export const STORY_SCENE_3D_PANORAMA_SKY_V = 0.3 as const;
 
 /**
- * 场景资产的统一 3D 环境参数。投射中心高度和半球直径由场景资产维护，
+ * 场景资产的统一 3D 环境参数。投射中心高度和半球圆半径由场景资产维护，
  * 分镜只读取这份配置；yaw/intensity 保留在数据合同中用于兼容旧分镜快照，
  * 当前产品固定为 0 / 1。
  */
 export interface StoryScene3DEnvironment {
   /**
    * 投射中心的世界高度（米）。权威值恒为
-   * domeRadius × projectionCenterHeightRatio，由归一化器派生，不单独编辑。
+   * radiusMeters × projectionCenterHeightRatio，由归一化器派生，不单独编辑。
    */
   projectionCenterHeight: number;
-  /** 投射中心高度相对半球直径的比例（5%–20%，默认 2/15≈13.33%），是用户实际调节的参数。 */
+  /** 投射中心高度相对圆半径的比例（10%–40%，默认 4/15≈26.67%），是用户实际调节的参数。 */
   projectionCenterHeightRatio: number;
-  domeRadius: number;
+  /** 投射中心到半球边界的真实水平圆半径（米）。 */
+  radiusMeters: number;
   /** Source-image V coordinate that should land on the 3D projection horizon. */
   panoramaHorizonV: number;
   yawDeg: number;
@@ -53,6 +54,9 @@ export interface StoryScene3dEnvironmentAnalysis {
 
 /** 视觉模型提交给 3D 环境归一化器的近似估算结果。 */
 export interface StoryScene3dEnvironmentVisionEstimate {
+  /** 新合同：投射中心到半球边界的真实水平圆半径。 */
+  radiusMeters?: number | null;
+  /** 兼容旧视觉输出：该字段实际表示半球直径，读取时除以二。 */
   domeDiameterMeters?: number | null;
   projectionCenterHeightMeters?: number | null;
   panoramaHorizonV?: number | null;
@@ -64,21 +68,37 @@ export interface StoryScene3dEnvironmentVisionEstimate {
   analyzedAt?: string | null;
 }
 
-/** 场景参数写入和旧空间标记快照允许缺少新字段，服务端会回退到默认比例。 */
-export type StoryScene3DEnvironmentInput = Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "domeRadius">
-  & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeightRatio" | "panoramaHorizonV">>;
+/** 历史场景/空间标记输入：domeRadius 实际保存的是直径，仅在兼容入口读取。 */
+export type StoryScene3DEnvironmentLegacyInput = {
+  projectionCenterHeight: number;
+  projectionCenterHeightRatio?: number;
+  domeRadius: number;
+  panoramaHorizonV?: number;
+};
 
-/** 投射中心高度、半球直径和全景地面分界的可调范围，场景编辑、空间标记和分镜草图共用同一份合同。 */
+/** 场景参数写入允许使用当前圆半径；旧空间标记快照仍可在兼容入口使用直径。 */
+export type StoryScene3DEnvironmentInput = (
+  Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "radiusMeters">
+    & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeightRatio" | "panoramaHorizonV">>
+) | StoryScene3DEnvironmentLegacyInput;
+
+/** 投射中心高度、半球圆半径和全景地面分界的可调范围，场景编辑、空间标记和分镜草图共用同一份合同。 */
 export const STORY_SCENE_3D_ENVIRONMENT_LIMITS = {
-  // 投射高度由直径 × 5%–20% 派生；直径上限 30 时最大派生高度为 6 米。
+  // 投射高度由圆半径 × 10%–40% 派生；半径上限 15 时最大派生高度为 6 米。
   projectionCenterHeight: { min: 0.25, max: 6 },
-  projectionCenterHeightRatio: { min: 0.05, max: 0.2 },
-  domeRadius: { min: 5, max: 30 },
+  projectionCenterHeightRatio: { min: 0.1, max: 0.4 },
+  radiusMeters: { min: 2.5, max: 15 },
   panoramaHorizonV: { min: 0.45, max: 0.55 },
 } as const;
 
-/** 用户未显式选择比例时的默认投射占比：投射高度 = 半球直径 × 2/15。 */
-export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO = 2 / 15;
+/** 历史 domeRadius/domeDiameterMeters 的直径范围，仅用于兼容读取。 */
+export const STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS = {
+  min: STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.min * 2,
+  max: STORY_SCENE_3D_ENVIRONMENT_LIMITS.radiusMeters.max * 2,
+} as const;
+
+/** 用户未显式选择比例时的默认投射占比：投射高度 = 半球圆半径 × 4/15。 */
+export const STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO = 4 / 15;
 
 /** 场景状态全景图中供角色摆位参考的固定空间物体类别。 */
 export const STORY_SCENE_3D_MARKER_KINDS = [
@@ -159,10 +179,11 @@ const STORY_SCENE_3D_MARKER_ANCHORS = new Set<StoryScene3DMarkerAnchor>(["floor"
 function isStoryScene3DEnvironmentInput(value: unknown): value is StoryScene3DEnvironmentInput {
   if (!value || typeof value !== "object") return false;
   const source = value as Record<string, unknown>;
+  const hasRadius = typeof source.radiusMeters === "number" && Number.isFinite(source.radiusMeters);
+  const hasLegacyDiameter = typeof source.domeRadius === "number" && Number.isFinite(source.domeRadius);
   return typeof source.projectionCenterHeight === "number"
     && Number.isFinite(source.projectionCenterHeight)
-    && typeof source.domeRadius === "number"
-    && Number.isFinite(source.domeRadius)
+    && (hasRadius || hasLegacyDiameter)
     && (source.panoramaHorizonV === undefined
       || (typeof source.panoramaHorizonV === "number" && Number.isFinite(source.panoramaHorizonV)));
 }
@@ -174,16 +195,24 @@ function resolvePanoramaHorizonV(environment: StoryScene3DEnvironmentInput): num
 }
 
 /**
- * 投射占比的一致性读取：快照没有显式 ratio 时按“高度 ÷ 直径”推导，
+ * 投射占比的一致性读取：快照没有显式 ratio 时按“高度 ÷ 圆半径”推导，
  * 这样旧快照与新结构的比较只看实际投射比例，不会因为字段缺失而失配。
  */
 function resolveProjectionCenterHeightRatio(environment: StoryScene3DEnvironmentInput): number {
-  if (typeof environment.projectionCenterHeightRatio === "number"
-    && Number.isFinite(environment.projectionCenterHeightRatio)) {
-    return environment.projectionCenterHeightRatio;
+  const source = environment as unknown as Record<string, unknown>;
+  const isLegacy = typeof source.radiusMeters !== "number" && typeof source.domeRadius === "number";
+  const projectionCenterHeightRatio = source.projectionCenterHeightRatio;
+  if (typeof projectionCenterHeightRatio === "number"
+    && Number.isFinite(projectionCenterHeightRatio)) {
+    return isLegacy ? projectionCenterHeightRatio * 2 : projectionCenterHeightRatio;
   }
-  const derived = environment.domeRadius > 0
-    ? environment.projectionCenterHeight / environment.domeRadius
+  const radius = typeof source.radiusMeters === "number"
+    ? source.radiusMeters
+    : typeof source.domeRadius === "number"
+      ? source.domeRadius / 2
+      : Number.NaN;
+  const derived = radius > 0
+    ? environment.projectionCenterHeight / radius
     : Number.NaN;
   return Number.isFinite(derived) ? derived : STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO;
 }
@@ -194,8 +223,16 @@ export function storyScene3DEnvironmentMatches(
   right: StoryScene3DEnvironmentInput | null | undefined,
 ): boolean {
   if (!left || !right) return false;
+  const leftSource = left as unknown as Record<string, unknown>;
+  const rightSource = right as unknown as Record<string, unknown>;
+  const leftRadius = typeof leftSource.radiusMeters === "number"
+    ? leftSource.radiusMeters
+    : typeof leftSource.domeRadius === "number" ? leftSource.domeRadius / 2 : Number.NaN;
+  const rightRadius = typeof rightSource.radiusMeters === "number"
+    ? rightSource.radiusMeters
+    : typeof rightSource.domeRadius === "number" ? rightSource.domeRadius / 2 : Number.NaN;
   return Math.abs(left.projectionCenterHeight - right.projectionCenterHeight) < 0.0001
-    && Math.abs(left.domeRadius - right.domeRadius) < 0.0001
+    && Math.abs(leftRadius - rightRadius) < 0.0001
     && Math.abs(resolvePanoramaHorizonV(left) - resolvePanoramaHorizonV(right)) < 0.0001
     && Math.abs(resolveProjectionCenterHeightRatio(left) - resolveProjectionCenterHeightRatio(right)) < 0.0001;
 }

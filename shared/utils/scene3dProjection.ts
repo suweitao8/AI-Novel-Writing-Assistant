@@ -70,8 +70,9 @@ export type StoryScene3dProjectionMarker = Pick<
   "anchor" | "position" | "size" | "imageRegion"
 > & Partial<Pick<StoryScene3DMarker, "kind" | "yawDeg" | "source" | "approxDistanceMeters">>;
 
-export type StoryScene3dProjectionEnvironment = Pick<StoryScene3DEnvironment, "domeRadius">
-  & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "panoramaHorizonV" | "yawDeg">>;
+export type StoryScene3dProjectionEnvironment = Pick<StoryScene3DEnvironment, "radiusMeters">
+  & Partial<Pick<StoryScene3DEnvironment, "projectionCenterHeight" | "panoramaHorizonV" | "yawDeg">>
+  & { domeRadius?: number };
 
 function finiteOr(value: unknown, fallback: number): number {
   const numeric = Number(value);
@@ -103,8 +104,13 @@ function resolveHorizonV(environment: StoryScene3dProjectionEnvironment): number
   );
 }
 
-/** The stored `domeRadius` field carries the dome DIAMETER in meters. */
+/** The current `radiusMeters` field carries the true dome radius in meters. */
 function domeWorldRadius(environment: StoryScene3dProjectionEnvironment): number {
+  const radiusMeters = Number(environment.radiusMeters);
+  if (Number.isFinite(radiusMeters) && radiusMeters > 0) {
+    return Math.max(0.5, radiusMeters);
+  }
+  // Read-only compatibility for callers that still hold a legacy snapshot.
   return Math.max(0.5, finiteOr(environment.domeRadius, 15) / 2);
 }
 

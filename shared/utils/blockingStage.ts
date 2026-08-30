@@ -5,8 +5,8 @@ import type { StoryScene3DEnvironment } from "../types/comicDrama";
  *
  * 全景环境半球是场景的物理边界，角色（尤其是跑动等大幅度动作）不能贴到
  * 半球边缘：靠边 1 米始终保留为运动缓冲，角色可站位半径为
- * domeWorldRadius - ACTOR_STAGE_MARGIN_M，其中 domeWorldRadius =
- * resolveStoryScene3DDomeWorldRadius(environment)。
+ * worldRadius - ACTOR_STAGE_MARGIN_M，其中 worldRadius =
+ * resolveStoryScene3DWorldRadius(environment)。
  *
  * 3D 草图的拍摄位锚定在投射中心 [0, projectionCenterHeight, 0]——全景图
  * 就是从这个点拍出来的，相机放在同一位置能保证成图与全景一致；构图自由度
@@ -23,30 +23,36 @@ function finiteOr(value: unknown, fallback: number): number {
   return Number.isFinite(numeric) ? numeric : fallback;
 }
 
-export type BlockingStageEnvironment = Pick<StoryScene3DEnvironment, "domeRadius" | "projectionCenterHeight">
-  & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>;
+export type BlockingStageEnvironment = Pick<StoryScene3DEnvironment, "radiusMeters" | "projectionCenterHeight">
+  & Partial<Pick<StoryScene3DEnvironment, "yawDeg">>
+  & { domeRadius?: number };
 
 /**
- * 半球在世界空间的真实半径。环境字段 domeRadius 按产品语义存的是半球
- * 直径（设置页滑块即“半球直径”，dome 几何按 0.5 半径基础网格 ×
- * domeRadius 缩放），任何画边界或做位置限制的代码都必须经过这里换算，
- * 不要直接拿字段当半径用。
+ * 半球在世界空间的真实圆半径。新环境字段已经直接保存真实半径；旧
+ * domeRadius 只在读取历史布局时按直径除以二。任何画边界或做位置限制的
+ * 代码都必须经过这里读取，避免再次把半径当直径或反过来换算。
  */
-export function resolveStoryScene3DDomeWorldRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
-  return finiteOr(environment?.domeRadius, 15) / 2;
+export function resolveStoryScene3DWorldRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
+  const currentRadius = Number(environment?.radiusMeters);
+  if (Number.isFinite(currentRadius) && currentRadius > 0) {
+    return Math.max(0.5, currentRadius);
+  }
+  return Math.max(0.5, finiteOr(environment?.domeRadius, 15) / 2);
 }
+
+/** @deprecated 兼容仍引用旧命名的调用方；新代码请使用 resolveStoryScene3DWorldRadius。 */
+export const resolveStoryScene3DDomeWorldRadius = resolveStoryScene3DWorldRadius;
 
 /**
  * 角色允许的活动半径：半球真实半径减去边缘缓冲。
  *
- * 环境字段 domeRadius 按产品语义存的是半球直径（设置页滑块即“半球直径”），
- * dome 世界半径统一从 resolveStoryScene3DDomeWorldRadius 换算。舞台边界在
- * 真实半径基础上内缩，否则会画到半球外面、角色也会被允许走出球边穿模。
+ * 舞台边界在真实圆半径基础上内缩，否则会画到半球外面、角色也会被
+ * 允许走出球边穿模。
  */
 export function resolveStoryScene3DActorStageRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
   return Math.max(
     STORY_SCENE_3D_ACTOR_STAGE_MIN_RADIUS_M,
-    resolveStoryScene3DDomeWorldRadius(environment) - STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
+    resolveStoryScene3DWorldRadius(environment) - STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M,
   );
 }
 

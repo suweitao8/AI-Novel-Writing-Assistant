@@ -5,15 +5,19 @@ const test = require("node:test");
 
 const read = (relativePath) => fs.readFileSync(path.join(process.cwd(), relativePath), "utf8");
 
-test("场景资产和分镜接口统一接受 5 到 30 的半球直径", () => {
+test("场景资产和分镜接口统一接受 2.5 到 15 的圆半径，并兼容旧直径", () => {
   const sharedTypes = read("../shared/types/comicDrama.ts");
   const storySettingsRoutes = read("src/modules/novel/story-settings/http/storySettingsRoutes.ts");
   const dramaRoutes = read("src/modules/drama/http/dramaRoutes.ts");
+  const blockingContracts = read("src/services/drama/visual/DramaShotBlockingSketchContracts.ts");
 
-  assert.match(sharedTypes, /domeRadius: \{ min: 5, max: 30 \}/);
-  assert.equal((storySettingsRoutes.match(/STORY_SCENE_3D_ENVIRONMENT_LIMITS\.domeRadius\.max/g) ?? []).length, 3);
-  assert.match(dramaRoutes, /domeRadius: z\.number\(\)\.min\(5\)\.max\(100\)/);
-  assert.match(dramaRoutes, /normalizeBlockingSketchData/);
-  assert.match(dramaRoutes, /projectionCenterHeightRatio: z\.number\(\)\.min\(0\.05\)\.max\(0\.2\)\.optional\(\)/);
+  assert.match(sharedTypes, /radiusMeters: \{ min: 2\.5, max: 15 \}/);
+  assert.equal((storySettingsRoutes.match(/radiusMeters/g) ?? []).length >= 3, true);
+  assert.match(storySettingsRoutes, /domeRadius/);
+  assert.match(dramaRoutes, /radiusMeters/);
+  assert.match(dramaRoutes, /domeRadius/);
+  assert.match(blockingContracts, /normalizeBlockingSketchData/);
+  assert.match(dramaRoutes, /heightMeters/);
+  assert.match(dramaRoutes, /projectionCenterHeightRatio: z\.number\(\)\.min\(0\.05\)\.max\(0\.4\)\.optional\(\)/);
   assert.match(dramaRoutes, /projectionCenterHeight: z\.number\(\)\.min\(0\.25\)\.max\(6\)/);
 });

@@ -21,10 +21,10 @@ test("分镜摆位草图提供只规划不落库的自动构图路由", () => {
   assert.match(source, /dramaShotBlockingSketchService\.autoPlan/);
 });
 
-test("草图元数据通过 Zod 校验，PNG 图片使用原始请求流上传", () => {
+test("草图元数据通过 Zod 校验，PNG 图片使用有界原始请求体上传", () => {
   assert.match(source, /blockingSketchDataSchema/);
   assert.match(source, /blockingSketchSaveSchema/);
-  assert.match(source, /for await \(const chunk of req\)/);
+  assert.match(source, /readBoundedRawBody\(req\)/);
   assert.match(source, /uploadSketchPng/);
   assert.match(source, /confirmSketch/);
 });

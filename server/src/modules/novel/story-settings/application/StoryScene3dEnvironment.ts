@@ -5,9 +5,11 @@
 export {
   DEFAULT_STORY_SCENE_3D_ENVIRONMENT,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+  STORY_SCENE_3D_ENVIRONMENT_LEGACY_DIAMETER_LIMITS,
   normalizeStorySceneType,
   resolveStorySceneType,
   getDefaultStoryScene3dEnvironment,
+  resolveStoryScene3dEnvironmentRadius,
   normalizeStoryScene3dEnvironment,
   normalizeVisionStoryScene3dEnvironment,
   buildStoryScene3dImageFingerprint,

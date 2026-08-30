@@ -37,7 +37,7 @@ test("模型可见穹顶不接收相机且固定在原点", () => {
   assert.doesNotMatch(backdropSource, /app\.on\(["']update/);
   assert.doesNotMatch(backdropSource, /getPosition\(\)/);
   assert.match(backdropSource, /getStudioEnvironmentDomeDiameterMeters/);
-  assert.match(backdropSource, /createBackdropGeometry\(centerHeight,\s*domeDiameterMeters\)/);
+  assert.match(backdropSource, /createBackdropGeometry\(centerHeight,\s*radiusMeters\)/);
   assert.match(backdropSource, /setLocalScale\(domeDiameterMeters,\s*domeDiameterMeters,\s*domeDiameterMeters\)/);
   assert.match(backdropSource, /setPosition\(0,\s*0,\s*0\)/);
   assert.match(backdropSource, /preset\.sourceUrl/);

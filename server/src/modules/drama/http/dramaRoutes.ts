@@ -42,6 +42,10 @@ import { dramaVideoFilePath } from "../../../services/drama/video/LocalFfmpegVid
 import { dramaEpisodeAssemblyService } from "../../../services/drama/video/DramaEpisodeAssemblyService";
 import { resolveDefaultVideoProvider, videoProviderRegistry } from "../../../services/drama/video/VideoProviderPort";
 import { comicDramaStoryboardBridgeService } from "../../../services/drama/studio/ComicDramaStoryboardBridgeService";
+import {
+  STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS,
+  STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 
 const router = Router();
 
@@ -135,6 +139,10 @@ const blockingSketch3dActorSchema = z.object({
     z.number().min(0.1).max(10),
     z.number().min(0.1).max(10),
   ]),
+  heightMeters: z.number()
+    .min(STORY_ASSET_CHARACTER_HEIGHT_MIN_METERS)
+    .max(STORY_ASSET_CHARACTER_HEIGHT_MAX_METERS)
+    .optional(),
   pose: blockingSketch3dPoseSchema,
   color: z.tuple([
     z.number().min(0).max(1),
@@ -146,12 +154,27 @@ const blockingSketch3dActorSchema = z.object({
 
 const blockingSketch3dEnvironmentSchema = z.object({
   projectionCenterHeight: z.number().min(0.25).max(6),
-  projectionCenterHeightRatio: z.number().min(0.05).max(0.2).optional(),
-  // 接受旧快照的直径上限，随后由 normalizeBlockingSketchData 收敛到当前 5–30。
-  domeRadius: z.number().min(5).max(100),
+  // 旧直径比例 5%–20% 只在 legacy domeRadius 输入时兼容；当前半径比例为 10%–40%。
+  projectionCenterHeightRatio: z.number().min(0.05).max(0.4).optional(),
+  radiusMeters: z.number().min(2.5).max(15).optional(),
+  // 旧快照的 domeRadius 实际是直径，允许历史上限，服务层会收敛为当前圆半径。
+  domeRadius: z.number().min(5).max(100).optional(),
   panoramaHorizonV: z.number().min(0.45).max(0.55).optional(),
   yawDeg: z.number().min(-180).max(180),
   intensity: z.number().min(0.6).max(1.6),
+}).superRefine((value, context) => {
+  if (value.radiusMeters === undefined && value.domeRadius === undefined) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["radiusMeters"], message: "必须提供圆半径或历史半球直径" });
+  }
+  if (value.radiusMeters !== undefined && value.projectionCenterHeightRatio !== undefined
+    && value.projectionCenterHeightRatio < 0.1) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["projectionCenterHeightRatio"], message: "当前圆半径的投射占比必须在 10% 到 40% 之间" });
+  }
+  if (value.domeRadius !== undefined && value.radiusMeters === undefined
+    && value.projectionCenterHeightRatio !== undefined
+    && value.projectionCenterHeightRatio > 0.2) {
+    context.addIssue({ code: z.ZodIssueCode.custom, path: ["projectionCenterHeightRatio"], message: "历史半球直径的投射占比必须在 5% 到 20% 之间" });
+  }
 });
 
 const blockingSketch3dShotCameraSchema = z.object({

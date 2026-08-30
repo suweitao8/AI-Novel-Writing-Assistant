@@ -3,7 +3,7 @@
  *
  * radiusMeters 表达环境中心到圆形边界的真实水平半径。blocking3d 的基础
  * 穹顶半径是 0.5，交给几何模块前统一换算为直径缩放值，避免 UI 和旧场景
- * 的 domeRadius 语义混淆。
+ * 的历史 domeRadius 语义混淆。
  */
 export const STUDIO_ENVIRONMENT_PRESET_IDS = ["interior", "exterior", "nature"] as const;
 
