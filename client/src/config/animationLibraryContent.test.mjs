@@ -315,7 +315,27 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
           `${animation.name} 驱动了非 skin joint 节点`,
         );
       }
+      if (animation.name.startsWith("C57_")) {
+        assert.ok(
+          joints.has(channel.target.node),
+          `${animation.name} 驱动了非 skin joint 节点`,
+        );
+      }
     }
+  }
+});
+
+test("五个虚幻源组都在统一 GLB 中保留了代表性动作片段", () => {
+  const glb = readGlb(assetPath());
+  const animationNames = new Set((glb.json.animations ?? []).map(({ name }) => name));
+  for (const name of [
+    "C57_unreal_daily_male_locomotion_idle_break_01",
+    "C57_unreal_interaction_vendors_cashier_idle",
+    "C57_unreal_misc_clazy_jog_forward",
+    "C57_unreal_hand_combat_fight_idle_base",
+    "C57_unreal_weapon_combat_sword_idle",
+  ]) {
+    assert.ok(animationNames.has(name), `统一动画文件缺少虚幻代表片段：${name}`);
   }
 });
 

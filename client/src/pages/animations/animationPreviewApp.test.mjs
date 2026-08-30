@@ -129,7 +129,7 @@ test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v2/);
-  assert.match(studioSource, /animation-library:thumbnails:v6/);
+  assert.match(studioSource, /animation-library:thumbnails:v7/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
@@ -166,7 +166,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v6/);
+  assert.match(studioSource, /animation-library:thumbnails:v7/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -204,15 +204,17 @@ test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
-  assert.match(pageSource, /aria-label="动画分类"/);
-  assert.match(pageSource, /\["全部", \.\.\.ANIMATION_LIBRARY_CATEGORIES\]/);
+  assert.match(pageSource, /data-animation-group-filter/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
+  assert.match(pageSource, /data-animation-pack-filter/);
+  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);
   assert.match(pageSource, /ensureAnimationThumbnail\(entry\)/);
   assert.match(pageSource, /getAnimationThumbnail\(entry\.id\)/);
   assert.match(pageSource, /subscribeAnimationThumbnails/);
   assert.match(pageSource, /alt=\{`\$\{entry\.name\} 预览`\}/);
-  assert.match(pageSource, /ANIMATION_LIBRARY\.filter/);
   assert.match(pageSource, /Link/);
   assert.match(pageSource, /to=\{`\/animations\/\$\{entry\.id\}`\}/);
   assert.doesNotMatch(pageSource, /Dialog/);
@@ -248,7 +250,8 @@ test("顶部导航在模型与系统之间提供动画入口，模型页不再�
 
 test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => {
   assert.match(catalogSource, /ANIMATION_LIBRARY_SOURCE = "Cine57"/);
-  assert.match(catalogSource, /clipName: "A_INP_Idle"/);
-  assert.match(catalogSource, /clipName: "A_INP_WalkFwd_Loop"/);
-  assert.match(catalogSource, /clipName: "A_chair_loop01"/);
+  assert.match(catalogSource, /makeLegacyEntry\("idle-stand"[\s\S]*?"A_INP_Idle"/);
+  assert.match(catalogSource, /makeLegacyEntry\("walk-forward"[\s\S]*?"A_INP_WalkFwd_Loop"/);
+  assert.match(catalogSource, /makeLegacyEntry\("chair-loop"[\s\S]*?"A_chair_loop01"/);
+  assert.match(catalogSource, /sourceLabel: "虚幻导入"/);
 });

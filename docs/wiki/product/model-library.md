@@ -32,16 +32,47 @@
 - **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期，通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角；拖动 5–30 米半球直径只重建环境网格，不重复创建 PlayCanvas Application。
 - **实时预览色调映射统一为 PlayCanvas 默认 Linear**（2026-08-30）：模型查看器（modelViewerApp）与动画预览（animationPreviewApp）不要单独设置 TONEMAP_ACES——blocking3d 视图（漫剧场景、HDRI 预览页）用默认 Linear，ACES 会对高饱和环境整体去饱和提亮，同一张 HDR 在模型编辑器和预览页会呈现两种颜色（草地自然环境曾因此整体发白，该环境现已下线）。离屏缩略图（thumbnailStudio/animationThumbnailStudio）目前仍是 ACES，若出现色差需同步调整。
 - **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器的缩放距离不使用环境半径作为边界，而是按当前模型显示包围球动态适配；相机近/远裁剪面也随模型和相机距离更新，避免 HDRI 尺寸限制大模型取景；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v19`，动画缩略图键为 `animation-library:thumbnails:v6`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
+- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v19`，动画缩略图键为 `animation-library:thumbnails:v7`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
 - **贴图降采样与编码质量**：baseColor 桶按 2048 上限 JPEG，normal/RMA 桶按 1024 上限 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），不能使用会造成严重马赛克的高数值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录保持 36 个前景条目、无碰撞/高阶 LOD、无孤儿 GLB，且最大模型尺寸不超过 5 米。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；手动定位时以请求时间直接回调 UI，再由动画层持续时间校正播放状态，避免旧采样时间覆盖时间轴；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
-- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v6`）+ 队列闲置销毁」结构，创建工作室时加载一次统一 GLB，之后逐个把 `clipName` 装配到独立角色实例、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
+- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v7`）+ 队列闲置销毁」结构，创建工作室时加载一次统一 GLB，之后逐个把 `clipName` 装配到独立角色实例、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
 - **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前时间轴帧渲染为 JPEG，通过 `animation-library:keyframes:v2` 按动画 ID 保存截图和秒数；动画入口卡片优先显示该截图。预览材质变化时通过版本号丢弃旧颜色截图，避免黄色旧图继续覆盖新的蓝色渲染结果。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
 - **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。源动画相对源绑定姿态的世界旋转增量应用到 UAL2 `Idle_No_Loop` 的固定 40% 站立基准：`W_t(b) := W_s(b) · inv(W_s0(b)) · W_t_standing_base(b)`，再按目标父节点解局部四元数；根/骨盆平移使用目标站立基准加源绑定姿态相对增量 `T_t := T_t_standing_base + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UAL1 是另一套骨架，不能把它的动画直接追加到 UAL2 角色。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
+
+## 动画目录策展与分类
+
+### Background
+
+动画库同时服务旧网页目录和从 Cine57 导入的 UE 动作。只按一个“动画”页签展示会让分镜草图使用者无法判断来源，也无法在多个 UE 动画包之间快速找到适合的日常、拳击或剑术动作。
+
+### Decision
+
+前端目录使用固定的三层语义：来源大类 → UE 套装 → 动作类型。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
+
+### Current Rule
+
+- 每个 UE 套装有独立 `packId` 和中文名称，页面用套装下拉框展示；动作类型至少区分待机、移动、日常、互动、拳击、剑术、武器战斗、受击/闪避等语义。
+- 同一套装的非 Idle 动作使用 `dedupeKey` 只保留一个代表片段；Idle 变体允许并存，便于分镜草图保持自然变化。
+- 策选阶段只接受真实 Asset Registry 路径、`AnimSequence` 和可匹配的 Mannequin 骨架；机器人骨架、GhostSamurai 专用骨架和无法加载的资产不混入标准 UAL2 目录。
+- 所有条目仍合并进 `/anims/cine57/UAL2_UE_Anims.glb`，重定向后使用同一个蓝色 UAL2 代理角色，分镜草图和动画预览共享这套角色与动作文件。
+
+### Failure Modes
+
+- 把源包名称或动作名称写错会造成导出阶段才发现缺片段；先运行 `build_animation_catalog_selection.cjs` 对扫描清单做精确存在性校验。
+- 只看文件名批量去重会误删 Idle 变体，或把不同武器动作合并；去重键必须由策选清单显式声明并在测试中按套装校验。
+- 把不同骨架的同名动作放入同一个链路会产生 T 姿、扭曲或播放错乱；策选必须保留源骨架证据，最终 GLB 还要检查通道只驱动目标 `skins[].joints`。
+
+### Related Modules
+
+- `scripts/animation/scan_cine57_animations.py`：生成 Asset Registry 证据清单。
+- `scripts/animation/build_animation_catalog_selection.cjs`：按源组、套装和动作语义生成策选清单。
+- `scripts/animation/export_cine57_animation_catalog.py`：按清单从 UE 导出 FBX。
+- `scripts/animation/assemble_animation_catalog.py`：FBX → GLB → UAL2 重定向并校验统一文件。
+- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据和三级筛选 UI。
 
 ## 动画导出边界
 
