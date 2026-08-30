@@ -6,8 +6,8 @@
 
 ## 决策
 
-- **静态目录，不做服务端 CRUD**：模型清单是 `client/src/config/modelLibrary.ts` 里的纯数据数组（当前 36 个精选模型、7 类）；模型文件放 `client/public/models/` 由前端静态服务。模型库是"策展型"资产（由开发流程提取入库），不是用户上传型资产。将来若需要用户上传，再引入服务端存储与接口，不要提前给目录加运行时探测。
-- **数量决策（2026-08-29、2026-08-31）**：曾一次性扩到 509 个，因质量参差先回退到 44 个，再按前景交互边界收敛到 36 个；batch3 的 466 个产物保留在 `D:\UnrealWorkspace\Cine57-exported3\`，目录管线支持随时按包扩量（扩量仍必须经过前景内容门禁）。格式确认用 **GLB**（浏览器通用标准；FBX 浏览器不能直接加载，管线本来就 UE→FBX→GLB）。
+- **静态目录，不做服务端 CRUD**：模型清单是 `client/src/config/modelLibrary.ts` 里的纯数据数组（当前 79 个精选模型、15 类）；模型文件放 `client/public/models/` 由前端静态服务。模型库是"策展型"资产（由开发流程提取入库），不是用户上传型资产。将来若需要用户上传，再引入服务端存储与接口，不要提前给目录加运行时探测。
+- **数量决策（2026-08-29、2026-08-31）**：曾一次性扩到 509 个，因质量参差先回退到 44 个，再按前景交互边界收敛；当前按可追踪白名单发布 79 个。batch3 的 466 个产物和自然资产导出仍保留在 `D:\UnrealWorkspace\Cine57-exported3\`，目录管线支持按包扩量（扩量仍必须经过前景内容门禁）。格式确认用 **GLB**（浏览器通用标准；FBX 浏览器不能直接加载，管线本来就 UE→FBX→GLB）。
 - **前景资产边界**：模型库只承载能被角色摆放、接触或交互的前景道具。HDR 全景图承担环境背景，不再收录纯色背景板；场景级巨石、地形板、建筑装饰条和无法组成完整道具的模块碎片不进入库。桌椅床、书本、箱/食材组合、植物、灯具、地毯和可控尺寸的小型自然物可以进入库；单个模型按节点变换后的最大包围盒尺寸不得超过 5 米。
 - **入口挂在漫剧主链路旁**：顶部导航「漫剧 / 模型 / 系统」三项（`dramaFocusNav.ts`）；模型库不是通用素材管理后台，只为「查看 → 打开 3D 编辑」这一条主路径服务。
 - **模型详情与 HDRI 环境预览分工**：`pages/models/modelLibrary3d/modelViewerApp.ts` 是单模型只读查看器，复用 blocking3d 的资源加载与数学原语，不承载漫剧角色、场景标记和镜头状态，也不提供模型变换写入口；通用资产的 HDRI 3D 预览则直接复用漫剧场景的 `createBlocking3dViewer`，以 `loadProxyActor: false` 只显示环境。这样模型详情页只负责检查模型，HDRI 环境编辑只维护一套场景相机、投影网格和生命周期。
@@ -17,6 +17,8 @@
   3. `export_cine57_batch3.py` 由 `UnrealEditor-Cmd -run=pythonscript` 无头导出 FBX + 材质贴图 PNG；manifest 用 JSONL 逐条追加（断点续跑），贴图按「贴图资产路径 + 桶」去重；
   4. `export_cine57_batch4b.py` 对无贴图参数的纯材质做 introspection（输入节点常量/标量/直连贴图）+ 全量按资产 RMA 扫描；
   5. `build-library-v3.cjs`（Temp/fbx2gltf-test）FBX2glTF 转换（4 并发）+ **GLB 清洗（剔除 UCX 碰撞体与 LOD1+）** + ffmpeg 降采样（6 并发）+ 命名/分类 + 再生 `modelLibrary.ts` + 孤儿清理；随后运行仓库内 `scripts/models/curate-cine57-library.mjs` 做前景策展和最终门禁。GLB 几何单位已是米，`unitScale` 保持 1。
+- **扩库策略是单一事实源**：`scripts/models/model-library-selection.json` 记录现有保留 ID、新增源网格、展示名、分类顺序和淘汰 ID；`modelLibraryPolicy.mjs` 向质量门禁和策展脚本提供同一组白名单。生成器可以先产生候选目录，但最终只允许白名单条目进入 `modelLibrary.ts`，禁止通过页面筛选隐藏未审核资产。
+- **分类与容器配额**：页面继续使用平面分类页签；自然资产固定细分为「石头 / 灌木 / 树木 / 草 / 花 / 盆栽」，小摆件、雕像、奖杯和花瓶归入「玩具/装饰品」，箱子、纸盒、木桶和篮筐归入「容器与箱子」。食材/纸箱同族最多发布两个代表模型，当前保留一组食材纸箱和一个纸盒；后续扩容必须先更新策略并通过质量门禁。
 - **UCX 碰撞体剔除是硬规则**：UE 静态网格导出 FBX 会带上碰撞壳（`UCX_*`，无贴图的凸包）与 LOD1-3。UE 引擎从不渲染碰撞壳，网页端不剔除就会看到一个包住模型的白色占位壳（用户报告的"白色包裹"元凶）。必须同时检查 `json.nodes[].name` 和 `json.meshes[].name`：碰撞节点可能没有 mesh，不能只依赖 mesh 名过滤。清洗器改写 GLB JSON chunk，BIN 数据保持不变。
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
 - **tint 只属于无贴图槽位（硬规则）**：UE 清单里的 `slot.tint` 是母材质向量参数的默认值/实例值，**不是**漫反射——当槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。构建规则：有 baseColor 贴图的槽位一律丢弃 tint；tint 只作为纯材质槽（无任何贴图）的主色（床品深红、婴儿床蓝等这类外观是合法用途）。
@@ -35,7 +37,7 @@
 - **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画卡片固定使用中央广场默认预设。模型缩略图缓存键为 `model-library:thumbnails:v19`，动画缩略图键为 `animation-library:thumbnails:v6`，改动环境、投影、材质或动画资源逻辑必须升版本；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
 - **贴图降采样与编码质量**：baseColor 桶按 2048 上限 JPEG，normal/RMA 桶按 1024 上限 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），不能使用会造成严重马赛克的高数值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
-- **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录保持 36 个前景条目、无碰撞/高阶 LOD、无孤儿 GLB，且最大模型尺寸不超过 5 米。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
+- **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
 - **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；手动定位时以请求时间直接回调 UI，再由动画层持续时间校正播放状态，避免旧采样时间覆盖时间轴；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
@@ -66,7 +68,7 @@
 ## 现行规则
 
 - 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v19`、`animation-library:thumbnails:v6`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑与环境预设变更必须同步刷新缓存版本。
-- 缩略图队列串行、闲置 8 秒销毁离线画布；当前 36 个模型全队列约 3 秒。
+- 缩略图队列串行、闲置 8 秒销毁离线画布；当前 79 个模型全队列仍按同一队列逐个生成。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），禁止 `meshInstance.aabb`（见失败模式）。
 - 页面分类表完全由目录数据驱动；目录再生成即页面更新，前端无需改代码。
