@@ -107,7 +107,7 @@ test("初始拟合优先使用页面 CSS 画布比例，而不是默认绘图缓
 });
 
 test("取景合同变化时缩略图缓存使用新版本", () => {
-  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v23/);
+  assert.match(THUMBNAIL_SOURCE, /model-library:thumbnails:v24/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
