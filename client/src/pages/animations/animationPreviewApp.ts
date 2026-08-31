@@ -17,6 +17,14 @@ import {
   loadStudioEnvironment,
   type StudioEnvironmentHandle,
 } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
+import {
+  clampAnimationFrame,
+  frameToSeconds,
+  getAnimationFrameCount,
+  getDefaultAnimationFrame,
+  inferAnimationFrameRate,
+  secondsToFrame,
+} from "./animationFrame";
 
 export interface AnimationPreviewOptions {
   canvas: HTMLCanvasElement;
@@ -24,15 +32,18 @@ export interface AnimationPreviewOptions {
   glbUrl: string;
   /** 初始播放的动作片段名。 */
   clipName: string;
-  /** 打开页面时从已保存关键帧恢复到的时间。 */
-  initialTimeSeconds?: number;
+  /** 打开页面时从已保存关键帧恢复到的帧。 */
+  initialFrame?: number;
+  /** 目录声明的帧率；仅在 GLB 采样数据不足时作为回退。 */
+  frameRateHint?: number;
   onStatus?: (status: string) => void;
   /** 片段加载或播放出错（切换片段失败等）。 */
   onError?: (message: string) => void;
-  /** 播放或拖动时间轴时回传当前时间、时长和播放状态。 */
-  onTimeChange?: (
-    timeSeconds: number,
-    durationSeconds: number,
+  /** 播放或拖动帧轴时回传当前帧、总帧数、帧率和播放状态。 */
+  onFrameChange?: (
+    frame: number,
+    frameCount: number,
+    frameRate: number,
     playing: boolean,
   ) => void;
 }
@@ -41,9 +52,10 @@ export interface AnimationPreview {
   /** 切换播放的动作片段（同一 GLB 内）。 */
   play: (clipName?: string) => void;
   pause: () => void;
-  setTime: (timeSeconds: number) => void;
-  getTime: () => number;
-  getDuration: () => number;
+  setFrame: (frame: number) => void;
+  getFrame: () => number;
+  getFrameCount: () => number;
+  getFrameRate: () => number;
   isPlaying: () => boolean;
   fitView: () => void;
   resetView: () => void;
@@ -62,6 +74,10 @@ export interface AnimationPreviewHandle {
 interface AnimTrackLike {
   name?: unknown;
   duration?: unknown;
+  inputs?: readonly {
+    components?: unknown;
+    data?: unknown;
+  }[];
 }
 
 interface AnimLayerLike {
@@ -96,7 +112,7 @@ const DEFAULT_VIEW = { azim: -35, elev: -12 } as const;
 
 /**
  * 动画库完整预览器：加载「角色 + 动作片段」统一 GLB，使用模型库相同的
- * HDR 棚拍环境，并提供时间轴、关键帧截图和基础 Orbit 相机控制。
+ * HDR 棚拍环境，并提供帧轴、关键帧截图和基础 Orbit 相机控制。
  *
  * 画布上的 PlayCanvas 应用必须独占创建：应用构造是同步的，加载是异步的。
  * 同一个 canvas 上并发存在两个 Application（React StrictMode 双执行 effect
@@ -342,7 +358,9 @@ export function openAnimationPreview(
       anim.rootBone = model;
 
       let activeClipName = options.clipName;
-      let currentTime = 0;
+      let currentFrame = 0;
+      let frameCount = 1;
+      let frameRate = options.frameRateHint ?? 30;
       let durationSeconds = 0;
 
       const readDuration = (track: AnimTrackLike | null): number => {
@@ -354,41 +372,37 @@ export function openAnimationPreview(
             : 0;
         return Math.max(trackDuration, layerDuration, 0);
       };
-      const clampTime = (timeSeconds: number) => {
-        if (!Number.isFinite(timeSeconds)) return 0;
-        return durationSeconds > 0
-          ? clamp(timeSeconds, 0, durationSeconds)
-          : Math.max(0, timeSeconds);
-      };
-      const readCurrentTime = () => {
+      const readCurrentFrame = () => {
         const layerTime = anim.baseLayer?.activeStateCurrentTime;
         if (typeof layerTime === "number" && Number.isFinite(layerTime)) {
-          currentTime =
-            durationSeconds > 0
-              ? clamp(layerTime, 0, durationSeconds)
-              : Math.max(0, layerTime);
+          currentFrame = secondsToFrame(layerTime, frameRate, durationSeconds);
         }
-        return currentTime;
+        return currentFrame;
       };
-      const notifyTime = (timeOverride?: number) => {
-        options.onTimeChange?.(
-          timeOverride ?? readCurrentTime(),
-          durationSeconds,
+      const notifyFrame = (frameOverride?: number) => {
+        options.onFrameChange?.(
+          frameOverride ?? readCurrentFrame(),
+          frameCount,
+          frameRate,
           anim.playing,
         );
       };
-      const applyTime = (timeSeconds: number) => {
-        currentTime = clampTime(timeSeconds);
+      const applyFrame = (frame: number) => {
+        currentFrame = clampAnimationFrame(frame, frameCount - 1);
         if (
           anim.baseLayer &&
           typeof anim.baseLayer.activeStateCurrentTime === "number"
         ) {
-          anim.baseLayer.activeStateCurrentTime = currentTime;
+          anim.baseLayer.activeStateCurrentTime = frameToSeconds(
+            currentFrame,
+            frameRate,
+            durationSeconds,
+          );
         }
         app.render();
-        // 手动拖动时间轴时，以用户刚选中的时间立即同步 UI；动画层的
+        // 手动拖动帧轴时，以用户刚选中的整数帧立即同步 UI；动画层的
         // getter 在某些状态切换中仍可能返回上一个采样时间。
-        notifyTime(currentTime);
+        notifyFrame(currentFrame);
       };
 
       const playClip = (clipName = activeClipName) => {
@@ -400,24 +414,27 @@ export function openAnimationPreview(
         activeClipName = clipName;
         anim.assignAnimation(clipName, track, 0, 1, true);
         durationSeconds = readDuration(track);
+        frameRate = inferAnimationFrameRate(track, options.frameRateHint ?? 30);
+        frameCount = getAnimationFrameCount(durationSeconds, frameRate);
         anim.playing = true;
         anim.baseLayer?.play(clipName);
-        applyTime(currentTime);
+        applyFrame(currentFrame);
       };
 
       const pause = () => {
-        readCurrentTime();
+        readCurrentFrame();
         anim.playing = false;
         anim.baseLayer?.pause?.();
-        notifyTime();
+        notifyFrame();
       };
-      const setTime = (timeSeconds: number) => {
+      const setFrame = (frame: number) => {
         anim.playing = false;
         anim.baseLayer?.pause?.();
-        applyTime(timeSeconds);
+        applyFrame(frame);
       };
-      const getTime = () => readCurrentTime();
-      const getDuration = () => durationSeconds;
+      const getFrame = () => readCurrentFrame();
+      const getFrameCount = () => frameCount;
+      const getFrameRate = () => frameRate;
       const isPlaying = () => anim.playing;
       const capturePreviewFrame = () => {
         if (destroyed) throw new Error("预览已关闭。");
@@ -438,30 +455,32 @@ export function openAnimationPreview(
       };
 
       playClip(options.clipName);
-      if (typeof options.initialTimeSeconds === "number") {
-        const initialTime = options.initialTimeSeconds;
-        // AnimLayer.play resets the active state time. Activate the state first,
-        // then write the saved keyframe time so reopening the page really lands
-        // on the frame the user selected.
-        anim.baseLayer?.play(activeClipName);
-        applyTime(initialTime);
-        pause();
-      }
+      const initialFrame =
+        typeof options.initialFrame === "number"
+          ? options.initialFrame
+          : getDefaultAnimationFrame(durationSeconds, frameRate);
+      // AnimLayer.play resets the active state time. Activate the state first,
+      // then write the default or saved frame so the page always opens at a
+      // stable representative frame instead of starting playback immediately.
+      anim.baseLayer?.play(activeClipName);
+      applyFrame(initialFrame);
+      pause();
       options.onStatus?.("");
 
       app.on("update", () => {
         if (destroyed) return;
         drawBlocking3dGroundGrid(app, groundGridLines);
-        if (anim.playing) notifyTime();
+        if (anim.playing) notifyFrame();
       });
       app.start();
 
       return {
         play: playClip,
         pause,
-        setTime,
-        getTime,
-        getDuration,
+        setFrame,
+        getFrame,
+        getFrameCount,
+        getFrameRate,
         isPlaying,
         fitView,
         resetView,

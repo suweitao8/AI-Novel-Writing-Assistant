@@ -20,14 +20,20 @@ import { toast } from "@/components/ui/toast";
 import {
   clearAnimationKeyframe,
   getAnimationKeyframe,
+  subscribeAnimationKeyframes,
   setAnimationKeyframe,
   type AnimationKeyframe,
 } from "./animationPreviewStorage";
+import {
+  ensureAnimationThumbnail,
+  getAnimationThumbnail,
+  subscribeAnimationThumbnails,
+} from "./animationThumbnailStudio";
+import {
+  getAnimationFrameCount,
+  getDefaultAnimationFrame,
+} from "./animationFrame";
 import { openAnimationPreview, type AnimationPreview } from "./animationPreviewApp";
-
-function formatTime(timeSeconds: number): string {
-  return `${Math.max(0, timeSeconds).toFixed(2)} 秒`;
-}
 
 export default function AnimationPreviewPage() {
   const { animationId } = useParams<{ animationId: string }>();
@@ -37,22 +43,42 @@ export default function AnimationPreviewPage() {
   const [viewer, setViewer] = useState<AnimationPreview | null>(null);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(entry?.durationSeconds ?? 0);
+  const [currentFrame, setCurrentFrame] = useState(
+    entry ? getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate) : 0,
+  );
+  const [frameCount, setFrameCount] = useState(
+    entry ? getAnimationFrameCount(entry.durationSeconds, entry.frameRate) : 1,
+  );
+  const [frameRate, setFrameRate] = useState(entry?.frameRate ?? 30);
   const [playing, setPlaying] = useState(false);
   const [keyframe, setKeyframe] = useState<AnimationKeyframe | null>(null);
+  const [automaticThumbnail, setAutomaticThumbnail] = useState<string | null>(null);
   const [savingKeyframe, setSavingKeyframe] = useState(false);
   const [viewerAttempt, setViewerAttempt] = useState(0);
 
   useEffect(() => {
     if (!entry) {
       setKeyframe(null);
+      setAutomaticThumbnail(null);
       return undefined;
     }
-    setKeyframe(getAnimationKeyframe(entry.id));
-    setCurrentTime(0);
-    setDuration(entry.durationSeconds);
-    return undefined;
+    const syncPreviewImages = () => {
+      setKeyframe(getAnimationKeyframe(entry.id, entry.frameRate));
+      setAutomaticThumbnail(getAnimationThumbnail(entry.id));
+    };
+    syncPreviewImages();
+    const unsubscribeKeyframes = subscribeAnimationKeyframes((changedId) => {
+      if (changedId === entry.id) syncPreviewImages();
+    });
+    const unsubscribeThumbnails = subscribeAnimationThumbnails(syncPreviewImages);
+    if (!getAnimationKeyframe(entry.id, entry.frameRate)) ensureAnimationThumbnail(entry);
+    setCurrentFrame(getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate));
+    setFrameCount(getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
+    setFrameRate(entry.frameRate);
+    return () => {
+      unsubscribeKeyframes();
+      unsubscribeThumbnails();
+    };
   }, [entry?.id]);
 
   useEffect(() => {
@@ -60,7 +86,7 @@ export default function AnimationPreviewPage() {
     if (!canvas || !entry) return undefined;
 
     let cancelled = false;
-    const initialKeyframe = getAnimationKeyframe(entry.id);
+    const initialKeyframe = getAnimationKeyframe(entry.id, entry.frameRate);
     setViewer(null);
     viewerRef.current = null;
     setViewerError(null);
@@ -70,12 +96,14 @@ export default function AnimationPreviewPage() {
       canvas,
       glbUrl: entry.fileUrl,
       clipName: entry.clipName,
-      initialTimeSeconds: initialKeyframe?.timeSeconds,
+      initialFrame: initialKeyframe?.frame,
+      frameRateHint: entry.frameRate,
       onStatus: (next) => setStatus(next || "就绪"),
-      onTimeChange: (nextTime, nextDuration, nextPlaying) => {
+      onFrameChange: (nextFrame, nextFrameCount, nextFrameRate, nextPlaying) => {
         if (cancelled) return;
-        setCurrentTime(nextTime);
-        setDuration(nextDuration || entry.durationSeconds);
+        setCurrentFrame(nextFrame);
+        setFrameCount(nextFrameCount || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
+        setFrameRate(nextFrameRate || entry.frameRate);
         setPlaying(nextPlaying);
       },
       onError: (message) => {
@@ -91,8 +119,9 @@ export default function AnimationPreviewPage() {
         }
         viewerRef.current = nextViewer;
         setViewer(nextViewer);
-        setDuration(nextViewer.getDuration() || entry.durationSeconds);
-        setCurrentTime(nextViewer.getTime());
+        setFrameCount(nextViewer.getFrameCount() || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
+        setFrameRate(nextViewer.getFrameRate() || entry.frameRate);
+        setCurrentFrame(nextViewer.getFrame());
         setPlaying(nextViewer.isPlaying());
         setStatus("就绪");
       })
@@ -114,8 +143,12 @@ export default function AnimationPreviewPage() {
     return <Navigate to="/animations" replace />;
   }
 
-  const displayDuration = duration > 0 ? duration : entry.durationSeconds;
-  const timelineValue = Math.min(Math.max(currentTime, 0), displayDuration);
+  const displayFrameCount = frameCount > 0
+    ? frameCount
+    : getAnimationFrameCount(entry.durationSeconds, entry.frameRate);
+  const displayFrame = Math.min(Math.max(currentFrame, 0), displayFrameCount - 1);
+  const defaultFrame = getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate);
+  const previewImage = keyframe?.dataUrl ?? automaticThumbnail;
 
   const handleSetPreviewFrame = () => {
     const currentViewer = viewerRef.current;
@@ -125,10 +158,11 @@ export default function AnimationPreviewPage() {
       const saved = setAnimationKeyframe(
         entry.id,
         currentViewer.capturePreviewFrame(),
-        currentViewer.getTime(),
+        currentViewer.getFrame(),
+        currentViewer.getFrameRate(),
       );
       setKeyframe(saved);
-      toast.success("预览帧已保存。", { description: `${formatTime(saved.timeSeconds)} 将用于动画卡片。` });
+      toast.success("预览帧已保存。", { description: `第 ${saved.frame} 帧将用于动画卡片。` });
     } catch (error) {
       toast.error("预览帧保存失败。", {
         description: error instanceof Error ? error.message : "无法保存当前画面。",
@@ -179,8 +213,8 @@ export default function AnimationPreviewPage() {
                   <dd className="font-medium">GLB</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <dt className="text-muted-foreground">时长</dt>
-                  <dd className="font-medium">{formatTime(displayDuration)}</dd>
+                  <dt className="text-muted-foreground">总帧数</dt>
+                  <dd className="font-medium">{displayFrameCount} 帧</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">套装</dt>
@@ -191,8 +225,12 @@ export default function AnimationPreviewPage() {
                   <dd className="font-medium">{entry.sourceLabel}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">帧率</dt>
+                  <dd className="font-medium">{frameRate} fps</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">当前帧</dt>
-                  <dd className="font-medium" data-animation-current-time>{formatTime(currentTime)}</dd>
+                  <dd className="font-medium" data-animation-current-frame>第 {displayFrame} 帧</dd>
                 </div>
               </dl>
             </CardContent>
@@ -202,14 +240,21 @@ export default function AnimationPreviewPage() {
             <CardContent className="space-y-3 p-4">
               <div className="flex items-center justify-between gap-2">
                 <h2 className="text-sm font-medium">卡片预览帧</h2>
-                {keyframe ? <span className="text-[11px] text-muted-foreground">{formatTime(keyframe.timeSeconds)}</span> : null}
+                <span className="text-[11px] text-muted-foreground">
+                  {keyframe ? `第 ${keyframe.frame} 帧` : `默认第 ${defaultFrame} 帧`}
+                </span>
               </div>
               <div className="aspect-[4/3] overflow-hidden rounded-lg border border-border bg-muted" data-animation-keyframe-preview>
-                {keyframe ? (
-                  <img src={keyframe.dataUrl} alt={`${entry.name} 关键帧`} className="h-full w-full object-cover" />
+                {previewImage ? (
+                  <img
+                    src={previewImage}
+                    alt={`${entry.name} 第 ${keyframe?.frame ?? defaultFrame} 帧预览`}
+                    className="h-full w-full object-cover"
+                  />
                 ) : (
-                  <div className="flex h-full items-center justify-center px-4 text-center text-xs text-muted-foreground">
-                    使用时间轴选择一帧
+                  <div className="flex h-full items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    正在生成默认预览图
                   </div>
                 )}
               </div>
@@ -300,21 +345,21 @@ export default function AnimationPreviewPage() {
                 <input
                   type="range"
                   min="0"
-                  max={displayDuration}
-                  step="0.01"
-                  value={timelineValue}
-                  onChange={(event) => viewer?.setTime(Number(event.target.value))}
-                  disabled={!viewer || displayDuration <= 0}
-                  aria-label={`${entry.name} 时间轴`}
+                  max={displayFrameCount - 1}
+                  step="1"
+                  value={displayFrame}
+                  onChange={(event) => viewer?.setFrame(Number(event.target.value))}
+                  disabled={!viewer || displayFrameCount <= 1}
+                  aria-label={`${entry.name} 帧轴`}
                   className="h-2 min-w-0 flex-1 accent-primary"
                   data-animation-timeline
                 />
-                <span className="w-24 shrink-0 text-right text-xs tabular-nums text-muted-foreground" data-animation-duration>
-                  {formatTime(currentTime)} / {formatTime(displayDuration)}
+                <span className="w-32 shrink-0 text-right text-xs tabular-nums text-muted-foreground" data-animation-frame-count>
+                  第 {displayFrame} 帧 / 共 {displayFrameCount} 帧
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                <span>拖动时间轴选择关键帧</span>
+                <span>拖动帧轴选择关键帧</span>
                 <span>{playing ? "播放中" : "已暂停"}</span>
               </div>
             </div>

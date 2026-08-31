@@ -4,7 +4,7 @@
 
 **Goal:** 将动画详情页、关键帧存储和动画卡片统一为真实采样率下的整数帧，并默认使用动作中点帧生成预览图。
 
-**Architecture:** 新增无 UI 依赖的 `animationFrame` 领域工具，集中处理帧率、帧数、50% 默认帧及帧/秒换算。动画目录给旧 UAL2 和 Cine57 片段提供 30/24fps 元数据，PlayCanvas 运行时优先从 `AnimTrack.inputs` 校验采样率。详情页和离屏缩略图工作室都只通过帧工具定位动作，关键帧存储以帧为规范字段并兼容迁移旧秒值。
+**Architecture:** 新增无 UI 依赖的 `animationFrame` 领域工具，集中处理帧率、帧数、50% 默认帧及帧/秒换算。动画目录给每个片段提供与 GLB 采样一致的 30/24fps 元数据（旧目录也有 3 个实际为 24fps 的片段），PlayCanvas 运行时优先从 `AnimTrack.inputs` 校验采样率。详情页和离屏缩略图工作室都只通过帧工具定位动作，关键帧存储以帧为规范字段并兼容迁移旧秒值。
 
 **Tech Stack:** React 19, TypeScript, PlayCanvas AnimTrack, Vite, Node `node:test`, localStorage。
 
@@ -119,7 +119,7 @@ git commit -s -m "feat: add animation frame timing contract"
 
 - [ ] **Step 1: Extend the directory contract and test it against the GLB**
 
-在 `AnimationLibraryEntry` 增加 `readonly frameRate: number`。`makeLegacyEntry` 固定写入 30，`makeUnrealEntry` 固定写入 24。扩展现有 GLB 解析辅助函数，读取每个动画的单值 input accessor，相邻采样间隔中位数推断实际整数帧率，并对每个目录条目断言 `entry.frameRate` 与真实值一致；同时断言所有目录条目的 `frameRate` 为有限正整数。
+在 `AnimationLibraryEntry` 增加 `readonly frameRate: number`。默认旧目录片段写入 30，`A_INP_Idle`、`A_INP_WalkFwd_Loop` 和 `A_chair_loop01` 写入 24，Cine57 导入片段写入 24。扩展现有 GLB 解析辅助函数，读取每个动画的单值 input accessor，相邻采样间隔中位数推断实际整数帧率，并对每个目录条目断言 `entry.frameRate` 与真实值一致；同时断言所有目录条目的 `frameRate` 为有限正整数。
 
 - [ ] **Step 2: Run the directory tests and verify the new assertions fail**
 
@@ -133,7 +133,7 @@ Expected: FAIL until the directory entries expose `frameRate` and the assertions
 
 - [ ] **Step 3: Implement metadata and the actual-rate assertions**
 
-保持 `animationCatalogEntries.ts` 的生成字段不变，在 `animationLibrary.ts` 的两个构造函数中按来源赋值；在测试中缓存一次 GLB 的 `name -> { duration, frameRate }` 映射，避免逐条重复读取文件。不要把所有动作强行改成同一个帧率。
+保持 `animationCatalogEntries.ts` 的生成字段不变，在 `animationLibrary.ts` 的两个构造函数中按来源赋值，并对 3 个旧目录 24fps 片段做显式覆盖；在测试中缓存一次 GLB 的 `name -> { duration, frameRate }` 映射，避免逐条重复读取文件。不要把所有动作强行改成同一个帧率。
 
 - [ ] **Step 4: Run the directory tests and verify they pass**
 

@@ -13,6 +13,11 @@ import {
 } from "@/pages/drama/comicDrama/components/blocking3d";
 import { computeSourceBounds } from "@/pages/models/modelLibrary3d/modelViewerApp";
 import { loadStudioEnvironment } from "@/pages/models/modelLibrary3d/studioEnvironmentRuntime";
+import {
+  frameToSeconds,
+  getDefaultAnimationFrame,
+  inferAnimationFrameRate,
+} from "./animationFrame";
 import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 /**
@@ -23,7 +28,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v7";
+const STORAGE_KEY = "animation-library:thumbnails:v8";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -41,11 +46,18 @@ let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
 interface AnimTrackLike {
   name?: unknown;
+  duration?: unknown;
+  inputs?: readonly {
+    components?: unknown;
+    data?: unknown;
+  }[];
 }
 
 interface AnimLayerLike {
   play: (name: string) => void;
+  pause?: () => void;
   activeStateCurrentTime?: number;
+  activeStateDuration?: number;
 }
 
 interface AnimComponentLike {
@@ -110,7 +122,7 @@ function scheduleIdleDestroy(): void {
 /** 请求一张动画缩略图；已缓存返回 true，否则进入生成队列（完成后广播订阅者）。 */
 export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean {
   loadStorageCache();
-  if (getAnimationKeyframe(entry.id)) return true;
+  if (getAnimationKeyframe(entry.id, entry.frameRate)) return true;
   if (memoryCache.has(entry.id)) return true;
   if (!pendingEntries.has(entry.id)) {
     pendingEntries.set(entry.id, entry);
@@ -219,7 +231,7 @@ async function createAnimationThumbnailStudio(): Promise<{
     app.destroy();
     throw new Error("动画文件里没有可显示的角色资源。");
   }
-  const tracks = new Map<string, unknown>();
+  const tracks = new Map<string, AnimTrackLike>();
   for (const clipAsset of resource.animations ?? []) {
     const track = clipAsset.resource as AnimTrackLike | null;
     if (track && typeof track.name === "string") tracks.set(track.name, track);
@@ -280,13 +292,29 @@ async function createAnimationThumbnailStudio(): Promise<{
         anim.playing = true;
         anim.baseLayer?.play(entry.clipName);
 
-        // 摆到片段中段的代表帧：先等一帧让片段状态建立，再定位时间并等评估生效。
+        // 先等一帧让片段状态建立，再按 GLB 实际采样率定位到最后一帧的 50%。
         await nextFrame();
         const layer = anim.baseLayer;
+        const trackDuration =
+          typeof track.duration === "number" && Number.isFinite(track.duration)
+            ? track.duration
+            : entry.durationSeconds;
+        const durationSeconds = Math.max(
+          trackDuration,
+          typeof layer?.activeStateDuration === "number" ? layer.activeStateDuration : 0,
+          0,
+        );
+        const frameRate = inferAnimationFrameRate(track, entry.frameRate);
+        const previewFrame = getDefaultAnimationFrame(durationSeconds, frameRate);
+        anim.playing = false;
+        layer?.pause?.();
         if (layer && typeof layer.activeStateCurrentTime === "number") {
-          layer.activeStateCurrentTime = Math.max(entry.durationSeconds * 0.4, 0.05);
+          layer.activeStateCurrentTime = frameToSeconds(
+            previewFrame,
+            frameRate,
+            durationSeconds,
+          );
         }
-        await nextFrame();
         await nextFrame();
 
         frame(centerY, radius);

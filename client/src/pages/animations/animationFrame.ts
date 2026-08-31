@@ -71,7 +71,7 @@ function asFiniteNumbers(value: unknown): number[] {
     return value.filter((item): item is number => typeof item === "number" && Number.isFinite(item));
   }
   if (ArrayBuffer.isView(value)) {
-    return Array.from(value as ArrayLike<number>).filter((item) => Number.isFinite(item));
+    return Array.from(value as unknown as ArrayLike<number>).filter((item) => Number.isFinite(item));
   }
   return [];
 }

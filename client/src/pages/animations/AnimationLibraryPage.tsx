@@ -12,6 +12,7 @@ import {
   type AnimationLibraryEntry,
   type AnimationLibraryGroupId,
 } from "@/config/animationLibrary";
+import { getAnimationFrameCount } from "./animationFrame";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -25,19 +26,21 @@ import { getAnimationKeyframe, subscribeAnimationKeyframes } from "./animationPr
 
 function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
   const [thumbnail, setThumbnail] = useState<string | null>(() => {
-    return getAnimationKeyframe(entry.id)?.dataUrl ?? getAnimationThumbnail(entry.id);
+    return getAnimationKeyframe(entry.id, entry.frameRate)?.dataUrl ?? getAnimationThumbnail(entry.id);
   });
 
   useEffect(() => {
     const syncThumbnail = () => {
-      setThumbnail(getAnimationKeyframe(entry.id)?.dataUrl ?? getAnimationThumbnail(entry.id));
+      setThumbnail(
+        getAnimationKeyframe(entry.id, entry.frameRate)?.dataUrl ?? getAnimationThumbnail(entry.id),
+      );
     };
     syncThumbnail();
     const unsubscribeThumbnails = subscribeAnimationThumbnails(syncThumbnail);
     const unsubscribeKeyframes = subscribeAnimationKeyframes((changedId) => {
       if (changedId === entry.id) syncThumbnail();
     });
-    if (!getAnimationKeyframe(entry.id)) ensureAnimationThumbnail(entry);
+    if (!getAnimationKeyframe(entry.id, entry.frameRate)) ensureAnimationThumbnail(entry);
     return () => {
       unsubscribeThumbnails();
       unsubscribeKeyframes();
@@ -71,7 +74,7 @@ function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
       <div className="px-1.5 py-1.5">
         <div className="truncate text-[11px] text-foreground">{entry.name}</div>
         <div className="truncate text-[10px] text-muted-foreground">
-          {entry.packLabel} · {entry.actionTypeLabel} · {entry.durationSeconds.toFixed(1)} 秒
+          {entry.packLabel} · {entry.actionTypeLabel} · 共 {getAnimationFrameCount(entry.durationSeconds, entry.frameRate)} 帧
         </div>
       </div>
     </Link>
