@@ -31,7 +31,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v24";
+const STORAGE_KEY = "model-library:thumbnails:v25";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -171,7 +171,6 @@ async function createThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
   // The shared environment builds its HDR projection/materials through the
   // running PlayCanvas lifecycle. Initialise once before any asynchronous
@@ -221,7 +220,7 @@ async function createThumbnailStudio(): Promise<{
       const asset = await loadAsset(app, entry.fileUrl, "container");
       try {
         const resource = asset.resource as ContainerResource | null;
-        const inner = resource?.instantiateRenderEntity?.({ castShadows: false });
+        const inner = resource?.instantiateRenderEntity?.({ castShadows: true });
         if (!inner) throw new Error("模型没有可显示的网格。");
         const root = new pc.Entity("thumb-model");
         root.addChild(inner);

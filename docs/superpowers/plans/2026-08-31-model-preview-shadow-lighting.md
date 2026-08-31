@@ -19,7 +19,7 @@
 ## 3. 统一两类卡片缩略图
 
 - 模型缩略图使用 `castShadows: true`，移除 ACES 强制设置，缓存键更新为 v25。
-- 动画缩略图使用 `castShadows: true`，传入 `model-preview` 并启用默认 shadow catcher，移除 ACES 强制设置，缓存键更新为 v11。
+- 动画完整预览和缩略图使用 `model-preview`；缩略图角色使用 `castShadows: true` 并启用默认 shadow catcher，移除 ACES 强制设置，缓存键更新为 v11。
 - 保持共享 HDRI 穹顶只接收阴影不投射阴影，确保主光不会被背景穹顶遮挡。
 
 ## 4. 文档与回归

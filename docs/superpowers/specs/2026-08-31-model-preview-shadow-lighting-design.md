@@ -18,6 +18,7 @@
 
 - 模型缩略图的 `instantiateRenderEntity` 使用 `castShadows: true`。
 - 动画缩略图的角色实例使用 `castShadows: true`。
+- 动画完整预览与动画缩略图都使用 `model-preview` profile，避免同一动作在卡片和详情页出现两套光影。
 - 动画缩略图移除关闭 shadow catcher 的选项，沿用共享运行时默认的接收器。
 - 可见 HDRI 穹顶继续 `castShadows: false, receiveShadows: true`；它只负责背景和接收地面投影，不能挡住主光。
 

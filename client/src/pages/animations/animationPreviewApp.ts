@@ -299,7 +299,9 @@ export function openAnimationPreview(
   const ready = (async (): Promise<AnimationPreview> => {
     try {
       const assetPromise = loadAsset(app, options.glbUrl, "container");
-      const environmentPromise = loadStudioEnvironment(app);
+      const environmentPromise = loadStudioEnvironment(app, undefined, {
+        lightingProfile: "model-preview",
+      });
       const [assetResult, environmentResult] = await Promise.allSettled([
         assetPromise,
         environmentPromise,

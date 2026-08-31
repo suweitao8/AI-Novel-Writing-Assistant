@@ -13,7 +13,9 @@ test("模型预览 profile 将 HDRI 环境填充与可见背景分离", () => {
 
   assert.equal(defaultProfile.skyboxIntensity, 1);
   assert.equal(modelProfile.skyboxIntensity, 0.25);
-  assert.equal(modelProfile.shadowIntensity, 0.3);
+  assert.equal(modelProfile.shadowIntensity, 0.62);
+  assert.equal(modelProfile.keyLightAzimuthOffsetDegrees, 180);
+  assert.equal(defaultProfile.keyLightAzimuthOffsetDegrees, 0);
   assert.ok(Number.isFinite(modelProfile.skyboxIntensity));
   assert.ok(modelProfile.skyboxIntensity >= 0);
 });

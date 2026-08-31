@@ -28,7 +28,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v10";
+const STORAGE_KEY = "animation-library:thumbnails:v11";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -207,7 +207,6 @@ async function createAnimationThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
   // The shared environment builds its HDR projection/materials through the
   // running PlayCanvas lifecycle. Initialise once before any asynchronous
@@ -217,7 +216,7 @@ async function createAnimationThumbnailStudio(): Promise<{
   let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
   try {
     studioEnvironment = await loadStudioEnvironment(app, undefined, {
-      enableShadowCatcher: false,
+      lightingProfile: "model-preview",
     });
   } catch (error) {
     app.destroy();
@@ -281,7 +280,7 @@ async function createAnimationThumbnailStudio(): Promise<{
       if (destroyed) throw new Error("缩略图画布已销毁。");
       let model: pc.Entity | null = null;
       try {
-        model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
+        model = resource?.instantiateRenderEntity?.({ castShadows: true }) ?? null;
         if (!model) throw new Error("动作文件里没有可显示的角色。");
         setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
         model.addComponent("anim", { activate: true });

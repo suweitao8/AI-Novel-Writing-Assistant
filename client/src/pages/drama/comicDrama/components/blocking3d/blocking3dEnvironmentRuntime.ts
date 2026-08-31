@@ -157,7 +157,12 @@ export function createBlocking3dEnvironmentRuntime(
           lighting.ambientLight[1],
           lighting.ambientLight[2],
         );
-        applyHdriKeyLight(environmentKeyLight, texture, environmentSettings.panoramaHorizonV);
+        applyHdriKeyLight(
+          environmentKeyLight,
+          texture,
+          environmentSettings.panoramaHorizonV,
+          lighting.keyLightAzimuthOffsetDegrees,
+        );
         const projectionCube = createVisibleHdriCubemap(app, texture);
         if (!isCurrentEnvironmentRequest(requestId)) {
           projectionCube.destroy();
