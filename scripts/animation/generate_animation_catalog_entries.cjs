@@ -21,6 +21,14 @@ const entries = selection.clips.map(
     clipName,
     name,
     actionType,
+    classificationId,
+    classificationLabel,
+    actorKind,
+    actorKindLabel,
+    posture,
+    postureLabel,
+    weaponType,
+    weaponTypeLabel,
     dedupeKey,
     isIdleVariant,
     groupId,
@@ -39,6 +47,14 @@ const entries = selection.clips.map(
     clipName,
     name,
     actionType,
+    classificationId,
+    classificationLabel,
+    actorKind,
+    actorKindLabel,
+    posture,
+    postureLabel,
+    weaponType,
+    weaponTypeLabel,
     dedupeKey,
     isIdleVariant,
     groupId,
@@ -72,6 +88,14 @@ export interface AnimationCatalogEntry {
   readonly clipName: string;
   readonly name: string;
   readonly actionType: string;
+  readonly classificationId: string;
+  readonly classificationLabel: string;
+  readonly actorKind: string;
+  readonly actorKindLabel: string;
+  readonly posture: string;
+  readonly postureLabel: string;
+  readonly weaponType: string;
+  readonly weaponTypeLabel: string;
   readonly dedupeKey: string;
   readonly isIdleVariant: boolean;
   readonly groupId: string;
