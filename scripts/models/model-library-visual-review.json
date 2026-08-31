@@ -799,6 +799,1296 @@
       "visualDescription": "标准缩略图中可见花丛 A",
       "reviewStatus": "approved",
       "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
-    }
+    },
+{
+  "id": "bench-food-01a",
+  "meshName": "SM_Bench_Food_01a_LOD0",
+  "fileName": "SM_Bench_Food_01a.glb",
+  "name": "餐厅长凳",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的餐厅长凳",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed",
+  "meshName": "SM_Bed",
+  "fileName": "SM_Bed.glb",
+  "name": "床铺",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的床铺",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-corner",
+  "meshName": "SM_Bed_Corner",
+  "fileName": "SM_Bed_Corner.glb",
+  "name": "转角床",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的转角床",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "chair",
+  "meshName": "SM_Chair",
+  "fileName": "SM_Chair.glb",
+  "name": "单椅",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的单椅",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "chair01",
+  "meshName": "SM_Chair01",
+  "fileName": "SM_Chair01.glb",
+  "name": "厨房椅",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房椅",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bookshelf-01a",
+  "meshName": "SM_BookShelf_01a_LOD0",
+  "fileName": "SM_BookShelf_01a.glb",
+  "name": "书架",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的书架",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bookshelf-01a-blank",
+  "meshName": "SM_Bookshelf_01a_Blank_LOD0",
+  "fileName": "SM_Bookshelf_01a_Blank.glb",
+  "name": "空书架",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的空书架",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "coffeetable-01a",
+  "meshName": "SM_CoffeeTable_01a_LOD0",
+  "fileName": "SM_CoffeeTable_01a.glb",
+  "name": "茶几 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的茶几 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cabinetset-01b",
+  "meshName": "SM_CabinetSet_01b_LOD0",
+  "fileName": "SM_CabinetSet_01b.glb",
+  "name": "收纳柜组 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的收纳柜组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cabinet-set-03a",
+  "meshName": "SM_Cabinet_Set_03a_LOD0",
+  "fileName": "SM_Cabinet_Set_03a.glb",
+  "name": "收纳柜 C",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的收纳柜 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cabinet-set-03b",
+  "meshName": "SM_Cabinet_Set_03b_LOD0",
+  "fileName": "SM_Cabinet_Set_03b.glb",
+  "name": "收纳柜 D",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的收纳柜 D",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-12b",
+  "meshName": "SM_Bed_12b_LOD0",
+  "fileName": "SM_Bed_12b.glb",
+  "name": "双人床 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的双人床 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-12c",
+  "meshName": "SM_Bed_12c_LOD0",
+  "fileName": "SM_Bed_12c.glb",
+  "name": "双人床 C",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的双人床 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-frame-04a",
+  "meshName": "SM_Bed_Frame_04a_LOD0",
+  "fileName": "SM_Bed_Frame_04a.glb",
+  "name": "床架 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的床架 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-frame-04b",
+  "meshName": "SM_Bed_Frame_04b_LOD0",
+  "fileName": "SM_Bed_Frame_04b.glb",
+  "name": "床架 C",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的床架 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bedding-set-01a",
+  "meshName": "SM_Bedding_Set_01a_LOD0",
+  "fileName": "SM_Bedding_Set_01a.glb",
+  "name": "床品组 A",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的床品组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bedding-set-01b",
+  "meshName": "SM_Bedding_Set_01b_LOD0",
+  "fileName": "SM_Bedding_Set_01b.glb",
+  "name": "床品组 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的床品组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "chair-set-05b",
+  "meshName": "SM_Chair_Set_05b_LOD0",
+  "fileName": "SM_Chair_Set_05b.glb",
+  "name": "椅子 C",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的椅子 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "chair-set-09b",
+  "meshName": "SM_Chair_Set_09b_LOD0",
+  "fileName": "SM_Chair_Set_09b.glb",
+  "name": "椅子 D",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的椅子 D",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "desk-office-08b",
+  "meshName": "SM_Desk_Office_08b_LOD0",
+  "fileName": "SM_Desk_Office_08b.glb",
+  "name": "办公桌 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的办公桌 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "desk-office-08c",
+  "meshName": "SM_Desk_Office_08c_LOD0",
+  "fileName": "SM_Desk_Office_08c.glb",
+  "name": "办公桌 C",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的办公桌 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "desk-set-01b",
+  "meshName": "SM_Desk_Set_01b_LOD0",
+  "fileName": "SM_Desk_Set_01b.glb",
+  "name": "书桌组 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的书桌组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mattress-queen-01a",
+  "meshName": "SM_Mattress_Queen_01a_LOD0",
+  "fileName": "SM_Mattress_Queen_01a.glb",
+  "name": "大号床垫",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的大号床垫",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mattress-twin-01a",
+  "meshName": "SM_Mattress_Twin_01a_LOD0",
+  "fileName": "SM_Mattress_Twin_01a.glb",
+  "name": "单人床垫",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的单人床垫",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "office-chairs-09a",
+  "meshName": "SM_Office_Chairs_09a_LOD0",
+  "fileName": "SM_Office_Chairs_09a.glb",
+  "name": "办公椅组",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的办公椅组",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "sofa-pullout-01b",
+  "meshName": "SM_Sofa_Pullout_01b_LOD0",
+  "fileName": "SM_Sofa_Pullout_01b.glb",
+  "name": "沙发床 B",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的沙发床 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "tv-cart-01a",
+  "meshName": "SM_TV_Cart_01a_LOD0",
+  "fileName": "SM_TV_Cart_01a.glb",
+  "name": "电视推车",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的电视推车",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "clothes-closet-01a",
+  "meshName": "SM_Clothes_Closet_01a_LOD0",
+  "fileName": "SM_Clothes_Closet_01a.glb",
+  "name": "衣物柜",
+  "category": "家具",
+  "visualDescription": "标准模型库缩略图中可见完整的衣物柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bin",
+  "meshName": "SM_Bin",
+  "fileName": "SM_Bin.glb",
+  "name": "垃圾桶",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的垃圾桶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bottle-01",
+  "meshName": "SM_Bottle_01_LOD0",
+  "fileName": "SM_Bottle_01.glb",
+  "name": "水瓶",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的水瓶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bucket-01",
+  "meshName": "SM_Bucket_01_LOD0",
+  "fileName": "SM_Bucket_01.glb",
+  "name": "水桶",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的水桶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "canteen-01",
+  "meshName": "SM_Canteen_01",
+  "fileName": "SM_Canteen_01.glb",
+  "name": "水壶",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的水壶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "household-bottles-01a",
+  "meshName": "SM_Household_Bottles_01a_LOD0",
+  "fileName": "SM_Household_Bottles_01a.glb",
+  "name": "家用瓶组",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的家用瓶组",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-containers-01a",
+  "meshName": "SM_Kitchen_Containers_01a_LOD0",
+  "fileName": "SM_Kitchen_Containers_01a.glb",
+  "name": "厨房收纳罐 A",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房收纳罐 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-containers-01b",
+  "meshName": "SM_Kitchen_Containers_01b_LOD0",
+  "fileName": "SM_Kitchen_Containers_01b.glb",
+  "name": "厨房收纳罐 B",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房收纳罐 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "pot-0",
+  "meshName": "SM_pot_0_LOD0",
+  "fileName": "SM_pot_0.glb",
+  "name": "花盆 A",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的花盆 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "pot-1",
+  "meshName": "SM_pot_1_LOD0",
+  "fileName": "SM_pot_1.glb",
+  "name": "花盆 B",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的花盆 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "pot-10",
+  "meshName": "SM_pot_10_LOD0",
+  "fileName": "SM_pot_10.glb",
+  "name": "花盆 C",
+  "category": "容器与箱子",
+  "visualDescription": "标准模型库缩略图中可见完整的花盆 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "coffee-machine-commerical-01a",
+  "meshName": "SM_Coffee_Machine_Commerical_01a_LOD0",
+  "fileName": "SM_Coffee_Machine_Commerical_01a.glb",
+  "name": "商用咖啡机",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的商用咖啡机",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cooler-set-03a",
+  "meshName": "SM_Cooler_Set_03a_LOD0",
+  "fileName": "SM_Cooler_Set_03a.glb",
+  "name": "冷藏柜",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的冷藏柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "freezer-standing-01a",
+  "meshName": "SM_Freezer_Standing_01a_LOD0",
+  "fileName": "SM_Freezer_Standing_01a.glb",
+  "name": "立式冰柜",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的立式冰柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "barcooler-01",
+  "meshName": "SM_BarCooler_01",
+  "fileName": "SM_BarCooler_01.glb",
+  "name": "吧台冷藏柜",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的吧台冷藏柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "apple01",
+  "meshName": "SM_Apple01",
+  "fileName": "SM_Apple01.glb",
+  "name": "苹果",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的苹果",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "board01",
+  "meshName": "SM_Board01",
+  "fileName": "SM_Board01.glb",
+  "name": "菜板",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的菜板",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "castironpan-01a",
+  "meshName": "SM_CastIronPan_01a",
+  "fileName": "SM_CastIronPan_01a.glb",
+  "name": "铸铁锅",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的铸铁锅",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "chopstick01",
+  "meshName": "SM_Chopstick01",
+  "fileName": "SM_Chopstick01.glb",
+  "name": "筷子",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的筷子",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cookingboard01",
+  "meshName": "SM_CookingBoard01",
+  "fileName": "SM_CookingBoard01.glb",
+  "name": "菜板 B",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的菜板 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "cup01",
+  "meshName": "SM_Cup01",
+  "fileName": "SM_Cup01.glb",
+  "name": "水杯",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的水杯",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "dishwasher01",
+  "meshName": "SM_Dishwasher01",
+  "fileName": "SM_Dishwasher01.glb",
+  "name": "洗碗机",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的洗碗机",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "drainingboard01",
+  "meshName": "SM_DrainingBoard01",
+  "fileName": "SM_DrainingBoard01.glb",
+  "name": "沥水板",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的沥水板",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "frypan01",
+  "meshName": "SM_Frypan01",
+  "fileName": "SM_Frypan01.glb",
+  "name": "平底锅",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的平底锅",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "icecreammachine-01a",
+  "meshName": "SM_IceCreamMachine_01a_LOD0",
+  "fileName": "SM_IceCreamMachine_01a.glb",
+  "name": "冰淇淋机",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的冰淇淋机",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchenstuff01",
+  "meshName": "SM_KitchenStuff01",
+  "fileName": "SM_KitchenStuff01.glb",
+  "name": "厨房用品",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房用品",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-additions-set-01a",
+  "meshName": "SM_Kitchen_Additions_Set_01a_LOD0",
+  "fileName": "SM_Kitchen_Additions_Set_01a.glb",
+  "name": "厨房用品组 A",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房用品组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-additions-set-01b",
+  "meshName": "SM_Kitchen_Additions_Set_01b_LOD0",
+  "fileName": "SM_Kitchen_Additions_Set_01b.glb",
+  "name": "厨房用品组 B",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房用品组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-set-01a",
+  "meshName": "SM_Kitchen_Set_01a_LOD0",
+  "fileName": "SM_Kitchen_Set_01a.glb",
+  "name": "厨房设备组 A",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房设备组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "kitchen-set-01b",
+  "meshName": "SM_Kitchen_Set_01b_LOD0",
+  "fileName": "SM_Kitchen_Set_01b.glb",
+  "name": "厨房设备组 B",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的厨房设备组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "knife01",
+  "meshName": "SM_Knife01",
+  "fileName": "SM_Knife01.glb",
+  "name": "菜刀",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的菜刀",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mugs-decor-01a",
+  "meshName": "SM_Mugs_Decor_01a_LOD0",
+  "fileName": "SM_Mugs_Decor_01a.glb",
+  "name": "马克杯组 A",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的马克杯组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mugs-decor-01b",
+  "meshName": "SM_Mugs_Decor_01b_LOD0",
+  "fileName": "SM_Mugs_Decor_01b.glb",
+  "name": "马克杯组 B",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的马克杯组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "napkinholder01",
+  "meshName": "SM_NapkinHolder01",
+  "fileName": "SM_NapkinHolder01.glb",
+  "name": "餐巾架",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的餐巾架",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bartap-01a",
+  "meshName": "SM_BarTap_01a",
+  "fileName": "SM_BarTap_01a.glb",
+  "name": "吧台水龙头",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的吧台水龙头",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "food-heater-set-02a",
+  "meshName": "SM_Food_Heater_Set_02a_LOD0",
+  "fileName": "SM_Food_Heater_Set_02a.glb",
+  "name": "食物保温柜",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的食物保温柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "food-warmer-07a",
+  "meshName": "SM_Food_Warmer_07a_LOD0",
+  "fileName": "SM_Food_Warmer_07a.glb",
+  "name": "保温柜",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的保温柜",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "fastfood-dispenser-set-01a",
+  "meshName": "SM_Fastfood_Dispenser_Set_01a_LOD0",
+  "fileName": "SM_Fastfood_Dispenser_Set_01a.glb",
+  "name": "取餐机",
+  "category": "厨房与餐具",
+  "visualDescription": "标准模型库缩略图中可见完整的取餐机",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "battery-01",
+  "meshName": "SM_Battery_01_LOD0",
+  "fileName": "SM_Battery_01.glb",
+  "name": "电池",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的电池",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bugspray-01a",
+  "meshName": "SM_Bugspray_01a",
+  "fileName": "SM_Bugspray_01a.glb",
+  "name": "防虫喷雾",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的防虫喷雾",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "blinds-1",
+  "meshName": "SM_Blinds_1",
+  "fileName": "SM_Blinds_1.glb",
+  "name": "百叶窗",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的百叶窗",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "blinds-01a",
+  "meshName": "SM_Blinds_01a_LOD0",
+  "fileName": "SM_Blinds_01a.glb",
+  "name": "百叶窗 B",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的百叶窗 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bulb-01",
+  "meshName": "SM_Bulb_01",
+  "fileName": "SM_Bulb_01.glb",
+  "name": "灯泡",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的灯泡",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "carpetdivider-01a",
+  "meshName": "SM_CarpetDivider_01a_LOD0",
+  "fileName": "SM_CarpetDivider_01a.glb",
+  "name": "地毯隔断",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的地毯隔断",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "clothes-dirty-05a",
+  "meshName": "SM_Clothes_Dirty_05a_LOD0",
+  "fileName": "SM_Clothes_Dirty_05a.glb",
+  "name": "脏衣物",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的脏衣物",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "clothes-exterior-hanger-01a",
+  "meshName": "SM_Clothes_Exterior_Hanger_01a_LOD0",
+  "fileName": "SM_Clothes_Exterior_Hanger_01a.glb",
+  "name": "衣物晾架",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的衣物晾架",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "clothes-hanging-01a",
+  "meshName": "SM_Clothes_Hanging_01a_LOD0",
+  "fileName": "SM_Clothes_Hanging_01a.glb",
+  "name": "挂起衣物",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的挂起衣物",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "clothes-pile-01a",
+  "meshName": "SM_Clothes_Pile_01a_LOD0",
+  "fileName": "SM_Clothes_Pile_01a.glb",
+  "name": "衣物堆",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的衣物堆",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "coffee-01a",
+  "meshName": "SM_Coffee_01a",
+  "fileName": "SM_Coffee_01a.glb",
+  "name": "野外咖啡壶",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的野外咖啡壶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "ironing-board-01a",
+  "meshName": "SM_Ironing_Board_01a_LOD0",
+  "fileName": "SM_Ironing_Board_01a.glb",
+  "name": "熨衣板",
+  "category": "日用小物",
+  "visualDescription": "标准模型库缩略图中可见完整的熨衣板",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "aircon",
+  "meshName": "SM_AirCon_LOD0",
+  "fileName": "SM_AirCon.glb",
+  "name": "空调",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的空调",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "book-01a",
+  "meshName": "SM_Book_01a_LOD0",
+  "fileName": "SM_Book_01a.glb",
+  "name": "书",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的书",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bookbag-01a",
+  "meshName": "SM_Bookbag_01a",
+  "fileName": "SM_Bookbag_01a.glb",
+  "name": "书包",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的书包",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "calculator-01a",
+  "meshName": "SM_Calculator_01a_LOD0",
+  "fileName": "SM_Calculator_01a.glb",
+  "name": "计算器",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的计算器",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "computer-02a-keyboard",
+  "meshName": "SM_Computer_02a_Keyboard_LOD0",
+  "fileName": "SM_Computer_02a_Keyboard.glb",
+  "name": "键盘",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的键盘",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "computer-02a-mouse",
+  "meshName": "SM_Computer_02a_Mouse_LOD0",
+  "fileName": "SM_Computer_02a_Mouse.glb",
+  "name": "鼠标",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的鼠标",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "computer-02a-mousepad",
+  "meshName": "SM_Computer_02a_Mousepad",
+  "fileName": "SM_Computer_02a_Mousepad.glb",
+  "name": "鼠标垫",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的鼠标垫",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "computer-02a-tower",
+  "meshName": "SM_Computer_02a_Tower_LOD0",
+  "fileName": "SM_Computer_02a_Tower.glb",
+  "name": "台式机主机",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的台式机主机",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "corkboard-03a",
+  "meshName": "SM_Corkboard_03a_LOD0",
+  "fileName": "SM_Corkboard_03a.glb",
+  "name": "软木板 A",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的软木板 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "corkboard-03b",
+  "meshName": "SM_Corkboard_03b_LOD0",
+  "fileName": "SM_Corkboard_03b.glb",
+  "name": "软木板 B",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的软木板 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "electric-outlet-01",
+  "meshName": "SM_Electric_Outlet_01",
+  "fileName": "SM_Electric_Outlet_01.glb",
+  "name": "墙面插座",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的墙面插座",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "office-stationary-01a",
+  "meshName": "SM_Office_Stationary_01a_LOD0",
+  "fileName": "SM_Office_Stationary_01a.glb",
+  "name": "办公文具 A",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的办公文具 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "office-stationary-01aa",
+  "meshName": "SM_Office_Stationary_01aa_LOD0",
+  "fileName": "SM_Office_Stationary_01aa.glb",
+  "name": "办公文具 B",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的办公文具 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "office-stationary-01ab",
+  "meshName": "SM_Office_Stationary_01ab_LOD0",
+  "fileName": "SM_Office_Stationary_01ab.glb",
+  "name": "办公文具 C",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的办公文具 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "office-stationary-01ac",
+  "meshName": "SM_Office_Stationary_01ac_LOD0",
+  "fileName": "SM_Office_Stationary_01ac.glb",
+  "name": "办公文具 D",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的办公文具 D",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "printed-materials-01a",
+  "meshName": "SM_Printed_Materials_01a_LOD0",
+  "fileName": "SM_Printed_Materials_01a.glb",
+  "name": "印刷资料",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的印刷资料",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "stationary-set-01a",
+  "meshName": "SM_Stationary_Set_01a_LOD0",
+  "fileName": "SM_Stationary_Set_01a.glb",
+  "name": "文具组 A",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的文具组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "stationary-set-01aa",
+  "meshName": "SM_Stationary_Set_01aa_LOD0",
+  "fileName": "SM_Stationary_Set_01aa.glb",
+  "name": "文具组 B",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的文具组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "stationary-set-02aa",
+  "meshName": "SM_Stationary_Set_02aa_LOD0",
+  "fileName": "SM_Stationary_Set_02aa.glb",
+  "name": "文具组 C",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的文具组 C",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "stationary-set-02ab",
+  "meshName": "SM_Stationary_Set_02ab_LOD0",
+  "fileName": "SM_Stationary_Set_02ab.glb",
+  "name": "文具组 D",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的文具组 D",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "stationary-set-02ac",
+  "meshName": "SM_Stationary_Set_02ac_LOD0",
+  "fileName": "SM_Stationary_Set_02ac.glb",
+  "name": "文具组 E",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的文具组 E",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "tv-01",
+  "meshName": "SM_TV_01_LOD0",
+  "fileName": "SM_TV_01.glb",
+  "name": "电视",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的电视",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "whiteboard-03a",
+  "meshName": "SM_Whiteboard_03a_LOD0",
+  "fileName": "SM_Whiteboard_03a.glb",
+  "name": "白板",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的白板",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "pc-case-01-",
+  "meshName": "SM_PC_case_01__LOD0",
+  "fileName": "SM_PC_case_01_.glb",
+  "name": "电脑机箱",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的电脑机箱",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "alarmclock",
+  "meshName": "SM_AlarmClock_LOD0",
+  "fileName": "SM_AlarmClock.glb",
+  "name": "闹钟",
+  "category": "书籍与办公",
+  "visualDescription": "标准模型库缩略图中可见完整的闹钟",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bed-lamp",
+  "meshName": "SM_Bed_Lamp",
+  "fileName": "SM_Bed_Lamp.glb",
+  "name": "床头灯",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的床头灯",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "lamp01",
+  "meshName": "SM_Lamp01",
+  "fileName": "SM_Lamp01.glb",
+  "name": "台灯",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的台灯",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "light-industrial-set-13a",
+  "meshName": "SM_Light_Industrial_Set_13a_LOD0",
+  "fileName": "SM_Light_Industrial_Set_13a.glb",
+  "name": "工业吊灯 A",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的工业吊灯 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "light-industrial-set-13b",
+  "meshName": "SM_Light_Industrial_Set_13b_LOD0",
+  "fileName": "SM_Light_Industrial_Set_13b.glb",
+  "name": "工业吊灯 B",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的工业吊灯 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "light-outdoor-industrial-set-01a",
+  "meshName": "SM_Light_Outdoor_Industrial_Set_01a_LOD0",
+  "fileName": "SM_Light_Outdoor_Industrial_Set_01a.glb",
+  "name": "户外壁灯",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的户外壁灯",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "light-set-01a",
+  "meshName": "SM_Light_Set_01a_LOD0",
+  "fileName": "SM_Light_Set_01a.glb",
+  "name": "灯具组",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的灯具组",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "lights-exterior-set-01a",
+  "meshName": "SM_Lights_Exterior_Set_01a_LOD0",
+  "fileName": "SM_Lights_Exterior_Set_01a.glb",
+  "name": "户外灯组",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的户外灯组",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "lights-set-10a",
+  "meshName": "SM_Lights_Set_10a_LOD0",
+  "fileName": "SM_Lights_Set_10a.glb",
+  "name": "灯组 B",
+  "category": "灯具",
+  "visualDescription": "标准模型库缩略图中可见完整的灯组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "baseball",
+  "meshName": "SM_Baseball_LOD0",
+  "fileName": "SM_Baseball.glb",
+  "name": "棒球",
+  "category": "户外",
+  "visualDescription": "标准模型库缩略图中可见完整的棒球",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "baseballbat",
+  "meshName": "SM_BaseballBat_LOD0",
+  "fileName": "SM_BaseballBat.glb",
+  "name": "棒球棒",
+  "category": "户外",
+  "visualDescription": "标准模型库缩略图中可见完整的棒球棒",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "flagpole-01a",
+  "meshName": "SM_Flagpole_01a_LOD0",
+  "fileName": "SM_Flagpole_01a.glb",
+  "name": "旗杆",
+  "category": "户外",
+  "visualDescription": "标准模型库缩略图中可见完整的旗杆",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathroom-set-01a",
+  "meshName": "SM_Bathroom_Set_01a_LOD0",
+  "fileName": "SM_Bathroom_Set_01a.glb",
+  "name": "卫浴组 A",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的卫浴组 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathroom-set-01b",
+  "meshName": "SM_Bathroom_Set_01b_LOD0",
+  "fileName": "SM_Bathroom_Set_01b.glb",
+  "name": "卫浴组 B",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的卫浴组 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathroom-stall-set-01a",
+  "meshName": "SM_Bathroom_Stall_Set_01a_LOD0",
+  "fileName": "SM_Bathroom_Stall_Set_01a.glb",
+  "name": "淋浴间 A",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的淋浴间 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathroom-stall-set-01b",
+  "meshName": "SM_Bathroom_Stall_Set_01b_LOD0",
+  "fileName": "SM_Bathroom_Stall_Set_01b.glb",
+  "name": "淋浴间 B",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的淋浴间 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathtub-01a",
+  "meshName": "SM_Bathtub_01a_LOD0",
+  "fileName": "SM_Bathtub_01a.glb",
+  "name": "浴缸 A",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的浴缸 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathtub-12a",
+  "meshName": "SM_Bathtub_12a_LOD0",
+  "fileName": "SM_Bathtub_12a.glb",
+  "name": "浴缸 B",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的浴缸 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "bathtub-iron-01a",
+  "meshName": "SM_Bathtub_Iron_01a_LOD0",
+  "fileName": "SM_Bathtub_Iron_01a.glb",
+  "name": "铸铁浴缸",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的铸铁浴缸",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mirror-set-02a",
+  "meshName": "SM_Mirror_Set_02a_LOD0",
+  "fileName": "SM_Mirror_Set_02a.glb",
+  "name": "浴室镜 A",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的浴室镜 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "mirror-set-02b",
+  "meshName": "SM_Mirror_Set_02b_LOD0",
+  "fileName": "SM_Mirror_Set_02b.glb",
+  "name": "浴室镜 B",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的浴室镜 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "shower-05a",
+  "meshName": "SM_Shower_05a_LOD0",
+  "fileName": "SM_Shower_05a.glb",
+  "name": "淋浴器",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的淋浴器",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "shower-curtain-01a",
+  "meshName": "SM_Shower_Curtain_01a_LOD0",
+  "fileName": "SM_Shower_Curtain_01a.glb",
+  "name": "浴帘",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的浴帘",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "sink-01a",
+  "meshName": "SM_Sink_01a_LOD0",
+  "fileName": "SM_Sink_01a.glb",
+  "name": "洗手池 A",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的洗手池 A",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "sink-bathroom-05a",
+  "meshName": "SM_Sink_Bathroom_05a_LOD0",
+  "fileName": "SM_Sink_Bathroom_05a.glb",
+  "name": "洗手池 B",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的洗手池 B",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "toilet-01a",
+  "meshName": "SM_Toilet_01a_LOD0",
+  "fileName": "SM_Toilet_01a.glb",
+  "name": "马桶",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的马桶",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "toilet-paper-set-01a",
+  "meshName": "SM_Toilet_Paper_Set_01a_LOD0",
+  "fileName": "SM_Toilet_Paper_Set_01a.glb",
+  "name": "卫生纸架",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的卫生纸架",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+},
+{
+  "id": "towel-set-01a",
+  "meshName": "SM_Towel_Set_01a_LOD0",
+  "fileName": "SM_Towel_Set_01a.glb",
+  "name": "毛巾组",
+  "category": "卫浴",
+  "visualDescription": "标准模型库缩略图中可见完整的毛巾组",
+  "reviewStatus": "approved",
+  "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+}
   ]
 }

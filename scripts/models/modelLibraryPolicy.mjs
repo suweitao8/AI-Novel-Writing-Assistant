@@ -38,6 +38,19 @@ export const CINE57_ALLOWED_MODEL_IDS = Object.freeze(allowedIds);
 export const CINE57_REMOVED_MODEL_IDS = Object.freeze([...policy.removedModelIds]);
 export const CINE57_MINIMUM_MODEL_COUNT = Number(policy.minimumEntryCount);
 export const CINE57_MAX_FOOD_CONTAINER_ENTRIES = Number(policy.maxFoodContainerEntries);
+export const CINE57_MINIMUM_NEW_ASSET_COUNT = Number(policy.modernExpansion?.minimumNewAssetCount ?? 0);
+export const CINE57_MAXIMUM_NEW_ASSET_COUNT = Number(policy.modernExpansion?.maximumNewAssetCount ?? Number.POSITIVE_INFINITY);
+export const CINE57_MINIMUM_NEW_ASSETS_BY_CATEGORY = Object.freeze({
+  ...(policy.modernExpansion?.minimumNewAssetsByCategory ?? {}),
+});
+
+const rejectedExpansionMeshPatterns = Object.freeze(
+  (policy.modernExpansion?.rejectedMeshNamePatterns ?? []).map((pattern) => new RegExp(pattern, "i")),
+);
+
+export function isRejectedExpansionMeshName(meshName) {
+  return rejectedExpansionMeshPatterns.some((pattern) => pattern.test(String(meshName ?? "")));
+}
 
 const FOOD_CONTAINER_PATTERN = /(?:food-shipment|food-crate|(?:^|-)box(?:-|\\d|$))/i;
 
