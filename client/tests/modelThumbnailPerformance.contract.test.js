@@ -23,7 +23,7 @@ test("模型卡片缩略图输出最长边不超过 256px 并保持 4:3", () => 
 });
 
 test("模型缩略图缓存版本与卡片异步解码合同已升级", () => {
-  assert.match(thumbnailSource, /model-library:thumbnails:v27/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v28/);
   assert.doesNotMatch(thumbnailSource, /model-library:thumbnails:v26/);
   assert.doesNotMatch(thumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);
   assert.match(pageSource, /loading="lazy"/);

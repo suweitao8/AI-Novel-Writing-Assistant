@@ -1,10 +1,13 @@
 import * as pc from "playcanvas";
 import { STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V } from "@ai-novel/shared/types/comicDrama";
+import { rotateHdriLightDirectionAzimuth } from "./blocking3dEnvironmentLighting.ts";
 
 export interface ProjectedHdriMaterialSettings {
   projectionCenterHeight: number;
   /** Source-image V coordinate that should land on the 3D projection horizon. */
   panoramaHorizonV: number;
+  /** World-space HDRI rotation shared with the derived key light and EnvAtlas. */
+  hdriAzimuthOffsetDegrees: number;
 }
 
 export interface ProjectedHdriCoordinates {
@@ -37,11 +40,18 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
 export function projectEquirectangularDirection(
   direction: [number, number, number],
   panoramaHorizonV = STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
+  hdriAzimuthOffsetDegrees = 0,
 ): ProjectedHdriCoordinates {
   const length = Math.hypot(direction[0], direction[1], direction[2]);
-  const projectionDirection: [number, number, number] = length > 0
+  const normalizedDirection: [number, number, number] = length > 0
     ? [direction[0] / length, direction[1] / length, direction[2] / length]
     : [0, 0, 1];
+  // The key light is placed at +offset in world space. To find the original
+  // source texel for a world direction, the visible backdrop samples -offset.
+  const projectionDirection = rotateHdriLightDirectionAzimuth(
+    normalizedDirection,
+    -hdriAzimuthOffsetDegrees,
+  );
   const horizontalLength = Math.hypot(projectionDirection[0], projectionDirection[2]);
   let u = 0.5;
   if (horizontalLength > 0.0001) {
@@ -93,21 +103,30 @@ precision highp float;
 uniform samplerCube uEnvironmentMap;
 uniform float uProjectionCenterHeight;
 uniform float uPanoramaHorizonV;
+uniform float uHdriAzimuthOffsetDegrees;
 
 varying vec3 vWorldPosition;
 
 void main(void) {
   vec3 projectionToSurface = vWorldPosition - vec3(0.0, uProjectionCenterHeight, 0.0);
   vec3 projectionDirection = normalize(projectionToSurface);
+  float azimuthOffsetRadians = -uHdriAzimuthOffsetDegrees * 0.01745329252;
+  float azimuthCosine = cos(azimuthOffsetRadians);
+  float azimuthSine = sin(azimuthOffsetRadians);
+  vec3 sourceDirection = normalize(vec3(
+      projectionDirection.x * azimuthCosine - projectionDirection.z * azimuthSine,
+      projectionDirection.y,
+      projectionDirection.x * azimuthSine + projectionDirection.z * azimuthCosine
+  ));
   float sourceLatitude = clamp(
-      asin(clamp(projectionDirection.y, -1.0, 1.0)) + 3.14159265 * (0.5 - uPanoramaHorizonV),
+      asin(clamp(sourceDirection.y, -1.0, 1.0)) + 3.14159265 * (0.5 - uPanoramaHorizonV),
       -1.57079633,
       1.57079633
   );
   vec3 projectedDirection = normalize(vec3(
-      projectionDirection.x,
+      sourceDirection.x,
       sin(sourceLatitude),
-      projectionDirection.z
+      sourceDirection.z
   ));
   vec4 rawColor = textureCube(uEnvironmentMap, projectedDirection);
     // The visible cubemap is RGBA8/RGBP, not an sRGB texture. Decode the
@@ -191,5 +210,6 @@ export function updateProjectedHdriMaterial(
   material.setParameter("uEnvironmentMap", texture);
   material.setParameter("uProjectionCenterHeight", settings.projectionCenterHeight);
   material.setParameter("uPanoramaHorizonV", settings.panoramaHorizonV);
+  material.setParameter("uHdriAzimuthOffsetDegrees", settings.hdriAzimuthOffsetDegrees);
   material.update();
 }

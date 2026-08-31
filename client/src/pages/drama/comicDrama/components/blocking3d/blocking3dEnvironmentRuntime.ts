@@ -7,6 +7,7 @@ import {
 } from "./blocking3dEnvironmentKeyLight";
 import {
   DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
+  createHdriEnvironmentRotation,
   resolveBlocking3dLightingProfile,
   type Blocking3dLightingProfile,
 } from "./blocking3dEnvironmentLightingProfile";
@@ -14,6 +15,7 @@ import {
   createProjectedHdriMaterial,
   updateProjectedHdriMaterial,
   waitForProjectedHdriShader,
+  type ProjectedHdriMaterialSettings,
 } from "./blocking3dEnvironmentProjection";
 import {
   configureEnvironmentTexture,
@@ -65,6 +67,10 @@ export function createBlocking3dEnvironmentRuntime(
   const lightingProfile = options.lightingProfile ?? DEFAULT_BLOCKING_3D_LIGHTING_PROFILE;
   const lighting = resolveBlocking3dLightingProfile(lightingProfile);
   const initialSceneSkyboxIntensity = app.scene.skyboxIntensity;
+  const initialSceneSkyboxRotation = app.scene.skyboxRotation.clone();
+  const environmentSceneSkyboxRotation = createHdriEnvironmentRotation(
+    lighting.hdriAzimuthOffsetDegrees,
+  );
   const environmentKeyLight = createHdriKeyLight(lightingProfile);
   app.root.addChild(environmentKeyLight);
 
@@ -91,6 +97,13 @@ export function createBlocking3dEnvironmentRuntime(
   const clearEnvironmentKeyLight = () => {
     clearHdriKeyLight(environmentKeyLight);
   };
+  const getProjectedHdriMaterialSettings = (
+    environmentSettings: Blocking3dEnvironmentSettings,
+  ): ProjectedHdriMaterialSettings => ({
+    projectionCenterHeight: environmentSettings.projectionCenterHeight,
+    panoramaHorizonV: environmentSettings.panoramaHorizonV,
+    hdriAzimuthOffsetDegrees: lighting.hdriAzimuthOffsetDegrees,
+  });
 
   const runtime: Blocking3dEnvironmentRuntime = {
     clearEnvironmentLighting() {
@@ -98,6 +111,7 @@ export function createBlocking3dEnvironmentRuntime(
       const ownsEnvironmentLighting = app.scene.envAtlas === environmentAtlas;
       if (ownsEnvironmentLighting) app.scene.envAtlas = null;
       if (ownsEnvironmentLighting) app.scene.skyboxIntensity = initialSceneSkyboxIntensity;
+      if (ownsEnvironmentLighting) app.scene.skyboxRotation = initialSceneSkyboxRotation;
       environmentAtlas?.destroy();
       environmentAtlas = null;
       environmentLightingSource?.destroy();
@@ -154,6 +168,7 @@ export function createBlocking3dEnvironmentRuntime(
         });
         app.scene.envAtlas = environmentAtlas;
         app.scene.skyboxIntensity = lighting.skyboxIntensity;
+        app.scene.skyboxRotation = environmentSceneSkyboxRotation;
         app.scene.lighting.shadowsEnabled = true;
         app.scene.ambientLight = new pc.Color(
           lighting.ambientLight[0],
@@ -164,7 +179,7 @@ export function createBlocking3dEnvironmentRuntime(
           environmentKeyLight,
           texture,
           environmentSettings.panoramaHorizonV,
-          lighting.keyLightAzimuthOffsetDegrees,
+          lighting.hdriAzimuthOffsetDegrees,
         );
         const projectionCube = createVisibleHdriCubemap(app, texture);
         if (!isCurrentEnvironmentRequest(requestId)) {
@@ -179,7 +194,10 @@ export function createBlocking3dEnvironmentRuntime(
           app.graphicsDevice,
           createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
         );
-        const material = createProjectedHdriMaterial(projectionCube, environmentSettings);
+        const material = createProjectedHdriMaterial(
+          projectionCube,
+          getProjectedHdriMaterialSettings(environmentSettings),
+        );
         environmentMaterial = material;
         const meshInstance = new pc.MeshInstance(mesh, material);
         environmentBackdropMeshInstance = meshInstance;
@@ -264,7 +282,7 @@ export function createBlocking3dEnvironmentRuntime(
           updateProjectedHdriMaterial(
             environmentMaterial,
             environmentProjectionCube,
-            environmentSettings,
+            getProjectedHdriMaterialSettings(environmentSettings),
           );
         }
       }
