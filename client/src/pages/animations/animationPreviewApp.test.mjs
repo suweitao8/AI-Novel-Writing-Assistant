@@ -311,7 +311,7 @@ test("离屏缩略图使用隐藏 DOM 容器承载画布，保持 HDRI 渲染上
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v13/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
 });
 
 test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
@@ -323,8 +323,8 @@ test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编
 
 test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v13/);
-  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v12/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v13/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
 });
@@ -402,7 +402,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export async function disposeAnimationThumbnailStudio/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v13/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);

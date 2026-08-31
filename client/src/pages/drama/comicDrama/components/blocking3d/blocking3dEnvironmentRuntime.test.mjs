@@ -38,3 +38,18 @@ test("环境运行时只在仍拥有当前 atlas 时恢复环境强度", () => {
     /if\s*\(ownsEnvironmentLighting\)\s*app\.scene\.skyboxIntensity\s*=\s*initialSceneSkyboxIntensity/,
   );
 });
+
+test("环境运行时让主光、可见 HDRI 与 EnvAtlas 共用方位偏移，并恢复场景旋转", () => {
+  assert.match(
+    runtimeSource,
+    /const initialSceneSkyboxRotation\s*=\s*app\.scene\.skyboxRotation\.clone\(\)/,
+  );
+  assert.match(
+    runtimeSource,
+    /createHdriEnvironmentRotation\(\s*lighting\.hdriAzimuthOffsetDegrees\s*,\s*\)/,
+  );
+  assert.match(runtimeSource, /app\.scene\.skyboxRotation\s*=\s*environmentSceneSkyboxRotation/);
+  assert.match(runtimeSource, /app\.scene\.skyboxRotation\s*=\s*initialSceneSkyboxRotation/);
+  assert.match(runtimeSource, /hdriAzimuthOffsetDegrees/);
+  assert.match(runtimeSource, /hdriAzimuthOffsetDegrees:\s*lighting\.hdriAzimuthOffsetDegrees/);
+});
