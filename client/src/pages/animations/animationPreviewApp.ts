@@ -288,6 +288,12 @@ export function openAnimationPreview(
     app.destroy();
   };
 
+  // Start the application before any asynchronous asset/environment work.
+  // The animation path performs an explicit render when it restores the first
+  // frame; keeping that render inside an already-running PlayCanvas lifecycle
+  // avoids compiling the HDRI/shadow materials from a pre-start application.
+  app.start();
+
   options.onStatus?.("正在加载 HDR 棚拍场景");
 
   const ready = (async (): Promise<AnimationPreview> => {
@@ -476,7 +482,6 @@ export function openAnimationPreview(
         drawBlocking3dGroundGrid(app, groundGridLines);
         if (anim.playing) notifyFrame();
       });
-      app.start();
 
       return {
         play: playClip,

@@ -29,6 +29,7 @@
 - 环境实体必须挂在预览专属的 world entity 下并保持原点位置。相机 orbit 只改变相机，不移动或旋转穹顶。
 - 环境句柄销毁时释放原始纹理 asset、投影 cubemap、环境光 atlas、材质、穹顶、shadow catcher、瞬态主光和 world entity。
 - HDR 资源全部不可用时，运行时恢复默认环境光并返回无可见背景状态；模型/动画预览不得将没有 HDR 背景的结果当作成功画面。
+- 使用异步加载 HDRI 的实时预览必须先启动 PlayCanvas 应用，再开始环境和模型资源加载；如果初始化流程会通过 `app.render()` 恢复首帧，不能在 `app.start()` 之前主动渲染。
 
 ## Failure Modes
 
@@ -40,6 +41,7 @@
 - 纯环境页沿用带 shadow catcher 的通用运行时：页面没有角色时，空 shadow map 会把整个地面压成黑色；通过 `enableShadowCatcher: false` 关闭该可选通道。
 - 将 HDRI 重投影目标创建为普通 RGBA8 并继续按 gamma 解码：RGBE/RGBP 数据语义不一致，暗部会明显变黑，应该让目标使用 RGBP 并对应解码。
 - 在 RGBE 贴图上继续使用固定的 `0.52` 色调映射后亮度阈值：归一化全景的最大色调映射亮度只有 `0.5`，所有候选都会被过滤，主光实体会退回与全景无关的固定方向。
+- 动画预览在异步环境完成后才启动应用，却在恢复动作首帧时先调用 `app.render()`：部分 WebGL 上下文会在材质首次编译时出现 HDRI/阴影 shader 错误，主视图可能黑屏；应统一采用“先 `app.start()`，后加载资源并恢复首帧”的生命周期。
 
 ## Related Modules
 

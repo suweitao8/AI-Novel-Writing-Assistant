@@ -165,6 +165,24 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
   );
 });
 
+test("动画预览先启动渲染循环，再执行环境加载后的首帧渲染", () => {
+  const startIndex = previewSource.indexOf("app.start()");
+  const environmentLoadIndex = previewSource.indexOf(
+    "const environmentPromise = loadStudioEnvironment(app)",
+  );
+  const initialFrameIndex = previewSource.indexOf("applyFrame(initialFrame)");
+
+  assert.ok(startIndex >= 0, "动画预览必须启动 PlayCanvas 渲染循环");
+  assert.ok(
+    environmentLoadIndex >= 0 && startIndex < environmentLoadIndex,
+    "HDRI 异步加载前必须先启动渲染循环",
+  );
+  assert.ok(
+    initialFrameIndex >= 0 && startIndex < initialFrameIndex,
+    "首帧 app.render() 不能发生在 app.start() 之前",
+  );
+});
+
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
   assert.match(studioSource, /animation-library:thumbnails:v8/);
