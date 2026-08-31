@@ -25,6 +25,8 @@ export interface StudioEnvironmentRuntimeOptions {
   /** 兼容旧调用方的绝对高度覆盖；未传时使用预设比例。 */
   projectionCenterHeightMeters?: number;
   panoramaHorizonV?: number;
+  /** 离屏缩略图等没有投影者的预览可以关闭阴影接收器。 */
+  enableShadowCatcher?: boolean;
   lightingProfile?: Blocking3dLightingProfile;
 }
 
@@ -118,6 +120,7 @@ export async function loadStudioEnvironment(
   const worldEntity = new pc.Entity("studio-environment-world");
   app.root.addChild(worldEntity);
   const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
+    enableShadowCatcher: options.enableShadowCatcher,
     lightingProfile: options.lightingProfile,
   });
   // 通用资产页为环境生成的状态全景图优先；失败/未生成时按静态 HDR 预设兜底。

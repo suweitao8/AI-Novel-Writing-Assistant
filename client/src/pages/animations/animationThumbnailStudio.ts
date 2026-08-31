@@ -28,7 +28,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v8";
+const STORAGE_KEY = "animation-library:thumbnails:v9";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -211,7 +211,9 @@ async function createAnimationThumbnailStudio(): Promise<{
   app.scene.exposure = 1;
   let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
   try {
-    studioEnvironment = await loadStudioEnvironment(app);
+    studioEnvironment = await loadStudioEnvironment(app, undefined, {
+      enableShadowCatcher: false,
+    });
   } catch (error) {
     app.destroy();
     throw error;
@@ -262,10 +264,17 @@ async function createAnimationThumbnailStudio(): Promise<{
     app.render();
   };
 
-  // 动作片段评估依赖应用帧循环（autoRender=false 只关自动出图，update 照常触发）。
+  // 只借用 start() 完成 PlayCanvas 系统初始化；离屏缩略图不需要永久 RAF。
+  // 永久 RAF 在应用销毁与浏览器下一帧之间存在竞态，会让引擎统计访问已清空的 renderer。
   app.start();
+  pc.AppBase.cancelTick(app);
 
   let destroyed = false;
+  const advanceFrame = async () => {
+    await nextFrame();
+    if (destroyed) throw new Error("缩略图画布已销毁。");
+    app.update(1 / 60);
+  };
 
   return {
     async render(entry) {
@@ -299,7 +308,7 @@ async function createAnimationThumbnailStudio(): Promise<{
         anim.baseLayer?.play(entry.clipName);
 
         // 先等一帧让片段状态建立，再按 GLB 实际采样率定位到最后一帧的 50%。
-        await nextFrame();
+        await advanceFrame();
         const layer = anim.baseLayer;
         const trackDuration =
           typeof track.duration === "number" && Number.isFinite(track.duration)
@@ -321,7 +330,7 @@ async function createAnimationThumbnailStudio(): Promise<{
             durationSeconds,
           );
         }
-        await nextFrame();
+        await advanceFrame();
 
         frame(centerY, radius);
         drawFrame();
@@ -338,6 +347,7 @@ async function createAnimationThumbnailStudio(): Promise<{
       destroyed = true;
       app.assets.remove(asset);
       studioEnvironment.destroy();
+      pc.AppBase.cancelTick(app);
       app.destroy();
     },
   };
