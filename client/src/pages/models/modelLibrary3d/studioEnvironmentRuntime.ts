@@ -28,6 +28,7 @@ export interface StudioEnvironmentRuntimeOptions {
   /** 离屏缩略图等没有投影者的预览可以关闭阴影接收器。 */
   enableShadowCatcher?: boolean;
   lightingProfile?: Blocking3dLightingProfile;
+  camera?: pc.CameraComponent;
 }
 
 export interface StudioEnvironmentHandle {
@@ -122,6 +123,7 @@ export async function loadStudioEnvironment(
   const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
     enableShadowCatcher: options.enableShadowCatcher,
     lightingProfile: options.lightingProfile,
+    camera: options.camera,
   });
   // 通用资产页为环境生成的状态全景图优先；失败/未生成时按静态 HDR 预设兜底。
   const generatedSourceUrl = await getStudioEnvironmentSourceUrl(presetId);

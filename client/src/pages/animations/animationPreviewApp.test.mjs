@@ -92,6 +92,30 @@ const environmentRuntimeSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "modelLibrary3d", "studioEnvironmentRuntime.ts"),
   "utf8",
 );
+const environmentProjectionSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentProjection.ts",
+  ),
+  "utf8",
+);
+const blockingEnvironmentRuntimeSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentRuntime.ts",
+  ),
+  "utf8",
+);
 
 test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
@@ -168,7 +192,7 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
 test("动画预览先启动渲染循环，再执行环境加载后的首帧渲染", () => {
   const startIndex = previewSource.indexOf("app.start()");
   const environmentLoadIndex = previewSource.indexOf(
-    "const environmentPromise = loadStudioEnvironment(app)",
+    "const environmentPromise = loadStudioEnvironment(app",
   );
   const initialFrameIndex = previewSource.indexOf("applyFrame(initialFrame)");
 
@@ -275,10 +299,24 @@ test("缩略图工作室初始化失败后会清空失败 Promise，允许后续
 });
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
-  assert.match(previewSource, /const environmentPromise = loadStudioEnvironment\(app\)/);
+  assert.match(previewSource, /const environmentPromise = loadStudioEnvironment\(app/);
   assert.match(previewSource, /Promise\.allSettled\(\[\s*assetPromise,\s*environmentPromise/);
   assert.match(previewSource, /studioEnvironment = environmentResult\.value/);
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
+});
+
+test("HDRI 穹顶先等待并行 shader 完成，再允许首帧显示", () => {
+  assert.match(environmentProjectionSource, /export async function waitForProjectedHdriShader/);
+  assert.match(environmentProjectionSource, /getShaderInstance\(/);
+  assert.match(environmentProjectionSource, /isLinked\(/);
+  assert.match(environmentProjectionSource, /window\.setTimeout/);
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = false/);
+  assert.match(blockingEnvironmentRuntimeSource, /await waitForProjectedHdriShader/);
+  assert.match(
+    blockingEnvironmentRuntimeSource,
+    /if \(!shaderReady\)[\s\S]*?clearEnvironmentLighting\(\)[\s\S]*?clearEnvironmentVisuals\(\)/,
+  );
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = true/);
 });
 
 test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
