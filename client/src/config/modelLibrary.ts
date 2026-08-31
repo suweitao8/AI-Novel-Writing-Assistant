@@ -35,9 +35,6 @@ export interface ModelMaterialInfo {
 /** key：UE 材质资产名（匹配时忽略大小写与符号）。 */
 export type ModelMaterialMap = Record<string, ModelMaterialInfo>;
 
-/** 模型库 3D 预览的专用外观实验标识。 */
-export type ModelPreviewAppearance = "character-texture-test";
-
 export interface ModelLibraryEntry {
   id: string;
   name: string;
@@ -51,8 +48,6 @@ export interface ModelLibraryEntry {
   usage: ModelUsageInstruction;
   /** 材质回填映射：GLB 里只有 FBX 占位材质，无贴图。 */
   materials?: ModelMaterialMap;
-  /** 可选的模型库专用预览外观。未声明时沿用普通材质回填。 */
-  previewAppearance?: ModelPreviewAppearance;
 }
 
 export const MODEL_LIBRARY_CATEGORIES = ["家具","容器与箱子","厨房与餐具","日用小物","书籍与办公","玩具/装饰品","灯具","地面","盆栽","石头","灌木","树木","草","花","户外","卫浴","角色"] as const;
@@ -139,7 +134,7 @@ const MODEL_LIBRARY_BASE: Omit<ModelLibraryEntry, "usage">[] = [
   { id: "shrub-b", name: "灌木 B", category: "灌木", fileName: "KB3D_LND_PropShrub_B_Main.glb", fileUrl: "/models/cine57/KB3D_LND_PropShrub_B_Main.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 4726, materials: {"KB3D_LND_AtlasFlowersA":{"baseColor":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasFlowersA_basecolor.KB3D_LND_AtlasFlowersA_basecolor_baseColor.jpg","opacity":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasFlowersA_opacity.KB3D_LND_AtlasFlowersA_opacity_opacity.jpg","normal":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasFlowersA_normal.KB3D_LND_AtlasFlowersA_normal_normal.jpg"},"KB3D_LND_AtlasLeafB":{"baseColor":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasLeafB_basecolor.KB3D_LND_AtlasLeafB_basecolor_baseColor.jpg","opacity":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasLeafB_opacity.KB3D_LND_AtlasLeafB_opacity_opacity.jpg","normal":"/models/cine57/tex/london_Textures_KB3D_LND_AtlasLeafB_normal.KB3D_LND_AtlasLeafB_normal_normal.jpg"}} },
   { id: "grass-01-1", name: "草丛 A", category: "草", fileName: "SM_grass_01_1.glb", fileUrl: "/models/cine57/SM_grass_01_1.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 7, materials: {"MI_grass_01":{"baseColor":"/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_01_BC_M.T_grass_01_BC_M_baseColor.jpg","normal":"/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_01_N.T_grass_01_N_normal.jpg"}} },
   { id: "flower-01-01", name: "花丛 A", category: "花", fileName: "sm_Flower_01_01.glb", fileUrl: "/models/cine57/sm_Flower_01_01.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 158, materials: {"mi_Flower_01_01":{"baseColor":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_bc.t_Flower_01_01_bc_baseColor.jpg","opacity":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_m.t_Flower_01_01_m_opacity.jpg","normal":"/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_n.t_Flower_01_01_n_normal.jpg"}} },
-  { id: "ual2-college-student", name: "男大学生角色（纹理测试）", category: "角色", fileName: "UAL2_UE_Anims.glb", fileUrl: "/anims/cine57/UAL2_UE_Anims.glb", unitScale: 1, source: "Cine57 / UAL2", sizeKb: 8242, previewAppearance: "character-texture-test" },
+  { id: "ual2-college-student", name: "UAL2 角色模型", category: "角色", fileName: "UAL2_UE_Anims.glb", fileUrl: "/anims/cine57/UAL2_UE_Anims.glb", unitScale: 1, source: "Cine57 / UAL2", sizeKb: 8242, materials: { "M_Main": { tint: [0.24, 0.52, 0.82] }, "M_Joints": { tint: [0.24, 0.52, 0.82] } } },
 ];
 
 export const MODEL_LIBRARY: ModelLibraryEntry[] = attachModelUsageInstructions(MODEL_LIBRARY_BASE);

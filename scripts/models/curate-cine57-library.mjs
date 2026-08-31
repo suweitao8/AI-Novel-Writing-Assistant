@@ -28,11 +28,16 @@ function parseCatalog(source) {
     const name = /\bname: "([^"]+)"/.exec(line)?.[1];
     const category = /\bcategory: "([^"]+)"/.exec(line)?.[1];
     const fileName = /\bfileName: "([^"]+)"/.exec(line)?.[1];
-    if (!id || !name || !category || !fileName) throw new Error(`Cannot parse catalog entry at line ${lineIndex + 1}`);
-    entries.push({ id, name, category, fileName, lineIndex, previewAppearance: /\bpreviewAppearance: "/.test(line) });
+    const fileUrl = /\bfileUrl: "([^"]+)"/.exec(line)?.[1];
+    if (!id || !name || !category || !fileName || !fileUrl) throw new Error(`Cannot parse catalog entry at line ${lineIndex + 1}`);
+    entries.push({ id, name, category, fileName, fileUrl, lineIndex });
   });
   if (entries.length === 0) throw new Error(`No generated model entries found in ${CATALOG_PATH}`);
   return { lines, entries };
+}
+
+function isCine57StaticEntry(entry) {
+  return entry.fileUrl.startsWith("/models/cine57/");
 }
 
 function assertSafeFileName(fileName) {
@@ -47,7 +52,7 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
   const outputLines = parsed.lines.flatMap((line, index) => {
     const entry = entryByLineIndex.get(index);
     if (!entry) return [line];
-    if (entry.previewAppearance) return [line];
+    if (!isCine57StaticEntry(entry)) return [line];
     if (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)) return [];
     const filePath = path.join(modelsDir, entry.fileName);
     if (!fs.existsSync(filePath)) throw new Error(`Cannot update size for missing ${entry.fileName}`);
@@ -64,7 +69,7 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
   });
   const categories = CATEGORY_ORDER.filter((category) =>
     parsed.entries.some((entry) => {
-      if (entry.previewAppearance) return entry.category === category;
+      if (!isCine57StaticEntry(entry)) return entry.category === category;
       if (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)) return false;
       return (getCatalogOverride(entry.id)?.category ?? entry.category) === category;
     }),
@@ -97,8 +102,8 @@ async function main() {
   const applyReviewOnly = process.argv.includes("--apply-review-only");
   const source = fs.readFileSync(CATALOG_PATH, "utf8");
   const parsed = parseCatalog(source);
-  const removedEntries = parsed.entries.filter((entry) => !entry.previewAppearance && (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)));
-  const keptEntries = parsed.entries.filter((entry) => !entry.previewAppearance && ALLOWED_IDS.has(entry.id) && !REMOVED_IDS.has(entry.id));
+  const removedEntries = parsed.entries.filter((entry) => isCine57StaticEntry(entry) && (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)));
+  const keptEntries = parsed.entries.filter((entry) => isCine57StaticEntry(entry) && ALLOWED_IDS.has(entry.id) && !REMOVED_IDS.has(entry.id));
   if (keptEntries.length !== ALLOWED_IDS.size) {
     throw new Error(`Curation expects ${ALLOWED_IDS.size} allowlisted entries, found ${keptEntries.length}`);
   }

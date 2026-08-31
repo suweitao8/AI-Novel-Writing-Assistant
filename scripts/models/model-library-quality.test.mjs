@@ -23,7 +23,7 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..
 const MODELS_DIR = path.join(REPO_ROOT, "client/public/models/cine57");
 const REMOVED_IDS = new Set(CINE57_REMOVED_MODEL_IDS);
 const REQUIRED_FINE_GRAINED_CATEGORIES = CINE57_REQUIRED_CATEGORIES;
-const STATIC_MODEL_LIBRARY = MODEL_LIBRARY.filter((entry) => !entry.previewAppearance);
+const STATIC_MODEL_LIBRARY = MODEL_LIBRARY.filter((entry) => entry.fileUrl.startsWith("/models/cine57/"));
 
 function hasUnsupportedName(name) {
   return /^(?:UCX|UBX)(?:[_-]|$)/i.test(name)
@@ -72,9 +72,10 @@ function makeSanitizerFixture() {
   return { buffer: makeGlb(json, bin), bin };
 }
 
-test("Cine57 目录只发布前景交互资产，角色预览条目独立计数", () => {
+test("Cine57 目录只发布前景交互资产，其他来源的角色入口独立计数", () => {
   assert.ok(STATIC_MODEL_LIBRARY.length >= CINE57_MINIMUM_MODEL_COUNT, `expected expanded library, found ${STATIC_MODEL_LIBRARY.length}`);
-  assert.equal(MODEL_LIBRARY.filter((entry) => entry.previewAppearance).length, 1);
+  assert.equal(MODEL_LIBRARY.length - STATIC_MODEL_LIBRARY.length, 1);
+  assert.equal(MODEL_LIBRARY.find((entry) => entry.id === "ual2-college-student")?.category, "角色");
   assert.deepEqual(
     STATIC_MODEL_LIBRARY.filter((entry) => REMOVED_IDS.has(entry.id)).map((entry) => entry.id),
     [],
@@ -130,7 +131,7 @@ test("模型库质量门禁拒绝缺少使用说明的条目", () => {
   assert.ok(errors.includes(`${MODEL_LIBRARY[0].id} is missing model usage instructions`));
 });
 
-test("模型库质量门禁也校验角色预览条目的使用说明", () => {
+test("模型库质量门禁也校验非静态角色入口的使用说明", () => {
   const libraryWithoutCharacterUsage = MODEL_LIBRARY.map((entry) => (
     entry.id === "ual2-college-student" ? { ...entry, usage: undefined } : entry
   ));

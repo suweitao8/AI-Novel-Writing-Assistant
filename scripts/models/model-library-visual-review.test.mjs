@@ -12,7 +12,7 @@ import { getCatalogOverride } from "./modelLibraryPolicy.mjs";
 test("每个已发布模型都有截图确认且已批准的视觉复核记录", () => {
   const errors = validateModelVisualReview({ library: MODEL_LIBRARY });
   assert.deepEqual(errors, []);
-  const staticEntries = MODEL_LIBRARY.filter((entry) => !entry.previewAppearance);
+  const staticEntries = MODEL_LIBRARY.filter((entry) => entry.fileUrl.startsWith("/models/cine57/"));
   assert.equal(MODEL_VISUAL_REVIEWS.length, staticEntries.length);
 });
 
