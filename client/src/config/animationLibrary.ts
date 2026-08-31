@@ -78,6 +78,8 @@ export interface AnimationLibraryEntry {
   clipName: string;
   /** 片段时长（秒）。 */
   durationSeconds: number;
+  /** 动画采样帧率；用于将预览时间轴统一映射为整数帧。 */
+  frameRate: number;
   source: AnimationLibrarySource;
   sourceLabel: string;
   groupId: AnimationLibraryGroupId;
@@ -156,6 +158,12 @@ const LEGACY_ACTION_TYPE_BY_CLIP: Readonly<Record<string, AnimationLibraryAction
   A_chair_loop01: "sit",
 };
 
+const LEGACY_FRAME_RATE_BY_CLIP: Readonly<Record<string, number>> = {
+  A_INP_Idle: 24,
+  A_INP_WalkFwd_Loop: 24,
+  A_chair_loop01: 24,
+};
+
 function makeLegacyEntry(
   id: string,
   name: string,
@@ -175,6 +183,7 @@ function makeLegacyEntry(
     fileUrl: ANIMATION_LIBRARY_FILE_URL,
     clipName,
     durationSeconds,
+    frameRate: LEGACY_FRAME_RATE_BY_CLIP[clipName] ?? 30,
     source: "legacy",
     sourceLabel: "旧动画",
     groupId: "legacy",
@@ -260,6 +269,7 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     fileUrl: ANIMATION_LIBRARY_FILE_URL,
     clipName: entry.clipName,
     durationSeconds: entry.durationSeconds,
+    frameRate: 24,
     source: "unreal",
     sourceLabel: "虚幻导入",
     groupId: entry.groupId as AnimationLibraryGroupId,

@@ -36,13 +36,48 @@ function parseAnimationDurations(glbPath) {
   return durations;
 }
 
+function parseAnimationFrameRates(glbPath) {
+  const buffer = fs.readFileSync(glbPath);
+  const jsonLength = buffer.readUInt32LE(12);
+  const json = JSON.parse(buffer.subarray(20, 20 + jsonLength).toString());
+  const binaryStart = 20 + jsonLength + 8;
+  const readTimes = (accessorIndex) => {
+    const accessor = json.accessors[accessorIndex];
+    const view = json.bufferViews[accessor.bufferView];
+    const offset = binaryStart + (view.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    return Array.from({ length: accessor.count }, (_, index) =>
+      buffer.readFloatLE(offset + index * 4),
+    );
+  };
+  const frameRates = new Map();
+  for (const animation of json.animations ?? []) {
+    const deltas = [];
+    for (const inputIndex of new Set((animation.samplers ?? []).map((sampler) => sampler.input))) {
+      const times = readTimes(inputIndex);
+      for (let index = 1; index < times.length; index += 1) {
+        const delta = times[index] - times[index - 1];
+        if (delta > 1e-5 && Number.isFinite(delta)) deltas.push(delta);
+      }
+    }
+    deltas.sort((left, right) => left - right);
+    const middle = Math.floor(deltas.length / 2);
+    const median = deltas.length % 2 === 1
+      ? deltas[middle]
+      : (deltas[middle - 1] + deltas[middle]) / 2;
+    frameRates.set(animation.name, Math.round(1 / median));
+  }
+  return frameRates;
+}
+
 test("动画库目录条目指向真实存在且包含对应片段的 GLB", () => {
   assert.ok(ANIMATION_LIBRARY.length > 0, "目录不应为空");
   const durationsByFile = new Map();
+  const frameRatesByFile = new Map();
   for (const entry of ANIMATION_LIBRARY) {
     assert.match(entry.id, /^[a-z0-9-]+$/);
     assert.ok(entry.name.length > 0);
     assert.ok(entry.clipName.length > 0);
+    assert.ok(Number.isInteger(entry.frameRate) && entry.frameRate > 0);
     assert.ok(
       entry.source === "legacy" || entry.source === "unreal",
       `目录来源必须是 legacy 或 unreal：${entry.source}`,
@@ -54,9 +89,16 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
 
     if (!durationsByFile.has(entry.fileUrl)) {
       durationsByFile.set(entry.fileUrl, parseAnimationDurations(publicPath));
+      frameRatesByFile.set(entry.fileUrl, parseAnimationFrameRates(publicPath));
     }
     const durations = durationsByFile.get(entry.fileUrl);
+    const frameRates = frameRatesByFile.get(entry.fileUrl);
     assert.ok(durations.has(entry.clipName), `GLB 应包含片段 ${entry.clipName}`);
+    assert.equal(
+      frameRates.get(entry.clipName),
+      entry.frameRate,
+      `${entry.clipName} 帧率应与 GLB 采样间隔一致`,
+    );
     assert.ok(
       Math.abs(durations.get(entry.clipName) - entry.durationSeconds) < 0.05,
       `${entry.clipName} 时长应与 GLB 一致`,
