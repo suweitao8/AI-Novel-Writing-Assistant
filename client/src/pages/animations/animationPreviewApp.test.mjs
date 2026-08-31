@@ -38,6 +38,32 @@ const blockingCoreSource = readFileSync(
   ),
   "utf8",
 );
+const actorMaterialPolicySource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "materials",
+    "actorMaterialPolicy.ts",
+  ),
+  "utf8",
+);
+const actorMaterialRuntimeSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "materials",
+    "actorMaterialRuntime.ts",
+  ),
+  "utf8",
+);
 const blockingIndexSource = readFileSync(
   path.join(
     import.meta.dirname,
@@ -115,11 +141,17 @@ test("手动定位帧直接同步到界面，不被动画层旧时间覆盖", ()
   assert.match(previewSource, /app\.render\(\);[\s\S]*?notifyFrame\(currentFrame\);/);
 });
 
-test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
+test("动画预览和缩略图复用分镜草图的主体/关节代理材质", () => {
   assert.match(
-    blockingCoreSource,
+    actorMaterialPolicySource,
     /export const BLOCKING_3D_BLUE_ACTOR_COLOR = \[0\.24, 0\.52, 0\.82\]/,
   );
+  assert.match(actorMaterialPolicySource, /getBlocking3dActorJointColor/);
+  assert.match(actorMaterialPolicySource, /M_Joints/);
+  assert.match(actorMaterialRuntimeSource, /getBlocking3dActorMaterialRole/);
+  assert.match(actorMaterialRuntimeSource, /WeakMap/);
+  assert.match(actorMaterialRuntimeSource, /jointMaterial/);
+  assert.match(blockingCoreSource, /actorMaterialRuntime/);
   assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /setEntityMaterial/);
