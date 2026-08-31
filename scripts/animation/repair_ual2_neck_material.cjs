@@ -1,3 +1,4 @@
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 
@@ -19,6 +20,9 @@ const UAL2_SIGNATURE = Object.freeze({
   mainVertexCount: 3389,
   mainIndexCount: 17196,
   jointIndexCount: 24036,
+  neckIndexCount: 1026,
+  neckIndexSha256:
+    "7844e4b9bbc95a982ef262600817b1a5f5c407a182affb7eb4357d5aaf5a3fca",
   boneCount: 65,
 });
 
@@ -31,6 +35,9 @@ const DEFAULT_NECK_SELECTION = Object.freeze({
   maxAbsX: 0.22,
   angularBins: 16,
   boundaryFraction: 0.1,
+  minTriangleCount: 300,
+  minTrianglesPerAngularBin: 15,
+  minCoverageRadial: 0.21,
 });
 
 function fail(message) {
@@ -425,6 +432,153 @@ function getAngularBin(x, z, binCount) {
   return Math.min(binCount - 1, Math.floor((angle / (Math.PI * 2)) * binCount));
 }
 
+function hashUnsignedShortIndices(indices) {
+  const bytes = Buffer.alloc(indices.length * 2);
+  indices.forEach((value, index) => {
+    if (!Number.isInteger(value) || value < 0 || value > 0xffff) {
+      fail("索引 " + value + " 无法计算 UAL2 指纹。");
+    }
+    bytes.writeUInt16LE(value, index * 2);
+  });
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+function inspectNeckCoverage(positions, indices, angularBinCount) {
+  if (positions.length % 3 !== 0) fail("POSITION 数据不是 VEC3。");
+  if (indices.length === 0 || indices.length % 3 !== 0) {
+    fail("M_Neck 索引数量不是完整三角形。");
+  }
+
+  const angularBinCounts = Array.from({ length: angularBinCount }, () => 0);
+  let selectedMinY = Infinity;
+  let selectedMaxY = -Infinity;
+  let maxRadial = -Infinity;
+
+  for (let index = 0; index < indices.length; index += 3) {
+    const triangleIndices = indices.slice(index, index + 3);
+    const vertices = triangleIndices.map((vertexIndex) => {
+      if (
+        !Number.isInteger(vertexIndex) ||
+        vertexIndex < 0 ||
+        vertexIndex >= positions.length / 3
+      ) {
+        fail("M_Neck 索引 " + vertexIndex + " 超出 POSITION 范围。");
+      }
+      return {
+        x: positions[vertexIndex * 3],
+        y: positions[vertexIndex * 3 + 1],
+        z: positions[vertexIndex * 3 + 2],
+      };
+    });
+    const centroid = vertices.reduce(
+      (sum, vertex) => ({
+        x: sum.x + vertex.x / 3,
+        y: sum.y + vertex.y / 3,
+        z: sum.z + vertex.z / 3,
+      }),
+      { x: 0, y: 0, z: 0 },
+    );
+    const triangleMaxRadial = Math.max(
+      ...vertices.map((vertex) => Math.hypot(vertex.x, vertex.z)),
+    );
+    selectedMinY = Math.min(selectedMinY, centroid.y);
+    selectedMaxY = Math.max(selectedMaxY, centroid.y);
+    maxRadial = Math.max(maxRadial, triangleMaxRadial);
+    angularBinCounts[getAngularBin(centroid.x, centroid.z, angularBinCount)] += 1;
+  }
+
+  return {
+    angularBinCounts,
+    angularBins: new Set(
+      angularBinCounts
+        .map((count, index) => (count > 0 ? index : null))
+        .filter((index) => index !== null),
+    ),
+    selectedMinY,
+    selectedMaxY,
+    maxRadial,
+    triangleCount: indices.length / 3,
+  };
+}
+
+function validateNeckCoverage(positions, indices, selection, label) {
+  const coverage = inspectNeckCoverage(
+    positions,
+    indices,
+    selection.angularBins,
+  );
+  const displayLabel = label ?? "外层脖子";
+  if (coverage.triangleCount < selection.minTriangleCount) {
+    fail(
+      displayLabel +
+        "脖子环带覆盖不完整：只有 " +
+        coverage.triangleCount +
+        " 个三角形，至少需要 " +
+        selection.minTriangleCount +
+        " 个。",
+    );
+  }
+  if (coverage.angularBins.size !== selection.angularBins) {
+    fail(
+      displayLabel +
+        "脖子环向覆盖不完整：" +
+        coverage.angularBins.size +
+        "/" +
+        selection.angularBins +
+        " 个区间。",
+    );
+  }
+  if (
+    Math.min(...coverage.angularBinCounts) <
+    selection.minTrianglesPerAngularBin
+  ) {
+    fail(
+      displayLabel +
+        "脖子环向覆盖不完整：每个环向区间至少需要 " +
+        selection.minTrianglesPerAngularBin +
+        " 个三角形。",
+    );
+  }
+  const bandHeight = selection.maxY - selection.minY;
+  const boundaryDistance = bandHeight * selection.boundaryFraction;
+  if (
+    coverage.selectedMinY > selection.minY + boundaryDistance ||
+    coverage.selectedMaxY < selection.maxY - boundaryDistance
+  ) {
+    fail(
+      displayLabel +
+        "没有覆盖上下边界：" +
+        coverage.selectedMinY.toFixed(4) +
+        "-" +
+        coverage.selectedMaxY.toFixed(4) +
+        "。",
+    );
+  }
+  if (coverage.maxRadial < selection.minCoverageRadial) {
+    fail(
+      displayLabel +
+        "脖子环带覆盖不完整：外轮廓半径只有 " +
+        coverage.maxRadial.toFixed(4) +
+        "，至少需要 " +
+        selection.minCoverageRadial.toFixed(4) +
+        "。",
+    );
+  }
+  return coverage;
+}
+
+function assertCanonicalNeckFingerprint(indices, label) {
+  if (
+    indices.length !== UAL2_SIGNATURE.neckIndexCount ||
+    hashUnsignedShortIndices(indices) !== UAL2_SIGNATURE.neckIndexSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Neck 几何指纹与当前完整外轮廓不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
 function classifyNeckTriangles(positions, indices, options = {}) {
   const selection = { ...DEFAULT_NECK_SELECTION, ...options };
   if (positions.length % 3 !== 0) fail("POSITION 数据不是 VEC3。");
@@ -435,9 +589,6 @@ function classifyNeckTriangles(positions, indices, options = {}) {
   const bodyIndices = [];
   const neckIndices = [];
   const selectedTriangles = [];
-  const angularBins = new Set();
-  let selectedMinY = Infinity;
-  let selectedMaxY = -Infinity;
 
   for (let index = 0; index < indices.length; index += 3) {
     const triangleIndices = indices.slice(index, index + 3);
@@ -463,45 +614,22 @@ function classifyNeckTriangles(positions, indices, options = {}) {
 
     neckIndices.push(...triangleIndices);
     selectedTriangles.push({ indices: triangleIndices, centroid: result.centroid });
-    selectedMinY = Math.min(selectedMinY, result.centroid.y);
-    selectedMaxY = Math.max(selectedMaxY, result.centroid.y);
-    angularBins.add(
-      getAngularBin(result.centroid.x, result.centroid.z, selection.angularBins),
-    );
   }
 
-  if (neckIndices.length === 0) fail("未选出任何外层脖子三角形。");
-  if (angularBins.size !== selection.angularBins) {
-    fail(
-      "外层脖子环向覆盖不完整：" +
-        angularBins.size +
-        "/" +
-        selection.angularBins +
-        " 个区间。",
-    );
-  }
-  const bandHeight = selection.maxY - selection.minY;
-  const boundaryDistance = bandHeight * selection.boundaryFraction;
-  if (
-    selectedMinY > selection.minY + boundaryDistance ||
-    selectedMaxY < selection.maxY - boundaryDistance
-  ) {
-    fail(
-      "外层脖子没有覆盖上下边界：" +
-        selectedMinY.toFixed(4) +
-        "-" +
-        selectedMaxY.toFixed(4) +
-        "。",
-    );
-  }
+  const coverage = validateNeckCoverage(
+    positions,
+    neckIndices,
+    selection,
+    "外层脖子",
+  );
 
   return {
     bodyIndices,
     neckIndices,
     selectedTriangles,
-    angularBins,
-    selectedMinY,
-    selectedMaxY,
+    angularBins: coverage.angularBins,
+    selectedMinY: coverage.selectedMinY,
+    selectedMaxY: coverage.selectedMaxY,
     selection,
   };
 }
@@ -599,6 +727,24 @@ function repairUal2Glb(input, options = {}) {
   const parsed = parseGlb(input);
   const signature = validateUal2Signature(parsed.json, options);
   if (signature.alreadyRepaired) {
+    const selection = { ...DEFAULT_NECK_SELECTION };
+    const positions = readGlbAccessor(
+      parsed.json,
+      parsed.bin,
+      signature.mainPositionAccessor,
+    );
+    const neckIndices = readGlbAccessor(
+      parsed.json,
+      parsed.bin,
+      signature.neckIndexAccessor,
+    );
+    validateNeckCoverage(
+      positions,
+      neckIndices,
+      selection,
+      "已存在的",
+    );
+    assertCanonicalNeckFingerprint(neckIndices, "已存在的 UAL2");
     return {
       buffer: Buffer.from(input),
       alreadyRepaired: true,
@@ -623,6 +769,7 @@ function repairUal2Glb(input, options = {}) {
     indices,
     options.selection,
   );
+  assertCanonicalNeckFingerprint(classification.neckIndices);
 
   let bin = parsed.bin;
   const bodyIndex = createIndexAccessor(
