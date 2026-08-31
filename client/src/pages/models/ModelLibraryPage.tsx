@@ -12,7 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { ensureThumbnail, getThumbnail, subscribeThumbnails } from "./modelLibrary3d/thumbnailStudio";
+import {
+  disposeThumbnailStudio,
+  ensureThumbnail,
+  getThumbnail,
+  subscribeThumbnails,
+} from "./modelLibrary3d/thumbnailStudio";
 
 function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
   const [thumbnail, setThumbnail] = useState<string | null>(() => getThumbnail(entry.id));
@@ -38,6 +43,7 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
             alt={`${entry.name} 预览`}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.04]"
             loading="lazy"
+            decoding="async"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-muted-foreground">
@@ -68,6 +74,12 @@ export default function ModelLibraryPage() {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    return () => {
+      void disposeThumbnailStudio();
+    };
+  }, []);
 
   const visibleEntries = useMemo(() => filterModelLibraryEntries(MODEL_LIBRARY), []);
   const visibleCategories = useMemo(

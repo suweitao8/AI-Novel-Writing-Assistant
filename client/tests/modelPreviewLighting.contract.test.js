@@ -19,7 +19,7 @@ test("模型预览 profile 提供环境补光与软阴影配置", () => {
   assert.equal(profile.shadowResolution, 2048);
   assert.equal(profile.shadowDistance, 16);
   assert.equal(profile.shadowIntensity, 0.62);
-  assert.equal(profile.keyLightAzimuthOffsetDegrees, 180);
+  assert.equal(profile.hdriAzimuthOffsetDegrees, 180);
   assert.equal(profile.shadowBias, 0.025);
   assert.equal(profile.normalOffsetBias, 0.02);
 });
@@ -32,7 +32,7 @@ test("默认 profile 保留动画、分镜和场景的既有光照基线", () =>
   assert.equal(profile.shadowResolution, 2048);
   assert.equal(profile.shadowDistance, 25);
   assert.equal(profile.shadowIntensity, 1);
-  assert.equal(profile.keyLightAzimuthOffsetDegrees, 0);
+  assert.equal(profile.hdriAzimuthOffsetDegrees, 0);
   assert.equal(profile.shadowBias, 0.05);
   assert.equal(profile.normalOffsetBias, 0.05);
 });
@@ -46,9 +46,9 @@ test("模型和动画详情、缩略图显式使用模型预览 profile，场景
 
   assert.match(modelViewerSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(modelThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(modelThumbnailSource, /model-library:thumbnails:v26/);
+  assert.match(modelThumbnailSource, /model-library:thumbnails:v28/);
   assert.match(animationThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v12/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v14/);
   assert.match(animationSource, /lightingProfile:\s*["']model-preview["']/);
   assert.doesNotMatch(blockingSource, /lightingProfile:\s*["']model-preview["']/);
 });
@@ -67,6 +67,8 @@ test("两种离屏缩略图都开启投影、使用 Linear 默认色调映射并
   }
   assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v25/);
   assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v11/);
+  assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v27/);
+  assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v13/);
   assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v24/);
   assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v10/);
   assert.doesNotMatch(modelThumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);

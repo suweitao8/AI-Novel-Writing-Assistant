@@ -12,7 +12,7 @@
 
 1. 对两个 UAL2 GLB（带动画的 UAL2_UE_Anims.glb 和标准模型 UAL2_Standard.glb）的 M_Main 外层身体 primitive，按绑定姿态的脖子几何区域拆出独立的 M_Neck primitive。
 2. M_Neck 保留原三角形顺序、位置、法线、UV、骨骼索引和权重，只改变 primitive 的材质归属；动画和骨架数据不重写。
-3. M_Neck 与原 M_Joints 使用同一套运行时浅色高亮策略；原有内部关节段继续保留，主体头部、躯干和肩部仍使用主体色。
+3. M_Neck 保留独立材质边界但与 M_Main 使用完全相同的主体色；原有内部关节段继续保留并使用运行时浅色高亮，主体头部、躯干、肩部和外层脖子保持统一蓝色。
 4. 提供可重复执行且遇到未知 UAL2 几何会失败退出的资源修复脚本，避免未来误把其他模型按固定坐标切坏。
 5. 模型库的静态材质回填也声明 M_Neck，使标准模型预览不会落回 GLB 的默认紫色材质；动画/分镜公共材质门面继续负责动态换色。
 
@@ -28,7 +28,7 @@
   -> M_Main body primitive + M_Neck primitive + 原 M_Joints primitive
   -> PlayCanvas container
   -> setEntityMaterial()
-  -> M_Main 主体色 / M_Neck 与 M_Joints 同色系浅色
+  -> M_Main、M_Neck 主体色 / M_Joints 同色系浅色
 ~~~
 
 ## Error handling
@@ -40,9 +40,9 @@
 ## Verification
 
 - 资源测试检查两个 GLB 都有 M_Neck，且主体三角形已拆分为 body 与 neck；按 16 个环向区间验证没有缺口，并确认骨架、动画数量和原 M_Joints primitive 仍存在。
-- 运行时单元测试检查 M_Neck 与 M_Joints 都绑定浅色材质，换色时同步更新，旧资源仍能回退。
+- 运行时单元测试检查 M_Neck 与 M_Main 共用主体蓝色材质、M_Joints 保持独立浅色材质，换色时同步更新，旧资源仍能回退。
 - 客户端类型检查、聚焦测试、模型库门禁和文档清单通过。
-- 应用内浏览器检查动画预览和分镜 3D 预览，至少确认正面、侧面、背面视角下脖子是连续浅色环带，控制台无错误。
+- 应用内浏览器检查动画预览和分镜 3D 预览，确认脖子与身体保持统一蓝色、关节继续高亮，控制台无错误。
 
 ## Out of scope
 

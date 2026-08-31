@@ -37,6 +37,12 @@ function readGlb(filePath) {
   };
 }
 
+function materialWithoutName(material) {
+  const copy = structuredClone(material);
+  delete copy.name;
+  return copy;
+}
+
 function readAccessor(gltf, bin, accessorIndex) {
   const accessor = gltf.accessors[accessorIndex];
   const bufferView = gltf.bufferViews[accessor.bufferView];
@@ -104,7 +110,7 @@ for (const actorAssetPath of actorAssetPaths) {
       const mainPrimitive = mannequin.primitives.find(
         (primitive) => primitive.material === mainMaterialIndex,
       );
-      const neckPrimitive = mannequin.primitives.find(
+      const neckPrimitives = mannequin.primitives.filter(
         (primitive) => primitive.material === neckMaterialIndex,
       );
       const jointPrimitive = mannequin.primitives.find(
@@ -112,8 +118,28 @@ for (const actorAssetPath of actorAssetPaths) {
       );
 
       assert.ok(mainPrimitive);
-      assert.ok(neckPrimitive);
       assert.ok(jointPrimitive);
+      assert.equal(neckPrimitives.length, 2);
+      const neckPrimitive = neckPrimitives.find(
+        (primitive) => primitive.attributes.POSITION === mainPrimitive.attributes.POSITION,
+      );
+      const jointNeckPrimitive = neckPrimitives.find(
+        (primitive) => primitive.attributes.POSITION === jointPrimitive.attributes.POSITION,
+      );
+      assert.ok(neckPrimitive);
+      assert.ok(jointNeckPrimitive);
+      for (const primitive of neckPrimitives) {
+        assert.deepEqual(
+          materialWithoutName(gltf.materials[primitive.material]),
+          materialWithoutName(gltf.materials[mainMaterialIndex]),
+          "M_Neck 必须与 M_Main 使用完全相同的主体蓝色材质。",
+        );
+      }
+      assert.notDeepEqual(
+        materialWithoutName(gltf.materials[jointMaterialIndex]),
+        materialWithoutName(gltf.materials[mainMaterialIndex]),
+        "M_Joints 必须继续保留独立的关节高亮材质。",
+      );
       assert.ok(neckPrimitive.indices !== undefined);
       assert.ok(mainPrimitive.indices !== undefined);
       assert.equal(
@@ -121,7 +147,11 @@ for (const actorAssetPath of actorAssetPaths) {
           gltf.accessors[neckPrimitive.indices].count,
         17196,
       );
-      assert.equal(gltf.accessors[jointPrimitive.indices].count, 24036);
+      assert.equal(
+        gltf.accessors[jointPrimitive.indices].count +
+          gltf.accessors[jointNeckPrimitive.indices].count,
+        24036,
+      );
       assert.equal(gltf.skins?.[0]?.joints?.length, 65);
       assert.equal(angularBins(gltf, bin, neckPrimitive).size, 16);
     },

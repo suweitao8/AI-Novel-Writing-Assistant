@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Loader2, Play, Search } from "lucide-react";
 
@@ -22,10 +22,12 @@ import {
 import { getAnimationFrameCount } from "./animationFrame";
 import SelectControl from "@/components/common/SelectControl";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
+  disposeAnimationThumbnailStudio,
   ensureAnimationThumbnail,
   getAnimationThumbnail,
   subscribeAnimationThumbnails,
@@ -119,10 +121,17 @@ export default function AnimationLibraryPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSearch(searchInput.trim());
+    setPage(1);
+  };
+
   useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+    return () => {
+      void disposeAnimationThumbnailStudio();
+    };
+  }, []);
 
   const scopedEntries = useMemo(
     () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { scope, query: search }),
@@ -188,7 +197,7 @@ export default function AnimationLibraryPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [actionType, classificationId, groupId, packId, posture, scope, searchInput, weaponType]);
+  }, [actionType, classificationId, groupId, packId, posture, scope, search, weaponType]);
 
   useEffect(() => {
     if (groupId !== "all" && !groupCounts.has(groupId)) setGroupId("all");
@@ -239,40 +248,6 @@ export default function AnimationLibraryPage() {
   return (
     <div className="space-y-3" data-animation-page>
       <section
-        className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3"
-        aria-label="动画搜索"
-        data-animation-search
-      >
-        <label htmlFor="animation-library-search" className="relative min-w-[220px] flex-1 sm:max-w-md">
-          <Search
-            className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <Input
-            id="animation-library-search"
-            aria-label="搜索动画"
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder="搜索动画名称、片段名、套装或分类"
-            className="h-10 pl-9"
-          />
-        </label>
-        <span className="text-xs text-muted-foreground" aria-live="polite">
-          {entries.length} / {scopedEntries.length}
-        </span>
-        {hasActiveFilters ? (
-          <button
-            type="button"
-            onClick={resetFilters}
-            className="shrink-0 rounded-md px-2 py-1 text-[11px] text-primary hover:bg-accent"
-            data-animation-reset-filters
-          >
-            清除筛选
-          </button>
-        ) : null}
-      </section>
-
-      <section
         aria-label="动画来源与细分类"
         className="space-y-2 rounded-xl border border-border bg-card p-2"
         data-animation-category-table
@@ -314,7 +289,7 @@ export default function AnimationLibraryPage() {
           </Tabs>
         </div>
 
-        <div className="flex min-w-0 items-center gap-2 border-t border-border/60 pt-1" data-animation-group-filter-row>
+        <div className="flex min-w-0 flex-wrap items-center gap-2 border-t border-border/60 pt-1" data-animation-group-filter-row>
           <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">来源</span>
           <Tabs
             value={groupId}
@@ -348,6 +323,41 @@ export default function AnimationLibraryPage() {
               ))}
             </TabsList>
           </Tabs>
+          <form
+            className="flex w-full shrink-0 items-center gap-1.5 md:ml-auto md:w-auto"
+            aria-label="搜索动画"
+            data-animation-search
+            onSubmit={submitSearch}
+          >
+            <label htmlFor="animation-library-search" className="relative min-w-0 flex-1 md:w-64">
+              <Search
+                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <Input
+                id="animation-library-search"
+                aria-label="搜索动画"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                placeholder="搜索名称、片段名、套装或分类"
+                className="h-8 pl-8 text-xs"
+              />
+            </label>
+            <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
+              <Search className="h-3.5 w-3.5" aria-hidden="true" />
+              搜索
+            </Button>
+            {hasActiveFilters ? (
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="shrink-0 rounded-md px-2 py-1 text-[11px] text-primary hover:bg-accent"
+                data-animation-reset-filters
+              >
+                清除筛选
+              </button>
+            ) : null}
+          </form>
         </div>
 
         <div

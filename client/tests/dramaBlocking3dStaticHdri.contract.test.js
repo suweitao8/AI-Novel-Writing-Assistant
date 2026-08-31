@@ -114,7 +114,10 @@ test("HDRI 显示面先把等距全景重投影为立方体，避免 2D 首尾�
 test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空间输出", () => {
   assert.match(viewerSource, /let environmentMaterial: pc\.ShaderMaterial \| null = null/);
   assert.doesNotMatch(viewerSource, /environmentGroundMaterial/);
-  assert.match(viewerSource, /const material = createProjectedHdriMaterial\(projectionCube, environmentSettings\)/);
+  assert.match(
+    viewerSource,
+    /const material = createProjectedHdriMaterial\(\s*projectionCube,\s*getProjectedHdriMaterialSettings\(environmentSettings\)/,
+  );
   assert.match(viewerSource, /const meshInstance = new pc\.MeshInstance\(mesh, material\)/);
   assert.match(viewerSource, /environmentBackdropMeshInstance = meshInstance/);
   assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
@@ -122,6 +125,8 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.match(environmentProjectionSource, /decodeRGBP\(rawColor\)/);
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
+  assert.match(environmentProjectionSource, /uHdriAzimuthOffsetDegrees/);
+  assert.match(environmentProjectionSource, /azimuthOffsetRadians = -uHdriAzimuthOffsetDegrees/);
   assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
@@ -237,10 +242,10 @@ test("中键平移使用摄像机屏幕坐标，角色光照由 HDRI 环境和�
   assert.match(viewerSource, /pc\.TEXTUREPROJECTION_EQUIRECT/);
   assert.match(viewerSource, /app\.scene\.ambientLight/);
   assert.match(viewerSource, /const environmentKeyLight = createHdriKeyLight\(lightingProfile\)/);
-  assert.match(viewerSource, /applyHdriKeyLight\(environmentKeyLight, texture\)/);
+  assert.match(viewerSource, /applyHdriKeyLight\(\s*environmentKeyLight,\s*texture,/);
   assert.match(environmentKeyLightSource, /new pc\.Entity\("blocking3d-hdri-key-light"\)/);
   assert.match(environmentKeyLightSource, /type: "directional"/);
-  assert.match(environmentKeyLightSource, /estimateHdriLightFromTexture\(texture\)/);
+  assert.match(environmentKeyLightSource, /estimateHdriLightFromTexture\(texture\s*,/);
   assert.match(environmentKeyLightSource, /setFromDirections\(pc\.Vec3\.UP, sourceDirection\)/);
   assert.match(environmentLightingSource, /export function estimateHdriLightFromPixels/);
   assert.match(environmentLightingSource, /export function estimateHdriLightFromTexture/);

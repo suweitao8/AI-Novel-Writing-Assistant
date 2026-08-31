@@ -22,6 +22,16 @@ const studioSource = readFileSync(
   path.join(import.meta.dirname, "animationThumbnailStudio.ts"),
   "utf8",
 );
+const modelThumbnailSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "models",
+    "modelLibrary3d",
+    "thumbnailStudio.ts",
+  ),
+  "utf8",
+);
 const storageSource = readFileSync(
   path.join(import.meta.dirname, "animationPreviewStorage.ts"),
   "utf8",
@@ -73,6 +83,18 @@ const blockingIndexSource = readFileSync(
     "components",
     "blocking3d",
     "index.ts",
+  ),
+  "utf8",
+);
+const offscreenCanvasSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dOffscreenCanvas.ts",
   ),
   "utf8",
 );
@@ -176,7 +198,7 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
   assert.match(actorMaterialRuntimeSource, /getBlocking3dActorMaterialRole/);
   assert.match(actorMaterialRuntimeSource, /WeakMap/);
   assert.match(actorMaterialRuntimeSource, /jointMaterial/);
-  assert.match(actorMaterialRuntimeSource, /role === "main"/);
+  assert.match(actorMaterialRuntimeSource, /role === "joints"/);
   assert.match(blockingCoreSource, /actorMaterialRuntime/);
   assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
@@ -209,25 +231,87 @@ test("动画预览先启动渲染循环，再执行环境加载后的首帧渲�
   );
 });
 
-test("动画缩略图使用手动帧更新，不保留可在销毁后继续运行的 RAF", () => {
+test("取消的预览实例在启动异步资源加载前退出，避免污染共享 WebGL 画布", () => {
+  const readyStartIndex = previewSource.indexOf("const ready = (async");
+  const firstAssetLoadIndex = previewSource.indexOf("const assetPromise = loadAsset(app");
+  const cancellationGateIndex = previewSource.indexOf("await Promise.resolve();", readyStartIndex);
+  const destroyedCheckIndex = previewSource.indexOf("if (destroyed)", cancellationGateIndex);
+
+  assert.ok(readyStartIndex >= 0, "预览必须有可取消的异步就绪流程");
+  assert.ok(
+    cancellationGateIndex >= 0 &&
+      cancellationGateIndex < firstAssetLoadIndex &&
+      destroyedCheckIndex > cancellationGateIndex,
+    "取消检查必须先于 HDRI/GLB 请求，避免旧实例在销毁后继续使用 WebGL",
+  );
+});
+
+test("动画预览在 StrictMode 清理窗口后才创建 WebGL 应用", () => {
+  const openIndex = previewSource.indexOf("export function openAnimationPreview");
+  const gateIndex = previewSource.indexOf("await Promise.resolve();", openIndex);
+  const deferredCreateIndex = previewSource.indexOf(
+    "createAnimationPreviewHandle(options)",
+    openIndex,
+  );
+  const applicationCreateIndex = previewSource.indexOf("new pc.Application", openIndex);
+
+  assert.ok(openIndex >= 0, "必须保留动画预览公开入口");
+  assert.ok(
+    gateIndex >= 0 &&
+      deferredCreateIndex > gateIndex &&
+      applicationCreateIndex > deferredCreateIndex,
+    "React StrictMode 清理窗口结束前不能创建第二个 WebGL 应用",
+  );
+});
+
+test("离屏缩略图保留 PlayCanvas 帧循环，销毁前才取消 RAF", () => {
   assert.match(studioSource, /pc\.AppBase\.cancelTick\(app\)/);
-  assert.match(studioSource, /app\.update\(1 \/ 60\)/);
   assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
-  assert.doesNotMatch(studioSource, /enableShadowCatcher:\s*false/);
   assert.doesNotMatch(studioSource, /toneMapping\s*=\s*pc\.TONEMAP_ACES/);
+  assert.doesNotMatch(studioSource, /app\.update\(1 \/ 60\)/);
   const thumbnailStartIndex = studioSource.indexOf("app.start()");
   const thumbnailEnvironmentIndex = studioSource.indexOf("loadStudioEnvironment(app");
+  const thumbnailDestroyIndex = studioSource.indexOf("destroy() {");
+  const thumbnailCancelIndex = studioSource.lastIndexOf("pc.AppBase.cancelTick(app)");
   assert.ok(
     thumbnailStartIndex >= 0 &&
       thumbnailEnvironmentIndex >= 0 &&
       thumbnailStartIndex < thumbnailEnvironmentIndex,
     "缩略图必须在异步加载 HDRI 前启动 PlayCanvas 生命周期",
   );
+  assert.ok(
+    thumbnailCancelIndex > thumbnailDestroyIndex,
+    "缩略图必须让 PlayCanvas 帧循环覆盖 HDRI 初始化，并只在销毁时取消",
+  );
+  assert.doesNotMatch(studioSource, /app\.update\(1 \/ 60\)/);
+  const modelStartIndex = modelThumbnailSource.indexOf("app.start()");
+  const modelEnvironmentIndex = modelThumbnailSource.indexOf("loadStudioEnvironment(app");
+  const modelDestroyIndex = modelThumbnailSource.indexOf("destroy() {");
+  const modelCancelIndex = modelThumbnailSource.lastIndexOf("pc.AppBase.cancelTick(app)");
+  assert.ok(
+    modelStartIndex >= 0 &&
+      modelEnvironmentIndex >= 0 &&
+      modelStartIndex < modelEnvironmentIndex &&
+      modelCancelIndex > modelDestroyIndex,
+    "模型缩略图也必须只在销毁时取消 PlayCanvas 帧循环",
+  );
   assert.match(
     environmentRuntimeSource,
     /enableShadowCatcher:\s*options\.enableShadowCatcher/,
   );
+});
+
+test("离屏缩略图使用隐藏 DOM 容器承载画布，保持 HDRI 渲染上下文可调度", () => {
+  assert.match(studioSource, /mountBlocking3dOffscreenCanvas\([\s\S]*?canvas/);
+  assert.match(studioSource, /offscreenCanvasMount\(\)/);
+  assert.match(offscreenCanvasSource, /host\.style\.left = "0px"/);
+  assert.match(offscreenCanvasSource, /host\.style\.opacity = "0\.001"/);
+});
+
+test("材质变更后不继续使用旧颜色的截图缓存", () => {
+  assert.match(storageSource, /animation-library:keyframes:v3/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
 });
 
 test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
@@ -239,8 +323,9 @@ test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编
 
 test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v13/);
-  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v12/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v13/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
 });
 
@@ -292,7 +377,18 @@ test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 
     /if \(destroyed\) \{[\s\S]*?app\.assets\.remove\(assetResult\.value\)[\s\S]*?environmentResult\.value\.destroy\(\)/,
   );
   // 完整预览页 effect 清理必须调用 cancel（而不是等加载完成后销毁）
-  assert.match(previewPageSource, /handle\.cancel\(\)/);
+  assert.match(previewPageSource, /handle\?\.cancel\(\)/);
+});
+
+test("预览器销毁前先停止 PlayCanvas RAF，避免已销毁实例继续渲染", () => {
+  const cancelTickIndex = previewSource.indexOf("pc.AppBase.cancelTick(app)");
+  const destroyIndex = previewSource.indexOf("app.destroy()");
+  assert.ok(
+    cancelTickIndex >= 0 &&
+      destroyIndex >= 0 &&
+      cancelTickIndex < destroyIndex,
+    "销毁 WebGL 应用前必须先取消 PlayCanvas 帧循环",
+  );
 });
 
 test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () => {
@@ -303,9 +399,10 @@ test("预览器销毁时释放资产与上下文，不残留 WebGL 画布", () =
 
 test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存进 localStorage", () => {
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
+  assert.match(studioSource, /export async function disposeAnimationThumbnailStudio/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v13/);
+  assert.match(studioSource, /animation-library:thumbnails:v14/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -322,7 +419,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.doesNotMatch(studioSource, /durationSeconds \* 0\.4/);
   assert.match(
     studioSource,
-    /asset = await loadAsset\(app, ANIMATION_LIBRARY_FILE_URL, "container"\)/,
+    /const loadedAsset = await loadAsset\(app, ANIMATION_LIBRARY_FILE_URL, "container"\)/,
   );
   assert.match(studioSource, /app\.assets\.remove\(asset\)/);
   assert.doesNotMatch(
@@ -330,13 +427,23 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
     /render\(entry\)[\s\S]*?loadAsset\(app, entry\.fileUrl/,
   );
   assert.match(studioSource, /model\?\.destroy\(\)/);
-  assert.match(studioSource, /studioEnvironment\.destroy\(\)/);
+  assert.match(studioSource, /studioEnvironment\?\.destroy\(\)/);
   assert.match(studioSource, /app\.destroy\(\)/);
 });
 
 test("缩略图工作室初始化失败后会清空失败 Promise，允许后续请求重试", () => {
   assert.match(studioSource, /studioPromise = null/);
-  assert.match(studioSource, /if \(!processing\)\s+void processQueue\(\)/);
+  assert.match(studioSource, /if \(!processing\)\s+startProcessQueue\(\)/);
+});
+
+test("离开动画库时可立即销毁仍在初始化的 HDRI 缩略图应用", () => {
+  assert.match(studioSource, /let pendingStudioDestroy: \(\(\) => void\) \| null = null/);
+  assert.match(studioSource, /pendingStudioDestroy\?\.\(\)/);
+  assert.match(studioSource, /pendingStudioDestroy = destroy/);
+  assert.match(studioSource, /let processingPromise: Promise<void> \| null = null/);
+  assert.match(studioSource, /const queueToWait = processingPromise/);
+  assert.match(studioSource, /if \(queueToWait\) await queueToWait/);
+  assert.match(previewPageSource, /disposeAnimationThumbnailStudio\(\)/);
 });
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
@@ -366,8 +473,9 @@ test("HDRI 穹顶先等待并行 shader 完成，再允许首帧显示", () => {
 test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
   assert.match(
     studioSource,
-    /try \{[\s\S]*?loadStudioEnvironment\(app[\s\S]*?catch \(error\)[\s\S]*?app\.destroy\(\)/,
+    /const destroy = \(\) => \{[\s\S]*?app\.destroy\(\)/,
   );
+  assert.match(studioSource, /loadStudioEnvironment\(app/);
 });
 
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
@@ -418,7 +526,7 @@ test("动画预览页包含 3D 画布、帧轴、播放控制和关键帧操作"
   assert.match(previewPageSource, /clearAnimationKeyframe\(/);
   assert.match(previewPageSource, /fitView\(/);
   assert.match(previewPageSource, /resetView\(/);
-  assert.match(previewPageSource, /handle\.cancel\(\)/);
+  assert.match(previewPageSource, /handle\?\.cancel\(\)/);
 });
 
 test("顶部导航在模型与系统之间提供动画入口，模型页不再内嵌动画", () => {

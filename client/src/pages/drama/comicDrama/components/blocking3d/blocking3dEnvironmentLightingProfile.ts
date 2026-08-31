@@ -19,8 +19,11 @@ export interface Blocking3dLightingProfileConfig {
   shadowIntensity: number;
   shadowBias: number;
   normalOffsetBias: number;
-  /** Horizontal rotation applied to the HDRI-derived key light only. */
-  keyLightAzimuthOffsetDegrees: number;
+  /**
+   * World-space horizontal rotation shared by the visible HDRI, EnvAtlas and
+   * the HDRI-derived key light.
+   */
+  hdriAzimuthOffsetDegrees: number;
 }
 
 /** Existing shared-preview baseline; keep this stable for non-model viewers. */
@@ -33,7 +36,7 @@ const DEFAULT_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   shadowIntensity: 1,
   shadowBias: 0.05,
   normalOffsetBias: 0.05,
-  keyLightAzimuthOffsetDegrees: 0,
+  hdriAzimuthOffsetDegrees: 0,
 });
 
 /** Model-library fill and shadow tuning for a readable, softly grounded preview. */
@@ -49,8 +52,18 @@ const MODEL_PREVIEW_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   shadowIntensity: 0.62,
   shadowBias: 0.025,
   normalOffsetBias: 0.02,
-  keyLightAzimuthOffsetDegrees: 180,
+  hdriAzimuthOffsetDegrees: 180,
 });
+
+/**
+ * PlayCanvas applies skyboxRotation as an inverse environment lookup. The
+ * scene rotation therefore uses the inverse of the profile's desired
+ * world-space HDRI rotation so EnvAtlas lighting lands beside the key light.
+ */
+export function createHdriEnvironmentRotation(azimuthOffsetDegrees: number): pc.Quat {
+  const offset = Number.isFinite(azimuthOffsetDegrees) ? azimuthOffsetDegrees : 0;
+  return new pc.Quat().setFromEulerAngles(0, -offset, 0);
+}
 
 export function resolveBlocking3dLightingProfile(
   profile: Blocking3dLightingProfile = DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,

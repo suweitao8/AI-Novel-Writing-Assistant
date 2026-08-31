@@ -43,12 +43,37 @@ test("独立预览页提供可访问帧轴和关键帧保存流程", () => {
   assert.match(pageSource, /clearAnimationKeyframe\(/);
   assert.match(
     pageSource,
-    /clearAnimationKeyframe\(entry\.id\);[\s\S]*ensureAnimationThumbnail\(entry\)/,
+    /clearAnimationKeyframe\(entry\.id\);[\s\S]*capturePreviewFrame\(\)/,
   );
   assert.match(pageSource, /viewer\?\.fitView\(\)/);
   assert.match(pageSource, /viewer\?\.resetView\(\)/);
   assert.match(pageSource, /重新加载/);
-  assert.match(pageSource, /handle\.cancel\(\)/);
+  assert.match(pageSource, /handle\?\.cancel\(\)/);
+});
+
+test("动画详情不与主预览并发创建独立 HDRI 缩略图上下文", () => {
+  assert.match(pageSource, /disposeAnimationThumbnailStudio\(\)/);
+  assert.doesNotMatch(
+    pageSource,
+    /if \(!getAnimationKeyframe\(entry\.id, entry\.frameRate\)\) ensureAnimationThumbnail\(entry\)/,
+  );
+  assert.match(
+    pageSource,
+    /if \(!initialKeyframe\)[\s\S]*capturePreviewFrame\(\)/,
+  );
+  const disposeIndex = pageSource.indexOf("await disposeAnimationThumbnailStudio()");
+  const openIndex = pageSource.indexOf("handle = openAnimationPreview(");
+  assert.ok(
+    disposeIndex >= 0 && openIndex > disposeIndex,
+    "详情页必须等待缩略图工作室结束后再创建可见 HDRI 预览",
+  );
+});
+
+test("离开动画库列表时释放缩略图 HDRI 工作室", () => {
+  assert.match(
+    librarySource,
+    /useEffect\(\(\) => \{\s*return \(\) => \{\s*void disposeAnimationThumbnailStudio\(\);/,
+  );
 });
 
 test("分镜姿势下拉只呈现当前统一 UAL2 文件支持的选项", () => {
