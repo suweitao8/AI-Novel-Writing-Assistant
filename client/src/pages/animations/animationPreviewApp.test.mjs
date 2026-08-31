@@ -230,10 +230,18 @@ test("动画缩略图使用手动帧更新，不保留可在销毁后继续运�
   );
 });
 
+test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
+  assert.doesNotMatch(studioSource, /buildBlocking3dGroundGridLines/);
+  assert.doesNotMatch(studioSource, /drawBlocking3dGroundGrid/);
+  assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+});
+
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
   assert.match(studioSource, /animation-library:thumbnails:v12/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
