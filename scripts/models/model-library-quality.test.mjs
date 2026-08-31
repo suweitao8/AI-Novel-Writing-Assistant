@@ -83,6 +83,13 @@ test("Cine57 目录只发布前景交互资产，其他来源的角色入口独�
   );
 });
 
+test("UAL2 角色的脖子材质与主体同色，关节材质保持浅色区分", () => {
+  const actor = MODEL_LIBRARY.find((entry) => entry.id === "ual2-college-student");
+  assert.ok(actor);
+  assert.deepEqual(actor.materials?.M_Neck?.tint, actor.materials?.M_Main?.tint);
+  assert.notDeepEqual(actor.materials?.M_Joints?.tint, actor.materials?.M_Main?.tint);
+});
+
 test("静态模型目录按策展分类顺序连续排列，角色资源位于末尾", () => {
   const categoryRank = new Map(CINE57_CATEGORY_ORDER.map((category, index) => [category, index]));
   const staticRanks = STATIC_MODEL_LIBRARY.map((entry) => categoryRank.get(entry.category));

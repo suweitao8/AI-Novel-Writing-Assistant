@@ -198,7 +198,7 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
   assert.match(actorMaterialRuntimeSource, /getBlocking3dActorMaterialRole/);
   assert.match(actorMaterialRuntimeSource, /WeakMap/);
   assert.match(actorMaterialRuntimeSource, /jointMaterial/);
-  assert.match(actorMaterialRuntimeSource, /role === "main"/);
+  assert.match(actorMaterialRuntimeSource, /role === "joints"/);
   assert.match(blockingCoreSource, /actorMaterialRuntime/);
   assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);

@@ -41,7 +41,16 @@ function findPrimitives(gltf) {
     neck: mannequin.primitives.find(
       (primitive) => primitive.material === materialNames.indexOf("M_Neck"),
     ),
+    necks: mannequin.primitives.filter(
+      (primitive) => primitive.material === materialNames.indexOf("M_Neck"),
+    ),
   };
+}
+
+function materialWithoutName(material) {
+  const copy = JSON.parse(JSON.stringify(material));
+  delete copy.name;
+  return copy;
 }
 
 function makeOriginalFixture(assetPath) {
@@ -239,10 +248,15 @@ for (const assetPath of assetPaths) {
       const signature = validateUal2Signature(parsed.json, {
         allowExisting: true,
       });
-      const { main, joints, neck } = findPrimitives(parsed.json);
+      const { main, joints, neck, necks } = findPrimitives(parsed.json);
       assert.ok(main);
       assert.ok(joints);
       assert.ok(neck);
+      assert.equal(necks.length, 2);
+      const jointNeck = necks.find(
+        (primitive) => primitive.attributes.POSITION === joints.attributes.POSITION,
+      );
+      assert.ok(jointNeck);
       assert.equal(
         parsed.json.accessors[neck.indices].count,
         UAL2_SIGNATURE.neckIndexCount,
@@ -254,7 +268,11 @@ for (const assetPath of assetPaths) {
       );
       assert.equal(
         parsed.json.accessors[joints.indices].count,
-        UAL2_SIGNATURE.jointIndexCount,
+        UAL2_SIGNATURE.jointIndexCount - UAL2_SIGNATURE.jointNeckIndexCount,
+      );
+      assert.equal(
+        parsed.json.accessors[jointNeck.indices].count,
+        UAL2_SIGNATURE.jointNeckIndexCount,
       );
       const reused = repairUal2Glb(fs.readFileSync(assetPath), {
         allowExisting: true,
@@ -276,6 +294,11 @@ for (const assetPath of assetPaths) {
         original.bin,
         originalSignature.mainIndexAccessor,
       );
+      const originalJointIndices = readGlbAccessor(
+        original.json,
+        original.bin,
+        originalSignature.jointIndexAccessor,
+      );
       const originalPositions = readGlbAccessor(
         original.json,
         original.bin,
@@ -283,10 +306,15 @@ for (const assetPath of assetPaths) {
       );
       const result = repairUal2Glb(source);
       const repaired = parseGlb(result.buffer);
-      const { main, joints, neck } = findPrimitives(repaired.json);
+      const { main, joints, neck, necks } = findPrimitives(repaired.json);
       assert.ok(main);
       assert.ok(joints);
       assert.ok(neck);
+      assert.equal(necks.length, 2);
+      const jointNeck = necks.find(
+        (primitive) => primitive.attributes.POSITION === joints.attributes.POSITION,
+      );
+      assert.ok(jointNeck);
       assert.equal(result.classification.angularBins.size, 16);
       assert.ok(result.classification.neckIndices.length > 0);
       assert.ok(result.classification.bodyIndices.length > 0);
@@ -337,12 +365,23 @@ for (const assetPath of assetPaths) {
       );
       assert.equal(
         repaired.json.accessors[joints.indices].count,
-        original.json.accessors[originalSignature.jointIndexAccessor].count,
+        original.json.accessors[originalSignature.jointIndexAccessor].count -
+          UAL2_SIGNATURE.jointNeckIndexCount,
+      );
+      assert.equal(
+        repaired.json.accessors[jointNeck.indices].count,
+        UAL2_SIGNATURE.jointNeckIndexCount,
+      );
+      assertPartition(
+        originalJointIndices,
+        readGlbAccessor(repaired.json, repaired.bin, joints.indices),
+        readGlbAccessor(repaired.json, repaired.bin, jointNeck.indices),
       );
       assert.deepEqual(
-        repaired.json.meshes.find((mesh) => mesh.name === "Mannequin").primitives[1],
-        original.json.meshes.find((mesh) => mesh.name === "Mannequin").primitives[1],
+        repaired.json.meshes.find((mesh) => mesh.name === "Mannequin").primitives[1].attributes,
+        original.json.meshes.find((mesh) => mesh.name === "Mannequin").primitives[1].attributes,
       );
+      assert.equal(joints.material, original.json.meshes.find((mesh) => mesh.name === "Mannequin").primitives[1].material);
       assert.deepEqual(repaired.json.skins, original.json.skins);
       assert.deepEqual(repaired.json.animations ?? [], original.json.animations ?? []);
       assertAnimationAndSkinPayloadsUnchanged(original, repaired);
@@ -350,6 +389,12 @@ for (const assetPath of assetPaths) {
       assert.equal(
         repaired.json.materials.filter((material) => material.name === "M_Neck").length,
         1,
+      );
+      const materialNames = repaired.json.materials.map((material) => material.name);
+      assert.deepEqual(
+        materialWithoutName(repaired.json.materials[materialNames.indexOf("M_Neck")]),
+        materialWithoutName(repaired.json.materials[materialNames.indexOf("M_Main")]),
+        "M_Neck 必须与 M_Main 使用完全相同的主体蓝色材质。",
       );
     },
   );
