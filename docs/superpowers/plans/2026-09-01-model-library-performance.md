@@ -66,8 +66,8 @@ test("模型库只渲染当前分页并提供边界安全的分页控件", () =>
   assert.match(paginationSource, /MODEL_LIBRARY_PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /getModelLibraryPage/);
   assert.match(pageSource, /pageEntries/);
-  assert.match(pageSource, /data-model-pagination/);
-  assert.match(pageSource, /第 .*页/);
+  assert.match(paginationComponentSource, /data-model-pagination/);
+  assert.match(paginationComponentSource, /第[\s\S]*页/);
 });
 
 test("模型库筛选变化回到第一页并释放离页缩略图请求", () => {
