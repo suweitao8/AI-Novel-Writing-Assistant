@@ -69,6 +69,10 @@ Expected result: the size assertion fails because the current source is `288×21
 **Files:**
 - Modify: `client/src/pages/models/modelLibrary3d/thumbnailStudio.ts:30-32`
 - Modify: `client/src/pages/models/ModelLibraryPage.tsx:35-43`
+- Modify: `client/src/pages/models/modelLibrary3d/modelPreviewFraming.test.mjs:109-117`
+- Modify: `client/tests/modelPreviewLighting.contract.test.js:49-51`
+- Modify: `client/tests/modelStudioEnvironment.contract.test.js:86-87`
+- Modify: `client/tests/modelTextureQuality.contract.test.js:31-32`
 
 - [ ] **Step 1: Change the single thumbnail output contract**
 
@@ -103,11 +107,16 @@ node --test tests/modelThumbnailPerformance.contract.test.js
 
 Expected result: both tests pass, proving the model renderer emits 256×192, uses v27, contains no grid draw call, and the card opts into lazy loading plus asynchronous decode.
 
+- [ ] **Step 4: Update existing cache-version contracts**
+
+Change the expected model key in `modelPreviewFraming.test.mjs`, `modelPreviewLighting.contract.test.js`, `modelStudioEnvironment.contract.test.js`, and `modelTextureQuality.contract.test.js` from `model-library:thumbnails:v26` to `model-library:thumbnails:v27`. Keep their older-version rejection assertions and all animation cache assertions unchanged.
+
 ### Task 3: Update durable documentation and user-facing release surfaces
 
 **Files:**
 - Already committed design: `docs/superpowers/specs/2026-08-31-model-thumbnail-256-design.md`
 - Already committed plan: `docs/superpowers/plans/2026-08-31-model-thumbnail-256.md`
+- Modify: `docs/wiki/architecture/model-preview-framing.md`
 - Modify: `docs/wiki/product/model-library.md`
 - Modify: `README.md`
 - Modify: `docs/releases/release-notes.md`
@@ -164,7 +173,7 @@ Use the built-in browser against `http://127.0.0.1:5174/models` only if that por
 Confirm `git status --short` contains only the contract test, model thumbnail/card implementation, design/plan docs, wiki, release notes, and README. Then run:
 
 ```powershell
-git add client/src/pages/models/modelLibrary3d/thumbnailStudio.ts client/src/pages/models/ModelLibraryPage.tsx client/tests/modelThumbnailPerformance.contract.test.js docs/superpowers/specs/2026-08-31-model-thumbnail-256-design.md docs/superpowers/plans/2026-08-31-model-thumbnail-256.md docs/wiki/product/model-library.md docs/releases/release-notes.md README.md
+git add client/src/pages/models/modelLibrary3d/thumbnailStudio.ts client/src/pages/models/ModelLibraryPage.tsx client/src/pages/models/modelLibrary3d/modelPreviewFraming.test.mjs client/tests/modelThumbnailPerformance.contract.test.js client/tests/modelPreviewLighting.contract.test.js client/tests/modelStudioEnvironment.contract.test.js client/tests/modelTextureQuality.contract.test.js docs/superpowers/specs/2026-08-31-model-thumbnail-256-design.md docs/superpowers/plans/2026-08-31-model-thumbnail-256.md docs/wiki/architecture/model-preview-framing.md docs/wiki/product/model-library.md docs/releases/release-notes.md README.md
 git commit -s -m "perf: reduce model library thumbnail size"
 ```
 
