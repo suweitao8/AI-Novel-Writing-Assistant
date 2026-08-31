@@ -26,6 +26,10 @@ const MODEL_EDITOR_SOURCE = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ModelEditorPage.tsx"),
   "utf8",
 );
+const MODEL_VIEWER_SOURCE = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "modelViewerApp.ts"),
+  "utf8",
+);
 const MODEL_LIBRARY_SOURCE = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ModelLibraryPage.tsx"),
   "utf8",
@@ -193,6 +197,17 @@ test("模型卡片普通点击导航前同步释放缩略图工作室", () => {
   assert.match(cardLinkSource, /onClick=\{\(event\) => \{/);
   assert.match(cardLinkSource, /event\.button === 0/);
   assert.match(cardLinkSource, /disposeThumbnailStudio\(\)/);
+});
+
+test("模型卡片悬停或聚焦时预热目标 GLB", () => {
+  const cardStartIndex = MODEL_LIBRARY_SOURCE.indexOf("<Link");
+  const cardEndIndex = MODEL_LIBRARY_SOURCE.indexOf("</Link>", cardStartIndex);
+  const cardLinkSource = MODEL_LIBRARY_SOURCE.slice(cardStartIndex, cardEndIndex);
+
+  assert.match(MODEL_VIEWER_SOURCE, /export function prefetchModelAsset\(url: string\): void/);
+  assert.match(MODEL_VIEWER_SOURCE, /cache:\s*["']force-cache["']/);
+  assert.match(cardLinkSource, /onPointerEnter=\{\(\) => prefetchModelAsset\(entry\.fileUrl\)\}/);
+  assert.match(cardLinkSource, /onFocus=\{\(\) => prefetchModelAsset\(entry\.fileUrl\)\}/);
 });
 
 test("模型详情启动不等待缩略图处理 Promise", () => {
