@@ -113,7 +113,6 @@
 ## 现行规则
 
 - 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v26`、`animation-library:thumbnails:v12`，**改生成逻辑必须升版本**）。模型和动画详情/缩略图固定使用中央广场 HDRI 与 `model-preview` 光照；角色实例必须投射阴影，默认 shadow catcher 负责接收落地投影，主光只水平偏转 180°，可见 HDRI 方向不变；卡片出图只调用 PlayCanvas 渲染，不叠加编辑器网格，详情页交互式编辑器的网格不受影响；离屏应用必须在异步加载环境前完成 `app.start()` 初始化并取消持续 RAF，模型/动画出图前显式 `app.update()`；动画缩略图工作室复用一次统一 GLB 资源，按实际动作轨道帧率定位到 50% 默认帧后再截图；环境、生成逻辑或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v25`、`animation-library:thumbnails:v12`，**改生成逻辑必须升版本**）。模型和动画详情/缩略图固定使用中央广场 HDRI 与 `model-preview` 光照；角色实例必须投射阴影，默认 shadow catcher 负责接收落地投影，主光只水平偏转 180°，可见 HDRI 方向不变；离屏应用必须在异步加载环境前完成 `app.start()` 初始化并取消持续 RAF，模型/动画出图前显式 `app.update()`；动画缩略图工作室复用一次统一 GLB 资源，按实际动作轨道帧率定位到 50% 默认帧后再截图；环境、生成逻辑或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
 - 缩略图队列串行、闲置 8 秒销毁离屏画布；当前 79 个静态模型全队列仍按同一队列逐个生成，角色缩略图不属于模型库入口，动画缩略图单独复用统一角色动画工作室。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），再交给 `modelPreviewFraming.ts` 用 AABB 八角点做透视投影，禁止 `meshInstance.aabb`（见失败模式）。模型缩略图和详情页初始/复位视角统一为水平 45°、向下 25°、50° FOV，主体投影覆盖率目标 80%（允许 76%–84%）。
