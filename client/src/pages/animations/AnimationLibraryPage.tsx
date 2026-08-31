@@ -96,10 +96,14 @@ export default function AnimationLibraryPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  const applySearch = (value: string) => {
+    setSearch(value.trim());
+    setPage(1);
+  };
+
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setSearch(searchInput.trim());
-    setPage(1);
+    applySearch(searchInput);
   };
 
   useEffect(() => {
@@ -231,6 +235,12 @@ export default function AnimationLibraryPage() {
                 aria-label="搜索动画"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    applySearch(event.currentTarget.value);
+                  }
+                }}
                 placeholder="搜索动画名称或片段名"
                 className="h-8 pl-8 text-xs"
               />
