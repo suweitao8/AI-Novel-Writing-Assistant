@@ -9,6 +9,7 @@ import {
   CINE57_CATEGORY_ORDER,
   CINE57_REMOVED_MODEL_IDS,
   getCatalogOverride,
+  getCatalogMaterialOverride,
 } from "./modelLibraryPolicy.mjs";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -46,6 +47,41 @@ function assertSafeFileName(fileName) {
   }
 }
 
+function findObjectEnd(source, objectStart) {
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+  for (let index = objectStart; index < source.length; index += 1) {
+    const character = source[index];
+    if (inString) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') inString = false;
+      continue;
+    }
+    if (character === '"') {
+      inString = true;
+      continue;
+    }
+    if (character === "{") depth += 1;
+    if (character === "}") {
+      depth -= 1;
+      if (depth === 0) return index + 1;
+    }
+  }
+  throw new Error("Cannot find end of generated materials object");
+}
+
+function replaceCatalogMaterials(line, materials) {
+  const marker = "materials: ";
+  const markerStart = line.indexOf(marker);
+  if (markerStart < 0) throw new Error("Generated materials field is missing");
+  const valueStart = markerStart + marker.length;
+  if (line[valueStart] !== "{") throw new Error("Generated materials field is not an object");
+  const valueEnd = findObjectEnd(line, valueStart);
+  return `${line.slice(0, valueStart)}${JSON.stringify(materials)}${line.slice(valueEnd)}`;
+}
+
 function replaceCatalogEntries(source, parsed, modelsDir) {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const entryByLineIndex = new Map(parsed.entries.map((entry) => [entry.lineIndex, entry]));
@@ -65,6 +101,8 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
         .replace(/\bname: "[^"]+"/, `name: "${override.name}"`)
         .replace(/\bcategory: "[^"]+"/, `category: "${override.category}"`);
     }
+    const materialOverride = getCatalogMaterialOverride(entry.id);
+    if (materialOverride) nextLine = replaceCatalogMaterials(nextLine, materialOverride);
     return [nextLine];
   });
   const categories = CATEGORY_ORDER.filter((category) =>

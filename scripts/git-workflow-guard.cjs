@@ -60,6 +60,38 @@ function stagedSharedChanges() {
   });
 }
 
+function stagedModelLibraryChanges() {
+  const output = gitOutput([
+    "diff",
+    "--cached",
+    "--name-only",
+    "--",
+    "client/public/models/cine57",
+    "client/src/config/modelLibrary.ts",
+    "client/src/config/modelLibraryUsage.ts",
+    "scripts/models",
+  ]);
+  return output ? output.split(/\r?\n/).filter(Boolean) : [];
+}
+
+function assertStagedModelLibraryQuality() {
+  if (stagedModelLibraryChanges().length === 0) return;
+  const packageManager = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+  try {
+    execFileSync(packageManager, ["check:model-library"], {
+      stdio: ["ignore", "inherit", "inherit"],
+      // Windows exposes pnpm as a .cmd shim; Node needs shell dispatch when
+      // the hook is launched outside an interactive PowerShell session.
+      shell: process.platform === "win32",
+    });
+  } catch {
+    fail(
+      "blocked model-library commit because the model asset quality gate failed. "
+        + "Fix the GLB/texture/preview evidence before committing.",
+    );
+  }
+}
+
 function assertStagedSharedChangesAllowed() {
   const changes = stagedSharedChanges();
   if (changes.length === 0) {
@@ -99,6 +131,7 @@ function assertMergeSourceIsCodexBranch(commit) {
 
 function assertCommitAllowed() {
   assertWorktreeFilesystemIsolation({ cwd: process.cwd(), phase: "git commit hook" });
+  assertStagedModelLibraryQuality();
   const branch = currentBranch();
   if (!isProtectedBranch(branch)) {
     assertStagedSharedChangesAllowed();
@@ -248,6 +281,7 @@ module.exports = {
   assertPushAllowed,
   assertRebaseAllowed,
   assertStagedSharedChangesAllowed,
+  assertStagedModelLibraryQuality,
   assertMergeSourceIsCodexBranch,
   SHARED_CONTRACT_BRANCH,
 };

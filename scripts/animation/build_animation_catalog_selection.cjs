@@ -6,11 +6,11 @@ const scanPath = process.argv[2] ?? "D:/UnrealWorkspace/Cine57-exported/animatio
 const outputPath = process.argv[3] ?? path.resolve("scripts/animation/animationCatalogSelection.json");
 
 const groups = {
-  "unreal-daily": { sourceGroupId: "daily", label: "虚幻 · 日常动作" },
-  "unreal-interaction": { sourceGroupId: "daily-interact", label: "虚幻 · 日常互动" },
-  "unreal-misc": { sourceGroupId: "daily-misc", label: "虚幻 · 生活与表演" },
-  "unreal-hand-combat": { sourceGroupId: "battle-hand", label: "虚幻 · 徒手战斗" },
-  "unreal-weapon-combat": { sourceGroupId: "battle-weapon", label: "虚幻 · 武器战斗" },
+  "unreal-daily": { sourceGroupId: "daily", label: "日常动作" },
+  "unreal-interaction": { sourceGroupId: "daily-interact", label: "日常互动" },
+  "unreal-misc": { sourceGroupId: "daily-misc", label: "生活与表演" },
+  "unreal-hand-combat": { sourceGroupId: "battle-hand", label: "徒手战斗" },
+  "unreal-weapon-combat": { sourceGroupId: "battle-weapon", label: "武器战斗" },
 };
 
 const clip = (key, sourceAssetName, name, actionType, dedupeKey = key) => ({
@@ -942,6 +942,191 @@ const packs = [
   },
 ];
 
+const taxonomy = (classificationId, classificationLabel, actorKind, posture, weaponType) => ({
+  classificationId,
+  classificationLabel,
+  actorKind,
+  posture,
+  weaponType,
+});
+
+/**
+ * 套装默认分类是人工核对过的策选事实，不从文件名推断。混合套装在下面
+ * 用 packId:clipKey 显式覆盖，生成器会把最终字段写入清单供前端直接消费。
+ */
+const PACK_TAXONOMY = {
+  "unreal-daily-male-locomotion": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  "unreal-daily-sitting": taxonomy("sitting", "坐姿", "human", "sitting", "none"),
+  "unreal-daily-parkour": taxonomy("parkour", "跳跃 / 翻越", "human", "mixed", "none"),
+  "unreal-daily-mc-idles": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
+  "unreal-daily-roll-dodge": taxonomy("dodge", "翻滚 / 闪避", "human", "mixed", "none"),
+  "unreal-daily-dialogue": taxonomy("dialogue", "对话 / 手势", "human", "standing", "none"),
+  "unreal-daily-sleep": taxonomy("sleeping", "躺卧 / 睡眠", "human", "lying", "none"),
+  "unreal-daily-female-interact": taxonomy("interaction", "站立互动", "human", "mixed", "none"),
+  "unreal-interaction-vendors": taxonomy("interaction", "站立互动", "human", "standing", "none"),
+  "unreal-interaction-item-pickup": taxonomy("interaction", "站立互动", "human", "mixed", "none"),
+  "unreal-interaction-npcs": taxonomy("daily", "生活动作", "human", "mixed", "none"),
+  "unreal-interaction-activations": taxonomy("interaction", "站立互动", "human", "standing", "none"),
+  "unreal-interaction-survival": taxonomy("crafting", "制作 / 采集", "human", "mixed", "none"),
+  "unreal-interaction-drinking": taxonomy("interaction", "站立互动", "human", "mixed", "none"),
+  "unreal-interaction-car": taxonomy("vehicle", "车辆互动", "human", "sitting", "none"),
+  "unreal-interaction-phoenyx": taxonomy("swimming-desktop", "游泳 / 桌面", "human", "mixed", "none"),
+  "unreal-misc-clazy": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  "unreal-misc-kawaii": taxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  "unreal-misc-scared": taxonomy("reaction", "反应 / 求饶", "human", "mixed", "none"),
+  "unreal-misc-morbid": taxonomy("monster", "怪物动作", "monster", "mixed", "none"),
+  "unreal-misc-taunts": taxonomy("performance", "表演 / 手势", "human", "standing", "none"),
+  "unreal-misc-couples": taxonomy("paired", "配对互动", "paired", "standing", "none"),
+  "unreal-misc-stairs": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  "unreal-misc-crowd": taxonomy("performance", "表演 / 手势", "human", "standing", "none"),
+  "unreal-misc-pedestrian-walks": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  "unreal-misc-morro": taxonomy("dance", "舞蹈", "human", "standing", "none"),
+  "unreal-misc-climbing": taxonomy("climbing", "攀爬", "human", "mixed", "none"),
+  "unreal-misc-irap": taxonomy("injury-recovery", "受伤 / 恢复", "human", "mixed", "none"),
+  "unreal-misc-preacher": taxonomy("prayer-speech", "祈祷 / 演讲", "human", "mixed", "none"),
+  "unreal-misc-supporter": taxonomy("performance", "表演 / 手势", "human", "standing", "none"),
+  "unreal-misc-pedestrian-convo": taxonomy("dialogue", "对话 / 手势", "human", "standing", "none"),
+  "unreal-misc-female-mocap": taxonomy("performance", "生活 / 表演", "human", "mixed", "none"),
+  "unreal-hand-combat-fight": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
+  "unreal-hand-combat-fighter": taxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  "unreal-hand-combat-boxer": taxonomy("boxing", "拳击", "human", "mixed", "barehand"),
+  "unreal-hand-combat-muaythai": taxonomy("muay-thai", "泰拳", "human", "mixed", "barehand"),
+  "unreal-hand-combat-wingchun": taxonomy("wing-chun", "咏春", "human", "standing", "barehand"),
+  "unreal-hand-combat-ninja": taxonomy("ninja", "忍者徒手", "human", "mixed", "barehand"),
+  "unreal-hand-combat-special-moves": taxonomy("energy", "能量特技", "human", "mixed", "barehand"),
+  "unreal-hand-combat-finisher": taxonomy("finisher", "终结技", "human", "mixed", "barehand"),
+  "unreal-hand-combat-lucy": taxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  "unreal-hand-combat-demon": taxonomy("demon", "恶魔", "monster", "mixed", "none"),
+  "unreal-hand-combat-zombie": taxonomy("zombie", "僵尸", "monster", "mixed", "none"),
+  "unreal-hand-combat-ghost": taxonomy("ghost", "幽灵", "monster", "mixed", "none"),
+  "unreal-hand-combat-flying-mage": taxonomy("flying-mage", "飞行法师", "humanoid-creature", "mixed", "magic"),
+  "unreal-hand-combat-magical": taxonomy("magic", "法术动作", "human", "mixed", "magic"),
+  "unreal-hand-combat-classic-female-ghost": taxonomy("classic-ghost", "经典女鬼", "monster", "mixed", "none"),
+  "unreal-hand-combat-monsters": taxonomy("monster", "怪物动作", "monster", "mixed", "none"),
+  "unreal-hand-combat-creature-sit": taxonomy("ground-creature", "生物地面动作", "humanoid-creature", "mixed", "none"),
+  "unreal-hand-combat-creatures": taxonomy("creature-combat", "生物攻击", "humanoid-creature", "mixed", "none"),
+  "unreal-weapon-combat-sword": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-weapon-combat-katana": taxonomy("katana", "武士刀", "human", "mixed", "katana"),
+  "unreal-weapon-combat-sword-pro": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-weapon-combat-wudang": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-weapon-combat-rapier": taxonomy("rapier", "刺剑", "human", "mixed", "rapier"),
+  "unreal-weapon-combat-spear": taxonomy("spear", "长枪与戟", "human", "mixed", "spear"),
+  "unreal-weapon-combat-dual-blade": taxonomy("dual-blade", "双刃", "human", "mixed", "dual-blade"),
+  "unreal-weapon-combat-pistol": taxonomy("pistol", "手枪", "human", "mixed", "pistol"),
+  "unreal-weapon-combat-mage": taxonomy("weapon-magic", "法师武器", "human", "mixed", "magic"),
+  "unreal-weapon-combat-heavy-hammer": taxonomy("hammer", "重锤", "human", "mixed", "hammer"),
+  "unreal-weapon-combat-grim-reaper": taxonomy("scythe", "镰刀", "monster", "mixed", "scythe"),
+  "unreal-weapon-combat-sword-sheath": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-weapon-combat-stealth-knife": taxonomy("dagger", "匕首", "human", "mixed", "dagger"),
+  "unreal-weapon-combat-ghost-samurai": taxonomy("bow", "弓箭", "human", "mixed", "bow"),
+};
+
+const CLIP_TAXONOMY_OVERRIDES = {
+  "unreal-daily-male-locomotion:crouch-idle": taxonomy("crouching", "蹲伏", "human", "crouching", "none"),
+  "unreal-daily-male-locomotion:crouch-forward": taxonomy("crouching", "蹲伏", "human", "crouching", "none"),
+  "unreal-daily-sleep:sit-bed-loop": taxonomy("sitting", "坐姿", "human", "sitting", "none"),
+  "unreal-interaction-item-pickup:pickup-crouch-left": taxonomy("crouching-interaction", "蹲伏互动", "human", "crouching", "none"),
+  "unreal-misc-kawaii:barehands-idle": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
+  "unreal-misc-kawaii:barehands-combo": taxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  "unreal-misc-kawaii:barehands-damage": taxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  "unreal-misc-kawaii:heavy-sword-idle": taxonomy("sword", "剑", "human", "standing", "sword"),
+  "unreal-misc-kawaii:heavy-sword-combo": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-misc-kawaii:oh-sword-combo": taxonomy("sword", "剑", "human", "mixed", "sword"),
+  "unreal-misc-kawaii:witch-idle": taxonomy("magic", "法术动作", "human", "standing", "magic"),
+  "unreal-misc-kawaii:witch-fly": taxonomy("magic", "法术动作", "human", "airborne", "magic"),
+  "unreal-misc-scared:crouching-loop": taxonomy("crouching", "蹲伏", "human", "crouching", "none"),
+  "unreal-misc-scared:creeping": taxonomy("ground-action", "地面动作", "human", "crawling", "none"),
+  "unreal-misc-scared:knees-hands-head": taxonomy("kneeling", "跪姿", "human", "kneeling", "none"),
+  "unreal-misc-morbid:emerge": taxonomy("ground-action", "地面动作", "monster", "lying", "none"),
+  "unreal-misc-taunts:hand-punch": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
+  "unreal-misc-taunts:fist-pump": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
+  "unreal-misc-preacher:pray-ground": taxonomy("prayer-speech", "祈祷 / 演讲", "human", "kneeling", "none"),
+  "unreal-misc-preacher:pray-start": taxonomy("prayer-speech", "祈祷 / 演讲", "human", "kneeling", "none"),
+  "unreal-misc-female-mocap:sit-idle": taxonomy("sitting", "坐姿", "human", "sitting", "none"),
+  "unreal-hand-combat-ninja:dagger-throw": taxonomy("dagger", "匕首", "human", "standing", "dagger"),
+  "unreal-hand-combat-demon:crawl-idle": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-demon:crawl-attack": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-demon:lunge": taxonomy("demon", "恶魔", "monster", "airborne", "none"),
+  "unreal-hand-combat-zombie:crawl-idle": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-zombie:crawl-attack": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-zombie:bite": taxonomy("paired", "配对互动", "paired", "crawling", "none"),
+  "unreal-hand-combat-ghost:crawl-idle": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-ghost:float": taxonomy("ghost", "幽灵", "monster", "airborne", "none"),
+  "unreal-hand-combat-flying-mage:flying-attack": taxonomy("flying-mage", "飞行法师", "humanoid-creature", "airborne", "magic"),
+  "unreal-hand-combat-flying-mage:flying-hit": taxonomy("flying-mage", "飞行法师", "humanoid-creature", "airborne", "magic"),
+  "unreal-hand-combat-flying-mage:flying-dead": taxonomy("flying-mage", "飞行法师", "humanoid-creature", "airborne", "magic"),
+  "unreal-hand-combat-flying-mage:ground-attack": taxonomy("magic", "法术动作", "humanoid-creature", "standing", "magic"),
+  "unreal-hand-combat-flying-mage:ground-hit": taxonomy("magic", "法术动作", "humanoid-creature", "standing", "magic"),
+  "unreal-hand-combat-flying-mage:ground-dead": taxonomy("magic", "法术动作", "humanoid-creature", "lying", "magic"),
+  "unreal-hand-combat-classic-female-ghost:crawl-idle": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),
+  "unreal-hand-combat-classic-female-ghost:float-walk": taxonomy("classic-ghost", "经典女鬼", "monster", "airborne", "none"),
+  "unreal-hand-combat-classic-female-ghost:sit-idle": taxonomy("sitting", "坐姿", "monster", "sitting", "none"),
+  "unreal-hand-combat-creature-sit:sit-idle": taxonomy("ground-creature", "生物地面动作", "humanoid-creature", "sitting", "none"),
+  "unreal-hand-combat-creature-sit:sit-attack": taxonomy("ground-creature", "生物地面动作", "humanoid-creature", "crawling", "none"),
+  "unreal-hand-combat-creature-sit:sit-run": taxonomy("ground-creature", "生物地面动作", "humanoid-creature", "crawling", "none"),
+  "unreal-hand-combat-creature-sit:sit-dead": taxonomy("ground-creature", "生物地面动作", "humanoid-creature", "lying", "none"),
+  "unreal-weapon-combat-sword-pro:crouch": taxonomy("sword", "剑", "human", "crouching", "sword"),
+  "unreal-weapon-combat-pistol:crouch": taxonomy("pistol", "手枪", "human", "crouching", "pistol"),
+  "unreal-weapon-combat-pistol:death": taxonomy("pistol", "手枪", "human", "lying", "pistol"),
+  "unreal-weapon-combat-grim-reaper:idle": taxonomy("scythe", "镰刀", "monster", "airborne", "scythe"),
+  "unreal-weapon-combat-grim-reaper:dead": taxonomy("scythe", "镰刀", "monster", "lying", "scythe"),
+  "unreal-weapon-combat-stealth-knife:finisher": taxonomy("dagger", "匕首", "paired", "mixed", "dagger"),
+  "unreal-weapon-combat-stealth-knife:drag-body": taxonomy("dagger", "匕首", "paired", "mixed", "dagger"),
+  "unreal-weapon-combat-ghost-samurai:jump": taxonomy("bow", "弓箭", "human", "airborne", "bow"),
+};
+
+const ACTOR_KIND_LABELS = {
+  human: "人形角色",
+  "humanoid-creature": "人形生物",
+  monster: "怪物",
+  paired: "配对角色",
+};
+const POSTURE_LABELS = {
+  standing: "站立",
+  crouching: "蹲伏",
+  sitting: "坐姿",
+  kneeling: "跪姿",
+  lying: "躺卧",
+  crawling: "爬行",
+  airborne: "空中",
+  mixed: "综合姿态",
+};
+const WEAPON_TYPE_LABELS = {
+  none: "无武器",
+  barehand: "徒手",
+  sword: "剑",
+  katana: "武士刀",
+  rapier: "刺剑",
+  spear: "长枪与戟",
+  "dual-blade": "双刃",
+  bow: "弓箭",
+  pistol: "手枪",
+  hammer: "重锤",
+  scythe: "镰刀",
+  dagger: "匕首",
+  magic: "法术",
+  mixed: "混合武器",
+};
+
+function resolveTaxonomy(pack, item) {
+  const base = PACK_TAXONOMY[pack.id];
+  if (!base) throw new Error(`Missing static taxonomy for pack ${pack.id}`);
+  const override = CLIP_TAXONOMY_OVERRIDES[`${pack.id}:${item.key}`];
+  const resolved = { ...base, ...override };
+  if (!/^[a-z0-9-]+$/.test(resolved.classificationId) || !resolved.classificationLabel) {
+    throw new Error(`Invalid classification for ${pack.id}:${item.key}`);
+  }
+  if (!ACTOR_KIND_LABELS[resolved.actorKind]) throw new Error(`Unknown actor kind ${resolved.actorKind}`);
+  if (!POSTURE_LABELS[resolved.posture]) throw new Error(`Unknown posture ${resolved.posture}`);
+  if (!WEAPON_TYPE_LABELS[resolved.weaponType]) throw new Error(`Unknown weapon type ${resolved.weaponType}`);
+  return {
+    ...resolved,
+    actorKindLabel: ACTOR_KIND_LABELS[resolved.actorKind],
+    postureLabel: POSTURE_LABELS[resolved.posture],
+    weaponTypeLabel: WEAPON_TYPE_LABELS[resolved.weaponType],
+  };
+}
+
 function isCompatibleMannequin(row) {
   const skeleton = String(row.skeleton ?? "").toLowerCase();
   const assetPath = String(row.assetPath ?? "").toLowerCase();
@@ -1001,6 +1186,7 @@ for (const pack of packs) {
       sourceSkeleton: row.skeleton,
       sourceDurationSeconds: row.durationSeconds,
       durationSeconds: row.durationSeconds,
+      ...resolveTaxonomy(pack, item),
       fbxFileName: `${clipId}.fbx`,
       glbFileName: `${clipId}.glb`,
     });
@@ -1017,10 +1203,10 @@ for (const pack of packs) {
 }
 
 const payload = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   project: "Cine57",
   target: "UAL2",
-  rule: "Preserve idle variants; keep one representative for each non-idle semantic action within a pack.",
+  rule: "Preserve idle variants; keep one representative for each non-idle semantic action within a pack; require explicit taxonomy metadata for every selected clip.",
   groups,
   packs: packs.map(({ clips: _clips, ...pack }) => pack),
   clips: selected,

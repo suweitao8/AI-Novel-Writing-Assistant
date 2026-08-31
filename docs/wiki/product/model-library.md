@@ -19,6 +19,8 @@
   5. `build-library-v3.cjs`（Temp/fbx2gltf-test）FBX2glTF 转换（4 并发）+ **GLB 清洗（剔除 UCX 碰撞体与 LOD1+）** + ffmpeg 降采样（6 并发）+ 命名/分类 + 再生 `modelLibrary.ts` + 孤儿清理；随后运行仓库内 `scripts/models/curate-cine57-library.mjs` 做前景策展和最终门禁。GLB 几何单位已是米，`unitScale` 保持 1。
 - **扩库策略是单一事实源**：`scripts/models/model-library-selection.json` 记录现有保留 ID、新增源网格、展示名、分类顺序和淘汰 ID；`modelLibraryPolicy.mjs` 向质量门禁和策展脚本提供同一组白名单。生成器可以先产生候选目录，但最终只允许白名单条目进入 `modelLibrary.ts`，禁止通过页面筛选隐藏未审核资产。
 - **视觉语义审核是发布前硬门禁**：`scripts/models/model-library-visual-review.json` 按稳定 ID 绑定 GLB 文件名、实际 mesh 名、截图确认的中文名称和分类。英文文件名、mesh 名和自动翻译只能提供候选，不能直接成为用户看到的名称；`scripts/models/modelLibraryVisualReview.mjs` 会拒绝缺失、重复、未批准或绑定不一致的记录。导入构建完成后先用 `curate-cine57-library.mjs --apply-review-only` 应用审核语义，再运行 `check:model-library`；没有截图复核记录的新增模型必须停留在待复核状态，不能靠页面过滤隐藏未审核的静态资产；模型页对非静态角色资源的排除是产品展示边界，不替代质量门禁。
+- **真实三维预览证据是发布前硬门禁**：新增或替换的资产必须先在产品模型详情页按统一环境和相机生成预览，再进入发布目录。复核记录使用 `model-preview-audit-YYYY-MM-DD`，绑定 `/models/<id>`、GLB 与所有目录贴图的 SHA-256、渲染器标识、日期和 `textureStatus`；`modelLibraryVisualReview.mjs` 会拒绝缺失/伪造/过期证据，资源哈希变化后不能复用旧截图。草、灌木、花、树等透明材质资产还必须确认叶片边缘和透明背景没有不透明大块。
+- **透明贴图必须保持通道语义**：UE 导出的 RGBA PNG 不能仅凭文件名或一次失败的 FFmpeg 统计转为 JPG。`ffprobe` 先确认像素格式，FFmpeg 日志要兼容 `lavfi.signalstats.YMIN=0` 与 `YMIN:0`；只要 alpha 非全不透明，baseColor 与 opacity 都保留 PNG，统计缺失也采用保守保留。GLB 声明 `BLEND`/`MASK` 时目录材质必须有 opacity 映射或透明标量，`modelLibraryTextureAudit.mjs` 在目录门禁中阻断遗漏。
 - **分类与容器配额**：页面继续使用平面分类页签；自然资产固定细分为「石头 / 灌木 / 树木 / 草 / 花 / 盆栽」，小摆件、雕像、奖杯和花瓶归入「玩具/装饰品」，箱子、纸盒、木桶和篮筐归入「容器与箱子」。食材/纸箱同族最多发布两个代表模型，当前保留一组食材纸箱和一个纸盒；后续扩容必须先更新策略并通过质量门禁。
 - **UCX 碰撞体剔除是硬规则**：UE 静态网格导出 FBX 会带上碰撞壳（`UCX_*`，无贴图的凸包）与 LOD1-3。UE 引擎从不渲染碰撞壳，网页端不剔除就会看到一个包住模型的白色占位壳（用户报告的"白色包裹"元凶）。必须同时检查 `json.nodes[].name` 和 `json.meshes[].name`：碰撞节点可能没有 mesh，不能只依赖 mesh 名过滤。清洗器改写 GLB JSON chunk，BIN 数据保持不变。
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
@@ -44,10 +46,10 @@
 - **使用说明按实际接触面分类**：家具、容器、自然物和地面物件通常落地；书堆、餐食、摆件、办公小物等使用水平支撑面；时钟是墙面挂装，宫灯是天花板悬挂，双筒望远镜是需要目标方向的水平支撑物。说明中的 `anchor` 用于将模型的底部、背面、顶部或支撑中心对齐到对应表面。
 - **使用说明完整性是发布门禁**：`attachModelUsageInstructions` 会拒绝目录漏配或出现孤立 ID，`modelLibraryQuality.mjs` 会拒绝非法枚举、空文案和墙挂/吊顶字段组合矛盾。新增或重新策展模型时，必须同步补充使用 profile 和代表性测试；不能用落地默认值静默掩盖未知安装方式。
 - **动画库是独立一级页面（/animations），不寄生在模型页里**：顶部导航在「模型」与「系统」之间提供「动画」入口；入口页保留模型库同构的分类页签 + 卡片网格，点击卡片进入 `/animations/:animationId` 完整 3D 预览页，不在入口页打开弹窗。动画清单是 `client/src/config/animationLibrary.ts`，GLB 放 `client/public/anims/`。一个 GLB 内含 UAL2 角色与全部动作片段，目录条目用 `clipName` 指向其中的动画；入口页搜索匹配动画名称、片段名、套装、动作类型和目录标识，并与来源组、套装、动作类型筛选取交集；后续批量入库优先往同一个 GLB 追加，而不是一片一段一段文件（模型体积远大于动画体积）。
-- **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、`activeStateCurrentTime` 时间定位、聚焦/复位视角和当前帧截图；手动定位时以请求时间直接回调 UI，再由动画层持续时间校正播放状态，避免旧采样时间覆盖时间轴；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
+- **动画预览器独占创建应用**：`pages/animations/animationPreviewApp.ts` 的 `openAnimationPreview` 同步构建 PlayCanvas 应用、异步加载统一 GLB，返回 `ready`/`cancel` 句柄，并提供播放/暂停、按整数帧定位、聚焦/复位视角和当前帧截图；运行时优先从 `AnimTrack.inputs` 的采样间隔推断真实帧率，目录帧率只作回退，详情页通过 `setFrame/getFrame/getFrameCount/getFrameRate` 与 `onFrameChange` 工作。帧号从 0 开始，最后一帧为 `round(durationSeconds * frameRate)`，默认打开位置为最后一帧的 50% 且暂停；调用方（完整预览页）在 effect 清理时必须同步 `cancel()`，避免同一 canvas 上并发两个 WebGL 应用。
 - **分镜姿势必须以实际 UAL2 片段为准**：分镜运行时从统一 GLB 的 `resource.animations` 计算可用姿势，姿势选择器不展示没有对应片段的旧选项；历史布局若保存了 UAL2 未提供的蹲伏、跪姿、趴姿或奔跑等姿势，加载时统一安全回退到站立，不得把不同语义的动作冒充成目标姿势。
-- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v8`）+ 队列闲置销毁」结构，创建工作室时加载一次统一 GLB，之后逐个把 `clipName` 装配到独立角色实例、把 `activeStateCurrentTime` 定位到片段约 40% 处的代表帧再抓 JPEG——卡片的预览图反映动作姿态而不是绑定位姿。动画预览和分镜草图共用同一个蓝色代理材质；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
-- **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前时间轴帧渲染为 JPEG，通过 `animation-library:keyframes:v3` 按动画 ID 保存截图和秒数；动画入口卡片优先显示该截图。预览材质变化时通过版本号丢弃旧颜色截图，避免黄色旧图继续覆盖新的蓝色渲染结果。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
+- **动画缩略图与模型库同一套离屏生成方案**：`pages/animations/animationThumbnailStudio.ts` 复用模型缩略图的「离屏画布 + localStorage 缓存（`animation-library:thumbnails:v8`）+ 队列闲置销毁」结构，创建工作室时加载一次统一 GLB，之后逐个把 `clipName` 装配到独立角色实例，读取轨道真实帧率并将 `activeStateCurrentTime` 定位到最后一帧的 50% 后暂停抓 JPEG——卡片的预览图反映动作中点姿态，且与详情页默认帧一致。动画预览和分镜草图共用同一个蓝色代理材质，主体与 `M_Joints` 关节槽使用同色系浅色区分动作结构；动作评估依赖应用帧循环，所以画布必须 `app.start()`（`autoRender=false` 只关自动出图，update 照常触发）；新增动画无需手工出图，进目录即自动生成缩略图；资源、材质或生成逻辑变化时必须升缓存版本。
+- **用户关键帧覆盖使用版本化浏览器存储**：完整预览页将当前整数帧渲染为 JPEG，通过 `animation-library:keyframes:v3` 按动画 ID 保存 `frame` 与 `frameRate`；动画入口卡片优先显示该截图，没有手动关键帧时使用自动生成的 50% 帧。读取只保存 `timeSeconds` 的 v2 记录时，按当前条目的真实帧率懒迁移为整数帧，避免用户已保存的卡片预览无故消失。清除后回到自动生成缩略图，localStorage 不可用或配额不足时保留当前会话内存状态，不阻塞预览。关键帧属于本机浏览器偏好，不写入内置静态目录或服务端数据库。
 - **动画入库管线（角色动画）**：UE 动画序列 → `AnimSequenceExporterFBX` 导出 FBX → FBX2glTF 转 GLB → `scripts/animation/retarget_ual2.py` 离线重定向到 UAL2 骨架 → 链式合并进一个 GLB。源片段必须是绝对姿态；加法层、分层轨道和未烘焙的控制器结果要在 UE 导出前烘焙。源动画相对源绑定姿态的世界旋转增量应用到 UAL2 `Idle_No_Loop` 的固定 40% 站立基准：`W_t(b) := W_s(b) · inv(W_s0(b)) · W_t_standing_base(b)`，再按目标父节点解局部四元数；根/骨盆平移使用目标站立基准加源绑定姿态相对增量 `T_t := T_t_standing_base + s · (T_s - T_s0)`。目标侧只从 `skins[].joints` 建立骨骼映射，避免把 `Mannequin` 网格包装节点当作骨骼。UAL1 是另一套骨架，不能把它的动画直接追加到 UAL2 角色。UE 内批量重定向（IK Retargeter 批处理）在本机 commandlet/全编辑器下都会崩，离线 GLB 级重定向是现行方案。操作手册与模型管线同在项目 skill `.agents/skills/unreal-import/`。
 
 ## 动画目录策展与分类
@@ -58,11 +60,13 @@
 
 ### Decision
 
-前端目录使用固定的三层语义：来源大类 → UE 套装 → 动作类型。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
+前端目录使用两行用户筛选语义：来源大类 → 规范化细分类。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。套装仍是条目元数据和搜索字段，但不再占据独立的主导航层。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
 
 ### Current Rule
 
-- 每个 UE 套装有独立 `packId` 和中文名称，页面用套装下拉框展示；动作类型至少区分待机、移动、日常、互动、拳击、剑术、武器战斗、受击/闪避等语义。
+- 每个 UE 套装有独立 `packId` 和中文名称，卡片显示套装；每个片段还必须固化 `classificationId`、`actorKind`、`posture` 和 `weaponType`。武器至少区分剑、武士刀、刺剑、长枪与戟、双刃、弓箭、手枪、重锤、镰刀、匕首和法师武器；徒手和生物动作按流派、怪物类型、地面/爬行姿态继续细分。
+- `actorKind` 明确区分普通人形、可复用人形骨骼的怪物/生物和配对角色；扫描清单中没有真实狼人资源时不得仅凭名称创建狼人分类。`posture` 单独记录站立、蹲伏、坐姿、跪姿、躺卧、爬行、空中或综合姿态，使“生物地面动作”和“躺卧”可以同时表达。
+- 入口页分页默认每页 24 条，分页切片发生在卡片挂载前；来源组或细分类变化、搜索输入变化时回到第一页。筛选条保持来源和细分类两行横向滚动，避免一次挂载全目录缩略图。
 - 同一套装的非 Idle 动作使用 `dedupeKey` 只保留一个代表片段；Idle 变体允许并存，便于分镜草图保持自然变化。
 - 策选阶段只接受真实 Asset Registry 路径、`AnimSequence` 和可匹配的 Mannequin 骨架；机器人骨架、GhostSamurai 专用骨架和无法加载的资产不混入标准 UAL2 目录。
 - 所有条目仍合并进 `/anims/cine57/UAL2_UE_Anims.glb`，重定向后使用同一个蓝色 UAL2 代理角色，分镜草图和动画预览共享这套角色与动作文件。
@@ -79,7 +83,7 @@
 - `scripts/animation/build_animation_catalog_selection.cjs`：按源组、套装和动作语义生成策选清单。
 - `scripts/animation/export_cine57_animation_catalog.py`：按清单从 UE 导出 FBX。
 - `scripts/animation/assemble_animation_catalog.py`：FBX → GLB → UAL2 重定向并校验统一文件。
-- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、搜索和三级筛选 UI。
+- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、搜索、两行细分类筛选和分页 UI。
 
 ## 动画导出边界
 
@@ -103,7 +107,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v21`、`animation-library:thumbnails:v8`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑、环境预设或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
+- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v23`、`animation-library:thumbnails:v8`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，按实际动作轨道帧率定位到 50% 默认帧后再截图；环境、生成逻辑或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
 - 缩略图队列串行、闲置 8 秒销毁离屏画布；当前 79 个静态模型全队列仍按同一队列逐个生成，角色缩略图不属于模型库入口，动画缩略图单独复用统一角色动画工作室。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），再交给 `modelPreviewFraming.ts` 用 AABB 八角点做透视投影，禁止 `meshInstance.aabb`（见失败模式）。模型缩略图和详情页初始/复位视角统一为水平 45°、向下 25°、50° FOV，主体投影覆盖率目标 80%（允许 76%–84%）。
@@ -113,6 +117,7 @@
 ## 失败模式（调试结论）
 
 - **白色包裹 = UCX 碰撞体**（2026-08-29 用户报告，排查了一整圈玻璃材质后才发现）：UE 导出 FBX 默认带碰撞壳，FBX2glTF 原样转进 GLB，运行时把它渲染成白色占位凸包。判断特征：壳是模型轮廓的凸包、纯白无贴图、材质名 `DefaultMaterial`。**先查 GLB 的 mesh/node 名单再怀疑材质。**
+- **透明贴图被误转 JPG 会产生大面积三角色块**（2026-08-31）：`grass-01-1` 的 UE Base Color 实际是带 alpha 的 RGBA PNG，约 37.6% 像素透明；旧构建器只匹配 `YMIN:`，而 FFmpeg 输出为 `lavfi.signalstats.YMIN=0`，于是误判为不透明并丢弃 alpha。没有 opacity 映射时，透明 atlas 背景就会作为棕绿不透明面渲染。诊断顺序是：检查源像素格式与 alpha 范围 → 检查最终贴图 `pix_fmt` → 解析 GLB `alphaMode` 与目录 opacity → 打开产品真实详情页确认；质量不足就隔离候选，不能用卡片占位图掩盖。
 - **孤立 UCX 节点也必须剔除**（2026-08-31）：部分导出 GLB 的 `UCX_*` 只存在于 `nodes[].name`，没有绑定 mesh；只按 `meshes[].name` 清洗会让坏节点继续进入产物。诊断必须同时列出 node 与 mesh 名称，清洗后再解析一次确认没有碰撞或高阶 LOD 名称。
 - **场景级几何不能当作前景道具**（2026-08-31）：背景板、接近 10 米的巨石/地形板和建筑模块条带即使能成功加载，也会破坏前景构图和角色交互尺度。按世界空间 POSITION 包围盒计算尺寸，并结合道具完整性做策展；小型碎石、地毯等有明确前景用途的较大薄片仍可保留。
 - **手写 GLB 重写的两个坑**：① BIN chunk 长度在 `binOffset` 处读，不是偏移 20（那是 JSON 数据）；② BIN 数据从 `binOffset + 8` 开始（跳过 chunk 头）。两处错了都会顶点错位、模型碎裂，且 JSON 结构校验完全看不出来。

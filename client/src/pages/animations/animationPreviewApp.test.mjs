@@ -113,26 +113,32 @@ test("动画预览使用固定半圆 HDR 环境和共享地面网格", () => {
   assert.match(environmentRuntimeSource, /createBlocking3dEnvironmentRuntime/);
 });
 
-test("预览器提供 HDR 场景、时间轴控制和关键帧截图能力", () => {
+test("预览器提供 HDR 场景、帧轴控制和关键帧截图能力", () => {
   assert.match(previewSource, /loadStudioEnvironment\(app/);
-  assert.match(previewSource, /initialTimeSeconds/);
-  assert.match(previewSource, /onTimeChange/);
+  assert.match(previewSource, /initialFrame/);
+  assert.match(previewSource, /frameRateHint/);
+  assert.match(previewSource, /onFrameChange/);
   assert.match(previewSource, /pause: /);
-  assert.match(previewSource, /setTime: /);
-  assert.match(previewSource, /getTime: /);
-  assert.match(previewSource, /getDuration: /);
+  assert.match(previewSource, /setFrame: /);
+  assert.match(previewSource, /getFrame: /);
+  assert.match(previewSource, /getFrameCount: /);
+  assert.match(previewSource, /getFrameRate: /);
   assert.match(previewSource, /isPlaying: /);
   assert.match(previewSource, /fitView: /);
   assert.match(previewSource, /resetView: /);
   assert.match(previewSource, /capturePreviewFrame: /);
   assert.match(previewSource, /toDataURL\("image\/jpeg"/);
   assert.doesNotMatch(previewSource, /UAL1_Standard\.glb/);
+  assert.match(previewSource, /frameToSeconds/);
+  assert.match(previewSource, /secondsToFrame/);
+  assert.match(previewSource, /inferAnimationFrameRate/);
+  assert.doesNotMatch(previewSource, /initialTimeSeconds|onTimeChange|setTime|getTime|getDuration/);
 });
 
-test("手动定位时间直接同步到界面，不被动画层旧时间覆盖", () => {
-  assert.match(previewSource, /const notifyTime = \(timeOverride\?: number\) =>/);
-  assert.match(previewSource, /timeOverride \?\? readCurrentTime\(\)/);
-  assert.match(previewSource, /app\.render\(\);[\s\S]*?notifyTime\(currentTime\);/);
+test("手动定位帧直接同步到界面，不被动画层旧时间覆盖", () => {
+  assert.match(previewSource, /const notifyFrame = \(frameOverride\?: number\) =>/);
+  assert.match(previewSource, /frameOverride \?\? readCurrentFrame\(\)/);
+  assert.match(previewSource, /app\.render\(\);[\s\S]*?notifyFrame\(currentFrame\);/);
 });
 
 test("动画预览和缩略图复用分镜草图的主体/关节代理材质", () => {
@@ -164,17 +170,13 @@ test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(studioSource, /animation-library:thumbnails:v8/);
 });
 
-test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
-  const restoreBlock =
-    previewSource.match(
-      /if \(typeof options\.initialTimeSeconds === "number"\) \{([\s\S]*?)\n      \}/,
-    )?.[1] ?? "";
-  assert.match(restoreBlock, /baseLayer\?\.play\(activeClipName\)/);
+test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
+  assert.match(previewSource, /const initialFrame =\s*[\s\S]*?options\.initialFrame/);
   assert.match(
-    restoreBlock,
-    /baseLayer\?\.play\(activeClipName\)[\s\S]*applyTime\(initialTime\)/,
+    previewSource,
+    /baseLayer\?\.play\(activeClipName\)[\s\S]*applyFrame\(initialFrame\)/,
   );
-  assert.match(restoreBlock, /applyTime\(initialTime\)[\s\S]*pause\(\)/);
+  assert.match(previewSource, /applyFrame\(initialFrame\)[\s\S]*pause\(\)/);
 });
 
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
@@ -183,6 +185,10 @@ test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 
   assert.match(
     previewSource,
     /if \(destroyed\) throw new Error\("预览已关闭。"\)/,
+  );
+  assert.match(
+    previewSource,
+    /if \(destroyed\) \{[\s\S]*?app\.assets\.remove\(assetResult\.value\)[\s\S]*?environmentResult\.value\.destroy\(\)/,
   );
   // 完整预览页 effect 清理必须调用 cancel（而不是等加载完成后销毁）
   assert.match(previewPageSource, /handle\.cancel\(\)/);
@@ -207,6 +213,12 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
     /assignAnimation\(entry\.clipName, track, 0, 1, true\)/,
   );
   assert.match(studioSource, /activeStateCurrentTime = /);
+  assert.match(studioSource, /getDefaultAnimationFrame/);
+  assert.match(studioSource, /inferAnimationFrameRate/);
+  assert.match(studioSource, /frameToSeconds/);
+  assert.match(studioSource, /anim\.playing = false/);
+  assert.match(studioSource, /pause\?\.\(\)/);
+  assert.doesNotMatch(studioSource, /durationSeconds \* 0\.4/);
   assert.match(
     studioSource,
     /asset = await loadAsset\(app, ANIMATION_LIBRARY_FILE_URL, "container"\)/,
@@ -233,18 +245,31 @@ test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
 });
 
+test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
+  assert.match(
+    studioSource,
+    /try \{[\s\S]*?loadStudioEnvironment\(app\)[\s\S]*?catch \(error\)[\s\S]*?app\.destroy\(\)/,
+  );
+});
+
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
   assert.match(pageSource, /data-animation-group-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
-  assert.match(pageSource, /data-animation-pack-filter/);
-  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /data-animation-pagination/);
+  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
+  assert.doesNotMatch(pageSource, /<Select/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);
   assert.match(pageSource, /ensureAnimationThumbnail\(entry\)/);
   assert.match(pageSource, /getAnimationThumbnail\(entry\.id\)/);
+  assert.match(pageSource, /getAnimationFrameCount/);
+  assert.match(pageSource, /帧/);
+  assert.doesNotMatch(pageSource, /秒/);
   assert.match(pageSource, /subscribeAnimationThumbnails/);
   assert.match(pageSource, /alt=\{`\$\{entry\.name\} 预览`\}/);
   assert.match(pageSource, /Link/);
@@ -254,13 +279,20 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.doesNotMatch(pageSource, /<table/);
 });
 
-test("动画预览页包含 3D 画布、时间轴、播放控制和关键帧操作", () => {
+test("动画预览页包含 3D 画布、帧轴、播放控制和关键帧操作", () => {
   assert.match(previewPageSource, /useParams/);
   assert.match(previewPageSource, /openAnimationPreview\(/);
   assert.match(previewPageSource, /data-animation-preview-page/);
   assert.match(previewPageSource, /data-animation-preview-canvas/);
   assert.match(previewPageSource, /type="range"/);
-  assert.match(previewPageSource, /setTime\(/);
+  assert.match(previewPageSource, /setFrame\(/);
+  assert.match(previewPageSource, /step="1"/);
+  assert.match(previewPageSource, /当前帧/);
+  assert.match(previewPageSource, /getAnimationFrameCount/);
+  assert.match(previewPageSource, /getAnimationThumbnail/);
+  assert.match(previewPageSource, /getDefaultAnimationFrame/);
+  assert.doesNotMatch(previewPageSource, /formatTime|timeSeconds/);
+  assert.doesNotMatch(previewPageSource, /秒/);
   assert.match(previewPageSource, /capturePreviewFrame\(/);
   assert.match(previewPageSource, /setAnimationKeyframe\(/);
   assert.match(previewPageSource, /clearAnimationKeyframe\(/);
@@ -285,5 +317,5 @@ test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => 
   assert.match(catalogSource, /makeLegacyEntry\("idle-stand"[\s\S]*?"A_INP_Idle"/);
   assert.match(catalogSource, /makeLegacyEntry\("walk-forward"[\s\S]*?"A_INP_WalkFwd_Loop"/);
   assert.match(catalogSource, /makeLegacyEntry\("chair-loop"[\s\S]*?"A_chair_loop01"/);
-  assert.match(catalogSource, /sourceLabel: "虚幻导入"/);
+  assert.match(catalogSource, /sourceLabel: entry\.groupLabel/);
 });

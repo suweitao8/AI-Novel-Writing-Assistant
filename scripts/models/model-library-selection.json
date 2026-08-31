@@ -99,6 +99,15 @@
     "rugs-03c": { "name": "地毯 03C", "category": "地面" },
     "rug-04a": { "name": "花纹地毯", "category": "地面" }
   },
+  "materialOverrides": {
+    "grass-02-a-1": {
+      "MI_grass_02": {
+        "baseColor": "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png",
+        "opacity": "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png",
+        "normal": "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_N.T_grass_02_N_normal.jpg"
+      }
+    }
+  },
   "newAssets": [
     { "meshName": "SM_Armchair", "id": "armchair", "name": "扶手椅", "category": "家具", "source": "manifest3" },
     { "meshName": "SM_Barstool_01a", "id": "barstool-01a", "name": "吧台凳", "category": "家具", "source": "manifest3" },
@@ -153,7 +162,7 @@
     { "meshName": "sm_OrangeTree_01_02", "id": "orange-tree-01-02", "name": "橙树 B", "category": "树木", "source": "manifest4", "package": "/Game/Venice/Environment/OrangeTree_01/sm_OrangeTree_01_02" },
     { "meshName": "KB3D_LND_PropShrub_A_Main", "id": "shrub-a", "name": "灌木 A", "category": "灌木", "source": "manifest4", "package": "/Game/london/Geometries/KB3D_LND_PropShrub_A_Main" },
     { "meshName": "KB3D_LND_PropShrub_B_Main", "id": "shrub-b", "name": "灌木 B", "category": "灌木", "source": "manifest4", "package": "/Game/london/Geometries/KB3D_LND_PropShrub_B_Main" },
-    { "meshName": "SM_grass_01_1", "id": "grass-01-1", "name": "草丛 A", "category": "草", "source": "manifest4", "package": "/Game/_Enviroments/Mountain_Environment_Set/Foliage/Meshes/SM_grass_01_1" },
+    { "meshName": "SM_grass_02_A_1", "id": "grass-02-a-1", "name": "草丛 B", "category": "草", "source": "manifest4", "package": "/Game/_Enviroments/Mountain_Environment_Set/Foliage/Meshes/SM_grass_02_A_1" },
     { "meshName": "sm_Flower_01_01", "id": "flower-01-01", "name": "花丛 A", "category": "花", "source": "manifest4", "package": "/Game/Paris/Environment/Restaurant/Flower_01/sm_Flower_01_01" }
   ]
 }

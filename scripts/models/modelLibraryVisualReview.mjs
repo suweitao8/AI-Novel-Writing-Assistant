@@ -20,6 +20,14 @@ const REQUIRED_FIELDS = Object.freeze([
   "reviewStatus",
   "reviewEvidence",
 ]);
+const PREVIEW_REQUIRED_EVIDENCE_PREFIX = "model-preview-audit-";
+const PREVIEW_FIELDS = Object.freeze([
+  "previewPath",
+  "assetSha256",
+  "renderer",
+  "renderedAt",
+  "textureStatus",
+]);
 
 export function getVisualReviewById(id) {
   return MODEL_VISUAL_REVIEWS.find((entry) => entry.id === id) ?? null;
@@ -39,12 +47,42 @@ function hasMeshName(meshNames, expected) {
   return true;
 }
 
+function validatePreviewEvidence(review, errors, assetSha256ById) {
+  const preview = review.preview;
+  const evidence = typeof review.reviewEvidence === "string" ? review.reviewEvidence : "";
+  const requiresPreview = evidence.startsWith(PREVIEW_REQUIRED_EVIDENCE_PREFIX);
+  if (requiresPreview && (!preview || typeof preview !== "object")) {
+    errors.push(`${review.id} visual review is missing actual 3D preview evidence`);
+    return;
+  }
+  if (!preview || typeof preview !== "object") return;
+
+  for (const field of PREVIEW_FIELDS) {
+    if (!isNonEmptyString(preview[field])) errors.push(`${review.id} preview field is missing: ${field}`);
+  }
+  if (preview.previewPath !== `/models/${review.id}`) {
+    errors.push(`${review.id} previewPath must point to its model detail route`);
+  }
+  if (!/^[a-f0-9]{64}$/i.test(preview.assetSha256 ?? "")) {
+    errors.push(`${review.id} preview assetSha256 must be a SHA-256 digest`);
+  }
+  const actualHash = assetSha256ById?.get(review.id);
+  if (actualHash && preview.assetSha256 !== actualHash) {
+    errors.push(`${review.id} preview assetSha256 does not match the published GLB and textures`);
+  }
+}
+
 /**
  * Validate the screenshot-backed semantic layer against a generated catalog.
  * `meshNamesById` is optional so this validator remains pure and reusable in unit tests;
  * the model-library quality gate supplies the names read from each GLB.
  */
-export function validateModelVisualReview({ library = [], reviews = MODEL_VISUAL_REVIEWS, meshNamesById } = {}) {
+export function validateModelVisualReview({
+  library = [],
+  reviews = MODEL_VISUAL_REVIEWS,
+  meshNamesById,
+  assetSha256ById,
+} = {}) {
   const errors = [];
   // 视觉复核只覆盖模型库的 Cine57 静态前景资产，避免把动画资源误当成
   // 静态模型审核；其他来源的模型库条目仍可复用相同的查看器。
@@ -70,6 +108,7 @@ export function validateModelVisualReview({ library = [], reviews = MODEL_VISUAL
       errors.push(`${label} visual review is not approved: ${review.reviewStatus}`);
     }
     if (!catalogById.has(review.id)) errors.push(`visual review id is not in catalog: ${review.id}`);
+    validatePreviewEvidence(review, errors, assetSha256ById);
   }
 
   for (const entry of entries) {

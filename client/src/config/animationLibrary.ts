@@ -17,14 +17,105 @@ export const ANIMATION_LIBRARY_SOURCE = "Cine57";
 
 export const ANIMATION_LIBRARY_GROUPS = [
   { id: "legacy", label: "旧动画", source: "legacy" },
-  { id: "unreal-daily", label: "虚幻 · 日常动作", source: "unreal" },
-  { id: "unreal-interaction", label: "虚幻 · 日常互动", source: "unreal" },
-  { id: "unreal-misc", label: "虚幻 · 生活与表演", source: "unreal" },
-  { id: "unreal-hand-combat", label: "虚幻 · 徒手战斗", source: "unreal" },
-  { id: "unreal-weapon-combat", label: "虚幻 · 武器战斗", source: "unreal" },
+  { id: "unreal-daily", label: "日常动作", source: "unreal" },
+  { id: "unreal-interaction", label: "日常互动", source: "unreal" },
+  { id: "unreal-misc", label: "生活与表演", source: "unreal" },
+  { id: "unreal-hand-combat", label: "徒手战斗", source: "unreal" },
+  { id: "unreal-weapon-combat", label: "武器战斗", source: "unreal" },
 ] as const;
 
 export type AnimationLibraryGroupId = (typeof ANIMATION_LIBRARY_GROUPS)[number]["id"];
+
+export const ANIMATION_LIBRARY_CLASSIFICATIONS = [
+  { id: "standing-idle", label: "站立待机" },
+  { id: "locomotion", label: "站立移动" },
+  { id: "crouching", label: "蹲伏" },
+  { id: "crouching-interaction", label: "蹲伏互动" },
+  { id: "kneeling", label: "跪姿" },
+  { id: "sitting", label: "坐姿" },
+  { id: "sleeping", label: "躺卧 / 睡眠" },
+  { id: "dodge", label: "翻滚 / 闪避" },
+  { id: "parkour", label: "跳跃 / 翻越" },
+  { id: "dialogue", label: "对话 / 手势" },
+  { id: "interaction", label: "站立互动" },
+  { id: "daily", label: "生活动作" },
+  { id: "crafting", label: "制作 / 采集" },
+  { id: "vehicle", label: "车辆互动" },
+  { id: "swimming-desktop", label: "游泳 / 桌面" },
+  { id: "performance", label: "表演 / 手势" },
+  { id: "ground-action", label: "地面动作" },
+  { id: "paired", label: "配对互动" },
+  { id: "climbing", label: "攀爬" },
+  { id: "injury-recovery", label: "受伤 / 恢复" },
+  { id: "prayer-speech", label: "祈祷 / 演讲" },
+  { id: "dance", label: "舞蹈" },
+  { id: "barehand", label: "基础徒手" },
+  { id: "boxing", label: "拳击" },
+  { id: "muay-thai", label: "泰拳" },
+  { id: "wing-chun", label: "咏春" },
+  { id: "ninja", label: "忍者徒手" },
+  { id: "energy", label: "能量特技" },
+  { id: "finisher", label: "终结技" },
+  { id: "reaction", label: "反应 / 求饶" },
+  { id: "magic", label: "法术动作" },
+  { id: "demon", label: "恶魔" },
+  { id: "zombie", label: "僵尸" },
+  { id: "ghost", label: "幽灵" },
+  { id: "classic-ghost", label: "经典女鬼" },
+  { id: "monster", label: "怪物动作" },
+  { id: "ground-creature", label: "生物地面动作" },
+  { id: "creature-combat", label: "生物攻击" },
+  { id: "flying-mage", label: "飞行法师" },
+  { id: "weapon", label: "武器动作" },
+  { id: "sword", label: "剑" },
+  { id: "katana", label: "武士刀" },
+  { id: "rapier", label: "刺剑" },
+  { id: "spear", label: "长枪与戟" },
+  { id: "dual-blade", label: "双刃" },
+  { id: "bow", label: "弓箭" },
+  { id: "pistol", label: "手枪" },
+  { id: "hammer", label: "重锤" },
+  { id: "scythe", label: "镰刀" },
+  { id: "dagger", label: "匕首" },
+  { id: "weapon-magic", label: "法师武器" },
+  { id: "stealth", label: "潜行" },
+  { id: "other", label: "其他" },
+] as const;
+
+export type AnimationLibraryClassificationId =
+  (typeof ANIMATION_LIBRARY_CLASSIFICATIONS)[number]["id"];
+
+export type AnimationLibraryActorKind =
+  | "human"
+  | "humanoid-creature"
+  | "monster"
+  | "paired";
+
+export type AnimationLibraryPosture =
+  | "standing"
+  | "crouching"
+  | "sitting"
+  | "kneeling"
+  | "lying"
+  | "crawling"
+  | "airborne"
+  | "mixed";
+
+export type AnimationLibraryWeaponType =
+  | "none"
+  | "barehand"
+  | "sword"
+  | "katana"
+  | "rapier"
+  | "spear"
+  | "dual-blade"
+  | "bow"
+  | "pistol"
+  | "hammer"
+  | "scythe"
+  | "dagger"
+  | "magic"
+  | "mixed";
 
 export const ANIMATION_LIBRARY_ACTION_TYPES = [
   { id: "idle", label: "待机" },
@@ -62,8 +153,115 @@ function asActionType(value: string): AnimationLibraryActionTypeId {
   return value as AnimationLibraryActionTypeId;
 }
 
+const CLASSIFICATION_LABELS = new Map<string, string>(
+  ANIMATION_LIBRARY_CLASSIFICATIONS.map(({ id, label }) => [id, label]),
+);
+const ACTOR_KIND_LABELS: Readonly<Record<AnimationLibraryActorKind, string>> = {
+  human: "人形角色",
+  "humanoid-creature": "人形生物",
+  monster: "怪物",
+  paired: "配对角色",
+};
+const POSTURE_LABELS: Readonly<Record<AnimationLibraryPosture, string>> = {
+  standing: "站立",
+  crouching: "蹲伏",
+  sitting: "坐姿",
+  kneeling: "跪姿",
+  lying: "躺卧",
+  crawling: "爬行",
+  airborne: "空中",
+  mixed: "综合姿态",
+};
+const WEAPON_TYPE_LABELS: Readonly<Record<AnimationLibraryWeaponType, string>> = {
+  none: "无武器",
+  barehand: "徒手",
+  sword: "剑",
+  katana: "武士刀",
+  rapier: "刺剑",
+  spear: "长枪与戟",
+  "dual-blade": "双刃",
+  bow: "弓箭",
+  pistol: "手枪",
+  hammer: "重锤",
+  scythe: "镰刀",
+  dagger: "匕首",
+  magic: "法术",
+  mixed: "混合武器",
+};
+
+type AnimationLibraryTaxonomy = {
+  classificationId: AnimationLibraryClassificationId;
+  classificationLabel: string;
+  actorKind: AnimationLibraryActorKind;
+  actorKindLabel: string;
+  posture: AnimationLibraryPosture;
+  postureLabel: string;
+  weaponType: AnimationLibraryWeaponType;
+  weaponTypeLabel: string;
+};
+
+function asTaxonomy(
+  classificationId: string,
+  classificationLabel: string,
+  actorKind: string,
+  posture: string,
+  weaponType: string,
+): AnimationLibraryTaxonomy {
+  if (!CLASSIFICATION_LABELS.has(classificationId)) {
+    throw new Error(`动画目录包含未知细分类：${classificationId}`);
+  }
+  if (!(actorKind in ACTOR_KIND_LABELS)) {
+    throw new Error(`动画目录包含未知演员类型：${actorKind}`);
+  }
+  if (!(posture in POSTURE_LABELS)) {
+    throw new Error(`动画目录包含未知姿态：${posture}`);
+  }
+  if (!(weaponType in WEAPON_TYPE_LABELS)) {
+    throw new Error(`动画目录包含未知武器类型：${weaponType}`);
+  }
+  return {
+    classificationId: classificationId as AnimationLibraryClassificationId,
+    classificationLabel,
+    actorKind: actorKind as AnimationLibraryActorKind,
+    actorKindLabel: ACTOR_KIND_LABELS[actorKind as AnimationLibraryActorKind],
+    posture: posture as AnimationLibraryPosture,
+    postureLabel: POSTURE_LABELS[posture as AnimationLibraryPosture],
+    weaponType: weaponType as AnimationLibraryWeaponType,
+    weaponTypeLabel: WEAPON_TYPE_LABELS[weaponType as AnimationLibraryWeaponType],
+  };
+}
+
+const LEGACY_TAXONOMY_BY_ACTION_TYPE: Readonly<
+  Record<AnimationLibraryActionTypeId, AnimationLibraryTaxonomy>
+> = {
+  idle: asTaxonomy("standing-idle", "站立待机", "human", "standing", "none"),
+  move: asTaxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  sit: asTaxonomy("sitting", "坐姿", "human", "sitting", "none"),
+  daily: asTaxonomy("daily", "生活动作", "human", "mixed", "none"),
+  interaction: asTaxonomy("interaction", "站立互动", "human", "mixed", "none"),
+  combat: asTaxonomy("barehand", "基础徒手", "human", "mixed", "barehand"),
+  boxing: asTaxonomy("boxing", "拳击", "human", "mixed", "barehand"),
+  sword: asTaxonomy("sword", "剑", "human", "mixed", "sword"),
+  weapon: asTaxonomy("weapon", "武器动作", "human", "mixed", "mixed"),
+  magic: asTaxonomy("magic", "法术动作", "human", "mixed", "magic"),
+  reaction: asTaxonomy("reaction", "反应 / 求饶", "human", "mixed", "none"),
+  parkour: asTaxonomy("parkour", "跳跃 / 翻越", "human", "mixed", "none"),
+  sleep: asTaxonomy("sleeping", "躺卧 / 睡眠", "human", "lying", "none"),
+  performance: asTaxonomy("performance", "表演 / 手势", "human", "standing", "none"),
+  creature: asTaxonomy("monster", "怪物动作", "monster", "mixed", "none"),
+  stealth: asTaxonomy("stealth", "潜行", "human", "mixed", "none"),
+  paired: asTaxonomy("paired", "配对互动", "paired", "standing", "none"),
+  other: asTaxonomy("other", "其他", "human", "mixed", "none"),
+};
+
 export function getAnimationActionTypeLabel(actionType: AnimationLibraryActionTypeId): string {
   return ACTION_TYPE_LABELS.get(actionType) ?? "其他";
+}
+
+export function getAnimationClassificationLabel(
+  classificationId: AnimationLibraryClassificationId,
+): string {
+  return CLASSIFICATION_LABELS.get(classificationId) ?? "其他";
 }
 
 /** 动画库目录条目。 */
@@ -78,6 +276,8 @@ export interface AnimationLibraryEntry {
   clipName: string;
   /** 片段时长（秒）。 */
   durationSeconds: number;
+  /** 动画采样帧率；用于将预览时间轴统一映射为整数帧。 */
+  frameRate: number;
   source: AnimationLibrarySource;
   sourceLabel: string;
   groupId: AnimationLibraryGroupId;
@@ -86,6 +286,14 @@ export interface AnimationLibraryEntry {
   packLabel: string;
   actionType: AnimationLibraryActionTypeId;
   actionTypeLabel: string;
+  classificationId: AnimationLibraryClassificationId;
+  classificationLabel: string;
+  actorKind: AnimationLibraryActorKind;
+  actorKindLabel: string;
+  posture: AnimationLibraryPosture;
+  postureLabel: string;
+  weaponType: AnimationLibraryWeaponType;
+  weaponTypeLabel: string;
   /** 同一套装内的语义去重键；Idle 允许保留多个变体。 */
   dedupeKey: string;
   isIdleVariant: boolean;
@@ -99,6 +307,8 @@ export interface AnimationLibraryFilters {
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
+  classificationId?: AnimationLibraryClassificationId | "all";
+  posture?: AnimationLibraryPosture | "all";
   query?: string;
 }
 
@@ -156,6 +366,12 @@ const LEGACY_ACTION_TYPE_BY_CLIP: Readonly<Record<string, AnimationLibraryAction
   A_chair_loop01: "sit",
 };
 
+const LEGACY_FRAME_RATE_BY_CLIP: Readonly<Record<string, number>> = {
+  A_INP_Idle: 24,
+  A_INP_WalkFwd_Loop: 24,
+  A_chair_loop01: 24,
+};
+
 function makeLegacyEntry(
   id: string,
   name: string,
@@ -168,6 +384,7 @@ function makeLegacyEntry(
     throw new Error(`Missing static legacy animation classification for ${clipName}`);
   }
   const actionTypeLabel = getAnimationActionTypeLabel(actionType);
+  const taxonomy = LEGACY_TAXONOMY_BY_ACTION_TYPE[actionType];
   return {
     id,
     name,
@@ -175,6 +392,7 @@ function makeLegacyEntry(
     fileUrl: ANIMATION_LIBRARY_FILE_URL,
     clipName,
     durationSeconds,
+    frameRate: LEGACY_FRAME_RATE_BY_CLIP[clipName] ?? 30,
     source: "legacy",
     sourceLabel: "旧动画",
     groupId: "legacy",
@@ -183,6 +401,7 @@ function makeLegacyEntry(
     packLabel: "旧动画",
     actionType,
     actionTypeLabel,
+    ...taxonomy,
     dedupeKey: `legacy:${clipName}`,
     isIdleVariant: actionType === "idle",
     sourcePack: "LegacyAnimationLibrary",
@@ -253,6 +472,13 @@ const LEGACY_ANIMATION_LIBRARY: AnimationLibraryEntry[] = [
 function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
   const actionType = asActionType(entry.actionType);
   const actionTypeLabel = getAnimationActionTypeLabel(actionType);
+  const taxonomy = asTaxonomy(
+    entry.classificationId,
+    entry.classificationLabel,
+    entry.actorKind,
+    entry.posture,
+    entry.weaponType,
+  );
   return {
     id: entry.id,
     name: entry.name,
@@ -260,14 +486,16 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     fileUrl: ANIMATION_LIBRARY_FILE_URL,
     clipName: entry.clipName,
     durationSeconds: entry.durationSeconds,
+    frameRate: 24,
     source: "unreal",
-    sourceLabel: "虚幻导入",
+    sourceLabel: entry.groupLabel,
     groupId: entry.groupId as AnimationLibraryGroupId,
     groupLabel: entry.groupLabel,
     packId: entry.packId,
     packLabel: entry.packLabel,
     actionType,
     actionTypeLabel,
+    ...taxonomy,
     dedupeKey: entry.dedupeKey,
     isIdleVariant: entry.isIdleVariant,
     sourcePack: entry.sourcePack,
@@ -286,18 +514,31 @@ export function filterAnimationLibraryEntries(
   entries: readonly AnimationLibraryEntry[],
   filters: AnimationLibraryFilters = {},
 ): AnimationLibraryEntry[] {
-  const { groupId = "all", packId = "all", actionType = "all", query = "" } = filters;
+  const {
+    groupId = "all",
+    packId = "all",
+    actionType = "all",
+    classificationId = "all",
+    posture = "all",
+    query = "",
+  } = filters;
   return entries.filter(
     (entry) =>
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
       (actionType === "all" || entry.actionType === actionType) &&
+      (classificationId === "all" || entry.classificationId === classificationId) &&
+      (posture === "all" || entry.posture === posture) &&
       matchesLibrarySearchQuery(query, [
         entry.name,
         entry.clipName,
         entry.id,
         entry.packLabel,
         entry.actionTypeLabel,
+        entry.classificationLabel,
+        entry.actorKindLabel,
+        entry.postureLabel,
+        entry.weaponTypeLabel,
         entry.sourceAssetName,
         entry.sourcePack,
         entry.sourceAssetPath,

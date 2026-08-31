@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -11,9 +12,11 @@ import {
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
 } from "./modelLibraryPolicy.mjs";
+import { listCatalogTexturePaths, validateModelTextureContract } from "./modelLibraryTextureAudit.mjs";
 import { validateModelVisualReview } from "./modelLibraryVisualReview.mjs";
 
 export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
+const CINE57_MODEL_URL_PREFIX = "/models/cine57/";
 
 const MODEL_USAGE_SUPPORT_SURFACES = new Set([
   "ground",
@@ -229,6 +232,7 @@ export function inspectGlb(buffer) {
   const { json, binChunk } = readGlb(buffer);
   const nodes = Array.isArray(json.nodes) ? json.nodes : [];
   const meshes = Array.isArray(json.meshes) ? json.meshes : [];
+  const materials = Array.isArray(json.materials) ? json.materials : [];
   const worldMatrices = computeWorldMatrices(nodes);
   const bounds = makeEmptyBounds();
   let hasGeometry = false;
@@ -254,12 +258,51 @@ export function inspectGlb(buffer) {
   return {
     nodeNames: nodes.map((node) => String(node.name ?? "")),
     meshNames: meshes.map((mesh) => String(mesh.name ?? "")),
+    materials: materials.map((material) => ({
+      name: String(material.name ?? ""),
+      alphaMode: material.alphaMode ?? "OPAQUE",
+      alphaCutoff: material.alphaCutoff,
+    })),
     unsupportedNames,
     referenceErrors: collectReferenceErrors(json),
     bounds: hasGeometry ? { min: bounds.min, max: bounds.max } : null,
     dimensions,
     maxDimensionMeters: Math.max(...dimensions),
   };
+}
+
+function resolveCatalogTexturePath(textureUrl, modelsDir) {
+  if (typeof textureUrl !== "string" || !textureUrl.startsWith(CINE57_MODEL_URL_PREFIX)) return null;
+  const relativePath = textureUrl.slice(CINE57_MODEL_URL_PREFIX.length);
+  if (!relativePath) return null;
+  const root = path.resolve(modelsDir);
+  const resolved = path.resolve(root, relativePath);
+  if (resolved !== root && !resolved.startsWith(`${root}${path.sep}`)) return null;
+  return resolved;
+}
+
+function getAvailableTexturePaths(entry, modelsDir) {
+  const available = new Set();
+  for (const textureUrl of listCatalogTexturePaths(entry)) {
+    const resolved = resolveCatalogTexturePath(textureUrl, modelsDir);
+    if (resolved && fs.existsSync(resolved)) available.add(textureUrl);
+  }
+  return available;
+}
+
+export function computeModelAssetSha256(entry, filePath, modelsDir) {
+  const hash = createHash("sha256");
+  hash.update(entry.fileName);
+  hash.update("\0");
+  hash.update(fs.readFileSync(filePath));
+  const textureUrls = [...listCatalogTexturePaths(entry)].sort();
+  for (const textureUrl of textureUrls) {
+    hash.update("\0");
+    hash.update(textureUrl);
+    const texturePath = resolveCatalogTexturePath(textureUrl, modelsDir);
+    if (texturePath && fs.existsSync(texturePath)) hash.update(fs.readFileSync(texturePath));
+  }
+  return hash.digest("hex");
 }
 
 function addError(errors, message) {
@@ -323,6 +366,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   const ids = new Set();
   const fileNames = new Set();
   const meshNamesById = new Map();
+  const assetSha256ById = new Map();
   const staticFileNames = new Set();
 
   if (staticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
@@ -360,6 +404,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     try {
       const inspection = inspectGlb(fs.readFileSync(filePath));
       meshNamesById.set(entry.id, new Set(inspection.meshNames.filter(Boolean)));
+      assetSha256ById.set(entry.id, computeModelAssetSha256(entry, filePath, modelsDir));
       const actualSizeKb = Math.round(fs.statSync(filePath).size / 1024);
       if (entry.sizeKb !== actualSizeKb) {
         addError(errors, `${entry.id} sizeKb is ${entry.sizeKb}, actual file size is ${actualSizeKb}`);
@@ -370,6 +415,11 @@ export function validateModelLibrary({ library, modelsDir }) {
       if (inspection.referenceErrors.length > 0) {
         addError(errors, `${entry.id} contains dangling GLB references: ${inspection.referenceErrors.join(", ")}`);
       }
+      errors.push(...validateModelTextureContract({
+        entry,
+        glbMaterials: inspection.materials,
+        availableTexturePaths: getAvailableTexturePaths(entry, modelsDir),
+      }));
       if (inspection.maxDimensionMeters > MAX_FOREGROUND_MODEL_DIMENSION_METERS + 1e-6) {
         addError(
           errors,
@@ -382,7 +432,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     }
   }
 
-  errors.push(...validateModelVisualReview({ library: entries, meshNamesById }));
+  errors.push(...validateModelVisualReview({ library: entries, meshNamesById, assetSha256ById }));
 
   for (const requiredCategory of requiredCategories) {
     if (!staticEntries.some((entry) => entry.category === requiredCategory)) {
