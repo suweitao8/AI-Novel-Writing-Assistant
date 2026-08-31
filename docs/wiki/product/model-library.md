@@ -19,6 +19,8 @@
   5. `build-library-v3.cjs`（Temp/fbx2gltf-test）FBX2glTF 转换（4 并发）+ **GLB 清洗（剔除 UCX 碰撞体与 LOD1+）** + ffmpeg 降采样（6 并发）+ 命名/分类 + 再生 `modelLibrary.ts` + 孤儿清理；随后运行仓库内 `scripts/models/curate-cine57-library.mjs` 做前景策展和最终门禁。GLB 几何单位已是米，`unitScale` 保持 1。
 - **扩库策略是单一事实源**：`scripts/models/model-library-selection.json` 记录现有保留 ID、新增源网格、展示名、分类顺序和淘汰 ID；`modelLibraryPolicy.mjs` 向质量门禁和策展脚本提供同一组白名单。生成器可以先产生候选目录，但最终只允许白名单条目进入 `modelLibrary.ts`，禁止通过页面筛选隐藏未审核资产。
 - **视觉语义审核是发布前硬门禁**：`scripts/models/model-library-visual-review.json` 按稳定 ID 绑定 GLB 文件名、实际 mesh 名、截图确认的中文名称和分类。英文文件名、mesh 名和自动翻译只能提供候选，不能直接成为用户看到的名称；`scripts/models/modelLibraryVisualReview.mjs` 会拒绝缺失、重复、未批准或绑定不一致的记录。导入构建完成后先用 `curate-cine57-library.mjs --apply-review-only` 应用审核语义，再运行 `check:model-library`；没有截图复核记录的新增模型必须停留在待复核状态，不能靠页面过滤隐藏未审核的静态资产；模型页对非静态角色资源的排除是产品展示边界，不替代质量门禁。
+- **真实三维预览证据是发布前硬门禁**：新增或替换的资产必须先在产品模型详情页按统一环境和相机生成预览，再进入发布目录。复核记录使用 `model-preview-audit-YYYY-MM-DD`，绑定 `/models/<id>`、GLB 与所有目录贴图的 SHA-256、渲染器标识、日期和 `textureStatus`；`modelLibraryVisualReview.mjs` 会拒绝缺失/伪造/过期证据，资源哈希变化后不能复用旧截图。草、灌木、花、树等透明材质资产还必须确认叶片边缘和透明背景没有不透明大块。
+- **透明贴图必须保持通道语义**：UE 导出的 RGBA PNG 不能仅凭文件名或一次失败的 FFmpeg 统计转为 JPG。`ffprobe` 先确认像素格式，FFmpeg 日志要兼容 `lavfi.signalstats.YMIN=0` 与 `YMIN:0`；只要 alpha 非全不透明，baseColor 与 opacity 都保留 PNG，统计缺失也采用保守保留。GLB 声明 `BLEND`/`MASK` 时目录材质必须有 opacity 映射或透明标量，`modelLibraryTextureAudit.mjs` 在目录门禁中阻断遗漏。
 - **分类与容器配额**：页面继续使用平面分类页签；自然资产固定细分为「石头 / 灌木 / 树木 / 草 / 花 / 盆栽」，小摆件、雕像、奖杯和花瓶归入「玩具/装饰品」，箱子、纸盒、木桶和篮筐归入「容器与箱子」。食材/纸箱同族最多发布两个代表模型，当前保留一组食材纸箱和一个纸盒；后续扩容必须先更新策略并通过质量门禁。
 - **UCX 碰撞体剔除是硬规则**：UE 静态网格导出 FBX 会带上碰撞壳（`UCX_*`，无贴图的凸包）与 LOD1-3。UE 引擎从不渲染碰撞壳，网页端不剔除就会看到一个包住模型的白色占位壳（用户报告的"白色包裹"元凶）。必须同时检查 `json.nodes[].name` 和 `json.meshes[].name`：碰撞节点可能没有 mesh，不能只依赖 mesh 名过滤。清洗器改写 GLB JSON chunk，BIN 数据保持不变。
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
@@ -113,6 +115,7 @@
 ## 失败模式（调试结论）
 
 - **白色包裹 = UCX 碰撞体**（2026-08-29 用户报告，排查了一整圈玻璃材质后才发现）：UE 导出 FBX 默认带碰撞壳，FBX2glTF 原样转进 GLB，运行时把它渲染成白色占位凸包。判断特征：壳是模型轮廓的凸包、纯白无贴图、材质名 `DefaultMaterial`。**先查 GLB 的 mesh/node 名单再怀疑材质。**
+- **透明贴图被误转 JPG 会产生大面积三角色块**（2026-08-31）：`grass-01-1` 的 UE Base Color 实际是带 alpha 的 RGBA PNG，约 37.6% 像素透明；旧构建器只匹配 `YMIN:`，而 FFmpeg 输出为 `lavfi.signalstats.YMIN=0`，于是误判为不透明并丢弃 alpha。没有 opacity 映射时，透明 atlas 背景就会作为棕绿不透明面渲染。诊断顺序是：检查源像素格式与 alpha 范围 → 检查最终贴图 `pix_fmt` → 解析 GLB `alphaMode` 与目录 opacity → 打开产品真实详情页确认；质量不足就隔离候选，不能用卡片占位图掩盖。
 - **孤立 UCX 节点也必须剔除**（2026-08-31）：部分导出 GLB 的 `UCX_*` 只存在于 `nodes[].name`，没有绑定 mesh；只按 `meshes[].name` 清洗会让坏节点继续进入产物。诊断必须同时列出 node 与 mesh 名称，清洗后再解析一次确认没有碰撞或高阶 LOD 名称。
 - **场景级几何不能当作前景道具**（2026-08-31）：背景板、接近 10 米的巨石/地形板和建筑模块条带即使能成功加载，也会破坏前景构图和角色交互尺度。按世界空间 POSITION 包围盒计算尺寸，并结合道具完整性做策展；小型碎石、地毯等有明确前景用途的较大薄片仍可保留。
 - **手写 GLB 重写的两个坑**：① BIN chunk 长度在 `binOffset` 处读，不是偏移 20（那是 JSON 数据）；② BIN 数据从 `binOffset + 8` 开始（跳过 chunk 头）。两处错了都会顶点错位、模型碎裂，且 JSON 结构校验完全看不出来。

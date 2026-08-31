@@ -123,6 +123,26 @@ test("模型库质量门禁汇总所有违规", () => {
   assert.deepEqual(errors, []);
 });
 
+test("模型库质量门禁拒绝无法解析到模型目录内的贴图路径", () => {
+  const libraryWithExternalTexture = MODEL_LIBRARY.map((entry) => (
+    entry.id === "grass-02-a-1"
+      ? {
+        ...entry,
+        materials: {
+          MI_grass_02: {
+            ...entry.materials.MI_grass_02,
+            baseColor: "https://example.invalid/grass.png",
+          },
+        },
+      }
+      : entry
+  ));
+  const errors = validateModelLibrary({ library: libraryWithExternalTexture, modelsDir: MODELS_DIR });
+  assert.ok(errors.includes(
+    "grass-02-a-1 MI_grass_02 baseColor texture is missing: https://example.invalid/grass.png",
+  ));
+});
+
 test("模型库质量门禁拒绝缺少使用说明的条目", () => {
   const libraryWithoutUsage = MODEL_LIBRARY.map((entry, index) => (
     index === 0 ? { ...entry, usage: undefined } : entry

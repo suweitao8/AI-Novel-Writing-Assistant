@@ -176,7 +176,7 @@ export const MODEL_USAGE_INSTRUCTIONS: Readonly<Record<string, ModelUsageInstruc
   "orange-tree-01-02": GROUND_UPRIGHT,
   "shrub-a": GROUND_UPRIGHT,
   "shrub-b": GROUND_UPRIGHT,
-  "grass-01-1": GROUND_UPRIGHT,
+  "grass-02-a-1": GROUND_UPRIGHT,
   "flower-01-01": GROUND_UPRIGHT,
   "ual2-college-student": GROUND_UPRIGHT,
 });
