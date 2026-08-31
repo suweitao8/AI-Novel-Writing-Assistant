@@ -83,7 +83,7 @@ test("模型查看器固定相机轨道并只读消费系统环境", () => {
 
 test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
-  assert.match(thumbnailSource, /model-library:thumbnails:v26/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v27/);
   assert.match(animationThumbnailSource, /animation-library:thumbnails:v12/);
   assert.match(animationThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{/);

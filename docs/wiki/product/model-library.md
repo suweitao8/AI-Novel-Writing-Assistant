@@ -40,7 +40,7 @@
 - **HDRI 预览交互边界**：通用 HDRI 预览页复用漫剧场景的 `Drama3DEditorShell`、`createBlocking3dViewer` 和 blocking3d 环境生命周期，通过环境专用模式跳过代理角色和场景摄像机辅助线，但保留同一套场景相机导航、投影中心参考和环境网格。左键拖动旋转、中键平移、滚轮缩放，复位只恢复相机视角；拖动 5–30 米半球直径只重建环境网格，不重复创建 PlayCanvas Application。
 - **实时与离屏预览统一为 PlayCanvas 默认 Linear**（2026-08-30）：模型查看器、动画预览、模型缩略图和动画缩略图都不要单独设置 `TONEMAP_ACES`；ACES 会对高饱和环境整体去饱和提亮，使同一张 HDR 在卡片和详情页呈现两种颜色。
 - **模型可视穹顶固定在世界原点**：`loadStudioEnvironment` 通过 blocking3d 运行时加载当前预设并投射到有限半圆球内壁，实体位置固定为 `(0, 0, 0)`，不随相机每帧移动，也不按相机距离动态放大；旋转相机只改变观察方向，不改变 HDRI 的世界空间位置。模型查看器的缩放距离不使用环境半径作为边界，而是按当前模型显示包围球动态适配；相机近/远裁剪面也随模型和相机距离更新，避免 HDRI 尺寸限制大模型取景；`LAYERID_SKYBOX` 仍必须从相机层移除。
-- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画详情、卡片都使用中央广场 `model-preview` 光照，模型/动画缩略图实例必须开启 `castShadows`，运行时默认创建 shadow catcher。卡片最终图只保留 HDRI、模型/角色和真实投影阴影，不绘制编辑器网格；详情编辑器仍可显示网格辅助线。模型缩略图缓存键为 `model-library:thumbnails:v26`，动画缩略图键为 `animation-library:thumbnails:v12`，改动环境、投影、材质或动画资源逻辑必须升版本；模型取景优先按 GLB 实际顶点的屏幕投影拟合并回正投影中心，AABB 仅作为安全回退；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
+- **环境与缩略图规则**：模型编辑器、HDRI 预览、模型缩略图和动画缩略图都通过统一运行时创建可见穹顶与 `scene.envAtlas`；模型和动画详情、卡片都使用中央广场 `model-preview` 光照，模型/动画缩略图实例必须开启 `castShadows`，运行时默认创建 shadow catcher。卡片最终图只保留 HDRI、模型/角色和真实投影阴影，不绘制编辑器网格；详情编辑器仍可显示网格辅助线。模型缩略图缓存键为 `model-library:thumbnails:v27`，动画缩略图键为 `animation-library:thumbnails:v12`，改动环境、投影、材质或动画资源逻辑必须升版本；模型取景优先按 GLB 实际顶点的屏幕投影拟合并回正投影中心，AABB 仅作为安全回退；动画缩略图工作室在队列开始时加载一次统一 GLB，逐条实例化角色，不能为每张卡片重复解析同一文件。
 - **贴图降采样与编码质量**：baseColor 桶按 2048 上限 JPEG，normal/RMA 桶按 1024 上限 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），不能使用会造成严重马赛克的高数值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1`（放在输出文件前），否则报「does not contain an image sequence pattern」。
 - **模型选择**：优先 LP 变体 + 轻量优先；单件超 12MB 的源资产不进库。
 - **模型库内容门禁**：`scripts/models/modelLibraryQuality.mjs` 读取真实 GLB 的 POSITION 包围盒和节点引用；`check:model-library` 要求目录覆盖当前 79 个白名单前景条目、无碰撞/高阶 LOD、无孤儿 GLB、分类完整、食材/纸箱族不超过两个，且最大模型尺寸不超过 5 米。来自动画库的角色入口可以复用 UAL2 资源，不参与 Cine57 静态 GLB 清单和尺寸统计。门禁失败时应修正源策展或 GLB 清洗，不通过页面隐藏或分类过滤掩盖违规资源。
@@ -112,7 +112,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v26`、`animation-library:thumbnails:v12`，**改生成逻辑必须升版本**）。模型和动画详情/缩略图固定使用中央广场 HDRI 与 `model-preview` 光照；角色实例必须投射阴影，默认 shadow catcher 负责接收落地投影，主光只水平偏转 180°，可见 HDRI 方向不变；卡片出图只调用 PlayCanvas 渲染，不叠加编辑器网格，详情页交互式编辑器的网格不受影响；离屏应用必须在异步加载环境前完成 `app.start()` 初始化并取消持续 RAF，模型/动画出图前显式 `app.update()`；动画缩略图工作室复用一次统一 GLB 资源，按实际动作轨道帧率定位到 50% 默认帧后再截图；环境、生成逻辑或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
+- 缩略图运行时生成：模型库与动画库分别使用离屏画布逐个渲染并存入 localStorage；模型卡片抓取 256×192 JPEG（质量 0.75），最长边与卡片最大显示宽度一致，缓存键为 `model-library:thumbnails:v27`；动画卡片仍抓取 288×216 JPEG，缓存键为 `animation-library:thumbnails:v12`，**改生成逻辑必须升版本**。模型和动画详情/缩略图固定使用中央广场 HDRI 与 `model-preview` 光照；角色实例必须投射阴影，默认 shadow catcher 负责接收落地投影，主光只水平偏转 180°，可见 HDRI 方向不变；卡片出图只调用 PlayCanvas 渲染，不叠加编辑器网格，详情页交互式编辑器的网格不受影响；模型卡片图片使用原生懒加载和异步解码；离屏应用必须在异步加载环境前完成 `app.start()` 初始化并取消持续 RAF，模型/动画出图前显式 `app.update()`；动画缩略图工作室复用一次统一 GLB 资源，按实际动作轨道帧率定位到 50% 默认帧后再截图；环境、生成逻辑或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
 - 缩略图队列串行、闲置 8 秒销毁离屏画布；当前 79 个静态模型全队列仍按同一队列逐个生成，角色缩略图不属于模型库入口，动画缩略图单独复用统一角色动画工作室。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），再交给 `modelPreviewFraming.ts` 用 AABB 八角点做透视投影，禁止 `meshInstance.aabb`（见失败模式）。模型缩略图和详情页初始/复位视角统一为水平 45°、向下 25°、50° FOV，主体投影覆盖率目标 80%（允许 76%–84%）。
