@@ -173,6 +173,11 @@ async function createThumbnailStudio(): Promise<{
   );
   cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
+  // The shared environment builds its HDR projection/materials through the
+  // running PlayCanvas lifecycle. Initialise once before any asynchronous
+  // HDRI or model load, then drive this offscreen app manually before capture.
+  app.start();
+  pc.AppBase.cancelTick(app);
   // 卡片统一使用室内默认环境，并等待可见穹顶与环境光都装配完成后再出图。
   const studioEnvironment = await loadStudioEnvironment(app, undefined, {
     lightingProfile: "model-preview",
@@ -249,6 +254,7 @@ async function createThumbnailStudio(): Promise<{
         await applyModelMaterials(app, root, entry.materials);
         app.root.syncHierarchy();
         frame(previewBounds, previewPoints);
+        app.update(1 / 60);
         drawFrame();
         drawFrame();
         const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
@@ -263,6 +269,7 @@ async function createThumbnailStudio(): Promise<{
       if (destroyed) return;
       destroyed = true;
       studioEnvironment.destroy();
+      pc.AppBase.cancelTick(app);
       app.destroy();
     },
   }

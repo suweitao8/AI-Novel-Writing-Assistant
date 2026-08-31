@@ -84,7 +84,7 @@ test("模型查看器固定相机轨道并只读消费系统环境", () => {
 test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
   assert.match(thumbnailSource, /model-library:thumbnails:v23/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v9/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v10/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{/);
   assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
@@ -99,6 +99,28 @@ test("模型和动画缩略图不创建空的阴影接收器", () => {
     /enableShadowCatcher:\s*options\.enableShadowCatcher/,
   );
   assert.match(animationThumbnailSource, /enableShadowCatcher:\s*false/);
+  assert.match(thumbnailSource, /pc\.AppBase\.cancelTick\(app\)/);
+  assert.match(animationThumbnailSource, /pc\.AppBase\.cancelTick\(app\)/);
+});
+
+test("模型与动画离屏缩略图都在加载 HDRI 前启动 PlayCanvas", () => {
+  const modelStartIndex = thumbnailSource.indexOf("app.start()");
+  const modelEnvironmentIndex = thumbnailSource.indexOf("loadStudioEnvironment(app");
+  assert.ok(
+    modelStartIndex >= 0 &&
+      modelEnvironmentIndex >= 0 &&
+      modelStartIndex < modelEnvironmentIndex,
+    "模型缩略图必须在异步加载 HDRI 前启动 PlayCanvas 生命周期",
+  );
+
+  const animationStartIndex = animationThumbnailSource.indexOf("app.start()");
+  const animationEnvironmentIndex = animationThumbnailSource.indexOf("loadStudioEnvironment(app");
+  assert.ok(
+    animationStartIndex >= 0 &&
+      animationEnvironmentIndex >= 0 &&
+      animationStartIndex < animationEnvironmentIndex,
+    "动画缩略图必须在异步加载 HDRI 前启动 PlayCanvas 生命周期",
+  );
 });
 
 test("模型编辑器只读消费通用中央广场环境并显示几何信息", () => {

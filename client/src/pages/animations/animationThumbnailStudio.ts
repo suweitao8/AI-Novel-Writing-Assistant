@@ -28,7 +28,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v9";
+const STORAGE_KEY = "animation-library:thumbnails:v10";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -209,6 +209,11 @@ async function createAnimationThumbnailStudio(): Promise<{
   );
   cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
+  // The shared environment builds its HDR projection/materials through the
+  // running PlayCanvas lifecycle. Initialise once before any asynchronous
+  // HDRI or GLB load, then drive this offscreen app manually below.
+  app.start();
+  pc.AppBase.cancelTick(app);
   let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
   try {
     studioEnvironment = await loadStudioEnvironment(app, undefined, {
@@ -263,11 +268,6 @@ async function createAnimationThumbnailStudio(): Promise<{
     drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
-
-  // 只借用 start() 完成 PlayCanvas 系统初始化；离屏缩略图不需要永久 RAF。
-  // 永久 RAF 在应用销毁与浏览器下一帧之间存在竞态，会让引擎统计访问已清空的 renderer。
-  app.start();
-  pc.AppBase.cancelTick(app);
 
   let destroyed = false;
   const advanceFrame = async () => {
