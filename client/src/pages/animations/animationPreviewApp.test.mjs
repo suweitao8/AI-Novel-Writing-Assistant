@@ -481,14 +481,12 @@ test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用",
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
-  assert.match(pageSource, /data-animation-group-filter/);
+  assert.match(pageSource, /data-animation-filter-controls/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
-  assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /data-animation-category-filter/);
   assert.match(pageSource, /data-animation-scope-filter/);
-  assert.match(pageSource, /data-animation-detail-filters/);
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /data-animation-pagination/);
-  assert.match(pageSource, /data-animation-pack-filter/);
   assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
