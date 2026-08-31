@@ -8,12 +8,6 @@ import {
   type ModelGeometryPart,
   type ModelGeometryStats,
 } from "./modelGeometryStats";
-import type { ModelPreviewAppearance } from "@/config/modelLibrary";
-import {
-  createCharacterAppearanceController,
-  type CharacterAppearanceController,
-  type CharacterAppearanceMode,
-} from "./characterAppearance";
 import {
   DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
   getStudioEnvironmentDiameterMeters,
@@ -55,8 +49,6 @@ export interface ModelViewerOptions {
   unitScale?: number;
   /** 材质回填映射（GLB 里只有 FBX 占位材质，无贴图）。 */
   materials?: ModelMaterialMap;
-  /** 只对声明该标识的角色条目启用专用预览外观。 */
-  previewAppearance?: ModelPreviewAppearance;
   /** 模型预览使用的固定 HDRI 环境预设。 */
   environmentPresetId?: StudioEnvironmentPresetId;
   /** 当前模型预览的半球直径，统一限制为 5–30 米。 */
@@ -72,7 +64,6 @@ export interface ModelViewer {
   setBoundsVisible: (visible: boolean) => void;
   fitView: () => void;
   resetView: () => void;
-  setAppearance: (mode: CharacterAppearanceMode) => boolean;
   capturePng: () => Blob;
   destroy: () => void;
 }
@@ -302,8 +293,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     max: [0.5, 1, 0.5],
   };
   let modelPreviewPoints: ModelPreviewVector[] = [];
-  let characterAppearance: CharacterAppearanceController | null = null;
-
   const cameraState: OrbitState = {
     azim: DEFAULT_VIEW.azim,
     elev: DEFAULT_VIEW.elev,
@@ -461,13 +450,8 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
   if (modelDisplayBounds) modelPreviewBounds = modelDisplayBounds;
   fitView();
   options.onStatus?.("");
-  if (options.previewAppearance) {
-    characterAppearance = createCharacterAppearanceController(app, modelRoot);
-    characterAppearance.setMode("male-college-student");
-  } else {
-    // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。
-    void applyModelMaterials(app, modelRoot, options.materials);
-  }
+  // 回填真实外观：GLB 里只有 FBX 占位材质，贴图异步加载完成后模型换上纹理。
+  void applyModelMaterials(app, modelRoot, options.materials);
 
   // ── 相机导航：右键环绕 / 中键平移 / 滚轮缩放 / WASD+QE 飞行 ──
   let keyboardInput = new Set<string>();
@@ -608,9 +592,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     },
     fitView,
     resetView,
-    setAppearance(mode) {
-      return characterAppearance?.setMode(mode) ?? false;
-    },
     capturePng() {
       app.resizeCanvas(CAPTURE_SIZE.width, CAPTURE_SIZE.height);
       // 两帧冲掉上一轮排队的网格线，第二帧才是完整预览画面。
@@ -637,7 +618,6 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
       window.removeEventListener("blur", onBlur);
-      characterAppearance?.destroy();
       modelRoot.destroy();
       disposeStudioEnvironment();
       app.destroy();

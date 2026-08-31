@@ -307,11 +307,15 @@ function validateModelUsage(entry, errors) {
   }
 }
 
+function isCine57StaticModelEntry(entry) {
+  return typeof entry?.fileUrl === "string" && entry.fileUrl.startsWith("/models/cine57/");
+}
+
 /** Return every static model-library content violation; an empty array means valid. */
 export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
-  const staticEntries = entries.filter((entry) => !entry.previewAppearance);
+  const staticEntries = entries.filter(isCine57StaticModelEntry);
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
   const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
   const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
@@ -336,12 +340,7 @@ export function validateModelLibrary({ library, modelsDir }) {
       continue;
     }
     validateModelUsage(entry, errors);
-    if (entry.previewAppearance) {
-      if (typeof entry.previewAppearance !== "string") {
-        addError(errors, `${entry.id} previewAppearance must be a string`);
-      }
-      continue;
-    }
+    if (!isCine57StaticModelEntry(entry)) continue;
 
     if (!allowedIds.has(entry.id)) addError(errors, `model id is not in the curated allowlist: ${entry.id}`);
     if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
