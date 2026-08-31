@@ -37,6 +37,7 @@ test("Cine57 清单不允许 InPlace，且每条片段都保留 root-motion 源�
   assert.ok(selection.clips.every((clip) => !/in[-_ ]?place/i.test(
     `${clip.sourceAssetPath}/${clip.sourceAssetName}`,
   )));
+  assert.ok(selection.clips.every((clip) => !/原地/.test(clip.name)));
   assert.ok(selection.clips.every((clip) => ["source-path", "asset-name"].includes(clip.rootMotionEvidence)));
   assert.deepEqual(
     new Set(selection.clips.map((clip) => clip.groupId)),

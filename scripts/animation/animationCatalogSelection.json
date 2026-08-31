@@ -428,7 +428,7 @@
     {
       "id": "unreal-daily-parkour-walk-in-place",
       "clipName": "C57_unreal_daily_parkour_walk_in_place",
-      "name": "原地行走",
+      "name": "向前行走",
       "actionType": "move",
       "dedupeKey": "walk-in-place",
       "isIdleVariant": false,
@@ -458,7 +458,7 @@
     {
       "id": "unreal-daily-parkour-run-in-place",
       "clipName": "C57_unreal_daily_parkour_run_in_place",
-      "name": "原地奔跑",
+      "name": "向前奔跑",
       "actionType": "move",
       "dedupeKey": "run-in-place",
       "isIdleVariant": false,
@@ -848,7 +848,7 @@
     {
       "id": "unreal-daily-dialogue-walk-in-place",
       "clipName": "C57_unreal_daily_dialogue_walk_in_place",
-      "name": "对话中原地行走",
+      "name": "对话移动",
       "actionType": "move",
       "dedupeKey": "walk-in-place",
       "isIdleVariant": false,

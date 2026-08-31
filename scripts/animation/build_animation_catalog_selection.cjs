@@ -68,8 +68,8 @@ const packs = [
     label: "跑酷翻越套装",
     clips: [
       clip("parkour-idle", "A_Idle", "跑酷待机", "idle", "idle:parkour"),
-      clip("walk-in-place", "A_Walk_IP", "原地行走", "move"),
-      clip("run-in-place", "A_Run_IP", "原地奔跑", "move"),
+      clip("walk-in-place", "A_Walk_IP", "向前行走", "move"),
+      clip("run-in-place", "A_Run_IP", "向前奔跑", "move"),
       clip("jump-up-start", "A_JumpUp_Start", "向上跳跃起步", "parkour"),
       clip("jump-up-finish", "A_JumpUp_Finish", "向上跳跃落地", "parkour"),
       clip("ledge-climb", "A_Ledge_ClimbUp_Monkey", "猴式翻越高台", "parkour"),
@@ -120,7 +120,7 @@ const packs = [
       clip("sad-idle", "IP_Dialogue_Sad_idle_01", "悲伤待机", "idle", "idle:sad"),
       clip("sad-talk", "IP_Dialogue_Sad_talk_01", "悲伤说话", "daily"),
       clip("listening", "IP_Dialogue_listening_idle_01", "倾听待机", "idle", "idle:listening"),
-      clip("walk-in-place", "MM_Walk_InPlace", "对话中原地行走", "move"),
+      clip("walk-in-place", "MM_Walk_InPlace", "对话移动", "move"),
     ],
   },
   {
