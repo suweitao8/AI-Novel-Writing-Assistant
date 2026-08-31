@@ -29,3 +29,15 @@ test("模型缩略图缓存版本与卡片异步解码合同已升级", () => {
   assert.match(pageSource, /loading="lazy"/);
   assert.match(pageSource, /decoding="async"/);
 });
+
+test("模型卡片只在视口附近才启动缩略图生成", () => {
+  assert.match(pageSource, /useRef/);
+  assert.match(pageSource, /IntersectionObserver/);
+  assert.match(pageSource, /const MODEL_THUMBNAIL_ROOT_MARGIN = ["']320px 0px["']/);
+  assert.match(pageSource, /rootMargin:\s*MODEL_THUMBNAIL_ROOT_MARGIN/);
+  assert.match(pageSource, /ref=\{cardRef\}/);
+  assert.doesNotMatch(
+    pageSource,
+    /useEffect\(\(\) => \{\s*if \(ensureThumbnail\(entry\)\) return;/,
+  );
+});
