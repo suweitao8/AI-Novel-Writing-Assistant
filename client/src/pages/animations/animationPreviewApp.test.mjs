@@ -38,6 +38,32 @@ const blockingCoreSource = readFileSync(
   ),
   "utf8",
 );
+const actorMaterialPolicySource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "materials",
+    "actorMaterialPolicy.ts",
+  ),
+  "utf8",
+);
+const actorMaterialRuntimeSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "materials",
+    "actorMaterialRuntime.ts",
+  ),
+  "utf8",
+);
 const blockingIndexSource = readFileSync(
   path.join(
     import.meta.dirname,
@@ -109,11 +135,17 @@ test("手动定位时间直接同步到界面，不被动画层旧时间覆盖",
   assert.match(previewSource, /app\.render\(\);[\s\S]*?notifyTime\(currentTime\);/);
 });
 
-test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
+test("动画预览和缩略图复用分镜草图的主体/关节代理材质", () => {
   assert.match(
-    blockingCoreSource,
+    actorMaterialPolicySource,
     /export const BLOCKING_3D_BLUE_ACTOR_COLOR = \[0\.24, 0\.52, 0\.82\]/,
   );
+  assert.match(actorMaterialPolicySource, /getBlocking3dActorJointColor/);
+  assert.match(actorMaterialPolicySource, /M_Joints/);
+  assert.match(actorMaterialRuntimeSource, /getBlocking3dActorMaterialRole/);
+  assert.match(actorMaterialRuntimeSource, /WeakMap/);
+  assert.match(actorMaterialRuntimeSource, /jointMaterial/);
+  assert.match(blockingCoreSource, /actorMaterialRuntime/);
   assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /setEntityMaterial/);
@@ -128,8 +160,8 @@ test("动画预览和缩略图复用分镜草图的蓝色代理材质", () => {
 });
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
-  assert.match(storageSource, /animation-library:keyframes:v2/);
-  assert.match(studioSource, /animation-library:thumbnails:v7/);
+  assert.match(storageSource, /animation-library:keyframes:v3/);
+  assert.match(studioSource, /animation-library:thumbnails:v8/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入时间", () => {
@@ -166,7 +198,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v7/);
+  assert.match(studioSource, /animation-library:thumbnails:v8/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);

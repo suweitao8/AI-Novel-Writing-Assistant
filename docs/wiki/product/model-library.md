@@ -22,7 +22,7 @@
 - **分类与容器配额**：页面继续使用平面分类页签；自然资产固定细分为「石头 / 灌木 / 树木 / 草 / 花 / 盆栽」，小摆件、雕像、奖杯和花瓶归入「玩具/装饰品」，箱子、纸盒、木桶和篮筐归入「容器与箱子」。食材/纸箱同族最多发布两个代表模型，当前保留一组食材纸箱和一个纸盒；后续扩容必须先更新策略并通过质量门禁。
 - **UCX 碰撞体剔除是硬规则**：UE 静态网格导出 FBX 会带上碰撞壳（`UCX_*`，无贴图的凸包）与 LOD1-3。UE 引擎从不渲染碰撞壳，网页端不剔除就会看到一个包住模型的白色占位壳（用户报告的"白色包裹"元凶）。必须同时检查 `json.nodes[].name` 和 `json.meshes[].name`：碰撞节点可能没有 mesh，不能只依赖 mesh 名过滤。清洗器改写 GLB JSON chunk，BIN 数据保持不变。
 - **材质回填（modelMaterials.ts）**：目录 `materials` 字段按「UE 材质资产名 → 贴图/颜色/标量」声明真实外观，运行时按材质名匹配（忽略大小写与符号）回填。带贴图参数的槽位回填 baseColor/normal/rma；**纯材质图槽位**（UE 里无贴图参数的玻璃/铬金属/墙漆，共 106 个槽）从 introspection 合并出 tint/metallic/roughness/opacityValue/emissive，复合材质图不可解时兜底中性灰。`MESH_OPACITY` 表可按 mesh 名强制半透明（当前为空：白壳是碰撞体，不是玻璃）。
-- **角色资源与模型展示边界**：模型目录可以保留动画库已有的 UAL2 角色 GLB 作为内部资源，但它不是 Cine57 静态道具入库清单的一部分，也不在模型库页面提供角色卡片或 3D 预览；分镜、动画预览和动画缩略图继续复用同一套蓝色材质。正式角色纹理必须换成带有效 UV 的角色资产，再接入真实纹理生成/保存链路。
+- **角色资源与模型展示边界**：模型目录可以保留动画库已有的 UAL2 角色 GLB 作为内部资源，但它不是 Cine57 静态道具入库清单的一部分，也不在模型库页面提供角色卡片或 3D 预览；分镜、动画预览和动画缩略图继续复用同一套蓝色代理材质，并以主体色 + 同色系浅色关节区分动作结构。正式角色纹理必须换成带有效 UV 的角色资产，再接入真实纹理生成/保存链路。
 - **tint 只属于无贴图槽位（硬规则）**：UE 清单里的 `slot.tint` 是母材质向量参数的默认值/实例值，**不是**漫反射——当槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。构建规则：有 baseColor 贴图的槽位一律丢弃 tint；tint 只作为纯材质槽（无任何贴图）的主色（床品深红、婴儿床蓝等这类外观是合法用途）。
 - **环境反射（IBL）是质感前提**：模型、动画和漫剧都通过 `blocking3dEnvironmentRuntime.ts` 从同一张 HDR 资源生成可见投影与 `scene.envAtlas`。`envAtlas` 只负责环境光照，有限半圆穹顶负责可见背景；没有这套真实 HDR 环境，玻璃/金属容易发白发平或整面发黑。
 - **HDRI 穹顶只接收阴影，不得投射阴影**：可视半圆穹顶和地面阴影接收器的 `render` 组件必须在创建时同时设置 `castShadows: false`、`receiveShadows: true`。PlayCanvas 的 `RenderComponent` 默认会把 `castShadows` 写回它接管的 `MeshInstance`，只在 `addComponent` 前设置 `meshInstance.castShadow = false` 会被覆盖，导致穹顶把主光挡到地面上形成整片黑块；角色仍通过独立阴影接收器保留落地阴影。
@@ -103,7 +103,7 @@
 
 ## 现行规则
 
-- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v21`、`animation-library:thumbnails:v7`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑与环境预设变更必须同步刷新缓存版本。
+- 缩略图运行时生成：`thumbnailStudio.ts` 和 `animationThumbnailStudio.ts` 使用离屏画布逐个渲染，抓 288×216 JPEG（质量 0.75）存 localStorage（键分别为 `model-library:thumbnails:v21`、`animation-library:thumbnails:v8`，**改生成逻辑必须升版本**）。模型和动画缩略图固定使用中央广场 HDRI，地面网格与半圆环境按同一套直径规则计算；动画缩略图工作室复用一次统一 GLB 资源，生成逻辑、环境预设或代理角色材质变更必须同步刷新动画缩略图与关键帧缓存版本，保证三个预览入口使用同一套材质规则。
 - 缩略图队列串行、闲置 8 秒销毁离屏画布；当前 79 个静态模型全队列仍按同一队列逐个生成，角色缩略图不属于模型库入口，动画缩略图单独复用统一角色动画工作室。
 - 模型加载后按「底部中心 = 原点」归一（`model-adjust` 承担缩放偏移，`model-root` 承载用户 transform）。
 - 取景用解析式源包围盒（`computeSourceBounds`），再交给 `modelPreviewFraming.ts` 用 AABB 八角点做透视投影，禁止 `meshInstance.aabb`（见失败模式）。模型缩略图和详情页初始/复位视角统一为水平 45°、向下 25°、50° FOV，主体投影覆盖率目标 80%（允许 76%–84%）。

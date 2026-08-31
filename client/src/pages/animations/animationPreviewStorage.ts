@@ -5,7 +5,7 @@ export interface AnimationKeyframe {
   updatedAt: string;
 }
 
-export const STORAGE_KEY = "animation-library:keyframes:v2";
+export const STORAGE_KEY = "animation-library:keyframes:v3";
 
 type KeyframeListener = (animationId: string) => void;
 

@@ -19,6 +19,16 @@ import {
   poseSampleTimeFromTrack,
   resolveBlocking3dPoseClip,
 } from "./blocking3dPose";
+import { BLOCKING_3D_BLUE_ACTOR_COLOR } from "./materials/actorMaterialRuntime";
+
+export {
+  BLOCKING_3D_ACTOR_JOINT_HIGHLIGHT_RATIO,
+  BLOCKING_3D_BLUE_ACTOR_COLOR,
+  BLOCKING_3D_JOINT_MATERIAL_NAME,
+  getBlocking3dActorJointColor,
+  getBlocking3dActorMaterialRole,
+  setEntityMaterial,
+} from "./materials/actorMaterialRuntime";
 
 /**
  * 分镜草图与动画库共用的角色动画资源：模型和动作必须来自同一套 UAL2
@@ -55,8 +65,6 @@ export const DEFAULT_CAMERA: DramaShotBlockingSketch3DCamera = {
   focusRange: 5,
   blurRadius: 3,
 };
-/** 分镜草图里用于蓝色代理角色的共享材质颜色。 */
-export const BLOCKING_3D_BLUE_ACTOR_COLOR = [0.24, 0.52, 0.82] as const;
 const ACTOR_COLORS = [
   [0.78, 0.32, 0.28],
   BLOCKING_3D_BLUE_ACTOR_COLOR,
@@ -347,27 +355,6 @@ export function loadAsset(
     app.assets.add(asset);
     app.assets.load(asset);
   });
-}
-
-export function setEntityMaterial(
-  entity: pc.Entity,
-  color: readonly [number, number, number],
-  material = new pc.StandardMaterial(),
-): pc.StandardMaterial {
-  material.diffuse = new pc.Color(color[0], color[1], color[2]);
-  material.metalness = 0;
-  material.useLighting = true;
-  material.useSkybox = true;
-  material.update();
-  for (const render of entity.findComponents(
-    "render",
-  ) as pc.RenderComponent[]) {
-    for (const mesh of render.meshInstances ?? []) mesh.material = material;
-  }
-  for (const model of entity.findComponents("model") as pc.ModelComponent[]) {
-    for (const mesh of model.meshInstances ?? []) mesh.material = material;
-  }
-  return material;
 }
 
 export function normalizeActorColor(

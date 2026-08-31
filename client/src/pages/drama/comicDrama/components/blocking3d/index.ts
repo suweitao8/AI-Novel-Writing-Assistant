@@ -8,10 +8,14 @@ export type { Blocking3dTransformTool } from "./blocking3dTransformGizmo";
 export { updateBlocking3dCameraAzimuth, wrapBlocking3dAzimuth } from "./blocking3dMath";
 export {
   clamp,
+  BLOCKING_3D_ACTOR_JOINT_HIGHLIGHT_RATIO,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
+  BLOCKING_3D_JOINT_MATERIAL_NAME,
   createMaterial,
   createPlane,
   createShadowCatcherMaterial,
+  getBlocking3dActorJointColor,
+  getBlocking3dActorMaterialRole,
   loadAsset,
   MAX_DEVICE_PIXEL_RATIO,
   setEntityMaterial,
