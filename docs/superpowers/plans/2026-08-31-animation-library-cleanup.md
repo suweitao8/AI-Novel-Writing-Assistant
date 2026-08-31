@@ -292,4 +292,3 @@ Then verify HEAD equals origin/main, remove only this completed worktree/branch 
 - Existing legacy IDs and GLB clip names remain stable, so stored keyframes and old routes remain recoverable.
 - Default discovery is storyboard-first while compatibility assets remain explicitly reachable.
 - Browser smoke covers the real user path and keyboard-capable selectors, not only source assertions.
-
