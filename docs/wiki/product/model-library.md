@@ -58,11 +58,13 @@
 
 ### Decision
 
-前端目录使用固定的三层语义：来源大类 → UE 套装 → 动作类型。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
+前端目录使用两行用户筛选语义：来源大类 → 规范化细分类。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。套装仍是条目元数据和搜索字段，但不再占据独立的主导航层。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
 
 ### Current Rule
 
-- 每个 UE 套装有独立 `packId` 和中文名称，页面用套装下拉框展示；动作类型至少区分待机、移动、日常、互动、拳击、剑术、武器战斗、受击/闪避等语义。
+- 每个 UE 套装有独立 `packId` 和中文名称，卡片显示套装；每个片段还必须固化 `classificationId`、`actorKind`、`posture` 和 `weaponType`。武器至少区分剑、武士刀、刺剑、长枪与戟、双刃、弓箭、手枪、重锤、镰刀、匕首和法师武器；徒手和生物动作按流派、怪物类型、地面/爬行姿态继续细分。
+- `actorKind` 明确区分普通人形、可复用人形骨骼的怪物/生物和配对角色；扫描清单中没有真实狼人资源时不得仅凭名称创建狼人分类。`posture` 单独记录站立、蹲伏、坐姿、跪姿、躺卧、爬行、空中或综合姿态，使“生物地面动作”和“躺卧”可以同时表达。
+- 入口页分页默认每页 24 条，分页切片发生在卡片挂载前；来源组或细分类变化、搜索输入变化时回到第一页。筛选条保持来源和细分类两行横向滚动，避免一次挂载全目录缩略图。
 - 同一套装的非 Idle 动作使用 `dedupeKey` 只保留一个代表片段；Idle 变体允许并存，便于分镜草图保持自然变化。
 - 策选阶段只接受真实 Asset Registry 路径、`AnimSequence` 和可匹配的 Mannequin 骨架；机器人骨架、GhostSamurai 专用骨架和无法加载的资产不混入标准 UAL2 目录。
 - 所有条目仍合并进 `/anims/cine57/UAL2_UE_Anims.glb`，重定向后使用同一个蓝色 UAL2 代理角色，分镜草图和动画预览共享这套角色与动作文件。
@@ -79,7 +81,7 @@
 - `scripts/animation/build_animation_catalog_selection.cjs`：按源组、套装和动作语义生成策选清单。
 - `scripts/animation/export_cine57_animation_catalog.py`：按清单从 UE 导出 FBX。
 - `scripts/animation/assemble_animation_catalog.py`：FBX → GLB → UAL2 重定向并校验统一文件。
-- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、搜索和三级筛选 UI。
+- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、搜索、两行细分类筛选和分页 UI。
 
 ## 动画导出边界
 
