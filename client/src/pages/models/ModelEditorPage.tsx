@@ -20,6 +20,7 @@ import {
 } from "./modelLibrary3d/studioEnvironmentPresets";
 import { formatModelDimension } from "./modelLibrary3d/modelGeometryStats";
 import { createModelViewer, type ModelViewer } from "./modelLibrary3d/modelViewerApp";
+import { disposeThumbnailStudio } from "./modelLibrary3d/thumbnailStudio";
 
 export default function ModelEditorPage() {
   const { modelId } = useParams<{ modelId: string }>();
@@ -41,17 +42,24 @@ export default function ModelEditorPage() {
     setShowBounds(false);
     setViewerError(null);
     setGeometryStats(null);
-    void createModelViewer({
-      canvas,
-      modelUrl: entry.fileUrl,
-      unitScale: entry.unitScale,
-      materials: entry.materials,
-      environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
-      environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
-      showBounds: showBoundsRef.current,
-      onStatus: (next) => setStatus(next || "就绪"),
-    })
-      .then((nextViewer) => {
+    const start = async () => {
+      // React StrictMode 会在同一个同步窗口内执行一次 effect 清理和重建。
+      // 先跨过这个窗口，避免第一实例已经被清理后仍创建 WebGL 应用并抢占
+      // 同一画布的 HDRI 上下文。
+      await disposeThumbnailStudio();
+      await Promise.resolve();
+      if (cancelled) return;
+      try {
+        const nextViewer = await createModelViewer({
+          canvas,
+          modelUrl: entry.fileUrl,
+          unitScale: entry.unitScale,
+          materials: entry.materials,
+          environmentPresetId: DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID,
+          environmentDiameterMeters: getStudioEnvironmentDiameterPreference(DEFAULT_STUDIO_ENVIRONMENT_PRESET_ID),
+          showBounds: showBoundsRef.current,
+          onStatus: (next) => setStatus(next || "就绪"),
+        });
         if (cancelled) {
           nextViewer.destroy();
           return;
@@ -60,12 +68,13 @@ export default function ModelEditorPage() {
         nextViewer.setBoundsVisible(showBoundsRef.current);
         setViewer(nextViewer);
         setGeometryStats(nextViewer.geometryStats);
-      })
-      .catch((error: unknown) => {
+      } catch (error: unknown) {
         if (!cancelled) {
           setViewerError(error instanceof Error ? error.message : "3D 视口初始化失败。");
         }
-      });
+      }
+    };
+    void start();
     return () => {
       cancelled = true;
       viewerRef.current?.destroy();

@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
+  disposeAnimationThumbnailStudio,
   ensureAnimationThumbnail,
   getAnimationThumbnail,
   subscribeAnimationThumbnails,
@@ -103,6 +104,12 @@ export default function AnimationLibraryPage() {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
   }, [searchInput]);
+
+  useEffect(() => {
+    return () => {
+      void disposeAnimationThumbnailStudio();
+    };
+  }, []);
 
   const groupCounts = useMemo(() => countBy(ANIMATION_LIBRARY, (entry) => entry.groupId), []);
   const classificationScopedEntries = useMemo(

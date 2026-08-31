@@ -8,6 +8,7 @@ import {
   DEFAULT_FOV,
   drawBlocking3dGroundGrid,
   loadAsset,
+  mountBlocking3dOffscreenCanvas,
   setEntityMaterial,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
@@ -28,7 +29,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v10";
+const STORAGE_KEY = "animation-library:thumbnails:v13";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -42,6 +43,9 @@ let studioPromise: Promise<{
   destroy: () => void;
 }> | null = null;
 let processing = false;
+let studioGeneration = 0;
+let pendingStudioDestroy: (() => void) | null = null;
+let processingPromise: Promise<void> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
 interface AnimTrackLike {
@@ -103,6 +107,26 @@ export function subscribeAnimationThumbnails(listener: Listener): () => void {
   return () => listeners.delete(listener);
 }
 
+/**
+ * 详情页使用自己的可见预览画布，不能与卡片缩略图同时占用一套 HDRI
+ * WebGL 资源。取消当前工作室后，回到动画库时会按当前卡片重新排队生成。
+ */
+export async function disposeAnimationThumbnailStudio(): Promise<void> {
+  const queueToWait = processingPromise;
+  studioGeneration += 1;
+  pendingEntries.clear();
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = null;
+  pendingStudioDestroy?.();
+  pendingStudioDestroy = null;
+  studio?.destroy();
+  studio = null;
+  studioPromise = null;
+  // Keep an in-flight process marked busy until it observes the generation
+  // change; that process will release the old handle and retry new entries.
+  if (queueToWait) await queueToWait;
+}
+
 function emitThumbnails(): void {
   for (const listener of listeners) listener();
 }
@@ -119,6 +143,19 @@ function scheduleIdleDestroy(): void {
   }, IDLE_DESTROY_MS);
 }
 
+function startProcessQueue(): void {
+  const queue = processQueue();
+  processingPromise = queue;
+  void queue.then(
+    () => {
+      if (processingPromise === queue) processingPromise = null;
+    },
+    () => {
+      if (processingPromise === queue) processingPromise = null;
+    },
+  );
+}
+
 /** 请求一张动画缩略图；已缓存返回 true，否则进入生成队列（完成后广播订阅者）。 */
 export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean {
   loadStorageCache();
@@ -129,7 +166,7 @@ export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean 
   }
   // A previous studio initialization may have rejected. Keep the entry
   // queued, but let a later request start a fresh initialization attempt.
-  if (!processing) void processQueue();
+  if (!processing) startProcessQueue();
   scheduleIdleDestroy();
   return false;
 }
@@ -137,24 +174,36 @@ export function ensureAnimationThumbnail(entry: AnimationLibraryEntry): boolean 
 async function processQueue(): Promise<void> {
   if (processing) return;
   processing = true;
+  const generation = studioGeneration;
   let active: Awaited<ReturnType<typeof createAnimationThumbnailStudio>>;
   try {
     if (!studioPromise) {
       studioPromise = createAnimationThumbnailStudio();
     }
     active = await studioPromise;
+    if (generation !== studioGeneration) {
+      active.destroy();
+      processing = false;
+      if (pendingEntries.size > 0) startProcessQueue();
+      return;
+    }
     studio = active;
   } catch {
     // Do not cache a rejected Promise forever. A later card request can retry
     // after WebGL, the browser, or the asset server becomes available again.
-    studioPromise = null;
+    if (generation === studioGeneration) studioPromise = null;
     processing = false;
-    scheduleIdleDestroy();
+    if (generation === studioGeneration) {
+      scheduleIdleDestroy();
+    } else if (pendingEntries.size > 0) {
+      startProcessQueue();
+    }
     return;
   }
 
   try {
     for (;;) {
+      if (generation !== studioGeneration) break;
       const next = pendingEntries.values().next();
       if (next.done) break;
       const entry = next.value;
@@ -172,6 +221,10 @@ async function processQueue(): Promise<void> {
   } finally {
     processing = false;
   }
+  if (generation !== studioGeneration) {
+    if (pendingEntries.size > 0) startProcessQueue();
+    return;
+  }
   scheduleIdleDestroy();
 }
 
@@ -187,14 +240,42 @@ async function createAnimationThumbnailStudio(): Promise<{
   const canvas = document.createElement("canvas");
   canvas.width = THUMBNAIL_SIZE.width;
   canvas.height = THUMBNAIL_SIZE.height;
+  const offscreenCanvasMount = mountBlocking3dOffscreenCanvas(
+    canvas,
+    THUMBNAIL_SIZE.width,
+    THUMBNAIL_SIZE.height,
+  );
   const app = new pc.Application(canvas, {
     graphicsDeviceOptions: { antialias: true, alpha: false, preserveDrawingBuffer: true },
   });
   app.setCanvasFillMode(pc.FILLMODE_NONE);
-  // 离屏画布不在 DOM 里：clientWidth 恒为 0，AUTO 分辨率会把画布清成 0×0；
-  // FIXED 模式必须显式带上宽高，让引擎直接设定绘图缓冲尺寸。
+  // 隐藏 DOM 容器负责提供正常布局；FIXED 模式仍显式带上宽高，避免
+  // 缩略图绘图缓冲尺寸受页面 CSS 或容器测量时机影响。
   app.setCanvasResolution(pc.RESOLUTION_FIXED, THUMBNAIL_SIZE.width, THUMBNAIL_SIZE.height);
   app.autoRender = false;
+
+  let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>> | null = null;
+  let asset: pc.Asset | null = null;
+  let destroyed = false;
+  let appDestroyed = false;
+  const destroy = () => {
+    destroyed = true;
+    if (asset) {
+      app.assets.remove(asset);
+      asset = null;
+    }
+    studioEnvironment?.destroy();
+    studioEnvironment = null;
+    if (appDestroyed) return;
+    appDestroyed = true;
+    pc.AppBase.cancelTick(app);
+    app.destroy();
+    offscreenCanvasMount();
+  };
+  // The environment and the shared animation GLB load asynchronously. Keep
+  // an early destroy handle so leaving the library can release the WebGL app
+  // even before processQueue receives the resolved studio handle.
+  pendingStudioDestroy = destroy;
 
   const cameraEntity = new pc.Entity("anim-thumb-camera");
   cameraEntity.addComponent("camera", {
@@ -209,146 +290,138 @@ async function createAnimationThumbnailStudio(): Promise<{
   );
   cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
-  // The shared environment builds its HDR projection/materials through the
-  // running PlayCanvas lifecycle. Initialise once before any asynchronous
-  // HDRI or GLB load, then drive this offscreen app manually below.
-  app.start();
-  pc.AppBase.cancelTick(app);
-  let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
+  // The shared environment builds its HDRI projection/materials through the
+  // running PlayCanvas lifecycle. Keep the RAF alive while asynchronous HDRI
+  // and GLB resources initialise; autoRender remains disabled, so capture is
+  // still explicitly controlled below.
   try {
-    studioEnvironment = await loadStudioEnvironment(app, undefined, {
+    app.start();
+    const loadedEnvironment = await loadStudioEnvironment(app, undefined, {
       enableShadowCatcher: false,
     });
-  } catch (error) {
-    app.destroy();
-    throw error;
-  }
-  if (!studioEnvironment.hasVisibleBackdrop) {
-    studioEnvironment.destroy();
-    app.destroy();
-    throw new Error("HDRI 场景环境加载失败。");
-  }
-  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
-  let asset: pc.Asset;
-  try {
-    asset = await loadAsset(app, ANIMATION_LIBRARY_FILE_URL, "container");
-  } catch (error) {
-    studioEnvironment.destroy();
-    app.destroy();
-    throw error;
-  }
-  const resource = asset.resource as ContainerResource | null;
-  if (!resource) {
-    app.assets.remove(asset);
-    studioEnvironment.destroy();
-    app.destroy();
-    throw new Error("动画文件里没有可显示的角色资源。");
-  }
-  const tracks = new Map<string, AnimTrackLike>();
-  for (const clipAsset of resource.animations ?? []) {
-    const track = clipAsset.resource as AnimTrackLike | null;
-    if (track && typeof track.name === "string") tracks.set(track.name, track);
-  }
+    if (destroyed) {
+      loadedEnvironment.destroy();
+      throw new Error("缩略图画布已销毁。");
+    }
+    studioEnvironment = loadedEnvironment;
+    if (!studioEnvironment.hasVisibleBackdrop) {
+      throw new Error("HDRI 场景环境加载失败。");
+    }
+    const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
+    const loadedAsset = await loadAsset(app, ANIMATION_LIBRARY_FILE_URL, "container");
+    if (destroyed) {
+      app.assets.remove(loadedAsset);
+      throw new Error("缩略图画布已销毁。");
+    }
+    asset = loadedAsset;
+    const resource = asset.resource as ContainerResource | null;
+    if (!resource) throw new Error("动画文件里没有可显示的角色资源。");
+    const tracks = new Map<string, AnimTrackLike>();
+    for (const clipAsset of resource.animations ?? []) {
+      const track = clipAsset.resource as AnimTrackLike | null;
+      if (track && typeof track.name === "string") tracks.set(track.name, track);
+    }
 
-  const frame = (centerY: number, radius: number) => {
-    const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
-    const distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
-    const azim = -35 * pc.math.DEG_TO_RAD;
-    const elev = -18 * pc.math.DEG_TO_RAD;
-    const target = new pc.Vec3(0, centerY, 0);
-    cameraEntity.setPosition(
-      target.x + Math.sin(azim) * Math.cos(elev) * distance,
-      target.y + Math.sin(-elev) * distance,
-      target.z + Math.cos(azim) * Math.cos(elev) * distance,
-    );
-    cameraEntity.lookAt(target);
-  };
+    const frame = (centerY: number, radius: number) => {
+      const fovRad = DEFAULT_FOV * pc.math.DEG_TO_RAD;
+      const distance = clamp((Math.max(radius, 0.25) / Math.sin(fovRad / 2)) * 1.3, 0.35, 60);
+      const azim = -35 * pc.math.DEG_TO_RAD;
+      const elev = -18 * pc.math.DEG_TO_RAD;
+      const target = new pc.Vec3(0, centerY, 0);
+      cameraEntity.setPosition(
+        target.x + Math.sin(azim) * Math.cos(elev) * distance,
+        target.y + Math.sin(-elev) * distance,
+        target.z + Math.cos(azim) * Math.cos(elev) * distance,
+      );
+      cameraEntity.lookAt(target);
+    };
 
-  const drawFrame = () => {
-    drawBlocking3dGroundGrid(app, gridLines);
-    app.render();
-  };
+    const drawFrame = () => {
+      drawBlocking3dGroundGrid(app, gridLines);
+      app.render();
+    };
 
-  let destroyed = false;
-  const advanceFrame = async () => {
-    await nextFrame();
-    if (destroyed) throw new Error("缩略图画布已销毁。");
-    app.update(1 / 60);
-  };
-
-  return {
-    async render(entry) {
+    const advanceFrame = async () => {
+      await nextFrame();
       if (destroyed) throw new Error("缩略图画布已销毁。");
-      let model: pc.Entity | null = null;
-      try {
-        model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
-        if (!model) throw new Error("动作文件里没有可显示的角色。");
-        setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
-        model.addComponent("anim", { activate: true });
-        const anim = model.anim as unknown as AnimComponentLike | undefined;
-        if (!anim) throw new Error("角色缺少可用的动作组件。");
+    };
 
-        // 底部中心落到原点（按绑定姿态取景，动作姿态都在同一活动范围内）。
-        app.root.addChild(model);
-        app.root.syncHierarchy();
-        const bounds = computeSourceBounds(model);
-        let centerY = 0.9;
-        let radius = 1;
-        if (bounds) {
-          model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
-          centerY = bounds.halfExtents[1];
-          radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]);
-        }
+    const handle: {
+      render: (entry: AnimationLibraryEntry) => Promise<string>;
+      destroy: () => void;
+    } = {
+      async render(entry) {
+        if (destroyed) throw new Error("缩略图画布已销毁。");
+        let model: pc.Entity | null = null;
+        try {
+          model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
+          if (!model) throw new Error("动作文件里没有可显示的角色。");
+          setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
+          model.addComponent("anim", { activate: true });
+          const anim = model.anim as unknown as AnimComponentLike | undefined;
+          if (!anim) throw new Error("角色缺少可用的动作组件。");
 
-        const track = tracks.get(entry.clipName);
-        if (!track) throw new Error(`动作片段「${entry.clipName}」不在当前文件里。`);
-        anim.rootBone = model;
-        anim.assignAnimation(entry.clipName, track, 0, 1, true);
-        anim.playing = true;
-        anim.baseLayer?.play(entry.clipName);
+          // 底部中心落到原点（按绑定姿态取景，动作姿态都在同一活动范围内）。
+          app.root.addChild(model);
+          app.root.syncHierarchy();
+          const bounds = computeSourceBounds(model);
+          let centerY = 0.9;
+          let radius = 1;
+          if (bounds) {
+            model.setPosition(-bounds.center[0], -(bounds.center[1] - bounds.halfExtents[1]), -bounds.center[2]);
+            centerY = bounds.halfExtents[1];
+            radius = Math.hypot(bounds.halfExtents[0], bounds.halfExtents[1], bounds.halfExtents[2]);
+          }
 
-        // 先等一帧让片段状态建立，再按 GLB 实际采样率定位到最后一帧的 50%。
-        await advanceFrame();
-        const layer = anim.baseLayer;
-        const trackDuration =
-          typeof track.duration === "number" && Number.isFinite(track.duration)
-            ? track.duration
-            : entry.durationSeconds;
-        const durationSeconds = Math.max(
-          trackDuration,
-          typeof layer?.activeStateDuration === "number" ? layer.activeStateDuration : 0,
-          0,
-        );
-        const frameRate = inferAnimationFrameRate(track, entry.frameRate);
-        const previewFrame = getDefaultAnimationFrame(durationSeconds, frameRate);
-        anim.playing = false;
-        layer?.pause?.();
-        if (layer && typeof layer.activeStateCurrentTime === "number") {
-          layer.activeStateCurrentTime = frameToSeconds(
-            previewFrame,
-            frameRate,
-            durationSeconds,
+          const track = tracks.get(entry.clipName);
+          if (!track) throw new Error(`动作片段「${entry.clipName}」不在当前文件里。`);
+          anim.rootBone = model;
+          anim.assignAnimation(entry.clipName, track, 0, 1, true);
+          anim.playing = true;
+          anim.baseLayer?.play(entry.clipName);
+
+          // 先等一帧让片段状态建立，再按 GLB 实际采样率定位到最后一帧的 50%。
+          await advanceFrame();
+          const layer = anim.baseLayer;
+          const trackDuration =
+            typeof track.duration === "number" && Number.isFinite(track.duration)
+              ? track.duration
+              : entry.durationSeconds;
+          const durationSeconds = Math.max(
+            trackDuration,
+            typeof layer?.activeStateDuration === "number" ? layer.activeStateDuration : 0,
+            0,
           );
-        }
-        await advanceFrame();
+          const frameRate = inferAnimationFrameRate(track, entry.frameRate);
+          const previewFrame = getDefaultAnimationFrame(durationSeconds, frameRate);
+          anim.playing = false;
+          layer?.pause?.();
+          if (layer && typeof layer.activeStateCurrentTime === "number") {
+            layer.activeStateCurrentTime = frameToSeconds(
+              previewFrame,
+              frameRate,
+              durationSeconds,
+            );
+          }
+          await advanceFrame();
 
-        frame(centerY, radius);
-        drawFrame();
-        drawFrame();
-        const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
-        if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
-        return dataUrl;
-      } finally {
-        model?.destroy();
-      }
-    },
-    destroy() {
-      if (destroyed) return;
-      destroyed = true;
-      app.assets.remove(asset);
-      studioEnvironment.destroy();
-      pc.AppBase.cancelTick(app);
-      app.destroy();
-    },
-  };
+          frame(centerY, radius);
+          drawFrame();
+          drawFrame();
+          const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
+          if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
+          return dataUrl;
+        } finally {
+          model?.destroy();
+        }
+      },
+      destroy,
+    };
+    return handle;
+  } catch (error) {
+    destroy();
+    throw error;
+  } finally {
+    if (pendingStudioDestroy === destroy) pendingStudioDestroy = null;
+  }
 }

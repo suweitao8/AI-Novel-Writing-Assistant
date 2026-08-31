@@ -410,6 +410,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     // 加载失败时不能把 WebGL 上下文留在页面上。
     destroyed = true;
     disposeStudioEnvironment();
+    pc.AppBase.cancelTick(app);
     app.destroy();
     throw error;
   }
@@ -419,6 +420,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
     app.assets.remove(asset);
     destroyed = true;
     disposeStudioEnvironment();
+    pc.AppBase.cancelTick(app);
     app.destroy();
     throw new Error("模型文件里没有可显示的网格。");
   }
@@ -620,6 +622,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
       window.removeEventListener("blur", onBlur);
       modelRoot.destroy();
       disposeStudioEnvironment();
+      pc.AppBase.cancelTick(app);
       app.destroy();
     },
   };

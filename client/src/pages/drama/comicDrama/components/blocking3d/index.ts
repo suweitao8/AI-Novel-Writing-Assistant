@@ -48,6 +48,7 @@ export {
   createVisibleHdriCubemap,
 } from "./blocking3dViewerCore";
 export { createProjectedHdriMaterial } from "./blocking3dEnvironmentProjection";
+export { mountBlocking3dOffscreenCanvas } from "./blocking3dOffscreenCanvas";
 export type { ProjectedHdriMaterialSettings } from "./blocking3dEnvironmentProjection";
 export {
   buildBlocking3dGroundGridLines,

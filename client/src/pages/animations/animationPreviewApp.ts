@@ -122,6 +122,30 @@ const DEFAULT_VIEW = { azim: -35, elev: -12 } as const;
 export function openAnimationPreview(
   options: AnimationPreviewOptions,
 ): AnimationPreviewHandle {
+  let cancelled = false;
+  let innerHandle: AnimationPreviewHandle | null = null;
+  const ready = (async () => {
+    // React StrictMode may clean up the first effect before the next
+    // microtask. Defer Application construction itself, not only resource
+    // loading, so the cancelled instance never creates a second WebGL context.
+    await Promise.resolve();
+    if (cancelled) throw new Error("预览已关闭。");
+    innerHandle = createAnimationPreviewHandle(options);
+    return innerHandle.ready;
+  })();
+
+  return {
+    ready: ready.then((nextReady) => nextReady),
+    cancel() {
+      cancelled = true;
+      innerHandle?.cancel();
+    },
+  };
+}
+
+function createAnimationPreviewHandle(
+  options: AnimationPreviewOptions,
+): AnimationPreviewHandle {
   const { canvas } = options;
   const app = new pc.Application(canvas, {
     mouse: new pc.Mouse(canvas),
@@ -285,6 +309,7 @@ export function openAnimationPreview(
     studioEnvironment?.destroy();
     studioEnvironment = null;
     characterRoot.destroy();
+    pc.AppBase.cancelTick(app);
     app.destroy();
   };
 
@@ -298,6 +323,12 @@ export function openAnimationPreview(
 
   const ready = (async (): Promise<AnimationPreview> => {
     try {
+      // React StrictMode mounts an effect, cleans it up, then mounts it again
+      // before the next microtask. Yield once so a synchronously cancelled
+      // instance never starts an HDRI/GLB request after its WebGL app has
+      // already been destroyed.
+      await Promise.resolve();
+      if (destroyed) throw new Error("预览已关闭。");
       const assetPromise = loadAsset(app, options.glbUrl, "container");
       const environmentPromise = loadStudioEnvironment(app);
       const [assetResult, environmentResult] = await Promise.allSettled([

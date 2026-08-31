@@ -25,7 +25,7 @@ import {
   type AnimationKeyframe,
 } from "./animationPreviewStorage";
 import {
-  ensureAnimationThumbnail,
+  disposeAnimationThumbnailStudio,
   getAnimationThumbnail,
   subscribeAnimationThumbnails,
 } from "./animationThumbnailStudio";
@@ -71,7 +71,6 @@ export default function AnimationPreviewPage() {
       if (changedId === entry.id) syncPreviewImages();
     });
     const unsubscribeThumbnails = subscribeAnimationThumbnails(syncPreviewImages);
-    if (!getAnimationKeyframe(entry.id, entry.frameRate)) ensureAnimationThumbnail(entry);
     setCurrentFrame(getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate));
     setFrameCount(getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
     setFrameRate(entry.frameRate);
@@ -92,48 +91,74 @@ export default function AnimationPreviewPage() {
     setViewerError(null);
     setStatus("正在加载动作与 HDR 场景");
 
-    const handle = openAnimationPreview({
-      canvas,
-      glbUrl: entry.fileUrl,
-      clipName: entry.clipName,
-      initialFrame: initialKeyframe?.frame,
-      frameRateHint: entry.frameRate,
-      onStatus: (next) => setStatus(next || "就绪"),
-      onFrameChange: (nextFrame, nextFrameCount, nextFrameRate, nextPlaying) => {
+    let handle: ReturnType<typeof openAnimationPreview> | null = null;
+    const start = async () => {
+      try {
+        // 先等缩略图工作室完整结束，避免旧的离屏 HDRI 应用和当前可见
+        // 预览同时销毁/编译 PlayCanvas 资源。
+        await disposeAnimationThumbnailStudio();
+        // React StrictMode 会在同一个同步窗口内清理第一轮 effect；再让出
+        // 一个微任务，确保已取消的实例不会创建 WebGL 应用。
+        await Promise.resolve();
         if (cancelled) return;
-        setCurrentFrame(nextFrame);
-        setFrameCount(nextFrameCount || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
-        setFrameRate(nextFrameRate || entry.frameRate);
-        setPlaying(nextPlaying);
-      },
-      onError: (message) => {
-        if (!cancelled) toast.error("动作预览失败", { description: message });
-      },
-    });
+        handle = openAnimationPreview({
+          canvas,
+          glbUrl: entry.fileUrl,
+          clipName: entry.clipName,
+          initialFrame: initialKeyframe?.frame,
+          frameRateHint: entry.frameRate,
+          onStatus: (next) => setStatus(next || "就绪"),
+          onFrameChange: (nextFrame, nextFrameCount, nextFrameRate, nextPlaying) => {
+            if (cancelled) return;
+            setCurrentFrame(nextFrame);
+            setFrameCount(nextFrameCount || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
+            setFrameRate(nextFrameRate || entry.frameRate);
+            setPlaying(nextPlaying);
+          },
+          onError: (message) => {
+            if (!cancelled) toast.error("动作预览失败", { description: message });
+          },
+        });
 
-    handle.ready
-      .then((nextViewer) => {
-        if (cancelled) {
-          nextViewer.destroy();
-          return;
-        }
-        viewerRef.current = nextViewer;
-        setViewer(nextViewer);
-        setFrameCount(nextViewer.getFrameCount() || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
-        setFrameRate(nextViewer.getFrameRate() || entry.frameRate);
-        setCurrentFrame(nextViewer.getFrame());
-        setPlaying(nextViewer.isPlaying());
-        setStatus("就绪");
-      })
-      .catch((error: unknown) => {
+        handle.ready
+          .then((nextViewer) => {
+            if (cancelled) {
+              nextViewer.destroy();
+              return;
+            }
+            if (!initialKeyframe) {
+              try {
+                // 详情页的默认预览图直接取自当前可见画布，避免沿用旧的
+                // 黑色/未完成缩略图缓存，也避免详情页再启动独立 HDRI 应用。
+                setAutomaticThumbnail(nextViewer.capturePreviewFrame());
+              } catch {
+                // 主预览已经就绪；缩略图只作为辅助预览，失败不影响查看器。
+              }
+            }
+            viewerRef.current = nextViewer;
+            setViewer(nextViewer);
+            setFrameCount(nextViewer.getFrameCount() || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
+            setFrameRate(nextViewer.getFrameRate() || entry.frameRate);
+            setCurrentFrame(nextViewer.getFrame());
+            setPlaying(nextViewer.isPlaying());
+            setStatus("就绪");
+          })
+          .catch((error: unknown) => {
+            if (cancelled) return;
+            setStatus("");
+            setViewerError(error instanceof Error ? error.message : "3D 预览初始化失败。");
+          });
+      } catch (error: unknown) {
         if (cancelled) return;
         setStatus("");
         setViewerError(error instanceof Error ? error.message : "3D 预览初始化失败。");
-      });
+      }
+    };
+    void start();
 
     return () => {
       cancelled = true;
-      handle.cancel();
+      handle?.cancel();
       viewerRef.current = null;
       setViewer(null);
     };
@@ -175,8 +200,16 @@ export default function AnimationPreviewPage() {
   const handleClearPreviewFrame = () => {
     clearAnimationKeyframe(entry.id);
     setKeyframe(null);
-    setAutomaticThumbnail(getAnimationThumbnail(entry.id));
-    ensureAnimationThumbnail(entry);
+    let nextAutomaticThumbnail: string | null = null;
+    if (viewerRef.current) {
+      try {
+        nextAutomaticThumbnail = viewerRef.current.capturePreviewFrame();
+      } catch {
+        // 预览画布正在切换时保留空状态，下一次进入会重新从主画布生成。
+      }
+    }
+    if (!nextAutomaticThumbnail) nextAutomaticThumbnail = getAnimationThumbnail(entry.id);
+    setAutomaticThumbnail(nextAutomaticThumbnail);
     toast.success("已恢复默认预览图。", { description: "动画卡片会重新使用自动生成的画面。" });
   };
 
