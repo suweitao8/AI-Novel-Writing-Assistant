@@ -1,4 +1,5 @@
 import type { DramaShotBlockingSketchPose } from "@/api/media/drama";
+import { ANIMATION_CATALOG_ENTRIES } from "../../../../../config/animationCatalogEntries.ts";
 
 // 静态姿势按动作片段时长的比例取样：片段开头的过渡帧不稳定，默认取中段。
 // 仅当片段的稳定姿势不在中段时（如 LayToIdle 的躺姿在开头）单独指定比例。
@@ -8,15 +9,45 @@ export interface Blocking3dPoseClipConfig {
   names: readonly string[];
   sampleTimeRatio?: number;
 }
+
+const CATALOG_CLIP_NAMES = new Map<string, string>(
+  ANIMATION_CATALOG_ENTRIES.map((entry) => [entry.id, entry.clipName]),
+);
+
+function rootMotionClipNames(ids: readonly string[]): string[] {
+  return ids.map((id) => {
+    const clipName = CATALOG_CLIP_NAMES.get(id);
+    if (!clipName) throw new Error(`分镜姿势映射缺少动画目录条目：${id}`);
+    return clipName;
+  });
+}
+
 const POSE_CLIPS: Record<
   DramaShotBlockingSketchPose,
   Blocking3dPoseClipConfig
 > = {
-  // UAL2/Cine57 names come first. The legacy names stay as compatibility
-  // aliases for already-authored layouts and older proxy files.
-  standing: { names: ["A_INP_Idle", "Idle_Loop", "Idle_No_Loop", "A_TPose"] },
+  // 分镜优先使用策选清单中的 root-motion 片段；旧名称只作为已有布局和旧代理
+  // 文件的兼容别名。映射通过目录 ID 建立，避免凭字符串猜测 GLB 片段名。
+  standing: {
+    names: [
+      ...rootMotionClipNames([
+        "unreal-daily-male-locomotion-idle-break-01",
+        "unreal-daily-male-locomotion-idle-break-02",
+      ]),
+      "A_INP_Idle",
+      "Idle_Loop",
+      "Idle_No_Loop",
+      "A_TPose",
+    ],
+  },
   talking: {
     names: [
+      ...rootMotionClipNames([
+        "unreal-daily-dialogue-dialogue-idle",
+        "unreal-daily-dialogue-serious-idle",
+        "unreal-daily-dialogue-serious-talk",
+        "unreal-daily-dialogue-sad-talk",
+      ]),
       "Idle_Rail_Call",
       "Idle_Rail_Loop",
       "Idle_TalkingPhone_Loop",
@@ -33,8 +64,25 @@ const POSE_CLIPS: Record<
       "Sitting_Enter",
     ],
   },
-  crouching: { names: ["Crouch_Idle_Loop", "Crouch_Fwd_Loop"] },
-  kneeling: { names: ["Fixing_Kneeling"] },
+  crouching: {
+    names: [
+      ...rootMotionClipNames([
+        "unreal-daily-male-locomotion-crouch-forward",
+        "unreal-misc-scared-crouching-loop",
+      ]),
+      "Crouch_Idle_Loop",
+      "Crouch_Fwd_Loop",
+    ],
+  },
+  kneeling: {
+    names: [
+      ...rootMotionClipNames([
+        "unreal-misc-scared-knees-hands-head",
+        "unreal-misc-preacher-pray-ground",
+      ]),
+      "Fixing_Kneeling",
+    ],
+  },
   // LayToIdle 从躺姿过渡到站姿，躺姿只在片段开头；取中段会截到半起身动作。
   lying: { names: ["LayToIdle", "Death01"], sampleTimeRatio: 0.05 },
   // The published UAL2 file has no prone/crouch/kneeling/running clip. Keep
@@ -43,6 +91,10 @@ const POSE_CLIPS: Record<
   prone: { names: ["Prone_Idle_Loop"] },
   walking: {
     names: [
+      ...rootMotionClipNames([
+        "unreal-misc-clazy-walk-forward",
+        "unreal-daily-parkour-walk-in-place",
+      ]),
       "A_INP_WalkFwd_Loop",
       "Walk_Loop",
       "Walk_Formal_Loop",
@@ -50,13 +102,42 @@ const POSE_CLIPS: Record<
       "Zombie_Walk_Fwd_Loop",
     ],
   },
-  running: { names: ["Sprint_Loop", "Jog_Fwd_Loop"] },
-  pointing: {
-    names: ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"],
+  running: {
+    names: [
+      ...rootMotionClipNames([
+        "unreal-misc-clazy-jog-forward",
+        "unreal-daily-male-locomotion-jog-forward",
+        "unreal-daily-male-locomotion-run-forward",
+      ]),
+      "Sprint_Loop",
+      "Jog_Fwd_Loop",
+    ],
   },
-  holding: { names: ["Walk_Carry_Loop", "Idle_Lantern_Loop", "PickUp_Table"] },
+  pointing: {
+    names: [
+      ...rootMotionClipNames([
+        "unreal-daily-dialogue-serious-talk",
+        "unreal-daily-dialogue-laugh-gesture",
+      ]),
+      "OverhandThrow",
+      "Pistol_Aim_Neutral",
+      "Spell_Simple_Shoot",
+    ],
+  },
+  holding: {
+    names: [
+      ...rootMotionClipNames(["unreal-misc-preacher-walk-book"]),
+      "Walk_Carry_Loop",
+      "Idle_Lantern_Loop",
+      "PickUp_Table",
+    ],
+  },
   interacting: {
     names: [
+      ...rootMotionClipNames([
+        "unreal-interaction-activations-door-pull",
+        "unreal-interaction-activations-door-push",
+      ]),
       "Chest_Open",
       "Farm_Harvest",
       "Consume",
@@ -65,8 +146,22 @@ const POSE_CLIPS: Record<
       "Interact",
     ],
   },
-  fighting: { names: ["Melee_Hook", "Punch_Cross", "Punch_Jab"] },
-  sword: { names: ["Sword_Idle", "Sword_Block", "Sword_Regular_A"] },
+  fighting: {
+    names: [
+      ...rootMotionClipNames(["unreal-hand-combat-lucy-attack"]),
+      "Melee_Hook",
+      "Punch_Cross",
+      "Punch_Jab",
+    ],
+  },
+  sword: {
+    names: [
+      ...rootMotionClipNames(["unreal-weapon-combat-sword-pro-weak-attack"]),
+      "Sword_Idle",
+      "Sword_Block",
+      "Sword_Regular_A",
+    ],
+  },
 };
 
 const POSE_NAMES = Object.keys(POSE_CLIPS) as DramaShotBlockingSketchPose[];

@@ -4,14 +4,24 @@ import { ChevronLeft, ChevronRight, Loader2, Play, Search } from "lucide-react";
 
 import {
   ANIMATION_LIBRARY,
+  ANIMATION_LIBRARY_ACTION_TYPES,
   ANIMATION_LIBRARY_CLASSIFICATIONS,
   ANIMATION_LIBRARY_GROUPS,
+  ANIMATION_LIBRARY_POSTURES,
+  ANIMATION_LIBRARY_SCOPES,
+  ANIMATION_LIBRARY_WEAPONS,
   filterAnimationLibraryEntries,
+  type AnimationLibraryActionTypeId,
   type AnimationLibraryClassificationId,
   type AnimationLibraryEntry,
   type AnimationLibraryGroupId,
+  type AnimationLibraryPosture,
+  type AnimationLibraryScopeId,
+  type AnimationLibraryWeaponType,
 } from "@/config/animationLibrary";
 import { getAnimationFrameCount } from "./animationFrame";
+import SelectControl from "@/components/common/SelectControl";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -72,7 +82,12 @@ function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
         </span>
       </div>
       <div className="px-1.5 py-1.5">
-        <div className="truncate text-[11px] text-foreground">{entry.name}</div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <div className="min-w-0 flex-1 truncate text-[11px] text-foreground">{entry.name}</div>
+          <Badge variant={entry.rootMotion ? "default" : "outline"} className="shrink-0 px-1.5 py-0 text-[9px]">
+            {entry.rootMotion ? "分镜可用" : "兼容动画"}
+          </Badge>
+        </div>
         <div className="truncate text-[10px] text-muted-foreground">
           {entry.packLabel} · {entry.classificationLabel} · {entry.postureLabel} · 共 {getAnimationFrameCount(entry.durationSeconds, entry.frameRate)} 帧
         </div>
@@ -91,10 +106,15 @@ function countBy<T extends string>(
 }
 
 export default function AnimationLibraryPage() {
+  const [scope, setScope] = useState<AnimationLibraryScopeId>("storyboard");
   const [groupId, setGroupId] = useState<AnimationLibraryGroupId | "all">("all");
+  const [packId, setPackId] = useState<string>("all");
+  const [actionType, setActionType] = useState<AnimationLibraryActionTypeId | "all">("all");
   const [classificationId, setClassificationId] = useState<
     AnimationLibraryClassificationId | "all"
   >("all");
+  const [posture, setPosture] = useState<AnimationLibraryPosture | "all">("all");
+  const [weaponType, setWeaponType] = useState<AnimationLibraryWeaponType | "all">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -104,10 +124,47 @@ export default function AnimationLibraryPage() {
     return () => window.clearTimeout(timer);
   }, [searchInput]);
 
-  const groupCounts = useMemo(() => countBy(ANIMATION_LIBRARY, (entry) => entry.groupId), []);
+  const scopedEntries = useMemo(
+    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { scope, query: search }),
+    [scope, search],
+  );
+  const groupCounts = useMemo(() => countBy(scopedEntries, (entry) => entry.groupId), [scopedEntries]);
+  const visibleGroups = useMemo(
+    () => ANIMATION_LIBRARY_GROUPS.filter((group) => groupCounts.has(group.id)),
+    [groupCounts],
+  );
+  const availablePackEntries = useMemo(
+    () =>
+      filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+        scope,
+        groupId,
+        actionType,
+        posture,
+        weaponType,
+        query: search,
+      }),
+    [actionType, groupId, posture, scope, search, weaponType],
+  );
+  const availablePacks = useMemo(() => {
+    const seen = new Set<string>();
+    return availablePackEntries.filter((entry) => {
+      if (seen.has(entry.packId)) return false;
+      seen.add(entry.packId);
+      return true;
+    });
+  }, [availablePackEntries]);
   const classificationScopedEntries = useMemo(
-    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { groupId, query: search }),
-    [groupId, search],
+    () =>
+      filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+        scope,
+        groupId,
+        packId,
+        actionType,
+        posture,
+        weaponType,
+        query: search,
+      }),
+    [actionType, groupId, packId, posture, scope, search, weaponType],
   );
   const classificationCounts = useMemo(
     () => countBy(classificationScopedEntries, (entry) => entry.classificationId),
@@ -116,16 +173,31 @@ export default function AnimationLibraryPage() {
   const entries = useMemo(
     () =>
       filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+        scope,
         groupId,
+        packId,
+        actionType,
         classificationId,
+        posture,
+        weaponType,
         query: search,
       }),
-    [classificationId, groupId, search],
+    [actionType, classificationId, groupId, packId, posture, scope, search, weaponType],
   );
 
   useEffect(() => {
     setPage(1);
-  }, [classificationId, groupId, searchInput]);
+  }, [actionType, classificationId, groupId, packId, posture, scope, searchInput, weaponType]);
+
+  useEffect(() => {
+    if (groupId !== "all" && !groupCounts.has(groupId)) setGroupId("all");
+  }, [groupCounts, groupId]);
+
+  useEffect(() => {
+    if (packId !== "all" && !availablePacks.some((entry) => entry.packId === packId)) {
+      setPackId("all");
+    }
+  }, [availablePacks, packId]);
 
   useEffect(() => {
     if (classificationId !== "all" && !classificationCounts.has(classificationId)) {
@@ -141,11 +213,23 @@ export default function AnimationLibraryPage() {
   const pageStart = (page - 1) * PAGE_SIZE;
   const pageEntries = entries.slice(pageStart, pageStart + PAGE_SIZE);
   const hasActiveFilters =
-    groupId !== "all" || classificationId !== "all" || searchInput.trim().length > 0;
+    scope !== "storyboard" ||
+    groupId !== "all" ||
+    packId !== "all" ||
+    actionType !== "all" ||
+    classificationId !== "all" ||
+    posture !== "all" ||
+    weaponType !== "all" ||
+    searchInput.trim().length > 0;
 
   const resetFilters = () => {
+    setScope("storyboard");
     setGroupId("all");
+    setPackId("all");
+    setActionType("all");
     setClassificationId("all");
+    setPosture("all");
+    setWeaponType("all");
     setSearchInput("");
     setSearch("");
     setPage(1);
@@ -173,7 +257,7 @@ export default function AnimationLibraryPage() {
           />
         </label>
         <span className="text-xs text-muted-foreground" aria-live="polite">
-          {entries.length} / {ANIMATION_LIBRARY.length}
+          {entries.length} / {scopedEntries.length}
         </span>
         {hasActiveFilters ? (
           <button
@@ -189,17 +273,57 @@ export default function AnimationLibraryPage() {
 
       <section
         aria-label="动画来源与细分类"
-        className="space-y-1 rounded-xl border border-border bg-card p-1"
+        className="space-y-2 rounded-xl border border-border bg-card p-2"
         data-animation-category-table
         data-animation-group-filter
       >
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2" data-animation-scope-filter>
+          <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">用途</span>
+          <Tabs
+            value={scope}
+            onValueChange={(value) => {
+              setScope(value as AnimationLibraryScopeId);
+              setGroupId("all");
+              setPackId("all");
+              setActionType("all");
+              setClassificationId("all");
+              setPosture("all");
+              setWeaponType("all");
+            }}
+            className="min-w-0 flex-1"
+          >
+            <TabsList className="h-8 w-full flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 whitespace-nowrap">
+              {ANIMATION_LIBRARY_SCOPES.map((scopeOption) => (
+                <TabsTrigger
+                  key={scopeOption.id}
+                  value={scopeOption.id}
+                  className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                  data-animation-scope={scopeOption.id}
+                >
+                  {scopeOption.label} <span className="text-[10px] opacity-75">
+                    {scopeOption.id === "storyboard"
+                      ? ANIMATION_LIBRARY.filter((entry) => entry.rootMotion).length
+                      : scopeOption.id === "compatibility"
+                        ? ANIMATION_LIBRARY.filter((entry) => !entry.rootMotion).length
+                        : ANIMATION_LIBRARY.length}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <div className="flex min-w-0 items-center gap-2 border-t border-border/60 pt-1" data-animation-group-filter-row>
           <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">来源</span>
           <Tabs
             value={groupId}
             onValueChange={(value) => {
               setGroupId(value as AnimationLibraryGroupId | "all");
+              setPackId("all");
+              setActionType("all");
               setClassificationId("all");
+              setPosture("all");
+              setWeaponType("all");
             }}
             className="min-w-0 flex-1"
           >
@@ -209,9 +333,9 @@ export default function AnimationLibraryPage() {
                 className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 data-animation-group="all"
               >
-                全部 <span className="text-[10px] opacity-75">{ANIMATION_LIBRARY.length}</span>
+                全部 <span className="text-[10px] opacity-75">{scopedEntries.length}</span>
               </TabsTrigger>
-              {ANIMATION_LIBRARY_GROUPS.map((group) => (
+              {visibleGroups.map((group) => (
                 <TabsTrigger
                   key={group.id}
                   value={group.id}
@@ -266,6 +390,81 @@ export default function AnimationLibraryPage() {
                 </button>
               ),
             )}
+          </div>
+        </div>
+
+        <div
+          className="grid grid-cols-2 gap-2 border-t border-border/60 pt-2 md:grid-cols-4"
+          aria-label="动画套装、动作、姿态与武器筛选"
+          data-animation-detail-filters
+        >
+          <div className="min-w-0 space-y-1 text-[11px] text-muted-foreground" data-animation-pack-filter>
+            <label htmlFor="animation-library-pack" className="block">套装</label>
+            <SelectControl
+              id="animation-library-pack"
+              aria-label="按套装筛选"
+              className="h-8 w-full rounded-lg border-border/60 bg-background px-2 text-xs"
+              value={packId}
+              onChange={(event) => setPackId(event.target.value || "all")}
+            >
+              <option value="all">全部套装</option>
+              {availablePacks.map((entry) => (
+                <option key={entry.packId} value={entry.packId}>
+                  {entry.packLabel}
+                </option>
+              ))}
+            </SelectControl>
+          </div>
+          <div className="min-w-0 space-y-1 text-[11px] text-muted-foreground" data-animation-action-filter>
+            <label htmlFor="animation-library-action" className="block">动作</label>
+            <SelectControl
+              id="animation-library-action"
+              aria-label="按动作类型筛选"
+              className="h-8 w-full rounded-lg border-border/60 bg-background px-2 text-xs"
+              value={actionType}
+              onChange={(event) => setActionType(event.target.value as AnimationLibraryActionTypeId | "all")}
+            >
+              <option value="all">全部动作</option>
+              {ANIMATION_LIBRARY_ACTION_TYPES.map((action) => (
+                <option key={action.id} value={action.id}>
+                  {action.label}
+                </option>
+              ))}
+            </SelectControl>
+          </div>
+          <div className="min-w-0 space-y-1 text-[11px] text-muted-foreground" data-animation-posture-filter>
+            <label htmlFor="animation-library-posture" className="block">姿态</label>
+            <SelectControl
+              id="animation-library-posture"
+              aria-label="按姿态筛选"
+              className="h-8 w-full rounded-lg border-border/60 bg-background px-2 text-xs"
+              value={posture}
+              onChange={(event) => setPosture(event.target.value as AnimationLibraryPosture | "all")}
+            >
+              <option value="all">全部姿态</option>
+              {ANIMATION_LIBRARY_POSTURES.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectControl>
+          </div>
+          <div className="min-w-0 space-y-1 text-[11px] text-muted-foreground" data-animation-weapon-filter>
+            <label htmlFor="animation-library-weapon" className="block">武器</label>
+            <SelectControl
+              id="animation-library-weapon"
+              aria-label="按武器类型筛选"
+              className="h-8 w-full rounded-lg border-border/60 bg-background px-2 text-xs"
+              value={weaponType}
+              onChange={(event) => setWeaponType(event.target.value as AnimationLibraryWeaponType | "all")}
+            >
+              <option value="all">全部武器</option>
+              {ANIMATION_LIBRARY_WEAPONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectControl>
           </div>
         </div>
 

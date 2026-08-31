@@ -294,10 +294,12 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.match(pageSource, /data-animation-group-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /data-animation-scope-filter/);
+  assert.match(pageSource, /data-animation-detail-filters/);
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /data-animation-pagination/);
-  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /<Select/);
+  assert.match(pageSource, /data-animation-pack-filter/);
+  assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);

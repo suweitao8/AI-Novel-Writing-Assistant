@@ -13,12 +13,12 @@ test("动画目录明确区分旧动画、UE 源组和独立套装", () => {
   assert.deepEqual(
     ANIMATION_LIBRARY_GROUPS.map(({ id }) => id),
     [
-      "legacy",
       "unreal-daily",
       "unreal-interaction",
       "unreal-misc",
       "unreal-hand-combat",
       "unreal-weapon-combat",
+      "legacy",
     ],
   );
   assert.ok(ANIMATION_LIBRARY.some((entry) => entry.source === "legacy"));
