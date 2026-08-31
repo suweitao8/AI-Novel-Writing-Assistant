@@ -162,14 +162,17 @@ test("模型缩略图工作室初始化失败后允许后续请求重试", () =>
 });
 
 test("离开模型库时可立即销毁仍在初始化的 HDRI 缩略图应用", () => {
-  assert.match(THUMBNAIL_SOURCE, /export async function disposeThumbnailStudio/);
+  assert.match(THUMBNAIL_SOURCE, /export function disposeThumbnailStudio/);
   assert.match(THUMBNAIL_SOURCE, /let pendingStudioDestroy: \(\(\) => void\) \| null = null/);
   assert.match(THUMBNAIL_SOURCE, /pendingStudioDestroy\?\.\(\)/);
   assert.match(THUMBNAIL_SOURCE, /pendingStudioDestroy = destroy/);
-  assert.match(THUMBNAIL_SOURCE, /let processingPromise: Promise<void> \| null = null/);
-  assert.match(THUMBNAIL_SOURCE, /const queueToWait = processingPromise/);
-  assert.match(MODEL_EDITOR_SOURCE, /await disposeThumbnailStudio\(\)/);
-  const disposeIndex = MODEL_EDITOR_SOURCE.indexOf("await disposeThumbnailStudio()");
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /processingPromise/);
+  const disposeStartIndex = THUMBNAIL_SOURCE.indexOf("export function disposeThumbnailStudio");
+  const disposeEndIndex = THUMBNAIL_SOURCE.indexOf("function emitThumbnails", disposeStartIndex);
+  const disposeSource = THUMBNAIL_SOURCE.slice(disposeStartIndex, disposeEndIndex);
+  assert.doesNotMatch(disposeSource, /queueToWait|await/);
+  assert.match(MODEL_EDITOR_SOURCE, /disposeThumbnailStudio\(\)/);
+  const disposeIndex = MODEL_EDITOR_SOURCE.indexOf("disposeThumbnailStudio()");
   const createViewerIndex = MODEL_EDITOR_SOURCE.indexOf("createModelViewer(");
   assert.ok(disposeIndex >= 0 && createViewerIndex > disposeIndex);
 });
@@ -179,6 +182,18 @@ test("离开模型库列表时释放缩略图 HDRI 工作室", () => {
     MODEL_LIBRARY_SOURCE,
     /useEffect\(\(\) => \{\s*return \(\) => \{\s*void disposeThumbnailStudio\(\);/,
   );
+});
+
+test("模型详情启动不等待缩略图处理 Promise", () => {
+  const disposeStartIndex = THUMBNAIL_SOURCE.indexOf("export function disposeThumbnailStudio");
+  const disposeEndIndex = THUMBNAIL_SOURCE.indexOf("function emitThumbnails", disposeStartIndex);
+  const disposeSource = THUMBNAIL_SOURCE.slice(disposeStartIndex, disposeEndIndex);
+
+  assert.ok(disposeStartIndex >= 0 && disposeEndIndex > disposeStartIndex, "必须能定位缩略图释放函数");
+  assert.doesNotMatch(disposeSource, /queueToWait|await/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /processingPromise/);
+  assert.doesNotMatch(MODEL_EDITOR_SOURCE, /await disposeThumbnailStudio\(\)/);
+  assert.match(MODEL_EDITOR_SOURCE, /disposeThumbnailStudio\(\)/);
 });
 
 test("模型卡片缩略图只保留模型、HDRI 和投影阴影，不绘制编辑器网格", () => {

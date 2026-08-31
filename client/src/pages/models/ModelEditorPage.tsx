@@ -46,7 +46,7 @@ export default function ModelEditorPage() {
       // React StrictMode 会在同一个同步窗口内执行一次 effect 清理和重建。
       // 先跨过这个窗口，避免第一实例已经被清理后仍创建 WebGL 应用并抢占
       // 同一画布的 HDRI 上下文。
-      await disposeThumbnailStudio();
+      disposeThumbnailStudio();
       await Promise.resolve();
       if (cancelled) return;
       try {

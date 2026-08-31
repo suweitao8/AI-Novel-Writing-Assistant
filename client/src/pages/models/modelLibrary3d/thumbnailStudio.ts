@@ -48,7 +48,6 @@ let studioPromise: Promise<{
 let processing = false;
 let studioGeneration = 0;
 let pendingStudioDestroy: (() => void) | null = null;
-let processingPromise: Promise<void> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
 const nextFrame = () =>
@@ -96,8 +95,10 @@ export function subscribeThumbnails(listener: Listener): () => void {
  * 模型详情页使用自己的可见预览画布，不能与卡片缩略图同时占用一套 HDRI
  * WebGL 资源。取消当前工作室后，回到模型库时会按当前卡片重新排队生成。
  */
-export async function disposeThumbnailStudio(): Promise<void> {
-  const queueToWait = processingPromise;
+export function disposeThumbnailStudio(): void {
+  // 释放缩略图工作室必须在路由切换时立即完成。当前 render Promise 会在
+  // generation 失效后自行收束；详情页不能为了等待一个已销毁的后台任务而
+  // 阻塞可见 3D 查看器的启动。
   studioGeneration += 1;
   pendingEntries.clear();
   if (idleTimer) clearTimeout(idleTimer);
@@ -107,7 +108,6 @@ export async function disposeThumbnailStudio(): Promise<void> {
   studio?.destroy();
   studio = null;
   studioPromise = null;
-  if (queueToWait) await queueToWait;
 }
 
 function emitThumbnails(): void {
@@ -127,16 +127,7 @@ function scheduleIdleDestroy(): void {
 }
 
 function startProcessQueue(): void {
-  const queue = processQueue();
-  processingPromise = queue;
-  void queue.then(
-    () => {
-      if (processingPromise === queue) processingPromise = null;
-    },
-    () => {
-      if (processingPromise === queue) processingPromise = null;
-    },
-  );
+  void processQueue();
 }
 
 /** 请求一张缩略图；已缓存返回 true，否则进入生成队列（完成后广播订阅者）。 */
