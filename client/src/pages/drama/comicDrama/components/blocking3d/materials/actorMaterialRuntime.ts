@@ -11,6 +11,7 @@ export {
   BLOCKING_3D_ACTOR_JOINT_HIGHLIGHT_RATIO,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
   BLOCKING_3D_JOINT_MATERIAL_NAME,
+  BLOCKING_3D_NECK_MATERIAL_NAME,
   getBlocking3dActorJointColor,
   getBlocking3dActorMaterialRole,
 } from "./actorMaterialPolicy.ts";
@@ -56,7 +57,7 @@ function applyMaterialToMesh(
     role = getBlocking3dActorMaterialRole(mesh.material?.name);
     MATERIAL_ROLE_BY_MESH.set(mesh, role);
   }
-  mesh.material = role === "joints" ? jointMaterial : material;
+  mesh.material = role === "main" ? material : jointMaterial;
 }
 
 export function setEntityMaterial(
