@@ -77,6 +77,18 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
       className="group block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/60"
       data-model-card={entry.id}
       title={`打开 ${entry.name} 的 3D 编辑`}
+      onClick={(event) => {
+        if (
+          event.button === 0 &&
+          !event.metaKey &&
+          !event.ctrlKey &&
+          !event.shiftKey &&
+          !event.altKey
+        ) {
+          // 在路由切换前抢占缩略图后台工作，避免点击后仍由离屏渲染占用主线程。
+          disposeThumbnailStudio();
+        }
+      }}
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {thumbnail ? (

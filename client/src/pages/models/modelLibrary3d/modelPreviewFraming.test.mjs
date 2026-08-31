@@ -184,6 +184,17 @@ test("离开模型库列表时释放缩略图 HDRI 工作室", () => {
   );
 });
 
+test("模型卡片普通点击导航前同步释放缩略图工作室", () => {
+  const cardStartIndex = MODEL_LIBRARY_SOURCE.indexOf("<Link");
+  const cardEndIndex = MODEL_LIBRARY_SOURCE.indexOf("</Link>", cardStartIndex);
+  const cardLinkSource = MODEL_LIBRARY_SOURCE.slice(cardStartIndex, cardEndIndex);
+
+  assert.ok(cardStartIndex >= 0 && cardEndIndex > cardStartIndex, "必须能定位模型卡片链接");
+  assert.match(cardLinkSource, /onClick=\{\(event\) => \{/);
+  assert.match(cardLinkSource, /event\.button === 0/);
+  assert.match(cardLinkSource, /disposeThumbnailStudio\(\)/);
+});
+
 test("模型详情启动不等待缩略图处理 Promise", () => {
   const disposeStartIndex = THUMBNAIL_SOURCE.indexOf("export function disposeThumbnailStudio");
   const disposeEndIndex = THUMBNAIL_SOURCE.indexOf("function emitThumbnails", disposeStartIndex);
