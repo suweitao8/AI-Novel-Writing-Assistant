@@ -49,6 +49,8 @@ let processing = false;
 let studioGeneration = 0;
 let pendingStudioDestroy: (() => void) | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
+let cachePersistIdleId: number | null = null;
+let cachePersistTimer: number | null = null;
 
 const nextFrame = () =>
   new Promise<void>((resolve) => {
@@ -78,6 +80,23 @@ function persistCache(): void {
   } catch {
     // 超出配额等场景直接放弃持久化，内存缓存仍然生效。
     storageEnabled = false;
+  }
+}
+
+function scheduleCachePersist(): void {
+  if (!storageEnabled || cachePersistIdleId !== null || cachePersistTimer !== null) return;
+  const flush = () => {
+    cachePersistIdleId = null;
+    cachePersistTimer = null;
+    persistCache();
+  };
+  const idleWindow = window as Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout?: number }) => number;
+  };
+  if (typeof idleWindow.requestIdleCallback === "function") {
+    cachePersistIdleId = idleWindow.requestIdleCallback(flush, { timeout: 1000 });
+  } else {
+    cachePersistTimer = window.setTimeout(flush, 250);
   }
 }
 
@@ -142,6 +161,10 @@ export function ensureThumbnail(entry: ModelLibraryEntry): boolean {
   return false;
 }
 
+export function cancelThumbnail(id: string): void {
+  pendingEntries.delete(id);
+}
+
 async function processQueue(): Promise<void> {
   if (processing) return;
   processing = true;
@@ -182,7 +205,7 @@ async function processQueue(): Promise<void> {
       try {
         const dataUrl = await active.render(entry);
         memoryCache.set(entry.id, dataUrl);
-        persistCache();
+        scheduleCachePersist();
         emitThumbnails();
       } catch {
         // 单个模型生成失败只影响自己，卡片保持占位图标。
