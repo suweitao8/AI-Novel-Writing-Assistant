@@ -175,6 +175,8 @@ export default function AnimationPreviewPage() {
   const handleClearPreviewFrame = () => {
     clearAnimationKeyframe(entry.id);
     setKeyframe(null);
+    setAutomaticThumbnail(getAnimationThumbnail(entry.id));
+    ensureAnimationThumbnail(entry);
     toast.success("已恢复默认预览图。", { description: "动画卡片会重新使用自动生成的画面。" });
   };
 

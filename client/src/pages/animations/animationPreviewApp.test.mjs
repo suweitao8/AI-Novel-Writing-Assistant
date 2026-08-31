@@ -154,6 +154,10 @@ test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 
     previewSource,
     /if \(destroyed\) throw new Error\("预览已关闭。"\)/,
   );
+  assert.match(
+    previewSource,
+    /if \(destroyed\) \{[\s\S]*?app\.assets\.remove\(assetResult\.value\)[\s\S]*?environmentResult\.value\.destroy\(\)/,
+  );
   // 完整预览页 effect 清理必须调用 cancel（而不是等加载完成后销毁）
   assert.match(previewPageSource, /handle\.cancel\(\)/);
 });
@@ -207,6 +211,13 @@ test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
   assert.match(previewSource, /Promise\.allSettled\(\[\s*assetPromise,\s*environmentPromise/);
   assert.match(previewSource, /studioEnvironment = environmentResult\.value/);
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
+});
+
+test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
+  assert.match(
+    studioSource,
+    /try \{[\s\S]*?loadStudioEnvironment\(app\)[\s\S]*?catch \(error\)[\s\S]*?app\.destroy\(\)/,
+  );
 });
 
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {

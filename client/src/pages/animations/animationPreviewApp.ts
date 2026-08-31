@@ -305,9 +305,13 @@ export function openAnimationPreview(
         if (environmentResult.status === "rejected") throw environmentResult.reason;
         throw new Error("预览资源加载失败。");
       }
+      if (destroyed) {
+        app.assets.remove(assetResult.value);
+        environmentResult.value.destroy();
+        throw new Error("预览已关闭。");
+      }
       asset = assetResult.value;
       studioEnvironment = environmentResult.value;
-      if (destroyed) throw new Error("预览已关闭。");
       if (!studioEnvironment.hasVisibleBackdrop) {
         throw new Error("HDRI 场景环境加载失败。");
       }

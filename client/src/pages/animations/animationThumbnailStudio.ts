@@ -209,7 +209,13 @@ async function createAnimationThumbnailStudio(): Promise<{
   );
   cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
-  const studioEnvironment = await loadStudioEnvironment(app);
+  let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
+  try {
+    studioEnvironment = await loadStudioEnvironment(app);
+  } catch (error) {
+    app.destroy();
+    throw error;
+  }
   if (!studioEnvironment.hasVisibleBackdrop) {
     studioEnvironment.destroy();
     app.destroy();

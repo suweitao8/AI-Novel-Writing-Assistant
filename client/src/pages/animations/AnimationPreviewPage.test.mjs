@@ -41,6 +41,10 @@ test("独立预览页提供可访问帧轴和关键帧保存流程", () => {
   assert.match(pageSource, /capturePreviewFrame\(\)/);
   assert.match(pageSource, /setAnimationKeyframe\(/);
   assert.match(pageSource, /clearAnimationKeyframe\(/);
+  assert.match(
+    pageSource,
+    /clearAnimationKeyframe\(entry\.id\);[\s\S]*ensureAnimationThumbnail\(entry\)/,
+  );
   assert.match(pageSource, /viewer\?\.fitView\(\)/);
   assert.match(pageSource, /viewer\?\.resetView\(\)/);
   assert.match(pageSource, /重新加载/);
