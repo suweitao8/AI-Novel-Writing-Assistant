@@ -11,6 +11,8 @@ export type Blocking3dLightingProfile =
 export interface Blocking3dLightingProfileConfig {
   /** Low-frequency fill applied to lit meshes while an HDRI is active. */
   ambientLight: readonly [number, number, number];
+  /** EnvAtlas contribution to model ambient/reflection lighting; the backdrop is unaffected. */
+  skyboxIntensity: number;
   shadowType: number;
   shadowResolution: number;
   shadowDistance: number;
@@ -22,6 +24,7 @@ export interface Blocking3dLightingProfileConfig {
 /** Existing shared-preview baseline; keep this stable for non-model viewers. */
 const DEFAULT_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   ambientLight: [0, 0, 0] as const,
+  skyboxIntensity: 1,
   shadowType: pc.SHADOW_PCF3_32F,
   shadowResolution: 2048,
   shadowDistance: 25,
@@ -33,10 +36,11 @@ const DEFAULT_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
 /** Model-library fill and shadow tuning for a readable, softly grounded preview. */
 const MODEL_PREVIEW_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   ambientLight: [0.18, 0.18, 0.18] as const,
+  skyboxIntensity: 0.25,
   shadowType: pc.SHADOW_PCF5_32F,
   shadowResolution: 2048,
   shadowDistance: 16,
-  shadowIntensity: 0.62,
+  shadowIntensity: 0.3,
   shadowBias: 0.025,
   normalOffsetBias: 0.02,
 });

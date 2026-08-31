@@ -61,6 +61,7 @@ export function createBlocking3dEnvironmentRuntime(
   // transient key light makes a bright window or sun patch readable on actors.
   const lightingProfile = options.lightingProfile ?? DEFAULT_BLOCKING_3D_LIGHTING_PROFILE;
   const lighting = resolveBlocking3dLightingProfile(lightingProfile);
+  const initialSceneSkyboxIntensity = app.scene.skyboxIntensity;
   const environmentKeyLight = createHdriKeyLight(lightingProfile);
   app.root.addChild(environmentKeyLight);
 
@@ -93,6 +94,7 @@ export function createBlocking3dEnvironmentRuntime(
       clearEnvironmentKeyLight();
       const ownsEnvironmentLighting = app.scene.envAtlas === environmentAtlas;
       if (ownsEnvironmentLighting) app.scene.envAtlas = null;
+      if (ownsEnvironmentLighting) app.scene.skyboxIntensity = initialSceneSkyboxIntensity;
       environmentAtlas?.destroy();
       environmentAtlas = null;
       environmentLightingSource?.destroy();
@@ -148,6 +150,7 @@ export function createBlocking3dEnvironmentRuntime(
           numAmbientSamples: 512,
         });
         app.scene.envAtlas = environmentAtlas;
+        app.scene.skyboxIntensity = lighting.skyboxIntensity;
         app.scene.lighting.shadowsEnabled = true;
         app.scene.ambientLight = new pc.Color(
           lighting.ambientLight[0],
