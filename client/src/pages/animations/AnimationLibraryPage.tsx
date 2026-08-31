@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Loader2, Play, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 
 import {
   ANIMATION_LIBRARY,
@@ -21,7 +21,6 @@ import {
 } from "@/config/animationLibrary";
 import { getAnimationFrameCount } from "./animationFrame";
 import SelectControl from "@/components/common/SelectControl";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -62,7 +61,7 @@ function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
   return (
     <Link
       to={`/animations/${entry.id}`}
-      className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60"
+      className="group block overflow-hidden rounded-lg border border-border bg-card text-left transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
       data-animation-card={entry.id}
       title={`打开 ${entry.name} 的 3D 预览`}
     >
@@ -79,17 +78,9 @@ function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
           </div>
         )}
-        <span className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-background/80 text-foreground shadow-sm">
-          <Play className="h-2.5 w-2.5" aria-hidden="true" />
-        </span>
       </div>
       <div className="px-1.5 py-1.5">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <div className="min-w-0 flex-1 truncate text-[11px] text-foreground">{entry.name}</div>
-          <Badge variant={entry.rootMotion ? "default" : "outline"} className="shrink-0 px-1.5 py-0 text-[9px]">
-            {entry.rootMotion ? "分镜可用" : "兼容动画"}
-          </Badge>
-        </div>
+        <div className="truncate text-[11px] text-foreground">{entry.name}</div>
         <div className="truncate text-[10px] text-muted-foreground">
           {entry.packLabel} · {entry.classificationLabel} · {entry.postureLabel} · 共 {getAnimationFrameCount(entry.durationSeconds, entry.frameRate)} 帧
         </div>
