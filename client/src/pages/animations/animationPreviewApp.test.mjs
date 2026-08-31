@@ -183,9 +183,19 @@ test("动画预览先启动渲染循环，再执行环境加载后的首帧渲�
   );
 });
 
+test("动画缩略图使用手动帧更新，不保留可在销毁后继续运行的 RAF", () => {
+  assert.match(studioSource, /pc\.AppBase\.cancelTick\(app\)/);
+  assert.match(studioSource, /app\.update\(1 \/ 60\)/);
+  assert.match(studioSource, /enableShadowCatcher:\s*false/);
+  assert.match(
+    environmentRuntimeSource,
+    /enableShadowCatcher:\s*options\.enableShadowCatcher/,
+  );
+});
+
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v8/);
+  assert.match(studioSource, /animation-library:thumbnails:v9/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
@@ -222,7 +232,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v8/);
+  assert.match(studioSource, /animation-library:thumbnails:v9/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -266,7 +276,7 @@ test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
 test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
   assert.match(
     studioSource,
-    /try \{[\s\S]*?loadStudioEnvironment\(app\)[\s\S]*?catch \(error\)[\s\S]*?app\.destroy\(\)/,
+    /try \{[\s\S]*?loadStudioEnvironment\(app[\s\S]*?catch \(error\)[\s\S]*?app\.destroy\(\)/,
   );
 });
 
