@@ -18,13 +18,14 @@
 
 ## 3. 统一两类卡片缩略图
 
-- 模型缩略图使用 `castShadows: true`，移除 ACES 强制设置，缓存键更新为 v25。
-- 动画完整预览和缩略图使用 `model-preview`；缩略图角色使用 `castShadows: true` 并启用默认 shadow catcher，移除 ACES 强制设置，缓存键更新为 v11。
+- 模型缩略图使用 `castShadows: true`，移除 ACES 强制设置；离屏出图不再调用编辑器网格绘制，缓存键更新为 v26。
+- 动画完整预览和缩略图使用 `model-preview`；缩略图角色使用 `castShadows: true` 并启用默认 shadow catcher，移除 ACES 强制设置；离屏出图不再调用编辑器网格绘制，缓存键更新为 v12。
 - 保持共享 HDRI 穹顶只接收阴影不投射阴影，确保主光不会被背景穹顶遮挡。
+- 详情页的交互式 3D 编辑器继续保留网格辅助线，避免把编辑辅助信息误写入卡片资产预览图。
 
 ## 4. 文档与回归
 
-- 更新模型预览光照架构 wiki、模型库产品规则中的缓存和阴影约束。
+- 更新模型预览光照架构 wiki、模型库产品规则中的缓存、阴影和卡片无网格约束。
 - 按发布流程更新 `docs/releases/release-notes.md` 和 README 的最新更新。
 - 运行聚焦 Node 测试、客户端类型检查和客户端构建。
 - 启动固定端口本地服务，在内置浏览器依次验收 `/models`、模型详情页、`/animations`：卡片缩略图重新生成且有清晰落地阴影，详情页仍可见，控制台无错误。
@@ -33,5 +34,5 @@
 
 - 自检 diff、工作树状态和测试结果。
 - 在隔离分支用 `git commit -s` 提交实现。
-- 从干净 `main` 使用 `pnpm workflow:integrate codex/model-preview-shadow-lighting --push --verify "pnpm --filter @ai-novel/client typecheck"` 合并、推送。
+- 从干净 `main` 使用 `pnpm workflow:integrate codex/preview-thumbnail-no-grid --push --verify "pnpm --filter @ai-novel/client typecheck"` 合并、推送。
 - 验证本地 `main` 与 `origin/main` SHA 一致，清理本次工作树和本地分支，不触碰其他并行工作树。

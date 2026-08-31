@@ -25,7 +25,8 @@
 - 模型详情页必须通过 `studioEnvironmentRuntime` 将 `model-preview` 传给共享环境运行时。
 - 模型缩略图、动画详情和动画缩略图必须使用同一 profile；模型和动画缩略图实例必须传入 `castShadows: true`，共享 shadow catcher 必须开启。
 - 模型/动画离屏相机使用与详情页一致的默认 Linear 色调映射，不得重新强制设置 ACES。
-- 光照、材质、投影或动画资源逻辑发生用户可见变化时，必须递增对应缩略图缓存版本；当前模型为 v25，动画为 v11，确保旧图不会覆盖新效果。
+- 光照、材质、投影、缩略图构图或动画资源逻辑发生用户可见变化时，必须递增对应缩略图缓存版本；当前模型为 v26，动画为 v12，确保旧图不会覆盖新效果。
+- 卡片缩略图是最终资产预览图：离屏出图不得调用 `buildBlocking3dGroundGridLines` 或 `drawBlocking3dGroundGrid`，只保留 HDRI、模型/角色和 shadow catcher 产生的真实投影阴影；详情页交互式编辑器可以继续显示网格辅助线。
 - 漫剧、分镜和纯 HDRI 场景入口不得隐式继承 `model-preview`；它们只有在明确的产品需求下才能单独接入新的 profile。
 - profile 只能表达环境光、阴影过滤、阴影范围、强度和偏差等渲染参数，不能把模型页面逻辑塞进共享运行时。
 - `skyboxIntensity` 只随当前环境 atlas 的所有权应用和恢复：模型预览使用 `0.25`，未指定 profile 的共享预览保持 `1`；清理时若 atlas 已被其他运行时接管，不得覆盖其他预览的环境强度。
@@ -55,6 +56,6 @@
 
 ## Verification
 
-- `client/tests/modelPreviewLighting.contract.test.js` 锁定 profile 数值、主光偏转、模型/动画入口接入范围和缩略图缓存版本。
+- `client/tests/modelPreviewLighting.contract.test.js` 锁定 profile 数值、主光偏转、模型/动画入口接入范围、卡片无网格约束和缩略图缓存版本。
 - `blocking3dEnvironmentLighting.test.mjs` 锁定水平偏转不会改变主光高度；模型和动画页面通过内置浏览器确认卡片与详情均能显示清晰的落地阴影。
 - 模型页面的浏览器验收需要确认环境加载完成后暗部可读、地面阴影为柔和灰阶且无明显锯齿，同时检查控制台无错误。

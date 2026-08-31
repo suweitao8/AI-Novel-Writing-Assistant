@@ -2,11 +2,9 @@ import * as pc from "playcanvas";
 
 import { ANIMATION_LIBRARY_FILE_URL, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import {
-  buildBlocking3dGroundGridLines,
   clamp,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
   DEFAULT_FOV,
-  drawBlocking3dGroundGrid,
   loadAsset,
   setEntityMaterial,
   type ContainerResource,
@@ -28,7 +26,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v11";
+const STORAGE_KEY = "animation-library:thumbnails:v12";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -228,7 +226,6 @@ async function createAnimationThumbnailStudio(): Promise<{
     app.destroy();
     throw new Error("HDRI 场景环境加载失败。");
   }
-  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
   let asset: pc.Asset;
   try {
     asset = await loadAsset(app, ANIMATION_LIBRARY_FILE_URL, "container");
@@ -265,7 +262,6 @@ async function createAnimationThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
-    drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
 

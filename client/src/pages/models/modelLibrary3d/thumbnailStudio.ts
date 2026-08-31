@@ -2,8 +2,6 @@ import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import {
-  buildBlocking3dGroundGridLines,
-  drawBlocking3dGroundGrid,
   loadAsset,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
@@ -31,7 +29,7 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v25";
+const STORAGE_KEY = "model-library:thumbnails:v26";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -187,8 +185,6 @@ async function createThumbnailStudio(): Promise<{
     app.destroy();
     throw new Error("HDRI 场景环境加载失败。");
   }
-  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
-
   const frame = (bounds: ModelPreviewBounds, points: readonly ModelPreviewVector[] = []) => {
     const fit = fitModelPreviewCamera(
       bounds,
@@ -209,7 +205,6 @@ async function createThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
-    drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
 
