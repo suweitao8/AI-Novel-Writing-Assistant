@@ -51,6 +51,10 @@ node --experimental-strip-types --test client/src/config/animationLibraryContent
 `client/public/anims/cine57/` 前检查最终片段名集合。导出中不能把不同骨架的资产混入
 同一链路，也不能用文件名猜测来替代扫描清单中的真实资产路径。
 
+清单生成和前端目录生成必须按顺序执行：先完成
+`build_animation_catalog_selection.cjs`，确认清单写入后再运行
+`generate_animation_catalog_entries.cjs`；不要并行运行这两个命令，以免前端目录读到旧清单。
+
 ### Root motion 门禁
 
 Cine57 导入目录采用严格的 root-motion 策选策略：只有扫描证据明确标记为

@@ -435,7 +435,7 @@ export const ANIMATION_CATALOG_ENTRIES = [
   {
     "id": "unreal-daily-parkour-walk-in-place",
     "clipName": "C57_unreal_daily_parkour_walk_in_place",
-    "name": "原地行走",
+    "name": "向前行走",
     "actionType": "move",
     "classificationId": "parkour",
     "classificationLabel": "跳跃 / 翻越",
@@ -464,7 +464,7 @@ export const ANIMATION_CATALOG_ENTRIES = [
   {
     "id": "unreal-daily-parkour-run-in-place",
     "clipName": "C57_unreal_daily_parkour_run_in_place",
-    "name": "原地奔跑",
+    "name": "向前奔跑",
     "actionType": "move",
     "classificationId": "parkour",
     "classificationLabel": "跳跃 / 翻越",
@@ -841,7 +841,7 @@ export const ANIMATION_CATALOG_ENTRIES = [
   {
     "id": "unreal-daily-dialogue-walk-in-place",
     "clipName": "C57_unreal_daily_dialogue_walk_in_place",
-    "name": "对话中原地行走",
+    "name": "对话移动",
     "actionType": "move",
     "classificationId": "dialogue",
     "classificationLabel": "对话 / 手势",
