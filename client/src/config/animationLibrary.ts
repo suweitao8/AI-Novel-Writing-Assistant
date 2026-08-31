@@ -11,7 +11,7 @@ import { matchesLibrarySearchQuery } from "./librarySearch.ts";
  */
 export type AnimationLibrarySource = "legacy" | "unreal";
 
-/** 分镜入口默认只展示带 root-motion 证据的策选动作；旧目录保留为兼容区。 */
+/** 分镜入口默认只展示通过原地位移门禁的策选动作；旧目录保留为兼容区。 */
 export type AnimationLibraryScopeId = "storyboard" | "compatibility" | "all";
 
 export const ANIMATION_LIBRARY_SCOPES = [
@@ -338,9 +338,9 @@ export interface AnimationLibraryEntry {
   sourceAssetPath?: string;
   sourceAssetName?: string;
   sourceSkeleton?: string;
-  /** Cine57 源资产和导出结果均通过 root-motion 门禁。旧动画保持兼容但不带该标记。 */
-  rootMotion: boolean;
-  rootMotionEvidence?: "source-path" | "asset-name";
+  /** Cine57 源资产和导出结果均通过原地位移门禁。旧动画保持兼容但不带该标记。 */
+  inPlace: boolean;
+  inPlaceEvidence?: "source-path" | "asset-name" | "unmarked-non-root";
 }
 
 export interface AnimationLibraryFilters {
@@ -447,7 +447,7 @@ function makeLegacyEntry(
     dedupeKey: `legacy:${clipName}`,
     isIdleVariant: actionType === "idle",
     sourcePack: "LegacyAnimationLibrary",
-    rootMotion: false,
+    inPlace: false,
   };
 }
 
@@ -545,8 +545,8 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     sourceAssetPath: entry.sourceAssetPath,
     sourceAssetName: entry.sourceAssetName,
     sourceSkeleton: entry.sourceSkeleton,
-    rootMotion: entry.rootMotion,
-    rootMotionEvidence: entry.rootMotionEvidence,
+    inPlace: entry.inPlace,
+    inPlaceEvidence: entry.inPlaceEvidence,
   };
 }
 
@@ -571,7 +571,7 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
-      (scope === "all" || (scope === "storyboard" ? entry.rootMotion : !entry.rootMotion)) &&
+      (scope === "all" || (scope === "storyboard" ? entry.inPlace : !entry.inPlace)) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
       (actionType === "all" || entry.actionType === actionType) &&

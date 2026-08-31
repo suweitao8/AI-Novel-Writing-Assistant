@@ -82,10 +82,10 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 ### 步骤
 
-1. **UE 无头导出动画 FBX**：`AnimSequenceExporterFBX` + AssetExportTask（公共基础一节的用法）→ 产物 `D:\UnrealWorkspace\Cine57-exported\anims\`。源片段必须包含完整绝对骨骼姿态；先在 UE 侧确认 `AdditiveAnimType`，并把 Additive、Layered 或未烘焙控制器轨道烘焙到骨架后再导出。导出后先解析源 GLB，确认相对源绑定姿态确实存在待机、行走或坐姿变化。
-2. **FBX→GLB**：`node fbx2glb.mjs in.fbx out.glb`。
-3. **GLB 层重定向**：`python scripts/animation/retarget_ual2.py <source.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：源动画、基础角色、输出、名字）。绑定位姿差法：每根骨骼使用 `W_t := W_s · inv(W_s0) · W_t0`（`W_*0` = 各自绑定世界朝向），自顶向下解局部旋转；root/pelvis 平移只传递绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`，不能按绝对分量比例套用；目标侧只允许 `skins[].joints` 中的节点进入映射；输出四元数需为 VEC4、单位化并半球连续（相邻键 dot<0 取反）。
-4. **链式合并进同一个 GLB**：动画体积远小于角色网格体积，后续批量入库往 `UAL2_UE_Anims.glb` 追加，不要一片一段一段文件。目录条目用 `clipName` 指向其中的动画（`animationLibrary.ts`）。
+1. **源选择与 UE 无头导出动画 FBX**：分镜主库优先选择 UE 路径或资产名明确带 `InPlace`、`IP`、`INP` 的 `AnimSequence`；明确位于 `RootMotion`/`Root` 路径段或资产名带独立 `RM`/`Root` 标记的源不得导入。未标记但被精确策选的源只能作为候选，转换后还要过 GLB 数值门禁。使用 `AnimSequenceExporterFBX` + AssetExportTask（公共基础一节的用法）导出到 `D:\UnrealWorkspace\Cine57-exported\anims\`。源片段必须包含完整绝对骨骼姿态；先在 UE 侧确认 `AdditiveAnimType`，并把 Additive、Layered 或未烘焙控制器轨道烘焙到骨架后再导出。
+2. **FBX→GLB 与原地位移审计**：`node fbx2glb.mjs in.fbx out.glb`。转换后运行 `node scripts/animation/filter_animation_catalog_selection.cjs <candidate-selection.json> <glb-dir> <selection.json> [audit.json]`，检查 `root` 节点 translation 的每轴最大范围和首尾净位移是否都 `<= 0.03m`。没有 `root` translation 轨道是合法的原地结果；`pelvis` 局部升降、蹲伏和跳跃不作为全局移动判断。超限资产写入 `droppedClips`/审计报告，保留源 FBX/GLB，不通过改前端或清零骨盆来掩盖。
+3. **GLB 层重定向**：`python scripts/animation/retarget_ual2.py <source.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：源动画、基础角色、输出、名字）。绑定位姿差法：每根骨骼使用 `W_t := W_s · inv(W_s0) · W_t0`（`W_*0` = 各自绑定世界朝向），自顶向下解局部旋转；root/pelvis 平移只传递绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`，不能按绝对分量比例套用；目标侧只允许 `skins[].joints` 中的节点进入映射；输出四元数需为 VEC4、单位化并半球连续（相邻键 dot<0 取反）。重定向完成后再次检查 root 位移，并复核手臂骨链的有限值、连续长度和手部可达性；不能用运行时补偿修正导出错误。
+4. **链式合并进同一个 GLB**：动画体积远小于角色网格体积，后续批量入库往 `UAL2_UE_Anims.glb` 追加，不要一片一段一段文件。目录条目用 `clipName` 指向其中的动画（`animationLibrary.ts`）。合并前后都要保持原地清单顺序和动作名。
 
 ### 动画硬规则（每条都是实打实的坑）
 
@@ -93,13 +93,13 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 2. **骨骼名匹配必须限定目标侧 `skins[].joints`**：UAL2 的网格包装节点叫 `Mannequin`，UE 骨架根骨也叫 `Mannequin`——裸名匹配会把整只模型当骨骼转，写入旋转通道后整只模型被动画带飞。源侧（纯动画导出，可能没有 skins）用全部命名节点。
 3. **GLB 结构细节**：JSON chunk 必须空格填充（NUL 会炸 `JSON.parse`）；追加 buffer 后要更新 `buffers[0].byteLength`；手写重写时 BIN chunk 长度在 `binOffset` 处读、数据从 `binOffset + 8` 开始（两处错了都顶点错位且 JSON 校验看不出来）。
 4. **`animationLibrary.ts` 是数据目录**：新增动画优先往同一个 GLB 追加 + 加目录条目；缩略图（`animationThumbnailStudio.ts`）进目录即自动生成，无需手工出图，但改缩略图生成逻辑或替换资源必须升 localStorage 缓存版本。
-5. **发布前必须过内容门禁**：除了 GLB 可解析、accessor 类型和四元数模长，还要验证待机手部低于肩部、行走双脚有明显轨迹、坐姿骨盆没有异常深度位移；不能用不同绑定姿态的源/目标世界四元数直接作相等校验。
+5. **发布前必须过内容门禁**：除了 GLB 可解析、accessor 类型和四元数模长，还要验证每个 Cine57 片段无超限 root 全局位移、通道只驱动 skin joints、手臂骨链没有爆开/断裂，且代表动作满足待机手部低于肩部、行走双脚有明显轨迹、坐姿骨盆没有异常深度位移；不能用不同绑定姿态的源/目标世界四元数直接作相等校验。
 
 ## 验证（两条管线通用）
 
 - 仓库自检：`pnpm --filter @ai-novel/client typecheck`；
 - GLB 体检：解析 mesh/node 名单确认无 `UCX_*`/LOD 残留（模型）；解析 accessor 比对 count/type/四元数模长（动画）；
-- 动画内容门禁：`node --experimental-strip-types --test client/src/config/animationLibraryContent.test.mjs`；
+- 动画内容门禁：`node scripts/animation/inPlaceAnimationPolicy.test.cjs`、`node scripts/animation/animationCatalogSelection.test.cjs`、`node scripts/animation/verify_animation_catalog.cjs scripts/animation/animationCatalogSelection.json client/public/anims/cine57/UAL2_UE_Anims.glb` 和 `node --experimental-strip-types --test client/src/config/animationLibraryContent.test.mjs`；
 - 浏览器 smoke：模型走 `/models` 页 + 3D 编辑器打开新模型（无白壳、贴图正确）；动画走 `/animations` 页预览弹窗（动作可见、逐帧变化、非 T-pose）；console 无错；
 - 产物入库一律走 AGENTS.md 的 codex/* worktree 工作流。
 

@@ -14,11 +14,10 @@ const CATALOG_CLIP_NAMES = new Map<string, string>(
   ANIMATION_CATALOG_ENTRIES.map((entry) => [entry.id, entry.clipName]),
 );
 
-function rootMotionClipNames(ids: readonly string[]): string[] {
-  return ids.map((id) => {
+function catalogClipNames(ids: readonly string[]): string[] {
+  return ids.flatMap((id) => {
     const clipName = CATALOG_CLIP_NAMES.get(id);
-    if (!clipName) throw new Error(`分镜姿势映射缺少动画目录条目：${id}`);
-    return clipName;
+    return clipName ? [clipName] : [];
   });
 }
 
@@ -26,11 +25,11 @@ const POSE_CLIPS: Record<
   DramaShotBlockingSketchPose,
   Blocking3dPoseClipConfig
 > = {
-  // 分镜优先使用策选清单中的 root-motion 片段；旧名称只作为已有布局和旧代理
+  // 分镜优先使用通过原地位移门禁的策选片段；旧名称只作为已有布局和旧代理
   // 文件的兼容别名。映射通过目录 ID 建立，避免凭字符串猜测 GLB 片段名。
   standing: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-daily-male-locomotion-idle-break-01",
         "unreal-daily-male-locomotion-idle-break-02",
       ]),
@@ -42,7 +41,7 @@ const POSE_CLIPS: Record<
   },
   talking: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-daily-dialogue-dialogue-idle",
         "unreal-daily-dialogue-serious-idle",
         "unreal-daily-dialogue-serious-talk",
@@ -66,7 +65,7 @@ const POSE_CLIPS: Record<
   },
   crouching: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-daily-male-locomotion-crouch-forward",
         "unreal-misc-scared-crouching-loop",
       ]),
@@ -76,7 +75,7 @@ const POSE_CLIPS: Record<
   },
   kneeling: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-misc-scared-knees-hands-head",
         "unreal-misc-preacher-pray-ground",
       ]),
@@ -87,11 +86,11 @@ const POSE_CLIPS: Record<
   lying: { names: ["LayToIdle", "Death01"], sampleTimeRatio: 0.05 },
   // The published UAL2 compatibility aliases have no safe prone clip. Keep
   // prone explicit so it never silently becomes a crouch pose; crouching,
-  // kneeling, and running prefer the catalog root-motion clips above.
+  // kneeling, and running prefer the catalog in-place clips above.
   prone: { names: ["Prone_Idle_Loop"] },
   walking: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-misc-clazy-walk-forward",
         "unreal-daily-parkour-walk-in-place",
       ]),
@@ -104,7 +103,7 @@ const POSE_CLIPS: Record<
   },
   running: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-misc-clazy-jog-forward",
         "unreal-daily-male-locomotion-jog-forward",
         "unreal-daily-male-locomotion-run-forward",
@@ -113,12 +112,12 @@ const POSE_CLIPS: Record<
       "Jog_Fwd_Loop",
     ],
   },
-  // 当前 root-motion 策选清单没有可靠的手指指向片段；保留旧布局的
+  // 当前原地策选清单没有可靠的手指指向片段；保留旧布局的
   // 兼容别名，但不把说话或笑声手势伪装成“指向”。
   pointing: { names: ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"] },
   holding: {
     names: [
-      ...rootMotionClipNames(["unreal-misc-preacher-walk-book"]),
+      ...catalogClipNames(["unreal-misc-preacher-walk-book"]),
       "Walk_Carry_Loop",
       "Idle_Lantern_Loop",
       "PickUp_Table",
@@ -126,7 +125,7 @@ const POSE_CLIPS: Record<
   },
   interacting: {
     names: [
-      ...rootMotionClipNames([
+      ...catalogClipNames([
         "unreal-interaction-activations-door-pull",
         "unreal-interaction-activations-door-push",
       ]),
@@ -140,7 +139,7 @@ const POSE_CLIPS: Record<
   },
   fighting: {
     names: [
-      ...rootMotionClipNames(["unreal-hand-combat-lucy-attack"]),
+      ...catalogClipNames(["unreal-hand-combat-lucy-attack"]),
       "Melee_Hook",
       "Punch_Cross",
       "Punch_Jab",
@@ -148,7 +147,7 @@ const POSE_CLIPS: Record<
   },
   sword: {
     names: [
-      ...rootMotionClipNames(["unreal-weapon-combat-sword-pro-weak-attack"]),
+      ...catalogClipNames(["unreal-weapon-combat-sword-pro-weak-attack"]),
       "Sword_Idle",
       "Sword_Block",
       "Sword_Regular_A",

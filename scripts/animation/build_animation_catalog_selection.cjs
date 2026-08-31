@@ -1,11 +1,11 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const process = require("node:process");
-const { getRootMotionEvidence, isRootMotionSource } = require("./rootMotionPolicy.cjs");
 const {
-  getRootMotionAssetNameCandidates,
-  ROOT_MOTION_TRACK_EXCLUSIONS,
-} = require("./rootMotionSourceOverrides.cjs");
+  getInPlaceNameCandidates,
+  getInPlaceSourceEvidence,
+  isInPlaceSource,
+} = require("./inPlaceAnimationPolicy.cjs");
 
 const scanPath = process.argv[2] ?? "D:/UnrealWorkspace/Cine57-exported/animation_catalog_scan.json";
 const outputPath = process.argv[3] ?? path.resolve("scripts/animation/animationCatalogSelection.json");
@@ -1169,26 +1169,13 @@ for (const pack of packs) {
       if (usedKeys.has(item.dedupeKey)) throw new Error(`Duplicate non-idle key ${pack.id}:${item.dedupeKey}`);
       usedKeys.add(item.dedupeKey);
     }
-    const selectionKey = `${pack.id}:${item.key}`;
-    if (ROOT_MOTION_TRACK_EXCLUSIONS.has(selectionKey)) {
-      droppedClips.push({
-        packId: pack.id,
-        key: item.key,
-        name: item.name,
-        actionType: item.actionType,
-        sourcePack: pack.sourcePack,
-        sourceAssetName: item.sourceAssetName,
-        reason: "no-root-translation-in-export-audit",
-      });
-      continue;
-    }
-    const sourceAssetNameCandidates = getRootMotionAssetNameCandidates(pack, item);
+    const sourceAssetNameCandidates = getInPlaceNameCandidates(item.sourceAssetName);
     const candidates = scan.animations
       .filter((row) => row.groupId === group.sourceGroupId)
       .filter((row) => row.pack === pack.sourcePack)
       .filter((row) => sourceAssetNameCandidates.includes(row.assetName))
       .filter(isCompatibleMannequin)
-      .filter(isRootMotionSource)
+      .filter(isInPlaceSource)
       .sort((left, right) =>
         sourceAssetNameCandidates.indexOf(left.assetName) - sourceAssetNameCandidates.indexOf(right.assetName) ||
         candidateRank(left) - candidateRank(right) ||
@@ -1202,7 +1189,7 @@ for (const pack of packs) {
         actionType: item.actionType,
         sourcePack: pack.sourcePack,
         sourceAssetName: item.sourceAssetName,
-        reason: "no-root-motion-source",
+        reason: "no-in-place-source",
       });
       continue;
     }
@@ -1223,8 +1210,8 @@ for (const pack of packs) {
       sourceAssetPath: row.assetPath.replace(/\.[^.]+$/, ""),
       sourceAssetName: row.assetName,
       sourceSkeleton: row.skeleton,
-      rootMotion: true,
-      rootMotionEvidence: getRootMotionEvidence(row),
+      inPlace: true,
+      inPlaceEvidence: getInPlaceSourceEvidence(row),
       sourceDurationSeconds: row.durationSeconds,
       durationSeconds: row.durationSeconds,
       ...resolveTaxonomy(pack, item),
@@ -1236,20 +1223,21 @@ for (const pack of packs) {
 
 const packIds = new Set(selected.map((item) => item.packId));
 if (selected.length === 0) {
-  throw new Error("No root-motion assets matched the curated animation catalog");
+  throw new Error("No in-place assets matched the curated animation catalog");
 }
 for (const groupId of Object.keys(groups)) {
   if (!selected.some((item) => item.groupId === groupId)) {
-    throw new Error(`Root-motion catalog has no selected asset for group ${groupId}`);
+    throw new Error(`In-place catalog has no selected asset for group ${groupId}`);
   }
 }
 
 const payload = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   project: "Cine57",
   target: "UAL2",
-  rootMotionPolicy: "strict-source-marked",
-  rule: "Only source-marked root-motion assets may enter Cine57; no InPlace fallback; keep one representative for each available semantic action and require explicit taxonomy metadata for every selected clip.",
+  inPlacePolicy: "strict-source-in-place",
+  rootTranslationMaxRangeMeters: 0.03,
+  rule: "Cine57 分镜目录优先选择 InPlace 源，拒绝明确 RootMotion 源；未标记但精确命中的策选源必须继续通过转换后 GLB 的 root 平移数值门禁，并为每条动作保留细分类、演员、姿态和武器证据。",
   groups,
   packs: packs.filter((pack) => packIds.has(pack.id)).map(({ clips: _clips, ...pack }) => pack),
   clips: selected,
@@ -1258,4 +1246,4 @@ const payload = {
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-console.log(`selected ${selected.length} root-motion clips across ${payload.packs.length} packs; dropped ${droppedClips.length} candidates -> ${outputPath}`);
+console.log(`selected ${selected.length} in-place candidates across ${payload.packs.length} packs; dropped ${droppedClips.length} candidates -> ${outputPath}`);

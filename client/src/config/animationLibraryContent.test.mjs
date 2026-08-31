@@ -172,6 +172,35 @@ function makeTracks(glb, animation) {
   return tracks;
 }
 
+function rootTranslationMetrics(glb, animation) {
+  const rootNodes = new Set(
+    glb.json.nodes
+      .map((node, index) => [String(node.name ?? "").toLowerCase(), index])
+      .filter(([name]) => name === "root")
+      .map(([, index]) => index),
+  );
+  const values = [];
+  for (const channel of animation?.channels ?? []) {
+    if (channel.target.path !== "translation" || !rootNodes.has(channel.target.node)) continue;
+    const sampler = animation.samplers[channel.sampler];
+    const output = readAccessor(glb, sampler.output);
+    values.push(...(
+      sampler.interpolation === "CUBICSPLINE"
+        ? output.filter((_value, index) => index % 3 === 1)
+        : output
+    ));
+  }
+  if (values.length === 0) return { maxRange: 0, maxNet: 0 };
+  const min = [0, 1, 2].map((component) => Math.min(...values.map((value) => value[component])));
+  const max = [0, 1, 2].map((component) => Math.max(...values.map((value) => value[component])));
+  const first = values[0];
+  const last = values.at(-1);
+  return {
+    maxRange: Math.max(...max.map((value, component) => value - min[component])),
+    maxNet: Math.max(...last.map((value, component) => Math.abs(value - first[component]))),
+  };
+}
+
 function animationDuration(glb, animation) {
   let duration = 0;
   for (const sampler of animation?.samplers ?? []) {
@@ -245,18 +274,18 @@ function assetPath() {
   return path.join(clientDir, "public", entry.fileUrl);
 }
 
-test("动画目录按分镜用途分为 root-motion 主库与旧动画兼容库", () => {
+test("动画目录按分镜用途分为原地主库与旧动画兼容库", () => {
   const storyboard = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
     scope: "storyboard",
   });
   const compatibility = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
     scope: "compatibility",
   });
-  assert.equal(storyboard.length, 104);
+  assert.equal(storyboard.length, 277);
   assert.equal(compatibility.length, 46);
   assert.equal(ANIMATION_LIBRARY[0]?.source, "unreal");
-  assert.ok(storyboard.every((entry) => entry.rootMotion));
-  assert.ok(compatibility.every((entry) => !entry.rootMotion));
+  assert.ok(storyboard.every((entry) => entry.inPlace));
+  assert.ok(compatibility.every((entry) => !entry.inPlace));
   assert.equal(
     filterAnimationLibraryEntries(storyboard, { weaponType: "sword" }).length > 0,
     true,
@@ -303,6 +332,50 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     "行走双手平均高度仍接近错误的水平基准",
   );
 
+  const jogAnimation = glb.json.animations.find(
+    ({ name }) => name === "C57_unreal_daily_male_locomotion_jog_forward",
+  );
+  assert.ok(jogAnimation, "统一 GLB 必须包含原地慢跑片段");
+  const jogTimes = Array.from({ length: 9 }, (_, index) =>
+    (animationDuration(glb, jogAnimation) * index) / 8,
+  );
+  for (const side of ["l", "r"]) {
+    const chain = [
+      `clavicle_${side}`,
+      `upperarm_${side}`,
+      `lowerarm_${side}`,
+      `hand_${side}`,
+    ].map((name) => nodes.get(name));
+    const restArmLength = chain
+      .slice(1)
+      .reduce(
+        (total, node, index) =>
+          total + distance(rest.worldPosition.get(chain[index]), rest.worldPosition.get(node)),
+        0,
+      );
+    for (const time of jogTimes) {
+      const pose = composePose(glb, jogAnimation.name, time);
+      const handReach = distance(
+        pose.worldPosition.get(chain[0]),
+        pose.worldPosition.get(chain.at(-1)),
+      );
+      assert.ok(
+        handReach > 0.05 && handReach <= restArmLength + 0.08,
+        `慢跑${side === "l" ? "左" : "右"}手超出手臂可达范围：${handReach.toFixed(3)}m / ${restArmLength.toFixed(3)}m`,
+      );
+      for (let index = 1; index < chain.length; index += 1) {
+        const segmentLength = distance(
+          pose.worldPosition.get(chain[index - 1]),
+          pose.worldPosition.get(chain[index]),
+        );
+        assert.ok(
+          segmentLength > 0.03 && segmentLength < restArmLength,
+          `慢跑${side === "l" ? "左" : "右"}臂骨链疑似断裂或爆开：${segmentLength.toFixed(3)}m`,
+        );
+      }
+    }
+  }
+
   const restPelvis = rest.worldPosition.get(nodes.get("pelvis"));
   const chairPelvis = chair.worldPosition.get(nodes.get("pelvis"));
   assert.ok(
@@ -314,21 +387,12 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
 test("导入动画通道使用合法单位四元数并且只驱动 skin joints", () => {
   const glb = readGlb(assetPath());
   const joints = new Set((glb.json.skins ?? []).flatMap((skin) => skin.joints));
-  const rootNodes = new Set(
-    (glb.json.nodes ?? [])
-      .map((node, index) => [String(node.name ?? "").toLowerCase(), index])
-      .filter(([name]) => name === "root")
-      .map(([, index]) => index),
-  );
   for (const animation of glb.json.animations ?? []) {
     if (animation.name.startsWith("C57_")) {
+      const metrics = rootTranslationMetrics(glb, animation);
       assert.ok(
-        (animation.channels ?? []).some(
-          (channel) =>
-            channel.target.path === "translation" &&
-            rootNodes.has(channel.target.node),
-        ),
-        `${animation.name} 必须包含 root 平移通道`,
+        metrics.maxRange <= 0.030001 && metrics.maxNet <= 0.030001,
+        `${animation.name} root 全局位移超限：${JSON.stringify(metrics)}`,
       );
     }
     for (const channel of animation.channels) {
@@ -377,7 +441,7 @@ test("五个虚幻源组都在统一 GLB 中保留了代表性动作片段", () 
     const entry = unrealEntries.find((candidate) => candidate.groupId === groupId);
     assert.ok(entry, `动画库缺少虚幻源组代表条目：${groupId}`);
     assert.ok(animationNames.has(entry.clipName), `统一动画文件缺少虚幻代表片段：${entry.clipName}`);
-    assert.equal(entry.rootMotion, true, `${entry.clipName} 必须标记为 root-motion`);
+    assert.equal(entry.inPlace, true, `${entry.clipName} 必须标记为 in-place`);
   }
 });
 

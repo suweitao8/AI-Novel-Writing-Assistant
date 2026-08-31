@@ -39,8 +39,8 @@ const entries = selection.clips.map(
     sourceAssetPath,
     sourceAssetName,
     sourceSkeleton,
-    rootMotion,
-    rootMotionEvidence,
+    inPlace,
+    inPlaceEvidence,
     durationSeconds: clipDurationSeconds,
     sourceDurationSeconds,
     catalogDurationSeconds,
@@ -67,8 +67,8 @@ const entries = selection.clips.map(
     sourceAssetPath,
     sourceAssetName,
     sourceSkeleton,
-    rootMotion,
-    rootMotionEvidence,
+    inPlace,
+    inPlaceEvidence,
     durationSeconds: catalogDurationSeconds ?? clipDurationSeconds,
     sourceDurationSeconds,
     catalogDurationSeconds: catalogDurationSeconds ?? clipDurationSeconds,
@@ -110,8 +110,8 @@ export interface AnimationCatalogEntry {
   readonly sourceAssetPath: string;
   readonly sourceAssetName: string;
   readonly sourceSkeleton: string;
-  readonly rootMotion: boolean;
-  readonly rootMotionEvidence: "source-path" | "asset-name";
+  readonly inPlace: boolean;
+  readonly inPlaceEvidence: "source-path" | "asset-name" | "unmarked-non-root";
   readonly durationSeconds: number;
   readonly sourceDurationSeconds: number;
   readonly catalogDurationSeconds: number;

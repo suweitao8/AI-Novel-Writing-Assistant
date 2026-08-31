@@ -34,7 +34,7 @@ test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () 
   );
 });
 
-test("分镜姿势优先使用目录中的 root-motion 片段", () => {
+test("分镜姿势优先使用目录中的原地片段", () => {
   const available = [
     "C57_unreal_daily_male_locomotion_idle_break_01",
     "C57_unreal_misc_clazy_walk_forward",

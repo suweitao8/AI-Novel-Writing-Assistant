@@ -1,3 +1,5 @@
+// Deprecated historical Root Motion mappings. New catalog imports use
+// inPlaceAnimationPolicy.cjs and must not call this module.
 const { getRootMotionNameCandidates } = require("./rootMotionPolicy.cjs");
 
 /**

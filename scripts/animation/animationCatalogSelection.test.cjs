@@ -2,14 +2,15 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
-const { getRootMotionEvidence } = require("./rootMotionPolicy.cjs");
+const { getInPlaceSourceEvidence } = require("./inPlaceAnimationPolicy.cjs");
 
 const selectionPath = path.join(__dirname, "animationCatalogSelection.json");
 const selection = JSON.parse(fs.readFileSync(selectionPath, "utf8"));
 
 test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
   assert.equal(selection.target, "UAL2");
-  assert.equal(selection.rootMotionPolicy, "strict-source-marked");
+  assert.equal(selection.inPlacePolicy, "strict-source-in-place");
+  assert.equal(selection.rootTranslationMaxRangeMeters, 0.03);
   assert.deepEqual(Object.keys(selection.groups), [
     "unreal-daily",
     "unreal-interaction",
@@ -18,32 +19,32 @@ test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
     "unreal-weapon-combat",
   ]);
   assert.ok(selection.clips.length > 0);
-  assert.ok(selection.clips.length < 402, "严格 root-motion 清单应剔除非 root-motion 片段");
+  assert.ok(selection.clips.length < 402, "原地清单应剔除位移过大的片段");
   assert.equal(new Set(selection.packs.map((pack) => pack.id)).size, selection.packs.length);
   assert.ok(selection.clips.every((clip) => clip.sourceAssetPath.startsWith("/Game/")));
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.fbx$/.test(clip.fbxFileName)));
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.glb$/.test(clip.glbFileName)));
   assert.ok(selection.groups["unreal-daily"].label === "日常动作");
   assert.ok(Object.values(selection.groups).every(({ label }) => !label.includes("虚幻")));
-  assert.equal(selection.clips.length, 104, "当前发布目录应保留 104 条 root-motion 代表动作");
+  assert.equal(selection.clips.length, 277, "当前发布目录应保留通过位移审计的原地代表动作");
 });
 
-test("Cine57 清单不允许 InPlace，且每条片段都保留 root-motion 源证据", () => {
-  assert.ok(selection.droppedClips.length > 0, "应记录被严格策略剔除的非 root-motion 候选");
-  assert.ok(selection.clips.every((clip) => clip.rootMotion === true));
-  assert.ok(selection.clips.every((clip) => getRootMotionEvidence({
+test("Cine57 清单优先 InPlace，并为每条片段保留原地源与数值审计证据", () => {
+  assert.ok(selection.droppedClips.length > 0, "应记录被策略剔除的候选");
+  assert.ok(selection.clips.every((clip) => clip.inPlace === true));
+  assert.ok(selection.clips.every((clip) => getInPlaceSourceEvidence({
     assetPath: clip.sourceAssetPath,
     assetName: clip.sourceAssetName,
   }) !== null));
-  assert.ok(selection.clips.every((clip) => !/in[-_ ]?place/i.test(
-    `${clip.sourceAssetPath}/${clip.sourceAssetName}`,
-  )));
-  assert.ok(selection.clips.every((clip) => !/原地/.test(clip.name)));
-  assert.ok(selection.clips.every((clip) => ["source-path", "asset-name"].includes(clip.rootMotionEvidence)));
+  assert.ok(selection.clips.every((clip) => ["source-path", "asset-name", "unmarked-non-root"].includes(clip.inPlaceEvidence)));
+  assert.ok(selection.clips.every((clip) => clip.rootTranslationMaxRangeMeters <= 0.030001));
+  assert.ok(selection.clips.every((clip) => clip.rootTranslationMaxNetMeters <= 0.030001));
+  assert.equal(selection.rootTranslationAudit.auditedClipCount, 379);
+  assert.equal(selection.rootTranslationAudit.rejectedClipCount, 102);
   assert.deepEqual(
     new Set(selection.clips.map((clip) => clip.groupId)),
     new Set(Object.keys(selection.groups)),
-    "root-motion 策选仍应覆盖五个源组",
+    "原地策选仍应覆盖五个源组",
   );
 });
 
@@ -134,7 +135,6 @@ test("移动与待机分类能直接支持分镜筛选", () => {
   for (const id of [
     "unreal-daily-male-locomotion-idle-break-01",
     "unreal-daily-male-locomotion-idle-break-02",
-    "unreal-misc-stairs-stairs-idle",
   ]) {
     assert.equal(
       selection.clips.find((clip) => clip.id === id)?.classificationId,
@@ -142,6 +142,14 @@ test("移动与待机分类能直接支持分镜筛选", () => {
       `${id} 应归入站立待机`,
     );
   }
+
+  const stairsIdle = selection.clips.find(
+    (clip) => clip.id === "unreal-misc-stairs-stairs-idle",
+  );
+  assert.ok(
+    stairsIdle == null || stairsIdle.classificationId === "standing-idle",
+    "楼梯待机若有原地源应归入站立待机",
+  );
 
   for (const id of [
     "unreal-daily-parkour-walk-in-place",

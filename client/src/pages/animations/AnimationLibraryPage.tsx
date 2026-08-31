@@ -183,9 +183,9 @@ export default function AnimationLibraryPage() {
                   >
                     {scopeOption.label} <span className="text-[10px] opacity-75">
                       {scopeOption.id === "storyboard"
-                        ? ANIMATION_LIBRARY.filter((entry) => entry.rootMotion).length
+                        ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
                         : scopeOption.id === "compatibility"
-                          ? ANIMATION_LIBRARY.filter((entry) => !entry.rootMotion).length
+                          ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
                           : ANIMATION_LIBRARY.length}
                     </span>
                   </TabsTrigger>

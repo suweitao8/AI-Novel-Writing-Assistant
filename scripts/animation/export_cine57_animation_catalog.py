@@ -56,11 +56,11 @@ def main():
     output_dir = argument_after("--output-dir", DEFAULT_OUTPUT_DIR)
     with open(selection_path, "r", encoding="utf-8") as handle:
         selection = json.load(handle)
-    if selection.get("rootMotionPolicy") != "strict-source-marked":
-        raise RuntimeError("selection manifest must use the strict-source-marked root-motion policy")
-    invalid_clips = [clip.get("id") for clip in selection.get("clips", []) if clip.get("rootMotion") is not True]
+    if selection.get("inPlacePolicy") != "strict-source-in-place":
+        raise RuntimeError("selection manifest must use the strict-source-in-place policy")
+    invalid_clips = [clip.get("id") for clip in selection.get("clips", []) if clip.get("inPlace") is not True]
     if invalid_clips:
-        raise RuntimeError("selection contains non-root-motion clips: %s" % ", ".join(invalid_clips))
+        raise RuntimeError("selection contains non-in-place clips: %s" % ", ".join(invalid_clips))
 
     os.makedirs(output_dir, exist_ok=True)
     exported = []
