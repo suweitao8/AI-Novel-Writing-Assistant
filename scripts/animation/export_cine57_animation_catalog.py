@@ -13,8 +13,14 @@ import sys
 import unreal
 
 
-DEFAULT_SELECTION = "D:/UnrealWorkspace/Cine57-exported/animationCatalogSelection.json"
-DEFAULT_OUTPUT_DIR = "D:/UnrealWorkspace/Cine57-exported/animation_catalog"
+DEFAULT_SELECTION = os.environ.get(
+    "CINE57_ANIMATION_SELECTION",
+    "D:/UnrealWorkspace/Cine57-exported/animationCatalogSelection.json",
+)
+DEFAULT_OUTPUT_DIR = os.environ.get(
+    "CINE57_ANIMATION_OUTPUT_DIR",
+    "D:/UnrealWorkspace/Cine57-exported/animation_catalog",
+)
 
 
 def log(message):
@@ -50,6 +56,11 @@ def main():
     output_dir = argument_after("--output-dir", DEFAULT_OUTPUT_DIR)
     with open(selection_path, "r", encoding="utf-8") as handle:
         selection = json.load(handle)
+    if selection.get("rootMotionPolicy") != "strict-source-marked":
+        raise RuntimeError("selection manifest must use the strict-source-marked root-motion policy")
+    invalid_clips = [clip.get("id") for clip in selection.get("clips", []) if clip.get("rootMotion") is not True]
+    if invalid_clips:
+        raise RuntimeError("selection contains non-root-motion clips: %s" % ", ".join(invalid_clips))
 
     os.makedirs(output_dir, exist_ok=True)
     exported = []

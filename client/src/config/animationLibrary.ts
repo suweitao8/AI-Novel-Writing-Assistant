@@ -299,6 +299,9 @@ export interface AnimationLibraryEntry {
   sourceAssetPath?: string;
   sourceAssetName?: string;
   sourceSkeleton?: string;
+  /** Cine57 源资产和导出结果均通过 root-motion 门禁。旧动画保持兼容但不带该标记。 */
+  rootMotion: boolean;
+  rootMotionEvidence?: "source-path" | "asset-name";
 }
 
 export interface AnimationLibraryFilters {
@@ -396,6 +399,7 @@ function makeLegacyEntry(
     dedupeKey: `legacy:${clipName}`,
     isIdleVariant: actionType === "idle",
     sourcePack: "LegacyAnimationLibrary",
+    rootMotion: false,
   };
 }
 
@@ -492,6 +496,8 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     sourceAssetPath: entry.sourceAssetPath,
     sourceAssetName: entry.sourceAssetName,
     sourceSkeleton: entry.sourceSkeleton,
+    rootMotion: entry.rootMotion,
+    rootMotionEvidence: entry.rootMotionEvidence,
   };
 }
 

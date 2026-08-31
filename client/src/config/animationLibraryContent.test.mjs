@@ -170,12 +170,13 @@ function makeTracks(glb, animation) {
 }
 
 function animationDuration(glb, animation) {
-  return Math.max(
-    0,
-    ...(animation?.samplers ?? []).flatMap((sampler) =>
-      readAccessor(glb, sampler.input).map(([time]) => time),
-    ),
-  );
+  let duration = 0;
+  for (const sampler of animation?.samplers ?? []) {
+    for (const [time] of readAccessor(glb, sampler.input)) {
+      duration = Math.max(duration, time);
+    }
+  }
+  return duration;
 }
 
 function composePose(glb, animationName = null, time = 0) {
@@ -292,7 +293,23 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
 test("导入动画通道使用合法单位四元数并且只驱动 skin joints", () => {
   const glb = readGlb(assetPath());
   const joints = new Set((glb.json.skins ?? []).flatMap((skin) => skin.joints));
+  const rootNodes = new Set(
+    (glb.json.nodes ?? [])
+      .map((node, index) => [String(node.name ?? "").toLowerCase(), index])
+      .filter(([name]) => name === "root")
+      .map(([, index]) => index),
+  );
   for (const animation of glb.json.animations ?? []) {
+    if (animation.name.startsWith("C57_")) {
+      assert.ok(
+        (animation.channels ?? []).some(
+          (channel) =>
+            channel.target.path === "translation" &&
+            rootNodes.has(channel.target.node),
+        ),
+        `${animation.name} 必须包含 root 平移通道`,
+      );
+    }
     for (const channel of animation.channels) {
       const sampler = animation.samplers[channel.sampler];
       const output = glb.json.accessors[sampler.output];
@@ -328,14 +345,18 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
 test("五个虚幻源组都在统一 GLB 中保留了代表性动作片段", () => {
   const glb = readGlb(assetPath());
   const animationNames = new Set((glb.json.animations ?? []).map(({ name }) => name));
-  for (const name of [
-    "C57_unreal_daily_male_locomotion_idle_break_01",
-    "C57_unreal_interaction_vendors_cashier_idle",
-    "C57_unreal_misc_clazy_jog_forward",
-    "C57_unreal_hand_combat_fight_idle_base",
-    "C57_unreal_weapon_combat_sword_idle",
+  const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
+  for (const groupId of [
+    "unreal-daily",
+    "unreal-interaction",
+    "unreal-misc",
+    "unreal-hand-combat",
+    "unreal-weapon-combat",
   ]) {
-    assert.ok(animationNames.has(name), `统一动画文件缺少虚幻代表片段：${name}`);
+    const entry = unrealEntries.find((candidate) => candidate.groupId === groupId);
+    assert.ok(entry, `动画库缺少虚幻源组代表条目：${groupId}`);
+    assert.ok(animationNames.has(entry.clipName), `统一动画文件缺少虚幻代表片段：${entry.clipName}`);
+    assert.equal(entry.rootMotion, true, `${entry.clipName} 必须标记为 root-motion`);
   }
 });
 
