@@ -41,6 +41,8 @@ Cine57/UAL2 的新增 UE 动画目录采用“源证据 + GLB 轨道”双重门
   再检查 UE 导出设置；不要改前端播放代码来补偿缺失轨道。
 - 选择清单的条目明显减少：查看 `droppedClips` 的 `no-root-motion-source` 或
   `no-root-translation-in-export-audit` 原因，修复源资产或导出配置后重新生成。
+- 清单 JSON 与前端动作名称不一致：确认清单生成器和前端目录生成器是串行运行的，先写入
+  清单，再生成 `animationCatalogEntries.ts`；不要用并行任务让生成器读取旧快照。
 - 组装阶段报“must contain a root translation channel”：说明源 GLB 或重定向结果与源标记
   不一致，应保留失败证据并修复导出链路，而不是放宽筛选规则。
 
