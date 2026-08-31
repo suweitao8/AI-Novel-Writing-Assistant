@@ -50,3 +50,26 @@ node --experimental-strip-types --test client/src/config/animationLibraryContent
 `assemble_animation_catalog.py` 串行完成 FBX → GLB → UAL2 重定向，并在复制到
 `client/public/anims/cine57/` 前检查最终片段名集合。导出中不能把不同骨架的资产混入
 同一链路，也不能用文件名猜测来替代扫描清单中的真实资产路径。
+
+### Root motion 门禁
+
+Cine57 导入目录采用严格的 root-motion 策选策略：只有扫描证据明确标记为
+`RootMotion`/`Root` 路径或 `RM`/`Root` 资产名的片段才能进入清单；`InPlace` 优先排除，
+不能用模糊的 `root` 文本、骨盆平移或“看起来像移动”的动作替代源证据。对话、战斗等
+语义动作如果使用不同命名的 root-motion 对应资产，必须通过有限的显式候选映射选择，
+不能无边界地猜测资产名。
+
+组装链路还会逐级检查：源动画 GLB、重定向中间 GLB 和最终目录片段都必须包含名为
+`root` 的节点平移通道。缺失该通道的片段会被丢弃并记录原因，不能回退到非 root-motion
+版本。重新扩量前应先修正 UE 导出设置或源资产，再重新扫描、导出和组装。
+
+当前目录中的旧兼容动作仍保留给已有分镜调用方；新生成的 Cine57 条目必须带有
+`rootMotion: true` 及源证据，前端和分镜运行时共用同一份最终 GLB。
+
+相关检查：
+
+```text
+node scripts/animation/rootMotionPolicy.test.cjs
+node scripts/animation/animationCatalogSelection.test.cjs
+node scripts/animation/verify_animation_catalog.cjs scripts/animation/animationCatalogSelection.json client/public/anims/cine57/UAL2_UE_Anims.glb
+```

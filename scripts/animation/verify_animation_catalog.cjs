@@ -32,11 +32,24 @@ function readAccessor(glb, accessorIndex) {
 }
 
 function animationDuration(glb, animation) {
-  return Math.max(
-    0,
-    ...(animation.samplers ?? []).flatMap((sampler) =>
-      readAccessor(glb, sampler.input).map(([time]) => time),
-    ),
+  let duration = 0;
+  for (const sampler of animation.samplers ?? []) {
+    for (const [time] of readAccessor(glb, sampler.input)) {
+      duration = Math.max(duration, time);
+    }
+  }
+  return duration;
+}
+
+function hasRootTranslationChannel(glb, animation) {
+  const rootNodes = new Set(
+    (glb.json.nodes ?? [])
+      .map((node, index) => [String(node.name ?? "").toLowerCase(), index])
+      .filter(([name]) => name === "root")
+      .map(([, index]) => index),
+  );
+  return (animation.channels ?? []).some((channel) =>
+    channel.target.path === "translation" && rootNodes.has(channel.target.node),
   );
 }
 
@@ -62,6 +75,16 @@ function main() {
     baseNames.length + selectedNames.length,
     "GLB 动画数量不匹配",
   );
+  const animationsByName = new Map(animations.map((animation) => [animation.name, animation]));
+  for (const clip of selection.clips) {
+    assert.equal(clip.rootMotion, true, `${clip.id} 必须标记为 root-motion`);
+    const animation = animationsByName.get(clip.clipName);
+    assert.ok(animation, `GLB 缺少 ${clip.clipName}`);
+    assert.ok(
+      hasRootTranslationChannel(glb, animation),
+      `${clip.clipName} 必须驱动 root 平移通道`,
+    );
+  }
 
   const joints = new Set((glb.json.skins ?? []).flatMap((skin) => skin.joints ?? []));
   const durations = new Map(animations.map((animation) => [animation.name, animationDuration(glb, animation)]));

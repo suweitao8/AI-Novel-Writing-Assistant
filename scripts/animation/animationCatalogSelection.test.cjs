@@ -2,12 +2,14 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
+const { getRootMotionEvidence } = require("./rootMotionPolicy.cjs");
 
 const selectionPath = path.join(__dirname, "animationCatalogSelection.json");
 const selection = JSON.parse(fs.readFileSync(selectionPath, "utf8"));
 
 test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
   assert.equal(selection.target, "UAL2");
+  assert.equal(selection.rootMotionPolicy, "strict-source-marked");
   assert.deepEqual(Object.keys(selection.groups), [
     "unreal-daily",
     "unreal-interaction",
@@ -15,13 +17,32 @@ test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
     "unreal-hand-combat",
     "unreal-weapon-combat",
   ]);
-  assert.equal(selection.clips.length, 402);
-  assert.equal(new Set(selection.packs.map((pack) => pack.id)).size, 64);
+  assert.ok(selection.clips.length > 0);
+  assert.ok(selection.clips.length < 402, "严格 root-motion 清单应剔除非 root-motion 片段");
+  assert.equal(new Set(selection.packs.map((pack) => pack.id)).size, selection.packs.length);
   assert.ok(selection.clips.every((clip) => clip.sourceAssetPath.startsWith("/Game/")));
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.fbx$/.test(clip.fbxFileName)));
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.glb$/.test(clip.glbFileName)));
   assert.ok(selection.groups["unreal-daily"].label === "日常动作");
   assert.ok(Object.values(selection.groups).every(({ label }) => !label.includes("虚幻")));
+});
+
+test("Cine57 清单不允许 InPlace，且每条片段都保留 root-motion 源证据", () => {
+  assert.ok(selection.droppedClips.length > 0, "应记录被严格策略剔除的非 root-motion 候选");
+  assert.ok(selection.clips.every((clip) => clip.rootMotion === true));
+  assert.ok(selection.clips.every((clip) => getRootMotionEvidence({
+    assetPath: clip.sourceAssetPath,
+    assetName: clip.sourceAssetName,
+  }) !== null));
+  assert.ok(selection.clips.every((clip) => !/in[-_ ]?place/i.test(
+    `${clip.sourceAssetPath}/${clip.sourceAssetName}`,
+  )));
+  assert.ok(selection.clips.every((clip) => ["source-path", "asset-name"].includes(clip.rootMotionEvidence)));
+  assert.deepEqual(
+    new Set(selection.clips.map((clip) => clip.groupId)),
+    new Set(Object.keys(selection.groups)),
+    "root-motion 策选仍应覆盖五个源组",
+  );
 });
 
 test("非 Idle 动作在各套装内按语义去重，Idle 保留变体", () => {
@@ -82,7 +103,7 @@ test("动画策选清单为每条片段固化细分类、演员、姿态和武�
       .filter((clip) => clip.groupId === "unreal-weapon-combat")
       .map((clip) => clip.weaponType),
   );
-  for (const weaponType of ["sword", "katana", "rapier", "spear", "dual-blade", "bow", "pistol", "hammer", "scythe", "dagger"]) {
+  for (const weaponType of ["sword", "spear", "bow", "pistol", "hammer"]) {
     assert.ok(selectedWeaponTypes.has(weaponType), `缺少武器细类：${weaponType}`);
   }
   const selectedCreatureClasses = new Set(
@@ -90,7 +111,7 @@ test("动画策选清单为每条片段固化细分类、演员、姿态和武�
       .filter((clip) => clip.groupId === "unreal-hand-combat")
       .map((clip) => clip.classificationId),
   );
-  for (const classificationId of ["demon", "zombie", "ghost", "classic-ghost", "ground-creature"]) {
+  for (const classificationId of ["monster", "ground-creature", "creature-combat"]) {
     assert.ok(selectedCreatureClasses.has(classificationId), `缺少生物细类：${classificationId}`);
   }
   assert.ok(

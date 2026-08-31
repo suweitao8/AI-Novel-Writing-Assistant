@@ -27,6 +27,23 @@ def animation_names(path):
     return [animation.get("name") for animation in read_glb_json(path).get("animations", [])]
 
 
+def has_root_translation_channel(glb, animation_name=None):
+    root_nodes = {
+        index
+        for index, node in enumerate(glb.get("nodes", []))
+        if str(node.get("name", "")).lower() == "root"
+    }
+    animations = glb.get("animations", [])
+    if animation_name is not None:
+        animations = [animation for animation in animations if animation.get("name") == animation_name]
+    return any(
+        channel.get("target", {}).get("node") in root_nodes
+        and channel.get("target", {}).get("path") == "translation"
+        for animation in animations
+        for channel in animation.get("channels", [])
+    )
+
+
 def run(command, label):
     print("[ANIM-ASSEMBLE]", label)
     completed = subprocess.run(command, check=False)
@@ -52,6 +69,11 @@ def main():
     clips = selection.get("clips", [])
     if not clips:
         raise RuntimeError("selection manifest contains no clips")
+    if selection.get("rootMotionPolicy") != "strict-source-marked":
+        raise RuntimeError("selection manifest must use the strict-source-marked root-motion policy")
+    invalid_clips = [clip.get("id") for clip in clips if clip.get("rootMotion") is not True]
+    if invalid_clips:
+        raise RuntimeError("selection contains non-root-motion clips: %s" % ", ".join(invalid_clips))
     if not args.base_glb.is_file():
         raise RuntimeError("base GLB does not exist: %s" % args.base_glb)
 
@@ -76,6 +98,11 @@ def main():
             names = animation_names(glb_path)
         if len(names) != 1:
             raise RuntimeError("converted GLB must contain exactly one animation: %s -> %s" % (fbx_path, names))
+        if not has_root_translation_channel(read_glb_json(glb_path)):
+            raise RuntimeError(
+                "root-motion source GLB must contain a root translation channel: %s -> %s" %
+                (clip["id"], glb_path)
+            )
         converted.append({"id": clip["id"], "fbxPath": str(fbx_path), "glbPath": str(glb_path)})
 
     current = args.base_glb
@@ -84,6 +111,11 @@ def main():
         output_glb = retarget_dir / ("step-%04d.glb" % index)
         expected_names = set(animation_names(current)) | {clip["clipName"]}
         if output_glb.is_file() and set(animation_names(output_glb)) == expected_names:
+            if not has_root_translation_channel(read_glb_json(output_glb), clip["clipName"]):
+                raise RuntimeError(
+                    "reused retargeted animation must contain a root translation channel: %s -> %s" %
+                    (clip["id"], output_glb)
+                )
             current = output_glb
             print("[ANIM-ASSEMBLE] reuse retarget %d/%d %s" % (index, len(clips), clip["id"]))
             continue
@@ -99,6 +131,11 @@ def main():
             "retarget %d/%d %s" % (index, len(clips), clip["id"]),
         )
         current = output_glb
+        if not has_root_translation_channel(read_glb_json(current), clip["clipName"]):
+            raise RuntimeError(
+                "retargeted animation must contain a root translation channel: %s -> %s" %
+                (clip["id"], current)
+            )
 
     base_names = animation_names(args.base_glb)
     expected_names = base_names + [clip["clipName"] for clip in clips]

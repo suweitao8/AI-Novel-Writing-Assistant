@@ -51,14 +51,18 @@ test("动画目录的动作语义和去重键完整，Idle 允许保留多个变
   assert.ok(idleVariantCount >= 10, "目录应保留各套装的多个待机变体");
 });
 
-test("动画库筛选同时支持源组、套装和动作类型", () => {
-  const boxing = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+test("动画库筛选同时支持源组、套装和当前可用动作类型", () => {
+  const handCombatEntry = ANIMATION_LIBRARY.find(
+    (entry) => entry.groupId === "unreal-hand-combat" && entry.actionType !== "idle",
+  );
+  assert.ok(handCombatEntry, "徒手战斗组应有可筛选的非待机动作");
+  const handCombat = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
     groupId: "unreal-hand-combat",
-    actionType: "boxing",
+    actionType: handCombatEntry.actionType,
   });
-  assert.ok(boxing.length > 0, "徒手战斗组应有拳击动画");
-  assert.ok(boxing.every((entry) => entry.actionType === "boxing"));
-  assert.ok(boxing.every((entry) => entry.groupId === "unreal-hand-combat"));
+  assert.ok(handCombat.length > 0, "徒手战斗组应有可筛选的动作");
+  assert.ok(handCombat.every((entry) => entry.actionType === handCombatEntry.actionType));
+  assert.ok(handCombat.every((entry) => entry.groupId === "unreal-hand-combat"));
 
   const old = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { groupId: "legacy" });
   assert.ok(old.length > 0);
