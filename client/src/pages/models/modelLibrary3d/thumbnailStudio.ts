@@ -22,14 +22,14 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
- * 自动取景后抓成一帧 PNG dataURL。结果存进 localStorage，同一个
+ * 自动取景后抓成一帧 JPEG dataURL。结果存进 localStorage，同一个
  * 模型文件只生成一次；队列传空且闲置一段时间后销毁画布释放 WebGL 上下文。
  */
 
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
-const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
+const THUMBNAIL_SIZE = { width: 256, height: 192 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v26";
+const STORAGE_KEY = "model-library:thumbnails:v27";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;

@@ -46,7 +46,7 @@ test("模型和动画详情、缩略图显式使用模型预览 profile，场景
 
   assert.match(modelViewerSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(modelThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(modelThumbnailSource, /model-library:thumbnails:v26/);
+  assert.match(modelThumbnailSource, /model-library:thumbnails:v27/);
   assert.match(animationThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(animationThumbnailSource, /animation-library:thumbnails:v12/);
   assert.match(animationSource, /lightingProfile:\s*["']model-preview["']/);
