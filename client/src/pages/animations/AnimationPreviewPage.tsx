@@ -154,10 +154,10 @@ export default function AnimationPreviewPage() {
         </Button>
         <h1 className="min-w-0 truncate text-sm font-semibold">{entry.name}</h1>
         <Badge variant="secondary" className="ml-1 shrink-0">
-          {entry.actionTypeLabel}
+          {entry.classificationLabel}
         </Badge>
         <Badge variant="outline" className="shrink-0">
-          {entry.sourceLabel}
+          {entry.groupLabel}
         </Badge>
         <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
           {entry.packLabel}
@@ -185,6 +185,22 @@ export default function AnimationPreviewPage() {
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">套装</dt>
                   <dd className="truncate font-medium">{entry.packLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">分类</dt>
+                  <dd className="truncate font-medium">{entry.classificationLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">姿态</dt>
+                  <dd className="font-medium">{entry.postureLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">演员</dt>
+                  <dd className="font-medium">{entry.actorKindLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">武器</dt>
+                  <dd className="font-medium">{entry.weaponTypeLabel}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">来源</dt>

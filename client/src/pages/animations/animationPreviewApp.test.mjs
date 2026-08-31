@@ -206,8 +206,11 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.match(pageSource, /data-animation-category-table/);
   assert.match(pageSource, /data-animation-group-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
-  assert.match(pageSource, /data-animation-pack-filter/);
-  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /data-animation-pagination/);
+  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
+  assert.doesNotMatch(pageSource, /<Select/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);
@@ -253,5 +256,5 @@ test("动画目录来源与片段名保持 Cine57 重定向产物命名", () => 
   assert.match(catalogSource, /makeLegacyEntry\("idle-stand"[\s\S]*?"A_INP_Idle"/);
   assert.match(catalogSource, /makeLegacyEntry\("walk-forward"[\s\S]*?"A_INP_WalkFwd_Loop"/);
   assert.match(catalogSource, /makeLegacyEntry\("chair-loop"[\s\S]*?"A_chair_loop01"/);
-  assert.match(catalogSource, /sourceLabel: "虚幻导入"/);
+  assert.match(catalogSource, /sourceLabel: entry\.groupLabel/);
 });
