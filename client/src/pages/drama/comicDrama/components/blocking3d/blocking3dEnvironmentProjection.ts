@@ -12,6 +12,14 @@ export interface ProjectedHdriCoordinates {
   v: number;
 }
 
+interface ProjectedHdriShaderImpl {
+  isLinked?: (device: pc.GraphicsDevice) => boolean;
+  finalize?: (device: pc.GraphicsDevice, shader: pc.Shader) => boolean;
+}
+
+const PROJECTED_HDRI_SHADER_WAIT_TIMEOUT_MS = 5_000;
+const PROJECTED_HDRI_SHADER_POLL_INTERVAL_MS = 16;
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
@@ -109,6 +117,53 @@ void main(void) {
     gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
 `;
+
+/**
+ * PlayCanvas starts WebGL programs asynchronously when KHR_parallel_shader_compile
+ * is available, but its forward renderer still finalizes a newly created shader
+ * synchronously. Pre-create this material's exact forward variant and wait for
+ * the driver to finish it before the backdrop becomes renderable; otherwise a
+ * valid shader can be reported as `Failed to compile ... null` during the first
+ * frame while the program is still being linked.
+ */
+export async function waitForProjectedHdriShader(
+  app: pc.AppBase,
+  meshInstance: pc.MeshInstance,
+  camera: pc.CameraComponent,
+  isActive: () => boolean = () => true,
+): Promise<boolean> {
+  if (!app.renderer.viewUniformFormat) app.renderer.frameUpdate();
+  const worldLayer = app.scene.layers.getLayerById(pc.LAYERID_WORLD);
+  const lightHash = worldLayer?.getLightHash(app.scene.clusteredLightingEnabled) ?? 0;
+  const shader = meshInstance.getShaderInstance(
+    pc.SHADER_FORWARD,
+    lightHash,
+    app.scene,
+    camera.shaderParams,
+    app.renderer.viewUniformFormat,
+    [],
+  ).shader;
+  if (!shader) return isActive();
+  const shaderImpl = shader.impl as ProjectedHdriShaderImpl | undefined;
+  if (!shaderImpl?.isLinked) return isActive();
+
+  const startedAt = Date.now();
+  while (isActive()) {
+    if (shaderImpl.isLinked(app.graphicsDevice)) {
+      if (shaderImpl.finalize && !shader.ready) {
+        if (!shaderImpl.finalize(app.graphicsDevice, shader)) {
+          throw new Error("HDRI 可见着色器编译失败。");
+        }
+      }
+      return true;
+    }
+    if (Date.now() - startedAt >= PROJECTED_HDRI_SHADER_WAIT_TIMEOUT_MS) return false;
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, PROJECTED_HDRI_SHADER_POLL_INTERVAL_MS);
+    });
+  }
+  return false;
+}
 
 export function createProjectedHdriMaterial(
   texture: pc.Texture,

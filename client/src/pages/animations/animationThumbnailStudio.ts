@@ -218,6 +218,7 @@ async function createAnimationThumbnailStudio(): Promise<{
   try {
     studioEnvironment = await loadStudioEnvironment(app, undefined, {
       enableShadowCatcher: false,
+      camera: cameraEntity.camera!,
     });
   } catch (error) {
     app.destroy();

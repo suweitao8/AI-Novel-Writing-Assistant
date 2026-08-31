@@ -46,11 +46,11 @@ test("模型环境预设统一为中央广场并使用 5 到 30 米半球直径�
   assert.equal(existsSync(new URL("../public/models/env/model-nature-grassland.hdr", import.meta.url)), false);
 });
 
-test("模型可见穹顶不接收相机且固定在原点", () => {
+test("模型可见穹顶固定在原点并透传相机用于首帧预热", () => {
   assert.match(runtimeSource, /new pc\.Entity\("studio-environment-world"\)/);
   assert.match(runtimeSource, /createBlocking3dEnvironmentRuntime/);
   assert.match(blockingEnvironmentRuntimeSource, /setPosition\(environmentWorldPosition\)/);
-  assert.doesNotMatch(runtimeSource, /camera\??\s*:/);
+  assert.match(runtimeSource, /camera:\s*options\.camera/);
 });
 
 test("模型环境运行时同时装配可见穹顶和环境光", () => {
