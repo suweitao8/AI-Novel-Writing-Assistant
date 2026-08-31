@@ -39,3 +39,12 @@ test("动画入口页只挂载当前页卡片并提供可访问分页", () => {
   assert.match(pageSource, /page.*totalPages|totalPages.*page/);
   assert.match(pageSource, /setPage\(1\)/);
 });
+
+test("动画搜索通过按钮或回车提交，并与来源筛选同排", () => {
+  assert.match(pageSource, /<form[\s\S]*onSubmit/);
+  assert.match(pageSource, /type="submit"/);
+  assert.match(pageSource, /搜索/);
+  assert.match(pageSource, /data-animation-group-filter-row[\s\S]*data-animation-search/);
+  assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{scopedEntries\.length/);
+  assert.doesNotMatch(pageSource, /setTimeout\(\(\) => setSearch\(searchInput\.trim\(\)\), 250\)/);
+});
