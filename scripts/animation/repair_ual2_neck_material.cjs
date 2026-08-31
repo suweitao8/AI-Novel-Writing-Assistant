@@ -23,6 +23,22 @@ const UAL2_SIGNATURE = Object.freeze({
     "5f37390c00d37f2c40de065abbfac35b9d895a9b6e1dcb0d855a5698a3570c40",
   mainPositionSha256:
     "39bde2647f3f88ef1371263bc73cf0acf34dd0cf6cee86513b63d8b9b42ef6b1",
+  mainAttributeAccessors: Object.freeze({
+    POSITION: 0,
+    NORMAL: 1,
+    TEXCOORD_0: 2,
+    TEXCOORD_1: 3,
+    JOINTS_0: 4,
+    WEIGHTS_0: 5,
+  }),
+  jointAttributeAccessors: Object.freeze({
+    POSITION: 7,
+    NORMAL: 8,
+    TEXCOORD_0: 9,
+    TEXCOORD_1: 10,
+    JOINTS_0: 11,
+    WEIGHTS_0: 12,
+  }),
   jointIndexCount: 24036,
   neckIndexCount: 1026,
   neckIndexSha256:
@@ -54,6 +70,27 @@ function align4(value) {
 
 function cloneJson(value) {
   return JSON.parse(JSON.stringify(value));
+}
+
+function assertAttributeMap(actual, expected, label) {
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    fail(label + "属性映射不完整或已被改写。");
+  }
+}
+
+function assertNeckMaterialContract(
+  gltf,
+  jointMaterialIndex,
+  neckMaterialIndex,
+) {
+  const expected = cloneJson(gltf.materials[jointMaterialIndex]);
+  expected.name = "M_Neck";
+  if (
+    JSON.stringify(gltf.materials[neckMaterialIndex]) !==
+    JSON.stringify(expected)
+  ) {
+    fail("M_Neck 材质契约与 M_Joints 不一致。");
+  }
 }
 
 function parseGlb(input) {
@@ -231,6 +268,16 @@ function validateUal2Signature(gltf, options = {}) {
   if (!mainPrimitive || !jointPrimitive) {
     fail("Mannequin 缺少 M_Main 或 M_Joints primitive。");
   }
+  assertAttributeMap(
+    mainPrimitive.attributes,
+    UAL2_SIGNATURE.mainAttributeAccessors,
+    "M_Main",
+  );
+  assertAttributeMap(
+    jointPrimitive.attributes,
+    UAL2_SIGNATURE.jointAttributeAccessors,
+    "M_Joints",
+  );
   if ((mainPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE) {
     fail("M_Main primitive 不是三角形模式。");
   }
@@ -323,6 +370,26 @@ function validateRepairedUal2Signature(
   if (!mainPrimitive || !jointPrimitive || !neckPrimitive) {
     fail("已修复 Mannequin 缺少 M_Main、M_Joints 或 M_Neck primitive。");
   }
+  assertAttributeMap(
+    mainPrimitive.attributes,
+    UAL2_SIGNATURE.mainAttributeAccessors,
+    "已修复 M_Main",
+  );
+  assertAttributeMap(
+    jointPrimitive.attributes,
+    UAL2_SIGNATURE.jointAttributeAccessors,
+    "已修复 M_Joints",
+  );
+  assertAttributeMap(
+    neckPrimitive.attributes,
+    UAL2_SIGNATURE.mainAttributeAccessors,
+    "已修复 M_Neck",
+  );
+  assertNeckMaterialContract(
+    gltf,
+    jointMaterialIndex,
+    neckMaterialIndex,
+  );
   if (
     (mainPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE ||
     (jointPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE ||

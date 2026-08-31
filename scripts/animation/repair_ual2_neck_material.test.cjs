@@ -439,6 +439,40 @@ test("repairUal2Glb refuses an existing repair with altered POSITION data", () =
   );
 });
 
+test("repairUal2Glb refuses an existing repair with altered M_Neck material", () => {
+  const corrupted = mutateExistingAsset(assetPaths[0], ({
+    json,
+  }) => {
+    const neckMaterial = json.materials.find(
+      (material) => material.name === "M_Neck",
+    );
+    neckMaterial.pbrMetallicRoughness.baseColorFactor[0] = 0.01;
+  });
+
+  assert.throws(
+    () => repairUal2Glb(corrupted, { allowExisting: true }),
+    /M_Neck 材质契约/,
+  );
+});
+
+test("repairUal2Glb refuses an existing repair with altered skin attributes", () => {
+  const corrupted = mutateExistingAsset(assetPaths[0], ({
+    json,
+  }) => {
+    const materialNames = json.materials.map((material) => material.name);
+    const mannequin = json.meshes.find((mesh) => mesh.name === "Mannequin");
+    const neck = mannequin.primitives.find(
+      (primitive) => primitive.material === materialNames.indexOf("M_Neck"),
+    );
+    neck.attributes.JOINTS_0 = neck.attributes.NORMAL;
+  });
+
+  assert.throws(
+    () => repairUal2Glb(corrupted, { allowExisting: true }),
+    /属性映射/,
+  );
+});
+
 test("repairUal2Glb validates and reuses an existing repair when enabled", () => {
   const source = makeOriginalFixture(assetPaths[0]);
   const repaired = repairUal2Glb(source);
