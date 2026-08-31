@@ -39,7 +39,10 @@ const DEFAULT_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
 /** Model-library fill and shadow tuning for a readable, softly grounded preview. */
 const MODEL_PREVIEW_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   ambientLight: [0.18, 0.18, 0.18] as const,
-  skyboxIntensity: 0.25,
+  // The visible backdrop is a separate unlit projection. Keep the full
+  // envAtlas contribution for model materials so the HDRI lights the asset
+  // instead of leaving only the weak constant ambient fill.
+  skyboxIntensity: 1,
   shadowType: pc.SHADOW_PCF5_32F,
   shadowResolution: 2048,
   shadowDistance: 16,

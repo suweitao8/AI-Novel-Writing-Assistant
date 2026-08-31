@@ -46,9 +46,9 @@ test("模型和动画详情、缩略图显式使用模型预览 profile，场景
 
   assert.match(modelViewerSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(modelThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(modelThumbnailSource, /model-library:thumbnails:v25/);
+  assert.match(modelThumbnailSource, /model-library:thumbnails:v26/);
   assert.match(animationThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v11/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v12/);
   assert.match(animationSource, /lightingProfile:\s*["']model-preview["']/);
   assert.doesNotMatch(blockingSource, /lightingProfile:\s*["']model-preview["']/);
 });
@@ -65,6 +65,6 @@ test("两种离屏缩略图都开启投影、使用 Linear 默认色调映射并
     assert.doesNotMatch(source, /toneMapping\s*=\s*pc\.TONEMAP_ACES/, `${label}缩略图不能强制使用 ACES`);
     assert.doesNotMatch(source, /enableShadowCatcher:\s*false/, `${label}缩略图不能关闭 shadow catcher`);
   }
-  assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v24/);
-  assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v10/);
+  assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v25/);
+  assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v11/);
 });
