@@ -22,6 +22,14 @@ const THUMBNAIL_SOURCE = fs.readFileSync(
   path.join(path.dirname(fileURLToPath(import.meta.url)), "thumbnailStudio.ts"),
   "utf8",
 );
+const MODEL_EDITOR_SOURCE = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ModelEditorPage.tsx"),
+  "utf8",
+);
+const MODEL_LIBRARY_SOURCE = fs.readFileSync(
+  path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "ModelLibraryPage.tsx"),
+  "utf8",
+);
 
 test("模型预览使用统一的三分之四标准视角", () => {
   assert.equal(MODEL_PREVIEW_FRAMING.azimuthDegrees, -45);
@@ -115,6 +123,62 @@ test("取景合同变化时缩略图缓存使用新版本", () => {
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
+});
+
+test("模型查看器在 StrictMode 清理窗口后再创建 WebGL 应用", () => {
+  const effectStartIndex = MODEL_EDITOR_SOURCE.indexOf("useEffect(() =>");
+  const createViewerIndex = MODEL_EDITOR_SOURCE.indexOf("createModelViewer(", effectStartIndex);
+  const startFunctionIndex = MODEL_EDITOR_SOURCE.indexOf("const start = async", effectStartIndex);
+  const cancellationGateIndex = MODEL_EDITOR_SOURCE.indexOf("await Promise.resolve();", effectStartIndex);
+
+  assert.ok(effectStartIndex >= 0, "模型页必须有查看器初始化 effect");
+  assert.ok(startFunctionIndex >= 0, "模型页必须通过可取消的启动流程创建查看器");
+  assert.ok(
+    cancellationGateIndex >= 0 &&
+      cancellationGateIndex < createViewerIndex,
+    "创建 WebGL 应用前必须先跨过 StrictMode 的同步清理窗口",
+  );
+});
+
+test("模型缩略图初始化失败也会释放隐藏画布和 WebGL 应用", () => {
+  assert.match(
+    THUMBNAIL_SOURCE,
+    /const destroy = \(\) => \{[\s\S]*?pc\.AppBase\.cancelTick\(app\)[\s\S]*?app\.destroy\(\)[\s\S]*?offscreenCanvasMount\(\)/,
+  );
+  assert.match(
+    THUMBNAIL_SOURCE,
+    /if \(!studioEnvironment\.hasVisibleBackdrop\)[\s\S]*?throw new Error\("HDRI 场景环境加载失败。"\)/,
+  );
+});
+
+test("模型缩略图工作室初始化失败后允许后续请求重试", () => {
+  const initializationAwaitIndex = THUMBNAIL_SOURCE.indexOf("active = await studioPromise;");
+  const retryResetIndex = THUMBNAIL_SOURCE.indexOf("studioPromise = null", initializationAwaitIndex);
+
+  assert.ok(
+    initializationAwaitIndex >= 0 && retryResetIndex > initializationAwaitIndex,
+    "模型缩略图工作室失败后必须清空已拒绝的 Promise",
+  );
+});
+
+test("离开模型库时可立即销毁仍在初始化的 HDRI 缩略图应用", () => {
+  assert.match(THUMBNAIL_SOURCE, /export async function disposeThumbnailStudio/);
+  assert.match(THUMBNAIL_SOURCE, /let pendingStudioDestroy: \(\(\) => void\) \| null = null/);
+  assert.match(THUMBNAIL_SOURCE, /pendingStudioDestroy\?\.\(\)/);
+  assert.match(THUMBNAIL_SOURCE, /pendingStudioDestroy = destroy/);
+  assert.match(THUMBNAIL_SOURCE, /let processingPromise: Promise<void> \| null = null/);
+  assert.match(THUMBNAIL_SOURCE, /const queueToWait = processingPromise/);
+  assert.match(MODEL_EDITOR_SOURCE, /await disposeThumbnailStudio\(\)/);
+  const disposeIndex = MODEL_EDITOR_SOURCE.indexOf("await disposeThumbnailStudio()");
+  const createViewerIndex = MODEL_EDITOR_SOURCE.indexOf("createModelViewer(");
+  assert.ok(disposeIndex >= 0 && createViewerIndex > disposeIndex);
+});
+
+test("离开模型库列表时释放缩略图 HDRI 工作室", () => {
+  assert.match(
+    MODEL_LIBRARY_SOURCE,
+    /useEffect\(\(\) => \{\s*return \(\) => \{\s*void disposeThumbnailStudio\(\);/,
+  );
 });
 
 test("模型卡片缩略图只保留模型、HDRI 和投影阴影，不绘制编辑器网格", () => {
