@@ -1027,8 +1027,14 @@ const PACK_TAXONOMY = {
 };
 
 const CLIP_TAXONOMY_OVERRIDES = {
+  "unreal-daily-male-locomotion:idle-break-01": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
+  "unreal-daily-male-locomotion:idle-break-02": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
   "unreal-daily-male-locomotion:crouch-idle": taxonomy("crouching", "蹲伏", "human", "crouching", "none"),
   "unreal-daily-male-locomotion:crouch-forward": taxonomy("crouching", "蹲伏", "human", "crouching", "none"),
+  "unreal-daily-parkour:parkour-idle": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
+  "unreal-daily-parkour:balance-idle": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
+  "unreal-daily-parkour:walk-in-place": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
+  "unreal-daily-parkour:run-in-place": taxonomy("locomotion", "站立移动", "human", "standing", "none"),
   "unreal-daily-sleep:sit-bed-loop": taxonomy("sitting", "坐姿", "human", "sitting", "none"),
   "unreal-interaction-item-pickup:pickup-crouch-left": taxonomy("crouching-interaction", "蹲伏互动", "human", "crouching", "none"),
   "unreal-misc-kawaii:barehands-idle": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
@@ -1047,6 +1053,7 @@ const CLIP_TAXONOMY_OVERRIDES = {
   "unreal-misc-taunts:fist-pump": taxonomy("barehand", "基础徒手", "human", "standing", "barehand"),
   "unreal-misc-preacher:pray-ground": taxonomy("prayer-speech", "祈祷 / 演讲", "human", "kneeling", "none"),
   "unreal-misc-preacher:pray-start": taxonomy("prayer-speech", "祈祷 / 演讲", "human", "kneeling", "none"),
+  "unreal-misc-stairs:stairs-idle": taxonomy("standing-idle", "站立待机", "human", "standing", "none"),
   "unreal-misc-female-mocap:sit-idle": taxonomy("sitting", "坐姿", "human", "sitting", "none"),
   "unreal-hand-combat-ninja:dagger-throw": taxonomy("dagger", "匕首", "human", "standing", "dagger"),
   "unreal-hand-combat-demon:crawl-idle": taxonomy("ground-creature", "生物地面动作", "monster", "crawling", "none"),

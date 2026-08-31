@@ -11,17 +11,26 @@ import { matchesLibrarySearchQuery } from "./librarySearch.ts";
  */
 export type AnimationLibrarySource = "legacy" | "unreal";
 
+/** 分镜入口默认只展示带 root-motion 证据的策选动作；旧目录保留为兼容区。 */
+export type AnimationLibraryScopeId = "storyboard" | "compatibility" | "all";
+
+export const ANIMATION_LIBRARY_SCOPES = [
+  { id: "storyboard", label: "分镜可用" },
+  { id: "compatibility", label: "兼容动画" },
+  { id: "all", label: "全部" },
+] as const;
+
 export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 /** 保留给旧的技术检查与外部调用方的 Cine57 标识。 */
 export const ANIMATION_LIBRARY_SOURCE = "Cine57";
 
 export const ANIMATION_LIBRARY_GROUPS = [
-  { id: "legacy", label: "旧动画", source: "legacy" },
   { id: "unreal-daily", label: "日常动作", source: "unreal" },
   { id: "unreal-interaction", label: "日常互动", source: "unreal" },
   { id: "unreal-misc", label: "生活与表演", source: "unreal" },
   { id: "unreal-hand-combat", label: "徒手战斗", source: "unreal" },
   { id: "unreal-weapon-combat", label: "武器战斗", source: "unreal" },
+  { id: "legacy", label: "旧动画", source: "legacy" },
 ] as const;
 
 export type AnimationLibraryGroupId = (typeof ANIMATION_LIBRARY_GROUPS)[number]["id"];
@@ -101,6 +110,17 @@ export type AnimationLibraryPosture =
   | "airborne"
   | "mixed";
 
+export const ANIMATION_LIBRARY_POSTURES = [
+  { id: "standing", label: "站立" },
+  { id: "crouching", label: "蹲伏" },
+  { id: "sitting", label: "坐姿" },
+  { id: "kneeling", label: "跪姿" },
+  { id: "lying", label: "躺卧" },
+  { id: "crawling", label: "爬行" },
+  { id: "airborne", label: "空中" },
+  { id: "mixed", label: "综合姿态" },
+] as const;
+
 export type AnimationLibraryWeaponType =
   | "none"
   | "barehand"
@@ -116,6 +136,23 @@ export type AnimationLibraryWeaponType =
   | "dagger"
   | "magic"
   | "mixed";
+
+export const ANIMATION_LIBRARY_WEAPONS = [
+  { id: "none", label: "无武器" },
+  { id: "barehand", label: "徒手" },
+  { id: "sword", label: "剑" },
+  { id: "katana", label: "武士刀" },
+  { id: "rapier", label: "刺剑" },
+  { id: "spear", label: "长枪与戟" },
+  { id: "dual-blade", label: "双刃" },
+  { id: "bow", label: "弓箭" },
+  { id: "pistol", label: "手枪" },
+  { id: "hammer", label: "重锤" },
+  { id: "scythe", label: "镰刀" },
+  { id: "dagger", label: "匕首" },
+  { id: "magic", label: "法术" },
+  { id: "mixed", label: "混合武器" },
+] as const;
 
 export const ANIMATION_LIBRARY_ACTION_TYPES = [
   { id: "idle", label: "待机" },
@@ -307,17 +344,19 @@ export interface AnimationLibraryEntry {
 }
 
 export interface AnimationLibraryFilters {
+  scope?: AnimationLibraryScopeId;
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
   classificationId?: AnimationLibraryClassificationId | "all";
   posture?: AnimationLibraryPosture | "all";
+  weaponType?: AnimationLibraryWeaponType | "all";
   query?: string;
 }
 
 export const ANIMATION_LIBRARY_PACKS = [
-  { id: "legacy", groupId: "legacy", sourcePack: "LegacyAnimationLibrary", label: "旧动画" },
   ...ANIMATION_CATALOG_PACKS,
+  { id: "legacy", groupId: "legacy", sourcePack: "LegacyAnimationLibrary", label: "旧动画" },
 ] as const;
 
 const LEGACY_ACTION_TYPE_BY_CLIP: Readonly<Record<string, AnimationLibraryActionTypeId>> = {
@@ -512,8 +551,8 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
 }
 
 export const ANIMATION_LIBRARY: AnimationLibraryEntry[] = [
-  ...LEGACY_ANIMATION_LIBRARY,
   ...ANIMATION_CATALOG_ENTRIES.map(makeUnrealEntry),
+  ...LEGACY_ANIMATION_LIBRARY,
 ];
 
 export function filterAnimationLibraryEntries(
@@ -521,20 +560,24 @@ export function filterAnimationLibraryEntries(
   filters: AnimationLibraryFilters = {},
 ): AnimationLibraryEntry[] {
   const {
+    scope = "all",
     groupId = "all",
     packId = "all",
     actionType = "all",
     classificationId = "all",
     posture = "all",
+    weaponType = "all",
     query = "",
   } = filters;
   return entries.filter(
     (entry) =>
+      (scope === "all" || (scope === "storyboard" ? entry.rootMotion : !entry.rootMotion)) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
       (actionType === "all" || entry.actionType === actionType) &&
       (classificationId === "all" || entry.classificationId === classificationId) &&
       (posture === "all" || entry.posture === posture) &&
+      (weaponType === "all" || entry.weaponType === weaponType) &&
       matchesLibrarySearchQuery(query, [
         entry.name,
         entry.clipName,

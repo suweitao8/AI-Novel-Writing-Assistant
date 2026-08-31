@@ -25,6 +25,7 @@ test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.glb$/.test(clip.glbFileName)));
   assert.ok(selection.groups["unreal-daily"].label === "日常动作");
   assert.ok(Object.values(selection.groups).every(({ label }) => !label.includes("虚幻")));
+  assert.equal(selection.clips.length, 104, "当前发布目录应保留 104 条 root-motion 代表动作");
 });
 
 test("Cine57 清单不允许 InPlace，且每条片段都保留 root-motion 源证据", () => {
@@ -127,4 +128,27 @@ test("动画策选清单为每条片段固化细分类、演员、姿态和武�
     selection.clips.some((clip) => clip.posture === "lying"),
     "应覆盖躺卧姿态",
   );
+});
+
+test("移动与待机分类能直接支持分镜筛选", () => {
+  for (const id of [
+    "unreal-daily-male-locomotion-idle-break-01",
+    "unreal-daily-male-locomotion-idle-break-02",
+    "unreal-misc-stairs-stairs-idle",
+  ]) {
+    assert.equal(
+      selection.clips.find((clip) => clip.id === id)?.classificationId,
+      "standing-idle",
+      `${id} 应归入站立待机`,
+    );
+  }
+
+  for (const id of [
+    "unreal-daily-parkour-walk-in-place",
+    "unreal-daily-parkour-run-in-place",
+  ]) {
+    const clip = selection.clips.find((candidate) => candidate.id === id);
+    assert.equal(clip?.classificationId, "locomotion", `${id} 应归入站立移动`);
+    assert.equal(clip?.posture, "standing", `${id} 应标记为站立姿态`);
+  }
 });
