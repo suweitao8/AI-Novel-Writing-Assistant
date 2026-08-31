@@ -74,6 +74,30 @@ const DEFAULT_VIEW = {
   elev: MODEL_PREVIEW_FRAMING.elevationDegrees,
 } as const;
 const MODEL_BOUNDS_COLOR = new pc.Color(0.68, 0.68, 0.68, 0.9);
+const modelPrefetches = new Map<string, Promise<void>>();
+
+/**
+ * 在用户准备打开卡片时预热 GLB 响应，让详情页的 PlayCanvas 解析直接命中
+ * 浏览器 HTTP 缓存；只记录进行中或已完成的 URL，失败后允许下次重试。
+ */
+export function prefetchModelAsset(url: string): void {
+  const normalizedUrl = url.trim();
+  if (!normalizedUrl || modelPrefetches.has(normalizedUrl)) return;
+
+  const request = fetch(normalizedUrl, {
+    cache: "force-cache",
+    credentials: "same-origin",
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error(`模型预热失败：${response.status}`);
+      return response.arrayBuffer();
+    })
+    .then(() => undefined);
+  modelPrefetches.set(normalizedUrl, request);
+  void request.catch(() => {
+    if (modelPrefetches.get(normalizedUrl) === request) modelPrefetches.delete(normalizedUrl);
+  });
+}
 
 export interface SourceBounds {
   /** 源几何包围盒中心（源单位）。 */

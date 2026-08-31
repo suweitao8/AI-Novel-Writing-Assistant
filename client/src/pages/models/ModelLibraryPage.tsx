@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
 import {
   disposeThumbnailStudio,
   ensureThumbnail,
@@ -77,6 +78,8 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
       className="group block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/60"
       data-model-card={entry.id}
       title={`打开 ${entry.name} 的 3D 编辑`}
+      onPointerEnter={() => prefetchModelAsset(entry.fileUrl)}
+      onFocus={() => prefetchModelAsset(entry.fileUrl)}
       onClick={(event) => {
         if (
           event.button === 0 &&
