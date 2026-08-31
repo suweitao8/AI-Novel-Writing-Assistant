@@ -237,11 +237,23 @@ test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编
   assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
 });
 
-test("材质变更后不继续使用旧颜色的截图缓存", () => {
+test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
   assert.match(studioSource, /animation-library:thumbnails:v12/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
+});
+
+test("用户关键帧作为显式覆盖，不被自动缩略图刷新替换", () => {
+  assert.match(
+    pageSource,
+    /getAnimationKeyframe\(entry\.id, entry\.frameRate\)\?\.dataUrl\s*\?\?\s*getAnimationThumbnail\(entry\.id\)/,
+  );
+  assert.match(
+    pageSource,
+    /if\s*\(!getAnimationKeyframe\(entry\.id, entry\.frameRate\)\)\s*ensureAnimationThumbnail\(entry\)/,
+  );
+  assert.match(previewPageSource, /const previewImage = keyframe\?\.dataUrl \?\? automaticThumbnail/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
