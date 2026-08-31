@@ -12,6 +12,7 @@ import {
   validateModelLibrary,
 } from "./modelLibraryQuality.mjs";
 import {
+  CINE57_CATEGORY_ORDER,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_REMOVED_MODEL_IDS,
@@ -79,6 +80,22 @@ test("Cine57 目录只发布前景交互资产，其他来源的角色入口独�
   assert.deepEqual(
     STATIC_MODEL_LIBRARY.filter((entry) => REMOVED_IDS.has(entry.id)).map((entry) => entry.id),
     [],
+  );
+});
+
+test("静态模型目录按策展分类顺序连续排列，角色资源位于末尾", () => {
+  const categoryRank = new Map(CINE57_CATEGORY_ORDER.map((category, index) => [category, index]));
+  const staticRanks = STATIC_MODEL_LIBRARY.map((entry) => categoryRank.get(entry.category));
+
+  assert.equal(staticRanks.some((rank) => rank === undefined), false);
+  assert.equal(
+    staticRanks.every((rank, index) => index === 0 || rank >= staticRanks[index - 1]),
+    true,
+    STATIC_MODEL_LIBRARY.map((entry) => `${entry.id}:${entry.category}`).join(", "),
+  );
+  assert.equal(
+    MODEL_LIBRARY.findIndex((entry) => entry.category === "角色") >= STATIC_MODEL_LIBRARY.length,
+    true,
   );
 });
 

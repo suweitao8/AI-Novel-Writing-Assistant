@@ -4,6 +4,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { cleanGlbFile } from "./glbSanitizer.mjs";
 import { validateModelLibrary } from "./modelLibraryQuality.mjs";
+import { orderModelEntries } from "./modelLibraryOrdering.mjs";
 import {
   CINE57_ALLOWED_MODEL_IDS,
   CINE57_CATEGORY_ORDER,
@@ -84,18 +85,16 @@ function replaceCatalogMaterials(line, materials) {
 
 function replaceCatalogEntries(source, parsed, modelsDir) {
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
-  const entryByLineIndex = new Map(parsed.entries.map((entry) => [entry.lineIndex, entry]));
-  const outputLines = parsed.lines.flatMap((line, index) => {
-    const entry = entryByLineIndex.get(index);
-    if (!entry) return [line];
-    if (!isCine57StaticEntry(entry)) return [line];
+  const processedEntries = parsed.entries.flatMap((entry) => {
+    if (!isCine57StaticEntry(entry)) return [{ ...entry, line: parsed.lines[entry.lineIndex] }];
     if (REMOVED_IDS.has(entry.id) || !ALLOWED_IDS.has(entry.id)) return [];
     const filePath = path.join(modelsDir, entry.fileName);
     if (!fs.existsSync(filePath)) throw new Error(`Cannot update size for missing ${entry.fileName}`);
+    const sourceLine = parsed.lines[entry.lineIndex];
     const sizeKb = Math.round(fs.statSync(filePath).size / 1024);
-    if (!/\bsizeKb: \d+/.test(line)) throw new Error(`Generated sizeKb field is missing for ${entry.id}`);
+    if (!/\bsizeKb: \d+/.test(sourceLine)) throw new Error(`Generated sizeKb field is missing for ${entry.id}`);
     const override = getCatalogOverride(entry.id);
-    let nextLine = line.replace(/\bsizeKb: \d+/, `sizeKb: ${sizeKb}`);
+    let nextLine = sourceLine.replace(/\bsizeKb: \d+/, `sizeKb: ${sizeKb}`);
     if (override) {
       nextLine = nextLine
         .replace(/\bname: "[^"]+"/, `name: "${override.name}"`)
@@ -103,8 +102,32 @@ function replaceCatalogEntries(source, parsed, modelsDir) {
     }
     const materialOverride = getCatalogMaterialOverride(entry.id);
     if (materialOverride) nextLine = replaceCatalogMaterials(nextLine, materialOverride);
-    return [nextLine];
+    return [{
+      ...entry,
+      name: override?.name ?? entry.name,
+      category: override?.category ?? entry.category,
+      line: nextLine,
+    }];
   });
+  const staticEntries = processedEntries.filter(isCine57StaticEntry);
+  const orderedStaticEntries = orderModelEntries(staticEntries, {
+    categoryOrder: CINE57_CATEGORY_ORDER,
+    staticUrlPrefix: "/models/cine57/",
+  });
+  const orderedEntries = [
+    ...orderedStaticEntries,
+    ...processedEntries.filter((entry) => !isCine57StaticEntry(entry)),
+  ];
+  const firstEntryLineIndex = parsed.entries[0].lineIndex;
+  const lastEntryLineIndex = parsed.entries[parsed.entries.length - 1].lineIndex;
+  if (lastEntryLineIndex - firstEntryLineIndex + 1 !== parsed.entries.length) {
+    throw new Error("Generated model entries must occupy a contiguous block");
+  }
+  const outputLines = [
+    ...parsed.lines.slice(0, firstEntryLineIndex),
+    ...orderedEntries.map((entry) => entry.line),
+    ...parsed.lines.slice(lastEntryLineIndex + 1),
+  ];
   const categories = CATEGORY_ORDER.filter((category) =>
     parsed.entries.some((entry) => {
       if (!isCine57StaticEntry(entry)) return entry.category === category;
