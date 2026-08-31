@@ -139,11 +139,12 @@ export default function AnimationLibraryPage() {
         scope,
         groupId,
         actionType,
+        classificationId,
         posture,
         weaponType,
         query: search,
       }),
-    [actionType, groupId, posture, scope, search, weaponType],
+    [actionType, classificationId, groupId, posture, scope, search, weaponType],
   );
   const availablePacks = useMemo(() => {
     const seen = new Set<string>();

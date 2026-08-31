@@ -85,9 +85,9 @@ const POSE_CLIPS: Record<
   },
   // LayToIdle 从躺姿过渡到站姿，躺姿只在片段开头；取中段会截到半起身动作。
   lying: { names: ["LayToIdle", "Death01"], sampleTimeRatio: 0.05 },
-  // The published UAL2 file has no prone/crouch/kneeling/running clip. Keep
-  // the old names only so an older proxy can still resolve them; the current
-  // UAL2 viewer filters these options out and old layouts normalize safely.
+  // The published UAL2 compatibility aliases have no safe prone clip. Keep
+  // prone explicit so it never silently becomes a crouch pose; crouching,
+  // kneeling, and running prefer the catalog root-motion clips above.
   prone: { names: ["Prone_Idle_Loop"] },
   walking: {
     names: [
@@ -113,17 +113,9 @@ const POSE_CLIPS: Record<
       "Jog_Fwd_Loop",
     ],
   },
-  pointing: {
-    names: [
-      ...rootMotionClipNames([
-        "unreal-daily-dialogue-serious-talk",
-        "unreal-daily-dialogue-laugh-gesture",
-      ]),
-      "OverhandThrow",
-      "Pistol_Aim_Neutral",
-      "Spell_Simple_Shoot",
-    ],
-  },
+  // 当前 root-motion 策选清单没有可靠的手指指向片段；保留旧布局的
+  // 兼容别名，但不把说话或笑声手势伪装成“指向”。
+  pointing: { names: ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"] },
   holding: {
     names: [
       ...rootMotionClipNames(["unreal-misc-preacher-walk-book"]),

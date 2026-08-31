@@ -55,6 +55,10 @@ test("分镜姿势优先使用目录中的 root-motion 片段", () => {
   assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, available[5]);
   assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, available[6]);
   assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, available[7]);
+  assert.deepEqual(
+    getBlocking3dPoseClipConfig("pointing").names.slice(0, 3),
+    ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"],
+  );
 });
 
 test("躺姿片段的稳定姿势在开头，保留开头附近取样", () => {
