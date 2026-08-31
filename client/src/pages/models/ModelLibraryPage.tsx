@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 
 import { MODEL_LIBRARY, MODEL_LIBRARY_CATEGORIES, type ModelLibraryEntry } from "@/config/modelLibrary";
+import { filterModelLibraryEntries } from "@/config/modelLibraryFilters";
 import {
   getModelUsagePlacementLabel,
   getModelUsageSurfaceLabel,
 } from "@/config/modelLibraryUsage";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ensureThumbnail, getThumbnail, subscribeThumbnails } from "./modelLibrary3d/thumbnailStudio";
 
@@ -59,27 +62,71 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
 
 export default function ModelLibraryPage() {
   const [category, setCategory] = useState<string>("全部");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const visibleEntries = useMemo(() => filterModelLibraryEntries(MODEL_LIBRARY), []);
+  const visibleCategories = useMemo(
+    () => MODEL_LIBRARY_CATEGORIES.filter((item) => visibleEntries.some((entry) => entry.category === item)),
+    [visibleEntries],
+  );
   const counts = useMemo(() => {
     const map = new Map<string, number>();
-    for (const entry of MODEL_LIBRARY) {
+    for (const entry of visibleEntries) {
       map.set(entry.category, (map.get(entry.category) ?? 0) + 1);
     }
     return map;
-  }, []);
+  }, [visibleEntries]);
   const entries = useMemo(
-    () => (category === "全部" ? MODEL_LIBRARY : MODEL_LIBRARY.filter((entry) => entry.category === category)),
-    [category],
+    () => {
+      const categoryEntries = category === "全部"
+        ? MODEL_LIBRARY
+        : MODEL_LIBRARY.filter((entry) => entry.category === category);
+      return filterModelLibraryEntries(categoryEntries, search);
+    },
+    [category, search],
   );
+  const hasActiveFilters = category !== "全部" || searchInput.trim().length > 0;
+  const clearFilters = () => {
+    setCategory("全部");
+    setSearchInput("");
+    setSearch("");
+  };
 
   return (
     <div className="space-y-3" data-model-library-page>
+      <section
+        className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3"
+        aria-label="模型搜索"
+        data-model-search
+      >
+        <label htmlFor="model-library-search" className="relative min-w-[220px] flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            id="model-library-search"
+            aria-label="搜索模型"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="搜索模型名称、文件名或分类"
+            className="h-10 pl-9"
+          />
+        </label>
+        <span className="text-xs text-muted-foreground" aria-live="polite">
+          {entries.length} / {visibleEntries.length}
+        </span>
+      </section>
+
       <section
         role="tablist"
         aria-label="模型分类"
         className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1"
         data-model-category-table
       >
-        {["全部", ...MODEL_LIBRARY_CATEGORIES].map((item) => (
+        {["全部", ...visibleCategories].map((item) => (
           <button
             key={item}
             type="button"
@@ -100,17 +147,28 @@ export default function ModelLibraryPage() {
                 category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
               )}
             >
-              {item === "全部" ? MODEL_LIBRARY.length : counts.get(item) ?? 0}
+              {item === "全部" ? visibleEntries.length : counts.get(item) ?? 0}
             </span>
           </button>
         ))}
       </section>
 
-      <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
-        {entries.map((entry) => (
-          <ModelCard key={entry.id} entry={entry} />
-        ))}
-      </section>
+      {entries.length > 0 ? (
+        <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
+          {entries.map((entry) => (
+            <ModelCard key={entry.id} entry={entry} />
+          ))}
+        </section>
+      ) : (
+        <section className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground" data-model-empty>
+          <p>没有符合当前搜索或分类的模型</p>
+          {hasActiveFilters ? (
+            <Button type="button" size="sm" variant="outline" onClick={clearFilters}>
+              清除筛选
+            </Button>
+          ) : null}
+        </section>
+      )}
     </div>
   );
 }
