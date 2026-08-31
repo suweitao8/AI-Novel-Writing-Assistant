@@ -1,3 +1,7 @@
+/**
+ * @deprecated Kept for historical manifest tests only. The import pipeline
+ * uses inPlaceAnimationPolicy.cjs and never admits Root Motion sources.
+ */
 const ROOT_MOTION_PATH_MARKER = /(?:^|[\\/])root(?:[-_ ]?motion)?(?=[\\/]|$)/i;
 const ROOT_MOTION_NAME_MARKER = /(?:^|[_-])(?:rm|root(?:[-_ ]?motion)?)(?=[_-]|$)/i;
 const IN_PLACE_MARKER = /(?:^|[\\/_-])in[-_ ]?place(?=[\\/_-]|$)/i;

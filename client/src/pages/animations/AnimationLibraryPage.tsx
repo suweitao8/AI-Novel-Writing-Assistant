@@ -86,8 +86,8 @@ function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
       <div className="px-1.5 py-1.5">
         <div className="flex min-w-0 items-center gap-1.5">
           <div className="min-w-0 flex-1 truncate text-[11px] text-foreground">{entry.name}</div>
-          <Badge variant={entry.rootMotion ? "default" : "outline"} className="shrink-0 px-1.5 py-0 text-[9px]">
-            {entry.rootMotion ? "分镜可用" : "兼容动画"}
+          <Badge variant={entry.inPlace ? "default" : "outline"} className="shrink-0 px-1.5 py-0 text-[9px]">
+            {entry.inPlace ? "分镜可用" : "兼容动画"}
           </Badge>
         </div>
         <div className="truncate text-[10px] text-muted-foreground">
@@ -278,9 +278,9 @@ export default function AnimationLibraryPage() {
                 >
                   {scopeOption.label} <span className="text-[10px] opacity-75">
                     {scopeOption.id === "storyboard"
-                      ? ANIMATION_LIBRARY.filter((entry) => entry.rootMotion).length
+                      ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
                       : scopeOption.id === "compatibility"
-                        ? ANIMATION_LIBRARY.filter((entry) => !entry.rootMotion).length
+                        ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
                         : ANIMATION_LIBRARY.length}
                   </span>
                 </TabsTrigger>

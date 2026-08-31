@@ -55,25 +55,33 @@ node --experimental-strip-types --test client/src/config/animationLibraryContent
 `build_animation_catalog_selection.cjs`，确认清单写入后再运行
 `generate_animation_catalog_entries.cjs`；不要并行运行这两个命令，以免前端目录读到旧清单。
 
-### Root motion 门禁
+### 原地动画与位移门禁
 
-Cine57 导入目录采用严格的 root-motion 策选策略：只有扫描证据明确标记为
-`RootMotion`/`Root` 路径或 `RM`/`Root` 资产名的片段才能进入清单；`InPlace` 优先排除，
-不能用模糊的 `root` 文本、骨盆平移或“看起来像移动”的动作替代源证据。对话、战斗等
-语义动作如果使用不同命名的 root-motion 对应资产，必须通过有限的显式候选映射选择，
-不能无边界地猜测资产名。
+Cine57 分镜目录默认需要“动作在原地播放、角色由分镜摆位控制移动”。策选时优先选择
+UE 路径或资产名明确带有 `InPlace`、`IP`、`INP` 的源；明确位于 `RootMotion`/`Root`
+路径，或资产名带独立 `RM`/`Root` 标记的源一律拒绝。没有显式标记但被精确策选的源可以
+作为候选，不过不能凭文件名直接认定为原地，必须在转换成 GLB 后继续过数值门禁。
 
-组装链路还会逐级检查：源动画 GLB、重定向中间 GLB 和最终目录片段都必须包含名为
-`root` 的节点平移通道。缺失该通道的片段会被丢弃并记录原因，不能回退到非 root-motion
-版本。重新扩量前应先修正 UE 导出设置或源资产，再重新扫描、导出和组装。
+转换后的单片段 GLB 使用 `filter_animation_catalog_selection.cjs` 检查 `root` 节点的
+translation 轨道：每个轴的最大范围和首尾净位移都必须不超过 `0.03m`。没有 `root`
+translation 轨道表示没有可导出的全局根位移，视为通过；`pelvis` 的局部升降、下蹲和
+跳跃姿态不属于全局位移，不能用骨盆轨道代替 root 判断。超限条目写入
+`droppedClips` 和审计报告，源 FBX/GLB 不删除。
 
-当前目录中的旧兼容动作仍保留给已有分镜调用方；新生成的 Cine57 条目必须带有
-`rootMotion: true` 及源证据，前端和分镜运行时共用同一份最终 GLB。
+组装链路会再次检查源 GLB、重定向中间 GLB 和最终目录片段，避免缓存的旧中间结果绕过
+门禁。重定向仍只向目标 `skins[].joints` 写入旋转/必要的根骨骼平移；最终验证还会检查
+手臂骨链没有非有限值、断裂或超出可达长度的异常。通过的 Cine57 条目必须带有
+`inPlace: true` 与 `inPlaceEvidence`，前端和分镜运行时共用同一份最终 GLB。
 
 相关检查：
 
 ```text
-node scripts/animation/rootMotionPolicy.test.cjs
+node scripts/animation/inPlaceAnimationPolicy.test.cjs
 node scripts/animation/animationCatalogSelection.test.cjs
+node scripts/animation/filter_animation_catalog_selection.cjs \
+  <candidate-selection.json> \
+  D:/UnrealWorkspace/Cine57-exported/animation_catalog \
+  <selection-output.json> \
+  <root-translation-audit.json>
 node scripts/animation/verify_animation_catalog.cjs scripts/animation/animationCatalogSelection.json client/public/anims/cine57/UAL2_UE_Anims.glb
 ```
