@@ -46,6 +46,43 @@ test("未批准或目录外的视觉复核记录不能通过", () => {
   assert.ok(errors.some((error) => error.includes("not in catalog")));
 });
 
+test("实际三维预览审核必须绑定可复现的资源证据", () => {
+  const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
+  assert.ok(entry);
+  const review = getVisualReviewById(entry.id);
+  assert.ok(review);
+
+  const errors = validateModelVisualReview({
+    library: [entry],
+    reviews: [{
+      ...review,
+      reviewEvidence: "model-preview-audit-2026-08-31",
+      preview: {
+        previewPath: `/models/${entry.id}`,
+        assetSha256: "pending-browser-preview",
+        renderer: "model-detail-v1",
+        renderedAt: "2026-08-31",
+        textureStatus: "opaque",
+      },
+    }],
+    assetSha256ById: new Map([[entry.id, "a".repeat(64)]]),
+  });
+  assert.ok(errors.some((error) => error.includes("assetSha256")));
+});
+
+test("缺少复核证据时返回字段错误而不是让门禁崩溃", () => {
+  const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
+  assert.ok(entry);
+  const review = getVisualReviewById(entry.id);
+  assert.ok(review);
+
+  const errors = validateModelVisualReview({
+    library: [entry],
+    reviews: [{ ...review, reviewEvidence: undefined }],
+  });
+  assert.ok(errors.some((error) => error.includes("reviewEvidence")));
+});
+
 test("SM_Desk_Set_01a 按截图识别为烟灰缸", () => {
   const review = getVisualReviewById("desk-set-01a");
   assert.deepEqual(

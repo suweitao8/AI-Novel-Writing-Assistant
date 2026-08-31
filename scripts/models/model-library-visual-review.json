@@ -774,14 +774,21 @@
       "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
     },
     {
-      "id": "grass-01-1",
-      "meshName": "SM_grass_01_1",
-      "fileName": "SM_grass_01_1.glb",
-      "name": "草丛 A",
+      "id": "grass-02-a-1",
+      "meshName": "SM_grass_02_A_1_LOD0",
+      "fileName": "SM_grass_02_A_1.glb",
+      "name": "草丛 B",
       "category": "草",
-      "visualDescription": "标准缩略图中可见草丛 A",
+      "visualDescription": "标准三维预览中可见完整草叶轮廓，无不透明贴图大块",
       "reviewStatus": "approved",
-      "reviewEvidence": "standard-thumbnail-audit-2026-08-31"
+      "reviewEvidence": "model-preview-audit-2026-08-31",
+      "preview": {
+        "previewPath": "/models/grass-02-a-1",
+        "assetSha256": "64fe9c380a92a9299b5e77e57cd12db100ac72ba7b938919d670ab3c12b1f851",
+        "renderer": "model-detail-v1",
+        "renderedAt": "2026-08-31",
+        "textureStatus": "alpha-preserved"
+      }
     },
     {
       "id": "flower-01-01",

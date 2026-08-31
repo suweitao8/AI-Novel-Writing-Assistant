@@ -61,12 +61,14 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 构建器生成候选目录后，必须在当前 worktree 执行 `node --experimental-strip-types scripts/models/curate-cine57-library.mjs --apply-review-only`，把 `scripts/models/model-library-visual-review.json` 中已批准的截图语义应用到生成目录；该模式只重写目录名称、分类和尺寸字段，不清理或删除模型资产。随后执行 `pnpm check:model-library`。新增模型如果没有绑定到标准缩略图截图的 `approved` 复核记录，质量门禁必须失败，不能用英文文件名直译或页面隐藏绕过。
 
+自然模型和任何带透明材质的新资产还必须完成真实详情页预览：复核记录使用 `model-preview-audit-YYYY-MM-DD` 证据，并绑定 `/models/<id>` 预览路径、发布 GLB/贴图 SHA-256、渲染器版本、渲染日期和贴图状态。资源或贴图任一字节变化都会使旧哈希失效；先生成并检查预览，再把候选写入发布目录。被拒候选放到外部隔离目录，不能留在 `client/public/models/cine57/` 等待页面过滤。
+
 ### 模型硬规则（每条都对应一次返工教训）
 
 1. **UCX 碰撞体 + LOD1+ 必须剔除**。UE 导出的 FBX 默认带碰撞壳（`UCX_*`，无贴图凸包），网页端不剔除就是用户看到的"白色包裹"。构建脚本在转换后直接改写 GLB JSON chunk 剔除（BIN 不动）。
 2. **tint 只属于无贴图槽位**。UE 清单里的 `slot.tint` 是母材质向量参数默认值，不是漫反射；槽位已有 baseColor 贴图时全局乘 tint 会把整件模型染成参数默认色（曾把办公桌染蓝、宫灯染绿、床品染到近黑）。
 3. **RMA 只用 G 通道粗糙度**（`glossMap` + `glossMapChannel:"g"` + `glossInvert`）。这包资产的 ORM 的 B（约定金属度）/R（约定 AO）通道经逐张审计语义错误（地毯金属度 0.98、砖炉金属板 0.01），**禁开 `metalnessMap`/`aoMap`**，除非接入了校准过的 PBR 数据。PlayCanvas 手动接贴图必须显式写死通道：引擎默认通道与 glTF 约定不一致。
-4. **贴图桶与编码质量**：baseColor ≤2048 JPEG，normal/RMA ≤1024 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），禁止使用会造成明显马赛克的高量化值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。本机新版 ffmpeg 单图输出必须加 `-update 1` 且放在输出文件名之前；已有输出需要重建时显式设置 `CINE57_REBUILD_TEXTURES=1`，日常增量构建默认跳过已有文件。
+4. **贴图桶与编码质量**：baseColor ≤2048 JPEG，normal/RMA ≤1024 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），禁止使用会造成明显马赛克的高量化值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。alpha 判断同时读取 `ffprobe` 的像素格式和 FFmpeg 的 `YMIN=...` / `YMIN:...` 输出，必须匹配 `lavfi.signalstats.YMIN` 这类带前缀的日志；声明了 alpha 但统计缺失时保守保留 PNG，绝不能静默转成 JPG。最终 GLB 为 `BLEND`/`MASK` 的材质必须在目录中绑定 `opacity` 贴图或小于 0.98 的 `opacityValue`，并由 `modelLibraryTextureAudit.mjs` 复核。 本机新版 ffmpeg 单图输出必须加 `-update 1` 且放在输出文件名之前；已有输出需要重建时显式设置 `CINE57_REBUILD_TEXTURES=1`，日常增量构建默认跳过已有文件。
 5. **`unitScale` 保持 1**：Cine57 几何单位是米（拿 POSITION accessor min/max 实测确认，别猜）。单件源资产超 12MB 不入库。
 6. **`modelLibrary.ts` 是构建产物，勿手改**；条目的 `materials` 映射按「UE 材质资产名 → 贴图/标量」由构建脚本再生。
 

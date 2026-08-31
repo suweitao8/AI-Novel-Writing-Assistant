@@ -53,6 +53,10 @@ export function getCatalogOverride(id) {
   return policy.catalogOverrides[id] ?? null;
 }
 
+export function getCatalogMaterialOverride(id) {
+  return policy.materialOverrides?.[id] ?? null;
+}
+
 export function getNewAssetById(id) {
   return policy.newAssets.find((asset) => asset.id === id) ?? null;
 }
