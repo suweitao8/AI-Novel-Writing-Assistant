@@ -22,11 +22,13 @@ const UAL2_SIGNATURE = Object.freeze({
   boneCount: 65,
 });
 
+// UAL2 Mannequin 的外层颈部跨越约 1.45–1.63 米高度，外轮廓半径约为 0.22 米；
+// 只取更窄的内侧带会在侧面和背面漏出 M_Main，形成不连续的浅蓝色环带。
 const DEFAULT_NECK_SELECTION = Object.freeze({
-  minY: 1.485,
-  maxY: 1.595,
-  maxRadial: 0.17,
-  maxAbsX: 0.17,
+  minY: 1.45,
+  maxY: 1.63,
+  maxRadial: 0.22,
+  maxAbsX: 0.22,
   angularBins: 16,
   boundaryFraction: 0.1,
 });

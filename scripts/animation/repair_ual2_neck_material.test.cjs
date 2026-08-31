@@ -4,6 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+  UAL2_SIGNATURE,
   parseGlb,
   readGlbAccessor,
   repairUal2Glb,
@@ -90,7 +91,53 @@ function assertPartition(originalIndices, bodyIndices, neckIndices) {
   );
 }
 
+function getTriangleCoverage(positions, triangles) {
+  return triangles.map(({ indices }) => {
+    const vertices = indices.map((vertexIndex) => ({
+      x: positions[vertexIndex * 3],
+      y: positions[vertexIndex * 3 + 1],
+      z: positions[vertexIndex * 3 + 2],
+    }));
+    return {
+      maxRadial: Math.max(
+        ...vertices.map((vertex) => Math.hypot(vertex.x, vertex.z)),
+      ),
+      centroidY:
+        vertices.reduce((sum, vertex) => sum + vertex.y, 0) /
+        vertices.length,
+    };
+  });
+}
+
 for (const assetPath of assetPaths) {
+  test(
+    "checked-in UAL2 asset keeps the expanded outer neck partition: " +
+      path.basename(assetPath),
+    () => {
+      const parsed = parseGlb(fs.readFileSync(assetPath));
+      const signature = validateUal2Signature(parsed.json, {
+        allowExisting: true,
+      });
+      const { main, joints, neck } = findPrimitives(parsed.json);
+      assert.ok(main);
+      assert.ok(joints);
+      assert.ok(neck);
+      assert.equal(
+        parsed.json.accessors[neck.indices].count,
+        342 * 3,
+      );
+      assert.equal(
+        parsed.json.accessors[main.indices].count +
+          parsed.json.accessors[neck.indices].count,
+        UAL2_SIGNATURE.mainIndexCount,
+      );
+      assert.equal(
+        parsed.json.accessors[joints.indices].count,
+        UAL2_SIGNATURE.jointIndexCount,
+      );
+    },
+  );
+
   test(
     "repairUal2Glb splits the outer neck without changing UAL2 animation data: " +
       path.basename(assetPath),
@@ -103,6 +150,11 @@ for (const assetPath of assetPaths) {
         original.bin,
         originalSignature.mainIndexAccessor,
       );
+      const originalPositions = readGlbAccessor(
+        original.json,
+        original.bin,
+        originalSignature.mainPositionAccessor,
+      );
       const result = repairUal2Glb(source);
       const repaired = parseGlb(result.buffer);
       const { main, joints, neck } = findPrimitives(repaired.json);
@@ -112,6 +164,26 @@ for (const assetPath of assetPaths) {
       assert.equal(result.classification.angularBins.size, 16);
       assert.ok(result.classification.neckIndices.length > 0);
       assert.ok(result.classification.bodyIndices.length > 0);
+      const neckCoverage = getTriangleCoverage(
+        originalPositions,
+        result.classification.selectedTriangles,
+      );
+      assert.ok(
+        neckCoverage.length >= 300,
+        "脖子材质必须覆盖完整的外轮廓，而不是只覆盖内侧窄环。",
+      );
+      assert.ok(
+        Math.min(...neckCoverage.map((triangle) => triangle.centroidY)) <= 1.46,
+        "脖子材质必须覆盖到颈部下缘。",
+      );
+      assert.ok(
+        Math.max(...neckCoverage.map((triangle) => triangle.centroidY)) >= 1.61,
+        "脖子材质必须覆盖到颈部上缘。",
+      );
+      assert.ok(
+        Math.max(...neckCoverage.map((triangle) => triangle.maxRadial)) >= 0.21,
+        "脖子材质必须覆盖到颈部外侧轮廓。",
+      );
       assertPartition(
         originalMainIndices,
         result.classification.bodyIndices,
