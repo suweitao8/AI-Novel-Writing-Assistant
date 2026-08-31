@@ -3,6 +3,7 @@ import {
   ANIMATION_CATALOG_PACKS,
   type AnimationCatalogEntry,
 } from "./animationCatalogEntries.ts";
+import { matchesLibrarySearchQuery } from "./librarySearch.ts";
 
 /**
  * 动画目录的来源。legacy 是网站原有目录，unreal 是从 Cine57/UE 资产策选并
@@ -98,6 +99,7 @@ export interface AnimationLibraryFilters {
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
+  query?: string;
 }
 
 export const ANIMATION_LIBRARY_PACKS = [
@@ -284,12 +286,22 @@ export function filterAnimationLibraryEntries(
   entries: readonly AnimationLibraryEntry[],
   filters: AnimationLibraryFilters = {},
 ): AnimationLibraryEntry[] {
-  const { groupId = "all", packId = "all", actionType = "all" } = filters;
+  const { groupId = "all", packId = "all", actionType = "all", query = "" } = filters;
   return entries.filter(
     (entry) =>
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
-      (actionType === "all" || entry.actionType === actionType),
+      (actionType === "all" || entry.actionType === actionType) &&
+      matchesLibrarySearchQuery(query, [
+        entry.name,
+        entry.clipName,
+        entry.id,
+        entry.packLabel,
+        entry.actionTypeLabel,
+        entry.sourceAssetName,
+        entry.sourcePack,
+        entry.sourceAssetPath,
+      ]),
   );
 }
 

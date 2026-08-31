@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Loader2, Play } from "lucide-react";
+import { Loader2, Play, Search } from "lucide-react";
 
 import {
   ANIMATION_LIBRARY,
@@ -14,6 +14,7 @@ import {
 } from "@/config/animationLibrary";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   ensureAnimationThumbnail,
@@ -87,6 +88,12 @@ export default function AnimationLibraryPage() {
   const [groupId, setGroupId] = useState<AnimationLibraryGroupId | "all">("all");
   const [packId, setPackId] = useState<string>("all");
   const [actionType, setActionType] = useState<AnimationLibraryActionTypeId | "all">("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
   const groupCounts = useMemo(() => countBy(ANIMATION_LIBRARY, (entry) => entry.groupId), []);
   const availablePacks = useMemo(
@@ -105,8 +112,8 @@ export default function AnimationLibraryPage() {
     [packScopedEntries],
   );
   const entries = useMemo(
-    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { groupId, packId, actionType }),
-    [actionType, groupId, packId],
+    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { groupId, packId, actionType, query: search }),
+    [actionType, groupId, packId, search],
   );
 
   useEffect(() => {
@@ -128,10 +135,34 @@ export default function AnimationLibraryPage() {
     setGroupId("all");
     setPackId("all");
     setActionType("all");
+    setSearchInput("");
+    setSearch("");
   };
+  const hasActiveFilters = groupId !== "all" || packId !== "all" || actionType !== "all" || searchInput.trim().length > 0;
 
   return (
     <div className="space-y-3" data-animation-page>
+      <section
+        className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3"
+        aria-label="动画搜索"
+        data-animation-search
+      >
+        <label htmlFor="animation-library-search" className="relative min-w-[220px] flex-1 sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            id="animation-library-search"
+            aria-label="搜索动画"
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="搜索动画名称、片段名、套装或动作类型"
+            className="h-10 pl-9"
+          />
+        </label>
+        <span className="text-xs text-muted-foreground" aria-live="polite">
+          {entries.length} / {ANIMATION_LIBRARY.length}
+        </span>
+      </section>
+
       <section
         aria-label="动画来源与大类"
         className="rounded-xl border border-border bg-card p-1"
@@ -227,10 +258,10 @@ export default function AnimationLibraryPage() {
           </div>
         </div>
 
-        {(groupId !== "all" || packId !== "all" || actionType !== "all") ? (
+        {hasActiveFilters ? (
           <div className="flex items-center gap-2 md:col-span-2">
             <span className="truncate text-[11px] text-muted-foreground">
-              {[selectedGroup?.label, selectedPack?.label, actionType === "all" ? null : ANIMATION_LIBRARY_ACTION_TYPES.find((action) => action.id === actionType)?.label]
+              {[searchInput.trim() ? `搜索：${searchInput.trim()}` : null, selectedGroup?.label, selectedPack?.label, actionType === "all" ? null : ANIMATION_LIBRARY_ACTION_TYPES.find((action) => action.id === actionType)?.label]
                 .filter(Boolean)
                 .join(" · ")}
             </span>
@@ -254,7 +285,7 @@ export default function AnimationLibraryPage() {
         </section>
       ) : (
         <section className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground" data-animation-empty>
-          没有符合当前筛选的动画
+          没有符合当前搜索或筛选的动画
         </section>
       )}
     </div>
