@@ -33,6 +33,21 @@ export const DEFAULT_HDRI_LIGHT_ESTIMATE: HdriLightEstimate = {
   usedFallback: true,
 };
 
+/** Rotate a direction around world Y without changing its elevation. */
+export function rotateHdriLightDirectionAzimuth(
+  direction: readonly [number, number, number],
+  degrees: number,
+): [number, number, number] {
+  const angle = (Number.isFinite(degrees) ? degrees : 0) * (Math.PI / 180);
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return [
+    direction[0] * cos - direction[2] * sin,
+    direction[1],
+    direction[0] * sin + direction[2] * cos,
+  ];
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }

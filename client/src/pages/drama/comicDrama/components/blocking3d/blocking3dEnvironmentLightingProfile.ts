@@ -19,6 +19,8 @@ export interface Blocking3dLightingProfileConfig {
   shadowIntensity: number;
   shadowBias: number;
   normalOffsetBias: number;
+  /** Horizontal rotation applied to the HDRI-derived key light only. */
+  keyLightAzimuthOffsetDegrees: number;
 }
 
 /** Existing shared-preview baseline; keep this stable for non-model viewers. */
@@ -31,6 +33,7 @@ const DEFAULT_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   shadowIntensity: 1,
   shadowBias: 0.05,
   normalOffsetBias: 0.05,
+  keyLightAzimuthOffsetDegrees: 0,
 });
 
 /** Model-library fill and shadow tuning for a readable, softly grounded preview. */
@@ -40,9 +43,10 @@ const MODEL_PREVIEW_LIGHTING: Blocking3dLightingProfileConfig = Object.freeze({
   shadowType: pc.SHADOW_PCF5_32F,
   shadowResolution: 2048,
   shadowDistance: 16,
-  shadowIntensity: 0.3,
+  shadowIntensity: 0.62,
   shadowBias: 0.025,
   normalOffsetBias: 0.02,
+  keyLightAzimuthOffsetDegrees: 180,
 });
 
 export function resolveBlocking3dLightingProfile(

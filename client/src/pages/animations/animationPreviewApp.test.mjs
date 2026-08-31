@@ -192,7 +192,7 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
 test("动画预览先启动渲染循环，再执行环境加载后的首帧渲染", () => {
   const startIndex = previewSource.indexOf("app.start()");
   const environmentLoadIndex = previewSource.indexOf(
-    "const environmentPromise = loadStudioEnvironment(app",
+    "const environmentPromise = loadStudioEnvironment(app, undefined, {",
   );
   const initialFrameIndex = previewSource.indexOf("applyFrame(initialFrame)");
 
@@ -210,7 +210,10 @@ test("动画预览先启动渲染循环，再执行环境加载后的首帧渲�
 test("动画缩略图使用手动帧更新，不保留可在销毁后继续运行的 RAF", () => {
   assert.match(studioSource, /pc\.AppBase\.cancelTick\(app\)/);
   assert.match(studioSource, /app\.update\(1 \/ 60\)/);
-  assert.match(studioSource, /enableShadowCatcher:\s*false/);
+  assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+  assert.doesNotMatch(studioSource, /enableShadowCatcher:\s*false/);
+  assert.doesNotMatch(studioSource, /toneMapping\s*=\s*pc\.TONEMAP_ACES/);
   const thumbnailStartIndex = studioSource.indexOf("app.start()");
   const thumbnailEnvironmentIndex = studioSource.indexOf("loadStudioEnvironment(app");
   assert.ok(
@@ -227,7 +230,8 @@ test("动画缩略图使用手动帧更新，不保留可在销毁后继续运�
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v10/);
+  assert.match(studioSource, /animation-library:thumbnails:v11/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
 });
 
 test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
@@ -264,7 +268,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export function ensureAnimationThumbnail/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v10/);
+  assert.match(studioSource, /animation-library:thumbnails:v11/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -299,7 +303,10 @@ test("缩略图工作室初始化失败后会清空失败 Promise，允许后续
 });
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
-  assert.match(previewSource, /const environmentPromise = loadStudioEnvironment\(app/);
+  assert.match(
+    previewSource,
+    /const environmentPromise = loadStudioEnvironment\(app, undefined, \{[\s\S]*lightingProfile:\s*["']model-preview["']/,
+  );
   assert.match(previewSource, /Promise\.allSettled\(\[\s*assetPromise,\s*environmentPromise/);
   assert.match(previewSource, /studioEnvironment = environmentResult\.value/);
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);

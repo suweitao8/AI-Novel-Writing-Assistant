@@ -301,6 +301,7 @@ export function openAnimationPreview(
       const assetPromise = loadAsset(app, options.glbUrl, "container");
       const environmentPromise = loadStudioEnvironment(app, undefined, {
         camera,
+        lightingProfile: "model-preview",
       });
       const [assetResult, environmentResult] = await Promise.allSettled([
         assetPromise,
