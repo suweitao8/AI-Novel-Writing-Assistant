@@ -61,13 +61,15 @@
 
 ### Decision
 
-前端目录使用两行用户筛选语义：来源大类 → 规范化细分类。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。套装仍是条目元数据和搜索字段，但不再占据独立的主导航层。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
+前端目录先按使用边界分为“分镜可用”和“兼容动画”，默认进入前者；再按来源大类、规范化细分类筛选，套装、动作类型、姿态和武器作为二级精确筛选。旧目录单独归入 `legacy`；UE 资产按五个扫描源组归入日常动作、日常互动、生活与表演、徒手战斗、武器战斗。策选结果由 `scripts/animation/animationCatalogSelection.json` 固化，前端生成 `animationCatalogEntries.ts`，不在运行时根据文件名猜分类。
 
 ### Current Rule
 
 - 每个 UE 套装有独立 `packId` 和中文名称，卡片显示套装；每个片段还必须固化 `classificationId`、`actorKind`、`posture` 和 `weaponType`。武器至少区分剑、武士刀、刺剑、长枪与戟、双刃、弓箭、手枪、重锤、镰刀、匕首和法师武器；徒手和生物动作按流派、怪物类型、地面/爬行姿态继续细分。
+- 动画入口默认筛选 `rootMotion=true` 的分镜主库（当前 104 条），`rootMotion=false` 的 46 条旧片段只通过“兼容动画”范围查看；“全部”仅用于检查完整目录。范围切换时清空来源、套装和语义筛选，避免把上一范围的空条件带入新范围。
+- 分镜动作解析按策选目录 ID 维护 root-motion 优先映射，先尝试真实 C57 片段名，再回退到旧 UAL2 名称；不得通过猜测字符串生成别名。稳定的条目 ID、GLB 片段名和旧回退顺序必须保留，以兼容已有分镜布局。
 - `actorKind` 明确区分普通人形、可复用人形骨骼的怪物/生物和配对角色；扫描清单中没有真实狼人资源时不得仅凭名称创建狼人分类。`posture` 单独记录站立、蹲伏、坐姿、跪姿、躺卧、爬行、空中或综合姿态，使“生物地面动作”和“躺卧”可以同时表达。
-- 入口页分页默认每页 24 条，分页切片发生在卡片挂载前；来源组或细分类变化、搜索输入变化时回到第一页。筛选条保持来源和细分类两行横向滚动，避免一次挂载全目录缩略图。
+- 入口页分页默认每页 24 条，分页切片发生在卡片挂载前；范围、来源组、套装、动作、姿态、武器、细分类变化或搜索输入变化时回到第一页。来源组和细分类保持横向滚动，四个精确筛选使用统一下拉控件，避免一次挂载全目录缩略图。
 - 同一套装的非 Idle 动作使用 `dedupeKey` 只保留一个代表片段；Idle 变体允许并存，便于分镜草图保持自然变化。
 - 策选阶段只接受真实 Asset Registry 路径、`AnimSequence` 和可匹配的 Mannequin 骨架；机器人骨架、GhostSamurai 专用骨架和无法加载的资产不混入标准 UAL2 目录。
 - 所有条目仍合并进 `/anims/cine57/UAL2_UE_Anims.glb`，重定向后使用同一个蓝色 UAL2 代理角色，分镜草图和动画预览共享这套角色与动作文件。
@@ -84,7 +86,8 @@
 - `scripts/animation/build_animation_catalog_selection.cjs`：按源组、套装和动作语义生成策选清单。
 - `scripts/animation/export_cine57_animation_catalog.py`：按清单从 UE 导出 FBX。
 - `scripts/animation/assemble_animation_catalog.py`：FBX → GLB → UAL2 重定向并校验统一文件。
-- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、搜索、两行细分类筛选和分页 UI。
+- `client/src/config/animationLibrary.ts`、`client/src/pages/animations/AnimationLibraryPage.tsx`：目录元数据、分镜/兼容范围、搜索、来源/细分类/套装/动作/姿态/武器筛选和分页 UI。
+- `client/src/pages/drama/comicDrama/components/blocking3d/blocking3dPose.ts`：分镜静态姿势的 root-motion 优先消费映射与旧布局兼容回退。
 
 ## 动画导出边界
 

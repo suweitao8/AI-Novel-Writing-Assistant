@@ -216,6 +216,7 @@ async function createAnimationThumbnailStudio(): Promise<{
   let studioEnvironment: Awaited<ReturnType<typeof loadStudioEnvironment>>;
   try {
     studioEnvironment = await loadStudioEnvironment(app, undefined, {
+      camera: cameraEntity.camera!,
       lightingProfile: "model-preview",
     });
   } catch (error) {

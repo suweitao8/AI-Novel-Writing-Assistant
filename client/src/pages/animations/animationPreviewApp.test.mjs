@@ -92,6 +92,30 @@ const environmentRuntimeSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "modelLibrary3d", "studioEnvironmentRuntime.ts"),
   "utf8",
 );
+const environmentProjectionSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentProjection.ts",
+  ),
+  "utf8",
+);
+const blockingEnvironmentRuntimeSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentRuntime.ts",
+  ),
+  "utf8",
+);
 
 test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
@@ -288,6 +312,20 @@ test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
 });
 
+test("HDRI 穹顶先等待并行 shader 完成，再允许首帧显示", () => {
+  assert.match(environmentProjectionSource, /export async function waitForProjectedHdriShader/);
+  assert.match(environmentProjectionSource, /getShaderInstance\(/);
+  assert.match(environmentProjectionSource, /isLinked\(/);
+  assert.match(environmentProjectionSource, /window\.setTimeout/);
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = false/);
+  assert.match(blockingEnvironmentRuntimeSource, /await waitForProjectedHdriShader/);
+  assert.match(
+    blockingEnvironmentRuntimeSource,
+    /if \(!shaderReady\)[\s\S]*?clearEnvironmentLighting\(\)[\s\S]*?clearEnvironmentVisuals\(\)/,
+  );
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = true/);
+});
+
 test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
   assert.match(
     studioSource,
@@ -301,10 +339,12 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.match(pageSource, /data-animation-group-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /data-animation-scope-filter/);
+  assert.match(pageSource, /data-animation-detail-filters/);
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /data-animation-pagination/);
-  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /<Select/);
+  assert.match(pageSource, /data-animation-pack-filter/);
+  assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);
