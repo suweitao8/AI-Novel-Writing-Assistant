@@ -19,6 +19,10 @@ const UAL2_SIGNATURE = Object.freeze({
   jointMaterialName: "M_Joints",
   mainVertexCount: 3389,
   mainIndexCount: 17196,
+  mainIndexSha256:
+    "5f37390c00d37f2c40de065abbfac35b9d895a9b6e1dcb0d855a5698a3570c40",
+  mainPositionSha256:
+    "39bde2647f3f88ef1371263bc73cf0acf34dd0cf6cee86513b63d8b9b42ef6b1",
   jointIndexCount: 24036,
   neckIndexCount: 1026,
   neckIndexSha256:
@@ -443,6 +447,37 @@ function hashUnsignedShortIndices(indices) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }
 
+function hashFloat32Values(values) {
+  const bytes = Buffer.alloc(values.length * 4);
+  values.forEach((value, index) => bytes.writeFloatLE(value, index * 4));
+  return crypto.createHash("sha256").update(bytes).digest("hex");
+}
+
+function assertCanonicalMainPositionFingerprint(positions, label) {
+  if (
+    positions.length !== UAL2_SIGNATURE.mainVertexCount * 3 ||
+    hashFloat32Values(positions) !== UAL2_SIGNATURE.mainPositionSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Main/M_Neck POSITION 几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
+function assertCanonicalMainIndexFingerprint(indices, label) {
+  if (
+    indices.length !==
+      UAL2_SIGNATURE.mainIndexCount - UAL2_SIGNATURE.neckIndexCount ||
+    hashUnsignedShortIndices(indices) !== UAL2_SIGNATURE.mainIndexSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Main 几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
 function inspectNeckCoverage(positions, indices, angularBinCount) {
   if (positions.length % 3 !== 0) fail("POSITION 数据不是 VEC3。");
   if (indices.length === 0 || indices.length % 3 !== 0) {
@@ -484,7 +519,9 @@ function inspectNeckCoverage(positions, indices, angularBinCount) {
     selectedMinY = Math.min(selectedMinY, centroid.y);
     selectedMaxY = Math.max(selectedMaxY, centroid.y);
     maxRadial = Math.max(maxRadial, triangleMaxRadial);
-    angularBinCounts[getAngularBin(centroid.x, centroid.z, angularBinCount)] += 1;
+    angularBinCounts[
+      getAngularBin(centroid.x, centroid.z, angularBinCount)
+    ] += 1;
   }
 
   return {
@@ -733,11 +770,18 @@ function repairUal2Glb(input, options = {}) {
       parsed.bin,
       signature.mainPositionAccessor,
     );
+    const mainIndices = readGlbAccessor(
+      parsed.json,
+      parsed.bin,
+      signature.mainIndexAccessor,
+    );
     const neckIndices = readGlbAccessor(
       parsed.json,
       parsed.bin,
       signature.neckIndexAccessor,
     );
+    assertCanonicalMainPositionFingerprint(positions, "已存在的 UAL2");
+    assertCanonicalMainIndexFingerprint(mainIndices, "已存在的 UAL2");
     validateNeckCoverage(
       positions,
       neckIndices,
@@ -769,6 +813,8 @@ function repairUal2Glb(input, options = {}) {
     indices,
     options.selection,
   );
+  assertCanonicalMainPositionFingerprint(positions);
+  assertCanonicalMainIndexFingerprint(classification.bodyIndices);
   assertCanonicalNeckFingerprint(classification.neckIndices);
 
   let bin = parsed.bin;

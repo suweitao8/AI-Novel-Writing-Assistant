@@ -1,3 +1,4 @@
+const { execFileSync } = require("node:child_process");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -13,9 +14,16 @@ const {
 } = require("./repair_ual2_neck_material.cjs");
 
 const assetPaths = [
-  path.resolve("client/public/anims/cine57/UAL2_UE_Anims.glb"),
-  path.resolve("client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb"),
+  path.resolve(__dirname, "../../client/public/anims/cine57/UAL2_UE_Anims.glb"),
+  path.resolve(
+    __dirname,
+    "../../client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb",
+  ),
 ];
+const repositoryRoot = path.resolve(__dirname, "../..");
+const canonicalSourceCommit =
+  "d363c614c3e23de231d4644b50f9156e00a1a3d0";
+const canonicalSourceCache = new Map();
 
 function findPrimitives(gltf) {
   const materialNames = (gltf.materials ?? []).map((material) => material.name);
@@ -37,54 +45,23 @@ function findPrimitives(gltf) {
 }
 
 function makeOriginalFixture(assetPath) {
-  const parsed = parseGlb(fs.readFileSync(assetPath));
-  const json = JSON.parse(JSON.stringify(parsed.json));
-  const materialNames = json.materials.map((material) => material.name);
-  const neckMaterialIndex = materialNames.indexOf("M_Neck");
-  const originalIndexAccessor = json.accessors.findIndex(
-    (accessor) =>
-      accessor.type === "SCALAR" &&
-      accessor.componentType === 5123 &&
-      accessor.count === 17196,
-  );
-  assert.ok(neckMaterialIndex >= 0);
-  assert.notEqual(originalIndexAccessor, -1);
-
-  const mannequin = json.meshes.find((mesh) => mesh.name === "Mannequin");
-  assert.ok(mannequin);
-  const neckPrimitive = mannequin.primitives.find(
-    (primitive) => primitive.material === neckMaterialIndex,
-  );
-  const mainPrimitive = mannequin.primitives.find(
-    (primitive) => primitive.material === materialNames.indexOf("M_Main"),
-  );
-  assert.ok(neckPrimitive);
-  assert.ok(mainPrimitive);
-  const generatedAccessorStart = Math.min(
-    mainPrimitive.indices,
-    neckPrimitive.indices,
-  );
-  const generatedBufferViewStart = Math.min(
-    json.accessors[mainPrimitive.indices].bufferView,
-    json.accessors[neckPrimitive.indices].bufferView,
-  );
-  assert.equal(generatedAccessorStart, json.accessors.length - 2);
-  assert.equal(generatedBufferViewStart, json.bufferViews.length - 2);
-  const originalBinLength = json.bufferViews[generatedBufferViewStart].byteOffset;
-  json.accessors = json.accessors.slice(0, generatedAccessorStart);
-  json.bufferViews = json.bufferViews.slice(0, generatedBufferViewStart);
-  mannequin.primitives = mannequin.primitives.filter(
-    (primitive) => primitive.material !== neckMaterialIndex,
-  );
-  mainPrimitive.indices = originalIndexAccessor;
-  json.materials = json.materials.filter(
-    (material) => material.name !== "M_Neck",
-  );
-  return serializeGlb(
-    json,
-    parsed.bin.subarray(0, originalBinLength),
-    parsed.chunks,
-  );
+  const relativePath = path
+    .relative(repositoryRoot, assetPath)
+    .replaceAll(path.sep, "/");
+  if (!canonicalSourceCache.has(relativePath)) {
+    canonicalSourceCache.set(
+      relativePath,
+      execFileSync(
+        "git",
+        ["show", canonicalSourceCommit + ":" + relativePath],
+        {
+          cwd: repositoryRoot,
+          maxBuffer: 64 * 1024 * 1024,
+        },
+      ),
+    );
+  }
+  return Buffer.from(canonicalSourceCache.get(relativePath));
 }
 
 function appendUnsignedShortIndexAccessor(gltf, bin, templateAccessorIndex, indices) {
@@ -155,6 +132,15 @@ function makeObsoleteNarrowRing(source) {
     obsoleteBodyIndices.length + obsoleteNeckIndices.length,
     UAL2_SIGNATURE.mainIndexCount,
   );
+  return serializeGlb(json, bin, parsed.chunks);
+}
+
+function mutateExistingAsset(assetPath, mutate) {
+  const parsed = parseGlb(fs.readFileSync(assetPath));
+  const json = JSON.parse(JSON.stringify(parsed.json));
+  const signature = validateUal2Signature(json, { allowExisting: true });
+  const bin = Buffer.from(parsed.bin);
+  mutate({ json, bin, signature });
   return serializeGlb(json, bin, parsed.chunks);
 }
 
@@ -259,7 +245,7 @@ for (const assetPath of assetPaths) {
       assert.ok(neck);
       assert.equal(
         parsed.json.accessors[neck.indices].count,
-        342 * 3,
+        UAL2_SIGNATURE.neckIndexCount,
       );
       assert.equal(
         parsed.json.accessors[main.indices].count +
@@ -270,6 +256,11 @@ for (const assetPath of assetPaths) {
         parsed.json.accessors[joints.indices].count,
         UAL2_SIGNATURE.jointIndexCount,
       );
+      const reused = repairUal2Glb(fs.readFileSync(assetPath), {
+        allowExisting: true,
+      });
+      assert.equal(reused.alreadyRepaired, true);
+      assert.deepEqual(reused.buffer, fs.readFileSync(assetPath));
     },
   );
 
@@ -404,6 +395,47 @@ test("repairUal2Glb refuses an obsolete narrow-ring repair even with allowExisti
   assert.throws(
     () => repairUal2Glb(obsolete, { allowExisting: true }),
     /脖子环带覆盖不完整|重新生成/,
+  );
+});
+
+test("repairUal2Glb refuses a corrupted existing M_Main partition", () => {
+  const corrupted = mutateExistingAsset(assetPaths[0], ({ json, bin }) => {
+    const materialNames = json.materials.map((material) => material.name);
+    const mannequin = json.meshes.find((mesh) => mesh.name === "Mannequin");
+    const main = mannequin.primitives.find(
+      (primitive) => primitive.material === materialNames.indexOf("M_Main"),
+    );
+    const indices = readGlbAccessor(json, bin, main.indices);
+    indices[0] = (indices[0] + 1) % UAL2_SIGNATURE.mainVertexCount;
+    const accessor = json.accessors[main.indices];
+    const bufferView = json.bufferViews[accessor.bufferView];
+    const byteOffset =
+      (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    bin.writeUInt16LE(indices[0], byteOffset);
+  });
+
+  assert.throws(
+    () => repairUal2Glb(corrupted, { allowExisting: true }),
+    /几何指纹/,
+  );
+});
+
+test("repairUal2Glb refuses an existing repair with altered POSITION data", () => {
+  const corrupted = mutateExistingAsset(assetPaths[0], ({
+    json,
+    bin,
+    signature,
+  }) => {
+    const accessor = json.accessors[signature.mainPositionAccessor];
+    const bufferView = json.bufferViews[accessor.bufferView];
+    const byteOffset =
+      (bufferView.byteOffset ?? 0) + (accessor.byteOffset ?? 0);
+    bin.writeFloatLE(bin.readFloatLE(byteOffset) + 0.000001, byteOffset);
+  });
+
+  assert.throws(
+    () => repairUal2Glb(corrupted, { allowExisting: true }),
+    /几何指纹/,
   );
 });
 
