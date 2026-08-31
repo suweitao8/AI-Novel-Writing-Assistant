@@ -230,9 +230,17 @@ test("动画缩略图使用手动帧更新，不保留可在销毁后继续运�
   );
 });
 
+test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
+  assert.doesNotMatch(studioSource, /buildBlocking3dGroundGridLines/);
+  assert.doesNotMatch(studioSource, /drawBlocking3dGroundGrid/);
+  assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+});
+
 test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
   assert.match(studioSource, /animation-library:thumbnails:v12/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
 });
 
@@ -254,7 +262,22 @@ test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
     previewSource,
     /baseLayer\?\.play\(activeClipName\)[\s\S]*applyFrame\(initialFrame\)/,
   );
-  assert.match(previewSource, /applyFrame\(initialFrame\)[\s\S]*pause\(\)/);
+  assert.match(
+    previewSource,
+    /baseLayer\?\.play\(activeClipName\)[\s\S]*pause\(\)[\s\S]*applyFrame\(initialFrame\)/,
+  );
+});
+
+test("初始化预览帧前暂停动画层，让首帧立即写入骨骼", () => {
+  const restoreBlock = previewSource.match(
+    /anim\.baseLayer\?\.play\(activeClipName\);([\s\S]*?)applyFrame\(initialFrame\);/,
+  )?.[1];
+  assert.ok(restoreBlock, "应有独立的初始动作帧恢复流程");
+  assert.match(
+    restoreBlock,
+    /pause\(\)/,
+    "写入初始帧前必须先暂停动画层，触发 PlayCanvas 的同步骨骼求值",
+  );
 });
 
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {

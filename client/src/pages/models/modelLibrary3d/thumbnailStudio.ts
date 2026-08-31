@@ -2,8 +2,6 @@ import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import {
-  buildBlocking3dGroundGridLines,
-  drawBlocking3dGroundGrid,
   loadAsset,
   type ContainerResource,
 } from "@/pages/drama/comicDrama/components/blocking3d";
@@ -187,8 +185,6 @@ async function createThumbnailStudio(): Promise<{
     app.destroy();
     throw new Error("HDRI 场景环境加载失败。");
   }
-  const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
-
   const frame = (bounds: ModelPreviewBounds, points: readonly ModelPreviewVector[] = []) => {
     const fit = fitModelPreviewCamera(
       bounds,
@@ -209,7 +205,6 @@ async function createThumbnailStudio(): Promise<{
   };
 
   const drawFrame = () => {
-    drawBlocking3dGroundGrid(app, gridLines);
     app.render();
   };
 

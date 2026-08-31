@@ -111,7 +111,15 @@ test("取景合同变化时缩略图缓存使用新版本", () => {
   assert.match(THUMBNAIL_SOURCE, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /toneMapping\s*=\s*pc\.TONEMAP_ACES/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v25/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v24/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v22/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v21/);
   assert.doesNotMatch(THUMBNAIL_SOURCE, /model-library:thumbnails:v20/);
+});
+
+test("模型卡片缩略图只保留模型、HDRI 和投影阴影，不绘制编辑器网格", () => {
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /buildBlocking3dGroundGridLines/);
+  assert.doesNotMatch(THUMBNAIL_SOURCE, /drawBlocking3dGroundGrid/);
+  assert.match(THUMBNAIL_SOURCE, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(THUMBNAIL_SOURCE, /castShadows: true/);
 });

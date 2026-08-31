@@ -67,4 +67,8 @@ test("两种离屏缩略图都开启投影、使用 Linear 默认色调映射并
   }
   assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v25/);
   assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v11/);
+  assert.doesNotMatch(modelThumbnailSource, /model-library:thumbnails:v24/);
+  assert.doesNotMatch(animationThumbnailSource, /animation-library:thumbnails:v10/);
+  assert.doesNotMatch(modelThumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);
+  assert.doesNotMatch(animationThumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);
 });
