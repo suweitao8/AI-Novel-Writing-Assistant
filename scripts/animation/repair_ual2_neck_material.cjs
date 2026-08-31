@@ -40,6 +40,14 @@ const UAL2_SIGNATURE = Object.freeze({
     WEIGHTS_0: 12,
   }),
   jointIndexCount: 24036,
+  jointIndexSha256:
+    "4e066f7e02a948387b6e3ac337859e46e50511484b452dd1885b7215759f3cfb",
+  jointBodyIndexCount: 23796,
+  jointBodyIndexSha256:
+    "22bd32e135f3b7ecc31d5ef72a8dcc46867577899d7836800dd9f0d62701c3b9",
+  jointNeckIndexCount: 240,
+  jointNeckIndexSha256:
+    "1bf55f8642c9244f16306d8c5f27f9629f9dbfc8627b7f6692a75eda95c6cfd8",
   neckIndexCount: 1026,
   neckIndexSha256:
     "7844e4b9bbc95a982ef262600817b1a5f5c407a182affb7eb4357d5aaf5a3fca",
@@ -58,6 +66,15 @@ const DEFAULT_NECK_SELECTION = Object.freeze({
   minTriangleCount: 300,
   minTrianglesPerAngularBin: 15,
   minCoverageRadial: 0.21,
+});
+
+// 原始 M_Joints 中还包含一段贴在外层颈部内部的关节几何。它必须从
+// M_Joints 浅色高亮中拆出，否则即使外层 M_Neck 改成主体蓝色，脖子内部仍会
+// 留下一块浅蓝色。这个区域比外层脖子更窄，使用固定 UAL2 签名做最终门禁。
+const DEFAULT_JOINT_NECK_SELECTION = Object.freeze({
+  minY: 1.45,
+  maxY: 1.67,
+  maxRadial: 0.22,
 });
 
 function fail(message) {
@@ -80,16 +97,16 @@ function assertAttributeMap(actual, expected, label) {
 
 function assertNeckMaterialContract(
   gltf,
-  jointMaterialIndex,
+  mainMaterialIndex,
   neckMaterialIndex,
 ) {
-  const expected = cloneJson(gltf.materials[jointMaterialIndex]);
+  const expected = cloneJson(gltf.materials[mainMaterialIndex]);
   expected.name = "M_Neck";
   if (
     JSON.stringify(gltf.materials[neckMaterialIndex]) !==
     JSON.stringify(expected)
   ) {
-    fail("M_Neck 材质契约与 M_Joints 不一致。");
+    fail("M_Neck 材质契约与 M_Main 不一致。");
   }
 }
 
@@ -339,6 +356,7 @@ function validateUal2Signature(gltf, options = {}) {
     mainPositionAccessor,
     mainIndexAccessor,
     jointIndexAccessor,
+    jointPositionAccessor: jointAttributes.POSITION,
   };
 }
 
@@ -355,8 +373,8 @@ function validateRepairedUal2Signature(
     fail("已修复 GLB 必须包含且只能包含一个名为 Mannequin 的 mesh。");
   }
   const mannequin = mannequinMeshes[0];
-  if (!Array.isArray(mannequin.primitives) || mannequin.primitives.length !== 3) {
-    fail("已修复 UAL2 Mannequin 必须包含三个 primitive。");
+  if (!Array.isArray(mannequin.primitives) || mannequin.primitives.length !== 4) {
+    fail("已修复 UAL2 Mannequin 必须包含四个 primitive。");
   }
   const mainPrimitive = mannequin.primitives.find(
     (primitive) => primitive.material === mainMaterialIndex,
@@ -364,10 +382,22 @@ function validateRepairedUal2Signature(
   const jointPrimitive = mannequin.primitives.find(
     (primitive) => primitive.material === jointMaterialIndex,
   );
-  const neckPrimitive = mannequin.primitives.find(
+  const neckPrimitives = mannequin.primitives.filter(
     (primitive) => primitive.material === neckMaterialIndex,
   );
-  if (!mainPrimitive || !jointPrimitive || !neckPrimitive) {
+  const mainNeckPrimitive = neckPrimitives.find(
+    (primitive) => primitive.attributes?.POSITION === mainPrimitive?.attributes?.POSITION,
+  );
+  const jointNeckPrimitive = neckPrimitives.find(
+    (primitive) => primitive.attributes?.POSITION === jointPrimitive?.attributes?.POSITION,
+  );
+  if (
+    !mainPrimitive ||
+    !jointPrimitive ||
+    neckPrimitives.length !== 2 ||
+    !mainNeckPrimitive ||
+    !jointNeckPrimitive
+  ) {
     fail("已修复 Mannequin 缺少 M_Main、M_Joints 或 M_Neck primitive。");
   }
   assertAttributeMap(
@@ -381,27 +411,38 @@ function validateRepairedUal2Signature(
     "已修复 M_Joints",
   );
   assertAttributeMap(
-    neckPrimitive.attributes,
+    mainNeckPrimitive.attributes,
     UAL2_SIGNATURE.mainAttributeAccessors,
-    "已修复 M_Neck",
+    "已修复外层 M_Neck",
+  );
+  assertAttributeMap(
+    jointNeckPrimitive.attributes,
+    UAL2_SIGNATURE.jointAttributeAccessors,
+    "已修复内部 M_Neck",
   );
   assertNeckMaterialContract(
     gltf,
-    jointMaterialIndex,
+    mainMaterialIndex,
     neckMaterialIndex,
   );
   if (
     (mainPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE ||
     (jointPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE ||
-    (neckPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE
+    (mainNeckPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE ||
+    (jointNeckPrimitive.mode ?? TRIANGLES_MODE) !== TRIANGLES_MODE
   ) {
     fail("已修复 UAL2 primitive 不是三角形模式。");
   }
 
   const mainPositionAccessor = mainPrimitive.attributes?.POSITION;
-  const neckPositionAccessor = neckPrimitive.attributes?.POSITION;
+  const neckPositionAccessor = mainNeckPrimitive.attributes?.POSITION;
   if (mainPositionAccessor !== neckPositionAccessor) {
     fail("已修复 M_Main 与 M_Neck 没有复用同一套 POSITION accessor。");
+  }
+  const jointPositionAccessor = jointPrimitive.attributes?.POSITION;
+  const jointNeckPositionAccessor = jointNeckPrimitive.attributes?.POSITION;
+  if (jointPositionAccessor !== jointNeckPositionAccessor) {
+    fail("已修复 M_Joints 与内部 M_Neck 没有复用同一套 POSITION accessor。");
   }
   validateAccessor(
     gltf,
@@ -412,7 +453,7 @@ function validateRepairedUal2Signature(
     UAL2_SIGNATURE.mainVertexCount,
   );
   const mainIndexAccessor = mainPrimitive.indices;
-  const neckIndexAccessor = neckPrimitive.indices;
+  const neckIndexAccessor = mainNeckPrimitive.indices;
   validateAccessor(
     gltf,
     mainIndexAccessor,
@@ -438,13 +479,22 @@ function validateRepairedUal2Signature(
   }
 
   const jointIndexAccessor = jointPrimitive.indices;
+  const jointNeckIndexAccessor = jointNeckPrimitive.indices;
   validateAccessor(
     gltf,
     jointIndexAccessor,
     "M_Joints index",
     "SCALAR",
     UNSIGNED_SHORT_COMPONENT,
-    UAL2_SIGNATURE.jointIndexCount,
+    UAL2_SIGNATURE.jointBodyIndexCount,
+  );
+  validateAccessor(
+    gltf,
+    jointNeckIndexAccessor,
+    "内部 M_Neck index",
+    "SCALAR",
+    UNSIGNED_SHORT_COMPONENT,
+    UAL2_SIGNATURE.jointNeckIndexCount,
   );
   const jointAttributes = jointPrimitive.attributes ?? {};
   if (jointAttributes.POSITION === undefined) {
@@ -458,6 +508,13 @@ function validateRepairedUal2Signature(
     FLOAT_COMPONENT,
     5157,
   );
+  const jointNeckIndexCount = gltf.accessors[jointNeckIndexAccessor].count;
+  if (
+    gltf.accessors[jointIndexAccessor].count + jointNeckIndexCount !==
+    UAL2_SIGNATURE.jointIndexCount
+  ) {
+    fail("已修复 M_Joints 与内部 M_Neck 没有覆盖原始 UAL2 三角形索引。");
+  }
   const skin = gltf.skins?.[0];
   if (!skin || skin.joints?.length !== UAL2_SIGNATURE.boneCount) {
     fail("已修复 GLB 骨骼数量与已知 UAL2 签名不符。");
@@ -467,7 +524,10 @@ function validateRepairedUal2Signature(
     mannequin,
     mainPrimitive,
     jointPrimitive,
-    neckPrimitive,
+    neckPrimitive: mainNeckPrimitive,
+    neckPrimitives,
+    mainNeckPrimitive,
+    jointNeckPrimitive,
     mainMaterialIndex,
     jointMaterialIndex,
     neckMaterialIndex,
@@ -475,6 +535,8 @@ function validateRepairedUal2Signature(
     mainIndexAccessor,
     jointIndexAccessor,
     neckIndexAccessor,
+    jointNeckIndexAccessor,
+    jointPositionAccessor,
     alreadyRepaired: true,
   };
 }
@@ -541,6 +603,30 @@ function assertCanonicalMainIndexFingerprint(indices, label) {
     fail(
       (label ?? "UAL2") +
         "的 M_Main 几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
+function assertCanonicalJointIndexFingerprint(indices, label) {
+  if (
+    indices.length !== UAL2_SIGNATURE.jointIndexCount ||
+    hashUnsignedShortIndices(indices) !== UAL2_SIGNATURE.jointIndexSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Joints 几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
+function assertCanonicalJointBodyIndexFingerprint(indices, label) {
+  if (
+    indices.length !== UAL2_SIGNATURE.jointBodyIndexCount ||
+    hashUnsignedShortIndices(indices) !== UAL2_SIGNATURE.jointBodyIndexSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Joints 主体几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
     );
   }
 }
@@ -683,6 +769,18 @@ function assertCanonicalNeckFingerprint(indices, label) {
   }
 }
 
+function assertCanonicalJointNeckFingerprint(indices, label) {
+  if (
+    indices.length !== UAL2_SIGNATURE.jointNeckIndexCount ||
+    hashUnsignedShortIndices(indices) !== UAL2_SIGNATURE.jointNeckIndexSha256
+  ) {
+    fail(
+      (label ?? "UAL2") +
+        "的 M_Neck 内部颈部几何指纹与当前角色模型不符，请从原始 UAL2 资源重新生成。",
+    );
+  }
+}
+
 function classifyNeckTriangles(positions, indices, options = {}) {
   const selection = { ...DEFAULT_NECK_SELECTION, ...options };
   if (positions.length % 3 !== 0) fail("POSITION 数据不是 VEC3。");
@@ -734,6 +832,65 @@ function classifyNeckTriangles(positions, indices, options = {}) {
     angularBins: coverage.angularBins,
     selectedMinY: coverage.selectedMinY,
     selectedMaxY: coverage.selectedMaxY,
+    selection,
+  };
+}
+
+function classifyJointNeckTriangles(positions, indices, options = {}) {
+  const selection = { ...DEFAULT_JOINT_NECK_SELECTION, ...options };
+  if (positions.length % 3 !== 0) fail("M_Joints POSITION 数据不是 VEC3。");
+  if (indices.length === 0 || indices.length % 3 !== 0) {
+    fail("M_Joints 索引数量不是完整三角形。");
+  }
+
+  const bodyIndices = [];
+  const neckIndices = [];
+  const selectedTriangles = [];
+
+  for (let index = 0; index < indices.length; index += 3) {
+    const triangleIndices = indices.slice(index, index + 3);
+    const vertices = triangleIndices.map((vertexIndex) => {
+      if (
+        !Number.isInteger(vertexIndex) ||
+        vertexIndex < 0 ||
+        vertexIndex >= positions.length / 3
+      ) {
+        fail("M_Joints 索引 " + vertexIndex + " 超出 POSITION 范围。");
+      }
+      return {
+        x: positions[vertexIndex * 3],
+        y: positions[vertexIndex * 3 + 1],
+        z: positions[vertexIndex * 3 + 2],
+      };
+    });
+    const centroid = vertices.reduce(
+      (sum, vertex) => ({
+        x: sum.x + vertex.x / 3,
+        y: sum.y + vertex.y / 3,
+        z: sum.z + vertex.z / 3,
+      }),
+      { x: 0, y: 0, z: 0 },
+    );
+    const inHeightBand =
+      centroid.y >= selection.minY && centroid.y <= selection.maxY;
+    const inInnerNeck = vertices.every(
+      (vertex) => Math.hypot(vertex.x, vertex.z) <= selection.maxRadial,
+    );
+    if (!inHeightBand || !inInnerNeck) {
+      bodyIndices.push(...triangleIndices);
+      continue;
+    }
+    neckIndices.push(...triangleIndices);
+    selectedTriangles.push({ indices: triangleIndices, centroid });
+  }
+
+  if (neckIndices.length === 0) {
+    fail("M_Joints 没有找到可拆分的内部颈部几何。");
+  }
+  return {
+    bodyIndices,
+    neckIndices,
+    selectedTriangles,
     selection,
   };
 }
@@ -847,6 +1004,16 @@ function repairUal2Glb(input, options = {}) {
       parsed.bin,
       signature.neckIndexAccessor,
     );
+    const jointIndices = readGlbAccessor(
+      parsed.json,
+      parsed.bin,
+      signature.jointIndexAccessor,
+    );
+    const jointNeckIndices = readGlbAccessor(
+      parsed.json,
+      parsed.bin,
+      signature.jointNeckIndexAccessor,
+    );
     assertCanonicalMainPositionFingerprint(positions, "已存在的 UAL2");
     assertCanonicalMainIndexFingerprint(mainIndices, "已存在的 UAL2");
     validateNeckCoverage(
@@ -856,11 +1023,14 @@ function repairUal2Glb(input, options = {}) {
       "已存在的",
     );
     assertCanonicalNeckFingerprint(neckIndices, "已存在的 UAL2");
+    assertCanonicalJointBodyIndexFingerprint(jointIndices, "已存在的 UAL2");
+    assertCanonicalJointNeckFingerprint(jointNeckIndices, "已存在的 UAL2");
     return {
       buffer: Buffer.from(input),
       alreadyRepaired: true,
       classification: {
         neckIndices: [],
+        jointNeckIndices: [],
         angularBins: new Set(),
       },
     };
@@ -875,6 +1045,16 @@ function repairUal2Glb(input, options = {}) {
     parsed.bin,
     signature.mainIndexAccessor,
   );
+  const jointPositions = readGlbAccessor(
+    parsed.json,
+    parsed.bin,
+    signature.jointPositionAccessor,
+  );
+  const jointIndices = readGlbAccessor(
+    parsed.json,
+    parsed.bin,
+    signature.jointIndexAccessor,
+  );
   const classification = classifyNeckTriangles(
     positions,
     indices,
@@ -883,6 +1063,13 @@ function repairUal2Glb(input, options = {}) {
   assertCanonicalMainPositionFingerprint(positions);
   assertCanonicalMainIndexFingerprint(classification.bodyIndices);
   assertCanonicalNeckFingerprint(classification.neckIndices);
+  assertCanonicalJointIndexFingerprint(jointIndices);
+  const jointClassification = classifyJointNeckTriangles(
+    jointPositions,
+    jointIndices,
+  );
+  assertCanonicalJointBodyIndexFingerprint(jointClassification.bodyIndices);
+  assertCanonicalJointNeckFingerprint(jointClassification.neckIndices);
 
   let bin = parsed.bin;
   const bodyIndex = createIndexAccessor(
@@ -899,12 +1086,28 @@ function repairUal2Glb(input, options = {}) {
     classification.neckIndices,
   );
   bin = neckIndex.bin;
+  const jointBodyIndex = createIndexAccessor(
+    parsed.json,
+    bin,
+    parsed.json.accessors[signature.jointIndexAccessor],
+    jointClassification.bodyIndices,
+  );
+  bin = jointBodyIndex.bin;
+  const jointNeckIndex = createIndexAccessor(
+    parsed.json,
+    bin,
+    parsed.json.accessors[signature.jointIndexAccessor],
+    jointClassification.neckIndices,
+  );
+  bin = jointNeckIndex.bin;
 
   const mannequin = signature.mannequin;
   const mainPrimitive = signature.mainPrimitive;
+  const jointPrimitive = signature.jointPrimitive;
   mainPrimitive.indices = bodyIndex.accessorIndex;
+  jointPrimitive.indices = jointBodyIndex.accessorIndex;
   const neckMaterial = cloneJson(
-    parsed.json.materials[signature.jointMaterialIndex],
+    parsed.json.materials[signature.mainMaterialIndex],
   );
   neckMaterial.name = "M_Neck";
   const neckMaterialIndex = parsed.json.materials.length;
@@ -913,14 +1116,23 @@ function repairUal2Glb(input, options = {}) {
   const neckPrimitive = cloneJson(mainPrimitive);
   neckPrimitive.indices = neckIndex.accessorIndex;
   neckPrimitive.material = neckMaterialIndex;
-  mannequin.primitives.push(neckPrimitive);
+  const jointNeckPrimitive = cloneJson(jointPrimitive);
+  jointNeckPrimitive.indices = jointNeckIndex.accessorIndex;
+  jointNeckPrimitive.material = neckMaterialIndex;
+  mannequin.primitives.push(neckPrimitive, jointNeckPrimitive);
 
   return {
     buffer: serializeGlb(parsed.json, bin, parsed.chunks),
-    classification,
+    classification: {
+      ...classification,
+      jointBodyIndices: jointClassification.bodyIndices,
+      jointNeckIndices: jointClassification.neckIndices,
+    },
     neckMaterialIndex,
     bodyIndexAccessor: bodyIndex.accessorIndex,
     neckIndexAccessor: neckIndex.accessorIndex,
+    jointBodyIndexAccessor: jointBodyIndex.accessorIndex,
+    jointNeckIndexAccessor: jointNeckIndex.accessorIndex,
   };
 }
 

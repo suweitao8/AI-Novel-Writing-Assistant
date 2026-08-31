@@ -57,7 +57,7 @@ function applyMaterialToMesh(
     role = getBlocking3dActorMaterialRole(mesh.material?.name);
     MATERIAL_ROLE_BY_MESH.set(mesh, role);
   }
-  mesh.material = role === "main" ? material : jointMaterial;
+  mesh.material = role === "joints" ? jointMaterial : material;
 }
 
 export function setEntityMaterial(
