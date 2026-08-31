@@ -28,16 +28,23 @@ test("动画入口卡片跳转到独立预览路由，而不是打开弹窗", ()
   assert.match(routerSource, /path: "animations\/:animationId"/);
 });
 
-test("独立预览页提供可访问时间轴和关键帧保存流程", () => {
+test("独立预览页提供可访问帧轴和关键帧保存流程", () => {
   assert.match(pageSource, /useParams/);
   assert.match(pageSource, /data-animation-preview-page/);
   assert.match(pageSource, /data-animation-preview-canvas/);
   assert.match(pageSource, /type="range"/);
-  assert.match(pageSource, /aria-label=\{`\$\{entry\.name\} 时间轴`\}/);
-  assert.match(pageSource, /viewer\?\.setTime\(/);
+  assert.match(pageSource, /aria-label=\{`\$\{entry\.name\} 帧轴`\}/);
+  assert.match(pageSource, /viewer\?\.setFrame\(/);
+  assert.match(pageSource, /step="1"/);
+  assert.match(pageSource, /第 \{displayFrame\} 帧 \/ 共 \{displayFrameCount\} 帧/);
+  assert.doesNotMatch(pageSource, /时间轴|秒|timeSeconds|setTime/);
   assert.match(pageSource, /capturePreviewFrame\(\)/);
   assert.match(pageSource, /setAnimationKeyframe\(/);
   assert.match(pageSource, /clearAnimationKeyframe\(/);
+  assert.match(
+    pageSource,
+    /clearAnimationKeyframe\(entry\.id\);[\s\S]*ensureAnimationThumbnail\(entry\)/,
+  );
   assert.match(pageSource, /viewer\?\.fitView\(\)/);
   assert.match(pageSource, /viewer\?\.resetView\(\)/);
   assert.match(pageSource, /重新加载/);
