@@ -8,7 +8,7 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页使用分镜用途、来源与细分类筛选", () => {
+test("动画入口页只保留用途、单一分类和搜索筛选", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /useState<AnimationLibraryScopeId>\("storyboard"\)/);
   assert.match(pageSource, /storyboard/);
@@ -16,20 +16,20 @@ test("动画入口页使用分镜用途、来源与细分类筛选", () => {
   assert.match(pageSource, /ANIMATION_LIBRARY_SCOPES/);
   assert.match(pageSource, /scopeOption\.id === "storyboard"/);
   assert.match(pageSource, /scopeOption\.id === "compatibility"/);
-  assert.match(pageSource, /classificationId/);
-  assert.match(pageSource, /data-animation-classification-filter/);
-  assert.match(pageSource, /flex-nowrap/);
-  assert.match(pageSource, /overflow-x-auto/);
+  assert.match(pageSource, /data-animation-category-filter/);
+  assert.match(pageSource, /按分类筛选/);
+  assert.match(pageSource, /全部分类/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.match(pageSource, /SelectControl/);
-  assert.match(pageSource, /data-animation-pack-filter/);
-  assert.match(pageSource, /data-animation-action-filter/);
-  assert.match(pageSource, /data-animation-posture-filter/);
-  assert.match(pageSource, /data-animation-weapon-filter/);
-  const packOptionsSource = pageSource.match(
-    /const availablePackEntries = useMemo\([\s\S]*?\n  \);/,
-  )?.[0];
-  assert.ok(packOptionsSource, "套装选项应有独立的可用项计算");
-  assert.match(packOptionsSource, /classificationId/);
+  assert.match(pageSource, /data-animation-search/);
+  assert.match(pageSource, /data-animation-reset-filters/);
+  assert.doesNotMatch(pageSource, /data-animation-group-filter-row/);
+  assert.doesNotMatch(pageSource, /data-animation-classification-filter/);
+  assert.doesNotMatch(pageSource, /data-animation-detail-filters/);
+  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
+  assert.doesNotMatch(pageSource, /data-animation-action-filter/);
+  assert.doesNotMatch(pageSource, /data-animation-posture-filter/);
+  assert.doesNotMatch(pageSource, /data-animation-weapon-filter/);
 });
 
 test("动画卡片只保留有用信息，不重复显示播放和用途装饰", () => {
@@ -58,11 +58,11 @@ test("动画入口页只挂载当前页卡片并提供可访问分页", () => {
   assert.match(pageSource, /setPage\(1\)/);
 });
 
-test("动画搜索通过按钮或回车提交，并与来源筛选同排", () => {
+test("动画搜索通过按钮或回车提交，并与分类筛选同排", () => {
   assert.match(pageSource, /<form[\s\S]*onSubmit/);
   assert.match(pageSource, /type="submit"/);
   assert.match(pageSource, /搜索/);
-  assert.match(pageSource, /data-animation-group-filter-row[\s\S]*data-animation-search/);
+  assert.match(pageSource, /data-animation-filter-controls[\s\S]*data-animation-search/);
   assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{scopedEntries\.length/);
   assert.doesNotMatch(pageSource, /setTimeout\(\(\) => setSearch\(searchInput\.trim\(\)\), 250\)/);
 });
