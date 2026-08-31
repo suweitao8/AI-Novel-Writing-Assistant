@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 
@@ -19,18 +19,60 @@ import {
   subscribeThumbnails,
 } from "./modelLibrary3d/thumbnailStudio";
 
+const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
+
 function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
+  const cardRef = useRef<HTMLAnchorElement>(null);
   const [thumbnail, setThumbnail] = useState<string | null>(() => getThumbnail(entry.id));
+
   useEffect(() => {
-    if (ensureThumbnail(entry)) return;
-    return subscribeThumbnails(() => {
-      const next = getThumbnail(entry.id);
-      if (next) setThumbnail(next);
-    });
+    if (getThumbnail(entry.id)) return;
+
+    let active = true;
+    let unsubscribe: (() => void) | null = null;
+    const requestThumbnail = () => {
+      if (!active) return;
+      unsubscribe = subscribeThumbnails(() => {
+        const next = getThumbnail(entry.id);
+        if (next) setThumbnail(next);
+      });
+      if (ensureThumbnail(entry)) {
+        unsubscribe();
+        unsubscribe = null;
+        const next = getThumbnail(entry.id);
+        if (next) setThumbnail(next);
+      }
+    };
+
+    const card = cardRef.current;
+    if (!card || typeof IntersectionObserver === "undefined") {
+      requestThumbnail();
+      return () => {
+        active = false;
+        unsubscribe?.();
+      };
+    }
+
+    const observer = new IntersectionObserver(
+      (observedEntries) => {
+        if (!observedEntries.some((observedEntry) => observedEntry.isIntersecting)) return;
+        observer.disconnect();
+        requestThumbnail();
+      },
+      { rootMargin: MODEL_THUMBNAIL_ROOT_MARGIN, threshold: 0 },
+    );
+    observer.observe(card);
+
+    return () => {
+      active = false;
+      observer.disconnect();
+      unsubscribe?.();
+    };
   }, [entry]);
 
   return (
     <Link
+      ref={cardRef}
       to={`/models/${entry.id}`}
       className="group block overflow-hidden rounded-lg border border-border bg-card transition-colors hover:border-primary/60"
       data-model-card={entry.id}
