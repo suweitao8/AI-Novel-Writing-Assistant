@@ -284,6 +284,7 @@ export async function createBlocking3dViewer(
     // 通用 HDRI 页不加载代理角色；没有投影物时不创建空 shadow catcher，
     // 避免空阴影贴图把可见穹顶的地面乘成黑色。
     enableShadowCatcher: options.loadProxyActor !== false,
+    camera: cameraComponent,
   });
 
   // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球

@@ -13,6 +13,7 @@ import {
 import {
   createProjectedHdriMaterial,
   updateProjectedHdriMaterial,
+  waitForProjectedHdriShader,
 } from "./blocking3dEnvironmentProjection";
 import {
   configureEnvironmentTexture,
@@ -50,6 +51,8 @@ export interface Blocking3dEnvironmentRuntimeOptions {
   enableShadowCatcher?: boolean;
   /** Preview-owned lighting override; omitted callers retain the existing baseline. */
   lightingProfile?: Blocking3dLightingProfile;
+  /** The camera whose forward shader variant must be ready before the backdrop is shown. */
+  camera?: pc.CameraComponent;
 }
 
 export function createBlocking3dEnvironmentRuntime(
@@ -157,7 +160,12 @@ export function createBlocking3dEnvironmentRuntime(
           lighting.ambientLight[1],
           lighting.ambientLight[2],
         );
-        applyHdriKeyLight(environmentKeyLight, texture, environmentSettings.panoramaHorizonV);
+        applyHdriKeyLight(
+          environmentKeyLight,
+          texture,
+          environmentSettings.panoramaHorizonV,
+          lighting.keyLightAzimuthOffsetDegrees,
+        );
         const projectionCube = createVisibleHdriCubemap(app, texture);
         if (!isCurrentEnvironmentRequest(requestId)) {
           projectionCube.destroy();
@@ -184,6 +192,23 @@ export function createBlocking3dEnvironmentRuntime(
         });
         environmentBackdrop.setPosition(environmentWorldPosition);
         worldEntity.addChild(environmentBackdrop);
+        environmentBackdrop.enabled = false;
+        const shaderReady = options.camera
+          ? await waitForProjectedHdriShader(
+            app,
+            meshInstance,
+            options.camera,
+            () => isCurrentEnvironmentRequest(requestId),
+          )
+          : true;
+        if (!shaderReady) {
+          if (isCurrentEnvironmentRequest(requestId)) {
+            runtime.clearEnvironmentLighting();
+            runtime.clearEnvironmentVisuals();
+          }
+          return false;
+        }
+        environmentBackdrop.enabled = true;
 
         if (enableShadowCatcher) {
           const shadowCatcherMesh = pc.Mesh.fromGeometry(

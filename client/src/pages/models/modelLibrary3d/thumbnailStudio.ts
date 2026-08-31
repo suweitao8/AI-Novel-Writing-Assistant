@@ -2,8 +2,6 @@ import * as pc from "playcanvas";
 
 import type { ModelLibraryEntry } from "@/config/modelLibrary";
 import {
-  buildBlocking3dGroundGridLines,
-  drawBlocking3dGroundGrid,
   loadAsset,
   mountBlocking3dOffscreenCanvas,
   type ContainerResource,
@@ -25,14 +23,14 @@ import { loadStudioEnvironment } from "./studioEnvironmentRuntime";
 
 /**
  * 模型库缩略图生成器：复用一个离屏 PlayCanvas 画布，逐个加载模型、
- * 自动取景后抓成一帧 PNG dataURL。结果存进 localStorage，同一个
+ * 自动取景后抓成一帧 JPEG dataURL。结果存进 localStorage，同一个
  * 模型文件只生成一次；队列传空且闲置一段时间后销毁画布释放 WebGL 上下文。
  */
 
 // 缩略图按卡片小图输出 JPEG：数百模型的缓存体量必须压进 localStorage 配额。
-const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
+const THUMBNAIL_SIZE = { width: 256, height: 192 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "model-library:thumbnails:v26";
+const STORAGE_KEY = "model-library:thumbnails:v27";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
@@ -244,7 +242,6 @@ async function createThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
   // The shared environment builds its HDR projection/materials through the
   // running PlayCanvas lifecycle. Keep the RAF alive while asynchronous HDRI
@@ -272,6 +269,7 @@ async function createThumbnailStudio(): Promise<{
     app.start();
     // 卡片统一使用室内默认环境，并等待可见穹顶与环境光都装配完成后再出图。
     const loadedEnvironment = await loadStudioEnvironment(app, undefined, {
+      camera: cameraEntity.camera!,
       lightingProfile: "model-preview",
     });
     if (destroyed) {
@@ -282,7 +280,6 @@ async function createThumbnailStudio(): Promise<{
     if (!studioEnvironment.hasVisibleBackdrop) {
       throw new Error("HDRI 场景环境加载失败。");
     }
-    const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
 
     const frame = (bounds: ModelPreviewBounds, points: readonly ModelPreviewVector[] = []) => {
       const fit = fitModelPreviewCamera(
@@ -304,7 +301,6 @@ async function createThumbnailStudio(): Promise<{
     };
 
     const drawFrame = () => {
-      drawBlocking3dGroundGrid(app, gridLines);
       app.render();
     };
 
@@ -318,7 +314,7 @@ async function createThumbnailStudio(): Promise<{
         try {
           if (destroyed) throw new Error("缩略图画布已销毁。");
           const resource = asset.resource as ContainerResource | null;
-          const inner = resource?.instantiateRenderEntity?.({ castShadows: false });
+          const inner = resource?.instantiateRenderEntity?.({ castShadows: true });
           if (!inner) throw new Error("模型没有可显示的网格。");
           const root = new pc.Entity("thumb-model");
           root.addChild(inner);

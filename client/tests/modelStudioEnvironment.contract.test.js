@@ -46,11 +46,11 @@ test("模型环境预设统一为中央广场并使用 5 到 30 米半球直径�
   assert.equal(existsSync(new URL("../public/models/env/model-nature-grassland.hdr", import.meta.url)), false);
 });
 
-test("模型可见穹顶不接收相机且固定在原点", () => {
+test("模型可见穹顶固定在原点并透传相机用于首帧预热", () => {
   assert.match(runtimeSource, /new pc\.Entity\("studio-environment-world"\)/);
   assert.match(runtimeSource, /createBlocking3dEnvironmentRuntime/);
   assert.match(blockingEnvironmentRuntimeSource, /setPosition\(environmentWorldPosition\)/);
-  assert.doesNotMatch(runtimeSource, /camera\??\s*:/);
+  assert.match(runtimeSource, /camera:\s*options\.camera/);
 });
 
 test("模型环境运行时同时装配可见穹顶和环境光", () => {
@@ -83,24 +83,34 @@ test("模型查看器固定相机轨道并只读消费系统环境", () => {
 
 test("卡片缩略图使用共享中央广场默认值并刷新缓存版本", () => {
   assert.match(thumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
-  assert.match(thumbnailSource, /model-library:thumbnails:v24/);
-  assert.match(animationThumbnailSource, /animation-library:thumbnails:v10/);
+  assert.match(thumbnailSource, /model-library:thumbnails:v27/);
+  assert.match(animationThumbnailSource, /animation-library:thumbnails:v12/);
+  assert.match(animationThumbnailSource, /lightingProfile:\s*["']model-preview["']/);
   assert.match(animationThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{/);
-  assert.match(thumbnailSource, /buildBlocking3dGroundGridLines/);
-  assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
+  assert.doesNotMatch(thumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);
+  assert.doesNotMatch(animationThumbnailSource, /buildBlocking3dGroundGridLines|drawBlocking3dGroundGrid/);
   assert.doesNotMatch(thumbnailSource, /setupStudioLighting/);
   assert.doesNotMatch(animationThumbnailSource, /setupStudioLighting/);
 });
 
-test("模型和动画缩略图不创建空的阴影接收器", () => {
+test("模型和动画缩略图都创建可见的阴影接收器", () => {
   assert.match(runtimeSource, /enableShadowCatcher\?: boolean/);
   assert.match(
     runtimeSource,
     /enableShadowCatcher:\s*options\.enableShadowCatcher/,
   );
-  assert.match(animationThumbnailSource, /enableShadowCatcher:\s*false/);
+  assert.doesNotMatch(animationThumbnailSource, /enableShadowCatcher:\s*false/);
+  assert.match(thumbnailSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+  assert.match(animationThumbnailSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
   assert.match(thumbnailSource, /pc\.AppBase\.cancelTick\(app\)/);
   assert.match(animationThumbnailSource, /pc\.AppBase\.cancelTick\(app\)/);
+});
+
+test("缩略图隐藏编辑器网格但保留投影阴影配置", () => {
+  assert.doesNotMatch(thumbnailSource, /drawBlocking3dGroundGrid/);
+  assert.doesNotMatch(animationThumbnailSource, /drawBlocking3dGroundGrid/);
+  assert.match(thumbnailSource, /castShadows: true/);
+  assert.match(animationThumbnailSource, /castShadows: true/);
 });
 
 test("模型与动画离屏缩略图都在加载 HDRI 前启动 PlayCanvas", () => {

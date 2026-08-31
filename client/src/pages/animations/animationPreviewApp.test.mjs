@@ -114,6 +114,30 @@ const environmentRuntimeSource = readFileSync(
   path.join(import.meta.dirname, "..", "models", "modelLibrary3d", "studioEnvironmentRuntime.ts"),
   "utf8",
 );
+const environmentProjectionSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentProjection.ts",
+  ),
+  "utf8",
+);
+const blockingEnvironmentRuntimeSource = readFileSync(
+  path.join(
+    import.meta.dirname,
+    "..",
+    "drama",
+    "comicDrama",
+    "components",
+    "blocking3d",
+    "blocking3dEnvironmentRuntime.ts",
+  ),
+  "utf8",
+);
 
 test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
@@ -170,9 +194,11 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
   );
   assert.match(actorMaterialPolicySource, /getBlocking3dActorJointColor/);
   assert.match(actorMaterialPolicySource, /M_Joints/);
+  assert.match(actorMaterialPolicySource, /M_Neck/);
   assert.match(actorMaterialRuntimeSource, /getBlocking3dActorMaterialRole/);
   assert.match(actorMaterialRuntimeSource, /WeakMap/);
   assert.match(actorMaterialRuntimeSource, /jointMaterial/);
+  assert.match(actorMaterialRuntimeSource, /role === "main"/);
   assert.match(blockingCoreSource, /actorMaterialRuntime/);
   assert.match(blockingCoreSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
   assert.match(blockingIndexSource, /BLOCKING_3D_BLUE_ACTOR_COLOR/);
@@ -190,7 +216,7 @@ test("动画预览和缩略图复用分镜草图的主体/关节代理材质", (
 test("动画预览先启动渲染循环，再执行环境加载后的首帧渲染", () => {
   const startIndex = previewSource.indexOf("app.start()");
   const environmentLoadIndex = previewSource.indexOf(
-    "const environmentPromise = loadStudioEnvironment(app)",
+    "const environmentPromise = loadStudioEnvironment(app, undefined, {",
   );
   const initialFrameIndex = previewSource.indexOf("applyFrame(initialFrame)");
 
@@ -239,7 +265,11 @@ test("动画预览在 StrictMode 清理窗口后才创建 WebGL 应用", () => {
 });
 
 test("离屏缩略图保留 PlayCanvas 帧循环，销毁前才取消 RAF", () => {
-  assert.match(studioSource, /enableShadowCatcher:\s*false/);
+  assert.match(studioSource, /pc\.AppBase\.cancelTick\(app\)/);
+  assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+  assert.doesNotMatch(studioSource, /toneMapping\s*=\s*pc\.TONEMAP_ACES/);
+  assert.doesNotMatch(studioSource, /app\.update\(1 \/ 60\)/);
   const thumbnailStartIndex = studioSource.indexOf("app.start()");
   const thumbnailEnvironmentIndex = studioSource.indexOf("loadStudioEnvironment(app");
   const thumbnailDestroyIndex = studioSource.indexOf("destroy() {");
@@ -284,13 +314,55 @@ test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(studioSource, /animation-library:thumbnails:v13/);
 });
 
+test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
+  assert.doesNotMatch(studioSource, /buildBlocking3dGroundGridLines/);
+  assert.doesNotMatch(studioSource, /drawBlocking3dGroundGrid/);
+  assert.match(studioSource, /lightingProfile:\s*["']model-preview["']/);
+  assert.match(studioSource, /instantiateRenderEntity\?\.\(\{ castShadows: true \}\)/);
+});
+
+test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
+  assert.match(storageSource, /animation-library:keyframes:v3/);
+  assert.match(studioSource, /animation-library:thumbnails:v13/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v12/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
+  assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
+});
+
+test("用户关键帧作为显式覆盖，不被自动缩略图刷新替换", () => {
+  assert.match(
+    pageSource,
+    /getAnimationKeyframe\(entry\.id, entry\.frameRate\)\?\.dataUrl\s*\?\?\s*getAnimationThumbnail\(entry\.id\)/,
+  );
+  assert.match(
+    pageSource,
+    /if\s*\(!getAnimationKeyframe\(entry\.id, entry\.frameRate\)\)\s*ensureAnimationThumbnail\(entry\)/,
+  );
+  assert.match(previewPageSource, /const previewImage = keyframe\?\.dataUrl \?\? automaticThumbnail/);
+});
+
 test("打开预览页恢复关键帧时先激活动作再写入帧", () => {
   assert.match(previewSource, /const initialFrame =\s*[\s\S]*?options\.initialFrame/);
   assert.match(
     previewSource,
     /baseLayer\?\.play\(activeClipName\)[\s\S]*applyFrame\(initialFrame\)/,
   );
-  assert.match(previewSource, /applyFrame\(initialFrame\)[\s\S]*pause\(\)/);
+  assert.match(
+    previewSource,
+    /baseLayer\?\.play\(activeClipName\)[\s\S]*pause\(\)[\s\S]*applyFrame\(initialFrame\)/,
+  );
+});
+
+test("初始化预览帧前暂停动画层，让首帧立即写入骨骼", () => {
+  const restoreBlock = previewSource.match(
+    /anim\.baseLayer\?\.play\(activeClipName\);([\s\S]*?)applyFrame\(initialFrame\);/,
+  )?.[1];
+  assert.ok(restoreBlock, "应有独立的初始动作帧恢复流程");
+  assert.match(
+    restoreBlock,
+    /pause\(\)/,
+    "写入初始帧前必须先暂停动画层，触发 PlayCanvas 的同步骨骼求值",
+  );
 });
 
 test("加载中也可同步取消：cancel 销毁应用，避免双应用共享 WebGL 上下文", () => {
@@ -375,10 +447,27 @@ test("离开动画库时可立即销毁仍在初始化的 HDRI 缩略图应用",
 });
 
 test("HDR 环境和可视穹顶完成后预览器才报告就绪", () => {
-  assert.match(previewSource, /const environmentPromise = loadStudioEnvironment\(app\)/);
+  assert.match(
+    previewSource,
+    /const environmentPromise = loadStudioEnvironment\(app, undefined, \{[\s\S]*lightingProfile:\s*["']model-preview["']/,
+  );
   assert.match(previewSource, /Promise\.allSettled\(\[\s*assetPromise,\s*environmentPromise/);
   assert.match(previewSource, /studioEnvironment = environmentResult\.value/);
   assert.match(previewSource, /studioEnvironment\.hasVisibleBackdrop/);
+});
+
+test("HDRI 穹顶先等待并行 shader 完成，再允许首帧显示", () => {
+  assert.match(environmentProjectionSource, /export async function waitForProjectedHdriShader/);
+  assert.match(environmentProjectionSource, /getShaderInstance\(/);
+  assert.match(environmentProjectionSource, /isLinked\(/);
+  assert.match(environmentProjectionSource, /window\.setTimeout/);
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = false/);
+  assert.match(blockingEnvironmentRuntimeSource, /await waitForProjectedHdriShader/);
+  assert.match(
+    blockingEnvironmentRuntimeSource,
+    /if \(!shaderReady\)[\s\S]*?clearEnvironmentLighting\(\)[\s\S]*?clearEnvironmentVisuals\(\)/,
+  );
+  assert.match(blockingEnvironmentRuntimeSource, /environmentBackdrop\.enabled = true/);
 });
 
 test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用", () => {
@@ -395,10 +484,12 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.match(pageSource, /data-animation-group-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.match(pageSource, /data-animation-classification-filter/);
+  assert.match(pageSource, /data-animation-scope-filter/);
+  assert.match(pageSource, /data-animation-detail-filters/);
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /data-animation-pagination/);
-  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /<Select/);
+  assert.match(pageSource, /data-animation-pack-filter/);
+  assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
   assert.match(pageSource, /data-animation-card/);

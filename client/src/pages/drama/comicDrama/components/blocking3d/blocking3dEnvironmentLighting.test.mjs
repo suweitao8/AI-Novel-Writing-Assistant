@@ -5,6 +5,7 @@ import {
   DEFAULT_HDRI_LIGHT_ESTIMATE,
   estimateHdriLightFromTexture,
   estimateHdriLightFromPixels,
+  rotateHdriLightDirectionAzimuth,
 } from "./blocking3dEnvironmentLighting.ts";
 import { projectEquirectangularDirection } from "./blocking3dEnvironmentProjection.ts";
 
@@ -147,4 +148,23 @@ test("无效像素缓冲区同样安全降级", () => {
 
   assert.equal(estimate.usedFallback, true);
   assert.deepEqual(estimate.direction, DEFAULT_HDRI_LIGHT_ESTIMATE.direction);
+});
+
+test("模型预览主光旋转 180° 时只翻转水平来向并保持上方高度", () => {
+  const direction = [0.45, 0.72, 0.5];
+  const rotated = rotateHdriLightDirectionAzimuth(direction, 180);
+
+  assert.ok(Math.abs(rotated[0] + direction[0]) < 1e-10);
+  assert.equal(rotated[1], direction[1]);
+  assert.ok(Math.abs(rotated[2] + direction[2]) < 1e-10);
+  assert.ok(
+    Math.abs(Math.hypot(...rotated) - Math.hypot(...direction)) < 1e-10,
+    "水平偏转不能改变方向向量长度",
+  );
+});
+
+test("主光方位偏转为 0° 时保持 HDRI 估算方向", () => {
+  const direction = [0.45, 0.72, 0.5];
+
+  assert.deepEqual(rotateHdriLightDirectionAzimuth(direction, 0), direction);
 });

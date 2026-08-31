@@ -3,6 +3,7 @@ import * as pc from "playcanvas";
 import {
   DEFAULT_HDRI_LIGHT_ESTIMATE,
   estimateHdriLightFromTexture,
+  rotateHdriLightDirectionAzimuth,
 } from "./blocking3dEnvironmentLighting";
 import {
   DEFAULT_BLOCKING_3D_LIGHTING_PROFILE,
@@ -40,20 +41,22 @@ export function clearHdriKeyLight(entity: pc.Entity): void {
   entity.enabled = false;
 }
 
+/** Rotate only the horizontal (world-Y) component of a light direction. */
 export function applyHdriKeyLight(
   entity: pc.Entity,
   texture: pc.Texture,
   panoramaHorizonV = 0.5,
+  azimuthOffsetDegrees = 0,
 ): void {
   const light = entity.light;
   if (!light) return;
 
   const estimate = estimateHdriLightFromTexture(texture, panoramaHorizonV);
-  const sourceDirection = new pc.Vec3(
-    estimate.direction[0],
-    estimate.direction[1],
-    estimate.direction[2],
-  ).normalize();
+  const rotatedDirection = rotateHdriLightDirectionAzimuth(
+    estimate.direction,
+    azimuthOffsetDegrees,
+  );
+  const sourceDirection = new pc.Vec3(...rotatedDirection).normalize();
   // PlayCanvas dispatches a directional light along the negative entity Y
   // axis, then the Lambert shader negates that ray for the surface-facing
   // light vector. The entity's Y axis must therefore point from the actor

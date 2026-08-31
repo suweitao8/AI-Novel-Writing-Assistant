@@ -2,11 +2,9 @@ import * as pc from "playcanvas";
 
 import { ANIMATION_LIBRARY_FILE_URL, type AnimationLibraryEntry } from "@/config/animationLibrary";
 import {
-  buildBlocking3dGroundGridLines,
-  clamp,
   BLOCKING_3D_BLUE_ACTOR_COLOR,
+  clamp,
   DEFAULT_FOV,
-  drawBlocking3dGroundGrid,
   loadAsset,
   mountBlocking3dOffscreenCanvas,
   setEntityMaterial,
@@ -288,7 +286,6 @@ async function createAnimationThumbnailStudio(): Promise<{
   cameraEntity.camera!.layers = cameraEntity.camera!.layers.filter(
     (layerId) => layerId !== pc.LAYERID_SKYBOX,
   );
-  cameraEntity.camera!.toneMapping = pc.TONEMAP_ACES;
   app.scene.exposure = 1;
   // The shared environment builds its HDRI projection/materials through the
   // running PlayCanvas lifecycle. Keep the RAF alive while asynchronous HDRI
@@ -297,7 +294,8 @@ async function createAnimationThumbnailStudio(): Promise<{
   try {
     app.start();
     const loadedEnvironment = await loadStudioEnvironment(app, undefined, {
-      enableShadowCatcher: false,
+      camera: cameraEntity.camera!,
+      lightingProfile: "model-preview",
     });
     if (destroyed) {
       loadedEnvironment.destroy();
@@ -307,7 +305,6 @@ async function createAnimationThumbnailStudio(): Promise<{
     if (!studioEnvironment.hasVisibleBackdrop) {
       throw new Error("HDRI 场景环境加载失败。");
     }
-    const gridLines = buildBlocking3dGroundGridLines(studioEnvironment.settings);
     const loadedAsset = await loadAsset(app, ANIMATION_LIBRARY_FILE_URL, "container");
     if (destroyed) {
       app.assets.remove(loadedAsset);
@@ -337,7 +334,6 @@ async function createAnimationThumbnailStudio(): Promise<{
     };
 
     const drawFrame = () => {
-      drawBlocking3dGroundGrid(app, gridLines);
       app.render();
     };
 
@@ -354,7 +350,7 @@ async function createAnimationThumbnailStudio(): Promise<{
         if (destroyed) throw new Error("缩略图画布已销毁。");
         let model: pc.Entity | null = null;
         try {
-          model = resource?.instantiateRenderEntity?.({ castShadows: false }) ?? null;
+          model = resource?.instantiateRenderEntity?.({ castShadows: true }) ?? null;
           if (!model) throw new Error("动作文件里没有可显示的角色。");
           setEntityMaterial(model, BLOCKING_3D_BLUE_ACTOR_COLOR);
           model.addComponent("anim", { activate: true });

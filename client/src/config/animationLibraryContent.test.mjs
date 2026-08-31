@@ -4,7 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 
-import { ANIMATION_LIBRARY } from "./animationLibrary.ts";
+import {
+  ANIMATION_LIBRARY,
+  filterAnimationLibraryEntries,
+} from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
 const clientDir = path.resolve(configDir, "../..");
@@ -241,6 +244,24 @@ function assetPath() {
   assert.ok(entry, "动画目录不能为空");
   return path.join(clientDir, "public", entry.fileUrl);
 }
+
+test("动画目录按分镜用途分为 root-motion 主库与旧动画兼容库", () => {
+  const storyboard = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+    scope: "storyboard",
+  });
+  const compatibility = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+    scope: "compatibility",
+  });
+  assert.equal(storyboard.length, 104);
+  assert.equal(compatibility.length, 46);
+  assert.equal(ANIMATION_LIBRARY[0]?.source, "unreal");
+  assert.ok(storyboard.every((entry) => entry.rootMotion));
+  assert.ok(compatibility.every((entry) => !entry.rootMotion));
+  assert.equal(
+    filterAnimationLibraryEntries(storyboard, { weaponType: "sword" }).length > 0,
+    true,
+  );
+});
 
 test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移", () => {
   const glb = readGlb(assetPath());

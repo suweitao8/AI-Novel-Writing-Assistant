@@ -38,14 +38,12 @@ test("模型 HDR 预设（中央广场）遵守 15 米直径、10% 投射中心�
   assert.match(runtimeSource, /normalizeEnvironmentSettings/);
 });
 
-test("漫剧、模型和动画使用同一套半径驱动地面网格", () => {
+test("漫剧、模型和动画详情使用同一套半径驱动地面网格", () => {
   assert.match(overlaySource, /export function buildBlocking3dGroundGridLines/);
   assert.match(overlaySource, /GROUND_DOME_FLAT_RADIUS/);
   assert.match(overlaySource, /resolveStoryScene3DWorldRadius/);
   assert.match(modelSource, /buildBlocking3dGroundGridLines/);
   assert.match(animationPreviewSource, /buildBlocking3dGroundGridLines/);
-  assert.match(animationThumbnailSource, /buildBlocking3dGroundGridLines/);
-  assert.match(modelThumbnailSource, /buildBlocking3dGroundGridLines/);
 });
 
 test("动画实时预览完全使用 HDR 半圆环境，不再创建旧平面地面", () => {
@@ -57,7 +55,7 @@ test("动画实时预览完全使用 HDR 半圆环境，不再创建旧平面地
 });
 
 test("两个离屏缩略图都使用统一环境，不再维护独立平面", () => {
-  assert.match(animationThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*enableShadowCatcher:\s*false/);
+  assert.match(animationThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{[\s\S]*lightingProfile:\s*["']model-preview["']/);
   assert.match(modelThumbnailSource, /loadStudioEnvironment\(app,\s*undefined,\s*\{/);
   assert.doesNotMatch(animationThumbnailSource, /anim-thumb-ground/);
   assert.doesNotMatch(modelThumbnailSource, /thumb-ground/);

@@ -337,6 +337,7 @@ export async function createModelViewer(options: ModelViewerOptions): Promise<Mo
         nextEnvironment = await loadStudioEnvironment(app, presetId, {
           diameterMeters: nextDiameterMeters,
           lightingProfile: "model-preview",
+          camera,
         });
       } catch {
         return false;

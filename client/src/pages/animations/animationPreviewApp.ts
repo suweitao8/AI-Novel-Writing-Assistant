@@ -330,7 +330,10 @@ function createAnimationPreviewHandle(
       await Promise.resolve();
       if (destroyed) throw new Error("预览已关闭。");
       const assetPromise = loadAsset(app, options.glbUrl, "container");
-      const environmentPromise = loadStudioEnvironment(app);
+      const environmentPromise = loadStudioEnvironment(app, undefined, {
+        camera,
+        lightingProfile: "model-preview",
+      });
       const [assetResult, environmentResult] = await Promise.allSettled([
         assetPromise,
         environmentPromise,
@@ -501,11 +504,12 @@ function createAnimationPreviewHandle(
           ? options.initialFrame
           : getDefaultAnimationFrame(durationSeconds, frameRate);
       // AnimLayer.play resets the active state time. Activate the state first,
-      // then write the default or saved frame so the page always opens at a
-      // stable representative frame instead of starting playback immediately.
+      // pause it before writing the default or saved frame, and let PlayCanvas
+      // synchronously evaluate the paused layer so the first render is already
+      // the representative pose instead of the bind/T-pose.
       anim.baseLayer?.play(activeClipName);
-      applyFrame(initialFrame);
       pause();
+      applyFrame(initialFrame);
       options.onStatus?.("");
 
       app.on("update", () => {

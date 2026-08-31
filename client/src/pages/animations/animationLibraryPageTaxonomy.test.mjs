@@ -8,15 +8,27 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页使用两行细分类筛选，不再把套装作为第三层主导航", () => {
+test("动画入口页使用分镜用途、来源与细分类筛选", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /useState<AnimationLibraryScopeId>\("storyboard"\)/);
+  assert.match(pageSource, /storyboard/);
+  assert.match(pageSource, /data-animation-scope-filter/);
+  assert.match(pageSource, /分镜可用/);
+  assert.match(pageSource, /兼容动画/);
   assert.match(pageSource, /classificationId/);
   assert.match(pageSource, /data-animation-classification-filter/);
   assert.match(pageSource, /flex-nowrap/);
   assert.match(pageSource, /overflow-x-auto/);
-  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /<Select/);
-  assert.doesNotMatch(pageSource, /availablePacks/);
+  assert.match(pageSource, /SelectControl/);
+  assert.match(pageSource, /data-animation-pack-filter/);
+  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /data-animation-posture-filter/);
+  assert.match(pageSource, /data-animation-weapon-filter/);
+  const packOptionsSource = pageSource.match(
+    /const availablePackEntries = useMemo\([\s\S]*?\n  \);/,
+  )?.[0];
+  assert.ok(packOptionsSource, "套装选项应有独立的可用项计算");
+  assert.match(packOptionsSource, /classificationId/);
 });
 
 test("动画入口页只挂载当前页卡片并提供可访问分页", () => {

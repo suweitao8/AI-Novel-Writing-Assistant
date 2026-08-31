@@ -222,6 +222,9 @@ export default function AnimationPreviewPage() {
           </Link>
         </Button>
         <h1 className="min-w-0 truncate text-sm font-semibold">{entry.name}</h1>
+        <Badge variant={entry.rootMotion ? "default" : "outline"} className="shrink-0">
+          {entry.rootMotion ? "分镜可用" : "兼容动画"}
+        </Badge>
         <Badge variant="secondary" className="ml-1 shrink-0">
           {entry.classificationLabel}
         </Badge>
@@ -274,6 +277,10 @@ export default function AnimationPreviewPage() {
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">来源</dt>
                   <dd className="font-medium">{entry.sourceLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">用途</dt>
+                  <dd className="font-medium">{entry.rootMotion ? "分镜可用" : "兼容动画"}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">帧率</dt>
