@@ -61,6 +61,13 @@ test("模型库页码会限制在有效范围，空结果仍有第 1 页", () =>
 
 在 `client/tests/modelThumbnailPerformance.contract.test.js` 追加以下测试，先锁定用户可见分页、筛选重置、离页取消和持久化批处理行为：
 
+在文件顶部现有源码读取处同时加入：
+
+```js
+const paginationSource = read("../src/pages/models/modelLibraryPagination.ts");
+const paginationComponentSource = read("../src/pages/models/components/ModelLibraryPagination.tsx");
+```
+
 ```js
 test("模型库只渲染当前分页并提供边界安全的分页控件", () => {
   assert.match(paginationSource, /MODEL_LIBRARY_PAGE_SIZE\s*=\s*24/);
@@ -258,7 +265,7 @@ export function cancelThumbnail(id: string): void {
 
 ```ts
 let cachePersistIdleId: number | null = null;
-let cachePersistTimer: ReturnType<typeof window.setTimeout> | null = null;
+let cachePersistTimer: number | null = null;
 
 function scheduleCachePersist(): void {
   if (!storageEnabled || cachePersistIdleId !== null || cachePersistTimer !== null) return;
