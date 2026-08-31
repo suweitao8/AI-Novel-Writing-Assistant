@@ -24,16 +24,18 @@ function readDiffuse(material) {
   return [material.diffuse.r, material.diffuse.g, material.diffuse.b];
 }
 
-test("M_Joints 使用独立浅色材质，并在角色换色时同步更新", () => {
+test("M_Joints 与 M_Neck 使用同一独立浅色材质，并在角色换色时同步更新", () => {
   const mainMesh = { material: { name: "M_Main" } };
   const jointMesh = { material: { name: "M_Joints" } };
-  const entity = createEntity([mainMesh, jointMesh]);
+  const neckMesh = { material: { name: "M_Neck" } };
+  const entity = createEntity([mainMesh, jointMesh, neckMesh]);
 
   const mainMaterial = setEntityMaterial(entity, BLOCKING_3D_BLUE_ACTOR_COLOR);
   const jointMaterial = jointMesh.material;
 
   assert.equal(mainMesh.material, mainMaterial);
   assert.notEqual(jointMaterial, mainMaterial);
+  assert.equal(neckMesh.material, jointMaterial);
   assert.deepEqual(
     readDiffuse(jointMaterial),
     getBlocking3dActorJointColor(BLOCKING_3D_BLUE_ACTOR_COLOR),
@@ -44,6 +46,7 @@ test("M_Joints 使用独立浅色材质，并在角色换色时同步更新", ()
 
   assert.equal(mainMesh.material, mainMaterial);
   assert.equal(jointMesh.material, jointMaterial);
+  assert.equal(neckMesh.material, jointMaterial);
   assert.deepEqual(readDiffuse(mainMaterial), nextColor);
   assert.deepEqual(readDiffuse(jointMaterial), getBlocking3dActorJointColor(nextColor));
 });
