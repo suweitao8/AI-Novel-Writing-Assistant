@@ -177,6 +177,20 @@ for i in topo(aj, aparent):
     a_worldF[i] = [(loc[f] if loc else rest) if p is None else qmul(a_worldF[p][f], loc[f] if loc else rest)
                    for f in range(F)]
 
+# source world positions per frame（末端校正需要源手腕/头的世界坐标）
+a_posF = {}
+for i in topo(aj, aparent):
+    p = aparent.get(i)
+    trs = src_trans.get(i)
+    base_t = rest_trans(anodes[i])
+    if p is None:
+        a_posF[i] = [trs[f] if trs else base_t for f in range(F)]
+    else:
+        a_posF[i] = [
+            tuple(a_posF[p][f][k] + qrot_vec(a_worldF[p][f], trs[f] if trs else base_t)[k] for k in range(3))
+            for f in range(F)
+        ]
+
 # target solve
 b_order = topo(bj, bparent)
 # 只在目标骨架关节内做名字匹配：避免把网格包装节点（如 UAL2 的 Mannequin
@@ -314,6 +328,137 @@ def wdelta(hand, shoulder):
 for nm in ["pelvis", "Head", "foot_l", "foot_r", "hand_l", "hand_r"]:
     print("  ", nm, wpos(nm))
 print("  hand_y_minus_shoulder:", wdelta("hand_l", "clavicle_l"), wdelta("hand_r", "clavicle_r"))
+
+# ---------- 末端接触校正：臂链两骨 IK ----------
+# 纯旋转传递保不住跨骨架的末端接触点：UAL2 与源骨架的肩位/臂长比例不同，
+# 源里挠到头顶的手重定向后只停在下巴高度（实测差 ~0.2m）。以头关节为锚，
+# 按骨架尺寸比把源手腕位置映射到目标，再对上臂+前臂做两骨 IK；锁骨与手
+# 的朝向保持传递结果，肘部平面取自传递姿态，保证逐帧连续不翻肘。
+# RETARGET_NO_ARM_IK=1 可关闭（回到纯旋转传递）。
+import os as _os
+
+ik_sides = []
+ik_scale = 1.0
+if not _os.environ.get("RETARGET_NO_ARM_IK"):
+    def _bid(nm):
+        return next((k for k, n in enumerate(bnodes) if (n.get("name") or "").lower() == nm), None)
+    def _vsub(a, b): return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
+    def _vlen(a): return math.sqrt(a[0]*a[0]+a[1]*a[1]+a[2]*a[2])
+    def _vdot(a, b): return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
+    def _vcross(a, b):
+        return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])
+    def _vnorm(a):
+        l = _vlen(a)
+        if l < 1e-9: raise ValueError("zero vector")
+        return (a[0]/l, a[1]/l, a[2]/l)
+    def _arc(a, b):
+        # 把向量 a 转到 b 的最短弧旋转（四元数）。
+        axis = _vcross(a, b)
+        w = 1.0 + _vdot(a, b)
+        if w < 1e-9:
+            perp = (1.0, 0.0, 0.0) if abs(a[0]) < 0.9 else (0.0, 1.0, 0.0)
+            axis = _vcross(a, perp)
+            w = 0.0
+        return qnorm((axis[0], axis[1], axis[2], w))
+
+    t_head = _bid("head")
+    a_head = a_by_name.get("head")
+    if t_head is not None and a_head is not None:
+        # 目标每帧世界位置（最终平移轨道 + 已解世界旋转的前向运动学）。
+        bt_posF = {}
+        for ui in b_order:
+            p = bparent.get(ui)
+            trs = out_trans.get(ui)
+            base_t = target_base_local_trans[ui]
+            if p is None:
+                bt_posF[ui] = [trs[f] if trs else base_t for f in range(F)]
+            else:
+                bt_posF[ui] = [
+                    tuple(bt_posF[p][f][k] + qrot_vec(bt_worldF[p][f], trs[f] if trs else base_t)[k] for k in range(3))
+                    for f in range(F)
+                ]
+
+        # 骨架尺寸比：自然站姿头关节高度之比，把源手腕偏移缩放到目标尺寸。
+        src_head_y = a_posF[a_head][0][1]
+        tgt_head_y = bt_posF[t_head][0][1]
+        ik_scale = min(2.0, max(0.5, tgt_head_y / src_head_y)) if src_head_y > 1e-6 else 1.0
+
+        for side in ("l", "r"):
+            chain = [_bid("clavicle_" + side), _bid("upperarm_" + side), _bid("lowerarm_" + side), _bid("hand_" + side)]
+            a_hand = a_by_name.get("hand_" + side)
+            if any(ui is None for ui in chain) or a_hand is None: continue
+            t_clav, t_upper, t_lower, t_hand = chain
+            if any(ui not in out_rot or ui not in t2s for ui in chain): continue
+            ik_sides.append(side)
+            l1 = _vlen(target_base_local_trans[t_lower])
+            l2 = _vlen(target_base_local_trans[t_hand])
+            child_upper = _vnorm(target_base_local_trans[t_lower])
+            child_lower = _vnorm(target_base_local_trans[t_hand])
+            reach_max = l1 + l2 - 1e-4
+            reach_min = abs(l1 - l2) + 1e-4
+            for f in range(F):
+                S = bt_posF[t_upper][f]
+                E_old = bt_posF[t_lower][f]
+                W_old = bt_posF[t_hand][f]
+                plane = _vcross(_vsub(E_old, S), _vsub(W_old, S))
+                if _vlen(plane) < 1e-6: continue  # 传递姿态手臂完全伸直时无弯肘平面，保持该帧
+                desired = tuple(
+                    bt_posF[t_head][f][k] + (a_posF[a_hand][f][k] - a_posF[a_head][f][k]) * ik_scale
+                    for k in range(3)
+                )
+                u = _vsub(desired, S)
+                d = min(max(_vlen(u), reach_min), reach_max)
+                u = _vnorm(u)
+                cos_a = min(1.0, max(-1.0, (l1*l1 + d*d - l2*l2) / (2*l1*d)))
+                sin_a = math.sqrt(1.0 - cos_a*cos_a)
+                v = _vnorm(_vcross(_vnorm(plane), u))
+                if _vdot(_vsub(E_old, S), v) < 0: sin_a = -sin_a
+                e_dir = tuple(cos_a*u[k] + sin_a*v[k] for k in range(3))
+                E_new = tuple(S[k] + e_dir[k]*l1 for k in range(3))
+                w_dir = _vnorm(_vsub(desired, E_new))
+                wq_upper = qmul(_arc(qrot_vec(bt_worldF[t_upper][f], child_upper), e_dir), bt_worldF[t_upper][f])
+                wq_lower = qmul(_arc(qrot_vec(bt_worldF[t_lower][f], child_lower), w_dir), bt_worldF[t_lower][f])
+                # 手保持传递的世界朝向，手指随之，不参与 IK。
+                locals_ = (
+                    (t_upper, qmul(qconj(bt_worldF[t_clav][f]), wq_upper)),
+                    (t_lower, qmul(qconj(wq_upper), wq_lower)),
+                    (t_hand, qmul(qconj(wq_lower), bt_worldF[t_hand][f])),
+                )
+                for ui, lq in locals_:
+                    prev = out_rot[ui][f-1] if f > 0 else None
+                    lq = qnorm(lq)
+                    if prev is not None and qdot(prev, lq) < 0:
+                        lq = tuple(-x for x in lq)
+                    out_rot[ui][f] = lq
+        if ik_sides:
+            print("arm end-effector IK applied on %s (scale %.3f)" % ("/".join(ik_sides), ik_scale))
+
+    # 末端到达校验：源手腕-头最贴近的接触帧上，目标手腕相对头的高度差应与源一致。
+    reach_failures = []
+    for side in ik_sides:
+        a_hand = a_by_name.get("hand_" + side)
+        t_hand = _bid("hand_" + side)
+        t_head2 = _bid("head")
+        src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[a_head][f])) for f in range(F)]
+        cf = min(range(F), key=lambda f: src_d[f])
+        ik_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
+        for ui, frames in out_trans.items():
+            ik_tracks.setdefault(ui, {})["translation"] = (grid, frames)
+        _Wc, Pc = compose(ik_tracks, grid[cf])
+        src_dy = a_posF[a_hand][cf][1] - a_posF[a_head][cf][1]
+        tgt_dy = Pc[t_hand][1] - Pc[t_head2][1]
+        ok = abs(tgt_dy - src_dy * ik_scale) <= 0.05
+        print("reach check %s @t=%.2fs: src dy=%+.3f tgt dy=%+.3f -> %s" % (
+            side, grid[cf], src_dy, tgt_dy, "PASS" if ok else "FAIL"))
+        if not ok: reach_failures.append(side)
+    if reach_failures:
+        raise SystemExit("arm end-effector IK failed for: %s" % ", ".join(reach_failures))
+
+# IK 修正后刷新 SVG/位置所用姿态（沿用原中点帧）。
+solved_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
+for ui, frames in out_trans.items():
+    solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
+Wt, Pt = compose(solved_tracks, tm)
 
 # ---------- write output GLB ----------
 uJson = json.loads(json.dumps(bj))
