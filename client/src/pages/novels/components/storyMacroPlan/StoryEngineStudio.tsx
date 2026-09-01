@@ -102,13 +102,13 @@ function StoryReadinessPanel({ tab }: { tab: StoryMacroTabProps }) {
           <div key={item.key} className="grid grid-cols-[1.5rem,1fr,auto] items-center gap-3 border-t border-border/55 py-3 first:border-t-0 first:pt-0 last:pb-0">
             <div className={cn(
               "flex h-6 w-6 items-center justify-center rounded-md",
-              readiness[item.key] ? "bg-emerald-500/10 text-emerald-700" : "bg-muted text-muted-foreground",
+              readiness[item.key] ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground",
             )}>
               {item.icon}
             </div>
             <div className="text-sm text-foreground">{item.label}</div>
             {readiness[item.key] ? (
-              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             ) : (
               <span className="text-xs text-muted-foreground">待补</span>
             )}
@@ -136,7 +136,7 @@ function StoryReadinessPanel({ tab }: { tab: StoryMacroTabProps }) {
           <span>{lockedCount > 0 ? `${lockedCount} 个字段已锁定，重生成时会被保护。` : "确认满意的字段后可以锁定，再让 AI 只重生成其他部分。"}</span>
         </div>
         <div className="flex items-start gap-2 rounded-md bg-background/70 p-2">
-          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-amber-600" />
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-300" />
           <span>{tab.issues.length > 0 ? `${tab.issues.length} 条冲突或缺口需要处理。` : "当前没有显式冲突提醒。"}</span>
         </div>
       </div>

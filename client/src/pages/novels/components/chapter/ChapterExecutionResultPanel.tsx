@@ -33,9 +33,9 @@ interface ChapterExecutionResultPanelProps {
 
 function WorkspaceNotice(props: { title: string; description: string }) {
   return (
-    <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-900">
+    <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
       <div className="font-medium">{props.title}</div>
-      <div className="mt-1 leading-6 text-amber-800">{props.description}</div>
+      <div className="mt-1 leading-6 text-amber-800 dark:text-amber-300">{props.description}</div>
     </div>
   );
 }

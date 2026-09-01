@@ -317,7 +317,7 @@ function CharacterRelationshipNode(props: NodeProps) {
           <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{character.role || getCastRoleLabel(character.castRole)}</div>
         </div>
         {isProtagonist ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300">
             <Sparkles className="h-2.5 w-2.5" />
             核心
           </span>
@@ -334,7 +334,7 @@ function CharacterRelationshipNode(props: NodeProps) {
           {graphNode.relationCount} 关系
         </span>
         {graphNode.dynamicCount > 0 ? (
-          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700">
+          <span className="rounded-full bg-sky-50 px-2 py-0.5 text-[10px] text-sky-700 dark:bg-sky-900/20 dark:text-sky-300">
             {graphNode.dynamicCount} 动态
           </span>
         ) : null}
@@ -416,7 +416,7 @@ function NodeDetail(props: { node: RelationshipGraphNode }) {
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-base font-semibold">{character.name}</div>
           <Badge variant="secondary">{getCastRoleLabel(character.castRole)}</Badge>
-          {isProtagonist ? <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800" variant="outline">叙事核心</Badge> : null}
+          {isProtagonist ? <Badge className="border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300" variant="outline">叙事核心</Badge> : null}
         </div>
         <div className="mt-2 text-sm leading-6 text-muted-foreground">{character.role || "未定义身份"}</div>
       </div>
@@ -508,26 +508,26 @@ function EmptyGraphState() {
 function getNodeTone(character: Character) {
   if (isProtagonistCharacter(character)) {
     return {
-      avatar: "border-emerald-200 bg-emerald-50 text-emerald-800",
-      badge: "bg-emerald-50 text-emerald-700",
+      avatar: "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300",
+      badge: "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300",
     };
   }
   if (character.castRole === "antagonist" || character.castRole === "pressure_source") {
     return {
-      avatar: "border-orange-200 bg-orange-50 text-orange-800",
-      badge: "bg-orange-50 text-orange-700",
+      avatar: "border-orange-200 bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300",
+      badge: "bg-orange-50 text-orange-700 dark:bg-orange-900/20 dark:text-orange-300",
     };
   }
   if (character.castRole === "ally" || character.castRole === "mentor") {
     return {
-      avatar: "border-sky-200 bg-sky-50 text-sky-800",
-      badge: "bg-sky-50 text-sky-700",
+      avatar: "border-sky-200 bg-sky-50 text-sky-800 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300",
+      badge: "bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:text-sky-300",
     };
   }
   if (character.castRole === "love_interest") {
     return {
-      avatar: "border-rose-200 bg-rose-50 text-rose-800",
-      badge: "bg-rose-50 text-rose-700",
+      avatar: "border-rose-200 bg-rose-50 text-rose-800 dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300",
+      badge: "bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:text-rose-300",
     };
   }
   return {
@@ -538,10 +538,10 @@ function getNodeTone(character: Character) {
 
 function getEdgeTone(edge?: RelationshipGraphEdge) {
   if (edge?.isHighTension) {
-    return { stroke: "#f97316", label: "border-orange-200 bg-orange-50 text-orange-800" };
+    return { stroke: "#f97316", label: "border-orange-200 bg-orange-50 text-orange-800 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300" };
   }
   if (edge?.isDynamic) {
-    return { stroke: "#0284c7", label: "border-sky-200 bg-sky-50 text-sky-800" };
+    return { stroke: "#0284c7", label: "border-sky-200 bg-sky-50 text-sky-800 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300" };
   }
   return { stroke: "#64748b", label: "border-slate-200 bg-white text-slate-700" };
 }

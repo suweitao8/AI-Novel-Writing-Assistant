@@ -68,7 +68,7 @@ export default function NovelDirectorIssuePolicyCard({ novelId }: { novelId: str
             <div>
               <div className="text-sm font-medium">{entry.label}</div>
               <div className="mt-1 text-xs text-muted-foreground">全局：{ACTION_LABELS[response.effectivePolicy.issueActions[entry.code] ?? entry.defaultAction]}</div>
-              {entry.lockedReason ? <div className="mt-1 text-xs text-amber-700">安全提示：{entry.lockedReason}{entry.enforcedAction ? ` 当前触发时仍会${ACTION_LABELS[entry.enforcedAction]}。` : ""}</div> : null}
+              {entry.lockedReason ? <div className="mt-1 text-xs text-amber-700 dark:text-amber-300">安全提示：{entry.lockedReason}{entry.enforcedAction ? ` 当前触发时仍会${ACTION_LABELS[entry.enforcedAction]}。` : ""}</div> : null}
             </div>
             <select className="h-9 rounded-md border bg-background px-3 text-sm" value={overrideActions[entry.code] ?? ""} onChange={(event) => setAction(entry.code, event.target.value)}>
               <option value="">继承全局</option>

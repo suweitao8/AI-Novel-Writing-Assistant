@@ -85,7 +85,7 @@ export function SelectionCard<T extends string>({
       <div className="flex items-center justify-between gap-2">
         <div className="text-sm font-medium text-foreground">{option.label}</div>
         {option.recommended ? (
-          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
             推荐
           </span>
         ) : null}

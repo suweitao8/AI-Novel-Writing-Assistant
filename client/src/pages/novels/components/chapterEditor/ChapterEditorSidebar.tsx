@@ -215,7 +215,7 @@ export default function ChapterEditorSidebar(props: ChapterEditorSidebarProps) {
                       </div>
                     </div>
                     {isRecommended ? (
-                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] text-emerald-800">
+                      <span className="rounded-full bg-emerald-100 px-2 py-1 text-[11px] text-emerald-800 dark:text-emerald-300">
                         推荐先修
                       </span>
                     ) : null}

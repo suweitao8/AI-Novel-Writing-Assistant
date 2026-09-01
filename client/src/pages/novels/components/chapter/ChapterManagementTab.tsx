@@ -170,7 +170,7 @@ export default function ChapterManagementTab(props: ChapterTabViewProps) {
         ) : null}
 
         {!hasCharacters ? (
-          <div className="flex flex-col gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 md:flex-row md:items-center md:justify-between dark:bg-amber-900/20 dark:text-amber-300">
             <span>请先添加至少 1 个角色，再生成章节内容。这样 AI 更容易识别出场者、关系变化和情节承接。</span>
             <Button size="sm" variant="outline" onClick={onGoToCharacterTab}>去角色管理</Button>
           </div>

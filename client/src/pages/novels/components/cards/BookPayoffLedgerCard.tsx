@@ -45,10 +45,10 @@ function payoffStatusVariant(status: string): "default" | "secondary" | "outline
 
 function payoffStatusTone(status: string): string {
   if (status === "overdue") {
-    return "border-amber-300 bg-amber-50 text-amber-900";
+    return "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300";
   }
   if (status === "paid_off") {
-    return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    return "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300";
   }
   if (status === "failed") {
     return "border-slate-300 bg-slate-100 text-slate-700";

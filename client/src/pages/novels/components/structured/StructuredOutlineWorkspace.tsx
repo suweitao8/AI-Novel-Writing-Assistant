@@ -250,7 +250,7 @@ export default function StructuredOutlineWorkspace(props: StructuredTabViewProps
         <CardContent className="space-y-4 px-0">
           <WorldInjectionHint worldInjectionSummary={worldInjectionSummary} />
           {!hasCharacters ? (
-            <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
               <span>请先补角色，再拆节奏和章节。</span>
               <Button size="sm" variant="outline" onClick={onGoToCharacterTab}>去角色管理</Button>
             </div>
@@ -368,9 +368,9 @@ export default function StructuredOutlineWorkspace(props: StructuredTabViewProps
           }}
         />
 
-        {!strategyPlan ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">请先在上一阶段生成卷战略建议，再继续当前卷节奏板和拆章。</div> : null}
+        {!strategyPlan ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">请先在上一阶段生成卷战略建议，再继续当前卷节奏板和拆章。</div> : null}
         {syncMessage ? <div className="text-xs text-muted-foreground">{syncMessage}</div> : null}
-        {locked ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">当前卷还没有节奏板，章节列表生成已锁定。</div> : null}
+        {locked ? <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">当前卷还没有节奏板，章节列表生成已锁定。</div> : null}
 
         <Card className="border-0 bg-muted/15 shadow-none">
           <CardHeader className="pb-3">

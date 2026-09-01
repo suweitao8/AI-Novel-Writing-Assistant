@@ -288,7 +288,7 @@ export default function NovelCreateTitleQuickFill({
                 </div>
 
                 {!hasGenerationContext ? (
-                  <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800">
+                  <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                     至少先补一句标题简报，或填写一个参考标题；如果创建页里已经有简介、类型或文风，也会自动参与生成。
                   </div>
                 ) : null}

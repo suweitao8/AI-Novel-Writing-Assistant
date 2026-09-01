@@ -151,7 +151,7 @@ export default function NovelCreateResourceRecommendationCard(
           </div>
 
           {recommendationIsStale ? (
-            <div className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-800">
+            <div className="rounded-md bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-300">
               你刚刚改过开书信息，建议重新推荐一次，让题材和推进模式跟上最新方向。
             </div>
           ) : null}
