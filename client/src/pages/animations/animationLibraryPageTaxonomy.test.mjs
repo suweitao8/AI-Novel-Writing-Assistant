@@ -8,7 +8,7 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页只保留用途、单一分类和搜索筛选", () => {
+test("动画入口页保留用途和中等粒度动作分类，并提供搜索筛选", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /useState<AnimationLibraryScopeId>\("storyboard"\)/);
   assert.match(pageSource, /storyboard/);
@@ -17,12 +17,15 @@ test("动画入口页只保留用途、单一分类和搜索筛选", () => {
   assert.match(pageSource, /scopeOption\.id === "storyboard"/);
   assert.match(pageSource, /scopeOption\.id === "compatibility"/);
   assert.match(pageSource, /data-animation-category-filter/);
-  assert.match(pageSource, /按分类筛选/);
-  assert.match(pageSource, /全部分类/);
-  assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
+  assert.match(pageSource, /按动作分类筛选/);
+  assert.match(pageSource, /全部动作/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_ACTION_TYPES/);
+  assert.match(pageSource, /AnimationLibraryActionTypeId/);
+  assert.match(pageSource, /actionTypeCounts/);
   assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /data-animation-search/);
   assert.match(pageSource, /data-animation-reset-filters/);
+  assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.doesNotMatch(pageSource, /data-animation-group-filter-row/);
   assert.doesNotMatch(pageSource, /data-animation-classification-filter/);
   assert.doesNotMatch(pageSource, /data-animation-detail-filters/);

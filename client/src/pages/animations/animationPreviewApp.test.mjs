@@ -498,7 +498,8 @@ test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字�
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
   assert.match(pageSource, /data-animation-filter-controls/);
-  assert.match(pageSource, /ANIMATION_LIBRARY_GROUPS/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_ACTION_TYPES/);
+  assert.match(pageSource, /按动作分类筛选/);
   assert.match(pageSource, /data-animation-category-filter/);
   assert.match(pageSource, /data-animation-scope-filter/);
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);

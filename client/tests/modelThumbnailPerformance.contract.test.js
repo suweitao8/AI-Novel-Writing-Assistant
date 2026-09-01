@@ -9,6 +9,8 @@ const read = (path) => {
 
 const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio.ts");
 const pageSource = read("../src/pages/models/ModelLibraryPage.tsx");
+const paginationSource = read("../src/pages/models/modelLibraryPagination.ts");
+const paginationComponentSource = read("../src/pages/models/components/ModelLibraryPagination.tsx");
 
 test("模型卡片缩略图输出最长边不超过 256px 并保持 4:3", () => {
   const match = thumbnailSource.match(
@@ -39,5 +41,27 @@ test("模型卡片只在视口附近才启动缩略图生成", () => {
   assert.doesNotMatch(
     pageSource,
     /useEffect\(\(\) => \{\s*if \(ensureThumbnail\(entry\)\) return;/,
+  );
+});
+
+test("模型库只渲染当前分页并提供边界安全的分页控件", () => {
+  assert.match(paginationSource, /MODEL_LIBRARY_PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /getModelLibraryPage/);
+  assert.match(pageSource, /pageEntries/);
+  assert.match(paginationComponentSource, /data-model-pagination/);
+  assert.match(paginationComponentSource, /第[\s\S]*页/);
+});
+
+test("模型库筛选变化回到第一页并释放离页缩略图请求", () => {
+  assert.match(pageSource, /setPage\(1\)/);
+  assert.match(pageSource, /cancelThumbnail\(entry\.id\)/);
+});
+
+test("缩略图生成完成后安排合并持久化，不在队列循环中同步重写缓存", () => {
+  assert.match(thumbnailSource, /scheduleCachePersist/);
+  assert.match(thumbnailSource, /requestIdleCallback/);
+  assert.doesNotMatch(
+    thumbnailSource,
+    /memoryCache\.set\(entry\.id, dataUrl\);\s*persistCache\(\)/,
   );
 });
