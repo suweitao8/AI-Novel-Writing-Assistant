@@ -384,7 +384,11 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
         tgt_head_y = bt_posF[t_head][0][1]
         ik_scale = min(2.0, max(0.5, tgt_head_y / src_head_y)) if src_head_y > 1e-6 else 1.0
 
-        # 第一遍：为每条臂链计算逐帧期望手腕位置（头锚定映射）。
+        # 第一遍：为每条臂链/腿链建立期望末端位置。
+        # 臂链：头关节锚定，手相对头的位置按骨架尺寸比映射。
+        # 腿链：骨盆锚定，落脚点 = 骨盆 + 源脚相对骨盆偏移 × 腿长比——
+        # 跑步/蹲伏的脚印由腿长决定，纯旋转传递会让脚漂移、膝弯变形
+        # （与 ozz-animation foot_ik、TREE-Ind 重定向插件同一套末端 IK 思路）。
         chains = {}
         for side in ("l", "r"):
             chain = [_bid("clavicle_" + side), _bid("upperarm_" + side), _bid("lowerarm_" + side), _bid("hand_" + side)]
@@ -392,66 +396,100 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             if any(ui is None for ui in chain) or a_hand is None: continue
             t_clav, t_upper, t_lower, t_hand = chain
             if any(ui not in out_rot or ui not in t2s for ui in chain): continue
-            chains[side] = {
-                "t_clav": t_clav, "t_upper": t_upper, "t_lower": t_lower, "t_hand": t_hand,
-                "a_hand": a_hand,
+            chains["arm_" + side] = {
+                "kind": "arm", "t_parent": t_clav,
+                "t_upper": t_upper, "t_lower": t_lower, "t_hand": t_hand,
+                "a_end": a_hand,
                 "l1": _vlen(target_base_local_trans[t_lower]),
                 "l2": _vlen(target_base_local_trans[t_hand]),
                 "child_upper": _vnorm(target_base_local_trans[t_lower]),
                 "child_lower": _vnorm(target_base_local_trans[t_hand]),
             }
-            chains[side]["reach_max"] = chains[side]["l1"] + chains[side]["l2"] - 1e-4
-            chains[side]["reach_min"] = abs(chains[side]["l1"] - chains[side]["l2"]) + 1e-4
-            ik_sides.append(side)
+            chains["arm_" + side]["reach_max"] = chains["arm_" + side]["l1"] + chains["arm_" + side]["l2"] - 1e-4
+            chains["arm_" + side]["reach_min"] = abs(chains["arm_" + side]["l1"] - chains["arm_" + side]["l2"]) + 1e-4
+            ik_sides.append("arm_" + side)
+        t_pelvis = _bid("pelvis")
+        a_pelvis = a_by_name.get("pelvis")
+        for side in ("l", "r"):
+            chain = [_bid("thigh_" + side), _bid("calf_" + side), _bid("foot_" + side)]
+            a_foot = a_by_name.get("foot_" + side)
+            if t_pelvis is None or a_pelvis is None: continue
+            if any(ui is None for ui in chain) or a_foot is None: continue
+            t_thigh, t_calf, t_foot = chain
+            if any(ui not in out_rot or ui not in t2s for ui in chain): continue
+            a_thigh = a_by_name.get("thigh_" + side)
+            a_calf = a_by_name.get("calf_" + side)
+            if a_thigh is None or a_calf is None: continue
+            src_leg = _vlen(rest_trans(anodes[a_calf])) + _vlen(rest_trans(anodes[a_foot]))
+            if src_leg < 1e-6: continue
+            info = {
+                "kind": "leg", "t_parent": t_pelvis,
+                "t_upper": t_thigh, "t_lower": t_calf, "t_hand": t_foot,
+                "a_end": a_foot,
+                "l1": _vlen(target_base_local_trans[t_calf]),
+                "l2": _vlen(target_base_local_trans[t_foot]),
+                "child_upper": _vnorm(target_base_local_trans[t_calf]),
+                "child_lower": _vnorm(target_base_local_trans[t_foot]),
+                "leg_scale": min(2.0, max(0.5, (_vlen(target_base_local_trans[t_calf]) + _vlen(target_base_local_trans[t_foot])) / src_leg)),
+            }
+            info["reach_max"] = info["l1"] + info["l2"] - 1e-4
+            info["reach_min"] = abs(info["l1"] - info["l2"]) + 1e-4
+            chains["leg_" + side] = info
 
         desired_targets = {}
-        for side, info in chains.items():
-            a_hand = info["a_hand"]
-            desired_targets[side] = [
-                tuple(bt_posF[t_head][f][k] + (a_posF[a_hand][f][k] - a_posF[a_head][f][k]) * ik_scale for k in range(3))
-                for f in range(F)
-            ]
+        for key, info in chains.items():
+            a_end = info["a_end"]
+            if info["kind"] == "arm":
+                desired_targets[key] = [
+                    tuple(bt_posF[t_head][f][k] + (a_posF[a_end][f][k] - a_posF[a_head][f][k]) * ik_scale for k in range(3))
+                    for f in range(F)
+                ]
+            else:
+                desired_targets[key] = [
+                    tuple(bt_posF[info["t_parent"]][f][k] + (a_posF[a_end][f][k] - a_posF[a_pelvis][f][k]) * info["leg_scale"] for k in range(3))
+                    for f in range(F)
+                ]
 
         # 双手接触校正：源双手贴近（鼓掌、合十等）时，两臂期望目标绕中点
         # 缩放回源间距（按骨架比例），保证重定向后手能真实拍到一起，而不是
         # 各自漂移或互相穿过。
-        if "l" in chains and "r" in chains:
+        if "arm_l" in chains and "arm_r" in chains:
             contact_frames = 0
             for f in range(F):
-                src_gap = _vlen(_vsub(a_posF[chains["l"]["a_hand"]][f], a_posF[chains["r"]["a_hand"]][f]))
+                src_gap = _vlen(_vsub(a_posF[chains["arm_l"]["a_end"]][f], a_posF[chains["arm_r"]["a_end"]][f]))
                 if src_gap > 0.15: continue
                 contact_frames += 1
-                tl, tr = desired_targets["l"][f], desired_targets["r"][f]
+                tl, tr = desired_targets["arm_l"][f], desired_targets["arm_r"][f]
                 mid = tuple((tl[k] + tr[k]) / 2 for k in range(3))
                 d = _vsub(tr, tl)
                 g = _vlen(d)
                 if g > 1e-6:
                     factor = (src_gap * ik_scale) / g
-                    desired_targets["l"][f] = tuple(mid[k] - d[k] * factor / 2 for k in range(3))
-                    desired_targets["r"][f] = tuple(mid[k] + d[k] * factor / 2 for k in range(3))
+                    desired_targets["arm_l"][f] = tuple(mid[k] - d[k] * factor / 2 for k in range(3))
+                    desired_targets["arm_r"][f] = tuple(mid[k] + d[k] * factor / 2 for k in range(3))
                 else:
-                    desired_targets["l"][f] = mid
-                    desired_targets["r"][f] = mid
+                    desired_targets["arm_l"][f] = mid
+                    desired_targets["arm_r"][f] = mid
             if contact_frames:
                 print("hand-contact merge on %d frames (source wrists within 0.15m)" % contact_frames)
 
-        # 第二遍：两骨 IK 到期望手腕位置。
-        unreachable = {side: [False] * F for side in chains}
-        for side, info in chains.items():
+        # 第二遍：两骨 IK 到期望末端位置（臂链与腿链同一求解器）。
+        unreachable = {key: [False] * F for key in chains}
+        for key, info in chains.items():
             for f in range(F):
                 S = bt_posF[info["t_upper"]][f]
                 E_old = bt_posF[info["t_lower"]][f]
                 W_old = bt_posF[info["t_hand"]][f]
                 plane = _vcross(_vsub(E_old, S), _vsub(W_old, S))
-                if _vlen(plane) < 1e-6: continue  # 传递姿态手臂完全伸直时无弯肘平面，保持该帧
-                desired = desired_targets[side][f]
+                if _vlen(plane) < 1e-6: continue  # 传递姿态肢体完全伸直时无弯曲平面，保持该帧
+                desired = desired_targets[key][f]
                 l1, l2 = info["l1"], info["l2"]
                 u = _vsub(desired, S)
                 raw_dist = _vlen(u)
                 d = min(max(raw_dist, info["reach_min"]), info["reach_max"])
                 if raw_dist > info["reach_max"]:
-                    # 目标超出臂展：手臂指向目标并完全伸展，属于该骨架的几何极限。
-                    unreachable[side][f] = True
+                    # 目标超出肢展：肢体指向目标并完全伸展，属于该骨架的几何极限。
+                    unreachable[key][f] = True
                 u = _vnorm(u)
                 cos_a = min(1.0, max(-1.0, (l1*l1 + d*d - l2*l2) / (2*l1*d)))
                 sin_a = math.sqrt(1.0 - cos_a*cos_a)
@@ -462,9 +500,9 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 w_dir = _vnorm(_vsub(desired, E_new))
                 wq_upper = qmul(_arc(qrot_vec(bt_worldF[info["t_upper"]][f], info["child_upper"]), e_dir), bt_worldF[info["t_upper"]][f])
                 wq_lower = qmul(_arc(qrot_vec(bt_worldF[info["t_lower"]][f], info["child_lower"]), w_dir), bt_worldF[info["t_lower"]][f])
-                # 手保持传递的世界朝向，手指随之，不参与 IK。
+                # 末端（手/脚）保持传递的世界朝向，手指/脚趾随之，不参与 IK。
                 locals_ = (
-                    (info["t_upper"], qmul(qconj(bt_worldF[info["t_clav"]][f]), wq_upper)),
+                    (info["t_upper"], qmul(qconj(bt_worldF[info["t_parent"]][f]), wq_upper)),
                     (info["t_lower"], qmul(qconj(wq_upper), wq_lower)),
                     (info["t_hand"], qmul(qconj(wq_lower), bt_worldF[info["t_hand"]][f])),
                 )
@@ -476,49 +514,69 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                     out_rot[ui][f] = lq
         if ik_sides:
             print("arm end-effector IK applied on %s (scale %.3f)" % ("/".join(ik_sides), ik_scale))
+        leg_keys = [key for key in chains if chains[key]["kind"] == "leg"]
+        if leg_keys:
+            print("leg end-effector IK applied on %s" % "/".join(leg_keys))
 
-    # 末端到达校验：源手腕-头最贴近的接触帧上，目标手腕相对头的高度差应与源一致。
+    # 末端到达校验：臂链查源手腕-头最贴近帧的高度差，腿链查源脚-骨盆最远帧的伸展距离。
     reach_failures = []
     ik_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
     for ui, frames in out_trans.items():
         ik_tracks.setdefault(ui, {})["translation"] = (grid, frames)
-    for side in ik_sides:
-        a_hand = a_by_name.get("hand_" + side)
-        t_hand = _bid("hand_" + side)
-        t_head2 = _bid("head")
+    for key, info in chains.items():
+        if info["kind"] != "arm": continue
+        a_hand = info["a_end"]
         src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[a_head][f])) for f in range(F)]
         cf = min(range(F), key=lambda f: src_d[f])
         _Wc, Pc = compose(ik_tracks, grid[cf])
         src_dy = a_posF[a_hand][cf][1] - a_posF[a_head][cf][1]
-        tgt_dy = Pc[t_hand][1] - Pc[t_head2][1]
+        tgt_dy = Pc[info["t_hand"]][1] - Pc[t_head][1]
         # 接触姿态（|src_dy| 小）要求严格；被动垂臂等远端姿态按比例放宽；
         # 目标超出臂展时手臂已满伸展指向目标，属于目标骨架的几何极限，放行。
-        if unreachable[side][cf]:
+        if unreachable[key][cf]:
             ok = True
             note = "(target beyond arm reach, fully extended)"
         else:
             ok = abs(tgt_dy - src_dy * ik_scale) <= max(0.05, 0.12 * abs(src_dy))
             note = ""
         print("reach check %s @t=%.2fs: src dy=%+.3f tgt dy=%+.3f -> %s %s" % (
-            side, grid[cf], src_dy, tgt_dy, "PASS" if ok else "FAIL", note))
-        if not ok: reach_failures.append(side)
+            key, grid[cf], src_dy, tgt_dy, "PASS" if ok else "FAIL", note))
+        if not ok: reach_failures.append(key)
     # 双手接触校验：源双手最贴近的帧，目标双手间距不得超过源间距×比例 + 5cm。
-    if "l" in chains and "r" in chains:
+    if "arm_l" in chains and "arm_r" in chains:
         src_gap_curve = [
-            _vlen(_vsub(a_posF[chains["l"]["a_hand"]][f], a_posF[chains["r"]["a_hand"]][f]))
+            _vlen(_vsub(a_posF[chains["arm_l"]["a_end"]][f], a_posF[chains["arm_r"]["a_end"]][f]))
             for f in range(F)
         ]
         cf = min(range(F), key=lambda f: src_gap_curve[f])
         if src_gap_curve[cf] <= 0.15:  # 只有源确实存在双手接触时才校验
             _Wc, Pc = compose(ik_tracks, grid[cf])
-            tgt_gap = _vlen(_vsub(Pc[chains["l"]["t_hand"]], Pc[chains["r"]["t_hand"]]))
+            tgt_gap = _vlen(_vsub(Pc[chains["arm_l"]["t_hand"]], Pc[chains["arm_r"]["t_hand"]]))
             limit = src_gap_curve[cf] * ik_scale + 0.05
             ok = tgt_gap <= limit
             print("hand-contact check @t=%.2fs: src gap=%.3f tgt gap=%.3f -> %s" % (
                 grid[cf], src_gap_curve[cf], tgt_gap, "PASS" if ok else "FAIL"))
             if not ok: reach_failures.append("hand-contact")
+    # 腿部伸展校验：源脚-骨盆最远帧（腿伸直触地），目标距离应与源×腿长比一致。
+    for key, info in chains.items():
+        if info["kind"] != "leg": continue
+        a_foot = info["a_end"]
+        src_d = [_vlen(_vsub(a_posF[a_foot][f], a_posF[a_pelvis][f])) for f in range(F)]
+        cf = max(range(F), key=lambda f: src_d[f])
+        _Wc, Pc = compose(ik_tracks, grid[cf])
+        src_dd = src_d[cf]
+        tgt_dd = _vlen(_vsub(Pc[info["t_hand"]], Pc[info["t_parent"]]))
+        if unreachable[key][cf]:
+            ok = True
+            note = "(target beyond leg reach, fully extended)"
+        else:
+            ok = abs(tgt_dd - src_dd * info["leg_scale"]) <= max(0.05, 0.12 * src_dd)
+            note = ""
+        print("leg check %s @t=%.2fs: src d=%.3f tgt d=%.3f -> %s %s" % (
+            key, grid[cf], src_dd, tgt_dd, "PASS" if ok else "FAIL", note))
+        if not ok: reach_failures.append(key)
     if reach_failures:
-        raise SystemExit("arm end-effector IK failed for: %s" % ", ".join(reach_failures))
+        raise SystemExit("limb end-effector IK failed for: %s" % ", ".join(reach_failures))
 
 # ---------- 手指阻尼 ----------
 # UAL2 是低模手：三节手指没有修正混合形，源动画的全握拳（每节 ~70°）完整
