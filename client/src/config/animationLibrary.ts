@@ -5,27 +5,25 @@ import {
 } from "./animationCatalogEntries.ts";
 import { matchesLibrarySearchQuery } from "./librarySearch.ts";
 
-/**
- * 动画目录的来源。legacy 是网站原有目录，unreal 是从 Cine57/UE 资产策选并
- * 重定向到 UAL2 的新目录。
- */
+/** 动画目录的来源。legacy 是网站原有目录，unreal 是从 Cine57/UE 资产策选并重定向到 UAL2 的新目录。 */
 export type AnimationLibrarySource = "legacy" | "unreal";
-export type AnimationLibrarySourceFilterId = AnimationLibrarySource | "all";
 
-/** 分镜入口默认只展示通过原地位移门禁的策选动作；旧目录保留为兼容区。 */
-export type AnimationLibraryScopeId = "storyboard" | "compatibility" | "all";
-
-export const ANIMATION_LIBRARY_SCOPES = [
-  { id: "storyboard", label: "分镜可用" },
-  { id: "compatibility", label: "兼容动画" },
+/**
+ * 页面统一的"分类"筛选：内置动画是网站原有目录，其余分类是从 Cine57/UE 导入的
+ * 动画按用处（日常、互动、表演、战斗）划分的分组。
+ */
+export const ANIMATION_LIBRARY_CATEGORY_FILTERS = [
   { id: "all", label: "全部" },
+  { id: "legacy", label: "内置动画" },
+  { id: "unreal-daily", label: "日常动作" },
+  { id: "unreal-interaction", label: "日常互动" },
+  { id: "unreal-misc", label: "生活与表演" },
+  { id: "unreal-hand-combat", label: "徒手战斗" },
+  { id: "unreal-weapon-combat", label: "武器战斗" },
 ] as const;
 
-export const ANIMATION_LIBRARY_SOURCES = [
-  { id: "all", label: "全部" },
-  { id: "unreal", label: "虚幻动画" },
-  { id: "legacy", label: "网站内置动画" },
-] as const;
+export type AnimationLibraryCategoryFilterId =
+  (typeof ANIMATION_LIBRARY_CATEGORY_FILTERS)[number]["id"];
 
 export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 /** 保留给旧的技术检查与外部调用方的 Cine57 标识。 */
@@ -37,7 +35,7 @@ export const ANIMATION_LIBRARY_GROUPS = [
   { id: "unreal-misc", label: "生活与表演", source: "unreal" },
   { id: "unreal-hand-combat", label: "徒手战斗", source: "unreal" },
   { id: "unreal-weapon-combat", label: "武器战斗", source: "unreal" },
-  { id: "legacy", label: "旧动画", source: "legacy" },
+  { id: "legacy", label: "内置动画", source: "legacy" },
 ] as const;
 
 export type AnimationLibraryGroupId = (typeof ANIMATION_LIBRARY_GROUPS)[number]["id"];
@@ -351,8 +349,9 @@ export interface AnimationLibraryEntry {
 }
 
 export interface AnimationLibraryFilters {
-  scope?: AnimationLibraryScopeId;
-  source?: AnimationLibrarySourceFilterId;
+  /** 页面统一"分类"：内置动画或虚幻动画的用处分组；"all" 不过滤。 */
+  category?: AnimationLibraryCategoryFilterId;
+  source?: AnimationLibrarySource;
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
@@ -364,7 +363,7 @@ export interface AnimationLibraryFilters {
 
 export const ANIMATION_LIBRARY_PACKS = [
   ...ANIMATION_CATALOG_PACKS,
-  { id: "legacy", groupId: "legacy", sourcePack: "LegacyAnimationLibrary", label: "旧动画" },
+  { id: "legacy", groupId: "legacy", sourcePack: "LegacyAnimationLibrary", label: "内置动画" },
 ] as const;
 
 const LEGACY_ACTION_TYPE_BY_CLIP: Readonly<Record<string, AnimationLibraryActionTypeId>> = {
@@ -444,11 +443,11 @@ function makeLegacyEntry(
     durationSeconds,
     frameRate: LEGACY_FRAME_RATE_BY_CLIP[clipName] ?? 30,
     source: "legacy",
-    sourceLabel: "旧动画",
+    sourceLabel: "内置动画",
     groupId: "legacy",
-    groupLabel: "旧动画",
+    groupLabel: "内置动画",
     packId: "legacy",
-    packLabel: "旧动画",
+    packLabel: "内置动画",
     actionType,
     actionTypeLabel,
     ...taxonomy,
@@ -568,7 +567,7 @@ export function filterAnimationLibraryEntries(
   filters: AnimationLibraryFilters = {},
 ): AnimationLibraryEntry[] {
   const {
-    scope = "all",
+    category = "all",
     source = "all",
     groupId = "all",
     packId = "all",
@@ -580,8 +579,10 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
+      // 分类是页面的统一筛选入口：内置动画按来源命中，其余分类按虚幻动画的用处分组命中。
+      (category === "all"
+        || (category === "legacy" ? entry.source === "legacy" : entry.groupId === category)) &&
       (source === "all" || entry.source === source) &&
-      (scope === "all" || (scope === "storyboard" ? entry.inPlace : !entry.inPlace)) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
       (actionType === "all" || entry.actionType === actionType) &&

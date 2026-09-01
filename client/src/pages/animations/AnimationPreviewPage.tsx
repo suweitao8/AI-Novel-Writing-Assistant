@@ -233,14 +233,11 @@ export default function AnimationPreviewPage() {
           </Link>
         </Button>
         <h1 className="min-w-0 truncate text-sm font-semibold">{entry.name}</h1>
-        <Badge variant={entry.inPlace ? "default" : "outline"} className="shrink-0">
-          {entry.inPlace ? "分镜可用" : "兼容动画"}
+        <Badge variant="default" className="shrink-0" data-animation-category-badge>
+          {entry.groupLabel}
         </Badge>
         <Badge variant="secondary" className="ml-1 shrink-0">
           {entry.classificationLabel}
-        </Badge>
-        <Badge variant="outline" className="shrink-0">
-          {entry.groupLabel}
         </Badge>
         <Badge variant="outline" className="hidden shrink-0 sm:inline-flex">
           {entry.packLabel}
@@ -271,6 +268,10 @@ export default function AnimationPreviewPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">分类</dt>
+                  <dd className="truncate font-medium" data-animation-category>{entry.groupLabel}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-muted-foreground">细分类</dt>
                   <dd className="truncate font-medium">{entry.classificationLabel}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -284,14 +285,6 @@ export default function AnimationPreviewPage() {
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">武器</dt>
                   <dd className="font-medium">{entry.weaponTypeLabel}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-muted-foreground">来源</dt>
-                  <dd className="font-medium">{entry.sourceLabel}</dd>
-                </div>
-                <div className="flex items-center justify-between gap-2">
-                  <dt className="text-muted-foreground">用途</dt>
-                  <dd className="font-medium">{entry.inPlace ? "分镜可用" : "兼容动画"}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">帧率</dt>

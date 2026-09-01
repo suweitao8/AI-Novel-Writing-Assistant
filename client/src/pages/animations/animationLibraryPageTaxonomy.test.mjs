@@ -8,19 +8,14 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页提供统一来源分类，并保留用途和动作分类", () => {
+test("动画入口页提供统一分类筛选，并保留动作分类下拉", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
-  assert.match(pageSource, /useState<AnimationLibrarySourceFilterId>\("all"\)/);
-  assert.match(pageSource, /useState<AnimationLibraryScopeId>\("all"\)/);
-  assert.match(pageSource, /ANIMATION_LIBRARY_SOURCES/);
-  assert.match(pageSource, /AnimationLibrarySourceFilterId/);
-  assert.match(pageSource, /data-animation-source-filter/);
-  assert.match(pageSource, /sourceOption\.id/);
-  assert.match(pageSource, /storyboard/);
-  assert.match(pageSource, /data-animation-scope-filter/);
-  assert.match(pageSource, /ANIMATION_LIBRARY_SCOPES/);
-  assert.match(pageSource, /scopeOption\.id === "storyboard"/);
-  assert.match(pageSource, /scopeOption\.id === "compatibility"/);
+  assert.match(pageSource, /useState<AnimationLibraryCategoryFilterId>\("all"\)/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_CATEGORY_FILTERS/);
+  assert.match(pageSource, /AnimationLibraryCategoryFilterId/);
+  assert.match(pageSource, /data-animation-category-filter/);
+  assert.match(pageSource, /categoryOption\.id/);
+  assert.match(pageSource, /categoryCounts/);
   assert.match(pageSource, /data-animation-action-filter/);
   assert.match(pageSource, /按动作分类筛选/);
   assert.match(pageSource, /全部动作/);
@@ -30,7 +25,15 @@ test("动画入口页提供统一来源分类，并保留用途和动作分类",
   assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /data-animation-search/);
   assert.match(pageSource, /data-animation-reset-filters/);
-  assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_GROUPS/);
+  // 来源与用途两行筛选已合并为单一分类：页面不得再出现来源/用途筛选入口。
+  assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_SOURCES/);
+  assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_SCOPES/);
+  assert.doesNotMatch(pageSource, /data-animation-source-filter/);
+  assert.doesNotMatch(pageSource, /data-animation-scope-filter/);
+  assert.doesNotMatch(pageSource, /来源/);
+  assert.doesNotMatch(pageSource, /用途/);
+  assert.doesNotMatch(pageSource, /分镜可用/);
+  assert.doesNotMatch(pageSource, /兼容动画/);
   assert.doesNotMatch(pageSource, /data-animation-group-filter-row/);
   assert.doesNotMatch(pageSource, /data-animation-classification-filter/);
   assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
@@ -38,17 +41,15 @@ test("动画入口页提供统一来源分类，并保留用途和动作分类",
   assert.doesNotMatch(pageSource, /data-animation-weapon-filter/);
 });
 
-test("来源与搜索占据首行，用途和动作分类位于后续筛选行", () => {
+test("分类与搜索占据首行，动作分类位于后续筛选行", () => {
   assert.match(pageSource, /data-animation-filter-controls/);
-  assert.match(pageSource, /data-animation-source-filter/);
+  assert.match(pageSource, /data-animation-category-filter/);
   assert.match(pageSource, /data-animation-search/);
   assert.match(pageSource, /sm:ml-auto/);
   assert.match(pageSource, /data-animation-detail-filters/);
-  assert.match(pageSource, /data-animation-scope-filter/);
   assert.match(pageSource, /data-animation-action-filter/);
-  assert.match(pageSource, /setSource\("all"\)/);
-  assert.match(pageSource, /setScope\("all"\)/);
-  assert.match(pageSource, /data-animation-source-filter[\s\S]*?TabsList className="[^"]*flex-wrap/);
+  assert.match(pageSource, /setCategory\("all"\)/);
+  assert.match(pageSource, /data-animation-category-filter[\s\S]*?TabsList className="[^"]*flex-wrap/);
 });
 
 test("动画卡片只保留有用信息，不重复显示播放和用途装饰", () => {
@@ -84,6 +85,6 @@ test("动画搜索通过按钮或回车提交，并与分类筛选同排", () =>
   assert.match(pageSource, /onKeyDown=\{\(event\) => \{[\s\S]*event\.key === "Enter"[\s\S]*applySearch\(event\.currentTarget\.value\)/);
   assert.match(pageSource, /data-animation-filter-controls[\s\S]*data-animation-search/);
   assert.match(pageSource, /className="[^\"]*sm:ml-auto[^\"]*"[\s\S]*data-animation-search/);
-  assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{scopedEntries\.length/);
+  assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{searchedEntries\.length/);
   assert.doesNotMatch(pageSource, /setTimeout\(\(\) => setSearch\(searchInput\.trim\(\)\), 250\)/);
 });

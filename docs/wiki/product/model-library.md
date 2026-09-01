@@ -135,6 +135,7 @@
 - **手写 GLB 重写的两个坑**：① BIN chunk 长度在 `binOffset` 处读，不是偏移 20（那是 JSON 数据）；② BIN 数据从 `binOffset + 8` 开始（跳过 chunk 头）。两处错了都会顶点错位、模型碎裂，且 JSON 结构校验完全看不出来。
 - **UE MaterialProperty 枚举名带下划线**：`MP_BASE_COLOR` 不是 `MP_BASECOLOR`，getattr 拿 None 会被静默跳过，导致某属性永远采不到。另外 `get_texture_parameter_names` 返回的是 Name 对象，过正则前必须 `str()`。
 - **离屏 canvas 0×0**：`setCanvasResolution(RESOLUTION_FIXED)` 必须显式带宽高；`app.resizeCanvas()` 在 FIXED 模式救不了绘图缓冲。
+- **缩略图队列「安静自旋」= rAF 停摆 + 队列无看门狗（2026-09-01）**：模型库扩到 208 个后用户报告预览图全部转圈。实测链路：环境/HDR/GLB/贴图全部 200 加载成功，队列却卡在 `render()` 里 `await nextFrame()` 的 `requestAnimationFrame` 上——窗口被遮挡/后台标签时 rAF 无限停摆（`visibilityState` 仍是 "visible"，实测 2 秒 0 次触发），render Promise 永不结清，`processing` 永久为 true，per-item catch 把一切吞成无报错的自旋。诊断手段：页面内 `new Function("u","return import(u)")` 动态 import 真实模块手动驱动 `ensureThumbnail`，配合放大 `performance.setResourceTimingBufferSize` 观测请求（Vite dev 模块请求会撑爆默认 resource buffer，别信第一次的"没有网络请求"）。修复规则：① 取帧等待必须 rAF + 定时器兜底双通道；② 初始化与单模型渲染必须有看门狗，把挂起降级为单步失败；③ 失败路径的半成品实体在 finally 销毁，防止重试累积占显存。生成内容没变时不升缓存版本（v28 保留），避免全库无效重生成。
 - **meshInstance.aabb 不可信**：导入取景一律用解析式包围盒（8 角点 × 世界矩阵）。
 - **单位**：GLB 实际单位直接解析 POSITION accessor min/max，别猜。Cine57 是米。
 - **localStorage 脏缓存**：缩略图缓存键必须带版本；写入前校验 `data:image/` 前缀。

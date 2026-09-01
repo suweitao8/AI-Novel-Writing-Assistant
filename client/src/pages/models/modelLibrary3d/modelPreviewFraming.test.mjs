@@ -156,13 +156,33 @@ test("模型缩略图初始化失败也会释放隐藏画布和 WebGL 应用", (
 });
 
 test("模型缩略图工作室初始化失败后允许后续请求重试", () => {
-  const initializationAwaitIndex = THUMBNAIL_SOURCE.indexOf("active = await studioPromise;");
+  const initializationAwaitIndex = THUMBNAIL_SOURCE.indexOf(
+    "active = await withWatchdog(studioPromise",
+  );
   const retryResetIndex = THUMBNAIL_SOURCE.indexOf("studioPromise = null", initializationAwaitIndex);
 
   assert.ok(
     initializationAwaitIndex >= 0 && retryResetIndex > initializationAwaitIndex,
     "模型缩略图工作室失败后必须清空已拒绝的 Promise",
   );
+});
+
+test("模型缩略图队列挂起时有看门狗兜底，不会永久停摆", () => {
+  // rAF 停摆或资源挂起会让某个 await 永不结清；初始化与单模型渲染都必须
+  // 有超时看门狗，把挂起降级为单步失败并让队列继续。
+  assert.match(
+    THUMBNAIL_SOURCE,
+    /active = await withWatchdog\(\s*studioPromise, STUDIO_INIT_WATCHDOG_MS/,
+  );
+  assert.match(
+    THUMBNAIL_SOURCE,
+    /await withWatchdog\(\s*active\.render\(entry\),\s*RENDER_WATCHDOG_MS/,
+  );
+  // 取帧等待不能只依赖 rAF（遮挡/后台标签下 rAF 无限停摆）。
+  const nextFrameIndex = THUMBNAIL_SOURCE.indexOf("const nextFrame = () =>");
+  const nextFrameSource = THUMBNAIL_SOURCE.slice(nextFrameIndex, nextFrameIndex + 900);
+  assert.match(nextFrameSource, /requestAnimationFrame\(settle\)/);
+  assert.match(nextFrameSource, /setTimeout\(settle, \d+\)/);
 });
 
 test("离开模型库时可立即销毁仍在初始化的 HDRI 缩略图应用", () => {
