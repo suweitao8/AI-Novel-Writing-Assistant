@@ -245,4 +245,3 @@ git ls-remote origin refs/heads/main
 ```
 
 Expected: the signed branch and merge commit are integrated into `main`, `origin/main` points to the same final commit, the session worktree is removed, and the main checkout is clean.
-
