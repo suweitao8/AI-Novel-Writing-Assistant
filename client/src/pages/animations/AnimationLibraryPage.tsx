@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 
@@ -8,14 +9,14 @@ import {
   ANIMATION_LIBRARY_CATEGORY_FILTERS,
   filterAnimationLibraryEntries,
   type AnimationLibraryEntry,
-  type AnimationLibraryActionTypeId,
   type AnimationLibraryCategoryFilterId,
 } from "@/config/animationLibrary";
 import { getAnimationFrameCount } from "./animationFrame";
-import SelectControl from "@/components/common/SelectControl";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
+import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
+import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { cn } from "@/lib/utils";
 import {
   disposeAnimationThumbnailStudio,
   ensureAnimationThumbnail,
@@ -91,10 +92,12 @@ function countBy<T extends string>(
 
 export default function AnimationLibraryPage() {
   const [category, setCategory] = useState<AnimationLibraryCategoryFilterId>("all");
-  const [actionType, setActionType] = useState<AnimationLibraryActionTypeId | "all">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+
+  const navActionsSlot = usePageNavActionsSlot();
+  const isMobileViewport = useIsMobileViewport();
 
   const applySearch = (value: string) => {
     setSearch(value.trim());
@@ -117,38 +120,27 @@ export default function AnimationLibraryPage() {
     [search],
   );
   const categoryCounts = useMemo(
-    () => countBy(searchedEntries, (entry) => entry.source === "legacy" ? "legacy" : entry.groupId),
+    () => countBy(searchedEntries, (entry) => entry.source === "legacy" ? "legacy" : entry.actionType),
     [searchedEntries],
   );
-  const categoryEntries = useMemo(
-    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category, query: search }),
-    [category, search],
-  );
-  const actionTypeCounts = useMemo(
-    () => countBy(categoryEntries, (entry) => entry.actionType),
-    [categoryEntries],
-  );
   const visibleActionTypes = useMemo(
-    () => ANIMATION_LIBRARY_ACTION_TYPES.filter((option) => actionTypeCounts.has(option.id)),
-    [actionTypeCounts],
+    () => ANIMATION_LIBRARY_ACTION_TYPES.filter((option) => categoryCounts.has(option.id)),
+    [categoryCounts],
   );
   const entries = useMemo(
-    () =>
-      filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-        category,
-        actionType,
-        query: search,
-      }),
-    [actionType, category, search],
+    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category, query: search }),
+    [category, search],
   );
 
   useEffect(() => {
     setPage(1);
-  }, [actionType, category, search]);
+  }, [category, search]);
 
   useEffect(() => {
-    if (actionType !== "all" && !actionTypeCounts.has(actionType)) setActionType("all");
-  }, [actionType, actionTypeCounts]);
+    if (category !== "all" && category !== "legacy" && !visibleActionTypes.some(({ id }) => id === category)) {
+      setCategory("all");
+    }
+  }, [category, visibleActionTypes]);
 
   const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   useEffect(() => {
@@ -159,123 +151,127 @@ export default function AnimationLibraryPage() {
   const pageEntries = entries.slice(pageStart, pageStart + PAGE_SIZE);
   const hasActiveFilters =
     category !== "all" ||
-    actionType !== "all" ||
     searchInput.trim().length > 0;
 
   const resetFilters = () => {
     setCategory("all");
-    setActionType("all");
     setSearchInput("");
     setSearch("");
     setPage(1);
   };
 
+  const renderCategoryButton = (id: AnimationLibraryCategoryFilterId, label: string) => (
+    <button
+      key={id}
+      type="button"
+      role="tab"
+      aria-selected={category === id}
+      onClick={() => {
+        setCategory(id);
+        setPage(1);
+      }}
+      data-animation-category={id}
+      className={cn(
+        "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] transition-colors",
+        category === id
+          ? "bg-primary font-medium text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      )}
+    >
+      {label}
+      <span
+        className={cn(
+          "text-[10px] leading-none",
+          category === id ? "text-primary-foreground/80" : "text-muted-foreground/70",
+        )}
+      >
+        {id === "all" ? searchedEntries.length : categoryCounts.get(id) ?? 0}
+      </span>
+    </button>
+  );
+
+  const searchForm = (
+    <form
+      className="flex min-w-0 items-center gap-1.5"
+      aria-label="搜索动画"
+      data-animation-search
+      onSubmit={submitSearch}
+    >
+      <label htmlFor="animation-library-search" className="relative min-w-0 flex-1 sm:w-64">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          id="animation-library-search"
+          aria-label="搜索动画"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              applySearch(event.currentTarget.value);
+            }
+          }}
+          placeholder="搜索动画名称或片段名"
+          className="h-8 pl-8 text-xs"
+        />
+      </label>
+      <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
+        <Search className="h-3.5 w-3.5" aria-hidden="true" />
+        搜索
+      </Button>
+      {hasActiveFilters ? (
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="shrink-0 rounded-md px-2 py-1 text-[11px] text-primary hover:bg-accent"
+          data-animation-reset-filters
+        >
+          清除筛选
+        </button>
+      ) : null}
+    </form>
+  );
+
+  // 桌面端把搜索框和搜索按钮 portal 进顶部导航栏，紧贴「AI 实况」左侧；
+  // 移动端顶栏放不下，搜索保留在筛选卡内部。
+  const searchPortal = !isMobileViewport && navActionsSlot
+    ? createPortal(
+        <div className="flex min-w-0 items-center justify-end gap-2">{searchForm}</div>,
+        navActionsSlot,
+      )
+    : null;
+
   return (
     <div className="space-y-3" data-animation-page>
+      {searchPortal}
       <section
         aria-label="动画筛选"
-        className="space-y-2 rounded-xl border border-border bg-card p-2"
+        className="rounded-xl border border-border bg-card p-2"
         data-animation-category-table
       >
-        <div className="flex min-w-0 flex-wrap items-start gap-2" data-animation-filter-controls>
-          <div className="flex min-w-0 flex-1 items-center gap-2" data-animation-category-filter>
-            <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground">分类</span>
-            <Tabs
-              value={category}
-              onValueChange={(value) => {
-                setCategory(value as AnimationLibraryCategoryFilterId);
-                setActionType("all");
-                setPage(1);
-              }}
-              className="min-w-0 flex-1"
-            >
-              <TabsList className="flex h-8 min-w-0 w-full max-w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-                {ANIMATION_LIBRARY_CATEGORY_FILTERS.map((categoryOption) => (
-                  <TabsTrigger
-                    key={categoryOption.id}
-                    value={categoryOption.id}
-                    className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    data-animation-category={categoryOption.id}
-                  >
-                    {categoryOption.label} <span className="text-[10px] opacity-75">
-                      {categoryOption.id === "all"
-                        ? searchedEntries.length
-                        : categoryCounts.get(categoryOption.id) ?? 0}
-                    </span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-          </div>
-          <form
-            className="flex w-full shrink-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:max-w-md"
-            aria-label="搜索动画"
-            data-animation-search
-            onSubmit={submitSearch}
+        <div className="min-w-0" data-animation-category-filter>
+          <div
+            role="tablist"
+            aria-label="动画分类"
+            className="flex min-w-0 flex-wrap items-center gap-1"
+            data-animation-category-row
           >
-            <label htmlFor="animation-library-search" className="relative min-w-0 flex-1 sm:w-64">
-              <Search
-                className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <Input
-                id="animation-library-search"
-                aria-label="搜索动画"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    applySearch(event.currentTarget.value);
-                  }
-                }}
-                placeholder="搜索动画名称或片段名"
-                className="h-8 pl-8 text-xs"
-              />
-            </label>
-            <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
-              <Search className="h-3.5 w-3.5" aria-hidden="true" />
-              搜索
-            </Button>
-            {hasActiveFilters ? (
-              <button
-                type="button"
-                onClick={resetFilters}
-                className="shrink-0 rounded-md px-2 py-1 text-[11px] text-primary hover:bg-accent"
-                data-animation-reset-filters
-              >
-                清除筛选
-              </button>
-            ) : null}
-          </form>
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center gap-2" data-animation-detail-filters>
-          <div className="flex min-w-0 items-center gap-2" data-animation-action-filter>
-            <label
-              htmlFor="animation-library-category"
-              className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
-            >
-              动作分类
-            </label>
-            <SelectControl
-              id="animation-library-category"
-              aria-label="按动作分类筛选"
-              className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
-              value={actionType}
-              onChange={(event) => {
-                setActionType(event.target.value as AnimationLibraryActionTypeId | "all");
-                setPage(1);
-              }}
-            >
-              <option value="all">全部动作 ({categoryEntries.length})</option>
-              {visibleActionTypes.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label} ({actionTypeCounts.get(option.id) ?? 0})
-                </option>
-              ))}
-            </SelectControl>
+            {ANIMATION_LIBRARY_CATEGORY_FILTERS.map(({ id, label }) => {
+              if (id === "all" || id === "legacy") return renderCategoryButton(id, label);
+              // 当前搜索范围内没有内容的动作分类自动隐藏。
+              return visibleActionTypes.some(({ id: actionId }) => actionId === id)
+                ? renderCategoryButton(id, label)
+                : null;
+            })}
           </div>
         </div>
+        {isMobileViewport ? (
+          <div className="mt-2 flex min-w-0 items-center" data-animation-search-row>
+            {searchForm}
+          </div>
+        ) : null}
       </section>
 
       {entries.length > 0 ? (
@@ -320,7 +316,7 @@ export default function AnimationLibraryPage() {
           className="rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground"
           data-animation-empty
         >
-          没有符合当前搜索或筛选的动画
+          没有符合当前搜索或分类的动画
         </section>
       )}
     </div>

@@ -34,18 +34,14 @@ test("动画目录明确区分内置动画、UE 源组和独立套装", () => {
   }
 });
 
-test("动画库提供统一分类：内置动画加虚幻动画的用处分组，并支持分类筛选", () => {
+test("动画库提供统一分类：全部、内置动画加按用处划分的动作类型，并支持分类筛选", () => {
+  const categoryItems = ANIMATION_LIBRARY_CATEGORY_FILTERS.map(({ id, label }) => ({ id, label }));
+  // 分类以「全部」和「内置动画」开头，其余分类直接复用动作类型（动画用处）。
+  assert.deepEqual(categoryItems[0], { id: "all", label: "全部" });
+  assert.deepEqual(categoryItems[1], { id: "legacy", label: "内置动画" });
   assert.deepEqual(
-    ANIMATION_LIBRARY_CATEGORY_FILTERS.map(({ id, label }) => ({ id, label })),
-    [
-      { id: "all", label: "全部" },
-      { id: "legacy", label: "内置动画" },
-      { id: "unreal-daily", label: "日常动作" },
-      { id: "unreal-interaction", label: "日常互动" },
-      { id: "unreal-misc", label: "生活与表演" },
-      { id: "unreal-hand-combat", label: "徒手战斗" },
-      { id: "unreal-weapon-combat", label: "武器战斗" },
-    ],
+    categoryItems.slice(2),
+    ANIMATION_LIBRARY_ACTION_TYPES.map(({ id, label }) => ({ id, label })),
   );
 
   const legacy = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "legacy" });
@@ -53,23 +49,24 @@ test("动画库提供统一分类：内置动画加虚幻动画的用处分组�
   assert.ok(legacy.every((entry) => entry.source === "legacy"));
   assert.ok(legacy.every((entry) => entry.groupLabel === "内置动画"));
 
-  for (const { id } of ANIMATION_LIBRARY_CATEGORY_FILTERS) {
-    if (id === "all" || id === "legacy") continue;
+  let nonEmptyCategories = 0;
+  for (const { id } of ANIMATION_LIBRARY_ACTION_TYPES) {
     const grouped = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: id });
-    assert.ok(grouped.length > 0, `分类 ${id} 必须至少有一条动画`);
-    assert.ok(grouped.every((entry) => entry.source === "unreal" && entry.groupId === id));
+    assert.ok(
+      grouped.every((entry) => entry.actionType === id),
+      `分类 ${id} 的筛选结果必须与动作类型一致`,
+    );
+    if (grouped.length > 0) nonEmptyCategories += 1;
   }
+  assert.ok(nonEmptyCategories >= 10, "多数动作类型分类应有可预览动画");
 
-  const unrealTarget = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    category: "unreal-hand-combat",
-  }).find((entry) => entry.actionType !== "idle");
-  assert.ok(unrealTarget);
+  const boxingTarget = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "boxing" })[0];
+  assert.ok(boxingTarget, "拳击分类应有可预览动画");
   const intersection = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    category: "unreal-hand-combat",
-    actionType: unrealTarget.actionType,
-    query: unrealTarget.clipName,
+    category: "boxing",
+    query: boxingTarget.clipName,
   });
-  assert.deepEqual(intersection.map((entry) => entry.id), [unrealTarget.id]);
+  assert.deepEqual(intersection.map((entry) => entry.id), [boxingTarget.id]);
 });
 
 test("动画目录的动作语义和去重键完整，Idle 允许保留多个变体", () => {
