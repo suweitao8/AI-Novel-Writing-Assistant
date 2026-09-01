@@ -520,6 +520,25 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
     if reach_failures:
         raise SystemExit("arm end-effector IK failed for: %s" % ", ".join(reach_failures))
 
+# ---------- 手指阻尼 ----------
+# UAL2 是低模手：三节手指没有修正混合形，源动画的全握拳（每节 ~70°）完整
+# 传递会把手指整根折进掌心，穿模成一团；源掌骨弯曲份量又因目标无此骨骼而
+# 丢失，弯曲集中到三节上更尖锐。把手指相对站立基准的旋转增量按
+# RETARGET_FINGER_SCALE（默认 0.6）缩放，握拳变成自然半握。
+_finger_scale = float(_os.environ.get("RETARGET_FINGER_SCALE", "0.6"))
+if _finger_scale < 0.999:
+    import re as _re
+    _finger_pat = _re.compile(r"(thumb|index|middle|ring|pinky)_0[123]_[lr]$")
+    _damped = 0
+    for ui in list(out_rot.keys()):
+        nm = (bnodes[ui].get("name") or "").lower()
+        if not _finger_pat.match(nm): continue
+        base_l = target_base_local_rot.get(ui) or rest_rot(bnodes[ui])
+        out_rot[ui] = [qslerp(base_l, lq, _finger_scale) for lq in out_rot[ui]]
+        _damped += 1
+    if _damped:
+        print("finger damping x%.2f on %d joints" % (_finger_scale, _damped))
+
 # IK 修正后刷新 SVG/位置所用姿态（沿用原中点帧）。
 solved_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
 for ui, frames in out_trans.items():
