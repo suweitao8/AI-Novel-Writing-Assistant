@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { ImageOff, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getCharacterFaceWindow, type CharacterFaceWindow } from "./characterFaceWindow";
 import type { StoryAssetImageStatus, StoryAssetPreviewSource } from "./storyAssetPresentation";
 
-// 角色状态图按 1536x1024 双列四格图板生成：左上格固定是正面面部特写视图。
-// 头像预览以该视图的面部为中心取 560px 方形窗口（少量下移把眼睛/下巴框进画面，
-// 顶部只裁掉发顶），输出方形头像；常量即大多数图片的固定取景位置。
+// 角色状态图按 1536x1024 双列四视图板生成，左上角是正面面部特写视图，但视图
+// 边界和分隔线位置每次生成都会漂移。取景窗口由 characterFaceWindow 按图片内容
+// 动态计算（避开侧面视图和分隔线）；分析完成前先按旧的固定比例展示，分析失败
+// 也回退到该固定窗口。
 const CHARACTER_SHEET_NATURAL_WIDTH = 1536;
 const CHARACTER_AVATAR_FACE_WINDOW = {
   /** 方形窗口边长（源图像素）。 */
@@ -22,6 +24,33 @@ const CHARACTER_AVATAR_WINDOW_STYLE = (() => {
     top: `${(-offsetY / size) * 100}%`,
   };
 })();
+
+function faceWindowStyle(win: CharacterFaceWindow) {
+  return {
+    width: `${(win.naturalWidth / win.size) * 100}%`,
+    left: `${(-win.left / win.size) * 100}%`,
+    top: `${(-win.top / win.size) * 100}%`,
+  };
+}
+
+/** 角色预览 URL 对应的自适应取景窗口；null 表示尚未分析完成或不可分析。 */
+function useCharacterFaceWindow(url: string | null): CharacterFaceWindow | null {
+  const [win, setWin] = useState<CharacterFaceWindow | null>(null);
+  useEffect(() => {
+    if (!url) {
+      setWin(null);
+      return undefined;
+    }
+    let active = true;
+    void getCharacterFaceWindow(url).then((result) => {
+      if (active) setWin(result);
+    });
+    return () => {
+      active = false;
+    };
+  }, [url]);
+  return win;
+}
 
 export interface StoryAssetPreviewProps {
   preview: StoryAssetPreviewSource | null;
@@ -66,6 +95,8 @@ function PreviewFallback({
 
 export function StoryAssetPreview({ preview, status = null, className }: StoryAssetPreviewProps) {
   const [hasError, setHasError] = useState(false);
+  const isCharacter = preview?.mode === "character-left-square";
+  const faceWindow = useCharacterFaceWindow(isCharacter && preview ? preview.url : null);
 
   useEffect(() => {
     setHasError(false);
@@ -75,8 +106,8 @@ export function StoryAssetPreview({ preview, status = null, className }: StoryAs
     return <PreviewFallback label={preview?.alt ?? "暂无预览图"} status={status} className={className} />;
   }
 
-  if (preview.mode === "character-left-square") {
-    return <PreviewFrame preview={preview} status={status} className={className} character onError={() => setHasError(true)} />;
+  if (isCharacter) {
+    return <PreviewFrame preview={preview} status={status} className={className} character faceWindow={faceWindow} onError={() => setHasError(true)} />;
   }
 
   return <PreviewFrame preview={preview} status={status} className={className} onError={() => setHasError(true)} />;
@@ -87,12 +118,14 @@ function PreviewFrame({
   status,
   className,
   character = false,
+  faceWindow = null,
   onError,
 }: {
   preview: StoryAssetPreviewSource;
   status?: StoryAssetImageStatus | null;
   className?: string;
   character?: boolean;
+  faceWindow?: CharacterFaceWindow | null;
   onError: () => void;
 }) {
   return (
@@ -103,7 +136,7 @@ function PreviewFrame({
         loading="lazy"
         decoding="async"
         className={character ? "absolute h-auto max-w-none" : "absolute inset-0 h-full w-full object-cover object-center"}
-        style={character ? CHARACTER_AVATAR_WINDOW_STYLE : undefined}
+        style={character ? (faceWindow ? faceWindowStyle(faceWindow) : CHARACTER_AVATAR_WINDOW_STYLE) : undefined}
         onError={onError}
       />
       {status === "generating" ? (
