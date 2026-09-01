@@ -8,23 +8,6 @@ import { matchesLibrarySearchQuery } from "./librarySearch.ts";
 /** 动画目录的来源。legacy 是网站原有目录，unreal 是从 Cine57/UE 资产策选并重定向到 UAL2 的新目录。 */
 export type AnimationLibrarySource = "legacy" | "unreal";
 
-/**
- * 页面统一的"分类"筛选：内置动画是网站原有目录，其余分类是从 Cine57/UE 导入的
- * 动画按用处（日常、互动、表演、战斗）划分的分组。
- */
-export const ANIMATION_LIBRARY_CATEGORY_FILTERS = [
-  { id: "all", label: "全部" },
-  { id: "legacy", label: "内置动画" },
-  { id: "unreal-daily", label: "日常动作" },
-  { id: "unreal-interaction", label: "日常互动" },
-  { id: "unreal-misc", label: "生活与表演" },
-  { id: "unreal-hand-combat", label: "徒手战斗" },
-  { id: "unreal-weapon-combat", label: "武器战斗" },
-] as const;
-
-export type AnimationLibraryCategoryFilterId =
-  (typeof ANIMATION_LIBRARY_CATEGORY_FILTERS)[number]["id"];
-
 export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 /** 保留给旧的技术检查与外部调用方的 Cine57 标识。 */
 export const ANIMATION_LIBRARY_SOURCE = "Cine57";
@@ -182,7 +165,18 @@ export const ANIMATION_LIBRARY_ACTION_TYPES = [
 
 export type AnimationLibraryActionTypeId = (typeof ANIMATION_LIBRARY_ACTION_TYPES)[number]["id"];
 
-export const ANIMATION_LIBRARY_CATEGORIES = ANIMATION_LIBRARY_ACTION_TYPES.map(({ label }) => label);
+/**
+ * 页面统一的"分类"筛选：内置动画是网站原有目录，其余分类按动画的用处
+ * （动作类型）划分，在筛选卡里铺成多行分类胶囊；分类 id 直接复用动作类型 id。
+ */
+export const ANIMATION_LIBRARY_CATEGORY_FILTERS = [
+  { id: "all", label: "全部" },
+  { id: "legacy", label: "内置动画" },
+  ...ANIMATION_LIBRARY_ACTION_TYPES,
+] as const;
+
+export type AnimationLibraryCategoryFilterId =
+  (typeof ANIMATION_LIBRARY_CATEGORY_FILTERS)[number]["id"];
 
 const ACTION_TYPE_LABELS = new Map<string, string>(
   ANIMATION_LIBRARY_ACTION_TYPES.map(({ id, label }) => [id, label]),
@@ -579,9 +573,9 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
-      // 分类是页面的统一筛选入口：内置动画按来源命中，其余分类按虚幻动画的用处分组命中。
+      // 分类是页面的统一筛选入口：内置动画按来源命中，其余分类按动画用处（动作类型）命中。
       (category === "all"
-        || (category === "legacy" ? entry.source === "legacy" : entry.groupId === category)) &&
+        || (category === "legacy" ? entry.source === "legacy" : entry.actionType === category)) &&
       (source === "all" || entry.source === source) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&

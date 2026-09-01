@@ -234,7 +234,7 @@ export default function AnimationPreviewPage() {
         </Button>
         <h1 className="min-w-0 truncate text-sm font-semibold">{entry.name}</h1>
         <Badge variant="default" className="shrink-0" data-animation-category-badge>
-          {entry.groupLabel}
+          {entry.actionTypeLabel}
         </Badge>
         <Badge variant="secondary" className="ml-1 shrink-0">
           {entry.classificationLabel}
@@ -268,7 +268,7 @@ export default function AnimationPreviewPage() {
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">分类</dt>
-                  <dd className="truncate font-medium" data-animation-category>{entry.groupLabel}</dd>
+                  <dd className="truncate font-medium" data-animation-category>{entry.actionTypeLabel}</dd>
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-muted-foreground">细分类</dt>

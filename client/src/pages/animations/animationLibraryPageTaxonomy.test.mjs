@@ -8,24 +8,24 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页提供统一分类筛选，并保留动作分类下拉", () => {
+test("动画入口页用单一分类胶囊铺满筛选卡，不再有动作分类下拉", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
   assert.match(pageSource, /useState<AnimationLibraryCategoryFilterId>\("all"\)/);
   assert.match(pageSource, /ANIMATION_LIBRARY_CATEGORY_FILTERS/);
   assert.match(pageSource, /AnimationLibraryCategoryFilterId/);
   assert.match(pageSource, /data-animation-category-filter/);
-  assert.match(pageSource, /categoryOption\.id/);
+  assert.match(pageSource, /data-animation-category-row/);
+  assert.match(pageSource, /role="tablist"/);
+  assert.match(pageSource, /data-animation-category=\{id\}/);
   assert.match(pageSource, /categoryCounts/);
-  assert.match(pageSource, /data-animation-action-filter/);
-  assert.match(pageSource, /按动作分类筛选/);
-  assert.match(pageSource, /全部动作/);
-  assert.match(pageSource, /ANIMATION_LIBRARY_ACTION_TYPES/);
-  assert.match(pageSource, /AnimationLibraryActionTypeId/);
-  assert.match(pageSource, /actionTypeCounts/);
-  assert.match(pageSource, /SelectControl/);
-  assert.match(pageSource, /data-animation-search/);
-  assert.match(pageSource, /data-animation-reset-filters/);
-  // 来源与用途两行筛选已合并为单一分类：页面不得再出现来源/用途筛选入口。
+  assert.match(pageSource, /renderCategoryButton/);
+  // 分类铺成多行：动作类型分类在搜索范围内没有内容时自动隐藏。
+  assert.match(pageSource, /visibleActionTypes\.some/);
+  // 旧的动作分类下拉与来源/用途筛选一律不得回归。
+  assert.doesNotMatch(pageSource, /SelectControl/);
+  assert.doesNotMatch(pageSource, /按动作分类筛选/);
+  assert.doesNotMatch(pageSource, /全部动作/);
+  assert.doesNotMatch(pageSource, /data-animation-action-filter/);
   assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_SOURCES/);
   assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_SCOPES/);
   assert.doesNotMatch(pageSource, /data-animation-source-filter/);
@@ -34,22 +34,26 @@ test("动画入口页提供统一分类筛选，并保留动作分类下拉", ()
   assert.doesNotMatch(pageSource, /用途/);
   assert.doesNotMatch(pageSource, /分镜可用/);
   assert.doesNotMatch(pageSource, /兼容动画/);
-  assert.doesNotMatch(pageSource, /data-animation-group-filter-row/);
-  assert.doesNotMatch(pageSource, /data-animation-classification-filter/);
-  assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /data-animation-posture-filter/);
-  assert.doesNotMatch(pageSource, /data-animation-weapon-filter/);
 });
 
-test("分类与搜索占据首行，动作分类位于后续筛选行", () => {
-  assert.match(pageSource, /data-animation-filter-controls/);
-  assert.match(pageSource, /data-animation-category-filter/);
+test("搜索框和搜索按钮在桌面端进入顶部导航 AI 实况左侧，移动端留在筛选卡内", () => {
+  assert.match(pageSource, /usePageNavActionsSlot/);
+  assert.match(pageSource, /useIsMobileViewport/);
+  assert.match(pageSource, /createPortal/);
+  assert.match(
+    pageSource,
+    /!isMobileViewport && navActionsSlot\s*\n\s*\? createPortal\(/,
+  );
   assert.match(pageSource, /data-animation-search/);
-  assert.match(pageSource, /sm:ml-auto/);
-  assert.match(pageSource, /data-animation-detail-filters/);
-  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /type="submit"/);
+  assert.match(pageSource, /aria-label="搜索动画"/);
+  assert.match(pageSource, /data-animation-search-row/);
+  assert.match(pageSource, /data-animation-reset-filters/);
   assert.match(pageSource, /setCategory\("all"\)/);
-  assert.match(pageSource, /data-animation-category-filter[\s\S]*?TabsList className="[^"]*flex-wrap/);
+  // portal 的 JSX 与移动端卡内复用同一份搜索表单。
+  assert.match(pageSource, /\{searchForm\}/);
+  assert.doesNotMatch(pageSource, /sm:ml-auto/);
+  assert.doesNotMatch(pageSource, /data-animation-filter-controls/);
 });
 
 test("动画卡片只保留有用信息，不重复显示播放和用途装饰", () => {
@@ -78,13 +82,12 @@ test("动画入口页只挂载当前页卡片并提供可访问分页", () => {
   assert.match(pageSource, /setPage\(1\)/);
 });
 
-test("动画搜索通过按钮或回车提交，并与分类筛选同排", () => {
+test("动画搜索通过按钮或回车提交", () => {
   assert.match(pageSource, /<form[\s\S]*onSubmit/);
-  assert.match(pageSource, /type="submit"/);
   assert.match(pageSource, /搜索/);
-  assert.match(pageSource, /onKeyDown=\{\(event\) => \{[\s\S]*event\.key === "Enter"[\s\S]*applySearch\(event\.currentTarget\.value\)/);
-  assert.match(pageSource, /data-animation-filter-controls[\s\S]*data-animation-search/);
-  assert.match(pageSource, /className="[^\"]*sm:ml-auto[^\"]*"[\s\S]*data-animation-search/);
-  assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{searchedEntries\.length/);
+  assert.match(
+    pageSource,
+    /onKeyDown=\{\(event\) => \{[\s\S]*event\.key === "Enter"[\s\S]*applySearch\(event\.currentTarget\.value\)/,
+  );
   assert.doesNotMatch(pageSource, /setTimeout\(\(\) => setSearch\(searchInput\.trim\(\)\), 250\)/);
 });
