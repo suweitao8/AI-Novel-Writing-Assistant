@@ -21,8 +21,11 @@ const assetPaths = [
   ),
 ];
 const repositoryRoot = path.resolve(__dirname, "../..");
-const canonicalSourceCommit =
-  "d363c614c3e23de231d4644b50f9156e00a1a3d0";
+const canonicalSourceCommitByPath = Object.freeze({
+  "client/public/anims/cine57/UAL2_UE_Anims.glb": "3f75a07b",
+  "client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb":
+    "d363c614c3e23de231d4644b50f9156e00a1a3d0",
+});
 const canonicalSourceCache = new Map();
 
 function findPrimitives(gltf) {
@@ -57,6 +60,10 @@ function makeOriginalFixture(assetPath) {
   const relativePath = path
     .relative(repositoryRoot, assetPath)
     .replaceAll(path.sep, "/");
+  const canonicalSourceCommit = canonicalSourceCommitByPath[relativePath];
+  if (!canonicalSourceCommit) {
+    throw new Error("缺少资源的规范源提交：" + relativePath);
+  }
   if (!canonicalSourceCache.has(relativePath)) {
     canonicalSourceCache.set(
       relativePath,

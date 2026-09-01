@@ -24,7 +24,7 @@ function readDiffuse(material) {
   return [material.diffuse.r, material.diffuse.g, material.diffuse.b];
 }
 
-test("M_Neck 与主体共用蓝色材质，M_Joints 保留独立高亮并同步换色", () => {
+test("M_Neck 与 M_Joints 共同使用淡蓝色高亮并同步换色", () => {
   const mainMesh = { material: { name: "M_Main" } };
   const jointMesh = { material: { name: "M_Joints" } };
   const neckMesh = { material: { name: "M_Neck" } };
@@ -35,7 +35,7 @@ test("M_Neck 与主体共用蓝色材质，M_Joints 保留独立高亮并同步�
 
   assert.equal(mainMesh.material, mainMaterial);
   assert.notEqual(jointMaterial, mainMaterial);
-  assert.equal(neckMesh.material, mainMaterial);
+  assert.equal(neckMesh.material, jointMaterial);
   assert.deepEqual(
     readDiffuse(jointMaterial),
     getBlocking3dActorJointColor(BLOCKING_3D_BLUE_ACTOR_COLOR),
@@ -46,7 +46,7 @@ test("M_Neck 与主体共用蓝色材质，M_Joints 保留独立高亮并同步�
 
   assert.equal(mainMesh.material, mainMaterial);
   assert.equal(jointMesh.material, jointMaterial);
-  assert.equal(neckMesh.material, mainMaterial);
+  assert.equal(neckMesh.material, jointMaterial);
   assert.deepEqual(readDiffuse(mainMaterial), nextColor);
   assert.deepEqual(readDiffuse(jointMaterial), getBlocking3dActorJointColor(nextColor));
 });
