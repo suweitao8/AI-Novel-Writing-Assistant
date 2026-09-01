@@ -32,6 +32,25 @@ const THUMBNAIL_SIZE = { width: 256, height: 192 } as const;
 const JPEG_QUALITY = 0.75;
 const STORAGE_KEY = "model-library:thumbnails:v28";
 const IDLE_DESTROY_MS = 8000;
+const STUDIO_INIT_WATCHDOG_MS = 30_000;
+const RENDER_WATCHDOG_MS = 30_000;
+
+/** 给异步阶段加看门狗：单步挂起只损失当前一步，队列永不永久停摆。 */
+function withWatchdog<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
@@ -54,7 +73,18 @@ let cachePersistTimer: number | null = null;
 
 const nextFrame = () =>
   new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
+    // rAF 在窗口被遮挡或后台标签页会无限停摆，而取帧等待是缩略图管线里
+    // 唯一依赖帧回调的环节——只等 rAF 时队列会无报错地永久卡死。定时器
+    // 兜底保证任何可见性状态下都能继续出图：后台标签的定时器节流只降低
+    // 生成速度，不会中断队列。
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    requestAnimationFrame(settle);
+    setTimeout(settle, 50);
   });
 
 function loadStorageCache(): void {
@@ -174,7 +204,7 @@ async function processQueue(): Promise<void> {
     if (!studioPromise) {
       studioPromise = createThumbnailStudio();
     }
-    active = await studioPromise;
+    active = await withWatchdog(studioPromise, STUDIO_INIT_WATCHDOG_MS, "缩略图画布初始化超时。");
     if (generation !== studioGeneration) {
       active.destroy();
       processing = false;
@@ -185,7 +215,14 @@ async function processQueue(): Promise<void> {
     // Do not leave a rejected initialization Promise cached forever. A later
     // card request can retry after WebGL, the browser, or the asset server
     // becomes available again.
-    if (generation === studioGeneration) studioPromise = null;
+    if (generation === studioGeneration) {
+      // 初始化看门狗超时时画布应用仍在挂起，先销毁它释放 WebGL 上下文。
+      if (studioPromise !== null) {
+        pendingStudioDestroy?.();
+        pendingStudioDestroy = null;
+      }
+      studioPromise = null;
+    }
     processing = false;
     if (generation === studioGeneration) {
       scheduleIdleDestroy();
@@ -203,12 +240,16 @@ async function processQueue(): Promise<void> {
       if (next.done) break;
       const entry = next.value;
       try {
-        const dataUrl = await active.render(entry);
+        const dataUrl = await withWatchdog(
+          active.render(entry),
+          RENDER_WATCHDOG_MS,
+          "缩略图生成超时。",
+        );
         memoryCache.set(entry.id, dataUrl);
         scheduleCachePersist();
         emitThumbnails();
       } catch {
-        // 单个模型生成失败只影响自己，卡片保持占位图标。
+        // 单个模型生成失败或超时只影响自己，卡片保持占位图标。
       } finally {
         pendingEntries.delete(entry.id);
       }
@@ -325,6 +366,7 @@ async function createThumbnailStudio(): Promise<{
       async render(entry) {
         if (destroyed) throw new Error("缩略图画布已销毁。");
         const asset = await loadAsset(app, entry.fileUrl, "container");
+        let adjust: pc.Entity | null = null;
         try {
           if (destroyed) throw new Error("缩略图画布已销毁。");
           const resource = asset.resource as ContainerResource | null;
@@ -333,7 +375,7 @@ async function createThumbnailStudio(): Promise<{
           const root = new pc.Entity("thumb-model");
           root.addChild(inner);
           const unitScale = entry.unitScale > 0 ? entry.unitScale : 1;
-          const adjust = new pc.Entity("thumb-adjust");
+          adjust = new pc.Entity("thumb-adjust");
           adjust.addChild(root);
           app.root.addChild(adjust);
 
@@ -366,9 +408,10 @@ async function createThumbnailStudio(): Promise<{
           drawFrame();
           const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
           if (!dataUrl.startsWith("data:image/jpeg")) throw new Error("缩略图画布没有输出有效图像。");
-          adjust.destroy();
           return dataUrl;
         } finally {
+          // 失败路径也要摘除半成品实体，避免反复重试时残留实体累积占住显存。
+          adjust?.destroy();
           app.assets.remove(asset);
         }
       },

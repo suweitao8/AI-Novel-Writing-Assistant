@@ -29,6 +29,25 @@ const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
 const STORAGE_KEY = "animation-library:thumbnails:v15";
 const IDLE_DESTROY_MS = 8000;
+const STUDIO_INIT_WATCHDOG_MS = 30_000;
+const RENDER_WATCHDOG_MS = 30_000;
+
+/** 给异步阶段加看门狗：单步挂起只损失当前一步，队列永不永久停摆。 */
+function withWatchdog<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error instanceof Error ? error : new Error(String(error)));
+      },
+    );
+  });
+}
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
@@ -178,7 +197,7 @@ async function processQueue(): Promise<void> {
     if (!studioPromise) {
       studioPromise = createAnimationThumbnailStudio();
     }
-    active = await studioPromise;
+    active = await withWatchdog(studioPromise, STUDIO_INIT_WATCHDOG_MS, "动画缩略图画布初始化超时。");
     if (generation !== studioGeneration) {
       active.destroy();
       processing = false;
@@ -189,7 +208,14 @@ async function processQueue(): Promise<void> {
   } catch {
     // Do not cache a rejected Promise forever. A later card request can retry
     // after WebGL, the browser, or the asset server becomes available again.
-    if (generation === studioGeneration) studioPromise = null;
+    if (generation === studioGeneration) {
+      // 初始化看门狗超时时画布应用仍在挂起，先销毁它释放 WebGL 上下文。
+      if (studioPromise !== null) {
+        pendingStudioDestroy?.();
+        pendingStudioDestroy = null;
+      }
+      studioPromise = null;
+    }
     processing = false;
     if (generation === studioGeneration) {
       scheduleIdleDestroy();
@@ -206,12 +232,16 @@ async function processQueue(): Promise<void> {
       if (next.done) break;
       const entry = next.value;
       try {
-        const dataUrl = await active.render(entry);
+        const dataUrl = await withWatchdog(
+          active.render(entry),
+          RENDER_WATCHDOG_MS,
+          "动画缩略图生成超时。",
+        );
         memoryCache.set(entry.id, dataUrl);
         persistCache();
         emitThumbnails();
       } catch {
-        // 单个动画生成失败只影响自己，卡片保持占位图标。
+        // 单个动画生成失败或超时只影响自己，卡片保持占位图标。
       } finally {
         pendingEntries.delete(entry.id);
       }
@@ -228,7 +258,16 @@ async function processQueue(): Promise<void> {
 
 const nextFrame = () =>
   new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
+    // rAF 在窗口被遮挡或后台标签页会无限停摆，取帧等待是缩略图管线里唯一
+    // 依赖帧回调的环节。定时器兜底让任何可见性状态下都能继续出图。
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      resolve();
+    };
+    requestAnimationFrame(settle);
+    setTimeout(settle, 50);
   });
 
 async function createAnimationThumbnailStudio(): Promise<{
