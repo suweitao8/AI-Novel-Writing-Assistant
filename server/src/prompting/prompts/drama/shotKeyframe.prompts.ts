@@ -20,7 +20,7 @@ export function buildDramaShotKeyframePrompt(input: DramaShotKeyframePromptInput
     "静态画面：整镜保持这一张横屏首帧图，不设计运镜",
     "构图干净，主体突出",
     input.hasConfirmedBlockingSketch
-      ? "锁定摆位草图确定的场景视角、角色位置、相对大小、朝向与前后关系；只还原最终影视化画面，不渲染草图中的边框、姓名、控制点或其它辅助标记"
+      ? "第一张参考图是已确认的摆位草图（3D 摄像机实拍取景），它决定这张画面的构图基准：取景范围、机位透视、角色位置、相对大小、朝向与前后关系必须严格与它一致，不得参考其它图片的构图重新取景；只把草图还原成最终影视化画面，不渲染草图中的边框、姓名、控制点或其它辅助标记"
       : "",
     input.location ? `地点：${input.location}` : "",
     ...input.settingLines,
@@ -38,7 +38,7 @@ export function buildDramaShotKeyframePrompt(input: DramaShotKeyframePromptInput
 
 export const dramaShotKeyframePrompt: PromptAsset<DramaShotKeyframePromptInput, string> = {
   id: "drama.shot.keyframe",
-  version: "v3",
+  version: "v4",
   taskType: "planner",
   mode: "text",
   language: "zh",

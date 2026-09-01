@@ -16,9 +16,16 @@ test("确认后的摆位草图排在首帧参考图第一位，并锁定构图",
   assert.match(keyframeSource, /refImages\.unshift\(blockingSketch\.url\)/);
   assert.match(keyframeSource, /referenceImages\.unshift/);
   assert.match(promptSource, /drama\.shot\.keyframe/);
-  assert.match(promptSource, /锁定摆位草图/);
+  assert.match(promptSource, /第一张参考图是已确认的摆位草图/);
+  assert.match(promptSource, /必须严格与它一致/);
   assert.match(promptSource, /lightingContract/);
-  assert.match(registrySource, /drama\.shot\.keyframe@v2/);
+  assert.match(registrySource, /drama\.shot\.keyframe@v4/);
+});
+
+test("已确认草图存在时场景整图不再作为参考图，避免画面退回场景原图", () => {
+  // 场景整图的穹顶投影就是草图的来源，两者同时挂会让模型照抄场景图、丢掉摄像机取景。
+  assert.match(keyframeSource, /matchedScene\?\.imageUrl && !blockingSketch/);
+  assert.doesNotMatch(keyframeSource, /if \(matchedScene\?\.imageUrl\) \{\s*refImages\.push/);
 });
 
 test("草稿草图不会偷偷进入首帧生成", () => {
