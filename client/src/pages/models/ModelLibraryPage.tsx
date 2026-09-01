@@ -12,13 +12,19 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { ModelLibraryPagination } from "./components/ModelLibraryPagination";
 import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
 import {
+  cancelThumbnail,
   disposeThumbnailStudio,
   ensureThumbnail,
   getThumbnail,
   subscribeThumbnails,
 } from "./modelLibrary3d/thumbnailStudio";
+import {
+  getModelLibraryPage,
+  MODEL_LIBRARY_PAGE_SIZE,
+} from "./modelLibraryPagination";
 
 const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
 
@@ -51,6 +57,7 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
       return () => {
         active = false;
         unsubscribe?.();
+        cancelThumbnail(entry.id);
       };
     }
 
@@ -68,6 +75,7 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
       active = false;
       observer.disconnect();
       unsubscribe?.();
+      cancelThumbnail(entry.id);
     };
   }, [entry]);
 
@@ -127,6 +135,7 @@ export default function ModelLibraryPage() {
   const [category, setCategory] = useState<string>("全部");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   useEffect(() => {
     const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
     return () => window.clearTimeout(timer);
@@ -153,17 +162,29 @@ export default function ModelLibraryPage() {
   const entries = useMemo(
     () => {
       const categoryEntries = category === "全部"
-        ? MODEL_LIBRARY
-        : MODEL_LIBRARY.filter((entry) => entry.category === category);
+        ? visibleEntries
+        : visibleEntries.filter((entry) => entry.category === category);
       return filterModelLibraryEntries(categoryEntries, search);
     },
-    [category, search],
+    [category, search, visibleEntries],
   );
+  const currentPage = getModelLibraryPage(entries, page, MODEL_LIBRARY_PAGE_SIZE);
+  const pageEntries = currentPage.entries;
+
+  useEffect(() => {
+    setPage(1);
+  }, [category, search]);
+
+  useEffect(() => {
+    if (page !== currentPage.page) setPage(currentPage.page);
+  }, [currentPage.page, page]);
+
   const hasActiveFilters = category !== "全部" || searchInput.trim().length > 0;
   const clearFilters = () => {
     setCategory("全部");
     setSearchInput("");
     setSearch("");
+    setPage(1);
   };
 
   return (
@@ -179,7 +200,10 @@ export default function ModelLibraryPage() {
             id="model-library-search"
             aria-label="搜索模型"
             value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+              setPage(1);
+            }}
             placeholder="搜索模型名称、文件名或分类"
             className="h-10 pl-9"
           />
@@ -201,7 +225,10 @@ export default function ModelLibraryPage() {
             type="button"
             role="tab"
             aria-selected={category === item}
-            onClick={() => setCategory(item)}
+            onClick={() => {
+              setCategory(item);
+              setPage(1);
+            }}
             className={cn(
               "flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
               category === item
@@ -223,11 +250,18 @@ export default function ModelLibraryPage() {
       </section>
 
       {entries.length > 0 ? (
-        <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
-          {entries.map((entry) => (
-            <ModelCard key={entry.id} entry={entry} />
-          ))}
-        </section>
+        <>
+          <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
+            {pageEntries.map((entry) => (
+              <ModelCard key={entry.id} entry={entry} />
+            ))}
+          </section>
+          <ModelLibraryPagination
+            page={currentPage.page}
+            totalPages={currentPage.totalPages}
+            onPageChange={setPage}
+          />
+        </>
       ) : (
         <section className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border px-4 py-12 text-center text-sm text-muted-foreground" data-model-empty>
           <p>没有符合当前搜索或分类的模型</p>

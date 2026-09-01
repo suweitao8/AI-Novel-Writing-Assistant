@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 
 import {
   ANIMATION_LIBRARY,
-  ANIMATION_LIBRARY_GROUPS,
+  ANIMATION_LIBRARY_ACTION_TYPES,
   ANIMATION_LIBRARY_SCOPES,
   filterAnimationLibraryEntries,
   type AnimationLibraryEntry,
-  type AnimationLibraryGroupId,
+  type AnimationLibraryActionTypeId,
   type AnimationLibraryScopeId,
 } from "@/config/animationLibrary";
 import { getAnimationFrameCount } from "./animationFrame";
@@ -91,7 +91,7 @@ function countBy<T extends string>(
 
 export default function AnimationLibraryPage() {
   const [scope, setScope] = useState<AnimationLibraryScopeId>("storyboard");
-  const [groupId, setGroupId] = useState<AnimationLibraryGroupId | "all">("all");
+  const [actionType, setActionType] = useState<AnimationLibraryActionTypeId | "all">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -116,28 +116,31 @@ export default function AnimationLibraryPage() {
     () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { scope, query: search }),
     [scope, search],
   );
-  const groupCounts = useMemo(() => countBy(scopedEntries, (entry) => entry.groupId), [scopedEntries]);
-  const visibleGroups = useMemo(
-    () => ANIMATION_LIBRARY_GROUPS.filter((group) => groupCounts.has(group.id)),
-    [groupCounts],
+  const actionTypeCounts = useMemo(
+    () => countBy(scopedEntries, (entry) => entry.actionType),
+    [scopedEntries],
+  );
+  const visibleActionTypes = useMemo(
+    () => ANIMATION_LIBRARY_ACTION_TYPES.filter((option) => actionTypeCounts.has(option.id)),
+    [actionTypeCounts],
   );
   const entries = useMemo(
     () =>
       filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
         scope,
-        groupId,
+        actionType,
         query: search,
       }),
-    [groupId, scope, search],
+    [actionType, scope, search],
   );
 
   useEffect(() => {
     setPage(1);
-  }, [groupId, scope, search]);
+  }, [actionType, scope, search]);
 
   useEffect(() => {
-    if (groupId !== "all" && !groupCounts.has(groupId)) setGroupId("all");
-  }, [groupCounts, groupId]);
+    if (actionType !== "all" && !actionTypeCounts.has(actionType)) setActionType("all");
+  }, [actionType, actionTypeCounts]);
 
   const totalPages = Math.max(1, Math.ceil(entries.length / PAGE_SIZE));
   useEffect(() => {
@@ -148,12 +151,12 @@ export default function AnimationLibraryPage() {
   const pageEntries = entries.slice(pageStart, pageStart + PAGE_SIZE);
   const hasActiveFilters =
     scope !== "storyboard" ||
-    groupId !== "all" ||
+    actionType !== "all" ||
     searchInput.trim().length > 0;
 
   const resetFilters = () => {
     setScope("storyboard");
-    setGroupId("all");
+    setActionType("all");
     setSearchInput("");
     setSearch("");
     setPage(1);
@@ -173,7 +176,7 @@ export default function AnimationLibraryPage() {
               value={scope}
               onValueChange={(value) => {
                 setScope(value as AnimationLibraryScopeId);
-                setGroupId("all");
+                setActionType("all");
               }}
               className="min-w-0"
             >
@@ -202,19 +205,21 @@ export default function AnimationLibraryPage() {
               htmlFor="animation-library-category"
               className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
             >
-              分类
+              动作分类
             </label>
             <SelectControl
               id="animation-library-category"
-              aria-label="按分类筛选"
+              aria-label="按动作分类筛选"
               className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
-              value={groupId}
-              onChange={(event) => setGroupId(event.target.value as AnimationLibraryGroupId | "all")}
+              value={actionType}
+              onChange={(event) =>
+                setActionType(event.target.value as AnimationLibraryActionTypeId | "all")
+              }
             >
-              <option value="all">全部分类 ({scopedEntries.length})</option>
-              {visibleGroups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.label} ({groupCounts.get(group.id) ?? 0})
+              <option value="all">全部动作 ({scopedEntries.length})</option>
+              {visibleActionTypes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label} ({actionTypeCounts.get(option.id) ?? 0})
                 </option>
               ))}
             </SelectControl>
