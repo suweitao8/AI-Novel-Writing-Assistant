@@ -57,10 +57,10 @@ function applyMaterialToMesh(
     role = getBlocking3dActorMaterialRole(mesh.material?.name);
     MATERIAL_ROLE_BY_MESH.set(mesh, role);
   }
-  // The repaired UAL2 neck primitive is the visible jaw/neck boundary. Keep
-  // it on the same light-blue highlight as the inner joint geometry so the
-  // chin edge remains readable from the front and side.
-  mesh.material = role === "joints" || role === "neck" ? jointMaterial : material;
+  // The repaired UAL2 neck primitive is part of the actor silhouette. Keep it
+  // on the same body-blue material; only the inner joint geometry receives a
+  // light-blue highlight.
+  mesh.material = role === "joints" ? jointMaterial : material;
 }
 
 export function setEntityMaterial(
