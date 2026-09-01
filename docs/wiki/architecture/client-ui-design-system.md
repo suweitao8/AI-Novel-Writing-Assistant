@@ -20,6 +20,9 @@ UI 设计规范与可复用组件目录以项目本地 skill 为唯一权威载�
 
 - 在本项目中新增或修改任何前端界面（页面、组件、样式、弹窗、表单、通知、布局、移动端适配），先读 `.agents/skills/novel-ui/SKILL.md` 并按其执行。
 - 修改设计 token 必须改 `client/src/index.css` / `client/tailwind.config.ts` 源文件，并同步 skill 的 `references/design-tokens.md` 快照。
+- 暗色是常驻形态（`ThemeProvider` 固定给根节点加 `dark`）：任何状态色写法必须自带暗色变体，或直接用语义 token（状态条优先 `success`/`warning`/`info`）。项目内约定配对：`text-{tone}-600..950` → `dark:text-{tone}-300`；`bg-{tone}-50(/N)` → `dark:bg-{tone}-900/20`；`border-{tone}-100..300` → `dark:border-{tone}-700`；`hover:bg-{tone}-50/100` → `dark:hover:bg-{tone}-900/30`。
+- 阴影基色必须用 `--shadow-tint`（亮色=近黑前景、暗色=固定近黑），禁止直接用 `var(--foreground)` 调阴影：暗色下前景近白，会变成卡片/弹窗外圈的白色光晕。
+- sonner `Toaster` 固定传 `theme="dark"`（见 `components/ui/toast.tsx`）：sonner 的 `richColors` 通过属性选择器覆盖自定义类，缺 `theme="dark"` 时报错/成功提示条会落到浅色盘，暗色下出现白底。
 - 新增/修改高复用组件（`components/common/`、ui 基础件）时，同步更新 skill 的 `references/components.md`，保持组件目录与代码一致。
 - 影响范围：仅前端 `client/src`，不涉及服务端与运行时契约。
 
@@ -31,6 +34,10 @@ UI 设计规范与可复用组件目录以项目本地 skill 为唯一权威载�
 ## 失败模式
 
 - 症状：新 UI 在暗色或 paper/night 调色板下出现黑底黑字、边框不可见 → 排查是否使用了固定色类；短期给暗色打补丁是掩盖问题，应改回语义 token。
+- 症状：暗色下提示条文字和底色糊在一起（如 `text-emerald-800` 压 `bg-emerald-50/60`）→ 该写法只给了亮色盘；按上面的配对补 `dark:` 变体，或改用 `success`/`warning`/`info` 语义 token。
+- 症状：暗色下卡片、弹窗外圈有白色光晕 → 阴影基色用了 `--foreground`，应改回 `--shadow-tint`。
+- 症状：暗色下某个弹窗整体白底灰边（如 `bg-white` + `border-slate-200` + `text-slate-900`）→ 换成 `bg-background`/`border-border`/`text-foreground`。
+- 症状：报错/成功 toast 在暗色下白底红字/绿字 → `Toaster` 缺 `theme="dark"`。
 - 症状：同一页面出现多种下拉/通知样式 → 排查是否绕过了 components/common 与 ui/toast；不要靠事后统一风格，应在开发时强制走 skill 组件速查表。
 
 ## 相关模块

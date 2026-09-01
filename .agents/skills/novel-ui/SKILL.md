@@ -142,6 +142,8 @@ import SelectControl from "@/components/common/SelectControl";
 - 只要全程用语义 token，六种组合自动正确。写死颜色是最常见的返工原因。
 - 不要假设背景是白色或前景是黑色；不要写 `text-black`、`bg-white`。
 - 暗色下新 UI 至少做一次 class="dark" 心算检查（对比度、边框可见性）。
+- 状态色（emerald/sky/amber/red 等）写亮色盘必须带暗色变体，固定配对：`text-{tone}-600..950`→`dark:text-{tone}-300`、`bg-{tone}-50(/N)`→`dark:bg-{tone}-900/20`、`border-{tone}-100..300`→`dark:border-{tone}-700`、`hover:bg-{tone}-50/100`→`dark:hover:bg-{tone}-900/30`；状态提示条优先直接用 `success`/`warning`/`info` token。
+- 阴影基色只用 `--shadow-tint`（勿用 `--foreground`，暗色下会成白色光晕）；sonner Toaster 固定 `theme="dark"`，否则 richColors 提示条暗色下白底。
 
 ## 状态完备性 checklist（每个交互组件必须有）
 
