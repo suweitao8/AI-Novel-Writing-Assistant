@@ -7,6 +7,7 @@ const path = require("node:path");
 const { execFileSync } = require("node:child_process");
 const { assertMainSourceIntegrity, assertWorktreeFilesystemIsolation } = require("./worktree-filesystem-safety.cjs");
 const { assertNoUnresolvedWorktreeLifecycleIssues } = require("./worktree-lifecycle-audit.cjs");
+const { applyLanePortsToEnvFile, resolveDevLane } = require("./dev-ports.cjs");
 
 const PROTECTED_BRANCH = "main";
 const CODEX_BRANCH_PREFIX = "codex/";
@@ -109,6 +110,42 @@ function runSetup(worktreePath) {
   }
 }
 
+function runPnpmCommand(cwd, command, failureLabel) {
+  try {
+    if (process.platform === "win32") {
+      execFileSync(process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", command], {
+        cwd,
+        stdio: "inherit",
+        windowsHide: true,
+      });
+    } else {
+      execFileSync("pnpm", command.split(/\s+/), { cwd, stdio: "inherit" });
+    }
+  } catch (error) {
+    throw new Error(`${failureLabel} failed: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+// 为新 worktree 开一条独立 dev 车道：端口确定性推导后写入其 server/.env，
+// 主工作区车道（3100/5174）与其他 worktree 车道互不抢占。
+function provisionWorktreeDevLane(repoRoot, worktreePath) {
+  const mainEnvPath = path.join(repoRoot, "server", ".env");
+  const worktreeEnvPath = path.join(worktreePath, "server", ".env");
+  if (fs.existsSync(mainEnvPath) && !fs.existsSync(worktreeEnvPath)) {
+    fs.copyFileSync(mainEnvPath, worktreeEnvPath);
+  }
+  const lane = resolveDevLane(worktreePath);
+  fs.mkdirSync(path.dirname(worktreeEnvPath), { recursive: true });
+  applyLanePortsToEnvFile(worktreeEnvPath, { apiPort: lane.apiPort, clientPort: lane.clientPort });
+  return lane;
+}
+
+// core.hooksPath 是整个仓库（含所有 worktree）共享的单份配置；
+// 只有主工作区应该持有它，worktree 创建不得抢占，否则主区提交/集成守卫失效。
+function installGitHooks(repoRoot) {
+  runPnpmCommand(repoRoot, "pnpm setup:git-hooks", "pnpm setup:git-hooks (main workspace)");
+}
+
 function runInstall(worktreePath) {
   try {
     if (process.platform === "win32") {
@@ -134,14 +171,20 @@ function removeCreatedWorktree(cwd, targetPath, branchName) {
   try {
     runGit(cwd, ["worktree", "remove", targetPath]);
   } catch (error) {
-    return {
-      removed: false,
-      error: new Error([
-        `Created worktree was kept because controlled removal failed: ${targetPath}`,
-        error instanceof Error ? error.message : String(error),
-        `Do not recursively delete it. Inspect it, then use 'pnpm workflow:cleanup' only after the branch is intentionally integrated.`,
-      ].join("\n")),
-    };
+    // 创建流程自身会写入未跟踪文件（如 server/.env 车道端口），此时用 --force 才能移除。
+    // 该 worktree 刚刚创建、只含本脚本生成的内容，强制移除是安全的。
+    try {
+      runGit(cwd, ["worktree", "remove", "--force", targetPath]);
+    } catch (forceError) {
+      return {
+        removed: false,
+        error: new Error([
+          `Created worktree was kept because controlled removal failed: ${targetPath}`,
+          forceError instanceof Error ? forceError.message : String(forceError),
+          `Do not recursively delete it. Inspect it, then use 'pnpm workflow:cleanup' only after the branch is intentionally integrated.`,
+        ].join("\n")),
+      };
+    }
   }
   try {
     runGit(cwd, ["branch", "-D", branchName]);
@@ -172,10 +215,13 @@ function createWorktree({ cwd = process.cwd(), task, targetPath, allowLifecycleR
   }
 
   runGit(repoRoot, ["worktree", "add", "-b", branchName, resolvedTarget, PROTECTED_BRANCH], { inherit: true });
+  let lane = null;
   try {
     runInstall(resolvedTarget);
-    runSetup(resolvedTarget);
     assertWorktreeFilesystemIsolation({ cwd: resolvedTarget, phase: "worktree creation" });
+    installGitHooks(repoRoot);
+    // 车道端口写在最后：此后失败时 worktree 已带未跟踪的 server/.env，需要强制移除。
+    lane = provisionWorktreeDevLane(repoRoot, resolvedTarget);
   } catch (error) {
     const cleanup = removeCreatedWorktree(repoRoot, resolvedTarget, branchName);
     if (cleanup.error) {
@@ -184,12 +230,12 @@ function createWorktree({ cwd = process.cwd(), task, targetPath, allowLifecycleR
     throw error;
   }
 
-  return { branchName, repoRoot, slug, worktreePath: resolvedTarget };
+  return { branchName, lane, repoRoot, slug, worktreePath: resolvedTarget };
 }
 
 function printHelp() {
   console.log("Usage: pnpm workflow:worktree <task-name>");
-  console.log("Creates a sibling codex/<task-name> worktree from a clean main workspace and installs Git hooks.");
+  console.log("Creates a sibling codex/<task-name> worktree from a clean main workspace, provisions its isolated dev ports, and keeps Git hooks owned by the main workspace.");
   console.log("Use --repair-lifecycle only for an isolated workflow-guard repair when workflow:audit reports a blocker.");
 }
 
@@ -220,6 +266,9 @@ function main() {
   const result = createWorktree({ ...parseArgs(args), cwd: process.cwd() });
   console.log(`Worktree ready: ${result.worktreePath}`);
   console.log(`Branch: ${result.branchName}`);
+  if (result.lane) {
+    console.log(`Dev lane: API http://127.0.0.1:${result.lane.apiPort} / Web http://127.0.0.1:${result.lane.clientPort} (written to server/.env; main workspace keeps 3100/5174)`);
+  }
   console.log(`Continue development from: ${result.worktreePath}`);
 }
 
@@ -242,8 +291,10 @@ module.exports = {
   currentBranch,
   defaultWorktreePath,
   hasMergeHead,
+  installGitHooks,
   normalizeTaskSlug,
   parseArgs,
+  provisionWorktreeDevLane,
   removeCreatedWorktree,
   runInstall,
   runSetup,

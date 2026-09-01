@@ -58,21 +58,64 @@ function configuredHooksPath(cwd) {
   }
 }
 
+// 本文件会被测试夹具单文件拷贝使用，保持自包含、不要 require 仓库内其他脚本。
+// core.hooksPath 是全仓库共享的单份配置，由主工作区持有。
+// 主工作区要求指向自己的 .githooks；worktree 接受指向主工作区的 .githooks，
+// 这样并行 worktree 的创建/删除不会反复劫持主区的提交与集成守卫。
+function isMainWorkspaceCheckout(toplevel) {
+  // 主工作区的 .git 是目录；worktree 的 .git 是指向真实 gitdir 的文件。
+  try {
+    return fs.statSync(path.join(toplevel, ".git")).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+function mainWorkspaceRootForWorktree(cwd) {
+  const toplevel = repositoryRoot(cwd);
+  const gitPath = path.join(toplevel, ".git");
+  let raw;
+  try {
+    raw = fs.readFileSync(gitPath, "utf8");
+  } catch {
+    return null;
+  }
+  const match = /^gitdir:\s*(.+)$/m.exec(raw);
+  if (!match) {
+    return null;
+  }
+  const configuredGitdir = match[1].trim();
+  const gitdir = path.isAbsolute(configuredGitdir) ? configuredGitdir : path.resolve(toplevel, configuredGitdir);
+  // gitdir 形如 <主工作区>/.git/worktrees/<name>，向上三级即主工作区。
+  return path.resolve(gitdir, "..", "..", "..");
+}
+
 function assertHooksConfig(cwd) {
   const configuredPath = configuredHooksPath(cwd);
-  const expectedPath = path.join(repositoryRoot(cwd), ".githooks");
+  const toplevel = repositoryRoot(cwd);
+  const expectedPath = path.join(toplevel, ".githooks");
+  const isMain = isMainWorkspaceCheckout(toplevel);
+  const mainRoot = isMain ? null : mainWorkspaceRootForWorktree(cwd);
+  const acceptablePaths = isMain
+    ? [expectedPath]
+    : [expectedPath, mainRoot ? path.join(mainRoot, ".githooks") : null].filter(Boolean);
   const resolvedConfiguredPath = configuredPath
     ? path.resolve(cwd, configuredPath)
     : "";
+  const matchesExpected = acceptablePaths.some(
+    (candidate) => path.normalize(resolvedConfiguredPath).toLowerCase() === path.normalize(candidate).toLowerCase(),
+  );
   if (
     !configuredPath
-    || path.normalize(resolvedConfiguredPath).toLowerCase() !== path.normalize(expectedPath).toLowerCase()
-    || !fs.existsSync(expectedPath)
+    || !matchesExpected
+    || !fs.existsSync(resolvedConfiguredPath)
   ) {
     fail([
       "Git hooks are not installed for this checkout.",
-      `Expected core.hooksPath: ${expectedPath}`,
-      "Run 'pnpm setup:git-hooks' in this checkout before developing.",
+      `Expected core.hooksPath: ${acceptablePaths.join(" or ")}`,
+      isMain
+        ? "Run 'pnpm setup:git-hooks' in this checkout before developing."
+        : "Run 'pnpm setup:git-hooks' in the main workspace before developing in this worktree.",
     ].join("\n"));
   }
 

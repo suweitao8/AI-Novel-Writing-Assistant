@@ -169,8 +169,49 @@ function assertSupervisorStartupIntegrity({ cwd = process.cwd() } = {}) {
   assertStartupIntegrity({ cwd });
 }
 
+// core.hooksPath 是全仓库（含所有 worktree）共享的单份 git 配置，由主工作区持有。
+// 这里只在主工作区启动 dev 时自愈：被其他 checkout 的安装动作劫持或丢失时修复回本 checkout。
+// worktree 启动 dev 时绝不改写，避免与主区以及其他 worktree 互相抢占。
+function repairMainWorkspaceHooksPath({ cwd = process.cwd() } = {}) {
+  if (!isMainWorkspaceCheckout(cwd)) {
+    return false;
+  }
+  const toplevelResult = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  if (toplevelResult.status !== 0) {
+    return false;
+  }
+  const toplevel = path.resolve(toplevelResult.stdout.trim());
+  const expectedHooksPath = path.join(toplevel, ".githooks");
+  const currentResult = spawnSync("git", ["config", "--local", "--get", "core.hooksPath"], {
+    cwd: toplevel,
+    encoding: "utf8",
+    windowsHide: true,
+  });
+  const currentHooksPath = currentResult.status === 0 ? currentResult.stdout.trim() : "";
+  if (currentHooksPath && path.resolve(currentHooksPath) === expectedHooksPath) {
+    return false;
+  }
+  const repair = spawnSync(
+    process.execPath,
+    [path.join(toplevel, "scripts", "install-git-hooks.cjs")],
+    { cwd: toplevel, encoding: "utf8", windowsHide: true },
+  );
+  if (repair.status !== 0) {
+    console.error(`[dev-supervisor] hooks path repair failed: ${repair.stderr || "unknown error"}`);
+    return false;
+  }
+  console.error("[dev-supervisor] repaired main workspace core.hooksPath back to this checkout's .githooks.");
+  return true;
+}
+
 async function main() {
-  assertSupervisorStartupIntegrity({ cwd: process.cwd() });
+  const cwd = process.cwd();
+  repairMainWorkspaceHooksPath({ cwd });
+  assertSupervisorStartupIntegrity({ cwd });
   const result = await runServiceGroup({ handleSignals: true });
   if (result.reason) console.error(`[dev-supervisor] ${result.reason}`);
   process.exitCode = result.exitCode;
@@ -190,6 +231,7 @@ module.exports = {
   commandForService,
   delayForRestart,
   assertSupervisorStartupIntegrity,
+  repairMainWorkspaceHooksPath,
   runServiceGroup,
   terminateChild,
 };

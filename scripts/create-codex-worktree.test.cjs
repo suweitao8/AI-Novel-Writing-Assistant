@@ -13,6 +13,7 @@ const {
   normalizeTaskSlug,
   parseArgs,
 } = require("./create-codex-worktree.cjs");
+const { readLanePortsFromEnvFile, WORKTREE_API_PORT_BASE, WORKTREE_CLIENT_PORT_BASE } = require("./dev-ports.cjs");
 
 function runGit(cwd, args, { expectSuccess = true } = {}) {
   const result = spawnSync("git", args, { cwd, encoding: "utf8", windowsHide: true });
@@ -78,7 +79,7 @@ test("uses a sibling worktree path derived from the repository name", () => {
   );
 });
 
-test("creates a sibling codex worktree and installs hooks", (t) => {
+test("creates a sibling codex worktree with an isolated dev lane and main-owned hooks", (t) => {
   const directory = createRepository();
   const target = defaultWorktreePath(directory, "workflow-fixture");
   t.after(() => {
@@ -97,10 +98,18 @@ test("creates a sibling codex worktree and installs hooks", (t) => {
   assert.match(result.stdout, /codex\/workflow-fixture/);
   assert.equal(runGit(target, ["branch", "--show-current"]).stdout.trim(), "codex/workflow-fixture");
   assert.equal(runGit(target, ["config", "--local", "--get", "merge.ff"]).stdout.trim(), "false");
+  // core.hooksPath 是全仓库共享配置：创建 worktree 后仍必须归主工作区所有，
+  // 否则主区的提交/集成守卫会被劫持到即将删除的 worktree 路径。
   assert.equal(
     path.normalize(runGit(target, ["config", "--local", "--get", "core.hooksPath"]).stdout.trim()),
-    path.normalize(path.join(target, ".githooks")),
+    path.normalize(path.join(directory, ".githooks")),
   );
+  // 新 worktree 拿到独立 dev 车道端口（写入其 server/.env），不与主车道 3100/5174 冲突。
+  const lanePorts = readLanePortsFromEnvFile(path.join(target, "server", ".env"));
+  assert.ok(lanePorts, "worktree server/.env must contain PORT and CLIENT_PORT");
+  assert.ok(lanePorts.apiPort >= WORKTREE_API_PORT_BASE && lanePorts.apiPort < WORKTREE_API_PORT_BASE + 99);
+  assert.ok(lanePorts.clientPort >= WORKTREE_CLIENT_PORT_BASE && lanePorts.clientPort < WORKTREE_CLIENT_PORT_BASE + 200);
+  assert.match(result.stdout, new RegExp(`Dev lane: API http://127\\.0\\.0\\.1:${lanePorts.apiPort}`));
 });
 
 test("refuses to create a worktree from a dirty main workspace", (t) => {
