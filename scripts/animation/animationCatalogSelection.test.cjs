@@ -26,7 +26,16 @@ test("动画策选清单只包含真实 UE 路径并覆盖五个源组", () => {
   assert.ok(selection.clips.every((clip) => /^[a-z0-9-]+\.glb$/.test(clip.glbFileName)));
   assert.ok(selection.groups["unreal-daily"].label === "日常动作");
   assert.ok(Object.values(selection.groups).every(({ label }) => !label.includes("虚幻")));
-  assert.equal(selection.clips.length, 277, "当前发布目录应保留通过位移审计的原地代表动作");
+  assert.equal(
+    selection.clips.length,
+    277,
+    "策选清单保留全部通过位移审计的原地动作；发布范围由 published 标记控制",
+  );
+  assert.equal(
+    selection.clips.filter((clip) => clip.published !== false).length,
+    78,
+    "当前只发布运动（移动）与生活表演类，其余分类待管线跑通后再上架",
+  );
 });
 
 test("Cine57 清单优先 InPlace，并为每条片段保留原地源与数值审计证据", () => {

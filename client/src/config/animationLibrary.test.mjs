@@ -7,7 +7,7 @@ import test from "node:test";
 import { ANIMATION_CATALOG_ENTRIES } from "./animationCatalogEntries.ts";
 import {
   ANIMATION_LIBRARY,
-  ANIMATION_LIBRARY_CATEGORIES,
+  ANIMATION_LIBRARY_CATEGORY_FILTERS,
 } from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
@@ -133,6 +133,6 @@ test("动画库目录 id 唯一，同文件条目共享一个 GLB", () => {
 test("分类页签覆盖所有实际条目分类", () => {
   const entryCategories = new Set(ANIMATION_LIBRARY.map((entry) => entry.category));
   for (const category of entryCategories) {
-    assert.ok(ANIMATION_LIBRARY_CATEGORIES.includes(category), `页签缺少分类：${category}`);
+    assert.ok(ANIMATION_LIBRARY_CATEGORY_FILTERS.some(({ label }) => label === category), `页签缺少分类：${category}`);
   }
 });

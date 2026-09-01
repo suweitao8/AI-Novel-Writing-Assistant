@@ -274,21 +274,37 @@ function assetPath() {
   return path.join(clientDir, "public", entry.fileUrl);
 }
 
-test("动画目录按分镜用途分为原地主库与旧动画兼容库", () => {
-  const storyboard = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    scope: "storyboard",
-  });
-  const compatibility = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    scope: "compatibility",
-  });
-  assert.equal(storyboard.length, 277);
-  assert.equal(compatibility.length, 46);
+test("动画目录由已发布虚幻主库（运动+生活表演）与内置兼容库组成", () => {
+  const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
+  const legacyEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "legacy");
+  assert.equal(unrealEntries.length, 78);
+  assert.equal(legacyEntries.length, 46);
   assert.equal(ANIMATION_LIBRARY[0]?.source, "unreal");
-  assert.ok(storyboard.every((entry) => entry.inPlace));
-  assert.ok(compatibility.every((entry) => !entry.inPlace));
+  assert.ok(unrealEntries.every((entry) => entry.inPlace));
+  assert.ok(legacyEntries.every((entry) => !entry.inPlace));
+  // 策展剪枝：优先发布运动（移动）与生活表演类，战斗/互动类等质量跑通后再导入。
   assert.equal(
-    filterAnimationLibraryEntries(storyboard, { weaponType: "sword" }).length > 0,
-    true,
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-misc" }).length,
+    68,
+  );
+  assert.equal(
+    filterAnimationLibraryEntries(unrealEntries, {
+      groupId: "unreal-daily",
+      actionType: "move",
+    }).length,
+    10,
+  );
+  assert.equal(
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-interaction" }).length,
+    0,
+  );
+  assert.equal(
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-hand-combat" }).length,
+    0,
+  );
+  assert.equal(
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-weapon-combat" }).length,
+    0,
   );
 });
 
@@ -427,21 +443,23 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
   }
 });
 
-test("五个虚幻源组都在统一 GLB 中保留了代表性动作片段", () => {
+test("已发布虚幻源组在统一 GLB 中保留代表性动作片段", () => {
   const glb = readGlb(assetPath());
   const animationNames = new Set((glb.json.animations ?? []).map(({ name }) => name));
   const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
-  for (const groupId of [
-    "unreal-daily",
-    "unreal-interaction",
-    "unreal-misc",
-    "unreal-hand-combat",
-    "unreal-weapon-combat",
-  ]) {
+  // 策展剪枝：当前只发布运动（移动）与生活表演两类。
+  for (const groupId of ["unreal-daily", "unreal-misc"]) {
     const entry = unrealEntries.find((candidate) => candidate.groupId === groupId);
     assert.ok(entry, `动画库缺少虚幻源组代表条目：${groupId}`);
     assert.ok(animationNames.has(entry.clipName), `统一动画文件缺少虚幻代表片段：${entry.clipName}`);
     assert.equal(entry.inPlace, true, `${entry.clipName} 必须标记为 in-place`);
+  }
+  for (const groupId of ["unreal-interaction", "unreal-hand-combat", "unreal-weapon-combat"]) {
+    assert.equal(
+      unrealEntries.some((candidate) => candidate.groupId === groupId),
+      false,
+      `${groupId} 已在策展剪枝中下架，不应出现在目录里`,
+    );
   }
 });
 

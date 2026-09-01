@@ -15,7 +15,11 @@ const packs = selection.packs.map(({ id, groupId, sourcePack, label }) => ({
   sourcePack,
   label,
 }));
-const entries = selection.clips.map(
+// 策展剪枝：published === false 的片段不下架 GLB，但不进入前端目录；
+  // 质量跑通后把标记改回 true 重新生成本文件即可上架。
+const entries = selection.clips
+  .filter((clip) => clip.published !== false)
+  .map(
   ({
     id,
     clipName,
