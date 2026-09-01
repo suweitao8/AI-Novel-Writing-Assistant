@@ -44,4 +44,3 @@
 
 - `docs/superpowers/specs/2026-09-01-animation-loop-frame-sync-design.md`
 - `docs/superpowers/plans/2026-09-01-animation-loop-frame-sync.md`
-
