@@ -139,14 +139,28 @@ const blockingEnvironmentRuntimeSource = readFileSync(
   "utf8",
 );
 
-test("预览器同步构建应用，异步加载后装配动画组件并循环播放", () => {
+test("预览器同步构建应用，异步加载后装配动画组件并按配置播放", () => {
   assert.match(previewSource, /export function openAnimationPreview/);
   assert.match(previewSource, /instantiateRenderEntity/);
   assert.match(previewSource, /addComponent\("anim"/);
   assert.match(previewSource, /anim\.rootBone = model/);
-  assert.match(previewSource, /assignAnimation\(clipName, track, 0, 1, true\)/);
+  assert.match(previewSource, /loop\?: boolean/);
+  assert.match(previewSource, /let loop = options\.loop \?\? true/);
+  assert.match(previewSource, /assignAnimation\(clipName, track, 0, 1, loop\)/);
   assert.match(previewSource, /baseLayer\?\.play\(clipName\)/);
   assert.match(previewSource, /app\.start\(\)/);
+});
+
+test("预览器在循环边界和单次播放结束时同步帧与播放状态", () => {
+  assert.match(
+    previewSource,
+    /secondsToFrame\(\s*layerTime,\s*frameRate,\s*durationSeconds,\s*loop,?\s*\)/,
+  );
+  assert.match(previewSource, /setLoop: \(loop: boolean\) => void/);
+  assert.match(previewSource, /isLooping: \(\) => boolean/);
+  assert.match(previewSource, /!loop[\s\S]*layerTime >= durationSeconds/);
+  assert.match(previewSource, /anim\.playing = false/);
+  assert.match(previewSource, /anim\.baseLayer\?\.pause\?\.\(\)/);
 });
 
 test("动画预览使用固定半圆 HDR 环境和共享地面网格", () => {
@@ -170,6 +184,8 @@ test("预览器提供 HDR 场景、帧轴控制和关键帧截图能力", () => 
   assert.match(previewSource, /getFrameCount: /);
   assert.match(previewSource, /getFrameRate: /);
   assert.match(previewSource, /isPlaying: /);
+  assert.match(previewSource, /setLoop: /);
+  assert.match(previewSource, /isLooping: /);
   assert.match(previewSource, /fitView: /);
   assert.match(previewSource, /resetView: /);
   assert.match(previewSource, /capturePreviewFrame: /);

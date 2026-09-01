@@ -30,11 +30,20 @@ test("动画入口卡片跳转到独立预览路由，而不是打开弹窗", ()
 
 test("独立预览页提供可访问帧轴和关键帧保存流程", () => {
   assert.match(pageSource, /useParams/);
+  assert.match(pageSource, /import \{ Switch \} from "@\/components\/ui\/switch"/);
   assert.match(pageSource, /data-animation-preview-page/);
   assert.match(pageSource, /data-animation-preview-canvas/);
   assert.match(pageSource, /type="range"/);
   assert.match(pageSource, /aria-label=\{`\$\{entry\.name\} 帧轴`\}/);
   assert.match(pageSource, /viewer\?\.setFrame\(/);
+  assert.match(pageSource, /const \[loop, setLoop\] = useState\(true\)/);
+  assert.match(pageSource, /loop: true/);
+  assert.match(pageSource, /isLooping\(\)/);
+  assert.match(pageSource, /viewerRef\.current\?\.setLoop\(nextLoop\)/);
+  assert.match(
+    pageSource,
+    /<Switch[\s\S]*checked=\{loop\}[\s\S]*onCheckedChange=\{handleLoopChange\}/,
+  );
   assert.match(pageSource, /step="1"/);
   assert.match(pageSource, /第 \{displayFrame\} 帧 \/ 共 \{displayFrameCount\} 帧/);
   assert.doesNotMatch(pageSource, /时间轴|秒|timeSeconds|setTime/);
