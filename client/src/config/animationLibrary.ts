@@ -20,6 +20,12 @@ export const ANIMATION_LIBRARY_SCOPES = [
   { id: "all", label: "全部" },
 ] as const;
 
+export const ANIMATION_LIBRARY_SOURCES = [
+  { id: "all", label: "全部" },
+  { id: "unreal", label: "虚幻动画" },
+  { id: "legacy", label: "网站内置动画" },
+] as const;
+
 export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 /** 保留给旧的技术检查与外部调用方的 Cine57 标识。 */
 export const ANIMATION_LIBRARY_SOURCE = "Cine57";
@@ -345,6 +351,7 @@ export interface AnimationLibraryEntry {
 
 export interface AnimationLibraryFilters {
   scope?: AnimationLibraryScopeId;
+  source?: AnimationLibrarySource | "all";
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
@@ -561,6 +568,7 @@ export function filterAnimationLibraryEntries(
 ): AnimationLibraryEntry[] {
   const {
     scope = "all",
+    source = "all",
     groupId = "all",
     packId = "all",
     actionType = "all",
@@ -571,6 +579,7 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
+      (source === "all" || entry.source === source) &&
       (scope === "all" || (scope === "storyboard" ? entry.inPlace : !entry.inPlace)) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
