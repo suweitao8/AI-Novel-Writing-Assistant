@@ -1,7 +1,7 @@
 {
  "version": 1,
  "source": "Cine57 standard model-library thumbnails",
- "reviewedAt": "2026-09-01",
+ "reviewedAt": "2026-09-02",
  "entries": [
   {
    "id": "bed-12a",
@@ -2619,6 +2619,1386 @@
    "visualDescription": "标准缩略图中可见地毯组",
    "reviewStatus": "approved",
    "reviewEvidence": "standard-thumbnail-audit-2026-09-01"
+  },
+  {
+   "id": "door-exterior-a02",
+   "meshName": "SM_Door_Exterior_Set_02a_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02a.glb",
+   "name": "外门 a02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 a02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-b02",
+   "meshName": "SM_Door_Exterior_Set_02b_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02b.glb",
+   "name": "外门 b02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 b02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-c02",
+   "meshName": "SM_Door_Exterior_Set_02c_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02c.glb",
+   "name": "外门 c02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 c02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-d02",
+   "meshName": "SM_Door_Exterior_Set_02d_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02d.glb",
+   "name": "外门 d02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 d02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-e02",
+   "meshName": "SM_Door_Exterior_Set_02e_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02e.glb",
+   "name": "外门 e02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 e02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-f02",
+   "meshName": "SM_Door_Exterior_Set_02f_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02f.glb",
+   "name": "外门 f02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 f02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-g02",
+   "meshName": "SM_Door_Exterior_Set_02g_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02g.glb",
+   "name": "外门 g02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 g02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-h02",
+   "meshName": "SM_Door_Exterior_Set_02h_LOD0",
+   "fileName": "SM_Door_Exterior_Set_02h.glb",
+   "name": "外门 h02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 h02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-a03",
+   "meshName": "SM_Door_Exterior_Set_03a_LOD0",
+   "fileName": "SM_Door_Exterior_Set_03a.glb",
+   "name": "外门 a03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 a03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-b03",
+   "meshName": "SM_Door_Exterior_Set_03b_LOD0",
+   "fileName": "SM_Door_Exterior_Set_03b.glb",
+   "name": "外门 b03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 b03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-c03",
+   "meshName": "SM_Door_Exterior_Set_03c_LOD0",
+   "fileName": "SM_Door_Exterior_Set_03c.glb",
+   "name": "外门 c03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 c03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-a04",
+   "meshName": "SM_Door_Exterior_Set_04a_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04a.glb",
+   "name": "外门 a04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 a04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-b04",
+   "meshName": "SM_Door_Exterior_Set_04b_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04b.glb",
+   "name": "外门 b04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 b04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-c04",
+   "meshName": "SM_Door_Exterior_Set_04c_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04c.glb",
+   "name": "外门 c04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 c04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-d04",
+   "meshName": "SM_Door_Exterior_Set_04d_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04d.glb",
+   "name": "外门 d04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 d04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-e04",
+   "meshName": "SM_Door_Exterior_Set_04e_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04e.glb",
+   "name": "外门 e04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 e04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-f04",
+   "meshName": "SM_Door_Exterior_Set_04f_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04f.glb",
+   "name": "外门 f04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 f04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-g04",
+   "meshName": "SM_Door_Exterior_Set_04g_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04g.glb",
+   "name": "外门 g04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 g04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-h04",
+   "meshName": "SM_Door_Exterior_Set_04h_LOD0",
+   "fileName": "SM_Door_Exterior_Set_04h.glb",
+   "name": "外门 h04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 h04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-a05",
+   "meshName": "SM_Door_Exterior_Set_05a_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05a.glb",
+   "name": "外门 a05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 a05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-b05",
+   "meshName": "SM_Door_Exterior_Set_05b_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05b.glb",
+   "name": "外门 b05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 b05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-c05",
+   "meshName": "SM_Door_Exterior_Set_05c_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05c.glb",
+   "name": "外门 c05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 c05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-d05",
+   "meshName": "SM_Door_Exterior_Set_05d_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05d.glb",
+   "name": "外门 d05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 d05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-e05",
+   "meshName": "SM_Door_Exterior_Set_05e_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05e.glb",
+   "name": "外门 e05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 e05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-f05",
+   "meshName": "SM_Door_Exterior_Set_05f_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05f.glb",
+   "name": "外门 f05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 f05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-g05",
+   "meshName": "SM_Door_Exterior_Set_05g_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05g.glb",
+   "name": "外门 g05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 g05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-h05",
+   "meshName": "SM_Door_Exterior_Set_05h_LOD0",
+   "fileName": "SM_Door_Exterior_Set_05h.glb",
+   "name": "外门 h05",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 h05",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-a06",
+   "meshName": "SM_Door_Exterior_Set_06a_LOD0",
+   "fileName": "SM_Door_Exterior_Set_06a.glb",
+   "name": "外门 a06",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 a06",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-b06",
+   "meshName": "SM_Door_Exterior_Set_06b_LOD0",
+   "fileName": "SM_Door_Exterior_Set_06b.glb",
+   "name": "外门 b06",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 b06",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-c06",
+   "meshName": "SM_Door_Exterior_Set_06c_LOD0",
+   "fileName": "SM_Door_Exterior_Set_06c.glb",
+   "name": "外门 c06",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 c06",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-d06",
+   "meshName": "SM_Door_Exterior_Set_06d_LOD0",
+   "fileName": "SM_Door_Exterior_Set_06d.glb",
+   "name": "外门 d06",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 d06",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-exterior-e06",
+   "meshName": "SM_Door_Exterior_Set_06e_LOD0",
+   "fileName": "SM_Door_Exterior_Set_06e.glb",
+   "name": "外门 e06",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见外门 e06",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-a01",
+   "meshName": "SM_Door_Commercial_01a_LOD0",
+   "fileName": "SM_Door_Commercial_01a.glb",
+   "name": "商用门 a01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 a01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-b01",
+   "meshName": "SM_Door_Commercial_01b_LOD0",
+   "fileName": "SM_Door_Commercial_01b.glb",
+   "name": "商用门 b01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 b01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-c01",
+   "meshName": "SM_Door_Commercial_01c_LOD0",
+   "fileName": "SM_Door_Commercial_01c.glb",
+   "name": "商用门 c01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 c01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-d01",
+   "meshName": "SM_Door_Commercial_01d_LOD0",
+   "fileName": "SM_Door_Commercial_01d.glb",
+   "name": "商用门 d01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 d01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-e01",
+   "meshName": "SM_Door_Commercial_01e_LOD0",
+   "fileName": "SM_Door_Commercial_01e.glb",
+   "name": "商用门 e01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 e01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-f01",
+   "meshName": "SM_Door_Commercial_01f_LOD0",
+   "fileName": "SM_Door_Commercial_01f.glb",
+   "name": "商用门 f01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 f01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-g01",
+   "meshName": "SM_Door_Commercial_01g_LOD0",
+   "fileName": "SM_Door_Commercial_01g.glb",
+   "name": "商用门 g01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 g01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-h01",
+   "meshName": "SM_Door_Commercial_01h_LOD0",
+   "fileName": "SM_Door_Commercial_01h.glb",
+   "name": "商用门 h01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 h01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-i01",
+   "meshName": "SM_Door_Commercial_01i_LOD0",
+   "fileName": "SM_Door_Commercial_01i.glb",
+   "name": "商用门 i01",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 i01",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-a02",
+   "meshName": "SM_Door_Commercial_02a_LOD0",
+   "fileName": "SM_Door_Commercial_02a.glb",
+   "name": "商用门 a02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 a02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-b02",
+   "meshName": "SM_Door_Commercial_02b_LOD0",
+   "fileName": "SM_Door_Commercial_02b.glb",
+   "name": "商用门 b02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 b02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-c02",
+   "meshName": "SM_Door_Commercial_02c_LOD0",
+   "fileName": "SM_Door_Commercial_02c.glb",
+   "name": "商用门 c02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 c02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-d02",
+   "meshName": "SM_Door_Commercial_02d_LOD0",
+   "fileName": "SM_Door_Commercial_02d.glb",
+   "name": "商用门 d02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 d02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-e02",
+   "meshName": "SM_Door_Commercial_02e_LOD0",
+   "fileName": "SM_Door_Commercial_02e.glb",
+   "name": "商用门 e02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 e02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-f02",
+   "meshName": "SM_Door_Commercial_02f_LOD0",
+   "fileName": "SM_Door_Commercial_02f.glb",
+   "name": "商用门 f02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 f02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-g02",
+   "meshName": "SM_Door_Commercial_02g_LOD0",
+   "fileName": "SM_Door_Commercial_02g.glb",
+   "name": "商用门 g02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 g02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-h02",
+   "meshName": "SM_Door_Commercial_02h_LOD0",
+   "fileName": "SM_Door_Commercial_02h.glb",
+   "name": "商用门 h02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 h02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-i02",
+   "meshName": "SM_Door_Commercial_02i_LOD0",
+   "fileName": "SM_Door_Commercial_02i.glb",
+   "name": "商用门 i02",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 i02",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-a03",
+   "meshName": "SM_Door_Commercial_03a_LOD0",
+   "fileName": "SM_Door_Commercial_03a.glb",
+   "name": "商用门 a03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 a03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-b03",
+   "meshName": "SM_Door_Commercial_03b_LOD0",
+   "fileName": "SM_Door_Commercial_03b.glb",
+   "name": "商用门 b03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 b03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-c03",
+   "meshName": "SM_Door_Commercial_03c_LOD0",
+   "fileName": "SM_Door_Commercial_03c.glb",
+   "name": "商用门 c03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 c03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-d03",
+   "meshName": "SM_Door_Commercial_03d_LOD0",
+   "fileName": "SM_Door_Commercial_03d.glb",
+   "name": "商用门 d03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 d03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-e03",
+   "meshName": "SM_Door_Commercial_03e_LOD0",
+   "fileName": "SM_Door_Commercial_03e.glb",
+   "name": "商用门 e03",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 e03",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-a04",
+   "meshName": "SM_Door_Commercial_04a_LOD0",
+   "fileName": "SM_Door_Commercial_04a.glb",
+   "name": "商用门 a04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 a04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-b04",
+   "meshName": "SM_Door_Commercial_04b_LOD0",
+   "fileName": "SM_Door_Commercial_04b.glb",
+   "name": "商用门 b04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 b04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "door-commercial-c04",
+   "meshName": "SM_Door_Commercial_04c_LOD0",
+   "fileName": "SM_Door_Commercial_04c.glb",
+   "name": "商用门 c04",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见商用门 c04",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefineda",
+   "meshName": "SM_Blinds_Set_01a_LOD0",
+   "fileName": "SM_Blinds_Set_01a.glb",
+   "name": "百叶窗 undefinedA",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedA",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedb",
+   "meshName": "SM_Blinds_Set_01b_LOD0",
+   "fileName": "SM_Blinds_Set_01b.glb",
+   "name": "百叶窗 undefinedB",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedB",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedc",
+   "meshName": "SM_Blinds_Set_01c_LOD0",
+   "fileName": "SM_Blinds_Set_01c.glb",
+   "name": "百叶窗 undefinedC",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedC",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedd",
+   "meshName": "SM_Blinds_Set_01d_LOD0",
+   "fileName": "SM_Blinds_Set_01d.glb",
+   "name": "百叶窗 undefinedD",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedD",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinede",
+   "meshName": "SM_Blinds_Set_01e_LOD0",
+   "fileName": "SM_Blinds_Set_01e.glb",
+   "name": "百叶窗 undefinedE",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedE",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedf",
+   "meshName": "SM_Blinds_Set_01f_LOD0",
+   "fileName": "SM_Blinds_Set_01f.glb",
+   "name": "百叶窗 undefinedF",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedF",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedg",
+   "meshName": "SM_Blinds_Set_01g_LOD0",
+   "fileName": "SM_Blinds_Set_01g.glb",
+   "name": "百叶窗 undefinedG",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedG",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blinds-01-undefinedh",
+   "meshName": "SM_Blinds_Set_01h_LOD0",
+   "fileName": "SM_Blinds_Set_01h.glb",
+   "name": "百叶窗 undefinedH",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见百叶窗 undefinedH",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "fire-hydrant-01a",
+   "meshName": "SM_Fire_Hydrant_Set_01a_LOD0",
+   "fileName": "SM_Fire_Hydrant_Set_01a.glb",
+   "name": "消防栓 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见消防栓 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "fire-hydrant-01b",
+   "meshName": "SM_Fire_Hydrant_Set_01b_LOD0",
+   "fileName": "SM_Fire_Hydrant_Set_01b.glb",
+   "name": "消防栓 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见消防栓 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "mailbox-01a",
+   "meshName": "SM_Mailbox_01a_LOD0",
+   "fileName": "SM_Mailbox_01a.glb",
+   "name": "邮箱 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见邮箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "mailbox-01c",
+   "meshName": "SM_Mailbox_01c_LOD0",
+   "fileName": "SM_Mailbox_01c.glb",
+   "name": "邮箱 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见邮箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "mailbox-01e",
+   "meshName": "SM_Mailbox_01e_LOD0",
+   "fileName": "SM_Mailbox_01e.glb",
+   "name": "邮箱 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见邮箱 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "mailbox-02a",
+   "meshName": "SM_Mailbox_Set_02a_LOD0",
+   "fileName": "SM_Mailbox_Set_02a.glb",
+   "name": "邮箱组",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见邮箱组",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01a",
+   "meshName": "SM_Electricity_Units_01a_LOD0",
+   "fileName": "SM_Electricity_Units_01a.glb",
+   "name": "配电箱 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01b",
+   "meshName": "SM_Electricity_Units_01b_LOD0",
+   "fileName": "SM_Electricity_Units_01b.glb",
+   "name": "配电箱 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01c",
+   "meshName": "SM_Electricity_Units_01c_LOD0",
+   "fileName": "SM_Electricity_Units_01c.glb",
+   "name": "配电箱 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01d",
+   "meshName": "SM_Electricity_Units_01d_LOD0",
+   "fileName": "SM_Electricity_Units_01d.glb",
+   "name": "配电箱 D",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01e",
+   "meshName": "SM_Electricity_Units_01e_LOD0",
+   "fileName": "SM_Electricity_Units_01e.glb",
+   "name": "配电箱 E",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 E",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "power-unit-01f",
+   "meshName": "SM_Electricity_Units_01f_LOD0",
+   "fileName": "SM_Electricity_Units_01f.glb",
+   "name": "配电箱 F",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见配电箱 F",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01a",
+   "meshName": "SM_Ceiling_Vent_Set_01a_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01a.glb",
+   "name": "吸顶通风口 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01c",
+   "meshName": "SM_Ceiling_Vent_Set_01c_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01c.glb",
+   "name": "吸顶通风口 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01e",
+   "meshName": "SM_Ceiling_Vent_Set_01e_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01e.glb",
+   "name": "吸顶通风口 C",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01g",
+   "meshName": "SM_Ceiling_Vent_Set_01g_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01g.glb",
+   "name": "吸顶通风口 D",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01h",
+   "meshName": "SM_Ceiling_Vent_Set_01h_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01h.glb",
+   "name": "吸顶通风口 E",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 E",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "ceiling-vent-01j",
+   "meshName": "SM_Ceiling_Vent_Set_01j_LOD0",
+   "fileName": "SM_Ceiling_Vent_Set_01j.glb",
+   "name": "吸顶通风口 F",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见吸顶通风口 F",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "hospital-bottle-01a",
+   "meshName": "SM_Bottles_01a",
+   "fileName": "SM_Bottles_01a.glb",
+   "name": "药水瓶 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药水瓶 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "hospital-bottle-01c",
+   "meshName": "SM_Bottles_01c",
+   "fileName": "SM_Bottles_01c.glb",
+   "name": "药水瓶 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药水瓶 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "needle-deposit-01a",
+   "meshName": "SM_NeedleDeposit_01a",
+   "fileName": "SM_NeedleDeposit_01a.glb",
+   "name": "锐器盒 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见锐器盒 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "needle-deposit-01c",
+   "meshName": "SM_NeedleDeposit_01c",
+   "fileName": "SM_NeedleDeposit_01c.glb",
+   "name": "锐器盒 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见锐器盒 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "needle-deposit-01e",
+   "meshName": "SM_NeedleDeposit_01e",
+   "fileName": "SM_NeedleDeposit_01e.glb",
+   "name": "锐器盒 C",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见锐器盒 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "pill-bottle-set-01a",
+   "meshName": "SM_PillBottleSet_01a",
+   "fileName": "SM_PillBottleSet_01a.glb",
+   "name": "药瓶组 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药瓶组 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "pill-bottle-set-01c",
+   "meshName": "SM_PillBottleSet_01c",
+   "fileName": "SM_PillBottleSet_01c.glb",
+   "name": "药瓶组 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药瓶组 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "pill-bottle-01a",
+   "meshName": "SM_PillBottle_01a",
+   "fileName": "SM_PillBottle_01a.glb",
+   "name": "药瓶 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药瓶 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "pill-bottle-01c",
+   "meshName": "SM_PillBottle_01c",
+   "fileName": "SM_PillBottle_01c.glb",
+   "name": "药瓶 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见药瓶 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "medical-computer-01a",
+   "meshName": "SM_Computer_01a",
+   "fileName": "SM_Computer_01a.glb",
+   "name": "医疗电脑",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见医疗电脑",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "defibrillator-01a",
+   "meshName": "SM_Debibrillator_01a",
+   "fileName": "SM_Debibrillator_01a.glb",
+   "name": "除颤仪 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见除颤仪 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "defibrillator-01b",
+   "meshName": "SM_Debibrillator_01b",
+   "fileName": "SM_Debibrillator_01b.glb",
+   "name": "除颤仪 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见除颤仪 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "defib-01a",
+   "meshName": "SM_Defib_01a",
+   "fileName": "SM_Defib_01a.glb",
+   "name": "除颤仪 C",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见除颤仪 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "defib-case-01a",
+   "meshName": "SM_DefibrillatorCase_01a",
+   "fileName": "SM_DefibrillatorCase_01a.glb",
+   "name": "除颤仪箱 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见除颤仪箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "defib-case-01c",
+   "meshName": "SM_DefibrillatorCase_01c",
+   "fileName": "SM_DefibrillatorCase_01c.glb",
+   "name": "除颤仪箱 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见除颤仪箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "bedside-table-01a",
+   "meshName": "SM_BedSideTable_01a",
+   "fileName": "SM_BedSideTable_01a.glb",
+   "name": "床头柜 B",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见床头柜 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "bedside-table-01c",
+   "meshName": "SM_BedSideTable_01c",
+   "fileName": "SM_BedSideTable_01c.glb",
+   "name": "床头柜 C",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见床头柜 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blanket-set-01a",
+   "meshName": "SM_BlanketSet_01a",
+   "fileName": "SM_BlanketSet_01a.glb",
+   "name": "被褥组 A",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见被褥组 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "blanket-set-01b",
+   "meshName": "SM_BlanketSet_01b",
+   "fileName": "SM_BlanketSet_01b.glb",
+   "name": "被褥组 B",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见被褥组 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "medical-cart-08a",
+   "meshName": "SM_Cart_08a",
+   "fileName": "SM_Cart_08a.glb",
+   "name": "医疗推车 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见医疗推车 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "medical-cart-08c",
+   "meshName": "SM_Cart_08c",
+   "fileName": "SM_Cart_08c.glb",
+   "name": "医疗推车 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见医疗推车 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "medical-cart-08e",
+   "meshName": "SM_Cart_08e",
+   "fileName": "SM_Cart_08e.glb",
+   "name": "医疗推车 C",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见医疗推车 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-desk-01a",
+   "meshName": "SM_Desk_01a_LOD0",
+   "fileName": "SM_Desk_01a.glb",
+   "name": "课桌 A",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见课桌 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-desk-01b",
+   "meshName": "SM_Desk_01b_LOD0",
+   "fileName": "SM_Desk_01b.glb",
+   "name": "课桌 B",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见课桌 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-gate-01a",
+   "meshName": "SM_Exterior_Gate_01a_LOD0",
+   "fileName": "SM_Exterior_Gate_01a.glb",
+   "name": "校门 A",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见校门 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-gate-01c",
+   "meshName": "SM_Exterior_Gate_01c_LOD0",
+   "fileName": "SM_Exterior_Gate_01c.glb",
+   "name": "校门 B",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见校门 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-gate-01f",
+   "meshName": "SM_Exterior_Gate_01f_LOD0",
+   "fileName": "SM_Exterior_Gate_01f.glb",
+   "name": "校门 C",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见校门 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-lockers-01a",
+   "meshName": "SM_Lockers_School_01a_LOD0",
+   "fileName": "SM_Lockers_School_01a.glb",
+   "name": "储物柜 A",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见储物柜 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-lockers-01c",
+   "meshName": "SM_Lockers_School_01c_LOD0",
+   "fileName": "SM_Lockers_School_01c.glb",
+   "name": "储物柜 B",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见储物柜 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-lockers-01f",
+   "meshName": "SM_Lockers_School_01f_LOD0",
+   "fileName": "SM_Lockers_School_01f.glb",
+   "name": "储物柜 C",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见储物柜 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "school-lockers-01j",
+   "meshName": "SM_Lockers_School_01j_LOD0",
+   "fileName": "SM_Lockers_School_01j.glb",
+   "name": "储物柜 D",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见储物柜 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "outdoor-bench-01a",
+   "meshName": "SM_Outdoor_Bench_01a_LOD0",
+   "fileName": "SM_Outdoor_Bench_01a.glb",
+   "name": "户外长椅",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见户外长椅",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "outdoor-table-01a",
+   "meshName": "SM_Outdoor_Table_01a_LOD0",
+   "fileName": "SM_Outdoor_Table_01a.glb",
+   "name": "户外圆桌",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见户外圆桌",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "outdoor-trashcan-01a",
+   "meshName": "SM_Outdoor_Trashcan_01a_LOD0",
+   "fileName": "SM_Outdoor_Trashcan_01a.glb",
+   "name": "户外垃圾桶",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见户外垃圾桶",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "concrete-stairs-01",
+   "meshName": "SM_Concrete_Stairs",
+   "fileName": "SM_Concrete_Stairs.glb",
+   "name": "水泥楼梯",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见水泥楼梯",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "loading-bay-tarp-01",
+   "meshName": "SM_Loading_Bay_Tarp",
+   "fileName": "SM_Loading_Bay_Tarp.glb",
+   "name": "装卸区篷布",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见装卸区篷布",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "drainage-pipe-01",
+   "meshName": "SM_Drainage_pipes",
+   "fileName": "SM_Drainage_pipes.glb",
+   "name": "排水管",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见排水管",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "warehouse-logo-01",
+   "meshName": "SM_GFT_Logo",
+   "fileName": "SM_GFT_Logo.glb",
+   "name": "仓库墙标",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见仓库墙标",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "wooden-canoe-01",
+   "meshName": "SM_Boat_Wooden_Canoe_with_Paddle",
+   "fileName": "SM_Boat_Wooden_Canoe_with_Paddle.glb",
+   "name": "木独木舟",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见木独木舟",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "asian-pottery-01",
+   "meshName": "SM_Acc2Group_pueblos_pottery1",
+   "fileName": "SM_Acc2Group_pueblos_pottery1.glb",
+   "name": "陶罐",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见陶罐",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "asian-sack-01a",
+   "meshName": "SM_Acc2Group_bag1",
+   "fileName": "SM_Acc2Group_bag1.glb",
+   "name": "麻袋 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见麻袋 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "asian-sack-01b",
+   "meshName": "SM_Acc2Group_bag3",
+   "fileName": "SM_Acc2Group_bag3.glb",
+   "name": "麻袋 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见麻袋 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "asian-bread-01",
+   "meshName": "SM_Bread_01",
+   "fileName": "SM_Bread_01.glb",
+   "name": "面饼",
+   "category": "厨房与餐具",
+   "visualDescription": "标准缩略图中可见面饼",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "grass-bunch-01",
+   "meshName": "SM_Bunch_of_Grass_0_LOD0",
+   "fileName": "SM_Bunch_of_Grass_0.glb",
+   "name": "草捆",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见草捆",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "asian-flag-01",
+   "meshName": "SM_Flag3_LOD0",
+   "fileName": "SM_Flag3.glb",
+   "name": "旗帜",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见旗帜",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "flower-cluster-01",
+   "meshName": "SM_Flowers_3",
+   "fileName": "SM_Flowers_3.glb",
+   "name": "花丛",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见花丛",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "crop-arugula-01a",
+   "meshName": "SM_Arugula_A",
+   "fileName": "SM_Arugula_A.glb",
+   "name": "芝麻菜畦 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见芝麻菜畦 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "crop-arugula-01b",
+   "meshName": "SM_Arugula_B",
+   "fileName": "SM_Arugula_B.glb",
+   "name": "芝麻菜畦 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见芝麻菜畦 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "crop-beans-01",
+   "meshName": "SM_Beans",
+   "fileName": "SM_Beans.glb",
+   "name": "豆藤架",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见豆藤架",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "crop-beet-01a",
+   "meshName": "SM_Beet",
+   "fileName": "SM_Beet.glb",
+   "name": "甜菜畦 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见甜菜畦 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "crop-beet-01b",
+   "meshName": "SM_Beet_A",
+   "fileName": "SM_Beet_A.glb",
+   "name": "甜菜畦 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见甜菜畦 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "bamboo-01",
+   "meshName": "SM_Bamboo",
+   "fileName": "SM_Bamboo.glb",
+   "name": "竹丛",
+   "category": "灌木",
+   "visualDescription": "标准缩略图中可见竹丛",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "bamboo-basket-01a",
+   "meshName": "SM_BambooHatch_A",
+   "fileName": "SM_BambooHatch_A.glb",
+   "name": "竹筐 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见竹筐 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "bamboo-basket-01b",
+   "meshName": "SM_BambooHatch_B",
+   "fileName": "SM_BambooHatch_B.glb",
+   "name": "竹筐 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见竹筐 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
   }
  ]
 }

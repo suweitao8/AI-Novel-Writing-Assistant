@@ -8,7 +8,7 @@ import {
   CINE57_MODEL_LIBRARY_POLICY,
 } from "./modelLibraryPolicy.mjs";
 
-test("现代日常扩容策略声明 148–188 条新增资产和高频分类配额", () => {
+test("现代日常扩容策略声明数量区间与高频分类配额", () => {
   const newAssets = CINE57_MODEL_LIBRARY_POLICY.newAssets;
   assert.ok(Number.isInteger(CINE57_MINIMUM_NEW_ASSET_COUNT));
   assert.ok(Number.isInteger(CINE57_MAXIMUM_NEW_ASSET_COUNT));
