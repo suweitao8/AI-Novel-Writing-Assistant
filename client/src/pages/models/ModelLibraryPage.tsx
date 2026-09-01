@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 
@@ -12,6 +13,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
+import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { cn } from "@/lib/utils";
 import { ModelLibraryPagination } from "./components/ModelLibraryPagination";
 import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
@@ -28,7 +31,6 @@ import {
 } from "./modelLibraryPagination";
 
 const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
-const MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT = 6;
 
 function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
@@ -134,6 +136,8 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
 }
 
 export default function ModelLibraryPage() {
+  const navActionsSlot = usePageNavActionsSlot();
+  const isMobileViewport = useIsMobileViewport();
   const [category, setCategory] = useState<string>("全部");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -189,8 +193,6 @@ export default function ModelLibraryPage() {
     [visibleEntries],
   );
   const categoryItems = ["全部", ...visibleCategories];
-  const firstRowCategoryItems = categoryItems.slice(0, MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT);
-  const secondaryCategoryItems = categoryItems.slice(MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT);
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of visibleEntries) {
@@ -278,67 +280,73 @@ export default function ModelLibraryPage() {
     </button>
   );
 
+  const searchForm = (
+    <form
+      className="flex min-w-0 items-center gap-1.5"
+      aria-label="搜索模型"
+      data-model-search
+      onSubmit={submitSearch}
+    >
+      <label htmlFor="model-library-search" className="relative min-w-0 flex-1 sm:w-64">
+        <Search
+          className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+          aria-hidden="true"
+        />
+        <Input
+          id="model-library-search"
+          aria-label="搜索模型"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              applySearch(event.currentTarget.value);
+            }
+          }}
+          placeholder="搜索模型名称、文件名或分类"
+          className="h-8 pl-8 text-xs"
+        />
+      </label>
+      <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
+        <Search className="h-3.5 w-3.5" aria-hidden="true" />
+        搜索
+      </Button>
+    </form>
+  );
+
+  // 桌面端把搜索框和搜索按钮 portal 进顶部导航栏，紧贴「AI 实况」左侧；
+  // 移动端顶栏放不下，搜索保留在筛选卡内部。
+  const searchPortal = !isMobileViewport && navActionsSlot
+    ? createPortal(
+        <div className="flex min-w-0 items-center justify-end gap-2">{searchForm}</div>,
+        navActionsSlot,
+      )
+    : null;
+
   return (
     <div className="space-y-3" data-model-library-page>
+      {searchPortal}
       <section
-        className="relative min-w-0 rounded-xl border border-border bg-card p-2"
         aria-label="模型筛选"
+        className="rounded-xl border border-border bg-card p-2"
+        data-model-category-table
         data-model-filter-controls
       >
         <div className="min-w-0" data-model-category-filter>
           <div
             role="tablist"
             aria-label="模型分类"
-            className="min-w-0 space-y-1"
-            data-model-category-table
+            className="flex min-w-0 flex-wrap items-center gap-1"
+            data-model-category-row
           >
-            <div
-              data-model-category-first-row
-              className="flex min-w-0 flex-wrap items-center gap-1 sm:pr-84"
-            >
-              {firstRowCategoryItems.map(renderCategoryButton)}
-            </div>
-            {secondaryCategoryItems.length > 0 ? (
-              <div
-                data-model-category-secondary-row
-                className="flex min-w-0 flex-wrap items-center gap-1"
-              >
-                {secondaryCategoryItems.map(renderCategoryButton)}
-              </div>
-            ) : null}
+            {categoryItems.map(renderCategoryButton)}
           </div>
         </div>
-        <form
-          className="mt-2 flex w-full items-center gap-1.5 sm:absolute sm:right-2 sm:top-2 sm:mt-0 sm:w-80"
-          aria-label="搜索模型"
-          data-model-search
-          onSubmit={submitSearch}
-        >
-          <label htmlFor="model-library-search" className="relative min-w-0 flex-1 sm:w-64">
-            <Search
-              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <Input
-              id="model-library-search"
-              aria-label="搜索模型"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  applySearch(event.currentTarget.value);
-                }
-              }}
-              placeholder="搜索模型名称、文件名或分类"
-              className="h-8 pl-8 text-xs"
-            />
-          </label>
-          <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
-            <Search className="h-3.5 w-3.5" aria-hidden="true" />
-            搜索
-          </Button>
-        </form>
+        {isMobileViewport ? (
+          <div className="mt-2 flex min-w-0 items-center" data-model-search-row>
+            {searchForm}
+          </div>
+        ) : null}
       </section>
 
       {entries.length > 0 ? (
