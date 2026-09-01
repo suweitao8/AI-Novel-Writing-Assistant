@@ -243,7 +243,7 @@ export default function SupplementalCharacterDialog(props: SupplementalCharacter
               {supplementalResult?.mode ? <Badge variant="outline">本轮模式：{SUPPLEMENTAL_MODE_LABELS[supplementalResult.mode]}</Badge> : null}
             </div>
             {supplementalResult?.planningSummary ? (
-              <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 text-xs text-muted-foreground">
+              <div className="rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 text-xs text-muted-foreground dark:bg-amber-900/20 dark:border-amber-700">
                 AI 判断：{supplementalResult.planningSummary}
               </div>
             ) : null}

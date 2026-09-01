@@ -201,9 +201,9 @@ export default function ChapterEditorSidebar(props: ChapterEditorSidebarProps) {
                   key={card.id}
                   className={`rounded-2xl border p-3 transition ${
                     isSelected
-                      ? "border-sky-300 bg-sky-50/70"
+                      ? "border-sky-300 bg-sky-50/70 dark:bg-sky-900/20 dark:border-sky-700"
                       : isRecommended
-                        ? "border-emerald-200 bg-emerald-50/60"
+                        ? "border-emerald-200 bg-emerald-50/60 dark:bg-emerald-900/20 dark:border-emerald-700"
                         : "border-border/70 bg-muted/10"
                   }`}
                 >

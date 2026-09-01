@@ -36,7 +36,7 @@ export default function OnboardingTip({
     setVisible(false);
   };
   return (
-    <aside className="flex items-start gap-3 rounded-xl border border-sky-200/80 bg-sky-50/70 px-4 py-3 text-sky-950">
+    <aside className="flex items-start gap-3 rounded-xl border border-sky-200/80 bg-sky-50/70 px-4 py-3 text-sky-950 dark:text-sky-300 dark:bg-sky-900/20 dark:border-sky-700">
       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-sky-100">
         <Lightbulb className="h-4 w-4 text-sky-700 dark:text-sky-300" />
       </span>

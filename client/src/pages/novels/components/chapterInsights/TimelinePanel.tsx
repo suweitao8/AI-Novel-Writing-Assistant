@@ -20,12 +20,12 @@ export function getTimelineCheckLabel(status: TimelineCheckSummary["status"]): s
 
 function getTimelineCheckTone(status: TimelineCheckSummary["status"]): string {
   if (status === "failed") {
-    return "border-red-200 bg-red-50 text-red-950";
+    return "border-red-200 bg-red-50 text-red-950 dark:text-red-300 dark:bg-red-900/20 dark:border-red-700";
   }
   if (status === "warning") {
-    return "border-amber-200 bg-amber-50 text-amber-950";
+    return "border-amber-200 bg-amber-50 text-amber-950 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-700";
   }
-  return "border-emerald-200 bg-emerald-50 text-emerald-950";
+  return "border-emerald-200 bg-emerald-50 text-emerald-950 dark:text-emerald-300 dark:bg-emerald-900/20 dark:border-emerald-700";
 }
 
 function getTimelineCheckBadgeVariant(status: TimelineCheckSummary["status"]): NonNullable<BadgeProps["variant"]> {
@@ -72,9 +72,9 @@ function TimelineItemList(props: {
   const { title, icon, items, emptyText, tone = "default" } = props;
   const toneClass =
     tone === "critical"
-      ? "border-red-200 bg-red-50/60"
+      ? "border-red-200 bg-red-50/60 dark:bg-red-900/20 dark:border-red-700"
       : tone === "warning"
-        ? "border-amber-200 bg-amber-50/60"
+        ? "border-amber-200 bg-amber-50/60 dark:bg-amber-900/20 dark:border-amber-700"
         : "border-border/70 bg-background";
 
   return (

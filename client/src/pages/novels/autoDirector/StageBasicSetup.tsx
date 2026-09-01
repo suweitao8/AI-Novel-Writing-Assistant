@@ -173,12 +173,12 @@ export default function StageBasicSetup({
             会作为整书结构密度和后续卷章规划的参考，不是硬性上限。
           </div>
           {basicForm.estimatedChapterCount <= 60 ? (
-            <div className={`rounded-lg bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900 ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
+            <div className={`rounded-lg bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900 dark:bg-sky-900/20 dark:text-sky-300 ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
               紧凑全书模式：AI 会在有限篇幅内完成完整结局，必要时最多追加 5 章收尾。
             </div>
           ) : null}
           {hasLargeChapterPlan ? (
-            <div className={`rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
+            <div className={`rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
               建议先小范围尝试：先查看规划和前期章节方向，确认符合想法后再扩大产出范围。
             </div>
           ) : null}

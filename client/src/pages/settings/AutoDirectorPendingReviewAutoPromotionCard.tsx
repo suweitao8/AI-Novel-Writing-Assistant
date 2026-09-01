@@ -51,7 +51,7 @@ export function AutoDirectorPendingReviewAutoPromotionCard(props: {
 
   return (
     <>
-      <Card className="min-w-0 overflow-hidden border-amber-300 bg-amber-50/35">
+      <Card className="min-w-0 overflow-hidden border-amber-300 bg-amber-50/35 dark:bg-amber-900/20 dark:border-amber-700">
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div className="min-w-0 space-y-1.5">
             <CardTitle className="flex flex-wrap items-center gap-2">

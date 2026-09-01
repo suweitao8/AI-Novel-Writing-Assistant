@@ -164,7 +164,7 @@ export default function ChapterEditorDirectorPanel(props: ChapterEditorDirectorP
             </div>
 
             {selectedDiagnosticCard ? (
-              <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4">
+              <div className="rounded-2xl border border-sky-200 bg-sky-50/70 p-4 dark:bg-sky-900/20 dark:border-sky-700">
                 <div className="text-sm font-medium text-foreground">{selectedDiagnosticCard.title}</div>
                 <div className="mt-2 text-sm leading-6 text-muted-foreground">
                   {selectedDiagnosticCard.problemSummary}

@@ -131,7 +131,7 @@ export default function WorldGeneratorStepThree(props: WorldGeneratorStepThreePr
       </div>
 
       {skeleton.assessment.missingParts.length > 0 ? (
-        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+        <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
           <div className="font-semibold">完整度诊断</div>
           <div className="mt-2 space-y-1">
             {skeleton.assessment.missingParts.map((item, index) => (

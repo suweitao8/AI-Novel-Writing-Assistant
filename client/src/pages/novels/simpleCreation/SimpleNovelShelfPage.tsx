@@ -222,7 +222,7 @@ export default function SimpleNovelShelfPage() {
             <Button variant="ghost" size="sm" onClick={() => switchExperienceMutation.mutate()} disabled={switchExperienceMutation.isPending}><Settings2 className="h-4 w-4" /> 专业模式</Button>
           </div>
           {shelf.progress.safetyMessage ? (
-            <div className="flex items-start gap-3 border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm leading-6 text-amber-950 sm:px-7">
+            <div className="flex items-start gap-3 border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm leading-6 text-amber-950 sm:px-7 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
               <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
               <div><div className="font-medium">AI 已暂停以保护作品</div><div className="text-amber-900/75 dark:text-amber-300">{shelf.progress.safetyMessage}</div></div>
             </div>

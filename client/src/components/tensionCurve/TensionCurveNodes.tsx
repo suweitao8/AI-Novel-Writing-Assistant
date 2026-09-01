@@ -192,7 +192,7 @@ export function TensionPointNodeComponent({ data, selected }: NodeProps) {
       <span
         className={cn(
           "block rounded-full border-2 border-white shadow-sm",
-          userAnchored ? "ring-2 ring-rose-200" : "",
+          userAnchored ? "ring-2 ring-rose-200 dark:ring-rose-700/50" : "",
           pointData.selectedScope ? "outline outline-2 outline-offset-2 outline-blue-200" : "",
           !hasValue ? "opacity-70" : "",
         )}
@@ -214,11 +214,11 @@ export function CompactLegend() {
         当前走势
       </span>
       <span className="inline-flex items-center gap-1.5" title="AI 可以继续优化；拖动后会变成手动固定。">
-        <span className="h-3 w-3 rounded-full bg-blue-600 ring-2 ring-blue-100" />
+        <span className="h-3 w-3 rounded-full bg-blue-600 ring-2 ring-blue-100 dark:ring-blue-700/50" />
         AI 托管
       </span>
       <span className="inline-flex items-center gap-1.5" title="AI 会围绕固定点规划，可点选节点后交还 AI。">
-        <span className="h-3.5 w-3.5 rounded-full bg-rose-600 ring-2 ring-rose-200" />
+        <span className="h-3.5 w-3.5 rounded-full bg-rose-600 ring-2 ring-rose-200 dark:ring-rose-700/50" />
         手动固定
       </span>
       <span className="inline-flex items-center gap-1.5" title="仅占章节位置，暂时不参与蓝线走势。">
