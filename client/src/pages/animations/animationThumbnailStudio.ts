@@ -27,7 +27,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
-const STORAGE_KEY = "animation-library:thumbnails:v14";
+const STORAGE_KEY = "animation-library:thumbnails:v15";
 const IDLE_DESTROY_MS = 8000;
 
 type Listener = () => void;
