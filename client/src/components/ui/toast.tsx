@@ -12,7 +12,7 @@ function Toaster(props: ToasterProps) {
     <SonnerToaster
       richColors
       theme="dark"
-      position="top-right"
+      position="bottom-right"
       offset={offset ?? 20}
       mobileOffset={mobileOffset ?? 12}
       toastOptions={{
