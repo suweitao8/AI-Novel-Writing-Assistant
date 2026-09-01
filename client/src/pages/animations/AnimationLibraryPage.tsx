@@ -251,6 +251,7 @@ export default function AnimationLibraryPage() {
         className="rounded-xl border border-border bg-card p-2"
         data-animation-category-table
       >
+
         <div className="min-w-0" data-animation-category-filter>
           <div
             role="tablist"
