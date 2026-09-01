@@ -102,7 +102,7 @@ test("来源与搜索占据首行，用途和动作分类位于后续筛选行",
   assert.match(pageSource, /data-animation-action-filter/);
   assert.match(pageSource, /setSource\\("all"\\)/);
   assert.match(pageSource, /setScope\\("all"\\)/);
-  assert.doesNotMatch(pageSource, /data-animation-source-filter[\\s\\S]*overflow-x-auto/);
+  assert.match(pageSource, /data-animation-source-filter[\\s\\S]*?TabsList className="[^"]*flex-wrap/);
 });
 ```
 
@@ -130,7 +130,7 @@ git commit -s -m "test: define animation source taxonomy layout"
 
 - [ ] **Step 1: Add the source filter type and state**
 
-Import `ANIMATION_LIBRARY_SOURCES` and `type AnimationLibrarySourceFilterId`. Initialize `source` to `"all"`, and initialize `scope` to `"all"`. Include `source` in both `filterAnimationLibraryEntries` calls and their dependency arrays.
+Import `ANIMATION_LIBRARY_SOURCES` and `type AnimationLibrarySourceFilterId`. Initialize `source` to `"all"`, and initialize `scope` to `"all"`. Keep `scopedEntries` filtered only by `scope` and submitted `query` so its source counts remain comparable; include `source` in the final `entries` filter and its dependency array.
 
 - [ ] **Step 2: Compute source counts and make source changes deterministic**
 
@@ -245,6 +245,4 @@ git ls-remote origin refs/heads/main
 ```
 
 Expected: the signed branch and merge commit are integrated into `main`, `origin/main` points to the same final commit, the session worktree is removed, and the main checkout is clean.
-
-
 
