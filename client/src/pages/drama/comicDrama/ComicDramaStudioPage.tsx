@@ -638,7 +638,7 @@ function StoryboardBootstrapCard(props: {
 
 
 function VideoSection(props: {
-  drama: { projectId: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number } | null;
+  drama: { projectId: string; shotCount: number } | null;
   order: number;
 }) {
   if (!props.drama) {
@@ -651,37 +651,13 @@ function VideoSection(props: {
     );
   }
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 md:grid-cols-2">
-        <StageMetric
-          label="分镜画面"
-          value={`${props.drama.keyframeReadyCount} / ${props.drama.shotCount}`}
-          hint="静态横屏画面"
-        />
-        <StageMetric
-          label="配音"
-          value={`${props.drama.audioReadyCount} / ${props.drama.shotCount}`}
-          hint="旁白与角色对白"
-        />
-      </div>
-      <DramaEpisodeAssemblyPanel
-        projectId={props.drama.projectId}
-        order={props.order}
-        hasShots={props.drama.shotCount > 0}
-        busy={false}
-        buttonLabel="合成视频"
-        doneButtonLabel="重新合成视频"
-      />
-    </div>
-  );
-}
-
-function StageMetric(props: { label: string; value: string; hint: string }) {
-  return (
-    <div className="rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
-      <div className="text-xs text-muted-foreground">{props.label}</div>
-      <div className="mt-1 text-lg font-semibold text-foreground">{props.value}</div>
-      <div className="mt-0.5 text-xs text-muted-foreground">{props.hint}</div>
-    </div>
+    <DramaEpisodeAssemblyPanel
+      projectId={props.drama.projectId}
+      order={props.order}
+      hasShots={props.drama.shotCount > 0}
+      busy={false}
+      buttonLabel="合成视频"
+      doneButtonLabel="重新合成视频"
+    />
   );
 }
