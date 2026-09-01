@@ -38,8 +38,11 @@
   --control-hover: hsl(var(--accent));
   --control-active: hsl(var(--primary) / 0.16);
   --focus-ring: hsl(var(--ring) / 0.42);
-  --shadow-panel: 0 18px 50px hsl(var(--foreground) / 0.12), 0 1px 0 hsl(var(--foreground) / 0.04) inset;
-  --shadow-floating: 0 24px 70px hsl(var(--foreground) / 0.22), 0 1px 0 hsl(var(--foreground) / 0.06) inset;
+  /* 阴影基色跟随主题：亮色下与前景一致（深色投影），暗色下必须保持近黑，
+     否则 hsl(var(--foreground)) 会变成白色光晕（卡片、弹窗、Toast 全部发白）。 */
+  --shadow-tint: 222.2 84% 4.9%;
+  --shadow-panel: 0 18px 50px hsl(var(--shadow-tint) / 0.12), 0 1px 0 hsl(var(--foreground) / 0.04) inset;
+  --shadow-floating: 0 24px 70px hsl(var(--shadow-tint) / 0.22), 0 1px 0 hsl(var(--foreground) / 0.06) inset;
   --radius-panel: 1rem;
   --radius-control: 0.625rem;
   --radius-pill: 9999px;
@@ -134,6 +137,7 @@
   --success: 142 55% 48%;
   --warning: 38 92% 55%;
   --info: 199 80% 58%;
+  --shadow-tint: 222 47% 2%;
 }
 
 .dark[data-theme="night"] {
