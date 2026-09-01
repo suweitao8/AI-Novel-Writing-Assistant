@@ -3666,6 +3666,8 @@ model DramaProject {
   visualStyle    String?
   // 旁白音色（JSON：{description, sampleAudioUrl, updatedAt}），分镜台词里无说话人的行使用旁白合成
   narratorVoiceData String?
+  // 漫剧卡片预览图使用的场景资产软引用（NovelScene.id，场景属于 sourceRef 小说）；空=默认取第一个有图的场景
+  previewSceneId String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -29,6 +29,7 @@ import novelRouter from "./modules/novel/http/novel";
 import creationStudioRouter from "./modules/novel/creation-studio/http/creationStudioRoutes";
 import { shortStoryProductionService } from "./modules/novel/short-story/application/ShortStoryProductionService";
 import dramaRouter from "./modules/drama/http/dramaRoutes";
+import dramaPreviewSceneRouter from "./modules/drama/http/dramaPreviewSceneRoutes";
 import comicRouter from "./modules/comic/http/comicRoutes";
 import novelDirectorRouter from "./services/novel/director/http/novelDirector";
 import novelExportRouter from "./modules/export/http/novelExport";
@@ -143,6 +144,7 @@ export function createApp() {
   app.use("/api/novel-workflows", novelWorkflowsRouter);
   app.use("/api/novels", novelExportRouter);
   app.use("/api/drama", dramaRouter);
+  app.use("/api/drama", dramaPreviewSceneRouter);
   app.use("/api/comic", comicRouter);
   app.use("/api/worlds", worldRouter);
   app.use("/api/rag", ragRouter);

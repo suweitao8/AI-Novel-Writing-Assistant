@@ -6,6 +6,10 @@ import { AppError } from "../../../middleware/errorHandler";
 import { getArchivedTaskIdSet } from "../../task/taskArchive";
 import { dramaReadinessService } from "../readiness/DramaReadinessService";
 import { videoProviderRegistry } from "../video/VideoProviderPort";
+import {
+  hasStoryAssetStateImageUrl,
+  parseStoryAssetStatesJson,
+} from "@ai-novel/shared/types/novelReferenceExtraction";
 import type {
   ComicDramaLinkStats,
   ComicDramaLinksResponse,
@@ -14,6 +18,62 @@ import type {
 } from "@ai-novel/shared/types/comicDrama";
 
 const SCRIPTED_EPISODE_STATUSES = new Set(["scripted", "reviewed", "approved"]);
+
+/** 场景状态图 URL：按状态顺序取第一张有图的（默认状态优先），再回落旧版全景 imageData。 */
+function resolveNovelSceneImageUrl(scene: { statesJson: string | null; imageData: string | null }): string | null {
+  const { states } = parseStoryAssetStatesJson(scene.statesJson);
+  for (const state of states) {
+    if (hasStoryAssetStateImageUrl(state.image)) {
+      return state.image.url;
+    }
+  }
+  if (!scene.imageData?.trim()) {
+    return null;
+  }
+  try {
+    const legacy = JSON.parse(scene.imageData) as { url?: unknown };
+    return typeof legacy.url === "string" && legacy.url.trim() ? legacy.url : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 漫剧卡片预览图解析：用户在设定里显式选择的场景优先（需有图），
+ * 未选择时默认取排序第一个有图的场景；都没有图返回 null，卡片回落文字面板。
+ */
+async function loadPreviewByNovelIds(
+  pairs: Array<{ novelId: string; previewSceneId: string | null }>,
+): Promise<Map<string, { previewSceneId: string | null; previewImageUrl: string | null }>> {
+  const result = new Map<string, { previewSceneId: string | null; previewImageUrl: string | null }>();
+  const novelIds = Array.from(new Set(pairs.map((pair) => pair.novelId).filter(Boolean)));
+  if (novelIds.length === 0) {
+    return result;
+  }
+  const scenes = await prisma.novelScene.findMany({
+    where: { novelId: { in: novelIds } },
+    select: { id: true, novelId: true, statesJson: true, imageData: true },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
+  const scenesByNovelId = new Map<string, Array<{ id: string; url: string | null }>>();
+  for (const scene of scenes) {
+    const list = scenesByNovelId.get(scene.novelId) ?? [];
+    list.push({ id: scene.id, url: resolveNovelSceneImageUrl(scene) });
+    scenesByNovelId.set(scene.novelId, list);
+  }
+  for (const pair of pairs) {
+    const scenesWithUrls = scenesByNovelId.get(pair.novelId) ?? [];
+    const chosen = pair.previewSceneId
+      ? scenesWithUrls.find((scene) => scene.id === pair.previewSceneId)
+      : undefined;
+    const effective = (chosen?.url ? chosen : scenesWithUrls.find((scene) => scene.url)) ?? null;
+    result.set(pair.novelId, {
+      previewSceneId: pair.previewSceneId ?? null,
+      previewImageUrl: effective?.url ?? null,
+    });
+  }
+  return result;
+}
 
 async function loadLatestDirectorTasksByNovelIds(novelIds: string[]): Promise<Map<string, {
   id: string;
@@ -74,7 +134,7 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
   }
   const projects = await prisma.dramaProject.findMany({
     where: { source: "novel_import", sourceRef: { in: uniqueNovelIds } },
-    select: { id: true, title: true, sourceRef: true, status: true, visualStyle: true, updatedAt: true },
+    select: { id: true, title: true, sourceRef: true, status: true, visualStyle: true, previewSceneId: true, updatedAt: true },
     orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
   });
   const seenNovelIds = new Set<string>();
@@ -93,6 +153,7 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
   const [
     [episodeGroups, storyboardGroups, videoPromptGroups, videoReadyGroups],
     readinessRows,
+    previewByNovelId,
   ] = await Promise.all([
     Promise.all([
       prisma.dramaEpisode.groupBy({
@@ -120,6 +181,10 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
       projectId,
       await dramaReadinessService.getProjectReadiness(projectId),
     ] as const)),
+    loadPreviewByNovelIds(latestProjects.map((project) => ({
+      novelId: project.sourceRef ?? "",
+      previewSceneId: project.previewSceneId ?? null,
+    }))),
   ]);
   const episodeCountByProject = new Map<string, number>();
   const scriptedCountByProject = new Map<string, number>();
@@ -135,6 +200,7 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
   const readinessByProject = new Map(readinessRows);
   latestProjects.forEach((project) => {
     const readiness = readinessByProject.get(project.id);
+    const preview = previewByNovelId.get(project.sourceRef ?? "");
     result.set(project.sourceRef ?? "", {
       projectId: project.id,
       projectTitle: project.title,
@@ -149,6 +215,8 @@ async function loadDramaStatsByNovelIds(novelIds: string[]): Promise<Map<string,
       audioReadyCount: readiness?.audioReadyCount ?? 0,
       videoPromptCount: videoPromptCountByProject.get(project.id) ?? 0,
       videoReadyCount: videoReadyCountByProject.get(project.id) ?? 0,
+      previewSceneId: preview?.previewSceneId ?? null,
+      previewImageUrl: preview?.previewImageUrl ?? null,
     });
   });
   return result;

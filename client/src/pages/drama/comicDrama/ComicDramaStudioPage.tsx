@@ -12,13 +12,13 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { ComicDramaLinkStats } from "@ai-novel/shared/types/comicDrama";
-import { getComicDramaStudioOverview } from "@/api/media/comicDrama";
+import { getComicDramaStudioOverview, updateDramaPreviewScene } from "@/api/media/comicDrama";
 import {
   assembleDramaSourceBundle,
   generateComicDramaStoryboard,
   getDramaVisualStyles,
 } from "@/api/media/drama";
-import { getStorySettingsOverview, getStorySettingsWorld } from "@/api/story/storySettings";
+import { getStorySettingsOverview, getStorySettingsScenes, getStorySettingsWorld } from "@/api/story/storySettings";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, AppDialogContent } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import SelectControl from "@/components/common/SelectControl";
 import AiButton from "@/components/common/AiButton";
 import SettingsCharactersTab from "@/pages/novels/components/storySettings/SettingsCharactersTab";
 import SettingsPropsTab from "@/pages/novels/components/storySettings/SettingsPropsTab";
@@ -434,7 +435,7 @@ export default function ComicDramaStudioPage() {
           ) : (
             <>
               <ReferenceNovelCard novelId={novelId} referenceDocument={overview.novel.referenceDocument ?? null} />
-              <ProjectSettingsSection drama={overview.drama} />
+              <ProjectSettingsSection novelId={novelId} drama={overview.drama} />
             </>
           )}
         </TabsContent>
@@ -541,11 +542,28 @@ function useStoryboardStage(input: {
   return { styleOptions, effectiveStyleId, scriptReady: input.scriptReady, generateMutation, syncMutation };
 }
 
-// 「设定 · 通用」页签：项目级配置，看分镜项目状态。
+// 「设定 · 通用」页签：项目级配置（分镜项目状态 + 漫剧卡片预览图）。
 function ProjectSettingsSection(props: {
+  novelId: string;
   drama: ComicDramaLinkStats | null;
 }) {
-  const { drama } = props;
+  const { novelId, drama } = props;
+  const queryClient = useQueryClient();
+  const scenesQuery = useQuery({
+    queryKey: queryKeys.novels.storySettingsScenes(novelId),
+    queryFn: () => getStorySettingsScenes(novelId),
+    enabled: Boolean(novelId) && Boolean(drama),
+  });
+  const scenes = scenesQuery.data?.data ?? [];
+  const savePreviewSceneMutation = useMutation({
+    mutationFn: (sceneId: string | null) => updateDramaPreviewScene(drama!.projectId, sceneId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.comicDrama.overview(novelId) });
+      toast.success("预览图已更新。");
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "预览图保存失败，请稍后重试。"),
+  });
+
   return (
     <Card className="rounded-3xl">
       <CardContent className="space-y-4 p-6">
@@ -557,6 +575,31 @@ function ProjectSettingsSection(props: {
             <span>还没有分镜项目。</span>
           )}
         </div>
+        {drama ? (
+          <div className="flex flex-wrap items-end gap-4">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-foreground">卡片预览图</span>
+              <SelectControl
+                className="h-9 rounded-md border bg-background px-2 text-sm"
+                value={drama.previewSceneId ?? ""}
+                disabled={savePreviewSceneMutation.isPending}
+                onChange={(event) => savePreviewSceneMutation.mutate(event.target.value || null)}
+              >
+                <option value="">默认（第一个有图的场景）</option>
+                {scenes.map((scene) => (
+                  <option key={scene.id} value={scene.id}>{scene.name}</option>
+                ))}
+              </SelectControl>
+            </label>
+            {drama.previewImageUrl ? (
+              <img
+                src={drama.previewImageUrl}
+                alt="当前漫剧卡片预览图"
+                className="h-14 w-24 rounded-md border border-border object-cover"
+              />
+            ) : null}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );
