@@ -28,6 +28,7 @@ import { getAnimationKeyframe } from "./animationPreviewStorage";
 const THUMBNAIL_SIZE = { width: 288, height: 216 } as const;
 const JPEG_QUALITY = 0.75;
 const STORAGE_KEY = "animation-library:thumbnails:v15";
+const STORAGE_KEY_PREFIX = "animation-library:thumbnails:";
 const IDLE_DESTROY_MS = 8000;
 const STUDIO_INIT_WATCHDOG_MS = 30_000;
 const RENDER_WATCHDOG_MS = 30_000;
@@ -91,6 +92,13 @@ interface AnimComponentLike {
 function loadStorageCache(): void {
   if (memoryCache.size > 0 || !storageEnabled) return;
   try {
+    // 历史版本的缓存键只进不出会白占配额，把新缓存挤到写不进去。
+    for (let i = window.localStorage.length - 1; i >= 0; i -= 1) {
+      const legacyKey = window.localStorage.key(i);
+      if (legacyKey && legacyKey.startsWith(STORAGE_KEY_PREFIX) && legacyKey !== STORAGE_KEY) {
+        window.localStorage.removeItem(legacyKey);
+      }
+    }
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return;
     const parsed = JSON.parse(raw) as Record<string, string>;
