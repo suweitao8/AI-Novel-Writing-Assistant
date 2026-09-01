@@ -58,12 +58,17 @@ export function secondsToFrame(
   seconds: number,
   frameRate: number,
   durationSeconds: number,
+  loop = false,
 ): number {
   const duration = normalizeDuration(durationSeconds);
   const fps = normalizeFrameRate(frameRate);
   const lastFrame = getAnimationFrameCount(duration, fps) - 1;
   if (!Number.isFinite(seconds)) return 0;
-  return clampAnimationFrame(Math.max(0, seconds) * fps, lastFrame);
+  const safeSeconds = Math.max(0, seconds);
+  const displaySeconds = loop && duration > 0
+    ? safeSeconds % duration
+    : Math.min(duration, safeSeconds);
+  return clampAnimationFrame(displaySeconds * fps, lastFrame);
 }
 
 function asFiniteNumbers(value: unknown): number[] {

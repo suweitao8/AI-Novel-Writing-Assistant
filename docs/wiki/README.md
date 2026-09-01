@@ -47,6 +47,7 @@ Wiki 不记录单次提交改了什么，也不替代 release notes。它只记�
 - [重复故障模式与排查路径](./debugging/recurring-failure-modes.md)
 - [开发服务与工作区阻塞排查](./debugging/development-service-and-worktree-blockers.md)
 - [WebGL HDRI 预览生命周期与缩略图稳定性](./debugging/hdri-webgl-preview-lifecycle.md)
+- [动画预览循环播放与帧轴同步](./debugging/animation-loop-frame-sync.md)
 
 ### Product
 

@@ -36,6 +36,8 @@ export interface AnimationPreviewOptions {
   initialFrame?: number;
   /** 目录声明的帧率；仅在 GLB 采样数据不足时作为回退。 */
   frameRateHint?: number;
+  /** 是否循环播放；未传入时保持动画预览的默认循环行为。 */
+  loop?: boolean;
   onStatus?: (status: string) => void;
   /** 片段加载或播放出错（切换片段失败等）。 */
   onError?: (message: string) => void;
@@ -45,6 +47,7 @@ export interface AnimationPreviewOptions {
     frameCount: number,
     frameRate: number,
     playing: boolean,
+    looping: boolean,
   ) => void;
 }
 
@@ -57,6 +60,8 @@ export interface AnimationPreview {
   getFrameCount: () => number;
   getFrameRate: () => number;
   isPlaying: () => boolean;
+  setLoop: (loop: boolean) => void;
+  isLooping: () => boolean;
   fitView: () => void;
   resetView: () => void;
   /** 抓取当前已渲染帧，返回适合动画卡片使用的 JPEG data URL。 */
@@ -402,6 +407,7 @@ function createAnimationPreviewHandle(
       anim.rootBone = model;
 
       let activeClipName = options.clipName;
+      let loop = options.loop ?? true;
       let currentFrame = 0;
       let frameCount = 1;
       let frameRate = options.frameRateHint ?? 30;
@@ -419,7 +425,12 @@ function createAnimationPreviewHandle(
       const readCurrentFrame = () => {
         const layerTime = anim.baseLayer?.activeStateCurrentTime;
         if (typeof layerTime === "number" && Number.isFinite(layerTime)) {
-          currentFrame = secondsToFrame(layerTime, frameRate, durationSeconds);
+          currentFrame = secondsToFrame(
+            layerTime,
+            frameRate,
+            durationSeconds,
+            loop,
+          );
         }
         return currentFrame;
       };
@@ -429,6 +440,7 @@ function createAnimationPreviewHandle(
           frameCount,
           frameRate,
           anim.playing,
+          loop,
         );
       };
       const applyFrame = (frame: number) => {
@@ -456,13 +468,29 @@ function createAnimationPreviewHandle(
           return;
         }
         activeClipName = clipName;
-        anim.assignAnimation(clipName, track, 0, 1, true);
+        anim.assignAnimation(clipName, track, 0, 1, loop);
         durationSeconds = readDuration(track);
         frameRate = inferAnimationFrameRate(track, options.frameRateHint ?? 30);
         frameCount = getAnimationFrameCount(durationSeconds, frameRate);
         anim.playing = true;
         anim.baseLayer?.play(clipName);
         applyFrame(currentFrame);
+      };
+
+      const setLoop = (nextLoop: boolean) => {
+        const normalizedLoop = Boolean(nextLoop);
+        if (normalizedLoop === loop) return;
+        const preservedFrame = readCurrentFrame();
+        const wasPlaying = anim.playing;
+        const track = tracks.get(activeClipName);
+        if (!track) return;
+
+        loop = normalizedLoop;
+        anim.assignAnimation(activeClipName, track, 0, 1, loop);
+        anim.baseLayer?.play(activeClipName);
+        anim.playing = wasPlaying;
+        if (!wasPlaying) anim.baseLayer?.pause?.();
+        applyFrame(preservedFrame);
       };
 
       const pause = () => {
@@ -480,6 +508,7 @@ function createAnimationPreviewHandle(
       const getFrameCount = () => frameCount;
       const getFrameRate = () => frameRate;
       const isPlaying = () => anim.playing;
+      const isLooping = () => loop;
       const capturePreviewFrame = () => {
         if (destroyed) throw new Error("预览已关闭。");
         app.render();
@@ -515,7 +544,33 @@ function createAnimationPreviewHandle(
       app.on("update", () => {
         if (destroyed) return;
         drawBlocking3dGroundGrid(app, groundGridLines);
-        if (anim.playing) notifyFrame();
+        if (!anim.playing) return;
+        const layerTime = anim.baseLayer?.activeStateCurrentTime;
+        if (
+          !loop &&
+          durationSeconds > 0 &&
+          typeof layerTime === "number" &&
+          Number.isFinite(layerTime) &&
+          layerTime >= durationSeconds
+        ) {
+          currentFrame = frameCount - 1;
+          if (
+            anim.baseLayer &&
+            typeof anim.baseLayer.activeStateCurrentTime === "number"
+          ) {
+            anim.baseLayer.activeStateCurrentTime = frameToSeconds(
+              currentFrame,
+              frameRate,
+              durationSeconds,
+            );
+          }
+          anim.playing = false;
+          anim.baseLayer?.pause?.();
+          app.render();
+          notifyFrame(currentFrame);
+          return;
+        }
+        notifyFrame();
       });
 
       return {
@@ -526,6 +581,8 @@ function createAnimationPreviewHandle(
         getFrameCount,
         getFrameRate,
         isPlaying,
+        setLoop,
+        isLooping,
         fitView,
         resetView,
         capturePreviewFrame,

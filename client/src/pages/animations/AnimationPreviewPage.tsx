@@ -16,6 +16,7 @@ import { getAnimationLibraryEntry } from "@/config/animationLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "@/components/ui/toast";
 import {
   clearAnimationKeyframe,
@@ -51,6 +52,7 @@ export default function AnimationPreviewPage() {
   );
   const [frameRate, setFrameRate] = useState(entry?.frameRate ?? 30);
   const [playing, setPlaying] = useState(false);
+  const [loop, setLoop] = useState(true);
   const [keyframe, setKeyframe] = useState<AnimationKeyframe | null>(null);
   const [automaticThumbnail, setAutomaticThumbnail] = useState<string | null>(null);
   const [savingKeyframe, setSavingKeyframe] = useState(false);
@@ -74,6 +76,7 @@ export default function AnimationPreviewPage() {
     setCurrentFrame(getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate));
     setFrameCount(getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
     setFrameRate(entry.frameRate);
+    setLoop(true);
     return () => {
       unsubscribeKeyframes();
       unsubscribeThumbnails();
@@ -107,13 +110,15 @@ export default function AnimationPreviewPage() {
           clipName: entry.clipName,
           initialFrame: initialKeyframe?.frame,
           frameRateHint: entry.frameRate,
+          loop: true,
           onStatus: (next) => setStatus(next || "就绪"),
-          onFrameChange: (nextFrame, nextFrameCount, nextFrameRate, nextPlaying) => {
+          onFrameChange: (nextFrame, nextFrameCount, nextFrameRate, nextPlaying, nextLoop) => {
             if (cancelled) return;
             setCurrentFrame(nextFrame);
             setFrameCount(nextFrameCount || getAnimationFrameCount(entry.durationSeconds, entry.frameRate));
             setFrameRate(nextFrameRate || entry.frameRate);
             setPlaying(nextPlaying);
+            setLoop(nextLoop);
           },
           onError: (message) => {
             if (!cancelled) toast.error("动作预览失败", { description: message });
@@ -141,6 +146,7 @@ export default function AnimationPreviewPage() {
             setFrameRate(nextViewer.getFrameRate() || entry.frameRate);
             setCurrentFrame(nextViewer.getFrame());
             setPlaying(nextViewer.isPlaying());
+            setLoop(nextViewer.isLooping());
             setStatus("就绪");
           })
           .catch((error: unknown) => {
@@ -174,6 +180,11 @@ export default function AnimationPreviewPage() {
   const displayFrame = Math.min(Math.max(currentFrame, 0), displayFrameCount - 1);
   const defaultFrame = getDefaultAnimationFrame(entry.durationSeconds, entry.frameRate);
   const previewImage = keyframe?.dataUrl ?? automaticThumbnail;
+
+  const handleLoopChange = (nextLoop: boolean) => {
+    setLoop(nextLoop);
+    viewerRef.current?.setLoop(nextLoop);
+  };
 
   const handleSetPreviewFrame = () => {
     const currentViewer = viewerRef.current;
@@ -418,7 +429,18 @@ export default function AnimationPreviewPage() {
               </div>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
                 <span>拖动帧轴选择关键帧</span>
-                <span>{playing ? "播放中" : "已暂停"}</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span>循环播放</span>
+                    <Switch
+                      checked={loop}
+                      onCheckedChange={handleLoopChange}
+                      disabled={!viewer}
+                      aria-label="循环播放"
+                    />
+                  </div>
+                  <span>{playing ? "播放中" : "已暂停"}</span>
+                </div>
               </div>
             </div>
           </CardContent>
