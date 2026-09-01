@@ -28,13 +28,13 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
   const setNavActionsSlot = useSetPageNavActionsSlot();
   const pageTabRows = usePageTabRows();
   return (
-    <header className="relative flex h-14 min-w-0 shrink-0 items-center border-b bg-muted/20 pl-4 pr-3">
+    <header className="studio-top-nav relative flex h-14 min-w-0 shrink-0 items-center border-b bg-[var(--surface-nav)] pl-4 pr-3">
       {/* 品牌「工作台」：点击回到漫剧主链路首页。 */}
       <NavLink
         to="/drama"
         aria-label="工作台，进入漫剧"
         title="工作台"
-        className="flex min-w-0 items-center gap-2.5 rounded-md px-1 py-1 transition-colors hover:bg-muted/60"
+        className="flex min-w-0 items-center gap-2.5 rounded-[var(--radius-control)] px-1 py-1 transition-colors hover:bg-[var(--control-hover)]"
       >
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
         <span className="truncate text-sm font-semibold">工作台</span>
@@ -51,7 +51,7 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
                     "flex h-full items-center gap-2 border-b-2 px-3 text-sm transition-colors",
                     isActive
                       ? "border-primary font-semibold text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground",
+                      : "border-transparent text-muted-foreground hover:bg-[var(--control-hover)] hover:text-foreground",
                   )}
                 >
                   {Icon ? <Icon className="h-4 w-4 shrink-0" aria-hidden="true" /> : null}
@@ -114,7 +114,7 @@ function PageTabGroup({ row }: { row: PageTabRow }) {
   return (
     <div
       role="group"
-      className="flex shrink-0 items-center gap-0.5 rounded-full border border-border bg-muted/40 p-1"
+      className="studio-pill flex shrink-0 items-center gap-0.5 border border-border/70 bg-[var(--surface-control)] p-1 shadow-sm"
     >
       {row.tabs.map((tab) => (
         <Fragment key={tab.key}>
@@ -123,10 +123,10 @@ function PageTabGroup({ row }: { row: PageTabRow }) {
             onClick={() => row.onSelect(tab.key)}
             aria-pressed={row.active === tab.key}
             className={cn(
-              "flex h-7 items-center whitespace-nowrap rounded-full px-2 text-[13px] transition-colors",
+              "studio-pill flex h-7 items-center whitespace-nowrap px-2 text-[13px] transition-colors",
               row.active === tab.key
-                ? "bg-background font-medium text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground",
+                ? "bg-[var(--control-active)] font-medium text-primary shadow-sm"
+                : "text-muted-foreground hover:bg-[var(--control-hover)] hover:text-foreground",
             )}
           >
             {tab.label}

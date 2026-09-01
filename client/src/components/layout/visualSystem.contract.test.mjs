@@ -41,3 +41,21 @@ test("基础组件不回退到硬编码白色或 slate 背景", () => {
     assert.doesNotMatch(source, /bg-white|text-black|bg-slate-/);
   }
 });
+
+test("主要入口保留工作台页面语义标记和导航名称", () => {
+  const pageContracts = [
+    ["pages/Home.tsx", /studio-page/],
+    ["pages/drama/DramaProjectPage.tsx", /studio-page/],
+    ["pages/drama/comicDrama/ComicDramaListPage.tsx", /studio-page/],
+    ["pages/novels/NovelList.tsx", /studio-page/],
+    ["pages/novels/NovelCreate.tsx", /studio-page/],
+    ["pages/settings/views/SettingsOverviewPage.tsx", /studio-page/],
+  ];
+  for (const [relativePath, marker] of pageContracts) {
+    assert.match(read(relativePath), marker, relativePath);
+  }
+
+  assert.match(read("pages/drama/comicDrama/ComicDramaListPage.tsx"), /创建漫剧/);
+  assert.match(read("pages/novels/NovelList.tsx"), /继续创作/);
+  assert.match(read("pages/settings/views/SettingsOverviewPage.tsx"), /系统设置/);
+});

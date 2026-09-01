@@ -14,7 +14,7 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn("fixed inset-0 z-50 bg-black/50 backdrop-blur-sm", className)}
+    className={cn("fixed inset-0 z-50 bg-foreground/20 backdrop-blur-sm", className)}
     {...props}
   />
 ));
@@ -29,13 +29,13 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border bg-background p-6 shadow-lg",
+        "studio-card fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-[var(--radius-panel)] border border-border/80 bg-[var(--surface-raised)] p-6 text-card-foreground shadow-[var(--shadow-floating)]",
         className,
       )}
       {...props}
     >
       {children}
-      <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring">
+      <DialogClose className="absolute right-4 top-4 rounded-[var(--radius-control)] p-1 opacity-70 transition-opacity hover:bg-[var(--control-hover)] hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[var(--focus-ring)]">
         <X className="h-4 w-4" />
         <span className="sr-only">关闭</span>
       </DialogClose>
