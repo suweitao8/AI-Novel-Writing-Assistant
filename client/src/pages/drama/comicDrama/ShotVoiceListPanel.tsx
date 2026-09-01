@@ -181,7 +181,8 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
   // 多个分镜的配音可以同时生成：逐镜记录在途状态，互不覆盖。
   const [regeneratingShotIds, setRegeneratingShotIds] = useState<Set<string>>(() => new Set());
   const [keyframeShotId, setKeyframeShotId] = useState<string | null>(null);
-  const [previewMode, setPreviewMode] = useState<PreviewKind>("ai");
+  // 分镜列表默认展示 3D 摆位草图（3D 摄像机实拍取景），AI 画面由用户主动切换查看。
+  const [previewMode, setPreviewMode] = useState<PreviewKind>("sketch");
   const activeOrder = chapterOrder;
   const lastTaskActivityAtRef = useRef(0);
   const inTaskGraceWindow = () => Date.now() - lastTaskActivityAtRef.current < POLL_GRACE_MS;

@@ -25,7 +25,8 @@ test("3D图/AI图切换是整集统一的工具栏模式，放在合成按钮左
   );
   assert.match(toolbarSource, />\s*3D图\s*<\/button>/);
   assert.match(toolbarSource, />\s*AI图\s*<\/button>/);
-  assert.match(source, /const \[previewMode, setPreviewMode\] = useState<PreviewKind>\("ai"\)/);
+  // 分镜列表默认展示 3D 摆位草图（3D 摄像机实拍取景），AI 画面是可选切换。
+  assert.match(source, /const \[previewMode, setPreviewMode\] = useState<PreviewKind>\("sketch"\)/);
   assert.match(source, /previewMode=\{previewMode\}/);
 });
 
