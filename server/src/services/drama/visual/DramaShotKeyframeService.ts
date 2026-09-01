@@ -665,7 +665,9 @@ export class DramaShotKeyframeService {
         }
       }
       // 场景初始状态图（镜头地点与设定场景同名）与画面里点名的道具，也作为参考图挂给首帧图。
-      if (matchedScene?.imageUrl) {
+      // 已确认摆位草图时不再挂场景整图：草图穹顶投影本身就来自这张图，两者同时挂会让
+      // 模型照抄场景整图、丢掉草图锁定的摄像机取景（2026-09-01 用户反馈的"画面退回场景图"根因）。
+      if (matchedScene?.imageUrl && !blockingSketch) {
         refImages.push(matchedScene.imageUrl);
         referenceImages.push({
           kind: "scene",

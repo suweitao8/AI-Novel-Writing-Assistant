@@ -222,7 +222,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/drama.prompts").dramaVideoPromptPrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.shot.keyframe@v2",
+    key: "drama.shot.keyframe@v4",
     load: () => require("../prompts/drama/shotKeyframe.prompts").dramaShotKeyframePrompt as UnknownPromptAsset,
   },
   {
