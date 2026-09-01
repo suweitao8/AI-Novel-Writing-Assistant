@@ -68,7 +68,7 @@ export default function NovelStyleRecommendationCard({ novelId }: NovelStyleReco
   }
 
   return (
-    <Card className="border-slate-200/80 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+    <Card className="border-border/80 bg-card shadow-sm">
       <CardHeader className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
@@ -88,15 +88,15 @@ export default function NovelStyleRecommendationCard({ novelId }: NovelStyleReco
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,0.96fr)_minmax(0,1.04fr)]">
-          <div className="space-y-4 rounded-2xl border bg-slate-50/70 p-4">
-            <div className="rounded-2xl border bg-white p-4">
-              <div className="text-sm font-medium text-slate-900">当前书级默认写法</div>
+          <div className="space-y-4 rounded-2xl border bg-muted/40 p-4">
+            <div className="rounded-2xl border bg-background p-4">
+              <div className="text-sm font-medium text-foreground">当前书级默认写法</div>
               {hasConfirmedBookStyle ? (
                 <div className="mt-3 space-y-2">
                   {currentBindings.map((binding) => (
-                    <div key={binding.id} className="rounded-xl border bg-slate-50/70 p-3">
-                      <div className="font-medium text-slate-900">{binding.styleProfile?.name ?? binding.styleProfileId}</div>
-                      <div className="mt-1 text-xs text-slate-600">
+                    <div key={binding.id} className="rounded-xl border bg-muted/40 p-3">
+                      <div className="font-medium text-foreground">{binding.styleProfile?.name ?? binding.styleProfileId}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
                         优先级 P{binding.priority} / 强度 W{binding.weight}
                       </div>
                     </div>
@@ -129,27 +129,27 @@ export default function NovelStyleRecommendationCard({ novelId }: NovelStyleReco
             </div>
           </div>
 
-          <div className="space-y-4 rounded-2xl border bg-white p-4">
-            <div className="text-sm font-medium text-slate-900">推荐结果</div>
+          <div className="space-y-4 rounded-2xl border bg-background p-4">
+            <div className="text-sm font-medium text-foreground">推荐结果</div>
             {recommendation ? (
               <>
-                <div className="rounded-2xl border bg-slate-50/70 p-4 text-sm leading-7 text-slate-700">
+                <div className="rounded-2xl border bg-muted/40 p-4 text-sm leading-7 text-foreground">
                   {recommendation.summary}
                 </div>
                 {recommendation.candidates.length > 0 ? (
                   <div className="grid gap-3">
                     {recommendation.candidates.map((candidate) => (
-                      <div key={candidate.styleProfileId} className="rounded-2xl border bg-white p-4 shadow-sm">
+                      <div key={candidate.styleProfileId} className="rounded-2xl border bg-background p-4 shadow-sm">
                         <div className="flex items-start justify-between gap-3">
                           <div>
-                            <div className="text-base font-semibold text-slate-900">{candidate.styleProfileName}</div>
+                            <div className="text-base font-semibold text-foreground">{candidate.styleProfileName}</div>
                             {candidate.styleProfileDescription ? (
-                              <div className="mt-1 text-xs leading-6 text-slate-600">{candidate.styleProfileDescription}</div>
+                              <div className="mt-1 text-xs leading-6 text-muted-foreground">{candidate.styleProfileDescription}</div>
                             ) : null}
                           </div>
                           <Badge variant="outline">适配度 {candidate.fitScore}</Badge>
                         </div>
-                        <div className="mt-3 text-sm leading-7 text-slate-700">{candidate.recommendationReason}</div>
+                        <div className="mt-3 text-sm leading-7 text-foreground">{candidate.recommendationReason}</div>
                         {candidate.caution ? (
                           <div className="mt-3 rounded-xl border bg-amber-50/70 p-3 text-xs leading-6 text-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
                             注意事项：{candidate.caution}

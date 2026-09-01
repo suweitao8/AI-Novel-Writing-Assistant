@@ -394,7 +394,7 @@ export default function PipelineTab(props: PipelineTabProps) {
                           : state === "completed"
                             ? "border-emerald-500/30 bg-emerald-500/10"
                             : state === "failed"
-                              ? "border-red-400/40 bg-red-500/10"
+                              ? "border-red-400/40 bg-red-500/10 dark:border-red-600"
                               : "border-border bg-background"
                       }`}
                     >

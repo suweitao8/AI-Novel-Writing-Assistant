@@ -15,10 +15,10 @@ interface CharacterAssetSidebarProps {
 
 function getCharacterCardClass(isSelected: boolean, isProtagonist: boolean): string {
   const selectedClass = isProtagonist
-    ? "border-emerald-300 bg-emerald-50 shadow-sm"
+    ? "border-emerald-300 bg-emerald-50 shadow-sm dark:bg-emerald-900/20 dark:border-emerald-700"
     : "border-primary/40 bg-primary/5 shadow-sm";
   const idleClass = isProtagonist
-    ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50"
+    ? "border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:border-emerald-600"
     : "border-border/70 bg-background hover:border-primary/30 hover:bg-muted/20";
   return `group flex w-full items-stretch gap-2 rounded-2xl border p-2.5 text-left transition ${
     isSelected ? selectedClass : idleClass

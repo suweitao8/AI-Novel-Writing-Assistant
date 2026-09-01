@@ -87,7 +87,7 @@ export function AutoDirectorIssuePolicyCard(props: {
         </div>
 
         {hasChanges ? (
-          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950" role="status">
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-950 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-700" role="status">
             你修改了问题处理规则。保存后会影响后续任务；触发安全保护时，系统会优先暂停或结束任务，并保留这次选择供复核。
           </div>
         ) : null}

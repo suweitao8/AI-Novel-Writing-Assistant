@@ -439,7 +439,7 @@ export default function CharacterCastOptionsSection(props: CharacterCastOptionsS
                         <div
                           key={option.id}
                           className={`rounded-2xl border p-4 ${
-                            option.status === "applied" ? "border-emerald-500/40 bg-emerald-50/40" : ""
+                            option.status === "applied" ? "border-emerald-500/40 bg-emerald-50/40 dark:bg-emerald-900/20" : ""
                           }`}
                         >
                           <div className="flex flex-wrap items-start justify-between gap-2">
@@ -492,7 +492,7 @@ export default function CharacterCastOptionsSection(props: CharacterCastOptionsS
                             </div>
                           ) : null}
                           {option.recommendedReason ? (
-                            <div className="mt-3 rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 text-xs text-muted-foreground">
+                            <div className="mt-3 rounded-xl border border-amber-200/60 bg-amber-50/50 p-3 text-xs text-muted-foreground dark:bg-amber-900/20 dark:border-amber-700">
                               推荐理由：{option.recommendedReason}
                             </div>
                           ) : null}

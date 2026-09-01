@@ -281,7 +281,7 @@ function CharacterRelationshipNode(props: NodeProps) {
       className={cn(
         "relative h-[148px] w-[196px] overflow-hidden rounded-2xl border px-3.5 pb-9 pt-3.5 shadow-sm transition",
         isProtagonist
-          ? "border-emerald-300 bg-[linear-gradient(135deg,#f0fdf4_0%,#ffffff_58%,#ecfeff_100%)] shadow-[0_18px_42px_rgba(16,185,129,0.18)]"
+          ? "border-emerald-300 bg-[linear-gradient(135deg,#f0fdf4_0%,#ffffff_58%,#ecfeff_100%)] shadow-[0_18px_42px_rgba(16,185,129,0.18)] dark:border-emerald-700 dark:bg-none dark:bg-emerald-500/10 dark:shadow-none"
           : "bg-background/95",
         graphNode.isSelected
           ? isProtagonist
@@ -313,7 +313,7 @@ function CharacterRelationshipNode(props: NodeProps) {
           {shortName}
         </div>
         <div className="min-w-0 flex-1">
-          <div className={cn("truncate text-sm font-semibold", isProtagonist && "text-emerald-950")}>{character.name}</div>
+          <div className={cn("truncate text-sm font-semibold", isProtagonist && "text-emerald-950 dark:text-emerald-300")}>{character.name}</div>
           <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{character.role || getCastRoleLabel(character.castRole)}</div>
         </div>
         {isProtagonist ? (
@@ -411,7 +411,7 @@ function NodeDetail(props: { node: RelationshipGraphNode }) {
     <div className="space-y-4">
       <div className={cn(
         "rounded-2xl border border-border/70 bg-muted/10 p-4",
-        isProtagonist && "border-emerald-200 bg-[linear-gradient(135deg,#f0fdf4_0%,#ffffff_70%)]",
+        isProtagonist && "border-emerald-200 bg-[linear-gradient(135deg,#f0fdf4_0%,#ffffff_70%)] dark:border-emerald-700 dark:bg-none dark:bg-emerald-500/10",
       )}>
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-base font-semibold">{character.name}</div>
@@ -531,8 +531,8 @@ function getNodeTone(character: Character) {
     };
   }
   return {
-    avatar: "border-slate-200 bg-slate-50 text-slate-800",
-    badge: "bg-slate-100 text-slate-700",
+    avatar: "border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200",
+    badge: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
   };
 }
 
@@ -543,7 +543,7 @@ function getEdgeTone(edge?: RelationshipGraphEdge) {
   if (edge?.isDynamic) {
     return { stroke: "#0284c7", label: "border-sky-200 bg-sky-50 text-sky-800 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300" };
   }
-  return { stroke: "#64748b", label: "border-slate-200 bg-white text-slate-700" };
+  return { stroke: "#64748b", label: "border-slate-200 bg-white text-slate-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300" };
 }
 
 function getRelationNames(edge: RelationshipGraphEdge): string {

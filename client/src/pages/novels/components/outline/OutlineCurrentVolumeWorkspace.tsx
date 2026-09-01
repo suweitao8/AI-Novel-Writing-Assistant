@@ -120,7 +120,7 @@ export default function OutlineCurrentVolumeWorkspace(props: OutlineCurrentVolum
                       onClick={() => onSelectedVolumeChange(volume.id)}
                       className={`w-full rounded-xl border p-3 text-left transition ${
                         isSelected
-                          ? "border-sky-400/70 bg-sky-50 shadow-sm ring-1 ring-sky-200"
+                          ? "border-sky-400/70 bg-sky-50 shadow-sm ring-1 ring-sky-200 dark:bg-sky-900/20 dark:border-sky-600 dark:ring-sky-700/50"
                           : "border-border/70 bg-background hover:border-primary/30 hover:bg-muted/30"
                       }`}
                     >

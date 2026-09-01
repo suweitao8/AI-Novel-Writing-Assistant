@@ -555,7 +555,7 @@ export default function NovelAutoDirectorProgressPanel({
         </details>
 
         {chapterTitleWarning ? (
-          <div className="mt-4 rounded-xl border border-amber-300/60 bg-amber-50/80 p-4 text-sm text-amber-950">
+          <div className="mt-4 rounded-xl border border-amber-300/60 bg-amber-50/80 p-4 text-sm text-amber-950 dark:text-amber-300 dark:bg-amber-900/20 dark:border-amber-700">
             <div className="font-medium">当前提醒</div>
             <div className="mt-1">{chapterTitleWarning.summary}</div>
             <div className="mt-3 flex flex-wrap gap-2">

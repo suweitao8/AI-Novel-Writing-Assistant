@@ -45,7 +45,7 @@ function cardClass(mode: NovelEditTakeoverState["mode"]): string {
     return "border-destructive/35 bg-destructive/5";
   }
   if (mode === "waiting" || mode === "action_required") {
-    return "border-amber-500/35 bg-amber-50/80";
+    return "border-amber-500/35 bg-amber-50/80 dark:bg-amber-900/20";
   }
   return "border-primary/25 bg-primary/[0.04]";
 }
