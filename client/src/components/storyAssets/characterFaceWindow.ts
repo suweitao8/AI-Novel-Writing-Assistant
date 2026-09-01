@@ -22,7 +22,7 @@ export interface CharacterFaceWindow {
   naturalWidth: number;
 }
 
-const ANALYSIS_WIDTH = 768;
+const ANALYSIS_WIDTH = 1536;
 const MIN_WINDOW = 220;
 /** 与旧固定窗口一致的重心比例（y0 = 0.2857 × 边长，头顶留少量裁切）。 */
 const TOP_ANCHOR_RATIO = 0.2857;
@@ -117,10 +117,12 @@ function measureFaceWindow(image: HTMLImageElement): CharacterFaceWindow | null 
   while (leftIndex < density.length && density[leftIndex] < 0.5) leftIndex += 1;
   if (leftIndex >= density.length) leftIndex = 0;
   const leftX = xs[leftIndex];
+  // 候选切点必须与左边界构成足够宽的方形窗口，否则视为误检并继续向后扫。
+  const minCut = leftX - 8 + MIN_WINDOW;
 
   let cut = -1;
   for (let i = leftIndex; i < xs.length; i += 1) {
-    if (xs[i] > leftX + half * 0.2 && whiteRatio[i] >= 0.55) {
+    if (xs[i] > leftX + half * 0.2 && whiteRatio[i] >= 0.55 && xs[i] - 6 >= minCut) {
       cut = xs[i] - 6;
       break;
     }
@@ -128,7 +130,7 @@ function measureFaceWindow(image: HTMLImageElement): CharacterFaceWindow | null 
   if (cut < 0) {
     for (let i = 0; i < xs.length - 1; i += 1) {
       const x = xs[i];
-      if (x < half * 0.35) continue;
+      if (x < half * 0.35 || x + 1 < minCut) continue;
       if (density[i] >= 0.3 && density[i + 1] >= 0.3 && Math.abs(meanLuma[i + 1] - meanLuma[i]) >= 55) {
         cut = x + 1;
         break;
@@ -142,7 +144,7 @@ function measureFaceWindow(image: HTMLImageElement): CharacterFaceWindow | null 
       return slice.reduce((sum, v) => sum + v, 0) / slice.length;
     });
     for (let i = leftIndex; i < smooth.length; i += 1) {
-      if (smooth[i] >= 0.45) continue;
+      if (smooth[i] >= 0.45 || xs[i] + 6 < minCut) continue;
       let j = i;
       while (j < smooth.length && smooth[j] < 0.75) j += 1;
       if (j < smooth.length && xs[j] - xs[i] <= 48 && smooth[i] <= Math.min(...smooth.slice(i, j + 1)) + 0.001) {
