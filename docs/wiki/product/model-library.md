@@ -15,7 +15,7 @@
 - **入口筛选栏布局统一**：模型库与动画库遵循同一视觉顺序，桌面端左侧承载分类筛选（动画页同时保留用途范围），右侧靠边放置搜索框和搜索按钮；窄屏时搜索栏独占下一行。搜索输入只在点击搜索或按回车后成为已应用查询，避免输入过程持续重排卡片。
 - **模型详情与 HDRI 环境预览分工**：`pages/models/modelLibrary3d/modelViewerApp.ts` 是单模型只读查看器，复用 blocking3d 的资源加载与数学原语，不承载漫剧角色、场景标记和镜头状态，也不提供模型变换写入口；通用资产的 HDRI 3D 预览则直接复用漫剧场景的 `createBlocking3dViewer`，以 `loadProxyActor: false` 只显示环境。这样模型详情页只负责检查模型，HDRI 环境编辑只维护一套场景相机、投影网格和生命周期。
 - **模型入库管线**（仓库外脚本，`D:\UnrealWorkspace\`；操作手册已封装为项目 skill `.agents/skills/unreal-import/`，UE 项目地址见 AGENTS.md 的 Unreal Asset Pipeline 一节，本页保留决策与失败模式）：
-  1. `scan_props.py` 全文件扫描 `/Script/Engine.StaticMesh`，按名字剔除建筑壳体/地形/LOD/碰撞体（源项目 1.1 万+ 静态网格，前景可用约 3100 个）；
+  1. `scan_props.py` 全文件扫描 `/Script/Engine.StaticMesh`，按名字剔除建筑壳体/地形/LOD/碰撞体。**注意扫描范围偏差（2026-09-02 普查修正）**：该脚本只扫了 19 个前景道具白名单包（`TARGET_PACKS`），不是全项目；全项目普查（`census_meshes.py` → `cine57_mesh_census.json`）确认源项目共 67,550 个 uasset、11,391 个 StaticMesh（SM_* 命名 9,801），白名单内仅 3,933 个，**白名单外尚有约 5,900 个 SM 网格从未探索**——大户：Abandoned_Hong-Kong 834、Abandoned_house 431、Trash/VOL1 373、SuburbsCityPack 360、PostSovietWorld 306、UltimateFarming 305、Sewers 255、SCHOOL 221、VOL5_Doors 183、Roadside 175、Warehouse 164、ASIAN_Village 137、商业门 125、医院 226、窗 81 等（Paris 873 / Venice 473 个非 SM 命名网格另计）；
   2. `select_batch3.py` 按包配额 + 网格族限量选目标；
   3. `export_cine57_batch3.py` 由 `UnrealEditor-Cmd -run=pythonscript` 无头导出 FBX + 材质贴图 PNG；manifest 用 JSONL 逐条追加（断点续跑），贴图按「贴图资产路径 + 桶」去重；
   4. `export_cine57_batch4b.py` 对无贴图参数的纯材质做 introspection（输入节点常量/标量/直连贴图）+ 全量按资产 RMA 扫描；
