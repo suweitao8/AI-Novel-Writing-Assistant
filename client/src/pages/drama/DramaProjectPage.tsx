@@ -170,7 +170,7 @@ function ProjectProgress(props: { project: DramaProjectDetail }) {
     <div className="grid gap-2 sm:grid-cols-5">
       {steps.map((step) => (
         <div key={step.label} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm">
-          <CheckCircle2 className={step.done ? "h-4 w-4 text-emerald-600" : "h-4 w-4 text-muted-foreground"} />
+          <CheckCircle2 className={step.done ? "h-4 w-4 text-emerald-600 dark:text-emerald-300" : "h-4 w-4 text-muted-foreground"} />
           <span>{step.label}</span>
         </div>
       ))}

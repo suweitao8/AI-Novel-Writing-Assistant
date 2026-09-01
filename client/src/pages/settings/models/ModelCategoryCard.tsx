@@ -150,7 +150,7 @@ export default function ModelCategoryCard(props: ModelCategoryCardProps) {
       </CardHeader>
       <CardContent className="space-y-4">
         {usesLocalSubscription ? (
-          <div className="flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50/60 p-3 text-sm leading-6 text-emerald-800">
+          <div className="flex items-start gap-2 rounded-md border border-success/30 bg-success/10 p-3 text-sm leading-6 text-success">
             <BadgeCheck className="mt-1 h-4 w-4 shrink-0" />
             <div>
               已连接本机订阅通道：直接使用已登录订阅的额度进行生成，不需要填写 API Key。

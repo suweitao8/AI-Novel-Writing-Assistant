@@ -151,7 +151,7 @@ export default function NovelStyleRecommendationCard({ novelId }: NovelStyleReco
                         </div>
                         <div className="mt-3 text-sm leading-7 text-slate-700">{candidate.recommendationReason}</div>
                         {candidate.caution ? (
-                          <div className="mt-3 rounded-xl border bg-amber-50/70 p-3 text-xs leading-6 text-amber-900">
+                          <div className="mt-3 rounded-xl border bg-amber-50/70 p-3 text-xs leading-6 text-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
                             注意事项：{candidate.caution}
                           </div>
                         ) : null}

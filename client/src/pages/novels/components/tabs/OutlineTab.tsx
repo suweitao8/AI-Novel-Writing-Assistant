@@ -213,7 +213,7 @@ export default function OutlineTab(props: OutlineTabViewProps) {
       <div className="space-y-5 p-5">
         <WorldInjectionHint worldInjectionSummary={worldInjectionSummary} />
         {!hasCharacters ? (
-          <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+          <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
             <span>建议先补齐角色，再生成卷战略和卷骨架。</span>
             <Button size="sm" variant="outline" onClick={onGoToCharacterTab}>去角色管理</Button>
           </div>
@@ -267,11 +267,11 @@ export default function OutlineTab(props: OutlineTabViewProps) {
                 </div>
 
                 {readiness.blockingReasons.length > 0 ? (
-                  <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+                  <div className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                     {readiness.blockingReasons.map((reason) => <div key={reason}>{reason}</div>)}
                   </div>
                 ) : (
-                  <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800">
+                  <div className="rounded-xl bg-emerald-50 p-3 text-xs text-emerald-800 dark:bg-emerald-900/20 dark:text-emerald-300">
                     当前工作区已经具备继续推进的基础条件。
                   </div>
                 )}

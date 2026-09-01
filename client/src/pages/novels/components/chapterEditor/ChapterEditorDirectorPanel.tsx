@@ -233,7 +233,7 @@ export default function ChapterEditorDirectorPanel(props: ChapterEditorDirectorP
         ) : null}
 
         {session.status === "error" ? (
-          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-900 dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300">
             {session.errorMessage || "候选生成失败，请重试。"}
           </div>
         ) : null}
@@ -251,7 +251,7 @@ export default function ChapterEditorDirectorPanel(props: ChapterEditorDirectorP
                 <div>说明：{session.resolvedIntent?.reasoningSummary}</div>
               </div>
               {session.macroAlignmentNote ? (
-                <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3 text-sm leading-6 text-emerald-900">
+                <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-3 text-sm leading-6 text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300">
                   与本章/本卷目标的对齐：{session.macroAlignmentNote}
                 </div>
               ) : null}
@@ -279,7 +279,7 @@ export default function ChapterEditorDirectorPanel(props: ChapterEditorDirectorP
                 <div className="text-sm leading-6 text-foreground/80">为什么这样改：{activeCandidate.rationale}</div>
               ) : null}
               {activeCandidate.riskNotes && activeCandidate.riskNotes.length > 0 ? (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-sm leading-6 text-amber-900">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-3 text-sm leading-6 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                   需要注意：{activeCandidate.riskNotes.join("；")}
                 </div>
               ) : null}

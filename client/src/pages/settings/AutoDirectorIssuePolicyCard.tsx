@@ -100,7 +100,7 @@ export function AutoDirectorIssuePolicyCard(props: {
                 <div className="min-w-0">
                   <div className="text-sm font-medium">{entry.label}</div>
                   <div className="mt-1 break-all text-xs text-muted-foreground">{entry.code} · 默认：{ACTION_LABELS[entry.defaultAction]}</div>
-                  {entry.lockedReason ? <div className="mt-1 text-xs text-amber-700">安全提示：{entry.lockedReason}{entry.enforcedAction ? ` 当前触发时仍会${ACTION_LABELS[entry.enforcedAction]}。` : ""}</div> : null}
+                  {entry.lockedReason ? <div className="mt-1 text-xs text-amber-700 dark:text-amber-300">安全提示：{entry.lockedReason}{entry.enforcedAction ? ` 当前触发时仍会${ACTION_LABELS[entry.enforcedAction]}。` : ""}</div> : null}
                 </div>
                 <select
                   className="h-9 rounded-md border bg-background px-3 text-sm"

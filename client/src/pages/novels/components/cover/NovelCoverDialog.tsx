@@ -193,8 +193,8 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
     : "原链路 Prompt";
   const currentSendModeClass = promptMode === "direct"
     ? (directPromptSource === "optimized"
-      ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
-      : "rounded-full bg-amber-50 px-3 py-1 text-amber-700")
+      ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
+      : "rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300")
     : "rounded-full bg-slate-100 px-3 py-1 text-slate-700";
 
   const activateDirectPrompt = (value: string, source: DirectPromptSource) => {
@@ -346,7 +346,7 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
 
         <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
           {imageProviderOptions.length === 0 ? (
-            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <section className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
               <div className="font-medium">还不能开始生成</div>
               <div className="mt-1 leading-6">
                 当前没有已配置的图像模型。请先到
@@ -605,7 +605,7 @@ export function NovelCoverDialog(props: NovelCoverDialogProps) {
 
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={asset.isPrimary
-                        ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700"
+                        ? "rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
                         : "rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"}
                       >
                         {asset.isPrimary ? "当前主封面" : "候选图"}

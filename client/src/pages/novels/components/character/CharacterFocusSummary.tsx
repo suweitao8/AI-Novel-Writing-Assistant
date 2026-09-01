@@ -23,7 +23,7 @@ export default function CharacterFocusSummary(props: CharacterFocusSummaryProps)
         <div className="relative min-w-0 bg-[linear-gradient(135deg,hsl(var(--background))_0%,hsl(var(--muted)/0.55)_100%)] p-5">
           <div className="absolute inset-y-5 left-0 w-1 rounded-r-full bg-emerald-500" />
           <div className="flex min-w-0 gap-4">
-            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-lg font-semibold text-emerald-900">
+            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-emerald-200 bg-emerald-50 text-lg font-semibold text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300">
               {avatarText}
             </div>
             <div className="min-w-0 space-y-3">
