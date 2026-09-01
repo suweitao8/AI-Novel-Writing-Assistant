@@ -38,7 +38,8 @@ function clearStaleOptimizeCache(rootDir: string): void {
   console.info("[vite] Cleared stale optimize cache because cached dependency sources no longer exist.");
 }
 
-// 开发端口固定：服务端端口以 server/.env 的 PORT 为唯一来源（当前 3100），
+// 开发端口按 checkout 车道解析：服务端端口以 server/.env 的 PORT 为唯一来源
+// （主工作区 3100，worktree 由 workflow:worktree 写入独立端口），
 // 避免代理目标和服务端实际端口漂移导致 ECONNREFUSED。
 function resolveDevServerPort(): number {
   const envPort = Number(process.env.PORT);
@@ -55,6 +56,25 @@ function resolveDevServerPort(): number {
     // server/.env 缺失时使用固定默认端口。
   }
   return 3100;
+}
+
+// 前端 dev 服务自身端口同样按车道解析：优先 DEV_CLIENT_PORT 环境变量，
+// 其次 server/.env 的 CLIENT_PORT（worktree 创建时写入），主工作区固定 5174。
+function resolveDevClientPort(): number {
+  const envPort = Number(process.env.DEV_CLIENT_PORT);
+  if (Number.isInteger(envPort) && envPort > 0) {
+    return envPort;
+  }
+  try {
+    const serverEnv = fs.readFileSync(path.resolve(__dirname, "../server/.env"), "utf8");
+    const match = /^\s*CLIENT_PORT=(\d+)\s*$/m.exec(serverEnv);
+    if (match) {
+      return Number(match[1]);
+    }
+  } catch {
+    // server/.env 缺失时使用固定默认端口。
+  }
+  return 5174;
 }
 
 function resolveDevProxyTarget(): string {
@@ -113,9 +133,9 @@ export default defineConfig({
   },
   server: {
     host: true,
-    // 前端开发端口固定 5174：5173 被本机其他长驻服务（Docker 容器）长期占用，
-    // 本项目固定使用 5174；被占用时报错退出而不是自动漂移（见 AGENTS.md Development Ports）。
-    port: 5174,
+    // 前端 dev 端口按车道解析：主工作区固定 5174（5173 被本机其他长驻服务占用），
+    // worktree 使用其 server/.env 写入的独立端口；被占用时报错退出而不是自动漂移。
+    port: resolveDevClientPort(),
     strictPort: true,
     proxy: {
       "/api": {

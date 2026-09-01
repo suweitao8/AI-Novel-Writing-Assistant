@@ -8,6 +8,7 @@ const { spawnSync } = require("node:child_process");
 const {
   assertClientRuntimeIntegrity,
   assertDevelopmentWorkspaceIntegrity,
+  assertHooksConfig,
   assertMainWorkspaceSharedIntegrity,
   assertStartupIntegrity,
 } = require("./workspace-integrity-guard.cjs");
@@ -222,4 +223,43 @@ test("dependency preflight reports a missing Vite refresh runtime before startin
 
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}\n${result.stderr}`, /Vite React refresh runtime is missing/i);
+});
+
+function createMainRepositoryWithWorktree(t, branchName) {
+  const mainDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "ai-novel-guard-main-"));
+  const worktreeDirectory = path.join(path.dirname(mainDirectory), `${path.basename(mainDirectory)}-wt`);
+  t.after(() => {
+    runGit(mainDirectory, ["worktree", "remove", "--force", worktreeDirectory], { expectSuccess: false });
+    fs.rmSync(mainDirectory, { recursive: true, force: true });
+    fs.rmSync(worktreeDirectory, { recursive: true, force: true });
+  });
+  runGit(mainDirectory, ["init", "-b", "main"]);
+  runGit(mainDirectory, ["config", "user.name", "Workspace Guard Test"]);
+  runGit(mainDirectory, ["config", "user.email", "workspace-guard@example.invalid"]);
+  fs.mkdirSync(path.join(mainDirectory, ".githooks"), { recursive: true });
+  fs.writeFileSync(path.join(mainDirectory, "README.md"), "fixture\n", "utf8");
+  runGit(mainDirectory, ["add", "README.md"]);
+  runGit(mainDirectory, ["commit", "-m", "initial"]);
+  runGit(mainDirectory, ["config", "core.hooksPath", path.join(mainDirectory, ".githooks")]);
+  runGit(mainDirectory, ["config", "merge.ff", "false"]);
+  runGit(mainDirectory, ["worktree", "add", "-b", branchName, worktreeDirectory, "main"]);
+  return { mainDirectory, worktreeDirectory };
+}
+
+test("worktree lane accepts hooks owned by the main workspace", (t) => {
+  const { worktreeDirectory } = createMainRepositoryWithWorktree(t, "codex/lane-ok");
+
+  assert.doesNotThrow(() => assertHooksConfig(worktreeDirectory));
+});
+
+test("worktree lane still rejects a hooks path from an unrelated checkout", (t) => {
+  const { worktreeDirectory } = createMainRepositoryWithWorktree(t, "codex/lane-bad");
+  const unrelatedHooks = path.join(path.dirname(worktreeDirectory), "unrelated-githooks");
+  fs.mkdirSync(unrelatedHooks, { recursive: true });
+  runGit(worktreeDirectory, ["config", "core.hooksPath", unrelatedHooks]);
+
+  assert.throws(
+    () => assertHooksConfig(worktreeDirectory),
+    /Git hooks are not installed for this checkout/i,
+  );
 });
