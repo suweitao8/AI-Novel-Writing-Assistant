@@ -27,6 +27,7 @@ import {
 } from "./modelLibraryPagination";
 
 const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
+const MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT = 6;
 
 function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
@@ -157,6 +158,9 @@ export default function ModelLibraryPage() {
     () => MODEL_LIBRARY_CATEGORIES.filter((item) => visibleEntries.some((entry) => entry.category === item)),
     [visibleEntries],
   );
+  const categoryItems = ["全部", ...visibleCategories];
+  const firstRowCategoryItems = categoryItems.slice(0, MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT);
+  const secondaryCategoryItems = categoryItems.slice(MODEL_LIBRARY_FIRST_ROW_CATEGORY_COUNT);
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of visibleEntries) {
@@ -192,53 +196,67 @@ export default function ModelLibraryPage() {
     setPage(1);
   };
 
+  const renderCategoryButton = (item: string) => (
+    <button
+      key={item}
+      type="button"
+      role="tab"
+      aria-selected={category === item}
+      onClick={() => {
+        setCategory(item);
+        setPage(1);
+      }}
+      className={cn(
+        "flex h-7 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] transition-colors",
+        category === item
+          ? "bg-primary font-medium text-primary-foreground"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground",
+      )}
+    >
+      {item}
+      <span
+        className={cn(
+          "text-[10px] leading-none",
+          category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
+        )}
+      >
+        {item === "全部" ? visibleEntries.length : counts.get(item) ?? 0}
+      </span>
+    </button>
+  );
+
   return (
     <div className="space-y-3" data-model-library-page>
       <section
-        className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2"
+        className="relative min-w-0 rounded-xl border border-border bg-card p-2"
         aria-label="模型筛选"
         data-model-filter-controls
       >
-        <div className="flex min-w-0 flex-1 items-center gap-2" data-model-category-filter>
-          <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground">分类</span>
+        <div className="min-w-0" data-model-category-filter>
           <div
             role="tablist"
             aria-label="模型分类"
-            className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap"
+            className="min-w-0 space-y-1"
             data-model-category-table
           >
-            {["全部", ...visibleCategories].map((item) => (
-              <button
-                key={item}
-                type="button"
-                role="tab"
-                aria-selected={category === item}
-                onClick={() => {
-                  setCategory(item);
-                  setPage(1);
-                }}
-                className={cn(
-                  "flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
-                  category === item
-                    ? "bg-primary font-medium text-primary-foreground"
-                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
-                )}
+            <div
+              data-model-category-first-row
+              className="flex min-w-0 flex-wrap items-center gap-1 sm:pr-84"
+            >
+              {firstRowCategoryItems.map(renderCategoryButton)}
+            </div>
+            {secondaryCategoryItems.length > 0 ? (
+              <div
+                data-model-category-secondary-row
+                className="flex min-w-0 flex-wrap items-center gap-1"
               >
-                {item}
-                <span
-                  className={cn(
-                    "text-[10px] leading-none",
-                    category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
-                  )}
-                >
-                  {item === "全部" ? visibleEntries.length : counts.get(item) ?? 0}
-                </span>
-              </button>
-            ))}
+                {secondaryCategoryItems.map(renderCategoryButton)}
+              </div>
+            ) : null}
           </div>
         </div>
         <form
-          className="flex w-full shrink-0 items-center gap-1.5 sm:ml-auto sm:w-auto"
+          className="mt-2 flex w-full items-center gap-1.5 sm:absolute sm:right-2 sm:top-2 sm:mt-0 sm:w-80"
           aria-label="搜索模型"
           data-model-search
           onSubmit={submitSearch}
