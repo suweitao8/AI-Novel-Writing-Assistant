@@ -35,6 +35,15 @@ export async function deleteComicDramaByNovel(novelId: string) {
   return data;
 }
 
+// 保存漫剧卡片的预览场景：null 表示回到默认（第一个有图的场景）。
+export async function updateDramaPreviewScene(projectId: string, sceneId: string | null) {
+  const { data } = await apiClient.patch<ApiResponse<{ projectId: string; previewSceneId: string | null }>>(
+    `/drama/projects/${encodeURIComponent(projectId)}/preview-scene`,
+    { sceneId },
+  );
+  return data;
+}
+
 // ─── 配音（漫剧工作台配音阶段） ────────────────────────────────────────────────
 
 export type DramaAudioSegmentType = "dialogue" | "narration";

@@ -102,14 +102,17 @@ interface ComicDramaCardNovel {
   _count?: { chapters?: number };
 }
 
-function StageBadge(props: { label: string; state: StageState }) {
+function StageBadge(props: { label: string; state: StageState; onImage?: boolean }) {
   return (
     <Badge
       variant="outline"
       className={cn(
         "gap-1",
-        props.state === "done" && "border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
-        props.state === "active" && "border-primary/40 bg-primary/10 text-primary",
+        props.state === "done" && !props.onImage && "border-emerald-500/40 text-emerald-600 dark:text-emerald-400",
+        props.state === "active" && !props.onImage && "border-primary/40 bg-primary/10 text-primary",
+        props.onImage && "border-white/25 bg-black/55 text-white/90",
+        props.state === "done" && props.onImage && "border-emerald-300/50 text-emerald-200",
+        props.state === "active" && props.onImage && "border-amber-200/50 text-amber-100",
       )}
     >
       {props.state === "done" ? "✓" : props.state === "active" ? "•" : "○"}
@@ -120,7 +123,7 @@ function StageBadge(props: { label: string; state: StageState }) {
 
 function ComicDramaCard(props: {
   novel: ComicDramaCardNovel;
-  link: { status: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number; videoReadyCount: number } | null;
+  link: { status: string; shotCount: number; keyframeReadyCount: number; audioReadyCount: number; videoReadyCount: number; previewImageUrl: string | null } | null;
   onDelete: () => void;
 }) {
   const { novel, link, onDelete } = props;
@@ -130,6 +133,10 @@ function ComicDramaCard(props: {
   const assemblyStage: StageState = !link ? "pending" : link.videoReadyCount > 0 ? "done" : link.audioReadyCount > 0 ? "active" : "pending";
   const chapterCount = novel._count?.chapters ?? 0;
   const wordCount = novel.totalWordCount ?? 0;
+  const previewUrl = link?.previewImageUrl ?? null;
+  const statsText = link
+    ? `分镜 ${link.shotCount} · 画面 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 成片 ${link.videoReadyCount}`
+    : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜";
 
   return (
     <div className="group relative aspect-square">
@@ -138,33 +145,63 @@ function ComicDramaCard(props: {
         aria-label={`打开《${novel.title}》漫剧工作室`}
         className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
-        <Card className="h-full overflow-hidden rounded-[var(--radius-panel)] border-border/70 bg-[var(--surface-panel)] transition group-hover:border-primary/35 group-hover:shadow-sm">
-          <CardContent className="flex h-full flex-col gap-2 p-3">
-            <h3 className="truncate pr-7 font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
-            <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
-              <span>{chapterCount} 章</span>
-              <span aria-hidden="true" className="text-border">·</span>
-              <span>{wordCount.toLocaleString()} 字</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              <StageBadge label="小说" state={novelStage} />
-              <StageBadge label="分镜" state={storyboardStage} />
-              <StageBadge label="配音" state={voiceStage} />
-              <StageBadge label="成片" state={assemblyStage} />
-            </div>
-            <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">
-              {link
-                 ? `分镜 ${link.shotCount} · 画面 ${link.keyframeReadyCount} · 配音 ${link.audioReadyCount} · 成片 ${link.videoReadyCount}`
-                : novelStage === "pending" ? "还没开始写小说" : "AI 正在写小说，写完可生成分镜"}
-            </span>
-          </CardContent>
+        <Card className="relative h-full overflow-hidden rounded-[var(--radius-panel)] border-border/70 bg-[var(--surface-panel)] transition group-hover:border-primary/35 group-hover:shadow-sm">
+          {previewUrl ? (
+            <>
+              <img
+                src={previewUrl}
+                alt=""
+                aria-hidden="true"
+                loading="lazy"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent"
+              />
+              <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1.5 p-3">
+                <h3 className="truncate pr-6 font-semibold text-white group-hover:text-white">{novel.title}</h3>
+                <div className="flex items-center gap-1.5 text-xs tabular-nums text-white/75">
+                  <span>{chapterCount} 章</span>
+                  <span aria-hidden="true" className="text-white/40">·</span>
+                  <span>{wordCount.toLocaleString()} 字</span>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  <StageBadge label="小说" state={novelStage} onImage />
+                  <StageBadge label="分镜" state={storyboardStage} onImage />
+                  <StageBadge label="配音" state={voiceStage} onImage />
+                  <StageBadge label="成片" state={assemblyStage} onImage />
+                </div>
+                <span className="truncate text-xs text-white/70">{statsText}</span>
+              </div>
+            </>
+          ) : (
+            <CardContent className="flex h-full flex-col gap-2 p-3">
+              <h3 className="truncate pr-7 font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
+              <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
+                <span>{chapterCount} 章</span>
+                <span aria-hidden="true" className="text-border">·</span>
+                <span>{wordCount.toLocaleString()} 字</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <StageBadge label="小说" state={novelStage} />
+                <StageBadge label="分镜" state={storyboardStage} />
+                <StageBadge label="配音" state={voiceStage} />
+                <StageBadge label="成片" state={assemblyStage} />
+              </div>
+              <span className="mt-auto truncate pt-1 text-xs text-muted-foreground">{statsText}</span>
+            </CardContent>
+          )}
         </Card>
       </Link>
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="absolute right-1 top-1 h-7 w-7 text-muted-foreground hover:text-destructive"
+        className={cn(
+          "absolute right-1 top-1 h-7 w-7",
+          previewUrl ? "text-white/90 hover:text-destructive" : "text-muted-foreground hover:text-destructive",
+        )}
         title="删除漫剧项目"
         aria-label={`删除《${novel.title}》漫剧项目`}
         onClick={(event) => {

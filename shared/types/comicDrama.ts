@@ -296,6 +296,10 @@ export interface ComicDramaLinkStats {
   audioReadyCount: number;
   videoPromptCount: number;
   videoReadyCount: number;
+  /** 用户在设定里显式选择的预览场景 id；null=未选择，按默认规则取第一个有图的场景。 */
+  previewSceneId: string | null;
+  /** 卡片预览图：预览场景生效状态的图片 URL；场景都没有图时为 null。 */
+  previewImageUrl: string | null;
 }
 
 export interface ComicDramaLinksResponse {
