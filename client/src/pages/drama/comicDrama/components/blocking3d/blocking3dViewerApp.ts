@@ -2,6 +2,8 @@ import * as pc from "playcanvas";
 import type { StoryScene3DMarker } from "@ai-novel/shared/types/comicDrama";
 import {
   clampBlockingActorPositionToStage,
+  clampBlockingCameraOrbitToWorld,
+  clampBlockingCameraPositionToWorld,
   resolveStoryScene3DActorStageRadius,
   resolveStoryScene3DWorldRadius,
 } from "@ai-novel/shared/utils/blockingStage";
@@ -340,6 +342,8 @@ export async function createBlocking3dViewer(
     gridLines = buildBlocking3dGroundGridLines(environmentSettings);
     rebuildBoundaryRings();
     environment.applySettings(environmentSettings);
+    // 穹顶半径/投射中心变化后，摄像机边界随之变化：立即收敛，避免停在新的壳外。
+    syncCamera();
   };
   let actorAsset: pc.Asset | null = null;
   const animationTracks = new Map<string, unknown>();
@@ -402,6 +406,12 @@ export async function createBlocking3dViewer(
 
   const syncCamera = () => {
     if (!cameraEntity.camera) return;
+    // 全景穹顶是场景的物理外壳：所有编辑视角操作（平移/缩放/聚焦/载入）
+    // 都经过这里收敛进壳内，出界取景只会拍到穹顶背面。
+    cameraState = {
+      ...cameraState,
+      ...clampBlockingCameraOrbitToWorld(cameraState, environmentSettings),
+    };
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
     const distance = orbitDistance();
@@ -576,12 +586,9 @@ export async function createBlocking3dViewer(
   /** 场景摄像机独立机位的统一写入口：收敛边界后同步机身与取景画中画。 */
   const setShotCameraPose = (patch: Partial<Blocking3dShotCameraPose>) => {
     const merged = { ...shotCameraPose, ...patch };
+    const position = clampBlockingCameraPositionToWorld(merged.position, environmentSettings);
     shotCameraPose = {
-      position: [
-        clamp(merged.position[0], -100, 100),
-        clamp(merged.position[1], 0, 50),
-        clamp(merged.position[2], -100, 100),
-      ],
+      position,
       yawDeg: wrapBlocking3dAzimuth(merged.yawDeg),
       pitchDeg: clamp(merged.pitchDeg, -89, 89),
     };
@@ -1375,8 +1382,14 @@ export async function createBlocking3dViewer(
       // 旧布局没有独立机位字段时从轨道相机推导，打开就能看到摄像机实体。
       shotCameraPose = normalizeShotCameraPose(
         layout.shotCamera,
-        deriveShotCameraPoseFromOrbit(layout.camera),
+        // setCameraState 已把轨道相机收敛进穹顶；旧布局从收敛后的机位推导，
+        // 避免把越界的编辑视角原样继承成拍摄机位。
+        deriveShotCameraPoseFromOrbit(cameraState),
       );
+      shotCameraPose = {
+        ...shotCameraPose,
+        position: clampBlockingCameraPositionToWorld(shotCameraPose.position, environmentSettings),
+      };
       syncShotCameraVisuals();
       for (const saved of layout.actors) {
         const actor = actors.get(saved.characterName);

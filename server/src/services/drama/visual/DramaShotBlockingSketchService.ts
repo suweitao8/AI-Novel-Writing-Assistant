@@ -50,7 +50,7 @@ import {
   type DramaShotBlockingSketchPose,
 } from "./DramaShotBlockingSketchContracts";
 import { resolveStoryScene3dEnvironment } from "@ai-novel/shared/utils/scene3dEnvironment";
-import { normalizeSceneStates } from "@ai-novel/shared/utils/storyAssetSceneStates";
+import { normalizeSceneStates, storyAssetStateImageUpdatedAt } from "@ai-novel/shared/utils/storyAssetSceneStates";
 
 const DRAMA_SHOT_IMAGES_DIR = "drama-shots";
 const BLOCKING_SKETCH_FILE = "blocking-sketch.png";
@@ -116,6 +116,8 @@ interface BlockingSketchEditorScene {
   assetId: string;
   stateId: string;
   imageUrl: string;
+  /** 当前场景状态图的生成时间：客户端保存草图时写入版本标记。 */
+  imageUpdatedAt: string | null;
   environment: StoryScene3DEnvironment;
   markers: StoryScene3DMarker[];
   markerAnalysis: StoryScene3DMarkerSet | null;
@@ -361,6 +363,7 @@ export class DramaShotBlockingSketchService {
         assetId: matchedScene.assetId,
         stateId: matchedScene.state.id,
         imageUrl: stateImageUrl(novelId, "scene", matchedScene.assetId, matchedScene.state.id),
+        imageUpdatedAt: storyAssetStateImageUpdatedAt(matchedSceneState),
         environment: matchedScene.environment,
         markers: markersAreCurrent ? markerAnalysis?.markers ?? [] : [],
         markerAnalysis,
