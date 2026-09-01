@@ -1,5 +1,11 @@
 {
-  "version": 1,
+  "version": 2,
+  "libraryContract": {
+    "source": "Cine57",
+    "artDirection": "realistic",
+    "era": "modern",
+    "visualReviewRequired": true
+  },
   "modernExpansion": {
     "minimumNewAssetCount": 148,
     "maximumNewAssetCount": 188,

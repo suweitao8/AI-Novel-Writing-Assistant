@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 
 import { MODEL_LIBRARY, MODEL_LIBRARY_CATEGORIES, type ModelLibraryEntry } from "@/config/modelLibrary";
 import { filterModelLibraryEntries } from "@/config/modelLibraryFilters";
+import { getModelLibraryVisibility } from "@/api/modelLibrary";
 import {
   getModelUsagePlacementLabel,
   getModelUsageSurfaceLabel,
@@ -136,6 +137,32 @@ export default function ModelLibraryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [hiddenModelIds, setHiddenModelIds] = useState<ReadonlySet<string> | null>(null);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+  const visibilityRequestIdRef = useRef(0);
+
+  const loadVisibility = useCallback(async () => {
+    const requestId = visibilityRequestIdRef.current + 1;
+    visibilityRequestIdRef.current = requestId;
+    setHiddenModelIds(null);
+    setVisibilityError(null);
+    try {
+      const response = await getModelLibraryVisibility();
+      if (requestId !== visibilityRequestIdRef.current) return;
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? response.message ?? "模型库可见性加载失败。");
+      }
+      setHiddenModelIds(new Set(response.data.hiddenModelIds));
+    } catch (error: unknown) {
+      if (requestId !== visibilityRequestIdRef.current) return;
+      setHiddenModelIds(null);
+      setVisibilityError(error instanceof Error ? error.message : "模型库可见性加载失败。");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadVisibility();
+  }, [loadVisibility]);
 
   const applySearch = (value: string) => {
     setSearch(value.trim());
@@ -152,7 +179,10 @@ export default function ModelLibraryPage() {
     };
   }, []);
 
-  const visibleEntries = useMemo(() => filterModelLibraryEntries(MODEL_LIBRARY), []);
+  const visibleEntries = useMemo(
+    () => hiddenModelIds ? filterModelLibraryEntries(MODEL_LIBRARY, "", hiddenModelIds) : [],
+    [hiddenModelIds],
+  );
   const visibleCategories = useMemo(
     () => MODEL_LIBRARY_CATEGORIES.filter((item) => visibleEntries.some((entry) => entry.category === item)),
     [visibleEntries],
@@ -169,16 +199,16 @@ export default function ModelLibraryPage() {
       const categoryEntries = category === "全部"
         ? visibleEntries
         : visibleEntries.filter((entry) => entry.category === category);
-      return filterModelLibraryEntries(categoryEntries, search);
+      return filterModelLibraryEntries(categoryEntries, search, hiddenModelIds ?? undefined);
     },
-    [category, search, visibleEntries],
+    [category, hiddenModelIds, search, visibleEntries],
   );
   const currentPage = getModelLibraryPage(entries, page, MODEL_LIBRARY_PAGE_SIZE);
   const pageEntries = currentPage.entries;
 
   useEffect(() => {
     setPage(1);
-  }, [category, search]);
+  }, [category, hiddenModelIds, search]);
 
   useEffect(() => {
     if (page !== currentPage.page) setPage(currentPage.page);
@@ -191,6 +221,29 @@ export default function ModelLibraryPage() {
     setSearch("");
     setPage(1);
   };
+
+  if (!hiddenModelIds) {
+    return (
+      <section
+        className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-12 text-center"
+        data-model-library-visibility-state={visibilityError ? "error" : "loading"}
+      >
+        {visibilityError ? (
+          <>
+            <p className="text-sm text-destructive">{visibilityError}</p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void loadVisibility()}>
+              重试
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">正在加载模型库</p>
+          </>
+        )}
+      </section>
+    );
+  }
 
   return (
     <div className="space-y-3" data-model-library-page>

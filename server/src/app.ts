@@ -46,6 +46,7 @@ import titleLibraryRouter from "./modules/titleLibrary/http/titleLibraryRoutes";
 import visualStyleRouter from "./modules/visual-style/http/visualStyleRoutes";
 import worldRouter from "./modules/setup/world/http";
 import writingFormulaRouter from "./modules/writingFormula/http/writingFormulaRoutes";
+import modelLibraryRouter from "./modules/model-library/http/modelLibraryRoutes";
 import { novelEventBus, registerNovelEventHandlers } from "./events";
 import { bookAnalysisService } from "./services/bookAnalysis/BookAnalysisService";
 import { ragServices } from "./services/rag";
@@ -151,6 +152,7 @@ export function createApp() {
   app.use("/api/creative-hub", creativeHubRouter);
   app.use("/api/prompt-workbench", promptWorkbenchRouter);
   app.use("/api/images", imagesRouter);
+  app.use("/api/model-library", modelLibraryRouter);
   app.use("/api/visual-styles", visualStyleRouter);
   app.use("/api/tasks", tasksRouter);
   app.use("/api/auto-director/follow-ups", autoDirectorFollowUpsRouter);

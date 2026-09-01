@@ -13,10 +13,12 @@ import {
 } from "./modelLibraryQuality.mjs";
 import {
   CINE57_CATEGORY_ORDER,
+  CINE57_MODEL_LIBRARY_CONTRACT,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
+  assertCine57ModelLibraryContract,
   isFoodContainerModel,
 } from "./modelLibraryPolicy.mjs";
 
@@ -25,6 +27,43 @@ const MODELS_DIR = path.join(REPO_ROOT, "client/public/models/cine57");
 const REMOVED_IDS = new Set(CINE57_REMOVED_MODEL_IDS);
 const REQUIRED_FINE_GRAINED_CATEGORIES = CINE57_REQUIRED_CATEGORIES;
 const STATIC_MODEL_LIBRARY = MODEL_LIBRARY.filter((entry) => entry.fileUrl.startsWith("/models/cine57/"));
+
+test("模型库声明 Cine57 现代写实准入契约", () => {
+  assert.deepEqual(CINE57_MODEL_LIBRARY_CONTRACT, {
+    source: "Cine57",
+    artDirection: "realistic",
+    era: "modern",
+    visualReviewRequired: true,
+  });
+  assert.deepEqual([...new Set(STATIC_MODEL_LIBRARY.map((entry) => entry.source))], ["Cine57"]);
+});
+
+test("模型库准入契约缺失或被篡改时拒绝回退到默认值", () => {
+  assert.throws(
+    () => assertCine57ModelLibraryContract(undefined),
+    /must explicitly declare Cine57 modern realistic visual review contract/,
+  );
+  assert.throws(
+    () => assertCine57ModelLibraryContract({
+      source: "OtherPack",
+      artDirection: "stylized",
+      era: "antique",
+      visualReviewRequired: false,
+    }),
+    /must explicitly declare Cine57 modern realistic visual review contract/,
+  );
+});
+
+test("模型库质量门禁拒绝不属于 Cine57 的静态条目", () => {
+  const invalidLibrary = MODEL_LIBRARY.map((entry) => (
+    entry.id === STATIC_MODEL_LIBRARY[0].id
+      ? { ...entry, source: "OtherPack", fileUrl: `/models/other/${entry.fileName}` }
+      : entry
+  ));
+  const errors = validateModelLibrary({ library: invalidLibrary, modelsDir: MODELS_DIR });
+  assert.ok(errors.includes(`${STATIC_MODEL_LIBRARY[0].id} must use Cine57 as its model source`));
+  assert.ok(errors.includes(`${STATIC_MODEL_LIBRARY[0].id} must use /models/cine57/ as its static model path`));
+});
 
 function hasUnsupportedName(name) {
   return /^(?:UCX|UBX)(?:[_-]|$)/i.test(name)
