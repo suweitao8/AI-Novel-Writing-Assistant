@@ -238,7 +238,7 @@ export default function Home() {
   };
 
   return (
-    <div className="home-workbench space-y-6">
+    <div className="studio-page home-workbench space-y-6">
       <FirstNovelJourneyStrip />
       <HomeNextActionPanel
         action={nextAction}

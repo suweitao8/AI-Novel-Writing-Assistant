@@ -28,6 +28,23 @@ Tailwind 语义类速查（写代码只用这些）：
 | `border-border` / `border-input` | 边框/输入框边框 |
 | `ring-ring` | focus 环 |
 
+工作台表面 token（`client/src/index.css`）：
+
+| Token | 用途 |
+|---|---|
+| `--surface-background` | 工作台页面底色 |
+| `--surface-panel` | 普通卡片、侧栏面板 |
+| `--surface-subtle` | 空状态和弱化内容区 |
+| `--surface-raised` | 弹窗、下拉等浮起表面 |
+| `--surface-control` | 输入框、筛选器、次级控件 |
+| `--surface-nav` | 半透明顶栏和移动底栏 |
+| `--control-hover` / `--control-active` | 控件悬停/选中底色 |
+| `--focus-ring` | 键盘聚焦环 |
+| `--shadow-panel` / `--shadow-floating` | 面板/浮层阴影 |
+| `--radius-panel` / `--radius-control` / `--radius-pill` | 面板、控件、胶囊圆角 |
+| `--duration-fast` / `--duration-base` / `--duration-slow` | 交互与页面过渡时长 |
+| `--ease-out-quint` | 工作台过渡曲线 |
+
 ## Ink 调色板（默认，无 data-theme）
 
 ### 亮色 `:root`
@@ -54,16 +71,19 @@ Tailwind 语义类速查（写代码只用这些）：
 
 | Token | HSL |
 |---|---|
-| background | `222.2 47.4% 11.2%` |
-| foreground | `210 40% 98%` |
-| card / popover | `222.2 47.4% 13.5%` |
-| primary | `210 40% 98%`（反白：暗色下主按钮是白色） |
-| primary-foreground | `222.2 47.4% 11.2%` |
-| secondary / muted | `217.2 32.6% 20%` |
-| accent | `217.2 32.6% 23%` |
-| muted-foreground | `215 20.2% 70%` |
-| border / input | `217.2 32.6% 26%` |
-| ring | `212.7 26.8% 83.9%` |
+| background | `222 26% 8%` |
+| foreground | `210 20% 94%` |
+| card | `222 23% 11%` |
+| popover | `222 23% 13%` |
+| primary | `190 84% 63%`（冷青色主操作） |
+| primary-foreground | `222 26% 8%` |
+| secondary | `222 20% 16%` |
+| muted | `222 18% 16%` |
+| accent | `190 32% 19%` |
+| accent-foreground | `190 85% 88%` |
+| muted-foreground | `214 14% 68%` |
+| border / input | `217 22% 24%` / `217 22% 26%` |
+| ring | `190 84% 63%` |
 | success | `142 55% 48%` |
 | warning | `38 92% 55%` |
 | info | `199 80% 58%` |
@@ -87,6 +107,8 @@ Tailwind 语义类速查（写代码只用这些）：
 | `rounded-lg` | `var(--radius)` = 0.75rem（comfortable）/ 0.55rem（compact） |
 | `rounded-md` | `calc(var(--radius) - 2px)` |
 | `rounded-sm` | `calc(var(--radius) - 4px)` |
+
+工作台专用圆角：面板 `--radius-panel: 1rem`，控件 `--radius-control: 0.625rem`，胶囊 `--radius-pill: 9999px`。紧凑密度只调整通用 `--radius`，不改变面板与胶囊的语义边界。
 
 ## 字体
 
@@ -118,5 +140,8 @@ Tailwind 语义类速查（写代码只用这些）：
 | `mobile-site-section` | 移动端圆角卡片段（rounded-[1.25rem]，阴影 `0 10px 30px rgb(15 23 42/0.06)`） |
 | `mobile-site-soft-section` | 移动端弱化卡片段 |
 | `mobile-site-scroll-tabs` | 移动端横向滚动页签 |
+| `studio-shell` / `studio-main` / `studio-page` | 工作台根容器、主滚动区、页面内容 |
+| `studio-top-nav` / `studio-sidebar` | 桌面/移动导航表面 |
+| `studio-card` / `studio-control` / `studio-button` / `studio-pill` | 工作台面板、控件和胶囊语义边界 |
 
 移动端视口判断用 `useIsMobileViewport`（`@/components/layout/mobile/useIsMobileViewport`）。

@@ -8,15 +8,20 @@ const pageSource = readFileSync(
   "utf8",
 );
 
-test("动画入口页保留用途和中等粒度动作分类，并提供搜索筛选", () => {
+test("动画入口页提供统一来源分类，并保留用途和动作分类", () => {
   assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
-  assert.match(pageSource, /useState<AnimationLibraryScopeId>\("storyboard"\)/);
+  assert.match(pageSource, /useState<AnimationLibrarySourceFilterId>\("all"\)/);
+  assert.match(pageSource, /useState<AnimationLibraryScopeId>\("all"\)/);
+  assert.match(pageSource, /ANIMATION_LIBRARY_SOURCES/);
+  assert.match(pageSource, /AnimationLibrarySourceFilterId/);
+  assert.match(pageSource, /data-animation-source-filter/);
+  assert.match(pageSource, /sourceOption\.id/);
   assert.match(pageSource, /storyboard/);
   assert.match(pageSource, /data-animation-scope-filter/);
   assert.match(pageSource, /ANIMATION_LIBRARY_SCOPES/);
   assert.match(pageSource, /scopeOption\.id === "storyboard"/);
   assert.match(pageSource, /scopeOption\.id === "compatibility"/);
-  assert.match(pageSource, /data-animation-category-filter/);
+  assert.match(pageSource, /data-animation-action-filter/);
   assert.match(pageSource, /按动作分类筛选/);
   assert.match(pageSource, /全部动作/);
   assert.match(pageSource, /ANIMATION_LIBRARY_ACTION_TYPES/);
@@ -28,11 +33,22 @@ test("动画入口页保留用途和中等粒度动作分类，并提供搜索�
   assert.doesNotMatch(pageSource, /ANIMATION_LIBRARY_GROUPS/);
   assert.doesNotMatch(pageSource, /data-animation-group-filter-row/);
   assert.doesNotMatch(pageSource, /data-animation-classification-filter/);
-  assert.doesNotMatch(pageSource, /data-animation-detail-filters/);
   assert.doesNotMatch(pageSource, /data-animation-pack-filter/);
-  assert.doesNotMatch(pageSource, /data-animation-action-filter/);
   assert.doesNotMatch(pageSource, /data-animation-posture-filter/);
   assert.doesNotMatch(pageSource, /data-animation-weapon-filter/);
+});
+
+test("来源与搜索占据首行，用途和动作分类位于后续筛选行", () => {
+  assert.match(pageSource, /data-animation-filter-controls/);
+  assert.match(pageSource, /data-animation-source-filter/);
+  assert.match(pageSource, /data-animation-search/);
+  assert.match(pageSource, /sm:ml-auto/);
+  assert.match(pageSource, /data-animation-detail-filters/);
+  assert.match(pageSource, /data-animation-scope-filter/);
+  assert.match(pageSource, /data-animation-action-filter/);
+  assert.match(pageSource, /setSource\("all"\)/);
+  assert.match(pageSource, /setScope\("all"\)/);
+  assert.match(pageSource, /data-animation-source-filter[\s\S]*?TabsList className="[^"]*flex-wrap/);
 });
 
 test("动画卡片只保留有用信息，不重复显示播放和用途装饰", () => {

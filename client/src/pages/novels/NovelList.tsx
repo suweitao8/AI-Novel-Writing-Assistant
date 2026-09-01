@@ -214,7 +214,7 @@ export default function NovelList() {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="studio-page space-y-6">
       <NovelListHeader
         page={page}
         totalPages={totalPages}

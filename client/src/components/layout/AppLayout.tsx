@@ -17,9 +17,10 @@ import {
   shouldUseAutoDirectorMobileFullWidthContent,
 } from "@/mobile/autoDirector";
 import { PageTabsProvider, type PageTabRow } from "./PageTabsContext";
+import { cn } from "@/lib/utils";
 
 const WORKSPACE_RAIL_COLLAPSED_STORAGE_KEY = "ai-novel.workspace-rail.collapsed";
-const DEFAULT_APP_MAIN_CLASS_NAME = "min-h-0 min-w-0 flex-1 overflow-y-auto p-6";
+const DEFAULT_APP_MAIN_CLASS_NAME = "studio-main min-h-0 min-w-0 flex-1 overflow-y-auto p-6";
 
 export default function AppLayout() {
   const location = useLocation();
@@ -78,7 +79,7 @@ export default function AppLayout() {
   if (isNovelPreview) {
     return (
       <TaskRecoveryProvider>
-        <div className="h-[100dvh] overflow-hidden bg-background text-foreground">
+        <div className="studio-shell h-[100dvh] overflow-hidden bg-background text-foreground">
           <AutoDirectorPauseNotificationWatcher />
           <LLMSelectionBootstrap />
           <Suspense fallback={<AppRouteFallback />}>
@@ -93,7 +94,7 @@ export default function AppLayout() {
   if (useMobileNovelWorkspaceLayout) {
     return (
       <TaskRecoveryProvider>
-        <div className="min-h-screen bg-background">
+        <div className="studio-shell min-h-screen bg-background">
           <AutoDirectorPauseNotificationWatcher />
           <LiveExecutionDialog compact className="fixed right-3 top-3 z-50 h-9 w-9 bg-background px-0 shadow-sm" />
           <LLMSelectionBootstrap />
@@ -124,9 +125,12 @@ export default function AppLayout() {
   return (
     <TaskRecoveryProvider>
       <PageTabsProvider value={pageTabsContextValue}>
-        <div className={useTopNavLayout
-          ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
-          : "flex h-[100dvh] min-h-0 overflow-hidden bg-background"}
+        <div className={cn(
+          "studio-shell",
+          useTopNavLayout
+            ? "flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-background"
+            : "flex h-[100dvh] min-h-0 overflow-hidden bg-background",
+        )}
         >
           <AutoDirectorPauseNotificationWatcher />
           <LLMSelectionBootstrap />
@@ -153,7 +157,10 @@ export default function AppLayout() {
                 )}
               </div>
             ) : null}
-            <main className={useMobileFullWidthContent ? AUTO_DIRECTOR_MOBILE_CLASSES.appMain : DEFAULT_APP_MAIN_CLASS_NAME}>
+            <main className={cn(
+              "studio-main",
+              useMobileFullWidthContent ? AUTO_DIRECTOR_MOBILE_CLASSES.appMain : DEFAULT_APP_MAIN_CLASS_NAME,
+            )}>
               <Suspense fallback={<AppRouteFallback />}>
                 <Outlet />
               </Suspense>

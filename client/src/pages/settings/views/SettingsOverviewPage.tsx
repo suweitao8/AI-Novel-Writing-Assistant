@@ -44,39 +44,41 @@ export default function SettingsOverviewPage() {
   const narratorVoice = narratorVoiceQuery.data?.data;
 
   return (
-    <SettingsShell
-      title="系统设置"
-      description={SHOW_NOVEL_READINESS
-        ? "查看创作环境状态，并进入需要调整的设置。"
-        : "配置漫剧所需的模型、音色、画风和输出设置。"}
-    >
-      {SHOW_NOVEL_READINESS ? <SettingsReadinessCard items={items} /> : null}
-      <DramaVideoRenderProfileCard />
-      <div className="grid gap-4 md:grid-cols-2">
-        {entries.map(({ to, title, description, icon: Icon }) => {
-          const summary = title === "模型设置"
-            ? textReady
-              ? `文本 ${categories!.text.currentModel}${categories!.image?.isConfigured && categories!.image.currentImageModel ? ` · 图片 ${categories!.image.currentImageModel}` : ""}`
-              : "尚未配置可用的文本模型"
-            : title === "知识库与写法"
-              ? rag?.enabled ? `资料检索已开启 · ${rag.embeddingModel || "未选择向量模型"}` : "可选增强，暂不影响开始创作"
-              : title === "通用资产"
-                ? narratorVoice?.sampleAudioUrl ? "旁白音色已配置 · 3 套 HDRI 预设" : narratorVoice?.description ? "旁白音色已填写 · 3 套 HDRI 预设" : "待设置旁白音色 · 3 套 HDRI 预设"
-              : "设置确认偏好、问题处理和通知方式";
-          return (
-            <Card key={to} className="min-w-0">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base"><Icon className="h-4 w-4" />{title}</CardTitle>
-                <CardDescription>{description}</CardDescription>
-              </CardHeader>
-              <CardContent className="flex items-end justify-between gap-3">
-                <p className="text-sm text-muted-foreground">{summary}</p>
-                <Button asChild variant="outline" size="sm" className="shrink-0"><Link to={to}>打开<ArrowRight className="h-4 w-4" /></Link></Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </SettingsShell>
+    <div className="studio-page">
+      <SettingsShell
+        title="系统设置"
+        description={SHOW_NOVEL_READINESS
+          ? "查看创作环境状态，并进入需要调整的设置。"
+          : "配置漫剧所需的模型、音色、画风和输出设置。"}
+      >
+        {SHOW_NOVEL_READINESS ? <SettingsReadinessCard items={items} /> : null}
+        <DramaVideoRenderProfileCard />
+        <div className="grid gap-4 md:grid-cols-2">
+          {entries.map(({ to, title, description, icon: Icon }) => {
+            const summary = title === "模型设置"
+              ? textReady
+                ? `文本 ${categories!.text.currentModel}${categories!.image?.isConfigured && categories!.image.currentImageModel ? ` · 图片 ${categories!.image.currentImageModel}` : ""}`
+                : "尚未配置可用的文本模型"
+              : title === "知识库与写法"
+                ? rag?.enabled ? `资料检索已开启 · ${rag.embeddingModel || "未选择向量模型"}` : "可选增强，暂不影响开始创作"
+                : title === "通用资产"
+                  ? narratorVoice?.sampleAudioUrl ? "旁白音色已配置 · 3 套 HDRI 预设" : narratorVoice?.description ? "旁白音色已填写 · 3 套 HDRI 预设" : "待设置旁白音色 · 3 套 HDRI 预设"
+                : "设置确认偏好、问题处理和通知方式";
+            return (
+              <Card key={to} className="min-w-0">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base"><Icon className="h-4 w-4" />{title}</CardTitle>
+                  <CardDescription>{description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex items-end justify-between gap-3">
+                  <p className="text-sm text-muted-foreground">{summary}</p>
+                  <Button asChild variant="outline" size="sm" className="shrink-0"><Link to={to}>打开<ArrowRight className="h-4 w-4" /></Link></Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </SettingsShell>
+    </div>
   );
 }

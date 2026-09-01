@@ -10,6 +10,7 @@ import { matchesLibrarySearchQuery } from "./librarySearch.ts";
  * 重定向到 UAL2 的新目录。
  */
 export type AnimationLibrarySource = "legacy" | "unreal";
+export type AnimationLibrarySourceFilterId = AnimationLibrarySource | "all";
 
 /** 分镜入口默认只展示通过原地位移门禁的策选动作；旧目录保留为兼容区。 */
 export type AnimationLibraryScopeId = "storyboard" | "compatibility" | "all";
@@ -18,6 +19,12 @@ export const ANIMATION_LIBRARY_SCOPES = [
   { id: "storyboard", label: "分镜可用" },
   { id: "compatibility", label: "兼容动画" },
   { id: "all", label: "全部" },
+] as const;
+
+export const ANIMATION_LIBRARY_SOURCES = [
+  { id: "all", label: "全部" },
+  { id: "unreal", label: "虚幻动画" },
+  { id: "legacy", label: "网站内置动画" },
 ] as const;
 
 export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
@@ -345,6 +352,7 @@ export interface AnimationLibraryEntry {
 
 export interface AnimationLibraryFilters {
   scope?: AnimationLibraryScopeId;
+  source?: AnimationLibrarySourceFilterId;
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
@@ -561,6 +569,7 @@ export function filterAnimationLibraryEntries(
 ): AnimationLibraryEntry[] {
   const {
     scope = "all",
+    source = "all",
     groupId = "all",
     packId = "all",
     actionType = "all",
@@ -571,6 +580,7 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
+      (source === "all" || entry.source === source) &&
       (scope === "all" || (scope === "storyboard" ? entry.inPlace : !entry.inPlace)) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&

@@ -522,23 +522,23 @@ export default function DramaProjectPage() {
   };
 
   if (projectQuery.isLoading) {
-    return <div className="rounded-md border p-4 text-sm text-muted-foreground">正在加载短剧项目...</div>;
+    return <div className="studio-page rounded-[var(--radius-control)] border border-border/70 bg-[var(--surface-panel)] p-4 text-sm text-muted-foreground">正在加载短剧项目...</div>;
   }
 
   if (!project) {
     return (
-      <div className="space-y-4">
+      <div className="studio-page space-y-4">
         <Button asChild variant="outline" size="sm">
           <Link to="/drama"><ArrowLeft className="h-4 w-4" />返回短剧工作台</Link>
         </Button>
-        <div className="rounded-md border border-dashed p-6 text-sm text-muted-foreground">没有找到这个短剧项目。</div>
+        <div className="rounded-[var(--radius-panel)] border border-dashed border-border/80 bg-[var(--surface-subtle)] p-6 text-sm text-muted-foreground">没有找到这个短剧项目。</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+    <div className="studio-page space-y-5">
+      <div className="studio-page-header flex flex-wrap items-start justify-between gap-3">
         <div className="space-y-2">
           <Button asChild variant="ghost" size="sm" className="px-0">
             <Link to="/drama"><ArrowLeft className="h-4 w-4" />短剧工作台</Link>
