@@ -13,6 +13,8 @@ import { novelSourceAdapter } from "./source/NovelSourceAdapter";
 import { originalSourceAdapter } from "./source/OriginalSourceAdapter";
 import { textImportSourceAdapter } from "./source/TextImportSourceAdapter";
 import type { DramaSourceType, SourceBundle, SourceRef } from "./contracts/sourceBundle";
+import { parseStoryAssetStatesJson } from "@ai-novel/shared/types/novelReferenceExtraction";
+import { storyAssetStateImageUpdatedAt } from "@ai-novel/shared/utils/storyAssetSceneStates";
 
 sourceContentRegistry.register(novelSourceAdapter);
 sourceContentRegistry.register(originalSourceAdapter);
@@ -56,7 +58,7 @@ export class DramaProjectService {
   }
 
   async getProject(projectId: string) {
-    return prisma.dramaProject.findUnique({
+    const project = await prisma.dramaProject.findUnique({
       where: { id: projectId },
       include: {
         sourceBundle: true,
@@ -75,6 +77,39 @@ export class DramaProjectService {
         batchJobs: { orderBy: { createdAt: "desc" }, take: 20 },
       },
     });
+    if (!project) return null;
+    return {
+      ...project,
+      sceneImageVersions: await this.loadSceneImageVersions(project.source, project.sourceRef),
+    };
+  }
+
+  /**
+   * 来源小说各场景当前状态图的生成时间（sceneId → generatedAt）。
+   * 分镜列表用它和 3D 草图保存时记录的版本标记对比，识别场景图换版后
+   * 背景过期的草图；状态图按稳定路径覆盖存储，URL 对比发现不了换图。
+   */
+  private async loadSceneImageVersions(
+    source: string,
+    sourceRef: string | null,
+  ): Promise<Record<string, string>> {
+    if (source !== "novel_import" || !sourceRef?.trim()) return {};
+    const scenes = await prisma.novelScene.findMany({
+      where: { novelId: sourceRef.trim() },
+      select: { id: true, statesJson: true },
+    });
+    const versions: Record<string, string> = {};
+    for (const scene of scenes) {
+      const { states } = parseStoryAssetStatesJson(scene.statesJson);
+      for (const state of states) {
+        const updatedAt = storyAssetStateImageUpdatedAt(state);
+        if (updatedAt) {
+          versions[scene.id] = updatedAt;
+          break;
+        }
+      }
+    }
+    return versions;
   }
 
   /**

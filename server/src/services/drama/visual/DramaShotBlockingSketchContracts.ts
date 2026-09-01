@@ -90,6 +90,8 @@ export interface DramaShotBlockingSketchScene {
   yawDeg: number;
   pitchDeg: number;
   fovDeg: number;
+  /** 保存时场景状态图的生成时间：检测场景图换版后草图背景过期。 */
+  imageUpdatedAt?: string;
 }
 
 export interface DramaShotBlockingSketchActor {
@@ -436,6 +438,9 @@ function normalizeScene(input: unknown): DramaShotBlockingSketchScene {
     yawDeg: finiteNumber(scene.yawDeg, "水平视角", BLOCKING_SKETCH_LIMITS.yawDeg.min, BLOCKING_SKETCH_LIMITS.yawDeg.max),
     pitchDeg: finiteNumber(scene.pitchDeg, "俯仰角", BLOCKING_SKETCH_LIMITS.pitchDeg.min, BLOCKING_SKETCH_LIMITS.pitchDeg.max),
     fovDeg: finiteNumber(scene.fovDeg, "视野角", BLOCKING_SKETCH_LIMITS.fovDeg.min, BLOCKING_SKETCH_LIMITS.fovDeg.max),
+    ...(stringValue(scene.imageUpdatedAt, "场景图版本", false)
+      ? { imageUpdatedAt: stringValue(scene.imageUpdatedAt, "场景图版本", false)! }
+      : {}),
   };
 }
 

@@ -69,6 +69,8 @@ export interface DramaProject {
   status: string;
   createdAt: string;
   updatedAt: string;
+  /** 来源小说各场景当前状态图的生成时间（sceneId → generatedAt），用于判定 3D 草图背景过期。 */
+  sceneImageVersions?: Record<string, string>;
 }
 
 export interface DramaEpisode {
@@ -165,6 +167,8 @@ export interface DramaShotBlockingSketchScene {
   yawDeg: number;
   pitchDeg: number;
   fovDeg: number;
+  /** 保存时场景状态图的生成时间：场景图换版后据此判定草图背景过期。 */
+  imageUpdatedAt?: string;
 }
 
 export interface DramaShotBlockingSketchActor {
@@ -279,6 +283,8 @@ export interface DramaShotBlockingSketchEditorContext {
     assetId: string;
     stateId: string;
     imageUrl: string;
+    /** 当前场景状态图的生成时间：保存草图时写入版本标记。 */
+    imageUpdatedAt?: string | null;
     environment: StoryScene3DEnvironment;
     markers: StoryScene3DMarker[];
     markerAnalysis: StoryScene3DMarkerSet | null;

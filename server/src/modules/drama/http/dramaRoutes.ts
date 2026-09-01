@@ -76,6 +76,7 @@ const blockingSketchSceneSchema = z.object({
   yawDeg: z.number().min(-180).max(180),
   pitchDeg: z.number().min(-60).max(60),
   fovDeg: z.number().min(40).max(100),
+  imageUpdatedAt: z.string().trim().min(1).max(100).optional(),
 });
 
 const blockingSketchActorSchema = z.object({

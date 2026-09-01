@@ -143,3 +143,104 @@ export function anchorBlockingCameraAtProjectionCenter(
     ],
   };
 }
+
+/**
+ * 摄像机世界边界：全景穹顶是场景的物理外壳，编辑视角与拍摄机位都必须留在
+ * 壳内，否则取景会穿出穹顶拍到背面（画面变成穹顶外的灰底）。边界按真实
+ * 半径内缩到与地面平坦区一致的 0.95 比例，留出贴边余量。
+ */
+export const STORY_SCENE_3D_CAMERA_BOUND_RATIO = 0.95;
+
+/** 摄像机最低高度：避免贴地穿模到地面穹顶下方。 */
+export const STORY_SCENE_3D_CAMERA_MIN_HEIGHT_M = 0.1;
+
+function cameraBoundRadius(environment: Partial<BlockingStageEnvironment> | null | undefined): number {
+  return resolveStoryScene3DWorldRadius(environment) * STORY_SCENE_3D_CAMERA_BOUND_RATIO;
+}
+
+/**
+ * 把世界坐标位置收敛进穹顶外壳：水平半径不超过边界圆，高度夹在地面与
+ * 穹顶顶部之间；高于投射中心的部分还要落在以投射中心为球心的球内
+ * （上半球面随高度收窄）。inset 用于给后续沿视线方向的移动预留余量
+ * （例如轨道相机焦点的距离下限），让"焦点 + 0.25 米"仍留在壳内。
+ */
+export function clampBlockingCameraPositionToWorld(
+  position: readonly [number, number, number],
+  environment: Partial<BlockingStageEnvironment> | null | undefined,
+  inset = 0,
+): [number, number, number] {
+  const boundRadius = Math.max(cameraBoundRadius(environment) - inset, 0.5);
+  const centerY = finiteOr(environment?.projectionCenterHeight, 2);
+  const maxY = centerY + (cameraBoundRadius(environment) * 0.9 - inset);
+  const minY = STORY_SCENE_3D_CAMERA_MIN_HEIGHT_M;
+  let x = finiteOr(position[0], 0);
+  let y = Math.min(Math.max(finiteOr(position[1], centerY), minY), maxY);
+  let z = finiteOr(position[2], 0);
+  if (y > centerY) {
+    const shellDistance = Math.hypot(x, y - centerY, z);
+    if (shellDistance > boundRadius) {
+      const scale = boundRadius / shellDistance;
+      x *= scale;
+      y = centerY + (y - centerY) * scale;
+      z *= scale;
+    }
+  }
+  const horizontal = Math.hypot(x, z);
+  if (horizontal > boundRadius) {
+    const scale = boundRadius / horizontal;
+    x *= scale;
+    z *= scale;
+  }
+  return [x, y, z];
+}
+
+/**
+ * 保持视线方向不变，把轨道相机（focalPoint + 距离）收敛进穹顶：
+ * 先把焦点钳进世界，再沿视线方向求仍留在壳内的最大距离并取小。
+ * 焦点在壳内时沿任何方向都存在可行距离，收敛始终有解。
+ */
+export function clampBlockingCameraOrbitToWorld(
+  camera: BlockingCameraOrbitGeometry,
+  environment: Partial<BlockingStageEnvironment> | null | undefined,
+): BlockingCameraOrbitGeometry {
+  // 焦点比相机多留 0.35 米内缩：距离下限 0.25 米时"焦点 + 一步"仍在壳内。
+  const focalPoint = clampBlockingCameraPositionToWorld(camera.focalPoint, environment, 0.35);
+  const azimuthRad = finiteOr(camera.azim, 0) * Math.PI / 180;
+  const elevationRad = finiteOr(camera.elev, 0) * Math.PI / 180;
+  const dirX = Math.sin(azimuthRad) * Math.cos(elevationRad);
+  const dirY = -Math.sin(elevationRad);
+  const dirZ = Math.cos(azimuthRad) * Math.cos(elevationRad);
+  const distance = finiteOr(camera.distance, 8);
+  const boundRadius = cameraBoundRadius(environment);
+  const centerY = finiteOr(environment?.projectionCenterHeight, 2);
+  const maxY = centerY + boundRadius * 0.9;
+  const [fx, fy, fz] = focalPoint;
+  let maxDistance = distance;
+  // 水平边界圆：|焦点 + t·方向| 的水平分量命中边界圆的较小正根。
+  const horizontalAlong = fx * dirX + fz * dirZ;
+  const horizontalSquared = fx * fx + fz * fz - boundRadius * boundRadius;
+  maxDistance = Math.min(
+    maxDistance,
+    -horizontalAlong + Math.sqrt(Math.max(horizontalAlong * horizontalAlong - horizontalSquared, 0)),
+  );
+  // 地面与顶部平面。
+  if (dirY < 0) maxDistance = Math.min(maxDistance, (STORY_SCENE_3D_CAMERA_MIN_HEIGHT_M - fy) / dirY);
+  if (dirY > 0) maxDistance = Math.min(maxDistance, (maxY - fy) / dirY);
+  // 上半球面：仅在穿越点高于投射中心时生效（下半部分的壳是地面穹顶，
+  // 已由水平边界圆与地面平面覆盖，套球面会误伤贴地远机位）。
+  const sy = fy - centerY;
+  const shellAlong = 2 * (fx * dirX + sy * dirY + fz * dirZ);
+  const shellSquared = fx * fx + sy * sy + fz * fz - boundRadius * boundRadius;
+  if (shellSquared < 0) {
+    const shellDistance = (-shellAlong + Math.sqrt(Math.max(shellAlong * shellAlong - 4 * shellSquared, 0))) / 2;
+    if (fy + shellDistance * dirY >= centerY) {
+      maxDistance = Math.min(maxDistance, shellDistance);
+    }
+  }
+  return {
+    azim: finiteOr(camera.azim, 0),
+    elev: finiteOr(camera.elev, 0),
+    distance: Math.max(0.25, Math.min(distance, maxDistance)),
+    focalPoint,
+  };
+}
