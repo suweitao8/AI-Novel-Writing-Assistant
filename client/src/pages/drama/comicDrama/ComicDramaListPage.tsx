@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Clapperboard,
   Loader2,
   PlusCircle,
   Trash2,
@@ -61,42 +60,22 @@ export default function ComicDramaListPage() {
 
   return (
     <div className="studio-page space-y-6">
-      <section className="studio-page-header flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-normal">漫剧列表</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            每个漫剧项目都是一条完整的工作流：先写小说，再生成静态分镜画面和配音，最后合成漫剧成片。
-          </p>
-        </div>
-        <Button size="lg" onClick={() => setCreateOpen(true)}>
-          <PlusCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-          创建漫剧
-        </Button>
-      </section>
-
       {listQuery.isPending ? (
         <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
           <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
           正在打开漫剧列表
         </div>
-      ) : novels.length === 0 ? (
-        <section className="studio-card rounded-[var(--radius-panel)] border border-dashed border-border/80 bg-[var(--surface-subtle)] px-6 py-16 text-center">
-          <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Clapperboard className="h-7 w-7" aria-hidden="true" />
-          </span>
-          <h2 className="mt-5 text-lg font-semibold text-foreground">从一个书名开始你的第一部漫剧</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            只需要起一个名字。AI 会帮你把小说写出来，之后自动衔接分镜画面、配音和成片合成。
-          </p>
-          <div className="mt-6">
-            <Button size="lg" onClick={() => setCreateOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" aria-hidden="true" />
-              创建漫剧
-            </Button>
-          </div>
-        </section>
       ) : (
-        <section className="grid grid-cols-1 gap-3 sm:grid-cols-4 xl:grid-cols-6">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
+          <button
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            aria-label="创建漫剧"
+            className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[var(--radius-panel)] border border-dashed border-border/80 bg-[var(--surface-subtle)] text-muted-foreground transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          >
+            <PlusCircle className="h-6 w-6" aria-hidden="true" />
+            <span className="text-sm font-medium">创建漫剧</span>
+          </button>
           {novels.map((novel) => (
             <ComicDramaCard
               key={novel.id}
@@ -153,14 +132,14 @@ function ComicDramaCard(props: {
   const wordCount = novel.totalWordCount ?? 0;
 
   return (
-    <div className="group relative h-full">
+    <div className="group relative aspect-square">
       <Link
         to={`/drama/studio/${novel.id}`}
         aria-label={`打开《${novel.title}》漫剧工作室`}
         className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <Card className="h-full overflow-hidden rounded-[var(--radius-panel)] border-border/70 bg-[var(--surface-panel)] transition group-hover:border-primary/35 group-hover:shadow-sm">
-          <CardContent className="flex h-full min-h-[148px] flex-col gap-2 p-3">
+          <CardContent className="flex h-full flex-col gap-2 p-3">
             <h3 className="truncate pr-7 font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
             <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
               <span>{chapterCount} 章</span>
