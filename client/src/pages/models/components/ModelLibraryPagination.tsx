@@ -9,7 +9,7 @@ export function ModelLibraryPagination(props: {
 
   return (
     <nav
-      className="flex flex-wrap items-center justify-end gap-2"
+      className="flex flex-wrap items-center justify-center gap-2"
       aria-label="模型列表分页"
       data-model-pagination
     >
