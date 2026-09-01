@@ -127,8 +127,8 @@ export function CharacterImageDialog({
     : "原链路 Prompt";
   const currentSendModeClass = promptMode === "direct"
     ? (directPromptSource === "optimized"
-      ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-700"
-      : "rounded-full bg-amber-50 px-3 py-1 text-amber-700")
+      ? "rounded-full bg-emerald-50 px-3 py-1 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-300"
+      : "rounded-full bg-amber-50 px-3 py-1 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300")
     : "rounded-full bg-slate-100 px-3 py-1 text-slate-700";
 
   const activateDirectPrompt = (value: string, source: DirectPromptSource) => {

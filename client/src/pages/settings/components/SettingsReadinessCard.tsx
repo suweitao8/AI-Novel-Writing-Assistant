@@ -19,15 +19,15 @@ export type SettingsReadinessItem = {
 
 function getReadinessIcon(state: SettingsReadinessItem["state"]) {
   if (state === "ready") {
-    return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+    return <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />;
   }
   if (state === "checking") {
-    return <Loader2 className="h-4 w-4 animate-spin text-amber-600" />;
+    return <Loader2 className="h-4 w-4 animate-spin text-amber-600 dark:text-amber-300" />;
   }
   if (state === "optional") {
-    return <CircleDashed className="h-4 w-4 text-sky-600" />;
+    return <CircleDashed className="h-4 w-4 text-sky-600 dark:text-sky-300" />;
   }
-  return <CircleAlert className="h-4 w-4 text-amber-600" />;
+  return <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-300" />;
 }
 
 function getReadinessBadge(state: SettingsReadinessItem["state"]) {
@@ -142,7 +142,7 @@ export default function SettingsReadinessCard(props: {
             </div>
           ))}
         </div>
-        <div className={`text-sm ${canStart ? "text-emerald-700" : "text-muted-foreground"} ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
+        <div className={`text-sm ${canStart ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground"} ${AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}`}>
           {canStart
             ? "基础创作链路已经可用，可以开始创建或继续推进小说。"
             : "先处理标记为“需要处理”的项目，完成后再进入自动导演或章节生产会更稳。"}

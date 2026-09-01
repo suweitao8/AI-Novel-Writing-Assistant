@@ -191,7 +191,7 @@ export default function SimpleNovelShelfPage() {
                   <div className="h-full rounded-full bg-primary/70 transition-all" style={{ width: `${shelf.progress.percent}%` }} />
                 </div>
                 <div className="mt-3 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
-                  {shelf.progress.status === "paused" || shelf.progress.status === "failed" ? <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /> : <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
+                  {shelf.progress.status === "paused" || shelf.progress.status === "failed" ? <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" /> : <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />}
                   <span>{shelf.progress.currentAction}</span>
                 </div>
               </div>
@@ -223,8 +223,8 @@ export default function SimpleNovelShelfPage() {
           </div>
           {shelf.progress.safetyMessage ? (
             <div className="flex items-start gap-3 border-t border-amber-200 bg-amber-50 px-5 py-3 text-sm leading-6 text-amber-950 sm:px-7">
-              <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-amber-600" />
-              <div><div className="font-medium">AI 已暂停以保护作品</div><div className="text-amber-900/75">{shelf.progress.safetyMessage}</div></div>
+              <AlertTriangle className="mt-1 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+              <div><div className="font-medium">AI 已暂停以保护作品</div><div className="text-amber-900/75 dark:text-amber-300">{shelf.progress.safetyMessage}</div></div>
             </div>
           ) : null}
         </header>
@@ -305,10 +305,10 @@ export default function SimpleNovelShelfPage() {
                         <span className="min-w-0 flex-1">
                           <span className="flex items-start justify-between gap-2">
                             <span className="min-w-0 truncate text-sm font-medium text-foreground">{chapter.title || "等待命名"}</span>
-                            <Badge className={`shrink-0 ${chapter.status === "quality_debt" ? "border-amber-200 bg-amber-50 text-amber-800" : ""}`} variant={chapter.status === "completed" ? "outline" : chapter.status === "replan_required" || chapter.status === "error" ? "destructive" : "secondary"}>{STATUS_LABELS[chapter.status]}</Badge>
+                            <Badge className={`shrink-0 ${chapter.status === "quality_debt" ? "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300" : ""}`} variant={chapter.status === "completed" ? "outline" : chapter.status === "replan_required" || chapter.status === "error" ? "destructive" : "secondary"}>{STATUS_LABELS[chapter.status]}</Badge>
                           </span>
                           <span className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                            {readable ? chapter.status === "quality_debt" ? <><AlertTriangle className="h-3 w-3 text-amber-600" /> {formatWordCount(chapter.wordCount)}</> : <><CheckCircle2 className="h-3 w-3 text-emerald-600" /> {formatWordCount(chapter.wordCount)}</> : <><Clock3 className="h-3 w-3" /> 等待正文</>}
+                            {readable ? chapter.status === "quality_debt" ? <><AlertTriangle className="h-3 w-3 text-amber-600 dark:text-amber-300" /> {formatWordCount(chapter.wordCount)}</> : <><CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-300" /> {formatWordCount(chapter.wordCount)}</> : <><Clock3 className="h-3 w-3" /> 等待正文</>}
                           </span>
                         </span>
                       </div>
@@ -327,13 +327,13 @@ export default function SimpleNovelShelfPage() {
                   <div className="border-b border-border/80 bg-background px-5 py-5 sm:px-8 lg:sticky lg:top-0 lg:z-10">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-medium tracking-wide text-muted-foreground">第 {selectedChapter.order} 章</span>
-                      <Badge className={selectedChapter.status === "quality_debt" ? "border-amber-200 bg-amber-50 text-amber-800" : ""} variant={selectedChapter.status === "completed" ? "outline" : selectedChapter.status === "replan_required" || selectedChapter.status === "error" ? "destructive" : "secondary"}>{STATUS_LABELS[selectedChapter.status]}</Badge>
+                      <Badge className={selectedChapter.status === "quality_debt" ? "border-amber-200 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300" : ""} variant={selectedChapter.status === "completed" ? "outline" : selectedChapter.status === "replan_required" || selectedChapter.status === "error" ? "destructive" : "secondary"}>{STATUS_LABELS[selectedChapter.status]}</Badge>
                       <span className="text-xs text-muted-foreground">{formatWordCount(selectedChapter.wordCount)} · {formatUpdatedAt(selectedChapter.updatedAt)}</span>
                     </div>
                     <h2 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{selectedChapter.title}</h2>
                     {selectedChapter.status === "quality_debt" ? (
-                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900">
-                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" />
+                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
+                        <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
                         <span>正文已安全保存。本章有待回收的局部质量项，但不会阻断后续创作。</span>
                       </div>
                     ) : selectedChapter.status === "replan_required" ? (
@@ -342,8 +342,8 @@ export default function SimpleNovelShelfPage() {
                         <span>本章与相邻章节的安排需要 AI 先重规划，正文会被保留。</span>
                       </div>
                     ) : selectedChapter.status !== "completed" ? (
-                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900">
-                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600" />
+                      <div className="mt-3 flex items-start gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs leading-5 text-sky-900 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300">
+                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-600 dark:text-sky-300" />
                         <span>当前显示的是已保存版本，AI 完成审校或修复后可能会更新。</span>
                       </div>
                     ) : null}

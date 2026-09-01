@@ -120,16 +120,16 @@ function formatStatus(status: DirectorRuntimeProjectionStatus): string {
 
 function statusClassName(status: DirectorRuntimeProjectionStatus): string {
   if (status === "running") {
-    return "border-sky-300 bg-sky-50 text-sky-900";
+    return "border-sky-300 bg-sky-50 text-sky-900 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300";
   }
   if (status === "waiting_approval") {
-    return "border-amber-300 bg-amber-50 text-amber-900";
+    return "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300";
   }
   if (status === "blocked" || status === "failed") {
     return "border-destructive/30 bg-destructive/5 text-destructive";
   }
   if (status === "completed") {
-    return "border-emerald-300 bg-emerald-50 text-emerald-900";
+    return "border-emerald-300 bg-emerald-50 text-emerald-900 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300";
   }
   return "border-border bg-muted/30 text-muted-foreground";
 }
@@ -155,12 +155,12 @@ function statusIcon(status: DirectorRuntimeProjectionStatus) {
 
 function riskBadgeClassName(level: NonNullable<DirectorRuntimeProjection["visibleRiskBadges"]>[number]["level"]) {
   if (level === "danger") {
-    return "border-red-200 bg-red-50 text-red-700";
+    return "border-red-200 bg-red-50 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300";
   }
   if (level === "warning") {
-    return "border-amber-200 bg-amber-50 text-amber-700";
+    return "border-amber-200 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300";
   }
-  return "border-sky-200 bg-sky-50 text-sky-700";
+  return "border-sky-200 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300";
 }
 
 function formatQualityDebtSummary(summary: DirectorRuntimeProjection["qualityDebtSummary"] | null | undefined): string | null {
@@ -214,8 +214,8 @@ function formatRiskAction(action: NonNullable<DirectorRuntimeProjection["latestR
 
 function riskScoreClassName(score: number): string {
   if (score >= 8) return "border-destructive/30 bg-destructive/5 text-destructive";
-  if (score >= 5) return "border-amber-300 bg-amber-50 text-amber-900";
-  return "border-sky-300 bg-sky-50 text-sky-900";
+  if (score >= 5) return "border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300";
+  return "border-sky-300 bg-sky-50 text-sky-900 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300";
 }
 
 function formatRiskCategory(category: NonNullable<DirectorRuntimeProjection["latestRiskAssessment"]>["category"]): string {

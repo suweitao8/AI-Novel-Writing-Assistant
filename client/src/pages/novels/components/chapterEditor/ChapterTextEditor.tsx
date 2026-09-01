@@ -100,7 +100,7 @@ function renderDiffChunk(chunk: ChapterEditorDiffChunk) {
     );
   }
   return (
-    <span key={chunk.id} className="rounded bg-rose-100/80 px-0.5 text-rose-900 line-through">
+    <span key={chunk.id} className="rounded bg-rose-100/80 px-0.5 text-rose-900 line-through dark:text-rose-300">
       {chunk.text}
     </span>
   );
@@ -117,7 +117,7 @@ function renderLoadingPreview(
 
       <div className="space-y-3">
         <div className="rounded-2xl border border-amber-200/80 bg-amber-50/80 p-4">
-          <div className="mb-2 text-xs font-medium text-amber-700">待改写原文</div>
+          <div className="mb-2 text-xs font-medium text-amber-700 dark:text-amber-300">待改写原文</div>
           <TextBlock text={preview.originalText} className="text-amber-950" />
         </div>
         <div className="rounded-2xl border border-dashed border-border/70 bg-background/80 p-4">
@@ -146,11 +146,11 @@ function renderBlockPreview(
 
       <div className="space-y-3">
         <div className="rounded-2xl border border-rose-200/80 bg-rose-50/80 p-4">
-          <div className="mb-2 text-xs font-medium text-rose-700">原文</div>
+          <div className="mb-2 text-xs font-medium text-rose-700 dark:text-rose-300">原文</div>
           <TextBlock text={preview.originalText} className="text-rose-950" />
         </div>
         <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/90 p-4">
-          <div className="mb-2 text-xs font-medium text-emerald-700">改写</div>
+          <div className="mb-2 text-xs font-medium text-emerald-700 dark:text-emerald-300">改写</div>
           <TextBlock text={preview.candidateText} className="text-emerald-950" />
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function ChapterTextEditor(props: ChapterTextEditorProps) {
           <div
             key={`marker:${marker.index}`}
             className={`absolute left-0 flex w-12 justify-end pr-3 text-[11px] font-semibold ${
-              isHighlighted ? "text-sky-700" : "text-muted-foreground"
+              isHighlighted ? "text-sky-700 dark:text-sky-300" : "text-muted-foreground"
             }`}
             style={{ top: `${marker.top}px`, transform: "translateY(-50%)" }}
           >

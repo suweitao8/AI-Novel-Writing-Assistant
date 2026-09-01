@@ -28,11 +28,11 @@ interface CharacterDynamicsSectionProps {
 function riskTone(risk: "none" | "info" | "warn" | "high"): string {
   switch (risk) {
     case "high":
-      return "border-rose-300/70 bg-rose-50 text-rose-700";
+      return "border-rose-300/70 bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300";
     case "warn":
-      return "border-amber-300/70 bg-amber-50 text-amber-700";
+      return "border-amber-300/70 bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300";
     case "info":
-      return "border-sky-300/70 bg-sky-50 text-sky-700";
+      return "border-sky-300/70 bg-sky-50 text-sky-700 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300";
     default:
       return "border-border/70 bg-background text-muted-foreground";
   }

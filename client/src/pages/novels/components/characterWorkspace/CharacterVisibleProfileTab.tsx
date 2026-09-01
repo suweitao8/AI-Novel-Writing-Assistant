@@ -113,7 +113,7 @@ export default function CharacterVisibleProfileTab(props: CharacterVisibleProfil
             </Button>
           </div>
           {visibleProfileSuggestion.warnings.length > 0 ? (
-            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs leading-5 text-amber-900">
+            <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-2 text-xs leading-5 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
               {visibleProfileSuggestion.warnings.map((warning) => (
                 <div key={warning}>提醒：{warning}</div>
               ))}

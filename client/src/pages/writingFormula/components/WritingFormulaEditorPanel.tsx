@@ -63,7 +63,7 @@ function FieldBlock(props: {
 const FEATURE_DECISION_META: Record<NonNullable<StyleProfileFeature["selectedDecision"]>, { label: string; className: string }> = {
   keep: {
     label: "保留",
-    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300",
   },
   weaken: {
     label: "弱化",
@@ -71,7 +71,7 @@ const FEATURE_DECISION_META: Record<NonNullable<StyleProfileFeature["selectedDec
   },
   remove: {
     label: "剥离",
-    className: "border-rose-200 bg-rose-50 text-rose-700",
+    className: "border-rose-200 bg-rose-50 text-rose-700 dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300",
   },
 };
 
@@ -409,13 +409,13 @@ export default function WritingFormulaEditorPanel(props: WritingFormulaEditorPan
                                   </div>
                                   <div className="mt-1 text-xs leading-6 text-muted-foreground">{preset.summary}</div>
                                   <div className="mt-3 flex flex-wrap gap-2">
-                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700">
+                                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300">
                                       保留 {counts.keep}
                                     </span>
                                     <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">
                                       弱化 {counts.weaken}
                                     </span>
-                                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] text-rose-700">
+                                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] text-rose-700 dark:bg-rose-900/20 dark:border-rose-700 dark:text-rose-300">
                                       剥离 {counts.remove}
                                     </span>
                                   </div>
@@ -443,7 +443,7 @@ export default function WritingFormulaEditorPanel(props: WritingFormulaEditorPan
                                   key={ruleKey}
                                   className={`rounded-full border px-2 py-1 text-xs ${
                                     isBound
-                                      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300"
                                       : "border-border bg-background text-muted-foreground"
                                   }`}
                                 >

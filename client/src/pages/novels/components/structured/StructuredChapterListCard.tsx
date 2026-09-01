@@ -204,7 +204,7 @@ export default function StructuredChapterListCard(props: StructuredChapterListCa
       </CardHeader>
       <CardContent className="space-y-3 pt-0">
         {selectedVolumeNeedsChapterExpansion ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-800">
+          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs leading-6 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
             当前卷已生成 {selectedVolumeChapters.length}/{selectedVolumeRequiredChapterCount} 章，仍有节奏段待生成。已生成章节可以先细化和开写，后续段按需继续生成。
           </div>
         ) : null}
@@ -347,7 +347,7 @@ export default function StructuredChapterListCard(props: StructuredChapterListCa
             {visibleChapters.length === 0 && selectedBeat ? (
               <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
                 {selectedVolumeNeedsChapterExpansion ? (
-                  <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+                  <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                     当前节奏段是 {selectedBeat.chapterSpanHint}，还没有生成章节。可以生成当前聚焦段，不需要先补齐整卷。
                   </div>
                 ) : null}
@@ -358,7 +358,7 @@ export default function StructuredChapterListCard(props: StructuredChapterListCa
         ) : (
           <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
             {selectedVolumeRequiredChapterCount > 0 ? (
-              <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">
+              <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                 根据当前节奏板，这一卷预计覆盖 {selectedVolumeRequiredChapterCount} 章。可以先生成下一段章节，后续段按需继续拆。
               </div>
             ) : null}

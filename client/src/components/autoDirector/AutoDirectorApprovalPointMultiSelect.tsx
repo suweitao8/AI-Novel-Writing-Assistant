@@ -23,8 +23,8 @@ function riskLabel(riskLevel: DirectorAutoApprovalPoint["riskLevel"]): string {
 }
 
 function riskClassName(riskLevel: DirectorAutoApprovalPoint["riskLevel"]): string {
-  if (riskLevel === "high") return "border-amber-500/40 bg-amber-500/10 text-amber-800";
-  if (riskLevel === "medium") return "border-sky-500/30 bg-sky-500/10 text-sky-800";
+  if (riskLevel === "high") return "border-amber-500/40 bg-amber-500/10 text-amber-800 dark:text-amber-300";
+  if (riskLevel === "medium") return "border-sky-500/30 bg-sky-500/10 text-sky-800 dark:text-sky-300";
   return "";
 }
 
