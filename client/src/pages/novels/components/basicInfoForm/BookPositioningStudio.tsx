@@ -54,7 +54,7 @@ function ReadinessRow(props: {
     <div className="grid grid-cols-[1.5rem,1fr,auto] items-center gap-3 border-t border-border/55 py-3 first:border-t-0 first:pt-0 last:pb-0">
       <div className={cn(
         "flex h-6 w-6 items-center justify-center rounded-md",
-        props.ready ? "bg-emerald-500/10 text-emerald-700" : "bg-muted text-muted-foreground",
+        props.ready ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-muted text-muted-foreground",
       )}>
         {props.icon}
       </div>
@@ -65,7 +65,7 @@ function ReadinessRow(props: {
         </div>
       </div>
       {props.ready ? (
-        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+        <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
       ) : (
         <span className="text-xs text-muted-foreground">待补</span>
       )}
@@ -192,15 +192,15 @@ export default function BookPositioningStudio(props: BookPositioningStudioProps)
 
             <div className="grid gap-2 text-xs text-muted-foreground">
               <div className="flex items-start gap-2 rounded-md bg-background/70 p-2">
-                <BookOpenCheck className="mt-0.5 h-3.5 w-3.5 text-emerald-600" />
+                <BookOpenCheck className="mt-0.5 h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
                 <span>故事规划会读取读者承诺与商业标签。</span>
               </div>
               <div className="flex items-start gap-2 rounded-md bg-background/70 p-2">
-                <Map className="mt-0.5 h-3.5 w-3.5 text-sky-600" />
+                <Map className="mt-0.5 h-3.5 w-3.5 text-sky-600 dark:text-sky-300" />
                 <span>世界资产可在下方继续具现为规则、地点和势力。</span>
               </div>
               <div className="flex items-start gap-2 rounded-md bg-background/70 p-2">
-                <FileText className="mt-0.5 h-3.5 w-3.5 text-amber-600" />
+                <FileText className="mt-0.5 h-3.5 w-3.5 text-amber-600 dark:text-amber-300" />
                 <span>章节执行会用前 30 章牵引约束早期正文。</span>
               </div>
             </div>

@@ -190,7 +190,7 @@ export function DramaQualityPanel(props: {
       {problemItems.length === 0 && uncheckedItems.length === 0 ? (
         <Card className="rounded-lg">
           <CardContent className="flex items-center gap-2 pt-6 text-sm text-muted-foreground">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
             当前没有待处理的质量问题。
           </CardContent>
         </Card>

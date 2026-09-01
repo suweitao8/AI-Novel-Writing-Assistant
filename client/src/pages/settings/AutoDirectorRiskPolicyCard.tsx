@@ -51,7 +51,7 @@ export function AutoDirectorRiskPolicyCard(props: {
             <span className="block text-xs leading-5 text-muted-foreground">需高于提醒分数；只有影响全书推进的问题才会在安全节点暂停。</span>
           </label>
         </div>
-        {unavailable ? <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">风险规则服务准备中，当前自动导演仍按默认“提醒 5 分、暂停 8 分”执行。</div> : null}
+        {unavailable ? <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">风险规则服务准备中，当前自动导演仍按默认“提醒 5 分、暂停 8 分”执行。</div> : null}
         <div className="flex justify-end">
           <Button type="button" disabled={isLoading || isSaving || unavailable} onClick={() => onSave(draft)}>
             {isSaving ? "保存中..." : "保存风险规则"}

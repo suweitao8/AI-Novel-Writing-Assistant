@@ -174,7 +174,7 @@ export default function StoryMacroPlanTab(props: StoryMacroTabProps) {
               </CardHeader>
               <CardContent className="space-y-2">
                 {props.issues.map((issue, index) => (
-                  <div key={`${issue.type}-${issue.field}-${index}`} className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  <div key={`${issue.type}-${issue.field}-${index}`} className="rounded-lg border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                     <div className="font-medium">{issue.type === "conflict" ? "输入冲突" : "信息不足"}</div>
                     <div className="mt-1">{issue.message}</div>
                   </div>

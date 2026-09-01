@@ -67,7 +67,7 @@ function CharacterCard(props: {
         className="flex min-w-0 flex-1 items-start gap-2.5 text-left"
       >
         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-semibold ${
-          isProtagonist ? "border-emerald-200 bg-white text-emerald-800" : "border-border/70 bg-muted/20 text-foreground"
+          isProtagonist ? "border-emerald-200 bg-white text-emerald-800 dark:border-emerald-700 dark:text-emerald-300" : "border-border/70 bg-muted/20 text-foreground"
         }`}>
           {avatarText}
         </div>
@@ -122,7 +122,7 @@ export default function CharacterAssetSidebar(props: CharacterAssetSidebarProps)
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <Crown className="h-3.5 w-3.5 text-emerald-600" />
+            <Crown className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-300" />
             主角位
           </div>
           {protagonist ? <Badge variant="outline">主角</Badge> : null}
@@ -146,7 +146,7 @@ export default function CharacterAssetSidebar(props: CharacterAssetSidebarProps)
 
       <section className="space-y-2">
         <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <UsersRound className="h-3.5 w-3.5 text-sky-600" />
+          <UsersRound className="h-3.5 w-3.5 text-sky-600 dark:text-sky-300" />
           配角与关系角色
         </div>
         {characters.length === 0 ? (

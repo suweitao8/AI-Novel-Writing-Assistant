@@ -181,7 +181,7 @@ export default function PipelineTab(props: PipelineTabProps) {
         <CardContent className="space-y-3 px-0 pt-5">
           <WorldInjectionHint worldInjectionSummary={worldInjectionSummary} />
           {!hasCharacters ? (
-            <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            <div className="flex items-center justify-between gap-2 rounded-2xl bg-amber-50 px-4 py-3 text-xs text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
               <span>请先添加至少 1 个角色，再执行流水线。</span>
               <Button size="sm" variant="outline" onClick={onGoToCharacterTab}>去角色管理</Button>
             </div>
@@ -456,7 +456,7 @@ export default function PipelineTab(props: PipelineTabProps) {
                       <div>完成：{pipelineJob.completedCount}/{pipelineJob.totalCount}</div>
                       <div>重试：{pipelineJob.retryCount}/{pipelineJob.maxRetries}</div>
                       {pipelineJob.lastErrorType ? <div>失败分类：{pipelineJob.lastErrorType}</div> : null}
-                      {pipelineJob.error ? <div className="text-red-600">错误：{pipelineJob.error}</div> : null}
+                      {pipelineJob.error ? <div className="text-red-600 dark:text-red-300">错误：{pipelineJob.error}</div> : null}
                     </div>
                   ) : (
                     <div className="text-muted-foreground">暂无运行中的流水线任务。</div>

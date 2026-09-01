@@ -647,7 +647,7 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
                           <div>执行阶段：{activeExtractionTask.currentStage ?? "等待调度"}</div>
                           <div>任务进度：{Math.round(activeExtractionTask.progress * 100)}%</div>
                           {activeExtractionTask.failureSummary ? (
-                            <div className="text-rose-600">异常原因：{activeExtractionTask.failureSummary}</div>
+                            <div className="text-rose-600 dark:text-rose-300">异常原因：{activeExtractionTask.failureSummary}</div>
                           ) : null}
                         </div>
                         {onOpenTaskCenter ? (

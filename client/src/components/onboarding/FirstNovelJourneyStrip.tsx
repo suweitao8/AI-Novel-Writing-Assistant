@@ -41,7 +41,7 @@ export default function FirstNovelJourneyStrip() {
             />
           ))}
         </div>
-        {journey.completedCount > 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : null}
+        {journey.completedCount > 0 ? <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-300" /> : null}
         <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
       </div>
     </Link>

@@ -80,7 +80,7 @@ export function TensionCurveBeatContextStrip(props: TensionCurveBeatContextStrip
           </div>
         </div>
       ) : (
-        <div className={cn("rounded-lg border border-dashed p-3 text-sm text-muted-foreground", beats.length === 0 ? "bg-amber-50 text-amber-800" : "")}>
+        <div className={cn("rounded-lg border border-dashed p-3 text-sm text-muted-foreground", beats.length === 0 ? "bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-300" : "")}>
           {beats.length > 0 ? "当前查看整卷走势。切到具体节奏段后，可对照该段摘要和必须交付项调整强度。" : "当前卷还没有节奏段，先生成节奏板后再按段检查曲线。"}
         </div>
       )}

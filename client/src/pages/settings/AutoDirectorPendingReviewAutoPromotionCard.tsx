@@ -55,7 +55,7 @@ export function AutoDirectorPendingReviewAutoPromotionCard(props: {
         <CardHeader className="flex-row items-start justify-between gap-3 space-y-0">
           <div className="min-w-0 space-y-1.5">
             <CardTitle className="flex flex-wrap items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-amber-700" aria-hidden="true" />
+              <ShieldAlert className="h-5 w-5 text-amber-700 dark:text-amber-300" aria-hidden="true" />
               待确认状态自动放行
             </CardTitle>
             <CardDescription className={AUTO_DIRECTOR_MOBILE_CLASSES.wrapText}>

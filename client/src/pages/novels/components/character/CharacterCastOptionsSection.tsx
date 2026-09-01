@@ -479,7 +479,7 @@ export default function CharacterCastOptionsSection(props: CharacterCastOptionsS
                             </div>
                           </div>
                           {requiresQualityConfirmation ? (
-                            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 text-xs text-amber-900">
+                            <div className="mt-3 rounded-xl border border-amber-300/70 bg-amber-50/70 p-3 text-xs text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                               <div className="font-medium">这套阵容需要你确认后再应用</div>
                               <div className="mt-1">
                                 系统发现它和当前故事设定还有不完全匹配的地方。你可以先应用，再到角色资产里调整。

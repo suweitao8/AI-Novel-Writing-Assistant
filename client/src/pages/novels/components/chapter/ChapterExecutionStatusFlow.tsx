@@ -13,10 +13,10 @@ interface ChapterExecutionStatusFlowProps {
 
 function toneClassName(status: ChapterExecutionFlowStageStatus, isCurrent: boolean): string {
   if (isCurrent) {
-    return "border-sky-300 bg-sky-50 text-sky-800";
+    return "border-sky-300 bg-sky-50 text-sky-800 dark:bg-sky-900/20 dark:border-sky-700 dark:text-sky-300";
   }
   if (status === "done") {
-    return "border-emerald-200 bg-emerald-50 text-emerald-800";
+    return "border-emerald-200 bg-emerald-50 text-emerald-800 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300";
   }
   return "border-border/70 bg-background text-muted-foreground";
 }

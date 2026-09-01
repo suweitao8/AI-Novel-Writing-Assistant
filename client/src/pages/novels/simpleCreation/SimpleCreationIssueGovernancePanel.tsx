@@ -49,7 +49,7 @@ export default function SimpleCreationIssueGovernancePanel(props: {
     <details open className="overflow-hidden rounded-2xl border border-border bg-background">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
         <div className="flex min-w-0 items-start gap-3">
-          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+          <span className="mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:text-amber-300">
             <ShieldAlert className="h-4 w-4" />
           </span>
           <div>

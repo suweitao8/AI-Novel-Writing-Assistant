@@ -67,9 +67,9 @@ function PanelHintCard(props: { title: string; content: string }) {
 
 function ReferenceNotice(props: { title: string; description: string }) {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-900">
+    <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-sm text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
       <div className="font-medium">{props.title}</div>
-      <div className="mt-1 leading-6 text-amber-800">{props.description}</div>
+      <div className="mt-1 leading-6 text-amber-800 dark:text-amber-300">{props.description}</div>
     </div>
   );
 }
@@ -181,7 +181,7 @@ export default function ChapterExecutionReferencePanel(props: ChapterExecutionRe
                     <PanelHintCard title="结束状态" content={scene.exitState} />
                   </div>
                   {scene.forbiddenExpansion.length > 0 ? (
-                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm leading-6 text-amber-900">
+                    <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-sm leading-6 text-amber-900 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-300">
                       禁止展开：{scene.forbiddenExpansion.join("；")}
                     </div>
                   ) : null}
