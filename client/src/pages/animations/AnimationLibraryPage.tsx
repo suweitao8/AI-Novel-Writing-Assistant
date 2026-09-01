@@ -5,10 +5,12 @@ import { ChevronLeft, ChevronRight, Loader2, Search } from "lucide-react";
 import {
   ANIMATION_LIBRARY,
   ANIMATION_LIBRARY_ACTION_TYPES,
+  ANIMATION_LIBRARY_SOURCES,
   ANIMATION_LIBRARY_SCOPES,
   filterAnimationLibraryEntries,
   type AnimationLibraryEntry,
   type AnimationLibraryActionTypeId,
+  type AnimationLibrarySourceFilterId,
   type AnimationLibraryScopeId,
 } from "@/config/animationLibrary";
 import { getAnimationFrameCount } from "./animationFrame";
@@ -90,7 +92,8 @@ function countBy<T extends string>(
 }
 
 export default function AnimationLibraryPage() {
-  const [scope, setScope] = useState<AnimationLibraryScopeId>("storyboard");
+  const [source, setSource] = useState<AnimationLibrarySourceFilterId>("all");
+  const [scope, setScope] = useState<AnimationLibraryScopeId>("all");
   const [actionType, setActionType] = useState<AnimationLibraryActionTypeId | "all">("all");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -116,9 +119,17 @@ export default function AnimationLibraryPage() {
     () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { scope, query: search }),
     [scope, search],
   );
-  const actionTypeCounts = useMemo(
-    () => countBy(scopedEntries, (entry) => entry.actionType),
+  const sourceCounts = useMemo(
+    () => countBy(scopedEntries, (entry) => entry.source),
     [scopedEntries],
+  );
+  const sourceEntries = useMemo(
+    () => filterAnimationLibraryEntries(ANIMATION_LIBRARY, { scope, source, query: search }),
+    [scope, search, source],
+  );
+  const actionTypeCounts = useMemo(
+    () => countBy(sourceEntries, (entry) => entry.actionType),
+    [sourceEntries],
   );
   const visibleActionTypes = useMemo(
     () => ANIMATION_LIBRARY_ACTION_TYPES.filter((option) => actionTypeCounts.has(option.id)),
@@ -127,16 +138,17 @@ export default function AnimationLibraryPage() {
   const entries = useMemo(
     () =>
       filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+        source,
         scope,
         actionType,
         query: search,
       }),
-    [actionType, scope, search],
+    [actionType, scope, search, source],
   );
 
   useEffect(() => {
     setPage(1);
-  }, [actionType, scope, search]);
+  }, [actionType, scope, search, source]);
 
   useEffect(() => {
     if (actionType !== "all" && !actionTypeCounts.has(actionType)) setActionType("all");
@@ -150,12 +162,14 @@ export default function AnimationLibraryPage() {
   const pageStart = (page - 1) * PAGE_SIZE;
   const pageEntries = entries.slice(pageStart, pageStart + PAGE_SIZE);
   const hasActiveFilters =
-    scope !== "storyboard" ||
+    source !== "all" ||
+    scope !== "all" ||
     actionType !== "all" ||
     searchInput.trim().length > 0;
 
   const resetFilters = () => {
-    setScope("storyboard");
+    setSource("all");
+    setScope("all");
     setActionType("all");
     setSearchInput("");
     setSearch("");
@@ -169,62 +183,35 @@ export default function AnimationLibraryPage() {
         className="space-y-2 rounded-xl border border-border bg-card p-2"
         data-animation-category-table
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-2" data-animation-filter-controls>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-            <div className="flex min-w-0 items-center gap-2" data-animation-scope-filter>
-              <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">用途</span>
-              <Tabs
-                value={scope}
-                onValueChange={(value) => {
-                  setScope(value as AnimationLibraryScopeId);
-                  setActionType("all");
-                }}
-                className="min-w-0"
-              >
-                <TabsList className="h-8 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 whitespace-nowrap">
-                  {ANIMATION_LIBRARY_SCOPES.map((scopeOption) => (
-                    <TabsTrigger
-                      key={scopeOption.id}
-                      value={scopeOption.id}
-                      className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                      data-animation-scope={scopeOption.id}
-                    >
-                      {scopeOption.label} <span className="text-[10px] opacity-75">
-                        {scopeOption.id === "storyboard"
-                          ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
-                          : scopeOption.id === "compatibility"
-                            ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
-                            : ANIMATION_LIBRARY.length}
-                      </span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-              </Tabs>
-            </div>
-            <div className="flex min-w-0 items-center gap-2" data-animation-category-filter>
-              <label
-                htmlFor="animation-library-category"
-                className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
-              >
-                动作分类
-              </label>
-              <SelectControl
-                id="animation-library-category"
-                aria-label="按动作分类筛选"
-                className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
-                value={actionType}
-                onChange={(event) =>
-                  setActionType(event.target.value as AnimationLibraryActionTypeId | "all")
-                }
-              >
-                <option value="all">全部动作 ({scopedEntries.length})</option>
-                {visibleActionTypes.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label} ({actionTypeCounts.get(option.id) ?? 0})
-                  </option>
+        <div className="flex min-w-0 flex-wrap items-start gap-2" data-animation-filter-controls>
+          <div className="flex min-w-0 flex-1 items-center gap-2" data-animation-source-filter>
+            <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground">来源</span>
+            <Tabs
+              value={source}
+              onValueChange={(value) => {
+                setSource(value as AnimationLibrarySourceFilterId);
+                setActionType("all");
+                setPage(1);
+              }}
+              className="min-w-0 flex-1"
+            >
+              <TabsList className="flex h-8 min-w-0 w-full max-w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+                {ANIMATION_LIBRARY_SOURCES.map((sourceOption) => (
+                  <TabsTrigger
+                    key={sourceOption.id}
+                    value={sourceOption.id}
+                    className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    data-animation-source={sourceOption.id}
+                  >
+                    {sourceOption.label} <span className="text-[10px] opacity-75">
+                      {sourceOption.id === "all"
+                        ? scopedEntries.length
+                        : sourceCounts.get(sourceOption.id) ?? 0}
+                    </span>
+                  </TabsTrigger>
                 ))}
-              </SelectControl>
-            </div>
+              </TabsList>
+            </Tabs>
           </div>
           <form
             className="flex w-full shrink-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:max-w-md"
@@ -267,6 +254,64 @@ export default function AnimationLibraryPage() {
               </button>
             ) : null}
           </form>
+        </div>
+        <div className="flex min-w-0 flex-wrap items-center gap-2" data-animation-detail-filters>
+          <div className="flex min-w-0 items-center gap-2" data-animation-scope-filter>
+            <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground">用途</span>
+            <Tabs
+              value={scope}
+              onValueChange={(value) => {
+                setScope(value as AnimationLibraryScopeId);
+                setActionType("all");
+                setPage(1);
+              }}
+              className="min-w-0"
+            >
+              <TabsList className="flex h-8 min-w-0 max-w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+                {ANIMATION_LIBRARY_SCOPES.map((scopeOption) => (
+                  <TabsTrigger
+                    key={scopeOption.id}
+                    value={scopeOption.id}
+                    className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                    data-animation-scope={scopeOption.id}
+                  >
+                    {scopeOption.label} <span className="text-[10px] opacity-75">
+                      {scopeOption.id === "storyboard"
+                        ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
+                        : scopeOption.id === "compatibility"
+                          ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
+                          : ANIMATION_LIBRARY.length}
+                    </span>
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="flex min-w-0 items-center gap-2" data-animation-action-filter>
+            <label
+              htmlFor="animation-library-category"
+              className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
+            >
+              动作分类
+            </label>
+            <SelectControl
+              id="animation-library-category"
+              aria-label="按动作分类筛选"
+              className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
+              value={actionType}
+              onChange={(event) => {
+                setActionType(event.target.value as AnimationLibraryActionTypeId | "all");
+                setPage(1);
+              }}
+            >
+              <option value="all">全部动作 ({sourceEntries.length})</option>
+              {visibleActionTypes.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label} ({actionTypeCounts.get(option.id) ?? 0})
+                </option>
+              ))}
+            </SelectControl>
+          </div>
         </div>
       </section>
 

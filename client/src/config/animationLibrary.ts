@@ -10,6 +10,7 @@ import { matchesLibrarySearchQuery } from "./librarySearch.ts";
  * 重定向到 UAL2 的新目录。
  */
 export type AnimationLibrarySource = "legacy" | "unreal";
+export type AnimationLibrarySourceFilterId = AnimationLibrarySource | "all";
 
 /** 分镜入口默认只展示通过原地位移门禁的策选动作；旧目录保留为兼容区。 */
 export type AnimationLibraryScopeId = "storyboard" | "compatibility" | "all";
@@ -351,7 +352,7 @@ export interface AnimationLibraryEntry {
 
 export interface AnimationLibraryFilters {
   scope?: AnimationLibraryScopeId;
-  source?: AnimationLibrarySource | "all";
+  source?: AnimationLibrarySourceFilterId;
   groupId?: AnimationLibraryGroupId | "all";
   packId?: string | "all";
   actionType?: AnimationLibraryActionTypeId | "all";
