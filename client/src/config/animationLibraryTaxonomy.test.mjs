@@ -6,6 +6,7 @@ import {
   ANIMATION_LIBRARY_ACTION_TYPES,
   ANIMATION_LIBRARY_GROUPS,
   ANIMATION_LIBRARY_PACKS,
+  ANIMATION_LIBRARY_SOURCES,
   filterAnimationLibraryEntries,
 } from "./animationLibrary.ts";
 
@@ -31,6 +32,33 @@ test("动画目录明确区分旧动画、UE 源组和独立套装", () => {
       `套装 ${pack.id} 必须至少有一条可预览动画`,
     );
   }
+});
+
+test("动画库提供两类用户可理解的来源分类，并支持来源交集筛选", () => {
+  assert.deepEqual(
+    ANIMATION_LIBRARY_SOURCES.map(({ id, label }) => ({ id, label })),
+    [
+      { id: "all", label: "全部" },
+      { id: "unreal", label: "虚幻动画" },
+      { id: "legacy", label: "网站内置动画" },
+    ],
+  );
+
+  const unreal = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { source: "unreal" });
+  const legacy = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { source: "legacy" });
+  assert.ok(unreal.length > 0);
+  assert.ok(legacy.length > 0);
+  assert.ok(unreal.every((entry) => entry.source === "unreal"));
+  assert.ok(legacy.every((entry) => entry.source === "legacy"));
+
+  const target = unreal.find((entry) => entry.actionType !== "idle");
+  assert.ok(target);
+  const intersection = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+    source: "unreal",
+    actionType: target.actionType,
+    query: target.clipName,
+  });
+  assert.deepEqual(intersection.map((entry) => entry.id), [target.id]);
 });
 
 test("动画目录的动作语义和去重键完整，Idle 允许保留多个变体", () => {
