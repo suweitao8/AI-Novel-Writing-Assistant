@@ -17,11 +17,11 @@ import { AppError } from "../../../middleware/errorHandler";
 import { runStructuredPrompt } from "../../../prompting/core/promptRunner";
 import {
   dramaShotBlockingAutoPlanPrompt,
+  type DramaShotBlockingAutoPlanCameraIntent,
   type DramaShotBlockingAutoPlanOutput,
 } from "../../../prompting/prompts/drama/shotBlockingAutoPlan.prompts";
 import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import {
-  anchorBlockingCameraAtProjectionCenter,
   clampBlockingActorPositionToStage,
   resolveBlockingCameraWorldPlacement,
   resolveStoryScene3DActorStageRadius,
@@ -422,7 +422,7 @@ export class DramaShotBlockingSketchService {
         temperature: options.temperature ?? 0.25,
       },
     });
-    return buildDramaShotBlockingAutoPlanLayout(result.output, context.actors, context.scene.environment);
+    return buildDramaShotBlockingAutoPlanLayout(result.output, context.actors, context.scene.environment, shot.shotSize);
   }
 
   async saveSketch(projectId: string, shotId: string, input: unknown): Promise<DramaShotBlockingSketchData> {
@@ -700,10 +700,177 @@ export function fitAutoPlanCameraFovToActors(
   };
 }
 
+export type BlockingShotSizeKey = "close_up" | "medium_close" | "medium" | "full" | "extreme_wide";
+
+interface BlockingShotSizeProfile {
+  /** 焦点取景高度占角色身高的比例（特写对眼睛、中景对腰部）。 */
+  focusHeightRatio: number;
+  /** 构图目标主体高度占角色身高的比例（特写只框头部，全景框全身加余量）。 */
+  subjectSizeRatio: number;
+  /** 主体目标占画面高的比例；服务端按它反推 fovDeg。 */
+  fillRatio: number;
+  /** 景深：焦点前后保持清晰的范围（米）与虚化半径。 */
+  focusRange: number;
+  blurRadius: number;
+  /** 三分法横向偏移量估算用的临时视角。 */
+  provisionalFovDeg: number;
+}
+
+const BLOCKING_SHOT_SIZE_PROFILES: Record<BlockingShotSizeKey, BlockingShotSizeProfile> = {
+  close_up: { focusHeightRatio: 0.92, subjectSizeRatio: 0.16, fillRatio: 0.55, focusRange: 0.5, blurRadius: 5, provisionalFovDeg: 40 },
+  medium_close: { focusHeightRatio: 0.78, subjectSizeRatio: 0.45, fillRatio: 0.72, focusRange: 1, blurRadius: 4, provisionalFovDeg: 45 },
+  medium: { focusHeightRatio: 0.6, subjectSizeRatio: 0.72, fillRatio: 0.78, focusRange: 2, blurRadius: 3, provisionalFovDeg: 50 },
+  full: { focusHeightRatio: 0.5, subjectSizeRatio: 1.15, fillRatio: 0.82, focusRange: 5, blurRadius: 1.5, provisionalFovDeg: 60 },
+  extreme_wide: { focusHeightRatio: 0.5, subjectSizeRatio: 1.35, fillRatio: 0.7, focusRange: 12, blurRadius: 0.8, provisionalFovDeg: 70 },
+};
+
+/** 把自由文本景别归一到构图档位；中近景优先于近景匹配，未知值回落中景。 */
+export function normalizeBlockingShotSizeKey(shotSize: string | null | undefined): BlockingShotSizeKey {
+  const raw = shotSize?.trim() ?? "";
+  if (!raw) return "medium";
+  if (raw.includes("特写")) return "close_up";
+  if (raw.includes("中近")) return "medium_close";
+  if (raw.includes("近景")) return "medium_close";
+  if (raw.includes("中景")) return "medium";
+  if (raw.includes("全景")) return "full";
+  if (raw.includes("远景")) return "extreme_wide";
+  return "medium";
+}
+
+const BLOCKING_FOCAL_MIN_HORIZONTAL_DISTANCE_M = 0.9;
+const BLOCKING_FOV_MIN_DEG = 30;
+const BLOCKING_FOV_MAX_DEG = 100;
+
+/**
+ * v9 确定性相机解析：AI 只声明构图意图（焦点角色、三分法偏置、景深开关），
+ * 相机的方位角、俯仰、距离、焦点、视野角和景深参数全部由角色实际落位 +
+ * 镜头景别几何推导。相机位置固定在场景投射中心（全景图从该点拍摄），
+ * 因此视线永远正对焦点主体，景别由 fov 反推，构图不会再失准。
+ */
+export function resolveAutoPlanCameraFromIntent({
+  intent,
+  actors,
+  shotSize,
+  environment,
+}: {
+  intent: DramaShotBlockingAutoPlanCameraIntent;
+  actors: ReadonlyArray<{ characterName: string; position: [number, number, number]; heightMeters?: number }>;
+  shotSize: string | null | undefined;
+  environment: StoryScene3DEnvironment;
+}): DramaShotBlockingSketch3DCamera {
+  const sizeKey = normalizeBlockingShotSizeKey(shotSize);
+  const profile = BLOCKING_SHOT_SIZE_PROFILES[sizeKey];
+  const projectionCenterHeight = Number(environment.projectionCenterHeight);
+  const centerHeight = Number.isFinite(projectionCenterHeight) ? projectionCenterHeight : 2;
+
+  const focalName = intent.focalCharacterName?.trim().toLocaleLowerCase();
+  const focalActor = (focalName
+    ? actors.find((actor) => actor.characterName.trim().toLocaleLowerCase() === focalName)
+    : undefined)
+    ?? actors[0];
+  if (!focalActor) {
+    throw new AppError("自动构图缺少可取景的角色。", 422);
+  }
+  const heightOf = (actor: { heightMeters?: number }): number => actor.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
+
+  // 焦点：单人/紧凑景别取焦点角色的视点高度；大远景取群体重心，把整个场面装进画面。
+  let focus: [number, number, number];
+  if (sizeKey === "extreme_wide") {
+    const count = Math.max(1, actors.length);
+    let sumX = 0;
+    let sumY = 0;
+    let sumZ = 0;
+    for (const actor of actors) {
+      sumX += actor.position[0];
+      sumY += actor.position[1] + 0.5 * heightOf(actor);
+      sumZ += actor.position[2];
+    }
+    focus = [sumX / count, sumY / count, sumZ / count];
+  } else {
+    focus = [
+      focalActor.position[0],
+      focalActor.position[1] + profile.focusHeightRatio * heightOf(focalActor),
+      focalActor.position[2],
+    ];
+  }
+
+  // 三分法横向偏移：把取景点向画面右侧（或左侧）移开主体，让主体落在三分线上。
+  const horizontalDistance = Math.hypot(focus[0], focus[2]);
+  const azimuthRad = Math.atan2(focus[0], focus[2]);
+  const rightVector: [number, number, number] = [-Math.cos(azimuthRad), 0, Math.sin(azimuthRad)];
+  const biasShift = intent.compositionBias === "left"
+    ? 1
+    : intent.compositionBias === "right"
+      ? -1
+      : 0;
+  const provisionalFrameWidth = 2
+    * Math.tan((profile.provisionalFovDeg / 2) * Math.PI / 180)
+    * Math.max(horizontalDistance, 1e-3)
+    * SHOT_FRAME_ASPECT;
+  const shift = biasShift * provisionalFrameWidth / 6;
+  let framed: [number, number, number] = [
+    focus[0] + rightVector[0] * shift,
+    focus[1],
+    focus[2] + rightVector[2] * shift,
+  ];
+
+  // 焦点几乎站在相机（投射中心）脚下时无法取景，沿同一方位角向外推到最小取景距离。
+  let dh = Math.hypot(framed[0], framed[2]);
+  if (dh < BLOCKING_FOCAL_MIN_HORIZONTAL_DISTANCE_M) {
+    const azimuthNow = dh < 1e-6 ? azimuthRad : Math.atan2(framed[0], framed[2]);
+    dh = BLOCKING_FOCAL_MIN_HORIZONTAL_DISTANCE_M;
+    framed = [Math.sin(azimuthNow) * dh, framed[1], Math.cos(azimuthNow) * dh];
+  }
+
+  // 相机位置被舞台合同钉在投射中心：orbit 的方位/俯仰/距离由“从投射中心看向焦点”唯一确定。
+  // orbit 约定 position = focal + D(azim,elev)·distance，D 指向相机一侧，
+  // 因此方位角是从焦点指向投射中心（视线方向恰好相反）。
+  const azimDeg = (Math.atan2(-framed[0], -framed[2]) * 180) / Math.PI;
+  const elevationRad = Math.atan2(framed[1] - centerHeight, dh);
+  const elevDeg = (elevationRad * 180) / Math.PI;
+  const distance = Math.hypot(dh, framed[1] - centerHeight);
+
+  // 景别由视野角落实：主体目标尺寸按 fillRatio 占满画面高，fov 从实际距离反推并夹取。
+  let subjectSize = profile.subjectSizeRatio * heightOf(focalActor);
+  if (sizeKey === "extreme_wide" && actors.length > 1) {
+    let maxSpread = 0;
+    for (let i = 0; i < actors.length; i += 1) {
+      for (let j = i + 1; j < actors.length; j += 1) {
+        maxSpread = Math.max(maxSpread, Math.hypot(
+          actors[i].position[0] - actors[j].position[0],
+          actors[i].position[2] - actors[j].position[2],
+        ));
+      }
+    }
+    subjectSize = Math.max(subjectSize, maxSpread * 1.1);
+  }
+  const rawFovDeg = (2 * Math.atan(subjectSize / (profile.fillRatio * 2 * distance)) * 180) / Math.PI;
+  const fovDeg = Math.max(BLOCKING_FOV_MIN_DEG, Math.min(BLOCKING_FOV_MAX_DEG, Math.ceil(rawFovDeg)));
+
+  return {
+    azim: Math.max(-180, Math.min(180, azimDeg)),
+    elev: Math.max(-89, Math.min(89, elevDeg)),
+    distance: Math.max(0.25, Math.min(100, distance)),
+    focalPoint: [
+      Math.max(-100, Math.min(100, framed[0])),
+      Math.max(-100, Math.min(100, framed[1])),
+      Math.max(-100, Math.min(100, framed[2])),
+    ],
+    fovDeg,
+    nearClip: 0.05,
+    farClip: 200,
+    depthOfFieldEnabled: intent.depthOfFieldEnabled,
+    focusDistance: Math.max(0.25, Math.min(100, distance)),
+    focusRange: profile.focusRange,
+    blurRadius: profile.blurRadius,
+  };
+}
+
 export function buildDramaShotBlockingAutoPlanLayout(
   output: DramaShotBlockingAutoPlanOutput,
   actors: BlockingSketchEditorActor[],
   environment: StoryScene3DEnvironment,
+  shotSize?: string | null,
 ): DramaShotBlockingAutoPlanResult {
   const expectedNames = actors.map((actor) => actor.characterName.trim());
   const expected = new Set(expectedNames.map(normalizedName));
@@ -720,8 +887,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
   try {
     const actorByName = new Map(actors.map((actor) => [normalizedName(actor.characterName), actor]));
     // 舞台合同：角色站位（含跑动等大幅动作落点）不进入半球边缘 1 米缓冲；
-    // 拍摄位锚定在投射中心，构图自由度只保留视线方向、拍摄距离与焦段。
-    const stageCamera = anchorBlockingCameraAtProjectionCenter(output.camera, environment);
+    // 相机由确定性解析器按“角色落位 + 镜头景别 + AI 构图意图”生成。
     const plannedActors: DramaShotBlockingSketch3DActor[] = output.actors.map((actor) => ({
       ...(() => {
         const source = actorByName.get(normalizedName(actor.characterName));
@@ -742,13 +908,12 @@ export function buildDramaShotBlockingAutoPlanLayout(
     const layout = normalizeBlockingSketch3dLayout({
       schemaVersion: 1,
       engine: "playcanvas",
-      camera: {
-        ...output.camera,
-        azim: stageCamera.azim,
-        elev: stageCamera.elev,
-        distance: stageCamera.distance,
-        focalPoint: stageCamera.focalPoint,
-      },
+      camera: resolveAutoPlanCameraFromIntent({
+        intent: output.camera,
+        actors: plannedActors,
+        shotSize,
+        environment,
+      }),
       actors: plannedActors,
       environment,
     });

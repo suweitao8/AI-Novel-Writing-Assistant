@@ -14,6 +14,12 @@ const actors = [
   { characterName: "血角兽", sourceImageKind: "state_sheet" },
 ];
 
+const cameraIntent = {
+  focalCharacterName: "血角兽",
+  compositionBias: "center",
+  depthOfFieldEnabled: true,
+};
+
 const planOutput = {
   actors: [
     { characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" },
@@ -25,23 +31,11 @@ const planOutput = {
     relation: "on_top_of",
     sizeRelation: "larger",
   }],
-  camera: {
-    azim: -35,
-    elev: -10,
-    distance: 7,
-    focalPoint: [0, 0.8, 0],
-    fovDeg: 52,
-    nearClip: 0.05,
-    farClip: 200,
-    depthOfFieldEnabled: true,
-    focusDistance: 7,
-    focusRange: 4,
-    blurRadius: 3,
-  },
+  camera: cameraIntent,
   compositionNote: "双人关系清楚",
 };
 
-test("自动构图把越界角色 clamp 回舞台半径并把相机锚定到投射中心", () => {
+test("自动构图把越界角色 clamp 回舞台半径并把相机钉在投射中心", () => {
   const {
     resolveBlockingCameraWorldPlacement,
     resolveStoryScene3DActorStageRadius,
@@ -54,7 +48,7 @@ test("自动构图把越界角色 clamp 回舞台半径并把相机锚定到投�
       planOutput.actors[1],
     ],
   };
-  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(outOfStage, actors, environment);
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(outOfStage, actors, environment, "全景");
   const clamped = result.layout.actors[0].position;
   const expectedRadius = resolveStoryScene3DActorStageRadius(environment);
   assert.ok(
@@ -65,11 +59,11 @@ test("自动构图把越界角色 clamp 回舞台半径并把相机锚定到投�
   assert.equal(clamped[1], 0);
 
   const placement = resolveBlockingCameraWorldPlacement(result.layout.camera);
-  assert.ok(Math.abs(placement.position[0]) < 1e-9, "相机 x 在投射中心");
-  assert.ok(Math.abs(placement.position[1] - 3) < 1e-9, "相机高度等于投射中心高度");
-  assert.ok(Math.abs(placement.position[2]) < 1e-9, "相机 z 在投射中心");
+  assert.ok(Math.abs(placement.position[0]) < 1e-6, "相机 x 在投射中心");
+  assert.ok(Math.abs(placement.position[1] - 3) < 1e-6, "相机高度等于投射中心高度");
+  assert.ok(Math.abs(placement.position[2]) < 1e-6, "相机 z 在投射中心");
   assert.match(serviceSource, /stageRadiusMeters/);
-  assert.match(serviceSource, /resolveStoryScene3DActorStageRadius|anchorBlockingCameraAtProjectionCenter/);
+  assert.match(serviceSource, /resolveStoryScene3DActorStageRadius|resolveAutoPlanCameraFromIntent/);
 });
 
 test("自动构图服务把 AI 输出归一化为完整 PlayCanvas 布局", () => {
@@ -78,12 +72,97 @@ test("自动构图服务把 AI 输出归一化为完整 PlayCanvas 布局", () =
     planOutput,
     actors,
     { projectionCenterHeight: 3, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "全景",
   );
   assert.deepEqual(result.layout.actors.map((actor) => actor.characterName), ["沈烬", "血角兽"]);
   assert.equal(result.layout.actors[1].actionPlaying, false);
   assert.equal(result.layout.camera.depthOfFieldEnabled, true);
-  assert.equal(result.layout.camera.focusDistance, 7);
+  // 景深焦点落在相机到焦点的实际距离上。
+  assert.ok(Math.abs(result.layout.camera.focusDistance - result.layout.camera.distance) < 1e-9);
   assert.equal(result.compositionNote, "双人关系清楚");
+});
+
+test("确定性相机解析器把视线正对焦点主体并按景别计算 fov", () => {
+  const { resolveAutoPlanCameraFromIntent, normalizeBlockingShotSizeKey } = serviceModule;
+  const { resolveBlockingCameraWorldPlacement } = require("../../shared/dist/utils/blockingStage.js");
+  const environment = { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 };
+  const placedActors = [
+    { characterName: "沈烬", position: [4, 0, 0], heightMeters: 1.75 },
+    { characterName: "血角兽", position: [-2, 0, 1], heightMeters: 2.1 },
+  ];
+
+  // 焦点角色：相机钉在投射中心，视线（forward）指向该角色的取景点。
+  const aimed = resolveAutoPlanCameraFromIntent({
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    actors: placedActors,
+    shotSize: "中景",
+    environment,
+  });
+  const placement = resolveBlockingCameraWorldPlacement(aimed);
+  assert.ok(Math.abs(placement.position[0]) < 1e-6, "相机 x 在投射中心");
+  assert.ok(Math.abs(placement.position[1] - 2) < 1e-6, "相机高度等于投射中心高度");
+  assert.ok(Math.abs(placement.position[2]) < 1e-6, "相机 z 在投射中心");
+  const forwardLength = Math.hypot(placement.forward[0], placement.forward[1], placement.forward[2]);
+  const toFocal = [4 - 0, 1.05 - 2, 0 - 0];
+  const toFocalLength = Math.hypot(...toFocal);
+  for (let i = 0; i < 3; i += 1) {
+    assert.ok(
+      Math.abs(placement.forward[i] / forwardLength - toFocal[i] / toFocalLength) < 1e-6,
+      `视线方向第 ${i} 分量必须指向焦点主体`,
+    );
+  }
+  // 相机到焦点的距离等于视线距离，焦点高度按中景落在腰部（0.6·身高）。
+  assert.ok(Math.abs(aimed.distance - toFocalLength) < 1e-6);
+  assert.ok(Math.abs(aimed.focalPoint[1] - 1.05) < 1e-6);
+  assert.ok(aimed.fovDeg >= 30 && aimed.fovDeg <= 100);
+
+  // 景别档位：特写比全景更"紧"（fov 更小或同钳制下取更小值），档位映射正确。
+  assert.equal(normalizeBlockingShotSizeKey("特写"), "close_up");
+  assert.equal(normalizeBlockingShotSizeKey("中近景"), "medium_close");
+  assert.equal(normalizeBlockingShotSizeKey("近景"), "medium_close");
+  assert.equal(normalizeBlockingShotSizeKey("中景"), "medium");
+  assert.equal(normalizeBlockingShotSizeKey("全景"), "full");
+  assert.equal(normalizeBlockingShotSizeKey("远景"), "extreme_wide");
+  assert.equal(normalizeBlockingShotSizeKey(null), "medium");
+
+  const closeUp = resolveAutoPlanCameraFromIntent({
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    actors: [{ characterName: "沈烬", position: [1.4, 0, 0], heightMeters: 1.75 }],
+    shotSize: "特写",
+    environment,
+  });
+  const fullShot = resolveAutoPlanCameraFromIntent({
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    actors: [{ characterName: "沈烬", position: [6, 0, 0], heightMeters: 1.75 }],
+    shotSize: "全景",
+    environment,
+  });
+  assert.ok(closeUp.fovDeg < fullShot.fovDeg || closeUp.distance < fullShot.distance,
+    "特写必须比全景更紧（fov 或距离更小）");
+  // 景别档位决定景深：特写景深范围远小于全景。
+  assert.ok(closeUp.focusRange < fullShot.focusRange);
+});
+
+test("三分法偏置把焦点主体推离画面中心", () => {
+  const { resolveAutoPlanCameraFromIntent } = serviceModule;
+  const environment = { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 };
+  const placedActors = [{ characterName: "沈烬", position: [4, 0, 0], heightMeters: 1.75 }];
+  const center = resolveAutoPlanCameraFromIntent({
+    intent: { compositionBias: "center", depthOfFieldEnabled: false },
+    actors: placedActors,
+    shotSize: "中景",
+    environment,
+  });
+  const left = resolveAutoPlanCameraFromIntent({
+    intent: { compositionBias: "left", depthOfFieldEnabled: false },
+    actors: placedActors,
+    shotSize: "中景",
+    environment,
+  });
+  // 偏置只移动取景点与视线，主体仍在舞台原位。
+  assert.notEqual(center.azim, left.azim);
+  assert.ok(Math.abs(center.focalPoint[0] - left.focalPoint[0]) > 0.05
+    || Math.abs(center.focalPoint[2] - left.focalPoint[2]) > 0.05);
 });
 
 test("编辑器上下文摘要保留当前镜头的设计字段", () => {
@@ -114,6 +193,7 @@ test("自动构图服务拒绝缺失当前镜头角色而不使用固定坐标�
       { ...planOutput, actors: [planOutput.actors[0]] },
       actors,
       { projectionCenterHeight: 3, domeRadius: 20, yawDeg: 0, intensity: 1 },
+      "全景",
     ),
     /角色.*不一致|遗漏|缺少/,
   );
@@ -141,6 +221,7 @@ test("自动构图把局部缩放乘到角色身高基准上并保存身高元�
     heightAwareOutput,
     heightAwareActors,
     { projectionCenterHeight: 3, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "中景",
   );
   const tall = result.layout.actors[0];
   const child = result.layout.actors[1];
@@ -171,6 +252,7 @@ test("第一镜头的关系归一化不会把承载者和上方主体反过来�
     invertedFirstShotOutput,
     firstShotActors,
     { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "近景",
   );
   const yechen = result.layout.actors.find((actor) => actor.characterName === "叶晨");
   const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
@@ -206,6 +288,7 @@ test("自动构图服务拒绝关系中的未知角色、重复关系和多角�
       { ...valid, relations: [{ ...valid.relations[0], objectCharacterName: "不存在" }] },
       firstShotActors,
       environment,
+      "近景",
     ),
     /关系.*角色|未知|不一致/,
   );
@@ -214,6 +297,7 @@ test("自动构图服务拒绝关系中的未知角色、重复关系和多角�
       { ...valid, relations: [...valid.relations, valid.relations[0]] },
       firstShotActors,
       environment,
+      "近景",
     ),
     /重复|关系/,
   );
@@ -222,6 +306,7 @@ test("自动构图服务拒绝关系中的未知角色、重复关系和多角�
       { ...valid, relations: [] },
       firstShotActors,
       environment,
+      "近景",
     ),
     /关系/,
   );
@@ -235,6 +320,7 @@ test("自动构图服务通过注册 Prompt 获取镜头上下文并返回未落
   assert.match(serviceSource, /visualPrompt/);
   assert.match(serviceSource, /context\.actors/);
   assert.match(serviceSource, /heightMeters/);
+  assert.match(serviceSource, /resolveAutoPlanCameraFromIntent/);
   assert.match(serviceSource, /不一致|遗漏|缺少/);
   assert.doesNotMatch(serviceSource, /blockingSketchData:\s*JSON\.stringify\(.*autoPlan/s);
 });
