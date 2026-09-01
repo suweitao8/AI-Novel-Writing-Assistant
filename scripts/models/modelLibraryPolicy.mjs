@@ -32,6 +32,27 @@ for (const override of Object.values(policy.catalogOverrides)) {
 }
 
 export const CINE57_MODEL_LIBRARY_POLICY = Object.freeze(policy);
+export function assertCine57ModelLibraryContract(contract) {
+  if (
+    !contract
+    || typeof contract !== "object"
+    || contract.source !== "Cine57"
+    || contract.artDirection !== "realistic"
+    || contract.era !== "modern"
+    || contract.visualReviewRequired !== true
+  ) {
+    throw new Error("model library contract must explicitly declare Cine57 modern realistic visual review contract");
+  }
+  return {
+    source: contract.source,
+    artDirection: contract.artDirection,
+    era: contract.era,
+    visualReviewRequired: contract.visualReviewRequired,
+  };
+}
+export const CINE57_MODEL_LIBRARY_CONTRACT = Object.freeze(
+  assertCine57ModelLibraryContract(policy.libraryContract),
+);
 export const CINE57_CATEGORY_ORDER = Object.freeze([...policy.categoryOrder]);
 export const CINE57_REQUIRED_CATEGORIES = Object.freeze([...policy.requiredCategories]);
 export const CINE57_ALLOWED_MODEL_IDS = Object.freeze(allowedIds);

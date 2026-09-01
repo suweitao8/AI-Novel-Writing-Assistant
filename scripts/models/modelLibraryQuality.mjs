@@ -6,6 +6,7 @@ import { getUnsupportedNameReason, readGlb } from "./glbSanitizer.mjs";
 import {
   CINE57_ALLOWED_MODEL_IDS,
   CINE57_CATEGORY_ORDER,
+  CINE57_MODEL_LIBRARY_CONTRACT,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_REMOVED_MODEL_IDS,
@@ -350,15 +351,20 @@ function validateModelUsage(entry, errors) {
   }
 }
 
+function isStaticModelEntry(entry) {
+  return typeof entry?.fileUrl === "string" && entry.fileUrl.startsWith("/models/");
+}
+
 function isCine57StaticModelEntry(entry) {
-  return typeof entry?.fileUrl === "string" && entry.fileUrl.startsWith("/models/cine57/");
+  return isStaticModelEntry(entry) && entry.fileUrl.startsWith("/models/cine57/");
 }
 
 /** Return every static model-library content violation; an empty array means valid. */
 export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
-  const staticEntries = entries.filter(isCine57StaticModelEntry);
+  const staticEntries = entries.filter(isStaticModelEntry);
+  const cine57StaticEntries = staticEntries.filter(isCine57StaticModelEntry);
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
   const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
   const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
@@ -369,8 +375,8 @@ export function validateModelLibrary({ library, modelsDir }) {
   const assetSha256ById = new Map();
   const staticFileNames = new Set();
 
-  if (staticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
-    addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${staticEntries.length}`);
+  if (cine57StaticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
+    addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${cine57StaticEntries.length}`);
   }
 
   for (const entry of entries) {
@@ -384,8 +390,15 @@ export function validateModelLibrary({ library, modelsDir }) {
       continue;
     }
     validateModelUsage(entry, errors);
-    if (!isCine57StaticModelEntry(entry)) continue;
+    if (!isStaticModelEntry(entry)) continue;
 
+    if (entry.source !== CINE57_MODEL_LIBRARY_CONTRACT.source) {
+      addError(errors, `${entry.id} must use ${CINE57_MODEL_LIBRARY_CONTRACT.source} as its model source`);
+    }
+    if (!isCine57StaticModelEntry(entry)) {
+      addError(errors, `${entry.id} must use /models/cine57/ as its static model path`);
+      continue;
+    }
     if (!allowedIds.has(entry.id)) addError(errors, `model id is not in the curated allowlist: ${entry.id}`);
     if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
     if (!allowedCategories.has(entry.category)) {
@@ -435,7 +448,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   errors.push(...validateModelVisualReview({ library: entries, meshNamesById, assetSha256ById }));
 
   for (const requiredCategory of requiredCategories) {
-    if (!staticEntries.some((entry) => entry.category === requiredCategory)) {
+    if (!cine57StaticEntries.some((entry) => entry.category === requiredCategory)) {
       addError(errors, `required model category is empty: ${requiredCategory}`);
     }
   }
@@ -444,7 +457,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     if (!ids.has(allowedId)) addError(errors, `curated model is missing from catalog: ${allowedId}`);
   }
 
-  const foodContainerEntries = staticEntries.filter(isFoodContainerModel);
+  const foodContainerEntries = cine57StaticEntries.filter(isFoodContainerModel);
   if (foodContainerEntries.length > CINE57_MAX_FOOD_CONTAINER_ENTRIES) {
     addError(
       errors,

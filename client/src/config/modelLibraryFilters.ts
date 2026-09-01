@@ -8,10 +8,12 @@ export function isModelLibraryEntryVisible(entry: Pick<ModelLibraryEntry, "categ
 export function filterModelLibraryEntries(
   entries: readonly ModelLibraryEntry[],
   query = "",
+  hiddenModelIds?: ReadonlySet<string>,
 ): ModelLibraryEntry[] {
   return entries.filter(
     (entry) =>
       isModelLibraryEntryVisible(entry) &&
+      !hiddenModelIds?.has(entry.id) &&
       matchesLibrarySearchQuery(query, [entry.name, entry.fileName, entry.category]),
   );
 }

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, Navigate, useParams } from "react-router-dom";
-import { ArrowLeft, Camera, Crosshair, Loader2, Move3D, RotateCcw } from "lucide-react";
+import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Camera, Crosshair, Loader2, Move3D, RotateCcw, Trash2 } from "lucide-react";
 
+import { getModelLibraryVisibility, hideModelLibraryEntry } from "@/api/modelLibrary";
 import { getModelLibraryEntry } from "@/config/modelLibrary";
 import {
   getModelUsageAnchorLabel,
@@ -12,6 +13,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AppDialogContent,
+  Dialog,
+} from "@/components/ui/dialog";
 import { toast } from "@/components/ui/toast";
 import { InspectorComponentSection } from "@/pages/drama/comicDrama/components/editor3d";
 import {
@@ -24,6 +29,7 @@ import { disposeThumbnailStudio } from "./modelLibrary3d/thumbnailStudio";
 
 export default function ModelEditorPage() {
   const { modelId } = useParams<{ modelId: string }>();
+  const navigate = useNavigate();
   const entry = getModelLibraryEntry(modelId);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const viewerRef = useRef<ModelViewer | null>(null);
@@ -33,10 +39,38 @@ export default function ModelEditorPage() {
   const showBoundsRef = useRef(false);
   const [viewerError, setViewerError] = useState<string | null>(null);
   const [status, setStatus] = useState("正在初始化 3D 视口");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [hiddenModelIds, setHiddenModelIds] = useState<ReadonlySet<string> | null>(null);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+  const visibilityRequestIdRef = useRef(0);
+
+  const loadVisibility = useCallback(async () => {
+    const requestId = visibilityRequestIdRef.current + 1;
+    visibilityRequestIdRef.current = requestId;
+    setHiddenModelIds(null);
+    setVisibilityError(null);
+    try {
+      const response = await getModelLibraryVisibility();
+      if (requestId !== visibilityRequestIdRef.current) return;
+      if (!response.success || !response.data) {
+        throw new Error(response.error ?? response.message ?? "模型库可见性加载失败。");
+      }
+      setHiddenModelIds(new Set(response.data.hiddenModelIds));
+    } catch (error: unknown) {
+      if (requestId !== visibilityRequestIdRef.current) return;
+      setHiddenModelIds(null);
+      setVisibilityError(error instanceof Error ? error.message : "模型库可见性加载失败。");
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadVisibility();
+  }, [loadVisibility]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !entry || viewerRef.current) return undefined;
+    if (!canvas || !entry || !hiddenModelIds || hiddenModelIds.has(entry.id) || viewerRef.current) return undefined;
     let cancelled = false;
     showBoundsRef.current = false;
     setShowBounds(false);
@@ -83,7 +117,7 @@ export default function ModelEditorPage() {
       setGeometryStats(null);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [entry?.id]);
+  }, [entry?.id, hiddenModelIds]);
 
   const handleCapture = useCallback(() => {
     const current = viewerRef.current;
@@ -102,7 +136,54 @@ export default function ModelEditorPage() {
     }
   }, [entry]);
 
+  const handleDelete = useCallback(async () => {
+    if (!entry || deleting) return;
+    setDeleting(true);
+    try {
+      const response = await hideModelLibraryEntry(entry.id);
+      if (!response.success) {
+        throw new Error(response.error ?? response.message ?? "模型隐藏失败。");
+      }
+      toast.success("模型已从模型库隐藏。");
+      setDeleteOpen(false);
+      navigate("/models", { replace: true });
+    } catch (error: unknown) {
+      toast.error("模型隐藏失败。", {
+        description: error instanceof Error ? error.message : undefined,
+      });
+    } finally {
+      setDeleting(false);
+    }
+  }, [deleting, entry, navigate]);
+
   if (!entry) {
+    return <Navigate to="/models" replace />;
+  }
+
+  if (!hiddenModelIds) {
+    return (
+      <section
+        className="flex min-h-48 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card px-4 py-12 text-center"
+        data-model-editor-visibility-state={visibilityError ? "error" : "loading"}
+      >
+        {visibilityError ? (
+          <>
+            <p className="text-sm text-destructive">{visibilityError}</p>
+            <Button type="button" size="sm" variant="outline" onClick={() => void loadVisibility()}>
+              重试
+            </Button>
+          </>
+        ) : (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm text-muted-foreground">正在加载模型库</p>
+          </>
+        )}
+      </section>
+    );
+  }
+
+  if (hiddenModelIds.has(entry.id)) {
     return <Navigate to="/models" replace />;
   }
 
@@ -231,6 +312,18 @@ export default function ModelEditorPage() {
               快照
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="w-full"
+            data-model-delete-trigger="true"
+            onClick={() => setDeleteOpen(true)}
+            disabled={deleting}
+          >
+            <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+            删除模型
+          </Button>
         </aside>
 
         <Card className="h-full min-h-0 w-full overflow-hidden">
@@ -263,6 +356,31 @@ export default function ModelEditorPage() {
           </CardContent>
         </Card>
       </div>
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!deleting) setDeleteOpen(open);
+        }}
+      >
+        <AppDialogContent
+          title="删除模型？"
+          description={`将从模型库中隐藏“${entry.name}”。模型文件和已有分镜引用会保留。`}
+          data-model-delete-dialog="true"
+          footer={(
+            <>
+              <Button type="button" variant="outline" disabled={deleting} onClick={() => setDeleteOpen(false)}>
+                取消
+              </Button>
+              <Button type="button" variant="destructive" disabled={deleting} onClick={() => void handleDelete()}>
+                {deleting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
+                {deleting ? "删除中..." : "删除"}
+              </Button>
+            </>
+          )}
+        >
+          <p className="text-sm text-muted-foreground">确认后，该模型会从模型库目录中隐藏。</p>
+        </AppDialogContent>
+      </Dialog>
     </div>
   );
 }

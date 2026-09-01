@@ -84,10 +84,10 @@ export function validateModelVisualReview({
   assetSha256ById,
 } = {}) {
   const errors = [];
-  // 视觉复核只覆盖模型库的 Cine57 静态前景资产，避免把动画资源误当成
-  // 静态模型审核；其他来源的模型库条目仍可复用相同的查看器。
+  // 视觉复核覆盖模型库的所有静态前景资产，避免把动画资源误当成
+  // 静态模型审核；任何非 Cine57 静态条目会由模型库质量门禁拒绝。
   const entries = Array.isArray(library)
-    ? library.filter((entry) => typeof entry?.fileUrl === "string" && entry.fileUrl.startsWith("/models/cine57/"))
+    ? library.filter((entry) => typeof entry?.fileUrl === "string" && entry.fileUrl.startsWith("/models/"))
     : [];
   const reviewEntries = Array.isArray(reviews) ? reviews : [];
   const catalogById = new Map(entries.map((entry) => [entry.id, entry]));
