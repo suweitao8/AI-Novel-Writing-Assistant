@@ -170,67 +170,69 @@ export default function AnimationLibraryPage() {
         data-animation-category-table
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2" data-animation-filter-controls>
-          <div className="flex min-w-0 items-center gap-2" data-animation-scope-filter>
-            <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">用途</span>
-            <Tabs
-              value={scope}
-              onValueChange={(value) => {
-                setScope(value as AnimationLibraryScopeId);
-                setActionType("all");
-              }}
-              className="min-w-0"
-            >
-              <TabsList className="h-8 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 whitespace-nowrap">
-                {ANIMATION_LIBRARY_SCOPES.map((scopeOption) => (
-                  <TabsTrigger
-                    key={scopeOption.id}
-                    value={scopeOption.id}
-                    className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    data-animation-scope={scopeOption.id}
-                  >
-                    {scopeOption.label} <span className="text-[10px] opacity-75">
-                      {scopeOption.id === "storyboard"
-                        ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
-                        : scopeOption.id === "compatibility"
-                          ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
-                          : ANIMATION_LIBRARY.length}
-                    </span>
-                  </TabsTrigger>
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2" data-animation-scope-filter>
+              <span className="w-8 shrink-0 px-1 text-[11px] font-medium text-muted-foreground">用途</span>
+              <Tabs
+                value={scope}
+                onValueChange={(value) => {
+                  setScope(value as AnimationLibraryScopeId);
+                  setActionType("all");
+                }}
+                className="min-w-0"
+              >
+                <TabsList className="h-8 flex-nowrap justify-start gap-1 overflow-x-auto bg-transparent p-0 whitespace-nowrap">
+                  {ANIMATION_LIBRARY_SCOPES.map((scopeOption) => (
+                    <TabsTrigger
+                      key={scopeOption.id}
+                      value={scopeOption.id}
+                      className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      data-animation-scope={scopeOption.id}
+                    >
+                      {scopeOption.label} <span className="text-[10px] opacity-75">
+                        {scopeOption.id === "storyboard"
+                          ? ANIMATION_LIBRARY.filter((entry) => entry.inPlace).length
+                          : scopeOption.id === "compatibility"
+                            ? ANIMATION_LIBRARY.filter((entry) => !entry.inPlace).length
+                            : ANIMATION_LIBRARY.length}
+                      </span>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
+            </div>
+            <div className="flex min-w-0 items-center gap-2" data-animation-category-filter>
+              <label
+                htmlFor="animation-library-category"
+                className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
+              >
+                动作分类
+              </label>
+              <SelectControl
+                id="animation-library-category"
+                aria-label="按动作分类筛选"
+                className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
+                value={actionType}
+                onChange={(event) =>
+                  setActionType(event.target.value as AnimationLibraryActionTypeId | "all")
+                }
+              >
+                <option value="all">全部动作 ({scopedEntries.length})</option>
+                {visibleActionTypes.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label} ({actionTypeCounts.get(option.id) ?? 0})
+                  </option>
                 ))}
-              </TabsList>
-            </Tabs>
-          </div>
-          <div className="flex min-w-0 items-center gap-2" data-animation-category-filter>
-            <label
-              htmlFor="animation-library-category"
-              className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground"
-            >
-              动作分类
-            </label>
-            <SelectControl
-              id="animation-library-category"
-              aria-label="按动作分类筛选"
-              className="h-8 min-w-40 rounded-lg border-border/60 bg-background px-2 text-xs"
-              value={actionType}
-              onChange={(event) =>
-                setActionType(event.target.value as AnimationLibraryActionTypeId | "all")
-              }
-            >
-              <option value="all">全部动作 ({scopedEntries.length})</option>
-              {visibleActionTypes.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label} ({actionTypeCounts.get(option.id) ?? 0})
-                </option>
-              ))}
-            </SelectControl>
+              </SelectControl>
+            </div>
           </div>
           <form
-            className="flex min-w-0 flex-1 items-center gap-1.5 md:ml-auto md:max-w-md"
+            className="flex w-full shrink-0 items-center gap-1.5 sm:ml-auto sm:w-auto sm:max-w-md"
             aria-label="搜索动画"
             data-animation-search
             onSubmit={submitSearch}
           >
-            <label htmlFor="animation-library-search" className="relative min-w-0 flex-1 md:w-64">
+            <label htmlFor="animation-library-search" className="relative min-w-0 flex-1 sm:w-64">
               <Search
                 className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
                 aria-hidden="true"

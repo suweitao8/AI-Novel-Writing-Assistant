@@ -67,6 +67,7 @@ test("动画搜索通过按钮或回车提交，并与分类筛选同排", () =>
   assert.match(pageSource, /搜索/);
   assert.match(pageSource, /onKeyDown=\{\(event\) => \{[\s\S]*event\.key === "Enter"[\s\S]*applySearch\(event\.currentTarget\.value\)/);
   assert.match(pageSource, /data-animation-filter-controls[\s\S]*data-animation-search/);
+  assert.match(pageSource, /className="[^\"]*sm:ml-auto[^\"]*"[\s\S]*data-animation-search/);
   assert.doesNotMatch(pageSource, /entries\.length\s*}\s*\/\s*\{scopedEntries\.length/);
   assert.doesNotMatch(pageSource, /setTimeout\(\(\) => setSearch\(searchInput\.trim\(\)\), 250\)/);
 });

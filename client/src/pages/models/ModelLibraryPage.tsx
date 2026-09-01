@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, Search } from "lucide-react";
 
@@ -136,10 +136,15 @@ export default function ModelLibraryPage() {
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setSearch(searchInput.trim()), 250);
-    return () => window.clearTimeout(timer);
-  }, [searchInput]);
+
+  const applySearch = (value: string) => {
+    setSearch(value.trim());
+  };
+
+  const submitSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    applySearch(searchInput);
+  };
 
   useEffect(() => {
     return () => {
@@ -190,63 +195,79 @@ export default function ModelLibraryPage() {
   return (
     <div className="space-y-3" data-model-library-page>
       <section
-        className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-3"
-        aria-label="模型搜索"
-        data-model-search
+        className="flex min-w-0 flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-2"
+        aria-label="模型筛选"
+        data-model-filter-controls
       >
-        <label htmlFor="model-library-search" className="relative min-w-[220px] flex-1 sm:max-w-md">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <Input
-            id="model-library-search"
-            aria-label="搜索模型"
-            value={searchInput}
-            onChange={(event) => {
-              setSearchInput(event.target.value);
-              setPage(1);
-            }}
-            placeholder="搜索模型名称、文件名或分类"
-            className="h-10 pl-9"
-          />
-        </label>
-        <span className="text-xs text-muted-foreground" aria-live="polite">
-          {entries.length} / {visibleEntries.length}
-        </span>
-      </section>
-
-      <section
-        role="tablist"
-        aria-label="模型分类"
-        className="flex flex-wrap items-center gap-1 rounded-xl border border-border bg-card p-1"
-        data-model-category-table
-      >
-        {["全部", ...visibleCategories].map((item) => (
-          <button
-            key={item}
-            type="button"
-            role="tab"
-            aria-selected={category === item}
-            onClick={() => {
-              setCategory(item);
-              setPage(1);
-            }}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
-              category === item
-                ? "bg-primary font-medium text-primary-foreground"
-                : "text-muted-foreground hover:bg-accent hover:text-foreground",
-            )}
+        <div className="flex min-w-0 flex-1 items-center gap-2" data-model-category-filter>
+          <span className="shrink-0 px-1 text-[11px] font-medium text-muted-foreground">分类</span>
+          <div
+            role="tablist"
+            aria-label="模型分类"
+            className="flex min-w-0 items-center gap-1 overflow-x-auto whitespace-nowrap"
+            data-model-category-table
           >
-            {item}
-            <span
-              className={cn(
-                "text-[10px] leading-none",
-                category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
-              )}
-            >
-              {item === "全部" ? visibleEntries.length : counts.get(item) ?? 0}
-            </span>
-          </button>
-        ))}
+            {["全部", ...visibleCategories].map((item) => (
+              <button
+                key={item}
+                type="button"
+                role="tab"
+                aria-selected={category === item}
+                onClick={() => {
+                  setCategory(item);
+                  setPage(1);
+                }}
+                className={cn(
+                  "flex h-7 shrink-0 items-center gap-1.5 rounded-lg px-2.5 text-[13px] transition-colors",
+                  category === item
+                    ? "bg-primary font-medium text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                )}
+              >
+                {item}
+                <span
+                  className={cn(
+                    "text-[10px] leading-none",
+                    category === item ? "text-primary-foreground/80" : "text-muted-foreground/70",
+                  )}
+                >
+                  {item === "全部" ? visibleEntries.length : counts.get(item) ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <form
+          className="flex w-full shrink-0 items-center gap-1.5 sm:ml-auto sm:w-auto"
+          aria-label="搜索模型"
+          data-model-search
+          onSubmit={submitSearch}
+        >
+          <label htmlFor="model-library-search" className="relative min-w-0 flex-1 sm:w-64">
+            <Search
+              className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+            <Input
+              id="model-library-search"
+              aria-label="搜索模型"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  applySearch(event.currentTarget.value);
+                }
+              }}
+              placeholder="搜索模型名称、文件名或分类"
+              className="h-8 pl-8 text-xs"
+            />
+          </label>
+          <Button type="submit" size="sm" className="h-8 shrink-0 gap-1 px-2.5 text-xs">
+            <Search className="h-3.5 w-3.5" aria-hidden="true" />
+            搜索
+          </Button>
+        </form>
       </section>
 
       {entries.length > 0 ? (
