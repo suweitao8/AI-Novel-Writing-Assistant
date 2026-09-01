@@ -165,8 +165,8 @@ export default function NovelCreate() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl space-y-7 px-3 py-4 sm:px-4 lg:px-0">
-      <section className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+    <div className="studio-page mx-auto max-w-5xl space-y-7 px-3 py-4 sm:px-4 lg:px-0">
+      <section className="studio-page-header flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="max-w-3xl">
           <h1 className="text-3xl font-semibold tracking-normal text-foreground">创建小说项目</h1>
           <p className="mt-3 text-sm leading-6 text-muted-foreground">

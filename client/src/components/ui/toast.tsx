@@ -20,11 +20,11 @@ function Toaster(props: ToasterProps) {
         closeButtonAriaLabel: toastOptions?.closeButtonAriaLabel ?? "关闭提示",
         classNames: {
           ...toastOptions?.classNames,
-          toast: `max-w-[calc(100vw-1.5rem)] overflow-visible ${toastOptions?.classNames?.toast ?? ""}`.trim(),
+          toast: `studio-card max-w-[calc(100vw-1.5rem)] overflow-visible border-border/80 bg-[var(--surface-raised)] text-card-foreground shadow-[var(--shadow-floating)] ${toastOptions?.classNames?.toast ?? ""}`.trim(),
           content: `min-w-0 break-words [overflow-wrap:anywhere] ${toastOptions?.classNames?.content ?? ""}`.trim(),
           title: `break-words [overflow-wrap:anywhere] ${toastOptions?.classNames?.title ?? ""}`.trim(),
           description: `break-words [overflow-wrap:anywhere] ${toastOptions?.classNames?.description ?? ""}`.trim(),
-          closeButton: `shadow-sm ${toastOptions?.classNames?.closeButton ?? ""}`.trim(),
+          closeButton: `studio-button shadow-sm ${toastOptions?.classNames?.closeButton ?? ""}`.trim(),
         },
       }}
       {...restProps}

@@ -161,15 +161,15 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
   };
 
   return (
-    <aside className="flex h-full min-h-0 w-64 flex-col border-r bg-muted/20 p-3">
+    <aside className="studio-sidebar flex h-full min-h-0 w-64 flex-col border-r bg-[var(--surface-panel)] p-3">
       <div className="mb-4 flex items-center gap-2.5 px-1">
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
         <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
       </div>
 
-      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain pr-1">
+      <nav aria-label="主导航" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
         {visibleNavGroups.map((group) => (
-          <div key={group.title} className="space-y-1">
+          <div key={group.title} className="space-y-1.5">
             <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.title}
             </div>
@@ -183,10 +183,10 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
                   {({ isActive }) => (
                     <div
                       className={cn(
-                        "relative flex items-center rounded-md py-2 pl-4 pr-2 text-sm transition-colors",
+                        "relative flex items-center rounded-[var(--radius-control)] py-2 pl-4 pr-2 text-sm transition-[background-color,color,box-shadow] duration-[var(--duration-fast)]",
                         isActive
-                          ? "bg-accent/90 font-semibold text-accent-foreground"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground",
+                          ? "bg-[var(--control-active)] font-semibold text-accent-foreground shadow-sm"
+                          : "text-foreground hover:bg-[var(--control-hover)] hover:text-accent-foreground",
                         isNovelEntry && (isActive ? "ring-1 ring-primary/20" : "bg-primary/5 hover:bg-primary/10"),
                       )}
                     >
@@ -213,7 +213,7 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
         ))}
       </nav>
 
-      <div className="mt-2 shrink-0 space-y-2 border-t pt-3">
+      <div className="mt-2 shrink-0 space-y-2 border-t border-border/70 pt-3">
         {onSwitchToWorkspaceNav ? (
           <Button
             type="button"

@@ -60,8 +60,8 @@ export default function ComicDramaListPage() {
   };
 
   return (
-    <div className="space-y-5">
-      <section className="flex flex-wrap items-end justify-between gap-4">
+    <div className="studio-page space-y-6">
+      <section className="studio-page-header flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-3xl font-semibold tracking-normal">漫剧列表</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
@@ -80,7 +80,7 @@ export default function ComicDramaListPage() {
           正在打开漫剧列表
         </div>
       ) : novels.length === 0 ? (
-        <section className="rounded-3xl border border-dashed border-border bg-background/60 px-6 py-16 text-center">
+        <section className="studio-card rounded-[var(--radius-panel)] border border-dashed border-border/80 bg-[var(--surface-subtle)] px-6 py-16 text-center">
           <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <Clapperboard className="h-7 w-7" aria-hidden="true" />
           </span>
@@ -159,7 +159,7 @@ function ComicDramaCard(props: {
         aria-label={`打开《${novel.title}》漫剧工作室`}
         className="block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
-        <Card className="h-full overflow-hidden rounded-lg border-border/70 bg-background transition group-hover:border-primary/35 group-hover:shadow-sm">
+        <Card className="h-full overflow-hidden rounded-[var(--radius-panel)] border-border/70 bg-[var(--surface-panel)] transition group-hover:border-primary/35 group-hover:shadow-sm">
           <CardContent className="flex h-full min-h-[148px] flex-col gap-2 p-3">
             <h3 className="truncate pr-7 font-semibold text-foreground group-hover:text-primary">{novel.title}</h3>
             <div className="flex items-center gap-1.5 text-xs tabular-nums text-muted-foreground">
