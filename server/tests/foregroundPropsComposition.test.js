@@ -124,9 +124,9 @@ test("自动构图的道具交互必须指向真实存在的空间标记", () =>
   );
 });
 
-test("自动构图 v7 契约：交互字段与坐/躺提示词就位", () => {
+test("自动构图 v9 契约：交互字段与坐/躺提示词就位", () => {
   const promptSource = read("src/prompting/prompts/drama/shotBlockingAutoPlan.prompts.ts");
-  assert.match(promptSource, /version: "v7"/);
+  assert.match(promptSource, /version: "v9"/);
   assert.match(promptSource, /interactionMarkerId: z\.string\(\)/);
   assert.match(promptSource, /pose=sitting，并把该道具的 marker id 填入 interactionMarkerId/);
   assert.match(promptSource, /pose=lying，interactionMarkerId 指向该床或沙发/);
@@ -139,7 +139,7 @@ test("keyframe 首帧提示词携带前景家具摘要", () => {
   assert.match(keyframeService, /场景内前景家具（按摆位草图的位置与朝向呈现）：/);
   assert.match(keyframeService, /foregroundProps: initial\.foregroundProps/);
   const keyframePrompt = read("src/prompting/prompts/drama/shotKeyframe.prompts.ts");
-  assert.match(keyframePrompt, /version: "v3"/);
+  assert.match(keyframePrompt, /version: "v4"/);
 });
 
 test("全景图负向约束禁止一切可移动家具", () => {
