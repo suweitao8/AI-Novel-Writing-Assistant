@@ -190,20 +190,25 @@ export default function AnimationLibraryPage() {
               className="min-w-0 flex-1"
             >
               <TabsList className="flex h-8 min-w-0 w-full max-w-full flex-wrap justify-start gap-1 bg-transparent p-0">
-                {ANIMATION_LIBRARY_CATEGORY_FILTERS.map((categoryOption) => (
-                  <TabsTrigger
-                    key={categoryOption.id}
-                    value={categoryOption.id}
-                    className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-                    data-animation-category={categoryOption.id}
-                  >
-                    {categoryOption.label} <span className="text-[10px] opacity-75">
-                      {categoryOption.id === "all"
-                        ? searchedEntries.length
-                        : categoryCounts.get(categoryOption.id) ?? 0}
-                    </span>
-                  </TabsTrigger>
-                ))}
+                {ANIMATION_LIBRARY_CATEGORY_FILTERS.map((categoryOption) => {
+                  if (categoryOption.id !== "all" && !((categoryCounts.get(categoryOption.id) ?? 0) > 0)) {
+                    return null;
+                  }
+                  return (
+                    <TabsTrigger
+                      key={categoryOption.id}
+                      value={categoryOption.id}
+                      className="h-7 shrink-0 rounded-lg px-2 text-[12px] data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                      data-animation-category={categoryOption.id}
+                    >
+                      {categoryOption.label} <span className="text-[10px] opacity-75">
+                        {categoryOption.id === "all"
+                          ? searchedEntries.length
+                          : categoryCounts.get(categoryOption.id) ?? 0}
+                      </span>
+                    </TabsTrigger>
+                  );
+                })}
               </TabsList>
             </Tabs>
           </div>

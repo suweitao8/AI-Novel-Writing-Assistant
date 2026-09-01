@@ -432,7 +432,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-idle-break-01.fbx",
       "glbFileName": "unreal-daily-male-locomotion-idle-break-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-male-locomotion-idle-break-02",
@@ -464,7 +465,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-idle-break-02.fbx",
       "glbFileName": "unreal-daily-male-locomotion-idle-break-02.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-male-locomotion-crouch-idle",
@@ -496,7 +498,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-crouch-idle.fbx",
       "glbFileName": "unreal-daily-male-locomotion-crouch-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-male-locomotion-walk-backward",
@@ -528,7 +531,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-walk-backward.fbx",
       "glbFileName": "unreal-daily-male-locomotion-walk-backward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-male-locomotion-jog-forward",
@@ -560,7 +564,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-jog-forward.fbx",
       "glbFileName": "unreal-daily-male-locomotion-jog-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-male-locomotion-run-forward",
@@ -592,7 +597,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-run-forward.fbx",
       "glbFileName": "unreal-daily-male-locomotion-run-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-male-locomotion-crouch-forward",
@@ -624,7 +630,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-crouch-forward.fbx",
       "glbFileName": "unreal-daily-male-locomotion-crouch-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-male-locomotion-jump-forward",
@@ -656,7 +663,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-jump-forward.fbx",
       "glbFileName": "unreal-daily-male-locomotion-jump-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-male-locomotion-falling",
@@ -688,7 +696,8 @@
       "fbxFileName": "unreal-daily-male-locomotion-falling.fbx",
       "glbFileName": "unreal-daily-male-locomotion-falling.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-sitting-chair-loop-02",
@@ -720,7 +729,8 @@
       "fbxFileName": "unreal-daily-sitting-chair-loop-02.fbx",
       "glbFileName": "unreal-daily-sitting-chair-loop-02.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sitting-chair-clap",
@@ -752,7 +762,8 @@
       "fbxFileName": "unreal-daily-sitting-chair-clap.fbx",
       "glbFileName": "unreal-daily-sitting-chair-clap.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sitting-chair-thumbs-up",
@@ -784,7 +795,8 @@
       "fbxFileName": "unreal-daily-sitting-chair-thumbs-up.fbx",
       "glbFileName": "unreal-daily-sitting-chair-thumbs-up.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sitting-chair-thumbs-down",
@@ -816,7 +828,8 @@
       "fbxFileName": "unreal-daily-sitting-chair-thumbs-down.fbx",
       "glbFileName": "unreal-daily-sitting-chair-thumbs-down.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sitting-chair-bonus",
@@ -848,7 +861,8 @@
       "fbxFileName": "unreal-daily-sitting-chair-bonus.fbx",
       "glbFileName": "unreal-daily-sitting-chair-bonus.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-parkour-parkour-idle",
@@ -880,7 +894,8 @@
       "fbxFileName": "unreal-daily-parkour-parkour-idle.fbx",
       "glbFileName": "unreal-daily-parkour-parkour-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-parkour-walk-in-place",
@@ -912,7 +927,8 @@
       "fbxFileName": "unreal-daily-parkour-walk-in-place.fbx",
       "glbFileName": "unreal-daily-parkour-walk-in-place.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-parkour-run-in-place",
@@ -944,7 +960,8 @@
       "fbxFileName": "unreal-daily-parkour-run-in-place.fbx",
       "glbFileName": "unreal-daily-parkour-run-in-place.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-parkour-balance-idle",
@@ -976,7 +993,8 @@
       "fbxFileName": "unreal-daily-parkour-balance-idle.fbx",
       "glbFileName": "unreal-daily-parkour-balance-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-arms-crossed",
@@ -1008,7 +1026,8 @@
       "fbxFileName": "unreal-daily-mc-idles-arms-crossed.fbx",
       "glbFileName": "unreal-daily-mc-idles-arms-crossed.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-arms-crossed-look",
@@ -1040,7 +1059,8 @@
       "fbxFileName": "unreal-daily-mc-idles-arms-crossed-look.fbx",
       "glbFileName": "unreal-daily-mc-idles-arms-crossed-look.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-heavy-breathe",
@@ -1072,7 +1092,8 @@
       "fbxFileName": "unreal-daily-mc-idles-heavy-breathe.fbx",
       "glbFileName": "unreal-daily-mc-idles-heavy-breathe.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-cold",
@@ -1104,7 +1125,8 @@
       "fbxFileName": "unreal-daily-mc-idles-cold.fbx",
       "glbFileName": "unreal-daily-mc-idles-cold.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-scratch-head",
@@ -1136,7 +1158,8 @@
       "fbxFileName": "unreal-daily-mc-idles-scratch-head.fbx",
       "glbFileName": "unreal-daily-mc-idles-scratch-head.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-greet-wave",
@@ -1168,7 +1191,8 @@
       "fbxFileName": "unreal-daily-mc-idles-greet-wave.fbx",
       "glbFileName": "unreal-daily-mc-idles-greet-wave.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-tired",
@@ -1200,7 +1224,8 @@
       "fbxFileName": "unreal-daily-mc-idles-tired.fbx",
       "glbFileName": "unreal-daily-mc-idles-tired.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-check-watch",
@@ -1232,7 +1257,8 @@
       "fbxFileName": "unreal-daily-mc-idles-check-watch.fbx",
       "glbFileName": "unreal-daily-mc-idles-check-watch.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-mc-idles-wall-lean",
@@ -1264,7 +1290,8 @@
       "fbxFileName": "unreal-daily-mc-idles-wall-lean.fbx",
       "glbFileName": "unreal-daily-mc-idles-wall-lean.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-roll-dodge-dash-forward",
@@ -1296,7 +1323,8 @@
       "fbxFileName": "unreal-daily-roll-dodge-dash-forward.fbx",
       "glbFileName": "unreal-daily-roll-dodge-dash-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-roll-dodge-dodge-left",
@@ -1328,7 +1356,8 @@
       "fbxFileName": "unreal-daily-roll-dodge-dodge-left.fbx",
       "glbFileName": "unreal-daily-roll-dodge-dodge-left.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-roll-dodge-jump-dodge",
@@ -1360,7 +1389,8 @@
       "fbxFileName": "unreal-daily-roll-dodge-jump-dodge.fbx",
       "glbFileName": "unreal-daily-roll-dodge-jump-dodge.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-roll-dodge-roll-forward",
@@ -1392,7 +1422,8 @@
       "fbxFileName": "unreal-daily-roll-dodge-roll-forward.fbx",
       "glbFileName": "unreal-daily-roll-dodge-roll-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-roll-dodge-dodge-back",
@@ -1424,7 +1455,8 @@
       "fbxFileName": "unreal-daily-roll-dodge-dodge-back.fbx",
       "glbFileName": "unreal-daily-roll-dodge-dodge-back.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-dialogue-idle",
@@ -1456,7 +1488,8 @@
       "fbxFileName": "unreal-daily-dialogue-dialogue-idle.fbx",
       "glbFileName": "unreal-daily-dialogue-dialogue-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-serious-idle",
@@ -1488,7 +1521,8 @@
       "fbxFileName": "unreal-daily-dialogue-serious-idle.fbx",
       "glbFileName": "unreal-daily-dialogue-serious-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-serious-talk",
@@ -1520,7 +1554,8 @@
       "fbxFileName": "unreal-daily-dialogue-serious-talk.fbx",
       "glbFileName": "unreal-daily-dialogue-serious-talk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-laugh-gesture",
@@ -1552,7 +1587,8 @@
       "fbxFileName": "unreal-daily-dialogue-laugh-gesture.fbx",
       "glbFileName": "unreal-daily-dialogue-laugh-gesture.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-sad-idle",
@@ -1584,7 +1620,8 @@
       "fbxFileName": "unreal-daily-dialogue-sad-idle.fbx",
       "glbFileName": "unreal-daily-dialogue-sad-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-sad-talk",
@@ -1616,7 +1653,8 @@
       "fbxFileName": "unreal-daily-dialogue-sad-talk.fbx",
       "glbFileName": "unreal-daily-dialogue-sad-talk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-listening",
@@ -1648,7 +1686,8 @@
       "fbxFileName": "unreal-daily-dialogue-listening.fbx",
       "glbFileName": "unreal-daily-dialogue-listening.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-dialogue-walk-in-place",
@@ -1680,7 +1719,8 @@
       "fbxFileName": "unreal-daily-dialogue-walk-in-place.fbx",
       "glbFileName": "unreal-daily-dialogue-walk-in-place.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-daily-sleep-bed-sleep",
@@ -1712,7 +1752,8 @@
       "fbxFileName": "unreal-daily-sleep-bed-sleep.fbx",
       "glbFileName": "unreal-daily-sleep-bed-sleep.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sleep-bed-restless",
@@ -1744,7 +1785,8 @@
       "fbxFileName": "unreal-daily-sleep-bed-restless.fbx",
       "glbFileName": "unreal-daily-sleep-bed-restless.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-sleep-sofa-sleep",
@@ -1776,7 +1818,8 @@
       "fbxFileName": "unreal-daily-sleep-sofa-sleep.fbx",
       "glbFileName": "unreal-daily-sleep-sofa-sleep.glb",
       "rootTranslationMaxRangeMeters": 0.0012215971946716309,
-      "rootTranslationMaxNetMeters": 0.0012215971946716309
+      "rootTranslationMaxNetMeters": 0.0012215971946716309,
+      "published": false
     },
     {
       "id": "unreal-daily-sleep-sit-bed-loop",
@@ -1808,7 +1851,8 @@
       "fbxFileName": "unreal-daily-sleep-sit-bed-loop.fbx",
       "glbFileName": "unreal-daily-sleep-sit-bed-loop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-idle-a",
@@ -1840,7 +1884,8 @@
       "fbxFileName": "unreal-daily-female-interact-idle-a.fbx",
       "glbFileName": "unreal-daily-female-interact-idle-a.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-idle-b",
@@ -1872,7 +1917,8 @@
       "fbxFileName": "unreal-daily-female-interact-idle-b.fbx",
       "glbFileName": "unreal-daily-female-interact-idle-b.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-dialogue",
@@ -1904,7 +1950,8 @@
       "fbxFileName": "unreal-daily-female-interact-dialogue.fbx",
       "glbFileName": "unreal-daily-female-interact-dialogue.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-gesture",
@@ -1936,7 +1983,8 @@
       "fbxFileName": "unreal-daily-female-interact-gesture.fbx",
       "glbFileName": "unreal-daily-female-interact-gesture.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-door",
@@ -1968,7 +2016,8 @@
       "fbxFileName": "unreal-daily-female-interact-door.fbx",
       "glbFileName": "unreal-daily-female-interact-door.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-daily-female-interact-react",
@@ -2000,7 +2049,8 @@
       "fbxFileName": "unreal-daily-female-interact-react.fbx",
       "glbFileName": "unreal-daily-female-interact-react.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-cashier-idle",
@@ -2032,7 +2082,8 @@
       "fbxFileName": "unreal-interaction-vendors-cashier-idle.fbx",
       "glbFileName": "unreal-interaction-vendors-cashier-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-cashier-wave",
@@ -2064,7 +2115,8 @@
       "fbxFileName": "unreal-interaction-vendors-cashier-wave.fbx",
       "glbFileName": "unreal-interaction-vendors-cashier-wave.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-cashier-handout",
@@ -2096,7 +2148,8 @@
       "fbxFileName": "unreal-interaction-vendors-cashier-handout.fbx",
       "glbFileName": "unreal-interaction-vendors-cashier-handout.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-cashier-yes",
@@ -2128,7 +2181,8 @@
       "fbxFileName": "unreal-interaction-vendors-cashier-yes.fbx",
       "glbFileName": "unreal-interaction-vendors-cashier-yes.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-bartender-idle",
@@ -2160,7 +2214,8 @@
       "fbxFileName": "unreal-interaction-vendors-bartender-idle.fbx",
       "glbFileName": "unreal-interaction-vendors-bartender-idle.glb",
       "rootTranslationMaxRangeMeters": 0.012431040406227112,
-      "rootTranslationMaxNetMeters": 4.76837158203125e-7
+      "rootTranslationMaxNetMeters": 4.76837158203125e-07,
+      "published": false
     },
     {
       "id": "unreal-interaction-vendors-wipe-counter",
@@ -2192,7 +2247,8 @@
       "fbxFileName": "unreal-interaction-vendors-wipe-counter.fbx",
       "glbFileName": "unreal-interaction-vendors-wipe-counter.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-item-pickup-pickup-standing-left",
@@ -2224,7 +2280,8 @@
       "fbxFileName": "unreal-interaction-item-pickup-pickup-standing-left.fbx",
       "glbFileName": "unreal-interaction-item-pickup-pickup-standing-left.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-item-pickup-pickup-standing-right",
@@ -2256,7 +2313,8 @@
       "fbxFileName": "unreal-interaction-item-pickup-pickup-standing-right.fbx",
       "glbFileName": "unreal-interaction-item-pickup-pickup-standing-right.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-item-pickup-pickup-crouch-left",
@@ -2288,7 +2346,8 @@
       "fbxFileName": "unreal-interaction-item-pickup-pickup-crouch-left.fbx",
       "glbFileName": "unreal-interaction-item-pickup-pickup-crouch-left.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-item-pickup-pickup-throw",
@@ -2320,7 +2379,8 @@
       "fbxFileName": "unreal-interaction-item-pickup-pickup-throw.fbx",
       "glbFileName": "unreal-interaction-item-pickup-pickup-throw.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-idle",
@@ -2352,7 +2412,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-idle.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-idle-one-hand",
@@ -2384,7 +2445,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-idle-one-hand.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-idle-one-hand.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-eat",
@@ -2416,7 +2478,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-eat.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-eat.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-sit-idle",
@@ -2448,7 +2511,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-sit-idle.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-sit-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-equip",
@@ -2480,7 +2544,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-equip.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-equip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-unequip",
@@ -2512,7 +2577,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-unequip.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-unequip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-mining",
@@ -2544,7 +2610,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-mining.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-mining.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-npcs-npc-cast",
@@ -2576,7 +2643,8 @@
       "fbxFileName": "unreal-interaction-npcs-npc-cast.fbx",
       "glbFileName": "unreal-interaction-npcs-npc-cast.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-activations-door-pull",
@@ -2608,7 +2676,8 @@
       "fbxFileName": "unreal-interaction-activations-door-pull.fbx",
       "glbFileName": "unreal-interaction-activations-door-pull.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-activations-door-push",
@@ -2640,7 +2709,8 @@
       "fbxFileName": "unreal-interaction-activations-door-push.fbx",
       "glbFileName": "unreal-interaction-activations-door-push.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-activations-double-door",
@@ -2672,7 +2742,8 @@
       "fbxFileName": "unreal-interaction-activations-double-door.fbx",
       "glbFileName": "unreal-interaction-activations-double-door.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-activations-valve-horizontal",
@@ -2704,7 +2775,8 @@
       "fbxFileName": "unreal-interaction-activations-valve-horizontal.fbx",
       "glbFileName": "unreal-interaction-activations-valve-horizontal.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-activations-rope-pull",
@@ -2736,7 +2808,8 @@
       "fbxFileName": "unreal-interaction-activations-rope-pull.fbx",
       "glbFileName": "unreal-interaction-activations-rope-pull.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-craft-idle",
@@ -2768,7 +2841,8 @@
       "fbxFileName": "unreal-interaction-survival-craft-idle.fbx",
       "glbFileName": "unreal-interaction-survival-craft-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-hammering",
@@ -2800,7 +2874,8 @@
       "fbxFileName": "unreal-interaction-survival-hammering.fbx",
       "glbFileName": "unreal-interaction-survival-hammering.glb",
       "rootTranslationMaxRangeMeters": 0.019880746491253376,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-mortar",
@@ -2832,7 +2907,8 @@
       "fbxFileName": "unreal-interaction-survival-mortar.fbx",
       "glbFileName": "unreal-interaction-survival-mortar.glb",
       "rootTranslationMaxRangeMeters": 0.007064132019877434,
-      "rootTranslationMaxNetMeters": 0.007064132019877434
+      "rootTranslationMaxNetMeters": 0.007064132019877434,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-campfire",
@@ -2864,7 +2940,8 @@
       "fbxFileName": "unreal-interaction-survival-campfire.fbx",
       "glbFileName": "unreal-interaction-survival-campfire.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-warm-hands",
@@ -2896,7 +2973,8 @@
       "fbxFileName": "unreal-interaction-survival-warm-hands.fbx",
       "glbFileName": "unreal-interaction-survival-warm-hands.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-eat-campfire",
@@ -2928,7 +3006,8 @@
       "fbxFileName": "unreal-interaction-survival-eat-campfire.fbx",
       "glbFileName": "unreal-interaction-survival-eat-campfire.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-survival-drink-campfire",
@@ -2960,7 +3039,8 @@
       "fbxFileName": "unreal-interaction-survival-drink-campfire.fbx",
       "glbFileName": "unreal-interaction-survival-drink-campfire.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-idle-01",
@@ -2992,7 +3072,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-idle-01.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-idle-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-idle-02",
@@ -3024,7 +3105,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-idle-02.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-idle-02.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-intro",
@@ -3056,7 +3138,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-intro.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-intro.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-pour",
@@ -3088,7 +3171,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-pour.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-pour.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-expression",
@@ -3120,7 +3204,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-expression.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-expression.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-drinking-drink-sit",
@@ -3152,7 +3237,8 @@
       "fbxFileName": "unreal-interaction-drinking-drink-sit.fbx",
       "glbFileName": "unreal-interaction-drinking-drink-sit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-car-driver-idle",
@@ -3184,7 +3270,8 @@
       "fbxFileName": "unreal-interaction-car-driver-idle.fbx",
       "glbFileName": "unreal-interaction-car-driver-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-car-passenger-idle",
@@ -3216,7 +3303,8 @@
       "fbxFileName": "unreal-interaction-car-passenger-idle.fbx",
       "glbFileName": "unreal-interaction-car-passenger-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-car-look-back",
@@ -3248,7 +3336,8 @@
       "fbxFileName": "unreal-interaction-car-look-back.fbx",
       "glbFileName": "unreal-interaction-car-look-back.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-car-change-gear",
@@ -3280,7 +3369,8 @@
       "fbxFileName": "unreal-interaction-car-change-gear.fbx",
       "glbFileName": "unreal-interaction-car-change-gear.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-phoenyx-swim-idle",
@@ -3312,7 +3402,8 @@
       "fbxFileName": "unreal-interaction-phoenyx-swim-idle.fbx",
       "glbFileName": "unreal-interaction-phoenyx-swim-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-phoenyx-keyboard-sit",
@@ -3344,7 +3435,8 @@
       "fbxFileName": "unreal-interaction-phoenyx-keyboard-sit.fbx",
       "glbFileName": "unreal-interaction-phoenyx-keyboard-sit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-phoenyx-monitor-sit",
@@ -3376,7 +3468,8 @@
       "fbxFileName": "unreal-interaction-phoenyx-monitor-sit.fbx",
       "glbFileName": "unreal-interaction-phoenyx-monitor-sit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-phoenyx-tablet-sit",
@@ -3408,7 +3501,8 @@
       "fbxFileName": "unreal-interaction-phoenyx-tablet-sit.fbx",
       "glbFileName": "unreal-interaction-phoenyx-tablet-sit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-interaction-phoenyx-tablet-stand",
@@ -3440,7 +3534,8 @@
       "fbxFileName": "unreal-interaction-phoenyx-tablet-stand.fbx",
       "glbFileName": "unreal-interaction-phoenyx-tablet-stand.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-misc-clazy-jog-forward",
@@ -3472,7 +3567,8 @@
       "fbxFileName": "unreal-misc-clazy-jog-forward.fbx",
       "glbFileName": "unreal-misc-clazy-jog-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-jog-backward",
@@ -3504,7 +3600,8 @@
       "fbxFileName": "unreal-misc-clazy-jog-backward.fbx",
       "glbFileName": "unreal-misc-clazy-jog-backward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-jog-start",
@@ -3536,7 +3633,8 @@
       "fbxFileName": "unreal-misc-clazy-jog-start.fbx",
       "glbFileName": "unreal-misc-clazy-jog-start.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-jog-stop",
@@ -3568,7 +3666,8 @@
       "fbxFileName": "unreal-misc-clazy-jog-stop.fbx",
       "glbFileName": "unreal-misc-clazy-jog-stop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-walk-forward",
@@ -3600,7 +3699,8 @@
       "fbxFileName": "unreal-misc-clazy-walk-forward.fbx",
       "glbFileName": "unreal-misc-clazy-walk-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-walk-backward",
@@ -3632,7 +3732,8 @@
       "fbxFileName": "unreal-misc-clazy-walk-backward.fbx",
       "glbFileName": "unreal-misc-clazy-walk-backward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-idle-a",
@@ -3664,7 +3765,8 @@
       "fbxFileName": "unreal-misc-clazy-idle-a.fbx",
       "glbFileName": "unreal-misc-clazy-idle-a.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-clazy-jump",
@@ -3696,7 +3798,8 @@
       "fbxFileName": "unreal-misc-clazy-jump.fbx",
       "glbFileName": "unreal-misc-clazy-jump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-kawaii-barehands-idle",
@@ -3728,7 +3831,8 @@
       "fbxFileName": "unreal-misc-kawaii-barehands-idle.fbx",
       "glbFileName": "unreal-misc-kawaii-barehands-idle.glb",
       "rootTranslationMaxRangeMeters": 0.005963586270809174,
-      "rootTranslationMaxNetMeters": 7.62520357966423e-8
+      "rootTranslationMaxNetMeters": 7.62520357966423e-08,
+      "published": true
     },
     {
       "id": "unreal-misc-kawaii-heavy-sword-idle",
@@ -3760,7 +3864,8 @@
       "fbxFileName": "unreal-misc-kawaii-heavy-sword-idle.fbx",
       "glbFileName": "unreal-misc-kawaii-heavy-sword-idle.glb",
       "rootTranslationMaxRangeMeters": 0.008761107921600342,
-      "rootTranslationMaxNetMeters": 7.62520357966423e-8
+      "rootTranslationMaxNetMeters": 7.62520357966423e-08,
+      "published": true
     },
     {
       "id": "unreal-misc-kawaii-witch-idle",
@@ -3791,8 +3896,9 @@
       "weaponTypeLabel": "法术",
       "fbxFileName": "unreal-misc-kawaii-witch-idle.fbx",
       "glbFileName": "unreal-misc-kawaii-witch-idle.glb",
-      "rootTranslationMaxRangeMeters": 0.0000040173763409256935,
-      "rootTranslationMaxNetMeters": 3.818422555923462e-8
+      "rootTranslationMaxRangeMeters": 4.0173763409256935e-06,
+      "rootTranslationMaxNetMeters": 3.818422555923462e-08,
+      "published": true
     },
     {
       "id": "unreal-misc-kawaii-witch-fly",
@@ -3824,7 +3930,8 @@
       "fbxFileName": "unreal-misc-kawaii-witch-fly.fbx",
       "glbFileName": "unreal-misc-kawaii-witch-fly.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-standing-loop",
@@ -3856,7 +3963,8 @@
       "fbxFileName": "unreal-misc-scared-standing-loop.fbx",
       "glbFileName": "unreal-misc-scared-standing-loop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-crouching-loop",
@@ -3888,7 +3996,8 @@
       "fbxFileName": "unreal-misc-scared-crouching-loop.fbx",
       "glbFileName": "unreal-misc-scared-crouching-loop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-creeping",
@@ -3920,7 +4029,8 @@
       "fbxFileName": "unreal-misc-scared-creeping.fbx",
       "glbFileName": "unreal-misc-scared-creeping.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-hands-up",
@@ -3952,7 +4062,8 @@
       "fbxFileName": "unreal-misc-scared-hands-up.fbx",
       "glbFileName": "unreal-misc-scared-hands-up.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-knees-hands-head",
@@ -3984,7 +4095,8 @@
       "fbxFileName": "unreal-misc-scared-knees-hands-head.fbx",
       "glbFileName": "unreal-misc-scared-knees-hands-head.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-scared-runaway",
@@ -4016,7 +4128,8 @@
       "fbxFileName": "unreal-misc-scared-runaway.fbx",
       "glbFileName": "unreal-misc-scared-runaway.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-idle-a",
@@ -4048,7 +4161,8 @@
       "fbxFileName": "unreal-misc-morbid-idle-a.fbx",
       "glbFileName": "unreal-misc-morbid-idle-a.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-idle-b",
@@ -4080,7 +4194,8 @@
       "fbxFileName": "unreal-misc-morbid-idle-b.fbx",
       "glbFileName": "unreal-misc-morbid-idle-b.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-tied-idle",
@@ -4112,7 +4227,8 @@
       "fbxFileName": "unreal-misc-morbid-tied-idle.fbx",
       "glbFileName": "unreal-misc-morbid-tied-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-tied-escape",
@@ -4144,7 +4260,8 @@
       "fbxFileName": "unreal-misc-morbid-tied-escape.fbx",
       "glbFileName": "unreal-misc-morbid-tied-escape.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-transform",
@@ -4176,7 +4293,8 @@
       "fbxFileName": "unreal-misc-morbid-transform.fbx",
       "glbFileName": "unreal-misc-morbid-transform.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-morbid-emerge",
@@ -4208,7 +4326,8 @@
       "fbxFileName": "unreal-misc-morbid-emerge.fbx",
       "glbFileName": "unreal-misc-morbid-emerge.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-arm-cross",
@@ -4240,7 +4359,8 @@
       "fbxFileName": "unreal-misc-taunts-arm-cross.fbx",
       "glbFileName": "unreal-misc-taunts-arm-cross.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-wave",
@@ -4272,7 +4392,8 @@
       "fbxFileName": "unreal-misc-taunts-wave.fbx",
       "glbFileName": "unreal-misc-taunts-wave.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-hand-punch",
@@ -4304,7 +4425,8 @@
       "fbxFileName": "unreal-misc-taunts-hand-punch.fbx",
       "glbFileName": "unreal-misc-taunts-hand-punch.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-come-get-me",
@@ -4336,7 +4458,8 @@
       "fbxFileName": "unreal-misc-taunts-come-get-me.fbx",
       "glbFileName": "unreal-misc-taunts-come-get-me.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-finger-gun",
@@ -4368,7 +4491,8 @@
       "fbxFileName": "unreal-misc-taunts-finger-gun.fbx",
       "glbFileName": "unreal-misc-taunts-finger-gun.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-fist-pump",
@@ -4400,7 +4524,8 @@
       "fbxFileName": "unreal-misc-taunts-fist-pump.fbx",
       "glbFileName": "unreal-misc-taunts-fist-pump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-taunts-flex",
@@ -4432,7 +4557,8 @@
       "fbxFileName": "unreal-misc-taunts-flex.fbx",
       "glbFileName": "unreal-misc-taunts-flex.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-couples-arms-around-loop-att",
@@ -4464,7 +4590,8 @@
       "fbxFileName": "unreal-misc-couples-arms-around-loop-att.fbx",
       "glbFileName": "unreal-misc-couples-arms-around-loop-att.glb",
       "rootTranslationMaxRangeMeters": 0.00488192168995738,
-      "rootTranslationMaxNetMeters": 2.384185791015625e-7
+      "rootTranslationMaxNetMeters": 2.384185791015625e-07,
+      "published": true
     },
     {
       "id": "unreal-misc-couples-back-hug-loop-att",
@@ -4496,7 +4623,8 @@
       "fbxFileName": "unreal-misc-couples-back-hug-loop-att.fbx",
       "glbFileName": "unreal-misc-couples-back-hug-loop-att.glb",
       "rootTranslationMaxRangeMeters": 0.012109290808439255,
-      "rootTranslationMaxNetMeters": 2.980232238769531e-7
+      "rootTranslationMaxNetMeters": 2.980232238769531e-07,
+      "published": true
     },
     {
       "id": "unreal-misc-crowd-cheer",
@@ -4528,7 +4656,8 @@
       "fbxFileName": "unreal-misc-crowd-cheer.fbx",
       "glbFileName": "unreal-misc-crowd-cheer.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-crowd-lean-forward",
@@ -4560,7 +4689,8 @@
       "fbxFileName": "unreal-misc-crowd-lean-forward.fbx",
       "glbFileName": "unreal-misc-crowd-lean-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-crowd-metal",
@@ -4592,7 +4722,8 @@
       "fbxFileName": "unreal-misc-crowd-metal.fbx",
       "glbFileName": "unreal-misc-crowd-metal.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-crowd-point",
@@ -4624,7 +4755,8 @@
       "fbxFileName": "unreal-misc-crowd-point.fbx",
       "glbFileName": "unreal-misc-crowd-point.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-crowd-thumbs-up",
@@ -4656,7 +4788,8 @@
       "fbxFileName": "unreal-misc-crowd-thumbs-up.fbx",
       "glbFileName": "unreal-misc-crowd-thumbs-up.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-relaxed",
@@ -4688,7 +4821,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-relaxed.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-relaxed.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-cheerful",
@@ -4720,7 +4854,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-cheerful.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-cheerful.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-mad",
@@ -4752,7 +4887,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-mad.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-mad.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-texting",
@@ -4784,7 +4920,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-texting.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-texting.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-phone-call",
@@ -4816,7 +4953,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-phone-call.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-phone-call.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-pedestrian-walks-running-late",
@@ -4848,7 +4986,8 @@
       "fbxFileName": "unreal-misc-pedestrian-walks-running-late.fbx",
       "glbFileName": "unreal-misc-pedestrian-walks-running-late.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-climbing-idle",
@@ -4880,7 +5019,8 @@
       "fbxFileName": "unreal-misc-climbing-climbing-idle.fbx",
       "glbFileName": "unreal-misc-climbing-climbing-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-climb-up",
@@ -4912,7 +5052,8 @@
       "fbxFileName": "unreal-misc-climbing-climb-up.fbx",
       "glbFileName": "unreal-misc-climbing-climb-up.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-climb-left",
@@ -4944,7 +5085,8 @@
       "fbxFileName": "unreal-misc-climbing-climb-left.fbx",
       "glbFileName": "unreal-misc-climbing-climb-left.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-climb-right",
@@ -4976,7 +5118,8 @@
       "fbxFileName": "unreal-misc-climbing-climb-right.fbx",
       "glbFileName": "unreal-misc-climbing-climb-right.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-drop",
@@ -5008,7 +5151,8 @@
       "fbxFileName": "unreal-misc-climbing-drop.fbx",
       "glbFileName": "unreal-misc-climbing-drop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-climbing-jump-out",
@@ -5040,7 +5184,8 @@
       "fbxFileName": "unreal-misc-climbing-jump-out.fbx",
       "glbFileName": "unreal-misc-climbing-jump-out.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-injured-front-idle",
@@ -5072,7 +5217,8 @@
       "fbxFileName": "unreal-misc-irap-injured-front-idle.fbx",
       "glbFileName": "unreal-misc-irap-injured-front-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-injured-back-idle",
@@ -5104,7 +5250,8 @@
       "fbxFileName": "unreal-misc-irap-injured-back-idle.fbx",
       "glbFileName": "unreal-misc-irap-injured-back-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-injured-walk",
@@ -5136,7 +5283,8 @@
       "fbxFileName": "unreal-misc-irap-injured-walk.fbx",
       "glbFileName": "unreal-misc-irap-injured-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-injured-run",
@@ -5168,7 +5316,8 @@
       "fbxFileName": "unreal-misc-irap-injured-run.fbx",
       "glbFileName": "unreal-misc-irap-injured-run.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-jump",
@@ -5200,7 +5349,8 @@
       "fbxFileName": "unreal-misc-irap-jump.fbx",
       "glbFileName": "unreal-misc-irap-jump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-irap-revive",
@@ -5232,7 +5382,8 @@
       "fbxFileName": "unreal-misc-irap-revive.fbx",
       "glbFileName": "unreal-misc-irap-revive.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-preacher-idle",
@@ -5264,7 +5415,8 @@
       "fbxFileName": "unreal-misc-preacher-idle.fbx",
       "glbFileName": "unreal-misc-preacher-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-preacher-pray-ground",
@@ -5296,7 +5448,8 @@
       "fbxFileName": "unreal-misc-preacher-pray-ground.fbx",
       "glbFileName": "unreal-misc-preacher-pray-ground.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-preacher-pray-standing",
@@ -5328,7 +5481,8 @@
       "fbxFileName": "unreal-misc-preacher-pray-standing.fbx",
       "glbFileName": "unreal-misc-preacher-pray-standing.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-preacher-complain",
@@ -5360,7 +5514,8 @@
       "fbxFileName": "unreal-misc-preacher-complain.fbx",
       "glbFileName": "unreal-misc-preacher-complain.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-supporter-supporter-01",
@@ -5392,7 +5547,8 @@
       "fbxFileName": "unreal-misc-supporter-supporter-01.fbx",
       "glbFileName": "unreal-misc-supporter-supporter-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-supporter-supporter-02",
@@ -5424,7 +5580,8 @@
       "fbxFileName": "unreal-misc-supporter-supporter-02.fbx",
       "glbFileName": "unreal-misc-supporter-supporter-02.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-supporter-supporter-ad-01",
@@ -5456,7 +5613,8 @@
       "fbxFileName": "unreal-misc-supporter-supporter-ad-01.fbx",
       "glbFileName": "unreal-misc-supporter-supporter-ad-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-female-mocap-stand-idle",
@@ -5488,7 +5646,8 @@
       "fbxFileName": "unreal-misc-female-mocap-stand-idle.fbx",
       "glbFileName": "unreal-misc-female-mocap-stand-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-female-mocap-stand-variant",
@@ -5520,7 +5679,8 @@
       "fbxFileName": "unreal-misc-female-mocap-stand-variant.fbx",
       "glbFileName": "unreal-misc-female-mocap-stand-variant.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-female-mocap-sit-idle",
@@ -5552,7 +5712,8 @@
       "fbxFileName": "unreal-misc-female-mocap-sit-idle.fbx",
       "glbFileName": "unreal-misc-female-mocap-sit-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-female-mocap-play-water",
@@ -5584,7 +5745,8 @@
       "fbxFileName": "unreal-misc-female-mocap-play-water.fbx",
       "glbFileName": "unreal-misc-female-mocap-play-water.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-misc-female-mocap-walk",
@@ -5616,7 +5778,8 @@
       "fbxFileName": "unreal-misc-female-mocap-walk.fbx",
       "glbFileName": "unreal-misc-female-mocap-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": true
     },
     {
       "id": "unreal-hand-combat-fight-idle-base",
@@ -5648,7 +5811,8 @@
       "fbxFileName": "unreal-hand-combat-fight-idle-base.fbx",
       "glbFileName": "unreal-hand-combat-fight-idle-base.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-fight-idle-active",
@@ -5680,7 +5844,8 @@
       "fbxFileName": "unreal-hand-combat-fight-idle-active.fbx",
       "glbFileName": "unreal-hand-combat-fight-idle-active.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-fighter-idle",
@@ -5712,7 +5877,8 @@
       "fbxFileName": "unreal-hand-combat-fighter-idle.fbx",
       "glbFileName": "unreal-hand-combat-fighter-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-fighter-idle-combat",
@@ -5744,7 +5910,8 @@
       "fbxFileName": "unreal-hand-combat-fighter-idle-combat.fbx",
       "glbFileName": "unreal-hand-combat-fighter-idle-combat.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-fighter-hit",
@@ -5776,7 +5943,8 @@
       "fbxFileName": "unreal-hand-combat-fighter-hit.fbx",
       "glbFileName": "unreal-hand-combat-fighter-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-boxer-idle",
@@ -5808,7 +5976,8 @@
       "fbxFileName": "unreal-hand-combat-boxer-idle.fbx",
       "glbFileName": "unreal-hand-combat-boxer-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-muaythai-idle",
@@ -5840,7 +6009,8 @@
       "fbxFileName": "unreal-hand-combat-muaythai-idle.fbx",
       "glbFileName": "unreal-hand-combat-muaythai-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-muaythai-down-loop",
@@ -5872,7 +6042,8 @@
       "fbxFileName": "unreal-hand-combat-muaythai-down-loop.fbx",
       "glbFileName": "unreal-hand-combat-muaythai-down-loop.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-wingchun-idle",
@@ -5904,7 +6075,8 @@
       "fbxFileName": "unreal-hand-combat-wingchun-idle.fbx",
       "glbFileName": "unreal-hand-combat-wingchun-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-wingchun-hit",
@@ -5936,7 +6108,8 @@
       "fbxFileName": "unreal-hand-combat-wingchun-hit.fbx",
       "glbFileName": "unreal-hand-combat-wingchun-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ninja-idle",
@@ -5968,7 +6141,8 @@
       "fbxFileName": "unreal-hand-combat-ninja-idle.fbx",
       "glbFileName": "unreal-hand-combat-ninja-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ninja-dagger-throw",
@@ -6000,7 +6174,8 @@
       "fbxFileName": "unreal-hand-combat-ninja-dagger-throw.fbx",
       "glbFileName": "unreal-hand-combat-ninja-dagger-throw.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ninja-cast",
@@ -6032,7 +6207,8 @@
       "fbxFileName": "unreal-hand-combat-ninja-cast.fbx",
       "glbFileName": "unreal-hand-combat-ninja-cast.glb",
       "rootTranslationMaxRangeMeters": 0.0015284687979146838,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-special-moves-idle",
@@ -6064,7 +6240,8 @@
       "fbxFileName": "unreal-hand-combat-special-moves-idle.fbx",
       "glbFileName": "unreal-hand-combat-special-moves-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-special-moves-move-000",
@@ -6096,7 +6273,8 @@
       "fbxFileName": "unreal-hand-combat-special-moves-move-000.fbx",
       "glbFileName": "unreal-hand-combat-special-moves-move-000.glb",
       "rootTranslationMaxRangeMeters": 0.002055300945357885,
-      "rootTranslationMaxNetMeters": 3.0655122231688947e-10
+      "rootTranslationMaxNetMeters": 3.0655122231688947e-10,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-special-moves-move-001",
@@ -6128,7 +6306,8 @@
       "fbxFileName": "unreal-hand-combat-special-moves-move-001.fbx",
       "glbFileName": "unreal-hand-combat-special-moves-move-001.glb",
       "rootTranslationMaxRangeMeters": 0.0017385237994167468,
-      "rootTranslationMaxNetMeters": 6.725282250279912e-10
+      "rootTranslationMaxNetMeters": 6.725282250279912e-10,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-special-moves-move-002",
@@ -6160,7 +6339,8 @@
       "fbxFileName": "unreal-hand-combat-special-moves-move-002.fbx",
       "glbFileName": "unreal-hand-combat-special-moves-move-002.glb",
       "rootTranslationMaxRangeMeters": 0.02809707261621952,
-      "rootTranslationMaxNetMeters": 1.9283970689176755e-7
+      "rootTranslationMaxNetMeters": 1.9283970689176755e-07,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-special-moves-move-005",
@@ -6192,7 +6372,8 @@
       "fbxFileName": "unreal-hand-combat-special-moves-move-005.fbx",
       "glbFileName": "unreal-hand-combat-special-moves-move-005.glb",
       "rootTranslationMaxRangeMeters": 0.01168903661891818,
-      "rootTranslationMaxNetMeters": 0.00019658857404927094
+      "rootTranslationMaxNetMeters": 0.00019658857404927094,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-finisher-finisher-01",
@@ -6224,7 +6405,8 @@
       "fbxFileName": "unreal-hand-combat-finisher-finisher-01.fbx",
       "glbFileName": "unreal-hand-combat-finisher-finisher-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-finisher-counter-01",
@@ -6256,7 +6438,8 @@
       "fbxFileName": "unreal-hand-combat-finisher-counter-01.fbx",
       "glbFileName": "unreal-hand-combat-finisher-counter-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-finisher-hit-counter-01",
@@ -6288,7 +6471,8 @@
       "fbxFileName": "unreal-hand-combat-finisher-hit-counter-01.fbx",
       "glbFileName": "unreal-hand-combat-finisher-hit-counter-01.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-idle",
@@ -6320,7 +6504,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-idle.fbx",
       "glbFileName": "unreal-hand-combat-lucy-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-fight-idle",
@@ -6352,7 +6537,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-fight-idle.fbx",
       "glbFileName": "unreal-hand-combat-lucy-fight-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-attack",
@@ -6384,7 +6570,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-attack.fbx",
       "glbFileName": "unreal-hand-combat-lucy-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-kick",
@@ -6416,7 +6603,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-kick.fbx",
       "glbFileName": "unreal-hand-combat-lucy-kick.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-air-attack",
@@ -6448,7 +6636,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-air-attack.fbx",
       "glbFileName": "unreal-hand-combat-lucy-air-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-air-kick",
@@ -6480,7 +6669,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-air-kick.fbx",
       "glbFileName": "unreal-hand-combat-lucy-air-kick.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-lucy-fight-to-idle",
@@ -6512,7 +6702,8 @@
       "fbxFileName": "unreal-hand-combat-lucy-fight-to-idle.fbx",
       "glbFileName": "unreal-hand-combat-lucy-fight-to-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-demon-idle",
@@ -6544,7 +6735,8 @@
       "fbxFileName": "unreal-hand-combat-demon-idle.fbx",
       "glbFileName": "unreal-hand-combat-demon-idle.glb",
       "rootTranslationMaxRangeMeters": 0.004418912809342146,
-      "rootTranslationMaxNetMeters": 3.91155481338501e-8
+      "rootTranslationMaxNetMeters": 3.91155481338501e-08,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-demon-crawl-idle",
@@ -6576,7 +6768,8 @@
       "fbxFileName": "unreal-hand-combat-demon-crawl-idle.fbx",
       "glbFileName": "unreal-hand-combat-demon-crawl-idle.glb",
       "rootTranslationMaxRangeMeters": 0.0164923002012074,
-      "rootTranslationMaxNetMeters": 0.00015709161641552782
+      "rootTranslationMaxNetMeters": 0.00015709161641552782,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-demon-point",
@@ -6608,7 +6801,8 @@
       "fbxFileName": "unreal-hand-combat-demon-point.fbx",
       "glbFileName": "unreal-hand-combat-demon-point.glb",
       "rootTranslationMaxRangeMeters": 0.004418912809342146,
-      "rootTranslationMaxNetMeters": 3.91155481338501e-8
+      "rootTranslationMaxNetMeters": 3.91155481338501e-08,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-zombie-crawl-idle",
@@ -6640,7 +6834,8 @@
       "fbxFileName": "unreal-hand-combat-zombie-crawl-idle.fbx",
       "glbFileName": "unreal-hand-combat-zombie-crawl-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ghost-standing-idle",
@@ -6672,7 +6867,8 @@
       "fbxFileName": "unreal-hand-combat-ghost-standing-idle.fbx",
       "glbFileName": "unreal-hand-combat-ghost-standing-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ghost-bound-idle",
@@ -6704,7 +6900,8 @@
       "fbxFileName": "unreal-hand-combat-ghost-bound-idle.fbx",
       "glbFileName": "unreal-hand-combat-ghost-bound-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ghost-crawl-idle",
@@ -6736,7 +6933,8 @@
       "fbxFileName": "unreal-hand-combat-ghost-crawl-idle.fbx",
       "glbFileName": "unreal-hand-combat-ghost-crawl-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ghost-reach",
@@ -6768,7 +6966,8 @@
       "fbxFileName": "unreal-hand-combat-ghost-reach.fbx",
       "glbFileName": "unreal-hand-combat-ghost-reach.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-ghost-float",
@@ -6800,7 +6999,8 @@
       "fbxFileName": "unreal-hand-combat-ghost-float.fbx",
       "glbFileName": "unreal-hand-combat-ghost-float.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-flying-mage-flying-attack",
@@ -6832,7 +7032,8 @@
       "fbxFileName": "unreal-hand-combat-flying-mage-flying-attack.fbx",
       "glbFileName": "unreal-hand-combat-flying-mage-flying-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-flying-mage-ground-attack",
@@ -6864,7 +7065,8 @@
       "fbxFileName": "unreal-hand-combat-flying-mage-ground-attack.fbx",
       "glbFileName": "unreal-hand-combat-flying-mage-ground-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-flying-mage-flying-hit",
@@ -6896,7 +7098,8 @@
       "fbxFileName": "unreal-hand-combat-flying-mage-flying-hit.fbx",
       "glbFileName": "unreal-hand-combat-flying-mage-flying-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-flying-mage-ground-hit",
@@ -6928,7 +7131,8 @@
       "fbxFileName": "unreal-hand-combat-flying-mage-ground-hit.fbx",
       "glbFileName": "unreal-hand-combat-flying-mage-ground-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-idle",
@@ -6960,7 +7164,8 @@
       "fbxFileName": "unreal-hand-combat-magical-idle.fbx",
       "glbFileName": "unreal-hand-combat-magical-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-beam",
@@ -6992,7 +7197,8 @@
       "fbxFileName": "unreal-hand-combat-magical-beam.fbx",
       "glbFileName": "unreal-hand-combat-magical-beam.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-chant",
@@ -7024,7 +7230,8 @@
       "fbxFileName": "unreal-hand-combat-magical-chant.fbx",
       "glbFileName": "unreal-hand-combat-magical-chant.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-spell-combo",
@@ -7056,7 +7263,8 @@
       "fbxFileName": "unreal-hand-combat-magical-spell-combo.fbx",
       "glbFileName": "unreal-hand-combat-magical-spell-combo.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-damage",
@@ -7088,7 +7296,8 @@
       "fbxFileName": "unreal-hand-combat-magical-damage.fbx",
       "glbFileName": "unreal-hand-combat-magical-damage.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-magical-jump",
@@ -7120,7 +7329,8 @@
       "fbxFileName": "unreal-hand-combat-magical-jump.fbx",
       "glbFileName": "unreal-hand-combat-magical-jump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-classic-female-ghost-idle",
@@ -7152,7 +7362,8 @@
       "fbxFileName": "unreal-hand-combat-classic-female-ghost-idle.fbx",
       "glbFileName": "unreal-hand-combat-classic-female-ghost-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-classic-female-ghost-crawl-idle",
@@ -7184,7 +7395,8 @@
       "fbxFileName": "unreal-hand-combat-classic-female-ghost-crawl-idle.fbx",
       "glbFileName": "unreal-hand-combat-classic-female-ghost-crawl-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-classic-female-ghost-float-walk",
@@ -7216,7 +7428,8 @@
       "fbxFileName": "unreal-hand-combat-classic-female-ghost-float-walk.fbx",
       "glbFileName": "unreal-hand-combat-classic-female-ghost-float-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-classic-female-ghost-sit-idle",
@@ -7248,7 +7461,8 @@
       "fbxFileName": "unreal-hand-combat-classic-female-ghost-sit-idle.fbx",
       "glbFileName": "unreal-hand-combat-classic-female-ghost-sit-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-monsters-idle-1",
@@ -7280,7 +7494,8 @@
       "fbxFileName": "unreal-hand-combat-monsters-idle-1.fbx",
       "glbFileName": "unreal-hand-combat-monsters-idle-1.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-monsters-idle-2",
@@ -7312,7 +7527,8 @@
       "fbxFileName": "unreal-hand-combat-monsters-idle-2.fbx",
       "glbFileName": "unreal-hand-combat-monsters-idle-2.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-monsters-attack",
@@ -7344,7 +7560,8 @@
       "fbxFileName": "unreal-hand-combat-monsters-attack.fbx",
       "glbFileName": "unreal-hand-combat-monsters-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-monsters-hit",
@@ -7376,7 +7593,8 @@
       "fbxFileName": "unreal-hand-combat-monsters-hit.fbx",
       "glbFileName": "unreal-hand-combat-monsters-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-monsters-run",
@@ -7408,7 +7626,8 @@
       "fbxFileName": "unreal-hand-combat-monsters-run.fbx",
       "glbFileName": "unreal-hand-combat-monsters-run.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-creature-sit-sit-idle",
@@ -7440,7 +7659,8 @@
       "fbxFileName": "unreal-hand-combat-creature-sit-sit-idle.fbx",
       "glbFileName": "unreal-hand-combat-creature-sit-sit-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-creature-sit-sit-attack",
@@ -7472,7 +7692,8 @@
       "fbxFileName": "unreal-hand-combat-creature-sit-sit-attack.fbx",
       "glbFileName": "unreal-hand-combat-creature-sit-sit-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-creature-sit-sit-run",
@@ -7504,7 +7725,8 @@
       "fbxFileName": "unreal-hand-combat-creature-sit-sit-run.fbx",
       "glbFileName": "unreal-hand-combat-creature-sit-sit-run.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-creature-sit-sit-dead",
@@ -7536,7 +7758,8 @@
       "fbxFileName": "unreal-hand-combat-creature-sit-sit-dead.fbx",
       "glbFileName": "unreal-hand-combat-creature-sit-sit-dead.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-hand-combat-creatures-idle-block",
@@ -7568,7 +7791,8 @@
       "fbxFileName": "unreal-hand-combat-creatures-idle-block.fbx",
       "glbFileName": "unreal-hand-combat-creatures-idle-block.glb",
       "rootTranslationMaxRangeMeters": 0.025649919407442212,
-      "rootTranslationMaxNetMeters": 0.000010037681931862608
+      "rootTranslationMaxNetMeters": 1.0037681931862608e-05,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-idle",
@@ -7600,7 +7824,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-idle.fbx",
       "glbFileName": "unreal-weapon-combat-sword-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-idle-combat",
@@ -7632,7 +7857,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-idle-combat.fbx",
       "glbFileName": "unreal-weapon-combat-sword-idle-combat.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-walk",
@@ -7664,7 +7890,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-walk.fbx",
       "glbFileName": "unreal-weapon-combat-sword-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-hit",
@@ -7696,7 +7923,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-hit.fbx",
       "glbFileName": "unreal-weapon-combat-sword-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-block",
@@ -7728,7 +7956,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-block.fbx",
       "glbFileName": "unreal-weapon-combat-sword-block.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-katana-idle",
@@ -7760,7 +7989,8 @@
       "fbxFileName": "unreal-weapon-combat-katana-idle.fbx",
       "glbFileName": "unreal-weapon-combat-katana-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-katana-idle-combat",
@@ -7792,7 +8022,8 @@
       "fbxFileName": "unreal-weapon-combat-katana-idle-combat.fbx",
       "glbFileName": "unreal-weapon-combat-katana-idle-combat.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-katana-hit",
@@ -7824,7 +8055,8 @@
       "fbxFileName": "unreal-weapon-combat-katana-hit.fbx",
       "glbFileName": "unreal-weapon-combat-katana-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-idle",
@@ -7856,7 +8088,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-idle.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-block",
@@ -7888,7 +8121,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-block.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-block.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-block-counter",
@@ -7920,7 +8154,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-block-counter.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-block-counter.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-weak-attack",
@@ -7952,7 +8187,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-weak-attack.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-weak-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-jump",
@@ -7984,7 +8220,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-jump.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-jump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-hit",
@@ -8016,7 +8253,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-hit.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-pro-crouch",
@@ -8048,7 +8286,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-pro-crouch.fbx",
       "glbFileName": "unreal-weapon-combat-sword-pro-crouch.glb",
       "rootTranslationMaxRangeMeters": 0.018448028713464737,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-rapier-idle",
@@ -8080,7 +8319,8 @@
       "fbxFileName": "unreal-weapon-combat-rapier-idle.fbx",
       "glbFileName": "unreal-weapon-combat-rapier-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-rapier-buff",
@@ -8112,7 +8352,8 @@
       "fbxFileName": "unreal-weapon-combat-rapier-buff.fbx",
       "glbFileName": "unreal-weapon-combat-rapier-buff.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-rapier-hit",
@@ -8144,7 +8385,8 @@
       "fbxFileName": "unreal-weapon-combat-rapier-hit.fbx",
       "glbFileName": "unreal-weapon-combat-rapier-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-idle",
@@ -8176,7 +8418,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-idle.fbx",
       "glbFileName": "unreal-weapon-combat-spear-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-attack-forward",
@@ -8208,7 +8451,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-attack-forward.fbx",
       "glbFileName": "unreal-weapon-combat-spear-attack-forward.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-attack-swing",
@@ -8240,7 +8484,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-attack-swing.fbx",
       "glbFileName": "unreal-weapon-combat-spear-attack-swing.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-attack-place",
@@ -8272,7 +8517,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-attack-place.fbx",
       "glbFileName": "unreal-weapon-combat-spear-attack-place.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-combo",
@@ -8304,7 +8550,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-combo.fbx",
       "glbFileName": "unreal-weapon-combat-spear-combo.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-aim",
@@ -8336,7 +8583,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-aim.fbx",
       "glbFileName": "unreal-weapon-combat-spear-aim.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-spear-hit",
@@ -8368,7 +8616,8 @@
       "fbxFileName": "unreal-weapon-combat-spear-hit.fbx",
       "glbFileName": "unreal-weapon-combat-spear-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-dual-blade-idle",
@@ -8400,7 +8649,8 @@
       "fbxFileName": "unreal-weapon-combat-dual-blade-idle.fbx",
       "glbFileName": "unreal-weapon-combat-dual-blade-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-dual-blade-avoid",
@@ -8432,7 +8682,8 @@
       "fbxFileName": "unreal-weapon-combat-dual-blade-avoid.fbx",
       "glbFileName": "unreal-weapon-combat-dual-blade-avoid.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-pistol-idle",
@@ -8464,7 +8715,8 @@
       "fbxFileName": "unreal-weapon-combat-pistol-idle.fbx",
       "glbFileName": "unreal-weapon-combat-pistol-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-pistol-equip",
@@ -8496,7 +8748,8 @@
       "fbxFileName": "unreal-weapon-combat-pistol-equip.fbx",
       "glbFileName": "unreal-weapon-combat-pistol-equip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-pistol-crouch",
@@ -8528,7 +8781,8 @@
       "fbxFileName": "unreal-weapon-combat-pistol-crouch.fbx",
       "glbFileName": "unreal-weapon-combat-pistol-crouch.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-pistol-walk",
@@ -8560,7 +8814,8 @@
       "fbxFileName": "unreal-weapon-combat-pistol-walk.fbx",
       "glbFileName": "unreal-weapon-combat-pistol-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-pistol-death",
@@ -8592,7 +8847,8 @@
       "fbxFileName": "unreal-weapon-combat-pistol-death.fbx",
       "glbFileName": "unreal-weapon-combat-pistol-death.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-mage-idle",
@@ -8624,7 +8880,8 @@
       "fbxFileName": "unreal-weapon-combat-mage-idle.fbx",
       "glbFileName": "unreal-weapon-combat-mage-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-mage-combat-idle",
@@ -8656,7 +8913,8 @@
       "fbxFileName": "unreal-weapon-combat-mage-combat-idle.fbx",
       "glbFileName": "unreal-weapon-combat-mage-combat-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-mage-attack",
@@ -8688,7 +8946,8 @@
       "fbxFileName": "unreal-weapon-combat-mage-attack.fbx",
       "glbFileName": "unreal-weapon-combat-mage-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-mage-hit",
@@ -8720,7 +8979,8 @@
       "fbxFileName": "unreal-weapon-combat-mage-hit.fbx",
       "glbFileName": "unreal-weapon-combat-mage-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-heavy-hammer-idle",
@@ -8752,7 +9012,8 @@
       "fbxFileName": "unreal-weapon-combat-heavy-hammer-idle.fbx",
       "glbFileName": "unreal-weapon-combat-heavy-hammer-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-heavy-hammer-air-attack",
@@ -8784,7 +9045,8 @@
       "fbxFileName": "unreal-weapon-combat-heavy-hammer-air-attack.fbx",
       "glbFileName": "unreal-weapon-combat-heavy-hammer-air-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-grim-reaper-idle",
@@ -8816,7 +9078,8 @@
       "fbxFileName": "unreal-weapon-combat-grim-reaper-idle.fbx",
       "glbFileName": "unreal-weapon-combat-grim-reaper-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-grim-reaper-spin",
@@ -8848,7 +9111,8 @@
       "fbxFileName": "unreal-weapon-combat-grim-reaper-spin.fbx",
       "glbFileName": "unreal-weapon-combat-grim-reaper-spin.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-grim-reaper-equip",
@@ -8880,7 +9144,8 @@
       "fbxFileName": "unreal-weapon-combat-grim-reaper-equip.fbx",
       "glbFileName": "unreal-weapon-combat-grim-reaper-equip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-sheath-idle",
@@ -8912,7 +9177,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-sheath-idle.fbx",
       "glbFileName": "unreal-weapon-combat-sword-sheath-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-sheath-unequip",
@@ -8944,7 +9210,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-sheath-unequip.fbx",
       "glbFileName": "unreal-weapon-combat-sword-sheath-unequip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-sword-sheath-hit",
@@ -8976,7 +9243,8 @@
       "fbxFileName": "unreal-weapon-combat-sword-sheath-hit.fbx",
       "glbFileName": "unreal-weapon-combat-sword-sheath-hit.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-stealth-knife-stealth-idle",
@@ -9008,7 +9276,8 @@
       "fbxFileName": "unreal-weapon-combat-stealth-knife-stealth-idle.fbx",
       "glbFileName": "unreal-weapon-combat-stealth-knife-stealth-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-stealth-knife-stealth-walk",
@@ -9040,7 +9309,8 @@
       "fbxFileName": "unreal-weapon-combat-stealth-knife-stealth-walk.fbx",
       "glbFileName": "unreal-weapon-combat-stealth-knife-stealth-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-stealth-knife-finisher",
@@ -9072,7 +9342,8 @@
       "fbxFileName": "unreal-weapon-combat-stealth-knife-finisher.fbx",
       "glbFileName": "unreal-weapon-combat-stealth-knife-finisher.glb",
       "rootTranslationMaxRangeMeters": 0.01321448851376772,
-      "rootTranslationMaxNetMeters": 0.000026416964828968048
+      "rootTranslationMaxNetMeters": 2.6416964828968048e-05,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-idle",
@@ -9104,7 +9375,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-idle.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-idle.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-attack",
@@ -9136,7 +9408,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-attack.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-attack.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-walk",
@@ -9168,7 +9441,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-walk.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-walk.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-jump",
@@ -9200,7 +9474,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-jump.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-jump.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-equip",
@@ -9232,7 +9507,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-equip.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-equip.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     },
     {
       "id": "unreal-weapon-combat-ghost-samurai-cancel",
@@ -9264,7 +9540,8 @@
       "fbxFileName": "unreal-weapon-combat-ghost-samurai-cancel.fbx",
       "glbFileName": "unreal-weapon-combat-ghost-samurai-cancel.glb",
       "rootTranslationMaxRangeMeters": 0,
-      "rootTranslationMaxNetMeters": 0
+      "rootTranslationMaxNetMeters": 0,
+      "published": false
     }
   ],
   "droppedClips": [
@@ -9669,7 +9946,7 @@
       ],
       "rootTranslationMaxRangeMeters": 0.250626377761364,
       "rootTranslationNetMeters": [
-        -2.4795532027610534e-7,
+        -2.4795532027610534e-07,
         0,
         -0.005520798033103347
       ],
@@ -9694,11 +9971,11 @@
       ],
       "rootTranslationMaxRangeMeters": 0.04953382443636656,
       "rootTranslationNetMeters": [
-        -1.6763806343078613e-8,
+        -1.6763806343078613e-08,
         0,
-        -1.4901161193847656e-8
+        -1.4901161193847656e-08
       ],
-      "rootTranslationMaxNetMeters": 1.6763806343078613e-8
+      "rootTranslationMaxNetMeters": 1.6763806343078613e-08
     },
     {
       "id": "unreal-interaction-car-try-open-left",
@@ -9745,10 +10022,10 @@
       "rootTranslationMaxRangeMeters": 0.09681431204080582,
       "rootTranslationNetMeters": [
         0,
-        1.9068829715251923e-7,
-        9.872019290924072e-8
+        1.9068829715251923e-07,
+        9.872019290924072e-08
       ],
-      "rootTranslationMaxNetMeters": 1.9068829715251923e-7
+      "rootTranslationMaxNetMeters": 1.9068829715251923e-07
     },
     {
       "id": "unreal-misc-kawaii-barehands-combo",
@@ -9769,8 +10046,8 @@
       ],
       "rootTranslationMaxRangeMeters": 3.126868411898613,
       "rootTranslationNetMeters": [
-        1.3619577110546288e-7,
-        3.8067810237407684e-8,
+        1.3619577110546288e-07,
+        3.8067810237407684e-08,
         3.0339804627001286
       ],
       "rootTranslationMaxNetMeters": 3.0339804627001286
@@ -9819,7 +10096,7 @@
       ],
       "rootTranslationMaxRangeMeters": 7.505029633641243,
       "rootTranslationNetMeters": [
-        3.0517575755339976e-7,
+        3.0517575755339976e-07,
         0,
         6.7104610949754715
       ],
@@ -9844,8 +10121,8 @@
       ],
       "rootTranslationMaxRangeMeters": 6.670730222016573,
       "rootTranslationNetMeters": [
-        2.477318048477173e-7,
-        7.450580596923828e-8,
+        2.477318048477173e-07,
+        7.450580596923828e-08,
         6.5323177464306355
       ],
       "rootTranslationMaxNetMeters": 6.5323177464306355
@@ -9869,11 +10146,11 @@
       ],
       "rootTranslationMaxRangeMeters": 0.03290158789604902,
       "rootTranslationNetMeters": [
-        2.9802322387695312e-8,
+        2.9802322387695312e-08,
         0,
-        -1.4901161193847656e-7
+        -1.4901161193847656e-07
       ],
-      "rootTranslationMaxNetMeters": 1.4901161193847656e-7
+      "rootTranslationMaxNetMeters": 1.4901161193847656e-07
     },
     {
       "id": "unreal-misc-couples-hug-kiss-loop-vic",
@@ -10769,7 +11046,7 @@
       ],
       "rootTranslationMaxRangeMeters": 6.550429154187441,
       "rootTranslationNetMeters": [
-        -2.9563902614881954e-7,
+        -2.9563902614881954e-07,
         0,
         6.550429154187441
       ],
@@ -10844,7 +11121,7 @@
       ],
       "rootTranslationMaxRangeMeters": 1.4708602111786604,
       "rootTranslationNetMeters": [
-        3.725290298461914e-8,
+        3.725290298461914e-08,
         0,
         1.3434450309723616
       ],
@@ -10871,9 +11148,9 @@
       "rootTranslationNetMeters": [
         0,
         0,
-        2.2060703486204147e-8
+        2.2060703486204147e-08
       ],
-      "rootTranslationMaxNetMeters": 2.2060703486204147e-8
+      "rootTranslationMaxNetMeters": 2.2060703486204147e-08
     },
     {
       "id": "unreal-hand-combat-zombie-hit-head",
@@ -10894,7 +11171,7 @@
       ],
       "rootTranslationMaxRangeMeters": 0.9299079775810242,
       "rootTranslationNetMeters": [
-        3.3527612686157227e-8,
+        3.3527612686157227e-08,
         0,
         -0.4051691028289497
       ],
@@ -10944,11 +11221,11 @@
       ],
       "rootTranslationMaxRangeMeters": 0.06620846502482891,
       "rootTranslationNetMeters": [
-        1.909211277961731e-8,
+        1.909211277961731e-08,
         0,
-        6.109476089477539e-7
+        6.109476089477539e-07
       ],
-      "rootTranslationMaxNetMeters": 6.109476089477539e-7
+      "rootTranslationMaxNetMeters": 6.109476089477539e-07
     },
     {
       "id": "unreal-hand-combat-ghost-attack",
@@ -10969,7 +11246,7 @@
       ],
       "rootTranslationMaxRangeMeters": 1.234414420426674,
       "rootTranslationNetMeters": [
-        -1.6212463549436507e-7,
+        -1.6212463549436507e-07,
         0,
         1.234414420426674
       ],
@@ -11069,7 +11346,7 @@
       ],
       "rootTranslationMaxRangeMeters": 3.667943239212036,
       "rootTranslationNetMeters": [
-        -2.4795531672339166e-7,
+        -2.4795531672339166e-07,
         0,
         3.667943239212036
       ],
@@ -11096,9 +11373,9 @@
       "rootTranslationNetMeters": [
         0,
         0,
-        -9.536743172944284e-9
+        -9.536743172944284e-09
       ],
-      "rootTranslationMaxNetMeters": 9.536743172944284e-9
+      "rootTranslationMaxNetMeters": 9.536743172944284e-09
     },
     {
       "id": "unreal-weapon-combat-sword-combo-01",
@@ -11321,9 +11598,9 @@
       "rootTranslationNetMeters": [
         0,
         0,
-        -1.0490417423625331e-7
+        -1.0490417423625331e-07
       ],
-      "rootTranslationMaxNetMeters": 1.0490417423625331e-7
+      "rootTranslationMaxNetMeters": 1.0490417423625331e-07
     },
     {
       "id": "unreal-weapon-combat-wudang-slice",
@@ -11346,9 +11623,9 @@
       "rootTranslationNetMeters": [
         0,
         0,
-        2.765655509051612e-7
+        2.765655509051612e-07
       ],
-      "rootTranslationMaxNetMeters": 2.765655509051612e-7
+      "rootTranslationMaxNetMeters": 2.765655509051612e-07
     },
     {
       "id": "unreal-weapon-combat-wudang-stab",
@@ -11944,11 +12221,11 @@
       ],
       "rootTranslationMaxRangeMeters": 0.20659792376682162,
       "rootTranslationNetMeters": [
-        4.5776369006489404e-7,
+        4.5776369006489404e-07,
         0,
-        -0.00005692383274435997
+        -5.692383274435997e-05
       ],
-      "rootTranslationMaxNetMeters": 0.00005692383274435997
+      "rootTranslationMaxNetMeters": 5.692383274435997e-05
     },
     {
       "id": "unreal-weapon-combat-stealth-knife-knife-unequip",
@@ -11969,7 +12246,7 @@
       ],
       "rootTranslationMaxRangeMeters": 0.20852602738887072,
       "rootTranslationNetMeters": [
-        -5.340575626178179e-7,
+        -5.340575626178179e-07,
         0,
         -0.0033277813854510896
       ],
@@ -11994,7 +12271,7 @@
       ],
       "rootTranslationMaxRangeMeters": 2.878288630163297,
       "rootTranslationNetMeters": [
-        0.0000012111663636460435,
+        1.2111663636460435e-06,
         0,
         2.5909098421689123
       ],
@@ -12019,7 +12296,7 @@
       ],
       "rootTranslationMaxRangeMeters": 0.9227056205272675,
       "rootTranslationNetMeters": [
-        4.7497451305389404e-8,
+        4.7497451305389404e-08,
         0,
         -0.9227056205272675
       ],
@@ -12135,5 +12412,11 @@
       "unreal-weapon-combat-stealth-knife-roll",
       "unreal-weapon-combat-stealth-knife-drag-body"
     ]
+  },
+  "curationPrune": {
+    "date": "2026-09-01",
+    "reason": "优先跑通运动（移动）与生活表演类：未发布片段保留在清单与 GLB 中，质量跑通后改回 published 即可重新上架",
+    "keptRule": "groupId == unreal-misc OR (actionType == move AND groupId == unreal-daily)",
+    "publishedCount": 78
   }
 }
