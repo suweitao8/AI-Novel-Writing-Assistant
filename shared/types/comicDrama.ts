@@ -139,6 +139,70 @@ export const STORY_SCENE_3D_MARKER_KIND_LABELS: Record<StoryScene3DMarkerKind, s
   other: "固定物体",
 };
 
+/**
+ * 场景前景模型的安装语义快照。模型目录在客户端维护，场景状态只保存这份
+ * 轻量结构化语义，服务端因此可以把模型的支撑面和朝向规则交给自动构图，
+ * 而不需要依赖客户端目录或通过模型中文名称猜测摆放方式。
+ */
+export type StoryScene3DForegroundModelSupportSurface =
+  | "ground"
+  | "wall"
+  | "ceiling"
+  | "horizontal-surface"
+  | "handheld"
+  | "free";
+
+export type StoryScene3DForegroundModelPlacementMode =
+  | "grounded"
+  | "wall-mounted"
+  | "ceiling-hung"
+  | "surface-placed"
+  | "handheld"
+  | "free";
+
+export type StoryScene3DForegroundModelAnchor =
+  | "base"
+  | "back"
+  | "top"
+  | "support-center"
+  | "center";
+
+export type StoryScene3DForegroundModelOrientation =
+  | "upright"
+  | "horizontal"
+  | "wall-facing"
+  | "downward"
+  | "directional"
+  | "free";
+
+export interface StoryScene3DForegroundModelUsage {
+  supportSurface: StoryScene3DForegroundModelSupportSurface;
+  placementMode: StoryScene3DForegroundModelPlacementMode;
+  anchor: StoryScene3DForegroundModelAnchor;
+  orientation: StoryScene3DForegroundModelOrientation;
+  requiresFacingDirection: boolean;
+  instruction?: string;
+}
+
+/**
+ * 可交互前景模型实例：modelId 是模型库稳定 ID，position/yaw/scale 是场景实例
+ * 变换。HDRI 永远不携带这些对象；需要角色接触、坐卧或拿取的物体必须走这里。
+ */
+export interface StoryScene3DForegroundModel {
+  id: string;
+  modelId: string;
+  label: string;
+  /** 保存一份显示快照，模型库目录变化时仍能读懂旧分镜。 */
+  modelName: string;
+  category: string;
+  position: StoryScene3DVector3;
+  yawDeg: number;
+  /** 统一缩放，模型的米制 unitScale 由客户端目录解析。 */
+  scale: number;
+  source: "model-library";
+  usage?: StoryScene3DForegroundModelUsage;
+}
+
 export type StoryScene3DMarkerAnchor = "floor" | "wall" | "ceiling";
 export type StoryScene3DVector3 = [number, number, number];
 

@@ -2,7 +2,10 @@ import { getImageModelProvider } from "../../../llm/modelCategories";
 import fs from "fs/promises";
 import path from "path";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import { STORY_SCENE_3D_MARKER_KIND_LABELS, type StoryScene3DMarkerKind } from "@ai-novel/shared/types/comicDrama";
+import {
+  STORY_SCENE_3D_MARKER_KIND_LABELS,
+  type StoryScene3DMarkerKind,
+} from "@ai-novel/shared/types/comicDrama";
 import {
   normalizeStoryAssetStates,
   parseStoryAssetStatesJson,
@@ -96,7 +99,7 @@ interface SceneSettingLite {
   weather: string | null;
   /** 场景初始状态图（生成过且成功才有）。 */
   imageUrl: string | null;
-  /** 各状态前景道具标记的类型汇总（去重计数），供首帧把家具画进画面。 */
+  /** 各状态模型库前景实例/旧标记的汇总，供首帧复现已摆位的实体。 */
   foregroundProps: string[];
 }
 
@@ -110,18 +113,31 @@ interface PropSettingLite {
 
 /** 汇总各状态的前景道具标记类型（同类合并计数），用于首帧提示词。 */
 function collectForegroundProps(states: StoryAssetState[]): string[] {
-  const counts = new Map<StoryScene3DMarkerKind, number>();
+  const counts = new Map<string, { label: string; count: number; order: number }>();
+  let order = 0;
   for (const state of states) {
     for (const marker of state.scene3dMarkers?.markers ?? []) {
-      counts.set(marker.kind, (counts.get(marker.kind) ?? 0) + 1);
+      const existing = counts.get(`marker:${marker.kind}`);
+      counts.set(`marker:${marker.kind}`, {
+        label: STORY_SCENE_3D_MARKER_KIND_LABELS[marker.kind as StoryScene3DMarkerKind] ?? marker.kind,
+        count: (existing?.count ?? 0) + 1,
+        order: existing?.order ?? order++,
+      });
+    }
+    for (const model of state.scene3dForegroundModels ?? []) {
+      const label = model.label.trim() || model.modelName.trim();
+      const existing = counts.get(`model:${model.modelId}`);
+      counts.set(`model:${model.modelId}`, {
+        label: `${label}（模型库：${model.modelName.trim()}）`,
+        count: (existing?.count ?? 0) + 1,
+        order: existing?.order ?? order++,
+      });
     }
   }
-  return [...counts.entries()]
+  return [...counts.values()]
+    .sort((left, right) => left.order - right.order)
     .slice(0, 12)
-    .map(([kind, count]) => {
-      const label = STORY_SCENE_3D_MARKER_KIND_LABELS[kind] ?? kind;
-      return count > 1 ? `${label}×${count}` : label;
-    });
+    .map(({ label, count }) => count > 1 ? `${label}×${count}` : label);
 }
 
 function resolveInitialSettingState(

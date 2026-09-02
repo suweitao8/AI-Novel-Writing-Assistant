@@ -5,7 +5,12 @@
 // v3 的 stateLabel/stateNote 提取时已不再生成，仅为已持久化的旧结果保留。
 
 import { stripAssetImagePromptNoise } from "../utils/imagePromptPurity.js";
-import { isStoryScene3DMarkerSet, type StoryScene3DMarkerSet } from "./comicDrama.js";
+import {
+  isStoryScene3DMarkerSet,
+  type StoryScene3DMarkerSet,
+  type StoryScene3DForegroundModel,
+} from "./comicDrama.js";
+import { normalizeStoryScene3dForegroundModels } from "../utils/scene3dForegroundModels.js";
 
 /** 资产状态生成图：状态编辑器点「生成图」后写入；按 referenceStateId 取另一状态的图当参考。 */
 export interface StoryAssetStateImage {
@@ -195,6 +200,8 @@ export interface StoryAssetState {
   voice?: StoryAssetStateVoice;
   /** 场景状态图的 3D 固定物体标记；只在场景状态使用，随状态图片保存。 */
   scene3dMarkers?: StoryScene3DMarkerSet;
+  /** 场景可交互前景模型；模型库实例独立于 HDRI 背景保存。 */
+  scene3dForegroundModels?: StoryScene3DForegroundModel[];
 }
 
 /**
@@ -291,6 +298,7 @@ export function normalizeStoryAssetStates(
       const {
         wearTags: legacyWearTags,
         scene3dMarkers: rawScene3dMarkers,
+        scene3dForegroundModels: rawScene3dForegroundModels,
         heightMeters: rawHeightMeters,
         ...stateWithoutRuntimeMarkers
       } = state;
@@ -299,6 +307,7 @@ export function normalizeStoryAssetStates(
       const scene3dMarkers = isStoryScene3DMarkerSet(rawScene3dMarkers)
         ? rawScene3dMarkers
         : undefined;
+      const scene3dForegroundModels = normalizeStoryScene3dForegroundModels(rawScene3dForegroundModels);
       return {
         ...stateWithoutRuntimeMarkers,
         id: state.id.trim(),
@@ -319,6 +328,7 @@ export function normalizeStoryAssetStates(
         ...(canonicalWearTags ? { wearTags: canonicalWearTags } : {}),
         ...(heightMeters !== undefined ? { heightMeters } : {}),
         ...(scene3dMarkers ? { scene3dMarkers } : {}),
+        ...(scene3dForegroundModels.length > 0 ? { scene3dForegroundModels } : {}),
       };
     })
     : [createStoryAssetInitialState(initialState)];

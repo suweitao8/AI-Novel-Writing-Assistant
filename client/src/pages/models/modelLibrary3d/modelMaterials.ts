@@ -1,7 +1,7 @@
 import * as pc from "playcanvas";
 
 import type { ModelMaterialInfo, ModelMaterialMap } from "@/config/modelLibrary";
-import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d";
+import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore";
 
 /**
  * 模型材质回填：GLB 里只有 FBX 带出来的材质占位（白色无贴图），

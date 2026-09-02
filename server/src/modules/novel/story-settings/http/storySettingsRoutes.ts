@@ -151,6 +151,32 @@ const scene3dMarkerSetSchema = z.object({
   markers: z.array(scene3dMarkerSchema).max(32),
 }).strict();
 
+const scene3dForegroundModelUsageSchema = z.object({
+  supportSurface: z.enum(["ground", "wall", "ceiling", "horizontal-surface", "handheld", "free"]),
+  placementMode: z.enum(["grounded", "wall-mounted", "ceiling-hung", "surface-placed", "handheld", "free"]),
+  anchor: z.enum(["base", "back", "top", "support-center", "center"]),
+  orientation: z.enum(["upright", "horizontal", "wall-facing", "downward", "directional", "free"]),
+  requiresFacingDirection: z.boolean(),
+  instruction: z.string().trim().max(300).optional(),
+}).strict();
+
+const scene3dForegroundModelSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  modelId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/),
+  label: z.string().trim().min(1).max(80),
+  modelName: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(40),
+  position: z.tuple([
+    z.number().finite().min(-100).max(100),
+    z.number().finite().min(0).max(50),
+    z.number().finite().min(-100).max(100),
+  ]),
+  yawDeg: z.number().finite().min(-180).max(180),
+  scale: z.number().finite().min(0.1).max(10),
+  source: z.literal("model-library"),
+  usage: scene3dForegroundModelUsageSchema.optional(),
+}).strict();
+
 const assetStateSchema = z.object({
   id: z.string().trim().min(1).max(60),
   label: z.string().trim().min(1).max(24),
@@ -170,6 +196,7 @@ const assetStateSchema = z.object({
   image: assetStateImageSchema.optional(),
   voice: assetStateVoiceSchema.optional(),
   scene3dMarkers: scene3dMarkerSetSchema.optional(),
+  scene3dForegroundModels: z.array(scene3dForegroundModelSchema).max(32).optional(),
 }).strict();
 
 // 角色图片提示词可省略；服务端会根据状态变化、年龄和性别归一化生成。

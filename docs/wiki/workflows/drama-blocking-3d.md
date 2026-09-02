@@ -108,6 +108,15 @@
 - **Failure Modes：** 新建标记集合漏带 `sourceEnvironment` → 标记不显示且分镜上下文拿不到（表现为"添加成功但列表没有"）；识别 Prompt 恢复家具穷举措辞 → 模型在空背景图上编造家具标记；autoPlan 校验跳过 marker id → AI 幻觉 id 落进 layout 且无人发现。不要把交互角色的 y 钳回地面——坐/躺落点依赖 AI 输出的座面/床垫面高度。
 - **Related Modules：** `shared/utils/scene3dMarkers.ts`（工厂/默认尺寸/合并）、`DramaScene3DPage.tsx`（添加标记 UI）、`StoryScene3dMarkerService.ts`（识别保留手动）、`shotBlockingAutoPlan.prompts.ts@v8`、`DramaShotBlockingSketchService.ts`（editor context）、`DramaShotKeyframeService.ts` + `shotKeyframe.prompts.ts@v3`（家具摘要）、`scenePanoramaLayout.ts`（纯背景合同）。
 
+### 模型库前景与 HDRI 纯背景分层
+
+- **Background：** 可交互的桌、椅、床、书柜和其他前景道具需要真实模型、真实尺寸和可复用的摆位数据；把它们画进等距柱状 HDRI 会同时失去交互能力，并在地面区域产生拉伸。HDRI 的职责因此收敛为不可交互的空间背景：室内只表现墙、天花板、地板及门窗等固定结构，室外以天空、地形和建筑天际线等远景为主。
+- **Decision：** 场景状态新增 `scene3dForegroundModels`，每个实例只引用模型库的稳定 `modelId`，并保存实例 `id`、名称、分类、位置、Y 轴朝向、统一缩放和 `usage` 支撑面/摆放方式；实例渲染挂在独立的前景根节点，不进入 HDRI 世界背景。场景 3D 编辑器负责从可见模型目录选择、添加、选中和调整实例，分镜 3D 草图恢复同一批实例并将它们写入 `layout3d.foregroundModels`。
+- **Current Rule：** 场景全景生成提示词必须在场景描述之后追加家具/可移动物负向约束，并按室内/室外约束背景范围；不能因为原文提到书桌、椅子或其他道具就把它们重新画进 HDRI。模型库前景实例必须通过共享归一化器校验安全 ID、位置、朝向和缩放；自动构图 Prompt 只允许用 `interactionModelId` 指向 `sceneJson.foregroundModels` 中已存在的实例，模型不存在时走结构化语义重试，不能凭名称或关键词编造坐标。模型实例作为障碍与交互承载物参与构图，首帧提示词同时接收摆位草图和模型摘要，因此生成画面不会回退到只含场景背景的原图。
+- **Compatibility：** 旧 `scene3dMarkers` 和 `interactionMarkerId` 合同仍保留用于存量数据读取，但空间标记总开关关闭时不再生成或下发它们；新功能不重新打开旧的“从 HDRI 识别家具”路径。没有模型库实例的旧场景仍可只使用 HDRI 和角色代理，不会因缺少新字段而失效。
+- **Failure Modes：** 只改全景负向提示词而不把模型实例接入场景状态，仍会导致分镜无法摆放家具；只把模型写入场景页而不写入 blocking context，自动构图和首帧提示词会看不到它们；接受 AI 返回的未知模型 ID 会造成模型交互漂移；把模型节点挂进 HDRI 根节点或在截图时把编辑器辅助线一起捕获，会把前景和背景再次混在一起。
+- **Related Modules：** `server/src/services/image/panorama/scenePanoramaLayout.ts`（纯背景生成合同）、`shared/utils/scene3dForegroundModels.ts`（实例归一化）、`shared/types/novelReferenceExtraction.ts`（状态字段）、`DramaScene3DPage.tsx` 与 `components/blocking3d/blocking3dForegroundModels.ts`（场景添加/运行时）、`DramaBlocking3DPage.tsx` 与 `blocking3dViewerApp.ts`（分镜恢复/编辑）、`DramaShotBlockingSketchService.ts`（layout/context）、`shotBlockingAutoPlan.prompts.ts` 与 `DramaShotKeyframeService.ts`（交互校验/首帧摘要）。
+
 ### 舞台余量与相机锚定合同
 
 - 舞台半径：角色可活动范围是以投射中心为圆心、半球真实半径内缩 1 米的圆（`STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M = 1`），合同实现在 `shared/utils/blockingStage.ts`。当前环境字段 `radiusMeters` 已经是真实圆半径，舞台半径 = `radiusMeters − 1`；旧快照中的 `domeRadius` 仍按历史直径读取为 `domeRadius / 2`。blocking3d 的基础网格半径保持 0.5，只有 PlayCanvas 实体缩放边界换算为 `radiusMeters * 2`。强制点只有两处——AI 自动构图出口的程序化 clamp 与 viewer 交互输入（拖拽/nudge）的实时 clamp；保存路径不做破坏性 clamp，旧布局里越界的角色不会被静默改动。
