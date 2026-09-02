@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { useLLMStore } from "@/store/llmStore";
 import TitleSuggestionList from "./TitleSuggestionList";
 import SelectControl from "@/components/common/SelectControl";
@@ -22,6 +23,7 @@ interface TitleFactoryPanelProps {
 }
 
 type FactoryMode = "novel" | "brief" | "adapt";
+const FACTORY_MODE_VALUES = ["novel", "brief", "adapt"] as const;
 
 const MODE_COPY: Record<FactoryMode, { title: string; description: string }> = {
   novel: {
@@ -50,7 +52,11 @@ export default function TitleFactoryPanel({ genreTree, novels }: TitleFactoryPan
   const llm = useLLMStore();
   const queryClient = useQueryClient();
   const genreOptions = useMemo(() => flattenGenreTreeOptions(genreTree), [genreTree]);
-  const [mode, setMode] = useState<FactoryMode>("novel");
+  const [mode, setMode] = useRememberedTab<FactoryMode>({
+    scope: "titles:factory-mode",
+    defaultValue: "novel",
+    values: FACTORY_MODE_VALUES,
+  });
   const [selectedNovelId, setSelectedNovelId] = useState("");
   const [brief, setBrief] = useState("");
   const [referenceTitle, setReferenceTitle] = useState("");

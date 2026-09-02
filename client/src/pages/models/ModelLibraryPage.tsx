@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { cn } from "@/lib/utils";
 import { ModelLibraryPagination } from "./components/ModelLibraryPagination";
 import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
@@ -135,7 +136,6 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
 export default function ModelLibraryPage() {
   const navActionsSlot = usePageNavActionsSlot();
   const isMobileViewport = useIsMobileViewport();
-  const [category, setCategory] = useState<string>("全部");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -190,6 +190,11 @@ export default function ModelLibraryPage() {
     [visibleEntries],
   );
   const categoryItems = ["全部", ...visibleCategories];
+  const [category, setCategory] = useRememberedTab({
+    scope: "models:library-category",
+    defaultValue: "全部",
+    values: categoryItems,
+  });
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of visibleEntries) {

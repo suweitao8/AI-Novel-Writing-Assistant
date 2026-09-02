@@ -30,6 +30,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { useLLMStore } from "@/store/llmStore";
 import TitleSuggestionList from "@/pages/titles/components/TitleSuggestionList";
 import { getClickRateBadgeClass, truncateText } from "@/pages/titles/titleStudio.shared";
@@ -41,6 +42,7 @@ interface NovelCreateTitleQuickFillProps {
 
 const DEFAULT_TITLE_COUNT = 8;
 const TITLE_LIBRARY_PAGE_SIZE = 8;
+const TITLE_QUICK_FILL_TABS = ["generate", "library"] as const;
 
 function sortSuggestions(items: TitleFactorySuggestion[]): TitleFactorySuggestion[] {
   return [...items].sort((left, right) => right.clickRate - left.clickRate);
@@ -93,7 +95,11 @@ export default function NovelCreateTitleQuickFill({
   const llm = useLLMStore();
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState<"generate" | "library">("generate");
+  const [mode, setMode] = useRememberedTab({
+    scope: "novels:create-title-mode",
+    defaultValue: "generate",
+    values: TITLE_QUICK_FILL_TABS,
+  });
   const [count, setCount] = useState(DEFAULT_TITLE_COUNT);
   const [search, setSearch] = useState("");
   const [manualBrief, setManualBrief] = useState("");

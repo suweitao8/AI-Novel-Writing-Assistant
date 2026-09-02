@@ -1,9 +1,9 @@
-import { useSearchParams } from "react-router-dom";
 import { SettingsShell } from "../components/SettingsShell";
 import RecentErrorsCard from "../components/RecentErrorsCard";
 import TaskCenterPage from "@/pages/tasks/TaskCenterPage";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { cn } from "@/lib/utils";
+import { useRememberedQueryTab } from "@/hooks/useRememberedQueryTab";
 
 // 记录页的三级页签：报错日志（本机页面报错）与任务日志（任务中心执行历史）。
 const RECORD_TABS = [
@@ -12,6 +12,7 @@ const RECORD_TABS = [
 ] as const;
 
 type RecordTab = (typeof RECORD_TABS)[number]["key"];
+const RECORD_TAB_VALUES: readonly RecordTab[] = RECORD_TABS.map((item) => item.key);
 
 function isRecordTab(value: string | null): value is RecordTab {
   return value === "errors" || value === "tasks";
@@ -19,17 +20,16 @@ function isRecordTab(value: string | null): value is RecordTab {
 
 /** 系统设置内的记录页签：直接展示报错日志与任务日志。 */
 export default function RecordsSettingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
   const isMobileViewport = useIsMobileViewport();
-  const tabParam = searchParams.get("tab");
-  const tab: RecordTab = isRecordTab(tabParam) ? tabParam : "errors";
+  const { tab, setTab: setRememberedTab } = useRememberedQueryTab<RecordTab>({
+    scope: "settings:records",
+    queryParam: "tab",
+    defaultValue: "errors",
+    values: RECORD_TAB_VALUES,
+  });
 
   const selectTab = (key: string) => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("tab", key);
-      return next;
-    });
+    setRememberedTab(isRecordTab(key) ? key : "errors");
   };
 
   return (
@@ -38,6 +38,7 @@ export default function RecordsSettingsPage() {
         id: "records-sections",
         tabs: RECORD_TABS.map((item) => ({ key: item.key, label: item.label })),
         active: tab,
+        rememberedKey: "settings:records",
         onSelect: selectTab,
       }}
     >

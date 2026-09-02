@@ -1,15 +1,23 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { NOVEL_LIST_PAGE_LIMIT_MAX } from "@ai-novel/shared/types/pagination";
 import { useQuery } from "@tanstack/react-query";
 import { flattenGenreTreeOptions, getGenreTree } from "@/api/story/genre";
 import { getNovelList } from "@/api/novel";
 import { queryKeys } from "@/api/queryKeys";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import TitleFactoryPanel from "./components/TitleFactoryPanel";
 import TitleLibraryPanel from "./components/TitleLibraryPanel";
 
+const TITLE_STUDIO_TABS = ["factory", "library"] as const;
+type TitleStudioTab = typeof TITLE_STUDIO_TABS[number];
+
 export default function TitleStudioPage() {
-  const [tab, setTab] = useState("factory");
+  const [tab, setTab] = useRememberedTab<TitleStudioTab>({
+    scope: "titles:studio",
+    defaultValue: "factory",
+    values: TITLE_STUDIO_TABS,
+  });
   const genreTreeQuery = useQuery({
     queryKey: queryKeys.genres.all,
     queryFn: getGenreTree,
@@ -24,7 +32,7 @@ export default function TitleStudioPage() {
   const novels = novelListQuery.data?.data?.items ?? [];
 
   return (
-    <Tabs value={tab} onValueChange={setTab} className="mx-auto w-full max-w-6xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
+    <Tabs value={tab} onValueChange={(value) => setTab(value as TitleStudioTab)} className="mx-auto w-full max-w-6xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
       <header>
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div className="space-y-2">

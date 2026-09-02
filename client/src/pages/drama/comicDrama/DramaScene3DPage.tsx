@@ -622,7 +622,7 @@ export default function DramaScene3DPage() {
   useRegisterPageTabs(!isMobileViewport, [
     buildStudioNavStageRow("scenes", (stage: StudioStage) => {
       void leaveEditor(buildStudioNavigationPath(novelId, { stage }));
-    }),
+    }, `drama-project:${novelId || "none"}:studio-stage`),
   ]);
 
   if (sceneQuery.isPending) {

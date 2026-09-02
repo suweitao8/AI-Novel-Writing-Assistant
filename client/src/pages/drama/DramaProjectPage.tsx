@@ -45,6 +45,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 
 type DramaTab = "source" | "strategy" | "episodes" | "quality" | "characters" | "visual" | "export";
 
@@ -57,6 +58,8 @@ const TABS: Array<{ key: DramaTab; label: string }> = [
   { key: "visual", label: "分镜与成片" },
   { key: "export", label: "导出" },
 ];
+
+const DRAMA_PROJECT_TABS: readonly DramaTab[] = TABS.map((tab) => tab.key);
 
 function statusLabel(status: string): string {
   const labels: Record<string, string> = {
@@ -430,7 +433,11 @@ function hasActiveDramaVisualWork(project: DramaProjectDetail | undefined): bool
 export default function DramaProjectPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState<DramaTab>("source");
+  const [activeTab, setActiveTab] = useRememberedTab<DramaTab>({
+    scope: `drama-project:${id ?? "none"}:main-stage`,
+    defaultValue: "source",
+    values: DRAMA_PROJECT_TABS,
+  });
   const [selectedOrder, setSelectedOrder] = useState<number | null>(null);
 
   const projectQuery = useQuery({
