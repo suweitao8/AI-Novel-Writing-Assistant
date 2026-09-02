@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   MODEL_LIBRARY_PAGE_SIZE,
   getModelLibraryPage,
+  getModelLibraryPageSize,
 } from "./modelLibraryPagination.ts";
 
 const entries = Array.from({ length: 51 }, (_, index) => `model-${index + 1}`);
@@ -30,4 +31,43 @@ test("模型库页码会限制在有效范围，空结果仍有第 1 页", () =>
     totalPages: 1,
     entries: [],
   });
+});
+
+test("模型库按可用高度计算完整网格行数", () => {
+  assert.equal(
+    getModelLibraryPageSize({
+      columns: 10,
+      availableHeight: 1043,
+      cardHeight: 146.2,
+      rowGap: 8,
+    }),
+    60,
+  );
+  assert.equal(
+    getModelLibraryPageSize({
+      columns: 10,
+      availableHeight: 490,
+      cardHeight: 146.2,
+      rowGap: 8,
+    }),
+    30,
+  );
+  assert.equal(
+    getModelLibraryPageSize({
+      columns: 10,
+      availableHeight: 9999,
+      cardHeight: 146.2,
+      rowGap: 8,
+    }),
+    80,
+  );
+  assert.equal(
+    getModelLibraryPageSize({
+      columns: 0,
+      availableHeight: Number.NaN,
+      cardHeight: 0,
+      rowGap: -1,
+    }),
+    MODEL_LIBRARY_PAGE_SIZE,
+  );
 });
