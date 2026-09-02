@@ -104,6 +104,68 @@
   "food-shipment-01d",
   "food-shipment-01e"
  ],
+ "quarantinedAssets": [
+  {
+   "id": "soviet-aircon-01",
+   "fileName": "SM_AirConditioner01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-antenna-01",
+   "fileName": "SM_Antenna01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-ashtray-01a",
+   "fileName": "SM_Ashtray01A.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-balcony-door-01",
+   "fileName": "SM_BalconyDoorWindow01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-basketball-01",
+   "fileName": "SM_Basketball.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-bathtub-01",
+   "fileName": "SM_Bathtub01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-book-01",
+   "fileName": "SM_Book01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-vodka-01a",
+   "fileName": "SM_BottleOfVodka01.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-vodka-01b",
+   "fileName": "SM_BottleOfVodka02.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  },
+  {
+   "id": "soviet-plastic-canister-01",
+   "fileName": "SM_CanisterPlastic.glb",
+   "reason": "GLB 使用未绑定的内嵌 1x1 baseColor 占位纹理，源材质没有可用回填",
+   "evidence": "material-gate-scan-2026-09-02"
+  }
+ ],
  "catalogOverrides": {
   "book-set-01a": {
    "name": "书堆 A",
@@ -183,6 +245,20 @@
   }
  },
  "materialOverrides": {
+  "wooden-canoe-01": {
+   "M_dark_wooden_planks": {
+    "tint": [0.42, 0.42, 0.45]
+   },
+   "M_Leather": {
+    "tint": [0.42, 0.42, 0.45]
+   },
+   "M_Wooden_surface13": {
+    "tint": [0.42, 0.42, 0.45]
+   },
+   "M_dark_wooden_planks_3": {
+    "tint": [0.42, 0.42, 0.45]
+   }
+  },
   "grass-02-a-1": {
    "MI_grass_02": {
     "baseColor": "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png",
@@ -4770,30 +4846,6 @@
    "usage": "GROUND_UPRIGHT"
   },
   {
-   "meshName": "SM_AirConditioner01",
-   "id": "soviet-aircon-01",
-   "name": "苏式空调外机",
-   "category": "建筑构件",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_AirConditioner01",
-   "familyKey": "SM_AirConditioner01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "WALL_MOUNTED"
-  },
-  {
-   "meshName": "SM_Antenna01",
-   "id": "soviet-antenna-01",
-   "name": "电视天线",
-   "category": "建筑构件",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_Antenna01",
-   "familyKey": "SM_Antenna01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "WALL_MOUNTED"
-  },
-  {
    "meshName": "SM_Armchair01",
    "id": "soviet-armchair-01",
    "name": "旧扶手椅",
@@ -4806,18 +4858,6 @@
    "usage": "GROUND_UPRIGHT"
   },
   {
-   "meshName": "SM_Ashtray01A",
-   "id": "soviet-ashtray-01a",
-   "name": "铁皮烟灰缸",
-   "category": "日用小物",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_Ashtray01A",
-   "familyKey": "SM_Ashtray01A",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
-  },
-  {
    "meshName": "SM_Balcony01_Dryer01",
    "id": "soviet-balcony-dryer-01",
    "name": "阳台晾衣架",
@@ -4828,42 +4868,6 @@
    "priority": "P1",
    "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
    "usage": "WALL_MOUNTED"
-  },
-  {
-   "meshName": "SM_BalconyDoorWindow01",
-   "id": "soviet-balcony-door-01",
-   "name": "阳台门窗",
-   "category": "建筑构件",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_BalconyDoorWindow01",
-   "familyKey": "SM_BalconyDoorWindow01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "WALL_MOUNTED"
-  },
-  {
-   "meshName": "SM_Basketball",
-   "id": "soviet-basketball-01",
-   "name": "篮球",
-   "category": "玩具/装饰品",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_Basketball",
-   "familyKey": "SM_Basketball",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
-  },
-  {
-   "meshName": "SM_Bathtub01",
-   "id": "soviet-bathtub-01",
-   "name": "旧浴缸",
-   "category": "卫浴",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_Bathtub01",
-   "familyKey": "SM_Bathtub01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "GROUND_UPRIGHT"
   },
   {
    "meshName": "SM_Bed_Mattress",
@@ -4902,42 +4906,6 @@
    "usage": "HORIZONTAL_SURFACE_UPRIGHT"
   },
   {
-   "meshName": "SM_Book01",
-   "id": "soviet-book-01",
-   "name": "旧书",
-   "category": "书籍与办公",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_Book01",
-   "familyKey": "SM_Book01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
-  },
-  {
-   "meshName": "SM_BottleOfVodka01",
-   "id": "soviet-vodka-01a",
-   "name": "伏特加瓶 A",
-   "category": "日用小物",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_BottleOfVodka01",
-   "familyKey": "SM_BottleOfVodka01",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
-  },
-  {
-   "meshName": "SM_BottleOfVodka02",
-   "id": "soviet-vodka-01b",
-   "name": "伏特加瓶 B",
-   "category": "日用小物",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_BottleOfVodka02",
-   "familyKey": "SM_BottleOfVodka02",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
-  },
-  {
    "meshName": "SM_CagedLamp",
    "id": "soviet-caged-lamp-01",
    "name": "铁笼灯",
@@ -4948,18 +4916,6 @@
    "priority": "P1",
    "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
    "usage": "CEILING_HUNG"
-  },
-  {
-   "meshName": "SM_CanisterPlastic",
-   "id": "soviet-plastic-canister-01",
-   "name": "塑料罐",
-   "category": "日用小物",
-   "source": "manifest6",
-   "package": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_CanisterPlastic",
-   "familyKey": "SM_CanisterPlastic",
-   "priority": "P1",
-   "variantReason": "批C废土/城郊/亚洲街区场景组扩量",
-   "usage": "HORIZONTAL_SURFACE_UPRIGHT"
   },
   {
    "meshName": "SM_window_1",

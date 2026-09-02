@@ -9,6 +9,9 @@ import {
   CINE57_MODEL_LIBRARY_CONTRACT,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
+  CINE57_QUARANTINED_ASSETS,
+  CINE57_QUARANTINED_MODEL_FILE_NAMES,
+  CINE57_QUARANTINED_MODEL_IDS,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
@@ -228,6 +231,73 @@ function dimensionsFromBounds(bounds) {
   return bounds.max.map((value, axis) => value - bounds.min[axis]);
 }
 
+function readEmbeddedImageBytes(image, json, bin) {
+  if (typeof image?.uri === "string" && image.uri.startsWith("data:")) {
+    const comma = image.uri.indexOf(",");
+    if (comma > 0) {
+      const metadata = image.uri.slice(5, comma);
+      const payload = image.uri.slice(comma + 1);
+      try {
+        return {
+          embedded: true,
+          mimeType: metadata.split(";")[0] || image.mimeType || null,
+          bytes: /;base64$/i.test(metadata)
+            ? Buffer.from(payload, "base64")
+            : Buffer.from(decodeURIComponent(payload), "utf8"),
+        };
+      } catch {
+        return {
+          embedded: true,
+          mimeType: metadata.split(";")[0] || image.mimeType || null,
+          bytes: null,
+        };
+      }
+    }
+  }
+
+  if (Number.isInteger(image?.bufferView)) {
+    const view = json.bufferViews?.[image.bufferView];
+    const start = Number(view?.byteOffset ?? 0);
+    const length = Number(view?.byteLength ?? 0);
+    return {
+      embedded: true,
+      mimeType: image.mimeType ?? null,
+      bytes: view && bin && start >= 0 && length >= 0 ? bin.subarray(start, start + length) : null,
+    };
+  }
+
+  return {
+    embedded: false,
+    mimeType: image?.mimeType ?? null,
+    bytes: null,
+  };
+}
+
+function readImageDimensions(bytes) {
+  if (!bytes || bytes.length < 24) return { width: null, height: null };
+  if (bytes.readUInt32BE(0) !== 0x89504e47 || bytes.readUInt32BE(4) !== 0x0d0a1a0a) {
+    return { width: null, height: null };
+  }
+  return {
+    width: bytes.readUInt32BE(16),
+    height: bytes.readUInt32BE(20),
+  };
+}
+
+function inspectBaseColorTexture(material, json, bin) {
+  const textureIndex = material?.pbrMetallicRoughness?.baseColorTexture?.index;
+  if (!Number.isInteger(textureIndex)) return null;
+  const imageIndex = json.textures?.[textureIndex]?.source;
+  const image = Number.isInteger(imageIndex) ? json.images?.[imageIndex] : null;
+  const embedded = readEmbeddedImageBytes(image, json, bin);
+  const dimensions = readImageDimensions(embedded.bytes);
+  return {
+    embedded: embedded.embedded,
+    mimeType: embedded.mimeType,
+    ...dimensions,
+  };
+}
+
 /** Inspect names and world-space geometry bounds without loading a renderer. */
 export function inspectGlb(buffer) {
   const { json, binChunk } = readGlb(buffer);
@@ -259,11 +329,16 @@ export function inspectGlb(buffer) {
   return {
     nodeNames: nodes.map((node) => String(node.name ?? "")),
     meshNames: meshes.map((mesh) => String(mesh.name ?? "")),
-    materials: materials.map((material) => ({
-      name: String(material.name ?? ""),
-      alphaMode: material.alphaMode ?? "OPAQUE",
-      alphaCutoff: material.alphaCutoff,
-    })),
+    materials: materials.map((material) => {
+      const baseColorTexture = inspectBaseColorTexture(material, json, binChunk?.data ?? null);
+      return {
+        name: String(material.name ?? ""),
+        alphaMode: material.alphaMode ?? "OPAQUE",
+        alphaCutoff: material.alphaCutoff,
+        hasBaseColorTexture: baseColorTexture !== null,
+        baseColorTexture,
+      };
+    }),
     unsupportedNames,
     referenceErrors: collectReferenceErrors(json),
     bounds: hasGeometry ? { min: bounds.min, max: bounds.max } : null,
@@ -366,6 +441,8 @@ export function validateModelLibrary({ library, modelsDir }) {
   const staticEntries = entries.filter(isStaticModelEntry);
   const cine57StaticEntries = staticEntries.filter(isCine57StaticModelEntry);
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
+  const quarantinedIds = new Set(CINE57_QUARANTINED_MODEL_IDS);
+  const quarantinedFileNames = new Set(CINE57_QUARANTINED_MODEL_FILE_NAMES);
   const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
   const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
   const requiredCategories = new Set(CINE57_REQUIRED_CATEGORIES);
@@ -401,6 +478,7 @@ export function validateModelLibrary({ library, modelsDir }) {
     }
     if (!allowedIds.has(entry.id)) addError(errors, `model id is not in the curated allowlist: ${entry.id}`);
     if (removedIds.has(entry.id)) addError(errors, `removed model id is still published: ${entry.id}`);
+    if (quarantinedIds.has(entry.id)) addError(errors, `quarantined model id is still published: ${entry.id}`);
     if (!allowedCategories.has(entry.category)) {
       addError(errors, `${entry.id} uses unknown model category: ${entry.category}`);
     }
@@ -467,7 +545,18 @@ export function validateModelLibrary({ library, modelsDir }) {
 
   if (fs.existsSync(modelsDir)) {
     for (const fileName of fs.readdirSync(modelsDir).filter((file) => file.endsWith(".glb"))) {
-      if (!staticFileNames.has(fileName)) addError(errors, `orphan GLB is not in catalog: ${fileName}`);
+      if (!staticFileNames.has(fileName) && !quarantinedFileNames.has(fileName)) {
+        addError(errors, `orphan GLB is not in catalog: ${fileName}`);
+      }
+    }
+    for (const asset of CINE57_QUARANTINED_ASSETS) {
+      const filePath = path.join(modelsDir, asset.fileName);
+      if (!fs.existsSync(filePath)) {
+        addError(errors, `quarantined asset is missing ${asset.fileName}`);
+      }
+      if (staticFileNames.has(asset.fileName)) {
+        addError(errors, `quarantined asset is also published: ${asset.fileName}`);
+      }
     }
   } else {
     addError(errors, `model directory is missing: ${modelsDir}`);

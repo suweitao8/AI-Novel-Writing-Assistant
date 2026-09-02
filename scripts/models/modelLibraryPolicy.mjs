@@ -14,10 +14,33 @@ function assertUnique(values, label) {
 
 const newAssetIds = policy.newAssets.map((asset) => asset.id);
 const allowedIds = [...policy.keepExistingIds, ...newAssetIds];
+const quarantinedAssets = Array.isArray(policy.quarantinedAssets) ? policy.quarantinedAssets : [];
+const quarantinedIds = quarantinedAssets.map((asset) => asset.id);
+const quarantinedFileNames = quarantinedAssets.map((asset) => asset.fileName);
 assertUnique(policy.keepExistingIds, "keepExistingIds");
 assertUnique(newAssetIds, "newAssets.id");
 assertUnique(allowedIds, "allowed model ids");
 assertUnique(policy.removedModelIds, "removedModelIds");
+assertUnique(quarantinedIds, "quarantinedAssets.id");
+assertUnique(quarantinedFileNames, "quarantinedAssets.fileName");
+
+for (const asset of quarantinedAssets) {
+  if (typeof asset.id !== "string" || typeof asset.fileName !== "string") {
+    throw new Error("quarantinedAssets entries must declare id and fileName");
+  }
+  if (allowedIds.includes(asset.id)) {
+    throw new Error(`quarantined asset is still in the published allowlist: ${asset.id}`);
+  }
+  if (policy.removedModelIds.includes(asset.id)) {
+    throw new Error(`quarantined asset cannot also be a removed model: ${asset.id}`);
+  }
+  if (typeof asset.reason !== "string" || asset.reason.trim().length === 0) {
+    throw new Error(`quarantined asset ${asset.id} must declare a reason`);
+  }
+  if (typeof asset.evidence !== "string" || asset.evidence.trim().length === 0) {
+    throw new Error(`quarantined asset ${asset.id} must declare evidence`);
+  }
+}
 
 const allowedCategories = new Set(policy.categoryOrder);
 for (const asset of policy.newAssets) {
@@ -57,6 +80,11 @@ export const CINE57_CATEGORY_ORDER = Object.freeze([...policy.categoryOrder]);
 export const CINE57_REQUIRED_CATEGORIES = Object.freeze([...policy.requiredCategories]);
 export const CINE57_ALLOWED_MODEL_IDS = Object.freeze(allowedIds);
 export const CINE57_REMOVED_MODEL_IDS = Object.freeze([...policy.removedModelIds]);
+export const CINE57_QUARANTINED_ASSETS = Object.freeze(
+  quarantinedAssets.map((asset) => Object.freeze({ ...asset })),
+);
+export const CINE57_QUARANTINED_MODEL_IDS = Object.freeze([...quarantinedIds]);
+export const CINE57_QUARANTINED_MODEL_FILE_NAMES = Object.freeze([...quarantinedFileNames]);
 export const CINE57_MINIMUM_MODEL_COUNT = Number(policy.minimumEntryCount);
 export const CINE57_MAX_FOOD_CONTAINER_ENTRIES = Number(policy.maxFoodContainerEntries);
 export const CINE57_MINIMUM_NEW_ASSET_COUNT = Number(policy.modernExpansion?.minimumNewAssetCount ?? 0);

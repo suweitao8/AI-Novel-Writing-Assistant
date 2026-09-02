@@ -8,6 +8,7 @@ import { orderModelEntries } from "./modelLibraryOrdering.mjs";
 import {
   CINE57_ALLOWED_MODEL_IDS,
   CINE57_CATEGORY_ORDER,
+  CINE57_QUARANTINED_MODEL_FILE_NAMES,
   CINE57_REMOVED_MODEL_IDS,
   getCatalogOverride,
   getCatalogMaterialOverride,
@@ -20,6 +21,7 @@ const CATALOG_PATH = path.join(REPO_ROOT, "client/src/config/modelLibrary.ts");
 const CATEGORY_ORDER = [...CINE57_CATEGORY_ORDER, "角色"];
 const ALLOWED_IDS = new Set(CINE57_ALLOWED_MODEL_IDS);
 const REMOVED_IDS = new Set(CINE57_REMOVED_MODEL_IDS);
+const QUARANTINED_FILE_NAMES = new Set(CINE57_QUARANTINED_MODEL_FILE_NAMES);
 
 function parseCatalog(source) {
   const lines = source.split(/\r?\n/);
@@ -172,7 +174,9 @@ async function main() {
 
   const actualGlbs = fs.readdirSync(MODELS_DIR).filter((fileName) => fileName.endsWith(".glb"));
   const catalogFiles = new Set(parsed.entries.map((entry) => entry.fileName));
-  const unknownGlbs = actualGlbs.filter((fileName) => !catalogFiles.has(fileName));
+  const unknownGlbs = actualGlbs.filter(
+    (fileName) => !catalogFiles.has(fileName) && !QUARANTINED_FILE_NAMES.has(fileName),
+  );
   if (unknownGlbs.length > 0) throw new Error(`Unknown GLB files would be outside the catalog: ${unknownGlbs.join(", ")}`);
 
   if (!checkOnly) {
@@ -192,6 +196,7 @@ async function main() {
       for (const entry of removedEntries) {
         const filePath = path.join(MODELS_DIR, entry.fileName);
         if (!fs.existsSync(filePath)) continue;
+        if (QUARANTINED_FILE_NAMES.has(entry.fileName)) continue;
         fs.unlinkSync(filePath);
         removedGlbs += 1;
       }
