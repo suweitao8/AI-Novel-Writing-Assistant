@@ -16,16 +16,22 @@ python scripts/animation/retarget_ual2.py <source.glb> <ual2.glb> <output.glb> <
 
 工具只把目标 `skins[].joints` 中的同名节点作为骨骼映射。默认从目标 UAL2 的
 `Idle_No_Loop` 片段固定取 40% 时间点作为自然站立基准（也可通过最后一个参数
-指定同一目标文件中的其他基准片段），使用世界空间姿态差：
+指定同一目标文件中的其他基准片段），先使用世界空间姿态差建立初始旋转：
 
 ```text
 W_target = W_source_animation * inverse(W_source_bind) * W_target_standing_base
 ```
 
 这样源文件即使以 A-Pose 或其他不同于 UAL2 T-Pose 的节点默认姿态导出，导入动作
-也不会把目标角色的手臂重新放到水平 T-Pose。根/骨盆平移使用相对源绑定姿态的
-增量并按绑定骨骼长度缩放，同时叠加到目标站立基准，坐姿的骨盆下降会留在角色
-骨架附近，不会因为源/目标局部坐标分量不同而产生异常深度位移。
+也不会把目标角色的手臂重新放到水平 T-Pose。由于不同骨架的绑定姿态可能使用
+不同的局部骨骼轴，初始旋转之后还必须把源动画中的主要解剖骨段（躯干、颈部、
+锁骨、上臂、前臂和腿）逐帧对齐到目标的同名骨段；不能再用一个通用胸腔瞄准去
+替代缺失的脊柱节，也不能对所有动作强制套末端 IK。根/骨盆平移使用相对源绑定
+姿态的增量并按绑定骨骼长度缩放，同时叠加到目标站立基准，坐姿的骨盆下降会留在
+角色骨架附近，不会因为源/目标局部坐标分量不同而产生异常深度位移。
+
+末端 IK 只在源双手最小间距不超过 `0.15m` 时自动启用；需要接触点校正的特殊
+动作可设置 `RETARGET_USE_LIMB_IK=1` 强制启用，`RETARGET_NO_ARM_IK=1` 始终关闭。
 
 完整命令格式：
 
@@ -78,6 +84,7 @@ translation 轨道表示没有可导出的全局根位移，视为通过；`pelv
 ```text
 node scripts/animation/inPlaceAnimationPolicy.test.cjs
 node scripts/animation/animationCatalogSelection.test.cjs
+python -m unittest scripts/animation/test_run_forward_retarget.py -v
 node scripts/animation/filter_animation_catalog_selection.cjs \
   <candidate-selection.json> \
   D:/UnrealWorkspace/Cine57-exported/animation_catalog \

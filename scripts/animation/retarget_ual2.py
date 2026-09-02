@@ -250,7 +250,7 @@ for ui in b_order:
     target_base_local_trans[ui] = local_trans
     p = bparent.get(ui)
     target_base_world[ui] = local_rot if p is None else qmul(target_base_world[p], local_rot)
-# 站立基准世界位置（胸腔瞄准方向的目标侧基准）。
+# 站立基准世界位置（解剖骨段对齐使用的目标侧基准）。
 target_base_pos = {}
 for ui in b_order:
     p = bparent.get(ui)
@@ -326,7 +326,136 @@ for ui in b_order:
     out_trans[ui] = [tuple(u_rest[k] + scale * (v[k] - a_rest[k]) for k in range(3))
                      for v in src_trans[src]]
 
-# ---------- verify: recompose target at mid frame and compare with the solved target pose ----------
+# ---------- anatomical segment alignment ----------
+# Source and UAL2 use the same y-up world convention, but their bind poses have
+# different local bone axes.  A world-quaternion delta alone can therefore leave
+# a parent and its child pointing in different anatomical directions after the
+# target standing pose is applied.  Align the primary body segments explicitly,
+# using the source animation's world-space child direction and the target's own
+# segment length.  This also collapses UE Manny's optional intermediate spine
+# bones into the target's single corresponding segment without a special-case
+# chest rotation.
+import os as _os
+
+_align_names = [
+    ("pelvis", "spine_01"), ("spine_01", "spine_02"),
+    ("spine_02", "spine_03"), ("spine_03", "neck_01"),
+    ("neck_01", "head"),
+    ("clavicle_l", "upperarm_l"), ("upperarm_l", "lowerarm_l"),
+    ("lowerarm_l", "hand_l"),
+    ("clavicle_r", "upperarm_r"), ("upperarm_r", "lowerarm_r"),
+    ("lowerarm_r", "hand_r"),
+    ("thigh_l", "calf_l"), ("calf_l", "foot_l"),
+    ("thigh_r", "calf_r"), ("calf_r", "foot_r"),
+]
+_align_target = {
+    (node.get("name") or "").lower(): index
+    for index, node in enumerate(bnodes)
+    if node.get("name")
+}
+
+
+def _align_vsub(a, b):
+    return tuple(a[k] - b[k] for k in range(3))
+
+
+def _align_vlen(v):
+    return math.sqrt(sum(value * value for value in v))
+
+
+def _align_vnorm(v):
+    length = _align_vlen(v)
+    if length < 1e-9:
+        return None
+    return tuple(value / length for value in v)
+
+
+def _align_vdot(a, b):
+    return sum(a[k] * b[k] for k in range(3))
+
+
+def _align_cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _align_arc(a, b):
+    axis = _align_cross(a, b)
+    w = 1.0 + _align_vdot(a, b)
+    if w < 1e-9:
+        perpendicular = (1.0, 0.0, 0.0) if abs(a[0]) < 0.9 else (0.0, 1.0, 0.0)
+        axis = _align_cross(a, perpendicular)
+        w = 0.0
+    return qnorm((axis[0], axis[1], axis[2], w))
+
+
+_align_applied = 0
+for _parent_name, _child_name in _align_names:
+    _ui = _align_target.get(_parent_name)
+    _child_ui = _align_target.get(_child_name)
+    _src = t2s.get(_ui) if _ui is not None else None
+    _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+    if None in (_ui, _child_ui, _src, _src_child):
+        continue
+    if _ui not in out_rot or _ui not in bt_worldF:
+        continue
+    _parent_ui = bparent.get(_ui)
+    for _f in range(F):
+        _w_current = bt_worldF[_ui][_f]
+        if _parent_ui is not None and _parent_ui in bt_worldF:
+            _w_current = qmul(bt_worldF[_parent_ui][_f], out_rot[_ui][_f])
+        _target_dir = _align_vnorm(
+            qrot_vec(_w_current, target_base_local_trans[_child_ui])
+        )
+        _source_dir = _align_vnorm(
+            _align_vsub(a_posF[_src_child][_f], a_posF[_src][_f])
+        )
+        if _target_dir is None or _source_dir is None:
+            continue
+        _w_new = qmul(_align_arc(_target_dir, _source_dir), _w_current)
+        bt_worldF[_ui][_f] = _w_new
+        _local = qnorm(
+            _w_new
+            if _parent_ui is None
+            else qmul(qconj(bt_worldF[_parent_ui][_f]), _w_new)
+        )
+        if _f and qdot(out_rot[_ui][_f - 1], _local) < 0:
+            _local = tuple(-value for value in _local)
+        out_rot[_ui][_f] = _local
+        _align_applied += 1
+print("anatomical segment alignment applied on %d frames" % _align_applied)
+
+_left_hand = a_by_name.get("hand_l")
+_right_hand = a_by_name.get("hand_r")
+if _left_hand is not None and _right_hand is not None:
+    _source_hand_gap_min = min(
+        _align_vlen(_align_vsub(a_posF[_left_hand][f], a_posF[_right_hand][f]))
+        for f in range(F)
+    )
+else:
+    _source_hand_gap_min = float("inf")
+
+# End-effector IK is useful for genuine hand-contact poses, but applying it to
+# every locomotion clip changes valid knee/elbow directions and was the source
+# of the run-forward shoulder/foot drift.  Keep an explicit opt-in for other
+# actions while making the safe default data-driven from the source pose.
+_use_limb_ik = (
+    not _os.environ.get("RETARGET_NO_ARM_IK")
+    and (
+        _os.environ.get("RETARGET_USE_LIMB_IK") == "1"
+        or _source_hand_gap_min <= 0.15
+    )
+)
+if not _use_limb_ik:
+    print(
+        "limb IK skipped: source minimum wrist gap %.3fm "
+        "(set RETARGET_USE_LIMB_IK=1 to force)" % _source_hand_gap_min
+    )
+
+# ---------- verify: recompose target at mid frame and validate body segments ----------
 tm = grid[F//2]
 def compose(tracks_override, t):
     W, P = {}, {}
@@ -346,18 +475,27 @@ for ui, frames in out_trans.items():
     solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
 Wt, Pt = compose(solved_tracks, tm)
 
-def sidx(nm): return next((k for k, n in enumerate(anodes) if n.get("name", "").lower() == nm.lower()), None)
-worst = 2.0; worst_nm = None
-for ui, w in Wt.items():
-    src = t2s.get(ui)
-    if src is None: continue
-    expected = qmul(
-        qmul(a_worldF[src][F//2], qconj(src_rest_world[src])),
-        target_base_world[ui],
+_verify_names = _align_names[:5] if _use_limb_ik else _align_names
+_segment_dots = []
+for _parent_name, _child_name in _verify_names:
+    _ui = _align_target.get(_parent_name)
+    _child_ui = _align_target.get(_child_name)
+    _src = t2s.get(_ui) if _ui is not None else None
+    _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+    if None in (_ui, _child_ui, _src, _src_child):
+        continue
+    _target_vec = _align_vnorm(_align_vsub(Pt[_child_ui], Pt[_ui]))
+    _source_vec = _align_vnorm(
+        _align_vsub(a_posF[_src_child][F // 2], a_posF[_src][F // 2])
     )
-    d = abs(qdot(w, expected))
-    if d < worst: worst, worst_nm = d, bnodes[ui].get("name")
-print(f"verify @t={tm:.3f}: target pose={target_pose_name}@{TARGET_POSE_FRACTION:.2f}, worst |dot| = {worst:.5f} ({worst_nm}) -> {'PASS' if worst > 0.999 else 'FAIL'}")
+    if _target_vec is not None and _source_vec is not None:
+        _segment_dots.append(_align_vdot(_target_vec, _source_vec))
+segment_min = min(_segment_dots) if _segment_dots else 0.0
+print(
+    f"verify @t={tm:.3f}: target pose={target_pose_name}@{TARGET_POSE_FRACTION:.2f}, "
+    f"min segment |dot| = {segment_min:.5f} -> "
+    f"{'PASS' if segment_min > 0.985 else 'FAIL'}"
+)
 def wpos(name):
     ui = tidx2(name)
     return tuple(round(v, 3) for v in Pt[ui])
@@ -368,18 +506,15 @@ for nm in ["pelvis", "Head", "foot_l", "foot_r", "hand_l", "hand_r"]:
     print("  ", nm, wpos(nm))
 print("  hand_y_minus_shoulder:", wdelta("hand_l", "clavicle_l"), wdelta("hand_r", "clavicle_r"))
 
-# ---------- 末端接触校正：臂链两骨 IK ----------
-# 纯旋转传递保不住跨骨架的末端接触点：UAL2 与源骨架的肩位/臂长比例不同，
-# 源里挠到头顶的手重定向后只停在下巴高度（实测差 ~0.2m）。以头关节为锚，
-# 按骨架尺寸比把源手腕位置映射到目标，再对上臂+前臂做两骨 IK；锁骨与手
-# 的朝向保持传递结果，肘部平面取自传递姿态，保证逐帧连续不翻肘。
-# RETARGET_NO_ARM_IK=1 可关闭（回到纯旋转传递）。
-import os as _os
+# ---------- 末端接触校正：臂链两骨 IK（按需启用） ----------
+# 只有源动作确实存在双手接触姿态时才默认启用；移动动作保持上面的解剖
+# 分段对齐结果，避免通用 IK 重新改变有效的肩、肘、膝方向。
+# RETARGET_USE_LIMB_IK=1 强制启用，RETARGET_NO_ARM_IK=1 始终关闭。
 
 ik_sides = []
 chains = {}
 ik_scale = 1.0
-if not _os.environ.get("RETARGET_NO_ARM_IK"):
+if _use_limb_ik:
     def _bid(nm):
         return next((k for k, n in enumerate(bnodes) if (n.get("name") or "").lower() == nm), None)
     def _vsub(a, b): return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
@@ -400,66 +535,6 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             axis = _vcross(a, perp)
             w = 0.0
         return qnorm((axis[0], axis[1], axis[2], w))
-
-    t_sp3 = _bid("spine_03")
-    a_sp3 = a_by_name.get("spine_03")
-    t_n01 = _bid("neck_01")
-    a_n01 = a_by_name.get("neck_01")
-    t_pelvis_aim = _bid("pelvis")
-    a_pelvis_aim = a_by_name.get("pelvis")
-
-    # ---------- 胸腔指向校正（脊节数差异）----------
-    # UE Manny 脊柱有 spine_04/05/neck_02 三节额外节段，UAL2 只有 spine_01..03
-    # + neck_01：源把躯干前倾分摊到 5 节再由后两节反向抵消，按名映射后目标
-    # spine_03 带着源 spine_03 的内弯、却没有 04/05 的反向抵消，胸腔
-    # （spine_03→neck_01）出现 ~25° 额外前倾（后退行走实测源 10° vs 目标 35°），
-    # 上身弓背、手臂跟着被拖到身前。把 spine_03 的世界旋转改为「瞄向源胸腔
-    # 方向」：方向经各自骨盆系变换到目标世界系，roll 取自传递旋转的最短弧；
-    # 子骨（neck_01/clavicle）保持各自映射的世界旋转，仅按新父旋转重组局部。
-    if None not in (t_sp3, a_sp3, t_n01, a_n01, t_pelvis_aim, a_pelvis_aim) \
-            and t_sp3 in out_rot and t_sp3 in bt_worldF:
-        child_dir = _vnorm(target_base_local_trans[t_n01])
-        chest_children = [ui for ui in (t_n01, _bid("clavicle_l"), _bid("clavicle_r"))
-                          if ui is not None and ui in bt_worldF]
-        aimed = 0
-        for f in range(F):
-            d_src = _vsub(a_posF[a_n01][f], a_posF[a_sp3][f])
-            if _vlen(d_src) < 1e-9: continue
-            # 传输用「骨盆绑定差增量」而不是骨盆绝对帧：不同骨架的骨盆骨骼
-            # 自身朝向差异很大（UE 骨盆常带 ~90° 轴向差），绝对帧会把世界
-            # 「上」转到局部轴上造成方向反转。骨盆增量 = 源骨盆世界旋转相对
-            # 其绑定的变化，作用到目标站立胸腔方向上。
-            d_standing = _vnorm(_vsub(target_base_pos[t_n01], target_base_pos[t_sp3]))
-            q_pelvis_delta = qmul(a_worldF[a_pelvis_aim][f], qconj(src_rest_world[a_pelvis_aim]))
-            d_tgt = qrot_vec(q_pelvis_delta, d_standing)
-            w_old = bt_worldF[t_sp3][f]
-            cur = qrot_vec(w_old, child_dir)
-            if f == 12 // 2:
-                print("  DBGAIM f=%d d_src=%s d_standing=%s d_tgt=%s cur=%s" % (
-                    f, tuple(round(v, 2) for v in d_src), tuple(round(v, 2) for v in d_standing),
-                    tuple(round(v, 2) for v in d_tgt), tuple(round(v, 2) for v in cur)))
-            if _vdot(cur, d_tgt) > 0.999:
-                continue
-            w_new = qmul(_arc(_vnorm(cur), _vnorm(d_tgt)), w_old)
-            bt_worldF[t_sp3][f] = w_new
-            # spine_03 自身的输出局部也要按新世界旋转重组，否则写出的轨道
-            # 仍是旧驼背姿态，与内部参考（bt_worldF/bt_posF）不一致。
-            p_sp3 = bparent.get(t_sp3)
-            lq_sp3 = qmul(qconj(bt_worldF[p_sp3][f]), w_new) if p_sp3 is not None else w_new
-            lq_sp3 = qnorm(lq_sp3)
-            prev_sp3 = out_rot[t_sp3][f-1] if f > 0 else None
-            if prev_sp3 is not None and qdot(prev_sp3, lq_sp3) < 0:
-                lq_sp3 = tuple(-x for x in lq_sp3)
-            out_rot[t_sp3][f] = lq_sp3
-            for ui in chest_children:
-                lq = qnorm(qmul(qconj(w_new), bt_worldF[ui][f]))
-                prev = out_rot[ui][f-1] if f > 0 else None
-                if prev is not None and qdot(prev, lq) < 0:
-                    lq = tuple(-x for x in lq)
-                out_rot[ui][f] = lq
-            aimed += 1
-        if aimed:
-            print("chest aim applied on %d frames" % aimed)
 
     t_head = _bid("head")
     a_head = a_by_name.get("head")
