@@ -17,6 +17,7 @@ const actors = [
 const cameraIntent = {
   focalCharacterName: "血角兽",
   compositionBias: "center",
+  cameraAngle: "eye_level",
   depthOfFieldEnabled: true,
 };
 
@@ -93,7 +94,7 @@ test("确定性相机解析器把视线正对焦点主体并按景别计算 fov"
 
   // 焦点角色：相机钉在投射中心，视线（forward）指向该角色的取景点。
   const aimed = resolveAutoPlanCameraFromIntent({
-    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", cameraAngle: "eye_level", depthOfFieldEnabled: true },
     actors: placedActors,
     shotSize: "中景",
     environment,
@@ -126,13 +127,13 @@ test("确定性相机解析器把视线正对焦点主体并按景别计算 fov"
   assert.equal(normalizeBlockingShotSizeKey(null), "medium");
 
   const closeUp = resolveAutoPlanCameraFromIntent({
-    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", cameraAngle: "eye_level", depthOfFieldEnabled: true },
     actors: [{ characterName: "沈烬", position: [1.4, 0, 0], heightMeters: 1.75 }],
     shotSize: "特写",
     environment,
   });
   const fullShot = resolveAutoPlanCameraFromIntent({
-    intent: { focalCharacterName: "沈烬", compositionBias: "center", depthOfFieldEnabled: true },
+    intent: { focalCharacterName: "沈烬", compositionBias: "center", cameraAngle: "eye_level", depthOfFieldEnabled: true },
     actors: [{ characterName: "沈烬", position: [6, 0, 0], heightMeters: 1.75 }],
     shotSize: "全景",
     environment,
@@ -148,13 +149,13 @@ test("三分法偏置把焦点主体推离画面中心", () => {
   const environment = { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 };
   const placedActors = [{ characterName: "沈烬", position: [4, 0, 0], heightMeters: 1.75 }];
   const center = resolveAutoPlanCameraFromIntent({
-    intent: { compositionBias: "center", depthOfFieldEnabled: false },
+    intent: { compositionBias: "center", cameraAngle: "eye_level", depthOfFieldEnabled: false },
     actors: placedActors,
     shotSize: "中景",
     environment,
   });
   const left = resolveAutoPlanCameraFromIntent({
-    intent: { compositionBias: "left", depthOfFieldEnabled: false },
+    intent: { compositionBias: "left", cameraAngle: "eye_level", depthOfFieldEnabled: false },
     actors: placedActors,
     shotSize: "中景",
     environment,
@@ -163,6 +164,30 @@ test("三分法偏置把焦点主体推离画面中心", () => {
   assert.notEqual(center.azim, left.azim);
   assert.ok(Math.abs(center.focalPoint[0] - left.focalPoint[0]) > 0.05
     || Math.abs(center.focalPoint[2] - left.focalPoint[2]) > 0.05);
+});
+
+test("机位俯仰意图改变视线俯仰与取景点高度而不移动主体", () => {
+  const { resolveAutoPlanCameraFromIntent } = serviceModule;
+  const environment = { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 };
+  const placedActors = [{ characterName: "沈烬", position: [4, 0, 0], heightMeters: 1.75 }];
+  const resolveWithAngle = (cameraAngle) => resolveAutoPlanCameraFromIntent({
+    intent: { compositionBias: "center", cameraAngle, depthOfFieldEnabled: false },
+    actors: placedActors,
+    shotSize: "中景",
+    environment,
+  });
+  const eye = resolveWithAngle("eye_level");
+  const low = resolveWithAngle("low_angle");
+  const high = resolveWithAngle("high_angle");
+  // 俯仰由取景点竖直偏移表达：仰拍取景点抬高（视线向上、主体落画面下三分），俯拍压低。
+  assert.ok(high.elev < eye.elev, `俯拍俯仰角必须更低：high=${high.elev} eye=${eye.elev}`);
+  assert.ok(low.elev > eye.elev, `仰拍俯仰角必须更高：low=${low.elev} eye=${eye.elev}`);
+  assert.ok(low.focalPoint[1] > eye.focalPoint[1] && eye.focalPoint[1] > high.focalPoint[1],
+    `取景点高度必须按仰拍/平视/俯拍递减：low=${low.focalPoint[1]} eye=${eye.focalPoint[1]} high=${high.focalPoint[1]}`);
+  // 俯仰只动取景点：方位角与主体站位不变。
+  assert.ok(Math.abs(eye.azim - low.azim) < 1e-9 && Math.abs(eye.azim - high.azim) < 1e-9);
+  // 取景点不低于地面。
+  assert.ok(high.focalPoint[1] >= 0.1);
 });
 
 test("编辑器上下文摘要保留当前镜头的设计字段", () => {

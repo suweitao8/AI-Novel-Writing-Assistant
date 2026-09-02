@@ -62,6 +62,8 @@ const autoPlanCameraIntentSchema = z.object({
   focalCharacterName: z.string().trim().min(1).max(120).optional(),
   /** 三分法横向构图：焦点主体落在画面左三分线 / 中线 / 右三分线。 */
   compositionBias: z.enum(["left", "center", "right"]),
+  /** 机位俯仰意图：仰拍视线向上、主体落画面下三分显体量，俯拍视线向下、主体落画面上三分显弱势；俯仰角由服务端按景别生成。 */
+  cameraAngle: z.enum(["low_angle", "eye_level", "high_angle"]),
   /** 是否开启景深虚化；虚化强度与焦点距离由服务端按景别决定。 */
   depthOfFieldEnabled: z.boolean(),
 });
@@ -202,7 +204,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   DramaShotBlockingAutoPlanOutput
 > = {
   id: "drama.shot.blocking.autoPlan",
-  version: "v9",
+  version: "v10",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -233,10 +235,11 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       "画面必须是 16:9 横屏；先理解动作、关系和景别，再决定角色的空间位置、朝向、姿势、相对大小，最后声明相机构图意图。",
       "输入角色带有 heightMeters 近似身高。保持角色之间的身高差；输出的 scale 是针对镜头构图的局部乘数，默认接近 [1,1,1]，不能用它把儿童、高个角色和普通成年人缩放成同样高。",
       "输出 actors 时必须使用输入名单中的全部角色，每个角色恰好出现一次，不得遗漏、改名、合并或创造角色；数组第一个角色是本镜叙事主体（除非 camera.focalCharacterName 另有指定），服务端围绕该主体取景。",
-      "相机完全由服务端生成：相机位置固定在场景投射中心，服务端按你声明的 camera 意图（焦点角色、三分法偏置、景深开关）和角色实际落位，自动计算视线方位、距离、焦点、视野角和景深参数。你不要输出任何相机坐标或角度。",
+      "相机完全由服务端生成：相机位置固定在场景投射中心，服务端按你声明的 camera 意图（焦点角色、三分法偏置、机位俯仰、景深开关）和角色实际落位，自动计算视线方位、距离、焦点、视野角和景深参数。你不要输出任何相机坐标或角度。",
       "景别决定主体与投射中心的距离（相机就在投射中心，主体越近画面越紧）：特写 1.0–1.8 米、近景 1.8–3 米、中景 3–5 米、全景 4.5–7.5 米、远景 ≥9 米或群体展开；先读镜头 shotSize，再把相应景别的主要角色安排在对应距离带上。与道具交互时以道具位置优先，接受景别近似。",
       "画面左右以“从投射中心望向焦点主体”的方向为准：站在视线左手侧的角色和道具出现在画面左侧，右手侧出现在画面右侧；离投射中心更近的对象在画面里更大更近。镜头动作文本里写的“画面左侧/右侧/中上方/前景”都必须按这三条规则换算成世界坐标摆放。",
       "构图声明 camera.compositionBias：默认 center；用 left 或 right 把焦点主体放到三分线上，为主体朝向、运动方向或视线方向留白（人物看向右边就选 left，让右侧留白）；动作文本已有明确画面方位时按文本选择。",
+      "构图声明 camera.cameraAngle：默认 eye_level 平视；镜头动作要求俯拍、居高临下、俯视、上帝视角时选 high_angle（视线向下压，主体落画面上三分显弱势）；要求仰拍、低机位、仰视、高大压迫、英雄感时选 low_angle（视线向上抬，主体落画面下三分、体量被放大）；没有明确俯仰语义时保持平视。",
       "camera.focalCharacterName 填本镜叙事焦点（正在做关键动作或被观看的角色）；camera.depthOfFieldEnabled 在特写/近景对话镜默认开启，大场面全景可关闭。",
       "先从镜头动作中识别有方向的角色关系，再根据关系规划坐标、姿势和大小；relations 的 subject 是有向关系的主动/参照方，object 是被作用/承载方；仅在 on_top_of 中 subject 是上方主体。",
       "on_top_of 表示 subject 位于 object 上方：object 必须是贴地的承载者并使用 lying 或 prone，subject 只能使用 crouching 或 kneeling；不要给 subject 使用 prone 或 lying，因为当前 UAL 运行时没有专用趴姿，会错误表现为仰卧；不要把上下角色颠倒。under 表示 subject 在 object 下方。",
