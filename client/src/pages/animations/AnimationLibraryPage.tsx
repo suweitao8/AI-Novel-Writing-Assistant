@@ -277,7 +277,7 @@ export default function AnimationLibraryPage() {
 
       {entries.length > 0 ? (
         <>
-          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10" data-animation-grid>
+          <section className="grid grid-cols-10 gap-2" data-animation-grid>
             {pageEntries.map((entry) => (
               <AnimationCard key={entry.id} entry={entry} />
             ))}
