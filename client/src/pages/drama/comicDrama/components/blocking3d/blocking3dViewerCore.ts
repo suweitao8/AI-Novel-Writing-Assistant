@@ -14,7 +14,10 @@ import {
   createGroundDomeGeometryData,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
-import { wrapBlocking3dAzimuth } from "./blocking3dMath";
+import {
+  normalizeBlocking3dCameraDistance,
+  wrapBlocking3dAzimuth,
+} from "./blocking3dMath";
 import {
   poseSampleTimeFromTrack,
   resolveBlocking3dPoseClip,
@@ -286,10 +289,8 @@ export function normalizeCamera(
   return {
     azim: wrapBlocking3dAzimuth(numberOr(input.azim, 0)),
     elev: clamp(numberOr(input.elev, 0), -89, 89),
-    distance: clamp(
+    distance: normalizeBlocking3dCameraDistance(
       numberOr(input.distance, DEFAULT_CAMERA.distance),
-      0.25,
-      100,
     ),
     focalPoint: [
       clamp(numberOr(input.focalPoint?.[0], 0), -100, 100),

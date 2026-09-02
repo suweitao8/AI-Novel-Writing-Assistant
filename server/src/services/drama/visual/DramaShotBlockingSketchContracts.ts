@@ -26,7 +26,8 @@ export const BLOCKING_SKETCH_LIMITS = {
 export const BLOCKING_SKETCH_3D_LIMITS = {
   cameraAzimDeg: { min: -180, max: 180 },
   cameraElevDeg: { min: -89, max: 89 },
-  cameraDistance: { min: 0.25, max: 100 },
+  // 编辑视角可以远离 HDRI 半球；最大值只作为 JSON/浮点安全边界。
+  cameraDistance: { min: 0.25, max: Number.MAX_SAFE_INTEGER },
   cameraFocalPoint: { min: -100, max: 100 },
   cameraFovDeg: { min: 30, max: 100 },
   cameraNearClip: { min: 0.05, max: 5 },

@@ -195,13 +195,14 @@ export function clampBlockingCameraPositionToWorld(
 }
 
 /**
- * 保持视线方向不变，把轨道相机（focalPoint + 距离）收敛进穹顶：
- * 先把焦点钳进世界，再沿视线方向求仍留在壳内的最大距离并取小。
- * 焦点在壳内时沿任何方向都存在可行距离，收敛始终有解。
+ * 保持视线方向不变，把轨道相机（focalPoint + 距离）收敛进穹顶。
+ * 默认先把焦点钳进世界，再沿视线方向求仍留在壳内的最大距离并取小。
+ * 编辑视角可关闭距离收敛，只保留焦点边界，让用户从穹顶外继续观察场景。
  */
 export function clampBlockingCameraOrbitToWorld(
   camera: BlockingCameraOrbitGeometry,
   environment: Partial<BlockingStageEnvironment> | null | undefined,
+  options: { constrainDistance?: boolean } = {},
 ): BlockingCameraOrbitGeometry {
   // 焦点比相机多留 0.35 米内缩：距离下限 0.25 米时"焦点 + 一步"仍在壳内。
   const focalPoint = clampBlockingCameraPositionToWorld(camera.focalPoint, environment, 0.35);
@@ -215,32 +216,35 @@ export function clampBlockingCameraOrbitToWorld(
   const centerY = finiteOr(environment?.projectionCenterHeight, 2);
   const maxY = centerY + boundRadius * 0.9;
   const [fx, fy, fz] = focalPoint;
+  const constrainDistance = options.constrainDistance !== false;
   let maxDistance = distance;
-  // 水平边界圆：|焦点 + t·方向| 的水平分量命中边界圆的较小正根。
-  const horizontalAlong = fx * dirX + fz * dirZ;
-  const horizontalSquared = fx * fx + fz * fz - boundRadius * boundRadius;
-  maxDistance = Math.min(
-    maxDistance,
-    -horizontalAlong + Math.sqrt(Math.max(horizontalAlong * horizontalAlong - horizontalSquared, 0)),
-  );
-  // 地面与顶部平面。
-  if (dirY < 0) maxDistance = Math.min(maxDistance, (STORY_SCENE_3D_CAMERA_MIN_HEIGHT_M - fy) / dirY);
-  if (dirY > 0) maxDistance = Math.min(maxDistance, (maxY - fy) / dirY);
-  // 上半球面：仅在穿越点高于投射中心时生效（下半部分的壳是地面穹顶，
-  // 已由水平边界圆与地面平面覆盖，套球面会误伤贴地远机位）。
-  const sy = fy - centerY;
-  const shellAlong = 2 * (fx * dirX + sy * dirY + fz * dirZ);
-  const shellSquared = fx * fx + sy * sy + fz * fz - boundRadius * boundRadius;
-  if (shellSquared < 0) {
-    const shellDistance = (-shellAlong + Math.sqrt(Math.max(shellAlong * shellAlong - 4 * shellSquared, 0))) / 2;
-    if (fy + shellDistance * dirY >= centerY) {
-      maxDistance = Math.min(maxDistance, shellDistance);
+  if (constrainDistance) {
+    // 水平边界圆：|焦点 + t·方向| 的水平分量命中边界圆的较小正根。
+    const horizontalAlong = fx * dirX + fz * dirZ;
+    const horizontalSquared = fx * fx + fz * fz - boundRadius * boundRadius;
+    maxDistance = Math.min(
+      maxDistance,
+      -horizontalAlong + Math.sqrt(Math.max(horizontalAlong * horizontalAlong - horizontalSquared, 0)),
+    );
+    // 地面与顶部平面。
+    if (dirY < 0) maxDistance = Math.min(maxDistance, (STORY_SCENE_3D_CAMERA_MIN_HEIGHT_M - fy) / dirY);
+    if (dirY > 0) maxDistance = Math.min(maxDistance, (maxY - fy) / dirY);
+    // 上半球面：仅在穿越点高于投射中心时生效（下半部分的壳是地面穹顶，
+    // 已由水平边界圆与地面平面覆盖，套球面会误伤贴地远机位）。
+    const sy = fy - centerY;
+    const shellAlong = 2 * (fx * dirX + sy * dirY + fz * dirZ);
+    const shellSquared = fx * fx + sy * sy + fz * fz - boundRadius * boundRadius;
+    if (shellSquared < 0) {
+      const shellDistance = (-shellAlong + Math.sqrt(Math.max(shellAlong * shellAlong - 4 * shellSquared, 0))) / 2;
+      if (fy + shellDistance * dirY >= centerY) {
+        maxDistance = Math.min(maxDistance, shellDistance);
+      }
     }
   }
   return {
     azim: finiteOr(camera.azim, 0),
     elev: finiteOr(camera.elev, 0),
-    distance: Math.max(0.25, Math.min(distance, maxDistance)),
+    distance: constrainDistance ? Math.max(0.25, Math.min(distance, maxDistance)) : Math.max(0.25, distance),
     focalPoint,
   };
 }

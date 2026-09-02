@@ -112,7 +112,7 @@ const blockingSketch3dPoseSchema = z.enum([
 const blockingSketch3dCameraSchema = z.object({
   azim: z.number().min(-180).max(180),
   elev: z.number().min(-89).max(89),
-  distance: z.number().min(0.25).max(100),
+  distance: z.number().finite().min(0.25).max(Number.MAX_SAFE_INTEGER),
   focalPoint: z.tuple([
     z.number().min(-100).max(100),
     z.number().min(-100).max(100),
