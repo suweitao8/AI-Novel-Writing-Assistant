@@ -72,8 +72,12 @@ test("关系归一化后的最终角色布局仍受 100 度 FOV 上限保护", (
       relation: "on_top_of",
       sizeRelation: "larger",
     }],
-    camera: { ...BASE_CAMERA, distance: 0.25, fovDeg: 30 },
-  }, actors, { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 });
+    camera: {
+      focalCharacterName: "血角兽",
+      compositionBias: "center",
+      depthOfFieldEnabled: false,
+    },
+  }, actors, { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 }, "全景");
 
   assert.ok(result.layout.camera.fovDeg >= 30 && result.layout.camera.fovDeg <= 100);
   assert.ok(result.layout.actors.every((actor) => actor.position[1] >= 0));

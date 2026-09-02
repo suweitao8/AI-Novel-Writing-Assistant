@@ -236,47 +236,54 @@ export function DramaEpisodeAssemblyResultPanel(props: {
     <Card className="overflow-hidden rounded-3xl">
       {videoReady && assembled ? (
         <>
-          <div className="bg-muted/20 p-2 sm:p-3">
-            <div className="overflow-hidden rounded-2xl border border-border bg-background">
-              <video controls preload="metadata" src={assembled.videoUrl} className="block aspect-video w-full object-contain" />
+          <div className="flex flex-col gap-3 bg-muted/20 p-2 sm:p-3 lg:flex-row lg:items-stretch">
+            <div className="flex min-w-0 flex-1 items-start justify-center">
+              <video
+                controls
+                preload="metadata"
+                src={assembled.videoUrl}
+                className="block aspect-video w-full max-w-[124vh] overflow-hidden rounded-2xl border border-border object-contain"
+              />
             </div>
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-border px-4 py-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>
-                时长 <span className="font-medium text-foreground">{formatAsmDuration(assembled.durationSec)}</span>
-              </span>
-              <span>
-                镜头 <span className="font-medium text-foreground">{assembled.shotCount ?? 0} 个</span>
-              </span>
-              <span>
-                字幕 <span className="font-medium text-foreground">{assembled.burnedSubtitles ? "已写入视频" : "独立字幕文件"}</span>
-              </span>
-              <span>
-                生成于{" "}
-                <span className="font-medium text-foreground">
-                  {assembled.generatedAt ? new Date(assembled.generatedAt).toLocaleString() : "—"}
-                </span>
-              </span>
-              <Badge variant="outline">
-                横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}
-              </Badge>
-            </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              {assembled.srtUrl ? (
-                <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
-                  <Download className="h-4 w-4" />下载字幕（SRT）
+            <aside className="w-full shrink-0 rounded-2xl border border-border/70 bg-card p-3 lg:w-60 xl:w-72">
+              <dl className="space-y-2.5 text-xs">
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">时长</dt>
+                  <dd className="text-right text-sm font-medium text-foreground">{formatAsmDuration(assembled.durationSec)}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">镜头</dt>
+                  <dd className="text-right text-sm font-medium text-foreground">{assembled.shotCount ?? 0} 个</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">字幕</dt>
+                  <dd className="text-right text-sm font-medium text-foreground">{assembled.burnedSubtitles ? "已写入视频" : "独立字幕文件"}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">规格</dt>
+                  <dd className="text-right text-sm font-medium text-foreground">横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}</dd>
+                </div>
+                <div className="flex items-baseline justify-between gap-2">
+                  <dt className="shrink-0 text-muted-foreground">生成时间</dt>
+                  <dd className="text-right text-sm font-medium text-foreground">{assembled.generatedAt ? new Date(assembled.generatedAt).toLocaleString() : "—"}</dd>
+                </div>
+              </dl>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 pt-2.5 text-sm">
+                {assembled.srtUrl ? (
+                  <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
+                    <Download className="h-4 w-4" />下载字幕（SRT）
+                  </a>
+                ) : null}
+                <a
+                  className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                  href={assembled.videoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <ExternalLink className="h-4 w-4" />新窗口打开
                 </a>
-              ) : null}
-              <a
-                className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
-                href={assembled.videoUrl}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <ExternalLink className="h-4 w-4" />新窗口打开
-              </a>
-            </div>
+              </div>
+            </aside>
           </div>
           {assembled.warnings?.length ? (
             <div className="mx-4 mb-4 rounded-xl border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">

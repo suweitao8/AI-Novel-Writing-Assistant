@@ -49,6 +49,12 @@ test("3D 模式逐镜显示草图，缺图时显示占位；AI 模式保留无 A
   assert.match(source, /blockingSketchUrl && !hasReadyAiPreview/);
 });
 
+test("场景图换版后过期草图显示状态徽标，引导重新截图", () => {
+  assert.match(source, /isBlockingSketchSceneImageStale/);
+  assert.match(source, /sceneImageVersions/);
+  assert.match(source, /场景图已更新/);
+});
+
 test("AI 图和 3D 图使用生成版本刷新缓存，AI 图加载失败时回退到 3D 草图", () => {
   assert.match(source, /generatedAt/);
   assert.match(source, /cache|version/);

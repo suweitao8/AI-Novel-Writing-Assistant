@@ -57,32 +57,24 @@ const blockingRelationSchema = z.object({
   sizeRelation: z.enum(["larger", "smaller", "similar"]),
 });
 
-const autoPlanCameraSchema = z.object({
-  azim: z.number().min(-180).max(180),
-  elev: z.number().min(-89).max(89),
-  distance: z.number().min(0.25).max(100),
-  focalPoint: z.tuple([
-    z.number().min(-100).max(100),
-    z.number().min(-100).max(100),
-    z.number().min(-100).max(100),
-  ]),
-  fovDeg: z.number().min(30).max(100),
-  nearClip: z.number().min(0.05).max(5),
-  farClip: z.number().min(20).max(300),
+const autoPlanCameraIntentSchema = z.object({
+  /** 本镜叙事焦点角色：取景、景别与景深围绕该角色；省略时服务端取 actors 第一个。 */
+  focalCharacterName: z.string().trim().min(1).max(120).optional(),
+  /** 三分法横向构图：焦点主体落在画面左三分线 / 中线 / 右三分线。 */
+  compositionBias: z.enum(["left", "center", "right"]),
+  /** 是否开启景深虚化；虚化强度与焦点距离由服务端按景别决定。 */
   depthOfFieldEnabled: z.boolean(),
-  focusDistance: z.number().min(0.25).max(100),
-  focusRange: z.number().min(0.1).max(100),
-  blurRadius: z.number().min(0).max(10),
 });
 
 export const dramaShotBlockingAutoPlanOutputSchema = z.object({
   actors: z.array(autoPlanActorSchema).min(1).max(12),
   relations: z.array(blockingRelationSchema).max(24),
-  camera: autoPlanCameraSchema,
+  camera: autoPlanCameraIntentSchema,
   compositionNote: z.string().trim().min(1).max(240).optional(),
 });
 
 export type DramaShotBlockingAutoPlanOutput = z.infer<typeof dramaShotBlockingAutoPlanOutputSchema>;
+export type DramaShotBlockingAutoPlanCameraIntent = z.infer<typeof autoPlanCameraIntentSchema>;
 
 export interface DramaShotBlockingAutoPlanPromptInput {
   shotJson: string;
@@ -174,6 +166,11 @@ function validateAutoPlanOutput(
   if (names.length > 1 && relations.length === 0) {
     throw new Error("多角色自动构图必须明确输出角色关系。");
   }
+  // 相机意图里的焦点角色必须是本镜出场角色；指向其他名字属于幻觉，交给结构化重试修复。
+  const focalCharacterName = output.camera.focalCharacterName?.trim();
+  if (focalCharacterName && !actorNames.has(focalCharacterName.toLocaleLowerCase())) {
+    throw new Error(`自动构图的焦点角色不在本镜出场名单中：${focalCharacterName}`);
+  }
   // 前景道具交互必须指向 sceneJson 里真实存在的空间标记；
   // 指向不存在的 id 属于 AI 幻觉，交给结构化重试修复而不是静默丢弃。
   const markerIds = parseSceneJsonMarkerIds(input?.sceneJson);
@@ -192,6 +189,10 @@ function validateAutoPlanOutput(
       interactionMarkerId: actor.interactionMarkerId?.trim() || undefined,
     })),
     relations,
+    camera: {
+      ...output.camera,
+      focalCharacterName: output.camera.focalCharacterName?.trim() || undefined,
+    },
     compositionNote: output.compositionNote?.trim() || undefined,
   };
 }
@@ -201,7 +202,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   DramaShotBlockingAutoPlanOutput
 > = {
   id: "drama.shot.blocking.autoPlan",
-  version: "v8",
+  version: "v9",
   taskType: "planner",
   mode: "structured",
   language: "zh",
@@ -229,9 +230,14 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
   render: (input) => [
     new SystemMessage([
       "你是横屏影视化漫剧的分镜构图导演，负责把一个镜头变成可直接查看的 3D blocking 草图。",
-      "画面必须是 16:9 横屏；先理解动作、关系和景别，再决定角色的空间位置、朝向、姿势、相对大小和相机机位。",
+      "画面必须是 16:9 横屏；先理解动作、关系和景别，再决定角色的空间位置、朝向、姿势、相对大小，最后声明相机构图意图。",
       "输入角色带有 heightMeters 近似身高。保持角色之间的身高差；输出的 scale 是针对镜头构图的局部乘数，默认接近 [1,1,1]，不能用它把儿童、高个角色和普通成年人缩放成同样高。",
-      "输出 actors 时必须使用输入名单中的全部角色，每个角色恰好出现一次，不得遗漏、改名、合并或创造角色；角色必须落在地面并保持画面关系清楚。",
+      "输出 actors 时必须使用输入名单中的全部角色，每个角色恰好出现一次，不得遗漏、改名、合并或创造角色；数组第一个角色是本镜叙事主体（除非 camera.focalCharacterName 另有指定），服务端围绕该主体取景。",
+      "相机完全由服务端生成：相机位置固定在场景投射中心，服务端按你声明的 camera 意图（焦点角色、三分法偏置、景深开关）和角色实际落位，自动计算视线方位、距离、焦点、视野角和景深参数。你不要输出任何相机坐标或角度。",
+      "景别决定主体与投射中心的距离（相机就在投射中心，主体越近画面越紧）：特写 1.0–1.8 米、近景 1.8–3 米、中景 3–5 米、全景 4.5–7.5 米、远景 ≥9 米或群体展开；先读镜头 shotSize，再把相应景别的主要角色安排在对应距离带上。与道具交互时以道具位置优先，接受景别近似。",
+      "画面左右以“从投射中心望向焦点主体”的方向为准：站在视线左手侧的角色和道具出现在画面左侧，右手侧出现在画面右侧；离投射中心更近的对象在画面里更大更近。镜头动作文本里写的“画面左侧/右侧/中上方/前景”都必须按这三条规则换算成世界坐标摆放。",
+      "构图声明 camera.compositionBias：默认 center；用 left 或 right 把焦点主体放到三分线上，为主体朝向、运动方向或视线方向留白（人物看向右边就选 left，让右侧留白）；动作文本已有明确画面方位时按文本选择。",
+      "camera.focalCharacterName 填本镜叙事焦点（正在做关键动作或被观看的角色）；camera.depthOfFieldEnabled 在特写/近景对话镜默认开启，大场面全景可关闭。",
       "先从镜头动作中识别有方向的角色关系，再根据关系规划坐标、姿势和大小；relations 的 subject 是有向关系的主动/参照方，object 是被作用/承载方；仅在 on_top_of 中 subject 是上方主体。",
       "on_top_of 表示 subject 位于 object 上方：object 必须是贴地的承载者并使用 lying 或 prone，subject 只能使用 crouching 或 kneeling；不要给 subject 使用 prone 或 lying，因为当前 UAL 运行时没有专用趴姿，会错误表现为仰卧；不要把上下角色颠倒。under 表示 subject 在 object 下方。",
       "sizeRelation 必须填写 subject 相对 object 的真实体量：larger 表示 subject 更大，smaller 表示 subject 更小，similar 表示体量接近；不能只依赖局部 scale 抹平输入角色的身高差。",
@@ -239,15 +245,10 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       "如果 sceneJson 提供了空间标记，它们是真实存在的前景道具（床、桌、椅、沙发、书桌、柜子等）和固定结构（门窗、楼梯）：场景里的每一件道具都按其 marker id、label、位置和尺寸理解，规划时优先让角色用上与动作相关的道具。",
       "道具交互规则：动作涉及坐下时，把角色直接摆到椅子/沙发/床沿的座位处——座面高约 0.4-0.5 米（position.y≈0.45），身体落在该道具长方体范围内，pose=sitting，并把该道具的 marker id 填入 interactionMarkerId；动作涉及躺下或睡觉时，把角色摆到床面/沙发上（position.y≈床垫面 0.5 米左右），pose=lying，interactionMarkerId 指向该床或沙发；动作涉及伏案、倚靠桌柜时，角色紧贴道具边缘，pose 用 sitting 或 interacting，interactionMarkerId 指向该道具。交互角色的朝向按动作语义面向谈话对象、桌面或镜头焦点。",
       "未参与交互的道具仍是障碍：角色不得与门窗、楼梯、柜子以及本镜动作没有用到的桌椅床沙发重叠，也不要站进任何标记长方体内部；只有 interactionMarkerId 指向的道具才允许身体进入其范围。没有标记时不要自行编造固定物体坐标。",
-      "interactionMarkerId 只能填 sceneJson 里真实存在的 marker id，每个角色最多指向一个道具；本镜没有道具交互时省略该字段。compositionNote 里用一句话点出谁坐在/躺在了什么道具上。",
+      "interactionMarkerId 只能填 sceneJson 里真实存在的 marker id，每个角色最多指向一个道具；本镜没有道具交互时省略该字段。compositionNote 里用一句话点出谁坐在/躺在了什么道具上，以及本镜的构图思路。",
       "角色活动范围以场景投射中心为圆心限制在可用站位半径内：任何角色的站位，包括跑动、追逐等大幅度动作的目标位置，都不得超出该半径；靠边约 1 米永远保留为运动缓冲，不要把角色安排到那里。",
-      "相机拍摄位固定放在场景投射中心 [0, projectionCenterHeight, 0]，高度与投射中心一致：你只能调整视线方向、拍摄距离和焦段来构图，相当于站在场景全景的原始取景点拍摄；服务端会把相机位置重写到投射中心，所以 azim/elev/distance 决定视角与取景，focalPoint 填希望看清的主体位置。",
-      "相机必须能同时看清镜头主体，fovDeg、裁剪面和景深参数要与景别、主体距离匹配；景深焦点应落在主要叙事主体，景深范围不能让应当清楚的角色完全失焦。",
-      "景别定距离：特写约脸部占画面高一半（distance≈1.5–2）、近景胸部以上（≈2.5–3.5）、中景腰部以上（≈4–6）、全景全身可见且头顶脚下留余量（≈5–8）、远景环境为主（≥10）；focalPoint 高度随景别落在头/胸/重心附近，不要所有景别都挤在同一个 distance。",
-      "主体摆放按三分法：主要角色放在画面左右三分线附近而不是正中心；运动、奔跑或指向动作要在其朝向前方留白；头顶保留少量呼吸空间，不要顶到画面边缘或被裁切。",
-      "双人对话遵守 180° 轴线规则：两人相向而立（yawDeg 互指对方），相机放在二人连线的同一侧让左右关系清楚；正在说话的角色面向听者，DoF 焦点与 focusDistance 落在说话者身上；三人以上按主次分前后层次，避免所有人并排一条直线。",
-      "相机高度用 elev 表达叙事态度：elev 为负是俯拍（展现场面全貌、削弱人物），为正是仰拍（强调高大威压），默认接近平视（-10°到+10°），大俯仰角只用于镜头内容明确需要时。",
-      "输出前自检：全部出场角色必须完整位于 16:9 取景框内且不被互相遮挡关键动作部位（服务端会按水平视野兜底扩角，但构图质量以你的一次规划为准）。",
+      "双人对话遵守 180° 轴线规则：两人相向而立（yawDeg 互指对方），服务端会把相机放在二人连线的同一侧让左右关系清楚；正在说话的角色面向听者；三人以上按主次分前中后层次，避免所有人并排一条直线。",
+      "输出前自检：焦点主体符合镜头 shotSize 的距离带；动作文本里的画面方位都已换算成世界坐标；全部出场角色必须完整位于 16:9 取景框内且不被互相遮挡关键动作部位（服务端会兜底扩角，但构图质量以你的一次规划为准）。",
       "只输出符合 schema 的 JSON，不输出 Markdown、解释文字或坐标计算过程。",
     ].join("\n")),
     new HumanMessage([
@@ -255,7 +256,7 @@ export const dramaShotBlockingAutoPlanPrompt: PromptAsset<
       `【场景与环境】\n${input.sceneJson}`,
       `【本镜全部出场角色】\n${input.actorsJson}`,
       input.stageRadiusMeters != null
-        ? `【摆位限制】可用站位半径 ${Number(input.stageRadiusMeters).toFixed(2)} 米（投射中心为圆心，边缘保留活动缓冲）；拍摄位固定在 [0, ${input.projectionCenterHeight != null ? Number(input.projectionCenterHeight).toFixed(2) : "1.70"}, 0]。`
+        ? `【摆位限制】可用站位半径 ${Number(input.stageRadiusMeters).toFixed(2)} 米（投射中心为圆心，边缘保留活动缓冲）；相机固定在投射中心 [0, ${input.projectionCenterHeight != null ? Number(input.projectionCenterHeight).toFixed(2) : "1.70"}, 0]。`
         : "",
     ].filter(Boolean).join("\n\n")),
   ],

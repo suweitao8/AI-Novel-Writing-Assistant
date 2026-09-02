@@ -74,3 +74,29 @@ export function normalizeSceneStates(
     return scene3dMarkers ? { ...state, scene3dMarkers } : state;
   });
 }
+
+/**
+ * 场景状态图的内容版本标记（生成时间）。状态图按稳定路径存储，重新生成
+ * 是同路径覆盖：URL 不变而内容已换，只有这个时间戳能区分"同一张图"与
+ * "换掉的新图"。3D 摆位草图在保存时记录它，用于检测草图背景是否过期。
+ */
+export function storyAssetStateImageUpdatedAt(
+  state: StoryAssetState | null | undefined,
+): string | null {
+  const generatedAt = state?.image?.generatedAt;
+  return typeof generatedAt === "string" && generatedAt.trim() ? generatedAt.trim() : null;
+}
+
+/**
+ * 3D 草图记录的场景图版本是否已过期：记录版本与当前版本不同即过期。
+ * 旧草图没有版本标记、或当前场景图没有版本时不判定过期，避免把历史
+ * 数据整体误报为过期。
+ */
+export function isBlockingSketchSceneImageStale(
+  storedUpdatedAt: string | null | undefined,
+  currentUpdatedAt: string | null | undefined,
+): boolean {
+  if (typeof storedUpdatedAt !== "string" || !storedUpdatedAt.trim()) return false;
+  if (typeof currentUpdatedAt !== "string" || !currentUpdatedAt.trim()) return false;
+  return storedUpdatedAt.trim() !== currentUpdatedAt.trim();
+}

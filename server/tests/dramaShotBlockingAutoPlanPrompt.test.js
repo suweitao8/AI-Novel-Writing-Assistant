@@ -9,35 +9,49 @@ const promptRegistrySource = fs.readFileSync(
   "utf8",
 );
 
-test("自动构图 Prompt 输出完整角色摆位与相机景深合同", () => {
+test("自动构图 Prompt 输出角色摆位与相机构图意图合同", () => {
   assert.equal(dramaShotBlockingAutoPlanPrompt.id, "drama.shot.blocking.autoPlan");
-  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v8");
-  assert.match(promptRegistrySource, /drama\.shot\.blocking\.autoPlan@v8/);
+  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v9");
+  assert.match(promptRegistrySource, /drama\.shot\.blocking\.autoPlan@v9/);
   assert.equal(dramaShotBlockingAutoPlanPrompt.mode, "structured");
   const output = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: [{ characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" }],
     relations: [],
     camera: {
-      azim: -35,
-      elev: -10,
-      distance: 7,
-      focalPoint: [0, 0.8, 0],
-      fovDeg: 52,
-      nearClip: 0.05,
-      farClip: 200,
+      focalCharacterName: "沈烬",
+      compositionBias: "left",
       depthOfFieldEnabled: true,
-      focusDistance: 7,
-      focusRange: 4,
-      blurRadius: 3,
     },
     compositionNote: "双人关系清楚",
   });
   assert.equal(output.actors[0].characterName, "沈烬");
+  assert.equal(output.camera.focalCharacterName, "沈烬");
+  assert.equal(output.camera.compositionBias, "left");
   assert.equal(output.camera.depthOfFieldEnabled, true);
   assert.deepEqual(output.relations, []);
 
+  // v9：相机轨道参数不再由模型输出；即使模型多输出 azim/distance 等字段也会被 schema 剥离。
+  const orbitAttempt = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
+    actors: output.actors,
+    relations: [],
+    camera: {
+      focalCharacterName: "沈烬",
+      compositionBias: "center",
+      depthOfFieldEnabled: true,
+      azim: -35,
+      elev: -10,
+      distance: 7,
+      fovDeg: 52,
+    },
+    compositionNote: "多余的相机参数",
+  });
+  assert.equal("azim" in orbitAttempt.camera, false);
+  assert.equal("distance" in orbitAttempt.camera, false);
+  assert.equal("fovDeg" in orbitAttempt.camera, false);
+
   const relational = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     ...output,
+    camera: { ...output.camera, focalCharacterName: undefined, compositionBias: "center" },
     actors: [
       { ...output.actors[0], characterName: "血角兽", pose: "crouching" },
       { ...output.actors[0], characterName: "叶晨", pose: "lying" },
@@ -49,16 +63,20 @@ test("自动构图 Prompt 输出完整角色摆位与相机景深合同", () => 
       sizeRelation: "larger",
     }],
   });
+  assert.equal(relational.camera.focalCharacterName, undefined);
   assert.equal(relational.relations[0].subjectCharacterName, "血角兽");
   assert.equal(relational.relations[0].objectCharacterName, "叶晨");
   assert.equal(relational.relations[0].sizeRelation, "larger");
   assert.throws(
     () => dramaShotBlockingAutoPlanPrompt.postValidate(
-      output,
+      {
+        ...relational,
+        camera: { ...relational.camera, focalCharacterName: "不在场角色" },
+      },
       { actorsJson: JSON.stringify([{ characterName: "血角兽" }, { characterName: "叶晨" }]) },
       {},
     ),
-    /角色名单/,
+    /焦点角色/,
   );
   assert.equal(dramaShotBlockingAutoPlanPrompt.semanticRetryPolicy.maxAttempts, 1);
   const retryMessages = dramaShotBlockingAutoPlanPrompt.semanticRetryPolicy.buildMessages({
@@ -85,21 +103,21 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /16:9/);
   assert.match(text, /前景道具（床、桌、椅、沙发、书桌、柜子等）和固定结构/);
   assert.match(text, /不得与门窗、楼梯、柜子以及本镜动作没有用到的桌椅床沙发重叠/);
-  // v5：可行走地面薄板已移除，站位只受投射中心半径约束。
-  assert.doesNotMatch(text, /floor|可行走地面/);
   assert.match(text, /可用站位半径/);
   assert.match(text, /投射中心/);
-  // v4：构图工艺基线——景别距离、三分法、轴线、相机高度语义与出画自检。
-  assert.match(text, /景别定距离/);
+  // v9：相机由服务端按意图与角色落位生成；模型只声明焦点、三分偏置与景深开关。
+  assert.match(text, /相机完全由服务端生成/);
+  assert.match(text, /camera\.focalCharacterName/);
+  assert.match(text, /compositionBias/);
+  assert.match(text, /景别决定主体与投射中心的距离/);
+  assert.match(text, /画面左右以/);
+  assert.match(text, /第一个角色是本镜叙事主体/);
   assert.match(text, /三分法/);
   assert.match(text, /180° 轴线/);
-  assert.match(text, /elev 为负是俯拍/);
   assert.match(text, /输出前自检/);
   assert.match(text, /subject.*object|主动方.*承载方/);
   assert.match(text, /on_top_of|上方/);
   assert.match(text, /larger|更大|体量/);
-  assert.match(text, /先识别关系.*再规划坐标|关系.*坐标/);
-  assert.match(text, /subject.*crouching.*kneeling/);
   assert.match(text, /不要.*prone|禁止.*prone/);
 
   const constrained = dramaShotBlockingAutoPlanPrompt.render({

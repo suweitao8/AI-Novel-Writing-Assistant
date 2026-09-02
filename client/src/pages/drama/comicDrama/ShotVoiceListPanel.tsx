@@ -20,6 +20,7 @@ import {
   type DramaShot,
 } from "@/api/media/drama";
 import { listDramaAudioSegments, regenerateDramaShotAudio, type DramaAudioSegment } from "@/api/media/comicDrama";
+import { isBlockingSketchSceneImageStale } from "@ai-novel/shared/utils/storyAssetSceneStates";
 import { queryKeys } from "@/api/queryKeys";
 import AiButton from "@/components/common/AiButton";
 import { LightboxImage } from "@/components/common/LightboxImage";
@@ -41,7 +42,13 @@ interface ShotVoiceListPanelProps {
 }
 
 type KeyframeState = { status?: string; version?: number; url?: string; error?: string; generatedAt?: string };
-type BlockingSketchState = { status?: "draft" | "confirmed"; version?: number; url?: string; generatedAt?: string };
+type BlockingSketchState = {
+  status?: "draft" | "confirmed";
+  version?: number;
+  url?: string;
+  generatedAt?: string;
+  scene?: { assetId?: string; imageUpdatedAt?: string };
+};
 type PreviewKind = "sketch" | "ai";
 
 function withPreviewCacheBust(url: string | undefined, generatedAt?: string, version?: number): string | null {
@@ -549,6 +556,7 @@ export default function ShotVoiceListPanel({ novelId, projectId, chapterOrder, t
               keyframeBusy={keyframeShotId === shot.id || parseKeyframe(shot.keyframeData).status === "generating"}
               regenerating={regeneratingShotIds.has(shot.id)}
               projectId={projectId}
+              sceneImageVersions={project?.sceneImageVersions}
               onGenerateKeyframe={handleGenerateKeyframe}
               onRegenerate={handleRegenerate}
             />
@@ -800,6 +808,7 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   keyframeBusy: boolean;
   regenerating: boolean;
   projectId: string;
+  sceneImageVersions?: Record<string, string>;
   onGenerateKeyframe: (shotId: string) => void;
   onRegenerate: (shot: DramaShot, force: boolean) => void;
 }) {
@@ -812,6 +821,13 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const aiPreviewUrl = withPreviewCacheBust(keyframe.url, keyframe.generatedAt, keyframe.version);
   const hasReadyAiPreview = keyframe.status === "done" && Boolean(aiPreviewUrl) && !aiPreviewError;
   const blockingSketchNeedsConfirmation = blockingSketch.status === "draft";
+  const blockingSketchSceneStale = props.previewMode === "sketch"
+    && isBlockingSketchSceneImageStale(
+      blockingSketch.scene?.imageUpdatedAt,
+      blockingSketch.scene?.assetId
+        ? props.sceneImageVersions?.[blockingSketch.scene.assetId]
+        : undefined,
+    );
   const readySegments = segments.filter(
     (segment): segment is ReadyDramaAudioSegment =>
       segment.status === "ready" && Boolean(segment.audioUrl),
@@ -904,9 +920,17 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
       <div className="flex w-full shrink-0 items-stretch gap-2 sm:w-[26rem]">
         <div
           aria-label={`第 ${shot.order} 镜预览图`}
-          className="min-w-0 flex-1 rounded-lg"
+          className="relative min-w-0 flex-1 rounded-lg"
         >
           {renderPreview()}
+          {blockingSketchSceneStale ? (
+            <Badge
+              variant="outline"
+              className="pointer-events-none absolute left-2 top-2 border-amber-500/60 bg-black/60 text-[10px] font-medium text-amber-300"
+            >
+              场景图已更新
+            </Badge>
+          ) : null}
         </div>
         <div className="flex w-28 shrink-0 flex-col justify-center gap-1.5">
           <Button

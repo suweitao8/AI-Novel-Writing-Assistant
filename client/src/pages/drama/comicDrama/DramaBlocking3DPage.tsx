@@ -109,13 +109,14 @@ function buildSketchData(
       ...(source?.imageUrl ? { imageUrl: source.imageUrl } : {}),
     };
   });
-  const scene = context.sketch?.scene ?? {
+  const scene = {
+    ...(context.sketch?.scene ?? { yawDeg: 0, pitchDeg: 0, fovDeg: 78 }),
+    // 每次保存都以当前场景状态刷新身份与版本标记：编辑器渲染的就是当前
+    // 场景图，草图背景版本必须跟着本次保存走，过期检测才有基准。
     assetId: context.scene.assetId,
     stateId: context.scene.stateId,
     imageUrl: context.scene.imageUrl,
-    yawDeg: 0,
-    pitchDeg: 0,
-    fovDeg: 78,
+    ...(context.scene.imageUpdatedAt ? { imageUpdatedAt: context.scene.imageUpdatedAt } : {}),
   };
   return {
     status: "draft",
