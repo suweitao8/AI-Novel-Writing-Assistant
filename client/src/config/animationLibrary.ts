@@ -337,7 +337,11 @@ export interface AnimationLibraryEntry {
   sourceAssetPath?: string;
   sourceAssetName?: string;
   sourceSkeleton?: string;
-  /** Cine57 源资产和导出结果均通过原地位移门禁。旧动画保持兼容但不带该标记。 */
+  /** Cine57 源资产的运动语义；前端与分镜运行时据此决定是否允许角色随动画移动。 */
+  motionMode?: "in-place" | "root-motion";
+  /** 最终 GLB 的 root translation 审计证据（米）。 */
+  rootTranslationMaxRangeMeters?: number;
+  rootTranslationMaxNetMeters?: number;
   inPlace: boolean;
   inPlaceEvidence?: "source-path" | "asset-name" | "unmarked-non-root";
 }
@@ -530,7 +534,7 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     fileUrl: ANIMATION_LIBRARY_FILE_URL,
     clipName: entry.clipName,
     durationSeconds: entry.durationSeconds,
-    frameRate: 24,
+    frameRate: entry.frameRate ?? 24,
     source: "unreal",
     sourceLabel: entry.groupLabel,
     groupId: entry.groupId as AnimationLibraryGroupId,
@@ -546,6 +550,9 @@ function makeUnrealEntry(entry: AnimationCatalogEntry): AnimationLibraryEntry {
     sourceAssetPath: entry.sourceAssetPath,
     sourceAssetName: entry.sourceAssetName,
     sourceSkeleton: entry.sourceSkeleton,
+    motionMode: entry.motionMode,
+    rootTranslationMaxRangeMeters: entry.rootTranslationMaxRangeMeters,
+    rootTranslationMaxNetMeters: entry.rootTranslationMaxNetMeters,
     inPlace: entry.inPlace,
     inPlaceEvidence: entry.inPlaceEvidence,
   };

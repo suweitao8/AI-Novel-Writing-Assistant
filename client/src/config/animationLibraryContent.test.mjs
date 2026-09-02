@@ -274,38 +274,32 @@ function assetPath() {
   return path.join(clientDir, "public", entry.fileUrl);
 }
 
-test("动画目录由已发布虚幻主库（运动+生活表演）与内置兼容库组成", () => {
+test("动画目录由四条导入验证动作与内置兼容库组成", () => {
   const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
   const legacyEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "legacy");
-  assert.equal(unrealEntries.length, 78);
+  assert.equal(unrealEntries.length, 4);
   assert.equal(legacyEntries.length, 46);
+  assert.equal(ANIMATION_LIBRARY.length, 50);
   assert.equal(ANIMATION_LIBRARY[0]?.source, "unreal");
-  assert.ok(unrealEntries.every((entry) => entry.inPlace));
+  assert.ok(unrealEntries.every((entry) => entry.motionMode === "root-motion" && !entry.inPlace));
   assert.ok(legacyEntries.every((entry) => !entry.inPlace));
-  // 策展剪枝：优先发布运动（移动）与生活表演类，战斗/互动类等质量跑通后再导入。
   assert.equal(
-    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-misc" }).length,
-    68,
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-hand-combat" }).length,
+    4,
   );
   assert.equal(
-    filterAnimationLibraryEntries(unrealEntries, {
-      groupId: "unreal-daily",
-      actionType: "move",
-    }).length,
-    10,
+    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-daily" }).length,
+    0,
   );
   assert.equal(
     filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-interaction" }).length,
     0,
   );
   assert.equal(
-    filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-hand-combat" }).length,
-    0,
-  );
-  assert.equal(
     filterAnimationLibraryEntries(unrealEntries, { groupId: "unreal-weapon-combat" }).length,
     0,
   );
+  assert.ok(unrealEntries.every((entry) => entry.sourceAssetPath?.startsWith("/Game/Characters/Mannequins/Anims/Unarmed/Attack/")));
 });
 
 test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移", () => {
@@ -348,46 +342,37 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     "行走双手平均高度仍接近错误的水平基准",
   );
 
-  const jogAnimation = glb.json.animations.find(
-    ({ name }) => name === "C57_unreal_daily_male_locomotion_jog_forward",
-  );
-  assert.ok(jogAnimation, "统一 GLB 必须包含原地慢跑片段");
-  const jogTimes = Array.from({ length: 9 }, (_, index) =>
-    (animationDuration(glb, jogAnimation) * index) / 8,
-  );
-  for (const side of ["l", "r"]) {
-    const chain = [
-      `clavicle_${side}`,
-      `upperarm_${side}`,
-      `lowerarm_${side}`,
-      `hand_${side}`,
-    ].map((name) => nodes.get(name));
-    const restArmLength = chain
-      .slice(1)
-      .reduce(
-        (total, node, index) =>
-          total + distance(rest.worldPosition.get(chain[index]), rest.worldPosition.get(node)),
-        0,
-      );
-    for (const time of jogTimes) {
-      const pose = composePose(glb, jogAnimation.name, time);
-      const handReach = distance(
-        pose.worldPosition.get(chain[0]),
-        pose.worldPosition.get(chain.at(-1)),
-      );
-      assert.ok(
-        handReach > 0.05 && handReach <= restArmLength + 0.08,
-        `慢跑${side === "l" ? "左" : "右"}手超出手臂可达范围：${handReach.toFixed(3)}m / ${restArmLength.toFixed(3)}m`,
-      );
-      for (let index = 1; index < chain.length; index += 1) {
-        const segmentLength = distance(
-          pose.worldPosition.get(chain[index - 1]),
-          pose.worldPosition.get(chain[index]),
-        );
-        assert.ok(
-          segmentLength > 0.03 && segmentLength < restArmLength,
-          `慢跑${side === "l" ? "左" : "右"}臂骨链疑似断裂或爆开：${segmentLength.toFixed(3)}m`,
-        );
+  const attackNames = [
+    "C57_anim57_unarmed_attack_mm_attack_01",
+    "C57_anim57_unarmed_attack_mm_attack_02",
+    "C57_anim57_unarmed_attack_mm_attack_03",
+    "C57_anim57_unarmed_attack_mm_charged_attack",
+  ];
+  for (const name of attackNames) {
+    const animation = glb.json.animations.find((candidate) => candidate.name === name);
+    assert.ok(animation, `统一 GLB 必须包含验证动作 ${name}`);
+    const times = Array.from({ length: 5 }, (_, index) =>
+      (animationDuration(glb, animation) * index) / 4,
+    );
+    for (const time of times) {
+      const pose = composePose(glb, name, time);
+      for (const side of ["l", "r"]) {
+        const chain = [
+          `clavicle_${side}`,
+          `upperarm_${side}`,
+          `lowerarm_${side}`,
+          `hand_${side}`,
+        ].map((boneName) => nodes.get(boneName));
+        for (let index = 1; index < chain.length; index += 1) {
+          const segmentLength = distance(
+            pose.worldPosition.get(chain[index - 1]),
+            pose.worldPosition.get(chain[index]),
+          );
+          assert.ok(
+            segmentLength > 0.03 && Number.isFinite(segmentLength),
+            `${name} ${side} 臂骨链疑似断裂：${segmentLength.toFixed(3)}m`,
+          );
+        }
       }
     }
   }
@@ -406,10 +391,19 @@ test("导入动画通道使用合法单位四元数并且只驱动 skin joints",
   for (const animation of glb.json.animations ?? []) {
     if (animation.name.startsWith("C57_")) {
       const metrics = rootTranslationMetrics(glb, animation);
-      assert.ok(
-        metrics.maxRange <= 0.030001 && metrics.maxNet <= 0.030001,
-        `${animation.name} root 全局位移超限：${JSON.stringify(metrics)}`,
-      );
+      const entry = ANIMATION_LIBRARY.find((candidate) => candidate.clipName === animation.name);
+      assert.ok(entry, `统一目录缺少 ${animation.name} 的元数据`);
+      if (entry.motionMode === "in-place") {
+        assert.ok(
+          metrics.maxRange <= 0.030001 && metrics.maxNet <= 0.030001,
+          `${animation.name} root 全局位移超限：${JSON.stringify(metrics)}`,
+        );
+      } else {
+        assert.ok(
+          metrics.maxRange > 0.03 || metrics.maxNet > 0.03,
+          `${animation.name} 声明为 root-motion，但没有可观察的根位移：${JSON.stringify(metrics)}`,
+        );
+      }
     }
     for (const channel of animation.channels) {
       const sampler = animation.samplers[channel.sampler];
@@ -447,14 +441,12 @@ test("已发布虚幻源组在统一 GLB 中保留代表性动作片段", () => 
   const glb = readGlb(assetPath());
   const animationNames = new Set((glb.json.animations ?? []).map(({ name }) => name));
   const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
-  // 策展剪枝：当前只发布运动（移动）与生活表演两类。
-  for (const groupId of ["unreal-daily", "unreal-misc"]) {
-    const entry = unrealEntries.find((candidate) => candidate.groupId === groupId);
-    assert.ok(entry, `动画库缺少虚幻源组代表条目：${groupId}`);
+  for (const entry of unrealEntries) {
     assert.ok(animationNames.has(entry.clipName), `统一动画文件缺少虚幻代表片段：${entry.clipName}`);
-    assert.equal(entry.inPlace, true, `${entry.clipName} 必须标记为 in-place`);
+    assert.equal(entry.motionMode, "root-motion", `${entry.clipName} 必须明确标记为 root-motion`);
+    assert.equal(entry.inPlace, false, `${entry.clipName} 的 inPlace 必须与 root-motion 一致`);
   }
-  for (const groupId of ["unreal-interaction", "unreal-hand-combat", "unreal-weapon-combat"]) {
+  for (const groupId of ["unreal-daily", "unreal-interaction", "unreal-misc", "unreal-weapon-combat"]) {
     assert.equal(
       unrealEntries.some((candidate) => candidate.groupId === groupId),
       false,

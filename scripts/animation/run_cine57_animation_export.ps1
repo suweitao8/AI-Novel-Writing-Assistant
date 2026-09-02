@@ -1,26 +1,57 @@
 param(
   [string]$UnrealEditor = "D:/Epic Games/UE_5.7/Engine/Binaries/Win64/UnrealEditor-Cmd.exe",
-  [string]$Project = "D:/UnrealWorkspace/Cine57/Cine57.uproject",
+  [string]$Project = "",
   [string]$Script,
   [string]$Selection,
-  [string]$OutputDir = "D:/UnrealWorkspace/Cine57-exported/animation_catalog",
-  [string]$LogPath = "D:/UnrealWorkspace/Cine57-exported/animation_catalog_export.log",
-  [string]$LightForgePlugin = "D:/UnrealWorkspace/Cine57/Plugins/LightForge/LightForge.uplugin"
+  [string]$ManagedRoot = "D:/UnrealWorkspace/Cine57-exported",
+  [string]$RunId = "legacy-cine57-export",
+  [string]$OutputDir = "",
+  [string]$LogPath = "",
+  [string]$LightForgePlugin = ""
 )
 
 $ErrorActionPreference = "Stop"
-$consoleLogPath = "$LogPath.console.log"
-$projectPath = (Resolve-Path -LiteralPath $Project).Path
 $defaultScript = Join-Path $PSScriptRoot "export_cine57_animation_catalog.py"
 $defaultSelection = Join-Path $PSScriptRoot "animationCatalogSelection.json"
 $scriptToResolve = if ([string]::IsNullOrWhiteSpace($Script)) { $defaultScript } else { $Script }
 $selectionToResolve = if ([string]::IsNullOrWhiteSpace($Selection)) { $defaultSelection } else { $Selection }
 $scriptPath = (Resolve-Path -LiteralPath $scriptToResolve).Path
 $selectionPath = (Resolve-Path -LiteralPath $selectionToResolve).Path
-$outputDirPath = [System.IO.Path]::GetFullPath($OutputDir)
-$lightForgePath = (Resolve-Path -LiteralPath $LightForgePlugin).Path
-$lightForgeDisabledPath = "$lightForgePath.disabled"
-$backupPath = "$projectPath.animscan.bak"
+$selectionData = Get-Content -LiteralPath $selectionPath -Raw | ConvertFrom-Json
+$projectToResolve = if ([string]::IsNullOrWhiteSpace($Project)) {
+  if ([string]::IsNullOrWhiteSpace([string]$selectionData.sourceProjectPath)) {
+    "D:/UnrealWorkspace/Cine57/Cine57.uproject"
+  } else {
+    [string]$selectionData.sourceProjectPath
+  }
+} else {
+  $Project
+}
+$projectPath = (Resolve-Path -LiteralPath $projectToResolve).Path
+if ($RunId -notmatch '^[a-z0-9][a-z0-9-]*$') {
+  throw "RunId 只能使用小写字母、数字和连字符：$RunId"
+}
+$managedRootPath = [System.IO.Path]::GetFullPath($ManagedRoot)
+$runDirPath = Join-Path (Join-Path $managedRootPath "runs") $RunId
+$outputDirToUse = if ([string]::IsNullOrWhiteSpace($OutputDir)) { Join-Path $runDirPath "fbx" } else { $OutputDir }
+$logPathToUse = if ([string]::IsNullOrWhiteSpace($LogPath)) { Join-Path $runDirPath "logs/ue-export.log" } else { $LogPath }
+$outputDirPath = [System.IO.Path]::GetFullPath($outputDirToUse)
+$LogPath = [System.IO.Path]::GetFullPath($logPathToUse)
+$consoleLogPath = "$LogPath.console.log"
+$backupDirPath = Join-Path $runDirPath "backups"
+New-Item -ItemType Directory -Force -Path $outputDirPath, (Split-Path -Parent $LogPath), $backupDirPath | Out-Null
+$lightForgePath = $null
+if ([string]::IsNullOrWhiteSpace($LightForgePlugin)) {
+  $projectLightForge = Join-Path (Split-Path -Parent $projectPath) "Plugins/LightForge/LightForge.uplugin"
+  if (Test-Path -LiteralPath $projectLightForge) {
+    $lightForgePath = (Resolve-Path -LiteralPath $projectLightForge).Path
+  }
+} else {
+  $lightForgePath = (Resolve-Path -LiteralPath $LightForgePlugin).Path
+}
+$lightForgeDisabledPath = if ($lightForgePath) { "$lightForgePath.disabled" } else { $null }
+$projectBaseName = [System.IO.Path]::GetFileNameWithoutExtension($projectPath)
+$backupPath = Join-Path $backupDirPath "$projectBaseName.before-export.uproject"
 $originalHash = (Get-FileHash -LiteralPath $projectPath -Algorithm SHA256).Hash
 
 $sameProjectProcesses = Get-CimInstance Win32_Process -Filter "Name='UnrealEditor-Cmd.exe'" |
@@ -51,11 +82,13 @@ $lightForgeRenamed = $false
 $previousSelectionEnv = $env:CINE57_ANIMATION_SELECTION
 $previousOutputDirEnv = $env:CINE57_ANIMATION_OUTPUT_DIR
 try {
-  if (Test-Path -LiteralPath $lightForgeDisabledPath) {
+  if ($lightForgePath -and (Test-Path -LiteralPath $lightForgeDisabledPath)) {
     throw "LightForge disabled marker already exists: $lightForgeDisabledPath"
   }
-  Move-Item -LiteralPath $lightForgePath -Destination $lightForgeDisabledPath
-  $lightForgeRenamed = $true
+  if ($lightForgePath) {
+    Move-Item -LiteralPath $lightForgePath -Destination $lightForgeDisabledPath
+    $lightForgeRenamed = $true
+  }
   $env:CINE57_ANIMATION_SELECTION = $selectionPath
   $env:CINE57_ANIMATION_OUTPUT_DIR = $outputDirPath
   # UE writes startup diagnostics to stderr (for example when no OpenXR

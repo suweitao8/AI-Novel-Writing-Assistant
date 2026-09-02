@@ -271,9 +271,9 @@ function main() {
     "GLB 动画数量不匹配",
   );
   assert.equal(
-    selection.inPlacePolicy,
-    "strict-source-in-place",
-    "selection manifest must use the strict-source-in-place policy",
+    selection.motionPolicy,
+    "explicit-per-clip",
+    "selection manifest must use the explicit-per-clip motion policy",
   );
   const animationsByName = new Map(animations.map((animation) => [animation.name, animation]));
   let maxRootTranslationRange = 0;
@@ -281,16 +281,36 @@ function main() {
   let maxArmReach = 0;
   let minArmReach = Number.POSITIVE_INFINITY;
   for (const clip of selection.clips) {
-    assert.equal(clip.inPlace, true, `${clip.id} 必须标记为 in-place`);
+    assert.ok(
+      clip.motionMode === "in-place" || clip.motionMode === "root-motion",
+      `${clip.id} 必须明确声明 motionMode`,
+    );
+    assert.equal(
+      clip.inPlace,
+      clip.motionMode === "in-place",
+      `${clip.id} 的 inPlace 必须与 motionMode 一致`,
+    );
     const animation = animationsByName.get(clip.clipName);
     assert.ok(animation, `GLB 缺少 ${clip.clipName}`);
     const metrics = measureRootTranslation(rootTranslationValues(glb, animation));
     maxRootTranslationRange = Math.max(maxRootTranslationRange, metrics.maxRange);
     maxRootTranslationNet = Math.max(maxRootTranslationNet, metrics.maxNet);
-    assert.ok(
-      isWithinRootTranslationLimit(metrics),
-      `${clip.clipName} root 全局位移超限：range=${metrics.maxRange.toFixed(6)}m, net=${metrics.maxNet.toFixed(6)}m, limit=${MAX_ROOT_TRANSLATION_RANGE_METERS}m`,
-    );
+    if (clip.motionMode === "in-place") {
+      assert.ok(
+        isWithinRootTranslationLimit(metrics),
+        `${clip.clipName} root 全局位移超限：range=${metrics.maxRange.toFixed(6)}m, net=${metrics.maxNet.toFixed(6)}m, limit=${MAX_ROOT_TRANSLATION_RANGE_METERS}m`,
+      );
+    } else {
+      assert.ok(
+        metrics.sampleCount > 0,
+        `${clip.clipName} 声明为 root-motion，但 GLB 没有 root translation 轨道`,
+      );
+      assert.ok(
+        metrics.maxRange > MAX_ROOT_TRANSLATION_RANGE_METERS
+          || metrics.maxNet > MAX_ROOT_TRANSLATION_RANGE_METERS,
+        `${clip.clipName} 声明为 root-motion，但实际没有可观察的根位移`,
+      );
+    }
     const armAudit = auditArmPoseEnvelope(glb, animation);
     assert.ok(
       armAudit.passed,
