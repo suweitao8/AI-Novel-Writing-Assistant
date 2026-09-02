@@ -441,23 +441,34 @@ _source_head = a_by_name.get("head")
 _source_hand_gap_min = float("inf")
 _source_hand_head_gap_min = float("inf")
 _source_contact_frames = []
+_source_arm_contact_frames = {"l": set(), "r": set()}
 for _f in range(F):
     _hand_gap = (
         _align_vlen(_align_vsub(a_posF[_left_hand][_f], a_posF[_right_hand][_f]))
         if _left_hand is not None and _right_hand is not None
         else float("inf")
     )
-    _hand_head_gap = min(
-        (
+    _hand_head_gaps = {
+        _side: (
             _align_vlen(_align_vsub(a_posF[_hand][_f], a_posF[_source_head][_f]))
             if _hand is not None and _source_head is not None
             else float("inf")
         )
-        for _hand in (_left_hand, _right_hand)
-    )
+        for _side, _hand in (("l", _left_hand), ("r", _right_hand))
+    }
+    _hand_head_gap = min(_hand_head_gaps.values())
     _source_hand_gap_min = min(_source_hand_gap_min, _hand_gap)
     _source_hand_head_gap_min = min(_source_hand_head_gap_min, _hand_head_gap)
-    _source_contact_frames.append(_hand_gap <= 0.15 or _hand_head_gap <= 0.20)
+    _hands_touch = _hand_gap <= 0.15
+    if _hands_touch:
+        _source_arm_contact_frames["l"].add(_f)
+        _source_arm_contact_frames["r"].add(_f)
+    for _side, _gap in _hand_head_gaps.items():
+        if _gap <= 0.20:
+            _source_arm_contact_frames[_side].add(_f)
+    _source_contact_frames.append(
+        _hands_touch or _hand_head_gap <= 0.20
+    )
 
 # End-effector IK is useful for genuine hand-contact poses, but applying it to
 # every locomotion clip changes valid knee/elbow directions and was the source
@@ -471,14 +482,19 @@ def _env_flag(name):
 _force_limb_ik = _env_flag("RETARGET_USE_LIMB_IK")
 _disable_limb_ik = _env_flag("RETARGET_NO_ARM_IK")
 _auto_arm_contact = any(_source_contact_frames)
-_arm_ik_frames = {
-    _f for _f, _is_contact in enumerate(_source_contact_frames)
-    if _force_limb_ik or _is_contact
+_arm_ik_frames_by_side = {
+    _side: (
+        set(range(F)) if _force_limb_ik
+        else set(_frames)
+    )
+    for _side, _frames in _source_arm_contact_frames.items()
 }
 _use_arm_ik = not _disable_limb_ik and (_force_limb_ik or _auto_arm_contact)
 _use_leg_ik = not _disable_limb_ik and _force_limb_ik
 _use_limb_ik = _use_arm_ik or _use_leg_ik
-if not _use_limb_ik:
+if _disable_limb_ik:
+    print("limb IK disabled by RETARGET_NO_ARM_IK=1")
+elif not _use_limb_ik:
     print(
         "limb IK skipped: no source hand contact "
         "(min wrist gap %.3fm, min hand-head gap %.3fm; "
@@ -611,13 +627,15 @@ if _use_limb_ik:
         # （与 ozz-animation foot_ik、TREE-Ind 重定向插件同一套末端 IK 思路）。
         chains = {}
         for side in (("l", "r") if _use_arm_ik else ()):
+            if not _arm_ik_frames_by_side[side]:
+                continue
             chain = [_bid("clavicle_" + side), _bid("upperarm_" + side), _bid("lowerarm_" + side), _bid("hand_" + side)]
             a_hand = a_by_name.get("hand_" + side)
             if any(ui is None for ui in chain) or a_hand is None: continue
             t_clav, t_upper, t_lower, t_hand = chain
             if any(ui not in out_rot or ui not in t2s for ui in chain): continue
             info = {
-                "kind": "arm", "t_parent": t_clav,
+                "kind": "arm", "side": side, "t_parent": t_clav,
                 "t_upper": t_upper, "t_lower": t_lower, "t_hand": t_hand,
                 "a_end": a_hand,
                 "l1": _vlen(target_base_local_trans[t_lower]),
@@ -712,7 +730,10 @@ if _use_limb_ik:
         last_plane = {}
         for key, info in chains.items():
             for f in range(F):
-                if info["kind"] == "arm" and f not in _arm_ik_frames:
+                if (
+                    info["kind"] == "arm"
+                    and f not in _arm_ik_frames_by_side[info["side"]]
+                ):
                     continue
                 S = bt_posF[info["t_upper"]][f]
                 E_old = bt_posF[info["t_lower"]][f]
@@ -725,7 +746,10 @@ if _use_limb_ik:
                     else:
                         upper_vector = _vsub(E_old, S)
                         if _vlen(upper_vector) < 1e-9:
-                            continue
+                            raise SystemExit(
+                                "limb IK cannot solve %s at frame %d: zero upper segment" %
+                                (key, f)
+                            )
                         upper_dir = _vnorm(upper_vector)
                         reference = (0.0, 1.0, 0.0)
                         if abs(_vdot(upper_dir, reference)) > 0.95:
@@ -744,14 +768,29 @@ if _use_limb_ik:
                 if raw_dist > info["reach_max"]:
                     # 目标超出肢展：肢体指向目标并完全伸展，属于该骨架的几何极限。
                     unreachable[key][f] = True
+                if _vlen(u) < 1e-9:
+                    u = _vsub(W_old, S)
+                    if _vlen(u) < 1e-9:
+                        u = _vsub(E_old, S)
                 u = _vnorm(u)
                 cos_a = min(1.0, max(-1.0, (l1*l1 + d*d - l2*l2) / (2*l1*d)))
                 sin_a = math.sqrt(1.0 - cos_a*cos_a)
-                v = _vnorm(_vcross(plane_n, u))
+                v_vector = _vcross(plane_n, u)
+                if _vlen(v_vector) < 1e-9:
+                    reference = (0.0, 1.0, 0.0)
+                    if abs(_vdot(u, reference)) > 0.95:
+                        reference = (1.0, 0.0, 0.0)
+                    v_vector = _vcross(reference, u)
+                v = _vnorm(v_vector)
                 if _vdot(_vsub(E_old, S), v) < 0: sin_a = -sin_a
                 e_dir = tuple(cos_a*u[k] + sin_a*v[k] for k in range(3))
                 E_new = tuple(S[k] + e_dir[k]*l1 for k in range(3))
-                w_dir = _vnorm(_vsub(desired, E_new))
+                w_vector = _vsub(desired, E_new)
+                if _vlen(w_vector) < 1e-9:
+                    w_vector = _vsub(W_old, E_new)
+                    if _vlen(w_vector) < 1e-9:
+                        w_vector = u
+                w_dir = _vnorm(w_vector)
                 wq_upper = qmul(_arc(qrot_vec(bt_worldF[info["t_upper"]][f], info["child_upper"]), e_dir), bt_worldF[info["t_upper"]][f])
                 wq_lower = qmul(_arc(qrot_vec(bt_worldF[info["t_lower"]][f], info["child_lower"]), w_dir), bt_worldF[info["t_lower"]][f])
                 # 末端（手/脚）保持传递的世界朝向，手指/脚趾随之，不参与 IK。
@@ -780,7 +819,7 @@ if _use_limb_ik:
     for key, info in chains.items():
         if info["kind"] != "arm": continue
         a_hand = info["a_end"]
-        candidate_frames = sorted(_arm_ik_frames)
+        candidate_frames = sorted(_arm_ik_frames_by_side[info["side"]])
         if not candidate_frames:
             continue
         # 臂链锚定是锁骨：校验源锁骨-手最远伸展帧上，目标距离应与源×臂长比一致。
@@ -903,8 +942,17 @@ for _f, _time in enumerate(grid):
             continue
         _dot = _align_vdot(_target_vec, _source_vec)
         _final_segment_dots.append(_dot)
+        _arm_side = (
+            "l" if _pair[0].endswith("_l") else
+            "r" if _pair[0].endswith("_r") else None
+        )
         _ik_segment_active = (
-            (_pair in _ik_arm_segments and _use_arm_ik and _f in _arm_ik_frames)
+            (
+                _pair in _ik_arm_segments
+                and _arm_side is not None
+                and _use_arm_ik
+                and _f in _arm_ik_frames_by_side[_arm_side]
+            )
             or (_pair in _ik_leg_segments and _use_leg_ik)
         )
         _minimum_dot = 0.25 if _ik_segment_active else 0.985

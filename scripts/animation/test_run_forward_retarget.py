@@ -20,6 +20,7 @@ SOURCE_GLB = Path(os.environ.get(
 ))
 TARGET_GLB = REPO_ROOT / "client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb"
 PUBLISHED_CATALOG = REPO_ROOT / "client/public/anims/cine57/UAL2_UE_Anims.glb"
+REFERENCE_FIXTURE = REPO_ROOT / "scripts/animation/fixtures/run_forward_body_segments.json"
 ANIMATION_NAME = "C57_unreal_daily_male_locomotion_run_forward"
 BODY_SEGMENTS = (
     ("pelvis", "spine_01"),
@@ -89,6 +90,10 @@ def animation_by_name(glb, name):
          if animation.get("name") == name),
         None,
     )
+
+
+def read_body_reference():
+    return json.loads(REFERENCE_FIXTURE.read_text(encoding="utf-8"))
 
 
 def qmul(a, b):
@@ -261,6 +266,33 @@ class RunForwardRetargetTest(unittest.TestCase):
                     f"frame {frame}: {parent_name}->{child_name} direction drifted",
                 )
 
+    def assert_output_matches_reference(self, output_path, reference):
+        output_glb, output_binary = read_glb(output_path)
+        output_tracks = load_animation(output_glb, output_binary, ANIMATION_NAME)
+        output_names = {
+            node.get("name", "").lower(): index
+            for index, node in enumerate(output_glb["nodes"])
+        }
+        reference_times = reference["times"]
+        for frame, time in enumerate(reference_times):
+            output_positions = world_positions(output_glb, output_tracks, time)
+            for parent_name, child_name in BODY_SEGMENTS:
+                output_direction = direction(
+                    output_positions, output_names, parent_name, child_name,
+                )
+                source_direction = reference["segments"][
+                    f"{parent_name}->{child_name}"
+                ][frame]
+                alignment = sum(
+                    source_direction[index] * output_direction[index]
+                    for index in range(3)
+                )
+                self.assertGreaterEqual(
+                    alignment,
+                    0.985,
+                    f"published frame {frame}: {parent_name}->{child_name} direction drifted",
+                )
+
     def test_body_chain_directions_follow_source_animation(self):
         if not SOURCE_GLB.is_file():
             self.skipTest("Cine57 run-forward source GLB is not available")
@@ -372,6 +404,11 @@ class RunForwardRetargetTest(unittest.TestCase):
                 0.01,
                 f"published {endpoint} track is static",
             )
+
+        self.assertTrue(REFERENCE_FIXTURE.is_file(), "body-chain reference fixture is missing")
+        reference = read_body_reference()
+        self.assertEqual(len(reference["times"]), len(published_times))
+        self.assert_output_matches_reference(PUBLISHED_CATALOG, reference)
 
         if SOURCE_GLB.is_file():
             self.assert_body_chain_follows_source(SOURCE_GLB, PUBLISHED_CATALOG)
