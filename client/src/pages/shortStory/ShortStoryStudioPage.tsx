@@ -32,6 +32,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { cn } from "@/lib/utils";
 
 function createDownload(blob: Blob, fileName: string): void {
@@ -45,6 +46,9 @@ function createDownload(blob: Blob, fileName: string): void {
   URL.revokeObjectURL(url);
 }
 
+const SHORT_STORY_TABS = ["content", "settings"] as const;
+type ShortStoryTab = typeof SHORT_STORY_TABS[number];
+
 export default function ShortStoryStudioPage() {
   const novelId = useParams<{ id: string }>().id ?? "";
   const navigate = useNavigate();
@@ -53,7 +57,11 @@ export default function ShortStoryStudioPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [revisionInstruction, setRevisionInstruction] = useState("");
   const [revisionImpact, setRevisionImpact] = useState<ShortStoryRevisionImpact | null>(null);
-  const [view, setView] = useState("content");
+  const [view, setView] = useRememberedTab<ShortStoryTab>({
+    scope: `novel:${novelId || "none"}:short-story`,
+    defaultValue: "content",
+    values: SHORT_STORY_TABS,
+  });
 
   const settingsOverviewQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsOverview(novelId),
@@ -200,7 +208,7 @@ export default function ShortStoryStudioPage() {
         </div>
       </header>
 
-      <Tabs value={view} onValueChange={setView}>
+      <Tabs value={view} onValueChange={(value) => setView(value as ShortStoryTab)}>
         <TabsList>
           <TabsTrigger value="content">正文</TabsTrigger>
           <TabsTrigger value="settings">设定</TabsTrigger>

@@ -34,6 +34,8 @@ import SettingsScenesTab from "@/pages/novels/components/storySettings/SettingsS
 import AutoStoryAssetImageGeneration from "@/pages/novels/components/storySettings/AutoStoryAssetImageGeneration";
 import { usePageNavActionsSlot, useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { isRememberedTabValue } from "@/lib/rememberedTabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import WorldSettingsPanel from "@/pages/drama/comicDrama/components/WorldSettingsPanel";
 import ReferenceNovelCard from "@/pages/drama/comicDrama/components/ReferenceNovelCard";
 import WorldMapPanel from "@/pages/drama/comicDrama/components/WorldMapPanel";
@@ -67,20 +69,61 @@ import {
 // 「设定」的子页签：世界观（章节解析累积的关键设定条目，只读+可删）/ 地图（国家→城市→地点三层）/ 通用（参考小说与项目配置）。
 
 const DEFAULT_DRAMA_VISUAL_STYLE_ID = "realistic";
+const SETTINGS_TAB_VALUES = ["world", "map", "general"] as const;
 
 // 漫剧工作室：全部项目级页签统一放在顶部导航栏，章节工作台页签的工具按钮
 // （章节/引用/解析/生成/分镜工具）也上收到导航栏「AI 实况」左侧；
 // 移动端没有顶部导航栏，页签、子页签条和工具按钮都保留在页头内。
 export default function ComicDramaStudioPage() {
   const { novelId = "" } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const isMobileViewport = useIsMobileViewport();
-  const [stage, setStage] = useState<StudioStage>(() => readStudioNavigation(searchParams.toString()).stage);
-  const [settingsTab, setSettingsTab] = useState<SettingsTab>("world");
+  const rawStage = searchParams.get("stage");
+  const legacyStage = readStudioNavigation(searchParams.toString()).stage;
+  const explicitStage = isRememberedTabValue(rawStage, STUDIO_STAGE_ORDER)
+    ? rawStage
+    : rawStage === "assets" || rawStage === "current" || searchParams.has("tab")
+      ? legacyStage
+      : null;
+  const hasInvalidStageParam = rawStage !== null && explicitStage === null;
+  const [rememberedStage, setRememberedStage] = useRememberedTab<StudioStage>({
+    scope: `drama-project:${novelId || "none"}:studio-stage`,
+    defaultValue: "script",
+    values: STUDIO_STAGE_ORDER,
+  });
+  const [settingsTab, setSettingsTab] = useRememberedTab<SettingsTab>({
+    scope: `drama-project:${novelId || "none"}:studio-settings`,
+    defaultValue: "world",
+    values: SETTINGS_TAB_VALUES,
+  });
+  const stage = explicitStage ?? (hasInvalidStageParam ? "script" : rememberedStage);
   const [storyboardToolbarTarget, setStoryboardToolbarTarget] = useState<HTMLDivElement | null>(null);
   const [chapterManageOpen, setChapterManageOpen] = useState(false);
   const [createChapterOpen, setCreateChapterOpen] = useState(false);
+
+  useEffect(() => {
+    if (explicitStage !== null) {
+      setRememberedStage(explicitStage);
+      return;
+    }
+    if (hasInvalidStageParam) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete("stage");
+        return next;
+      }, { replace: true });
+    }
+  }, [explicitStage, hasInvalidStageParam, setRememberedStage, setSearchParams]);
+
+  const handleStageChange = (nextStage: StudioStage) => {
+    setRememberedStage(nextStage);
+    setSearchParams((previous) => {
+      const next = new URLSearchParams(previous);
+      next.set("stage", nextStage);
+      return next;
+    }, { replace: true });
+  };
 
 
   const overviewQuery = useQuery({
@@ -113,7 +156,7 @@ export default function ComicDramaStudioPage() {
     novelId,
     workspace: chapterWorkspace,
     referenceDocId: overview?.novel.referenceDocument?.id ?? null,
-    onApplied: () => setStage("script"),
+    onApplied: () => handleStageChange("script"),
   });
   const extractStage = useReferenceExtractStage({
     novelId,
@@ -132,7 +175,7 @@ export default function ComicDramaStudioPage() {
     novelDefaultStyleId: novelDefaultArtStyle,
     chapterOrder: chapterWorkspace.currentChapter?.order ?? null,
     scriptReady: selectedScriptReady,
-    onGenerated: () => setStage("storyboard"),
+    onGenerated: () => handleStageChange("storyboard"),
   });
 
   const directorTask = overview?.novel.directorTask ?? null;
@@ -146,13 +189,15 @@ export default function ComicDramaStudioPage() {
       dividerAfter: STUDIO_STAGE_DIVIDERS.has(key),
     })),
     active: stage,
-    onSelect: (key: string) => setStage(key as StudioStage),
+    rememberedKey: `drama-project:${novelId || "none"}:studio-stage`,
+    onSelect: (key: string) => handleStageChange(key as StudioStage),
   };
   const subTabRow = stage === "settings"
     ? {
       id: "studio-sub",
       tabs: (Object.keys(SETTINGS_TAB_LABELS) as SettingsTab[]).map((key) => ({ key, label: SETTINGS_TAB_LABELS[key] })),
       active: settingsTab,
+      rememberedKey: `drama-project:${novelId || "none"}:studio-settings`,
       onSelect: (key: string) => setSettingsTab(key as SettingsTab),
       }
     : null;
@@ -325,7 +370,7 @@ export default function ComicDramaStudioPage() {
     <div className="space-y-4">
       <AutoStoryAssetImageGeneration novelId={novelId} />
       {navActionsPortal}
-      <Tabs value={stage} onValueChange={(value) => setStage(value as StudioStage)}>
+      <Tabs value={stage} onValueChange={(value) => handleStageChange(value as StudioStage)}>
         {isMobileViewport ? (
         <header className="overflow-hidden rounded-3xl border border-border bg-background shadow-sm">
           <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 sm:px-5">

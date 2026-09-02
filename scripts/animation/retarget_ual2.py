@@ -4,6 +4,7 @@ import struct, json, math, sys
 
 TARGET_POSE_ANIMATION = "Idle_No_Loop"
 TARGET_POSE_FRACTION = 0.4
+ROOT_GROUND_LIFT_METERS = 0.16
 
 # ---------- verified quat math ----------
 def qmul(a, b):
@@ -222,11 +223,29 @@ b_order = topo(bj, bparent)
 b_joints = set()
 for sk in bj.get("skins", []): b_joints.update(sk["joints"])
 a_by_name = {n.get("name", "").lower(): i for i, n in enumerate(anodes) if n.get("name")}
+# Anim57 exports five spine joints while UAL2 keeps three.  Matching equal
+# numbers (source spine_03 -> target spine_03) maps the target chest onto the
+# source's lower torso and makes the attack twist sideways.  Keep the source
+# names intact for FK/contact calculations, but resolve target names through
+# the anatomical chain when the extra joints are present.
+_source_name_by_target_name = {name: name for name in a_by_name}
+if all(name in a_by_name for name in ("spine_03", "spine_04", "spine_05", "neck_02")):
+    _source_name_by_target_name.update({
+        "spine_01": "spine_03",
+        "spine_02": "spine_04",
+        "spine_03": "spine_05",
+        "neck_01": "neck_02",
+    })
+    print(
+        "source spine collapse: target spine_01/02/03/neck_01 -> "
+        "source spine_03/04/05/neck_02"
+    )
 t2s = {}
 for ui in b_order:
     if ui not in b_joints: continue
     nm = (bnodes[ui].get("name") or "").lower()
-    if nm in a_by_name: t2s[ui] = a_by_name[nm]
+    source_name = _source_name_by_target_name.get(nm, nm)
+    if source_name in a_by_name: t2s[ui] = a_by_name[source_name]
 
 # 目标站立基准：UAL2 的绑定节点是 T-Pose，而 Idle_No_Loop 的固定采样帧才是
 # 角色在分镜和动画预览中应继承的自然站姿。使用固定帧避免把另一个循环动作
@@ -323,8 +342,17 @@ for ui in b_order:
     a_len = math.sqrt(sum(value * value for value in a_rest))
     u_len = math.sqrt(sum(value * value for value in u_rest))
     scale = u_len / a_len if a_len > 1e-6 else 1.0
-    out_trans[ui] = [tuple(u_rest[k] + scale * (v[k] - a_rest[k]) for k in range(3))
-                     for v in src_trans[src]]
+    out_trans[ui] = [
+        tuple(
+            u_rest[k]
+            + scale * (v[k] - a_rest[k])
+            + (ROOT_GROUND_LIFT_METERS if nm == "root" and k == 1 else 0.0)
+            for k in range(3)
+        )
+        for v in src_trans[src]
+    ]
+    if nm == "root":
+        print("root ground lift: %.3fm" % ROOT_GROUND_LIFT_METERS)
 
 # ---------- anatomical segment alignment ----------
 # Source and UAL2 use the same y-up world convention, but their bind poses have
@@ -888,8 +916,16 @@ if _use_limb_ik:
     for key, info in chains.items():
         if info["kind"] != "arm": continue
         a_hand = info["a_end"]
-        candidate_frames = sorted(_arm_ik_frames_by_side[info["side"]])
+        candidate_frames = sorted(
+            frame
+            for frame in _arm_ik_frames_by_side[info["side"]]
+            if frame not in _source_hand_head_contact_frames[info["side"]]
+        )
         if not candidate_frames:
+            print(
+                "reach check %s skipped: hand-head contact frames use "
+                "the dedicated hand-head validation" % key
+            )
             continue
         # 臂链锚定是锁骨：校验源锁骨-手最远伸展帧上，目标距离应与源×臂长比一致。
         src_d = {

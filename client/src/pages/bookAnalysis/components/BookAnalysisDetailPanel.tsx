@@ -34,8 +34,11 @@ import type {
 import BookAnalysisDualPaneLayout from "./BookAnalysisDualPaneLayout";
 import BookAnalysisSectionCard from "./BookAnalysisSectionCard";
 import SelectControl from "@/components/common/SelectControl";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 
 type ExportFormat = "markdown" | "json";
+
+const READING_MODE_VALUES = ["summary", "full"] as const;
 
 function formatTokenCount(value: number | null | undefined): string {
   if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -133,8 +136,20 @@ export default function BookAnalysisDetailPanel(props: BookAnalysisDetailPanelPr
     getSectionDraft,
   } = props;
   const [selectedEvidenceKey, setSelectedEvidenceKey] = useState("");
-  const [readingMode, setReadingMode] = useState<"summary" | "full">("full");
-  const [activeSectionKey, setActiveSectionKey] = useState<BookAnalysisSectionKey | "">("");
+  const [readingMode, setReadingMode] = useRememberedTab({
+    scope: `book-analysis:${selectedAnalysis.id}:reading-mode`,
+    defaultValue: "full",
+    values: READING_MODE_VALUES,
+  });
+  const sectionTabValues = useMemo<readonly (BookAnalysisSectionKey | "")[]>(
+    () => ["", ...selectedAnalysis.sections.map((section) => section.sectionKey)],
+    [selectedAnalysis.sections],
+  );
+  const [activeSectionKey, setActiveSectionKey] = useRememberedTab<BookAnalysisSectionKey | "">({
+    scope: `book-analysis:${selectedAnalysis.id}:section`,
+    defaultValue: "",
+    values: sectionTabValues,
+  });
   const previousAnalysisIdRef = useRef<string | null>(null);
   const previousAnalysisStatusRef = useRef<BookAnalysisDetail["status"] | null>(null);
 
@@ -204,6 +219,10 @@ export default function BookAnalysisDetailPanel(props: BookAnalysisDetailPanelPr
     previousAnalysisStatusRef.current = selectedAnalysis.status;
     if (analysisChanged) {
       setSelectedEvidenceKey("");
+      if (!selectedAnalysis.sections.length) {
+        setActiveSectionKey("");
+      }
+      return;
     }
     if (!selectedAnalysis.sections.length) {
       setActiveSectionKey("");
@@ -214,7 +233,7 @@ export default function BookAnalysisDetailPanel(props: BookAnalysisDetailPanelPr
       const preferred = getPreferredBookAnalysisSection(selectedAnalysis.sections);
       setActiveSectionKey((preferred?.sectionKey ?? selectedAnalysis.sections[0].sectionKey) as BookAnalysisSectionKey);
     }
-  }, [activeSectionKey, selectedAnalysis]);
+  }, [activeSectionKey, selectedAnalysis, setActiveSectionKey]);
 
   const activeTabValue =
     activeSectionKey || (selectedAnalysis.sections[0]?.sectionKey as BookAnalysisSectionKey | undefined) || "overview";

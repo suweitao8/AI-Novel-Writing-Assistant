@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { BookOpenText, MessageCircleMore, Sparkles, WandSparkles } from "lucide-react";
 import type { BookAnalysis } from "@ai-novel/shared/types/bookAnalysis";
 import type { KnowledgeDocumentDetail, KnowledgeDocumentSummary } from "@ai-novel/shared/types/knowledge";
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import type {
   WritingFormulaCreateFormState,
   WritingFormulaMaterialSource,
@@ -77,6 +78,8 @@ const KNOWLEDGE_SOURCE_PROCESSING_OPTIONS: Array<{
     summary: "把活动版本全文作为模型输入，适合短文档；长篇可能更慢，也更容易触发模型上下文或超时限制。",
   },
 ];
+
+const WRITING_FORMULA_CREATE_TABS = ["quick_start", "blank", "extract"] as const;
 
 function formatTaskStatus(task: UnifiedTaskDetail | null): string {
   if (!task) {
@@ -169,7 +172,11 @@ export default function WritingFormulaCreateDialog(props: WritingFormulaCreateDi
     onSubmitExtractionTask,
     onOpenTaskCenter,
   } = props;
-  const [activeTab, setActiveTab] = useState<"quick_start" | "blank" | "extract">("quick_start");
+  const [activeTab, setActiveTab] = useRememberedTab({
+    scope: "writing-formula:create-dialog",
+    defaultValue: "quick_start",
+    values: WRITING_FORMULA_CREATE_TABS,
+  });
 
   useEffect(() => {
     if (open && activeExtractionTask) {

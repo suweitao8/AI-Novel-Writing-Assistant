@@ -1,7 +1,10 @@
+import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useRegisterPageTabs, type PageTabRow } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
+import { writeRememberedTab } from "@/lib/rememberedTabs";
 import { isNavRouteVisible } from "@/config/dramaFocusNav";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +19,7 @@ const items = [
   { to: "/settings/records", label: "记录" },
   { to: "/settings/art-style", label: "画风" },
 ].filter((item) => isNavRouteVisible(item.to));
+const SETTINGS_SECTION_VALUES: readonly string[] = items.map((item) => item.to);
 
 // 系统设置的二级页签即子路由：桌面端上收到顶部导航栏，移动端保留页内列表。
 // 部分页面（记录）还有自己的三级页签，通过 subTabs 并排注册到导航栏。
@@ -23,6 +27,25 @@ export function useSettingsSectionsRow(subTabs?: PageTabRow): void {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobileViewport = useIsMobileViewport();
+  const [rememberedSection, setRememberedSection] = useRememberedTab({
+    scope: "settings:section",
+    defaultValue: "/settings",
+    values: SETTINGS_SECTION_VALUES,
+  });
+  useEffect(() => {
+    if (location.pathname !== "/settings" || rememberedSection === "/settings") {
+      return;
+    }
+    navigate(rememberedSection, { replace: true });
+  }, [location.pathname, navigate, rememberedSection]);
+
+  const selectSection = (key: string) => {
+    if (!SETTINGS_SECTION_VALUES.includes(key)) {
+      return;
+    }
+    setRememberedSection(key);
+    navigate(key);
+  };
   const activeItem = items.find((item) => (
     item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
   )) ?? items[0];
@@ -30,7 +53,8 @@ export function useSettingsSectionsRow(subTabs?: PageTabRow): void {
     id: "settings-sections",
     tabs: items.map((item) => ({ key: item.to, label: item.label })),
     active: activeItem.to,
-    onSelect: (key: string) => navigate(key),
+    rememberedKey: "settings:section",
+    onSelect: selectSection,
   };
   useRegisterPageTabs(
     !isMobileViewport,
@@ -58,7 +82,10 @@ export function SettingsShell(props: {
               <button
                 key={to}
                 type="button"
-                onClick={() => navigate(to)}
+                onClick={() => {
+                  writeRememberedTab("settings:section", to, SETTINGS_SECTION_VALUES);
+                  navigate(to);
+                }}
                 className={cn(
                   "flex shrink-0 items-center rounded-md px-3 py-2 text-sm transition-colors",
                   (end ? location.pathname === to : location.pathname.startsWith(to))

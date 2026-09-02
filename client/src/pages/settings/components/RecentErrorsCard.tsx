@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import {
   clearErrorLog,
   ERROR_LOG_UPDATED_EVENT,
@@ -18,6 +19,7 @@ const FILTER_LABELS: Record<ErrorLogFilter, string> = {
   toast: "弹窗报错",
   uncaught: "未捕获异常",
 };
+const ERROR_FILTER_VALUES: readonly ErrorLogFilter[] = ["all", "toast", "uncaught"];
 
 function formatTime(iso: string): string {
   const date = new Date(iso);
@@ -29,7 +31,11 @@ function formatTime(iso: string): string {
 
 export default function RecentErrorsCard() {
   const [entries, setEntries] = useState<ErrorLogEntry[]>([]);
-  const [filter, setFilter] = useState<ErrorLogFilter>("all");
+  const [filter, setFilter] = useRememberedTab<ErrorLogFilter>({
+    scope: "settings:error-filter",
+    defaultValue: "all",
+    values: ERROR_FILTER_VALUES,
+  });
 
   const refresh = useCallback(() => {
     setEntries(readErrorLog());

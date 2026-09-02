@@ -19,6 +19,8 @@ export interface PageTabRow {
   tabs: PageTabItem[];
   active: string;
   onSelect: (key: string) => void;
+  /** Optional browser-local scope for route or page tabs that need return-state memory. */
+  rememberedKey?: string;
 }
 
 interface PageTabsContextValue {

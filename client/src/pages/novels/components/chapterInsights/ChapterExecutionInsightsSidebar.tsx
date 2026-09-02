@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import type { ChapterExecutionInsightsSidebarProps } from "./chapterInsights.types";
 import CharacterDynamicsPanel from "./CharacterDynamicsPanel";
 import ChapterExecutionOverviewPanel from "./ChapterExecutionOverviewPanel";
@@ -8,13 +7,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
+
+const CHAPTER_INSIGHTS_TABS = ["overview", "timeline", "character", "resources"] as const;
+type ChapterInsightsTab = (typeof CHAPTER_INSIGHTS_TABS)[number];
 
 function DesktopSidebar(props: ChapterExecutionInsightsSidebarProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "timeline" | "character" | "resources">("overview");
-
-  useEffect(() => {
-    setActiveTab("overview");
-  }, [props.selectedChapter?.id]);
+  const [activeTab, setActiveTab] = useRememberedTab<ChapterInsightsTab>({
+    scope: `chapter:${props.selectedChapter?.id || "none"}:insights`,
+    defaultValue: "overview",
+    values: CHAPTER_INSIGHTS_TABS,
+  });
 
   return (
     <Card className="h-full overflow-hidden border-border/70 xl:flex xl:min-h-0 xl:flex-col">
@@ -30,7 +33,7 @@ function DesktopSidebar(props: ChapterExecutionInsightsSidebarProps) {
         </div>
       </CardHeader>
       <CardContent className="min-h-0 p-0 xl:flex-1 xl:overflow-hidden">
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "overview" | "timeline" | "character" | "resources")} className="xl:flex xl:h-full xl:min-h-0 xl:flex-col">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as ChapterInsightsTab)} className="xl:flex xl:h-full xl:min-h-0 xl:flex-col">
           <div className="shrink-0 border-b px-4 py-3">
             <TabsList className="grid h-auto w-full grid-cols-2 gap-1 rounded-xl bg-muted/50 p-1.5">
               <TabsTrigger value="overview" className="rounded-lg px-2 py-2 text-xs">本章概览</TabsTrigger>

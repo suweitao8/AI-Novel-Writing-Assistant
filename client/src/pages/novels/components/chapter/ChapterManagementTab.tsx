@@ -16,6 +16,11 @@ import {
   type QueueFilterKey,
 } from "./chapterExecution.shared";
 import DirectorTakeoverEntryPanel from "../director/DirectorTakeoverEntryPanel";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
+
+const CHAPTER_QUEUE_FILTERS: readonly QueueFilterKey[] = ["all", "setup", "draft", "review", "completed"];
+const CHAPTER_RIGHT_RAIL_TABS = ["insights", "reference", "agent"] as const;
+const CHAPTER_ASSET_TABS: readonly AssetTabKey[] = ["content", "taskSheet", "sceneCards", "quality", "repair"];
 
 export default function ChapterManagementTab(props: ChapterTabViewProps) {
   const {
@@ -103,9 +108,21 @@ export default function ChapterManagementTab(props: ChapterTabViewProps) {
     directorTakeoverEntry,
   } = props;
 
-  const [assetTab, setAssetTab] = useState<AssetTabKey>("content");
-  const [queueFilter, setQueueFilter] = useState<QueueFilterKey>("all");
-  const [rightRailTab, setRightRailTab] = useState<"insights" | "reference" | "agent">("insights");
+  const [assetTab, setAssetTab] = useRememberedTab<AssetTabKey>({
+    scope: `novel:${novelId}:chapter:${selectedChapterId || "none"}:reference`,
+    defaultValue: "content",
+    values: CHAPTER_ASSET_TABS,
+  });
+  const [queueFilter, setQueueFilter] = useRememberedTab<QueueFilterKey>({
+    scope: `novel:${novelId}:chapter-queue-filter`,
+    defaultValue: "all",
+    values: CHAPTER_QUEUE_FILTERS,
+  });
+  const [rightRailTab, setRightRailTab] = useRememberedTab<(typeof CHAPTER_RIGHT_RAIL_TABS)[number]>({
+    scope: `novel:${novelId}:chapter-right-rail`,
+    defaultValue: "insights",
+    values: CHAPTER_RIGHT_RAIL_TABS,
+  });
 
   const openAuditIssues = useMemo(
     () => chapterAuditReports.flatMap((report) => report.issues.filter((issue) => issue.status === "open").map((issue) => ({
@@ -219,7 +236,7 @@ export default function ChapterManagementTab(props: ChapterTabViewProps) {
             <Tabs
               value={rightRailTab}
               onValueChange={(value) => {
-                const nextTab = value as "insights" | "reference" | "agent";
+                const nextTab = value as (typeof CHAPTER_RIGHT_RAIL_TABS)[number];
                 if (nextTab === "reference" && assetTab === "content") {
                   setAssetTab("taskSheet");
                 }

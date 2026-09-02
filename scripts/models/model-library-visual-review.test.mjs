@@ -29,6 +29,19 @@ test("视觉复核绑定稳定 ID、mesh 和 GLB 文件名", () => {
   assert.ok(errors.some((error) => error.includes("fileName")));
 });
 
+test("普通缩略图证据不能替代真实详情页预览", () => {
+  const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
+  assert.ok(entry);
+  const review = getVisualReviewById(entry.id);
+  assert.ok(review);
+
+  const errors = validateModelVisualReview({
+    library: [entry],
+    reviews: [{ ...review, reviewEvidence: "standard-thumbnail-audit-2026-09-03", preview: undefined }],
+  });
+  assert.ok(errors.some((error) => error.includes("actual 3D preview evidence")));
+});
+
 test("未批准或目录外的视觉复核记录不能通过", () => {
   const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
   assert.ok(entry);

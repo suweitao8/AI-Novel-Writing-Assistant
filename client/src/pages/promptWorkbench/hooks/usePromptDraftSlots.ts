@@ -13,12 +13,15 @@ import {
   type PromptSlotReconcileResult,
 } from "@/api/promptWorkbench";
 import { queryKeys } from "@/api/queryKeys";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import type { PromptEditorSection, PromptSlotDrafts, PromptSlotValue } from "../promptWorkbenchTypes";
 import {
   buildOverrideParamsKey,
   buildReconcileParamsKey,
   usePromptSlotPersistence,
 } from "./usePromptSlotPersistence";
+
+const PROMPT_OVERRIDE_SCOPE_VALUES = ["global", "novel"] as const;
 
 function getSlotDefault(def: PromptSlotDef): PromptSlotValue {
   return def.default;
@@ -151,7 +154,11 @@ export function buildPromptEditorSections(input: {
 }
 
 export function usePromptDraftSlots(prompt: PromptCatalogItem | null) {
-  const [scope, setScopeState] = useState<PromptSlotOverrideScope>("global");
+  const [scope, setScopeState] = useRememberedTab<PromptSlotOverrideScope>({
+    scope: "prompt-workbench:override-scope",
+    defaultValue: "global",
+    values: PROMPT_OVERRIDE_SCOPE_VALUES,
+  });
   const [selectedNovelId, setSelectedNovelIdState] = useState("");
   const [drafts, setDrafts] = useState<PromptSlotDrafts>({});
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -260,7 +267,7 @@ export function usePromptDraftSlots(prompt: PromptCatalogItem | null) {
     setDrafts({});
     setSaveError(null);
     setShowReconcile(false);
-  }, []);
+  }, [setScopeState]);
 
   const setSelectedNovelId = useCallback((nextNovelId: string) => {
     setSelectedNovelIdState(nextNovelId);

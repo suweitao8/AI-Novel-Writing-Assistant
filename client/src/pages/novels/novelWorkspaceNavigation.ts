@@ -28,6 +28,11 @@ export const NOVEL_WORKSPACE_TOOL_TABS: Array<{ key: Extract<NovelWorkspaceTab, 
   { key: "history", label: "版本历史" },
 ];
 
+export const NOVEL_WORKSPACE_TAB_VALUES: readonly NovelWorkspaceTab[] = [
+  ...NOVEL_WORKSPACE_FLOW_STEPS.map((item) => item.key),
+  ...NOVEL_WORKSPACE_TOOL_TABS.map((item) => item.key),
+];
+
 const NOVEL_WORKSPACE_TAB_SET = new Set<NovelWorkspaceTab>([
   ...NOVEL_WORKSPACE_FLOW_STEPS.map((item) => item.key),
   ...NOVEL_WORKSPACE_TOOL_TABS.map((item) => item.key),

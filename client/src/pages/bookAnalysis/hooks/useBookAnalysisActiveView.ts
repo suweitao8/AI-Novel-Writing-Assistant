@@ -1,26 +1,48 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
+import { isRememberedTabValue } from "@/lib/rememberedTabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 
 export type BookAnalysisActiveView = "sections" | "characters";
 
-const VIEW_VALUES: ReadonlySet<BookAnalysisActiveView> = new Set(["sections", "characters"]);
+const VIEW_VALUES = ["sections", "characters"] as const satisfies readonly BookAnalysisActiveView[];
 const DEFAULT_VIEW: BookAnalysisActiveView = "sections";
-
-function normalizeView(raw: string | null): BookAnalysisActiveView {
-  if (raw && VIEW_VALUES.has(raw as BookAnalysisActiveView)) {
-    return raw as BookAnalysisActiveView;
-  }
-  return DEFAULT_VIEW;
-}
 
 export function useBookAnalysisActiveView(): {
   activeView: BookAnalysisActiveView;
   setActiveView: (view: BookAnalysisActiveView) => void;
 } {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeView = useMemo(() => normalizeView(searchParams.get("view")), [searchParams]);
+  const analysisId = searchParams.get("analysisId")?.trim() || "none";
+  const [rememberedView, setRememberedView] = useRememberedTab({
+    scope: `book-analysis:${analysisId}:main-view`,
+    defaultValue: DEFAULT_VIEW,
+    values: VIEW_VALUES,
+  });
+  const rawView = searchParams.get("view");
+  const hasViewParam = searchParams.has("view");
+  const explicitView = isRememberedTabValue(rawView, VIEW_VALUES) ? rawView : null;
+  const activeView = useMemo(
+    () => explicitView ?? (hasViewParam ? DEFAULT_VIEW : rememberedView),
+    [explicitView, hasViewParam, rememberedView],
+  );
+
+  useEffect(() => {
+    if (explicitView !== null) {
+      setRememberedView(explicitView);
+      return;
+    }
+    if (hasViewParam) {
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.delete("view");
+        return next;
+      }, { replace: true });
+    }
+  }, [explicitView, hasViewParam, setRememberedView, setSearchParams]);
 
   const setActiveView = useCallback((view: BookAnalysisActiveView) => {
+    setRememberedView(view);
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current);
@@ -33,7 +55,7 @@ export function useBookAnalysisActiveView(): {
       },
       { replace: true },
     );
-  }, [setSearchParams]);
+  }, [setRememberedView, setSearchParams]);
 
   return { activeView, setActiveView };
 }

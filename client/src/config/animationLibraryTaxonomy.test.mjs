@@ -63,6 +63,9 @@ test("动画库提供统一分类：全部、内置动画加按用处划分的�
 
   const combatTarget = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "combat" })[0];
   assert.ok(combatTarget, "徒手战斗分类应有可预览动画");
+  const combatEntries = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "combat" });
+  assert.equal(combatEntries.length, 4, "徒手战斗分类只应显示当前四条 UE 徒手攻击动画");
+  assert.ok(combatEntries.every((entry) => entry.source === "unreal"));
   const intersection = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
     category: "combat",
     query: combatTarget.clipName,
