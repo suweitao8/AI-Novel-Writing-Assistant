@@ -4,6 +4,7 @@
 
 const { spawn, spawnSync } = require("node:child_process");
 const { assertStartupIntegrity } = require("./workspace-integrity-guard.cjs");
+const { isMainWorkspaceCheckout } = require("./dev-ports.cjs");
 
 const DEFAULT_MAX_RESTARTS = 3;
 const DEFAULT_RESTART_DELAY_MS = 1000;
