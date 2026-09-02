@@ -286,8 +286,8 @@ export default function DramaBlocking3DPage() {
             nextViewer.addActor(actor.characterName, index, actor.heightMeters),
           );
           const layout = initialLayout(currentContext);
-          if (layout.actors.length > 0) nextViewer.loadLayout(layout);
-          else nextViewer.fitView();
+          const hasSavedLayout = layout.actors.length > 0;
+          if (hasSavedLayout) nextViewer.loadLayout(layout);
           viewerRef.current = nextViewer;
           setViewer(nextViewer);
           syncSelection(nextViewer);
@@ -316,7 +316,7 @@ export default function DramaBlocking3DPage() {
             syncSelection(nextViewer);
           });
           nextViewer.selectActor(null);
-          nextViewer.fitView();
+          if (!hasSavedLayout) nextViewer.fitView();
         } catch (error) {
           // Loading a legacy layout can still fail for unrelated malformed data;
           // never leave the just-created WebGL viewer alive behind the error UI.

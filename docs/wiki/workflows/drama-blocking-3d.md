@@ -68,10 +68,12 @@
 
 - **Background：** v8 及之前让模型直接输出轨道相机参数（azim/elev/distance/focalPoint/fov），但相机位置被舞台合同钉在场景投射中心（全景图从该点拍摄，离开会产生视差错位），模型必须自己反解"视线过焦点、距离等于焦点到中心"的轨道几何，经常解错：焦点被服务端重写丢弃、视线偏出主体、FOV 被兜底逻辑放大，成图主体变小、构图失去设计感。
 - **Decision：** v9 起 Prompt 只输出构图意图，v10 在意图里补上垂直机位维度：`camera: { focalCharacterName?, compositionBias: left|center|right, cameraAngle: low_angle|eye_level|high_angle, depthOfFieldEnabled }`；相机的方位角、俯仰、距离、焦点、FOV 与景深参数全部由服务端 `resolveAutoPlanCameraFromIntent` 从"角色实际落位 + 镜头景别 + 意图"确定性推导。`layout3d` 持久化合同不变，仍是完整轨道相机。
-- **Current Rule：** 焦点取 `focalCharacterName` 指定角色（缺省取 actors 首位，Prompt 已要求首位即叙事主体）；焦点高度按景别落在眼（特写 0.92·身高）到身体中心（全景 0.5）；`compositionBias` 把取景点沿画面右轴平移画面宽度的六分之一，让主体落在三分线；`cameraAngle` 把取景点沿竖直方向平移画面高度的六分之一——`low_angle` 抬高取景点（视线向上、主体落画面下三分、体量放大），`high_angle` 压低取景点（视线向下、主体落画面上三分、显弱势），相机高度仍钉在投射中心不动，偏移量与横向偏移同量级保证主体不脱框、景深焦点仍贴近主体，取景点下限 clamp 到 0.1 米不钻地；fov 按"主体目标尺寸占画面高比例"从实际距离反推并夹取 [30,100]，出画兜底 `fitAutoPlanCameraFovToActors` 仍只放宽不收紧；景深档位（focusRange/blurRadius）按景别查表，focusDistance 恒等于视线距离。
+- **Current Rule：** 焦点取 `focalCharacterName` 指定角色（缺省取 actors 首位，Prompt 已要求首位即叙事主体）；焦点高度按景别落在眼（特写 0.92·身高）到身体中心（全景 0.5），但躺着/趴着按贴地动画的实际高度取焦点，不能把站立角色头顶公式套到卧姿；`compositionBias` 把取景点沿画面右轴平移画面宽度的六分之一，让主体落在三分线；`cameraAngle` 把取景点沿竖直方向平移画面高度的六分之一——`low_angle` 抬高取景点（视线向上、主体落画面下三分、体量放大），`high_angle` 压低取景点（视线向下、主体落画面上三分、显弱势），相机高度仍钉在投射中心不动，偏移量与横向偏移同量级保证主体不脱框、景深焦点仍贴近主体，取景点下限 clamp 到 0.1 米不钻地；fov 按"主体目标尺寸占画面高比例"从实际距离反推并夹取 [30,100]。只有中景、全景、远景才用全部角色做出画兜底；近景/特写保持焦点角色的紧凑景别，不得被陪体强行放宽成总览；景深档位（focusRange/blurRadius）按景别查表，focusDistance 恒等于视线距离。
 - **Prompt 配套规则：** 景别决定主体与投射中心的站位距离（特写 1.0–1.8 米、近景 1.8–3、中景 3–5、全景 4.5–7.5、远景 ≥9）；"画面左/右"以"从投射中心望向焦点主体"的左右手侧为准换算成世界坐标；靠近投射中心的对象在画面里更大更近；actors 首位是叙事主体；`cameraAngle` 默认 eye_level，只有镜头动作文本明确出现俯拍/居高临下/上帝视角才选 high_angle、仰拍/低机位/高大压迫才选 low_angle。
 - **Failure Modes：** 焦点角色不在本镜名单 → postValidate 报错走语义重试；主体站位距离与景别不符时 fov 会顶到钳制边界，成图比目标景别松——这是站位问题，应回到 Prompt 的距离带规则而不是放宽 fov 上限；`cameraAngle` 是必填枚举，模型漏输出会被 schema 校验拒绝并触发语义重试，服务端不做关键词猜测兜底。
-- **Related Modules：** `shotBlockingAutoPlan.prompts.ts` 负责关系 schema 与方向语义；`DramaShotBlockingSketchService.ts` 负责端点校验、接地/上方几何和身高归一化后的体量约束；`DramaBlocking3DPage.tsx` 只应用未保存的服务端布局并沿用原有退出保存链路。
+- **相机职责边界：** 编辑浏览相机用于用户在 3D 场景中导航、聚焦和调整视角；独立场景摄像机 pose 才是镜头取景与 PNG 草图的来源。打开已有 `layout3d` 时必须先恢复其角色与场景摄像机，不得随后无条件调用编辑器总览 `fitView()` 覆盖景别。导出草图时临时用场景摄像机的世界位置、朝向和 FOV 捕获，完成后在 `finally` 中恢复编辑相机、视口和辅助图层。
+- **Failure Modes（相机）：** 已有布局打开后跳到多角色远景 → 检查页面是否在 `loadLayout()` 后调用无条件 `fitView()`；编辑器里主体大小正确但保存草图变成远景 → 检查 `capturePng()` 是否误用了编辑浏览相机；捕获异常后画布比例、辅助线或视角未恢复 → 检查所有临时相机/图层修改是否都位于同一 `try/finally` 边界内。
+- **Related Modules：** `shotBlockingAutoPlan.prompts.ts` 负责关系 schema 与方向语义；`DramaShotBlockingSketchService.ts` 负责端点校验、接地/上方几何和身高归一化后的体量约束；`DramaBlocking3DPage.tsx` 负责布局加载与退出保存；`blocking3dViewerApp.ts` 负责编辑相机、独立场景摄像机及草图捕获边界。
 - **Source Documents：** `docs/superpowers/specs/2026-08-28-drama-ai-composition-relations-design.md`、`docs/superpowers/plans/2026-08-28-drama-ai-composition-relations.md`。
 
 ### 场景状态空间语义标记

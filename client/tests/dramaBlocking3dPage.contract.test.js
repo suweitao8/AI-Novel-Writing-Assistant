@@ -69,6 +69,20 @@ test("打开编辑器不会因缺少布局或查询参数自动调用 AI", () =>
   assert.doesNotMatch(pageSource, /shouldAutoPlan/);
 });
 
+test("打开已有 3D 布局时保留景别相机，不被编辑总览覆盖", () => {
+  const nextViewerFitCalls = [...pageSource.matchAll(/nextViewer\.fitView\(\)/g)];
+  assert.equal(nextViewerFitCalls.length, 1, "启动阶段只能保留无布局时的 fitView");
+  assert.match(
+    pageSource,
+    /const hasSavedLayout = layout\.actors\.length > 0;\s*if \(hasSavedLayout\) nextViewer\.loadLayout\(layout\);/,
+  );
+  assert.match(pageSource, /if \(!hasSavedLayout\) nextViewer\.fitView\(\);/);
+  assert.doesNotMatch(
+    pageSource,
+    /nextViewer\.selectActor\(null\);\s*nextViewer\.fitView\(\);/,
+  );
+});
+
 test("编辑器按钮调用自动构图并把镜头设计说明留在未保存状态", () => {
   assert.match(pageSource, /autoPlanDramaShotBlockingSketch/);
   assert.match(pageSource, /viewer\.loadLayout\(result\.data\.layout\)/);
@@ -124,8 +138,7 @@ test("自动构图或保存期间禁止离开 3D 草图", () => {
 });
 
 test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能力", () => {
-  assert.match(viewerCoreSource, /UAL2_Standard\.glb/);
-  assert.match(viewerCoreSource, /UAL1_Standard\.glb/);
+  assert.match(viewerCoreSource, /UAL2_UE_Anims\.glb/);
   assert.match(viewerSource, /setSelectedPose/);
   assert.match(viewerSource, /setCameraState/);
   assert.match(viewerSource, /BLOCKING_SKETCH_CAPTURE_SIZE/);
@@ -145,7 +158,7 @@ test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", ()
   assert.match(viewerSource, /getSelectedColor/);
   assert.match(viewerSource, /color: \[\.\.\.actor\.color\]/);
   assert.match(viewerSource, /saved\.color/);
-  assert.match(viewerSource, /setEntityMaterial\(actor\.animEntity, actor\.color/);
+  assert.match(viewerSource, /setEntityMaterial\(\s*actor\.animEntity,\s*nextColor/);
 });
 
 test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
@@ -164,7 +177,7 @@ test("选中角色和参考角色使用 3D 外轮廓反馈", () => {
 
 test("选中外描边为 80% 不透明度的橙色，空间标记与场景摄像机共用同一条外轮廓", () => {
   assert.match(viewerCoreSource, /SELECTION_OUTLINE_COLOR = new pc\.Color\(1, 0\.58, 0, 0\.8\)/);
-  assert.match(viewerSource, /markerRuntime\?\.entity \?\? \(cameraSelected \? shotCamera\.body : null\)/);
+  assert.match(viewerSource, /markerRuntime\?\.entity\s*\?\?\s*\(cameraSelected\s*\?\s*shotCamera\.body\s*:\s*null\)/);
   // PlayCanvas 默认合成忽略颜色 alpha，描边不透明度必须由替换的合成着色器承载。
   assert.match(selectionOutlineSource, /uOutlineOpacity/);
   assert.match(selectionOutlineSource, /color\.a/);
@@ -201,9 +214,9 @@ test("对象树由功能开关门控空间标记并使用世界/参考角色名�
   assert.match(scene3dPageSource, /label: "参考角色"/);
   assert.match(scene3dPageSource, /visibleSceneMarkers\.map/);
   assert.match(pageSource, /label: "世界"/);
-  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED \? context\.scene\.markers\.map/);
+  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED\s*\?\s*context\.scene\.markers\.map/);
   // 空间标记暂关后，占位提示只引导到仍在对象列表中的对象。
-  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED \? "从上方对象列表选择世界、摄像机、角色或空间标记。" : "从上方对象列表选择世界、摄像机或角色。"/);
+  assert.match(pageSource, /STORY_SCENE_3D_MARKERS_ENABLED\s*\?\s*"从上方对象列表选择世界、摄像机、角色或空间标记。"\s*:\s*"从上方对象列表选择世界、摄像机或角色。"/);
 });
 
 test("场景编辑和 3D 草图编辑都只在退出时提交最新修改", () => {
