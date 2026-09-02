@@ -41,7 +41,6 @@ export {
 export const ACTOR_PROXY_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 export const MAX_DEVICE_PIXEL_RATIO = 1.5;
 export const DEFAULT_FOV = 52;
-export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
@@ -232,43 +231,6 @@ export function configureEnvironmentTexture(
   );
   texture.addressU = pc.ADDRESS_REPEAT;
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
-}
-
-export function createVisibleHdriCubemap(
-  app: pc.AppBase,
-  source: pc.Texture,
-): pc.Texture {
-  const cubemap = new pc.Texture(app.graphicsDevice, {
-    name: "blocking3d-hdri-projection-cubemap",
-    cubemap: true,
-    width: VISIBLE_HDRI_CUBEMAP_SIZE,
-    height: VISIBLE_HDRI_CUBEMAP_SIZE,
-    format: pc.PIXELFORMAT_RGBA8,
-    // RGBA8 stores the reprojected HDR values in PlayCanvas' RGBP packing.
-    // Keeping the target as DEFAULT silently clamps bright HDR samples and
-    // makes the custom backdrop shader interpret the packed data incorrectly.
-    type: pc.TEXTURETYPE_RGBP,
-    mipmaps: false,
-    addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-    addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-    addressW: pc.ADDRESS_CLAMP_TO_EDGE,
-  });
-  cubemap.projection = pc.TEXTUREPROJECTION_CUBE;
-  try {
-    const reprojected = pc.reprojectTexture(source, cubemap, {
-      // The visible backdrop only needs one filtered lookup per destination
-      // texel. PlayCanvas defaults this utility to 1024 samples, which is
-      // intended for prefiltered lighting and would make every environment
-      // load unnecessarily expensive.
-      numSamples: 1,
-      seamPixels: 1,
-    });
-    if (!reprojected) throw new Error("HDRI 全景图无法重投影为立方体纹理。");
-    return cubemap;
-  } catch (error) {
-    cubemap.destroy();
-    throw error instanceof Error ? error : new Error(String(error));
-  }
 }
 
 export function normalizeCamera(

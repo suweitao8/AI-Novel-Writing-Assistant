@@ -683,7 +683,7 @@ export default function DramaBlocking3DPage() {
     },
     {
       id: CAMERA_OBJECT_ID,
-      label: "摄像机",
+      label: "分镜摄像机",
       kind: "camera",
       selected: selectedObjectId === CAMERA_OBJECT_ID,
       onSelect: () => selectObject(CAMERA_OBJECT_ID),
@@ -855,7 +855,7 @@ export default function DramaBlocking3DPage() {
                   className="mr-1 inline h-3.5 w-3.5"
                   aria-hidden="true"
                 />
-                拖动手柄移动角色、模型或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
+                拖动手柄移动角色、模型或分镜摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
               </div>
               <div className="pointer-events-none absolute right-3 top-3">
                 <Badge variant="secondary" className="shadow-sm">
@@ -911,7 +911,7 @@ export default function DramaBlocking3DPage() {
                 <>
                   <InspectorGameObjectCard
                     icon={<Video className="h-4 w-4" aria-hidden="true" />}
-                    name="摄像机"
+                    name="分镜摄像机"
                   />
                   <InspectorComponentSection title="Transform">
                     <div className="space-y-2">
@@ -982,7 +982,7 @@ export default function DramaBlocking3DPage() {
                       </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      拖动机身或用移动/旋转手柄调整机位；选中摄像机时右下角实时预览镜头画面。
+                      拖动机身或用移动/旋转手柄调整机位；选中分镜摄像机时右下角实时预览镜头画面。
                     </p>
                   </InspectorComponentSection>
                   <div className="space-y-2 border-t border-border/60 pt-4">
@@ -1233,8 +1233,8 @@ export default function DramaBlocking3DPage() {
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {STORY_SCENE_3D_MARKERS_ENABLED
-                    ? "从上方对象列表选择世界、摄像机、角色、模型或空间标记。"
-                    : "从上方对象列表选择世界、摄像机、角色或模型。"}
+                    ? "从上方对象列表选择世界、分镜摄像机、角色、模型或空间标记。"
+                    : "从上方对象列表选择世界、分镜摄像机、角色或模型。"}
                 </p>
               )}
             </CardContent>

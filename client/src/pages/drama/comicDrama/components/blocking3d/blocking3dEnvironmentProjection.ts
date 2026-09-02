@@ -71,13 +71,12 @@ export function projectEquirectangularDirection(
 }
 
 /**
- * The UE HDRIBackdrop floor and sky materials project a cubemap from a
- * world-space projection point. Scene state is stored as an equirectangular
- * 2:1 image, so the viewer first reprojects it into a filtered GPU cubemap and
- * this shader samples that cubemap from the surface direction. Keeping the
- * lookup in the fragment shader is important: interpolating a projected
- * direction across the center of a floor fan turns the projection into a
- * visible circular swirl.
+ * The UE HDRIBackdrop floor and sky materials project the source panorama from
+ * a world-space projection point. Scene state is stored as an equirectangular
+ * 2:1 image, so the lookup stays in the fragment shader and samples that
+ * original image directly. Reprojecting the lower half into a cubemap first
+ * collapses the ground into the cubemap's nadir and creates the radial blur
+ * visible around the projection center.
  */
 export const PROJECTED_HDRI_VERTEX_GLSL = `
 attribute vec3 aPosition;
@@ -100,10 +99,11 @@ precision highp float;
 #include "gammaPS"
 #include "tonemappingPS"
 
-uniform samplerCube uEnvironmentMap;
+uniform sampler2D uEnvironmentMap;
 uniform float uProjectionCenterHeight;
 uniform float uPanoramaHorizonV;
 uniform float uHdriAzimuthOffsetDegrees;
+uniform float uEnvironmentIsRgbE;
 
 varying vec3 vWorldPosition;
 
@@ -118,22 +118,25 @@ void main(void) {
       projectionDirection.y,
       projectionDirection.x * azimuthSine + projectionDirection.z * azimuthCosine
   ));
-  float sourceLatitude = clamp(
-      asin(clamp(sourceDirection.y, -1.0, 1.0)) + 3.14159265 * (0.5 - uPanoramaHorizonV),
-      -1.57079633,
-      1.57079633
+  float azimuthProgress = mod(
+      (atan(sourceDirection.z, sourceDirection.x) + 1.57079633) / 6.28318531 + 1.0,
+      1.0
   );
-  vec3 projectedDirection = normalize(vec3(
-      sourceDirection.x,
-      sin(sourceLatitude),
-      sourceDirection.z
-  ));
-  vec4 rawColor = textureCube(uEnvironmentMap, projectedDirection);
-    // The visible cubemap is RGBA8/RGBP, not an sRGB texture. Decode the
-    // packing written by reprojectTexture before tone mapping; decoding it as
-    // gamma makes the low-luminance floor collapse to black.
-    vec3 linearColor = decodeRGBP(rawColor);
-    gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
+  float poleProgress = smoothstep(0.94, 0.999, abs(sourceDirection.y));
+  float panoramaU = mix(1.0 - azimuthProgress, 0.5, poleProgress);
+  float panoramaV = clamp(
+      uPanoramaHorizonV - asin(clamp(sourceDirection.y, -1.0, 1.0)) / 3.14159265,
+      0.0,
+      1.0
+  );
+  vec4 rawColor = texture2D(uEnvironmentMap, vec2(panoramaU, panoramaV));
+  // Generated scene panoramas are normal gamma-encoded images. The model
+  // library may still provide Radiance RGBE files, so select the decoder from
+  // the loaded texture type without changing the sampling path.
+  vec3 linearColor = uEnvironmentIsRgbE > 0.5
+    ? decodeRGBE(rawColor)
+    : decodeGamma(rawColor);
+  gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
 `;
 
@@ -211,5 +214,6 @@ export function updateProjectedHdriMaterial(
   material.setParameter("uProjectionCenterHeight", settings.projectionCenterHeight);
   material.setParameter("uPanoramaHorizonV", settings.panoramaHorizonV);
   material.setParameter("uHdriAzimuthOffsetDegrees", settings.hdriAzimuthOffsetDegrees);
+  material.setParameter("uEnvironmentIsRgbE", texture.type === pc.TEXTURETYPE_RGBE ? 1 : 0);
   material.update();
 }

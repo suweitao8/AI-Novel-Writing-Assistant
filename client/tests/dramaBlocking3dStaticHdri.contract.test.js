@@ -95,20 +95,18 @@ test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => 
   assert.match(environmentProjectionSource, /material\.cull = pc\.CULLFACE_FRONT/);
   assert.match(viewerSource, /texture\.mipmaps = false/);
   assert.doesNotMatch(viewerSource, /environmentBackdrop = createPlane/);
-  assert.match(environmentProjectionSource, /uniform samplerCube uEnvironmentMap/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap/);
+  assert.match(environmentProjectionSource, /uniform sampler2D uEnvironmentMap/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
-test("HDRI 显示面先把等距全景重投影为立方体，避免 2D 首尾缝和地面中心漩涡", () => {
-  assert.match(viewerSource, /let environmentProjectionCube: pc\.Texture \| null = null/);
-  assert.match(viewerSource, /pc\.reprojectTexture\(/);
-  assert.match(viewerSource, /numSamples: 1/);
-  assert.match(viewerSource, /seamPixels: 1/);
-  assert.match(viewerSource, /environmentProjectionCube\?\.destroy\(\)/);
-  assert.match(environmentProjectionSource, /uniform samplerCube uEnvironmentMap/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
-  assert.doesNotMatch(environmentProjectionSource, /uniform sampler2D uEnvironmentMap/);
-  assert.doesNotMatch(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
+test("HDRI 显示面直接按片元坐标采样原始等距全景，避免地面中心重投影拉伸", () => {
+  assert.doesNotMatch(viewerSource, /let environmentProjectionCube: pc\.Texture \| null = null/);
+  assert.doesNotMatch(viewerSource, /pc\.reprojectTexture\(/);
+  assert.match(viewerSource, /const material = createProjectedHdriMaterial\(\s*texture,\s*getProjectedHdriMaterialSettings\(environmentSettings\)/);
+  assert.match(environmentProjectionSource, /uniform sampler2D uEnvironmentMap/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
+  assert.doesNotMatch(environmentProjectionSource, /uniform samplerCube uEnvironmentMap/);
+  assert.doesNotMatch(environmentProjectionSource, /textureCube\(uEnvironmentMap/);
 });
 
 test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空间输出", () => {
@@ -116,18 +114,18 @@ test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空�
   assert.doesNotMatch(viewerSource, /environmentGroundMaterial/);
   assert.match(
     viewerSource,
-    /const material = createProjectedHdriMaterial\(\s*projectionCube,\s*getProjectedHdriMaterialSettings\(environmentSettings\)/,
+    /const material = createProjectedHdriMaterial\(\s*texture,\s*getProjectedHdriMaterialSettings\(environmentSettings\)/,
   );
   assert.match(viewerSource, /const meshInstance = new pc\.MeshInstance\(mesh, material\)/);
   assert.match(viewerSource, /environmentBackdropMeshInstance = meshInstance/);
   assert.match(environmentProjectionSource, /function createProjectedHdriMaterial/);
   assert.match(environmentProjectionSource, /#include "gammaPS"/);
-  assert.match(environmentProjectionSource, /decodeRGBP\(rawColor\)/);
+  assert.match(environmentProjectionSource, /decodeGamma\(rawColor\)/);
   assert.match(environmentProjectionSource, /gammaCorrectOutput\(toneMap\(linearColor\)\)/);
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
   assert.match(environmentProjectionSource, /uHdriAzimuthOffsetDegrees/);
   assert.match(environmentProjectionSource, /azimuthOffsetRadians = -uHdriAzimuthOffsetDegrees/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
 });
 
@@ -158,7 +156,7 @@ test("普通场景图地面使用连续半球曲面，并由投影材质按世�
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
   assert.match(environmentProjectionSource, /uPanoramaHorizonV/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
   assert.match(environmentSource, /ADDRESS_REPEAT/);
@@ -178,8 +176,8 @@ test("半球极点使用精确坐标，避免退化三角面拉伸纹理", () =>
 test("半球极点坐标精确收敛，投影材质在极点使用固定经度", () => {
   assert.match(environmentGeometrySource, /addUpperRing/);
   assert.match(environmentGeometrySource, /isPole/);
-  assert.match(environmentProjectionSource, /uniform samplerCube uEnvironmentMap/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap/);
+  assert.match(environmentProjectionSource, /uniform sampler2D uEnvironmentMap/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
 test("下半球在投射中心附近使用有限平底，避免尖点三角面拉伸", () => {
@@ -188,7 +186,7 @@ test("下半球在投射中心附近使用有限平底，避免尖点三角面�
   assert.match(environmentGeometrySource, /function createGroundDomeGeometryData/);
   assert.match(environmentGeometrySource, /const centerIndex = addVertex/);
   assert.match(environmentGeometrySource, /Texture projection is intentionally not encoded in the vertex/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
 });
 
 test("HDRI EnviroDome 使用一份连续网格，避免上下 MeshInstance 的交界光栅缝", () => {
@@ -201,10 +199,10 @@ test("HDRI EnviroDome 使用一份连续网格，避免上下 MeshInstance 的�
   assert.doesNotMatch(viewerSource, /environmentDome|environmentGround/);
 });
 
-test("HDRI 投影使用投射中心方向采样同一份立方体，不在地平线切换两套 V 映射", () => {
+test("HDRI 投影使用投射中心方向采样同一份等距图，不在地平线切换两套 V 映射", () => {
   assert.match(environmentProjectionSource, /vec3 projectionDirection = normalize\(projectionToSurface\)/);
-  assert.match(environmentProjectionSource, /textureCube\(uEnvironmentMap, projectedDirection\)/);
-  assert.match(environmentProjectionSource, /sourceLatitude/);
+  assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
+  assert.match(environmentProjectionSource, /panoramaV/);
   assert.doesNotMatch(environmentProjectionSource, /edgeDownAngle/);
   assert.doesNotMatch(environmentProjectionSource, /if \(vWorldPosition\.y >= edgeHeight\)/);
 });

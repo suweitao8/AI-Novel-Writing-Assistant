@@ -46,7 +46,6 @@ export {
   createBackdropGeometry,
   createGroundDomeGeometry,
   configureEnvironmentTexture,
-  createVisibleHdriCubemap,
 } from "./blocking3dViewerCore";
 export { createProjectedHdriMaterial } from "./blocking3dEnvironmentProjection";
 export { mountBlocking3dOffscreenCanvas } from "./blocking3dOffscreenCanvas";

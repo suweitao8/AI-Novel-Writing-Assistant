@@ -74,6 +74,11 @@ test("UAL2 没有对应动作时不会把趴姿误映射成蹲伏", () => {
   );
 });
 
+test("分镜自动构图的上方主体使用 UAL2 可用的低姿态片段", () => {
+  const clip = resolveBlocking3dPoseClip("crouching", ["Zombie_Idle_Loop", "A_INP_Idle"]);
+  assert.equal(clip.clipName, "Zombie_Idle_Loop");
+});
+
 test("动画文件只向分镜姿势选择器暴露真实存在的 UAL2 片段", () => {
   const available = [
     "A_INP_Idle",
