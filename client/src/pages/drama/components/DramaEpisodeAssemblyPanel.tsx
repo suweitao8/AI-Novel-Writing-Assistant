@@ -161,8 +161,12 @@ export function DramaEpisodeAssemblyResultPanel(props: {
   const showActionButton = props.showActionButton ?? true;
   const assembled = controller.assembled;
   const assemblyStatus = controller.status;
-  const videoReady =
-    !controller.running && assembled?.status === "done" && Boolean(assembled.videoUrl);
+  const assembledVideoUrl =
+    !controller.running && assembled?.status === "done" ? assembled.videoUrl : undefined;
+  const assembledVideoFileName = assembledVideoUrl
+    ? `${assembledVideoUrl.split("/").pop() ?? "episode"}.mp4`
+    : "";
+  const videoReady = Boolean(assembledVideoUrl);
 
   const settingsSection = (
     <section>
@@ -269,6 +273,13 @@ export function DramaEpisodeAssemblyResultPanel(props: {
                 </div>
               </dl>
               <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 pt-2.5 text-sm">
+                <a
+                  className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+                  href={assembledVideoUrl}
+                  download={assembledVideoFileName}
+                >
+                  <Download className="h-4 w-4" />下载视频
+                </a>
                 {assembled.srtUrl ? (
                   <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
                     <Download className="h-4 w-4" />下载字幕（SRT）
