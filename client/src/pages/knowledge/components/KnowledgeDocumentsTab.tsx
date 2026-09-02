@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from "react";
-import { Link } from "react-router-dom";
 import { CircleAlert, FileText, LoaderCircle, MoreHorizontal, RefreshCw, Upload, X } from "lucide-react";
 import type { KnowledgeDocumentStatus, KnowledgeDocumentSummary } from "@ai-novel/shared/types/knowledge";
 import {
@@ -7,7 +6,6 @@ import {
 } from "@/components/assetLibrary";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import OpenInCreativeHubButton from "@/components/creativeHub/OpenInCreativeHubButton";
 import SelectField from "@/components/common/SelectField";
 import { AppDialogContent, Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -204,16 +202,7 @@ export default function KnowledgeDocumentsTab({
             >
               恢复启用
             </Button>
-          ) : (
-            <>
-              <OpenInCreativeHubButton
-                bindings={{ knowledgeDocumentIds: [document.id] }}
-                label="继续创作"
-                variant="outline"
-                className="rounded-full"
-              />
-            </>
-          )}
+          ) : null}
         </div>
         {document.status !== "archived" ? (
           <details className="group mt-3">
@@ -222,14 +211,6 @@ export default function KnowledgeDocumentsTab({
               更多操作
             </summary>
             <div className="mt-3 flex flex-wrap gap-2">
-              <Button asChild size="sm" variant="ghost" className="rounded-full">
-                <Link to={`/book-analysis?documentId=${document.id}`}>新建拆书</Link>
-              </Button>
-              {document.kind === "analysis_published" && document.sourceAnalysisId ? (
-                <Button asChild size="sm" variant="ghost" className="rounded-full">
-                  <Link to={`/book-analysis?analysisId=${document.sourceAnalysisId}`}>查看来源拆书</Link>
-                </Button>
-              ) : null}
               {document.latestIndexStatus === "succeeded" ? (
                 <Button size="sm" variant="ghost" className="rounded-full" onClick={() => onOpenRecallTest(document.id)}>
                   召回测试

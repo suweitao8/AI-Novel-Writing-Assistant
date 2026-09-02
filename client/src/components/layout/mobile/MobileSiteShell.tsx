@@ -1,14 +1,13 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import {
-  BookOpenText,
   ChevronRight,
-  Home,
+  Clapperboard,
+  Box,
+  Film,
   LayoutGrid,
   ListTodo,
   Menu,
-  Plus,
-  Sparkles,
   X,
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -26,10 +25,10 @@ import {
   type MobilePrimaryNavKey,
 } from "./mobileSiteNavigation";
 
-const primaryIcons: Record<MobilePrimaryNavKey, typeof Home> = {
-  home: Home,
-  novels: BookOpenText,
-  creation: Sparkles,
+const primaryIcons: Record<MobilePrimaryNavKey, typeof Clapperboard> = {
+  drama: Clapperboard,
+  models: Box,
+  animations: Film,
   tasks: ListTodo,
   more: Menu,
 };
@@ -61,12 +60,12 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
       <header className="studio-top-nav sticky top-0 z-40 border-b bg-[var(--surface-nav)] px-3 py-2 backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-1.5">
-            <Link to="/" className="flex min-w-0 items-center gap-2" onClick={() => setMoreOpen(false)}>
+            <Link to="/drama" className="flex min-w-0 items-center gap-2" onClick={() => setMoreOpen(false)}>
               <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
               <div className="min-w-0 leading-tight">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <span className="min-w-0 truncate text-sm font-semibold">AI 小说创作工作台</span>
-                        </div>
+                  <span className="min-w-0 truncate text-sm font-semibold">AI 漫剧工作台</span>
+                </div>
                 <div className="truncate text-[11px] text-muted-foreground">{pageTitle}</div>
               </div>
             </Link>
@@ -74,12 +73,6 @@ export default function MobileSiteShell({ children }: MobileSiteShellProps) {
           </div>
           <div className="flex items-center gap-2">
             <LiveExecutionDialog compact className="h-8 w-8 px-0" />
-            <Button asChild size="sm" className="h-8 px-3">
-              <Link to="/novels/auto-director" onClick={() => setMoreOpen(false)}>
-                <Plus className="h-3.5 w-3.5" />
-                开书
-              </Link>
-            </Button>
             <Button
               type="button"
               variant="outline"

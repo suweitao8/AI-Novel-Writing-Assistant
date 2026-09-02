@@ -13,7 +13,7 @@ import {
   type DramaShotBatchJobType,
   type DramaStoryboard,
 } from "@/api/media/drama";
-import type { ImageGenerationOverrides } from "@/api/media/comic";
+import type { ImageGenerationOverrides } from "@/api/media/imageGenerationTypes";
 import { getAPIKeySettings } from "@/api/settings";
 import { ImageGenerationConfirmDialog } from "@/components/image/ImageGenerationConfirmDialog";
 import { useImageGenerationFlow } from "@/components/image/useImageGenerationFlow";
