@@ -580,9 +580,14 @@ export function filterAnimationLibraryEntries(
   } = filters;
   return entries.filter(
     (entry) =>
-      // 分类是页面的统一筛选入口：内置动画按来源命中，其余分类按动画用处（动作类型）命中。
+      // 分类是页面的统一筛选入口：内置动画按来源命中；徒手战斗只显示当前四条
+      // UE 测试动画，其他动作类型继续兼容内置动画的既有语义。
       (category === "all"
-        || (category === "legacy" ? entry.source === "legacy" : entry.actionType === category)) &&
+        || (category === "legacy"
+          ? entry.source === "legacy"
+          : category === "combat"
+            ? entry.source === "unreal" && entry.actionType === category
+            : entry.actionType === category)) &&
       (source === "all" || entry.source === source) &&
       (groupId === "all" || entry.groupId === groupId) &&
       (packId === "all" || entry.packId === packId) &&
