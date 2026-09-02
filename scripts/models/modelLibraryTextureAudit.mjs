@@ -10,6 +10,13 @@ function hasOpacityMapping(material) {
     || (Number.isFinite(material?.opacityValue) && material.opacityValue < 0.98);
 }
 
+function hasIndependentOpacityMapping(material) {
+  if (Number.isFinite(material?.opacityValue) && material.opacityValue < 0.98) return true;
+  return typeof material?.opacity === "string"
+    && material.opacity.trim().length > 0
+    && material.opacity !== material.baseColor;
+}
+
 /**
  * Validate the catalog-to-GLB texture contract without touching the filesystem.
  * The caller supplies the set of texture URLs that actually exist on disk.
@@ -18,6 +25,7 @@ export function validateModelTextureContract({
   entry,
   glbMaterials = [],
   availableTexturePaths,
+  importAuditByTexture,
 } = {}) {
   const errors = [];
   const materials = entry?.materials && typeof entry.materials === "object" ? entry.materials : {};
@@ -41,6 +49,35 @@ export function validateModelTextureContract({
       && /\.png$/i.test(material.baseColor)
       && !hasOpacityMapping(material)) {
       errors.push(`${entry.id} ${materialName} PNG baseColor must declare opacity mapping: ${material.baseColor}`);
+    }
+
+    if (typeof material?.baseColor === "string" && importAuditByTexture) {
+      const audit = importAuditByTexture instanceof Map
+        ? importAuditByTexture.get(material.baseColor)
+        : importAuditByTexture[material.baseColor];
+      if (!audit || typeof audit !== "object") {
+        errors.push(`${entry.id} ${materialName} baseColor is missing import alpha audit: ${material.baseColor}`);
+      } else if (!new Set(["probed", "probe-failed"]).has(audit.sourceStatus)) {
+        errors.push(`${entry.id} ${materialName} baseColor source alpha probe is not recorded: ${material.baseColor}`);
+      } else if (audit.sourceStatus === "probe-failed" && audit.preserveAlpha !== true) {
+        errors.push(`${entry.id} ${materialName} failed source alpha probe must fail safe: ${material.baseColor}`);
+      } else if (audit.outputStatus !== "verified") {
+        errors.push(`${entry.id} ${materialName} baseColor output is not verified: ${material.baseColor}`);
+      } else if (String(audit.outputFormat ?? "").toLowerCase() !== material.baseColor.split(".").pop().toLowerCase()) {
+        errors.push(`${entry.id} ${materialName} baseColor output format does not match catalog: ${material.baseColor}`);
+      } else if (/\.png$/i.test(material.baseColor)
+        && audit.preserveAlpha === true
+        && audit.outputAlphaChannel !== true) {
+        errors.push(`${entry.id} ${materialName} alpha-preserving PNG has no verified alpha channel: ${material.baseColor}`);
+      } else if (audit.preserveAlpha === true
+        && /\.(?:jpg|jpeg)$/i.test(material.baseColor)
+        && !hasIndependentOpacityMapping(material)) {
+        errors.push(
+          `${entry.id} ${materialName} source alpha requires PNG baseColor or independent opacity mapping: ${material.baseColor}`,
+        );
+      } else if (audit.preserveAlpha === true && !hasOpacityMapping(material)) {
+        errors.push(`${entry.id} ${materialName} source alpha requires opacity mapping: ${material.baseColor}`);
+      }
     }
   }
 

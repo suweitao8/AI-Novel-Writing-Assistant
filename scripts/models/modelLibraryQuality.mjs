@@ -16,6 +16,14 @@ import {
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
 } from "./modelLibraryPolicy.mjs";
+import {
+  MODEL_LIBRARY_IMPORT_AUDIT_PATH,
+  validateModelLibraryImportAudit,
+} from "./modelLibraryImportAudit.mjs";
+import {
+  MODEL_LIBRARY_PREVIEW_AUDIT_PATH,
+  validatePreviewAuditDocument,
+} from "./model-library-preview-audit.mjs";
 import { listCatalogTexturePaths, validateModelTextureContract } from "./modelLibraryTextureAudit.mjs";
 import { validateModelVisualReview } from "./modelLibraryVisualReview.mjs";
 
@@ -451,6 +459,30 @@ export function validateModelLibrary({ library, modelsDir }) {
   const meshNamesById = new Map();
   const assetSha256ById = new Map();
   const staticFileNames = new Set();
+  let importAuditDocument = null;
+  try {
+    importAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_IMPORT_AUDIT_PATH, "utf8"));
+  } catch (error) {
+    addError(
+      errors,
+      `model library import audit could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const importAuditByTexture = importAuditDocument?.textures ?? {};
+  let previewAuditDocument = null;
+  try {
+    previewAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_PREVIEW_AUDIT_PATH, "utf8"));
+  } catch (error) {
+    addError(
+      errors,
+      `model library preview audit could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  errors.push(...validateModelLibraryImportAudit({
+    library: entries,
+    audit: importAuditDocument,
+    modelsDir,
+  }));
 
   if (cine57StaticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
     addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${cine57StaticEntries.length}`);
@@ -510,6 +542,7 @@ export function validateModelLibrary({ library, modelsDir }) {
         entry,
         glbMaterials: inspection.materials,
         availableTexturePaths: getAvailableTexturePaths(entry, modelsDir),
+        importAuditByTexture,
       }));
       if (inspection.maxDimensionMeters > MAX_FOREGROUND_MODEL_DIMENSION_METERS + 1e-6) {
         addError(
@@ -524,6 +557,11 @@ export function validateModelLibrary({ library, modelsDir }) {
   }
 
   errors.push(...validateModelVisualReview({ library: entries, meshNamesById, assetSha256ById }));
+  errors.push(...validatePreviewAuditDocument({
+    auditDocument: previewAuditDocument,
+    library: entries,
+    assetSha256ById,
+  }));
 
   for (const requiredCategory of requiredCategories) {
     if (!cine57StaticEntries.some((entry) => entry.category === requiredCategory)) {

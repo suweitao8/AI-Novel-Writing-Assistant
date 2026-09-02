@@ -27,7 +27,10 @@ const PREVIEW_FIELDS = Object.freeze([
   "renderer",
   "renderedAt",
   "textureStatus",
+  "screenshotPath",
+  "screenshotSha256",
 ]);
+const APPROVED_TEXTURE_STATUSES = new Set(["alpha-preserved", "opaque-verified"]);
 
 export function getVisualReviewById(id) {
   return MODEL_VISUAL_REVIEWS.find((entry) => entry.id === id) ?? null;
@@ -50,12 +53,13 @@ function hasMeshName(meshNames, expected) {
 function validatePreviewEvidence(review, errors, assetSha256ById) {
   const preview = review.preview;
   const evidence = typeof review.reviewEvidence === "string" ? review.reviewEvidence : "";
-  const requiresPreview = evidence.startsWith(PREVIEW_REQUIRED_EVIDENCE_PREFIX);
-  if (requiresPreview && (!preview || typeof preview !== "object")) {
+  if (!evidence.startsWith(PREVIEW_REQUIRED_EVIDENCE_PREFIX)) {
+    errors.push(`${review.id} visual review must use actual 3D preview evidence`);
+  }
+  if (!preview || typeof preview !== "object") {
     errors.push(`${review.id} visual review is missing actual 3D preview evidence`);
     return;
   }
-  if (!preview || typeof preview !== "object") return;
 
   for (const field of PREVIEW_FIELDS) {
     if (!isNonEmptyString(preview[field])) errors.push(`${review.id} preview field is missing: ${field}`);
@@ -65,6 +69,15 @@ function validatePreviewEvidence(review, errors, assetSha256ById) {
   }
   if (!/^[a-f0-9]{64}$/i.test(preview.assetSha256 ?? "")) {
     errors.push(`${review.id} preview assetSha256 must be a SHA-256 digest`);
+  }
+  if (Number.isNaN(Date.parse(preview.renderedAt))) {
+    errors.push(`${review.id} preview renderedAt must be an ISO timestamp`);
+  }
+  if (!/^[a-f0-9]{64}$/i.test(preview.screenshotSha256 ?? "")) {
+    errors.push(`${review.id} preview screenshotSha256 must be a SHA-256 digest`);
+  }
+  if (!APPROVED_TEXTURE_STATUSES.has(preview.textureStatus)) {
+    errors.push(`${review.id} preview textureStatus is not verified: ${preview.textureStatus}`);
   }
   const actualHash = assetSha256ById?.get(review.id);
   if (actualHash && preview.assetSha256 !== actualHash) {
