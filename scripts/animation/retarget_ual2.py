@@ -932,48 +932,43 @@ if _use_limb_ik:
         if key not in chains or not contact_frames:
             continue
         source_hand = chains[key]["a_end"]
-        cf = min(
-            contact_frames,
-            key=lambda f: _vlen(
-                _vsub(a_posF[source_hand][f], a_posF[a_head][f])
-            ),
-        )
-        _Wc, Pc = compose(ik_tracks, grid[cf])
-        source_relative = _vsub(a_posF[source_hand][cf], a_posF[a_head][cf])
-        target_relative = _vsub(Pc[chains[key]["t_hand"]], Pc[t_head])
-        source_gap = _vlen(source_relative)
-        target_gap = _vlen(target_relative)
-        source_direction = _align_vnorm(source_relative)
-        target_direction = _align_vnorm(target_relative)
-        direction_dot = (
-            _align_vdot(source_direction, target_direction)
-            if source_direction is not None and target_direction is not None
-            else -1.0
-        )
-        expected_gap = source_gap * ik_scale
-        height_error = abs(target_relative[1] - source_relative[1] * ik_scale)
-        ok = (
-            source_direction is not None
-            and target_direction is not None
-            and direction_dot >= 0.50
-            and target_gap <= max(0.25, expected_gap + 0.05)
-            and height_error <= max(0.05, 0.35 * expected_gap)
-        )
-        print(
-            "hand-head check %s @t=%.2fs: src gap=%.3f tgt gap=%.3f "
-            "direction=%.3f height-error=%.3f -> %s" %
-            (
-                side,
-                grid[cf],
-                source_gap,
-                target_gap,
-                direction_dot,
-                height_error,
-                "PASS" if ok else "FAIL",
+        for cf in contact_frames:
+            _Wc, Pc = compose(ik_tracks, grid[cf])
+            source_relative = _vsub(a_posF[source_hand][cf], a_posF[a_head][cf])
+            target_relative = _vsub(Pc[chains[key]["t_hand"]], Pc[t_head])
+            source_gap = _vlen(source_relative)
+            target_gap = _vlen(target_relative)
+            source_direction = _align_vnorm(source_relative)
+            target_direction = _align_vnorm(target_relative)
+            direction_dot = (
+                _align_vdot(source_direction, target_direction)
+                if source_direction is not None and target_direction is not None
+                else -1.0
             )
-        )
-        if not ok:
-            reach_failures.append("hand-head-" + side)
+            expected_gap = source_gap * ik_scale
+            height_error = abs(target_relative[1] - source_relative[1] * ik_scale)
+            ok = (
+                source_direction is not None
+                and target_direction is not None
+                and direction_dot >= 0.50
+                and target_gap <= max(0.25, expected_gap + 0.05)
+                and height_error <= max(0.05, 0.35 * expected_gap)
+            )
+            print(
+                "hand-head check %s @t=%.2fs: src gap=%.3f tgt gap=%.3f "
+                "direction=%.3f height-error=%.3f -> %s" %
+                (
+                    side,
+                    grid[cf],
+                    source_gap,
+                    target_gap,
+                    direction_dot,
+                    height_error,
+                    "PASS" if ok else "FAIL",
+                )
+            )
+            if not ok:
+                reach_failures.append("hand-head-%s@%d" % (side, cf))
     # 腿部伸展校验：源脚-骨盆最远帧（腿伸直触地），目标距离应与源×腿长比一致。
     for key, info in chains.items():
         if info["kind"] != "leg": continue
