@@ -9,7 +9,7 @@ const pageSource = readFileSync(
 );
 
 test("动画入口页用单一分类胶囊铺满筛选卡，不再有动作分类下拉", () => {
-  assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /PAGE_SIZE\s*=\s*50/);
   assert.match(pageSource, /useState<AnimationLibraryCategoryFilterId>\("all"\)/);
   assert.match(pageSource, /ANIMATION_LIBRARY_CATEGORY_FILTERS/);
   assert.match(pageSource, /AnimationLibraryCategoryFilterId/);
@@ -34,6 +34,15 @@ test("动画入口页用单一分类胶囊铺满筛选卡，不再有动作分�
   assert.doesNotMatch(pageSource, /用途/);
   assert.doesNotMatch(pageSource, /分镜可用/);
   assert.doesNotMatch(pageSource, /兼容动画/);
+});
+
+test("动画入口页桌面端每行显示 10 张卡片并按 5 行分页", () => {
+  assert.match(
+    pageSource,
+    /grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10/,
+  );
+  assert.doesNotMatch(pageSource, /xl:grid-cols-6/);
+  assert.match(pageSource, /const pageStart = \(page - 1\) \* PAGE_SIZE/);
 });
 
 test("搜索框和搜索按钮在桌面端进入顶部导航 AI 实况左侧，移动端留在筛选卡内", () => {
