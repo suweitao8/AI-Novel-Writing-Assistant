@@ -61,3 +61,39 @@ test("编辑视角滚轮允许越过 HDRI 半球继续拉远", () => {
   assert.match(viewerSource, /resolveBlocking3dEditorFarClip/);
   assert.match(viewerSource, /resolveStoryScene3DWorldRadius\(environmentSettings\)/);
 });
+
+test("草图导出使用场景摄像机机位并恢复编辑相机", () => {
+  const viewerSource = readFileSync(
+    new URL(
+      "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerApp.ts",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+  const captureStart = viewerSource.indexOf("capturePng() {");
+  const captureEnd = viewerSource.indexOf("    destroy() {", captureStart);
+  assert.ok(captureStart >= 0 && captureEnd > captureStart);
+  const captureSource = viewerSource.slice(captureStart, captureEnd);
+  assert.match(captureSource, /cameraEntity\.getPosition\(\)/);
+  assert.match(captureSource, /cameraEntity\.getEulerAngles\(\)/);
+  assert.match(captureSource, /shotCameraPose\.position/);
+  assert.match(captureSource, /shotCameraPose\.yawDeg/);
+  assert.match(captureSource, /shotCameraPose\.pitchDeg/);
+  assert.match(captureSource, /cameraState\.fovDeg/);
+  assert.match(captureSource, /cameraComponent\.nearClip = cameraState\.nearClip/);
+  assert.match(captureSource, /cameraComponent\.farClip = cameraState\.farClip/);
+  assert.match(captureSource, /cameraComponent\.rect = new pc\.Vec4\(0, 0, 1, 1\)/);
+  assert.match(captureSource, /cameraComponent\.layers = editorCameraLayers/);
+  assert.match(captureSource, /cameraEntity\.enabled = editorCameraEnabled/);
+  assert.match(captureSource, /cameraFrame\.update\(\)/);
+  assert.match(captureSource, /finally \{/);
+  assert.match(captureSource, /cameraEntity\.setPosition/);
+  assert.match(captureSource, /cameraEntity\.setEulerAngles/);
+});
+
+test("草图导出期间隐藏场景摄像机辅助线", () => {
+  assert.match(
+    source,
+    /if \(!shotCameraHelpersSuppressed && options\.showShotCameraHelpers !== false\)/,
+  );
+});

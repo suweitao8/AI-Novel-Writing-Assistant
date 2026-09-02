@@ -144,6 +144,31 @@ test("确定性相机解析器把视线正对焦点主体并按景别计算 fov"
   assert.ok(closeUp.focusRange < fullShot.focusRange);
 });
 
+test("躺姿特写把焦点落在角色实际高度并保持紧凑景别", () => {
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout({
+    actors: [{
+      characterName: "叶晨",
+      position: [0, 0.15, -1.25],
+      yawDeg: 0,
+      scale: [1, 1, 1],
+      pose: "lying",
+    }],
+    relations: [],
+    camera: {
+      focalCharacterName: "叶晨",
+      compositionBias: "center",
+      cameraAngle: "eye_level",
+      depthOfFieldEnabled: true,
+    },
+  }, [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75 },
+  ], { projectionCenterHeight: 1, domeRadius: 10, yawDeg: 0, intensity: 1 }, "特写");
+
+  assert.ok(result.layout.camera.focalPoint[1] < 1, "躺姿特写不能把焦点抬到站立角色头部");
+  assert.ok(result.layout.camera.elev < 0, "投射中心高于躺姿主体时应向下取景");
+  assert.ok(result.layout.camera.fovDeg <= 40, "特写不能被角色全身包络兜底放宽成远景");
+});
+
 test("三分法偏置把焦点主体推离画面中心", () => {
   const { resolveAutoPlanCameraFromIntent } = serviceModule;
   const environment = { projectionCenterHeight: 2, domeRadius: 20, yawDeg: 0, intensity: 1 };

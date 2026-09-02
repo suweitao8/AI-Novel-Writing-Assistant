@@ -941,7 +941,8 @@ export async function createBlocking3dViewer(
     for (const line of stageBoundaryLines) app.drawLine(line.start, line.end, line.color, false);
     drawProjectionCenterGizmo(app, projectionCenterGizmo);
     // Unity 场景视图同款：摄像机 gizmo（白色线框）常驻显示，选中变橙色。
-    if (options.showShotCameraHelpers !== false) {
+    // 捕获草图时必须暂时移除它，避免辅助线进入导出图片。
+    if (!shotCameraHelpersSuppressed && options.showShotCameraHelpers !== false) {
       shotCamera.drawGizmo(app, cameraSelected);
     }
     // 三分构图线只出现在取景画中画里（内部判断可见性，不可见时为空操作）。
@@ -1424,15 +1425,46 @@ export async function createBlocking3dViewer(
     },
     capturePng() {
       const selectedOutlineEntity = selectionOutline.getEntity();
-      selectionOutline.setEntity(null);
-      transformGizmo.attach(null);
-      // 摄像机机身与取景画中画是编辑器辅助对象，导出的摆位草图不包含它们。
+      const editorCameraPosition = cameraEntity.getPosition().clone();
+      const editorCameraEulerAngles = cameraEntity.getEulerAngles().clone();
+      const editorCameraFov = cameraComponent.fov;
+      const editorCameraNearClip = cameraComponent.nearClip;
+      const editorCameraFarClip = cameraComponent.farClip;
+      const editorCameraRect = cameraComponent.rect.clone();
+      const editorCameraLayers = [...cameraComponent.layers];
+      const editorCameraEnabled = cameraEntity.enabled;
       const bodyWasEnabled = shotCamera.body.enabled;
-      shotCamera.body.enabled = false;
       const helpersWereSuppressed = shotCameraHelpersSuppressed;
-      shotCameraHelpersSuppressed = true;
-      syncShotCameraVisuals();
       try {
+        selectionOutline.setEntity(null);
+        transformGizmo.attach(null);
+        // 摄像机机身与取景画中画是编辑器辅助对象，导出的摆位草图不包含它们。
+        shotCamera.body.enabled = false;
+        shotCameraHelpersSuppressed = true;
+        syncShotCameraVisuals();
+
+        // 导出必须使用独立的场景摄像机机位。编辑相机可能已经被用户拉远
+        // 或旋转成总览视角，但它不应改变近景/特写的最终构图。
+        cameraEntity.setPosition(
+          shotCameraPose.position[0],
+          shotCameraPose.position[1],
+          shotCameraPose.position[2],
+        );
+        cameraEntity.setEulerAngles(
+          shotCameraPose.pitchDeg,
+          shotCameraPose.yawDeg,
+          0,
+        );
+        cameraComponent.fov = cameraState.fovDeg;
+        cameraComponent.nearClip = cameraState.nearClip;
+        cameraComponent.farClip = cameraState.farClip;
+        cameraComponent.rect = new pc.Vec4(0, 0, 1, 1);
+        // 编辑器辅助图层只属于主视口；导出画面保持与取景预览相同的世界内容。
+        cameraComponent.layers = editorCameraLayers.filter(
+          (layerId) => layerId !== editorOverlayLayer.id,
+        );
+        cameraEntity.enabled = true;
+        cameraFrame.update();
         app.resizeCanvas(
           BLOCKING_SKETCH_CAPTURE_SIZE.width,
           BLOCKING_SKETCH_CAPTURE_SIZE.height,
@@ -1449,6 +1481,15 @@ export async function createBlocking3dViewer(
           bytes[index] = binary.charCodeAt(index);
         return new Blob([bytes], { type: "image/png" });
       } finally {
+        cameraEntity.setPosition(editorCameraPosition);
+        cameraEntity.setEulerAngles(editorCameraEulerAngles);
+        cameraComponent.fov = editorCameraFov;
+        cameraComponent.nearClip = editorCameraNearClip;
+        cameraComponent.farClip = editorCameraFarClip;
+        cameraComponent.rect = editorCameraRect;
+        cameraComponent.layers = editorCameraLayers;
+        cameraEntity.enabled = editorCameraEnabled;
+        cameraFrame.update();
         resize();
         shotCameraHelpersSuppressed = helpersWereSuppressed;
         syncShotCameraVisuals();

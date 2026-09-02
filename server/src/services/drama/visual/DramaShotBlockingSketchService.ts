@@ -727,6 +727,28 @@ const BLOCKING_SHOT_SIZE_PROFILES: Record<BlockingShotSizeKey, BlockingShotSizeP
   extreme_wide: { focusHeightRatio: 0.5, subjectSizeRatio: 1.35, fillRatio: 0.7, focusRange: 12, blurRadius: 0.8, provisionalFovDeg: 70 },
 };
 
+/**
+ * 躺姿/趴姿的动画高度不是站立角色的竖直高度；仍按站立头顶取焦点会把镜头抬
+ * 到主体上方，尤其在特写中直接把角色送出画面。其它姿势沿用景别档位的默认
+ * 身高比例，避免把模型动画的局部形变误当成新的舞台坐标。
+ */
+function resolveBlockingFocusHeightRatio(
+  profile: BlockingShotSizeProfile,
+  shotSize: BlockingShotSizeKey,
+  pose: string | undefined,
+): number {
+  const normalizedPose = pose?.trim().toLocaleLowerCase();
+  if (normalizedPose === "lying" || normalizedPose === "prone") {
+    if (shotSize === "close_up") return 0.25;
+    if (shotSize === "medium_close") return 0.38;
+    return 0.45;
+  }
+  if (normalizedPose === "sitting" || normalizedPose === "kneeling" || normalizedPose === "crouching") {
+    return profile.focusHeightRatio * 0.72;
+  }
+  return profile.focusHeightRatio;
+}
+
 /** 把自由文本景别归一到构图档位；中近景优先于近景匹配，未知值回落中景。 */
 export function normalizeBlockingShotSizeKey(shotSize: string | null | undefined): BlockingShotSizeKey {
   const raw = shotSize?.trim() ?? "";
@@ -757,7 +779,12 @@ export function resolveAutoPlanCameraFromIntent({
   environment,
 }: {
   intent: DramaShotBlockingAutoPlanCameraIntent;
-  actors: ReadonlyArray<{ characterName: string; position: [number, number, number]; heightMeters?: number }>;
+  actors: ReadonlyArray<{
+    characterName: string;
+    position: [number, number, number];
+    heightMeters?: number;
+    pose?: DramaShotBlockingSketchPose;
+  }>;
   shotSize: string | null | undefined;
   environment: StoryScene3DEnvironment;
 }): DramaShotBlockingSketch3DCamera {
@@ -790,9 +817,14 @@ export function resolveAutoPlanCameraFromIntent({
     }
     focus = [sumX / count, sumY / count, sumZ / count];
   } else {
+    const focusHeightRatio = resolveBlockingFocusHeightRatio(
+      profile,
+      sizeKey,
+      focalActor.pose,
+    );
     focus = [
       focalActor.position[0],
-      focalActor.position[1] + profile.focusHeightRatio * heightOf(focalActor),
+      focalActor.position[1] + focusHeightRatio * heightOf(focalActor),
       focalActor.position[2],
     ];
   }
@@ -930,8 +962,12 @@ export function buildDramaShotBlockingAutoPlanLayout(
       actors: plannedActors,
       environment,
     });
-    // AI 规划后的确定性出画兜底：任何角色落在取景锥外时只放宽 fovDeg。
-    layout.camera = fitAutoPlanCameraFovToActors(layout.camera, layout.actors);
+    // 中景及更宽景别需要保证关系中的所有角色都在取景锥内；近景/特写则
+    // 必须优先保持焦点角色的主体占比，不能被远处的陪体强行放宽成总览。
+    const sizeKey = normalizeBlockingShotSizeKey(shotSize);
+    if (sizeKey === "medium" || sizeKey === "full" || sizeKey === "extreme_wide") {
+      layout.camera = fitAutoPlanCameraFovToActors(layout.camera, layout.actors);
+    }
     return {
       layout,
       ...(output.compositionNote?.trim() ? { compositionNote: output.compositionNote.trim() } : {}),
