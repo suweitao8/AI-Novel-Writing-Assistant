@@ -43,8 +43,12 @@ const entries = selection.clips
     sourceAssetPath,
     sourceAssetName,
     sourceSkeleton,
+    motionMode,
     inPlace,
     inPlaceEvidence,
+    rootTranslationMaxRangeMeters,
+    rootTranslationMaxNetMeters,
+    frameRate,
     durationSeconds: clipDurationSeconds,
     sourceDurationSeconds,
     catalogDurationSeconds,
@@ -71,8 +75,12 @@ const entries = selection.clips
     sourceAssetPath,
     sourceAssetName,
     sourceSkeleton,
+    motionMode,
     inPlace,
     inPlaceEvidence,
+    rootTranslationMaxRangeMeters,
+    rootTranslationMaxNetMeters,
+    frameRate,
     durationSeconds: catalogDurationSeconds ?? clipDurationSeconds,
     sourceDurationSeconds,
     catalogDurationSeconds: catalogDurationSeconds ?? clipDurationSeconds,
@@ -114,8 +122,12 @@ export interface AnimationCatalogEntry {
   readonly sourceAssetPath: string;
   readonly sourceAssetName: string;
   readonly sourceSkeleton: string;
+  readonly motionMode: "in-place" | "root-motion";
   readonly inPlace: boolean;
-  readonly inPlaceEvidence: "source-path" | "asset-name" | "unmarked-non-root";
+  readonly inPlaceEvidence?: "source-path" | "asset-name" | "unmarked-non-root";
+  readonly rootTranslationMaxRangeMeters?: number;
+  readonly rootTranslationMaxNetMeters?: number;
+  readonly frameRate?: number;
   readonly durationSeconds: number;
   readonly sourceDurationSeconds: number;
   readonly catalogDurationSeconds: number;

@@ -20,6 +20,7 @@ SOURCE_GLB = Path(os.environ.get(
 ))
 TARGET_GLB = REPO_ROOT / "client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb"
 PUBLISHED_CATALOG = REPO_ROOT / "client/public/anims/cine57/UAL2_UE_Anims.glb"
+ACTIVE_SELECTION = REPO_ROOT / "scripts/animation/animationCatalogSelection.json"
 REFERENCE_FIXTURE = REPO_ROOT / "scripts/animation/fixtures/run_forward_body_segments.json"
 ANIMATION_NAME = "C57_unreal_daily_male_locomotion_run_forward"
 BODY_SEGMENTS = (
@@ -328,6 +329,18 @@ class RunForwardRetargetTest(unittest.TestCase):
         )
         catalog_glb, catalog_binary = read_glb(PUBLISHED_CATALOG)
         animation = animation_by_name(catalog_glb, ANIMATION_NAME)
+        if ACTIVE_SELECTION.is_file():
+            selection = json.loads(ACTIVE_SELECTION.read_text(encoding="utf-8"))
+            selected_names = {
+                clip.get("clipName")
+                for clip in selection.get("clips", [])
+            }
+            if ANIMATION_NAME not in selected_names:
+                self.assertIsNone(
+                    animation,
+                    "当前动画 smoke 清单未选中 run-forward，活动 GLB 不应残留该旧片段",
+                )
+                return
         self.assertIsNotNone(animation, "published run-forward animation is missing")
         self.assertEqual(len(animation["channels"]), 55)
         self.assertEqual(len(animation["samplers"]), 55)
