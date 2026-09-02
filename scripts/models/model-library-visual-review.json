@@ -4261,26 +4261,6 @@
    "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   },
   {
-   "id": "soviet-aircon-01",
-   "meshName": "SM_AirConditioner01_LOD0",
-   "fileName": "SM_AirConditioner01.glb",
-   "name": "苏式空调外机",
-   "category": "建筑构件",
-   "visualDescription": "标准缩略图中可见苏式空调外机",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-antenna-01",
-   "meshName": "SM_Antenna01_LOD0",
-   "fileName": "SM_Antenna01.glb",
-   "name": "电视天线",
-   "category": "建筑构件",
-   "visualDescription": "标准缩略图中可见电视天线",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
    "id": "soviet-armchair-01",
    "meshName": "SM_Armchair01_LOD0",
    "fileName": "SM_Armchair01.glb",
@@ -4291,52 +4271,12 @@
    "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   },
   {
-   "id": "soviet-ashtray-01a",
-   "meshName": "SM_Ashtray01A_LOD0",
-   "fileName": "SM_Ashtray01A.glb",
-   "name": "铁皮烟灰缸",
-   "category": "日用小物",
-   "visualDescription": "标准缩略图中可见铁皮烟灰缸",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
    "id": "soviet-balcony-dryer-01",
    "meshName": "SM_Balcony01_Dryer01_LOD0",
    "fileName": "SM_Balcony01_Dryer01.glb",
    "name": "阳台晾衣架",
    "category": "建筑构件",
    "visualDescription": "标准缩略图中可见阳台晾衣架",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-balcony-door-01",
-   "meshName": "SM_BalconyDoorWindow01_LOD0",
-   "fileName": "SM_BalconyDoorWindow01.glb",
-   "name": "阳台门窗",
-   "category": "建筑构件",
-   "visualDescription": "标准缩略图中可见阳台门窗",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-basketball-01",
-   "meshName": "SM_Basketball_LOD0",
-   "fileName": "SM_Basketball.glb",
-   "name": "篮球",
-   "category": "玩具/装饰品",
-   "visualDescription": "标准缩略图中可见篮球",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-bathtub-01",
-   "meshName": "SM_Bathtub01_LOD0",
-   "fileName": "SM_Bathtub01.glb",
-   "name": "旧浴缸",
-   "category": "卫浴",
-   "visualDescription": "标准缩略图中可见旧浴缸",
    "reviewStatus": "approved",
    "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   },
@@ -4371,52 +4311,12 @@
    "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   },
   {
-   "id": "soviet-book-01",
-   "meshName": "SM_Book01_LOD0",
-   "fileName": "SM_Book01.glb",
-   "name": "旧书",
-   "category": "书籍与办公",
-   "visualDescription": "标准缩略图中可见旧书",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-vodka-01a",
-   "meshName": "SM_BottleOfVodka01_LOD0",
-   "fileName": "SM_BottleOfVodka01.glb",
-   "name": "伏特加瓶 A",
-   "category": "日用小物",
-   "visualDescription": "标准缩略图中可见伏特加瓶 A",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-vodka-01b",
-   "meshName": "SM_BottleOfVodka02_LOD0",
-   "fileName": "SM_BottleOfVodka02.glb",
-   "name": "伏特加瓶 B",
-   "category": "日用小物",
-   "visualDescription": "标准缩略图中可见伏特加瓶 B",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
    "id": "soviet-caged-lamp-01",
    "meshName": "SM_CagedLamp_LOD0",
    "fileName": "SM_CagedLamp.glb",
    "name": "铁笼灯",
    "category": "灯具",
    "visualDescription": "标准缩略图中可见铁笼灯",
-   "reviewStatus": "approved",
-   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
-  },
-  {
-   "id": "soviet-plastic-canister-01",
-   "meshName": "SM_CanisterPlastic_LOD0",
-   "fileName": "SM_CanisterPlastic.glb",
-   "name": "塑料罐",
-   "category": "日用小物",
-   "visualDescription": "标准缩略图中可见塑料罐",
    "reviewStatus": "approved",
    "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   },

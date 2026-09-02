@@ -45,9 +45,22 @@ export function validateModelTextureContract({
   }
 
   for (const glbMaterial of Array.isArray(glbMaterials) ? glbMaterials : []) {
-    if (!TRANSPARENT_ALPHA_MODES.has(glbMaterial?.alphaMode)) continue;
     const glbMaterialName = glbMaterial.name || "<unnamed>";
     const catalogMaterial = materialByName.get(normalizeMaterialName(glbMaterialName));
+
+    if (glbMaterial?.hasBaseColorTexture && !catalogMaterial) {
+      const texture = glbMaterial.baseColorTexture;
+      if (texture?.embedded && texture.width === 1 && texture.height === 1) {
+        errors.push(
+          `${entry.id} ${glbMaterialName} uses an unresolved embedded 1x1 baseColor placeholder; `
+            + "add a catalog material override or quarantine the asset",
+        );
+      } else {
+        errors.push(`${entry.id} GLB baseColor material is missing catalog mapping: ${glbMaterialName}`);
+      }
+    }
+
+    if (!TRANSPARENT_ALPHA_MODES.has(glbMaterial?.alphaMode)) continue;
     if (!catalogMaterial) {
       errors.push(`${entry.id} transparent GLB material is missing catalog mapping: ${glbMaterialName}`);
       continue;

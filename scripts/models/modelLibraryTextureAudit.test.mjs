@@ -55,3 +55,54 @@ test("目录引用的贴图文件必须真实存在", () => {
   });
   assert.ok(errors.some((error) => error.includes("grass.jpg")));
 });
+
+test("未绑定的内嵌 1x1 baseColor 占位图必须被拒绝", () => {
+  const errors = validateModelTextureContract({
+    entry: { id: "bad-material" },
+    glbMaterials: [{
+      name: "MI_BadMaterial",
+      alphaMode: "OPAQUE",
+      hasBaseColorTexture: true,
+      baseColorTexture: {
+        embedded: true,
+        mimeType: "image/png",
+        width: 1,
+        height: 1,
+      },
+    }],
+  });
+  assert.ok(errors.some((error) => error.includes(
+    "bad-material MI_BadMaterial uses an unresolved embedded 1x1 baseColor placeholder",
+  )));
+
+  const mappedErrors = validateModelTextureContract({
+    entry: { id: "mapped-material", materials: { MI_BadMaterial: { tint: [0.42, 0.42, 0.45] } } },
+    glbMaterials: [{
+      name: "MI_BadMaterial",
+      alphaMode: "OPAQUE",
+      hasBaseColorTexture: true,
+      baseColorTexture: {
+        embedded: true,
+        mimeType: "image/png",
+        width: 1,
+        height: 1,
+      },
+    }],
+  });
+  assert.deepEqual(mappedErrors, []);
+});
+
+test("任何带 baseColorTexture 的 GLB 材质都必须有目录绑定", () => {
+  const errors = validateModelTextureContract({
+    entry: { id: "missing-material" },
+    glbMaterials: [{
+      name: "MI_RealTexture",
+      alphaMode: "OPAQUE",
+      hasBaseColorTexture: true,
+      baseColorTexture: { embedded: false, mimeType: "image/jpeg", width: 2048, height: 2048 },
+    }],
+  });
+  assert.ok(errors.some((error) => error.includes(
+    "missing-material GLB baseColor material is missing catalog mapping: MI_RealTexture",
+  )));
+});

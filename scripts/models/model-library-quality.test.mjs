@@ -16,6 +16,8 @@ import {
   CINE57_MODEL_LIBRARY_CONTRACT,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
+  CINE57_QUARANTINED_ASSETS,
+  CINE57_QUARANTINED_MODEL_IDS,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
   assertCine57ModelLibraryContract,
@@ -112,6 +114,55 @@ function makeSanitizerFixture() {
   return { buffer: makeGlb(json, bin), bin };
 }
 
+const ONE_BY_ONE_PLACEHOLDER_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==";
+
+function makeEmbeddedPlaceholderMaterialFixture() {
+  const bin = Buffer.alloc(12);
+  const json = {
+    asset: { version: "2.0" },
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ name: "SM_BadMaterial", mesh: 0 }],
+    meshes: [{
+      name: "SM_BadMaterial",
+      primitives: [{ attributes: { POSITION: 0 }, material: 0 }],
+    }],
+    materials: [{
+      name: "MI_BadMaterial",
+      pbrMetallicRoughness: { baseColorTexture: { index: 0 } },
+    }],
+    textures: [{ source: 0 }],
+    images: [{ uri: ONE_BY_ONE_PLACEHOLDER_PNG }],
+    buffers: [{ byteLength: bin.length }],
+    bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: bin.length }],
+    accessors: [{
+      bufferView: 0,
+      componentType: 5126,
+      count: 1,
+      type: "VEC3",
+      min: [0, 0, 0],
+      max: [1, 1, 1],
+    }],
+  };
+  return makeGlb(json, bin);
+}
+
+test("GLB inspection exposes embedded base-color image dimensions", () => {
+  const inspection = inspectGlb(makeEmbeddedPlaceholderMaterialFixture());
+  assert.deepEqual(inspection.materials, [{
+    name: "MI_BadMaterial",
+    alphaMode: "OPAQUE",
+    alphaCutoff: undefined,
+    hasBaseColorTexture: true,
+    baseColorTexture: {
+      embedded: true,
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+    },
+  }]);
+});
+
 test("Cine57 目录只发布前景交互资产，其他来源的角色入口独立计数", () => {
   assert.ok(STATIC_MODEL_LIBRARY.length >= CINE57_MINIMUM_MODEL_COUNT, `expected expanded library, found ${STATIC_MODEL_LIBRARY.length}`);
   assert.equal(MODEL_LIBRARY.length - STATIC_MODEL_LIBRARY.length, 1);
@@ -120,6 +171,21 @@ test("Cine57 目录只发布前景交互资产，其他来源的角色入口独�
     STATIC_MODEL_LIBRARY.filter((entry) => REMOVED_IDS.has(entry.id)).map((entry) => entry.id),
     [],
   );
+});
+
+test("材质不完整的模型只保留在可恢复隔离清单中", () => {
+  const publishedIds = new Set(STATIC_MODEL_LIBRARY.map((entry) => entry.id));
+  const publishedFiles = new Set(STATIC_MODEL_LIBRARY.map((entry) => entry.fileName));
+  assert.equal(CINE57_QUARANTINED_ASSETS.length, 10);
+  assert.deepEqual(
+    CINE57_QUARANTINED_ASSETS.map((asset) => asset.id),
+    [...CINE57_QUARANTINED_MODEL_IDS],
+  );
+  for (const asset of CINE57_QUARANTINED_ASSETS) {
+    assert.equal(publishedIds.has(asset.id), false, `${asset.id} must not be published`);
+    assert.equal(publishedFiles.has(asset.fileName), false, `${asset.fileName} must not be published`);
+    assert.equal(fs.existsSync(path.join(MODELS_DIR, asset.fileName)), true, `${asset.fileName} must be recoverable`);
+  }
 });
 
 test("UAL2 角色的脖子材质与主体同色，关节材质保持浅色区分", () => {
