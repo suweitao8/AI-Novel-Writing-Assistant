@@ -226,7 +226,7 @@ export const promptAssetLoaderEntries: PromptAssetLoaderEntry[] = [
     load: () => require("../prompts/drama/shotKeyframe.prompts").dramaShotKeyframePrompt as UnknownPromptAsset,
   },
   {
-    key: "drama.shot.blocking.autoPlan@v9",
+    key: "drama.shot.blocking.autoPlan@v10",
     load: () => require("../prompts/drama/shotBlockingAutoPlan.prompts").dramaShotBlockingAutoPlanPrompt as UnknownPromptAsset,
   },
   {

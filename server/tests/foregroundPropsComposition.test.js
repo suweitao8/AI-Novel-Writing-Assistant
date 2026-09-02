@@ -124,9 +124,9 @@ test("自动构图的道具交互必须指向真实存在的空间标记", () =>
   );
 });
 
-test("自动构图 v9 契约：交互字段与坐/躺提示词就位", () => {
+test("自动构图 v10 契约：交互字段与坐/躺提示词就位", () => {
   const promptSource = read("src/prompting/prompts/drama/shotBlockingAutoPlan.prompts.ts");
-  assert.match(promptSource, /version: "v9"/);
+  assert.match(promptSource, /version: "v10"/);
   assert.match(promptSource, /interactionMarkerId: z\.string\(\)/);
   assert.match(promptSource, /pose=sitting，并把该道具的 marker id 填入 interactionMarkerId/);
   assert.match(promptSource, /pose=lying，interactionMarkerId 指向该床或沙发/);

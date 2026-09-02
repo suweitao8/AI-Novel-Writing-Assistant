@@ -745,7 +745,7 @@ const BLOCKING_FOV_MIN_DEG = 30;
 const BLOCKING_FOV_MAX_DEG = 100;
 
 /**
- * v9 确定性相机解析：AI 只声明构图意图（焦点角色、三分法偏置、景深开关），
+ * v10 确定性相机解析：AI 只声明构图意图（焦点角色、三分法偏置、机位俯仰、景深开关），
  * 相机的方位角、俯仰、距离、焦点、视野角和景深参数全部由角色实际落位 +
  * 镜头景别几何推导。相机位置固定在场景投射中心（全景图从该点拍摄），
  * 因此视线永远正对焦点主体，景别由 fov 反推，构图不会再失准。
@@ -806,14 +806,24 @@ export function resolveAutoPlanCameraFromIntent({
     : intent.compositionBias === "right"
       ? -1
       : 0;
-  const provisionalFrameWidth = 2
+  const provisionalFrameHeight = 2
     * Math.tan((profile.provisionalFovDeg / 2) * Math.PI / 180)
-    * Math.max(horizontalDistance, 1e-3)
-    * SHOT_FRAME_ASPECT;
-  const shift = biasShift * provisionalFrameWidth / 6;
+    * Math.max(horizontalDistance, 1e-3);
+  const shift = biasShift * provisionalFrameHeight * SHOT_FRAME_ASPECT / 6;
+
+  // 机位俯仰意图（v10）：相机高度被舞台合同钉在投射中心，俯仰用取景点竖直偏移表达——
+  // 仰拍把取景点抬到主体上方（视线向上、主体落画面下三分、体量放大），
+  // 俯拍把取景点压到主体下方（视线向下、主体落画面上三分、显弱势）。
+  // 偏移量与横向偏移同为“一档三分线”，量级由景别临时视角与距离决定，主体仍完整在框内。
+  const verticalBias = intent.cameraAngle === "low_angle"
+    ? 1
+    : intent.cameraAngle === "high_angle"
+      ? -1
+      : 0;
+  const verticalShift = verticalBias * provisionalFrameHeight / 6;
   let framed: [number, number, number] = [
     focus[0] + rightVector[0] * shift,
-    focus[1],
+    Math.max(0.1, focus[1] + verticalShift),
     focus[2] + rightVector[2] * shift,
   ];
 
