@@ -314,6 +314,40 @@ test("第一镜头的关系归一化不会把承载者和上方主体反过来�
   assert.ok(beast.scale[1] > yechen.scale[1]);
 });
 
+test("自动构图从结构化姿势识别出 on_top_of 方向反转并恢复血角兽在上方", () => {
+  const firstShotActors = [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },
+    { characterName: "血角兽", sourceImageKind: "state_sheet", heightMeters: 2.2, heightSource: "ai" },
+  ];
+  const reversedOutput = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "叶晨", position: [0.4, 0, 0.1], pose: "lying", scale: [1, 1, 1] },
+      { ...planOutput.actors[1], characterName: "血角兽", position: [-0.4, 0.2, -0.1], pose: "crouching", scale: [0.7, 0.7, 0.7] },
+    ],
+    relations: [{
+      subjectCharacterName: "叶晨",
+      objectCharacterName: "血角兽",
+      relation: "on_top_of",
+      sizeRelation: "smaller",
+    }],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+    reversedOutput,
+    firstShotActors,
+    { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "近景",
+  );
+  const yechen = result.layout.actors.find((actor) => actor.characterName === "叶晨");
+  const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
+  assert.equal(yechen.pose, "lying");
+  assert.equal(yechen.position[1], 0);
+  assert.equal(beast.pose, "crouching");
+  assert.ok(beast.position[1] > yechen.position[1]);
+  assert.ok(Math.hypot(beast.position[0] - yechen.position[0], beast.position[2] - yechen.position[2]) <= 0.9);
+  assert.ok(beast.scale[1] > yechen.scale[1]);
+});
+
 test("自动构图服务拒绝关系中的未知角色、重复关系和多角色空关系", () => {
   const firstShotActors = [
     { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },

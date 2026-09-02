@@ -23,6 +23,17 @@ export interface Blocking3dShotCameraPose {
   pitchDeg: number;
 }
 
+export type Blocking3dShotCameraDepthOfField = Pick<
+  DramaShotBlockingSketch3DCamera,
+  "depthOfFieldEnabled" | "focusDistance" | "focusRange" | "blurRadius"
+>;
+
+export interface Blocking3dShotCameraCaptureState {
+  previewEnabled: boolean;
+  previewRect: pc.Vec4;
+  compositionLayerEnabled: boolean;
+}
+
 export const BLOCKING_3D_SHOT_CAMERA_LIMITS = {
   positionX: { min: -100, max: 100 },
   positionY: { min: 0, max: 50 },
@@ -126,6 +137,12 @@ export interface Blocking3dShotCameraRuntime {
   readonly preview: pc.Entity;
   /** 机位、FOV 或显隐变化后统一调用；机身与画中画一次同步到位。 */
   sync(pose: Blocking3dShotCameraPose, fovDeg: number, previewVisible: boolean): void;
+  /** 只把景深参数应用到分镜摄像机，编辑观察相机不参与此设置。 */
+  setDepthOfField(settings: Blocking3dShotCameraDepthOfField): void;
+  /** 暂时把分镜摄像机切到整幅画布，用于导出与预览同源的干净草图。 */
+  beginCapture(): Blocking3dShotCameraCaptureState;
+  /** 恢复导出前的画中画与构图线状态。 */
+  endCapture(state: Blocking3dShotCameraCaptureState): void;
   /** 每帧调用：画 Unity 风格白色摄像机线框（机身 + 镜头 + 取景锥），选中变橙色。 */
   drawGizmo(app: pc.AppBase, selected: boolean): void;
   /** 画中画可见时每帧调用：在画中画视口内绘制三分构图线（2 横 2 竖）。 */
@@ -174,7 +191,14 @@ export function createBlocking3dShotCamera(
   });
   const previewComponent = preview.camera!;
   previewComponent.priority = (editorCamera.priority ?? 0) + 1;
-  // 取景小窗不挂 CameraFrame（无景深等整屏后效），只做纯净的取景呈现。
+  // 分镜摄像机单独承载景深；编辑观察相机不会被分镜景深污染。
+  const previewFrame = new pc.CameraFrame(app, previewComponent);
+  previewFrame.dof.nearBlur = false;
+  previewFrame.dof.highQuality = true;
+  previewFrame.dof.enabled = false;
+  // 小窗是画布上的局部视口；CameraFrame 的合成通道按整幅画布工作，
+  // 常驻会覆盖编辑观察相机的画面，因此只在整幅导出期间启用。
+  previewFrame.enabled = false;
   previewComponent.rect = new pc.Vec4(0.575, 0.04, PIP_RECT_WIDTH, 0.225);
   preview.enabled = false;
   app.root.addChild(preview);
@@ -188,8 +212,6 @@ export function createBlocking3dShotCamera(
     sync(pose, fovDeg, previewVisible) {
       body.setPosition(pose.position[0], pose.position[1], pose.position[2]);
       body.setEulerAngles(pose.pitchDeg, pose.yawDeg, 0);
-      preview.enabled = previewVisible;
-      if (!previewVisible) return;
       lastFovDeg = fovDeg;
       previewComponent.fov = clamp(fovDeg, 10, 120);
       previewComponent.nearClip = 0.05;
@@ -202,6 +224,38 @@ export function createBlocking3dShotCamera(
       lastAspect = (PIP_RECT_WIDTH * canvas.width) / (heightFraction * canvas.height);
       preview.setPosition(pose.position[0], pose.position[1], pose.position[2]);
       preview.setEulerAngles(pose.pitchDeg, pose.yawDeg, 0);
+      preview.enabled = previewVisible;
+      previewFrame.update();
+    },
+    setDepthOfField(settings) {
+      previewFrame.dof.enabled = Boolean(settings.depthOfFieldEnabled);
+      previewFrame.dof.focusDistance = clamp(settings.focusDistance, 0.25, 100);
+      previewFrame.dof.focusRange = clamp(settings.focusRange, 0.1, 100);
+      previewFrame.dof.blurRadius = clamp(settings.blurRadius, 0, 10);
+      previewFrame.update();
+    },
+    beginCapture() {
+      const state: Blocking3dShotCameraCaptureState = {
+        previewEnabled: preview.enabled,
+        previewRect: previewComponent.rect.clone(),
+        compositionLayerEnabled: compositionLayer.enabled,
+      };
+      preview.enabled = true;
+      previewComponent.rect = new pc.Vec4(0, 0, 1, 1);
+      compositionLayer.enabled = false;
+      // 无景深导出不需要 CameraFrame；即使关闭 DOF，CameraFrame 仍会接管
+      // 整幅画布的后处理通道，容易把编辑器残留的模糊状态带入 PNG。
+      // 只有明确启用分镜景深时才打开整幅后处理。
+      previewFrame.enabled = previewFrame.dof.enabled;
+      previewFrame.update();
+      return state;
+    },
+    endCapture(state) {
+      previewComponent.rect = state.previewRect;
+      compositionLayer.enabled = state.compositionLayerEnabled;
+      preview.enabled = state.previewEnabled;
+      previewFrame.enabled = false;
+      previewFrame.update();
     },
     drawGizmo(app, selected) {
       const wireframe = selected ? GIZMO_WIREFRAME_SELECTED : GIZMO_WIREFRAME;
@@ -259,6 +313,7 @@ export function createBlocking3dShotCamera(
     destroy() {
       preview.destroy();
       body.destroy();
+      previewFrame.destroy();
     },
   };
 }

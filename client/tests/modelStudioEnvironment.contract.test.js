@@ -198,14 +198,14 @@ test("纯 HDRI 预览关闭空阴影接收器，场景预览仍保留阴影路�
   assert.match(blockingViewerSource, /enableShadowCatcher:\s*options\.loadProxyActor\s*!==\s*false/);
 });
 
-test("可见 HDRI cubemap 使用 RGBP 编码并按 RGBP 解码", () => {
+test("可见 HDRI 直接采样原始等距图并按普通图像颜色空间解码", () => {
   const coreSource = read(
     "../src/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore.ts",
   );
-  assert.match(coreSource, /type:\s*pc\.TEXTURETYPE_RGBP/);
+  assert.doesNotMatch(coreSource, /type:\s*pc\.TEXTURETYPE_RGBP/);
   assert.match(
     read("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentProjection.ts"),
-    /decodeRGBP\(rawColor\)/,
+    /decodeGamma\(rawColor\)/,
   );
 });
 

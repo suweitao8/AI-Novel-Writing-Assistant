@@ -22,7 +22,6 @@ import {
   createBackdropGeometry,
   createGroundDomeGeometry,
   createShadowCatcherMaterial,
-  createVisibleHdriCubemap,
   FALLBACK_AMBIENT_LIGHT,
   loadAsset,
   type Blocking3dEnvironmentSettings,
@@ -81,7 +80,7 @@ export function createBlocking3dEnvironmentRuntime(
   let environmentShadowCatcherMeshInstance: pc.MeshInstance | null = null;
   let environmentShadowCatcherMaterial: pc.StandardMaterial | null = null;
   let environmentMaterial: pc.ShaderMaterial | null = null;
-  let environmentProjectionCube: pc.Texture | null = null;
+  let environmentSourceTexture: pc.Texture | null = null;
   let environmentLightingSource: pc.Texture | null = null;
   let environmentAtlas: pc.Texture | null = null;
   const environmentWorldPosition = new pc.Vec3(0, 0, 0);
@@ -131,8 +130,7 @@ export function createBlocking3dEnvironmentRuntime(
       environmentBackdropMeshInstance = null;
       environmentMaterial?.destroy();
       environmentMaterial = null;
-      environmentProjectionCube?.destroy();
-      environmentProjectionCube = null;
+      environmentSourceTexture = null;
       if (environmentAsset) {
         environmentAsset.unload();
         app.assets.remove(environmentAsset);
@@ -158,6 +156,7 @@ export function createBlocking3dEnvironmentRuntime(
       environmentAsset = asset;
       try {
         const texture = asset.resource as pc.Texture;
+        environmentSourceTexture = texture;
         configureEnvironmentTexture(texture, app);
         texture.projection = pc.TEXTUREPROJECTION_EQUIRECT;
         environmentLightingSource = pc.EnvLighting.generateLightingSource(texture, { size: 128 });
@@ -181,12 +180,6 @@ export function createBlocking3dEnvironmentRuntime(
           environmentSettings.panoramaHorizonV,
           lighting.hdriAzimuthOffsetDegrees,
         );
-        const projectionCube = createVisibleHdriCubemap(app, texture);
-        if (!isCurrentEnvironmentRequest(requestId)) {
-          projectionCube.destroy();
-          return false;
-        }
-        environmentProjectionCube = projectionCube;
         // EnviroDome uses one continuous surface for the sky and the floor.
         // Sharing the equator ring is important: two independent draw calls
         // can leave a raster gap even when their positions appear identical.
@@ -195,7 +188,7 @@ export function createBlocking3dEnvironmentRuntime(
           createBackdropGeometry(environmentSettings.projectionCenterHeight, environmentSettings.radiusMeters),
         );
         const material = createProjectedHdriMaterial(
-          projectionCube,
+          texture,
           getProjectedHdriMaterialSettings(environmentSettings),
         );
         environmentMaterial = material;
@@ -278,10 +271,10 @@ export function createBlocking3dEnvironmentRuntime(
         environmentShadowCatcher.setEulerAngles(0, 0, 0);
       }
       if (environmentMaterial) {
-        if (environmentProjectionCube) {
+        if (environmentSourceTexture) {
           updateProjectedHdriMaterial(
             environmentMaterial,
-            environmentProjectionCube,
+            environmentSourceTexture,
             getProjectedHdriMaterialSettings(environmentSettings),
           );
         }

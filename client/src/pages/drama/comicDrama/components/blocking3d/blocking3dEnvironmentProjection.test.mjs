@@ -33,15 +33,16 @@ test("HDRI 方位偏移把旋转后的世界方向反向采样回同一原图方
   assert.equal(rotated.v, source.v, "水平旋转不能改变 HDRI 纬度");
 });
 
-test("HDRI 投影着色器绑定可调全景地面分界 uniform", () => {
+test("HDRI 投影着色器绑定可调全景地面分界 uniform，并直接采样原始等距图", () => {
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uPanoramaHorizonV/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /sourceLatitude/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /0\.5 - uPanoramaHorizonV/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /panoramaV/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uPanoramaHorizonV - asin/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uHdriAzimuthOffsetDegrees/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /-uHdriAzimuthOffsetDegrees/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /textureCube\(uEnvironmentMap, projectedDirection\)/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
 });
 
-test("可见 HDRI cubemap 使用 RGBP 解码，避免 RGBA8 暗部变黑", () => {
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /decodeRGBP\(rawColor\)/);
+test("可见 HDRI 保留原始地面像素，避免立方体底部重投影造成放射状拉伸", () => {
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /decodeGamma\(rawColor\)/);
+  assert.doesNotMatch(PROJECTED_HDRI_FRAGMENT_GLSL, /decodeRGBP\(rawColor\)/);
 });

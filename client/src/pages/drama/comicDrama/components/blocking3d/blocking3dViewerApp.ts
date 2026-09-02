@@ -258,9 +258,13 @@ export async function createBlocking3dViewer(
   );
   cameraComponent.layers = [...cameraComponent.layers, editorOverlayLayer.id];
   app.root.addChild(cameraEntity);
-  const cameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
-  cameraFrame.dof.nearBlur = false;
-  cameraFrame.dof.highQuality = true;
+  const editorCameraFrame = new pc.CameraFrame(app, cameraEntity.camera!);
+  // 编辑观察相机只负责浏览 3D 场景，永远保持清晰；景深属于分镜摄像机。
+  editorCameraFrame.dof.nearBlur = false;
+  editorCameraFrame.dof.highQuality = true;
+  editorCameraFrame.dof.enabled = false;
+  // 编辑观察相机只负责导航，不挂任何整屏后处理；分镜景深由独立机位负责。
+  editorCameraFrame.enabled = false;
 
   // Unity 风格的场景摄像机运行时：独立机位（世界坐标位置 + 朝向）驱动机身
   // 实体与右下角取景画中画；编辑视角导航不会带动机身。
@@ -455,13 +459,11 @@ export async function createBlocking3dViewer(
       cameraState.farClip,
       resolveStoryScene3DWorldRadius(environmentSettings),
     );
-    cameraFrame.dof.enabled = cameraState.depthOfFieldEnabled;
-    cameraFrame.dof.focusDistance = cameraState.focusDistance;
-    cameraFrame.dof.focusRange = cameraState.focusRange;
-    cameraFrame.dof.blurRadius = cameraState.blurRadius;
+    // layout.camera 的景深字段属于分镜摄像机，不能再写入编辑观察相机。
+    shotCamera.setDepthOfField(cameraState);
     cameraEntity.setPosition(position);
     cameraEntity.setEulerAngles(cameraState.elev, cameraState.azim, 0);
-    cameraFrame.update();
+    editorCameraFrame.update();
   };
 
   const getForegroundModelSnapshot = (
@@ -1196,7 +1198,7 @@ export async function createBlocking3dViewer(
   if (canvas.parentElement) resizeObserver.observe(canvas.parentElement);
 
   app.on("update", (dt: number) => {
-    cameraFrame.update();
+    editorCameraFrame.update();
     const hadKeyboardInput = keyboardInput.size > 0;
     handleKeyboardCamera(Math.min(0.1, dt));
     if (hadKeyboardInput) emitChange();
@@ -1811,46 +1813,18 @@ export async function createBlocking3dViewer(
     },
     capturePng() {
       const selectedOutlineEntity = selectionOutline.getEntity();
-      const editorCameraPosition = cameraEntity.getPosition().clone();
-      const editorCameraEulerAngles = cameraEntity.getEulerAngles().clone();
-      const editorCameraFov = cameraComponent.fov;
-      const editorCameraNearClip = cameraComponent.nearClip;
-      const editorCameraFarClip = cameraComponent.farClip;
-      const editorCameraRect = cameraComponent.rect.clone();
-      const editorCameraLayers = [...cameraComponent.layers];
       const editorCameraEnabled = cameraEntity.enabled;
       const bodyWasEnabled = shotCamera.body.enabled;
       const helpersWereSuppressed = shotCameraHelpersSuppressed;
+      const shotCameraCapture = shotCamera.beginCapture();
       try {
         selectionOutline.setEntity(null);
         transformGizmo.attach(null);
-        // 摄像机机身与取景画中画是编辑器辅助对象，导出的摆位草图不包含它们。
+        // 摄像机机身与构图线是编辑器辅助对象，导出的摆位草图不包含它们。
         shotCamera.body.enabled = false;
         shotCameraHelpersSuppressed = true;
-        syncShotCameraVisuals();
-
-        // 导出必须使用独立的场景摄像机机位。编辑相机可能已经被用户拉远
-        // 或旋转成总览视角，但它不应改变近景/特写的最终构图。
-        cameraEntity.setPosition(
-          shotCameraPose.position[0],
-          shotCameraPose.position[1],
-          shotCameraPose.position[2],
-        );
-        cameraEntity.setEulerAngles(
-          shotCameraPose.pitchDeg,
-          shotCameraPose.yawDeg,
-          0,
-        );
-        cameraComponent.fov = cameraState.fovDeg;
-        cameraComponent.nearClip = cameraState.nearClip;
-        cameraComponent.farClip = cameraState.farClip;
-        cameraComponent.rect = new pc.Vec4(0, 0, 1, 1);
-        // 编辑器辅助图层只属于主视口；导出画面保持与取景预览相同的世界内容。
-        cameraComponent.layers = editorCameraLayers.filter(
-          (layerId) => layerId !== editorOverlayLayer.id,
-        );
-        cameraEntity.enabled = true;
-        cameraFrame.update();
+        // 导出只启用独立的分镜摄像机，编辑观察相机不参与最终取景。
+        cameraEntity.enabled = false;
         app.resizeCanvas(
           BLOCKING_SKETCH_CAPTURE_SIZE.width,
           BLOCKING_SKETCH_CAPTURE_SIZE.height,
@@ -1867,15 +1841,8 @@ export async function createBlocking3dViewer(
           bytes[index] = binary.charCodeAt(index);
         return new Blob([bytes], { type: "image/png" });
       } finally {
-        cameraEntity.setPosition(editorCameraPosition);
-        cameraEntity.setEulerAngles(editorCameraEulerAngles);
-        cameraComponent.fov = editorCameraFov;
-        cameraComponent.nearClip = editorCameraNearClip;
-        cameraComponent.farClip = editorCameraFarClip;
-        cameraComponent.rect = editorCameraRect;
-        cameraComponent.layers = editorCameraLayers;
         cameraEntity.enabled = editorCameraEnabled;
-        cameraFrame.update();
+        shotCamera.endCapture(shotCameraCapture);
         resize();
         shotCameraHelpersSuppressed = helpersWereSuppressed;
         syncShotCameraVisuals();
@@ -1912,7 +1879,7 @@ export async function createBlocking3dViewer(
       transformGizmo.destroy();
       shotCamera.destroy();
       selectionOutline.destroy();
-      cameraFrame.destroy();
+      editorCameraFrame.destroy();
       app.destroy();
     },
   };

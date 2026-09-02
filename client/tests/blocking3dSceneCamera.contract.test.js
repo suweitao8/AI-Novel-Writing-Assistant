@@ -28,12 +28,15 @@ test("场景摄像机拥有独立机位，不跟随编辑视角移动", () => {
   assert.match(shotCameraSource, /interface Blocking3dShotCameraPose/);
   assert.match(shotCameraSource, /deriveShotCameraPoseFromOrbit/);
   assert.match(shotCameraSource, /normalizeShotCameraPose/);
-  assert.match(viewerSource, /const shotCamera = createBlocking3dShotCamera\(app, canvas, cameraComponent, editorOverlayLayer\.id\)/);
+  assert.match(viewerSource, /const shotCamera = createBlocking3dShotCamera\(\s*app,\s*canvas,\s*cameraComponent,\s*editorOverlayLayer\.id,?\s*\)/);
   // 编辑视角相机同步不得再带动机身：旧的轨道跟随入口必须移除。
   assert.doesNotMatch(viewerSource, /syncBlocking3dCameraBody/);
   assert.doesNotMatch(viewerSource, /moveShotCameraToPosition/);
   // 旧布局没有独立机位字段时从轨道相机推导，新布局直接读 shotCamera。
-  assert.match(viewerSource, /normalizeShotCameraPose\(layout\.shotCamera, deriveShotCameraPoseFromOrbit\(layout\.camera\)\)/);
+  assert.match(
+    viewerSource,
+    /normalizeShotCameraPose\(\s*layout\.shotCamera,[\s\S]*?deriveShotCameraPoseFromOrbit\(cameraState\),?\s*\)/,
+  );
 });
 
 test("场景摄像机以 Unity 风格白色线框 gizmo 常驻显示", () => {
@@ -52,10 +55,10 @@ test("场景摄像机以 Unity 风格白色线框 gizmo 常驻显示", () => {
 
 test("机位可拖拽、可挂手柄、可旋转，并经属性面板提交", () => {
   assert.match(viewerSource, /"camera-body"/);
-  assert.match(viewerSource, /setShotCameraPose: \(patch: \{ position\?: \[number, number, number\]; yawDeg\?: number; pitchDeg\?: number \}\) => void;/);
-  assert.match(viewerSource, /getShotCameraPose: \(\) => \{ position: \[number, number, number\]; yawDeg: number; pitchDeg: number \};/);
+  assert.match(viewerSource, /setShotCameraPose:\s*\(patch:\s*\{[\s\S]*?position\?: \[number, number, number\][\s\S]*?yawDeg\?: number[\s\S]*?pitchDeg\?: number[\s\S]*?\}\) => void;/);
+  assert.match(viewerSource, /getShotCameraPose:\s*\(\) => \{[\s\S]*?position: \[number, number, number\][\s\S]*?yawDeg: number[\s\S]*?pitchDeg: number[\s\S]*?\};/);
   // 移动/旋转手柄可以作用在摄像机机身上。
-  assert.match(viewerSource, /\?\? \(cameraSelected \? shotCamera\.body : null\)/);
+  assert.match(viewerSource, /cameraSelected\s*\?\s*shotCamera\.body\s*:\s*null/);
   // 旋转按钮在摄像机选中时调整独立机位朝向。
   assert.match(viewerSource, /setShotCameraPose\(\{ yawDeg: shotCameraPose\.yawDeg \+ degrees \}\)/);
   assert.match(pageSource, /nextViewer\.setShotCameraPose\(/);
@@ -91,4 +94,32 @@ test("摆位快照保存独立机位，导出草图不包含摄像机辅助对�
   // 导出摆位草图不能带编辑器辅助对象：机身与取景画中画在截图期间隐藏。
   assert.match(viewerSource, /shotCamera\.body\.enabled = false/);
   assert.match(viewerSource, /shotCameraHelpersSuppressed = true;[\s\S]*?syncShotCameraVisuals\(\);/);
+});
+
+test("编辑观察相机保持清晰，景深只归属于分镜摄像机", () => {
+  const syncCamera = viewerSource.match(/const syncCamera = \(\) => \{[\s\S]*?\n  \};/);
+  assert.ok(syncCamera, "应能定位编辑观察相机同步逻辑");
+  assert.doesNotMatch(syncCamera[0], /cameraFrame\.dof/);
+  assert.match(viewerSource, /shotCamera\.setDepthOfField\(cameraState\)/);
+  assert.match(shotCameraSource, /const previewFrame = new pc\.CameraFrame\(app, previewComponent\)/);
+  assert.match(shotCameraSource, /setDepthOfField\(settings/);
+});
+
+test("草图导出使用分镜摄像机，编辑观察相机不参与最终取景", () => {
+  assert.match(shotCameraSource, /beginCapture\(/);
+  assert.match(shotCameraSource, /endCapture\(/);
+  assert.match(viewerSource, /const shotCameraCapture = shotCamera\.beginCapture\(\)/);
+  assert.match(viewerSource, /cameraEntity\.enabled = false/);
+  assert.match(viewerSource, /shotCamera\.endCapture\(shotCameraCapture\)/);
+});
+
+test("编辑视口和无景深导出不启用 CameraFrame 后处理", () => {
+  assert.match(viewerSource, /editorCameraFrame\.enabled = false/);
+  assert.match(shotCameraSource, /previewFrame\.enabled = previewFrame\.dof\.enabled/);
+});
+
+test("对象列表和属性面板明确标注分镜摄像机", () => {
+  assert.match(pageSource, /label: "分镜摄像机"/);
+  assert.match(pageSource, /name="分镜摄像机"/);
+  assert.doesNotMatch(pageSource, /从上方对象列表选择世界、摄像机、角色或模型/);
 });

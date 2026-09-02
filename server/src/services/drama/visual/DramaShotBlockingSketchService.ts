@@ -554,6 +554,42 @@ function invalidAutoPlanRelation(message: string): never {
   throw new AppError(`自动构图关系无效：${message}`, 422);
 }
 
+function invertAutoPlanSizeRelation(
+  sizeRelation: DramaShotBlockingAutoPlanRelation["sizeRelation"],
+): DramaShotBlockingAutoPlanRelation["sizeRelation"] {
+  if (sizeRelation === "larger") return "smaller";
+  if (sizeRelation === "smaller") return "larger";
+  return "similar";
+}
+
+function normalizeAutoPlanVerticalRelation(
+  relation: DramaShotBlockingAutoPlanRelation,
+  subject: DramaShotBlockingSketch3DActor,
+  object: DramaShotBlockingSketch3DActor,
+): DramaShotBlockingAutoPlanRelation {
+  const subjectIsGrounded = AUTO_PLAN_GROUND_POSES.has(subject.pose);
+  const objectIsGrounded = AUTO_PLAN_GROUND_POSES.has(object.pose);
+  const subjectIsUpper = AUTO_PLAN_UPPER_POSES.has(subject.pose);
+  const objectIsUpper = AUTO_PLAN_UPPER_POSES.has(object.pose);
+  const directionIsReversed = relation.relation === "on_top_of"
+    ? subjectIsGrounded && objectIsUpper
+    : relation.relation === "under"
+      ? subjectIsUpper && objectIsGrounded
+      : false;
+  if (!directionIsReversed) return relation;
+
+  // This is deterministic normalization of already structured AI output, not
+  // text matching: when the model's relation endpoints contradict the two
+  // explicit vertical pose classes, the pose pair is the stronger geometric
+  // signal. Swap endpoints and preserve the meaning of sizeRelation.
+  return {
+    ...relation,
+    subjectCharacterName: relation.objectCharacterName,
+    objectCharacterName: relation.subjectCharacterName,
+    sizeRelation: invertAutoPlanSizeRelation(relation.sizeRelation),
+  };
+}
+
 function enforceAutoPlanRelativeSize(
   subject: DramaShotBlockingSketch3DActor,
   object: DramaShotBlockingSketch3DActor,
@@ -640,12 +676,20 @@ function enforceAutoPlanRelations(
     if (!subject || !object) {
       invalidAutoPlanRelation("关系引用了无法落位的角色。");
     }
-    const key = `${subjectName}|${relation.relation}|${objectName}`;
+    const normalizedRelation = normalizeAutoPlanVerticalRelation(relation, subject, object);
+    const normalizedSubjectName = normalizedName(normalizedRelation.subjectCharacterName);
+    const normalizedObjectName = normalizedName(normalizedRelation.objectCharacterName);
+    const normalizedSubject = actorByName.get(normalizedSubjectName);
+    const normalizedObject = actorByName.get(normalizedObjectName);
+    if (!normalizedSubject || !normalizedObject) {
+      invalidAutoPlanRelation("关系归一化后引用了无法落位的角色。");
+    }
+    const key = `${normalizedSubjectName}|${normalizedRelation.relation}|${normalizedObjectName}`;
     if (relationKeys.has(key)) {
       invalidAutoPlanRelation("输出包含重复的有向关系。");
     }
     relationKeys.add(key);
-    return { relation, subject, object };
+    return { relation: normalizedRelation, subject: normalizedSubject, object: normalizedObject };
   });
 
   if (layoutActors.length > 1 && resolvedRelations.length === 0) {
