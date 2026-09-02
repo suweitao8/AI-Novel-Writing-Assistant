@@ -87,16 +87,33 @@ export function storyAssetStateImageUpdatedAt(
   return typeof generatedAt === "string" && generatedAt.trim() ? generatedAt.trim() : null;
 }
 
+export interface BlockingSketchSceneStalenessInput {
+  /** 草图保存时记录的场景图版本；本功能上线后的新草图才有。 */
+  storedImageUpdatedAt?: string | null;
+  /** 草图截图时间（blockingSketchData.generatedAt），所有草图都有。 */
+  sketchGeneratedAt?: string | null;
+  /** 当前场景图版本。 */
+  currentImageUpdatedAt?: string | null;
+}
+
 /**
- * 3D 草图记录的场景图版本是否已过期：记录版本与当前版本不同即过期。
- * 旧草图没有版本标记、或当前场景图没有版本时不判定过期，避免把历史
- * 数据整体误报为过期。
+ * 3D 草图的场景图是否已过期。两级判定：
+ * 1. 新草图带版本标记：标记与当前版本不同即过期（换过图，含同路径覆盖）；
+ * 2. 旧草图没有标记：用截图时间兜底——当前场景图的生成时间晚于截图时间，
+ *    说明截图用的是被覆盖掉的上一版全景（上线前的历史残留正是这种）。
+ * 当前场景图缺版本、或两级证据都缺失时不判定过期，避免整体误报。
  */
 export function isBlockingSketchSceneImageStale(
-  storedUpdatedAt: string | null | undefined,
-  currentUpdatedAt: string | null | undefined,
+  input: BlockingSketchSceneStalenessInput,
 ): boolean {
-  if (typeof storedUpdatedAt !== "string" || !storedUpdatedAt.trim()) return false;
-  if (typeof currentUpdatedAt !== "string" || !currentUpdatedAt.trim()) return false;
-  return storedUpdatedAt.trim() !== currentUpdatedAt.trim();
+  const current = input.currentImageUpdatedAt?.trim();
+  if (!current) return false;
+  const stored = input.storedImageUpdatedAt?.trim();
+  if (stored) return stored !== current;
+  const sketchGeneratedAt = input.sketchGeneratedAt?.trim();
+  if (!sketchGeneratedAt) return false;
+  const capturedAt = Date.parse(sketchGeneratedAt);
+  const currentAt = Date.parse(current);
+  if (!Number.isFinite(capturedAt) || !Number.isFinite(currentAt)) return false;
+  return capturedAt < currentAt;
 }

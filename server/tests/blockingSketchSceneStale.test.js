@@ -16,25 +16,73 @@ test("场景图版本标记取状态图的生成时间", () => {
   assert.equal(storyAssetStateImageUpdatedAt(null), null);
 });
 
-test("草图版本与当前版本不同即过期，相同或缺失不判过期", () => {
+test("新草图带版本标记：版本不同即过期，相同不判过期", () => {
   assert.equal(
-    isBlockingSketchSceneImageStale("2026-08-25T11:09:32.784Z", "2026-08-26T11:21:31.171Z"),
+    isBlockingSketchSceneImageStale({
+      storedImageUpdatedAt: "2026-08-25T11:09:32.784Z",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
     true,
     "场景图换版后旧草图过期",
   );
   assert.equal(
-    isBlockingSketchSceneImageStale("2026-08-26T11:21:31.171Z", "2026-08-26T11:21:31.171Z"),
+    isBlockingSketchSceneImageStale({
+      storedImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
     false,
     "同版本不过期",
   );
+});
+
+test("旧草图无标记：截图时间早于当前场景图生成时间即过期（兜底第 3 镜类残留）", () => {
   assert.equal(
-    isBlockingSketchSceneImageStale(undefined, "2026-08-26T11:21:31.171Z"),
-    false,
-    "旧草图没有版本标记时不误报",
+    isBlockingSketchSceneImageStale({
+      sketchGeneratedAt: "2026-08-25T11:09:32.784Z",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
+    true,
+    "截图早于当前全景 → 用的是被覆盖的上一版",
   );
   assert.equal(
-    isBlockingSketchSceneImageStale("2026-08-26T11:21:31.171Z", null),
+    isBlockingSketchSceneImageStale({
+      sketchGeneratedAt: "2026-09-01T23:00:15.163Z",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
     false,
-    "当前场景图没有版本时不判过期",
+    "截图晚于当前全景 → 已是新版",
   );
+  assert.equal(
+    isBlockingSketchSceneImageStale({
+      sketchGeneratedAt: "2026-08-26T11:21:31.171Z",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
+    false,
+    "同一时刻不判过期",
+  );
+  assert.equal(
+    isBlockingSketchSceneImageStale({
+      sketchGeneratedAt: "不是时间",
+      currentImageUpdatedAt: "2026-08-26T11:21:31.171Z",
+    }),
+    false,
+    "无法解析的时间不判过期",
+  );
+});
+
+test("证据缺失时一律不判过期，避免整体误报", () => {
+  assert.equal(
+    isBlockingSketchSceneImageStale({ currentImageUpdatedAt: "2026-08-26T11:21:31.171Z" }),
+    false,
+    "既无标记也无截图时间",
+  );
+  assert.equal(
+    isBlockingSketchSceneImageStale({
+      storedImageUpdatedAt: "2026-08-25T11:09:32.784Z",
+      sketchGeneratedAt: "2026-08-25T11:09:32.784Z",
+    }),
+    false,
+    "当前场景图没有版本",
+  );
+  assert.equal(isBlockingSketchSceneImageStale({}), false);
 });
