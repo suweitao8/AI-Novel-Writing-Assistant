@@ -114,6 +114,7 @@
 - 源动画必须在导出时包含完整绝对姿态；如果源是加法动画或带未烘焙分层轨道，先在 UE 中烘焙，再进入 FBX → GLB → 重定向链路。
 - 重定向旋转遵循 `W_s · inv(W_s0) · W_t_standing_base`，目标站立基准默认取 UAL2 `Idle_No_Loop` 的 40% 固定帧；平移遵循目标基准加 rest-relative delta；不能用不同绑定姿态之间的世界四元数直接作相等校验。
 - 发布门禁同时检查动作语义（待机手臂下垂、行走双脚有轨迹、代表慢跑的手臂可达、坐姿骨盆不跳离角色）与 GLB 结构（旋转为 VEC4 单位四元数、平移为 VEC3、通道目标属于 skin joints）。Cine57 片段还必须通过 root 全局位移范围和首尾净位移 `<= 0.03m` 的门禁；没有 root 平移轨道是合法的原地结果，骨盆局部运动要保留。
+- 修改重定向、骨架别名、IK 或导出/合并逻辑后，必须先备份当前统一 GLB，再对 `animationCatalogSelection.json` 的全部片段执行 `python scripts/animation/republish_animation_clips.py --glb-dir <in-place目录> --include-unpublished`；默认命令只刷新 `published !== false` 的条目，会让未发布片段继续保留旧重定向数据。全量回填后用 GLB 门禁确认 277 条选定 Cine57 片段与 46 条基础动作都在最终 323 条动画中，并重新检查 root 位移与肢体可达性。
 
 ### Failure Modes
 
