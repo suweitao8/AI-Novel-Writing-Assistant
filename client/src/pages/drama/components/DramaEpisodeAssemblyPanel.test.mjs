@@ -18,7 +18,9 @@ test("成片置顶：播放器和信息条排在合成设置之前", () => {
   // 播放器按比例限高（16:9 下宽度封顶 124vh，约等于 70vh 高度），不再超出整屏。
   assert.match(panelSource, /aspect-video w-full max-w-\[124vh\][^"]*object-contain/);
   // 时长等固定信息在播放器右侧信息栏展示。
-  assert.match(panelSource, /lg:flex-row lg:items-stretch/);
+    // 信息栏贴合内容高度，不随播放器拉伸出大片空白。
+  assert.match(panelSource, /lg:flex-row lg:items-start/);
+  assert.doesNotMatch(panelSource, /lg:items-stretch/);
   assert.match(panelSource, /<aside className="w-full shrink-0[^"]*lg:w-60/);
   for (const label of ["时长", "镜头", "字幕", "规格", "生成时间"]) {
     assert.ok(panelSource.includes(`>${label}</dt>`), `信息栏缺少 ${label}`);

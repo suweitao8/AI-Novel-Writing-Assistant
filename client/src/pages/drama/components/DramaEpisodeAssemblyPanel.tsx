@@ -236,7 +236,7 @@ export function DramaEpisodeAssemblyResultPanel(props: {
     <Card className="overflow-hidden rounded-3xl">
       {videoReady && assembled ? (
         <>
-          <div className="flex flex-col gap-3 bg-muted/20 p-2 sm:p-3 lg:flex-row lg:items-stretch">
+          <div className="flex flex-col gap-3 bg-muted/20 p-2 sm:p-3 lg:flex-row lg:items-start">
             <div className="flex min-w-0 flex-1 items-start justify-center">
               <video
                 controls
