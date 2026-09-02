@@ -167,6 +167,28 @@ for i, tr in atracks.items():
 def rest_rot(n): return qnorm(tuple(n.get("rotation", (0, 0, 0, 1))))
 def rest_trans(n): return tuple(n.get("translation", (0.0, 0.0, 0.0)))
 
+# 3ds Max Biped 骨架（Bip001 *）改写成 UE Mann 骨名，让名字匹配、IK、门禁
+# 直接复用；手指骨在导出时已是 UE 命名，无需处理。
+_BIP_MAP = {
+    "bip001 pelvis": "pelvis",
+    "bip001 spine": "spine_01",
+    "bip001 spine1": "spine_02",
+    "bip001 spine2": "spine_03",
+    "bip001 neck": "neck_01",
+    "bip001 head": "head",
+    "bip001 l clavicle": "clavicle_l", "bip001 r clavicle": "clavicle_r",
+    "bip001 l upperarm": "upperarm_l", "bip001 r upperarm": "upperarm_r",
+    "bip001 l forearm": "lowerarm_l", "bip001 r forearm": "lowerarm_r",
+    "bip001 l hand": "hand_l", "bip001 r hand": "hand_r",
+    "bip001 l thigh": "thigh_l", "bip001 r thigh": "thigh_r",
+    "bip001 l calf": "calf_l", "bip001 r calf": "calf_r",
+    "bip001 l foot": "foot_l", "bip001 r foot": "foot_r",
+}
+for _n in anodes:
+    _alias = _BIP_MAP.get((_n.get("name") or "").strip().lower())
+    if _alias:
+        _n["name"] = _alias
+
 # source worlds per frame
 a_by_name = {n.get("name", "").lower(): i for i, n in enumerate(anodes) if n.get("name")}
 a_worldF = {}
@@ -543,8 +565,10 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
         # 各自漂移或互相穿过。
         if "arm_l" in chains and "arm_r" in chains:
             contact_frames = 0
+            _dbg_gaps = []
             for f in range(F):
                 src_gap = _vlen(_vsub(a_posF[chains["arm_l"]["a_end"]][f], a_posF[chains["arm_r"]["a_end"]][f]))
+                _dbg_gaps.append(src_gap)
                 if src_gap > 0.15: continue
                 contact_frames += 1
                 tl, tr = desired_targets["arm_l"][f], desired_targets["arm_r"][f]
@@ -560,6 +584,8 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                     desired_targets["arm_r"][f] = mid
             if contact_frames:
                 print("hand-contact merge on %d frames (source wrists within 0.15m)" % contact_frames)
+            else:
+                print("hand-contact merge skipped: min source wrist gap %.3fm" % min(_dbg_gaps))
 
         # 第二遍：两骨 IK 到期望末端位置（臂链与腿链同一求解器）。
         unreachable = {key: [False] * F for key in chains}
