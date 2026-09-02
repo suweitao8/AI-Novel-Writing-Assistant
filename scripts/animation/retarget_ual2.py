@@ -228,6 +228,14 @@ for ui in b_order:
     target_base_local_trans[ui] = local_trans
     p = bparent.get(ui)
     target_base_world[ui] = local_rot if p is None else qmul(target_base_world[p], local_rot)
+# 站立基准世界位置（胸腔瞄准方向的目标侧基准）。
+target_base_pos = {}
+for ui in b_order:
+    p = bparent.get(ui)
+    lt = target_base_local_trans[ui]
+    target_base_pos[ui] = lt if p is None else tuple(
+        target_base_pos[p][k] + qrot_vec(target_base_world[p], lt)[k] for k in range(3)
+    )
 
 # 世界空间姿态差重定向：
 #   W_t(b) := W_s(b) · inv(W_s0(b)) · W_t_standing_base(b)
@@ -238,6 +246,15 @@ for i in topo(aj, aparent):
     p = aparent.get(i)
     lq = rest_rot(anodes[i])
     src_rest_world[i] = lq if p is None else qmul(src_rest_world[p], lq)
+# 源绑定姿态世界位置（臂长/腿长比例用；不同导出骨架的局部平移单位可能不同，
+# 用 rest 世界点距离而不是单骨局部平移长度，天然一致）。
+src_rest_pos = {}
+for i in topo(aj, aparent):
+    p = aparent.get(i)
+    lt = rest_trans(anodes[i])
+    src_rest_pos[i] = lt if p is None else tuple(
+        src_rest_pos[p][k] + qrot_vec(src_rest_world[p], lt)[k] for k in range(3)
+    )
 out_rot, out_trans, bt_worldF = {}, {}, {}
 for ui in b_order:
     p = bparent.get(ui)
@@ -362,6 +379,66 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             w = 0.0
         return qnorm((axis[0], axis[1], axis[2], w))
 
+    t_sp3 = _bid("spine_03")
+    a_sp3 = a_by_name.get("spine_03")
+    t_n01 = _bid("neck_01")
+    a_n01 = a_by_name.get("neck_01")
+    t_pelvis_aim = _bid("pelvis")
+    a_pelvis_aim = a_by_name.get("pelvis")
+
+    # ---------- 胸腔指向校正（脊节数差异）----------
+    # UE Manny 脊柱有 spine_04/05/neck_02 三节额外节段，UAL2 只有 spine_01..03
+    # + neck_01：源把躯干前倾分摊到 5 节再由后两节反向抵消，按名映射后目标
+    # spine_03 带着源 spine_03 的内弯、却没有 04/05 的反向抵消，胸腔
+    # （spine_03→neck_01）出现 ~25° 额外前倾（后退行走实测源 10° vs 目标 35°），
+    # 上身弓背、手臂跟着被拖到身前。把 spine_03 的世界旋转改为「瞄向源胸腔
+    # 方向」：方向经各自骨盆系变换到目标世界系，roll 取自传递旋转的最短弧；
+    # 子骨（neck_01/clavicle）保持各自映射的世界旋转，仅按新父旋转重组局部。
+    if None not in (t_sp3, a_sp3, t_n01, a_n01, t_pelvis_aim, a_pelvis_aim) \
+            and t_sp3 in out_rot and t_sp3 in bt_worldF:
+        child_dir = _vnorm(target_base_local_trans[t_n01])
+        chest_children = [ui for ui in (t_n01, _bid("clavicle_l"), _bid("clavicle_r"))
+                          if ui is not None and ui in bt_worldF]
+        aimed = 0
+        for f in range(F):
+            d_src = _vsub(a_posF[a_n01][f], a_posF[a_sp3][f])
+            if _vlen(d_src) < 1e-9: continue
+            # 传输用「骨盆绑定差增量」而不是骨盆绝对帧：不同骨架的骨盆骨骼
+            # 自身朝向差异很大（UE 骨盆常带 ~90° 轴向差），绝对帧会把世界
+            # 「上」转到局部轴上造成方向反转。骨盆增量 = 源骨盆世界旋转相对
+            # 其绑定的变化，作用到目标站立胸腔方向上。
+            d_standing = _vnorm(_vsub(target_base_pos[t_n01], target_base_pos[t_sp3]))
+            q_pelvis_delta = qmul(a_worldF[a_pelvis_aim][f], qconj(src_rest_world[a_pelvis_aim]))
+            d_tgt = qrot_vec(q_pelvis_delta, d_standing)
+            w_old = bt_worldF[t_sp3][f]
+            cur = qrot_vec(w_old, child_dir)
+            if f == 12 // 2:
+                print("  DBGAIM f=%d d_src=%s d_standing=%s d_tgt=%s cur=%s" % (
+                    f, tuple(round(v, 2) for v in d_src), tuple(round(v, 2) for v in d_standing),
+                    tuple(round(v, 2) for v in d_tgt), tuple(round(v, 2) for v in cur)))
+            if _vdot(cur, d_tgt) > 0.999:
+                continue
+            w_new = qmul(_arc(_vnorm(cur), _vnorm(d_tgt)), w_old)
+            bt_worldF[t_sp3][f] = w_new
+            # spine_03 自身的输出局部也要按新世界旋转重组，否则写出的轨道
+            # 仍是旧驼背姿态，与内部参考（bt_worldF/bt_posF）不一致。
+            p_sp3 = bparent.get(t_sp3)
+            lq_sp3 = qmul(qconj(bt_worldF[p_sp3][f]), w_new) if p_sp3 is not None else w_new
+            lq_sp3 = qnorm(lq_sp3)
+            prev_sp3 = out_rot[t_sp3][f-1] if f > 0 else None
+            if prev_sp3 is not None and qdot(prev_sp3, lq_sp3) < 0:
+                lq_sp3 = tuple(-x for x in lq_sp3)
+            out_rot[t_sp3][f] = lq_sp3
+            for ui in chest_children:
+                lq = qnorm(qmul(qconj(w_new), bt_worldF[ui][f]))
+                prev = out_rot[ui][f-1] if f > 0 else None
+                if prev is not None and qdot(prev, lq) < 0:
+                    lq = tuple(-x for x in lq)
+                out_rot[ui][f] = lq
+            aimed += 1
+        if aimed:
+            print("chest aim applied on %d frames" % aimed)
+
     t_head = _bid("head")
     a_head = a_by_name.get("head")
     if t_head is not None and a_head is not None:
@@ -385,7 +462,8 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
         ik_scale = min(2.0, max(0.5, tgt_head_y / src_head_y)) if src_head_y > 1e-6 else 1.0
 
         # 第一遍：为每条臂链/腿链建立期望末端位置。
-        # 臂链：头关节锚定，手相对头的位置按骨架尺寸比映射。
+        # 臂链：胸腔（spine_03）锚定，手相对胸的位置按臂长比映射——头部会独立
+        # 转动/前倾，锚在头上会让手臂跟着头漂；胸腔锚定让摆臂跟随躯干。
         # 腿链：骨盆锚定，落脚点 = 骨盆 + 源脚相对骨盆偏移 × 腿长比——
         # 跑步/蹲伏的脚印由腿长决定，纯旋转传递会让脚漂移、膝弯变形
         # （与 ozz-animation foot_ik、TREE-Ind 重定向插件同一套末端 IK 思路）。
@@ -396,7 +474,7 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             if any(ui is None for ui in chain) or a_hand is None: continue
             t_clav, t_upper, t_lower, t_hand = chain
             if any(ui not in out_rot or ui not in t2s for ui in chain): continue
-            chains["arm_" + side] = {
+            info = {
                 "kind": "arm", "t_parent": t_clav,
                 "t_upper": t_upper, "t_lower": t_lower, "t_hand": t_hand,
                 "a_end": a_hand,
@@ -405,8 +483,22 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 "child_upper": _vnorm(target_base_local_trans[t_lower]),
                 "child_lower": _vnorm(target_base_local_trans[t_hand]),
             }
-            chains["arm_" + side]["reach_max"] = chains["arm_" + side]["l1"] + chains["arm_" + side]["l2"] - 1e-4
-            chains["arm_" + side]["reach_min"] = abs(chains["arm_" + side]["l1"] - chains["arm_" + side]["l2"]) + 1e-4
+            info["reach_max"] = info["l1"] + info["l2"] - 1e-4
+            info["reach_min"] = abs(info["l1"] - info["l2"]) + 1e-4
+            # 胸腔锚定会把手抬高：源 spine_03 在胸腔下部、肩胛远在其上，
+            # 「源 spine_03→手」不代表臂几何。锚定必须用同侧锁骨→手
+            # （纯臂几何），偏移按臂长比（目标两节臂长 / 源锁骨-手距离）缩放。
+            a_clav_src = a_by_name.get("clavicle_" + side)
+            src_arm = _vlen(_vsub(src_rest_pos[a_clav_src], src_rest_pos[a_hand])) if a_clav_src is not None else 0.0
+            if a_clav_src is None or src_arm < 1e-6:
+                info["t_anchor"] = t_head
+                info["a_anchor"] = a_head
+                info["anchor_scale"] = ik_scale
+            else:
+                info["t_anchor"] = t_clav
+                info["a_anchor"] = a_clav_src
+                info["anchor_scale"] = min(2.0, max(0.5, (info["l1"] + info["l2"]) / src_arm))
+            chains["arm_" + side] = info
             ik_sides.append("arm_" + side)
         t_pelvis = _bid("pelvis")
         a_pelvis = a_by_name.get("pelvis")
@@ -431,24 +523,20 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 "child_upper": _vnorm(target_base_local_trans[t_calf]),
                 "child_lower": _vnorm(target_base_local_trans[t_foot]),
                 "leg_scale": min(2.0, max(0.5, (_vlen(target_base_local_trans[t_calf]) + _vlen(target_base_local_trans[t_foot])) / src_leg)),
+                "t_anchor": t_pelvis, "a_anchor": a_pelvis, "anchor_scale": None,
             }
             info["reach_max"] = info["l1"] + info["l2"] - 1e-4
             info["reach_min"] = abs(info["l1"] - info["l2"]) + 1e-4
+            info["anchor_scale"] = info["leg_scale"]
             chains["leg_" + side] = info
 
         desired_targets = {}
         for key, info in chains.items():
             a_end = info["a_end"]
-            if info["kind"] == "arm":
-                desired_targets[key] = [
-                    tuple(bt_posF[t_head][f][k] + (a_posF[a_end][f][k] - a_posF[a_head][f][k]) * ik_scale for k in range(3))
-                    for f in range(F)
-                ]
-            else:
-                desired_targets[key] = [
-                    tuple(bt_posF[info["t_parent"]][f][k] + (a_posF[a_end][f][k] - a_posF[a_pelvis][f][k]) * info["leg_scale"] for k in range(3))
-                    for f in range(F)
-                ]
+            desired_targets[key] = [
+                tuple(bt_posF[info["t_anchor"]][f][k] + (a_posF[a_end][f][k] - a_posF[info["a_anchor"]][f][k]) * info["anchor_scale"] for k in range(3))
+                for f in range(F)
+            ]
 
         # 双手接触校正：源双手贴近（鼓掌、合十等）时，两臂期望目标绕中点
         # 缩放回源间距（按骨架比例），保证重定向后手能真实拍到一起，而不是
@@ -475,6 +563,7 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
 
         # 第二遍：两骨 IK 到期望末端位置（臂链与腿链同一求解器）。
         unreachable = {key: [False] * F for key in chains}
+        last_plane = {}
         for key, info in chains.items():
             for f in range(F):
                 S = bt_posF[info["t_upper"]][f]
@@ -482,6 +571,10 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 W_old = bt_posF[info["t_hand"]][f]
                 plane = _vcross(_vsub(E_old, S), _vsub(W_old, S))
                 if _vlen(plane) < 1e-6: continue  # 传递姿态肢体完全伸直时无弯曲平面，保持该帧
+                plane_n = _vnorm(plane)
+                if _vlen(plane) < 0.03 and key in last_plane:
+                    plane_n = last_plane[key]  # 接近伸直时平面法线噪声大，沿用上一帧防肘/膝抖动
+                last_plane[key] = plane_n
                 desired = desired_targets[key][f]
                 l1, l2 = info["l1"], info["l2"]
                 u = _vsub(desired, S)
@@ -493,7 +586,7 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 u = _vnorm(u)
                 cos_a = min(1.0, max(-1.0, (l1*l1 + d*d - l2*l2) / (2*l1*d)))
                 sin_a = math.sqrt(1.0 - cos_a*cos_a)
-                v = _vnorm(_vcross(_vnorm(plane), u))
+                v = _vnorm(_vcross(plane_n, u))
                 if _vdot(_vsub(E_old, S), v) < 0: sin_a = -sin_a
                 e_dir = tuple(cos_a*u[k] + sin_a*v[k] for k in range(3))
                 E_new = tuple(S[k] + e_dir[k]*l1 for k in range(3))
@@ -526,21 +619,20 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
     for key, info in chains.items():
         if info["kind"] != "arm": continue
         a_hand = info["a_end"]
-        src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[a_head][f])) for f in range(F)]
-        cf = min(range(F), key=lambda f: src_d[f])
+        # 臂链锚定是锁骨：校验源锁骨-手最远伸展帧上，目标距离应与源×臂长比一致。
+        src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[info["a_anchor"]][f])) for f in range(F)]
+        cf = max(range(F), key=lambda f: src_d[f])
         _Wc, Pc = compose(ik_tracks, grid[cf])
-        src_dy = a_posF[a_hand][cf][1] - a_posF[a_head][cf][1]
-        tgt_dy = Pc[info["t_hand"]][1] - Pc[t_head][1]
-        # 接触姿态（|src_dy| 小）要求严格；被动垂臂等远端姿态按比例放宽；
-        # 目标超出臂展时手臂已满伸展指向目标，属于目标骨架的几何极限，放行。
+        src_dd = src_d[cf]
+        tgt_dd = _vlen(_vsub(Pc[info["t_hand"]], Pc[info["t_anchor"]]))
         if unreachable[key][cf]:
             ok = True
             note = "(target beyond arm reach, fully extended)"
         else:
-            ok = abs(tgt_dy - src_dy * ik_scale) <= max(0.05, 0.12 * abs(src_dy))
+            ok = abs(tgt_dd - src_dd * info["anchor_scale"]) <= max(0.05, 0.12 * src_dd)
             note = ""
-        print("reach check %s @t=%.2fs: src dy=%+.3f tgt dy=%+.3f -> %s %s" % (
-            key, grid[cf], src_dy, tgt_dy, "PASS" if ok else "FAIL", note))
+        print("reach check %s @t=%.2fs: src d=%.3f tgt d=%.3f -> %s %s" % (
+            key, grid[cf], src_dd, tgt_dd, "PASS" if ok else "FAIL", note))
         if not ok: reach_failures.append(key)
     # 双手接触校验：源双手最贴近的帧，目标双手间距不得超过源间距×比例 + 5cm。
     if "arm_l" in chains and "arm_r" in chains:
