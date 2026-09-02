@@ -19,6 +19,7 @@ Wiki 不记录单次提交改了什么，也不替代 release notes。它只记�
 - [漫剧优先的产品入口边界](./architecture/drama-first-product-surface.md)
 - [当前模型选择与厂商默认模型边界](./architecture/model-selection.md)
 - [配置项归属与可见性规范](./architecture/configuration-conventions.md)
+- [页签记忆与恢复边界](./architecture/remembered-tab-state.md)
 
 ### Workflows
 

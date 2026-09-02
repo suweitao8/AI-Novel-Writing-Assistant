@@ -1,8 +1,48 @@
 import * as React from "react";
 import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { cn } from "@/lib/utils";
 
-const Tabs = TabsPrimitive.Root;
+type TabsRootProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root>;
+
+interface RememberedTabsProps extends TabsRootProps {
+  /** A stable browser-local scope. Persistence is opt-in and requires rememberedValues. */
+  rememberedKey?: string;
+  rememberedValues?: readonly string[];
+}
+
+function Tabs({
+  rememberedKey,
+  rememberedValues,
+  value,
+  defaultValue,
+  onValueChange,
+  ...props
+}: RememberedTabsProps) {
+  const shouldRemember = Boolean(rememberedKey && rememberedValues?.length);
+  const fallbackValue = defaultValue ?? value ?? rememberedValues?.[0] ?? "";
+  const [rememberedValue, setRememberedValue] = useRememberedTab({
+    scope: rememberedKey ?? "",
+    defaultValue: fallbackValue,
+    values: rememberedValues ?? [],
+    enabled: shouldRemember,
+  });
+
+  return (
+    <TabsPrimitive.Root
+      {...props}
+      value={value ?? (shouldRemember ? rememberedValue : undefined)}
+      defaultValue={shouldRemember ? undefined : defaultValue}
+      onValueChange={(nextValue) => {
+        if (shouldRemember) {
+          setRememberedValue(nextValue);
+        }
+        onValueChange?.(nextValue);
+      }}
+    />
+  );
+}
+Tabs.displayName = TabsPrimitive.Root.displayName;
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

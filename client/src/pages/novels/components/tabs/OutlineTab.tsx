@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import AiButton from "@/components/common/AiButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,8 +14,10 @@ import SelectControl from "@/components/common/SelectControl";
 import OutlineCurrentVolumeWorkspace from "../outline/OutlineCurrentVolumeWorkspace";
 import OutlineResourceCommitments from "../outline/OutlineResourceCommitments";
 import type { VolumeBeatImpactItem } from "@ai-novel/shared/types/novel";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 
 type OutlineWorkspaceTab = "current" | "strategy" | "assets";
+const OUTLINE_WORKSPACE_TABS: readonly OutlineWorkspaceTab[] = ["current", "strategy", "assets"];
 
 function versionStatusLabel(status: "draft" | "active" | "frozen"): string {
   if (status === "active") return "已生效";
@@ -94,6 +97,7 @@ function formatBeatChapterOrders(chapterOrders: number[]): string {
 }
 
 export default function OutlineTab(props: OutlineTabViewProps) {
+  const { id = "" } = useParams();
   const {
     worldInjectionSummary,
     hasCharacters,
@@ -156,7 +160,11 @@ export default function OutlineTab(props: OutlineTabViewProps) {
   const nextOutlineAction = getNextOutlineAction(readiness);
   const outlineStageReady = completedReadinessCount === readinessSteps.length;
   const [selectedVolumeId, setSelectedVolumeId] = useState(volumes[0]?.id ?? "");
-  const [workspaceTab, setWorkspaceTab] = useState<OutlineWorkspaceTab>("current");
+  const [workspaceTab, setWorkspaceTab] = useRememberedTab<OutlineWorkspaceTab>({
+    scope: `novel:${id || "none"}:outline-workspace`,
+    defaultValue: "current",
+    values: OUTLINE_WORKSPACE_TABS,
+  });
   const volumeCountModeLabel = volumeCountGuidance.userPreferredVolumeCount != null
     ? `当前固定 ${volumeCountGuidance.userPreferredVolumeCount} 卷`
     : volumeCountGuidance.respectedExistingVolumeCount != null

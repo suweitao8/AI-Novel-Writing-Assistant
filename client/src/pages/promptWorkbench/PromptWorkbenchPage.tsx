@@ -6,6 +6,7 @@ import type { PromptCatalogItem } from "@/api/promptWorkbench";
 import type { LLMSelectorValue } from "@/components/common/LLMSelector";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { useLLMStore } from "@/store/llmStore";
 import { AdvancedPromptTemplateEditor } from "./components/AdvancedPromptTemplateEditor";
 import { PromptBodyEditor } from "./components/PromptBodyEditor";
@@ -20,6 +21,7 @@ import { usePromptTemplateEditor } from "./hooks/usePromptTemplateEditor";
 import { WritingPlatformProfileManager } from "./components/WritingPlatformProfileManager";
 
 type PromptEditMode = "slots" | "advanced";
+const PROMPT_EDIT_MODE_VALUES = ["slots", "advanced"] as const;
 
 export default function PromptWorkbenchPage() {
   const [keyword, setKeyword] = useState("");
@@ -28,7 +30,11 @@ export default function PromptWorkbenchPage() {
   const [selectedContextBlockId, setSelectedContextBlockId] = useState<string | null>(null);
   const [immersiveMode, setImmersiveMode] = useState(false);
   const [selectedChapterId, setSelectedChapterId] = useState("");
-  const [editMode, setEditMode] = useState<PromptEditMode>("slots");
+  const [editMode, setEditMode] = useRememberedTab<PromptEditMode>({
+    scope: "prompt-workbench:edit-mode",
+    defaultValue: "slots",
+    values: PROMPT_EDIT_MODE_VALUES,
+  });
   const [platformManagerOpen, setPlatformManagerOpen] = useState(false);
   const globalLlmProvider = useLLMStore((state) => state.provider);
   const globalLlmModel = useLLMStore((state) => state.model);

@@ -4,6 +4,7 @@ import { Activity, Brain, Clock3, Eye, Network, Package, ScrollText, UserRound }
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import CharacterAssetSidebar from "./CharacterAssetSidebar";
 import CharacterDynamicsSection from "./CharacterDynamicsSection";
 import CharacterFocusSummary from "./CharacterFocusSummary";
@@ -28,6 +29,8 @@ const WORKSPACE_TABS: Array<{ value: string; label: string; icon: LucideIcon }> 
   { value: "dynamics", label: "动态", icon: Activity },
   { value: "intelligence", label: "智能层", icon: Brain },
 ];
+
+const CHARACTER_WORKSPACE_TAB_VALUES: readonly string[] = WORKSPACE_TABS.map((tab) => tab.value);
 
 export default function CharacterAssetWorkspace(props: CharacterAssetWorkspaceProps) {
   const {
@@ -81,6 +84,11 @@ export default function CharacterAssetWorkspace(props: CharacterAssetWorkspacePr
     [characterResources, selectedCharacter],
   );
   const isSelectedProtagonist = isProtagonistCharacter(selectedCharacter);
+  const [workspaceTab, setWorkspaceTab] = useRememberedTab({
+    scope: `novel:${novelId || "none"}:character:${selectedCharacter?.id || "none"}:workspace`,
+    defaultValue: "overview",
+    values: CHARACTER_WORKSPACE_TAB_VALUES,
+  });
 
   return (
     <Card className="overflow-hidden rounded-2xl border-border/70 bg-background shadow-sm">
@@ -122,7 +130,11 @@ export default function CharacterAssetWorkspace(props: CharacterAssetWorkspacePr
               lastAppearanceChapter={lastAppearanceChapter}
             />
 
-            <Tabs defaultValue="overview" className="min-w-0">
+            <Tabs
+              value={workspaceTab}
+              onValueChange={setWorkspaceTab}
+              className="min-w-0"
+            >
               <div className="overflow-x-auto pb-1">
                 <TabsList className="h-auto min-w-max justify-start gap-1 rounded-2xl border border-border/70 bg-background/85 p-1.5 shadow-sm">
                   {WORKSPACE_TABS.map((tab) => {

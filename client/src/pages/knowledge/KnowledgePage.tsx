@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type { KnowledgeDocumentStatus, KnowledgeRecallTestResult } from "@ai-novel/shared/types/knowledge";
-import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { queryKeys } from "@/api/queryKeys";
 import {
@@ -22,6 +21,7 @@ import {
   type RagJobSummary,
 } from "@/api/knowledge";
 import { getRagEmbeddingModels, getRagSettings, saveRagSettings } from "@/api/settings";
+import { useRememberedQueryTab } from "@/hooks/useRememberedQueryTab";
 import { isTxtFile, readTextFile } from "@/lib/textFile";
 import KnowledgeDocumentDetailDialog from "./components/KnowledgeDocumentDetailDialog";
 import KnowledgeDocumentsTab from "./components/KnowledgeDocumentsTab";
@@ -29,18 +29,20 @@ import KnowledgeEmbeddingSettingsCard, { type KnowledgeEmbeddingSettingsFormStat
 import KnowledgeLibraryOverview from "./components/KnowledgeLibraryOverview";
 import KnowledgeOpsTab from "./components/KnowledgeOpsTab";
 
-const TAB_VALUES = new Set(["documents", "ops", "settings"]);
-
-function normalizeTab(raw: string | null): "documents" | "ops" | "settings" {
-  if (raw && TAB_VALUES.has(raw)) {
-    return raw as "documents" | "ops" | "settings";
-  }
-  return "documents";
-}
+const TAB_VALUES = ["documents", "ops", "settings"] as const;
+type KnowledgeTab = typeof TAB_VALUES[number];
 
 export default function KnowledgePage() {
   const queryClient = useQueryClient();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    tab: activeTab,
+    setTab: setActiveTab,
+  } = useRememberedQueryTab<KnowledgeTab>({
+    scope: "knowledge:workspace",
+    queryParam: "tab",
+    defaultValue: "documents",
+    values: TAB_VALUES,
+  });
   const [keyword, setKeyword] = useState("");
   const [status, setStatus] = useState<KnowledgeDocumentStatus | "">("");
   const [selectedDocumentId, setSelectedDocumentId] = useState("");
@@ -83,7 +85,6 @@ export default function KnowledgePage() {
     httpTimeoutMs: 30000,
   });
 
-  const activeTab = normalizeTab(searchParams.get("tab"));
   const documentListQueryKey = queryKeys.knowledge.documents(`${keyword}-${status || "default"}`);
   const ragJobsQueryKey = queryKeys.knowledge.ragJobs("latest");
 
@@ -367,14 +368,14 @@ export default function KnowledgePage() {
   const hasDocumentFilters = Boolean(keyword.trim() || status);
 
   const openDocumentsSection = () => {
-    setSearchParams({ tab: "documents" });
+    setActiveTab("documents");
     window.requestAnimationFrame(() => {
       document.getElementById("knowledge-documents")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   };
 
   const openUploadDialog = () => {
-    setSearchParams({ tab: "documents" });
+    setActiveTab("documents");
     setUploadDialogOpen(true);
   };
 
@@ -518,14 +519,14 @@ export default function KnowledgePage() {
           setStatus("");
         }}
         onOpenDocuments={openDocumentsSection}
-        onOpenOps={() => setSearchParams({ tab: "ops" })}
+        onOpenOps={() => setActiveTab("ops")}
         onRetry={() => void documentsQuery.refetch()}
         onUpload={openUploadDialog}
       />
 
       <Tabs
         value={activeTab}
-        onValueChange={(value) => setSearchParams({ tab: value })}
+        onValueChange={(value) => setActiveTab(value as KnowledgeTab)}
         className="space-y-4"
       >
         <TabsList className="h-11 w-full justify-start gap-1 overflow-x-auto rounded-full bg-muted/30 p-1">
@@ -580,7 +581,7 @@ export default function KnowledgePage() {
             deletingJobId={deleteRagJobMutation.isPending ? deleteRagJobMutation.variables : undefined}
             onClearFinishedJobs={handleClearFinishedRagJobs}
             onDeleteJob={handleDeleteRagJob}
-            onOpenSettings={() => setSearchParams({ tab: "settings" })}
+            onOpenSettings={() => setActiveTab("settings")}
           />
         </TabsContent>
 

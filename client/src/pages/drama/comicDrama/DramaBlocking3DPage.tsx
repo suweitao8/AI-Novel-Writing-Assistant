@@ -588,7 +588,7 @@ export default function DramaBlocking3DPage() {
   useRegisterPageTabs(!isMobileViewport && Boolean(novelId), [
     buildStudioNavStageRow("storyboard", (stage) => {
       void leaveToStudio(stage);
-    }),
+    }, `drama-project:${novelId || "none"}:studio-stage`),
   ]);
 
   if (contextQuery.isPending) {

@@ -14,6 +14,8 @@ interface StorySettingsTabsProps {
   initialTab?: string;
 }
 
+const STORY_SETTINGS_TABS = ["characters", "scenes", "props", "world"] as const;
+
 // 设定中心：角色 / 场景 / 道具 / 世界观 四个页签，短篇工作室与简易书架页共用。
 export default function StorySettingsTabs({ novelId, initialTab = "characters" }: StorySettingsTabsProps) {
   const queryClient = useQueryClient();
@@ -36,7 +38,12 @@ export default function StorySettingsTabs({ novelId, initialTab = "characters" }
   return (
     <>
       <AutoStoryAssetImageGeneration novelId={novelId} />
-      <Tabs defaultValue={initialTab} className="space-y-4">
+      <Tabs
+        defaultValue={initialTab}
+        rememberedKey={`novel:${novelId}:story-settings`}
+        rememberedValues={STORY_SETTINGS_TABS}
+        className="space-y-4"
+      >
         <TabsList className="flex-wrap">
           <TabsTrigger value="characters" className="gap-1.5">
             <Users className="h-3.5 w-3.5" />

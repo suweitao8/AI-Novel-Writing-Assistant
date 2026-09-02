@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useSearchParams } from "react-router-dom";
 import { bootstrapNovelWorkflow } from "@/api/novel/novelWorkflow";
-import { normalizeNovelWorkspaceTab } from "../novelWorkspaceNavigation";
+import { useRememberedQueryTab } from "@/hooks/useRememberedQueryTab";
+import {
+  normalizeNovelWorkspaceTab,
+  NOVEL_WORKSPACE_TAB_VALUES,
+  type NovelWorkspaceTab,
+} from "../novelWorkspaceNavigation";
 import {
   readNovelEditWorkflowTaskIds,
   withNovelEditDirectorTaskId,
@@ -10,7 +14,18 @@ import {
 } from "./novelEditWorkflowParams";
 
 export function useNovelEditWorkflow(novelId: string) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const {
+    tab: activeTab,
+    setTab: setRememberedActiveTab,
+    searchParams,
+    setSearchParams,
+  } = useRememberedQueryTab<NovelWorkspaceTab>({
+    scope: `novel:${novelId || "none"}:main-workspace`,
+    queryParam: "stage",
+    defaultValue: "basic",
+    values: NOVEL_WORKSPACE_TAB_VALUES,
+    replace: true,
+  });
 
   const { directorTaskId, workspaceTaskId: workflowTaskId } = readNovelEditWorkflowTaskIds(searchParams);
   const selectedVolumeId = searchParams.get("volumeId") ?? "";
@@ -34,7 +49,7 @@ export function useNovelEditWorkflow(novelId: string) {
       lane: "manual_create",
       seedPayload: {
         entry: "novel_edit",
-        stage: normalizeNovelWorkspaceTab(searchParams.get("stage")),
+        stage: activeTab,
       },
     }),
     onSuccess: (response) => {
@@ -45,7 +60,7 @@ export function useNovelEditWorkflow(novelId: string) {
       setSearchParams((prev) => {
         const next = withNovelEditWorkspaceTaskId(prev, nextTaskId);
         if (!next.get("stage")) {
-          next.set("stage", normalizeNovelWorkspaceTab(searchParams.get("stage")));
+          next.set("stage", activeTab);
         }
         return next;
       }, { replace: true });
@@ -59,23 +74,14 @@ export function useNovelEditWorkflow(novelId: string) {
     bootstrapMutation.mutate();
   }, [novelId, workflowTaskId]);
 
-  const activeTab = useMemo(
-    () => normalizeNovelWorkspaceTab(searchParams.get("stage")),
-    [searchParams],
-  );
   const selectedChapterId = useMemo(
     () => searchParams.get("chapterId") ?? "",
     [searchParams],
   );
 
-  const setActiveTab = (value: string) => {
-    const nextTab = normalizeNovelWorkspaceTab(value);
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev);
-      next.set("stage", nextTab);
-      return next;
-    }, { replace: true });
-  };
+  const setActiveTab = useCallback((value: string) => {
+    setRememberedActiveTab(normalizeNovelWorkspaceTab(value));
+  }, [setRememberedActiveTab]);
 
   const setSelectedChapterId = (value: string) => {
     setSearchParams((prev) => {

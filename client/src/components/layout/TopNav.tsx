@@ -12,6 +12,7 @@ import DesktopBrandMark from "./DesktopBrandMark";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import { Button } from "@/components/ui/button";
 import { getDramaFocusNavItems } from "@/config/dramaFocusNav";
+import { writeRememberedTab } from "@/lib/rememberedTabs";
 import { cn } from "@/lib/utils";
 import { usePageTabRows, useSetPageNavActionsSlot, type PageTabRow } from "./PageTabsContext";
 
@@ -122,7 +123,12 @@ function PageTabGroup({ row }: { row: PageTabRow }) {
         <Fragment key={tab.key}>
           <button
             type="button"
-            onClick={() => row.onSelect(tab.key)}
+            onClick={() => {
+              if (row.rememberedKey) {
+                writeRememberedTab(row.rememberedKey, tab.key, row.tabs.map((item) => item.key));
+              }
+              row.onSelect(tab.key);
+            }}
             aria-pressed={row.active === tab.key}
             className={cn(
               "studio-pill flex h-7 items-center whitespace-nowrap px-2 text-[13px] transition-colors",
