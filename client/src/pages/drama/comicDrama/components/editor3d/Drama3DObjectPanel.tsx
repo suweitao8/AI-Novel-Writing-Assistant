@@ -1,9 +1,15 @@
-import { Layers3, MapPin, Ruler, UserRound, Video } from "lucide-react";
+import { Box, Layers3, MapPin, Ruler, UserRound, Video } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-export type Drama3DObjectKind = "scene" | "camera" | "actor" | "marker" | "reference";
+export type Drama3DObjectKind =
+  | "scene"
+  | "camera"
+  | "actor"
+  | "marker"
+  | "model"
+  | "reference";
 
 export interface Drama3DObjectItem {
   id: string;
@@ -28,6 +34,8 @@ function ObjectIcon({ kind }: { kind: Drama3DObjectKind }) {
         ? UserRound
         : kind === "marker"
           ? MapPin
+          : kind === "model"
+            ? Box
           : Ruler;
   return <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />;
 }

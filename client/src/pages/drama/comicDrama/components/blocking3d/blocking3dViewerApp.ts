@@ -1,5 +1,8 @@
 import * as pc from "playcanvas";
-import type { StoryScene3DMarker } from "@ai-novel/shared/types/comicDrama";
+import type {
+  StoryScene3DForegroundModel,
+  StoryScene3DMarker,
+} from "@ai-novel/shared/types/comicDrama";
 import {
   clampBlockingActorPositionToStage,
   clampBlockingCameraOrbitToWorld,
@@ -12,6 +15,7 @@ import { STORY_SCENE_3D_MARKERS_ENABLED } from "@ai-novel/shared/utils/scene3dMa
 import type {
   DramaShotBlockingSketch3DActor,
   DramaShotBlockingSketch3DCamera,
+  DramaShotBlockingSketch3DLayout,
   DramaShotBlockingSketch3DShotCamera,
   DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
@@ -86,6 +90,10 @@ import {
   type ContainerResource,
 } from "./blocking3dViewerCore";
 import {
+  createBlocking3dForegroundModelRuntime,
+  type Blocking3dForegroundModelRuntime,
+} from "./blocking3dForegroundModels";
+import {
   getAvailableBlocking3dPoses,
   resolveBlocking3dPoseClip,
 } from "./blocking3dPose";
@@ -111,6 +119,12 @@ export interface Blocking3dViewerOptions {
   markerTransformEditable?: boolean;
   /** 空间标记被 gizmo 拖拽结束后的回写入口；未传时标记手柄不启用。 */
   onMarkerTransformCommit?: (marker: StoryScene3DMarker) => void;
+  /** 从模型库加载的可交互前景模型实例；HDRI 只承载背景。 */
+  foregroundModels?: StoryScene3DForegroundModel[];
+  /** 视口内是否允许直接拖拽前景模型；分镜草图和场景编辑器都开启。 */
+  foregroundModelTransformEditable?: boolean;
+  /** 前景模型被 gizmo/拖拽改变后回写场景状态的入口。 */
+  onForegroundModelTransformCommit?: (model: StoryScene3DForegroundModel) => void;
   onStatus?: (status: string) => void;
 }
 
@@ -118,6 +132,7 @@ export interface Blocking3dViewer {
   readonly canvas: HTMLCanvasElement;
   onSelectionChange: (listener: (label: string | null) => void) => () => void;
   onMarkerSelection: (listener: (id: string | null) => void) => () => void;
+  onForegroundModelSelection: (listener: (id: string | null) => void) => () => void;
   /** 场景摄像机（镜头机位实体）的选中状态变化；selected 为 true 表示选中。 */
   onCameraSelection: (listener: (selected: boolean) => void) => () => void;
   onChange: (listener: () => void) => () => void;
@@ -131,6 +146,7 @@ export interface Blocking3dViewer {
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
   selectMarker: (id: string | null) => boolean;
+  selectForegroundModel: (id: string | null) => boolean;
   /** 选中/取消选中场景摄像机实体；与角色、标记互斥。 */
   selectCamera: (selected: boolean) => boolean;
   isCameraSelected: () => boolean;
@@ -147,9 +163,13 @@ export interface Blocking3dViewer {
     pitchDeg?: number;
   }) => void;
   focusMarker: (id: string) => boolean;
+  focusForegroundModel: (id: string) => boolean;
   getSelectedMarker: () => string | null;
+  getSelectedForegroundModel: () => string | null;
   setSceneMarkers: (markers: StoryScene3DMarker[]) => void;
   getSceneMarkers: () => StoryScene3DMarker[];
+  setForegroundModels: (models: StoryScene3DForegroundModel[]) => Promise<void>;
+  getForegroundModels: () => StoryScene3DForegroundModel[];
   getSelectedActor: () => string | null;
   getSelectedTransform: () => {
     position: [number, number, number];
@@ -187,22 +207,8 @@ export interface Blocking3dViewer {
   setEnvironment: (url: string | null) => Promise<void>;
   getEnvironmentSettings: () => Blocking3dEnvironmentSettings;
   setEnvironmentSettings: (settings: Blocking3dEnvironmentSettings) => boolean;
-  exportLayout: () => {
-    schemaVersion: 1;
-    engine: "playcanvas";
-    camera: DramaShotBlockingSketch3DCamera;
-    shotCamera?: DramaShotBlockingSketch3DShotCamera;
-    actors: DramaShotBlockingSketch3DActor[];
-    environment: Blocking3dEnvironmentSettings;
-  };
-  loadLayout: (layout: {
-    schemaVersion: 1;
-    engine: "playcanvas";
-    camera: DramaShotBlockingSketch3DCamera;
-    shotCamera?: DramaShotBlockingSketch3DShotCamera;
-    actors: DramaShotBlockingSketch3DActor[];
-    environment?: Blocking3dEnvironmentSettings;
-  }) => void;
+  exportLayout: () => DramaShotBlockingSketch3DLayout & { environment: Blocking3dEnvironmentSettings };
+  loadLayout: (layout: DramaShotBlockingSketch3DLayout) => void;
   capturePng: () => Blob;
   destroy: () => void;
 }
@@ -282,6 +288,11 @@ export async function createBlocking3dViewer(
   const worldEntity = new pc.Entity("blocking3d-world");
   app.root.addChild(worldEntity);
 
+  // 模型库前景与 HDRI 背景分离：模型实例永远挂在独立根节点，方便单独选择、
+  // 变换和导出，同时保证它们不是全景图的一部分。
+  const foregroundModelsRoot = new pc.Entity("blocking3d-foreground-models");
+  app.root.addChild(foregroundModelsRoot);
+
   // HDRI 环境运行时：背景穹顶、环境光照与瞬态主光的唯一归属；背景按状态图
   // 重建时不会连带销毁或移动空间标记。
   const environment = createBlocking3dEnvironmentRuntime(app, worldEntity, {
@@ -351,12 +362,20 @@ export async function createBlocking3dViewer(
   const animationTracks = new Map<string, unknown>();
   const actors = new Map<string, Blocking3dViewerActor>();
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
+  const foregroundModelRuntimes = new Map<
+    string,
+    Blocking3dForegroundModelRuntime
+  >();
   const selectionListeners = new Set<(label: string | null) => void>();
   const markerSelectionListeners = new Set<(id: string | null) => void>();
+  const foregroundModelSelectionListeners = new Set<
+    (id: string | null) => void
+  >();
   const cameraSelectionListeners = new Set<(selected: boolean) => void>();
   const statusListeners = new Set<(status: string) => void>();
   let selectedLabel: string | null = null;
   let selectedMarkerId: string | null = null;
+  let selectedForegroundModelId: string | null = null;
   let cameraSelected = false;
   let cameraState: DramaShotBlockingSketch3DCamera = {
     ...DEFAULT_CAMERA,
@@ -392,8 +411,11 @@ export async function createBlocking3dViewer(
     pointerId: number;
     x: number;
     y: number;
-    mode: "actor" | "camera-body" | "camera" | "none";
+    startX: number;
+    startY: number;
+    mode: "actor" | "model" | "camera-body" | "camera" | "none";
     actorLabel?: string;
+    foregroundModelId?: string;
     lastGround?: pc.Vec3;
   } | null = null;
   let keyboardInput = new Set<string>();
@@ -442,18 +464,38 @@ export async function createBlocking3dViewer(
     cameraFrame.update();
   };
 
+  const getForegroundModelSnapshot = (
+    runtime: Blocking3dForegroundModelRuntime,
+  ): StoryScene3DForegroundModel => {
+    const transform = runtime.getTransform();
+    return {
+      ...runtime.getModel(),
+      position: [...transform.position] as [number, number, number],
+      yawDeg: transform.yawDeg,
+      scale: transform.scale,
+    };
+  };
+
+  const getForegroundModels = () =>
+    [...foregroundModelRuntimes.values()].map(getForegroundModelSnapshot);
+
   const emitSelection = () => {
     for (const listener of selectionListeners) listener(selectedLabel);
     const actor = selectedLabel ? actors.get(selectedLabel) : null;
     // 角色、空间标记与场景摄像机三者互斥选中；选中的对象共用同一条外轮廓反馈通道。
     const markerRuntime =
-      !selectedLabel && selectedMarkerId
+      !selectedLabel && !selectedForegroundModelId && selectedMarkerId
         ? (sceneMarkerRuntimes.get(selectedMarkerId) ?? null)
+        : null;
+    const foregroundModelRuntime =
+      !selectedLabel && !selectedMarkerId && selectedForegroundModelId
+        ? (foregroundModelRuntimes.get(selectedForegroundModelId) ?? null)
         : null;
     syncTransformGizmo();
     selectionOutline.setEntity(
       actor?.entity ??
         markerRuntime?.entity ??
+        foregroundModelRuntime?.entity ??
         (cameraSelected ? shotCamera.body : null),
     );
   };
@@ -471,8 +513,34 @@ export async function createBlocking3dViewer(
     for (const listener of markerSelectionListeners) listener(selectedMarkerId);
   };
 
+  const emitForegroundModelSelection = () => {
+    for (const listener of foregroundModelSelectionListeners)
+      listener(selectedForegroundModelId);
+  };
+
   const emitChange = () => {
     for (const listener of changeListeners) listener();
+  };
+
+  const commitForegroundModelRuntime = (
+    runtime: Blocking3dForegroundModelRuntime,
+  ): StoryScene3DForegroundModel => {
+    const position = runtime.entity.getPosition();
+    const rotation = runtime.entity.getEulerAngles();
+    const model: StoryScene3DForegroundModel = {
+      ...runtime.getModel(),
+      position: [
+        ...clampBlockingActorPositionToStage(
+          [position.x, clamp(position.y, 0, 50), position.z],
+          environmentSettings,
+        ),
+      ],
+      yawDeg: clamp(rotation.y, -180, 180),
+      scale: clamp(runtime.entity.getLocalScale().x, 0.1, 10),
+    };
+    runtime.update(model);
+    options.onForegroundModelTransformCommit?.(model);
+    return model;
   };
 
   // Unity 场景视图同款变换手柄（移动/旋转/缩放）：跟随当前选中对象，拖拽直接
@@ -518,6 +586,16 @@ export async function createBlocking3dViewer(
         applySceneMarkerEntityTransform(markerRuntime),
       );
     }
+    const foregroundModelRuntime =
+      !selectedLabel && !selectedMarkerId && selectedForegroundModelId
+        ? (foregroundModelRuntimes.get(selectedForegroundModelId) ?? null)
+        : null;
+    if (
+      foregroundModelRuntime &&
+      options.foregroundModelTransformEditable
+    ) {
+      commitForegroundModelRuntime(foregroundModelRuntime);
+    }
     emitChange();
   };
   const transformGizmo = createBlocking3dTransformGizmo(
@@ -532,13 +610,20 @@ export async function createBlocking3dViewer(
   const syncTransformGizmo = () => {
     const actor = selectedActor();
     const markerRuntime =
-      !selectedLabel && selectedMarkerId
+      !selectedLabel && !selectedForegroundModelId && selectedMarkerId
         ? (sceneMarkerRuntimes.get(selectedMarkerId) ?? null)
+        : null;
+    const foregroundModelRuntime =
+      !selectedLabel && !selectedMarkerId && selectedForegroundModelId
+        ? (foregroundModelRuntimes.get(selectedForegroundModelId) ?? null)
         : null;
     const node = interactionEnabled
       ? ((actor && actorMovementEnabled ? actor.entity : null) ??
         (options.markerTransformEditable
           ? (markerRuntime?.entity ?? null)
+          : null) ??
+        (options.foregroundModelTransformEditable
+          ? (foregroundModelRuntime?.entity ?? null)
           : null) ??
         (cameraSelected ? shotCamera.body : null))
       : null;
@@ -559,6 +644,10 @@ export async function createBlocking3dViewer(
       selectedMarkerId = null;
       emitMarkerSelection();
     }
+    if (selectedForegroundModelId !== null) {
+      selectedForegroundModelId = null;
+      emitForegroundModelSelection();
+    }
     emitSelection();
     return true;
   };
@@ -567,6 +656,10 @@ export async function createBlocking3dViewer(
     if (id !== null && !sceneMarkerRuntimes.has(id)) return false;
     selectedMarkerId = id;
     if (id !== null) selectedLabel = null;
+    if (id !== null && selectedForegroundModelId !== null) {
+      selectedForegroundModelId = null;
+      emitForegroundModelSelection();
+    }
     if (cameraSelected) {
       cameraSelected = false;
       emitCameraSelection();
@@ -586,9 +679,30 @@ export async function createBlocking3dViewer(
       selectedLabel = null;
       selectedMarkerId = null;
       emitMarkerSelection();
+      if (selectedForegroundModelId !== null) {
+        selectedForegroundModelId = null;
+        emitForegroundModelSelection();
+      }
     }
     emitSelection();
     emitCameraSelection();
+    return true;
+  };
+
+  const selectForegroundModel = (id: string | null): boolean => {
+    if (id !== null && !foregroundModelRuntimes.has(id)) return false;
+    selectedForegroundModelId = id;
+    if (id !== null) {
+      selectedLabel = null;
+      selectedMarkerId = null;
+      emitMarkerSelection();
+      if (cameraSelected) {
+        cameraSelected = false;
+        emitCameraSelection();
+      }
+    }
+    emitSelection();
+    emitForegroundModelSelection();
     return true;
   };
 
@@ -643,6 +757,61 @@ export async function createBlocking3dViewer(
     }
   };
 
+  let foregroundModelLoadGeneration = 0;
+  const setForegroundModels = async (
+    models: StoryScene3DForegroundModel[],
+  ): Promise<void> => {
+    const generation = ++foregroundModelLoadGeneration;
+    const accepted = models
+      .filter((model) => model.id.trim() && model.modelId.trim())
+      .slice(0, 32);
+    const nextIds = new Set(accepted.map((model) => model.id));
+
+    for (const model of accepted) {
+      if (destroyed || generation !== foregroundModelLoadGeneration) return;
+      const existing = foregroundModelRuntimes.get(model.id);
+      if (existing) {
+        existing.update(model);
+        continue;
+      }
+      try {
+        const runtime = await createBlocking3dForegroundModelRuntime(
+          app,
+          foregroundModelsRoot,
+          model,
+        );
+        if (destroyed || generation !== foregroundModelLoadGeneration) {
+          runtime.destroy();
+          return;
+        }
+        foregroundModelRuntimes.set(model.id, runtime);
+      } catch (error) {
+        setStatus(
+          `前景模型“${model.modelName || model.label}”加载失败：${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    if (destroyed || generation !== foregroundModelLoadGeneration) return;
+    for (const [id, runtime] of foregroundModelRuntimes) {
+      if (nextIds.has(id)) continue;
+      runtime.destroy();
+      foregroundModelRuntimes.delete(id);
+    }
+    if (
+      selectedForegroundModelId &&
+      !foregroundModelRuntimes.has(selectedForegroundModelId)
+    ) {
+      selectedForegroundModelId = null;
+      emitForegroundModelSelection();
+      emitSelection();
+    } else {
+      emitSelection();
+    }
+  };
+
   const focusMarker = (id: string): boolean => {
     const runtime = sceneMarkerRuntimes.get(id);
     if (!runtime) return false;
@@ -655,6 +824,21 @@ export async function createBlocking3dViewer(
     ];
     cameraState.distance = normalizeBlocking3dCameraDistance(
       Math.max(4, Math.max(...marker.size) * 3 + 3),
+    );
+    cameraState.azim = -35;
+    cameraState.elev = -12;
+    syncCamera();
+    return true;
+  };
+
+  const focusForegroundModel = (id: string): boolean => {
+    const runtime = foregroundModelRuntimes.get(id);
+    if (!runtime) return false;
+    selectForegroundModel(id);
+    const position = runtime.entity.getPosition();
+    cameraState.focalPoint = [position.x, Math.max(0.5, position.y), position.z];
+    cameraState.distance = normalizeBlocking3dCameraDistance(
+      Math.max(4, runtime.radiusMeters * 3 + 3),
     );
     cameraState.azim = -35;
     cameraState.elev = -12;
@@ -709,8 +893,12 @@ export async function createBlocking3dViewer(
       event.button === 0 && !cameraBodyHit
         ? pickActor(event.clientX, event.clientY)
         : null;
-    const markerHit =
+    const foregroundModelHit =
       event.button === 0 && !hit && !cameraBodyHit
+        ? pickForegroundModel(event.clientX, event.clientY)
+        : null;
+    const markerHit =
+      event.button === 0 && !hit && !foregroundModelHit && !cameraBodyHit
         ? pickSceneMarker(
             sceneMarkerRuntimes.values(),
             screenRay(event.clientX, event.clientY),
@@ -718,22 +906,32 @@ export async function createBlocking3dViewer(
         : null;
     if (cameraBodyHit) selectCamera(true);
     else if (hit) select(hit);
+    else if (foregroundModelHit) selectForegroundModel(foregroundModelHit);
     else if (markerHit) selectMarker(markerHit);
     dragState = {
       button: event.button,
       pointerId: event.pointerId,
       x: event.clientX,
       y: event.clientY,
+      startX: event.clientX,
+      startY: event.clientY,
       mode: cameraBodyHit
         ? "camera-body"
         : hit && selectedLabel === hit && actorMovementEnabled
           ? "actor"
-          : event.button === 2
-            ? "camera"
-            : "none",
+          : foregroundModelHit &&
+              selectedForegroundModelId === foregroundModelHit &&
+              options.foregroundModelTransformEditable
+            ? "model"
+            : event.button === 2
+              ? "camera"
+              : "none",
       actorLabel: cameraBodyHit ? undefined : (hit ?? undefined),
+      foregroundModelId: cameraBodyHit
+        ? undefined
+        : (foregroundModelHit ?? undefined),
       lastGround:
-        cameraBodyHit || hit
+        cameraBodyHit || hit || foregroundModelHit
           ? (raycastGround(event.clientX, event.clientY) ?? undefined)
           : undefined,
     };
@@ -770,6 +968,30 @@ export async function createBlocking3dViewer(
         emitSelection();
         emitChange();
       }
+    } else if (
+      dragState.mode === "model" &&
+      dragState.foregroundModelId
+    ) {
+      const runtime = foregroundModelRuntimes.get(
+        dragState.foregroundModelId,
+      );
+      const previousGround = dragState.lastGround;
+      const nextGround = raycastGround(event.clientX, event.clientY);
+      if (runtime && previousGround && nextGround) {
+        const position = runtime.entity.getPosition();
+        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+          [
+            position.x + nextGround.x - previousGround.x,
+            clamp(position.y, 0, 50),
+            position.z + nextGround.z - previousGround.z,
+          ],
+          environmentSettings,
+        );
+        runtime.entity.setPosition(nextX, nextY, nextZ);
+        dragState.lastGround = nextGround;
+        emitSelection();
+        emitChange();
+      }
     } else if (dragState.mode === "camera-body") {
       // 拖拽摄像机机身：沿地面平移独立机位，编辑视角保持不动。
       const previousGround = dragState.lastGround;
@@ -799,14 +1021,18 @@ export async function createBlocking3dViewer(
     if (!dragState || event.pointerId !== dragState.pointerId) return;
     const dx = event.clientX - dragState.x;
     const dy = event.clientY - dragState.y;
+    const totalDx = event.clientX - dragState.startX;
+    const totalDy = event.clientY - dragState.startY;
     const button = dragState.button;
+    const dragMode = dragState.mode;
+    const foregroundModelId = dragState.foregroundModelId;
     dragState = null;
     try {
       canvas.releasePointerCapture(event.pointerId);
     } catch {
       /* no-op */
     }
-    if (button === 0 && Math.hypot(dx, dy) < 6) {
+    if (button === 0 && Math.hypot(totalDx, totalDy) < 6) {
       const clickRay = screenRay(event.clientX, event.clientY);
       if (clickRay && shotCamera.rayHitsBody(clickRay)) {
         selectCamera(true);
@@ -815,14 +1041,32 @@ export async function createBlocking3dViewer(
         if (hit) {
           select(hit);
         } else {
-          const markerHit = pickSceneMarker(
-            sceneMarkerRuntimes.values(),
-            screenRay(event.clientX, event.clientY),
+          const foregroundModelHit = pickForegroundModel(
+            event.clientX,
+            event.clientY,
           );
-          if (markerHit) selectMarker(markerHit);
-          else select(null);
+          if (foregroundModelHit) {
+            selectForegroundModel(foregroundModelHit);
+          } else {
+            const markerHit = pickSceneMarker(
+              sceneMarkerRuntimes.values(),
+              screenRay(event.clientX, event.clientY),
+            );
+            if (markerHit) selectMarker(markerHit);
+            else select(null);
+          }
         }
       }
+    }
+    if (
+      button === 0 &&
+      dragMode === "model" &&
+      foregroundModelId &&
+      options.foregroundModelTransformEditable &&
+      Math.hypot(totalDx, totalDy) >= 6
+    ) {
+      const runtime = foregroundModelRuntimes.get(foregroundModelId);
+      if (runtime) commitForegroundModelRuntime(runtime);
     }
   };
 
@@ -893,6 +1137,26 @@ export async function createBlocking3dViewer(
       }
     }
     return closest?.label ?? null;
+  }
+
+  function pickForegroundModel(clientX: number, clientY: number): string | null {
+    const ray = screenRay(clientX, clientY);
+    if (!ray) return null;
+    let closest: { id: string; distance: number } | null = null;
+    const hit = new pc.Vec3();
+    for (const runtime of foregroundModelRuntimes.values()) {
+      for (const render of runtime.entity.findComponents(
+        "render",
+      ) as pc.RenderComponent[]) {
+        for (const mesh of render.meshInstances ?? []) {
+          if (!mesh.aabb.intersectsRay(ray, hit)) continue;
+          const distance = hit.distance(ray.origin);
+          if (!closest || distance < closest.distance)
+            closest = { id: runtime.id, distance };
+        }
+      }
+    }
+    return closest?.id ?? null;
   }
 
   const handleKeyboardCamera = (dt: number) => {
@@ -974,6 +1238,10 @@ export async function createBlocking3dViewer(
         throw new Error("3D 代理角色缺少基础待机动作。");
       }
     }
+    if (options.foregroundModels?.length) {
+      setStatus("正在加载模型库前景...");
+      await setForegroundModels(options.foregroundModels);
+    }
     setStatus(options.loadProxyActor === false ? "HDRI 环境已就绪" : "3D 草图已就绪");
   } catch (error) {
     resizeObserver.disconnect();
@@ -1032,8 +1300,13 @@ export async function createBlocking3dViewer(
   };
 
   const fitView = () => {
-    const values = [...actors.values()];
-    if (!values.length) {
+    const positions = [
+      ...[...actors.values()].map((actor) => actor.entity.getPosition()),
+      ...[...foregroundModelRuntimes.values()].map((runtime) =>
+        runtime.entity.getPosition(),
+      ),
+    ];
+    if (!positions.length) {
       cameraState = {
         ...DEFAULT_CAMERA,
         focalPoint: [...DEFAULT_CAMERA.focalPoint],
@@ -1043,16 +1316,16 @@ export async function createBlocking3dViewer(
       return;
     }
     const minX = Math.min(
-      ...values.map((actor) => actor.entity.getPosition().x),
+      ...positions.map((position) => position.x),
     );
     const maxX = Math.max(
-      ...values.map((actor) => actor.entity.getPosition().x),
+      ...positions.map((position) => position.x),
     );
     const minZ = Math.min(
-      ...values.map((actor) => actor.entity.getPosition().z),
+      ...positions.map((position) => position.z),
     );
     const maxZ = Math.max(
-      ...values.map((actor) => actor.entity.getPosition().z),
+      ...positions.map((position) => position.z),
     );
     cameraState.focalPoint = [(minX + maxX) / 2, 0.8, (minZ + maxZ) / 2];
     cameraState.distance = normalizeBlocking3dCameraDistance(
@@ -1075,6 +1348,11 @@ export async function createBlocking3dViewer(
       markerSelectionListeners.add(listener);
       listener(selectedMarkerId);
       return () => markerSelectionListeners.delete(listener);
+    },
+    onForegroundModelSelection(listener) {
+      foregroundModelSelectionListeners.add(listener);
+      listener(selectedForegroundModelId);
+      return () => foregroundModelSelectionListeners.delete(listener);
     },
     onCameraSelection(listener) {
       cameraSelectionListeners.add(listener);
@@ -1134,14 +1412,33 @@ export async function createBlocking3dViewer(
       return select(label);
     },
     selectMarker,
+    selectForegroundModel,
     focusMarker,
+    focusForegroundModel,
     getSelectedMarker: () => selectedMarkerId,
+    getSelectedForegroundModel: () => selectedForegroundModelId,
     setSceneMarkers,
     getSceneMarkers: () =>
       [...sceneMarkerRuntimes.values()].map((runtime) => runtime.marker),
+    setForegroundModels,
+    getForegroundModels,
     getSelectedActor: () => selectedLabel,
     getSelectedTransform() {
       const actor = selectedActor();
+      if (!actor && selectedForegroundModelId) {
+        const runtime = foregroundModelRuntimes.get(selectedForegroundModelId);
+        if (!runtime) return null;
+        const transform = runtime.getTransform();
+        return {
+          position: transform.position,
+          yawDeg: transform.yawDeg,
+          scale: [transform.scale, transform.scale, transform.scale] as [
+            number,
+            number,
+            number,
+          ],
+        };
+      }
       if (!actor) return null;
       const position = actor.entity.getPosition();
       const rotation = actor.entity.getEulerAngles();
@@ -1187,8 +1484,23 @@ export async function createBlocking3dViewer(
       return color ? ([...color] as [number, number, number]) : null;
     },
     nudgeSelected(dx, dy, dz) {
-      if (!actorMovementEnabled) return false;
       const actor = selectedActor();
+      if (!actor && selectedForegroundModelId) {
+        if (!options.foregroundModelTransformEditable) return false;
+        const runtime = foregroundModelRuntimes.get(selectedForegroundModelId);
+        if (!runtime) return false;
+        const position = runtime.entity.getPosition();
+        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+          [position.x + dx, clamp(position.y + dy, 0, 50), position.z + dz],
+          environmentSettings,
+        );
+        runtime.entity.setPosition(nextX, nextY, nextZ);
+        commitForegroundModelRuntime(runtime);
+        emitSelection();
+        emitChange();
+        return true;
+      }
+      if (!actorMovementEnabled) return false;
       if (!actor) return false;
       const position = actor.entity.getPosition();
       const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
@@ -1208,6 +1520,21 @@ export async function createBlocking3dViewer(
         return true;
       }
       const actor = selectedActor();
+      if (!actor && selectedForegroundModelId) {
+        if (!options.foregroundModelTransformEditable) return false;
+        const runtime = foregroundModelRuntimes.get(selectedForegroundModelId);
+        if (!runtime) return false;
+        const current = runtime.entity.getEulerAngles();
+        runtime.entity.setEulerAngles(
+          0,
+          clamp(current.y + degrees, -180, 180),
+          0,
+        );
+        commitForegroundModelRuntime(runtime);
+        emitSelection();
+        emitChange();
+        return true;
+      }
       if (!actor) return false;
       const current = actor.entity.getEulerAngles();
       actor.entity.setEulerAngles(
@@ -1219,8 +1546,19 @@ export async function createBlocking3dViewer(
       return true;
     },
     groundSelected() {
-      if (!actorMovementEnabled) return false;
       const actor = selectedActor();
+      if (!actor && selectedForegroundModelId) {
+        if (!options.foregroundModelTransformEditable) return false;
+        const runtime = foregroundModelRuntimes.get(selectedForegroundModelId);
+        if (!runtime) return false;
+        const position = runtime.entity.getPosition();
+        runtime.entity.setPosition(position.x, 0, position.z);
+        commitForegroundModelRuntime(runtime);
+        emitSelection();
+        emitChange();
+        return true;
+      }
+      if (!actorMovementEnabled) return false;
       if (!actor) return false;
       const position = actor.entity.getPosition();
       actor.entity.setPosition(position.x, 0, position.z);
@@ -1229,8 +1567,50 @@ export async function createBlocking3dViewer(
       return true;
     },
     setSelectedTransform(patch) {
-      if (!actorMovementEnabled) return false;
       const actor = selectedActor();
+      if (!actor && selectedForegroundModelId) {
+        if (!options.foregroundModelTransformEditable) return false;
+        const runtime = foregroundModelRuntimes.get(selectedForegroundModelId);
+        if (!runtime) return false;
+        const currentPosition = runtime.entity.getPosition();
+        const currentRotation = runtime.entity.getEulerAngles();
+        const nextPosition = patch.position ?? [
+          currentPosition.x,
+          currentPosition.y,
+          currentPosition.z,
+        ];
+        const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
+          [nextPosition[0], clamp(nextPosition[1], 0, 50), nextPosition[2]],
+          environmentSettings,
+        );
+        runtime.entity.setPosition(nextX, nextY, nextZ);
+        if (patch.yawDeg != null) {
+          runtime.entity.setEulerAngles(
+            0,
+            clamp(patch.yawDeg, -180, 180),
+            0,
+          );
+        } else {
+          runtime.entity.setEulerAngles(
+            currentRotation.x,
+            currentRotation.y,
+            currentRotation.z,
+          );
+        }
+        if (patch.scale) {
+          const nextScale = clamp(
+            Number.isFinite(patch.scale[0]) ? patch.scale[0] : 1,
+            0.1,
+            10,
+          );
+          runtime.entity.setLocalScale(nextScale, nextScale, nextScale);
+        }
+        commitForegroundModelRuntime(runtime);
+        emitSelection();
+        emitChange();
+        return true;
+      }
+      if (!actorMovementEnabled) return false;
       if (!actor) return false;
       const position = actor.entity.getPosition();
       const rotation = actor.entity.getEulerAngles();
@@ -1349,6 +1729,7 @@ export async function createBlocking3dViewer(
           pitchDeg: shotCameraPose.pitchDeg,
         },
         environment: viewer.getEnvironmentSettings(),
+        foregroundModels: getForegroundModels(),
         actors: [...actors.values()].map((actor) => {
           const position = actor.entity.getPosition();
           const scale = actor.entity.getLocalScale();
@@ -1364,6 +1745,9 @@ export async function createBlocking3dViewer(
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
             color: [...actor.color] as [number, number, number],
+            ...(actor.interactionModelId
+              ? { interactionModelId: actor.interactionModelId }
+              : {}),
             actionPlaying: false,
           };
         }),
@@ -1381,6 +1765,7 @@ export async function createBlocking3dViewer(
       applyEnvironmentSettings();
       if (geometryChanged)
         environment.rebuildEnvironmentBackdropMesh(environmentSettings);
+      void setForegroundModels(layout.foregroundModels ?? []);
       viewer.setCameraState(layout.camera);
       // 旧布局没有独立机位字段时从轨道相机推导，打开就能看到摄像机实体。
       shotCameraPose = normalizeShotCameraPose(
@@ -1409,6 +1794,7 @@ export async function createBlocking3dViewer(
           actor.heightMeters,
         );
         actor.entity.setLocalScale(scale[0], scale[1], scale[2]);
+        actor.interactionModelId = saved.interactionModelId;
         if (saved.color) {
           actor.color = normalizeActorColor(saved.color);
           actor.material = setEntityMaterial(
@@ -1476,6 +1862,10 @@ export async function createBlocking3dViewer(
       for (const runtime of sceneMarkerRuntimes.values())
         destroySceneMarkerRuntime(runtime);
       sceneMarkerRuntimes.clear();
+      foregroundModelLoadGeneration += 1;
+      for (const runtime of foregroundModelRuntimes.values()) runtime.destroy();
+      foregroundModelRuntimes.clear();
+      foregroundModelsRoot.destroy();
       environment.destroy();
       destroyProjectionCenterGizmo(projectionCenterGizmo);
       transformGizmo.destroy();

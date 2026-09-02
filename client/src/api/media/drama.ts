@@ -1,6 +1,7 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import type {
   StoryScene3DEnvironment,
+  StoryScene3DForegroundModel,
   StoryScene3DMarker,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
@@ -224,6 +225,8 @@ export interface DramaShotBlockingSketch3DActor {
   pose: DramaShotBlockingSketchPose;
   /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
   color?: [number, number, number];
+  /** 角色与模型库前景实例交互时的真实实例 id。 */
+  interactionModelId?: string;
   /** Legacy compatibility marker; the 3D sketch always stores a paused key frame. */
   actionPlaying: boolean;
 }
@@ -252,6 +255,7 @@ export interface DramaShotBlockingSketch3DLayout {
   camera: DramaShotBlockingSketch3DCamera;
   shotCamera?: DramaShotBlockingSketch3DShotCamera;
   actors: DramaShotBlockingSketch3DActor[];
+  foregroundModels?: StoryScene3DForegroundModel[];
   environment?: DramaShotBlockingSketch3DEnvironment;
 }
 
@@ -288,6 +292,7 @@ export interface DramaShotBlockingSketchEditorContext {
     environment: StoryScene3DEnvironment;
     markers: StoryScene3DMarker[];
     markerAnalysis: StoryScene3DMarkerSet | null;
+    foregroundModels: StoryScene3DForegroundModel[];
   } | null;
   actors: Array<{
     characterName: string;

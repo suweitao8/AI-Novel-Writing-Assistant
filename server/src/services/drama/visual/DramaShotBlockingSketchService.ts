@@ -8,6 +8,7 @@ import {
 import {
   isStoryScene3DMarkerSetCurrent,
   type StoryScene3DEnvironment,
+  type StoryScene3DForegroundModel,
   type StoryScene3DMarker,
   type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
@@ -121,6 +122,7 @@ interface BlockingSketchEditorScene {
   environment: StoryScene3DEnvironment;
   markers: StoryScene3DMarker[];
   markerAnalysis: StoryScene3DMarkerSet | null;
+  foregroundModels: StoryScene3DForegroundModel[];
 }
 
 export interface BlockingSketchEditorActor {
@@ -367,6 +369,7 @@ export class DramaShotBlockingSketchService {
         environment: matchedScene.environment,
         markers: markersAreCurrent ? markerAnalysis?.markers ?? [] : [],
         markerAnalysis,
+        foregroundModels: matchedSceneState?.scene3dForegroundModels ?? [],
       }
       : null;
 
@@ -425,7 +428,13 @@ export class DramaShotBlockingSketchService {
         temperature: options.temperature ?? 0.25,
       },
     });
-    return buildDramaShotBlockingAutoPlanLayout(result.output, context.actors, context.scene.environment, shot.shotSize);
+    return buildDramaShotBlockingAutoPlanLayout(
+      result.output,
+      context.actors,
+      context.scene.environment,
+      shot.shotSize,
+      context.scene.foregroundModels,
+    );
   }
 
   async saveSketch(projectId: string, shotId: string, input: unknown): Promise<DramaShotBlockingSketchData> {
@@ -884,6 +893,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
   actors: BlockingSketchEditorActor[],
   environment: StoryScene3DEnvironment,
   shotSize?: string | null,
+  foregroundModels: StoryScene3DForegroundModel[] = [],
 ): DramaShotBlockingAutoPlanResult {
   const expectedNames = actors.map((actor) => actor.characterName.trim());
   const expected = new Set(expectedNames.map(normalizedName));
@@ -915,6 +925,9 @@ export function buildDramaShotBlockingAutoPlanLayout(
       position: clampBlockingActorPositionToStage(actor.position, environment),
       yawDeg: actor.yawDeg,
       pose: actor.pose as DramaShotBlockingSketchPose,
+      ...(actor.interactionModelId?.trim()
+        ? { interactionModelId: actor.interactionModelId.trim() }
+        : {}),
       actionPlaying: false,
     }));
     enforceAutoPlanRelations(plannedActors, output.relations, actors, environment);
@@ -928,6 +941,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
         environment,
       }),
       actors: plannedActors,
+      ...(foregroundModels.length > 0 ? { foregroundModels } : {}),
       environment,
     });
     // AI 规划后的确定性出画兜底：任何角色落在取景锥外时只放宽 fovDeg。

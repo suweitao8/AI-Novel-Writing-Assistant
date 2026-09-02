@@ -110,6 +110,7 @@ export interface Blocking3dViewerActor {
   entity: pc.Entity;
   animEntity: pc.Entity;
   pose: DramaShotBlockingSketchPose;
+  interactionModelId?: string;
   actionPlaying: boolean;
   color: [number, number, number];
   material: pc.StandardMaterial;
