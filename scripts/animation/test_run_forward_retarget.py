@@ -19,7 +19,25 @@ SOURCE_GLB = Path(os.environ.get(
     "unreal-daily-male-locomotion-run-forward.glb",
 ))
 TARGET_GLB = REPO_ROOT / "client/public/viewer-kit/quaternius/ual2/UAL2_Standard.glb"
+PUBLISHED_CATALOG = REPO_ROOT / "client/public/anims/cine57/UAL2_UE_Anims.glb"
 ANIMATION_NAME = "C57_unreal_daily_male_locomotion_run_forward"
+BODY_SEGMENTS = (
+    ("pelvis", "spine_01"),
+    ("spine_01", "spine_02"),
+    ("spine_02", "spine_03"),
+    ("spine_03", "neck_01"),
+    ("neck_01", "head"),
+    ("clavicle_l", "upperarm_l"),
+    ("upperarm_l", "lowerarm_l"),
+    ("lowerarm_l", "hand_l"),
+    ("clavicle_r", "upperarm_r"),
+    ("upperarm_r", "lowerarm_r"),
+    ("lowerarm_r", "hand_r"),
+    ("thigh_l", "calf_l"),
+    ("calf_l", "foot_l"),
+    ("thigh_r", "calf_r"),
+    ("calf_r", "foot_r"),
+)
 
 
 def read_glb(path):
@@ -63,6 +81,14 @@ def load_animation(glb, binary, name=None):
             read_accessor(glb, binary, sampler["output"]),
         )
     return tracks
+
+
+def animation_by_name(glb, name):
+    return next(
+        (animation for animation in glb.get("animations", [])
+         if animation.get("name") == name),
+        None,
+    )
 
 
 def qmul(a, b):
@@ -196,6 +222,45 @@ def direction(positions, by_name, parent_name, child_name):
 
 
 class RunForwardRetargetTest(unittest.TestCase):
+    def assert_body_chain_follows_source(self, source_path, output_path):
+        source_glb, source_binary = read_glb(source_path)
+        output_glb, output_binary = read_glb(output_path)
+        source_tracks = load_animation(source_glb, source_binary)
+        output_tracks = load_animation(output_glb, output_binary, ANIMATION_NAME)
+        source_times = next(
+            track["rotation"][0]
+            for track in source_tracks.values()
+            if "rotation" in track
+        )
+        source_names = {
+            node.get("name", "").lower(): index
+            for index, node in enumerate(source_glb["nodes"])
+        }
+        output_names = {
+            node.get("name", "").lower(): index
+            for index, node in enumerate(output_glb["nodes"])
+        }
+
+        for frame, time in enumerate(source_times):
+            source_positions = world_positions(source_glb, source_tracks, time)
+            output_positions = world_positions(output_glb, output_tracks, time)
+            for parent_name, child_name in BODY_SEGMENTS:
+                source_direction = direction(
+                    source_positions, source_names, parent_name, child_name,
+                )
+                output_direction = direction(
+                    output_positions, output_names, parent_name, child_name,
+                )
+                alignment = sum(
+                    source_direction[index] * output_direction[index]
+                    for index in range(3)
+                )
+                self.assertGreaterEqual(
+                    alignment,
+                    0.985,
+                    f"frame {frame}: {parent_name}->{child_name} direction drifted",
+                )
+
     def test_body_chain_directions_follow_source_animation(self):
         if not SOURCE_GLB.is_file():
             self.skipTest("Cine57 run-forward source GLB is not available")
@@ -222,60 +287,50 @@ class RunForwardRetargetTest(unittest.TestCase):
                 check=False,
             )
             self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            self.assert_body_chain_follows_source(SOURCE_GLB, output)
 
-            source_glb, source_binary = read_glb(SOURCE_GLB)
-            output_glb, output_binary = read_glb(output)
-            source_tracks = load_animation(source_glb, source_binary)
-            output_tracks = load_animation(output_glb, output_binary, ANIMATION_NAME)
-            source_times = next(
-                track["rotation"][0]
-                for track in source_tracks.values()
-                if "rotation" in track
-            )
-            source_names = {
-                node.get("name", "").lower(): index
-                for index, node in enumerate(source_glb["nodes"])
-            }
-            output_names = {
-                node.get("name", "").lower(): index
-                for index, node in enumerate(output_glb["nodes"])
-            }
+    def test_published_catalog_contains_valid_run_forward_track(self):
+        self.assertTrue(
+            PUBLISHED_CATALOG.is_file(),
+            f"published animation catalog is missing: {PUBLISHED_CATALOG}",
+        )
+        catalog_glb, catalog_binary = read_glb(PUBLISHED_CATALOG)
+        animation = animation_by_name(catalog_glb, ANIMATION_NAME)
+        self.assertIsNotNone(animation, "published run-forward animation is missing")
+        self.assertEqual(len(animation["channels"]), 55)
+        self.assertEqual(len(animation["samplers"]), 55)
 
-            for frame, time in enumerate(source_times):
-                source_positions = world_positions(source_glb, source_tracks, time)
-                output_positions = world_positions(output_glb, output_tracks, time)
-                for parent_name, child_name in [
-                    ("pelvis", "spine_01"),
-                    ("spine_01", "spine_02"),
-                    ("spine_02", "spine_03"),
-                    ("spine_03", "neck_01"),
-                    ("neck_01", "head"),
-                    ("clavicle_l", "upperarm_l"),
-                    ("upperarm_l", "lowerarm_l"),
-                    ("lowerarm_l", "hand_l"),
-                    ("clavicle_r", "upperarm_r"),
-                    ("upperarm_r", "lowerarm_r"),
-                    ("lowerarm_r", "hand_r"),
-                    ("thigh_l", "calf_l"),
-                    ("calf_l", "foot_l"),
-                    ("thigh_r", "calf_r"),
-                    ("calf_r", "foot_r"),
-                ]:
-                    source_direction = direction(
-                        source_positions, source_names, parent_name, child_name,
+        skin_joint_indices = {
+            joint
+            for skin in catalog_glb.get("skins", [])
+            for joint in skin.get("joints", [])
+        }
+        self.assertTrue(skin_joint_indices, "published catalog has no skin joints")
+        for channel in animation["channels"]:
+            target = channel["target"]
+            self.assertIn(target["node"], skin_joint_indices)
+            self.assertIn(target["path"], {"rotation", "translation"})
+            sampler = animation["samplers"][channel["sampler"]]
+            input_accessor = catalog_glb["accessors"][sampler["input"]]
+            output_accessor = catalog_glb["accessors"][sampler["output"]]
+            self.assertEqual(input_accessor["type"], "SCALAR")
+            self.assertEqual(input_accessor["count"], 15)
+            self.assertEqual(output_accessor["count"], input_accessor["count"])
+            expected_type = "VEC4" if target["path"] == "rotation" else "VEC3"
+            self.assertEqual(output_accessor["type"], expected_type)
+            if target["path"] == "rotation":
+                for quaternion in read_accessor(
+                    catalog_glb, catalog_binary, sampler["output"],
+                ):
+                    self.assertTrue(all(math.isfinite(value) for value in quaternion))
+                    self.assertAlmostEqual(
+                        math.sqrt(sum(value * value for value in quaternion)),
+                        1.0,
+                        places=3,
                     )
-                    output_direction = direction(
-                        output_positions, output_names, parent_name, child_name,
-                    )
-                    alignment = sum(
-                        source_direction[index] * output_direction[index]
-                        for index in range(3)
-                    )
-                    self.assertGreaterEqual(
-                        alignment,
-                        0.985,
-                        f"frame {frame}: {parent_name}->{child_name} direction drifted",
-                    )
+
+        if SOURCE_GLB.is_file():
+            self.assert_body_chain_follows_source(SOURCE_GLB, PUBLISHED_CATALOG)
 
 
 if __name__ == "__main__":

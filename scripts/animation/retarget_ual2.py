@@ -365,7 +365,7 @@ def _align_vlen(v):
 
 def _align_vnorm(v):
     length = _align_vlen(v)
-    if length < 1e-9:
+    if not math.isfinite(length) or length < 1e-9:
         return None
     return tuple(value / length for value in v)
 
@@ -428,31 +428,69 @@ for _parent_name, _child_name in _align_names:
         _align_applied += 1
 print("anatomical segment alignment applied on %d frames" % _align_applied)
 
+_expected_alignment_count = F * len(_align_names)
+if _align_applied != _expected_alignment_count:
+    raise SystemExit(
+        "anatomical segment alignment incomplete: %d/%d segments" %
+        (_align_applied, _expected_alignment_count)
+    )
+
 _left_hand = a_by_name.get("hand_l")
 _right_hand = a_by_name.get("hand_r")
-if _left_hand is not None and _right_hand is not None:
-    _source_hand_gap_min = min(
-        _align_vlen(_align_vsub(a_posF[_left_hand][f], a_posF[_right_hand][f]))
-        for f in range(F)
+_source_head = a_by_name.get("head")
+_source_hand_gap_min = float("inf")
+_source_hand_head_gap_min = float("inf")
+_source_contact_frames = []
+for _f in range(F):
+    _hand_gap = (
+        _align_vlen(_align_vsub(a_posF[_left_hand][_f], a_posF[_right_hand][_f]))
+        if _left_hand is not None and _right_hand is not None
+        else float("inf")
     )
-else:
-    _source_hand_gap_min = float("inf")
+    _hand_head_gap = min(
+        (
+            _align_vlen(_align_vsub(a_posF[_hand][_f], a_posF[_source_head][_f]))
+            if _hand is not None and _source_head is not None
+            else float("inf")
+        )
+        for _hand in (_left_hand, _right_hand)
+    )
+    _source_hand_gap_min = min(_source_hand_gap_min, _hand_gap)
+    _source_hand_head_gap_min = min(_source_hand_head_gap_min, _hand_head_gap)
+    _source_contact_frames.append(_hand_gap <= 0.15 or _hand_head_gap <= 0.20)
 
 # End-effector IK is useful for genuine hand-contact poses, but applying it to
 # every locomotion clip changes valid knee/elbow directions and was the source
-# of the run-forward shoulder/foot drift.  Keep an explicit opt-in for other
-# actions while making the safe default data-driven from the source pose.
-_use_limb_ik = (
-    not _os.environ.get("RETARGET_NO_ARM_IK")
-    and (
-        _os.environ.get("RETARGET_USE_LIMB_IK") == "1"
-        or _source_hand_gap_min <= 0.15
-    )
-)
+# of the run-forward shoulder/foot drift.  Auto mode only solves arms on source
+# contact frames; leg IK is explicit because hand contact says nothing about
+# foot placement.  Keep the old switch name for compatibility.
+def _env_flag(name):
+    return _os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+_force_limb_ik = _env_flag("RETARGET_USE_LIMB_IK")
+_disable_limb_ik = _env_flag("RETARGET_NO_ARM_IK")
+_auto_arm_contact = any(_source_contact_frames)
+_arm_ik_frames = {
+    _f for _f, _is_contact in enumerate(_source_contact_frames)
+    if _force_limb_ik or _is_contact
+}
+_use_arm_ik = not _disable_limb_ik and (_force_limb_ik or _auto_arm_contact)
+_use_leg_ik = not _disable_limb_ik and _force_limb_ik
+_use_limb_ik = _use_arm_ik or _use_leg_ik
 if not _use_limb_ik:
     print(
-        "limb IK skipped: source minimum wrist gap %.3fm "
-        "(set RETARGET_USE_LIMB_IK=1 to force)" % _source_hand_gap_min
+        "limb IK skipped: no source hand contact "
+        "(min wrist gap %.3fm, min hand-head gap %.3fm; "
+        "set RETARGET_USE_LIMB_IK=1 to force)" %
+        (_source_hand_gap_min, _source_hand_head_gap_min)
+    )
+elif _force_limb_ik:
+    print("limb IK forced on all frames")
+else:
+    print(
+        "arm IK auto-enabled on %d source contact frames; leg IK remains off" %
+        sum(_source_contact_frames)
     )
 
 # ---------- verify: recompose target at mid frame and validate body segments ----------
@@ -475,14 +513,16 @@ for ui, frames in out_trans.items():
     solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
 Wt, Pt = compose(solved_tracks, tm)
 
-_verify_names = _align_names[:5] if _use_limb_ik else _align_names
+_verify_names = _align_names
 _segment_dots = []
+_verify_missing = []
 for _parent_name, _child_name in _verify_names:
     _ui = _align_target.get(_parent_name)
     _child_ui = _align_target.get(_child_name)
     _src = t2s.get(_ui) if _ui is not None else None
     _src_child = t2s.get(_child_ui) if _child_ui is not None else None
     if None in (_ui, _child_ui, _src, _src_child):
+        _verify_missing.append("%s->%s" % (_parent_name, _child_name))
         continue
     _target_vec = _align_vnorm(_align_vsub(Pt[_child_ui], Pt[_ui]))
     _source_vec = _align_vnorm(
@@ -496,6 +536,11 @@ print(
     f"min segment |dot| = {segment_min:.5f} -> "
     f"{'PASS' if segment_min > 0.985 else 'FAIL'}"
 )
+if _verify_missing or len(_segment_dots) != len(_verify_names) or segment_min <= 0.985:
+    raise SystemExit(
+        "anatomical segment verification failed: missing=%s min_dot=%.5f" %
+        (", ".join(_verify_missing) or "none", segment_min)
+    )
 def wpos(name):
     ui = tidx2(name)
     return tuple(round(v, 3) for v in Pt[ui])
@@ -565,7 +610,7 @@ if _use_limb_ik:
         # 跑步/蹲伏的脚印由腿长决定，纯旋转传递会让脚漂移、膝弯变形
         # （与 ozz-animation foot_ik、TREE-Ind 重定向插件同一套末端 IK 思路）。
         chains = {}
-        for side in ("l", "r"):
+        for side in (("l", "r") if _use_arm_ik else ()):
             chain = [_bid("clavicle_" + side), _bid("upperarm_" + side), _bid("lowerarm_" + side), _bid("hand_" + side)]
             a_hand = a_by_name.get("hand_" + side)
             if any(ui is None for ui in chain) or a_hand is None: continue
@@ -599,7 +644,7 @@ if _use_limb_ik:
             ik_sides.append("arm_" + side)
         t_pelvis = _bid("pelvis")
         a_pelvis = a_by_name.get("pelvis")
-        for side in ("l", "r"):
+        for side in (("l", "r") if _use_leg_ik else ()):
             chain = [_bid("thigh_" + side), _bid("calf_" + side), _bid("foot_" + side)]
             a_foot = a_by_name.get("foot_" + side)
             if t_pelvis is None or a_pelvis is None: continue
@@ -667,14 +712,29 @@ if _use_limb_ik:
         last_plane = {}
         for key, info in chains.items():
             for f in range(F):
+                if info["kind"] == "arm" and f not in _arm_ik_frames:
+                    continue
                 S = bt_posF[info["t_upper"]][f]
                 E_old = bt_posF[info["t_lower"]][f]
                 W_old = bt_posF[info["t_hand"]][f]
                 plane = _vcross(_vsub(E_old, S), _vsub(W_old, S))
-                if _vlen(plane) < 1e-6: continue  # 传递姿态肢体完全伸直时无弯曲平面，保持该帧
-                plane_n = _vnorm(plane)
-                if _vlen(plane) < 0.03 and key in last_plane:
-                    plane_n = last_plane[key]  # 接近伸直时平面法线噪声大，沿用上一帧防肘/膝抖动
+                plane_len = _vlen(plane)
+                if plane_len < 1e-6:
+                    if key in last_plane:
+                        plane_n = last_plane[key]
+                    else:
+                        upper_vector = _vsub(E_old, S)
+                        if _vlen(upper_vector) < 1e-9:
+                            continue
+                        upper_dir = _vnorm(upper_vector)
+                        reference = (0.0, 1.0, 0.0)
+                        if abs(_vdot(upper_dir, reference)) > 0.95:
+                            reference = (1.0, 0.0, 0.0)
+                        plane_n = _vnorm(_vcross(upper_dir, reference))
+                else:
+                    plane_n = _vnorm(plane)
+                    if plane_len < 0.03 and key in last_plane:
+                        plane_n = last_plane[key]  # 接近伸直时平面法线噪声大，沿用上一帧防肘/膝抖动
                 last_plane[key] = plane_n
                 desired = desired_targets[key][f]
                 l1, l2 = info["l1"], info["l2"]
@@ -720,9 +780,15 @@ if _use_limb_ik:
     for key, info in chains.items():
         if info["kind"] != "arm": continue
         a_hand = info["a_end"]
+        candidate_frames = sorted(_arm_ik_frames)
+        if not candidate_frames:
+            continue
         # 臂链锚定是锁骨：校验源锁骨-手最远伸展帧上，目标距离应与源×臂长比一致。
-        src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[info["a_anchor"]][f])) for f in range(F)]
-        cf = max(range(F), key=lambda f: src_d[f])
+        src_d = {
+            f: _vlen(_vsub(a_posF[a_hand][f], a_posF[info["a_anchor"]][f]))
+            for f in candidate_frames
+        }
+        cf = max(candidate_frames, key=lambda f: src_d[f])
         _Wc, Pc = compose(ik_tracks, grid[cf])
         src_dd = src_d[cf]
         tgt_dd = _vlen(_vsub(Pc[info["t_hand"]], Pc[info["t_anchor"]]))
