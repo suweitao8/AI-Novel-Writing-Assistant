@@ -2,6 +2,7 @@
 
 "use strict";
 
+const path = require("node:path");
 const { spawn, spawnSync } = require("node:child_process");
 const { assertStartupIntegrity } = require("./workspace-integrity-guard.cjs");
 const { isMainWorkspaceCheckout } = require("./dev-ports.cjs");
