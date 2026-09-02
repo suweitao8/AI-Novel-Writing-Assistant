@@ -123,6 +123,24 @@ test("轨道相机越界时保持视线方向并缩短距离收进穹顶", () =>
   assert.ok(clamped.distance <= camera.distance + 1e-9, "距离只收不放");
 });
 
+test("编辑轨道相机可以关闭距离边界并保留远端观察距离", () => {
+  const camera = {
+    azim: 20,
+    elev: -15,
+    distance: 500,
+    focalPoint: [0.05, 0.8, 0.485],
+  };
+  const editorCamera = clampBlockingCameraOrbitToWorld(
+    camera,
+    { radiusMeters: 3, projectionCenterHeight: 0.6 },
+    { constrainDistance: false },
+  );
+
+  assert.equal(editorCamera.distance, camera.distance);
+  assert.deepEqual(editorCamera.focalPoint, camera.focalPoint);
+  assert.ok(editorCamera.focalPoint[0] <= 3 * STORY_SCENE_3D_CAMERA_BOUND_RATIO);
+});
+
 test("穹顶内轨道相机原样保留，焦点越界时先收焦点再收距离", () => {
   const environment = { radiusMeters: 6, projectionCenterHeight: 2 };
   const inside = {

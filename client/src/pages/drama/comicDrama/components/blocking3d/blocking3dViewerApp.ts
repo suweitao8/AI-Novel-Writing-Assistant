@@ -24,6 +24,8 @@ import {
 import { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRuntime";
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import {
+  normalizeBlocking3dCameraDistance,
+  resolveBlocking3dEditorFarClip,
   updateBlocking3dCameraAzimuth,
   wrapBlocking3dAzimuth,
 } from "./blocking3dMath";
@@ -402,15 +404,18 @@ export async function createBlocking3dViewer(
     for (const listener of statusListeners) listener(status);
   };
 
-  const orbitDistance = () => clamp(cameraState.distance, 0.25, 100);
+  const orbitDistance = () =>
+    normalizeBlocking3dCameraDistance(cameraState.distance);
 
   const syncCamera = () => {
     if (!cameraEntity.camera) return;
-    // 全景穹顶是场景的物理外壳：所有编辑视角操作（平移/缩放/聚焦/载入）
-    // 都经过这里收敛进壳内，出界取景只会拍到穹顶背面。
+    // 编辑视角只把焦点收回可编辑范围，不把镜头距离收回 HDRI 穹顶；
+    // 这样滚轮可以继续拉远查看完整场景。场景摄像机机位仍在写入口处受边界保护。
     cameraState = {
       ...cameraState,
-      ...clampBlockingCameraOrbitToWorld(cameraState, environmentSettings),
+      ...clampBlockingCameraOrbitToWorld(cameraState, environmentSettings, {
+        constrainDistance: false,
+      }),
     };
     const elevation = cameraState.elev * pc.math.DEG_TO_RAD;
     const azimuth = cameraState.azim * pc.math.DEG_TO_RAD;
@@ -423,7 +428,11 @@ export async function createBlocking3dViewer(
     );
     cameraEntity.camera.fov = cameraState.fovDeg;
     cameraEntity.camera.nearClip = cameraState.nearClip;
-    cameraEntity.camera.farClip = cameraState.farClip;
+    cameraEntity.camera.farClip = resolveBlocking3dEditorFarClip(
+      distance,
+      cameraState.farClip,
+      resolveStoryScene3DWorldRadius(environmentSettings),
+    );
     cameraFrame.dof.enabled = cameraState.depthOfFieldEnabled;
     cameraFrame.dof.focusDistance = cameraState.focusDistance;
     cameraFrame.dof.focusRange = cameraState.focusRange;
@@ -644,10 +653,8 @@ export async function createBlocking3dViewer(
       Math.max(0.5, marker.position[1]),
       marker.position[2],
     ];
-    cameraState.distance = clamp(
+    cameraState.distance = normalizeBlocking3dCameraDistance(
       Math.max(4, Math.max(...marker.size) * 3 + 3),
-      0.25,
-      100,
     );
     cameraState.azim = -35;
     cameraState.elev = -12;
@@ -822,10 +829,8 @@ export async function createBlocking3dViewer(
   const onWheel = (event: WheelEvent) => {
     if (!interactionEnabled) return;
     event.preventDefault();
-    cameraState.distance = clamp(
+    cameraState.distance = normalizeBlocking3dCameraDistance(
       cameraState.distance * (event.deltaY > 0 ? 1.08 : 0.92),
-      0.25,
-      100,
     );
     syncCamera();
     emitChange();
@@ -1050,10 +1055,8 @@ export async function createBlocking3dViewer(
       ...values.map((actor) => actor.entity.getPosition().z),
     );
     cameraState.focalPoint = [(minX + maxX) / 2, 0.8, (minZ + maxZ) / 2];
-    cameraState.distance = clamp(
+    cameraState.distance = normalizeBlocking3dCameraDistance(
       Math.max(5, Math.max(maxX - minX, maxZ - minZ) * 2.3 + 4),
-      0.25,
-      100,
     );
     cameraState.azim = -35;
     cameraState.elev = -12;
@@ -1382,8 +1385,8 @@ export async function createBlocking3dViewer(
       // 旧布局没有独立机位字段时从轨道相机推导，打开就能看到摄像机实体。
       shotCameraPose = normalizeShotCameraPose(
         layout.shotCamera,
-        // setCameraState 已把轨道相机收敛进穹顶；旧布局从收敛后的机位推导，
-        // 避免把越界的编辑视角原样继承成拍摄机位。
+        // setCameraState 已按编辑视角合同归一化；旧布局从归一化后的轨道相机推导，
+        // 随后由独立拍摄机位写入口把机身位置收回世界边界。
         deriveShotCameraPoseFromOrbit(cameraState),
       );
       shotCameraPose = {
