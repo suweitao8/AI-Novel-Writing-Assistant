@@ -862,6 +862,79 @@ for ui, frames in out_trans.items():
     solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
 Wt, Pt = compose(solved_tracks, tm)
 
+# ---------- final verify: validate the pose that will actually be written ----------
+# The pre-IK check proves the anatomical alignment pass itself.  IK is allowed to
+# move an end effector for genuine contact poses, so validate again after IK: all
+# untouched segments must still follow the source, while IK-controlled segments
+# must remain finite, non-degenerate, and point in a plausible source hemisphere.
+_ik_arm_segments = {
+    ("clavicle_l", "upperarm_l"), ("upperarm_l", "lowerarm_l"),
+    ("lowerarm_l", "hand_l"), ("clavicle_r", "upperarm_r"),
+    ("upperarm_r", "lowerarm_r"), ("lowerarm_r", "hand_r"),
+}
+_ik_leg_segments = {
+    ("thigh_l", "calf_l"), ("calf_l", "foot_l"),
+    ("thigh_r", "calf_r"), ("calf_r", "foot_r"),
+}
+_final_segment_dots = []
+_final_segment_failures = []
+_final_segment_missing = []
+for _f, _time in enumerate(grid):
+    _W_final, _P_final = compose(solved_tracks, _time)
+    for _parent_name, _child_name in _align_names:
+        _pair = (_parent_name, _child_name)
+        _ui = _align_target.get(_parent_name)
+        _child_ui = _align_target.get(_child_name)
+        _src = t2s.get(_ui) if _ui is not None else None
+        _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+        if None in (_ui, _child_ui, _src, _src_child):
+            _final_segment_missing.append(
+                "frame %d: %s->%s" % (_f, _parent_name, _child_name)
+            )
+            continue
+        _target_vec = _align_vnorm(_align_vsub(_P_final[_child_ui], _P_final[_ui]))
+        _source_vec = _align_vnorm(
+            _align_vsub(a_posF[_src_child][_f], a_posF[_src][_f])
+        )
+        if _target_vec is None or _source_vec is None:
+            _final_segment_missing.append(
+                "frame %d: %s->%s" % (_f, _parent_name, _child_name)
+            )
+            continue
+        _dot = _align_vdot(_target_vec, _source_vec)
+        _final_segment_dots.append(_dot)
+        _ik_segment_active = (
+            (_pair in _ik_arm_segments and _use_arm_ik and _f in _arm_ik_frames)
+            or (_pair in _ik_leg_segments and _use_leg_ik)
+        )
+        _minimum_dot = 0.25 if _ik_segment_active else 0.985
+        if _dot < _minimum_dot:
+            _final_segment_failures.append(
+                "frame %d: %s->%s dot=%.5f min=%.5f" %
+                (_f, _parent_name, _child_name, _dot, _minimum_dot)
+            )
+_final_segment_min = min(_final_segment_dots) if _final_segment_dots else 0.0
+print(
+    "final segment verify: %d samples, min |dot| = %.5f -> %s" %
+    (
+        len(_final_segment_dots),
+        _final_segment_min,
+        "PASS" if not _final_segment_missing and not _final_segment_failures else "FAIL",
+    )
+)
+if (
+    _final_segment_missing
+    or len(_final_segment_dots) != F * len(_align_names)
+    or _final_segment_failures
+):
+    raise SystemExit(
+        "final anatomical segment verification failed: missing=%s failures=%s" %
+        (
+            ", ".join(_final_segment_missing[:5]) or "none",
+            ", ".join(_final_segment_failures[:5]) or "none",
+        )
+    )
+
 # ---------- write output GLB ----------
 uJson = json.loads(json.dumps(bj))
 chunks = [bbuf]

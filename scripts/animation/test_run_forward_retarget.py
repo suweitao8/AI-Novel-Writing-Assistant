@@ -329,8 +329,85 @@ class RunForwardRetargetTest(unittest.TestCase):
                         places=3,
                     )
 
+        published_tracks = load_animation(
+            catalog_glb, catalog_binary, ANIMATION_NAME,
+        )
+        published_times = next(
+            track["rotation"][0]
+            for track in published_tracks.values()
+            if "rotation" in track
+        )
+        published_names = {
+            node.get("name", "").lower(): index
+            for index, node in enumerate(catalog_glb["nodes"])
+        }
+        published_positions = [
+            world_positions(catalog_glb, published_tracks, time)
+            for time in published_times
+        ]
+        for frame, positions in enumerate(published_positions):
+            for parent_name, child_name in BODY_SEGMENTS:
+                start = positions[published_names[parent_name]]
+                end = positions[published_names[child_name]]
+                length = math.sqrt(
+                    sum((end[index] - start[index]) ** 2 for index in range(3))
+                )
+                self.assertTrue(
+                    math.isfinite(length) and length > 1e-4,
+                    f"published frame {frame}: {parent_name}->{child_name} is degenerate",
+                )
+        for endpoint in ("foot_l", "foot_r", "hand_l", "hand_r"):
+            trajectory = [
+                positions[published_names[endpoint]]
+                for positions in published_positions
+            ]
+            self.assertGreater(
+                max(
+                    math.sqrt(
+                        sum((position[index] - trajectory[0][index]) ** 2
+                            for index in range(3))
+                    )
+                    for position in trajectory
+                ),
+                0.01,
+                f"published {endpoint} track is static",
+            )
+
         if SOURCE_GLB.is_file():
             self.assert_body_chain_follows_source(SOURCE_GLB, PUBLISHED_CATALOG)
+
+    def test_forced_limb_ik_passes_final_gate(self):
+        if not SOURCE_GLB.is_file():
+            self.skipTest("Cine57 run-forward source GLB is not available")
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            output = Path(temporary_directory) / "run-forward-forced-ik.glb"
+            environment = {
+                key: value
+                for key, value in os.environ.items()
+                if key not in {"RETARGET_USE_LIMB_IK", "RETARGET_NO_ARM_IK"}
+            }
+            environment["RETARGET_USE_LIMB_IK"] = "1"
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(REPO_ROOT / "scripts/animation/retarget_ual2.py"),
+                    str(SOURCE_GLB),
+                    str(TARGET_GLB),
+                    str(output),
+                    ANIMATION_NAME,
+                ],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                env=environment,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+            output_glb, output_binary = read_glb(output)
+            output_animation = animation_by_name(output_glb, ANIMATION_NAME)
+            self.assertIsNotNone(output_animation)
+            self.assertEqual(len(output_animation["channels"]), 55)
 
 
 if __name__ == "__main__":
