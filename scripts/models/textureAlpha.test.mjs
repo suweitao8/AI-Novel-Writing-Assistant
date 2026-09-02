@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   getTextureOutputExtension,
   hasAlphaPixelFormat,
+  parseFfprobePixelFormat,
   parseAlphaMinimum,
   shouldPreserveAlpha,
 } from "./textureAlpha.mjs";
@@ -15,6 +16,16 @@ test("识别 FFmpeg 的等号格式 alpha 统计并保留透明贴图", () => {
   assert.equal(parseAlphaMinimum(output), 0);
   assert.equal(shouldPreserveAlpha({ pixelFormat: "rgba", ffmpegOutput: output }), true);
   assert.equal(getTextureOutputExtension({ pixelFormat: "rgba", ffmpegOutput: output }), "png");
+});
+
+test("execFile 的 stdout JSON 形状不会让 RGBA 探测静默回退", () => {
+  const execFileResult = { stdout: JSON.stringify({ streams: [{ pix_fmt: "rgba" }] }), stderr: "" };
+  const pixelFormat = parseFfprobePixelFormat(execFileResult);
+  assert.equal(pixelFormat, "rgba");
+  assert.equal(
+    getTextureOutputExtension({ pixelFormat, ffmpegOutput: "lavfi.signalstats.YMIN=0" }),
+    "png",
+  );
 });
 
 test("兼容旧式冒号格式并拒绝把不透明贴图误当透明", () => {
