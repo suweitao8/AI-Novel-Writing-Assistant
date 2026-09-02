@@ -25,7 +25,7 @@ import {
 } from "./animationThumbnailStudio";
 import { getAnimationKeyframe, subscribeAnimationKeyframes } from "./animationPreviewStorage";
 
-export const PAGE_SIZE = 24;
+export const PAGE_SIZE = 50;
 
 function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
   const [thumbnail, setThumbnail] = useState<string | null>(() => {
@@ -277,7 +277,7 @@ export default function AnimationLibraryPage() {
 
       {entries.length > 0 ? (
         <>
-          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6" data-animation-grid>
+          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10" data-animation-grid>
             {pageEntries.map((entry) => (
               <AnimationCard key={entry.id} entry={entry} />
             ))}
