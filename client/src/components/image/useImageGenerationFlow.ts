@@ -15,7 +15,7 @@
 import { useState } from "react";
 
 import { toast } from "@/components/ui/toast";
-import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/comic";
+import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/imageGenerationTypes";
 
 interface StartOptions<TResult = unknown> {
   prepare: () => Promise<ImageGenerationPreview>;

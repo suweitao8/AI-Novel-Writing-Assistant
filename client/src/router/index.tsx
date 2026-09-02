@@ -1,19 +1,8 @@
 import { lazy } from "react";
 import type { RouteObject } from "react-router-dom";
-import { Navigate, useRoutes } from "react-router-dom";
+import { Navigate, useParams, useRoutes } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import { featureFlags } from "@/config/featureFlags";
 
-const Home = lazy(() => import("@/pages/Home"));
-const NovelList = lazy(() => import("@/pages/novels/NovelList"));
-const NovelCreate = lazy(() => import("@/pages/novels/NovelCreate"));
-const CreationStudioPage = lazy(() => import("@/pages/creationStudio/CreationStudioPage"));
-const ShortStoryStudioPage = lazy(() => import("@/pages/shortStory/ShortStoryStudioPage"));
-const AutoDirectorCreatePage = lazy(() => import("@/pages/novels/autoDirector/AutoDirectorCreatePage"));
-const SimpleNovelShelfPage = lazy(() => import("@/pages/novels/simpleCreation/SimpleNovelShelfPage"));
-const NovelPreview = lazy(() => import("@/pages/novels/NovelPreview"));
-const NarrativeFormNovelEditRoute = lazy(() => import("@/pages/novels/NarrativeFormNovelEditRoute"));
-const NovelChapterEdit = lazy(() => import("@/pages/novels/NovelChapterEdit"));
 const ComicDramaListPage = lazy(() => import("@/pages/drama/comicDrama/ComicDramaListPage"));
 const ComicDramaStudioPage = lazy(() => import("@/pages/drama/comicDrama/ComicDramaStudioPage"));
 const DramaBlocking3DPage = lazy(() => import("@/pages/drama/comicDrama/DramaBlocking3DPage"));
@@ -23,48 +12,36 @@ const ModelLibraryPage = lazy(() => import("@/pages/models/ModelLibraryPage"));
 const ModelEditorPage = lazy(() => import("@/pages/models/ModelEditorPage"));
 const AnimationLibraryPage = lazy(() => import("@/pages/animations/AnimationLibraryPage"));
 const AnimationPreviewPage = lazy(() => import("@/pages/animations/AnimationPreviewPage"));
-const ComicWorkspacePage = lazy(() => import("@/pages/comic/ComicWorkspacePage"));
-const ComicProjectPage = lazy(() => import("@/pages/comic/ComicProjectPage"));
-const CreativeHubPage = lazy(() => import("@/pages/creativeHub/CreativeHubPage"));
-const BookAnalysisPage = lazy(() => import("@/pages/bookAnalysis/BookAnalysisPage"));
 const TaskCenterPage = lazy(() => import("@/pages/tasks/TaskCenterPage"));
 const ArtStyleSettingsPage = lazy(() => import("@/pages/settings/views/ArtStyleSettingsPage"));
 const RecordsSettingsPage = lazy(() => import("@/pages/settings/views/RecordsSettingsPage"));
-const AutoDirectorFollowUpCenterPage = lazy(() => import("@/pages/autoDirectorFollowUps/AutoDirectorFollowUpCenterPage"));
 const KnowledgePage = lazy(() => import("@/pages/knowledge/KnowledgePage"));
-const GenreManagementPage = lazy(() => import("@/pages/genres/GenreManagementPage"));
-const StoryModeManagementPage = lazy(() => import("@/pages/storyModes/StoryModeManagementPage"));
-const TitleStudioPage = lazy(() => import("@/pages/titles/TitleStudioPage"));
-const PromptWorkbenchPage = lazy(() => import("@/pages/promptWorkbench/PromptWorkbenchPage"));
-const AntiAiRulesPage = lazy(() => import("@/pages/antiAiRules/AntiAiRulesPage"));
 const SettingsOverviewPage = lazy(() => import("@/pages/settings/views/SettingsOverviewPage"));
 const ModelsSettingsPage = lazy(() => import("@/pages/settings/views/ModelsSettingsPage"));
-const DirectorSettingsPage = lazy(() => import("@/pages/settings/views/DirectorSettingsPage"));
 const KnowledgeSettingsPage = lazy(() => import("@/pages/settings/views/KnowledgeSettingsPage"));
-const AppearanceSettingsPage = lazy(() => import("@/pages/settings/views/AppearanceSettingsPage"));
 const NarratorVoiceSettingsPage = lazy(() => import("@/pages/settings/views/NarratorVoiceSettingsPage"));
 const StudioEnvironmentPreviewPage = lazy(() => import("@/pages/settings/views/StudioEnvironmentPreviewPage"));
-const WorldList = lazy(() => import("@/pages/worlds/WorldList"));
-const WorldGenerator = lazy(() => import("@/pages/worlds/WorldGenerator"));
-const WorldWorkspace = lazy(() => import("@/pages/worlds/WorldWorkspace"));
-const WritingFormulaPage = lazy(() => import("@/pages/writingFormula/WritingFormulaPage"));
-const CharacterLibrary = lazy(() => import("@/pages/characters/CharacterLibrary"));
+
+function RedirectToDrama() {
+  return <Navigate to="/drama" replace />;
+}
+
+function RedirectLegacyNovelRoute() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={id ? `/drama/studio/${encodeURIComponent(id)}` : "/drama"} replace />;
+}
 
 const routes: RouteObject[] = [
   {
     path: "/",
     element: <AppLayout />,
     children: [
-      { index: true, element: <Home /> },
-      { path: "novels", element: <NovelList /> },
-      { path: "create", element: <CreationStudioPage /> },
-      { path: "novels/create", element: <NovelCreate /> },
-      { path: "novels/auto-director", element: <AutoDirectorCreatePage /> },
-      { path: "novels/:id/simple", element: <SimpleNovelShelfPage /> },
-      { path: "novels/:id/story", element: <ShortStoryStudioPage /> },
-      { path: "novels/:id/preview", element: <NovelPreview /> },
-      { path: "novels/:id/edit", element: <NarrativeFormNovelEditRoute /> },
-      { path: "novels/:id/chapters/:chapterId", element: <NovelChapterEdit /> },
+      { index: true, element: <RedirectToDrama /> },
+      { path: "novels", element: <RedirectToDrama /> },
+      { path: "create", element: <RedirectToDrama /> },
+      { path: "novels/create", element: <RedirectToDrama /> },
+      { path: "novels/auto-director", element: <RedirectToDrama /> },
+      { path: "novels/:id/*", element: <RedirectLegacyNovelRoute /> },
       { path: "drama", element: <ComicDramaListPage /> },
       { path: "drama/studio/:novelId", element: <ComicDramaStudioPage /> },
       { path: "drama/studio/:novelId/scenes/:sceneId/states/:stateId/3d", element: <DramaScene3DPage /> },
@@ -75,45 +52,34 @@ const routes: RouteObject[] = [
       { path: "models/:modelId", element: <ModelEditorPage /> },
       { path: "animations", element: <AnimationLibraryPage /> },
       { path: "animations/:animationId", element: <AnimationPreviewPage /> },
-      { path: "comic", element: <ComicWorkspacePage /> },
-      { path: "comic/projects/:id", element: <ComicProjectPage /> },
-      { path: "creative-hub", element: <CreativeHubPage /> },
-      { path: "chat", element: <Navigate to="/creative-hub" replace /> },
-      { path: "book-analysis", element: <BookAnalysisPage /> },
+      { path: "comic/*", element: <RedirectToDrama /> },
+      { path: "creative-hub", element: <RedirectToDrama /> },
+      { path: "chat", element: <RedirectToDrama /> },
+      { path: "book-analysis", element: <RedirectToDrama /> },
       { path: "tasks", element: <TaskCenterPage /> },
-      { path: "auto-director/follow-ups", element: <AutoDirectorFollowUpCenterPage /> },
-      { path: "auto-director/follow-up-center", element: <Navigate to="/auto-director/follow-ups" replace /> },
-      { path: "auto-director/followup-center", element: <Navigate to="/auto-director/follow-ups" replace /> },
+      { path: "auto-director/*", element: <RedirectToDrama /> },
       { path: "knowledge", element: <KnowledgePage /> },
-      { path: "genres", element: <GenreManagementPage /> },
-      { path: "story-modes", element: <StoryModeManagementPage /> },
-      { path: "titles", element: <TitleStudioPage /> },
-      { path: "prompt-workbench", element: <PromptWorkbenchPage /> },
-      { path: "anti-ai-rules", element: <AntiAiRulesPage /> },
+      { path: "genres", element: <RedirectToDrama /> },
+      { path: "story-modes", element: <RedirectToDrama /> },
+      { path: "titles", element: <RedirectToDrama /> },
+      { path: "prompt-workbench", element: <RedirectToDrama /> },
+      { path: "anti-ai-rules", element: <RedirectToDrama /> },
       { path: "settings/model-routes", element: <Navigate to="/settings/models" replace /> },
       { path: "settings/models", element: <ModelsSettingsPage /> },
-      { path: "settings/director", element: <DirectorSettingsPage /> },
+      { path: "settings/director", element: <Navigate to="/settings" replace /> },
       { path: "settings/knowledge", element: <KnowledgeSettingsPage /> },
       { path: "settings/narrator-voice/hdri/:environmentId", element: <StudioEnvironmentPreviewPage /> },
       { path: "settings/narrator-voice", element: <NarratorVoiceSettingsPage /> },
-      { path: "settings/appearance", element: <AppearanceSettingsPage /> },
+      { path: "settings/appearance", element: <Navigate to="/settings" replace /> },
       { path: "settings/art-style", element: <ArtStyleSettingsPage /> },
       { path: "art-style", element: <Navigate to="/settings/art-style" replace /> },
       { path: "settings/records", element: <RecordsSettingsPage /> },
       { path: "settings", element: <SettingsOverviewPage /> },
-      { path: "worlds", element: <WorldList /> },
-      {
-        path: "worlds/generator",
-        element: featureFlags.worldWizardEnabled ? <WorldGenerator /> : <Navigate to="/worlds" replace />,
-      },
-      {
-        path: "worlds/:id/workspace",
-        element: featureFlags.worldWizardEnabled ? <WorldWorkspace /> : <Navigate to="/worlds" replace />,
-      },
-      { path: "style-engine", element: <WritingFormulaPage /> },
-      { path: "writing-formula", element: <Navigate to="/style-engine" replace /> },
-      { path: "base-characters", element: <CharacterLibrary /> },
-      { path: "*", element: <Navigate to="/" replace /> },
+      { path: "worlds/*", element: <RedirectToDrama /> },
+      { path: "style-engine", element: <RedirectToDrama /> },
+      { path: "writing-formula", element: <RedirectToDrama /> },
+      { path: "base-characters", element: <RedirectToDrama /> },
+      { path: "*", element: <RedirectToDrama /> },
     ],
   },
 ];

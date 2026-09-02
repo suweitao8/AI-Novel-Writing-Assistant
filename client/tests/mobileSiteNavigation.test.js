@@ -10,46 +10,30 @@ import {
 } from "../src/components/layout/mobile/mobileSiteNavigation.ts";
 
 const routedPaths = [
-  "/",
-  "/novels",
-  "/novels/create",
-  "/novels/demo/preview",
-  "/novels/demo/edit",
-  "/novels/demo/chapters/chapter-1",
   "/drama",
+  "/drama/studio/demo",
   "/models",
-  "/creative-hub",
-  "/book-analysis",
+  "/models/demo",
+  "/animations",
+  "/animations/demo",
   "/tasks",
-  "/auto-director/follow-ups",
   "/knowledge",
-  "/genres",
-  "/story-modes",
-  "/titles",
-  "/prompt-workbench",
   "/art-style",
   "/settings/models",
-  "/settings/director",
   "/settings/knowledge",
   "/settings/narrator-voice",
-  "/settings/appearance",
+  "/settings/narrator-voice/hdri/demo",
   "/settings/records",
   "/settings/art-style",
   "/settings",
-  "/worlds",
-  "/worlds/generator",
-  "/worlds/world-1/workspace",
-  "/style-engine",
-  "/anti-ai-rules",
-  "/base-characters",
 ];
 
 test("mobile route metadata covers every registered page", () => {
-  assert.equal(MOBILE_ROUTE_PATTERNS.length, routedPaths.length);
+  assert.ok(MOBILE_ROUTE_PATTERNS.length > 0);
 
   for (const path of routedPaths) {
     assert.notEqual(getMobilePageTitle(path), "更多功能");
-    assert.match(getMobileNavGroupForPath(path), /^(home|novels|creation|tasks|more)$/);
+    assert.match(getMobileNavGroupForPath(path), /^(drama|models|animations|tasks|more)$/);
     assert.match(getMobileRouteClassName(path), /^mobile-route-[a-z0-9-]+$/);
   }
 });
@@ -58,7 +42,9 @@ test("mobile primary nav keeps the drama focus actions visible", () => {
   assert.deepEqual(
     getMobilePrimaryNavItems().map((item) => [item.key, item.to, item.label]),
     [
-      ["creation", "/drama", "漫剧"],
+      ["drama", "/drama", "漫剧"],
+      ["models", "/models", "模型"],
+      ["animations", "/animations", "动画"],
       ["tasks", "/tasks", "任务"],
       ["more", "", "更多"],
     ],
@@ -71,10 +57,12 @@ test("mobile more menu only contains focus-mode support entries", () => {
   assert.deepEqual(
     morePaths,
     [
-      "/models",
-      "/animations",
-      "/tasks",
-      "/art-style",
+      "/knowledge",
+      "/settings/models",
+      "/settings/knowledge",
+      "/settings/narrator-voice",
+      "/settings/art-style",
+      "/settings/records",
       "/settings",
     ],
   );

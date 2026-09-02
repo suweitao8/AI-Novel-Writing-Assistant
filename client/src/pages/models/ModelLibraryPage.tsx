@@ -17,6 +17,7 @@ import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
 import { cn } from "@/lib/utils";
 import { ModelLibraryPagination } from "./components/ModelLibraryPagination";
+import { useModelLibraryPageSize } from "./hooks/useModelLibraryPageSize";
 import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
 import {
   cancelThumbnail,
@@ -25,10 +26,7 @@ import {
   getThumbnail,
   subscribeThumbnails,
 } from "./modelLibrary3d/thumbnailStudio";
-import {
-  getModelLibraryPage,
-  MODEL_LIBRARY_PAGE_SIZE,
-} from "./modelLibraryPagination";
+import { getModelLibraryPage } from "./modelLibraryPagination";
 
 const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
 
@@ -209,7 +207,10 @@ export default function ModelLibraryPage() {
     },
     [category, hiddenModelIds, search, visibleEntries],
   );
-  const currentPage = getModelLibraryPage(entries, page, MODEL_LIBRARY_PAGE_SIZE);
+  const { pageRef, gridRef, pageSize } = useModelLibraryPageSize(
+    Boolean(hiddenModelIds) && entries.length > 0,
+  );
+  const currentPage = getModelLibraryPage(entries, page, pageSize);
   const pageEntries = currentPage.entries;
 
   useEffect(() => {
@@ -324,7 +325,7 @@ export default function ModelLibraryPage() {
     : null;
 
   return (
-    <div className="space-y-3" data-model-library-page>
+    <div ref={pageRef} className="space-y-3" data-model-library-page>
       {searchPortal}
       <section
         aria-label="模型筛选"
@@ -351,7 +352,11 @@ export default function ModelLibraryPage() {
 
       {entries.length > 0 ? (
         <>
-          <section className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10" data-model-grid>
+          <section
+            ref={gridRef}
+            className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10"
+            data-model-grid
+          >
             {pageEntries.map((entry) => (
               <ModelCard key={entry.id} entry={entry} />
             ))}

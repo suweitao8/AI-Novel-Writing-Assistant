@@ -512,7 +512,6 @@ export default function KnowledgePage() {
         isError={documentsQuery.isError}
         isLoading={documentsQuery.isLoading}
         searchableDocumentCount={searchableDocumentCount}
-        selectedDocumentId={selectedDocumentId}
         visibleDocumentCount={visibleDocuments.length}
         onClearFilters={() => {
           setKeyword("");
