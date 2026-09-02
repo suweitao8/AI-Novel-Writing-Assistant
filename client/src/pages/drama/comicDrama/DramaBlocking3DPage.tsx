@@ -254,9 +254,16 @@ export default function DramaBlocking3DPage() {
     setShotCameraPoseState(nextViewer.getShotCameraPose());
   }, []);
 
+  // 编辑期间 context 会因保存后的失效刷新等后台 refetch 换对象身份：viewer
+  // 只随场景环境图（HDRI 来源）重建，其余 refetch 一律保留正在编辑的视口，
+  // 否则未保存的 AI 构图/手动摆位会被旧快照静默覆盖。
+  const contextRef = useRef(context);
+  contextRef.current = context;
+  const sceneEnvironmentUrl = context?.scene?.imageUrl ?? null;
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !context?.scene || viewerRef.current) return undefined;
+    const currentContext = contextRef.current;
+    if (!canvas || !currentContext?.scene || !sceneEnvironmentUrl) return undefined;
     let cancelled = false;
     let unsubscribeSelection: (() => void) | undefined;
     let unsubscribeMarkerSelection: (() => void) | undefined;
@@ -265,8 +272,8 @@ export default function DramaBlocking3DPage() {
     setViewerError(null);
     void createBlocking3dViewer({
       canvas,
-      environmentUrl: context.scene.imageUrl,
-      sceneMarkers: context.scene.markers,
+      environmentUrl: sceneEnvironmentUrl,
+      sceneMarkers: currentContext.scene.markers,
     })
       .then((nextViewer) => {
         if (cancelled) {
@@ -274,11 +281,11 @@ export default function DramaBlocking3DPage() {
           return;
         }
         try {
-          const sources = context.actors ?? [];
+          const sources = currentContext.actors ?? [];
           sources.forEach((actor, index) =>
             nextViewer.addActor(actor.characterName, index, actor.heightMeters),
           );
-          const layout = initialLayout(context);
+          const layout = initialLayout(currentContext);
           if (layout.actors.length > 0) nextViewer.loadLayout(layout);
           else nextViewer.fitView();
           viewerRef.current = nextViewer;
@@ -333,7 +340,7 @@ export default function DramaBlocking3DPage() {
       viewerRef.current = null;
       setViewer(null);
     };
-  }, [context, syncSelection]);
+  }, [sceneEnvironmentUrl, syncSelection]);
 
   useEffect(() => {
     const onBeforeUnload = (event: BeforeUnloadEvent) => {
