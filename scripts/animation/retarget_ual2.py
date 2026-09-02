@@ -435,6 +435,30 @@ if _align_applied != _expected_alignment_count:
         (_align_applied, _expected_alignment_count)
     )
 
+# A provisional target position pass is used only to validate hand/head contact
+# evidence.  It is the same forward-kinematics calculation used by the IK pass,
+# before IK changes any rotations.
+_contact_target_posF = {}
+for _ui in b_order:
+    _p = bparent.get(_ui)
+    _trs = out_trans.get(_ui)
+    _base_t = target_base_local_trans[_ui]
+    if _p is None:
+        _contact_target_posF[_ui] = [
+            _trs[_f] if _trs else _base_t for _f in range(F)
+        ]
+    else:
+        _contact_target_posF[_ui] = [
+            tuple(
+                _contact_target_posF[_p][_f][k]
+                + qrot_vec(
+                    bt_worldF[_p][_f], _trs[_f] if _trs else _base_t
+                )[k]
+                for k in range(3)
+            )
+            for _f in range(F)
+        ]
+
 _left_hand = a_by_name.get("hand_l")
 _right_hand = a_by_name.get("hand_r")
 _source_head = a_by_name.get("head")
@@ -442,6 +466,40 @@ _source_hand_gap_min = float("inf")
 _source_hand_head_gap_min = float("inf")
 _source_contact_frames = []
 _source_arm_contact_frames = {"l": set(), "r": set()}
+_source_hand_head_contact_frames = {"l": set(), "r": set()}
+_contact_target_head = _align_target.get("head")
+
+
+def _hand_head_direction_matches(_side, _f):
+    _source_hand = a_by_name.get("hand_" + _side)
+    _target_hand = _align_target.get("hand_" + _side)
+    if (
+        _source_hand is None
+        or _target_hand is None
+        or _source_head is None
+        or _contact_target_head is None
+    ):
+        return False
+    _source_vector = _align_vsub(
+        a_posF[_source_hand][_f], a_posF[_source_head][_f]
+    )
+    _target_vector = _align_vsub(
+        _contact_target_posF[_target_hand][_f],
+        _contact_target_posF[_contact_target_head][_f],
+    )
+    _source_direction = _align_vnorm(_source_vector)
+    _target_direction = _align_vnorm(_target_vector)
+    if _source_direction is None or _target_direction is None:
+        return False
+    # Compare the full relative direction and its vertical component.  The
+    # latter is kept explicit because a near head distance alone can still be
+    # reached from a wrong side or from an implausible height.
+    return (
+        _align_vdot(_source_direction, _target_direction) >= 0.50
+        and abs(_source_direction[1] - _target_direction[1]) <= 0.35
+    )
+
+
 for _f in range(F):
     _hand_gap = (
         _align_vlen(_align_vsub(a_posF[_left_hand][_f], a_posF[_right_hand][_f]))
@@ -464,10 +522,13 @@ for _f in range(F):
         _source_arm_contact_frames["l"].add(_f)
         _source_arm_contact_frames["r"].add(_f)
     for _side, _gap in _hand_head_gaps.items():
-        if _gap <= 0.20:
+        if _gap <= 0.20 and _hand_head_direction_matches(_side, _f):
+            _source_hand_head_contact_frames[_side].add(_f)
             _source_arm_contact_frames[_side].add(_f)
     _source_contact_frames.append(
-        _hands_touch or _hand_head_gap <= 0.20
+        _hands_touch
+        or _f in _source_hand_head_contact_frames["l"]
+        or _f in _source_hand_head_contact_frames["r"]
     )
 
 # End-effector IK is useful for genuine hand-contact poses, but applying it to
@@ -601,18 +662,7 @@ if _use_limb_ik:
     a_head = a_by_name.get("head")
     if t_head is not None and a_head is not None:
         # 目标每帧世界位置（最终平移轨道 + 已解世界旋转的前向运动学）。
-        bt_posF = {}
-        for ui in b_order:
-            p = bparent.get(ui)
-            trs = out_trans.get(ui)
-            base_t = target_base_local_trans[ui]
-            if p is None:
-                bt_posF[ui] = [trs[f] if trs else base_t for f in range(F)]
-            else:
-                bt_posF[ui] = [
-                    tuple(bt_posF[p][f][k] + qrot_vec(bt_worldF[p][f], trs[f] if trs else base_t)[k] for k in range(3))
-                    for f in range(F)
-                ]
+        bt_posF = _contact_target_posF
 
         # 骨架尺寸比：自然站姿头关节高度之比，把源手腕偏移缩放到目标尺寸。
         src_head_y = a_posF[a_head][0][1]
@@ -697,6 +747,25 @@ if _use_limb_ik:
                 tuple(bt_posF[info["t_anchor"]][f][k] + (a_posF[a_end][f][k] - a_posF[info["a_anchor"]][f][k]) * info["anchor_scale"] for k in range(3))
                 for f in range(F)
             ]
+
+        # For a hand/head contact, preserve the source wrist's direction and
+        # height relative to the target head instead of approximating it from
+        # the clavicle anchor.  The reach check below verifies this after IK.
+        for side in ("l", "r"):
+            key = "arm_" + side
+            if key not in desired_targets:
+                continue
+            source_hand = a_by_name.get("hand_" + side)
+            if source_hand is None or a_head is None:
+                continue
+            for f in _source_hand_head_contact_frames[side]:
+                source_offset = _align_vsub(
+                    a_posF[source_hand][f], a_posF[a_head][f]
+                )
+                desired_targets[key][f] = tuple(
+                    bt_posF[t_head][f][k] + source_offset[k] * ik_scale
+                    for k in range(3)
+                )
 
         # 双手接触校正：源双手贴近（鼓掌、合十等）时，两臂期望目标绕中点
         # 缩放回源间距（按骨架比例），保证重定向后手能真实拍到一起，而不是
@@ -855,6 +924,56 @@ if _use_limb_ik:
             print("hand-contact check @t=%.2fs: src gap=%.3f tgt gap=%.3f -> %s" % (
                 grid[cf], src_gap_curve[cf], tgt_gap, "PASS" if ok else "FAIL"))
             if not ok: reach_failures.append("hand-contact")
+    # 手-头接触校验：不能只满足欧氏距离；源/目标相对方向、垂直高度和
+    # 目标实际可达距离都必须保持在同一语义范围内。
+    for side in ("l", "r"):
+        key = "arm_" + side
+        contact_frames = sorted(_source_hand_head_contact_frames[side])
+        if key not in chains or not contact_frames:
+            continue
+        source_hand = chains[key]["a_end"]
+        cf = min(
+            contact_frames,
+            key=lambda f: _vlen(
+                _vsub(a_posF[source_hand][f], a_posF[a_head][f])
+            ),
+        )
+        _Wc, Pc = compose(ik_tracks, grid[cf])
+        source_relative = _vsub(a_posF[source_hand][cf], a_posF[a_head][cf])
+        target_relative = _vsub(Pc[chains[key]["t_hand"]], Pc[t_head])
+        source_gap = _vlen(source_relative)
+        target_gap = _vlen(target_relative)
+        source_direction = _align_vnorm(source_relative)
+        target_direction = _align_vnorm(target_relative)
+        direction_dot = (
+            _align_vdot(source_direction, target_direction)
+            if source_direction is not None and target_direction is not None
+            else -1.0
+        )
+        expected_gap = source_gap * ik_scale
+        height_error = abs(target_relative[1] - source_relative[1] * ik_scale)
+        ok = (
+            source_direction is not None
+            and target_direction is not None
+            and direction_dot >= 0.50
+            and target_gap <= max(0.25, expected_gap + 0.05)
+            and height_error <= max(0.05, 0.35 * expected_gap)
+        )
+        print(
+            "hand-head check %s @t=%.2fs: src gap=%.3f tgt gap=%.3f "
+            "direction=%.3f height-error=%.3f -> %s" %
+            (
+                side,
+                grid[cf],
+                source_gap,
+                target_gap,
+                direction_dot,
+                height_error,
+                "PASS" if ok else "FAIL",
+            )
+        )
+        if not ok:
+            reach_failures.append("hand-head-" + side)
     # 腿部伸展校验：源脚-骨盆最远帧（腿伸直触地），目标距离应与源×腿长比一致。
     for key, info in chains.items():
         if info["kind"] != "leg": continue
