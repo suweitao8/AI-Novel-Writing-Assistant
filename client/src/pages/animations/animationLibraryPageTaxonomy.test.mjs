@@ -36,12 +36,12 @@ test("动画入口页用单一分类胶囊铺满筛选卡，不再有动作分�
   assert.doesNotMatch(pageSource, /兼容动画/);
 });
 
-test("动画入口页桌面端每行显示 10 张卡片并按 5 行分页", () => {
+test("动画入口页固定每行显示 10 张卡片并按 5 行分页", () => {
   assert.match(
     pageSource,
-    /grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10/,
+    /grid grid-cols-10 gap-2/,
   );
-  assert.doesNotMatch(pageSource, /xl:grid-cols-6/);
+  assert.doesNotMatch(pageSource, /grid-cols-2|sm:grid-cols-3|lg:grid-cols-4|xl:grid-cols-6|xl:grid-cols-10/);
   assert.match(pageSource, /const pageStart = \(page - 1\) \* PAGE_SIZE/);
 });
 

@@ -4,70 +4,30 @@ import test from "node:test";
 import {
   MODEL_LIBRARY_PAGE_SIZE,
   getModelLibraryPage,
-  getModelLibraryPageSize,
 } from "./modelLibraryPagination.ts";
 
 const entries = Array.from({ length: 51 }, (_, index) => `model-${index + 1}`);
 
-test("模型库默认每页 24 条并返回正确的页切片", () => {
-  assert.equal(MODEL_LIBRARY_PAGE_SIZE, 24);
+test("模型库固定每页 50 条并返回正确的五行页切片", () => {
+  assert.equal(MODEL_LIBRARY_PAGE_SIZE, 50);
   assert.deepEqual(getModelLibraryPage(entries, 1), {
     page: 1,
-    totalPages: 3,
-    entries: entries.slice(0, 24),
+    totalPages: 2,
+    entries: entries.slice(0, 50),
   });
-  assert.deepEqual(getModelLibraryPage(entries, 3), {
-    page: 3,
-    totalPages: 3,
-    entries: entries.slice(48),
+  assert.deepEqual(getModelLibraryPage(entries, 2), {
+    page: 2,
+    totalPages: 2,
+    entries: entries.slice(50),
   });
 });
 
 test("模型库页码会限制在有效范围，空结果仍有第 1 页", () => {
   assert.equal(getModelLibraryPage(entries, 0).page, 1);
-  assert.equal(getModelLibraryPage(entries, 99).page, 3);
+  assert.equal(getModelLibraryPage(entries, 99).page, 2);
   assert.deepEqual(getModelLibraryPage([], 5), {
     page: 1,
     totalPages: 1,
     entries: [],
   });
-});
-
-test("模型库按可用高度计算完整网格行数", () => {
-  assert.equal(
-    getModelLibraryPageSize({
-      columns: 10,
-      availableHeight: 1043,
-      cardHeight: 146.2,
-      rowGap: 8,
-    }),
-    60,
-  );
-  assert.equal(
-    getModelLibraryPageSize({
-      columns: 10,
-      availableHeight: 490,
-      cardHeight: 146.2,
-      rowGap: 8,
-    }),
-    30,
-  );
-  assert.equal(
-    getModelLibraryPageSize({
-      columns: 10,
-      availableHeight: 9999,
-      cardHeight: 146.2,
-      rowGap: 8,
-    }),
-    80,
-  );
-  assert.equal(
-    getModelLibraryPageSize({
-      columns: 0,
-      availableHeight: Number.NaN,
-      cardHeight: 0,
-      rowGap: -1,
-    }),
-    MODEL_LIBRARY_PAGE_SIZE,
-  );
 });
