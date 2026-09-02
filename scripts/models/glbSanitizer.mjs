@@ -159,6 +159,33 @@ function writeGlb(json, chunks) {
 }
 
 /**
+ * FBX2glTF 会把 FBX 源里残留的透明因子转成 BLEND/MASK alphaMode；材质若不引用
+ * 任何贴图（目录侧回填外观），就不存在 alpha 通道，BLEND 只会误导渲染器与门禁。
+ * 无贴图的透明模式重写为 OPAQUE 是纯结构修正，不改变视觉。
+ */
+function hasTexturelessBlendMaterials(json) {
+  return (Array.isArray(json.materials) ? json.materials : []).some((material) => {
+    if (material?.alphaMode !== "BLEND" && material?.alphaMode !== "MASK") return false;
+    const pbrTextures = material.pbrMetallicRoughness ?? {};
+    return ![material.normalTexture, pbrTextures.baseColorTexture, pbrTextures.metallicRoughnessTexture]
+      .some((tex) => tex?.index !== undefined && tex?.index !== null);
+  });
+}
+
+function normalizeTexturelessBlendMaterials(json) {
+  for (const material of Array.isArray(json.materials) ? json.materials : []) {
+    if (material?.alphaMode !== "BLEND" && material?.alphaMode !== "MASK") continue;
+    const pbrTextures = material.pbrMetallicRoughness ?? {};
+    const hasTexture = [material.normalTexture, pbrTextures.baseColorTexture, pbrTextures.metallicRoughnessTexture]
+      .some((tex) => tex?.index !== undefined && tex?.index !== null);
+    if (!hasTexture) {
+      delete material.alphaMode;
+      delete material.alphaCutoff;
+    }
+  }
+}
+
+/**
  * Remove UE collision nodes/meshes and LOD1+ from a GLB without touching BIN data.
  * The result also removes references to dropped nodes and promotes their valid children.
  */
@@ -187,7 +214,7 @@ export function stripUnsupportedGlb(buffer) {
     }
   });
 
-  if (removedMeshNames.length === 0 && removedNodeNames.length === 0) {
+  if (removedMeshNames.length === 0 && removedNodeNames.length === 0 && !hasTexturelessBlendMaterials(json)) {
     return { buffer, changed: false, removedMeshNames, removedNodeNames };
   }
 
@@ -197,6 +224,7 @@ export function stripUnsupportedGlb(buffer) {
   });
 
   const nextJson = JSON.parse(JSON.stringify(json));
+  normalizeTexturelessBlendMaterials(nextJson);
   nextJson.meshes = meshes.filter((_, index) => keepMesh.has(index));
   nextJson.__meshMap = keepMesh;
   remapNodeReferences(nextJson, nodeMap, dropNodes);

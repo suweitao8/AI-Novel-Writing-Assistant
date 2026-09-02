@@ -77,6 +77,14 @@ test("编辑器按钮调用自动构图并把镜头设计说明留在未保存�
   assert.doesNotMatch(pageSource, /autoPlan=1/);
 });
 
+test("viewer 只随场景环境图重建，后台 refetch 不得丢弃未保存摆位", () => {
+  assert.match(pageSource, /const sceneEnvironmentUrl = context\?\.scene\?\.imageUrl \?\? null/);
+  assert.match(pageSource, /contextRef\.current = context/);
+  assert.match(pageSource, /environmentUrl: sceneEnvironmentUrl/);
+  assert.match(pageSource, /\}, \[sceneEnvironmentUrl, syncSelection\]\)/);
+  assert.doesNotMatch(pageSource, /\}, \[context, syncSelection\]\)/);
+});
+
 test("AI 构图入口固定在 AI 实况左侧，并不再占用世界属性面板", () => {
   assert.match(pageSource, /createPortal/);
   assert.match(pageSource, /usePageNavActionsSlot/);

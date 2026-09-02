@@ -1,7 +1,7 @@
 {
  "version": 1,
  "source": "Cine57 standard model-library thumbnails",
- "reviewedAt": "2026-09-02",
+ "reviewedAt": "2026-09-03",
  "entries": [
   {
    "id": "bed-12a",
@@ -784,9 +784,9 @@
    "reviewEvidence": "model-preview-audit-2026-08-31",
    "preview": {
     "previewPath": "/models/grass-02-a-1",
-    "assetSha256": "64fe9c380a92a9299b5e77e57cd12db100ac72ba7b938919d670ab3c12b1f851",
+    "assetSha256": "8267537d0575c196014c2898a8cac54f1f411f0b8e4e8fdf9a0665e9c89c49fb",
     "renderer": "model-detail-v1",
-    "renderedAt": "2026-08-31",
+    "renderedAt": "2026-09-03",
     "textureStatus": "alpha-preserved"
    }
   },
@@ -3999,6 +3999,956 @@
    "visualDescription": "标准缩略图中可见竹筐 B",
    "reviewStatus": "approved",
    "reviewEvidence": "standard-thumbnail-audit-2026-09-02"
+  },
+  {
+   "id": "trash-cardboard-01a",
+   "meshName": "SM_Cardboard_01a_LOD0",
+   "fileName": "SM_Cardboard_01a.glb",
+   "name": "纸板堆 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见纸板堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-coffee-corner-01a",
+   "meshName": "SM_Coffee_Station_01a_LOD0",
+   "fileName": "SM_Coffee_Station_01a.glb",
+   "name": "废弃咖啡角",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见废弃咖啡角",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-debris-pile-02a",
+   "meshName": "SM_Debris_Pile_02a_LOD0",
+   "fileName": "SM_Debris_Pile_02a.glb",
+   "name": "瓦砾堆 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见瓦砾堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-debris-pile-02c",
+   "meshName": "SM_Debris_Pile_02c_LOD0",
+   "fileName": "SM_Debris_Pile_02c.glb",
+   "name": "瓦砾堆 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见瓦砾堆 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-debris-pile-02f",
+   "meshName": "SM_Debris_Pile_02f_LOD0",
+   "fileName": "SM_Debris_Pile_02f.glb",
+   "name": "瓦砾堆 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见瓦砾堆 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-debris-pile-02i",
+   "meshName": "SM_Debris_Pile_02i_LOD0",
+   "fileName": "SM_Debris_Pile_02i.glb",
+   "name": "瓦砾堆 D",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见瓦砾堆 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "dumpster-large-01a",
+   "meshName": "SM_Dumpster_Large_01a_LOD0",
+   "fileName": "SM_Dumpster_Large_01a.glb",
+   "name": "大型垃圾箱 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见大型垃圾箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "dumpster-large-02a",
+   "meshName": "SM_Dumpster_Large_02a_LOD0",
+   "fileName": "SM_Dumpster_Large_02a.glb",
+   "name": "大型垃圾箱 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见大型垃圾箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "dumpster-large-02c",
+   "meshName": "SM_Dumpster_Large_02d_LOD0",
+   "fileName": "SM_Dumpster_Large_02d.glb",
+   "name": "大型垃圾箱 C",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见大型垃圾箱 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "dumpster-small-01a",
+   "meshName": "SM_Dumpster_Small_01a_LOD0",
+   "fileName": "SM_Dumpster_Small_01a.glb",
+   "name": "小型垃圾箱 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见小型垃圾箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "dumpster-small-01b",
+   "meshName": "SM_Dumpster_Small_01c_LOD0",
+   "fileName": "SM_Dumpster_Small_01c.glb",
+   "name": "小型垃圾箱 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见小型垃圾箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "defect-crate-01",
+   "meshName": "SM_Crate_01_LOD0",
+   "fileName": "SM_Crate_01.glb",
+   "name": "旧木箱 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见旧木箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "defect-crate-02",
+   "meshName": "SM_Crate_02_LOD0",
+   "fileName": "SM_Crate_02.glb",
+   "name": "旧木箱 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见旧木箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "defect-pallet-02",
+   "meshName": "SM_Pallet_02_LOD0",
+   "fileName": "SM_Pallet_02.glb",
+   "name": "木托盘",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见木托盘",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "military-crate-closed-01",
+   "meshName": "SM_MilitaryCrateClosed_01_LOD0",
+   "fileName": "SM_MilitaryCrateClosed_01.glb",
+   "name": "军用箱 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见军用箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "military-crate-closed-02",
+   "meshName": "SM_MilitaryCrateClosed_03_LOD0",
+   "fileName": "SM_MilitaryCrateClosed_03.glb",
+   "name": "军用箱 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见军用箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "military-crate-open-01",
+   "meshName": "SM_MilitaryCrateTop_02_LOD0",
+   "fileName": "SM_MilitaryCrateTop_02.glb",
+   "name": "军用箱 C",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见军用箱 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "military-crate-open-02",
+   "meshName": "SM_MilitaryCrateTop_04_LOD0",
+   "fileName": "SM_MilitaryCrateTop_04.glb",
+   "name": "军用箱 D",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见军用箱 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "military-crate-05",
+   "meshName": "SM_MilitaryCrate_05_LOD0",
+   "fileName": "SM_MilitaryCrate_05.glb",
+   "name": "军用箱 E",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见军用箱 E",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "rusty-barrel-01a",
+   "meshName": "SM_Barrel_01_Closed_LOD0",
+   "fileName": "SM_Barrel_01_Closed.glb",
+   "name": "锈桶 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见锈桶 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "rusty-barrel-02b",
+   "meshName": "SM_Barrel_02_Opened_LOD0",
+   "fileName": "SM_Barrel_02_Opened.glb",
+   "name": "锈桶 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见锈桶 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "rusty-barrel-04a",
+   "meshName": "SM_Barrel_04_Closed_LOD0",
+   "fileName": "SM_Barrel_04_Closed.glb",
+   "name": "锈桶 C",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见锈桶 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "rusty-barrel-05b",
+   "meshName": "SM_Barrel_05_Opened_LOD0",
+   "fileName": "SM_Barrel_05_Opened.glb",
+   "name": "锈桶 D",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见锈桶 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "canister-01a",
+   "meshName": "SM_Canister_01_LOD0",
+   "fileName": "SM_Canister_01.glb",
+   "name": "试剂罐 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见试剂罐 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "canister-01c",
+   "meshName": "SM_Canister_03",
+   "fileName": "SM_Canister_03.glb",
+   "name": "试剂罐 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见试剂罐 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "gas-cylinder-01",
+   "meshName": "SM_GasCilinder_01_LOD0",
+   "fileName": "SM_GasCilinder_01.glb",
+   "name": "煤气罐",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见煤气罐",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-aircon-01",
+   "meshName": "SM_AirConditioner01_LOD0",
+   "fileName": "SM_AirConditioner01.glb",
+   "name": "苏式空调外机",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见苏式空调外机",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-antenna-01",
+   "meshName": "SM_Antenna01_LOD0",
+   "fileName": "SM_Antenna01.glb",
+   "name": "电视天线",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见电视天线",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-armchair-01",
+   "meshName": "SM_Armchair01_LOD0",
+   "fileName": "SM_Armchair01.glb",
+   "name": "旧扶手椅",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见旧扶手椅",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-ashtray-01a",
+   "meshName": "SM_Ashtray01A_LOD0",
+   "fileName": "SM_Ashtray01A.glb",
+   "name": "铁皮烟灰缸",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见铁皮烟灰缸",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-balcony-dryer-01",
+   "meshName": "SM_Balcony01_Dryer01_LOD0",
+   "fileName": "SM_Balcony01_Dryer01.glb",
+   "name": "阳台晾衣架",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见阳台晾衣架",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-balcony-door-01",
+   "meshName": "SM_BalconyDoorWindow01_LOD0",
+   "fileName": "SM_BalconyDoorWindow01.glb",
+   "name": "阳台门窗",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见阳台门窗",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-basketball-01",
+   "meshName": "SM_Basketball_LOD0",
+   "fileName": "SM_Basketball.glb",
+   "name": "篮球",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见篮球",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-bathtub-01",
+   "meshName": "SM_Bathtub01_LOD0",
+   "fileName": "SM_Bathtub01.glb",
+   "name": "旧浴缸",
+   "category": "卫浴",
+   "visualDescription": "标准缩略图中可见旧浴缸",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-mattress-01",
+   "meshName": "SM_Bed_Mattress_LOD0",
+   "fileName": "SM_Bed_Mattress.glb",
+   "name": "旧床垫",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见旧床垫",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-bench-01",
+   "meshName": "SM_Bench01_LOD0",
+   "fileName": "SM_Bench01.glb",
+   "name": "公共长椅",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见公共长椅",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-blanket-01",
+   "meshName": "SM_Blanket01_LOD0",
+   "fileName": "SM_Blanket01.glb",
+   "name": "旧毯子",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见旧毯子",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-book-01",
+   "meshName": "SM_Book01_LOD0",
+   "fileName": "SM_Book01.glb",
+   "name": "旧书",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见旧书",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-vodka-01a",
+   "meshName": "SM_BottleOfVodka01_LOD0",
+   "fileName": "SM_BottleOfVodka01.glb",
+   "name": "伏特加瓶 A",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见伏特加瓶 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-vodka-01b",
+   "meshName": "SM_BottleOfVodka02_LOD0",
+   "fileName": "SM_BottleOfVodka02.glb",
+   "name": "伏特加瓶 B",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见伏特加瓶 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-caged-lamp-01",
+   "meshName": "SM_CagedLamp_LOD0",
+   "fileName": "SM_CagedLamp.glb",
+   "name": "铁笼灯",
+   "category": "灯具",
+   "visualDescription": "标准缩略图中可见铁笼灯",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "soviet-plastic-canister-01",
+   "meshName": "SM_CanisterPlastic_LOD0",
+   "fileName": "SM_CanisterPlastic.glb",
+   "name": "塑料罐",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见塑料罐",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-window-01",
+   "meshName": "SM_window_1",
+   "fileName": "SM_window_1.glb",
+   "name": "老式木窗 A",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见老式木窗 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-window-02",
+   "meshName": "SM_window_2",
+   "fileName": "SM_window_2.glb",
+   "name": "老式木窗 B",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见老式木窗 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-window-04",
+   "meshName": "SM_window_4",
+   "fileName": "SM_window_4.glb",
+   "name": "老式木窗 C",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见老式木窗 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-window-09",
+   "meshName": "SM_window_9",
+   "fileName": "SM_window_9.glb",
+   "name": "老式木窗 D",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见老式木窗 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-window-12",
+   "meshName": "SM_window_12",
+   "fileName": "SM_window_12.glb",
+   "name": "老式木窗 E",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见老式木窗 E",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-bed-01",
+   "meshName": "SM_bed_1",
+   "fileName": "SM_bed_1.glb",
+   "name": "破旧木床 A",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见破旧木床 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-bed-02",
+   "meshName": "SM_bed_3",
+   "fileName": "SM_bed_3.glb",
+   "name": "破旧木床 B",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见破旧木床 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-mattress-02",
+   "meshName": "SM_mattress_2",
+   "fileName": "SM_mattress_2.glb",
+   "name": "废床垫",
+   "category": "家具",
+   "visualDescription": "标准缩略图中可见废床垫",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-linen-01a",
+   "meshName": "SM_bed_linen_1_1",
+   "fileName": "SM_bed_linen_1_1.glb",
+   "name": "破床品 A",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见破床品 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-linen-01c",
+   "meshName": "SM_bed_linen_1_3",
+   "fileName": "SM_bed_linen_1_3.glb",
+   "name": "破床品 B",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见破床品 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "debris-dust-01",
+   "meshName": "SM_debris_dust_1",
+   "fileName": "SM_debris_dust_1.glb",
+   "name": "积尘碎屑堆 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见积尘碎屑堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "debris-dust-03",
+   "meshName": "SM_debris_dust_3",
+   "fileName": "SM_debris_dust_3.glb",
+   "name": "积尘碎屑堆 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见积尘碎屑堆 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "debris-dust-05",
+   "meshName": "SM_debris_dust_5",
+   "fileName": "SM_debris_dust_5.glb",
+   "name": "积尘碎屑堆 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见积尘碎屑堆 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "debris-gravel-01",
+   "meshName": "SM_debris_gravel_1",
+   "fileName": "SM_debris_gravel_1.glb",
+   "name": "碎石瓦砾堆 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见碎石瓦砾堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "debris-gravel-03",
+   "meshName": "SM_debris_gravel_3",
+   "fileName": "SM_debris_gravel_3.glb",
+   "name": "碎石瓦砾堆 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见碎石瓦砾堆 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-old-book-01",
+   "meshName": "SM_book_1",
+   "fileName": "SM_book_1.glb",
+   "name": "旧书堆 A",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见旧书堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-old-book-02",
+   "meshName": "SM_book_10",
+   "fileName": "SM_book_10.glb",
+   "name": "旧书堆 B",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见旧书堆 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-old-book-03",
+   "meshName": "SM_book_13",
+   "fileName": "SM_book_13.glb",
+   "name": "旧书堆 C",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见旧书堆 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "abandoned-old-book-04",
+   "meshName": "SM_book_15",
+   "fileName": "SM_book_15.glb",
+   "name": "旧书堆 D",
+   "category": "书籍与办公",
+   "visualDescription": "标准缩略图中可见旧书堆 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "spider-web-01a",
+   "meshName": "SM_web_1",
+   "fileName": "SM_web_1.glb",
+   "name": "蛛网 A",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见蛛网 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "spider-web-01b",
+   "meshName": "SM_web_10",
+   "fileName": "SM_web_10.glb",
+   "name": "蛛网 B",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见蛛网 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "spider-web-01c",
+   "meshName": "SM_web_12",
+   "fileName": "SM_web_12.glb",
+   "name": "蛛网 C",
+   "category": "玩具/装饰品",
+   "visualDescription": "标准缩略图中可见蛛网 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-street-props-018",
+   "meshName": "SM_Street_props_018",
+   "fileName": "SM_Street_props_018.glb",
+   "name": "街道杂件 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街道杂件 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-street-props-027",
+   "meshName": "SM_Street_props_027",
+   "fileName": "SM_Street_props_027.glb",
+   "name": "街道杂件 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街道杂件 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-street-props-041",
+   "meshName": "SM_Street_props_041",
+   "fileName": "SM_Street_props_041.glb",
+   "name": "街道杂件 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街道杂件 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-street-props-050",
+   "meshName": "SM_Street_props_050",
+   "fileName": "SM_Street_props_050.glb",
+   "name": "街道杂件 D",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街道杂件 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-container-001",
+   "meshName": "SM_container_001",
+   "fileName": "SM_container_001.glb",
+   "name": "铁皮箱 A",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见铁皮箱 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-container-002",
+   "meshName": "SM_container_007",
+   "fileName": "SM_container_007.glb",
+   "name": "铁皮箱 B",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见铁皮箱 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "hk-container-003",
+   "meshName": "SM_container_046",
+   "fileName": "SM_container_046.glb",
+   "name": "铁皮箱 C",
+   "category": "容器与箱子",
+   "visualDescription": "标准缩略图中可见铁皮箱 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "air-duct-1m",
+   "meshName": "SM_AirDuct_1m_LOD0",
+   "fileName": "SM_AirDuct_1m.glb",
+   "name": "通风管 1m",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见通风管 1m",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "air-duct-2m",
+   "meshName": "SM_AirDuct_2m_LOD0",
+   "fileName": "SM_AirDuct_2m.glb",
+   "name": "通风管 2m",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见通风管 2m",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "air-duct-turn90",
+   "meshName": "SM_AirDuct_Turn90_01_LOD0",
+   "fileName": "SM_AirDuct_Turn90_01.glb",
+   "name": "通风管弯头",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见通风管弯头",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "air-duct-vent-01",
+   "meshName": "SM_AirDuct_Vent01_LOD0",
+   "fileName": "SM_AirDuct_Vent01.glb",
+   "name": "通风管栅口",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见通风管栅口",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "air-duct-support",
+   "meshName": "SM_AirDuct_Support_LOD0",
+   "fileName": "SM_AirDuct_Support.glb",
+   "name": "通风管支架",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见通风管支架",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "sewer-cable-01d",
+   "meshName": "SM_ExampleLevelCable_13_LOD0",
+   "fileName": "SM_ExampleLevelCable_13.glb",
+   "name": "垂吊电缆 D",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见垂吊电缆 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "suburb-garbage-003",
+   "meshName": "SM_Garbage003_LOD0",
+   "fileName": "SM_Garbage003.glb",
+   "name": "街角垃圾堆 A",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街角垃圾堆 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "suburb-garbage-001",
+   "meshName": "SM_Garbage1_LOD0",
+   "fileName": "SM_Garbage1.glb",
+   "name": "街角垃圾堆 B",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街角垃圾堆 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "suburb-garbage-004",
+   "meshName": "SM_Garbage4_LOD0",
+   "fileName": "SM_Garbage4.glb",
+   "name": "街角垃圾堆 C",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见街角垃圾堆 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "beer-bottles-01",
+   "meshName": "SM_beerBottles_LOD0",
+   "fileName": "SM_beerBottles.glb",
+   "name": "啤酒瓶组",
+   "category": "日用小物",
+   "visualDescription": "标准缩略图中可见啤酒瓶组",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "trash-bags-01",
+   "meshName": "SM_trashBags1",
+   "fileName": "SM_trashBags1.glb",
+   "name": "垃圾袋堆",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见垃圾袋堆",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "street-newsbox-01",
+   "meshName": "SM_NewspaperBox_LOD0",
+   "fileName": "SM_NewspaperBox.glb",
+   "name": "报刊箱",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见报刊箱",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "road-cone-01",
+   "meshName": "SM_RoadConstruction_cone_LOD0",
+   "fileName": "SM_RoadConstruction_cone.glb",
+   "name": "施工锥桶",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见施工锥桶",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "road-sewer-cover-01",
+   "meshName": "SM_RoadConstruction_Sewer_LOD0",
+   "fileName": "SM_RoadConstruction_Sewer.glb",
+   "name": "道路下水道口",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见道路下水道口",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "suburb-scooter-01",
+   "meshName": "SM_Scooter",
+   "fileName": "SM_Scooter.glb",
+   "name": "滑板车",
+   "category": "户外",
+   "visualDescription": "标准缩略图中可见滑板车",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "building-addon-12a",
+   "meshName": "SM_Building_Addons_12a_LOD0",
+   "fileName": "SM_Building_Addons_12a.glb",
+   "name": "建筑挂饰 A",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见建筑挂饰 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "building-addon-12e",
+   "meshName": "SM_Building_Addons_12ae_LOD0",
+   "fileName": "SM_Building_Addons_12ae.glb",
+   "name": "建筑挂饰 B",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见建筑挂饰 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "building-addon-12q",
+   "meshName": "SM_Building_Addons_12aq_LOD0",
+   "fileName": "SM_Building_Addons_12aq.glb",
+   "name": "建筑挂饰 D",
+   "category": "建筑构件",
+   "visualDescription": "标准缩略图中可见建筑挂饰 D",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "wildflower-cluster-a",
+   "meshName": "SM_FlowerCluster_a_LOD0",
+   "fileName": "SM_FlowerCluster_a.glb",
+   "name": "野花簇 A",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见野花簇 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "wildflower-cluster-c",
+   "meshName": "SM_FlowerCluster_c_LOD0",
+   "fileName": "SM_FlowerCluster_c.glb",
+   "name": "野花簇 B",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见野花簇 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "wildflower-cluster-f",
+   "meshName": "SM_FlowerCluster_f_LOD0",
+   "fileName": "SM_FlowerCluster_f.glb",
+   "name": "野花簇 C",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见野花簇 C",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "wildflower-a",
+   "meshName": "SM_Flower_a_LOD0",
+   "fileName": "SM_Flower_a.glb",
+   "name": "野花 A",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见野花 A",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "wildflower-c",
+   "meshName": "SM_Flower_c_LOD0",
+   "fileName": "SM_Flower_c.glb",
+   "name": "野花 B",
+   "category": "花",
+   "visualDescription": "标准缩略图中可见野花 B",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
+  },
+  {
+   "id": "grass-tuft-a",
+   "meshName": "SM_Grass_a_LOD0",
+   "fileName": "SM_Grass_a.glb",
+   "name": "草丛",
+   "category": "草",
+   "visualDescription": "标准缩略图中可见草丛",
+   "reviewStatus": "approved",
+   "reviewEvidence": "standard-thumbnail-audit-2026-09-03"
   }
  ]
 }

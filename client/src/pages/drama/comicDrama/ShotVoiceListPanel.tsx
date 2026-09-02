@@ -822,12 +822,13 @@ const ShotVoiceRow = memo(function ShotVoiceRow(props: {
   const hasReadyAiPreview = keyframe.status === "done" && Boolean(aiPreviewUrl) && !aiPreviewError;
   const blockingSketchNeedsConfirmation = blockingSketch.status === "draft";
   const blockingSketchSceneStale = props.previewMode === "sketch"
-    && isBlockingSketchSceneImageStale(
-      blockingSketch.scene?.imageUpdatedAt,
-      blockingSketch.scene?.assetId
+    && isBlockingSketchSceneImageStale({
+      storedImageUpdatedAt: blockingSketch.scene?.imageUpdatedAt,
+      sketchGeneratedAt: blockingSketch.generatedAt,
+      currentImageUpdatedAt: blockingSketch.scene?.assetId
         ? props.sceneImageVersions?.[blockingSketch.scene.assetId]
         : undefined,
-    );
+    });
   const readySegments = segments.filter(
     (segment): segment is ReadyDramaAudioSegment =>
       segment.status === "ready" && Boolean(segment.audioUrl),

@@ -75,6 +75,7 @@ test("关系归一化后的最终角色布局仍受 100 度 FOV 上限保护", (
     camera: {
       focalCharacterName: "血角兽",
       compositionBias: "center",
+      cameraAngle: "eye_level",
       depthOfFieldEnabled: false,
     },
   }, actors, { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 }, "全景");
