@@ -53,7 +53,7 @@ Keep the existing `settingsSection`, `overviewSection`, progress, error, warning
 ```tsx
 <div
   data-testid="video-stage-layout"
-  className="grid items-start gap-4 p-2 sm:p-3 xl:grid-cols-[minmax(13rem,0.72fr)_minmax(0,1.85fr)_minmax(15rem,0.9fr)]"
+  className="grid items-start gap-4 p-2 sm:p-3 xl:grid-cols-[minmax(13rem,15rem)_minmax(0,1fr)_minmax(13rem,16rem)]"
 >
   <aside data-testid="video-stage-left-rail" className="min-w-0 space-y-4">
     {settingsSection}
@@ -77,13 +77,13 @@ Do not duplicate any controller condition or move mutation calls; use the existi
 Use a central wrapper that can grow with the viewport and keep a 16:9 ratio:
 
 ```tsx
-<div className="flex min-h-[clamp(22rem,58vh,42rem)] items-center justify-center rounded-2xl border border-border/70 bg-muted/20 p-2 sm:p-3">
+<div className="flex min-h-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 p-2 sm:p-3 xl:min-h-[clamp(22rem,58vh,42rem)]">
   <video
     controls
     preload="metadata"
     src={assembled.videoUrl}
-    className="block aspect-video max-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-xl object-contain"
-  />
+  className="block aspect-video max-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-xl object-contain"
+/>
 </div>
 ```
 

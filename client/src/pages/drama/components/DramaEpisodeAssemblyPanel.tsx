@@ -10,7 +10,7 @@ import {
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 
 const ASSEMBLY_PHASE_LABELS: Record<string, string> = {
@@ -169,7 +169,7 @@ export function DramaEpisodeAssemblyResultPanel(props: {
   const videoReady = Boolean(assembledVideoUrl);
 
   const settingsSection = (
-    <section>
+    <section className="rounded-2xl border border-border/70 bg-card p-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h3 className="text-sm font-semibold text-foreground">合成设置</h3>
         {showActionButton ? (
@@ -181,7 +181,7 @@ export function DramaEpisodeAssemblyResultPanel(props: {
           />
         ) : null}
       </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
         <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-border/70 bg-muted/20 p-3 transition hover:border-primary/40 focus-within:ring-2 focus-within:ring-ring">
           <input
             type="checkbox"
@@ -213,9 +213,9 @@ export function DramaEpisodeAssemblyResultPanel(props: {
   );
 
   const overviewSection = assemblyStatus && props.hasShots ? (
-    <section>
+    <section className="rounded-2xl border border-border/70 bg-card p-3">
       <h3 className="text-sm font-semibold text-foreground">合成概览</h3>
-      <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2 xl:grid-cols-1">
         <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2">
           <div>镜头</div>
           <div className="mt-1 text-sm font-medium text-foreground">{assemblyStatus.shotCount ?? 0} 个</div>
@@ -236,112 +236,135 @@ export function DramaEpisodeAssemblyResultPanel(props: {
     </section>
   ) : null;
 
+  const missingMediaSection = controller.status && props.hasShots && (controller.clips?.withoutVisual || controller.status.withoutAudioShotCount) ? (
+    <div className="rounded-xl border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">
+      点击合成会先补齐缺失画面和配音，再开始生成视频。
+    </div>
+  ) : null;
+
+  const progressSection = controller.running ? (
+    <section className="rounded-2xl border border-border/70 bg-card p-4" aria-live="polite">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-sm font-semibold text-foreground">合成进度{controller.progressPhase ? ` · ${controller.progressPhase}` : ""}</h3>
+        <Badge variant="outline">{controller.percent}%</Badge>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+        <div className="h-full bg-primary transition-[width]" style={{ width: `${controller.percent}%` }} />
+      </div>
+      {controller.total > 0 ? <div className="mt-2 text-xs text-muted-foreground">{controller.done}/{controller.total} 个片段</div> : null}
+      {controller.progress?.failed ? <div className="mt-2 text-xs text-destructive">{controller.progress.failed} 个镜头降级处理，详情见合成结果。</div> : null}
+    </section>
+  ) : null;
+
+  const errorSection = !controller.running && controller.assembled?.status === "error" ? (
+    <div role="alert" className="rounded-2xl border border-destructive/40 bg-card p-4 text-sm text-destructive">
+      <div className="font-medium">上次合成失败</div>
+      <div className="mt-1">{controller.assembled.error || "未知原因"}。可重新合成再试。</div>
+    </div>
+  ) : null;
+
+  const warningSection = assembled?.warnings?.length ? (
+    <div className="rounded-xl border border-dashed border-border bg-card p-3 text-xs leading-5 text-muted-foreground">
+      {assembled.warnings.map((warning, index) => <div key={index}>· {warning}</div>)}
+    </div>
+  ) : null;
+
+  const assembledInfoSection = videoReady && assembled ? (
+    <section className="rounded-2xl border border-border/70 bg-card p-3" aria-labelledby="video-stage-info-title">
+      <h3 id="video-stage-info-title" className="text-sm font-semibold text-foreground">成片信息</h3>
+      <dl className="mt-3 space-y-2.5 text-xs">
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="shrink-0 text-muted-foreground">时长</dt>
+          <dd className="text-right text-sm font-medium text-foreground">{formatAsmDuration(assembled.durationSec)}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="shrink-0 text-muted-foreground">镜头</dt>
+          <dd className="text-right text-sm font-medium text-foreground">{assembled.shotCount ?? 0} 个</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="shrink-0 text-muted-foreground">字幕</dt>
+          <dd className="text-right text-sm font-medium text-foreground">{assembled.burnedSubtitles ? "已写入视频" : "独立字幕文件"}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="shrink-0 text-muted-foreground">规格</dt>
+          <dd className="text-right text-sm font-medium text-foreground">横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}</dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-2">
+          <dt className="shrink-0 text-muted-foreground">生成时间</dt>
+          <dd className="text-right text-sm font-medium text-foreground">{assembled.generatedAt ? new Date(assembled.generatedAt).toLocaleString() : "—"}</dd>
+        </div>
+      </dl>
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 pt-2.5 text-sm">
+        <a
+          className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+          href={assembledVideoUrl}
+          download={assembledVideoFileName}
+        >
+          <Download className="h-4 w-4" />下载视频
+        </a>
+        {assembled.srtUrl ? (
+          <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
+            <Download className="h-4 w-4" />下载字幕（SRT）
+          </a>
+        ) : null}
+        <a
+          className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
+          href={assembled.videoUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <ExternalLink className="h-4 w-4" />新窗口打开
+        </a>
+      </div>
+    </section>
+  ) : null;
+
+  const emptyResultSection = (
+    <section className="flex min-h-0 flex-col justify-center rounded-2xl border border-border/70 bg-muted/20 p-5 xl:min-h-[clamp(22rem,58vh,42rem)]" aria-labelledby="video-stage-empty-title">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="space-y-1">
+          <CardTitle id="video-stage-empty-title" className="text-lg">视频合成</CardTitle>
+          <CardDescription>为当前章节生成横屏 16:9 视频和字幕文件。</CardDescription>
+        </div>
+        <Badge variant="outline">
+          横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}
+        </Badge>
+      </div>
+    </section>
+  );
+
+  const videoPreviewSection = videoReady && assembled ? (
+    <div className="flex min-h-0 items-center justify-center rounded-2xl border border-border/70 bg-muted/20 p-2 sm:p-3 xl:min-h-[clamp(22rem,58vh,42rem)]">
+      <video
+        controls
+        preload="metadata"
+        src={assembled.videoUrl}
+        className="block aspect-video max-h-[calc(100dvh-10rem)] w-full overflow-hidden rounded-xl border border-border object-contain"
+      />
+    </div>
+  ) : emptyResultSection;
+
   return (
     <Card className="overflow-hidden rounded-3xl">
-      {videoReady && assembled ? (
-        <>
-          <div className="flex flex-col gap-3 bg-muted/20 p-2 sm:p-3 lg:flex-row lg:items-start">
-            <div className="flex min-w-0 flex-1 items-start justify-center">
-              <video
-                controls
-                preload="metadata"
-                src={assembled.videoUrl}
-                className="block aspect-video w-full max-w-[124vh] overflow-hidden rounded-2xl border border-border object-contain"
-              />
-            </div>
-            <aside className="w-full shrink-0 rounded-2xl border border-border/70 bg-card p-3 lg:w-60 xl:w-72">
-              <dl className="space-y-2.5 text-xs">
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="shrink-0 text-muted-foreground">时长</dt>
-                  <dd className="text-right text-sm font-medium text-foreground">{formatAsmDuration(assembled.durationSec)}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="shrink-0 text-muted-foreground">镜头</dt>
-                  <dd className="text-right text-sm font-medium text-foreground">{assembled.shotCount ?? 0} 个</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="shrink-0 text-muted-foreground">字幕</dt>
-                  <dd className="text-right text-sm font-medium text-foreground">{assembled.burnedSubtitles ? "已写入视频" : "独立字幕文件"}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="shrink-0 text-muted-foreground">规格</dt>
-                  <dd className="text-right text-sm font-medium text-foreground">横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}</dd>
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <dt className="shrink-0 text-muted-foreground">生成时间</dt>
-                  <dd className="text-right text-sm font-medium text-foreground">{assembled.generatedAt ? new Date(assembled.generatedAt).toLocaleString() : "—"}</dd>
-                </div>
-              </dl>
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border/70 pt-2.5 text-sm">
-                <a
-                  className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
-                  href={assembledVideoUrl}
-                  download={assembledVideoFileName}
-                >
-                  <Download className="h-4 w-4" />下载视频
-                </a>
-                {assembled.srtUrl ? (
-                  <a className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline" href={assembled.srtUrl}>
-                    <Download className="h-4 w-4" />下载字幕（SRT）
-                  </a>
-                ) : null}
-                <a
-                  className="inline-flex items-center gap-1 text-primary underline-offset-4 hover:underline"
-                  href={assembled.videoUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4" />新窗口打开
-                </a>
-              </div>
-            </aside>
-          </div>
-          {assembled.warnings?.length ? (
-            <div className="mx-4 mb-4 rounded-xl border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">
-              {assembled.warnings.map((warning, index) => <div key={index}>· {warning}</div>)}
-            </div>
-          ) : null}
-        </>
-      ) : (
-        <CardHeader className="space-y-3">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <CardTitle className="text-lg">视频合成</CardTitle>
-              <CardDescription>为当前章节生成横屏 16:9 视频和字幕文件。</CardDescription>
-            </div>
-            <Badge variant="outline">
-              横屏 16:9 · {controller.renderProfile.width}×{controller.renderProfile.height}
-            </Badge>
-          </div>
-        </CardHeader>
-      )}
-      <CardContent className="space-y-5">
-        {settingsSection}
-        {overviewSection}
-        {controller.status && props.hasShots && (controller.clips?.withoutVisual || controller.status.withoutAudioShotCount) ? (
-          <div className="rounded-xl border border-dashed border-border p-3 text-xs leading-5 text-muted-foreground">
-            点击合成会先补齐缺失画面和配音，再开始生成视频。
-          </div>
-        ) : null}
-        {controller.running ? (
-          <section className="rounded-xl border border-border p-4" aria-live="polite">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-foreground">合成进度{controller.progressPhase ? ` · ${controller.progressPhase}` : ""}</h3>
-              <Badge variant="outline">{controller.percent}%</Badge>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full bg-primary transition-[width]" style={{ width: `${controller.percent}%` }} />
-            </div>
-            {controller.total > 0 ? <div className="mt-2 text-xs text-muted-foreground">{controller.done}/{controller.total} 个片段</div> : null}
-            {controller.progress?.failed ? <div className="mt-2 text-xs text-destructive">{controller.progress.failed} 个镜头降级处理，详情见合成结果。</div> : null}
+      <CardContent className="p-2 sm:p-3">
+        <div
+          data-testid="video-stage-layout"
+          className="grid items-start gap-4 xl:grid-cols-[minmax(13rem,15rem)_minmax(0,1fr)_minmax(13rem,16rem)]"
+        >
+          <aside data-testid="video-stage-left-rail" className="order-2 min-w-0 space-y-4 xl:order-1">
+            {settingsSection}
+            {missingMediaSection}
+            {progressSection}
+            {errorSection}
+            {warningSection}
+          </aside>
+          <section data-testid="video-stage-player" className="order-1 min-w-0 xl:order-2">
+            {videoPreviewSection}
           </section>
-        ) : null}
-        {!controller.running && controller.assembled?.status === "error" ? (
-          <div role="alert" className="rounded-xl border border-destructive/40 p-4 text-sm text-destructive">
-            <div className="font-medium">上次合成失败</div>
-            <div className="mt-1">{controller.assembled.error || "未知原因"}。可重新合成再试。</div>
-          </div>
-        ) : null}
+          <aside data-testid="video-stage-right-rail" className="order-3 min-w-0 space-y-4 xl:order-3">
+            {videoReady ? assembledInfoSection : overviewSection}
+          </aside>
+        </div>
       </CardContent>
     </Card>
   );
