@@ -1,38 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
-  BookOpenText,
   Box,
-  Braces,
   Clapperboard,
   Database,
-  Globe2,
-  House,
+  Film,
   ImagePlus,
   LayoutDashboard,
   ListTodo,
-  SquareStack,
-  ScanSearch,
   Settings2,
-  ShieldCheck,
-  SquarePen,
-  Tags,
-  UsersRound,
-  WandSparkles,
-  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { listKnowledgeDocuments } from "@/api/knowledge";
 import { queryKeys } from "@/api/queryKeys";
-import { getAutoDirectorFollowUpOverview } from "@/api/director/autoDirectorFollowUps";
 import { getTaskOverview } from "@/api/tasks";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import LiveExecutionDialog from "@/components/liveExecution/LiveExecutionDialog";
 import DesktopBrandMark from "@/components/layout/DesktopBrandMark";
 import { cn } from "@/lib/utils";
-import { isNavRouteVisible } from "@/config/dramaFocusNav";
 
 interface NavItem {
   to: string;
@@ -49,46 +36,26 @@ const navGroups: NavGroup[] = [
   {
     title: "创作",
     items: [
-      { to: "/", label: "首页", icon: House },
-      { to: "/novels", label: "小说列表", icon: BookOpenText },
       { to: "/drama", label: "漫剧", icon: Clapperboard },
       { to: "/models", label: "模型库", icon: Box },
-      { to: "/comic", label: "漫画工作台", icon: SquareStack },
-      { to: "/creative-hub", label: "创作中枢", icon: LayoutDashboard },
-      { to: "/book-analysis", label: "拆书", icon: ScanSearch },
+      { to: "/animations", label: "动画库", icon: Film },
     ],
   },
   {
-    title: "资产",
+    title: "资料",
     items: [
-      { to: "/titles", label: "标题工坊", icon: SquarePen },
       { to: "/knowledge", label: "知识库", icon: Database },
-      { to: "/worlds", label: "世界样本库", icon: Globe2 },
-      { to: "/style-engine", label: "写法引擎", icon: WandSparkles },
-      { to: "/anti-ai-rules", label: "反 AI 规则", icon: ShieldCheck },
-      { to: "/base-characters", label: "基础角色库", icon: UsersRound },
     ],
   },
   {
     title: "系统",
     items: [
       { to: "/tasks", label: "记录", icon: ListTodo },
-      { to: "/auto-director/follow-ups", label: "导演跟进", icon: Workflow },
-      { to: "/prompt-workbench", label: "提示词管理", icon: Braces },
-      { to: "/genres", label: "题材基底库", icon: Tags },
-      { to: "/story-modes", label: "推进模式库", icon: Workflow },
-      { to: "/art-style", label: "画风", icon: ImagePlus },
+      { to: "/settings/art-style", label: "画风", icon: ImagePlus },
       { to: "/settings", label: "系统", icon: Settings2 },
     ],
   },
 ];
-
-const visibleNavGroups = navGroups
-  .map((group) => ({
-    ...group,
-    items: group.items.filter((item) => isNavRouteVisible(item.to)),
-  }))
-  .filter((group) => group.items.length > 0);
 
 interface SidebarProps {
   onSwitchToWorkspaceNav?: () => void;
@@ -120,18 +87,7 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
     staleTime: 30_000,
   });
 
-  const autoDirectorFollowUpQuery = useQuery({
-    queryKey: queryKeys.autoDirectorFollowUps.overview,
-    queryFn: getAutoDirectorFollowUpOverview,
-    enabled: badgeQueriesEnabled,
-    refetchInterval: (query) => {
-      const totalCount = query.state.data?.data?.totalCount ?? 0;
-      return totalCount > 0 ? 4000 : false;
-    },
-  });
-
   const failedTaskCount = taskQuery.data?.data?.failedCount ?? 0;
-  const autoDirectorFollowUpCount = autoDirectorFollowUpQuery.data?.data?.totalCount ?? 0;
   const knowledgeDocuments = knowledgeQuery.data?.data ?? [];
   const failedIndexCount = knowledgeDocuments.filter((item) => item.latestIndexStatus === "failed").length;
 
@@ -149,10 +105,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
       );
     }
 
-    if (to === "/auto-director/follow-ups" && autoDirectorFollowUpCount > 0) {
-      return <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">{autoDirectorFollowUpCount}</Badge>;
-    }
-
     if (to === "/knowledge" && failedIndexCount > 0) {
       return <Badge variant="destructive" className="ml-auto h-5 px-1.5 text-[10px]">{`F${failedIndexCount}`}</Badge>;
     }
@@ -164,11 +116,11 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
     <aside className="studio-sidebar flex h-full min-h-0 w-64 flex-col border-r bg-[var(--surface-panel)] p-3">
       <div className="mb-4 flex items-center gap-2.5 px-1">
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
-        <span className="truncate text-sm font-semibold">AI 小说创作工作台</span>
+        <span className="truncate text-sm font-semibold">AI 漫剧工作台</span>
       </div>
 
       <nav aria-label="主导航" className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain pr-1">
-        {visibleNavGroups.map((group) => (
+        {navGroups.map((group) => (
           <div key={group.title} className="space-y-1.5">
             <div className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">
               {group.title}
@@ -176,7 +128,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
 
             {group.items.map((item) => {
               const Icon = item.icon;
-              const isNovelEntry = item.to === "/novels";
 
               return (
                 <NavLink key={item.to} to={item.to}>
@@ -187,7 +138,6 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
                         isActive
                           ? "bg-[var(--control-active)] font-semibold text-accent-foreground shadow-sm"
                           : "text-foreground hover:bg-[var(--control-hover)] hover:text-accent-foreground",
-                        isNovelEntry && (isActive ? "ring-1 ring-primary/20" : "bg-primary/5 hover:bg-primary/10"),
                       )}
                     >
                       <span
@@ -198,10 +148,10 @@ export default function Sidebar({ onSwitchToWorkspaceNav }: SidebarProps) {
                       />
 
                       <Icon
-                        className={cn("h-[18px] w-[18px] shrink-0 mr-3", isNovelEntry && "text-primary")}
+                        className="mr-3 h-[18px] w-[18px] shrink-0"
                       />
 
-                      <span className={cn("truncate", isNovelEntry && "font-semibold")}>{item.label}</span>
+                      <span className="truncate">{item.label}</span>
 
                       {renderBadge(item.to)}
                     </div>

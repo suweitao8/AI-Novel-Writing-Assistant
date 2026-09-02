@@ -13,7 +13,6 @@ import {
   AssetLibraryRecommendation,
   type AssetLibraryTone,
 } from "@/components/assetLibrary";
-import OpenInCreativeHubButton from "@/components/creativeHub/OpenInCreativeHubButton";
 import { Button } from "@/components/ui/button";
 
 type RecommendationAction = "clear_filters" | "open_documents" | "open_ops" | "retry" | "upload";
@@ -35,7 +34,6 @@ interface KnowledgeLibraryOverviewProps {
   isError: boolean;
   isLoading: boolean;
   searchableDocumentCount: number;
-  selectedDocumentId?: string;
   visibleDocumentCount: number;
   onClearFilters: () => void;
   onOpenDocuments: () => void;
@@ -171,18 +169,12 @@ export default function KnowledgeLibraryOverview(props: KnowledgeLibraryOverview
         icon={Database}
         context="创作资产 · 知识与检索"
         title="知识资料库"
-        description="集中管理可复用的创作资料，确认索引状态，再把可靠内容带入拆书、规划和正文创作。"
+        description="集中管理可复用的创作资料，确认索引状态，再把可靠内容带入漫剧脚本与资产设定。"
         actions={(
-          <>
-            <Button type="button" onClick={props.onUpload}>
-              <Upload className="h-4 w-4" />
-              上传资料
-            </Button>
-            <OpenInCreativeHubButton
-              bindings={{ knowledgeDocumentIds: props.selectedDocumentId ? [props.selectedDocumentId] : [] }}
-              label="发送到创作中枢"
-            />
-          </>
+          <Button type="button" onClick={props.onUpload}>
+            <Upload className="h-4 w-4" />
+            上传资料
+          </Button>
         )}
       />
 

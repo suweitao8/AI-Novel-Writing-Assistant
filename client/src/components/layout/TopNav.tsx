@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import {
   Box,
   Clapperboard,
+  Film,
   LayoutDashboard,
   Settings2,
   type LucideIcon,
@@ -17,6 +18,7 @@ import { usePageTabRows, useSetPageNavActionsSlot, type PageTabRow } from "./Pag
 const iconByRoute = new Map<string, LucideIcon>([
   ["/drama", Clapperboard],
   ["/models", Box],
+  ["/animations", Film],
   ["/settings", Settings2],
 ]);
 
@@ -32,12 +34,12 @@ export default function TopNav({ onSwitchToWorkspaceNav }: TopNavProps) {
       {/* 品牌「工作台」：点击回到漫剧主链路首页。 */}
       <NavLink
         to="/drama"
-        aria-label="工作台，进入漫剧"
-        title="工作台"
+        aria-label="漫剧工作台，进入漫剧"
+        title="漫剧工作台"
         className="flex min-w-0 items-center gap-2.5 rounded-[var(--radius-control)] px-1 py-1 transition-colors hover:bg-[var(--control-hover)]"
       >
         <DesktopBrandMark className="h-8 w-8 shrink-0 drop-shadow-none" />
-        <span className="truncate text-sm font-semibold">工作台</span>
+        <span className="truncate text-sm font-semibold">漫剧工作台</span>
       </NavLink>
 
       <nav className="ml-6 flex h-full min-w-0 items-center self-stretch">

@@ -1,5 +1,8 @@
 import type { ApiResponse } from "@ai-novel/shared/types/api";
 import { apiClient } from "../client";
+import type { ImageGenerationOverrides, ImageGenerationPreview } from "./imageGenerationTypes";
+
+export type { ImageGenerationOverrides, ImageGenerationPreview } from "./imageGenerationTypes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -506,26 +509,6 @@ export async function deleteCharacterAsset(assetId: string): Promise<void> {
 }
 
 // ─── 生图前确认弹窗用 ─────────────────────────────────────────────────────────
-
-export interface ImageGenerationPreview {
-  kind: string;
-  title: string;
-  prompt: string;
-  negativePrompt?: string;
-  referenceImages: Array<{ kind: string; label: string; url: string; assetId?: string }>;
-  provider: string;
-  size: string;
-  availableProviders?: Array<{ value: string; label: string }>;
-  availableSizes?: string[];
-}
-
-export interface ImageGenerationOverrides {
-  promptOverride?: string;
-  providerOverride?: string;
-  sizeOverride?: string;
-  negativePromptOverride?: string;
-  excludedReferenceImageUrls?: string[];
-}
 
 export async function prepareCharacterAssetImage(assetId: string, provider?: string): Promise<ImageGenerationPreview> {
   const res = await apiClient.post<ApiResponse<ImageGenerationPreview>>(

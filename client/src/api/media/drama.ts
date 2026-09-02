@@ -5,7 +5,7 @@ import type {
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
-import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/comic";
+import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/imageGenerationTypes";
 import { apiClient } from "../client";
 
 export type DramaSourceType = "novel_import" | "original" | "text_import";
