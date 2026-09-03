@@ -11,6 +11,7 @@ export * from "./types/llm";
 export * from "./types/knowledge";
 export * from "./types/novel";
 export * from "./types/novelCharacter";
+export * from "./types/characterModelProfile";
 export * from "./types/pagination";
 export * from "./types/agent";
 export * from "./types/task";

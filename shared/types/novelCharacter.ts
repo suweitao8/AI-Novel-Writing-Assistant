@@ -1,4 +1,9 @@
 import type { LLMProvider } from "./llm";
+import type {
+  CharacterActorKind,
+  CharacterBodyBuild,
+  CharacterModelProfileOverride,
+} from "./characterModelProfile";
 
 export type CharacterCastRole =
   | "protagonist"
@@ -29,6 +34,9 @@ export interface Character {
   name: string;
   role: string;
   gender?: CharacterGender | null;
+  actorKind?: CharacterActorKind | null;
+  bodyBuild?: CharacterBodyBuild | null;
+  modelProfileOverride?: CharacterModelProfileOverride | null;
   castRole?: CharacterCastRole | null;
   storyFunction?: string | null;
   relationToProtagonist?: string | null;
