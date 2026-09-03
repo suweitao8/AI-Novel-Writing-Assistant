@@ -46,11 +46,214 @@
  ],
  "minimumEntryCount": 64,
  "maxFoodContainerEntries": 2,
+ "foregroundAdmission": {
+  "minimumDimensionMeters": 0.1,
+  "maximumDimensionMeters": 5,
+  "rejectedAssets": [
+   {
+    "id": "debris-dust-01",
+    "meshName": "SM_debris_dust_1",
+    "fileName": "SM_debris_dust_1.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-dust-03",
+    "meshName": "SM_debris_dust_3",
+    "fileName": "SM_debris_dust_3.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-dust-05",
+    "meshName": "SM_debris_dust_5",
+    "fileName": "SM_debris_dust_5.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-gravel-01",
+    "meshName": "SM_debris_gravel_1",
+    "fileName": "SM_debris_gravel_1.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "碎石瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-gravel-03",
+    "meshName": "SM_debris_gravel_3",
+    "fileName": "SM_debris_gravel_3.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "碎石瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02a",
+    "meshName": "SM_Debris_Pile_02a",
+    "fileName": "SM_Debris_Pile_02a.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02c",
+    "meshName": "SM_Debris_Pile_02c",
+    "fileName": "SM_Debris_Pile_02c.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02f",
+    "meshName": "SM_Debris_Pile_02f",
+    "fileName": "SM_Debris_Pile_02f.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02i",
+    "meshName": "SM_Debris_Pile_02i",
+    "fileName": "SM_Debris_Pile_02i.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-02-a-1",
+    "meshName": "SM_grass_02_A_1",
+    "fileName": "SM_grass_02_A_1.glb",
+    "reasonCode": "foliage-scatter",
+    "failureStage": "semantic",
+    "reason": "单片草丛是地面散布物，不作为可复用的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-tuft-a",
+    "meshName": "SM_Grass_a",
+    "fileName": "SM_Grass_a.glb",
+    "reasonCode": "broken-preview",
+    "failureStage": "preview",
+    "reason": "草叶详情预览存在透明材质异常，不满足可用前景预览要求",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-bunch-01",
+    "meshName": "SM_Bunch_of_Grass_0",
+    "fileName": "SM_Bunch_of_Grass_0.glb",
+    "reasonCode": "foliage-scatter",
+    "failureStage": "semantic",
+    "reason": "草捆属于地面散布物，不作为可复用的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "battery-01",
+    "meshName": "SM_Battery_01",
+    "fileName": "SM_Battery_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "bulb-01",
+    "meshName": "SM_Bulb_01",
+    "fileName": "SM_Bulb_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "cigarette-01",
+    "meshName": "SM_Cigarette_01",
+    "fileName": "SM_Cigarette_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "pill-bottle-01c",
+    "meshName": "SM_PillBottle_01c",
+    "fileName": "SM_PillBottle_01c.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "office-stationary-01ab",
+    "meshName": "SM_Office_Stationary_01ab",
+    "fileName": "SM_Office_Stationary_01ab.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "office-stationary-01ac",
+    "meshName": "SM_Office_Stationary_01ac",
+    "fileName": "SM_Office_Stationary_01ac.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "stationary-set-02ab",
+    "meshName": "SM_Stationary_Set_02ab",
+    "fileName": "SM_Stationary_Set_02ab.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "candle-set-01a",
+    "meshName": "SM_Candle_Set_01a",
+    "fileName": "SM_Candle_Set_01a.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "stone-01",
+    "meshName": "SM_stone_01",
+    "fileName": "SM_stone_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "baseball",
+    "meshName": "SM_Baseball",
+    "fileName": "SM_Baseball.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   }
+  ]
+ },
  "requiredCategories": [
   "石头",
   "灌木",
   "树木",
-  "草",
   "花",
   "盆栽",
   "玩具/装饰品",

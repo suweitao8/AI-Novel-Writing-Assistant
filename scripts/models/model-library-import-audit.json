@@ -126,19 +126,15 @@
       "outputAlphaChannel": null,
       "references": [
         {
-          "modelId": "pill-bottle-01a",
-          "materialName": "MI_PillBottles_01a"
-        },
-        {
-          "modelId": "pill-bottle-01c",
-          "materialName": "MI_PillBottles_01a"
-        },
-        {
           "modelId": "pill-bottle-set-01a",
           "materialName": "MI_PillBottles_01a"
         },
         {
           "modelId": "pill-bottle-set-01c",
+          "materialName": "MI_PillBottles_01a"
+        },
+        {
+          "modelId": "pill-bottle-01a",
           "materialName": "MI_PillBottles_01a"
         }
       ]
@@ -942,15 +938,15 @@
           "materialName": "MI_AirDuct"
         },
         {
-          "modelId": "air-duct-support",
-          "materialName": "MI_AirDuct"
-        },
-        {
           "modelId": "air-duct-turn90",
           "materialName": "MI_AirDuct"
         },
         {
           "modelId": "air-duct-vent-01",
+          "materialName": "MI_AirDuct"
+        },
+        {
+          "modelId": "air-duct-support",
           "materialName": "MI_AirDuct"
         }
       ]
@@ -1004,11 +1000,11 @@
       "outputAlphaChannel": null,
       "references": [
         {
-          "modelId": "road-cone-01",
+          "modelId": "road-sewer-cover-01",
           "materialName": "MI_RoadConstruction"
         },
         {
-          "modelId": "road-sewer-cover-01",
+          "modelId": "road-cone-01",
           "materialName": "MI_RoadConstruction"
         }
       ]
@@ -1030,15 +1026,15 @@
           "materialName": "MI_Trash2"
         },
         {
-          "modelId": "suburb-garbage-001",
-          "materialName": "MI_Trash2"
-        },
-        {
           "modelId": "suburb-garbage-003",
           "materialName": "MI_Trash1"
         },
         {
           "modelId": "suburb-garbage-003",
+          "materialName": "MI_Trash2"
+        },
+        {
+          "modelId": "suburb-garbage-001",
           "materialName": "MI_Trash2"
         },
         {
@@ -1126,32 +1122,8 @@
           "materialName": "MI_bed_2"
         },
         {
-          "modelId": "abandoned-linen-01a",
-          "materialName": "MI_bed_linen_1"
-        },
-        {
-          "modelId": "abandoned-linen-01c",
-          "materialName": "MI_bed_linen_1"
-        },
-        {
           "modelId": "abandoned-mattress-02",
           "materialName": "MI_bed_1"
-        },
-        {
-          "modelId": "abandoned-old-book-01",
-          "materialName": "MI_books_1"
-        },
-        {
-          "modelId": "abandoned-old-book-02",
-          "materialName": "MI_books_1"
-        },
-        {
-          "modelId": "abandoned-old-book-03",
-          "materialName": "MI_books_1"
-        },
-        {
-          "modelId": "abandoned-old-book-04",
-          "materialName": "MI_books_1"
         },
         {
           "modelId": "abandoned-window-01",
@@ -1174,24 +1146,28 @@
           "materialName": "MI_window_wood_1"
         },
         {
-          "modelId": "debris-dust-01",
-          "materialName": "MI_debris_1"
+          "modelId": "abandoned-old-book-01",
+          "materialName": "MI_books_1"
         },
         {
-          "modelId": "debris-dust-03",
-          "materialName": "MI_debris_1"
+          "modelId": "abandoned-old-book-02",
+          "materialName": "MI_books_1"
         },
         {
-          "modelId": "debris-dust-05",
-          "materialName": "MI_debris_1"
+          "modelId": "abandoned-old-book-03",
+          "materialName": "MI_books_1"
         },
         {
-          "modelId": "debris-gravel-01",
-          "materialName": "MI_debris_1"
+          "modelId": "abandoned-old-book-04",
+          "materialName": "MI_books_1"
         },
         {
-          "modelId": "debris-gravel-03",
-          "materialName": "MI_debris_1"
+          "modelId": "abandoned-linen-01a",
+          "materialName": "MI_bed_linen_1"
+        },
+        {
+          "modelId": "abandoned-linen-01c",
+          "materialName": "MI_bed_linen_1"
         }
       ]
     },
@@ -1320,6 +1296,10 @@
       "outputAlphaChannel": null,
       "references": [
         {
+          "modelId": "coffee-table",
+          "materialName": "M_Coffee_table_bottom"
+        },
+        {
           "modelId": "armchair",
           "materialName": "M_Armchair_Wood"
         },
@@ -1330,10 +1310,6 @@
         {
           "modelId": "blinds-1",
           "materialName": "M_Blinds_2"
-        },
-        {
-          "modelId": "coffee-table",
-          "materialName": "M_Coffee_table_bottom"
         }
       ]
     },
@@ -2478,11 +2454,11 @@
       "outputAlphaChannel": null,
       "references": [
         {
-          "modelId": "bookshelf-01a-blank",
+          "modelId": "bookshelf-01a",
           "materialName": "Mi_BookShelf"
         },
         {
-          "modelId": "bookshelf-01a",
+          "modelId": "bookshelf-01a-blank",
           "materialName": "Mi_BookShelf"
         }
       ]
@@ -2570,15 +2546,15 @@
       "outputAlphaChannel": null,
       "references": [
         {
+          "modelId": "coffeecup-01a",
+          "materialName": "Mi_OfficeClutter_01a"
+        },
+        {
           "modelId": "binder-01a",
           "materialName": "Mi_OfficeClutter_01a"
         },
         {
           "modelId": "calculator-01a",
-          "materialName": "Mi_OfficeClutter_01a"
-        },
-        {
-          "modelId": "coffeecup-01a",
           "materialName": "Mi_OfficeClutter_01a"
         }
       ]
@@ -3442,11 +3418,11 @@
       "outputAlphaChannel": true,
       "references": [
         {
-          "modelId": "desk-set-01a",
+          "modelId": "desk-set-01b",
           "materialName": "MI_Desk_Set_01a"
         },
         {
-          "modelId": "desk-set-01b",
+          "modelId": "desk-set-01a",
           "materialName": "MI_Desk_Set_01a"
         }
       ]
@@ -3523,14 +3499,6 @@
         },
         {
           "modelId": "office-stationary-01aa",
-          "materialName": "MI_Office_Stationary_01a"
-        },
-        {
-          "modelId": "office-stationary-01ab",
-          "materialName": "MI_Office_Stationary_01a"
-        },
-        {
-          "modelId": "office-stationary-01ac",
           "materialName": "MI_Office_Stationary_01a"
         },
         {
@@ -3611,10 +3579,6 @@
       "references": [
         {
           "modelId": "stationary-set-02aa",
-          "materialName": "MI_Stationary_Set_02a"
-        },
-        {
-          "modelId": "stationary-set-02ab",
           "materialName": "MI_Stationary_Set_02a"
         },
         {
@@ -3783,42 +3747,6 @@
         }
       ]
     },
-    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png": {
-      "sourceName": "_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png",
-      "sourceSha256": "5ee6f0966c79736c8570acf7500826d6d0b88c1c47fec8355c435223e0136daf",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 0,
-      "preserveAlpha": true,
-      "outputFormat": "png",
-      "outputStatus": "verified",
-      "outputSha256": "5f111cf9614951077f88e35132f837c1de0e637115cae3eccd8e5612915c8854",
-      "outputAlphaChannel": true,
-      "references": [
-        {
-          "modelId": "grass-02-a-1",
-          "materialName": "MI_grass_02"
-        }
-      ]
-    },
-    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Big_rock_03_BC_H.T_Big_rock_03_BC_H_baseColor.png": {
-      "sourceName": "_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Big_rock_03_BC_H.T_Big_rock_03_BC_H_baseColor.png",
-      "sourceSha256": "c832ee7bb92ce263384ca9c557b4d910061e7c5a74d44b4a5a62acff5774eb70",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 0,
-      "preserveAlpha": true,
-      "outputFormat": "png",
-      "outputStatus": "verified",
-      "outputSha256": "eb1e9a82fc986257905e59ebbea6d294e809ea72e8ad09d0749977aad091aee9",
-      "outputAlphaChannel": true,
-      "references": [
-        {
-          "modelId": "stone-01",
-          "materialName": "MI_Big_rock_03"
-        }
-      ]
-    },
     "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Flat_rock_01_tiled_BC_H.T_Flat_rock_01_tiled_BC_H_baseColor.png": {
       "sourceName": "_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Flat_rock_01_tiled_BC_H.T_Flat_rock_01_tiled_BC_H_baseColor.png",
       "sourceSha256": "e3dba8ffaa1888444cc73726e6e8a9f842ee3fbc6f74654000f16c8986e23778",
@@ -3934,8 +3862,28 @@
       "outputAlphaChannel": true,
       "references": [
         {
-          "modelId": "grass-tuft-a",
+          "modelId": "wildflower-cluster-a",
+          "materialName": "MI_Flower_d"
+        },
+        {
+          "modelId": "wildflower-cluster-a",
           "materialName": "MI_Grass_a"
+        },
+        {
+          "modelId": "wildflower-cluster-c",
+          "materialName": "MI_Flower_d"
+        },
+        {
+          "modelId": "wildflower-cluster-c",
+          "materialName": "MI_Grass_b"
+        },
+        {
+          "modelId": "wildflower-cluster-f",
+          "materialName": "MI_Grass_b"
+        },
+        {
+          "modelId": "wildflower-cluster-f",
+          "materialName": "MI_Grass_a1"
         },
         {
           "modelId": "wildflower-a",
@@ -3944,66 +3892,6 @@
         {
           "modelId": "wildflower-c",
           "materialName": "MI_Grass_a"
-        },
-        {
-          "modelId": "wildflower-cluster-a",
-          "materialName": "MI_Flower_d"
-        },
-        {
-          "modelId": "wildflower-cluster-a",
-          "materialName": "MI_Grass_a"
-        },
-        {
-          "modelId": "wildflower-cluster-c",
-          "materialName": "MI_Flower_d"
-        },
-        {
-          "modelId": "wildflower-cluster-c",
-          "materialName": "MI_Grass_b"
-        },
-        {
-          "modelId": "wildflower-cluster-f",
-          "materialName": "MI_Grass_a1"
-        },
-        {
-          "modelId": "wildflower-cluster-f",
-          "materialName": "MI_Grass_b"
-        }
-      ]
-    },
-    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_Color_0.T_MI_Bright_Green_Grass_Color_0_baseColor.jpg": {
-      "sourceName": "_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_Color_0.T_MI_Bright_Green_Grass_Color_0_baseColor.png",
-      "sourceSha256": "3fc4430e7cbe397167ae320c0d27499aa582e0108fa5a8227d4d3c58cf3ad2f3",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "3e61a2250926a654813a6056cd35024b760e5e333460a91d9152a1b3d6d21124",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_Bright_Green_Grass"
-        }
-      ]
-    },
-    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Color_0.T_MI_Green_Grass_Blade_Color_0_baseColor.jpg": {
-      "sourceName": "_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Color_0.T_MI_Green_Grass_Blade_Color_0_baseColor.png",
-      "sourceSha256": "6bdf6b3d1ea5fc4336f1edadae1622f5591a9ffcd8348745cef2a5badc20344c",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "f89545e8eca82e4b21fb481e13912cbf6c1f35c5aa8a0a136160bbd0c72480cc",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_Green_Grass_Blade"
         }
       ]
     },
@@ -4151,60 +4039,6 @@
         }
       ]
     },
-    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_1_Color_0.T_MI_White_Grass_Blade_1_Color_0_baseColor.jpg": {
-      "sourceName": "_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_1_Color_0.T_MI_White_Grass_Blade_1_Color_0_baseColor.png",
-      "sourceSha256": "8048cb0bd9e48454bc19e04d63b0f2ed302c30344a7275d143f5b4a03a74ce0a",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "ce27e836d1cd6a1af4773068879ae029154ed39c4fc84186f7cfab3f297f7e2d",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_White_Grass_Blade_1"
-        }
-      ]
-    },
-    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_2_Color_0.T_MI_White_Grass_Blade_2_Color_0_baseColor.jpg": {
-      "sourceName": "_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_2_Color_0.T_MI_White_Grass_Blade_2_Color_0_baseColor.png",
-      "sourceSha256": "9a109d7cbed06508c40148ea7c020f06343d8ca18fba662dcc2a9ffff6093452",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "d3ada0740d44e3bff4daceaf0813ec2f201ea4c9a18f0f8d7423b5d451007ac4",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_White_Grass_Blade_2"
-        }
-      ]
-    },
-    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_3_Color_0.T_MI_White_Grass_Blade_3_Color_0_baseColor.jpg": {
-      "sourceName": "_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_3_Color_0.T_MI_White_Grass_Blade_3_Color_0_baseColor.png",
-      "sourceSha256": "04e2ebcebb01021b360c430938980a75aa121aa97ca7bb85d28441c7c8968ea9",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "5a5d030b137cd8d0e6cf5cfd68fc8c3dc92999535c9dcebff209e1edb9b65fb2",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_White_Grass_Blade_3"
-        }
-      ]
-    },
     "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_Atlas_02_Basecolor.T_Atlas_02_Basecolor_baseColor.png": {
       "sourceName": "_EnvVillage_UltimateFarming_Textures_T_Atlas_02_Basecolor.T_Atlas_02_Basecolor_baseColor.png",
       "sourceSha256": "507d44d0e0611f3665110264eeb77d3d76836d1abaad660b1f0865e2157e443b",
@@ -4258,15 +4092,15 @@
       "outputAlphaChannel": null,
       "references": [
         {
-          "modelId": "bamboo-01",
-          "materialName": "MI_Bamboo"
-        },
-        {
           "modelId": "bamboo-basket-01a",
           "materialName": "MI_Bamboo"
         },
         {
           "modelId": "bamboo-basket-01b",
+          "materialName": "MI_Bamboo"
+        },
+        {
+          "modelId": "bamboo-01",
           "materialName": "MI_Bamboo"
         }
       ]
@@ -4312,24 +4146,6 @@
         {
           "modelId": "crop-beet-01b",
           "materialName": "MI_Beet_Fruit"
-        }
-      ]
-    },
-    "/models/cine57/tex/_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Yellow_Tip_Color_0.T_MI_Green_Grass_Blade_Yellow_Tip_Color_0_baseColor.jpg": {
-      "sourceName": "_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Yellow_Tip_Color_0.T_MI_Green_Grass_Blade_Yellow_Tip_Color_0_baseColor.png",
-      "sourceSha256": "296b359a5b483cc0f077d85dcf14fd3e06122af7b36d5c60a6bf5c3b24a91bfe",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "73694603559b9bebd93f47f7c5020713c0f859163dd4e7f7328d88287abe82d6",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_Green_Grass_Blade_Yellow_Tip"
         }
       ]
     },
@@ -4620,16 +4436,16 @@
       "outputAlphaChannel": null,
       "references": [
         {
+          "modelId": "tv-remote-01",
+          "materialName": "MI_TV_01_remote"
+        },
+        {
           "modelId": "electric-outlet-01",
           "materialName": "MI_electric_outlet_01"
         },
         {
           "modelId": "tv-01",
           "materialName": "MI_TV_01"
-        },
-        {
-          "modelId": "tv-remote-01",
-          "materialName": "MI_TV_01_remote"
         }
       ]
     },
@@ -4646,16 +4462,16 @@
       "outputAlphaChannel": null,
       "references": [
         {
+          "modelId": "tv-remote-01",
+          "materialName": "MI_TV_01_remote_glass"
+        },
+        {
           "modelId": "pc-case-01-",
           "materialName": "MI_PC_case_01_fan"
         },
         {
           "modelId": "pc-case-01-",
           "materialName": "MI_PC_case_01_glass"
-        },
-        {
-          "modelId": "tv-remote-01",
-          "materialName": "MI_TV_01_remote_glass"
         }
       ]
     },
@@ -4712,11 +4528,11 @@
           "materialName": "MI_FoodShipment_01a"
         },
         {
-          "modelId": "food-shipment-stack-01a",
+          "modelId": "food-shipping-crate-01a",
           "materialName": "MI_FoodShipment_01a"
         },
         {
-          "modelId": "food-shipping-crate-01a",
+          "modelId": "food-shipment-stack-01a",
           "materialName": "MI_FoodShipment_01a"
         }
       ]
@@ -5277,24 +5093,6 @@
         }
       ]
     },
-    "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Candle_Set_01a_ALB.TX_Candle_Set_01a_ALB_baseColor.jpg": {
-      "sourceName": "_Props_Suburban_Household_VOL8_Decor_Textures_TX_Candle_Set_01a_ALB.TX_Candle_Set_01a_ALB_baseColor.png",
-      "sourceSha256": "4d0703cdcf3a0e6e6949f26d07f9e0f72592138c7ca9e6570a9f4d389b4a09c1",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "6be40633c720cb72ea50aadb491d0461d6c43900a0dd126093f15e697731c472",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "candle-set-01a",
-          "materialName": "MI_Candle_Set_01a"
-        }
-      ]
-    },
     "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Decor_03a_ALB.TX_Decor_03a_ALB_baseColor.png": {
       "sourceName": "_Props_Suburban_Household_VOL8_Decor_Textures_TX_Decor_03a_ALB.TX_Decor_03a_ALB_baseColor.png",
       "sourceSha256": "25e4a3f25189e4f3b2aedaeefdd6bc543051e6e762c55e56ea7981b34044c057",
@@ -5603,24 +5401,6 @@
         }
       ]
     },
-    "/models/cine57/tex/_Props_Survival_Items_Pack_Textures_Objects_T_Lamp_01_BC.T_Lamp_01_BC.png": {
-      "sourceName": "_Props_Survival_Items_Pack_Textures_Objects_T_Lamp_01_BC.T_Lamp_01_BC.png",
-      "sourceSha256": "6d9861fd480de683db2ef15125b139c292057fe3946aa210ba1e65b05862a9a6",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 0,
-      "preserveAlpha": true,
-      "outputFormat": "png",
-      "outputStatus": "verified",
-      "outputSha256": "d2697d590488c84f491b152e05d66ac6dcea6de44b2be0b5498868209717c7d6",
-      "outputAlphaChannel": true,
-      "references": [
-        {
-          "modelId": "bulb-01",
-          "materialName": "M_Bulb_01"
-        }
-      ]
-    },
     "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Cardboard_01a_ALB.TX_Cardboard_01a_ALB_baseColor.jpg": {
       "sourceName": "_Props_Trash_VOL1_Textures_TX_Cardboard_01a_ALB.TX_Cardboard_01a_ALB_baseColor.png",
       "sourceSha256": "f3e1ef6c4d2c6b9a16ec3ae674cacfca16f6d90a7d34ae1ae2144e1523426a01",
@@ -5654,50 +5434,6 @@
         {
           "modelId": "trash-coffee-corner-01a",
           "materialName": "MI_Coffee_Station_01a"
-        }
-      ]
-    },
-    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Debris_Pile_02a_ALB.TX_Debris_Pile_02a_ALB_baseColor.jpg": {
-      "sourceName": "_Props_Trash_VOL1_Textures_TX_Debris_Pile_02a_ALB.TX_Debris_Pile_02a_ALB_baseColor.png",
-      "sourceSha256": "8bbc851d0896179ee7086d77e55337ca2277207dc2146f0b3082b84827f76bbb",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "22fb93538b7e027ffcb0afff5f16a310c491e53295f1d52c987a12123283b6ab",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "trash-debris-pile-02c",
-          "materialName": "MI_Debris_Pile_02a"
-        },
-        {
-          "modelId": "trash-debris-pile-02f",
-          "materialName": "MI_Debris_Pile_02a"
-        },
-        {
-          "modelId": "trash-debris-pile-02i",
-          "materialName": "MI_Debris_Pile_02a"
-        }
-      ]
-    },
-    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Debris_Pile_02b_ALB.TX_Debris_Pile_02b_ALB_baseColor.jpg": {
-      "sourceName": "_Props_Trash_VOL1_Textures_TX_Debris_Pile_02b_ALB.TX_Debris_Pile_02b_ALB_baseColor.png",
-      "sourceSha256": "5d1d6fe3d8cc9fc7b065b63cd6723609eb059295813d1546b704b210ecc21180",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "680a81735d3b6b58971d46019b001d6705cab03670370dc3d309d48167a43625",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "trash-debris-pile-02a",
-          "materialName": "MI_Debris_Pile_02b"
         }
       ]
     },
@@ -5789,24 +5525,6 @@
         }
       ]
     },
-    "/models/cine57/tex/AN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Half_Dead_Color_0.T_MI_Green_Grass_Blade_Half_Dead_Color_0_baseColor.jpg": {
-      "sourceName": "AN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Half_Dead_Color_0.T_MI_Green_Grass_Blade_Half_Dead_Color_0_baseColor.png",
-      "sourceSha256": "c721868f438394223e851227f352d14ddb40e226944470a65faa6de317a97851",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "c01c774ce19b0ba5ef3138e6f5dab9b64e4b5ccb73eef77a44b1bc711f3a82b3",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_Green_Grass_Blade_Half_Dead"
-        }
-      ]
-    },
     "/models/cine57/tex/arehouse_Textures_Tileable_MT00027-Plain_Metal_T_MT00027-Plain_Metal_BaseColor.T_MT00027-Plain_Metal_BaseColor_baseColor.jpg": {
       "sourceName": "arehouse_Textures_Tileable_MT00027-Plain_Metal_T_MT00027-Plain_Metal_BaseColor.T_MT00027-Plain_Metal_BaseColor_baseColor.png",
       "sourceSha256": "d84545f64520e801798c243d563549589a4954fff381eb61a8fd56e6b73cf766",
@@ -5825,29 +5543,11 @@
         },
         {
           "modelId": "warehouse-logo-01",
-          "materialName": "MI_Painted_Metal_Gray"
+          "materialName": "MI_Painted_Metal_Orange"
         },
         {
           "modelId": "warehouse-logo-01",
-          "materialName": "MI_Painted_Metal_Orange"
-        }
-      ]
-    },
-    "/models/cine57/tex/EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_0_Color_0.T_MI_Bright_Green_Grass_0_Color_0_baseColor.jpg": {
-      "sourceName": "EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_0_Color_0.T_MI_Bright_Green_Grass_0_Color_0_baseColor.png",
-      "sourceSha256": "3fc4430e7cbe397167ae320c0d27499aa582e0108fa5a8227d4d3c58cf3ad2f3",
-      "sourceStatus": "probed",
-      "pixelFormat": "rgba",
-      "alphaMinimum": 255,
-      "preserveAlpha": false,
-      "outputFormat": "jpg",
-      "outputStatus": "verified",
-      "outputSha256": "3e61a2250926a654813a6056cd35024b760e5e333460a91d9152a1b3d6d21124",
-      "outputAlphaChannel": null,
-      "references": [
-        {
-          "modelId": "grass-bunch-01",
-          "materialName": "MI_Bright_Green_Grass_0"
+          "materialName": "MI_Painted_Metal_Gray"
         }
       ]
     },

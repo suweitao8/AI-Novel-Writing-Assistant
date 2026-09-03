@@ -6,12 +6,15 @@ import { getUnsupportedNameReason, readGlb } from "./glbSanitizer.mjs";
 import {
   CINE57_ALLOWED_MODEL_IDS,
   CINE57_CATEGORY_ORDER,
+  CINE57_FOREGROUND_ADMISSION,
   CINE57_MODEL_LIBRARY_CONTRACT,
   CINE57_MAX_FOOD_CONTAINER_ENTRIES,
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_QUARANTINED_ASSETS,
   CINE57_QUARANTINED_MODEL_FILE_NAMES,
   CINE57_QUARANTINED_MODEL_IDS,
+  CINE57_REJECTED_FOREGROUND_MODEL_FILE_NAMES,
+  CINE57_REJECTED_FOREGROUND_MODEL_IDS,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
@@ -26,9 +29,19 @@ import {
 } from "./model-library-preview-audit.mjs";
 import { listCatalogTexturePaths, validateModelTextureContract } from "./modelLibraryTextureAudit.mjs";
 import { validateModelVisualReview } from "./modelLibraryVisualReview.mjs";
+import { evaluateModelCandidate } from "./modelLibraryImportAdmission.mjs";
+import {
+  MODEL_LIBRARY_IMPORT_HISTORY_PATH,
+  validateImportHistoryDocument,
+} from "./modelLibraryImportHistory.mjs";
 
-export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
+export const MIN_FOREGROUND_MODEL_DIMENSION_METERS = CINE57_FOREGROUND_ADMISSION.minimumDimensionMeters;
+export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = CINE57_FOREGROUND_ADMISSION.maximumDimensionMeters;
 const CINE57_MODEL_URL_PREFIX = "/models/cine57/";
+const MODEL_LIBRARY_VISUAL_REVIEW_PATH = path.join(
+  path.dirname(MODEL_LIBRARY_IMPORT_AUDIT_PATH),
+  "model-library-visual-review.json",
+);
 
 const MODEL_USAGE_SUPPORT_SURFACES = new Set([
   "ground",
@@ -443,7 +456,13 @@ function isCine57StaticModelEntry(entry) {
 }
 
 /** Return every static model-library content violation; an empty array means valid. */
-export function validateModelLibrary({ library, modelsDir }) {
+export function validateModelLibrary({
+  library,
+  modelsDir,
+  importAuditPath = MODEL_LIBRARY_IMPORT_AUDIT_PATH,
+  previewAuditPath = MODEL_LIBRARY_PREVIEW_AUDIT_PATH,
+  importHistoryPath = MODEL_LIBRARY_IMPORT_HISTORY_PATH,
+} = {}) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
   const staticEntries = entries.filter(isStaticModelEntry);
@@ -451,6 +470,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
   const quarantinedIds = new Set(CINE57_QUARANTINED_MODEL_IDS);
   const quarantinedFileNames = new Set(CINE57_QUARANTINED_MODEL_FILE_NAMES);
+  const rejectedForegroundFileNames = new Set(CINE57_REJECTED_FOREGROUND_MODEL_FILE_NAMES);
   const allowedIds = new Set(CINE57_ALLOWED_MODEL_IDS);
   const allowedCategories = new Set(CINE57_CATEGORY_ORDER);
   const requiredCategories = new Set(CINE57_REQUIRED_CATEGORIES);
@@ -461,7 +481,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   const staticFileNames = new Set();
   let importAuditDocument = null;
   try {
-    importAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_IMPORT_AUDIT_PATH, "utf8"));
+    importAuditDocument = JSON.parse(fs.readFileSync(importAuditPath, "utf8"));
   } catch (error) {
     addError(
       errors,
@@ -471,11 +491,31 @@ export function validateModelLibrary({ library, modelsDir }) {
   const importAuditByTexture = importAuditDocument?.textures ?? {};
   let previewAuditDocument = null;
   try {
-    previewAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_PREVIEW_AUDIT_PATH, "utf8"));
+    previewAuditDocument = JSON.parse(fs.readFileSync(previewAuditPath, "utf8"));
   } catch (error) {
     addError(
       errors,
       `model library preview audit could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  let visualReviewDocument = null;
+  try {
+    visualReviewDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_VISUAL_REVIEW_PATH, "utf8"));
+  } catch (error) {
+    addError(
+      errors,
+      `model library visual review could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  let importHistoryDocument = null;
+  try {
+    importHistoryDocument = JSON.parse(fs.readFileSync(importHistoryPath, "utf8"));
+    errors.push(...validateImportHistoryDocument(importHistoryDocument)
+      .map((error) => `model library import history: ${error}`));
+  } catch (error) {
+    addError(
+      errors,
+      `model library import history could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
   errors.push(...validateModelLibraryImportAudit({
@@ -483,6 +523,10 @@ export function validateModelLibrary({ library, modelsDir }) {
     audit: importAuditDocument,
     modelsDir,
   }));
+  const previewAuditById = new Map(
+    (Array.isArray(previewAuditDocument?.entries) ? previewAuditDocument.entries : [])
+      .map((entry) => [entry.id, entry]),
+  );
 
   if (cine57StaticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
     addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${cine57StaticEntries.length}`);
@@ -538,12 +582,27 @@ export function validateModelLibrary({ library, modelsDir }) {
       if (inspection.referenceErrors.length > 0) {
         addError(errors, `${entry.id} contains dangling GLB references: ${inspection.referenceErrors.join(", ")}`);
       }
-      errors.push(...validateModelTextureContract({
+      const textureErrors = validateModelTextureContract({
         entry,
         glbMaterials: inspection.materials,
         availableTexturePaths: getAvailableTexturePaths(entry, modelsDir),
         importAuditByTexture,
-      }));
+      });
+      errors.push(...textureErrors);
+      const admission = evaluateModelCandidate({
+        entry,
+        inspection,
+        preview: previewAuditById.get(entry.id),
+        textureErrors,
+        expectedAssetSha256: assetSha256ById.get(entry.id),
+        policy: CINE57_FOREGROUND_ADMISSION,
+      });
+      if (!admission.accepted) {
+        addError(
+          errors,
+          `${entry.id} admission rejected [${admission.reasonCode}]: ${admission.summary}`,
+        );
+      }
       if (inspection.maxDimensionMeters > MAX_FOREGROUND_MODEL_DIMENSION_METERS + 1e-6) {
         addError(
           errors,
@@ -556,12 +615,48 @@ export function validateModelLibrary({ library, modelsDir }) {
     }
   }
 
-  errors.push(...validateModelVisualReview({ library: entries, meshNamesById, assetSha256ById }));
+  errors.push(...validateModelVisualReview({
+    library: entries,
+    reviews: visualReviewDocument?.entries,
+    meshNamesById,
+    assetSha256ById,
+  }));
   errors.push(...validatePreviewAuditDocument({
     auditDocument: previewAuditDocument,
     library: entries,
     assetSha256ById,
   }));
+
+  const historyByCatalogId = new Map();
+  for (const record of importHistoryDocument?.entries ?? []) {
+    const catalogId = typeof record.evidence === "object" && record.evidence !== null
+      ? record.evidence.catalogId
+      : null;
+    if (typeof catalogId !== "string" || catalogId.length === 0) continue;
+    if (historyByCatalogId.has(catalogId)) {
+      addError(errors, `model library import history has duplicate catalogId: ${catalogId}`);
+    }
+    historyByCatalogId.set(catalogId, record);
+  }
+  const expectedHistoryIds = new Set([
+    ...CINE57_ALLOWED_MODEL_IDS,
+    ...CINE57_REJECTED_FOREGROUND_MODEL_IDS,
+  ]);
+  for (const expectedId of expectedHistoryIds) {
+    const record = historyByCatalogId.get(expectedId);
+    if (!record) {
+      addError(errors, `model library import history is missing catalogId: ${expectedId}`);
+      continue;
+    }
+    const shouldBeRejected = CINE57_REJECTED_FOREGROUND_MODEL_IDS.includes(expectedId);
+    const expectedStatus = shouldBeRejected ? "rejected" : "approved";
+    if (record.status !== expectedStatus) {
+      addError(
+        errors,
+        `model library import history status mismatch for ${expectedId}: expected ${expectedStatus}, found ${record.status}`,
+      );
+    }
+  }
 
   for (const requiredCategory of requiredCategories) {
     if (!cine57StaticEntries.some((entry) => entry.category === requiredCategory)) {
@@ -584,6 +679,7 @@ export function validateModelLibrary({ library, modelsDir }) {
   if (fs.existsSync(modelsDir)) {
     for (const fileName of fs.readdirSync(modelsDir).filter((file) => file.endsWith(".glb"))) {
       if (!staticFileNames.has(fileName) && !quarantinedFileNames.has(fileName)) {
+        if (rejectedForegroundFileNames.has(fileName)) continue;
         addError(errors, `orphan GLB is not in catalog: ${fileName}`);
       }
     }
