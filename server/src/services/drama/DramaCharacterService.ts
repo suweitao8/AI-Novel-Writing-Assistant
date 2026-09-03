@@ -2,6 +2,9 @@ import { prisma } from "../../db/prisma";
 
 export interface DramaCharacterUpsertInput {
   name: string;
+  gender?: "male" | "female" | "other" | "unknown";
+  actorKind?: "human" | "monster" | "other" | "unknown";
+  bodyBuild?: "slender" | "standard" | "broad" | "unknown";
   archetype?: string;
   persona?: string;
   speechStyle?: string;
@@ -30,6 +33,9 @@ export class DramaCharacterService {
       where: { id: characterId },
       data: {
         name: input.name,
+        gender: input.gender,
+        actorKind: input.actorKind,
+        bodyBuild: input.bodyBuild,
         archetype: input.archetype,
         persona: input.persona,
         speechStyle: input.speechStyle,
@@ -56,6 +62,9 @@ export class DramaCharacterService {
       data: {
         projectId: character.projectId,
         name: character.name,
+        gender: character.gender,
+        actorKind: character.actorKind,
+        bodyBuild: character.bodyBuild,
         archetype: character.archetype,
         persona: character.persona,
         speechStyle: character.speechStyle,
@@ -76,6 +85,9 @@ export class DramaCharacterService {
       data: {
         projectId,
         name: item.name,
+        gender: item.gender,
+        actorKind: item.actorKind,
+        bodyBuild: item.bodyBuild,
         archetype: item.archetype,
         persona: item.persona,
         speechStyle: item.speechStyle,

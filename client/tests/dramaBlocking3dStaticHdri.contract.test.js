@@ -31,6 +31,10 @@ const environmentKeyLightSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dEnvironmentKeyLight.ts", import.meta.url),
   "utf8",
 );
+const actorMaterialSource = readFileSync(
+  new URL("../src/pages/drama/comicDrama/components/blocking3d/materials/actorMaterialRuntime.ts", import.meta.url),
+  "utf8",
+);
 const scaleSource = readFileSync(
   new URL("../src/pages/drama/comicDrama/components/blocking3d/blocking3dScale.ts", import.meta.url),
   "utf8",
@@ -60,7 +64,7 @@ test("场景 3D 编辑器使用当前状态图作为 HDRI 背景", () => {
   assert.doesNotMatch(scene3dPageSource, /onStatus: setStatus/);
 });
 
-test("HDRI 半球负责弧形地面，纯色地面只在没有 HDRI 时显示", () => {
+test("HDRI 提供天空与平面地面，纯色地面只在没有 HDRI 时显示", () => {
   assert.match(viewerSource, /ground\.enabled = false/);
   assert.match(viewerSource, /ground\.enabled = true/);
 });
@@ -87,7 +91,7 @@ test("切换或销毁 HDRI 时释放纹理和投影材质", () => {
   assert.match(viewerSource, /discardEnvironmentAsset\(asset\)/);
 });
 
-test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => {
+test("普通场景图和 2:1 全景图都使用有限 HDRI 环境网格", () => {
   assert.match(viewerSource, /createBackdropGeometry/);
   assert.match(environmentGeometrySource, /createBackdropGeometryData/);
   assert.match(viewerSource, /createProjectedHdriMaterial/);
@@ -99,7 +103,7 @@ test("普通场景图和 2:1 全景图都使用带贴图的上下半球", () => 
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
-test("HDRI 显示面直接按片元坐标采样原始等距全景，避免地面中心重投影拉伸", () => {
+test("HDRI 天空按片元方向采样，地面不重投影普通透视下半图", () => {
   assert.doesNotMatch(viewerSource, /let environmentProjectionCube: pc\.Texture \| null = null/);
   assert.doesNotMatch(viewerSource, /pc\.reprojectTexture\(/);
   assert.match(viewerSource, /const material = createProjectedHdriMaterial\(\s*texture,\s*getProjectedHdriMaterialSettings\(environmentSettings\)/);
@@ -109,7 +113,7 @@ test("HDRI 显示面直接按片元坐标采样原始等距全景，避免地面
   assert.doesNotMatch(environmentProjectionSource, /textureCube\(uEnvironmentMap/);
 });
 
-test("连续 EnviroDome 共用投影材质，并沿用标准材质的颜色空间输出", () => {
+test("有限 HDRI 环境共用投影材质，并沿用标准材质的颜色空间输出", () => {
   assert.match(viewerSource, /let environmentMaterial: pc\.ShaderMaterial \| null = null/);
   assert.doesNotMatch(viewerSource, /environmentGroundMaterial/);
   assert.match(
@@ -144,27 +148,27 @@ test("HDRI 环境提供投射中心、高度、圆半径和可调地面分界", 
   assert.match(viewerSource, /intensity: 1/);
   assert.match(viewerSource, /texture\.anisotropy/);
   assert.match(viewerSource, /updateProjectedHdriMaterial/);
-  assert.match(viewerSource, /projectionRadiusMeters: environmentSettings\.radiusMeters/);
   assert.match(viewerSource, /getEnvironmentSettings/);
   assert.match(viewerSource, /setEnvironmentSettings/);
 });
 
-test("普通场景图地面使用连续半球曲面，并由投影材质按世界坐标采样", () => {
+test("普通场景图地面使用完整平面和稳定材质色，不重投影透视式下半图", () => {
   assert.match(environmentSource, /projectionCenterHeight/);
   assert.match(environmentSource, /createBackdropGeometryData\s*\(/);
   assert.match(environmentSource, /const edgeHeight/);
   assert.match(environmentProjectionSource, /projectionToSurface/);
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
-  assert.match(environmentProjectionSource, /uProjectionRadiusMeters/);
   assert.match(environmentProjectionSource, /uPanoramaHorizonV/);
-  assert.match(environmentProjectionSource, /groundCenterProgress/);
-  assert.match(environmentProjectionSource, /stablePanoramaU/);
-  assert.match(environmentProjectionSource, /stablePanoramaV/);
+  assert.match(environmentProjectionSource, /uGroundSampleV/);
+  assert.match(environmentProjectionSource, /sampleGroundMaterialColor/);
+  assert.match(environmentProjectionSource, /groundLinearColor/);
+  assert.doesNotMatch(environmentProjectionSource, /uProjectionRadiusMeters|groundPlanarBlend|groundPlanarU|groundPlanarV|sourceGroundXZ/);
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);
-  assert.match(environmentSource, /ADDRESS_REPEAT/);
+  assert.match(environmentSource, /GROUND_DOME_RIM_BANDS/);
+  assert.match(environmentGeometrySource, /groundRings.push\(addGroundRing\(data, 1, y\)\)/);
   assert.doesNotMatch(environmentSource, /groundTextureScale/);
   assert.doesNotMatch(environmentSource, /Math\.floor\(/);
   assert.doesNotMatch(environmentSource, /domeRadius \* environmentSettings\.projectionCenterHeight/);
@@ -185,7 +189,7 @@ test("半球极点坐标精确收敛，投影材质在极点使用固定经度",
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap/);
 });
 
-test("下半球在投射中心附近使用有限平底，避免尖点三角面拉伸", () => {
+test("下半球使用完整平面和圆墙，避免尖点三角面拉伸", () => {
   assert.match(environmentGeometrySource, /const GROUND_DOME_FLAT_RADIUS = 0\.95/);
   assert.match(environmentGeometrySource, /const GROUND_DOME_RIM_BANDS/);
   assert.match(environmentGeometrySource, /function createGroundDomeGeometryData/);
@@ -285,8 +289,8 @@ test("HDRI 派生方向光只在 viewer 生命周期内存在，并在清理时�
 });
 
 test("参考角色材质显式使用 HDRI 环境光", () => {
-  assert.match(viewerSource, /material\.useLighting = true/);
-  assert.match(viewerSource, /material\.useSkybox = true/);
+  assert.match(actorMaterialSource, /material\.useLighting = true/);
+  assert.match(actorMaterialSource, /material\.useSkybox = true/);
   assert.match(viewerSource, /pc\.EnvLighting\.generateLightingSource/);
   assert.match(viewerSource, /app\.scene\.envAtlas = environmentAtlas/);
 });

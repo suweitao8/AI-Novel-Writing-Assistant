@@ -35,8 +35,28 @@ test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () 
   );
 });
 
-test("分镜姿势优先使用目录中的原地片段", () => {
-  const available = [
+test("分镜姿势优先使用原生基础待机片段，并保留旧兼容动作", () => {
+  const nativeAvailable = [
+    "standing",
+    "A_INP_Idle",
+    "A_INP_WalkFwd_Loop",
+    "Jog_Fwd_Loop",
+    "Crouch_Idle_Loop",
+    "Idle_Rail_Call",
+    "Chest_Open",
+    "Melee_Hook",
+    "Sword_Block",
+  ];
+  assert.equal(resolveBlocking3dPoseClip("standing", nativeAvailable).clipName, "standing");
+  assert.equal(resolveBlocking3dPoseClip("walking", nativeAvailable).clipName, "A_INP_WalkFwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("running", nativeAvailable).clipName, "Jog_Fwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("crouching", nativeAvailable).clipName, "Crouch_Idle_Loop");
+  assert.equal(resolveBlocking3dPoseClip("talking", nativeAvailable).clipName, "Idle_Rail_Call");
+  assert.equal(resolveBlocking3dPoseClip("interacting", nativeAvailable).clipName, "Chest_Open");
+  assert.equal(resolveBlocking3dPoseClip("fighting", nativeAvailable).clipName, "Melee_Hook");
+  assert.equal(resolveBlocking3dPoseClip("sword", nativeAvailable).clipName, "Sword_Block");
+
+  const legacyAvailable = [
     "A_INP_Idle",
     "A_INP_WalkFwd_Loop",
     "Sprint_Loop",
@@ -46,14 +66,9 @@ test("分镜姿势优先使用目录中的原地片段", () => {
     "Melee_Hook",
     "Sword_Block",
   ];
-  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, "A_INP_Idle");
-  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, "A_INP_WalkFwd_Loop");
-  assert.equal(resolveBlocking3dPoseClip("running", available).clipName, "Sprint_Loop");
-  assert.equal(resolveBlocking3dPoseClip("crouching", available).clipName, "Zombie_Idle_Loop");
-  assert.equal(resolveBlocking3dPoseClip("talking", available).clipName, "Idle_Rail_Call");
-  assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, "Chest_Open");
-  assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, "Melee_Hook");
-  assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, "Sword_Block");
+  assert.equal(resolveBlocking3dPoseClip("standing", legacyAvailable).clipName, "A_INP_Idle");
+  assert.equal(resolveBlocking3dPoseClip("running", legacyAvailable).clipName, "Sprint_Loop");
+  assert.equal(resolveBlocking3dPoseClip("crouching", legacyAvailable).clipName, "Zombie_Idle_Loop");
   assert.deepEqual(
     getBlocking3dPoseClipConfig("pointing").names.slice(0, 3),
     ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"],

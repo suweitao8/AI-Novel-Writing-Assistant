@@ -7,6 +7,7 @@ import test from "node:test";
 import {
   ANIMATION_LIBRARY,
   filterAnimationLibraryEntries,
+  LEGACY_ANIMATION_LIBRARY_FILE_URL,
 } from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
@@ -274,6 +275,14 @@ function assetPath() {
   return path.join(clientDir, "public", entry.fileUrl);
 }
 
+function legacyAssetPath() {
+  return path.join(
+    clientDir,
+    "public",
+    LEGACY_ANIMATION_LIBRARY_FILE_URL.replace(/^\/+/, ""),
+  );
+}
+
 test("动画目录由四条导入验证动作与内置兼容库组成", () => {
   const unrealEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
   const legacyEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "legacy");
@@ -303,14 +312,16 @@ test("动画目录由四条导入验证动作与内置兼容库组成", () => {
 });
 
 test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移", () => {
-  const glb = readGlb(assetPath());
-  const nodes = nodeIndexByName(glb);
-  const rest = composePose(glb);
-  const idle = composePose(glb, "A_INP_Idle", 2.7083332538604736 * 0.4);
-  const chair = composePose(glb, "A_chair_loop01", 4 * 0.4);
+  const nativeGlb = readGlb(assetPath());
+  const legacyGlb = readGlb(legacyAssetPath());
+  const nativeNodes = nodeIndexByName(nativeGlb);
+  const legacyNodes = nodeIndexByName(legacyGlb);
+  const rest = composePose(legacyGlb);
+  const idle = composePose(legacyGlb, "A_INP_Idle", 2.7083332538604736 * 0.4);
+  const chair = composePose(legacyGlb, "A_chair_loop01", 4 * 0.4);
 
-  const idleHand = idle.worldPosition.get(nodes.get("hand_l"));
-  const idleShoulder = idle.worldPosition.get(nodes.get("clavicle_l"));
+  const idleHand = idle.worldPosition.get(legacyNodes.get("hand_l"));
+  const idleShoulder = idle.worldPosition.get(legacyNodes.get("clavicle_l"));
   assert.ok(
     idleHand[1] - idleShoulder[1] < -0.1,
     `待机左手应低于肩部，实际差值为 ${(idleHand[1] - idleShoulder[1]).toFixed(3)}`,
@@ -320,18 +331,18 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     `待机手部仍接近错误的 T-Pose 基准，实际差值为 ${(idleHand[1] - idleShoulder[1]).toFixed(3)}`,
   );
 
-  const walkAnimation = glb.json.animations.find(
+  const walkAnimation = legacyGlb.json.animations.find(
     ({ name }) => name === "A_INP_WalkFwd_Loop",
   );
   assert.ok(walkAnimation, "统一 GLB 必须包含导入的行走片段");
   const walk = composePose(
-    glb,
+    legacyGlb,
     walkAnimation.name,
-    animationDuration(glb, walkAnimation) * 0.4,
+    animationDuration(legacyGlb, walkAnimation) * 0.4,
   );
   const handDelta = (pose, handName, shoulderName) => {
-    const hand = pose.worldPosition.get(nodes.get(handName));
-    const shoulder = pose.worldPosition.get(nodes.get(shoulderName));
+    const hand = pose.worldPosition.get(legacyNodes.get(handName));
+    const shoulder = pose.worldPosition.get(legacyNodes.get(shoulderName));
     return hand[1] - shoulder[1];
   };
   assert.ok(
@@ -349,20 +360,20 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     "C57_anim57_unarmed_attack_mm_charged_attack",
   ];
   for (const name of attackNames) {
-    const animation = glb.json.animations.find((candidate) => candidate.name === name);
+    const animation = nativeGlb.json.animations.find((candidate) => candidate.name === name);
     assert.ok(animation, `统一 GLB 必须包含验证动作 ${name}`);
     const times = Array.from({ length: 5 }, (_, index) =>
-      (animationDuration(glb, animation) * index) / 4,
+      (animationDuration(nativeGlb, animation) * index) / 4,
     );
     for (const time of times) {
-      const pose = composePose(glb, name, time);
+      const pose = composePose(nativeGlb, name, time);
       for (const side of ["l", "r"]) {
         const chain = [
           `clavicle_${side}`,
           `upperarm_${side}`,
           `lowerarm_${side}`,
           `hand_${side}`,
-        ].map((boneName) => nodes.get(boneName));
+        ].map((boneName) => nativeNodes.get(boneName));
         for (let index = 1; index < chain.length; index += 1) {
           const segmentLength = distance(
             pose.worldPosition.get(chain[index - 1]),
@@ -377,8 +388,8 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
     }
   }
 
-  const restPelvis = rest.worldPosition.get(nodes.get("pelvis"));
-  const chairPelvis = chair.worldPosition.get(nodes.get("pelvis"));
+  const restPelvis = rest.worldPosition.get(legacyNodes.get("pelvis"));
+  const chairPelvis = chair.worldPosition.get(legacyNodes.get("pelvis"));
   assert.ok(
     distance(chairPelvis, restPelvis) < 0.75,
     `坐姿骨盆相对绑定姿态位移过大：${distance(chairPelvis, restPelvis).toFixed(3)}`,
@@ -386,52 +397,50 @@ test("导入动画保留动作姿态，且坐姿不会产生异常骨盆位移",
 });
 
 test("导入动画通道使用合法单位四元数并且只驱动 skin joints", () => {
-  const glb = readGlb(assetPath());
-  const joints = new Set((glb.json.skins ?? []).flatMap((skin) => skin.joints));
-  for (const animation of glb.json.animations ?? []) {
-    if (animation.name.startsWith("C57_")) {
-      const metrics = rootTranslationMetrics(glb, animation);
-      const entry = ANIMATION_LIBRARY.find((candidate) => candidate.clipName === animation.name);
-      assert.ok(entry, `统一目录缺少 ${animation.name} 的元数据`);
-      if (entry.motionMode === "in-place") {
-        assert.ok(
-          metrics.maxRange <= 0.030001 && metrics.maxNet <= 0.030001,
-          `${animation.name} root 全局位移超限：${JSON.stringify(metrics)}`,
-        );
-      } else {
-        assert.ok(
-          metrics.maxRange > 0.03 || metrics.maxNet > 0.03,
-          `${animation.name} 声明为 root-motion，但没有可观察的根位移：${JSON.stringify(metrics)}`,
-        );
-      }
-    }
-    for (const channel of animation.channels) {
-      const sampler = animation.samplers[channel.sampler];
-      const output = glb.json.accessors[sampler.output];
-      if (channel.target.path === "rotation") {
-        assert.equal(
-          output.type,
-          "VEC4",
-          `${animation.name} 的旋转通道必须是 VEC4`,
-        );
-        for (const quaternion of readAccessor(glb, sampler.output)) {
+  for (const [label, glb] of [
+    ["原生 Manny", readGlb(assetPath())],
+    ["旧内置兼容包", readGlb(legacyAssetPath())],
+  ]) {
+    const joints = new Set((glb.json.skins ?? []).flatMap((skin) => skin.joints));
+    for (const animation of glb.json.animations ?? []) {
+      if (animation.name.startsWith("C57_")) {
+        const metrics = rootTranslationMetrics(glb, animation);
+        const entry = ANIMATION_LIBRARY.find((candidate) => candidate.clipName === animation.name);
+        assert.ok(entry, `${label} 目录缺少 ${animation.name} 的元数据`);
+        if (entry.motionMode === "in-place") {
           assert.ok(
-            Math.abs(Math.hypot(...quaternion) - 1) < 1e-4,
-            `${animation.name} 存在非单位四元数`,
+            metrics.maxRange <= 0.030001 && metrics.maxNet <= 0.030001,
+            `${animation.name} root 全局位移超限：${JSON.stringify(metrics)}`,
+          );
+        } else {
+          assert.ok(
+            metrics.maxRange > 0.03 || metrics.maxNet > 0.03,
+            `${animation.name} 声明为 root-motion，但没有可观察的根位移：${JSON.stringify(metrics)}`,
           );
         }
       }
-      if (animation.name.startsWith("A_")) {
-        assert.ok(
-          joints.has(channel.target.node),
-          `${animation.name} 驱动了非 skin joint 节点`,
-        );
-      }
-      if (animation.name.startsWith("C57_")) {
-        assert.ok(
-          joints.has(channel.target.node),
-          `${animation.name} 驱动了非 skin joint 节点`,
-        );
+      for (const channel of animation.channels) {
+        const sampler = animation.samplers[channel.sampler];
+        const output = glb.json.accessors[sampler.output];
+        if (channel.target.path === "rotation") {
+          assert.equal(
+            output.type,
+            "VEC4",
+            `${animation.name} 的旋转通道必须是 VEC4`,
+          );
+          for (const quaternion of readAccessor(glb, sampler.output)) {
+            assert.ok(
+              Math.abs(Math.hypot(...quaternion) - 1) < 1e-4,
+              `${animation.name} 存在非单位四元数`,
+            );
+          }
+        }
+        if (animation.name.startsWith("A_") || animation.name.startsWith("C57_")) {
+          assert.ok(
+            joints.has(channel.target.node),
+            `${animation.name} 驱动了非 skin joint 节点`,
+          );
+        }
       }
     }
   }
@@ -455,22 +464,28 @@ test("已发布虚幻源组在统一 GLB 中保留代表性动作片段", () => 
   }
 });
 
-test("动画库与分镜草图共用含 UAL2 角色和动作的单一 GLB", () => {
-  const glb = readGlb(assetPath());
-  const animationNames = new Set(
-    (glb.json.animations ?? []).map(({ name }) => name),
-  );
-  for (const name of ["A_INP_Idle", "A_INP_WalkFwd_Loop", "A_chair_loop01"]) {
-    assert.ok(animationNames.has(name), `统一动画文件缺少目录片段：${name}`);
+test("动画库与分镜草图共用成对 UE5 原生 Manny/Quinn 角色和动作", () => {
+  const manny = readGlb(assetPath());
+  const quinn = readGlb(path.join(clientDir, "public", "anims", "ue5", "UE5_Quinn_Animations.glb"));
+  const mannyAnimationNames = new Set((manny.json.animations ?? []).map(({ name }) => name));
+  const quinnAnimationNames = new Set((quinn.json.animations ?? []).map(({ name }) => name));
+  const nativeEntries = ANIMATION_LIBRARY.filter((entry) => entry.source === "unreal");
+  for (const entry of nativeEntries) {
+    assert.ok(mannyAnimationNames.has(entry.clipName), `Manny 文件缺少原生片段：${entry.clipName}`);
+    assert.ok(quinnAnimationNames.has(entry.clipName), `Quinn 文件缺少原生片段：${entry.clipName}`);
   }
-  assert.ok(
-    (glb.json.skins ?? []).some((skin) => (skin.joints ?? []).length > 0),
-    "统一动画文件必须包含 UAL2 skin",
-  );
+  assert.deepEqual(mannyAnimationNames, quinnAnimationNames, "Manny/Quinn 动作集合必须一致");
+  for (const [label, glb] of [["Manny", manny], ["Quinn", quinn]]) {
+    assert.ok(
+      (glb.json.skins ?? []).some((skin) => (skin.joints ?? []).length > 0),
+      `${label} 原生文件必须包含 skin joints`,
+    );
+  }
   assert.match(
     blockingCoreSource,
-    /ACTOR_PROXY_URL = ["']\/anims\/cine57\/UAL2_UE_Anims\.glb["']/,
+    /ACTOR_PROXY_URLS = CHARACTER_MODEL_ASSET_URLS/,
   );
+  assert.match(blockingCoreSource, /CHARACTER_MODEL_ASSET_URLS/);
   assert.doesNotMatch(blockingCoreSource, /UAL1_Standard\.glb/);
   assert.doesNotMatch(blockingAppSource, /ACTOR_ANIMATION_URL|animationAsset/);
 });
@@ -478,7 +493,7 @@ test("动画库与分镜草图共用含 UAL2 角色和动作的单一 GLB", () =
 test("分镜运行时用姿势解析器校验统一文件的基础待机动作", () => {
   assert.match(
     blockingAppSource,
-    /resolveBlocking3dPoseClip\("standing", animationTracks\.keys\(\)\)/,
+    /resolveBlocking3dPoseClip\("standing", tracks\.keys\(\)\)/,
   );
   assert.doesNotMatch(blockingAppSource, /animationTracks\.has\("Idle_Loop"\)/);
 });
@@ -492,7 +507,7 @@ test("分镜姿势选择器只使用统一 GLB 的可用姿势，并保留业务
 });
 
 test("行走片段保留双脚的明显交替运动", () => {
-  const glb = readGlb(assetPath());
+  const glb = readGlb(legacyAssetPath());
   const nodes = nodeIndexByName(glb);
   const animation = glb.json.animations.find(
     ({ name }) => name === "A_INP_WalkFwd_Loop",

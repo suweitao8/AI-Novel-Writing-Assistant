@@ -5,12 +5,16 @@ import { z } from "zod";
 import type { PromptAsset } from "../../core/promptTypes";
 
 const characterGenderSchema = z.enum(["male", "female", "other"]);
+const characterActorKindSchema = z.enum(["human", "monster", "other", "unknown"]);
+const characterBodyBuildSchema = z.enum(["slender", "standard", "broad", "unknown"]);
 const characterAgeGroupSchema = z.enum(["child", "youth", "middle", "elder"]);
 
 const characterSchema = z.object({
   name: z.string().min(1).max(40),
   role: z.string().min(2).max(60),
   gender: characterGenderSchema.optional(),
+  actorKind: characterActorKindSchema.default("human"),
+  bodyBuild: characterBodyBuildSchema.default("unknown"),
   ageGroup: characterAgeGroupSchema.optional(),
   physique: z.string().min(2).max(120).optional(),
   personality: z.string().min(4).max(300),
@@ -140,7 +144,7 @@ export const storySettingsBundlePrompt: PromptAsset<
     new SystemMessage([
       "你是中文小说的设定主编，负责在动笔之前把故事的地基打牢：人物、地点、关键道具和世界观。",
       "设定要服务于故事而不是炫技：每一项都必须能在正文中被用到、被看见，服务于主角的冲突与变化。",
-      "角色：给出姓名、性别、年龄段（child/youth/middle/elder）、身份定位、体型、性格（含说话方式与行动倾向）、外貌、默认着装、背景、面部锚点与默认状态音色提示词。facePrompt 按「[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]」模板写纯面部特征，禁止包含服装，用于角色立绘生成；voicePrompt 用中文描述音高、音质、说话气质，用于默认状态配音。主角必须有清晰的欲望与阻力；配角要有明确的剧情功能，不写没有用途的路人。姓名随机起，符合题材与世界观气质，不要与已有角色重名。",
+      "角色：给出姓名、性别、actorKind（human/monster/other/unknown）、bodyBuild（slender/standard/broad/unknown）、年龄段（child/youth/middle/elder）、身份定位、体型描述、性格（含说话方式与行动倾向）、外貌、默认着装、背景、面部锚点与默认状态音色提示词。actorKind 描述角色是否为人类或怪物，bodyBuild 描述适合分镜预览的骨架体型；非人类角色根据轮廓选择 monster/other，拿不准填 unknown。facePrompt 按「[性别]，[年龄段]，[发型发色]，[眼睛特征]，[肤色]，[脸型]」模板写纯面部特征，禁止包含服装，用于角色立绘生成；voicePrompt 用中文描述音高、音质、说话气质，用于默认状态配音。主角必须有清晰的欲望与阻力；配角要有明确的剧情功能，不写没有用途的路人。姓名随机起，符合题材与世界观气质，不要与已有角色重名。",
       "场景（地点场景）：故事实际发生的地方。每个场景写清类型（interior 室内/exterior 室外/nature 自然）、时间（morning/noon/night，可为空）、天气（sunny/cloudy/rainy，可为空）、环境氛围与它在故事中的作用（为什么故事要在这里发生），并给出 environmentPrompt：一段 220～320 字的完整空间环境描述，覆盖正面/左侧/右侧/背面的可见布局、光源与材质风格，不含人物与临时道具，缺失的信息要合理补全。场景必须挂在地图地点上。",
       "关键道具：推动剧情或承载伏笔的具体物品。写清类型（weapon/accessory/artifact/document/furniture/object）、外观来历、剧情功能（用于什么转折/伏笔）、持有者与重要度，并给出 visualPrompt：80～120 字的固有外观描述，必须包含材质、工艺、尺寸、色泽、纹饰，不含人物、使用场景与临时状态。不要罗列无关紧要的日常物品。",
       "世界观：一段前提（这个世界的基本图景与核心张力）、时代背景、基调规则（不超过 6 条）、2～8 条关键设定（力量体系/社会规则/核心禁忌等，每条独立成段并可回看）。",
@@ -174,6 +178,8 @@ const entityDraftSchema = z.object({
     name: z.string().min(1).max(40),
     role: z.string().min(2).max(60),
     gender: characterGenderSchema,
+    actorKind: characterActorKindSchema,
+    bodyBuild: characterBodyBuildSchema,
     ageGroup: characterAgeGroupSchema,
     physique: z.string().min(2).max(120),
     personality: z.string().min(4).max(300),

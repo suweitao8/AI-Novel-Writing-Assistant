@@ -76,3 +76,31 @@ test("staged report 必须有真实方形截图文件才允许发布", async () 
   assert.equal(failed.publishable, false);
   assert.match(failed.failures[0].errors[0], /hash/);
 });
+
+test("staged report 不能发布只有内嵌 1×1 Base Color 占位图的灰模", () => {
+  const result = validateStagedImportReport({
+    report: {
+      entries: [{
+        entry: {
+          id: "bad-material",
+          fileName: "SM_BadMaterial.glb",
+          materials: { MI_BadMaterial: { tint: [0.42, 0.42, 0.45] } },
+        },
+        inspection: {
+          maxDimensionMeters: 1,
+          materials: [{
+            name: "MI_BadMaterial",
+            hasBaseColorTexture: true,
+            baseColorTexture: { embedded: true, mimeType: "image/png", width: 1, height: 1 },
+          }],
+        },
+        preview: PREVIEW,
+        assetSha256: PREVIEW.assetSha256,
+        textureErrors: [],
+      }],
+    },
+  });
+
+  assert.equal(result.publishable, false);
+  assert.equal(result.failures[0].admission.reasonCode, "missing-base-color-texture");
+});

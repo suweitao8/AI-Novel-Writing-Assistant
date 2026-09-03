@@ -24,6 +24,9 @@ function getAnimationImportRunLayout(
       fbx: toPosixPath(path.join(runDir, "fbx")),
       glb: toPosixPath(path.join(runDir, "glb")),
       retarget: toPosixPath(path.join(runDir, "glb", "retarget")),
+      native: toPosixPath(path.join(runDir, "native")),
+      nativeProfiles: toPosixPath(path.join(runDir, "native", "profiles")),
+      nativeAnimations: toPosixPath(path.join(runDir, "native", "animations")),
       final: toPosixPath(path.join(runDir, "final")),
       logs: toPosixPath(path.join(runDir, "logs")),
       backups: toPosixPath(path.join(runDir, "backups")),
@@ -33,8 +36,12 @@ function getAnimationImportRunLayout(
       ueExportLog: toPosixPath(path.join(runDir, "logs", "ue-export.log")),
       ueExportConsoleLog: toPosixPath(path.join(runDir, "logs", "ue-export.console.log")),
       assemblyLog: toPosixPath(path.join(runDir, "logs", "assembly.log")),
+      nativeExportManifest: toPosixPath(path.join(runDir, "native", "native-export-manifest.json")),
+      nativeAssemblyManifest: toPosixPath(path.join(runDir, "native", "native-assembly-manifest.json")),
       stagedSelection: toPosixPath(path.join(runDir, "final", "animationCatalogSelection.json")),
       stagedEntries: toPosixPath(path.join(runDir, "final", "animationCatalogEntries.ts")),
+      stagedManny: toPosixPath(path.join(runDir, "final", "UE5_Manny_Animations.glb")),
+      stagedQuinn: toPosixPath(path.join(runDir, "final", "UE5_Quinn_Animations.glb")),
     },
   };
 }

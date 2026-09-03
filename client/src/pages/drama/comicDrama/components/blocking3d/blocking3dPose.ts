@@ -43,6 +43,7 @@ const POSE_CLIPS: Record<
   // 文件的兼容别名。映射通过目录 ID 建立，避免凭字符串猜测 GLB 片段名。
   standing: {
     names: [
+      "standing",
       ...catalogClipNames([
         "unreal-daily-male-locomotion-idle-break-01",
         "unreal-daily-male-locomotion-idle-break-02",

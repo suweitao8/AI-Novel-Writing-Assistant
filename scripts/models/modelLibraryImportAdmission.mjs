@@ -27,6 +27,37 @@ function getAdmissionPolicy(policy) {
     : policy ?? {};
 }
 
+function normalizeMaterialName(value) {
+  return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function hasRealBaseColorBinding(material) {
+  return typeof material?.baseColor === "string" && material.baseColor.trim().length > 0;
+}
+
+function findMissingBaseColorMaterials(entry, inspection) {
+  const materials = entry?.materials && typeof entry.materials === "object"
+    ? entry.materials
+    : {};
+  const materialByName = new Map(
+    Object.entries(materials).map(([name, material]) => [normalizeMaterialName(name), material]),
+  );
+
+  return (Array.isArray(inspection?.materials) ? inspection.materials : [])
+    .filter((material) => material?.hasBaseColorTexture)
+    .filter((material) => {
+      const texture = material.baseColorTexture;
+      if (!texture?.embedded) return false;
+      return (texture.width === 1 && texture.height === 1)
+        || !Number.isInteger(texture.width)
+        || !Number.isInteger(texture.height);
+    })
+    .filter((material) => !hasRealBaseColorBinding(
+      materialByName.get(normalizeMaterialName(material.name)),
+    ))
+    .map((material) => material.name || "<unnamed>");
+}
+
 function findRejectedAsset(policy, entry, inspection) {
   const rejectedAssets = Array.isArray(policy.rejectedAssets) ? policy.rejectedAssets : [];
   const meshNames = new Set([
@@ -85,6 +116,15 @@ export function evaluateModelCandidate({
   }
   if (maxDimension > maximum + 1e-6) {
     return reject("geometry", "too-large", `模型最大尺寸 ${maxDimension.toFixed(3)} 米，超过前景上限 ${maximum} 米`);
+  }
+
+  const missingBaseColorMaterials = findMissingBaseColorMaterials(entry, inspection);
+  if (missingBaseColorMaterials.length > 0) {
+    return reject(
+      "texture",
+      "missing-base-color-texture",
+      `模型材质 ${missingBaseColorMaterials.join(", ")} 只有内嵌占位 Base Color，未找到真实颜色贴图`,
+    );
   }
 
   if (Array.isArray(textureErrors) && textureErrors.length > 0) {

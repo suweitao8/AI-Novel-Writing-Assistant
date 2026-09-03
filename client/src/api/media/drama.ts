@@ -5,6 +5,13 @@ import type {
   StoryScene3DMarker,
   StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
+import type {
+  CharacterActorKind,
+  CharacterBodyBuild,
+  CharacterGender,
+  CharacterModelProfileId,
+  CharacterModelProfileOverride,
+} from "@ai-novel/shared/types/characterModelProfile";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { ImageGenerationOverrides, ImageGenerationPreview } from "@/api/media/imageGenerationTypes";
 import { apiClient } from "../client";
@@ -227,6 +234,10 @@ export interface DramaShotBlockingSketch3DActor {
   color?: [number, number, number];
   /** 角色与模型库前景实例交互时的真实实例 id。 */
   interactionModelId?: string;
+  /** 原生 UE5 角色模型的确定性选择结果。 */
+  modelProfile?: CharacterModelProfileId;
+  /** 用户明确指定的模型覆盖。 */
+  modelProfileOverride?: CharacterModelProfileOverride;
   /** Legacy compatibility marker; the 3D sketch always stores a paused key frame. */
   actionPlaying: boolean;
 }
@@ -296,6 +307,11 @@ export interface DramaShotBlockingSketchEditorContext {
   } | null;
   actors: Array<{
     characterName: string;
+    gender?: CharacterGender | null;
+    actorKind?: CharacterActorKind | null;
+    bodyBuild?: CharacterBodyBuild | null;
+    modelProfile?: CharacterModelProfileId;
+    modelProfileOverride?: CharacterModelProfileOverride | null;
     assetId?: string;
     stateId?: string;
     imageUrl?: string;

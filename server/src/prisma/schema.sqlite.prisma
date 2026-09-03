@@ -849,6 +849,8 @@ model Character {
   name            String
   role            String
   gender          CharacterGender @default(unknown)
+  actorKind       String @default("human")
+  bodyBuild       String @default("unknown")
   castRole        String?
   storyFunction   String?
   relationToProtagonist String?
@@ -1143,6 +1145,8 @@ model CharacterCastOptionMember {
   name                  String
   role                  String
   gender                CharacterGender @default(unknown)
+  actorKind             String   @default("human")
+  bodyBuild             String   @default("unknown")
   castRole              String
   relationToProtagonist String?
   storyFunction         String
@@ -3702,6 +3706,9 @@ model DramaCharacter {
   id                 String   @id @default(cuid())
   projectId          String
   name               String
+  gender             CharacterGender @default(unknown)
+  actorKind          String   @default("human")
+  bodyBuild          String   @default("unknown")
   archetype          String?
   persona            String?
   speechStyle        String?
@@ -3772,6 +3779,9 @@ model DramaCharacterLibrary {
   id           String   @id @default(cuid())
   projectId    String?
   name         String
+  gender       CharacterGender @default(unknown)
+  actorKind    String   @default("human")
+  bodyBuild    String   @default("unknown")
   archetype    String?
   persona      String?
   speechStyle  String?

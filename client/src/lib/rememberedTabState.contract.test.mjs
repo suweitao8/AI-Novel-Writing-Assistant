@@ -30,6 +30,24 @@ test("URL 页签使用统一的记忆 Hook", () => {
   assert.match(knowledgeSource, /knowledge:workspace/);
 });
 
+test("URL 页签的无效值规范化为默认值，不被旧记忆覆盖", () => {
+  const queryHookSource = readFileSync(
+    path.join(import.meta.dirname, "..", "hooks", "useRememberedQueryTab.ts"),
+    "utf8",
+  );
+  assert.match(queryHookSource, /hasInvalidQueryParam/);
+  assert.match(queryHookSource, /hasInvalidQueryParam \? options\.defaultValue/);
+  assert.match(queryHookSource, /next\.set\(queryParam, options\.defaultValue\)/);
+});
+
+test("拆书视图和漫剧阶段的无效 URL 也固定回退默认页签", () => {
+  const bookAnalysisViewSource = read("bookAnalysis", "hooks", "useBookAnalysisActiveView.ts");
+  const dramaStudioSource = read("drama", "comicDrama", "ComicDramaStudioPage.tsx");
+  assert.match(bookAnalysisViewSource, /hasInvalidViewParam/);
+  assert.match(bookAnalysisViewSource, /next\.set\("view", DEFAULT_VIEW\)/);
+  assert.match(dramaStudioSource, /next\.set\("stage", "script"\)/);
+});
+
 test("拆书和提示词工作区按稳定对象或工作区记住当前页签", () => {
   const bookAnalysisViewSource = read("bookAnalysis", "hooks", "useBookAnalysisActiveView.ts");
   const bookAnalysisDetailSource = read("bookAnalysis", "components", "BookAnalysisDetailPanel.tsx");

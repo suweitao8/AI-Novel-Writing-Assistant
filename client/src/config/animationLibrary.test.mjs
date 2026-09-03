@@ -6,8 +6,11 @@ import test from "node:test";
 
 import { ANIMATION_CATALOG_ENTRIES } from "./animationCatalogEntries.ts";
 import {
+  ANIMATION_LIBRARY_INTERNAL_CLIP_NAMES,
+  ANIMATION_LIBRARY_FILE_URL,
   ANIMATION_LIBRARY,
   ANIMATION_LIBRARY_CATEGORY_FILTERS,
+  LEGACY_ANIMATION_LIBRARY_FILE_URL,
 } from "./animationLibrary.ts";
 
 const configDir = path.dirname(fileURLToPath(import.meta.url));
@@ -109,6 +112,9 @@ test("动画库目录条目指向真实存在且包含对应片段的 GLB", () =
     [...durationsByFile.values()].flatMap((durations) => [...durations.keys()]),
   );
   const catalogClipNames = new Set(ANIMATION_LIBRARY.map((entry) => entry.clipName));
+  for (const internalClipName of ANIMATION_LIBRARY_INTERNAL_CLIP_NAMES) {
+    actualClipNames.delete(internalClipName);
+  }
   assert.equal(ANIMATION_LIBRARY.length, actualClipNames.size);
   assert.deepEqual(catalogClipNames, actualClipNames);
   assert.equal(
@@ -126,8 +132,10 @@ test("动画库目录 id 唯一，同文件条目共享一个 GLB", () => {
   assert.equal(ids.size, ANIMATION_LIBRARY.length);
   const files = new Set(ANIMATION_LIBRARY.map((entry) => entry.fileUrl));
   assert.ok(files.size <= ANIMATION_LIBRARY.length);
-  // 所有条目合并进同一个 GLB：文件数应远小于条目数。
-  assert.equal(files.size, 1);
+  // 原生 Manny/Quinn 目录与旧兼容目录各自共享一个 GLB。
+  assert.equal(files.size, 2);
+  assert.ok(files.has(ANIMATION_LIBRARY_FILE_URL));
+  assert.ok(files.has(LEGACY_ANIMATION_LIBRARY_FILE_URL));
 });
 
 test("分类页签覆盖所有实际条目分类", () => {

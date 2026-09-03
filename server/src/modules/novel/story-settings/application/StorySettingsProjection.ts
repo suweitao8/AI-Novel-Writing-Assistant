@@ -47,6 +47,8 @@ export function projectCharacter(row: {
   name: string;
   role: string;
   gender: string | null;
+  actorKind?: string | null;
+  bodyBuild?: string | null;
   ageGroup: string | null;
   physique: string | null;
   attireStyle: string | null;
@@ -65,6 +67,8 @@ export function projectCharacter(row: {
     name: row.name,
     role: row.role,
     gender: row.gender,
+    actorKind: row.actorKind ?? "human",
+    bodyBuild: row.bodyBuild ?? "unknown",
     ageGroup: row.ageGroup,
     physique: row.physique,
     attireStyle: row.attireStyle,

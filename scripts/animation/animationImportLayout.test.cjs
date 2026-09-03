@@ -22,6 +22,9 @@ test("动画导入运行的所有中间目录统一收口到 runs/<run-id>", () 
   assert.equal(layout.directories.fbx, `${layout.runDir}/fbx`);
   assert.equal(layout.directories.glb, `${layout.runDir}/glb`);
   assert.equal(layout.directories.retarget, `${layout.runDir}/glb/retarget`);
+  assert.equal(layout.directories.native, `${layout.runDir}/native`);
+  assert.equal(layout.directories.nativeProfiles, `${layout.runDir}/native/profiles`);
+  assert.equal(layout.directories.nativeAnimations, `${layout.runDir}/native/animations`);
   assert.equal(layout.directories.final, `${layout.runDir}/final`);
   assert.equal(layout.directories.logs, `${layout.runDir}/logs`);
   assert.equal(
@@ -31,5 +34,17 @@ test("动画导入运行的所有中间目录统一收口到 runs/<run-id>", () 
   assert.equal(
     layout.files.stagedEntries,
     `${layout.runDir}/final/animationCatalogEntries.ts`,
+  );
+  assert.equal(
+    layout.files.nativeExportManifest,
+    `${layout.runDir}/native/native-export-manifest.json`,
+  );
+  assert.equal(
+    layout.files.stagedManny,
+    `${layout.runDir}/final/UE5_Manny_Animations.glb`,
+  );
+  assert.equal(
+    layout.files.stagedQuinn,
+    `${layout.runDir}/final/UE5_Quinn_Animations.glb`,
   );
 });

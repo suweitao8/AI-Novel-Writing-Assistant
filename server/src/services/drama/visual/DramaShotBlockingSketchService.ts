@@ -12,6 +12,13 @@ import {
   type StoryScene3DMarker,
   type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
+import {
+  resolveCharacterModelProfile,
+  type CharacterActorKind,
+  type CharacterBodyBuild,
+  type CharacterGender,
+  type CharacterModelProfileId,
+} from "@ai-novel/shared/types/characterModelProfile";
 
 import { prisma } from "../../../db/prisma";
 import { AppError } from "../../../middleware/errorHandler";
@@ -62,6 +69,9 @@ const PNG_SIGNATURE = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0
 interface CharacterLite {
   id: string;
   name: string;
+  gender?: string | null;
+  actorKind?: string | null;
+  bodyBuild?: string | null;
   portraitData?: string | null;
   archetype?: string | null;
   persona?: string | null;
@@ -128,6 +138,10 @@ interface BlockingSketchEditorScene {
 
 export interface BlockingSketchEditorActor {
   characterName: string;
+  gender: CharacterGender;
+  actorKind: CharacterActorKind;
+  bodyBuild: CharacterBodyBuild;
+  modelProfile: CharacterModelProfileId;
   assetId?: string;
   stateId?: string;
   imageUrl?: string;
@@ -135,6 +149,38 @@ export interface BlockingSketchEditorActor {
   heightMeters: number;
   heightSource: CharacterHeightProfileSource | "manual" | "legacy";
   heightConfidence?: number;
+}
+
+function normalizeCharacterModelRouting(character: CharacterLite): {
+  gender: CharacterGender;
+  actorKind: CharacterActorKind;
+  bodyBuild: CharacterBodyBuild;
+  modelProfile: CharacterModelProfileId;
+} {
+  const gender: CharacterGender = character.gender === "male"
+    || character.gender === "female"
+    || character.gender === "other"
+    || character.gender === "unknown"
+    ? character.gender
+    : "unknown";
+  const actorKind: CharacterActorKind = character.actorKind === "human"
+    || character.actorKind === "monster"
+    || character.actorKind === "other"
+    || character.actorKind === "unknown"
+    ? character.actorKind
+    : "unknown";
+  const bodyBuild: CharacterBodyBuild = character.bodyBuild === "slender"
+    || character.bodyBuild === "standard"
+    || character.bodyBuild === "broad"
+    || character.bodyBuild === "unknown"
+    ? character.bodyBuild
+    : "unknown";
+  return {
+    gender,
+    actorKind,
+    bodyBuild,
+    modelProfile: resolveCharacterModelProfile({ gender, actorKind, bodyBuild }),
+  };
 }
 
 export interface DramaShotBlockingSketchEditorContext {
@@ -268,6 +314,9 @@ export class DramaShotBlockingSketchService {
                   select: {
                     id: true,
                     name: true,
+                    gender: true,
+                    actorKind: true,
+                    bodyBuild: true,
                     portraitData: true,
                     archetype: true,
                     persona: true,
@@ -309,6 +358,7 @@ export class DramaShotBlockingSketchService {
           const height = resolveCharacterHeightForState(undefined, profile);
           return {
             characterName: character.name,
+            ...normalizeCharacterModelRouting(character),
             assetId: character.id,
             ...(resolvePortraitUrl(character) ? { imageUrl: resolvePortraitUrl(character)! } : {}),
             sourceImageKind: resolvePortraitUrl(character) ? "portrait" : "placeholder",
@@ -387,6 +437,7 @@ export class DramaShotBlockingSketchService {
       const height = resolveCharacterHeightForState(activeState, profile);
       return {
         characterName: character.name,
+        ...normalizeCharacterModelRouting(character),
         assetId: character.id,
         ...(activeState ? { stateId: activeState.id } : {}),
         ...(stateUrl || portraitUrl ? { imageUrl: stateUrl ?? portraitUrl ?? undefined } : {}),
@@ -1056,25 +1107,24 @@ export function buildDramaShotBlockingAutoPlanLayout(
     const actorByName = new Map(actors.map((actor) => [normalizedName(actor.characterName), actor]));
     // 舞台合同：角色站位（含跑动等大幅动作落点）不进入半球边缘 1 米缓冲；
     // 相机由确定性解析器按“角色落位 + 镜头景别 + AI 构图意图”生成。
-    const plannedActors: DramaShotBlockingSketch3DActor[] = output.actors.map((actor) => ({
-      ...(() => {
-        const source = actorByName.get(normalizedName(actor.characterName));
-        const heightMeters = source?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
-        const baseScale = heightToProxyScale(heightMeters);
-        return {
-          scale: actor.scale.map((value) => Math.max(0.1, Math.min(10, value * baseScale))) as [number, number, number],
-          heightMeters,
-        };
-      })(),
-      characterName: actor.characterName.trim(),
-      position: clampBlockingActorPositionToStage(actor.position, environment),
-      yawDeg: actor.yawDeg,
-      pose: actor.pose as DramaShotBlockingSketchPose,
-      ...(actor.interactionModelId?.trim()
-        ? { interactionModelId: actor.interactionModelId.trim() }
-        : {}),
-      actionPlaying: false,
-    }));
+    const plannedActors: DramaShotBlockingSketch3DActor[] = output.actors.map((actor) => {
+      const source = actorByName.get(normalizedName(actor.characterName));
+      const heightMeters = source?.heightMeters ?? CHARACTER_HEIGHT_DEFAULT_METERS;
+      const baseScale = heightToProxyScale(heightMeters);
+      return {
+        scale: actor.scale.map((value) => Math.max(0.1, Math.min(10, value * baseScale))) as [number, number, number],
+        heightMeters,
+        characterName: actor.characterName.trim(),
+        position: clampBlockingActorPositionToStage(actor.position, environment),
+        yawDeg: actor.yawDeg,
+        pose: actor.pose as DramaShotBlockingSketchPose,
+        ...(source ? { modelProfile: source.modelProfile } : {}),
+        ...(actor.interactionModelId?.trim()
+          ? { interactionModelId: actor.interactionModelId.trim() }
+          : {}),
+        actionPlaying: false,
+      };
+    });
     enforceAutoPlanRelations(plannedActors, output.relations, actors, environment);
     const layout = normalizeBlockingSketch3dLayout({
       schemaVersion: 1,

@@ -60,6 +60,8 @@ export class NovelSourceAdapter implements SourceContentPort {
           id: true,
           name: true,
           gender: true,
+          actorKind: true,
+          bodyBuild: true,
           ageGroup: true,
           facePrompt: true,
           voiceTexture: true,
@@ -108,6 +110,8 @@ export class NovelSourceAdapter implements SourceContentPort {
       return {
         name: character.name,
         gender: character.gender as "male" | "female" | "other" | "unknown" | undefined,
+        actorKind: character.actorKind as "human" | "monster" | "other" | "unknown" | undefined,
+        bodyBuild: character.bodyBuild as "slender" | "standard" | "broad" | "unknown" | undefined,
         ageGroup: normalizeAgeGroup(initialState?.ageGroup),
         persona: [character.role, character.personality].filter(Boolean).join("｜") || undefined,
         relations: character.background ?? undefined,

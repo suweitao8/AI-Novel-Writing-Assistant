@@ -100,7 +100,6 @@ export function createBlocking3dEnvironmentRuntime(
     environmentSettings: Blocking3dEnvironmentSettings,
   ): ProjectedHdriMaterialSettings => ({
     projectionCenterHeight: environmentSettings.projectionCenterHeight,
-    projectionRadiusMeters: environmentSettings.radiusMeters,
     panoramaHorizonV: environmentSettings.panoramaHorizonV,
     hdriAzimuthOffsetDegrees: lighting.hdriAzimuthOffsetDegrees,
   });
@@ -181,7 +180,8 @@ export function createBlocking3dEnvironmentRuntime(
           environmentSettings.panoramaHorizonV,
           lighting.hdriAzimuthOffsetDegrees,
         );
-        // EnviroDome uses one continuous surface for the sky and the floor.
+        // Keep one continuous HDRI surface: directional panorama projection for
+        // the sky/outer wall, and a stable flat-floor material below the seam.
         // Sharing the equator ring is important: two independent draw calls
         // can leave a raster gap even when their positions appear identical.
         const mesh = pc.Mesh.fromGeometry(

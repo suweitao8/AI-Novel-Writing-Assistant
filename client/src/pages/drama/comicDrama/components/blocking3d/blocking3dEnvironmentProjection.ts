@@ -4,11 +4,12 @@ import { rotateHdriLightDirectionAzimuth } from "./blocking3dEnvironmentLighting
 
 export interface ProjectedHdriMaterialSettings {
   projectionCenterHeight: number;
-  projectionRadiusMeters: number;
   /** Source-image V coordinate that should land on the 3D projection horizon. */
   panoramaHorizonV: number;
   /** World-space HDRI rotation shared with the derived key light and EnvAtlas. */
   hdriAzimuthOffsetDegrees: number;
+  /** Lower-image row used to derive the flat ground material color. */
+  groundSampleV?: number;
 }
 
 export interface ProjectedHdriCoordinates {
@@ -16,9 +17,7 @@ export interface ProjectedHdriCoordinates {
   v: number;
 }
 
-export interface ProjectedHdriSurfaceCoordinates extends ProjectedHdriCoordinates {
-  groundStabilization: number;
-}
+export type ProjectedHdriSurfaceCoordinates = ProjectedHdriCoordinates;
 
 interface ProjectedHdriShaderImpl {
   isLinked?: (device: pc.GraphicsDevice) => boolean;
@@ -27,12 +26,8 @@ interface ProjectedHdriShaderImpl {
 
 const PROJECTED_HDRI_SHADER_WAIT_TIMEOUT_MS = 5_000;
 const PROJECTED_HDRI_SHADER_POLL_INTERVAL_MS = 16;
-export const PROJECTED_HDRI_GROUND_STABILIZATION_START_RATIO = 0.08;
-export const PROJECTED_HDRI_GROUND_STABILIZATION_END_RATIO = 0.28;
-
-const PROJECTED_HDRI_GROUND_CAP_MIN_HEIGHT_METERS = 0.001;
-const PROJECTED_HDRI_GROUND_CAP_MAX_V = 0.96;
-const PROJECTED_HDRI_MIN_RADIUS_METERS = 0.001;
+/** Fixed source row used to derive a flat, low-frequency ground material. */
+export const PROJECTED_HDRI_GROUND_SAMPLE_V = 0.72;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -41,37 +36,6 @@ function clamp(value: number, min: number, max: number): number {
 function smoothstep(edge0: number, edge1: number, value: number): number {
   const progress = clamp((value - edge0) / (edge1 - edge0), 0, 1);
   return progress * progress * (3 - 2 * progress);
-}
-
-function wrapUnit(value: number): number {
-  return ((value % 1) + 1) % 1;
-}
-
-function resolveProjectionRadius(value: number): number {
-  return Number.isFinite(value) && value > 0
-    ? Math.max(value, PROJECTED_HDRI_MIN_RADIUS_METERS)
-    : PROJECTED_HDRI_MIN_RADIUS_METERS;
-}
-
-export function getProjectedHdriGroundStabilization(
-  horizontalDistance: number,
-  projectionRadiusMeters: number,
-): number {
-  if (!Number.isFinite(horizontalDistance) || horizontalDistance < 0) return 0;
-  if (!Number.isFinite(projectionRadiusMeters) || projectionRadiusMeters <= 0) return 0;
-  const normalizedDistance = horizontalDistance / resolveProjectionRadius(projectionRadiusMeters);
-  return 1 - smoothstep(
-    PROJECTED_HDRI_GROUND_STABILIZATION_START_RATIO,
-    PROJECTED_HDRI_GROUND_STABILIZATION_END_RATIO,
-    normalizedDistance,
-  );
-}
-
-function mixWrappedUnit(start: number, end: number, amount: number): number {
-  let delta = end - start;
-  if (delta > 0.5) delta -= 1;
-  if (delta < -0.5) delta += 1;
-  return wrapUnit(start + delta * amount);
 }
 
 /**
@@ -113,15 +77,14 @@ export function projectEquirectangularDirection(
 }
 
 /**
- * Project a world-space surface point while replacing only the mathematical
- * nadir singularity with a finite, ground-only sampling cap. The visible
- * shader below mirrors this helper; the direction-only function above remains
- * the source projection used by HDRI light estimation.
+ * Project a world-space surface point for the sky/wall part of the backdrop.
+ * Ground pixels are deliberately not returned here: generated scene images
+ * are often ordinary perspective panoramas rather than calibrated equirects,
+ * so reprojecting their lower half onto a floor creates a circular vortex.
  */
 export function projectEquirectangularSurface(
   surfacePosition: [number, number, number],
   projectionCenterHeight: number,
-  projectionRadiusMeters: number,
   panoramaHorizonV = STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   hdriAzimuthOffsetDegrees = 0,
 ): ProjectedHdriSurfaceCoordinates {
@@ -129,48 +92,23 @@ export function projectEquirectangularSurface(
   const horizonV = Number.isFinite(panoramaHorizonV)
     ? clamp(panoramaHorizonV, 0, 1)
     : STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V;
-  const radius = resolveProjectionRadius(projectionRadiusMeters);
   const x = Number.isFinite(surfacePosition[0]) ? surfacePosition[0] : 0;
   const y = Number.isFinite(surfacePosition[1]) ? surfacePosition[1] : 0;
   const z = Number.isFinite(surfacePosition[2]) ? surfacePosition[2] : 0;
-  const projectionToSurface: [number, number, number] = [x, y - height, z];
-  const raw = projectEquirectangularDirection(
-    projectionToSurface,
+  return projectEquirectangularDirection(
+    [x, y - height, z],
     horizonV,
     hdriAzimuthOffsetDegrees,
   );
-  const isGround = y < height - 0.001;
-  const groundStabilization = isGround
-    ? getProjectedHdriGroundStabilization(Math.hypot(x, z), radius)
-    : 0;
-  const normalizedGroundDistance = Math.hypot(x, z) / radius;
-  const stableAzimuthProgress = smoothstep(
-    0,
-    PROJECTED_HDRI_GROUND_STABILIZATION_END_RATIO,
-    normalizedGroundDistance,
-  );
-  const stableU = mixWrappedUnit(0.5, raw.u, stableAzimuthProgress);
-  const stableGroundHeight = Math.max(height, PROJECTED_HDRI_GROUND_CAP_MIN_HEIGHT_METERS);
-  const stableGroundRadius = radius * PROJECTED_HDRI_GROUND_STABILIZATION_END_RATIO;
-  const stableV = clamp(
-    horizonV + Math.atan2(stableGroundHeight, stableGroundRadius) / Math.PI,
-    0,
-    PROJECTED_HDRI_GROUND_CAP_MAX_V,
-  );
-  return {
-    u: mixWrappedUnit(raw.u, stableU, groundStabilization),
-    v: raw.v * (1 - groundStabilization) + stableV * groundStabilization,
-    groundStabilization,
-  };
 }
 
 /**
- * The UE HDRIBackdrop floor and sky materials project the source panorama from
- * a world-space projection point. Scene state is stored as an equirectangular
- * 2:1 image, so the lookup stays in the fragment shader and samples that
- * original image directly. Reprojecting the lower half into a cubemap first
- * collapses the ground into the cubemap's nadir and creates the radial blur
- * visible around the projection center.
+ * The UE HDRIBackdrop sky and outer wall project the source panorama from a
+ * world-space projection point. Generated 2:1 scene images are often ordinary
+ * perspective views, so their lower half is not a calibrated floor swatch.
+ * The visible floor therefore uses only a low-frequency color derived in the
+ * fragment shader; reprojecting the composed floor would make its perspective
+ * lines converge into a vortex.
  */
 export const PROJECTED_HDRI_VERTEX_GLSL = `
 attribute vec3 aPosition;
@@ -195,14 +133,49 @@ precision highp float;
 
 uniform sampler2D uEnvironmentMap;
 uniform float uProjectionCenterHeight;
-uniform float uProjectionRadiusMeters;
 uniform float uPanoramaHorizonV;
 uniform float uHdriAzimuthOffsetDegrees;
+uniform float uGroundSampleV;
 uniform float uEnvironmentIsRgbE;
 
 varying vec3 vWorldPosition;
 
+vec3 sampleEnvironmentLinear(vec2 uv) {
+  vec4 rawColor = texture2D(uEnvironmentMap, uv);
+  return uEnvironmentIsRgbE > 0.5
+    ? decodeRGBE(rawColor)
+    : decodeGamma(rawColor);
+}
+
+/**
+ * Generated scene panoramas are not guaranteed to be calibrated equirects.
+ * Use a small lower-image neighborhood only to derive the flat floor's color;
+ * never map the perspective ground painting back onto the floor geometry.
+ */
+vec3 sampleGroundMaterialColor() {
+  float lower = clamp(uGroundSampleV - 0.06, 0.52, 0.98);
+  float upper = clamp(uGroundSampleV + 0.06, 0.52, 0.98);
+  vec3 color = vec3(0.0);
+  color += sampleEnvironmentLinear(vec2(0.20, lower));
+  color += sampleEnvironmentLinear(vec2(0.50, lower));
+  color += sampleEnvironmentLinear(vec2(0.80, lower));
+  color += sampleEnvironmentLinear(vec2(0.20, upper));
+  color += sampleEnvironmentLinear(vec2(0.50, upper));
+  color += sampleEnvironmentLinear(vec2(0.80, upper));
+  return color / 6.0;
+}
+
 void main(void) {
+  float groundSurfaceProgress = 1.0 - step(
+      uProjectionCenterHeight - 0.001,
+      vWorldPosition.y
+  );
+  if (groundSurfaceProgress > 0.5) {
+    vec3 groundLinearColor = sampleGroundMaterialColor();
+    gl_FragColor = vec4(gammaCorrectOutput(toneMap(groundLinearColor)), 1.0);
+    return;
+  }
+
   vec3 projectionToSurface = vWorldPosition - vec3(0.0, uProjectionCenterHeight, 0.0);
   vec3 projectionDirection = normalize(projectionToSurface);
   float azimuthOffsetRadians = -uHdriAzimuthOffsetDegrees * 0.01745329252;
@@ -217,19 +190,6 @@ void main(void) {
       (atan(sourceDirection.z, sourceDirection.x) + 1.57079633) / 6.28318531 + 1.0,
       1.0
   );
-  // PROJECTED_HDRI_GROUND_STABILIZATION_START_RATIO = 0.08
-  // PROJECTED_HDRI_GROUND_STABILIZATION_END_RATIO = 0.28
-  float safeProjectionRadius = max(uProjectionRadiusMeters, 0.001);
-  float normalizedGroundDistance = length(projectionToSurface.xz) / safeProjectionRadius;
-  float groundSurfaceProgress = 1.0 - step(
-      uProjectionCenterHeight - 0.001,
-      vWorldPosition.y
-  );
-  float groundCenterProgress = groundSurfaceProgress * (1.0 - smoothstep(
-      0.08,
-      0.28,
-      normalizedGroundDistance
-  ));
   float rawPanoramaU = mix(
       1.0 - azimuthProgress,
       0.5,
@@ -240,34 +200,8 @@ void main(void) {
       0.0,
       1.0
   );
-  float stableAzimuthProgress = smoothstep(
-      0.0,
-      0.28,
-      normalizedGroundDistance
-  );
-  float stableUOffset = rawPanoramaU - 0.5;
-  stableUOffset = stableUOffset > 0.5
-    ? stableUOffset - 1.0
-    : (stableUOffset < -0.5 ? stableUOffset + 1.0 : stableUOffset);
-  float stablePanoramaU = fract(
-      0.5 + stableUOffset * stableAzimuthProgress + 1.0
-  );
-  float stableGroundHeight = max(uProjectionCenterHeight, 0.001);
-  float stableGroundRadius = safeProjectionRadius * 0.28;
-  float stablePanoramaV = clamp(
-      uPanoramaHorizonV
-        + atan(stableGroundHeight, stableGroundRadius) / 3.14159265,
-      0.0,
-      0.96
-  );
-  float wrappedUDelta = stablePanoramaU - rawPanoramaU;
-  wrappedUDelta = wrappedUDelta > 0.5
-    ? wrappedUDelta - 1.0
-    : (wrappedUDelta < -0.5 ? wrappedUDelta + 1.0 : wrappedUDelta);
-  float panoramaU = fract(
-      rawPanoramaU + wrappedUDelta * groundCenterProgress + 1.0
-  );
-  float panoramaV = mix(rawPanoramaV, stablePanoramaV, groundCenterProgress);
+  float panoramaU = rawPanoramaU;
+  float panoramaV = rawPanoramaV;
   vec4 rawColor = texture2D(uEnvironmentMap, vec2(panoramaU, panoramaV));
   // Generated scene panoramas are normal gamma-encoded images. The model
   // library may still provide Radiance RGBE files, so select the decoder from
@@ -275,16 +209,6 @@ void main(void) {
   vec3 linearColor = uEnvironmentIsRgbE > 0.5
     ? decodeRGBE(rawColor)
     : decodeGamma(rawColor);
-  if (groundCenterProgress > 0.001) {
-    vec4 stableColor = texture2D(
-        uEnvironmentMap,
-        vec2(stablePanoramaU, stablePanoramaV)
-    );
-    vec3 stableLinearColor = uEnvironmentIsRgbE > 0.5
-      ? decodeRGBE(stableColor)
-      : decodeGamma(stableColor);
-    linearColor = mix(linearColor, stableLinearColor, groundCenterProgress);
-  }
   gl_FragColor = vec4(gammaCorrectOutput(toneMap(linearColor)), rawColor.a);
 }
 `;
@@ -361,9 +285,13 @@ export function updateProjectedHdriMaterial(
 ): void {
   material.setParameter("uEnvironmentMap", texture);
   material.setParameter("uProjectionCenterHeight", settings.projectionCenterHeight);
-  material.setParameter("uProjectionRadiusMeters", settings.projectionRadiusMeters);
   material.setParameter("uPanoramaHorizonV", settings.panoramaHorizonV);
   material.setParameter("uHdriAzimuthOffsetDegrees", settings.hdriAzimuthOffsetDegrees);
+  const groundSampleV = typeof settings.groundSampleV === "number"
+    && Number.isFinite(settings.groundSampleV)
+    ? settings.groundSampleV
+    : PROJECTED_HDRI_GROUND_SAMPLE_V;
+  material.setParameter("uGroundSampleV", groundSampleV);
   material.setParameter("uEnvironmentIsRgbE", texture.type === pc.TEXTURETYPE_RGBE ? 1 : 0);
   material.update();
 }

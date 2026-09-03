@@ -110,7 +110,7 @@ export default function ComicDramaStudioPage() {
     if (hasInvalidStageParam) {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
-        next.delete("stage");
+        next.set("stage", "script");
         return next;
       }, { replace: true });
     }
