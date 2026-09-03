@@ -10,6 +10,18 @@ function hasOpacityMapping(material) {
     || (Number.isFinite(material?.opacityValue) && material.opacityValue < 0.98);
 }
 
+function hasIndependentOpacityMapping(material) {
+  if (Number.isFinite(material?.opacityValue) && material.opacityValue < 0.98) return true;
+  return typeof material?.opacity === "string"
+    && material.opacity.trim().length > 0
+    && material.opacity !== material.baseColor;
+}
+
+function getImportAuditRecord(importAuditByTexture, texturePath) {
+  if (importAuditByTexture instanceof Map) return importAuditByTexture.get(texturePath);
+  return importAuditByTexture?.[texturePath];
+}
+
 /**
  * Validate the catalog-to-GLB texture contract without touching the filesystem.
  * The caller supplies the set of texture URLs that actually exist on disk.
@@ -18,6 +30,7 @@ export function validateModelTextureContract({
   entry,
   glbMaterials = [],
   availableTexturePaths,
+  importAuditByTexture,
 } = {}) {
   const errors = [];
   const materials = entry?.materials && typeof entry.materials === "object" ? entry.materials : {};
@@ -31,6 +44,20 @@ export function validateModelTextureContract({
       if (typeof texturePath !== "string" || texturePath.trim().length === 0) continue;
       if (availableTexturePaths && !availableTexturePaths.has(texturePath)) {
         errors.push(`${entry.id} ${materialName} ${field} texture is missing: ${texturePath}`);
+      }
+    }
+
+    if (typeof material?.baseColor === "string" && importAuditByTexture) {
+      const audit = getImportAuditRecord(importAuditByTexture, material.baseColor);
+      if (!audit || typeof audit !== "object") {
+        errors.push(`${entry.id} ${materialName} baseColor is missing import alpha audit: ${material.baseColor}`);
+      } else if (typeof audit.preserveAlpha !== "boolean") {
+        errors.push(`${entry.id} ${materialName} import alpha audit must declare preserveAlpha: ${material.baseColor}`);
+      } else if (audit.preserveAlpha && /\.(?:jpg|jpeg)$/i.test(material.baseColor)
+        && !hasIndependentOpacityMapping(material)) {
+        errors.push(
+          `${entry.id} ${materialName} source alpha requires PNG baseColor or independent opacity mapping: ${material.baseColor}`,
+        );
       }
     }
 

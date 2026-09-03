@@ -1,0 +1,4945 @@
+{
+  "version": 1,
+  "generatedAt": "2026-09-03T05:53:13.173Z",
+  "sourceRoots": [
+    "D:/UnrealWorkspace/Cine57-exported2",
+    "D:/UnrealWorkspace/Cine57-exported3",
+    "D:/UnrealWorkspace/Cine57-exported4",
+    "D:/UnrealWorkspace/Cine57-exported5",
+    "D:/UnrealWorkspace/Cine57-exported6"
+  ],
+  "textures": {
+    "/models/cine57/tex/_EnvCity_Abandoned_Hong-Kong_Textures_T_container_Diffuse.T_container_Diffuse_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_Abandoned_Hong-Kong_Textures_T_container_Diffuse.T_container_Diffuse_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "hk-container-001",
+          "materialName": "MI_container"
+        },
+        {
+          "modelId": "hk-container-002",
+          "materialName": "MI_container"
+        },
+        {
+          "modelId": "hk-container-003",
+          "materialName": "MI_container"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Abandoned_Hong-Kong_Textures_T_Street_props_Diffuse.T_Street_props_Diffuse_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_Abandoned_Hong-Kong_Textures_T_Street_props_Diffuse.T_Street_props_Diffuse_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "hk-street-props-018",
+          "materialName": "MI_Street_props"
+        },
+        {
+          "modelId": "hk-street-props-027",
+          "materialName": "MI_Street_props"
+        },
+        {
+          "modelId": "hk-street-props-041",
+          "materialName": "MI_Street_props"
+        },
+        {
+          "modelId": "hk-street-props-050",
+          "materialName": "MI_Street_props"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_Bottles_01a_ALB.TX_Bottles_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_Bottles_01a_ALB.TX_Bottles_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "hospital-bottle-01a",
+          "materialName": "MI_Bottles_01a"
+        },
+        {
+          "modelId": "hospital-bottle-01c",
+          "materialName": "MI_Bottles_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_NeedleDeposit_01a_ALB.TX_NeedleDeposit_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_NeedleDeposit_01a_ALB.TX_NeedleDeposit_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "needle-deposit-01a",
+          "materialName": "MI_NeedleDeposit"
+        },
+        {
+          "modelId": "needle-deposit-01c",
+          "materialName": "MI_NeedleDeposit"
+        },
+        {
+          "modelId": "needle-deposit-01e",
+          "materialName": "MI_NeedleDeposit"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_PillBottles_01a_ALB.TX_PillBottles_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL2_Textures_Unique_TX_PillBottles_01a_ALB.TX_PillBottles_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pill-bottle-01a",
+          "materialName": "MI_PillBottles_01a"
+        },
+        {
+          "modelId": "pill-bottle-01c",
+          "materialName": "MI_PillBottles_01a"
+        },
+        {
+          "modelId": "pill-bottle-set-01a",
+          "materialName": "MI_PillBottles_01a"
+        },
+        {
+          "modelId": "pill-bottle-set-01c",
+          "materialName": "MI_PillBottles_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Computer_01a_ALB.TX_Computer_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Computer_01a_ALB.TX_Computer_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "medical-computer-01a",
+          "materialName": "MI_Computer_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Defibrillator_01a_ALB.TX_Defibrillator_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Defibrillator_01a_ALB.TX_Defibrillator_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "defibrillator-01a",
+          "materialName": "MI_Defib_02a"
+        },
+        {
+          "modelId": "defibrillator-01b",
+          "materialName": "MI_Defib_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Defibrillator_02a_ALB.TX_Defibrillator_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_Defibrillator_02a_ALB.TX_Defibrillator_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "defib-01a",
+          "materialName": "MI_Defib_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_DefibrillatorCase_01a_ALB.TX_DefibrillatorCase_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Unique_TX_DefibrillatorCase_01a_ALB.TX_DefibrillatorCase_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "defib-case-01a",
+          "materialName": "MI_Defib_02b"
+        },
+        {
+          "modelId": "defib-case-01c",
+          "materialName": "MI_Defib_02b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Utility_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL4_Textures_Utility_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "defib-case-01a",
+          "materialName": "MI_Shelf_Glass_07a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_BedSideTable_01a_ALB.TX_BedSideTable_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_BedSideTable_01a_ALB.TX_BedSideTable_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bedside-table-01a",
+          "materialName": "MI_BedSideTable_01"
+        },
+        {
+          "modelId": "bedside-table-01c",
+          "materialName": "MI_BedSideTable_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_BlanketSet_01a_ALB.TX_BlanketSet_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_BlanketSet_01a_ALB.TX_BlanketSet_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "blanket-set-01a",
+          "materialName": "MI_BlanketSet_01a"
+        },
+        {
+          "modelId": "blanket-set-01b",
+          "materialName": "MI_BlanketSet_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_Cart_08a_ALB.TX_Cart_08a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_HospitalCombo_Hospital_VOL5_Textures_Unique_TX_Cart_08a_ALB.TX_Cart_08a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "medical-cart-08a",
+          "materialName": "MI_Cart_08a"
+        },
+        {
+          "modelId": "medical-cart-08c",
+          "materialName": "MI_Cart_08a"
+        },
+        {
+          "modelId": "medical-cart-08e",
+          "materialName": "MI_Cart_08a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL1_Textures_TX_Cooking_Tools_01a_ALB.TX_Cooking_Tools_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL1_Textures_TX_Cooking_Tools_01a_ALB.TX_Cooking_Tools_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cooking-tools-01a",
+          "materialName": "MI_Cooking_Tools_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL1_Textures_TX_Cooler_Set_03a_ALB.TX_Cooler_Set_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL1_Textures_TX_Cooler_Set_03a_ALB.TX_Cooler_Set_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cooler-set-03a",
+          "materialName": "MI_Cooler_Set_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL1_Textures_TX_Food_Heater_Set_02a_ALB.TX_Food_Heater_Set_02a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL1_Textures_TX_Food_Heater_Set_02a_ALB.TX_Food_Heater_Set_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "food-heater-set-02a",
+          "materialName": "MI_Food_Heater_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL1_Textures_TX_Freezer_Standing_01a_ALB.TX_Freezer_Standing_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL1_Textures_TX_Freezer_Standing_01a_ALB.TX_Freezer_Standing_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "freezer-standing-01a",
+          "materialName": "SM_Freezer_Standing_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Bench_Food_01a_ALB.TX_Bench_Food_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Bench_Food_01a_ALB.TX_Bench_Food_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bench-food-01a",
+          "materialName": "MI_Bench_Food_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Burger_Food_Set_01a_ALB.TX_Burger_Food_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Burger_Food_Set_01a_ALB.TX_Burger_Food_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "burger-food-set-01a",
+          "materialName": "MI_Burger_Food_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Chair_Table_Set_11a_ALB.TX_Chair_Table_Set_11a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Chair_Table_Set_11a_ALB.TX_Chair_Table_Set_11a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chair-table-set-11a",
+          "materialName": "MI_Chair_Table_Set_11a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Decor_02a_ALB.TX_Chinese_Decor_02a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Decor_02a_ALB.TX_Chinese_Decor_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "chinese-decor-02a",
+          "materialName": "MI_Chinese_Decor_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Food_01a_ALB.TX_Chinese_Food_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Food_01a_ALB.TX_Chinese_Food_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chinese-food-01a",
+          "materialName": "MI_Chinese_Food_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Food_Menu_01a_ALB.TX_Chinese_Food_Menu_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Food_Menu_01a_ALB.TX_Chinese_Food_Menu_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chinese-food-menu-01a",
+          "materialName": "MI_Chinese_Food_Menu_Sign_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Resturant_Decor_01a_ALB.TX_Chinese_Resturant_Decor_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Chinese_Resturant_Decor_01a_ALB.TX_Chinese_Resturant_Decor_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chinese-restaurant-decor-01a",
+          "materialName": "MI_Chinese_Resturant_Decor_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Coffee_Machine_01a_ALB.TX_Coffee_Machine_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Coffee_Machine_01a_ALB.TX_Coffee_Machine_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 192,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "coffee-machine-01a",
+          "materialName": "MI_Coffee_Machine_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Coffee_Machine_Commerical_01a_ALB.TX_Coffee_Machine_Commerical_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Coffee_Machine_Commerical_01a_ALB.TX_Coffee_Machine_Commerical_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "coffee-machine-commerical-01a",
+          "materialName": "MI_Coffee_Machine_Commerical_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Dining_Table_Set_01a_ALB.TX_Dining_Table_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Dining_Table_Set_01a_ALB.TX_Dining_Table_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "dining-table-set-01a",
+          "materialName": "MI_Dining_Table_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Dinner_Desert_Set_01a_ALB.TX_Dinner_Desert_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Dinner_Desert_Set_01a_ALB.TX_Dinner_Desert_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "dinner-desert-set-01a",
+          "materialName": "MI_Dinner_Desert_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Fast_Food_Order_Board_01a_ALB.TX_Fast_Food_Order_Board_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Fast_Food_Order_Board_01a_ALB.TX_Fast_Food_Order_Board_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "fast-food-order-board-01a",
+          "materialName": "MI_Fast_Door_Order_Board_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Fastfood_Dispenser_Set_01a_ALB.TX_Fastfood_Dispenser_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Fastfood_Dispenser_Set_01a_ALB.TX_Fastfood_Dispenser_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "fastfood-dispenser-set-01a",
+          "materialName": "MI_Fastfood_Dispense_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Food_Dispenser_Set_01a_ALB.TX_Food_Dispenser_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Food_Dispenser_Set_01a_ALB.TX_Food_Dispenser_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "food-dispenser-01a",
+          "materialName": "MI_Food_Dispenser_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Food_Warmer_07a_ALB.TX_Food_Warmer_07a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Food_Warmer_07a_ALB.TX_Food_Warmer_07a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "food-warmer-07a",
+          "materialName": "MI_Food_Warmer_07a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Restaurant_VOL3_Textures_TX_Ice_Cream_Machine_01a_ALB.TX_Ice_Cream_Machine_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvCity_Restaurant_VOL3_Textures_TX_Ice_Cream_Machine_01a_ALB.TX_Ice_Cream_Machine_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "icecreammachine-01a",
+          "materialName": "MI_Ice_Cream_Machine_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Roadside_VOL2_Textures_TX_Electricity_Units_01a_ALB.TX_Electricity_Units_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Roadside_VOL2_Textures_TX_Electricity_Units_01a_ALB.TX_Electricity_Units_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "power-unit-01a",
+          "materialName": "MI_Electrical_Units_01a"
+        },
+        {
+          "modelId": "power-unit-01b",
+          "materialName": "MI_Electrical_Units_01a"
+        },
+        {
+          "modelId": "power-unit-01c",
+          "materialName": "MI_Electrical_Units_01a"
+        },
+        {
+          "modelId": "power-unit-01d",
+          "materialName": "MI_Electrical_Units_01a"
+        },
+        {
+          "modelId": "power-unit-01e",
+          "materialName": "MI_Electrical_Units_01a"
+        },
+        {
+          "modelId": "power-unit-01f",
+          "materialName": "MI_Electrical_Units_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Roadside_VOL2_Textures_TX_Fire_Hydrant_Set_01a_ALB.TX_Fire_Hydrant_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Roadside_VOL2_Textures_TX_Fire_Hydrant_Set_01a_ALB.TX_Fire_Hydrant_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "fire-hydrant-01a",
+          "materialName": "MI_Fire_Hydrant_Set_01a"
+        },
+        {
+          "modelId": "fire-hydrant-01b",
+          "materialName": "MI_Fire_Hydrant_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_01a_ALB.TX_Mailbox_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_01a_ALB.TX_Mailbox_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mailbox-01c",
+          "materialName": "MI_Mailbox_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_01b_ALB.TX_Mailbox_01b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_01b_ALB.TX_Mailbox_01b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mailbox-01a",
+          "materialName": "MI_Mailbox_01b"
+        },
+        {
+          "modelId": "mailbox-01e",
+          "materialName": "MI_Mailbox_01b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_Set_02a_ALB.TX_Mailbox_Set_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Roadside_VOL2_Textures_TX_Mailbox_Set_02a_ALB.TX_Mailbox_Set_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mailbox-02a",
+          "materialName": "MI_Mailbox_Set_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Desk_01a_ALB.TX_Desk_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Desk_01a_ALB.TX_Desk_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "school-desk-01a",
+          "materialName": "MI_Desk_01a"
+        },
+        {
+          "modelId": "school-desk-01b",
+          "materialName": "MI_Desk_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Exterior_Gate_01a_ALB.TX_Exterior_Gate_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Exterior_Gate_01a_ALB.TX_Exterior_Gate_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "school-gate-01a",
+          "materialName": "MI_Exterior_Gate_01a"
+        },
+        {
+          "modelId": "school-gate-01c",
+          "materialName": "MI_Exterior_Gate_01a"
+        },
+        {
+          "modelId": "school-gate-01f",
+          "materialName": "MI_Exterior_Gate_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Lockers_School_01a_ALB.TX_Lockers_School_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Lockers_School_01a_ALB.TX_Lockers_School_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "school-lockers-01a",
+          "materialName": "MI_Lockers_School_01a"
+        },
+        {
+          "modelId": "school-lockers-01c",
+          "materialName": "MI_Lockers_School_01a"
+        },
+        {
+          "modelId": "school-lockers-01f",
+          "materialName": "MI_Lockers_School_01a"
+        },
+        {
+          "modelId": "school-lockers-01j",
+          "materialName": "MI_Lockers_School_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Bench_01a_ALB.TX_Outdoor_Bench_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Bench_01a_ALB.TX_Outdoor_Bench_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "outdoor-bench-01a",
+          "materialName": "MI_Outdoor_Bench_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Table_01a_ALB.TX_Outdoor_Table_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Table_01a_ALB.TX_Outdoor_Table_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "outdoor-table-01a",
+          "materialName": "MI_Outdoor_Table_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Trashcan_01a_ALB.TX_Outdoor_Trashcan_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_SCHOOL_VOL1_Textures_TX_Outdoor_Trashcan_01a_ALB.TX_Outdoor_Trashcan_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "outdoor-trashcan-01a",
+          "materialName": "MI_Outdoor_Trashcan_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Sewers_Textures_AirDuct_T_AirDuct_BC.T_AirDuct_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_Sewers_Textures_AirDuct_T_AirDuct_BC.T_AirDuct_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "air-duct-1m",
+          "materialName": "MI_AirDuct"
+        },
+        {
+          "modelId": "air-duct-2m",
+          "materialName": "MI_AirDuct"
+        },
+        {
+          "modelId": "air-duct-support",
+          "materialName": "MI_AirDuct"
+        },
+        {
+          "modelId": "air-duct-turn90",
+          "materialName": "MI_AirDuct"
+        },
+        {
+          "modelId": "air-duct-vent-01",
+          "materialName": "MI_AirDuct"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_Props_T_box_BC.T_box_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_Props_T_box_BC.T_box_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "suburb-garbage-003",
+          "materialName": "MI_Box"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_Props_T_NewspaperBox_BC.T_NewspaperBox_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_Props_T_NewspaperBox_BC.T_NewspaperBox_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 225,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "street-newsbox-01",
+          "materialName": "MI_Newspaper"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_Props_T_RoadConstructionProps_BC.T_RoadConstructionProps_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_Props_T_RoadConstructionProps_BC.T_RoadConstructionProps_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "road-cone-01",
+          "materialName": "MI_RoadConstruction"
+        },
+        {
+          "modelId": "road-sewer-cover-01",
+          "materialName": "MI_RoadConstruction"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_Props_T_trash_BC.T_trash_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_Props_T_trash_BC.T_trash_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "beer-bottles-01",
+          "materialName": "MI_Trash2"
+        },
+        {
+          "modelId": "suburb-garbage-001",
+          "materialName": "MI_Trash2"
+        },
+        {
+          "modelId": "suburb-garbage-003",
+          "materialName": "MI_Trash1"
+        },
+        {
+          "modelId": "suburb-garbage-003",
+          "materialName": "MI_Trash2"
+        },
+        {
+          "modelId": "suburb-garbage-004",
+          "materialName": "MI_Trash1"
+        },
+        {
+          "modelId": "trash-bags-01",
+          "materialName": "MI_Trash1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_T_Scooter_BC.T_Scooter_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_T_Scooter_BC.T_Scooter_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 89,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "suburb-scooter-01",
+          "materialName": "MI_Scooter"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_SuburbsCityPack_Textures_T_Scooter_Wheel_BC.T_Scooter_Wheel_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_EnvCity_SuburbsCityPack_Textures_T_Scooter_Wheel_BC.T_Scooter_Wheel_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "suburb-scooter-01",
+          "materialName": "MI_ScooterWheel"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvCity_Warehouse_Textures_Props_Loading_Bar_Tarp_T_Loading_Bay_Tarp_BaseColor.T_Loading_Bay_Tarp_BaseColor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvCity_Warehouse_Textures_Props_Loading_Bar_Tarp_T_Loading_Bay_Tarp_BaseColor.T_Loading_Bay_Tarp_BaseColor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "loading-bay-tarp-01",
+          "materialName": "MI_Loading_Bay_Tarp"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Abandoned_house_Textures_T_grey.T_grey_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Abandoned_house_Textures_T_grey.T_grey_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "abandoned-bed-01",
+          "materialName": "MI_bed_1"
+        },
+        {
+          "modelId": "abandoned-bed-02",
+          "materialName": "MI_bed_2"
+        },
+        {
+          "modelId": "abandoned-linen-01a",
+          "materialName": "MI_bed_linen_1"
+        },
+        {
+          "modelId": "abandoned-linen-01c",
+          "materialName": "MI_bed_linen_1"
+        },
+        {
+          "modelId": "abandoned-mattress-02",
+          "materialName": "MI_bed_1"
+        },
+        {
+          "modelId": "abandoned-old-book-01",
+          "materialName": "MI_books_1"
+        },
+        {
+          "modelId": "abandoned-old-book-02",
+          "materialName": "MI_books_1"
+        },
+        {
+          "modelId": "abandoned-old-book-03",
+          "materialName": "MI_books_1"
+        },
+        {
+          "modelId": "abandoned-old-book-04",
+          "materialName": "MI_books_1"
+        },
+        {
+          "modelId": "abandoned-window-01",
+          "materialName": "MI_window_wood_1"
+        },
+        {
+          "modelId": "abandoned-window-02",
+          "materialName": "MI_window_wood_1"
+        },
+        {
+          "modelId": "abandoned-window-04",
+          "materialName": "MI_window_wood_1"
+        },
+        {
+          "modelId": "abandoned-window-09",
+          "materialName": "MI_window_wood_1"
+        },
+        {
+          "modelId": "abandoned-window-12",
+          "materialName": "MI_window_wood_1"
+        },
+        {
+          "modelId": "debris-dust-01",
+          "materialName": "MI_debris_1"
+        },
+        {
+          "modelId": "debris-dust-03",
+          "materialName": "MI_debris_1"
+        },
+        {
+          "modelId": "debris-dust-05",
+          "materialName": "MI_debris_1"
+        },
+        {
+          "modelId": "debris-gravel-01",
+          "materialName": "MI_debris_1"
+        },
+        {
+          "modelId": "debris-gravel-03",
+          "materialName": "MI_debris_1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Carpet_a.T_Carpet_a.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Carpet_a.T_Carpet_a.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "archviz-carpet-01",
+          "materialName": "M_Carpet"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_1_A.T_Fabric_1_A.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_1_A.T_Fabric_1_A.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "armchair",
+          "materialName": "M_Armchair_seat"
+        },
+        {
+          "modelId": "chair",
+          "materialName": "M_Chair_seat"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_2_A.T_Fabric_2_A.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_2_A.T_Fabric_2_A.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed",
+          "materialName": "M_Bed_2"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_3_A.T_Fabric_3_A.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Fabric_3_A.T_Fabric_3_A.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "armchair",
+          "materialName": "M_Pillow"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Marble_A.T_Marble_A.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Marble_A.T_Marble_A.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "table",
+          "materialName": "M_Table_Top"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_1_a.T_Wood_1_a.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_1_a.T_Wood_1_a.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "decor-piece-01",
+          "materialName": "M_Decor_wood"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_5_a.T_Wood_5_a.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_5_a.T_Wood_5_a.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "armchair",
+          "materialName": "M_Armchair_Wood"
+        },
+        {
+          "modelId": "bed-corner",
+          "materialName": "M_Wood_panel"
+        },
+        {
+          "modelId": "blinds-1",
+          "materialName": "M_Blinds_2"
+        },
+        {
+          "modelId": "coffee-table",
+          "materialName": "M_Coffee_table_bottom"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_dark_a.T_Wood_dark_a.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_ArchVizInteriorVol2_Textures_T_Wood_dark_a.T_Wood_dark_a.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-corner",
+          "materialName": "M_Wall_Color_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_02b_ALB.TX_Door_Exterior_Set_02b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_02b_ALB.TX_Door_Exterior_Set_02b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-exterior-a02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-b02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-c02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-d02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-e02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-f02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-g02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        },
+        {
+          "modelId": "door-exterior-h02",
+          "materialName": "MI_Door_Exterior_Set_02b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_03a_ALB.TX_Door_Exterior_Set_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_03a_ALB.TX_Door_Exterior_Set_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-exterior-a03",
+          "materialName": "MI_Door_Exterior_Set_03a"
+        },
+        {
+          "modelId": "door-exterior-b03",
+          "materialName": "MI_Door_Exterior_Set_03a"
+        },
+        {
+          "modelId": "door-exterior-c03",
+          "materialName": "MI_Door_Exterior_Set_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_04a_ALB.TX_Door_Exterior_Set_04a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_04a_ALB.TX_Door_Exterior_Set_04a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "door-exterior-a04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-b04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-c04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-d04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-e04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-f04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-g04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        },
+        {
+          "modelId": "door-exterior-h04",
+          "materialName": "MI_Door_Exterior_Set_04a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_05a_ALB.TX_Door_Exterior_Set_05a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_05a_ALB.TX_Door_Exterior_Set_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "door-exterior-a05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-b05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-c05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-d05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-e05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-f05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-g05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        },
+        {
+          "modelId": "door-exterior-h05",
+          "materialName": "MI_Door_Exterior_Set_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_06a_ALB.TX_Door_Exterior_Set_06a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Door_Exterior_Set_06a_ALB.TX_Door_Exterior_Set_06a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "door-exterior-a06",
+          "materialName": "MI_Door_Exterior_Set_06a"
+        },
+        {
+          "modelId": "door-exterior-b06",
+          "materialName": "MI_Door_Exterior_Set_06a"
+        },
+        {
+          "modelId": "door-exterior-c06",
+          "materialName": "MI_Door_Exterior_Set_06a"
+        },
+        {
+          "modelId": "door-exterior-d06",
+          "materialName": "MI_Door_Exterior_Set_06a"
+        },
+        {
+          "modelId": "door-exterior-e06",
+          "materialName": "MI_Door_Exterior_Set_06a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL5_Doors_Textures_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-exterior-a04",
+          "materialName": "MI_Glass_01a"
+        },
+        {
+          "modelId": "door-exterior-c04",
+          "materialName": "MI_Glass_01a"
+        },
+        {
+          "modelId": "door-exterior-e04",
+          "materialName": "MI_Glass_01a"
+        },
+        {
+          "modelId": "door-exterior-g04",
+          "materialName": "MI_Glass_01a"
+        },
+        {
+          "modelId": "door-exterior-h05",
+          "materialName": "MI_Glass_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_01a_ALB.TX_Door_Commercial_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_01a_ALB.TX_Door_Commercial_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "door-commercial-a01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-b01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-c01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-d01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-e01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-f01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-g01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-h01",
+          "materialName": "MI_Door_Commerical_01a"
+        },
+        {
+          "modelId": "door-commercial-i01",
+          "materialName": "MI_Door_Commerical_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_02a_ALB.TX_Door_Commercial_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_02a_ALB.TX_Door_Commercial_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-commercial-a02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-b02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-c02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-d02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-e02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-f02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-g02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-h02",
+          "materialName": "MI_Door_Commerical_02a"
+        },
+        {
+          "modelId": "door-commercial-i02",
+          "materialName": "MI_Door_Commerical_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_03a_ALB.TX_Door_Commercial_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_03a_ALB.TX_Door_Commercial_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-commercial-a03",
+          "materialName": "MI_Door_Commerical_03a"
+        },
+        {
+          "modelId": "door-commercial-b03",
+          "materialName": "MI_Door_Commerical_03a"
+        },
+        {
+          "modelId": "door-commercial-c03",
+          "materialName": "MI_Door_Commerical_03a"
+        },
+        {
+          "modelId": "door-commercial-d03",
+          "materialName": "MI_Door_Commerical_03a"
+        },
+        {
+          "modelId": "door-commercial-e03",
+          "materialName": "MI_Door_Commerical_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_04a_ALB.TX_Door_Commercial_04a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_BUILDINGS_VOL7_CommericalDoors_Textures_TX_Door_Commercial_04a_ALB.TX_Door_Commercial_04a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "door-commercial-a04",
+          "materialName": "MI_Door_Commerical_04a"
+        },
+        {
+          "modelId": "door-commercial-b04",
+          "materialName": "MI_Door_Commerical_04a"
+        },
+        {
+          "modelId": "door-commercial-c04",
+          "materialName": "MI_Door_Commerical_04a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL1_Textures_Unique_TX_CueRack_ALB.TX_CueRack_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL1_Textures_Unique_TX_CueRack_ALB.TX_CueRack_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cue-rack-1a",
+          "materialName": "MI_CueRack_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BarCooler_01_ALB.TX_BarCooler_01_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BarCooler_01_ALB.TX_BarCooler_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "barcooler-01",
+          "materialName": "MI_BarCooler_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_Barrel_01_ALB.TX_Barrel_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_Barrel_01_ALB.TX_Barrel_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "barrel-01",
+          "materialName": "MI_Barrel_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_Barstool_01a_ALB.TX_Barstool_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_Barstool_01a_ALB.TX_Barstool_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "barstool-01a",
+          "materialName": "MI_Barstool_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BarTap_01a_ALB.TX_BarTap_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BarTap_01a_ALB.TX_BarTap_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bartap-01a",
+          "materialName": "MI_BarTap_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BeerClock_01_ALB.TX_BeerClock_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Unique_TX_BeerClock_01_ALB.TX_BeerClock_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "beer-clock-01a",
+          "materialName": "MI_BeerClock_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_DiveBar_VOL2_Textures_Utility_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_DiveBar_VOL2_Textures_Utility_TX_Fill_01_ALB.TX_Fill_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "barcooler-01",
+          "materialName": "MI_BarCooler_Glass_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_CROTON_mud_2.T_CROTON_mud_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_CROTON_mud_2.T_CROTON_mud_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pot-0",
+          "materialName": "M_ground_4"
+        },
+        {
+          "modelId": "pot-10",
+          "materialName": "M_ground_4"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_Ficus_leaf_3.T_Ficus_leaf_3_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_Ficus_leaf_3.T_Ficus_leaf_3_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-1",
+          "materialName": "M_leaf_30"
+        },
+        {
+          "modelId": "plant-13",
+          "materialName": "M_leaf_30"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_ficus_lir_01_2.T_ficus_lir_01_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_ficus_lir_01_2.T_ficus_lir_01_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-10",
+          "materialName": "M_leaf_20"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_Graund_1.T_Graund_1_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_Graund_1.T_Graund_1_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-1",
+          "materialName": "M_ground_9"
+        },
+        {
+          "modelId": "plant-13",
+          "materialName": "M_ground_9"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_grunt_01_2.T_grunt_01_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_grunt_01_2.T_grunt_01_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pot-1",
+          "materialName": "M_ground_6"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_p35_LEAFE_2.T_p35_LEAFE_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_p35_LEAFE_2.T_p35_LEAFE_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-11",
+          "materialName": "M_leaf_16"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_p80_2.T_p80_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_p80_2.T_p80_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-12",
+          "materialName": "M_leaf_18"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_PLANT_Aspadistra_2.T_PLANT_Aspadistra_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_PLANT_Aspadistra_2.T_PLANT_Aspadistra_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-0",
+          "materialName": "M_leaf_19"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_HQ_Interior_plants_Textures_T_stvol_01_2.T_stvol_01_2_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_HQ_Interior_plants_Textures_T_stvol_01_2.T_stvol_01_2_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "plant-10",
+          "materialName": "M_wood_0"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Apple01_D.T_Apple01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Apple01_D.T_Apple01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "apple01",
+          "materialName": "MI_Apple01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Board01_D.T_Board01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Board01_D.T_Board01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "board01",
+          "materialName": "MI_Board01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Box01_D.T_Box01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Box01_D.T_Box01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "box01",
+          "materialName": "MI_Box01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Carpet01_D.T_Carpet01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Carpet01_D.T_Carpet01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "kitchen-carpet-01",
+          "materialName": "MI_Carpet01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Chair01_D.T_Chair01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Chair01_D.T_Chair01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chair01",
+          "materialName": "MI_Chair01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_CookingBoard01_D.T_CookingBoard01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_CookingBoard01_D.T_CookingBoard01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cookingboard01",
+          "materialName": "MI_CookingBoard01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Cup01_D.T_Cup01_D_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Cup01_D.T_Cup01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 95,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "cup01",
+          "materialName": "MI_Cup01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Dishwasher01_D.T_Dishwasher01_D_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Dishwasher01_D.T_Dishwasher01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 7,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "dishwasher01",
+          "materialName": "MI_DishWasher01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_DrainingBoard01_D.T_DrainingBoard01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_DrainingBoard01_D.T_DrainingBoard01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "drainingboard01",
+          "materialName": "MI_DrainingBoard01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_FireSprinkler01_D.T_FireSprinkler01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_FireSprinkler01_D.T_FireSprinkler01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "fire-sprinkler-01",
+          "materialName": "MI_FireSprinkler01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Frypan01_D.T_Frypan01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Frypan01_D.T_Frypan01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "frypan01",
+          "materialName": "MI_Frypan01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_GarbageBasket01_D.T_GarbageBasket01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_GarbageBasket01_D.T_GarbageBasket01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "garbagebasket01",
+          "materialName": "MI_GarbageBasket01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_KitchenStuff01_D.T_KitchenStuff01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_KitchenStuff01_D.T_KitchenStuff01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "kitchenstuff01",
+          "materialName": "MI_KitchenStuff01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Knife01_D.T_Knife01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Knife01_D.T_Knife01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "knife01",
+          "materialName": "MI_Knife01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Lamp01_D.T_Lamp01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Lamp01_D.T_Lamp01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "lamp01",
+          "materialName": "MI_Lamp01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_Microwave01_D.T_Microwave01_D_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_Microwave01_D.T_Microwave01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 138,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "microwave01",
+          "materialName": "MI_Microwave01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_KitchenPack_v03_Textures_T_NapkinHolder01_D.T_NapkinHolder01_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_KitchenPack_v03_Textures_T_NapkinHolder01_D.T_NapkinHolder01_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "napkinholder01",
+          "materialName": "MI_NapkinHolder01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Lighting_VOL3_Textures_TX_Light_Industrial_Set_13a_ALB.TX_Light_Industrial_Set_13a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Lighting_VOL3_Textures_TX_Light_Industrial_Set_13a_ALB.TX_Light_Industrial_Set_13a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "light-industrial-set-13a",
+          "materialName": "MI_Light_Industrial_Set_13a"
+        },
+        {
+          "modelId": "light-industrial-set-13b",
+          "materialName": "MI_Light_Industrial_Set_13a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Lighting_VOL3_Textures_TX_Light_Set_01_ALB.TX_Light_Set_01_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Lighting_VOL3_Textures_TX_Light_Set_01_ALB.TX_Light_Set_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "light-set-01a",
+          "materialName": "MI_Light_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Lighting_VOL3_Textures_TX_Lights_Exterior_Set_01c_ALB.TX_Lights_Exterior_Set_01c_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Lighting_VOL3_Textures_TX_Lights_Exterior_Set_01c_ALB.TX_Lights_Exterior_Set_01c_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "lights-exterior-set-01a",
+          "materialName": "MI_LIghts_Exterior_01c"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Lighting_VOL3_Textures_TX_Lights_Set_10a_ALB.TX_Lights_Set_10a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Lighting_VOL3_Textures_TX_Lights_Set_10a_ALB.TX_Lights_Set_10a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "lights-set-10a",
+          "materialName": "MI_Light_Set_10a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_AirCon_DIF.TX_AirCon_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_AirCon_DIF.TX_AirCon_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "aircon",
+          "materialName": "Mi_AirCon_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_Blinds_DIF.TX_Blinds_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_Blinds_DIF.TX_Blinds_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba64be",
+      "alphaMinimum": 60160,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "blinds-01a",
+          "materialName": "Mi_Blinds"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_Bookshelf_01a_DIF.TX_Bookshelf_01a_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_Bookshelf_01a_DIF.TX_Bookshelf_01a_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bookshelf-01a-blank",
+          "materialName": "Mi_BookShelf"
+        },
+        {
+          "modelId": "bookshelf-01a",
+          "materialName": "Mi_BookShelf"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_Clock_01a_DIF.TX_Clock_01a_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_Clock_01a_DIF.TX_Clock_01a_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clock-01a",
+          "materialName": "Mi_Clock_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_CoffeeTable_DIF.TX_CoffeeTable_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_CoffeeTable_DIF.TX_CoffeeTable_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "coffeetable-01a",
+          "materialName": "Mi_CoffeeTable_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_Computer_02a_DIF.TX_Computer_02a_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_Computer_02a_DIF.TX_Computer_02a_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "computer-02a-keyboard",
+          "materialName": "Mi_Computer_01a"
+        },
+        {
+          "modelId": "computer-02a-mouse",
+          "materialName": "Mi_Computer_01a"
+        },
+        {
+          "modelId": "computer-02a-mousepad",
+          "materialName": "Mi_Computer_01a"
+        },
+        {
+          "modelId": "computer-02a-tower",
+          "materialName": "Mi_Computer_01a"
+        },
+        {
+          "modelId": "crt-computer-02a",
+          "materialName": "Mi_Computer_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_OfficeScatterItems_01a_DIF.TX_OfficeScatterItems_01a_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_OfficeScatterItems_01a_DIF.TX_OfficeScatterItems_01a_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "binder-01a",
+          "materialName": "Mi_OfficeClutter_01a"
+        },
+        {
+          "modelId": "calculator-01a",
+          "materialName": "Mi_OfficeClutter_01a"
+        },
+        {
+          "modelId": "coffeecup-01a",
+          "materialName": "Mi_OfficeClutter_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Office_Textures_TX_WoodCoving_DIF.TX_WoodCoving_DIF_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Office_Textures_TX_WoodCoving_DIF.TX_WoodCoving_DIF_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "carpetdivider-01a",
+          "materialName": "Mi_WoodCoving"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Set_01a_ALB.TX_Bathroom_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Set_01a_ALB.TX_Bathroom_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathroom-set-01a",
+          "materialName": "MI_Bathroom_Set_01a"
+        },
+        {
+          "modelId": "bathroom-set-01b",
+          "materialName": "MI_Bathroom_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Sink_01a_ALB.TX_Bathroom_Sink_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Sink_01a_ALB.TX_Bathroom_Sink_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathroom-sink-01a",
+          "materialName": "MI_Bathroom_Sink_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_01a_ALB.TX_Bathtub_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_01a_ALB.TX_Bathtub_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathtub-01a",
+          "materialName": "MI_Bathtub_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_12a_ALB.TX_Bathtub_12a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_12a_ALB.TX_Bathtub_12a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathtub-12a",
+          "materialName": "MI_Bathtub_12a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_Iron_01a_ALB.TX_Bathtub_Iron_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathtub_Iron_01a_ALB.TX_Bathtub_Iron_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathtub-iron-01a",
+          "materialName": "MI_Bathtub_Iron_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Mirror_Set_02a_ALB.TX_Mirror_Set_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Mirror_Set_02a_ALB.TX_Mirror_Set_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mirror-set-02a",
+          "materialName": "MI_Mirror_Set_02a"
+        },
+        {
+          "modelId": "mirror-set-02b",
+          "materialName": "MI_Mirror_Set_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_05a_ALB.TX_Shower_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_05a_ALB.TX_Shower_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "shower-05a",
+          "materialName": "MI_Shower_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_05b_ALB.TX_Shower_05b_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_05b_ALB.TX_Shower_05b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "shower-05a",
+          "materialName": "MI_Shower_05b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_Curtain_01a_ALB.TX_Shower_Curtain_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Shower_Curtain_01a_ALB.TX_Shower_Curtain_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "shower-curtain-01a",
+          "materialName": "MI_Shower_Curtain_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Sink_01a_ALB.TX_Sink_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Sink_01a_ALB.TX_Sink_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "sink-01a",
+          "materialName": "MI_Sink_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Sink_Bathroom_05a_ALB.TX_Sink_Bathroom_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Sink_Bathroom_05a_ALB.TX_Sink_Bathroom_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "sink-bathroom-05a",
+          "materialName": "MI_Sink_Bathroom_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Toilet_Paper_Set_01a_ALB.TX_Toilet_Paper_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Toilet_Paper_Set_01a_ALB.TX_Toilet_Paper_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "toilet-paper-set-01a",
+          "materialName": "MI_Toilet_Paper_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Toliet_01a_ALB.TX_Toliet_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Toliet_01a_ALB.TX_Toliet_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "toilet-01a",
+          "materialName": "MI_Toilet_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Towel_Set_01a_ALB.TX_Towel_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Towel_Set_01a_ALB.TX_Towel_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "towel-set-01a",
+          "materialName": "MI_Towel_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Trashcans_01a_ALB.TX_Trashcans_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Trashcans_01a_ALB.TX_Trashcans_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trashcan-01a",
+          "materialName": "MI_Trashcans_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Urinal_01a_ALB.TX_Urinal_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Urinal_01a_ALB.TX_Urinal_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "urinal-01a",
+          "materialName": "MI_Urinal_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_Cabinet_Set_03a_ALB.TX_Cabinet_Set_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_Cabinet_Set_03a_ALB.TX_Cabinet_Set_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cabinet-set-03b",
+          "materialName": "MI_Cabinet_Set_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_Cabinet_Set_03b_ALB.TX_Cabinet_Set_03b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_Cabinet_Set_03b_ALB.TX_Cabinet_Set_03b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cabinet-set-03a",
+          "materialName": "MI_Cabinet_Set_03b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_CabinetSet_01a_ALB.TX_CabinetSet_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_CabinetSet_01a_ALB.TX_CabinetSet_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cabinetset-01a",
+          "materialName": "MI_Cabinet_Set_01a"
+        },
+        {
+          "modelId": "cabinetset-01b",
+          "materialName": "MI_Cabinet_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_CabinetSet_01d_ALB.TX_CabinetSet_01d_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburban_Household_VOL17_ModularCabinets_Textures_TX_CabinetSet_01d_ALB.TX_CabinetSet_01d_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cabinetset-01a",
+          "materialName": "MI_Cabinet_Set_01d"
+        },
+        {
+          "modelId": "cabinetset-01b",
+          "materialName": "MI_Cabinet_Set_01d"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12a_ALB.TX_Bed_12a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12a_ALB.TX_Bed_12a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-12a",
+          "materialName": "MI_Bed_12a"
+        },
+        {
+          "modelId": "bed-12b",
+          "materialName": "MI_Bed_12a"
+        },
+        {
+          "modelId": "bed-12c",
+          "materialName": "MI_Bed_12a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12b_ALB.TX_Bed_12b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12b_ALB.TX_Bed_12b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-12a",
+          "materialName": "MI_Bed_12b"
+        },
+        {
+          "modelId": "bed-12b",
+          "materialName": "MI_Bed_12b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12c_ALB.TX_Bed_12c_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_12c_ALB.TX_Bed_12c_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-12a",
+          "materialName": "MI_Bed_12c"
+        },
+        {
+          "modelId": "bed-12b",
+          "materialName": "MI_Bed_12c"
+        },
+        {
+          "modelId": "bed-12c",
+          "materialName": "MI_Bed_12c"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19a_ALB.TX_Bed_19a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19a_ALB.TX_Bed_19a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-19a",
+          "materialName": "MI_Bed_19a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19b_ALB.TX_Bed_19b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19b_ALB.TX_Bed_19b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-19a",
+          "materialName": "MI_Bed_19b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19c_ALB.TX_Bed_19c_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_19c_ALB.TX_Bed_19c_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-19a",
+          "materialName": "MI_Bed_19c"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_01a_ALB.TX_Bed_Frame_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_01a_ALB.TX_Bed_Frame_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bed-frame-01a",
+          "materialName": "MI_Bed_Frame_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_04a_ALB.TX_Bed_Frame_04a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_04a_ALB.TX_Bed_Frame_04a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "bed-frame-04a",
+          "materialName": "MI_Bed_04a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_04b_ALB.TX_Bed_Frame_04b_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bed_Frame_04b_ALB.TX_Bed_Frame_04b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "bed-frame-04b",
+          "materialName": "MI_Bed_04b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bedding_Set_01a_ALB.TX_Bedding_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Bedding_Set_01a_ALB.TX_Bedding_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bedding-set-01a",
+          "materialName": "MI_Bedding_Set_01a"
+        },
+        {
+          "modelId": "bedding-set-01b",
+          "materialName": "MI_Bedding_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Crib_Baby_01a_ALB.TX_Crib_Baby_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Crib_Baby_01a_ALB.TX_Crib_Baby_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "crib-baby-01a",
+          "materialName": "MI_Crib_Baby_01a"
+        },
+        {
+          "modelId": "crib-baby-01b",
+          "materialName": "MI_Crib_Baby_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Mattress_Queen_01a_ALB.TX_Mattress_Queen_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Mattress_Queen_01a_ALB.TX_Mattress_Queen_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mattress-queen-01a",
+          "materialName": "MI_Mattress_Queen_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Mattress_Twin_01a_ALB.TX_Mattress_Twin_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Mattress_Twin_01a_ALB.TX_Mattress_Twin_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mattress-twin-01a",
+          "materialName": "MI_Mattress_Twin_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Pillows_Bed_01a_ALB.TX_Pillows_Bed_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Pillows_Bed_01a_ALB.TX_Pillows_Bed_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pillow-bed-01a",
+          "materialName": "MI_Pillows_Bed_01a"
+        },
+        {
+          "modelId": "pillow-bed-01b",
+          "materialName": "MI_Pillows_Bed_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Sofa_Pullout_01a_ALB.TX_Sofa_Pullout_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Sofa_Pullout_01a_ALB.TX_Sofa_Pullout_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "sofa-pullout-01a",
+          "materialName": "MI_Sofa_Pullout_01a"
+        },
+        {
+          "modelId": "sofa-pullout-01b",
+          "materialName": "MI_Sofa_Pullout_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Sofa_Pullout_01b_ALB.TX_Sofa_Pullout_01b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL16_Bedroom_Textures_TX_Sofa_Pullout_01b_ALB.TX_Sofa_Pullout_01b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "sofa-pullout-01b",
+          "materialName": "MI_Sofa_Pullout_01b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Desk_01_ALB.TX_Chair_Desk_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Desk_01_ALB.TX_Chair_Desk_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chair-desk-01a",
+          "materialName": "MI_Chair_Desk_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Set_05a_ALB.TX_Chair_Set_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Set_05a_ALB.TX_Chair_Set_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chair-set-05a",
+          "materialName": "MI_Chair_Set_05a"
+        },
+        {
+          "modelId": "chair-set-05b",
+          "materialName": "MI_Chair_Set_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Set_09a_ALB.TX_Chair_Set_09a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Chair_Set_09a_ALB.TX_Chair_Set_09a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chair-set-09a",
+          "materialName": "MI_Chair_Set_09a"
+        },
+        {
+          "modelId": "chair-set-09b",
+          "materialName": "MI_Chair_Set_09a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Corkboard_03a_ALB.TX_Corkboard_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Corkboard_03a_ALB.TX_Corkboard_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "corkboard-03a",
+          "materialName": "MI_Corkboard_01a"
+        },
+        {
+          "modelId": "corkboard-03b",
+          "materialName": "MI_Corkboard_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_03a_ALB.TX_Desk_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_03a_ALB.TX_Desk_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "desk-03a",
+          "materialName": "MI_Desk_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_Office_08a_ALB.TX_Desk_Office_08a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_Office_08a_ALB.TX_Desk_Office_08a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "desk-office-08a",
+          "materialName": "MI_Desk_Office_08a"
+        },
+        {
+          "modelId": "desk-office-08b",
+          "materialName": "MI_Desk_Office_08a"
+        },
+        {
+          "modelId": "desk-office-08c",
+          "materialName": "MI_Desk_Office_08a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_Set_01a_ALB.TX_Desk_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Desk_Set_01a_ALB.TX_Desk_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "desk-set-01a",
+          "materialName": "MI_Desk_Set_01a"
+        },
+        {
+          "modelId": "desk-set-01b",
+          "materialName": "MI_Desk_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_File_Cabinent_03a_ALB.TX_File_Cabinent_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_File_Cabinent_03a_ALB.TX_File_Cabinent_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "file-cabinent-03a",
+          "materialName": "MI_File_Cabinent_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Flagpole_01a_ALB.TX_Flagpole_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Flagpole_01a_ALB.TX_Flagpole_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flagpole-01a",
+          "materialName": "MI_Flagpole_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Chairs_09a_ALB.TX_Office_Chairs_09a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Chairs_09a_ALB.TX_Office_Chairs_09a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "office-chairs-09a",
+          "materialName": "MI_Office_Chairs_09a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Stationary_01a_ALB.TX_Office_Stationary_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Stationary_01a_ALB.TX_Office_Stationary_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "office-stationary-01a",
+          "materialName": "MI_Office_Stationary_01a"
+        },
+        {
+          "modelId": "office-stationary-01aa",
+          "materialName": "MI_Office_Stationary_01a"
+        },
+        {
+          "modelId": "office-stationary-01ab",
+          "materialName": "MI_Office_Stationary_01a"
+        },
+        {
+          "modelId": "office-stationary-01ac",
+          "materialName": "MI_Office_Stationary_01a"
+        },
+        {
+          "modelId": "office-stationery-01ad",
+          "materialName": "MI_Office_Stationary_01a"
+        },
+        {
+          "modelId": "office-stationery-01ae",
+          "materialName": "MI_Office_Stationary_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Supplies_Set_01a_ALB.TX_Office_Supplies_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Office_Supplies_Set_01a_ALB.TX_Office_Supplies_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "office-supplies-set-01a",
+          "materialName": "MI_Office_Supplies_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Printed_Materials_01b_ALB.TX_Printed_Materials_01b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Printed_Materials_01b_ALB.TX_Printed_Materials_01b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "printed-materials-01a",
+          "materialName": "MI_Printed_Materials_01b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Printer_01a_ALB.TX_Printer_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Printer_01a_ALB.TX_Printer_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "printer-01a",
+          "materialName": "MI_Printer_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Stationary_Set_02a_ALB.TX_Stationary_Set_02a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Stationary_Set_02a_ALB.TX_Stationary_Set_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "stationary-set-02aa",
+          "materialName": "MI_Stationary_Set_02a"
+        },
+        {
+          "modelId": "stationary-set-02ab",
+          "materialName": "MI_Stationary_Set_02a"
+        },
+        {
+          "modelId": "stationary-set-02ac",
+          "materialName": "MI_Stationary_Set_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Stationary_Set_NN_01a_ALB.TX_Stationary_Set_NN_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_Stationary_Set_NN_01a_ALB.TX_Stationary_Set_NN_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "stationary-set-01a",
+          "materialName": "MI_Stationary_Set_NN_01a"
+        },
+        {
+          "modelId": "stationary-set-01aa",
+          "materialName": "MI_Stationary_Set_NN_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_TV_Cart_01a_ALB.TX_TV_Cart_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_TV_Cart_01a_ALB.TX_TV_Cart_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "tv-cart-01a",
+          "materialName": "MI_TV_Cart_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_Suburbs_VOL19_Office_Textures_TX_WhiteBoard_03a_ALB.TX_WhiteBoard_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_EnvHouse_Suburbs_VOL19_Office_Textures_TX_WhiteBoard_03a_ALB.TX_WhiteBoard_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "whiteboard-03a",
+          "materialName": "MI_Whiteboard_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_VOL1_Windows_Textures_TX_Blinds_Set_01a_ALB.TX_Blinds_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_VOL1_Windows_Textures_TX_Blinds_Set_01a_ALB.TX_Blinds_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "blinds-01-undefineda",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedb",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedc",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedd",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinede",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedf",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedg",
+          "materialName": "MI_Blind_Set_01a"
+        },
+        {
+          "modelId": "blinds-01-undefinedh",
+          "materialName": "MI_Blind_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_VOL10_AirPipesVents_Textures_TX_Ceiling_Vent_Set_01a_ALB.TX_Ceiling_Vent_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvHouse_VOL10_AirPipesVents_Textures_TX_Ceiling_Vent_Set_01a_ALB.TX_Ceiling_Vent_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "ceiling-vent-01a",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        },
+        {
+          "modelId": "ceiling-vent-01c",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        },
+        {
+          "modelId": "ceiling-vent-01e",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        },
+        {
+          "modelId": "ceiling-vent-01g",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        },
+        {
+          "modelId": "ceiling-vent-01h",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        },
+        {
+          "modelId": "ceiling-vent-01j",
+          "materialName": "MI_Ceiling_Vent_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvHouse_WillsRoom_Textures_T_AlarmClock_B.T_AlarmClock_B.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_EnvHouse_WillsRoom_Textures_T_AlarmClock_B.T_AlarmClock_B.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "alarmclock",
+          "materialName": "MM_AlarmClock"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Enviroments_Mountain_Environment_Set_Foliage_Textures_T_grass_02_BC_M.T_grass_02_BC_M_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "grass-02-a-1",
+          "materialName": "MI_grass_02"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Big_rock_03_BC_H.T_Big_rock_03_BC_H_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Big_rock_03_BC_H.T_Big_rock_03_BC_H_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "stone-01",
+          "materialName": "MI_Big_rock_03"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Flat_rock_01_tiled_BC_H.T_Flat_rock_01_tiled_BC_H_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_Flat_rock_01_tiled_BC_H.T_Flat_rock_01_tiled_BC_H_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 64,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "flat-rock-02",
+          "materialName": "MI_Flat_rock_01"
+        },
+        {
+          "modelId": "flat-rock-03",
+          "materialName": "MI_Flat_rock_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_mountain_rocks_atlas_01_BC.T_mountain_rocks_atlas_01_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_mountain_rocks_atlas_01_BC.T_mountain_rocks_atlas_01_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mountain-rock-big-02",
+          "materialName": "MI_mountain_rocks_atlas_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_01_big_BC.T_rocks_01_big_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_01_big_BC.T_rocks_01_big_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mountain-rock-big-01",
+          "materialName": "MI_mountain_rocks_big_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_01_small_BC.T_rocks_01_small_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_01_small_BC.T_rocks_01_small_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mountain-rock-small-01-1",
+          "materialName": "MI_mountain_rocks_small_01"
+        },
+        {
+          "modelId": "mountain-rock-small-01",
+          "materialName": "MI_mountain_rocks_small_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_atlas_01_BC.T_rocks_atlas_01_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Enviroments_Mountain_Environment_Set_Rocks_Textures_T_rocks_atlas_01_BC.T_rocks_atlas_01_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "ground-rock-01",
+          "materialName": "MI_rocks_atlas_01"
+        },
+        {
+          "modelId": "ground-rock-02",
+          "materialName": "MI_rocks_atlas_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Enviroments_NorthernIsle_Textures_T_MeadowPlants_BC_O.T_MeadowPlants_BC_O_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Enviroments_NorthernIsle_Textures_T_MeadowPlants_BC_O.T_MeadowPlants_BC_O_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "grass-tuft-a",
+          "materialName": "MI_Grass_a"
+        },
+        {
+          "modelId": "wildflower-a",
+          "materialName": "MI_Grass_b"
+        },
+        {
+          "modelId": "wildflower-c",
+          "materialName": "MI_Grass_a"
+        },
+        {
+          "modelId": "wildflower-cluster-a",
+          "materialName": "MI_Flower_d"
+        },
+        {
+          "modelId": "wildflower-cluster-a",
+          "materialName": "MI_Grass_a"
+        },
+        {
+          "modelId": "wildflower-cluster-c",
+          "materialName": "MI_Flower_d"
+        },
+        {
+          "modelId": "wildflower-cluster-c",
+          "materialName": "MI_Grass_b"
+        },
+        {
+          "modelId": "wildflower-cluster-f",
+          "materialName": "MI_Grass_a1"
+        },
+        {
+          "modelId": "wildflower-cluster-f",
+          "materialName": "MI_Grass_b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_Color_0.T_MI_Bright_Green_Grass_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_Color_0.T_MI_Bright_Green_Grass_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_Bright_Green_Grass"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Color_0.T_MI_Green_Grass_Blade_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Color_0.T_MI_Green_Grass_Blade_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_Green_Grass_Blade"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Lily_Seed_0_Color.T_MI_Green_Lily_Seed_0_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Green_Lily_Seed_0_Color.T_MI_Green_Lily_Seed_0_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Green_Lily_Seed_0"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Leaf_0_Color_3.T_MI_Lily_Leaf_0_Color_3_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Leaf_0_Color_3.T_MI_Lily_Leaf_0_Color_3_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Lily_Leaf_0"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Leaf_1_Color_1.T_MI_Lily_Leaf_1_Color_1_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Leaf_1_Color_1.T_MI_Lily_Leaf_1_Color_1_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Lily_Leaf_1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Stalk_3_Color.T_MI_Lily_Stalk_3_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Stalk_3_Color.T_MI_Lily_Stalk_3_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Lily_Stalk_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Stamp_3_Color.T_MI_Lily_Stamp_3_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_Stamp_3_Color.T_MI_Lily_Stamp_3_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Lily_Stamp_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_white_Bud_Color.T_MI_Lily_white_Bud_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Lily_white_Bud_Color.T_MI_Lily_white_Bud_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Lily_white_Bud"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Middle_Seed_Head_3_Color.T_MI_Middle_Seed_Head_3_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Middle_Seed_Head_3_Color.T_MI_Middle_Seed_Head_3_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Middle_Seed_Head_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Seed_Heads_3_Color.T_MI_Seed_Heads_3_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Seed_Heads_3_Color.T_MI_Seed_Heads_3_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Seed_Heads_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_1_Color_0.T_MI_White_Grass_Blade_1_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_1_Color_0.T_MI_White_Grass_Blade_1_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_White_Grass_Blade_1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_2_Color_0.T_MI_White_Grass_Blade_2_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_2_Color_0.T_MI_White_Grass_Blade_2_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_White_Grass_Blade_2"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_3_Color_0.T_MI_White_Grass_Blade_3_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_White_Grass_Blade_3_Color_0.T_MI_White_Grass_Blade_3_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_White_Grass_Blade_3"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_Atlas_02_Basecolor.T_Atlas_02_Basecolor_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_UltimateFarming_Textures_T_Atlas_02_Basecolor.T_Atlas_02_Basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "crop-beet-01b",
+          "materialName": "MI_Beet_Leafs"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_Atlas_07_Basecolor.T_Atlas_07_Basecolor_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_UltimateFarming_Textures_T_Atlas_07_Basecolor.T_Atlas_07_Basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "crop-arugula-01a",
+          "materialName": "MI_Arugula_Leafs"
+        },
+        {
+          "modelId": "crop-arugula-01b",
+          "materialName": "MI_Arugula_Leafs"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_Bamboo_Basecolor.T_Bamboo_Basecolor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_UltimateFarming_Textures_T_Bamboo_Basecolor.T_Bamboo_Basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bamboo-01",
+          "materialName": "MI_Bamboo"
+        },
+        {
+          "modelId": "bamboo-basket-01a",
+          "materialName": "MI_Bamboo"
+        },
+        {
+          "modelId": "bamboo-basket-01b",
+          "materialName": "MI_Bamboo"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_Body_03_Basecolor.T_Body_03_Basecolor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_UltimateFarming_Textures_T_Body_03_Basecolor.T_Body_03_Basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "crop-beet-01b",
+          "materialName": "MI_RedSappling_A"
+        }
+      ]
+    },
+    "/models/cine57/tex/_EnvVillage_UltimateFarming_Textures_T_FruitAtlas_03_Basecolor.T_FruitAtlas_03_Basecolor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_EnvVillage_UltimateFarming_Textures_T_FruitAtlas_03_Basecolor.T_FruitAtlas_03_Basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "crop-beans-01",
+          "materialName": "MI_Beans_Fruit"
+        },
+        {
+          "modelId": "crop-beet-01a",
+          "materialName": "MI_Beet_Fruit"
+        },
+        {
+          "modelId": "crop-beet-01b",
+          "materialName": "MI_Beet_Fruit"
+        }
+      ]
+    },
+    "/models/cine57/tex/_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Yellow_Tip_Color_0.T_MI_Green_Grass_Blade_Yellow_Tip_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Yellow_Tip_Color_0.T_MI_Green_Grass_Blade_Yellow_Tip_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_Green_Grass_Blade_Yellow_Tip"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_AirMattress_01_ALB.TX_AirMattress_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_AirMattress_01_ALB.TX_AirMattress_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "air-mattress-01",
+          "materialName": "MI_AirMattress_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_Binoculars_01_ALB.TX_Binoculars_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_Binoculars_01_ALB.TX_Binoculars_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "binoculars-01",
+          "materialName": "MI_Binoculars_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_Bookbag_01a_ALB.TX_Bookbag_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_Bookbag_01a_ALB.TX_Bookbag_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bookbag-01a",
+          "materialName": "MI_Backpack_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_Bugspray_Sunscreen_01a_ALB.TX_Bugspray_Sunscreen_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_Bugspray_Sunscreen_01a_ALB.TX_Bugspray_Sunscreen_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bugspray-01a",
+          "materialName": "MI_Lotions_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_CampingGrill_ALB.TX_CampingGrill_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_CampingGrill_ALB.TX_CampingGrill_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "camping-grill-01",
+          "materialName": "MI_CampingGrill_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_Canteen_01_ALB.TX_Canteen_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_Canteen_01_ALB.TX_Canteen_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "canteen-01",
+          "materialName": "MI_Canteen_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_CastIronPan_01a_ALB.TX_CastIronPan_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_CastIronPan_01a_ALB.TX_CastIronPan_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "castironpan-01a",
+          "materialName": "MI_CastIronPan_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Camping_Textures_Unique_TX_Coffee_01_ALB.TX_Coffee_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Camping_Textures_Unique_TX_Coffee_01_ALB.TX_Coffee_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "coffee-01a",
+          "materialName": "MI_Coffee_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_BoxesAndCrates_Pallet_T_Pallet_02_BC.T_Pallet_02_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_BoxesAndCrates_Pallet_T_Pallet_02_BC.T_Pallet_02_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "defect-pallet-02",
+          "materialName": "MI_Pallet_02"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_01_BC.T_Barrel_01_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_01_BC.T_Barrel_01_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 5,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "rusty-barrel-01a",
+          "materialName": "MI_Barrel_01_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_02_BC.T_Barrel_02_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_02_BC.T_Barrel_02_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 3,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "rusty-barrel-02b",
+          "materialName": "MI_Barrel_02_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_04_BC.T_Barrel_04_BC_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol1_T_Barrel_04_BC.T_Barrel_04_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rusty-barrel-04a",
+          "materialName": "MI_Barrel_04"
+        },
+        {
+          "modelId": "rusty-barrel-05b",
+          "materialName": "MI_Barrel_04"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_Canister_01_BC.T_Canister_01_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_Canister_01_BC.T_Canister_01_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "canister-01a",
+          "materialName": "MI_Canister_01_V1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_Canister_03_BC.T_Canister_03_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_Canister_03_BC.T_Canister_03_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "canister-01c",
+          "materialName": "MI_Canister_03_V1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_GasCilinder_01_BC.T_GasCilinder_01_BC_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_DefectPropsVol1_Textures_RustyBarrelsVol2_T_GasCilinder_01_BC.T_GasCilinder_01_BC_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "gas-cylinder-01",
+          "materialName": "MI_GasCilinder_01_V1"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_ELECTRONICS_0_BASE_DEFAULT_TEXTURE_T_white_map_D.T_white_map_D_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_ELECTRONICS_0_BASE_DEFAULT_TEXTURE_T_white_map_D.T_white_map_D_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "electric-outlet-01",
+          "materialName": "MI_electric_outlet_01"
+        },
+        {
+          "modelId": "tv-01",
+          "materialName": "MI_TV_01"
+        },
+        {
+          "modelId": "tv-remote-01",
+          "materialName": "MI_TV_01_remote"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_ELECTRONICS_0_BASE_DEFAULT_TEXTURE_T_white_map_D.T_white_map_D.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_Props_ELECTRONICS_0_BASE_DEFAULT_TEXTURE_T_white_map_D.T_white_map_D.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pc-case-01-",
+          "materialName": "MI_PC_case_01_fan"
+        },
+        {
+          "modelId": "pc-case-01-",
+          "materialName": "MI_PC_case_01_glass"
+        },
+        {
+          "modelId": "tv-remote-01",
+          "materialName": "MI_TV_01_remote_glass"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_ELECTRONICS_2_ASSETS_PC_PC_case_01_T_PC_case_01_E_color.T_PC_case_01_E_color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_ELECTRONICS_2_ASSETS_PC_PC_case_01_T_PC_case_01_E_color.T_PC_case_01_E_color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pc-case-01-",
+          "materialName": "MI_PC_case_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_ELECTRONICS_2_ASSETS_PC_PC_case_01_T_PC_case_01_mask_D.T_PC_case_01_mask_D.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_Props_ELECTRONICS_2_ASSETS_PC_PC_case_01_T_PC_case_01_mask_D.T_PC_case_01_mask_D.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pc-case-01-",
+          "materialName": "MI_PC_case_01_mask"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_KitchenCombo_Kitchen_VOL2_Textures_Unique_TX_FoodShipment_01a_ALB.TX_FoodShipment_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_KitchenCombo_Kitchen_VOL2_Textures_Unique_TX_FoodShipment_01a_ALB.TX_FoodShipment_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "food-shipment-01a",
+          "materialName": "MI_FoodShipment_01a"
+        },
+        {
+          "modelId": "food-shipment-stack-01a",
+          "materialName": "MI_FoodShipment_01a"
+        },
+        {
+          "modelId": "food-shipping-crate-01a",
+          "materialName": "MI_FoodShipment_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Closet_01a_ALB.TX_Clothes_Closet_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Closet_01a_ALB.TX_Clothes_Closet_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clothes-closet-01a",
+          "materialName": "MI_Clothes_Closet_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Dirty_05a_ALB.TX_Clothes_Dirty_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Dirty_05a_ALB.TX_Clothes_Dirty_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clothes-dirty-05a",
+          "materialName": "MI_Clothes_Dirty_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Exterior_Hanger_01a_ALB.TX_Clothes_Exterior_Hanger_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Exterior_Hanger_01a_ALB.TX_Clothes_Exterior_Hanger_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clothes-exterior-hanger-01a",
+          "materialName": "MI_Clothes_Exterior_Hanger_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Hanging_01a_ALB.TX_Clothes_Hanging_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Hanging_01a_ALB.TX_Clothes_Hanging_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clothes-hanging-01a",
+          "materialName": "MI_Clothes_Hanging_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Pile_01a_ALB.TX_Clothes_Pile_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Clothes_Pile_01a_ALB.TX_Clothes_Pile_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "clothes-pile-01a",
+          "materialName": "MI_Clothes_Piles_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Dryer_01a_ALB.TX_Dryer_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Dryer_01a_ALB.TX_Dryer_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "dryer-01a",
+          "materialName": "MI_Dryer_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Household_Bottles_01a_ALB.TX_Household_Bottles_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Household_Bottles_01a_ALB.TX_Household_Bottles_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "household-bottles-01a",
+          "materialName": "MI_Household_Bottles_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Ironing_Board_01a_ALB.TX_Ironing_Board_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Ironing_Board_01a_ALB.TX_Ironing_Board_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "ironing-board-01a",
+          "materialName": "MI_Ironing_Table_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Laundromat_VOL2_Laundry_Textures_TX_Laundry_Basket_01a_ALB.TX_Laundry_Basket_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Laundromat_VOL2_Laundry_Textures_TX_Laundry_Basket_01a_ALB.TX_Laundry_Basket_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "laundry-basket-01a",
+          "materialName": "MI_Laundry_Basket_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_05a_ALB.TX_Rug_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_05a_ALB.TX_Rug_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rug-05a",
+          "materialName": "MI_Rug_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_NN_04a_ALB.TX_Rug_NN_04a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_NN_04a_ALB.TX_Rug_NN_04a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rug-04a",
+          "materialName": "MI_Rug_04a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_Set_12a_ALB.TX_Rug_Set_12a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rug_Set_12a_ALB.TX_Rug_Set_12a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "rug-set-12a",
+          "materialName": "MI_Rug_Set_12a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03a_ALB.TX_Rugs_03a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03a_ALB.TX_Rugs_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rugs-03a",
+          "materialName": "MI_Rug_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03b_ALB.TX_Rugs_03b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03b_ALB.TX_Rugs_03b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rugs-03b",
+          "materialName": "MI_Rug_03b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03c_ALB.TX_Rugs_03c_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL11_Rugs_Textures_TX_Rugs_03c_ALB.TX_Rugs_03c_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "rugs-03c",
+          "materialName": "MI_Rug_03c"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Book_Set_05a_ALB.TX_Book_Set_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Book_Set_05a_ALB.TX_Book_Set_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "book-set-05a",
+          "materialName": "MI_Bookset_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Bookset_01a_ALB.TX_Bookset_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Bookset_01a_ALB.TX_Bookset_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "book-set-01a",
+          "materialName": "MI_Bookset_01a"
+        },
+        {
+          "modelId": "book-set-01b",
+          "materialName": "MI_Bookset_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Bookset_NN_01a_ALB.TX_Bookset_NN_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Bookset_NN_01a_ALB.TX_Bookset_NN_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "book-set-nn-01a",
+          "materialName": "MI_Bookset_NN_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Candle_Set_02a_ALB.TX_Candle_Set_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Candle_Set_02a_ALB.TX_Candle_Set_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "candle-set-02a",
+          "materialName": "MI_Candle_Set_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_House_Decor_11a_ALB.TX_House_Decor_11a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_House_Decor_11a_ALB.TX_House_Decor_11a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "house-decor-11a",
+          "materialName": "MI_House_Decor_11a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Mounted_Deer_01a_ALB.TX_Mounted_Deer_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Mounted_Deer_01a_ALB.TX_Mounted_Deer_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "mounted-deer-01a",
+          "materialName": "MI_Mounted_Deer_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Mounted_Fish_01a_ALB.TX_Mounted_Fish_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Mounted_Fish_01a_ALB.TX_Mounted_Fish_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mounted-fish-01a",
+          "materialName": "MI_Mounted_Fish_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Palm_Tree_House_01a_ALB.TX_Palm_Tree_House_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Palm_Tree_House_01a_ALB.TX_Palm_Tree_House_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "palm-tree-house-01a",
+          "materialName": "MI_Palm_Tree_House_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Pillow_Set_06a_ALB.TX_Pillow_Set_06a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Pillow_Set_06a_ALB.TX_Pillow_Set_06a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pillow-set-06a",
+          "materialName": "MI_Pillow_Set_06a"
+        },
+        {
+          "modelId": "pillow-set-06b",
+          "materialName": "MI_Pillow_Set_06a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Pillows_01a_ALB.TX_Pillows_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Pillows_01a_ALB.TX_Pillows_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "pillows-03a",
+          "materialName": "MI_Pillows_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Plants_Hanging_01a_ALB.TX_Plants_Hanging_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Plants_Hanging_01a_ALB.TX_Plants_Hanging_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "plants-hanging-01a",
+          "materialName": "MI_Plants_Hanging_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Plants_Plastic_Set_01a_ALB.TX_Plants_Plastic_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Plants_Plastic_Set_01a_ALB.TX_Plants_Plastic_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "plants-plastic-set-01a",
+          "materialName": "MI_Plants_Plastic_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL12_Decor_Textures_TX_Trophy_Set_01a_ALB.TX_Trophy_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL12_Decor_Textures_TX_Trophy_Set_01a_ALB.TX_Trophy_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trophy-set-01a",
+          "materialName": "MI_Trophy_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Containers_01a_ALB.TX_Kitchen_Containers_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Containers_01a_ALB.TX_Kitchen_Containers_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "kitchen-containers-01a",
+          "materialName": "MI_Kitchen_Containers_01a"
+        },
+        {
+          "modelId": "kitchen-containers-01b",
+          "materialName": "MI_Kitchen_Containers_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Set_01a_ALB.TX_Kitchen_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Set_01a_ALB.TX_Kitchen_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "kitchen-set-01a",
+          "materialName": "MI_Kitchen_Set_01a"
+        },
+        {
+          "modelId": "kitchen-set-01b",
+          "materialName": "MI_Kitchen_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Candle_Set_01a_ALB.TX_Candle_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL8_Decor_Textures_TX_Candle_Set_01a_ALB.TX_Candle_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "candle-set-01a",
+          "materialName": "MI_Candle_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Decor_03a_ALB.TX_Decor_03a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL8_Decor_Textures_TX_Decor_03a_ALB.TX_Decor_03a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "home-decor-03a",
+          "materialName": "MI_Decor_03a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Mirror_Set_01a_ALB.TX_Mirror_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL8_Decor_Textures_TX_Mirror_Set_01a_ALB.TX_Mirror_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 163,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "mirror-set-01a",
+          "materialName": "MI_Mirror_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburban_Household_VOL8_Decor_Textures_TX_Vase_Set_01a_ALB.TX_Vase_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburban_Household_VOL8_Decor_Textures_TX_Vase_Set_01a_ALB.TX_Vase_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "vase-set-01a",
+          "materialName": "MI_Vase_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Knick_Knacks_01a_ALB.TX_Knick_Knacks_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Knick_Knacks_01a_ALB.TX_Knick_Knacks_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "retro-knickknacks-01a",
+          "materialName": "MI_Knickknacks_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Knickknacks_05a_ALB.TX_Knickknacks_05a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Knickknacks_05a_ALB.TX_Knickknacks_05a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "knickknacks-05a",
+          "materialName": "MI_Knickknacks_05a"
+        },
+        {
+          "modelId": "retro-knickknacks-05b",
+          "materialName": "MI_Knickknacks_05a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Wind_Chime_Set_01a_ALB.TX_Wind_Chime_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL21_RetroDecor_Textures_TX_Wind_Chime_Set_01a_ALB.TX_Wind_Chime_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "wind-chime-01a",
+          "materialName": "MI_Wind_Chime_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Chinese_Lamp_01a_ALB.TX_Chinese_Lamp_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Chinese_Lamp_01a_ALB.TX_Chinese_Lamp_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "chinese-lamp-01a",
+          "materialName": "MI_Chinese_Lamp_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Chinese_Vases_01a_ALB.TX_Chinese_Vases_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Chinese_Vases_01a_ALB.TX_Chinese_Vases_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "chinese-vases-01a",
+          "materialName": "MI_Chinese_Vases_01a"
+        },
+        {
+          "modelId": "chinese-vases-01b",
+          "materialName": "MI_Chinese_Vases_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Figurine_01a_ALB.TX_Figurine_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Figurine_01a_ALB.TX_Figurine_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "figurine-01a",
+          "materialName": "MI_Figurine_01a"
+        },
+        {
+          "modelId": "figurine-01b",
+          "materialName": "MI_Figurine_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Knick_Knack_84a_ALB.TX_Knick_Knack_84a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Knick_Knack_84a_ALB.TX_Knick_Knack_84a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "knick-knack-84a",
+          "materialName": "MI_Knick_Knacks_84a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Knick_Knacks_31a_ALB.TX_Knick_Knacks_31a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported2\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Knick_Knacks_31a_ALB.TX_Knick_Knacks_31a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 49,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "knick-knacks-31a",
+          "materialName": "MI_Knick_Knacks_31a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Mugs_Decor_01a_ALB.TX_Mugs_Decor_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Mugs_Decor_01a_ALB.TX_Mugs_Decor_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "mugs-decor-01a",
+          "materialName": "MI_Mugs_Decors_01a"
+        },
+        {
+          "modelId": "mugs-decor-01b",
+          "materialName": "MI_Mugs_Decors_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Shelves_01a_ALB.TX_Shelves_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Shelves_01a_ALB.TX_Shelves_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "shelves-01a",
+          "materialName": "MI_Shelves_01a"
+        },
+        {
+          "modelId": "shelves-01a",
+          "materialName": "MI_Shelves_01b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Table_Dining_77a_ALB.TX_Table_Dining_77a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Table_Dining_77a_ALB.TX_Table_Dining_77a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "dining-table-77a",
+          "materialName": "MI_Table_Dining_77a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Vase_Set_66a_ALB.TX_Vase_Set_66a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Vase_Set_66a_ALB.TX_Vase_Set_66a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "vase-set-66a",
+          "materialName": "MI_Vase_Set_66a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Wooden_Statues_01a_ALB.TX_Wooden_Statues_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\_Props_Suburbs_VOL25_KnickKnacks_Textures_TX_Wooden_Statues_01a_ALB.TX_Wooden_Statues_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "wooden-statues-01a",
+          "materialName": "MI_Wooden_Statues_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Survival_Items_Pack_Textures_Objects_T_Lamp_01_BC.T_Lamp_01_BC.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported4\\tex\\_Props_Survival_Items_Pack_Textures_Objects_T_Lamp_01_BC.T_Lamp_01_BC.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "bulb-01",
+          "materialName": "M_Bulb_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Cardboard_01a_ALB.TX_Cardboard_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Cardboard_01a_ALB.TX_Cardboard_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trash-cardboard-01a",
+          "materialName": "MI_Cardboard_Trash_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Coffee_Station_01_ALB.TX_Coffee_Station_01_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Coffee_Station_01_ALB.TX_Coffee_Station_01_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trash-coffee-corner-01a",
+          "materialName": "MI_Coffee_Station_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Debris_Pile_02a_ALB.TX_Debris_Pile_02a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Debris_Pile_02a_ALB.TX_Debris_Pile_02a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trash-debris-pile-02c",
+          "materialName": "MI_Debris_Pile_02a"
+        },
+        {
+          "modelId": "trash-debris-pile-02f",
+          "materialName": "MI_Debris_Pile_02a"
+        },
+        {
+          "modelId": "trash-debris-pile-02i",
+          "materialName": "MI_Debris_Pile_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Debris_Pile_02b_ALB.TX_Debris_Pile_02b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Debris_Pile_02b_ALB.TX_Debris_Pile_02b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "trash-debris-pile-02a",
+          "materialName": "MI_Debris_Pile_02b"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Dumpster_Large_01a_ALB.TX_Dumpster_Large_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Dumpster_Large_01a_ALB.TX_Dumpster_Large_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "dumpster-large-01a",
+          "materialName": "MI_Dumpster_Large_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Dumpster_Large_02b_ALB.TX_Dumpster_Large_02b_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Dumpster_Large_02b_ALB.TX_Dumpster_Large_02b_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "dumpster-large-02a",
+          "materialName": "MI_Dumpster_Large_02a"
+        },
+        {
+          "modelId": "dumpster-large-02c",
+          "materialName": "MI_Dumpster_Large_02a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_Trash_VOL1_Textures_TX_Dumpster_Small_01a_ALB.TX_Dumpster_Small_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_Trash_VOL1_Textures_TX_Dumpster_Small_01a_ALB.TX_Dumpster_Small_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "dumpster-small-01a",
+          "materialName": "MI_Dumpster_Small_01a"
+        },
+        {
+          "modelId": "dumpster-small-01b",
+          "materialName": "MI_Dumpster_Small_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/_Props_VOL15_Attachments_Textures_TX_Building_Addons_12a_ALB.TX_Building_Addons_12a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported6\\tex\\_Props_VOL15_Attachments_Textures_TX_Building_Addons_12a_ALB.TX_Building_Addons_12a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "building-addon-12a",
+          "materialName": "MI_Building_Addons_12a"
+        },
+        {
+          "modelId": "building-addon-12e",
+          "materialName": "MI_Building_Addons_12a"
+        },
+        {
+          "modelId": "building-addon-12q",
+          "materialName": "MI_Building_Addons_12a"
+        }
+      ]
+    },
+    "/models/cine57/tex/AN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Half_Dead_Color_0.T_MI_Green_Grass_Blade_Half_Dead_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\AN_ForestTown_YOS3D_Textures_T_MI_Green_Grass_Blade_Half_Dead_Color_0.T_MI_Green_Grass_Blade_Half_Dead_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_Green_Grass_Blade_Half_Dead"
+        }
+      ]
+    },
+    "/models/cine57/tex/arehouse_Textures_Tileable_MT00027-Plain_Metal_T_MT00027-Plain_Metal_BaseColor.T_MT00027-Plain_Metal_BaseColor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\arehouse_Textures_Tileable_MT00027-Plain_Metal_T_MT00027-Plain_Metal_BaseColor.T_MT00027-Plain_Metal_BaseColor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "drainage-pipe-01",
+          "materialName": "MI_Painted_Metal_Black"
+        },
+        {
+          "modelId": "warehouse-logo-01",
+          "materialName": "MI_Painted_Metal_Gray"
+        },
+        {
+          "modelId": "warehouse-logo-01",
+          "materialName": "MI_Painted_Metal_Orange"
+        }
+      ]
+    },
+    "/models/cine57/tex/EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_0_Color_0.T_MI_Bright_Green_Grass_0_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\EnvVillage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Bright_Green_Grass_0_Color_0.T_MI_Bright_Green_Grass_0_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "grass-bunch-01",
+          "materialName": "MI_Bright_Green_Grass_0"
+        }
+      ]
+    },
+    "/models/cine57/tex/ge_ASIAN_ForestTown_YOS3D_Textures_T_MI_Pink_dotted_Lily_Petal_1_Color_0.T_MI_Pink_dotted_Lily_Petal_1_Color_0_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\ge_ASIAN_ForestTown_YOS3D_Textures_T_MI_Pink_dotted_Lily_Petal_1_Color_0.T_MI_Pink_dotted_Lily_Petal_1_Color_0_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Pink_dotted_Lily_Petal_1"
+        }
+      ]
+    },
+    "/models/cine57/tex/illage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Pink_dotted_Lily_Petal_2_Color.T_MI_Pink_dotted_Lily_Petal_2_Color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\illage_ASIAN_ForestTown_YOS3D_Textures_T_MI_Pink_dotted_Lily_Petal_2_Color.T_MI_Pink_dotted_Lily_Petal_2_Color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-cluster-01",
+          "materialName": "MI_Pink_dotted_Lily_Petal_2"
+        }
+      ]
+    },
+    "/models/cine57/tex/london_Textures_KB3D_LND_AtlasFlowersA_basecolor.KB3D_LND_AtlasFlowersA_basecolor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\london_Textures_KB3D_LND_AtlasFlowersA_basecolor.KB3D_LND_AtlasFlowersA_basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "shrub-a",
+          "materialName": "KB3D_LND_AtlasFlowersA"
+        },
+        {
+          "modelId": "shrub-b",
+          "materialName": "KB3D_LND_AtlasFlowersA"
+        }
+      ]
+    },
+    "/models/cine57/tex/london_Textures_KB3D_LND_AtlasLeafB_basecolor.KB3D_LND_AtlasLeafB_basecolor_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\london_Textures_KB3D_LND_AtlasLeafB_basecolor.KB3D_LND_AtlasLeafB_basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 250,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "shrub-a",
+          "materialName": "KB3D_LND_AtlasLeafB"
+        },
+        {
+          "modelId": "shrub-b",
+          "materialName": "KB3D_LND_AtlasLeafB"
+        }
+      ]
+    },
+    "/models/cine57/tex/nvHouse_Lighting_VOL3_Textures_TX_Light_Outdoor_Industrial_Set_01a_ALB.TX_Light_Outdoor_Industrial_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\nvHouse_Lighting_VOL3_Textures_TX_Light_Outdoor_Industrial_Set_01a_ALB.TX_Light_Outdoor_Industrial_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "light-outdoor-industrial-set-01a",
+          "materialName": "MI_Light_Outdoor_Industrial_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/nvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Stall_Set_01a_ALB.TX_Bathroom_Stall_Set_01a_ALB_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\nvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Bathroom_Stall_Set_01a_ALB.TX_Bathroom_Stall_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "bathroom-stall-set-01a",
+          "materialName": "MI_Bathroom_Stall_Set_01a"
+        },
+        {
+          "modelId": "bathroom-stall-set-01b",
+          "materialName": "MI_Bathroom_Stall_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/ops_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Additions_Set_01a_ALB.TX_Kitchen_Additions_Set_01a_ALB_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\ops_Suburban_Household_VOL7_Kitchen_Textures_TX_Kitchen_Additions_Set_01a_ALB.TX_Kitchen_Additions_Set_01a_ALB_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "kitchen-additions-set-01a",
+          "materialName": "MI_Kitchen_Additions_Set_01a"
+        },
+        {
+          "modelId": "kitchen-additions-set-01b",
+          "materialName": "MI_Kitchen_Additions_Set_01a"
+        }
+      ]
+    },
+    "/models/cine57/tex/Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_bc.t_Flower_01_01_bc_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\Paris_Environment_Restaurant_Flower_01_t_Flower_01_01_bc.t_Flower_01_01_bc_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 254,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "flower-01-01",
+          "materialName": "mi_Flower_01_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/Textures_Tileable_MT00086-Concrete_Floor_T_MT00086-Concrete_Floor_basecolor.T_MT00086-Concrete_Floor_basecolor_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported5\\tex\\Textures_Tileable_MT00086-Concrete_Floor_T_MT00086-Concrete_Floor_basecolor.T_MT00086-Concrete_Floor_basecolor_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "concrete-stairs-01",
+          "materialName": "MI_Concrete_Rough"
+        }
+      ]
+    },
+    "/models/cine57/tex/TIONER_CASSETTE_AIR_CONDITIONER_01_T_cassette_air_conditioner_01_E_color.T_cassette_air_conditioner_01_E_color_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\TIONER_CASSETTE_AIR_CONDITIONER_01_T_cassette_air_conditioner_01_E_color.T_cassette_air_conditioner_01_E_color_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "cassette-aircon-01",
+          "materialName": "MI_casstte_air_conditioner_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/Venice_Environment_Orange_01_t_Orange_01_01_bc.t_Orange_01_01_bc_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\Venice_Environment_Orange_01_t_Orange_01_01_bc.t_Orange_01_01_bc_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "orange-tree-01-01",
+          "materialName": "mi_Orange_01_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/Venice_Environment_OrangeTree_01_t_OrangeTree_01_01_bc.t_OrangeTree_01_01_bc_baseColor.jpg": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\Venice_Environment_OrangeTree_01_t_OrangeTree_01_01_bc.t_OrangeTree_01_01_bc_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 255,
+      "preserveAlpha": false,
+      "outputFormat": "jpg",
+      "references": [
+        {
+          "modelId": "orange-tree-01-01",
+          "materialName": "mi_OrangeTree_01_01"
+        },
+        {
+          "modelId": "orange-tree-01-02",
+          "materialName": "mi_OrangeTree_01_01"
+        }
+      ]
+    },
+    "/models/cine57/tex/Venice_Environment_OrangeTree_01_t_OrangeTree_02_01_bc.t_OrangeTree_02_01_bc_baseColor.png": {
+      "sourcePath": "D:\\UnrealWorkspace\\Cine57-exported3\\tex\\Venice_Environment_OrangeTree_01_t_OrangeTree_02_01_bc.t_OrangeTree_02_01_bc_baseColor.png",
+      "sourceStatus": "probed",
+      "pixelFormat": "rgba",
+      "alphaMinimum": 0,
+      "preserveAlpha": true,
+      "outputFormat": "png",
+      "references": [
+        {
+          "modelId": "orange-tree-01-01",
+          "materialName": "mi_OrangeTree_02_01"
+        },
+        {
+          "modelId": "orange-tree-01-02",
+          "materialName": "mi_OrangeTree_02_01"
+        }
+      ]
+    }
+  }
+}
