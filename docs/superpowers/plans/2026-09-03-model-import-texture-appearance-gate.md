@@ -16,11 +16,11 @@
 - Modify: `scripts/models/model-library-import-admission.test.mjs`
 - Modify: `scripts/models/model-library-quality.test.mjs`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Add an inspection fixture with a `1×1` embedded Base Color texture and an entry whose only material declaration is the neutral fallback tint. Assert that `evaluateModelCandidate()` returns `failureStage: "texture"` and `reasonCode: "missing-base-color-texture"`. Add a second assertion with the same GLB evidence and a matching catalog `baseColor` path; it must not fail for the new reason.
 
-- [ ] **Step 2: Run the focused test and verify the failure is real**
+- [x] **Step 2: Run the focused test and verify the failure is real**
 
 Run:
 
@@ -30,7 +30,7 @@ pnpm exec node --experimental-strip-types --test scripts/models/model-library-im
 
 Expected before implementation: the new missing-color assertion fails because the current admission result is accepted.
 
-- [ ] **Step 3: Add a regression assertion for the real asset shape**
+- [x] **Step 3: Add a regression assertion for the real asset shape**
 
 Use `inspectGlb(fs.readFileSync(...))` on `SM_Axe_Black_01.glb` and assert that its `MI_Axe_Black_01` Base Color evidence is embedded `1×1`; this anchors the test to the observed import failure rather than only a synthetic fixture.
 
@@ -38,14 +38,14 @@ Use `inspectGlb(fs.readFileSync(...))` on `SM_Axe_Black_01.glb` and assert that 
 
 **Files:**
 - Modify: `scripts/models/modelLibraryImportAdmission.mjs`
-- Modify: `scripts/models/modelLibraryQuality.mjs`
 - Modify: `scripts/models/model-library-quality.test.mjs`
+- Modify: `scripts/models/model-library-import-workflow.test.mjs`
 
-- [ ] **Step 1: Implement normalized material matching**
+- [x] **Step 1: Implement normalized material matching**
 
 Add a local material-name normalizer matching the client runtime (`lowercase` and remove non-alphanumeric characters). For every inspected material with an embedded Base Color whose dimensions are `1×1` or unreadable, find the matching catalog material and require a non-empty `baseColor` path.
 
-- [ ] **Step 2: Return a stable admission failure**
+- [x] **Step 2: Return a stable admission failure**
 
 When no matching real `baseColor` exists, return:
 
@@ -55,7 +55,7 @@ When no matching real `baseColor` exists, return:
 
 Run the focused admission and quality tests. Expected: the new test passes, while existing entries with valid external Base Color bindings remain accepted by this check.
 
-- [ ] **Step 3: Verify the published catalog cannot retain a bad placeholder asset**
+- [x] **Step 3: Verify the published catalog cannot retain a bad placeholder asset**
 
 Run `pnpm check:model-library` before curating the current list and confirm it reports the new `missing-base-color-texture` failure for the known bad entries. This proves the quality gate observes the same root cause as the focused test.
 
@@ -70,11 +70,11 @@ Run `pnpm check:model-library` before curating the current list and confirm it r
 - Regenerate: `scripts/models/model-library-visual-review.json`
 - Modify: `scripts/models/model-library-import-audit.json`
 
-- [ ] **Step 1: Add the 17 explicit texture rejections**
+- [x] **Step 1: Add the 17 explicit texture rejections**
 
 Record the IDs listed in the design document with `reasonCode: "missing-base-color-texture"`, `failureStage: "texture"`, and evidence `model-texture-audit-2026-09-03`. Keep the entries asset-specific; do not add a broad axe/flag keyword rule.
 
-- [ ] **Step 2: Regenerate the catalog and prune stale evidence**
+- [x] **Step 2: Regenerate the catalog and prune stale evidence**
 
 Run:
 
@@ -84,9 +84,9 @@ pnpm exec node --experimental-strip-types scripts/models/curate-cine57-library.m
 
 Expected: the static catalog decreases from 462 to 445; the role entry remains independent; source GLBs remain on disk and the removed IDs disappear from usage and preview/visual evidence.
 
-- [ ] **Step 3: Rebuild the durable history with explicit source manifests**
+- [x] **Step 3: Rebuild the durable history with explicit source manifests**
 
-Run the history generator with `_manifest_batch3.jsonl`, `_manifest_model_expansion.jsonl`, `_manifest_batch5.jsonl`, `_manifest_batch6.jsonl`, and `_manifest_batch6b.jsonl`. Expected: 484 records remain, with 445 approved and 39 rejected records; the 17 affected records append a rejected texture event instead of being silently overwritten.
+Run the history generator with `Cine57-exported2/_manifest.json`, `_manifest_batch3.jsonl`, `_manifest_model_expansion.jsonl`, `_manifest_batch5.jsonl`, `_manifest_batch6.jsonl`, and `_manifest_batch6b.jsonl`. Expected: 484 records remain, with 445 approved and 39 rejected records; the 17 affected records append a rejected texture event instead of being silently overwritten.
 
 ### Task 4: Update durable documentation and release-facing notes
 
@@ -97,11 +97,11 @@ Run the history generator with `_manifest_batch3.jsonl`, `_manifest_model_expans
 - Modify: `README.md`
 - Modify: `.agents/skills/unreal-import/SKILL.md`
 
-- [ ] **Step 1: Document the root cause and diagnosis path**
+- [x] **Step 1: Document the root cause and diagnosis path**
 
 Record the distinction between a loadable GLB, an embedded `1×1` placeholder, a real catalog Base Color binding, and a visually accepted preview. Include the stable error code and the source-manifest evidence path.
 
-- [ ] **Step 2: Document the publish rule**
+- [x] **Step 2: Document the publish rule**
 
 State that a candidate with missing color evidence cannot enter the formal catalog and that the converter remains a staging tool. Add the user-visible catalog count and rejection behavior to release-facing notes without changing historical entries.
 
@@ -110,14 +110,14 @@ State that a candidate with missing color evidence cannot enter the formal catal
 **Files:**
 - No additional source files.
 
-- [ ] **Step 1: Run the focused and full checks**
+- [x] **Step 1: Run the focused and full checks**
 
 Run `pnpm test:model-library`, `pnpm check:model-library`, `pnpm typecheck`, `pnpm check:docs-manifest`, and `git diff --check`. Expected: all pass; quality gate reports 446 total entries (445 static + 1 role).
 
-- [ ] **Step 2: Run built-in browser smoke on the worktree lane**
+- [x] **Step 2: Run built-in browser smoke on the worktree lane**
 
 Use the worktree API/client ports from `server/.env`. Visit `/models`, a representative valid detail page, search for `斧头` and `旗帜`, and try `/models/axe-01` and `/models/asian-flag-01`. Expected: list and valid detail load without console/network errors; rejected routes return to the catalog and no rejected card is displayed.
 
-- [ ] **Step 3: Self-accept, sign, integrate and push**
+- [x] **Step 3: Self-accept, sign, integrate and push**
 
 Review the diff against the design, stage only this unit, run `git commit -s`, then use `pnpm workflow:integrate codex/model-import-texture-appearance-gate --push --verify "pnpm test:model-library"`. Verify clean `main`, `HEAD == origin/main`, and remove only this merged worktree and branch.

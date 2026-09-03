@@ -1295,20 +1295,17 @@
       "packagePath": "/Game/_EnvCity/PostSovietWorld/Meshes/SM_CagedLamp",
       "meshName": "SM_CagedLamp",
       "sourceFingerprint": "332fa35ac3fcbeef299b6e05f57b69874879da4358e8b9d4828fda9eced58c1c",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/soviet-caged-lamp-01.jpg",
-        "previewSha256": "21b2f88d81076df3fe776984cb8aad7663ac21073acc1a400403b4e60cde3654",
-        "assetSha256": "2d3209eccbab7d73e89525c1de677cdf3b8cfbeb243ba2d62fafe100568b3c7a",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch6.jsonl",
         "catalogId": "soviet-caged-lamp-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -1321,6 +1318,19 @@
             "previewPath": "artifacts/model-preview-audit/soviet-caged-lamp-01.jpg",
             "previewSha256": "21b2f88d81076df3fe776984cb8aad7663ac21073acc1a400403b4e60cde3654",
             "assetSha256": "2d3209eccbab7d73e89525c1de677cdf3b8cfbeb243ba2d62fafe100568b3c7a",
+            "sourceManifest": "_manifest_batch6.jsonl",
+            "catalogId": "soviet-caged-lamp-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "332fa35ac3fcbeef299b6e05f57b69874879da4358e8b9d4828fda9eced58c1c",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch6.jsonl",
             "catalogId": "soviet-caged-lamp-01"
           },
@@ -12527,20 +12537,17 @@
       "packagePath": "/Game/_EnvHouse/WillsRoom/Meshes/SM_BaseballBat_Metal",
       "meshName": "SM_BaseballBat_Metal",
       "sourceFingerprint": "662c10fb089247e90bd34a81fb138a31bcf7dd8d8f793e5566c0f9ad953aba98",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/baseball-bat-metal.jpg",
-        "previewSha256": "1acfe92b5440487c7b1b3e88371407b4c1a083fd00c35955bdf6d4434b33730b",
-        "assetSha256": "773d0349b846e475a444a9cad1a011c225db438b21aad9497de1400855a32a51",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "baseball-bat-metal"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -12557,6 +12564,19 @@
             "catalogId": "baseball-bat-metal"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "662c10fb089247e90bd34a81fb138a31bcf7dd8d8f793e5566c0f9ad953aba98",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "baseball-bat-metal"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -12565,20 +12585,17 @@
       "packagePath": "/Game/_EnvHouse/WillsRoom/Meshes/SM_BaseballBat_Wood",
       "meshName": "SM_BaseballBat_Wood",
       "sourceFingerprint": "b22b1ff7e9c5832ea91865884cad5234aa28056492e0f49792514b8f53993ee6",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/baseball-bat-wood.jpg",
-        "previewSha256": "f592501e4c4f49cc81629772f91ac88e85a376599701d611e4c02398d6f4d5d4",
-        "assetSha256": "911b1a578e463d2b4078abc662fd928189a29a240b288d50a4fe7df136f469eb",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "baseball-bat-wood"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -12591,6 +12608,19 @@
             "previewPath": "artifacts/model-preview-audit/baseball-bat-wood.jpg",
             "previewSha256": "f592501e4c4f49cc81629772f91ac88e85a376599701d611e4c02398d6f4d5d4",
             "assetSha256": "911b1a578e463d2b4078abc662fd928189a29a240b288d50a4fe7df136f469eb",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "baseball-bat-wood"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "b22b1ff7e9c5832ea91865884cad5234aa28056492e0f49792514b8f53993ee6",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch3.jsonl",
             "catalogId": "baseball-bat-wood"
           },
@@ -12641,20 +12671,17 @@
       "packagePath": "/Game/_EnvHouse/WillsRoom/Meshes/SM_BasketBallHoop",
       "meshName": "SM_BasketBallHoop",
       "sourceFingerprint": "fe15b4e6afbb253aab19f592b1ecb743a9d5d5fb5c9fc573346c0b243102e423",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/basketball-hoop.jpg",
-        "previewSha256": "d3956310941e3a71fc3579fa19797132d71d2554c8a924f92f4078646d3b845b",
-        "assetSha256": "a7d92b8ea00fb3800990a48130d226b9a786a71079e6abd719f4e5d5812e4347",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "basketball-hoop"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -12671,6 +12698,19 @@
             "catalogId": "basketball-hoop"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "fe15b4e6afbb253aab19f592b1ecb743a9d5d5fb5c9fc573346c0b243102e423",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "basketball-hoop"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -12679,20 +12719,17 @@
       "packagePath": "/Game/_EnvHouse/WillsRoom/Meshes/SM_Bin",
       "meshName": "SM_Bin",
       "sourceFingerprint": "58da5479b9b3c64abe11e9b25fecbcc6b47b5c58dce8636eb6189904e375e232",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/bin.jpg",
-        "previewSha256": "2af4b14b6cce2084e1518400465241d3564ba73bd086fed39e23f5ef237dc8e5",
-        "assetSha256": "0ffec90cc9ae3f985f8aa516dcf520482e3fe07f3cefdc47082a824103bbcd5f",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "bin"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -12709,6 +12746,19 @@
             "catalogId": "bin"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "58da5479b9b3c64abe11e9b25fecbcc6b47b5c58dce8636eb6189904e375e232",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "bin"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -12717,20 +12767,17 @@
       "packagePath": "/Game/_EnvHouse/WillsRoom/Meshes/SM_Book",
       "meshName": "SM_Book",
       "sourceFingerprint": "d1bbaf45f8b3765eb88f63f0bf504a02c6c55bb48fa6b96e1855ffae01a1af3b",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/book-single.jpg",
-        "previewSha256": "12f50bcbff5750e3767777da809ea173acfdef45f1180e17411f14b598bf0a25",
-        "assetSha256": "d1dcea44c90d4c377f0c74e56af7495e5634face96f91d5e659fbb9d2803c2d9",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "book-single"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -12743,6 +12790,19 @@
             "previewPath": "artifacts/model-preview-audit/book-single.jpg",
             "previewSha256": "12f50bcbff5750e3767777da809ea173acfdef45f1180e17411f14b598bf0a25",
             "assetSha256": "d1dcea44c90d4c377f0c74e56af7495e5634face96f91d5e659fbb9d2803c2d9",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "book-single"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "d1bbaf45f8b3765eb88f63f0bf504a02c6c55bb48fa6b96e1855ffae01a1af3b",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch3.jsonl",
             "catalogId": "book-single"
           },
@@ -13345,20 +13405,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_ForestTown_YOS3D/StaticMesh/SM_Bread_01",
       "meshName": "SM_Bread_01",
       "sourceFingerprint": "c30cd3ed83bd92815e511d1c38dc982c3e968a551eb599aafa402b0d669d08eb",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/asian-bread-01.jpg",
-        "previewSha256": "41088083114c280e17eeae02b7519b071b6cd117ea3fd0521bd202e335304f5b",
-        "assetSha256": "43d8bd0cea23081ada37d732ca645bd2fa3390aa67a1466b4a6f3dcbacb9ce71",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "asian-bread-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13371,6 +13428,19 @@
             "previewPath": "artifacts/model-preview-audit/asian-bread-01.jpg",
             "previewSha256": "41088083114c280e17eeae02b7519b071b6cd117ea3fd0521bd202e335304f5b",
             "assetSha256": "43d8bd0cea23081ada37d732ca645bd2fa3390aa67a1466b4a6f3dcbacb9ce71",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "asian-bread-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "c30cd3ed83bd92815e511d1c38dc982c3e968a551eb599aafa402b0d669d08eb",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch5.jsonl",
             "catalogId": "asian-bread-01"
           },
@@ -13415,20 +13485,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_ForestTown_YOS3D/StaticMesh/SM_Flag3",
       "meshName": "SM_Flag3",
       "sourceFingerprint": "b15495a3ff434aca5a3cab760f0ba67bb0858b5384505c47afc96bc6cec044fb",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/asian-flag-01.jpg",
-        "previewSha256": "894426fae561ba082d4e29044852c53fe2cd08ba32f4265aa5915bad7fcb2787",
-        "assetSha256": "bad56da8de82236a0d34e581afa61a8e6c7691dd319ef422408664567fbebc12",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "asian-flag-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13441,6 +13508,19 @@
             "previewPath": "artifacts/model-preview-audit/asian-flag-01.jpg",
             "previewSha256": "894426fae561ba082d4e29044852c53fe2cd08ba32f4265aa5915bad7fcb2787",
             "assetSha256": "bad56da8de82236a0d34e581afa61a8e6c7691dd319ef422408664567fbebc12",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "asian-flag-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "b15495a3ff434aca5a3cab760f0ba67bb0858b5384505c47afc96bc6cec044fb",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch5.jsonl",
             "catalogId": "asian-flag-01"
           },
@@ -13491,20 +13571,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_Village/StaticMeshes/SM_Acc2Group_bag1",
       "meshName": "SM_Acc2Group_bag1",
       "sourceFingerprint": "9e9feaeeb84f768d09a5e62302c4dddc80f735d8885d2eccff0282dc9a40649a",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/asian-sack-01a.jpg",
-        "previewSha256": "7c8123e175e2ea9176119fce40865c7ff185aaf78da2bc94cb62f0959e3697f6",
-        "assetSha256": "cdf55c4275f23037f7977753e37516c67caaaaa6dd082704e5513505c636dbe0",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "asian-sack-01a"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13521,6 +13598,19 @@
             "catalogId": "asian-sack-01a"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "9e9feaeeb84f768d09a5e62302c4dddc80f735d8885d2eccff0282dc9a40649a",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "asian-sack-01a"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -13529,20 +13619,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_Village/StaticMeshes/SM_Acc2Group_bag3",
       "meshName": "SM_Acc2Group_bag3",
       "sourceFingerprint": "e5599760045e6fdec02ea4e4115b3cf8cac9f9030264a60b99d1166fab942292",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/asian-sack-01b.jpg",
-        "previewSha256": "9e91db9997fb199531d825932d7c5e9f3bd0e7c833760fb27ad8936be8801b48",
-        "assetSha256": "f25207b0d75ef8766af82cc61ae860a664118562c7fdb7ae2754d1d1e8b04396",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "asian-sack-01b"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13559,6 +13646,19 @@
             "catalogId": "asian-sack-01b"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "e5599760045e6fdec02ea4e4115b3cf8cac9f9030264a60b99d1166fab942292",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "asian-sack-01b"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -13567,20 +13667,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_Village/StaticMeshes/SM_Acc2Group_pueblos_pottery1",
       "meshName": "SM_Acc2Group_pueblos_pottery1",
       "sourceFingerprint": "ce835181d4b0c77ff275abd935b2e53b739a55d76d016874d177fd929751352c",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/asian-pottery-01.jpg",
-        "previewSha256": "8a0452fb8614dd02118a873430bd76532259b9944999d08c32676c495b5f91bd",
-        "assetSha256": "dd5837cb4ee2435aeaaa497147ff0e90362a261bf76a030a5bcb3f43979316c6",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "asian-pottery-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13597,6 +13694,19 @@
             "catalogId": "asian-pottery-01"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "ce835181d4b0c77ff275abd935b2e53b739a55d76d016874d177fd929751352c",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "asian-pottery-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -13605,20 +13715,17 @@
       "packagePath": "/Game/_EnvVillage/ASIAN_Village/StaticMeshes/SM_Boat_Wooden_Canoe_with_Paddle",
       "meshName": "SM_Boat_Wooden_Canoe_with_Paddle",
       "sourceFingerprint": "639a327f00fd9e275971f0c4185c5c902297ee0d43188bfb78955b19a23c2b81",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/wooden-canoe-01.jpg",
-        "previewSha256": "744a039832e1bac91d3ff3ec490c145487627ba0b813c06f719a6881262a9d4b",
-        "assetSha256": "aa6b7913a41679857273b1ce3b66a4021a2bb348def7546854f8c34ce7498092",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch5.jsonl",
         "catalogId": "wooden-canoe-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -13631,6 +13738,19 @@
             "previewPath": "artifacts/model-preview-audit/wooden-canoe-01.jpg",
             "previewSha256": "744a039832e1bac91d3ff3ec490c145487627ba0b813c06f719a6881262a9d4b",
             "assetSha256": "aa6b7913a41679857273b1ce3b66a4021a2bb348def7546854f8c34ce7498092",
+            "sourceManifest": "_manifest_batch5.jsonl",
+            "catalogId": "wooden-canoe-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "639a327f00fd9e275971f0c4185c5c902297ee0d43188bfb78955b19a23c2b81",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch5.jsonl",
             "catalogId": "wooden-canoe-01"
           },
@@ -17285,20 +17405,17 @@
       "packagePath": "/Game/_Props/Survival_Items_Pack/Meshes/Objects/SM_Axe_Black_01",
       "meshName": "SM_Axe_Black_01",
       "sourceFingerprint": "c3899339354b38d30e0ef2fb5d48b3b9a3705ab81b609451389a17aa770e3c20",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/axe-01.jpg",
-        "previewSha256": "b096d25bbdd3ac9eb48ceb2d9f4fa3a3a0ee0cd6a44c995cdf26fb38eec3b5fe",
-        "assetSha256": "40938e7781e299847c899f653d5914644ab82e19d4c6b2009d135129e1158c01",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "axe-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -17311,6 +17428,19 @@
             "previewPath": "artifacts/model-preview-audit/axe-01.jpg",
             "previewSha256": "b096d25bbdd3ac9eb48ceb2d9f4fa3a3a0ee0cd6a44c995cdf26fb38eec3b5fe",
             "assetSha256": "40938e7781e299847c899f653d5914644ab82e19d4c6b2009d135129e1158c01",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "axe-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "c3899339354b38d30e0ef2fb5d48b3b9a3705ab81b609451389a17aa770e3c20",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch3.jsonl",
             "catalogId": "axe-01"
           },
@@ -17355,20 +17485,17 @@
       "packagePath": "/Game/_Props/Survival_Items_Pack/Meshes/Objects/SM_Binocular_01",
       "meshName": "SM_Binocular_01",
       "sourceFingerprint": "05075795c19484b2f0e406affcc9ca46ef0b09bd5f001314c12638740c427862",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/binocular-01.jpg",
-        "previewSha256": "27527b112fe372b4567e26509a4cb73fee1e876c3566bc4a7acaffbddfc6b83b",
-        "assetSha256": "6fb99575e33cb01d4692e34040c66c23dd0776fa390ecb44d84efe09e3846780",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "binocular-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -17385,6 +17512,19 @@
             "catalogId": "binocular-01"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "05075795c19484b2f0e406affcc9ca46ef0b09bd5f001314c12638740c427862",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "binocular-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -17393,20 +17533,17 @@
       "packagePath": "/Game/_Props/Survival_Items_Pack/Meshes/Objects/SM_Board_01",
       "meshName": "SM_Board_01",
       "sourceFingerprint": "7d4dad79bf39dbe27a4d130e9e764129982908d49ec90b98113c351c63ea11b4",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/wooden-board-01.jpg",
-        "previewSha256": "543bcd6dead5603cd7292a3578d98297d4469f49b6bb1682a7ccc784ae456ff2",
-        "assetSha256": "8fdc695138d497d551a2b7b9604118bff1e725876964c5513257f09602d60783",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "wooden-board-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -17423,6 +17560,19 @@
             "catalogId": "wooden-board-01"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "7d4dad79bf39dbe27a4d130e9e764129982908d49ec90b98113c351c63ea11b4",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "wooden-board-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -17431,20 +17581,17 @@
       "packagePath": "/Game/_Props/Survival_Items_Pack/Meshes/Objects/SM_Bottle_01",
       "meshName": "SM_Bottle_01",
       "sourceFingerprint": "5c88cca824ed8810040935615306e7ef04e8f6a1a3667b2729d16cc377f135c6",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/bottle-01.jpg",
-        "previewSha256": "8fa2b9fa269f53476dac54ca6506401efeaec05a14ae5fca9b64921d5ac95ead",
-        "assetSha256": "2abce1a63de86004b70fcb2330ce1b634c34e9413e745037f48a464f2e043afa",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "bottle-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -17461,6 +17608,19 @@
             "catalogId": "bottle-01"
           },
           "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "5c88cca824ed8810040935615306e7ef04e8f6a1a3667b2729d16cc377f135c6",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "bottle-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
         }
       ]
     },
@@ -17469,20 +17629,17 @@
       "packagePath": "/Game/_Props/Survival_Items_Pack/Meshes/Objects/SM_Bucket_01",
       "meshName": "SM_Bucket_01",
       "sourceFingerprint": "b0f55617506c952594ed4b8aec4dc0567b909ce6f7f4613e7336acb09434ede5",
-      "status": "approved",
-      "failureStage": null,
-      "reasonCode": null,
-      "summary": "已通过几何尺寸、材质、方形详情预览与视觉审核门禁",
+      "status": "rejected",
+      "failureStage": "texture",
+      "reasonCode": "missing-base-color-texture",
+      "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
       "evidence": {
-        "visualReview": "model-preview-audit-2026-09-02",
-        "previewPath": "artifacts/model-preview-audit/bucket-01.jpg",
-        "previewSha256": "33a11e9bb6908ed22af9be98e0b17599385758d1eb7b94196a5a3c8ed4536452",
-        "assetSha256": "6ffef083e361ca8620adc2dc0d7d8765863f26af2ff873db290e05fa99b0ca7c",
+        "review": "model-texture-audit-2026-09-03",
         "sourceManifest": "_manifest_batch3.jsonl",
         "catalogId": "bucket-01"
       },
       "reviewedAt": "2026-09-03T00:00:00.000Z",
-      "skipUntilSourceChange": false,
+      "skipUntilSourceChange": true,
       "events": [
         {
           "status": "approved",
@@ -17495,6 +17652,19 @@
             "previewPath": "artifacts/model-preview-audit/bucket-01.jpg",
             "previewSha256": "33a11e9bb6908ed22af9be98e0b17599385758d1eb7b94196a5a3c8ed4536452",
             "assetSha256": "6ffef083e361ca8620adc2dc0d7d8765863f26af2ff873db290e05fa99b0ca7c",
+            "sourceManifest": "_manifest_batch3.jsonl",
+            "catalogId": "bucket-01"
+          },
+          "reviewedAt": "2026-09-03T00:00:00.000Z"
+        },
+        {
+          "status": "rejected",
+          "sourceFingerprint": "b0f55617506c952594ed4b8aec4dc0567b909ce6f7f4613e7336acb09434ede5",
+          "failureStage": "texture",
+          "reasonCode": "missing-base-color-texture",
+          "summary": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+          "evidence": {
+            "review": "model-texture-audit-2026-09-03",
             "sourceManifest": "_manifest_batch3.jsonl",
             "catalogId": "bucket-01"
           },

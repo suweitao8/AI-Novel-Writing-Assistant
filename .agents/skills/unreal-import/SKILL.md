@@ -65,6 +65,8 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 每个暂存候选在发布前都要打开当前 worktree 的 `/models/<id>` 详情页生成方形截图，检查几何、贴图、资源指纹、请求和控制台记录，再用 `scripts/models/modelLibraryImportWorkflow.mjs --check-staged --report <path> --artifacts-root <path>` 验证；缺截图、截图非方形、哈希过期、贴图错误、请求失败或控制台错误都会阻止发布。历史性的 `%TEMP%\fbx2gltf-test\build-library-v3.cjs` 只作为转换器，不得再作为未经门禁的正式目录发布入口。完整历史与故障诊断见 `docs/wiki/debugging/model-import-admission-history.md`。
 
+发布前还必须检查 GLB 材质的颜色来源：`inspectGlb()` 暴露的内嵌 `1×1` Base Color 只视为 FBX2GLTF 占位图。若同名目录材质没有非空 `baseColor` 绑定，统一准入返回 `texture/missing-base-color-texture`，候选不得进入正式目录；有目录回填时仍要通过贴图文件、alpha 审计和详情预览门禁。导入构建器不能用 `tint` 绕过该规则。
+
 自然模型和任何带透明材质的新资产还必须完成真实详情页预览：复核记录使用 `model-preview-audit-YYYY-MM-DD` 证据，并绑定 `/models/<id>` 预览路径、发布 GLB/贴图 SHA-256、渲染器版本、渲染日期和贴图状态。资源或贴图任一字节变化都会使旧哈希失效；先生成并检查预览，再把候选写入发布目录。被拒候选放到外部隔离目录，不能留在 `client/public/models/cine57/` 等待页面过滤。
 
 ### 模型硬规则（每条都对应一次返工教训）
@@ -75,6 +77,7 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 4. **贴图桶与编码质量**：baseColor ≤2048 JPEG，normal/RMA ≤1024 JPEG；FFmpeg 的 `-q:v` 是 JPEG 量化值而不是百分比，统一使用 `-q:v 2`（数值越小质量越高），禁止使用会造成明显马赛克的高量化值。源 PNG 有真实镂空 alpha（YMIN < 254）才保留 PNG。alpha 判断同时读取 `ffprobe` 的像素格式和 FFmpeg 的 `YMIN=...` / `YMIN:...` 输出，必须匹配 `lavfi.signalstats.YMIN` 这类带前缀的日志；声明了 alpha 但统计缺失时保守保留 PNG，绝不能静默转成 JPG。最终 GLB 为 `BLEND`/`MASK` 的材质必须在目录中绑定 `opacity` 贴图或小于 0.98 的 `opacityValue`，并由 `modelLibraryTextureAudit.mjs` 复核。 本机新版 ffmpeg 单图输出必须加 `-update 1` 且放在输出文件名之前；已有输出需要重建时显式设置 `CINE57_REBUILD_TEXTURES=1`，日常增量构建默认跳过已有文件。
 5. **`unitScale` 保持 1**：Cine57 几何单位是米（拿 POSITION accessor min/max 实测确认，别猜）。单件源资产超 12MB 不入库。
 6. **`modelLibrary.ts` 是构建产物，勿手改**；条目的 `materials` 映射按「UE 材质资产名 → 贴图/标量」由构建脚本再生。
+7. **内嵌 1×1 Base Color 不是可用颜色**；没有真实目录 Base Color 回填的候选必须记录为 `missing-base-color-texture` 并拒绝，不能因为 GLB 能加载或页面截图成功就发布灰模。
 
 ## 动画管线（离线重定向）
 
