@@ -296,6 +296,8 @@ export const MODEL_USAGE_INSTRUCTIONS: Readonly<Record<string, ModelUsageInstruc
   "ironing-board-01a": GROUND_UPRIGHT,
   baseballbat: HORIZONTAL_SURFACE_DIRECTIONAL,
   "flagpole-01a": GROUND_UPRIGHT,
+  "ue5-manny": GROUND_UPRIGHT,
+  "ue5-quinn": GROUND_UPRIGHT,
   "ual2-college-student": GROUND_UPRIGHT,
   "cue-rack-1a": GROUND_UPRIGHT,
   "food-shipment-stack-01a": GROUND_UPRIGHT,

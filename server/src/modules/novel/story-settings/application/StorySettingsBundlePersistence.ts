@@ -65,6 +65,8 @@ export async function persistStorySettingsCategories(
           name: character.name,
           role: character.role,
           gender: character.gender ?? "unknown",
+          actorKind: character.actorKind ?? "human",
+          bodyBuild: character.bodyBuild ?? "unknown",
           ageGroup: character.ageGroup ?? null,
           physique: character.physique ?? null,
           attireStyle: character.attireStyle ?? null,

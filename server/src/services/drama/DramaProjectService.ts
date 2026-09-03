@@ -182,6 +182,9 @@ export class DramaProjectService {
             where: { id: previous.id },
             data: {
               name: character.name,
+              gender: character.gender ?? "unknown",
+              actorKind: character.actorKind ?? "human",
+              bodyBuild: character.bodyBuild ?? "unknown",
               persona: character.persona ?? null,
               relations: character.relations ?? null,
               visualAnchor: character.visualHint
@@ -197,6 +200,9 @@ export class DramaProjectService {
           data: {
             projectId,
             name: character.name,
+            gender: character.gender ?? "unknown",
+            actorKind: character.actorKind ?? "human",
+            bodyBuild: character.bodyBuild ?? "unknown",
             persona: character.persona ?? null,
             relations: character.relations ?? null,
             visualAnchor: character.visualHint

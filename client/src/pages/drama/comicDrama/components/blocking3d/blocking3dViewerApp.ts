@@ -1,5 +1,10 @@
 import * as pc from "playcanvas";
 import type {
+  CharacterModelProfileId,
+  CharacterModelProfileInput,
+  CharacterModelProfileOverride,
+} from "@ai-novel/shared/types/characterModelProfile";
+import type {
   StoryScene3DForegroundModel,
   StoryScene3DMarker,
 } from "@ai-novel/shared/types/comicDrama";
@@ -67,7 +72,7 @@ import {
   type Blocking3dTransformTool,
 } from "./blocking3dTransformGizmo";
 import {
-  ACTOR_PROXY_URL,
+  ACTOR_PROXY_URLS,
   BLOCKING_SKETCH_CAPTURE_SIZE,
   clamp,
   colorForIndex,
@@ -82,6 +87,7 @@ import {
   normalizeActorColor,
   normalizeCamera,
   normalizeEnvironmentSettings,
+  resolveBlocking3dModelProfile,
   SELECTION_OUTLINE_COLOR,
   setAnimationPose,
   setEntityMaterial,
@@ -142,6 +148,7 @@ export interface Blocking3dViewer {
     index: number,
     heightMeters?: number,
     initialPosition?: Blocking3dActorPosition,
+    profileInput?: CharacterModelProfileInput,
   ) => boolean;
   removeActor: (label: string) => boolean;
   selectActor: (label: string | null) => boolean;
@@ -179,6 +186,9 @@ export interface Blocking3dViewer {
   getActorLabels: () => string[];
   setSelectedPose: (pose: DramaShotBlockingSketchPose) => boolean;
   getSelectedPose: () => DramaShotBlockingSketchPose | null;
+  getSelectedModelProfile: () => CharacterModelProfileId | null;
+  getSelectedModelProfileOverride: () => CharacterModelProfileOverride | null;
+  setSelectedModelProfile: (profileInput: CharacterModelProfileInput) => boolean;
   /** 当前统一动画容器实际能够渲染的姿势；旧布局中的不可用姿势会回退为站立。 */
   getAvailablePoses: () => DramaShotBlockingSketchPose[];
   setSelectedColor: (color: [number, number, number]) => boolean;
@@ -362,8 +372,8 @@ export async function createBlocking3dViewer(
     // 穹顶半径/投射中心变化后，摄像机边界随之变化：立即收敛，避免停在新的壳外。
     syncCamera();
   };
-  let actorAsset: pc.Asset | null = null;
-  const animationTracks = new Map<string, unknown>();
+  const actorAssets = new Map<CharacterModelProfileId, pc.Asset>();
+  const animationTracksByProfile = new Map<CharacterModelProfileId, Map<string, unknown>>();
   const actors = new Map<string, Blocking3dViewerActor>();
   const sceneMarkerRuntimes = new Map<string, Blocking3dSceneMarkerRuntime>();
   const foregroundModelRuntimes = new Map<
@@ -1227,18 +1237,23 @@ export async function createBlocking3dViewer(
 
   try {
     if (options.loadProxyActor !== false) {
-      setStatus("正在加载 3D 代理角色...");
-      actorAsset = await loadAsset(app, ACTOR_PROXY_URL, "container");
-      const proxyResource = actorAsset.resource as ContainerResource;
-      for (const clipAsset of proxyResource.animations ?? []) {
-        const track = clipAsset.resource;
-        const name = (track as { name?: unknown } | null | undefined)?.name;
-        if (track && typeof name === "string") animationTracks.set(name, track);
-      }
-      try {
-        resolveBlocking3dPoseClip("standing", animationTracks.keys());
-      } catch {
-        throw new Error("3D 代理角色缺少基础待机动作。");
+      setStatus("正在加载 UE5 Manny / Quinn 角色...");
+      for (const profile of ["manny", "quinn"] as const) {
+        const asset = await loadAsset(app, ACTOR_PROXY_URLS[profile], "container");
+        actorAssets.set(profile, asset);
+        const tracks = new Map<string, unknown>();
+        const resource = asset.resource as ContainerResource;
+        for (const clipAsset of resource.animations ?? []) {
+          const track = clipAsset.resource;
+          const name = (track as { name?: unknown } | null | undefined)?.name;
+          if (track && typeof name === "string") tracks.set(name, track);
+        }
+        try {
+          resolveBlocking3dPoseClip("standing", tracks.keys());
+        } catch {
+          throw new Error(`${profile === "manny" ? "Manny" : "Quinn"} 缺少基础待机动作。`);
+        }
+        animationTracksByProfile.set(profile, tracks);
       }
     }
     if (options.foregroundModels?.length) {
@@ -1267,8 +1282,12 @@ export async function createBlocking3dViewer(
     index: number,
     heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
     initialPosition?: Blocking3dActorPosition,
+    profileInput: CharacterModelProfileInput = {},
   ): Blocking3dViewerActor => {
-    if (!actorAsset) throw new Error("当前 3D 预览未加载代理角色。");
+    const modelProfile = resolveBlocking3dModelProfile(profileInput);
+    const actorAsset = actorAssets.get(modelProfile);
+    const animationTracks = animationTracksByProfile.get(modelProfile);
+    if (!actorAsset || !animationTracks) throw new Error(`当前 3D 预览未加载 ${modelProfile} 角色资源。`);
     const resource = actorAsset.resource as ContainerResource;
     const model = resource.instantiateRenderEntity?.({ castShadows: true });
     if (!model) throw new Error("3D 代理角色模型无法实例化。");
@@ -1295,11 +1314,79 @@ export async function createBlocking3dViewer(
       animEntity: model,
       pose: "standing",
       actionPlaying: false,
+      modelProfile,
+      ...(profileInput.modelProfileOverride && profileInput.modelProfileOverride !== "auto"
+        ? { modelProfileOverride: profileInput.modelProfileOverride }
+        : {}),
       color,
       material,
     };
     setAnimationPose(actor, animationTracks, "standing");
     return actor;
+  };
+
+  const replaceActorModel = (
+    actor: Blocking3dViewerActor,
+    profileInput: CharacterModelProfileInput,
+  ): boolean => {
+    const modelProfile = resolveBlocking3dModelProfile(profileInput);
+    const actorAsset = actorAssets.get(modelProfile);
+    const animationTracks = animationTracksByProfile.get(modelProfile);
+    if (!actorAsset || !animationTracks) return false;
+    if (actor.modelProfile === modelProfile) {
+      actor.modelProfileOverride =
+        profileInput.modelProfileOverride && profileInput.modelProfileOverride !== "auto"
+          ? profileInput.modelProfileOverride
+          : undefined;
+      return true;
+    }
+    const resource = actorAsset.resource as ContainerResource;
+    const model = resource.instantiateRenderEntity?.({ castShadows: true });
+    if (!model) return false;
+    model.name = "ue5_mannequin";
+    model.setLocalPosition(0, 0, 0);
+    model.setLocalEulerAngles(0, 180, 0);
+    // A freshly instantiated native profile gets its own material. Reusing the
+    // previous profile's material can keep renderer state from the old mesh
+    // (especially after switching Manny <-> Quinn), which makes the model
+    // switch look successful while leaving stale material bindings behind.
+    const material = setEntityMaterial(model, actor.color);
+    actor.entity.addChild(model);
+    model.addComponent("anim", { activate: true });
+    if (model.anim) model.anim.rootBone = model;
+    const nextActor = {
+      ...actor,
+      animEntity: model,
+      modelProfile,
+      ...(profileInput.modelProfileOverride && profileInput.modelProfileOverride !== "auto"
+        ? { modelProfileOverride: profileInput.modelProfileOverride }
+        : { modelProfileOverride: undefined }),
+      material,
+    };
+    try {
+      setAnimationPose(nextActor, animationTracks, actor.pose);
+    } catch {
+      model.destroy();
+      return false;
+    }
+    const previousModel = actor.animEntity;
+    // The outline renderer indexes the actor root's child MeshInstances when
+    // `setEntity` is called. A model-profile swap keeps the root entity but
+    // replaces that child, so leave the old MeshInstances in the outline
+    // renderer and PlayCanvas will later try to cull a destroyed mesh
+    // (`_aabbVer` becomes null). Detach and reattach the selected root around
+    // the swap so the outline owns only the new profile's render instances.
+    const outlineWasAttached = selectionOutline.getEntity() === actor.entity;
+    if (outlineWasAttached) selectionOutline.setEntity(null);
+    previousModel.destroy();
+    actor.animEntity = nextActor.animEntity;
+    actor.modelProfile = nextActor.modelProfile;
+    actor.modelProfileOverride = nextActor.modelProfileOverride;
+    actor.material = nextActor.material;
+    actor.pose = nextActor.pose;
+    actor.actionPlaying = nextActor.actionPlaying;
+    if (outlineWasAttached) selectionOutline.setEntity(actor.entity);
+    return true;
   };
 
   const fitView = () => {
@@ -1388,14 +1475,16 @@ export async function createBlocking3dViewer(
       index,
       heightMeters = DEFAULT_BLOCKING_3D_HEIGHT_METERS,
       initialPosition,
+      profileInput = {},
     ) {
-      if (!actorAsset) return false;
+      if (actorAssets.size === 0) return false;
       if (!label.trim() || actors.has(label)) return false;
       const actor = createActor(
         label.trim(),
         index,
         heightMeters,
         initialPosition,
+        profileInput,
       );
       actors.set(label.trim(), actor);
       if (!selectedLabel) select(label.trim());
@@ -1457,17 +1546,31 @@ export async function createBlocking3dViewer(
       };
     },
     getActorLabels: () => [...actors.keys()],
-    getAvailablePoses: () =>
-      actorAsset ? getAvailableBlocking3dPoses(animationTracks.keys()) : [],
+    getAvailablePoses: () => {
+      const tracks = animationTracksByProfile.get("manny");
+      return tracks ? getAvailableBlocking3dPoses(tracks.keys()) : [];
+    },
     setSelectedPose(pose) {
       const actor = selectedActor();
       if (!actor) return false;
-      setAnimationPose(actor, animationTracks, pose);
+      const tracks = animationTracksByProfile.get(actor.modelProfile);
+      if (!tracks) return false;
+      setAnimationPose(actor, tracks, pose);
       emitSelection();
       emitChange();
       return true;
     },
     getSelectedPose: () => selectedActor()?.pose ?? null,
+    getSelectedModelProfile: () => selectedActor()?.modelProfile ?? null,
+    getSelectedModelProfileOverride: () =>
+      selectedActor()?.modelProfileOverride ?? null,
+    setSelectedModelProfile(profileInput) {
+      const actor = selectedActor();
+      if (!actor || !replaceActorModel(actor, profileInput)) return false;
+      emitSelection();
+      emitChange();
+      return true;
+    },
     setSelectedColor(color) {
       const actor = selectedActor();
       if (!actor || color.some((channel) => !Number.isFinite(channel)))
@@ -1748,6 +1851,10 @@ export async function createBlocking3dViewer(
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
             color: [...actor.color] as [number, number, number],
+            modelProfile: actor.modelProfile,
+            ...(actor.modelProfileOverride
+              ? { modelProfileOverride: actor.modelProfileOverride }
+              : {}),
             ...(actor.interactionModelId
               ? { interactionModelId: actor.interactionModelId }
               : {}),
@@ -1798,6 +1905,13 @@ export async function createBlocking3dViewer(
         );
         actor.entity.setLocalScale(scale[0], scale[1], scale[2]);
         actor.interactionModelId = saved.interactionModelId;
+        if (saved.modelProfileOverride && saved.modelProfileOverride !== "auto") {
+          replaceActorModel(actor, { modelProfileOverride: saved.modelProfileOverride });
+        } else if (saved.modelProfile && saved.modelProfile !== actor.modelProfile) {
+          replaceActorModel(actor, { modelProfileOverride: saved.modelProfile });
+        } else if (saved.modelProfileOverride === "auto") {
+          actor.modelProfileOverride = undefined;
+        }
         if (saved.color) {
           actor.color = normalizeActorColor(saved.color);
           actor.material = setEntityMaterial(
@@ -1806,7 +1920,8 @@ export async function createBlocking3dViewer(
             actor.material,
           );
         }
-        setAnimationPose(actor, animationTracks, saved.pose);
+        const tracks = animationTracksByProfile.get(actor.modelProfile);
+        if (tracks) setAnimationPose(actor, tracks, saved.pose);
       }
       if (layout.actors[0]) select(layout.actors[0].characterName);
       emitSelection();
@@ -1880,6 +1995,9 @@ export async function createBlocking3dViewer(
       shotCamera.destroy();
       selectionOutline.destroy();
       editorCameraFrame.destroy();
+      for (const asset of actorAssets.values()) app.assets.remove(asset);
+      actorAssets.clear();
+      animationTracksByProfile.clear();
       app.destroy();
     },
   };

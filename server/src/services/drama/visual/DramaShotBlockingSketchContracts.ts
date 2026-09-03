@@ -12,6 +12,10 @@ import {
   normalizeStoryScene3dForegroundModel,
   STORY_SCENE_3D_FOREGROUND_MODEL_LIMITS,
 } from "@ai-novel/shared/utils/scene3dForegroundModels";
+import type {
+  CharacterModelProfileId,
+  CharacterModelProfileOverride,
+} from "@ai-novel/shared/types/characterModelProfile";
 
 export const BLOCKING_SKETCH_CANVAS = {
   width: 1280,
@@ -138,6 +142,10 @@ export interface DramaShotBlockingSketch3DActor {
   color?: [number, number, number];
   /** 角色与模型库前景实例交互时的真实实例 id；必须存在于同一 layout 的 foregroundModels。 */
   interactionModelId?: string;
+  /** 原生 UE5 角色模型的确定性选择结果；旧布局缺失时由角色资料推导。 */
+  modelProfile?: CharacterModelProfileId;
+  /** 用户明确指定的模型覆盖；auto 表示继续使用角色资料路由。 */
+  modelProfileOverride?: CharacterModelProfileOverride;
   /** Compatibility marker for older snapshots; 3D 草图始终保存静态关键帧。 */
   actionPlaying: boolean;
 }
@@ -230,6 +238,18 @@ function optionalBoolean(value: unknown, label: string): boolean {
     invalid(`${label}必须是布尔值`);
   }
   return value;
+}
+
+function optionalEnum<T extends string>(
+  value: unknown,
+  label: string,
+  values: readonly T[],
+): T | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "string" || !values.includes(value as T)) {
+    invalid(`${label}必须是 ${values.join("、")} 之一`);
+  }
+  return value as T;
 }
 
 function tuple3(value: unknown, label: string, min: number, max: number): [number, number, number] {
@@ -335,6 +355,16 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     && (!interactionModelId || interactionModelId.length > 120)) {
     invalid("3D 角色交互模型必须是有效的模型实例 id");
   }
+  const modelProfile = optionalEnum(
+    actor.modelProfile,
+    "3D 角色模型",
+    ["manny", "quinn"] as const,
+  );
+  const modelProfileOverride = optionalEnum(
+    actor.modelProfileOverride,
+    "3D 角色模型覆盖",
+    ["auto", "manny", "quinn"] as const,
+  );
   // Keep validating the legacy field so malformed old snapshots are still rejected,
   // but normalize every accepted layout to the static-frame contract.
   optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态");
@@ -351,6 +381,8 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     pose: normalizePose(actor.pose),
     ...(color ? { color } : {}),
     ...(interactionModelId ? { interactionModelId } : {}),
+    ...(modelProfile ? { modelProfile } : {}),
+    ...(modelProfileOverride ? { modelProfileOverride } : {}),
     actionPlaying: false,
   };
 }

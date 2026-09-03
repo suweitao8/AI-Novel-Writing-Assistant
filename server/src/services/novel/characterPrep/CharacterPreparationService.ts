@@ -88,6 +88,8 @@ function serializeCharacterCastOption(row: {
     name: string;
     role: string;
     gender: string;
+    actorKind: string;
+    bodyBuild: string;
     castRole: string;
     relationToProtagonist: string | null;
     storyFunction: string;
@@ -146,6 +148,8 @@ function serializeCharacterCastOption(row: {
       name: member.name,
       role: member.role,
       gender: member.gender as CharacterCastOption["members"][number]["gender"],
+      actorKind: member.actorKind as CharacterCastOption["members"][number]["actorKind"],
+      bodyBuild: member.bodyBuild as CharacterCastOption["members"][number]["bodyBuild"],
       castRole: member.castRole as CharacterCastRole,
       relationToProtagonist: member.relationToProtagonist,
       storyFunction: member.storyFunction,
@@ -481,6 +485,8 @@ export class CharacterPreparationService {
                 name: member.name,
                 role: member.role,
                 gender: member.gender,
+                actorKind: member.actorKind,
+                bodyBuild: member.bodyBuild,
                 castRole: member.castRole,
                 relationToProtagonist: toOptionalText(member.relationToProtagonist),
                 storyFunction: member.storyFunction,
@@ -680,6 +686,8 @@ export class CharacterPreparationService {
           name: member.name,
           role: member.role,
           gender: member.gender as "male" | "female" | "other" | "unknown",
+          actorKind: member.actorKind as "human" | "monster" | "other" | "unknown",
+          bodyBuild: member.bodyBuild as "slender" | "standard" | "broad" | "unknown",
           castRole: member.castRole,
           storyFunction: member.storyFunction,
           relationToProtagonist: member.relationToProtagonist ?? undefined,
@@ -715,6 +723,8 @@ export class CharacterPreparationService {
         name: member.name,
         role: member.role,
         gender: member.gender as "male" | "female" | "other" | "unknown",
+        actorKind: member.actorKind as "human" | "monster" | "other" | "unknown",
+        bodyBuild: member.bodyBuild as "slender" | "standard" | "broad" | "unknown",
         castRole: member.castRole,
         storyFunction: member.storyFunction,
         relationToProtagonist: member.relationToProtagonist ?? undefined,

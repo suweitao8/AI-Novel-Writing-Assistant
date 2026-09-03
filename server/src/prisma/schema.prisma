@@ -849,6 +849,8 @@ model Character {
   name            String
   role            String
   gender          CharacterGender @default(unknown)
+  actorKind       String @default("human")
+  bodyBuild       String @default("unknown")
   castRole        String?
   storyFunction   String?
   relationToProtagonist String?
@@ -1143,6 +1145,8 @@ model CharacterCastOptionMember {
   name                  String
   role                  String
   gender                CharacterGender @default(unknown)
+  actorKind             String   @default("human")
+  bodyBuild             String   @default("unknown")
   castRole              String
   relationToProtagonist String?
   storyFunction         String
@@ -3719,6 +3723,9 @@ model DramaCharacter {
   id                 String   @id @default(cuid())
   projectId          String
   name               String
+  gender             CharacterGender @default(unknown)
+  actorKind          String   @default("human")
+  bodyBuild          String   @default("unknown")
   // 原型：霸总/赘婿/重生复仇/马甲/扮猪吃老虎...
   archetype          String?
   // 人设标签
@@ -3808,6 +3815,9 @@ model DramaCharacterLibrary {
   id           String   @id @default(cuid())
   projectId    String?
   name         String
+  gender       CharacterGender @default(unknown)
+  actorKind    String   @default("human")
+  bodyBuild    String   @default("unknown")
   archetype    String?
   persona      String?
   speechStyle  String?
