@@ -22,9 +22,10 @@ export function useBookAnalysisActiveView(): {
   const rawView = searchParams.get("view");
   const hasViewParam = searchParams.has("view");
   const explicitView = isRememberedTabValue(rawView, VIEW_VALUES) ? rawView : null;
+  const hasInvalidViewParam = hasViewParam && explicitView === null;
   const activeView = useMemo(
-    () => explicitView ?? (hasViewParam ? DEFAULT_VIEW : rememberedView),
-    [explicitView, hasViewParam, rememberedView],
+    () => explicitView ?? (hasInvalidViewParam ? DEFAULT_VIEW : rememberedView),
+    [explicitView, hasInvalidViewParam, rememberedView],
   );
 
   useEffect(() => {
@@ -32,14 +33,14 @@ export function useBookAnalysisActiveView(): {
       setRememberedView(explicitView);
       return;
     }
-    if (hasViewParam) {
+    if (hasInvalidViewParam) {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
-        next.delete("view");
+        next.set("view", DEFAULT_VIEW);
         return next;
       }, { replace: true });
     }
-  }, [explicitView, hasViewParam, setRememberedView, setSearchParams]);
+  }, [explicitView, hasInvalidViewParam, setRememberedView, setSearchParams]);
 
   const setActiveView = useCallback((view: BookAnalysisActiveView) => {
     setRememberedView(view);

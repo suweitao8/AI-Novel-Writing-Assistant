@@ -21,7 +21,8 @@ export function useRememberedQueryTab<T extends string>({
   const rawValue = searchParams.get(queryParam);
   const hasQueryParam = searchParams.has(queryParam);
   const explicitTab = isRememberedTabValue(rawValue, options.values) ? rawValue : null;
-  const tab = explicitTab ?? (hasQueryParam ? options.defaultValue : rememberedTab);
+  const hasInvalidQueryParam = hasQueryParam && explicitTab === null;
+  const tab = explicitTab ?? (hasInvalidQueryParam ? options.defaultValue : rememberedTab);
 
   useEffect(() => {
     if (explicitTab !== null) {
@@ -32,26 +33,30 @@ export function useRememberedQueryTab<T extends string>({
     if (options.enabled === false) {
       return;
     }
-    if (!hasQueryParam && rememberedTab === options.defaultValue) {
+    if (hasInvalidQueryParam) {
+      setSearchParams((previous) => {
+        const next = new URLSearchParams(previous);
+        next.set(queryParam, options.defaultValue);
+        return next;
+      }, { replace: true });
+      return;
+    }
+    if (rememberedTab === options.defaultValue) {
       return;
     }
 
     setSearchParams((previous) => {
       const next = new URLSearchParams(previous);
-      if (hasQueryParam) {
-        next.delete(queryParam);
-      } else if (rememberedTab !== options.defaultValue) {
-        next.set(queryParam, rememberedTab);
-      }
+      next.set(queryParam, rememberedTab);
       return next;
     }, { replace: true });
   }, [
     explicitTab,
     hasQueryParam,
+    hasInvalidQueryParam,
     options.defaultValue,
     options.enabled,
     queryParam,
-    rawValue,
     rememberedTab,
     setRememberedTab,
     setSearchParams,
