@@ -308,7 +308,7 @@ test("第一镜头的关系归一化不会把承载者和上方主体反过来�
   const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
   assert.equal(yechen.pose, "lying");
   assert.equal(yechen.position[1], 0);
-  assert.equal(beast.pose, "crouching");
+  assert.equal(beast.pose, "prone");
   assert.ok(beast.position[1] > yechen.position[1]);
   assert.ok(Math.hypot(beast.position[0] - yechen.position[0], beast.position[2] - yechen.position[2]) <= 0.9);
   assert.ok(beast.scale[1] > yechen.scale[1]);
@@ -346,6 +346,111 @@ test("自动构图从结构化姿势识别出 on_top_of 方向反转并恢复血
   assert.ok(beast.position[1] > yechen.position[1]);
   assert.ok(Math.hypot(beast.position[0] - yechen.position[0], beast.position[2] - yechen.position[2]) <= 0.9);
   assert.ok(beast.scale[1] > yechen.scale[1]);
+});
+
+test("自动构图把上下关系的主动方朝向承载者", () => {
+  const firstShotActors = [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },
+    { characterName: "血角兽", sourceImageKind: "state_sheet", heightMeters: 2.2, heightSource: "ai" },
+  ];
+  const output = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "叶晨", position: [0.15, 0.3, 2.3], yawDeg: -120, pose: "lying", scale: [1, 1, 1] },
+      { ...planOutput.actors[1], characterName: "血角兽", position: [-0.682, 0.1, 2.643], yawDeg: 15, pose: "crouching", scale: [1, 1, 1] },
+    ],
+    relations: [{
+      subjectCharacterName: "血角兽",
+      objectCharacterName: "叶晨",
+      relation: "on_top_of",
+      sizeRelation: "larger",
+    }],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+    output,
+    firstShotActors,
+    { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "近景",
+  );
+  const yechen = result.layout.actors.find((actor) => actor.characterName === "叶晨");
+  const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
+  const expectedYaw = Math.atan2(
+    yechen.position[0] - beast.position[0],
+    yechen.position[2] - beast.position[2],
+  ) * 180 / Math.PI;
+  assert.ok(Math.abs(beast.yawDeg - expectedYaw) < 1e-9);
+  assert.notEqual(beast.yawDeg, 15);
+});
+
+test("自动构图保留明确的贴地上方主体趴姿并朝向承载者", () => {
+  const firstShotActors = [
+    { characterName: "叶晨", sourceImageKind: "state_sheet", heightMeters: 1.75, heightSource: "manual" },
+    { characterName: "血角兽", sourceImageKind: "state_sheet", heightMeters: 2.2, heightSource: "ai" },
+  ];
+  const output = {
+    ...planOutput,
+    actors: [
+      { ...planOutput.actors[0], characterName: "叶晨", position: [0.2, 0.2, 2.3], yawDeg: 0, pose: "lying", scale: [1, 1, 1] },
+      { ...planOutput.actors[1], characterName: "血角兽", position: [-0.4, 0.5, 2.1], yawDeg: 15, pose: "prone", scale: [1, 1, 1] },
+    ],
+    relations: [{
+      subjectCharacterName: "血角兽",
+      objectCharacterName: "叶晨",
+      relation: "on_top_of",
+      sizeRelation: "larger",
+    }],
+  };
+  const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+    output,
+    firstShotActors,
+    { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+    "近景",
+  );
+  const yechen = result.layout.actors.find((actor) => actor.characterName === "叶晨");
+  const beast = result.layout.actors.find((actor) => actor.characterName === "血角兽");
+  assert.equal(beast.pose, "prone");
+  assert.equal(yechen.pose, "lying");
+  const expectedYaw = Math.atan2(
+    yechen.position[0] - beast.position[0],
+    yechen.position[2] - beast.position[2],
+  ) * 180 / Math.PI;
+  assert.ok(Math.abs(beast.yawDeg - expectedYaw) < 1e-9);
+});
+
+test("自动构图把结构化有向动作关系的 subject 朝向 object", () => {
+  const relationTypes = ["facing", "attacking", "holding", "following"];
+  for (const relation of relationTypes) {
+    const output = {
+      ...planOutput,
+      actors: [
+        { ...planOutput.actors[0], characterName: "沈烬", position: [2, 0, 1], yawDeg: -11, pose: "standing" },
+        { ...planOutput.actors[1], characterName: "血角兽", position: [-1, 0, 4], yawDeg: 77, pose: "standing" },
+      ],
+      relations: [{
+        subjectCharacterName: "沈烬",
+        objectCharacterName: "血角兽",
+        relation,
+        sizeRelation: "similar",
+      }],
+    };
+    const result = serviceModule.buildDramaShotBlockingAutoPlanLayout(
+      output,
+      actors,
+      { projectionCenterHeight: 1, domeRadius: 20, yawDeg: 0, intensity: 1 },
+      "中景",
+    );
+    const subject = result.layout.actors.find((actor) => actor.characterName === "沈烬");
+    const object = result.layout.actors.find((actor) => actor.characterName === "血角兽");
+    const expectedYaw = Math.atan2(
+      object.position[0] - subject.position[0],
+      object.position[2] - subject.position[2],
+    ) * 180 / Math.PI;
+    assert.ok(
+      Math.abs(subject.yawDeg - expectedYaw) < 1e-9,
+      `${relation} 必须让 subject 朝向 object`,
+    );
+    assert.equal(object.yawDeg, 77, `${relation} 不应无故旋转 object`);
+  }
 });
 
 test("自动构图服务拒绝关系中的未知角色、重复关系和多角色空关系", () => {

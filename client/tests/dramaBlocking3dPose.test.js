@@ -9,9 +9,9 @@ import {
 test("3D 姿势映射到参考项目的 Quaternius 动作片段", () => {
   assert.deepEqual(resolveBlocking3dPoseClip("sitting", ["Idle_Loop", "Sitting_Idle_Loop"]), {
     clipName: "Sitting_Idle_Loop",
-    sampleTime: 0.45,
+    sampleTimeRatio: 0.5,
   });
-  assert.equal(getBlocking3dPoseClipConfig("prone").names[0], "LayToIdle");
+  assert.equal(getBlocking3dPoseClipConfig("prone").names[0], "Prone_Idle_Loop");
 });
 test("没有可用动作片段时明确报错，避免静默回到站立", () => {
   assert.throws(

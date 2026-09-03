@@ -151,6 +151,22 @@ test("3D 草图 runtime 提供代理模型、静态姿势、相机和导出能�
   assert.doesNotMatch(viewerSource, /blocking3d-background/);
 });
 
+test("3D 姿势加载保留业务姿势，不允许资源缺失时静默保存为站立", () => {
+  assert.match(viewerCoreSource, /resolveBlocking3dPosePresentation/);
+  assert.match(viewerCoreSource, /actor\.pose = pose/);
+  assert.match(viewerCoreSource, /setLocalEulerAngles/);
+  assert.doesNotMatch(viewerCoreSource, /appliedPose\s*=\s*["']standing["']/);
+});
+
+test("角色朝向从真实前向读取并以纯 Y 轴回写，避免欧拉角分解破坏朝向", () => {
+  assert.match(mathSource, /resolveBlocking3dYawFromEntityForward/);
+  assert.match(viewerSource, /getActorYaw/);
+  assert.match(viewerSource, /getActorYaw\(actor\)/);
+  assert.match(viewerSource, /actor\.entity\.setEulerAngles\(0, getActorYaw\(actor\) \+ degrees, 0\)/);
+  assert.match(viewerSource, /yawDeg: getActorYaw\(actor\)/);
+  assert.doesNotMatch(viewerSource, /yawDeg: clamp\(actor\.entity\.getEulerAngles\(\)\.y/);
+});
+
 test("3D 草图支持选中角色实时改色并把颜色纳入布局快照", () => {
   assert.match(pageSource, /type="color"/);
   assert.match(pageSource, /模型颜色/);

@@ -10,6 +10,20 @@ export interface Blocking3dPoseClipConfig {
   sampleTimeRatio?: number;
 }
 
+export interface Blocking3dPosePresentation {
+  /** 业务层请求的姿势；即使使用代理展示，也不能被资源能力改写。 */
+  pose: DramaShotBlockingSketchPose;
+  /** 实际绑定到 UAL2 AnimComponent 的片段。 */
+  clipName: string;
+  sampleTimeRatio: number;
+  /** 模型实例的绝对局部欧拉角，包含 UAL2 的基础 180° 朝向。 */
+  modelEulerAngles: [number, number, number];
+  /** true 表示使用了声明过的代理展示，而非姿势专用片段。 */
+  isApproximation: boolean;
+}
+
+const GROUND_POSE_PROXY_CLIP = "Slide_Loop";
+
 const CATALOG_CLIP_NAMES = new Map<string, string>(
   ANIMATION_CATALOG_ENTRIES.map((entry) => [entry.id, entry.clipName]),
 );
@@ -183,14 +197,52 @@ export function resolveBlocking3dPoseClip(
   };
 }
 
-/** 返回统一动画文件实际支持的姿势，避免 UI 暴露会抛错的旧选项。 */
+/**
+ * 解析业务姿势到实际可渲染的 UAL2 展示。
+ *
+ * UAL2 提供 LayToIdle 躺姿片段，但没有安全的专用趴姿片段；“躺/趴”都是
+ * 自动构图的重要空间语义，不能因为资源缺失就静默改成站立。缺少专用片段
+ * 时明确使用可见的滑铲循环作为贴地代理；如果代理也不存在则报资源能力错
+ * 误，避免用根节点旋转把站立模型送出取景范围。其它姿势仍要求对应动作片段存在。
+ */
+export function resolveBlocking3dPosePresentation(
+  pose: DramaShotBlockingSketchPose,
+  availableClipNames: Iterable<string>,
+): Blocking3dPosePresentation {
+  const available = new Set(availableClipNames);
+  try {
+    const clip = resolveBlocking3dPoseClip(pose, available);
+    return {
+      pose,
+      ...clip,
+      modelEulerAngles: [0, 180, 0],
+      isApproximation: false,
+    };
+  } catch (error) {
+    if (pose !== "lying" && pose !== "prone") throw error;
+    if (!available.has(GROUND_POSE_PROXY_CLIP)) {
+      throw new Error(`3D 姿势“${pose}”没有可用的贴地动作片段。`);
+    }
+    return {
+      pose,
+      clipName: GROUND_POSE_PROXY_CLIP,
+      sampleTimeRatio: DEFAULT_POSE_SAMPLE_TIME_RATIO,
+      // 滑铲片段本身已把骨骼放到地面附近；只保留 UAL2 的基础 180° 朝向，
+      // 不再旋转外层模型实体，避免模型因根骨骼坐标系被推到镜头外。
+      modelEulerAngles: [0, 180, 0],
+      isApproximation: true,
+    };
+  }
+}
+
+/** 返回统一动画文件支持的真实姿势及已声明的贴地代理姿势。 */
 export function getAvailableBlocking3dPoses(
   availableClipNames: Iterable<string>,
 ): DramaShotBlockingSketchPose[] {
   const available = new Set(availableClipNames);
   return POSE_NAMES.filter((pose) => {
     try {
-      resolveBlocking3dPoseClip(pose, available);
+      resolveBlocking3dPosePresentation(pose, available);
       return true;
     } catch {
       return false;

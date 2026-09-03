@@ -6,6 +6,7 @@ import {
   getAvailableBlocking3dPoses,
   getBlocking3dPoseClipConfig,
   poseSampleTimeFromTrack,
+  resolveBlocking3dPosePresentation,
   resolveBlocking3dPoseClip,
 } from "./blocking3dPose.ts";
 
@@ -36,25 +37,23 @@ test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () 
 
 test("分镜姿势优先使用目录中的原地片段", () => {
   const available = [
-    "C57_unreal_daily_male_locomotion_idle_break_01",
-    "C57_unreal_misc_clazy_walk_forward",
-    "C57_unreal_misc_clazy_jog_forward",
-    "C57_unreal_daily_male_locomotion_crouch_forward",
-    "C57_unreal_daily_dialogue_dialogue_idle",
-    "C57_unreal_interaction_activations_door_pull",
-    "C57_unreal_hand_combat_lucy_attack",
-    "C57_unreal_weapon_combat_sword_pro_weak_attack",
     "A_INP_Idle",
     "A_INP_WalkFwd_Loop",
+    "Sprint_Loop",
+    "Zombie_Idle_Loop",
+    "Idle_Rail_Call",
+    "Chest_Open",
+    "Melee_Hook",
+    "Sword_Block",
   ];
-  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, available[0]);
-  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, available[1]);
-  assert.equal(resolveBlocking3dPoseClip("running", available).clipName, available[2]);
-  assert.equal(resolveBlocking3dPoseClip("crouching", available).clipName, available[3]);
-  assert.equal(resolveBlocking3dPoseClip("talking", available).clipName, available[4]);
-  assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, available[5]);
-  assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, available[6]);
-  assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, available[7]);
+  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, "A_INP_Idle");
+  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, "A_INP_WalkFwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("running", available).clipName, "Sprint_Loop");
+  assert.equal(resolveBlocking3dPoseClip("crouching", available).clipName, "Zombie_Idle_Loop");
+  assert.equal(resolveBlocking3dPoseClip("talking", available).clipName, "Idle_Rail_Call");
+  assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, "Chest_Open");
+  assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, "Melee_Hook");
+  assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, "Sword_Block");
   assert.deepEqual(
     getBlocking3dPoseClipConfig("pointing").names.slice(0, 3),
     ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"],
@@ -79,13 +78,14 @@ test("分镜自动构图的上方主体使用 UAL2 可用的低姿态片段", ()
   assert.equal(clip.clipName, "Zombie_Idle_Loop");
 });
 
-test("动画文件只向分镜姿势选择器暴露真实存在的 UAL2 片段", () => {
+test("分镜姿势选择器暴露真实片段和明确支持的贴地展示姿势", () => {
   const available = [
     "A_INP_Idle",
     "Idle_Rail_Call",
     "Idle_FoldArms_Loop",
     "A_chair_loop01",
     "LayToIdle",
+    "Slide_Loop",
     "A_INP_WalkFwd_Loop",
     "OverhandThrow",
     "Walk_Carry_Loop",
@@ -99,6 +99,7 @@ test("动画文件只向分镜姿势选择器暴露真实存在的 UAL2 片段",
     "arms_crossed",
     "sitting",
     "lying",
+    "prone",
     "walking",
     "pointing",
     "holding",
@@ -106,6 +107,41 @@ test("动画文件只向分镜姿势选择器暴露真实存在的 UAL2 片段",
     "fighting",
     "sword",
   ]);
+});
+
+test("UAL2 缺少躺姿片段时使用可见低姿态代理并保留业务姿势", () => {
+  const available = ["A_INP_Idle", "Zombie_Idle_Loop", "Slide_Loop"];
+  const lying = resolveBlocking3dPosePresentation("lying", available);
+  const prone = resolveBlocking3dPosePresentation("prone", available);
+  assert.equal(lying.clipName, "Slide_Loop");
+  assert.equal(prone.clipName, "Slide_Loop");
+  assert.equal(lying.pose, "lying");
+  assert.equal(prone.pose, "prone");
+  assert.equal(lying.isApproximation, true);
+  assert.equal(prone.isApproximation, true);
+  assert.deepEqual(lying.modelEulerAngles, [0, 180, 0]);
+  assert.deepEqual(prone.modelEulerAngles, [0, 180, 0]);
+});
+
+test("缺少安全贴地代理时明确报错，不把站立模型旋转成不可见姿势", () => {
+  assert.throws(
+    () => resolveBlocking3dPosePresentation("prone", ["A_INP_Idle"]),
+    /没有可用的贴地动作片段/,
+  );
+});
+
+test("有真实躺姿片段时优先使用真实片段", () => {
+  const presentation = resolveBlocking3dPosePresentation("lying", ["LayToIdle", "A_INP_Idle"]);
+  assert.equal(presentation.clipName, "LayToIdle");
+  assert.equal(presentation.isApproximation, false);
+  assert.deepEqual(presentation.modelEulerAngles, [0, 180, 0]);
+});
+
+test("非贴地姿势缺少动作片段时明确报错，不降级成站立", () => {
+  assert.throws(
+    () => resolveBlocking3dPosePresentation("fighting", ["A_INP_Idle"]),
+    /没有可用的动作片段/,
+  );
 });
 
 test("比例按片段实际时长换算成具体时间", () => {
