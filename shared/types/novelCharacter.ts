@@ -165,6 +165,8 @@ export interface CharacterCastOptionMember {
   name: string;
   role: string;
   gender: CharacterGender;
+  actorKind?: CharacterActorKind | null;
+  bodyBuild?: CharacterBodyBuild | null;
   castRole: CharacterCastRole;
   relationToProtagonist?: string | null;
   storyFunction: string;
@@ -306,6 +308,8 @@ export interface SupplementalCharacterCandidate {
   name: string;
   role: string;
   gender: CharacterGender;
+  actorKind?: CharacterActorKind | null;
+  bodyBuild?: CharacterBodyBuild | null;
   castRole: CharacterCastRole;
   summary: string;
   storyFunction: string;
