@@ -34,6 +34,7 @@ import { createBlocking3dEnvironmentRuntime } from "./blocking3dEnvironmentRunti
 import { createBlocking3dSelectionOutline } from "./blocking3dSelectionOutline";
 import {
   normalizeBlocking3dCameraDistance,
+  resolveBlocking3dYawFromEntityForward,
   resolveBlocking3dEditorFarClip,
   updateBlocking3dCameraAzimuth,
   wrapBlocking3dAzimuth,
@@ -189,7 +190,7 @@ export interface Blocking3dViewer {
   getSelectedModelProfile: () => CharacterModelProfileId | null;
   getSelectedModelProfileOverride: () => CharacterModelProfileOverride | null;
   setSelectedModelProfile: (profileInput: CharacterModelProfileInput) => boolean;
-  /** 当前统一动画容器实际能够渲染的姿势；旧布局中的不可用姿势会回退为站立。 */
+  /** 当前统一动画容器实际能够渲染的姿势；贴地代理保留业务姿势语义，资源缺失会明确报错。 */
   getAvailablePoses: () => DramaShotBlockingSketchPose[];
   setSelectedColor: (color: [number, number, number]) => boolean;
   getSelectedColor: () => [number, number, number] | null;
@@ -554,6 +555,11 @@ export async function createBlocking3dViewer(
     return model;
   };
 
+  const getActorYaw = (actor: Blocking3dViewerActor): number => {
+    const rotation = actor.entity.getEulerAngles();
+    return resolveBlocking3dYawFromEntityForward(actor.entity.forward, rotation.y);
+  };
+
   // Unity 场景视图同款变换手柄（移动/旋转/缩放）：跟随当前选中对象，拖拽直接
   // 改写实体 transform，结束时在这里统一做边界约束并回写数据。
   let transformTool: Blocking3dTransformTool | null = "translate";
@@ -561,17 +567,12 @@ export async function createBlocking3dViewer(
     const actor = selectedActor();
     if (actor) {
       const position = actor.entity.getPosition();
-      const rotation = actor.entity.getEulerAngles();
       const [nextX, nextY, nextZ] = clampBlockingActorPositionToStage(
         [position.x, clamp(position.y, 0, 50), position.z],
         environmentSettings,
       );
       actor.entity.setPosition(nextX, nextY, nextZ);
-      actor.entity.setEulerAngles(
-        rotation.x,
-        clamp(rotation.y, -180, 180),
-        rotation.z,
-      );
+      actor.entity.setEulerAngles(0, getActorYaw(actor), 0);
       emitSelection();
       emitChange();
       return;
@@ -1532,7 +1533,6 @@ export async function createBlocking3dViewer(
       }
       if (!actor) return null;
       const position = actor.entity.getPosition();
-      const rotation = actor.entity.getEulerAngles();
       const scale = actor.entity.getLocalScale();
       return {
         position: [position.x, position.y, position.z] as [
@@ -1540,7 +1540,7 @@ export async function createBlocking3dViewer(
           number,
           number,
         ],
-        yawDeg: clamp(rotation.y, -180, 180),
+        yawDeg: getActorYaw(actor),
         scale: [scale.x, scale.y, scale.z] as [number, number, number],
       };
     },
@@ -1641,12 +1641,7 @@ export async function createBlocking3dViewer(
         return true;
       }
       if (!actor) return false;
-      const current = actor.entity.getEulerAngles();
-      actor.entity.setEulerAngles(
-        current.x,
-        clamp(current.y + degrees, -180, 180),
-        current.z,
-      );
+      actor.entity.setEulerAngles(0, getActorYaw(actor) + degrees, 0);
       emitChange();
       return true;
     },
@@ -1718,7 +1713,6 @@ export async function createBlocking3dViewer(
       if (!actorMovementEnabled) return false;
       if (!actor) return false;
       const position = actor.entity.getPosition();
-      const rotation = actor.entity.getEulerAngles();
       const nextPosition = patch.position ?? [
         position.x,
         position.y,
@@ -1730,11 +1724,7 @@ export async function createBlocking3dViewer(
       );
       actor.entity.setPosition(nextX, clamp(nextY, 0, 50), nextZ);
       if (patch.yawDeg != null) {
-        actor.entity.setEulerAngles(
-          rotation.x,
-          clamp(patch.yawDeg, -180, 180),
-          rotation.z,
-        );
+        actor.entity.setEulerAngles(0, clamp(patch.yawDeg, -180, 180), 0);
       }
       if (patch.scale) {
         const nextScale = patch.scale.map((axis) =>
@@ -1846,7 +1836,7 @@ export async function createBlocking3dViewer(
               number,
               number,
             ],
-            yawDeg: clamp(actor.entity.getEulerAngles().y, -180, 180),
+            yawDeg: getActorYaw(actor),
             scale: [scale.x, scale.y, scale.z] as [number, number, number],
             pose: actor.pose,
             color: [...actor.color] as [number, number, number],

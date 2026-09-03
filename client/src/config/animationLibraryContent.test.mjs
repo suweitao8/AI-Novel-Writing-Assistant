@@ -498,9 +498,11 @@ test("分镜运行时用姿势解析器校验统一文件的基础待机动作",
   assert.doesNotMatch(blockingAppSource, /animationTracks\.has\("Idle_Loop"\)/);
 });
 
-test("分镜姿势选择器只使用统一 GLB 的可用姿势，旧布局缺失姿势会安全回退", () => {
+test("分镜姿势选择器只使用统一 GLB 的可用姿势，并保留业务姿势语义", () => {
   assert.match(blockingAppSource, /getAvailableBlocking3dPoses/);
-  assert.match(blockingCoreSource, /appliedPose = "standing"/);
+  assert.match(blockingCoreSource, /resolveBlocking3dPosePresentation/);
+  assert.match(blockingCoreSource, /actor\.pose = pose/);
+  assert.doesNotMatch(blockingCoreSource, /appliedPose\s*=\s*["']standing["']/);
   assert.match(blockingAppSource, /getAvailablePoses/);
 });
 

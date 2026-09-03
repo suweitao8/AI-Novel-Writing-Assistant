@@ -7,7 +7,7 @@ import type {
 import {
   BLOCKING_3D_HEIGHT_MAX_METERS,
   BLOCKING_3D_HEIGHT_MIN_METERS,
-} from "./blocking3dScale";
+} from "./blocking3dScale.ts";
 
 export {
   BLOCKING_3D_HEIGHT_MAX_METERS,
@@ -16,7 +16,7 @@ export {
   DEFAULT_BLOCKING_3D_HEIGHT_METERS,
   heightToBlocking3dScale,
   scaleSavedActorForCurrentHeight,
-} from "./blocking3dScale";
+} from "./blocking3dScale.ts";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -107,6 +107,28 @@ export function resolveBlocking3dEditorFarClip(
 export function wrapBlocking3dAzimuth(degrees: number): number {
   const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;
   return wrapped === -180 && degrees > 0 ? 180 : wrapped;
+}
+
+/**
+ * 从 PlayCanvas 实体的真实前向向量恢复保存合同中的 yaw。
+ *
+ * PlayCanvas 的实体 forward 是局部 -Z，而 blocking 角色的模型实例通过
+ * 180° 基础修正后以局部 +Z 作为视觉朝向。直接读取 getEulerAngles().y 在
+ * yaw 跨过 90° 时会得到等价但不同的欧拉分解（例如 119° 被读成 61°），
+ * 进而让属性面板和保存快照把正确朝向写坏。
+ */
+export function resolveBlocking3dYawFromEntityForward(
+  forward: { readonly x: number; readonly z: number } | null | undefined,
+  fallbackYaw = 0,
+): number {
+  const x = Number(forward?.x);
+  const z = Number(forward?.z);
+  if (!Number.isFinite(x) || !Number.isFinite(z) || Math.hypot(x, z) < 1e-9) {
+    return wrapBlocking3dAzimuth(fallbackYaw);
+  }
+  return wrapBlocking3dAzimuth(
+    Math.atan2(-x, -z) * 180 / Math.PI,
+  );
 }
 
 export function updateBlocking3dCameraAzimuth(

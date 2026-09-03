@@ -11,6 +11,7 @@ const {
   clampBlockingCameraPositionToWorld,
   anchorBlockingCameraAtProjectionCenter,
   resolveBlockingCameraWorldPlacement,
+  resolveBlockingActorYawTowardTarget,
 } = require("../../shared/dist/utils/blockingStage.js");
 
 test("角色舞台半径是半球真实圆半径减去边缘缓冲", () => {
@@ -55,6 +56,14 @@ test("角色位置径向 clamp 进舞台圆周并保持方位角与高度", () =
   assert.ok(Math.abs(Math.hypot(outside[0], outside[2]) - 4) < 1e-9);
   assert.ok(outside[0] > 0 && outside[2] < 0, "clamp 保持原方位角");
   assert.equal(outside[1], 0.4, "高度不被改动");
+});
+
+test("角色朝向按目标的 XZ 方位角计算并在重合时保留原角度", () => {
+  assert.equal(resolveBlockingActorYawTowardTarget([0, 0, 0], [0, 0, 1], 37), 0);
+  assert.equal(resolveBlockingActorYawTowardTarget([0, 0, 0], [1, 0, 0], 37), 90);
+  assert.equal(resolveBlockingActorYawTowardTarget([0, 0, 0], [0, 0, -1], 37), 180);
+  assert.equal(resolveBlockingActorYawTowardTarget([0, 0, 0], [-1, 0, 0], 37), -90);
+  assert.equal(resolveBlockingActorYawTowardTarget([1, 0, 1], [1, 0, 1], 37), 37);
 });
 
 test("相机重锚定后拍摄位落在投射中心且视线方向与距离不变", () => {

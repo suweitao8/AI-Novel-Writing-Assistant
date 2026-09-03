@@ -31,6 +31,7 @@ import {
 import { stateImageUrl } from "../../../platform/assets/StoryAssetStateImageStorage";
 import {
   clampBlockingActorPositionToStage,
+  resolveBlockingActorYawTowardTarget,
   resolveBlockingCameraWorldPlacement,
   resolveStoryScene3DActorStageRadius,
 } from "@ai-novel/shared/utils/blockingStage";
@@ -590,12 +591,27 @@ const AUTO_PLAN_ON_TOP_OF_MAX_HORIZONTAL_GAP_METERS = 0.9;
 const AUTO_PLAN_ON_TOP_OF_SUPPORT_HEIGHT_RATIO = 0.18;
 const AUTO_PLAN_RELATIVE_SIZE_MARGIN = 1.15;
 const AUTO_PLAN_GROUND_POSES = new Set<DramaShotBlockingSketchPose>(["lying", "prone"]);
-// UAL1/UAL2 has no prone animation; the client safely renders that semantic
-// pose as a crouch, but auto composition should emit the supported pose
-// directly so an upper actor can never be mistaken for a supine actor.
+// UAL1/UAL2 has no dedicated prone animation; the client renders the semantic
+// ground pose explicitly, so an upper actor can never be mistaken for a supine
+// actor or silently become standing.
 const AUTO_PLAN_UPPER_POSES = new Set<DramaShotBlockingSketchPose>(["crouching", "kneeling"]);
+// “prone” is also valid for an upper actor when the structured action calls for
+// a贴地伏压姿态; the client resolves it to the visible low-posture proxy.
+const AUTO_PLAN_ON_TOP_POSES = new Set<DramaShotBlockingSketchPose>([
+  ...AUTO_PLAN_UPPER_POSES,
+  "prone",
+]);
 
 type DramaShotBlockingAutoPlanRelation = DramaShotBlockingAutoPlanOutput["relations"][number];
+
+const AUTO_PLAN_DIRECTION_PRIORITIES: Partial<Record<DramaShotBlockingAutoPlanRelation["relation"], number>> = {
+  on_top_of: 1,
+  under: 1,
+  holding: 2,
+  following: 2,
+  attacking: 3,
+  facing: 3,
+};
 
 function clampAutoPlanNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
@@ -672,7 +688,7 @@ function enforceAutoPlanOnTopOf(
 ): void {
   grounded.position = [grounded.position[0], 0, grounded.position[2]];
   if (!AUTO_PLAN_GROUND_POSES.has(grounded.pose)) grounded.pose = "lying";
-  if (!AUTO_PLAN_UPPER_POSES.has(upper.pose)) upper.pose = "crouching";
+  if (!AUTO_PLAN_ON_TOP_POSES.has(upper.pose)) upper.pose = "crouching";
 
   const dx = upper.position[0] - grounded.position[0];
   const dz = upper.position[2] - grounded.position[2];
@@ -690,6 +706,34 @@ function enforceAutoPlanOnTopOf(
     supportHeight,
     grounded.position[2] + dz * gapScale,
   ], environment);
+}
+
+interface AutoPlanDirectionConstraint {
+  subject: DramaShotBlockingSketch3DActor;
+  object: DramaShotBlockingSketch3DActor;
+  priority: number;
+  sortKey: string;
+}
+
+function resolveAutoPlanDirectionConstraint(
+  relation: DramaShotBlockingAutoPlanRelation,
+  subject: DramaShotBlockingSketch3DActor,
+  object: DramaShotBlockingSketch3DActor,
+): AutoPlanDirectionConstraint | null {
+  const priority = AUTO_PLAN_DIRECTION_PRIORITIES[relation.relation];
+  if (priority == null) return null;
+  const directionSubject = relation.relation === "under" ? object : subject;
+  const directionObject = relation.relation === "under" ? subject : object;
+  return {
+    subject: directionSubject,
+    object: directionObject,
+    priority,
+    sortKey: [
+      normalizedName(directionSubject.characterName),
+      normalizedName(directionObject.characterName),
+      relation.relation,
+    ].join("|"),
+  };
 }
 
 /**
@@ -753,6 +797,31 @@ function enforceAutoPlanRelations(
     } else if (relation.relation === "under") {
       enforceAutoPlanOnTopOf(object, subject, environment);
     }
+  }
+
+  // 关系端点是 AI 对“谁作用于谁”的结构化判断；角色 yaw 只作为无方向关系
+  // 的初始值。显式视线/动作关系优先于上下关系，多个同优先级目标用稳定键
+  // 选择，避免输出顺序让相同镜头产生不同朝向。
+  const directionBySubject = new Map<string, AutoPlanDirectionConstraint>();
+  for (const { relation, subject, object } of resolvedRelations) {
+    const constraint = resolveAutoPlanDirectionConstraint(relation, subject, object);
+    if (!constraint) continue;
+    const subjectKey = normalizedName(constraint.subject.characterName);
+    const current = directionBySubject.get(subjectKey);
+    if (
+      !current
+      || constraint.priority > current.priority
+      || (constraint.priority === current.priority && constraint.sortKey < current.sortKey)
+    ) {
+      directionBySubject.set(subjectKey, constraint);
+    }
+  }
+  for (const constraint of directionBySubject.values()) {
+    constraint.subject.yawDeg = resolveBlockingActorYawTowardTarget(
+      constraint.subject.position,
+      constraint.object.position,
+      constraint.subject.yawDeg,
+    );
   }
   for (const { relation, subject, object } of resolvedRelations) {
     enforceAutoPlanRelativeSize(subject, object, relation.sizeRelation);

@@ -26,7 +26,7 @@ import {
 } from "./blocking3dMath";
 import {
   poseSampleTimeFromTrack,
-  resolveBlocking3dPoseClip,
+  resolveBlocking3dPosePresentation,
 } from "./blocking3dPose";
 import { BLOCKING_3D_BLUE_ACTOR_COLOR } from "./materials/actorMaterialRuntime";
 import { CHARACTER_MODEL_ASSET_URLS } from "@/config/characterModelAssets";
@@ -355,32 +355,22 @@ export function setAnimationPose(
 ): void {
   const anim = actor.animEntity.anim as unknown as AnimComponent | undefined;
   if (!anim) throw new Error(`角色“${actor.label}”没有可用的动作组件。`);
-  let appliedPose = pose;
-  let clip: ReturnType<typeof resolveBlocking3dPoseClip>;
-  try {
-    clip = resolveBlocking3dPoseClip(pose, tracks.keys());
-  } catch (error) {
-    // The native smoke catalog intentionally contains a smaller, verified pose
-    // set than the legacy schema. A saved layout may still contain an old pose; normalize
-    // that actor to standing instead of aborting the entire blocking scene.
-    if (pose === "standing") throw error;
-    appliedPose = "standing";
-    clip = resolveBlocking3dPoseClip(appliedPose, tracks.keys());
-  }
-  const track = tracks.get(clip.clipName);
+  const presentation = resolveBlocking3dPosePresentation(pose, tracks.keys());
+  const track = tracks.get(presentation.clipName);
   if (!track) throw new Error(`角色“${actor.label}”的动作片段不可用。`);
-  anim.assignAnimation(clip.clipName, track, 0, 1, false);
+  actor.animEntity.setLocalEulerAngles(...presentation.modelEulerAngles);
+  anim.assignAnimation(presentation.clipName, track, 0, 1, false);
   const layer = anim.baseLayer;
   if (layer) {
-    layer.play(clip.clipName);
+    layer.play(presentation.clipName);
     layer.pause();
     layer.activeStateCurrentTime = poseSampleTimeFromTrack(
       track,
-      clip.sampleTimeRatio,
+      presentation.sampleTimeRatio,
     );
   }
   anim.playing = false;
-  actor.pose = appliedPose;
+  actor.pose = pose;
   actor.actionPlaying = false;
 }
 

@@ -78,6 +78,28 @@ export function clampBlockingActorPositionToStage(
   return [x * scale, finiteOr(position[1], 0), z * scale];
 }
 
+/**
+ * 角色的保存 yaw 约定为“局部 +Z 方向”的世界方位角：0° 朝 +Z，90° 朝 +X。
+ * 有向关系统一经过这里计算，避免各个构图阶段各自反转角度或产生 -180/180
+ * 的不稳定快照。
+ */
+export function resolveBlockingActorYawTowardTarget(
+  source: readonly [number, number, number],
+  target: readonly [number, number, number],
+  fallbackYaw = 0,
+): number {
+  const dx = finiteOr(target[0], 0) - finiteOr(source[0], 0);
+  const dz = finiteOr(target[2], 0) - finiteOr(source[2], 0);
+  if (Math.hypot(dx, dz) < 1e-9) {
+    const fallback = finiteOr(fallbackYaw, 0);
+    const wrapped = ((fallback + 180) % 360 + 360) % 360 - 180;
+    return wrapped === -180 && fallback > 0 ? 180 : wrapped;
+  }
+  const degrees = Math.atan2(dx, dz) * 180 / Math.PI;
+  const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;
+  return wrapped === -180 && degrees > 0 ? 180 : wrapped;
+}
+
 export interface BlockingCameraOrbitGeometry {
   /** Orbit azimuth in degrees around the focal point. */
   azim: number;
