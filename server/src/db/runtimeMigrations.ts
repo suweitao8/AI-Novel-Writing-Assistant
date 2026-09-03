@@ -349,8 +349,16 @@ function ensureSchemaColumnBackfills(database: Database.Database): void {
   }
 }
 
+function shouldEnsureRuntimeDatabaseReady(): boolean {
+  if (resolveAppRuntimeMode() === "desktop") {
+    return true;
+  }
+
+  return process.env.NODE_ENV?.trim().toLowerCase() !== "production";
+}
+
 export async function ensureRuntimeDatabaseReady(): Promise<void> {
-  if (resolveAppRuntimeMode() !== "desktop") {
+  if (!shouldEnsureRuntimeDatabaseReady()) {
     return;
   }
 
@@ -361,7 +369,7 @@ export async function ensureRuntimeDatabaseReady(): Promise<void> {
 
   const migrationsDir = resolveMigrationsDir();
   if (!fs.existsSync(migrationsDir)) {
-    throw new Error(`Desktop runtime migrations were not found at ${migrationsDir}.`);
+    throw new Error(`SQLite runtime migrations were not found at ${migrationsDir}.`);
   }
 
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });
