@@ -162,6 +162,39 @@ function indexExists(database: Database.Database, indexName: string): boolean {
   return result != null;
 }
 
+interface MigrationIndexExpectation {
+  indexName: string;
+  tableName: string;
+  columnNames: string[];
+  unique: boolean;
+}
+
+function hasEquivalentIndex(database: Database.Database, expectedIndex: MigrationIndexExpectation): boolean {
+  if (!tableExists(database, expectedIndex.tableName)) {
+    return false;
+  }
+
+  const indexes = database.prepare(`PRAGMA index_list("${expectedIndex.tableName}")`).all() as Array<{
+    name?: string;
+    unique?: number;
+  }>;
+
+  return indexes.some((index) => {
+    if (!index.name || Boolean(index.unique) !== expectedIndex.unique) {
+      return false;
+    }
+
+    const columns = database.prepare(`PRAGMA index_info("${index.name}")`).all() as Array<{
+      name?: string | null;
+    }>;
+    const actualColumnNames = columns
+      .map((column) => column.name)
+      .filter((column): column is string => typeof column === "string");
+
+    return expectedIndex.columnNames.every((columnName) => actualColumnNames.includes(columnName));
+  });
+}
+
 interface MigrationTableExpectation {
   tableName: string;
   columnNames: string[];
@@ -169,7 +202,7 @@ interface MigrationTableExpectation {
 
 interface MigrationExpectations {
   tables: MigrationTableExpectation[];
-  indexes: string[];
+  indexes: MigrationIndexExpectation[];
   addedColumns: Array<{ tableName: string; columnName: string }>;
 }
 
@@ -195,8 +228,15 @@ function parseMigrationExpectations(migrationSql: string): MigrationExpectations
   }
 
   const indexes = Array.from(
-    migrationSql.matchAll(/CREATE(?: UNIQUE)? INDEX(?: IF NOT EXISTS)?\s+"([^"]+)"/g),
-  ).map((match) => match[1]);
+    migrationSql.matchAll(
+      /CREATE( UNIQUE)? INDEX(?: IF NOT EXISTS)?\s+"([^"]+)"\s+ON\s+"([^"]+)"\s*\(([^)]+)\)/g,
+    ),
+  ).map((match) => ({
+    indexName: match[2],
+    tableName: renameMap.get(match[3]) ?? match[3],
+    columnNames: Array.from(match[4].matchAll(/"([^"]+)"/g)).map((columnMatch) => columnMatch[1]),
+    unique: match[1] != null,
+  }));
 
   const addedColumns = Array.from(
     migrationSql.matchAll(/ALTER TABLE\s+"([^"]+)"\s+ADD COLUMN\s+"([^"]+)"/g),
@@ -275,7 +315,8 @@ function isMigrationAlreadySatisfied(database: Database.Database, migrationSql: 
   const tablesSatisfied = expectations.tables.every((table) =>
     tableExists(database, table.tableName)
     && table.columnNames.every((columnName) => columnExists(database, table.tableName, columnName)));
-  const indexesSatisfied = expectations.indexes.every((indexName) => indexExists(database, indexName));
+  const indexesSatisfied = expectations.indexes.every((index) =>
+    indexExists(database, index.indexName) || hasEquivalentIndex(database, index));
   const columnsSatisfied = expectations.addedColumns.every((column) =>
     columnExists(database, column.tableName, column.columnName));
 
@@ -349,8 +390,16 @@ function ensureSchemaColumnBackfills(database: Database.Database): void {
   }
 }
 
+function shouldEnsureRuntimeDatabaseReady(): boolean {
+  if (resolveAppRuntimeMode() === "desktop") {
+    return true;
+  }
+
+  return process.env.NODE_ENV?.trim().toLowerCase() !== "production";
+}
+
 export async function ensureRuntimeDatabaseReady(): Promise<void> {
-  if (resolveAppRuntimeMode() !== "desktop") {
+  if (!shouldEnsureRuntimeDatabaseReady()) {
     return;
   }
 
@@ -361,7 +410,7 @@ export async function ensureRuntimeDatabaseReady(): Promise<void> {
 
   const migrationsDir = resolveMigrationsDir();
   if (!fs.existsSync(migrationsDir)) {
-    throw new Error(`Desktop runtime migrations were not found at ${migrationsDir}.`);
+    throw new Error(`SQLite runtime migrations were not found at ${migrationsDir}.`);
   }
 
   fs.mkdirSync(path.dirname(databasePath), { recursive: true });

@@ -99,6 +99,7 @@ function createSatisfiedBookAnalysisSourceCacheSchema(database) {
       "model" TEXT NOT NULL,
       "temperature" REAL NOT NULL,
       "notesMaxTokens" INTEGER NOT NULL,
+      "sourceScopeKey" TEXT NOT NULL DEFAULT 'full',
       "segmentVersion" INTEGER NOT NULL DEFAULT 1,
       "segmentCount" INTEGER NOT NULL,
       "notesJson" TEXT NOT NULL,
@@ -106,8 +107,8 @@ function createSatisfiedBookAnalysisSourceCacheSchema(database) {
       "updatedAt" DATETIME NOT NULL
     );
 
-    CREATE UNIQUE INDEX "BookAnalysisSourceCache_documentVersionId_provider_model_temperature_notesMaxTokens_segmentVersion_key"
-    ON "BookAnalysisSourceCache"("documentVersionId", "provider", "model", "temperature", "notesMaxTokens", "segmentVersion");
+    CREATE UNIQUE INDEX "BookAnalysisSourceCache_documentVersionId_sourceScopeKey_provider_model_temperature_notesMaxTokens_segmentVersion_key"
+    ON "BookAnalysisSourceCache"("documentVersionId", "sourceScopeKey", "provider", "model", "temperature", "notesMaxTokens", "segmentVersion");
 
     CREATE INDEX "BookAnalysisSourceCache_documentVersionId_updatedAt_idx"
     ON "BookAnalysisSourceCache"("documentVersionId", "updatedAt");
@@ -137,10 +138,109 @@ function withDesktopRuntime(databasePath, run) {
     });
 }
 
+function withRuntime({ runtime, nodeEnv, databaseUrl }, run) {
+  const previousRuntime = process.env.AI_NOVEL_RUNTIME;
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousDatabaseUrl = process.env.DATABASE_URL;
+  process.env.AI_NOVEL_RUNTIME = runtime;
+  process.env.NODE_ENV = nodeEnv;
+  if (databaseUrl == null) {
+    delete process.env.DATABASE_URL;
+  } else {
+    process.env.DATABASE_URL = databaseUrl;
+  }
+
+  return Promise.resolve()
+    .then(run)
+    .finally(() => {
+      if (previousRuntime == null) {
+        delete process.env.AI_NOVEL_RUNTIME;
+      } else {
+        process.env.AI_NOVEL_RUNTIME = previousRuntime;
+      }
+
+      if (previousNodeEnv == null) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = previousNodeEnv;
+      }
+
+      if (previousDatabaseUrl == null) {
+        delete process.env.DATABASE_URL;
+      } else {
+        process.env.DATABASE_URL = previousDatabaseUrl;
+      }
+    });
+}
+
+function withWebDevelopmentRuntime(databasePath, run) {
+  return withRuntime({
+    runtime: "web",
+    nodeEnv: "development",
+    databaseUrl: `file:${databasePath}`,
+  }, run);
+}
+
+function withWebProductionRuntime(databasePath, run) {
+  return withRuntime({
+    runtime: "web",
+    nodeEnv: "production",
+    databaseUrl: `file:${databasePath}`,
+  }, run);
+}
+
+function withWebDevelopmentPostgres(run) {
+  return withRuntime({
+    runtime: "web",
+    nodeEnv: "development",
+    databaseUrl: "postgresql://postgres:postgres@127.0.0.1:5432/ai_novel",
+  }, run);
+}
+
 function createTempDatabaseFile() {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "ai-novel-runtime-migrations-"));
   const databasePath = path.join(tempDir, "runtime-migrations.db");
   return { tempDir, databasePath };
+}
+
+function createLegacyCharacterModelSchema(database) {
+  database.exec(`
+    CREATE TABLE "Novel" (
+      "id" TEXT NOT NULL PRIMARY KEY
+    );
+
+    CREATE TABLE "Character" (
+      "id" TEXT NOT NULL PRIMARY KEY,
+      "name" TEXT
+    );
+
+    CREATE TABLE "CharacterCastOptionMember" (
+      "id" TEXT NOT NULL PRIMARY KEY
+    );
+  `);
+  database.prepare(`INSERT INTO "Character" ("id", "name") VALUES (?, ?)`).run(
+    "legacy-character",
+    "旧角色",
+  );
+
+  const characterModelMigration = "20260903090000_character_model_profile";
+  for (const migrationName of allMigrationNames) {
+    if (migrationName !== characterModelMigration) {
+      insertMigrationRecord(database, migrationName);
+    }
+  }
+}
+
+function createLegacySchemaWithoutMigrationHistory(database) {
+  const lastLegacyMigration = "20260826100000_character_height_profile";
+  for (const migrationName of allMigrationNames) {
+    if (migrationName > lastLegacyMigration) {
+      break;
+    }
+
+    const migrationSql = fs.readFileSync(path.join(migrationsDir, migrationName, "migration.sql"), "utf8");
+    database.exec(migrationSql);
+  }
 }
 
 test("ensureRuntimeDatabaseReady finishes a pending migration record when schema already exists", async () => {
@@ -267,4 +367,131 @@ test("ensureRuntimeDatabaseReady creates the novel fact ledger for existing desk
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true });
   }
+});
+
+test("ensureRuntimeDatabaseReady repairs character model fields for web development SQLite databases", async () => {
+  const { tempDir, databasePath } = createTempDatabaseFile();
+  const database = new Database(databasePath);
+
+  try {
+    createMigrationTable(database);
+    createLegacyCharacterModelSchema(database);
+  } finally {
+    database.close();
+  }
+
+  try {
+    await withWebDevelopmentRuntime(databasePath, async () => {
+      await ensureRuntimeDatabaseReady();
+      await ensureRuntimeDatabaseReady();
+    });
+
+    const verifyDb = new Database(databasePath, { readonly: true });
+    try {
+      const columns = verifyDb.prepare(`PRAGMA table_info("Character")`).all();
+      assert.ok(columns.some((column) => column.name === "actorKind"));
+      assert.ok(columns.some((column) => column.name === "bodyBuild"));
+
+      const character = verifyDb.prepare(
+        `SELECT "actorKind", "bodyBuild" FROM "Character" WHERE "id" = ?`,
+      ).get("legacy-character");
+      assert.deepEqual(character, {
+        actorKind: "human",
+        bodyBuild: "unknown",
+      });
+
+      const migrationRow = verifyDb.prepare(
+        `SELECT finished_at, applied_steps_count
+         FROM "_prisma_migrations"
+         WHERE migration_name = ?
+           AND rolled_back_at IS NULL
+           AND finished_at IS NOT NULL`,
+      ).get("20260903090000_character_model_profile");
+      assert.ok(migrationRow);
+      assert.equal(migrationRow.applied_steps_count, 1);
+    } finally {
+      verifyDb.close();
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("ensureRuntimeDatabaseReady bootstraps a legacy SQLite database without migration history", async () => {
+  const { tempDir, databasePath } = createTempDatabaseFile();
+  const database = new Database(databasePath);
+
+  try {
+    createLegacySchemaWithoutMigrationHistory(database);
+  } finally {
+    database.close();
+  }
+
+  try {
+    await withWebDevelopmentRuntime(databasePath, () => ensureRuntimeDatabaseReady());
+
+    const verifyDb = new Database(databasePath, { readonly: true });
+    try {
+      const columns = verifyDb.prepare(`PRAGMA table_info("Character")`).all();
+      assert.ok(columns.some((column) => column.name === "actorKind"));
+      assert.ok(columns.some((column) => column.name === "bodyBuild"));
+
+      const migrationRow = verifyDb.prepare(
+        `SELECT finished_at, applied_steps_count
+         FROM "_prisma_migrations"
+         WHERE migration_name = ?
+           AND rolled_back_at IS NULL
+           AND finished_at IS NOT NULL`,
+      ).get("20260903090000_character_model_profile");
+      assert.ok(migrationRow);
+      assert.equal(migrationRow.applied_steps_count, 1);
+    } finally {
+      verifyDb.close();
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("ensureRuntimeDatabaseReady does not mutate production web SQLite databases", async () => {
+  const { tempDir, databasePath } = createTempDatabaseFile();
+  const database = new Database(databasePath);
+
+  try {
+    database.exec(`
+      CREATE TABLE "Novel" (
+        "id" TEXT NOT NULL PRIMARY KEY
+      );
+
+      CREATE TABLE "Character" (
+        "id" TEXT NOT NULL PRIMARY KEY
+      );
+    `);
+  } finally {
+    database.close();
+  }
+
+  try {
+    await withWebProductionRuntime(databasePath, () => ensureRuntimeDatabaseReady());
+
+    const verifyDb = new Database(databasePath, { readonly: true });
+    try {
+      const migrationTable = verifyDb.prepare(
+        `SELECT name FROM sqlite_master WHERE type = 'table' AND name = '_prisma_migrations'`,
+      ).get();
+      assert.equal(migrationTable, undefined);
+      const actorKindColumn = verifyDb.prepare(
+        `SELECT name FROM pragma_table_info('Character') WHERE name = 'actorKind'`,
+      ).get();
+      assert.equal(actorKindColumn, undefined);
+    } finally {
+      verifyDb.close();
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("ensureRuntimeDatabaseReady does not enter SQLite migration mode for web PostgreSQL", async () => {
+  await withWebDevelopmentPostgres(() => ensureRuntimeDatabaseReady());
 });
