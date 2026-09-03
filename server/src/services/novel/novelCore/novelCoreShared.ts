@@ -1,4 +1,5 @@
 import type { BookAnalysisSectionKey } from "@ai-novel/shared/types/bookAnalysis";
+import type { CharacterActorKind, CharacterBodyBuild } from "@ai-novel/shared/types/characterModelProfile";
 import type { LLMProvider } from "@ai-novel/shared/types/llm";
 import type { QualityScore, ReviewIssue } from "@ai-novel/shared/types/novel";
 import { parseCommercialTagsJson } from "@ai-novel/shared/types/novelFraming";
@@ -117,6 +118,8 @@ export interface CharacterInput {
   name: string;
   role: string;
   gender?: "male" | "female" | "other" | "unknown";
+  actorKind?: CharacterActorKind;
+  bodyBuild?: CharacterBodyBuild;
   castRole?: string;
   storyFunction?: string;
   relationToProtagonist?: string;

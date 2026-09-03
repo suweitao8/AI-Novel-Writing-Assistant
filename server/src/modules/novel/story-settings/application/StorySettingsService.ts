@@ -168,6 +168,8 @@ export interface StorySettingsCharacter {
   name: string;
   role: string;
   gender: string | null;
+  actorKind: string | null;
+  bodyBuild: string | null;
   /** 别名/昵称（如 哥哥、晨哥）——解析与匹配按别名归一到本名。 */
   aliases: string[];
   ageGroup: string | null;
@@ -979,6 +981,8 @@ export class StorySettingsService {
         name: true,
         role: true,
         gender: true,
+        actorKind: true,
+        bodyBuild: true,
         ageGroup: true,
         physique: true,
         attireStyle: true,
@@ -1029,6 +1033,8 @@ export class StorySettingsService {
     /** 剧情定位已不在表单/提取里维护（2026-08-21）；DB 列保留，AI 生成设定包仍会填。 */
     role?: string;
     gender?: string | null;
+    actorKind?: string | null;
+    bodyBuild?: string | null;
     ageGroup?: string | null;
     physique?: string | null;
     attireStyle?: string | null;
@@ -1060,6 +1066,8 @@ export class StorySettingsService {
         name: input.name,
         role: input.role ?? "",
         gender: normalizeCharacterGender(input.gender),
+        actorKind: input.actorKind ?? "human",
+        bodyBuild: input.bodyBuild ?? "unknown",
         ageGroup: normalizeCharacterAgeGroup(input.ageGroup),
         physique: input.physique ?? null,
         attireStyle: input.attireStyle ?? null,
@@ -1080,6 +1088,8 @@ export class StorySettingsService {
     name?: string;
     role?: string;
     gender?: string | null;
+    actorKind?: string | null;
+    bodyBuild?: string | null;
     ageGroup?: string | null;
     physique?: string | null;
     attireStyle?: string | null;
@@ -1129,6 +1139,8 @@ export class StorySettingsService {
           ...(input.name !== undefined ? { name: input.name } : {}),
           ...(input.role !== undefined ? { role: input.role } : {}),
           ...(input.gender !== undefined ? { gender: normalizeCharacterGender(input.gender) } : {}),
+          ...(input.actorKind !== undefined ? { actorKind: input.actorKind ?? "human" } : {}),
+          ...(input.bodyBuild !== undefined ? { bodyBuild: input.bodyBuild ?? "unknown" } : {}),
           ...(input.ageGroup !== undefined ? { ageGroup: normalizeCharacterAgeGroup(input.ageGroup) } : {}),
           ...(input.physique !== undefined ? { physique: input.physique } : {}),
           ...(input.attireStyle !== undefined ? { attireStyle: input.attireStyle } : {}),

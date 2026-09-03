@@ -4,6 +4,10 @@ import type {
   CharacterGender,
   SupplementalCharacterGenerationMode,
 } from "@ai-novel/shared/types/novel";
+import type {
+  CharacterActorKind,
+  CharacterBodyBuild,
+} from "@ai-novel/shared/types/characterModelProfile";
 import { llmProviderSchema } from "../../../../llm/providerSchema";
 
 const nonEmptyString = z.string().trim().min(1);
@@ -26,6 +30,20 @@ export const CHARACTER_GENDER_VALUES = [
   "unknown",
 ] as const satisfies CharacterGender[];
 
+export const CHARACTER_ACTOR_KIND_VALUES = [
+  "human",
+  "monster",
+  "other",
+  "unknown",
+] as const satisfies CharacterActorKind[];
+
+export const CHARACTER_BODY_BUILD_VALUES = [
+  "slender",
+  "standard",
+  "broad",
+  "unknown",
+] as const satisfies CharacterBodyBuild[];
+
 const SUPPLEMENTAL_CHARACTER_GENERATION_MODE_VALUES = [
   "linked",
   "independent",
@@ -34,6 +52,8 @@ const SUPPLEMENTAL_CHARACTER_GENERATION_MODE_VALUES = [
 
 const characterCastRoleEnum = z.enum(CHARACTER_CAST_ROLE_VALUES);
 const characterGenderEnum = z.enum(CHARACTER_GENDER_VALUES);
+const characterActorKindEnum = z.enum(CHARACTER_ACTOR_KIND_VALUES);
+const characterBodyBuildEnum = z.enum(CHARACTER_BODY_BUILD_VALUES);
 const supplementalCharacterGenerationModeEnum = z.enum(SUPPLEMENTAL_CHARACTER_GENERATION_MODE_VALUES);
 const characterProhibitionsSchema = z.array(z.string().trim().min(1)).max(8).optional().default([]);
 
@@ -123,6 +143,8 @@ export const characterCastOptionMemberSchema = z.object({
   name: nonEmptyString,
   role: nonEmptyString,
   gender: characterGenderSchema,
+  actorKind: characterActorKindEnum.optional().default("human"),
+  bodyBuild: characterBodyBuildEnum.optional().default("unknown"),
   castRole: characterCastRoleSchema,
   relationToProtagonist: z.string().trim().optional().default(""),
   storyFunction: nonEmptyString,
@@ -202,6 +224,8 @@ export const supplementalCharacterCandidateSchema = z.object({
   name: nonEmptyString,
   role: nonEmptyString,
   gender: characterGenderSchema,
+  actorKind: characterActorKindEnum.optional().default("human"),
+  bodyBuild: characterBodyBuildEnum.optional().default("unknown"),
   castRole: characterCastRoleSchema,
   summary: nonEmptyString,
   storyFunction: nonEmptyString,
