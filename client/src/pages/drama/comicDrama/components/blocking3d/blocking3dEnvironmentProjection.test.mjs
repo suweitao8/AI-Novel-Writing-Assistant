@@ -3,7 +3,9 @@ import test from "node:test";
 
 import {
   PROJECTED_HDRI_FRAGMENT_GLSL,
+  projectEquirectangularGroundPlane,
   projectEquirectangularDirection,
+  projectEquirectangularSurface,
 } from "./blocking3dEnvironmentProjection.ts";
 import { rotateHdriLightDirectionAzimuth } from "./blocking3dEnvironmentLighting.ts";
 
@@ -40,6 +42,56 @@ test("HDRI 投影着色器绑定可调全景地面分界 uniform，并直接采�
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uHdriAzimuthOffsetDegrees/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /-uHdriAzimuthOffsetDegrees/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
+});
+
+test("地面平面采样按世界 XZ 铺开，不让地面纹理围绕投射中心汇聚", () => {
+  const center = projectEquirectangularGroundPlane([0, 0, 0], 10);
+  const left = projectEquirectangularGroundPlane([-2, 0, 0], 10);
+  const right = projectEquirectangularGroundPlane([2, 0, 0], 10);
+  const forward = projectEquirectangularGroundPlane([0, 0, 2], 10);
+  const diagonal = projectEquirectangularGroundPlane([2, 0, 2], 10);
+
+  assert.equal(center.u, 0.5);
+  assert.ok(Math.abs(right.u - left.u - 0.2) < 1e-10);
+  assert.ok(Math.abs(diagonal.u - right.u) < 1e-10);
+  assert.notEqual(forward.v, center.v);
+  assert.ok(forward.v >= 0.52 && forward.v <= 0.98);
+});
+
+test("平面地面从中心铺到平坦边界，并在外圈连续退出", () => {
+  const center = projectEquirectangularSurface([0, 0, 0], 2, 7.5);
+  const inner = projectEquirectangularSurface([7.5 * 0.85, 0, 0], 2, 7.5);
+  const outer = projectEquirectangularSurface([7.5, 0, 0], 2, 7.5);
+
+  assert.equal(center.groundPlanarBlend, 1);
+  assert.ok(inner.groundPlanarBlend > 0 && inner.groundPlanarBlend < 1);
+  assert.equal(outer.groundPlanarBlend, 0);
+  assert.ok(center.v >= 0.52 && center.v <= 0.98);
+});
+
+test("上半球和稳定区外仍然使用原始方向投影", () => {
+  const upper = projectEquirectangularSurface([0, 4, 0], 2, 7.5);
+  const rawUpper = projectEquirectangularDirection([0, 2, 0]);
+  const outerGround = projectEquirectangularSurface([7.5, 0, 0], 2, 7.5);
+  const rawGround = projectEquirectangularDirection([7.5, -2, 0]);
+
+  assert.equal(upper.groundPlanarBlend, 0);
+  assert.deepEqual(upper, { ...rawUpper, groundPlanarBlend: 0 });
+  assert.equal(outerGround.groundPlanarBlend, 0);
+  assert.deepEqual(outerGround, { ...rawGround, groundPlanarBlend: 0 });
+});
+
+test("投影着色器只让平坦地面使用平面采样，并保持外圈原始方向采样", () => {
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uProjectionRadiusMeters/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /flatGroundProgress/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarBlend/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /sourceGroundXZ/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarU/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarV/);
+  assert.doesNotMatch(PROJECTED_HDRI_FRAGMENT_GLSL, /groundCenterProgress|stablePanoramaU|stablePanoramaV/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /fract\(/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
+  assert.doesNotMatch(PROJECTED_HDRI_FRAGMENT_GLSL, /samplerCube|textureCube/);
 });
 
 test("可见 HDRI 保留原始地面像素，避免立方体底部重投影造成放射状拉伸", () => {

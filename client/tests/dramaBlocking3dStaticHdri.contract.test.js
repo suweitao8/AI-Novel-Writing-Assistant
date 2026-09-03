@@ -144,18 +144,26 @@ test("HDRI 环境提供投射中心、高度、圆半径和可调地面分界", 
   assert.match(viewerSource, /intensity: 1/);
   assert.match(viewerSource, /texture\.anisotropy/);
   assert.match(viewerSource, /updateProjectedHdriMaterial/);
+  assert.match(viewerSource, /projectionRadiusMeters: environmentSettings\.radiusMeters/);
   assert.match(viewerSource, /getEnvironmentSettings/);
   assert.match(viewerSource, /setEnvironmentSettings/);
 });
 
-test("普通场景图地面使用连续半球曲面，并由投影材质按世界坐标采样", () => {
+test("普通场景图地面使用连续半球曲面，并将平坦地面按世界平面采样", () => {
   assert.match(environmentSource, /projectionCenterHeight/);
   assert.match(environmentSource, /createBackdropGeometryData\s*\(/);
   assert.match(environmentSource, /const edgeHeight/);
   assert.match(environmentProjectionSource, /projectionToSurface/);
   assert.match(environmentProjectionSource, /projectionDirection/);
   assert.match(environmentProjectionSource, /uProjectionCenterHeight/);
+  assert.match(environmentProjectionSource, /uProjectionRadiusMeters/);
   assert.match(environmentProjectionSource, /uPanoramaHorizonV/);
+  assert.match(environmentProjectionSource, /flatGroundProgress/);
+  assert.match(environmentProjectionSource, /groundPlanarBlend/);
+  assert.match(environmentProjectionSource, /sourceGroundXZ/);
+  assert.match(environmentProjectionSource, /groundPlanarU/);
+  assert.match(environmentProjectionSource, /groundPlanarV/);
+  assert.doesNotMatch(environmentProjectionSource, /groundCenterProgress|stablePanoramaU|stablePanoramaV/);
   assert.match(environmentProjectionSource, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
   assert.doesNotMatch(environmentSource, /Math\.max\(projectionCenterHeight - worldY, 0\)/);
   assert.doesNotMatch(environmentSource, /x \* x \+ z \* z < 0\.95 \* 0\.95/);

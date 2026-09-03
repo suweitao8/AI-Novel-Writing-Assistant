@@ -18,6 +18,7 @@ import {
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_QUARANTINED_ASSETS,
   CINE57_QUARANTINED_MODEL_IDS,
+  CINE57_REJECTED_FOREGROUND_MODEL_IDS,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
   assertCine57ModelLibraryContract,
@@ -163,6 +164,21 @@ test("GLB inspection exposes embedded base-color image dimensions", () => {
   }]);
 });
 
+test("真实斧头 GLB 暴露缺失颜色贴图的 1×1 占位证据", () => {
+  const axeFileName = "SM_Axe_Black_01.glb";
+  assert.equal(fs.existsSync(path.join(MODELS_DIR, axeFileName)), true);
+  const inspection = inspectGlb(fs.readFileSync(path.join(MODELS_DIR, axeFileName)));
+  assert.deepEqual(
+    inspection.materials.find((material) => material.name === "MI_Axe_Black_01")?.baseColorTexture,
+    {
+      embedded: true,
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+    },
+  );
+});
+
 test("Cine57 目录只发布前景交互资产，其他来源的角色入口独立计数", () => {
   assert.ok(STATIC_MODEL_LIBRARY.length >= CINE57_MINIMUM_MODEL_COUNT, `expected expanded library, found ${STATIC_MODEL_LIBRARY.length}`);
   assert.equal(MODEL_LIBRARY.length - STATIC_MODEL_LIBRARY.length, 1);
@@ -185,6 +201,17 @@ test("材质不完整的模型只保留在可恢复隔离清单中", () => {
     assert.equal(publishedIds.has(asset.id), false, `${asset.id} must not be published`);
     assert.equal(publishedFiles.has(asset.fileName), false, `${asset.fileName} must not be published`);
     assert.equal(fs.existsSync(path.join(MODELS_DIR, asset.fileName)), true, `${asset.fileName} must be recoverable`);
+  }
+});
+
+test("每个当前模型和前景拒绝项都有可追溯的导入历史结论", () => {
+  const history = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "model-library-import-history.json"), "utf8"));
+  const byCatalogId = new Map(history.entries.map((entry) => [entry.evidence?.catalogId, entry]));
+  for (const entry of STATIC_MODEL_LIBRARY) {
+    assert.equal(byCatalogId.get(entry.id)?.status, "approved", `${entry.id} must have an approved history record`);
+  }
+  for (const id of CINE57_REJECTED_FOREGROUND_MODEL_IDS) {
+    assert.equal(byCatalogId.get(id)?.status, "rejected", `${id} must have a rejected history record`);
   }
 });
 
@@ -254,13 +281,13 @@ test("模型库质量门禁汇总所有违规", () => {
 
 test("模型库质量门禁拒绝无法解析到模型目录内的贴图路径", () => {
   const libraryWithExternalTexture = MODEL_LIBRARY.map((entry) => (
-    entry.id === "grass-02-a-1"
+    entry.id === "crop-arugula-01a"
       ? {
         ...entry,
         materials: {
-          MI_grass_02: {
-            ...entry.materials.MI_grass_02,
-            baseColor: "https://example.invalid/grass.png",
+          MI_Arugula_Leafs: {
+            ...entry.materials.MI_Arugula_Leafs,
+            baseColor: "https://example.invalid/arugula.png",
           },
         },
       }
@@ -268,7 +295,7 @@ test("模型库质量门禁拒绝无法解析到模型目录内的贴图路径",
   ));
   const errors = validateModelLibrary({ library: libraryWithExternalTexture, modelsDir: MODELS_DIR });
   assert.ok(errors.includes(
-    "grass-02-a-1 MI_grass_02 baseColor texture is missing: https://example.invalid/grass.png",
+    "crop-arugula-01a MI_Arugula_Leafs baseColor texture is missing: https://example.invalid/arugula.png",
   ));
 });
 

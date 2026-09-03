@@ -46,11 +46,367 @@
  ],
  "minimumEntryCount": 64,
  "maxFoodContainerEntries": 2,
+ "foregroundAdmission": {
+  "minimumDimensionMeters": 0.1,
+  "maximumDimensionMeters": 5,
+  "rejectedAssets": [
+   {
+    "id": "debris-dust-01",
+    "meshName": "SM_debris_dust_1",
+    "fileName": "SM_debris_dust_1.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-dust-03",
+    "meshName": "SM_debris_dust_3",
+    "fileName": "SM_debris_dust_3.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-dust-05",
+    "meshName": "SM_debris_dust_5",
+    "fileName": "SM_debris_dust_5.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "积尘碎屑堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-gravel-01",
+    "meshName": "SM_debris_gravel_1",
+    "fileName": "SM_debris_gravel_1.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "碎石瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "debris-gravel-03",
+    "meshName": "SM_debris_gravel_3",
+    "fileName": "SM_debris_gravel_3.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "碎石瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02a",
+    "meshName": "SM_Debris_Pile_02a",
+    "fileName": "SM_Debris_Pile_02a.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02c",
+    "meshName": "SM_Debris_Pile_02c",
+    "fileName": "SM_Debris_Pile_02c.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02f",
+    "meshName": "SM_Debris_Pile_02f",
+    "fileName": "SM_Debris_Pile_02f.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "trash-debris-pile-02i",
+    "meshName": "SM_Debris_Pile_02i",
+    "fileName": "SM_Debris_Pile_02i.glb",
+    "reasonCode": "ground-scatter",
+    "failureStage": "semantic",
+    "reason": "瓦砾堆属于地面散布物，不作为可摆放的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-02-a-1",
+    "meshName": "SM_grass_02_A_1",
+    "fileName": "SM_grass_02_A_1.glb",
+    "reasonCode": "foliage-scatter",
+    "failureStage": "semantic",
+    "reason": "单片草丛是地面散布物，不作为可复用的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-tuft-a",
+    "meshName": "SM_Grass_a",
+    "fileName": "SM_Grass_a.glb",
+    "reasonCode": "broken-preview",
+    "failureStage": "preview",
+    "reason": "草叶详情预览存在透明材质异常，不满足可用前景预览要求",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "grass-bunch-01",
+    "meshName": "SM_Bunch_of_Grass_0",
+    "fileName": "SM_Bunch_of_Grass_0.glb",
+    "reasonCode": "foliage-scatter",
+    "failureStage": "semantic",
+    "reason": "草捆属于地面散布物，不作为可复用的前景资产",
+    "evidence": "foreground-curation-2026-09-03"
+   },
+   {
+    "id": "battery-01",
+    "meshName": "SM_Battery_01",
+    "fileName": "SM_Battery_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "bulb-01",
+    "meshName": "SM_Bulb_01",
+    "fileName": "SM_Bulb_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "cigarette-01",
+    "meshName": "SM_Cigarette_01",
+    "fileName": "SM_Cigarette_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "pill-bottle-01c",
+    "meshName": "SM_PillBottle_01c",
+    "fileName": "SM_PillBottle_01c.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "office-stationary-01ab",
+    "meshName": "SM_Office_Stationary_01ab",
+    "fileName": "SM_Office_Stationary_01ab.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "office-stationary-01ac",
+    "meshName": "SM_Office_Stationary_01ac",
+    "fileName": "SM_Office_Stationary_01ac.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "stationary-set-02ab",
+    "meshName": "SM_Stationary_Set_02ab",
+    "fileName": "SM_Stationary_Set_02ab.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "candle-set-01a",
+    "meshName": "SM_Candle_Set_01a",
+    "fileName": "SM_Candle_Set_01a.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "stone-01",
+    "meshName": "SM_stone_01",
+    "fileName": "SM_stone_01.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "baseball",
+    "meshName": "SM_Baseball",
+    "fileName": "SM_Baseball.glb",
+    "reasonCode": "too-small",
+    "failureStage": "geometry",
+    "reason": "模型最大世界空间尺寸小于 0.1 米，放入场景后难以看清",
+    "evidence": "geometry-audit-2026-09-03"
+   },
+   {
+    "id": "bin",
+    "meshName": "SM_Bin",
+    "fileName": "SM_Bin.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "bottle-01",
+    "meshName": "SM_Bottle_01",
+    "fileName": "SM_Bottle_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "bucket-01",
+    "meshName": "SM_Bucket_01",
+    "fileName": "SM_Bucket_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "asian-sack-01a",
+    "meshName": "SM_Acc2Group_bag1",
+    "fileName": "SM_Acc2Group_bag1.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "asian-sack-01b",
+    "meshName": "SM_Acc2Group_bag3",
+    "fileName": "SM_Acc2Group_bag3.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "asian-bread-01",
+    "meshName": "SM_Bread_01",
+    "fileName": "SM_Bread_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "binocular-01",
+    "meshName": "SM_Binocular_01",
+    "fileName": "SM_Binocular_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "wooden-board-01",
+    "meshName": "SM_Board_01",
+    "fileName": "SM_Board_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "book-single",
+    "meshName": "SM_Book",
+    "fileName": "SM_Book.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "baseball-bat-metal",
+    "meshName": "SM_BaseballBat_Metal",
+    "fileName": "SM_BaseballBat_Metal.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "baseball-bat-wood",
+    "meshName": "SM_BaseballBat_Wood",
+    "fileName": "SM_BaseballBat_Wood.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "basketball-hoop",
+    "meshName": "SM_BasketBallHoop",
+    "fileName": "SM_BasketBallHoop.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "asian-pottery-01",
+    "meshName": "SM_Acc2Group_pueblos_pottery1",
+    "fileName": "SM_Acc2Group_pueblos_pottery1.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "soviet-caged-lamp-01",
+    "meshName": "SM_CagedLamp",
+    "fileName": "SM_CagedLamp.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "axe-01",
+    "meshName": "SM_Axe_Black_01",
+    "fileName": "SM_Axe_Black_01.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "wooden-canoe-01",
+    "meshName": "SM_Boat_Wooden_Canoe_with_Paddle",
+    "fileName": "SM_Boat_Wooden_Canoe_with_Paddle.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   },
+   {
+    "id": "asian-flag-01",
+    "meshName": "SM_Flag3",
+    "fileName": "SM_Flag3.glb",
+    "reasonCode": "missing-base-color-texture",
+    "failureStage": "texture",
+    "reason": "GLB 材质只有 1×1 Base Color 占位图，未找到可用的真实颜色贴图，模型会以灰模呈现",
+    "evidence": "model-texture-audit-2026-09-03"
+   }
+  ]
+ },
  "requiredCategories": [
   "石头",
   "灌木",
   "树木",
-  "草",
   "花",
   "盆栽",
   "玩具/装饰品",

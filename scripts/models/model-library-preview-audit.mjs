@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -33,8 +34,28 @@ function validateDate(value, label, errors) {
   }
 }
 
+function validateScreenshotArtifact(entry, screenshotArtifactsRoot, errors) {
+  if (!screenshotArtifactsRoot) return;
+  const id = entry?.id ?? "<missing id>";
+  const relativePath = String(entry?.screenshotPath ?? "").replaceAll("\\", "/");
+  const root = path.resolve(screenshotArtifactsRoot);
+  const filePath = path.resolve(root, relativePath);
+  if (filePath !== root && !filePath.startsWith(`${root}${path.sep}`)) {
+    errors.push(`${id} screenshot evidence path is outside the staged artifact root`);
+    return;
+  }
+  if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) {
+    errors.push(`${id} screenshot artifact is missing: ${relativePath}`);
+    return;
+  }
+  const actualHash = createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+  if (actualHash !== entry.screenshotSha256) {
+    errors.push(`${id} screenshot artifact hash does not match screenshotSha256`);
+  }
+}
+
 /** Validate one browser-produced detail-page preview record. */
-export function validatePreviewAuditEntry(entry, { expectedAssetSha256 } = {}) {
+export function validatePreviewAuditEntry(entry, { expectedAssetSha256, screenshotArtifactsRoot } = {}) {
   const errors = [];
   if (!entry || typeof entry !== "object") return ["preview audit entry is not an object"];
   const id = isNonEmptyString(entry.id) ? entry.id : "<missing id>";
@@ -83,6 +104,7 @@ export function validatePreviewAuditEntry(entry, { expectedAssetSha256 } = {}) {
   if (!Array.isArray(entry.failedRequests)) errors.push(`${id} preview failedRequests must be an array`);
   else if (entry.failedRequests.length > 0) errors.push(`${id} preview has failed resource requests`);
   if (entry.reviewStatus !== "approved") errors.push(`${id} preview review is not approved: ${entry.reviewStatus}`);
+  validateScreenshotArtifact(entry, screenshotArtifactsRoot, errors);
   return errors;
 }
 
@@ -93,7 +115,12 @@ function publishedStaticEntries(library) {
 }
 
 /** Validate browser evidence coverage and current asset hashes for a catalog. */
-export function validatePreviewAuditDocument({ auditDocument, library, assetSha256ById } = {}) {
+export function validatePreviewAuditDocument({
+  auditDocument,
+  library,
+  assetSha256ById,
+  screenshotArtifactsRoot,
+} = {}) {
   const errors = [];
   if (!auditDocument || typeof auditDocument !== "object") return ["model library preview audit document is missing"];
   if (auditDocument.version !== 1) errors.push(`model library preview audit version is unsupported: ${auditDocument.version}`);
@@ -108,7 +135,10 @@ export function validatePreviewAuditDocument({ auditDocument, library, assetSha2
     const id = entry?.id ?? "<missing id>";
     if (byId.has(id)) errors.push(`duplicate model preview audit id: ${id}`);
     byId.set(id, entry);
-    errors.push(...validatePreviewAuditEntry(entry, { expectedAssetSha256: getExpectedHash(assetSha256ById, id) }));
+    errors.push(...validatePreviewAuditEntry(entry, {
+      expectedAssetSha256: getExpectedHash(assetSha256ById, id),
+      screenshotArtifactsRoot,
+    }));
   }
 
   if (Array.isArray(library)) {
