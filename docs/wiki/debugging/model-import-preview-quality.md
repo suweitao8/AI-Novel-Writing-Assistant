@@ -19,7 +19,8 @@ Cine57 导出的 Base Color 可能是带透明通道的 RGBA PNG。草、叶片�
 - `scripts/models/modelLibraryImportAudit.mjs` 负责源 alpha 探测、透明贴图的 PNG 修复、目录映射更新和导入审计证据。
 - `scripts/models/modelLibraryTextureAudit.mjs` 校验最终贴图存在、输出格式、GLB 透明模式以及 Base Color 到 opacity 的绑定。
 - `scripts/models/model-library-preview-audit.mjs` 校验详情页路由、渲染器、画布几何状态、方形截图、资源指纹和浏览器错误；`modelLibraryQuality.mjs` 把导入审计与预览审计作为发布硬门禁。
-- 修复流程只生成新的透明输出并更新目录映射，不删除原始 JPG、源导出、GLB 或隔离记录；无法修复的候选留在可恢复的隔离范围，不进入可用目录。
+- 修复流程只生成新的透明输出并更新目录映射；不删除源导出或 GLB。已经被同源 PNG 替代的旧发布 JPG，必须先逐文件备份并校验 SHA-256，再移到仓库外可恢复隔离目录；无法修复的候选也留在该隔离范围，不进入可用目录。
+- `promisify(execFile)` 返回 `{ stdout, stderr }`，alpha 探测必须解析 `stdout`；把返回对象直接交给 `JSON.parse` 会被异常吞掉并误判为不透明。当前发布基线为 292 条 Base Color 纹理，其中 55 条保留 alpha，最终均为带 alpha 通道的 PNG；全库 484 条静态模型必须有真实详情页浏览器证据。
 
 ## Diagnosis Order
 
@@ -36,6 +37,7 @@ Cine57 导出的 Base Color 可能是带透明通道的 RGBA PNG。草、叶片�
 
 - **透明图集变成三角色板**：源 PNG 被转为 JPG，或 Base Color 的 alpha 没有映射到 opacity。
 - **探测结果为空仍然发布**：脚本把“无法确认”当成“不含 alpha”；正确行为是保守保留并阻止未验证结果。
+- **`execFile` 结果解析失败**：`promisify(execFile)` 的结果是对象而不是 JSON 文本；必须读取 `result.stdout`，并在探测失败时保守保留 PNG。
 - **卡片看起来正常但详情页异常**：卡片占位图或旧缓存掩盖了真实材质；必须以详情页三维预览为准。
 - **截图通过但资源已经变化**：截图绑定的是旧 SHA-256；哈希校验必须失败并触发重新审核。
 - **首次打开偶发无画面**：WebGL 或浏览器自动化初始化竞争属于运行时瞬态；应重新加载并确认几何状态，不能把一次基础设施超时直接判成模型损坏。

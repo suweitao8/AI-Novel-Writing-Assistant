@@ -498,7 +498,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -594,7 +594,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -1094,7 +1094,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -1131,7 +1131,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -1390,7 +1390,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -1649,7 +1649,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -2648,7 +2648,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -2685,7 +2685,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2717,7 +2717,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2749,7 +2749,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2781,7 +2781,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2813,7 +2813,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2845,7 +2845,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2877,7 +2877,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2909,7 +2909,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2941,7 +2941,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -2973,7 +2973,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3005,7 +3005,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3037,7 +3037,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3069,7 +3069,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3101,7 +3101,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3133,7 +3133,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3165,7 +3165,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3197,7 +3197,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3229,7 +3229,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3261,7 +3261,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3293,7 +3293,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3325,7 +3325,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3357,7 +3357,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3389,7 +3389,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3421,7 +3421,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3453,7 +3453,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3485,7 +3485,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3517,7 +3517,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3549,7 +3549,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -3581,7 +3581,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4157,7 +4157,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4189,7 +4189,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4221,7 +4221,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4253,7 +4253,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4285,7 +4285,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4317,7 +4317,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4349,7 +4349,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -4381,7 +4381,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -5217,7 +5217,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
@@ -6420,7 +6420,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -6460,7 +6460,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -6700,7 +6700,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -6780,7 +6780,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -6940,7 +6940,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -6981,7 +6981,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -7104,7 +7104,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -7360,7 +7360,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -7405,7 +7405,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -7643,7 +7643,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -7692,7 +7692,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -8091,7 +8091,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -8295,7 +8295,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -8398,7 +8398,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -8620,7 +8620,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
@@ -10026,7 +10026,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -10064,7 +10064,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -10102,7 +10102,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -10444,7 +10444,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -10864,7 +10864,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -10896,7 +10896,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -10928,7 +10928,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -10960,7 +10960,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -11088,7 +11088,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -11120,7 +11120,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -11152,7 +11152,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -11384,7 +11384,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -11419,7 +11419,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -11839,7 +11839,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -12154,7 +12154,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -12443,7 +12443,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -12481,7 +12481,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -12595,7 +12595,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -12785,7 +12785,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -13286,7 +13286,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -13524,7 +13524,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -13977,7 +13977,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -14106,7 +14106,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -14149,7 +14149,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -14192,7 +14192,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -14427,7 +14427,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14459,7 +14459,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14523,7 +14523,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14651,7 +14651,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14683,7 +14683,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14747,7 +14747,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14779,7 +14779,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14811,7 +14811,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14843,7 +14843,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14939,7 +14939,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -14971,7 +14971,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -15003,7 +15003,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -15035,7 +15035,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -15067,7 +15067,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [],
       "failedRequests": [],
@@ -15332,7 +15332,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -15367,7 +15367,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -15966,7 +15966,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -16003,7 +16003,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -16114,7 +16114,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -16817,7 +16817,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -16891,7 +16891,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
@@ -17335,7 +17335,7 @@
         "height": 544
       },
       "geometryReady": true,
-      "textureStatus": "opaque-verified",
+      "textureStatus": "alpha-preserved",
       "consoleErrors": [],
       "consoleWarnings": [
         "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",

@@ -2,6 +2,18 @@ const ALPHA_PIXEL_FORMAT_PATTERN = /^(?:rgba|argb|bgra|abgr|ya\d*|yuva|gbrap|gbr
 const ALPHA_MINIMUM_PATTERN = /\bYMIN\s*(?:=|:)\s*([0-9]+(?:\.[0-9]+)?)/gi;
 const OPAQUE_ALPHA_MINIMUM = 254;
 
+/** Read ffprobe's pixel format from either its stdout string or execFile result. */
+export function parseFfprobePixelFormat(result) {
+  const raw = typeof result === "string" ? result : result?.stdout;
+  if (typeof raw !== "string" || raw.trim().length === 0) return "";
+  try {
+    const parsed = JSON.parse(raw);
+    return typeof parsed?.streams?.[0]?.pix_fmt === "string" ? parsed.streams[0].pix_fmt : "";
+  } catch {
+    return "";
+  }
+}
+
 /** Return whether an FFmpeg pixel format can carry an alpha channel. */
 export function hasAlphaPixelFormat(pixelFormat) {
   return ALPHA_PIXEL_FORMAT_PATTERN.test(String(pixelFormat ?? "").trim());

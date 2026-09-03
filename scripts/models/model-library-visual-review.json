@@ -477,7 +477,7 @@
         "assetSha256": "77e59fcd3724d0e30516b9f86fb8df562f7b7ccc626d11634dce436d1564788b",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:17.985Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/knick-knacks-31a.jpg",
         "screenshotSha256": "6a87f8a3770f0c252cf6c54f44a586da9f161ac2544ca621dafee8f30c4ee496",
         "screenshotDimensions": {
@@ -500,7 +500,7 @@
         "assetSha256": "35046017d0f6c823cf22cbea924737cf1d0fd3adb5b8dd2572ed0675407659c3",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:16.583Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/chinese-lamp-01a.jpg",
         "screenshotSha256": "2a46516e1cc8b1e39c8e0c4fc6ee61cc355319350b861d100ac62641976814e6",
         "screenshotDimensions": {
@@ -569,7 +569,7 @@
         "assetSha256": "2cc873dfc06cb5cbc345327bdf580dd14c16343dd972b317051a1382ca5bf558",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:45.099Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/palm-tree-house-01a.jpg",
         "screenshotSha256": "997466b7f7d321b8f67d4f5ceb326f29e6a5e1e417c8f7e58fd9bd8f65e371f2",
         "screenshotDimensions": {
@@ -822,7 +822,7 @@
         "assetSha256": "50afd3fad814b8e6400e810e9180475f8dbdc821b0977737373a876978d61e5f",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:25.210Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/coffee-machine-01a.jpg",
         "screenshotSha256": "a6f87e8f5ccfffa9ecbd5401ecdf85edce57b0af47352fc4e1d221d405d97556",
         "screenshotDimensions": {
@@ -868,7 +868,7 @@
         "assetSha256": "5af65b322ec8a5b052e7ce910d770a7428a2f74be9aecb9b1b960c4f1adfbdad",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:16:44.360Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/dining-table-set-01a.jpg",
         "screenshotSha256": "a8b95f7bd860c6e2b85640a55c042e771699208d0968e3c977bc655815842d32",
         "screenshotDimensions": {
@@ -891,7 +891,7 @@
         "assetSha256": "83c804908130b88f795f680b41bfcb97b32978fb95f0285e7bae295fafa6cd10",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:27.797Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/dinner-desert-set-01a.jpg",
         "screenshotSha256": "05388b26a2b18913c552511eeaf6bc38b51b8056d28aef34c9c4c0fc0bac4789",
         "screenshotDimensions": {
@@ -1029,7 +1029,7 @@
         "assetSha256": "e71467bd7f0e17fcf0cbb69dd635425c9840234d5afa9130475b44a85b1ff1cf",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:32.936Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/microwave01.jpg",
         "screenshotSha256": "75703bf067c3737aa42e030d2002c0cfe5c78dad0eca6980c8e8d6a4f4aaae7a",
         "screenshotDimensions": {
@@ -1167,7 +1167,7 @@
         "assetSha256": "23583398ea2bb39dbb5b83d6f5aa697f0fb5417bb7e3d0c52d5b241a2c40c4dc",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:37:19.479Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/desk-set-01a.jpg",
         "screenshotSha256": "8a31c60e0fda31536671eb3ceae097697b48bf37367925d06e259465a4ff00ac",
         "screenshotDimensions": {
@@ -1236,7 +1236,7 @@
         "assetSha256": "57a2cf8dba40545378257b4a3d88730447d5eebc5d587f8f01604e7ecf913a20",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:39:02.584Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/printer-01a.jpg",
         "screenshotSha256": "09362ff2b1d171a163c08179391a945ecc34c7db2951ebe6dc0b536f96da8858",
         "screenshotDimensions": {
@@ -1259,7 +1259,7 @@
         "assetSha256": "65848b992102d816d5aba7dea73617715f2de5e0489b18bd4c8a3d7d8ceee196",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:16.471Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/flat-rock-02.jpg",
         "screenshotSha256": "cf19dd9c8182f8a552d258da779526303b9e74f93c49c093e3bf6f6b467a5db6",
         "screenshotDimensions": {
@@ -1282,7 +1282,7 @@
         "assetSha256": "937121edd161b9e418a997cffcf427c8d23080b5996db9defa97eaf3589776dc",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:20.471Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/flat-rock-03.jpg",
         "screenshotSha256": "928040355ec6afd5a46eeb65979521a8035ba26f62387aa7fa85d32362864f12",
         "screenshotDimensions": {
@@ -1328,7 +1328,7 @@
         "assetSha256": "65ed5bf4921e935bb45d4d9c19f4de0efbe9f0e4708ec476d17f2ba66ec2f716",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:22.498Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/stone-01.jpg",
         "screenshotSha256": "9650b3025b84d929a512833d13633a0ae34ef82f834f9b7483962cb06332e8d2",
         "screenshotDimensions": {
@@ -1443,7 +1443,7 @@
         "assetSha256": "1c57ca388328413dd6c64f9cb80b56738d3b9c2bf17800f69272083fb76ab057",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:35:26.721Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/laundry-basket-01a.jpg",
         "screenshotSha256": "fbc7e939d0821499f83c340f8299d446f2b4ae70dd6dedddc913460bba3bcb0e",
         "screenshotDimensions": {
@@ -1650,7 +1650,7 @@
         "assetSha256": "c3760425e37330a0ef3da6894348c733e6ea59f30c901d2ff3f2cb55fb950420",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:16:52.562Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/shelves-01a.jpg",
         "screenshotSha256": "a0a991fc484361700c30b5ddac9bf2bfa42c3706b0fc16cea5ff8ca926245758",
         "screenshotDimensions": {
@@ -1696,7 +1696,7 @@
         "assetSha256": "d8d60eb4abb14f67c78227d8f8c0183c5a37282610776584dcc3fab07264c178",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:41.110Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/orange-tree-01-01.jpg",
         "screenshotSha256": "d5e5e1f53ac1312472bbd9282c2126739e941d233ab5126f03342f022dbd540c",
         "screenshotDimensions": {
@@ -1719,7 +1719,7 @@
         "assetSha256": "6384d441897c244c7499d3983ec1470fe175153cc45b6210412336e820b392c7",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:43.242Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/orange-tree-01-02.jpg",
         "screenshotSha256": "2b5d2eb87b7909dd464fccfa99c995da9d2ed49203be722f79d46d9e2881a0d3",
         "screenshotDimensions": {
@@ -1742,7 +1742,7 @@
         "assetSha256": "313d26d9ca12c642d1a878d1db7c9948b34ea09b8a3d9349d068b5a146d97674",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:29.445Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/shrub-a.jpg",
         "screenshotSha256": "87066991751596249569f7d84c9e61a3afab4c140734a84c6d15a7f750aebce0",
         "screenshotDimensions": {
@@ -1765,7 +1765,7 @@
         "assetSha256": "1c34b5ec609adab653c5a67a8130200cdbdb1555b127156bf034e44875a86483",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:32.812Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/shrub-b.jpg",
         "screenshotSha256": "e86831176b57905d628be573105b036a4d1be562bec971678b4c7297d212cf96",
         "screenshotDimensions": {
@@ -1788,7 +1788,7 @@
         "assetSha256": "8267537d0575c196014c2898a8cac54f1f411f0b8e4e8fdf9a0665e9c89c49fb",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:44.228Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/grass-02-a-1.jpg",
         "screenshotSha256": "792419725c058922b94b59bfe738256745b6f6dd3120cba510d5f843e81630e9",
         "screenshotDimensions": {
@@ -2133,7 +2133,7 @@
         "assetSha256": "cb890e21bc47d19a9bae45c4d901a3a56ed12230786da296e05e1cf18d293b7d",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:17:38.866Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/bed-frame-04a.jpg",
         "screenshotSha256": "6bae14aaff89d58e28bd384ffd69ef9859e5edff054dcc210d51c6ddd5488141",
         "screenshotDimensions": {
@@ -2156,7 +2156,7 @@
         "assetSha256": "e3f8e2a83c29ba0207651719161521886e55e3c9817ffb0117c0cc08a5aa361e",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:17:44.198Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/bed-frame-04b.jpg",
         "screenshotSha256": "5a96267ab9eb13d140a2dc947d5d039381688355145ae56fb2ef4c1c4602441b",
         "screenshotDimensions": {
@@ -2317,7 +2317,7 @@
         "assetSha256": "bfa269a18bdb8ccd61f2a38414ba6b3d1f4ebd463cbe5aa1e9d16d59bd0183a4",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:17:54.040Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/desk-set-01b.jpg",
         "screenshotSha256": "b4aa57beb5f0254dec56c27dc2dd1e2fe3eec53359ee5b394b71743f8197a96e",
         "screenshotDimensions": {
@@ -2708,7 +2708,7 @@
         "assetSha256": "45b9ef1850fca67c2633458b25e4dd2e287ce30747e2115b8fe4e799c029b949",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:37.982Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/coffee-machine-commerical-01a.jpg",
         "screenshotSha256": "61b16e71c9bcd3e0510c9435edb0e4c9917a23831c6cc3fb456458c60fd5155d",
         "screenshotDimensions": {
@@ -2777,7 +2777,7 @@
         "assetSha256": "3b90f6f6a48392d7e6338303e0e824ea27f2bfa49959a5fda2f6361a161e0d10",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:42.391Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/barcooler-01.jpg",
         "screenshotSha256": "dbd1ccd7b7a3dd590ca1f34056c7250a110500d1e243cf5c00468e81ab4c9624",
         "screenshotDimensions": {
@@ -2915,7 +2915,7 @@
         "assetSha256": "49fc727af3ca56ff117dc98a11f078854659b6562ac1524176e6519971c9d242",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:51.950Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/cup01.jpg",
         "screenshotSha256": "0dfff8104129a3cc1f00ac24598f120363c8bb6245b2b0e15fc551a9e6900bb1",
         "screenshotDimensions": {
@@ -2938,7 +2938,7 @@
         "assetSha256": "dd2347ab68af4b1afcdf5e90540fefd7b3a800ee0b97d4affdb9044aad3ae0b9",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:53.208Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/dishwasher01.jpg",
         "screenshotSha256": "850884150ef2855977c132b3f63795bee065c187efffe24907bab8e18c50d6ad",
         "screenshotDimensions": {
@@ -3053,7 +3053,7 @@
         "assetSha256": "4fbc615ed6565afca1becc0a3513044a93c347d32ea75b6498fe84fd7c666bf1",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:58.513Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/kitchen-additions-set-01a.jpg",
         "screenshotSha256": "04c84a8ed0a8e1c678acb48309f3c1a4be822bdf48f797dd224043a1316fffe1",
         "screenshotDimensions": {
@@ -3076,7 +3076,7 @@
         "assetSha256": "f6ceed7cd1b0e61d670417a1ca8be57d14a9af04197123e30c5ef410ae9e78a4",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:37:02.104Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/kitchen-additions-set-01b.jpg",
         "screenshotSha256": "ba85757b55e67bcdf04b5a5aefc7606f01498681899577071b573212fdfe3103",
         "screenshotDimensions": {
@@ -3260,7 +3260,7 @@
         "assetSha256": "81f19dd1a9e0fc7dabf7868c23855e68b960b00d80739be99569c9d41de67e0d",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:37:12.998Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/food-heater-set-02a.jpg",
         "screenshotSha256": "e577bf5dc7554abdb474691c835b022ef9c2caceeb404a2b0c257a50bcf568ef",
         "screenshotDimensions": {
@@ -3421,7 +3421,7 @@
         "assetSha256": "97eb80cf9bb36a538fff02267fd2627bc1c292a81c12a7aefb87e34a259c8410",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:37:33.234Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/bulb-01.jpg",
         "screenshotSha256": "8687c5f287e076f0f427e945689ec4841e80f03c0f78d25d98eba08c0f5b642f",
         "screenshotDimensions": {
@@ -3858,7 +3858,7 @@
         "assetSha256": "8e9bee582a284113b648228afe714be022dd22fdbcfb0b508d6f333eaa32c329",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:33.840Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationary-01a.jpg",
         "screenshotSha256": "39f11ced9afd038faf6816674090c57841fa326e3697f2dca2fef67d88a1612a",
         "screenshotDimensions": {
@@ -3881,7 +3881,7 @@
         "assetSha256": "9c146a140761a5b2571dfa0c749ebe7f636f39c9c085da1430f29ab2f7f52047",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:34.874Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationary-01aa.jpg",
         "screenshotSha256": "e8b7c458024a533a9b4431cd9558fc6698cc3dfa3f72963bca089dc2bd7998ea",
         "screenshotDimensions": {
@@ -3904,7 +3904,7 @@
         "assetSha256": "6180d264d52ec361968b6150203b9eaf779c151158cc935b19a8dc16c2c828a6",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:38.915Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationary-01ab.jpg",
         "screenshotSha256": "46ea8959f8e64440c946a49099813f26b57aac019b3b95860eb8650b0a8e3962",
         "screenshotDimensions": {
@@ -3927,7 +3927,7 @@
         "assetSha256": "17a8d1ee23454d756cb3dc61175c43e01ab56fbd85f35a8a4b518cf749e4d456",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:39.912Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationary-01ac.jpg",
         "screenshotSha256": "76c041d47e93e2eff482cf578e1eea415bfdbf7180cb58be2f1b0a11e4362333",
         "screenshotDimensions": {
@@ -4019,7 +4019,7 @@
         "assetSha256": "59b81e7c49894df5d8ea20f241b11e893656f82e8905b211351a9ed40009a23c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:43.970Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/stationary-set-02aa.jpg",
         "screenshotSha256": "54f2a98195be7cc638fbd9489d165092bed8045a30f31c57d696e95d5e6d2b5d",
         "screenshotDimensions": {
@@ -4042,7 +4042,7 @@
         "assetSha256": "dac15b4c9b40899b20cf1c454e39d0c4b4f808fa5f178d8c4de39e865144b88c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:44.984Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/stationary-set-02ab.jpg",
         "screenshotSha256": "0867f9860f73fbc4cd45a43c8500a316c9ca057f582d08538343c9ecec88f63b",
         "screenshotDimensions": {
@@ -4065,7 +4065,7 @@
         "assetSha256": "d13f8c70c29fd97463d4f9ed9a5442be6125f809e13a18fcde31ea0e87e6e928",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:46.033Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/stationary-set-02ac.jpg",
         "screenshotSha256": "91dfc624d52e532cec761f1f2fdea25a631cb3990b4746dea50d98b4c72d44d1",
         "screenshotDimensions": {
@@ -4295,7 +4295,7 @@
         "assetSha256": "e2b19b615f9140b5e1e56151e7b15fd85ac8d6c2360b7e2fb74ea51837951613",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:27.797Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/light-set-01a.jpg",
         "screenshotSha256": "b4a2410bf5ef37db237aceb7d09114be61ad2a3e616f097d86126930d9117c2c",
         "screenshotDimensions": {
@@ -4640,7 +4640,7 @@
         "assetSha256": "3ca6c49827ea0e39da0582533a0b2b0bfff4be6646d0a8abf51fa5c402d6eca5",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:45:31.512Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/shower-05a.jpg",
         "screenshotSha256": "91ad945ac1a2c9f66fc110db888cca5902f90e68379b0f3ebda4448947985dae",
         "screenshotDimensions": {
@@ -4870,7 +4870,7 @@
         "assetSha256": "660f50736b8461d623cde8138865d98e2c00ed8ca582995660bebba4dbcc947e",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:33.459Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/mounted-deer-01a.jpg",
         "screenshotSha256": "86904de13c4daf8444c520541075cd4ef7f0dedc0adf69e2f7390c09ca390a9d",
         "screenshotDimensions": {
@@ -4962,7 +4962,7 @@
         "assetSha256": "f651ba82c9ef27f762f17cbfeff68a631600a100defddf0bd44709974874f92b",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:46.128Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/plants-hanging-01a.jpg",
         "screenshotSha256": "b91fb7593d12be759fd8bbd5784b68217566c2a93af9421a651628e95939d04d",
         "screenshotDimensions": {
@@ -4985,7 +4985,7 @@
         "assetSha256": "4350d1318dcc97e3f5cc2b6e39c48b6b66862111765b25db79cece719805b925",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:49.721Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/plants-plastic-set-01a.jpg",
         "screenshotSha256": "1eda1fae050316816f944ea2673af9a90944dcab8f5b14cd35a4cc18b01e745b",
         "screenshotDimensions": {
@@ -5238,7 +5238,7 @@
         "assetSha256": "7c83d47e90928f25e1b02abfb7eccc862088f69df5c435331a94e36707992ae3",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:44.805Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/home-decor-03a.jpg",
         "screenshotSha256": "5a49f0ea4c6cd736b832182673f1a4cfaa31e12b07b46998f419deb0c15b97d8",
         "screenshotDimensions": {
@@ -5261,7 +5261,7 @@
         "assetSha256": "0a8c538c50aa44b5d8255239eb1363c131f940b8e2acdb00c03658e20cc07e76",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:18:22.733Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/mirror-set-01a.jpg",
         "screenshotSha256": "b61a068721c35cf96ecbc95b9edf3edcdf9ca305bf2cda546748a72455c96690",
         "screenshotDimensions": {
@@ -5284,7 +5284,7 @@
         "assetSha256": "f88f77e4ff15beac273f076ba732f8723ae4916f9adff8ee61ed233fb7faa315",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:45.867Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/chinese-decor-02a.jpg",
         "screenshotSha256": "9c1f5ce399a70381cc3a4aec51ff4ea53ba74981a76e65f8f19645417e4349d3",
         "screenshotDimensions": {
@@ -5353,7 +5353,7 @@
         "assetSha256": "f23f4d5f378cbb42cb16b4ade118c0d507d6c2bf38d7a99882c449648af96b21",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:52.385Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/fast-food-order-board-01a.jpg",
         "screenshotSha256": "7068c6d208037166bfb479cc250bdd42365291356eaeab365ef2b4dd3cefdbd9",
         "screenshotDimensions": {
@@ -5376,7 +5376,7 @@
         "assetSha256": "c7cccefa4b893daeca1cadf67d0739c3201f78c38e5f025236529a71167e2e82",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:37:17.409Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/food-dispenser-01a.jpg",
         "screenshotSha256": "101faa88b8dfb326a284ec1b8d6745085893a2e40044ed8717f6645a978201aa",
         "screenshotDimensions": {
@@ -5767,7 +5767,7 @@
         "assetSha256": "50734bfc93934a74a5092dd0d2800a46ee206b1e1c14a17374c4306a3ddf23c1",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:41:57.596Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wind-chime-01a.jpg",
         "screenshotSha256": "920d74b48bced568689393c03625a2c838a783d461f511e49f0cdf58885cd976",
         "screenshotDimensions": {
@@ -5928,7 +5928,7 @@
         "assetSha256": "568912c805ec5e4682b63b39ea1ac3c5d6b68a49a717860433db34796e062301",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:56.512Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationery-01ad.jpg",
         "screenshotSha256": "4c45b57f66d24fee9204b6e62ae8a19e6c305132f7060c4f49f89565906e8348",
         "screenshotDimensions": {
@@ -5951,7 +5951,7 @@
         "assetSha256": "c5d48d0469db44ea9f6a99fd373e1604f91b11ec4d4943a75e2f172619463f17",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:40:57.528Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/office-stationery-01ae.jpg",
         "screenshotSha256": "fa418166a784ac3f722d55451cadeb6099f468fb21cfd9647c52bd95e854c3d5",
         "screenshotDimensions": {
@@ -5997,7 +5997,7 @@
         "assetSha256": "590f9d0a806de5805db4200038809fa26e826e6d108b5866e467c7ec110dc235",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:42:41.735Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/rug-set-12a.jpg",
         "screenshotSha256": "0e4ff3f108069e95ad20e85a340a31372f6a0ab594c886578be0d5093b40a971",
         "screenshotDimensions": {
@@ -6273,7 +6273,7 @@
         "assetSha256": "036d2c7b622d4fe5b9a04cdc08640d68efcbad574284cf388369f84b130ca0c1",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T18:19:22.846Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-a04.jpg",
         "screenshotSha256": "7cbfbb6763304a0afa933e315d3646115d20c7e377f6d00a9e6899d842174ee4",
         "screenshotDimensions": {
@@ -6296,7 +6296,7 @@
         "assetSha256": "2fb3de5b4d61f166ed4b9d3f7ceb5e38339511cdbeb4cce8060bb9784032dd81",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:27.729Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-b04.jpg",
         "screenshotSha256": "ae88d72c07e4b683604ef06aca7fd15dba88472df97460e30dd1be264b6ecd39",
         "screenshotDimensions": {
@@ -6319,7 +6319,7 @@
         "assetSha256": "97cfc4be10ef3a0eb9779296979dbaff570f5471a45895f0e9b3616670e9725f",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:28.737Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-c04.jpg",
         "screenshotSha256": "dd64da67cbd42474f75ccd4fd675ca497bc5f096de374312b7360511cc4cd282",
         "screenshotDimensions": {
@@ -6342,7 +6342,7 @@
         "assetSha256": "7eab65e5f8e56976cfe798ec114a976790d5ea1cfa4786fd3e23347c9b136d4f",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:29.802Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-d04.jpg",
         "screenshotSha256": "ae88d72c07e4b683604ef06aca7fd15dba88472df97460e30dd1be264b6ecd39",
         "screenshotDimensions": {
@@ -6365,7 +6365,7 @@
         "assetSha256": "8a52acd3266e74521d9bc4320a9bd75d77e0afb3212e45761029762c8810775c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:30.797Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-e04.jpg",
         "screenshotSha256": "027262407123fd3e222d9ee6c236624d60bc739f862e83f783fee8a54d3145db",
         "screenshotDimensions": {
@@ -6388,7 +6388,7 @@
         "assetSha256": "513236417f8cb234b002c42e1beacfbebeb35f505dde98a5354cfb956a8411d5",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:35.193Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-f04.jpg",
         "screenshotSha256": "108a825a0fa28671a3a5f60d5bbc9b935aea498af593a806d86d21c8dc476714",
         "screenshotDimensions": {
@@ -6411,7 +6411,7 @@
         "assetSha256": "80a206f55c37931c933767e32375a97a78643a63b04c183d43c2ffe87db459fa",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:36.345Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-g04.jpg",
         "screenshotSha256": "9ec073874cf28b7e00f90879ead12f80ed4355d3bee611700f2f8c2533572bc2",
         "screenshotDimensions": {
@@ -6434,7 +6434,7 @@
         "assetSha256": "5a908e682e989e5fd62e0228477b8cc2bcc6785dda53058a6283229cb5af781d",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:37.367Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-h04.jpg",
         "screenshotSha256": "ae88d72c07e4b683604ef06aca7fd15dba88472df97460e30dd1be264b6ecd39",
         "screenshotDimensions": {
@@ -6457,7 +6457,7 @@
         "assetSha256": "c93f8797ebd05ad34fcba31a52d9ff57c3974f00a4e719e815657ecdde5a08cd",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:38.409Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-a05.jpg",
         "screenshotSha256": "0045d90b5d90428db93f2a5ca92e43f977610eeedff3b3bc21caf81f696537c7",
         "screenshotDimensions": {
@@ -6480,7 +6480,7 @@
         "assetSha256": "11b96c351d4381dabf338478d338190d23cde1d01841c89a9f8546b42a6fbeaa",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:39.492Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-b05.jpg",
         "screenshotSha256": "ec9d7bc8724c440e92e31066be14aad420568cf4b43fab9a3eb3865f6fe947c4",
         "screenshotDimensions": {
@@ -6503,7 +6503,7 @@
         "assetSha256": "b4daee4b0d8fee174dea155cbb29284047b53438b8bd124415ec29d771a70e0c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:40.534Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-c05.jpg",
         "screenshotSha256": "0045d90b5d90428db93f2a5ca92e43f977610eeedff3b3bc21caf81f696537c7",
         "screenshotDimensions": {
@@ -6526,7 +6526,7 @@
         "assetSha256": "66f3c22993081a34fc23b1720ac0e04e9674c71d0f2d0098781e8e4b738ccee2",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:41.519Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-d05.jpg",
         "screenshotSha256": "fcaf50317f407523b24ee7f9362c30964de036ccbaa2fd5867df46ae49701a92",
         "screenshotDimensions": {
@@ -6549,7 +6549,7 @@
         "assetSha256": "f92261b1d2e2754ab5ba5c8fe432ea8b4a0e0e381f6e9df1ef20cc068964b342",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:42.540Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-e05.jpg",
         "screenshotSha256": "0045d90b5d90428db93f2a5ca92e43f977610eeedff3b3bc21caf81f696537c7",
         "screenshotDimensions": {
@@ -6572,7 +6572,7 @@
         "assetSha256": "9ec7921bed60873ec85ad87402707952bad4320f9a8342c085bd38835cd8e55c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:46.193Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-f05.jpg",
         "screenshotSha256": "ec9d7bc8724c440e92e31066be14aad420568cf4b43fab9a3eb3865f6fe947c4",
         "screenshotDimensions": {
@@ -6595,7 +6595,7 @@
         "assetSha256": "7d43314eb865ba546f8bfdd5e31b71a1695e226903cc06715bc13e7b66e07e50",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:47.255Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-g05.jpg",
         "screenshotSha256": "0045d90b5d90428db93f2a5ca92e43f977610eeedff3b3bc21caf81f696537c7",
         "screenshotDimensions": {
@@ -6618,7 +6618,7 @@
         "assetSha256": "c45a6a8690004c812124dd16031d12fad03181164e6757ada1ea9f0e56b90362",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:48.262Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-h05.jpg",
         "screenshotSha256": "cfb5065f15e6e1f2462b7e24e5c79160dd641b8eccdf8fbe8f36bcc1ef8e6ac5",
         "screenshotDimensions": {
@@ -6641,7 +6641,7 @@
         "assetSha256": "a85eedeb45755ec7ea1b72430333291c3685d141f3a83e5528213fe568b5b082",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:49.253Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-a06.jpg",
         "screenshotSha256": "a89d360bf2f6aa852e64b021ba1b79400398864367faf9936215fc7729b44e38",
         "screenshotDimensions": {
@@ -6664,7 +6664,7 @@
         "assetSha256": "dd0bdaecdfefc00d72dfcb17a93837659650d19f829c478c7902d3d8aae32e44",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:50.256Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-b06.jpg",
         "screenshotSha256": "1a7844e031ce97d4d828ac036c323dfed0d17725abb9bad9eb8b2e9952413f57",
         "screenshotDimensions": {
@@ -6687,7 +6687,7 @@
         "assetSha256": "7ac88cc01f972d2fc2879946a258b5e87b34efe99843469b1d040c3441a78fc2",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:51.247Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-c06.jpg",
         "screenshotSha256": "a89d360bf2f6aa852e64b021ba1b79400398864367faf9936215fc7729b44e38",
         "screenshotDimensions": {
@@ -6710,7 +6710,7 @@
         "assetSha256": "886eff5a15bad83a145f6f83ee09b403eb433c7ee406bd8b30ceae261b83e3c3",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:52.299Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-d06.jpg",
         "screenshotSha256": "1a7844e031ce97d4d828ac036c323dfed0d17725abb9bad9eb8b2e9952413f57",
         "screenshotDimensions": {
@@ -6733,7 +6733,7 @@
         "assetSha256": "1c24aca2e532edd9b177d105cbd8650bdeb813702dadd6f65e51ca058c9a546d",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:53.318Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-exterior-e06.jpg",
         "screenshotSha256": "dc9f060dda4d7eec07d1179d1021407590c29717592041fe25cb5bdb84e978ec",
         "screenshotDimensions": {
@@ -6756,7 +6756,7 @@
         "assetSha256": "69b3c082e472a3899183b131a7bbee4b3684316cc2c4fba334e109c40a0f8944",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:56.999Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-a01.jpg",
         "screenshotSha256": "760110d89faa0460ab4fb332c132ffa4028764cb62f4aa8e05b1ddec78c68ef9",
         "screenshotDimensions": {
@@ -6779,7 +6779,7 @@
         "assetSha256": "bef6b9eb76e884e9623adae25a7bbf081948fe2f85af9b8c0232c9ad4a264a77",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:58.032Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-b01.jpg",
         "screenshotSha256": "f05377578f6dbcab0527baef1ef69ccb43fb7aec418824cc59c1171a8851b34f",
         "screenshotDimensions": {
@@ -6802,7 +6802,7 @@
         "assetSha256": "fb6ecf298e9a679e81f9322b79ed2865fd44aca38a62a627b3a10035dd12593c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:33:59.019Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-c01.jpg",
         "screenshotSha256": "b0cbfee8815524506c227e9c169487ef3402b69c24a01d31b2b463c7ac56e0a8",
         "screenshotDimensions": {
@@ -6825,7 +6825,7 @@
         "assetSha256": "882d16e27f3c0abdb938cef16af708c06adc00b9a78e85ac48bb5d044bd47722",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:00.027Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-d01.jpg",
         "screenshotSha256": "59e04842d7bf36ccfd826eb0b2e57eaa3291488e22a034b7c8cf96f5bcb4fa41",
         "screenshotDimensions": {
@@ -6848,7 +6848,7 @@
         "assetSha256": "d86a7ad30a413332fc5b0dae7bc4606340c6a84c63412ca5b9c25a9140f5020e",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:01.038Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-e01.jpg",
         "screenshotSha256": "ba8796d850de0e0028bab2a366b1d1e30da2c268b25b23397c33131d34c18d1c",
         "screenshotDimensions": {
@@ -6871,7 +6871,7 @@
         "assetSha256": "943df2db63c73e35b9188140c13b88bab2ad7e6eaed00a79615c6eec6a4f8fd2",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:02.073Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-f01.jpg",
         "screenshotSha256": "d793e6c9d7280f9846b83b74c1562d36d769d0c6b02fda0148dab4748cc1c145",
         "screenshotDimensions": {
@@ -6894,7 +6894,7 @@
         "assetSha256": "c43c4997284e45e6c295d983ad6a4caeddd2c1ff23c666002b67b8e3afb22490",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:03.132Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-g01.jpg",
         "screenshotSha256": "2eb8081e8103d0ca268946f1b9e9c4efa1f15e9ede972c34185fcf57f5dab515",
         "screenshotDimensions": {
@@ -6917,7 +6917,7 @@
         "assetSha256": "d80617f8c740f8c2ad6d20976ba462bf9f23d944568d408573a519d78c688dd1",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:04.207Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-h01.jpg",
         "screenshotSha256": "aa892ad63622f5b334ab3fabc471d9559d0c6a58f60565f435884c5121c32c94",
         "screenshotDimensions": {
@@ -6940,7 +6940,7 @@
         "assetSha256": "9130859c81f574644947e9be685b11367548ac933c974d0407301ef25156d45c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:09.222Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/door-commercial-i01.jpg",
         "screenshotSha256": "4dfaf44cfdb09fc974f4fa8f3bbca52d57c6dd4f6a50e43c91e4bc8bbab0edca",
         "screenshotDimensions": {
@@ -7354,7 +7354,7 @@
         "assetSha256": "b326e27b8c3633b504acb7fa5709f5c0e2fee0aec89742423cfe77e1bad718b6",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:37.071Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefineda.jpg",
         "screenshotSha256": "9f409ae7b32ba4f1140d37ba2f5bb92bd64b4e87fa8f0c605c1bc2f0b7ff6557",
         "screenshotDimensions": {
@@ -7377,7 +7377,7 @@
         "assetSha256": "924fbfff16fa79e4ea7f7ccf8447901767c562ae5e26e413d9cdba13926dfca4",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:38.298Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedb.jpg",
         "screenshotSha256": "684d18756b2f6c728123c5d09f8966ba1d311b4ded4e02356deab035e1f8731e",
         "screenshotDimensions": {
@@ -7400,7 +7400,7 @@
         "assetSha256": "86c1ad488449627cc0f147b9373df84dc09bc9b229e79740a2674e8776f447ad",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:39.546Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedc.jpg",
         "screenshotSha256": "3c9ca9a51816a31f5ca2ec688103c18d7d6bb4dd28fe365f69f8633f239d4e37",
         "screenshotDimensions": {
@@ -7423,7 +7423,7 @@
         "assetSha256": "00e9f7f55f2efaa85906567973e13dec604d5d5926f6e1e0816e2ed0bd69ac24",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:40.750Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedd.jpg",
         "screenshotSha256": "9cc2a9b99d56cc1b53630cb7a7cd1b992ab270eec3328c1df066e7ef1ac7370c",
         "screenshotDimensions": {
@@ -7446,7 +7446,7 @@
         "assetSha256": "ce433bb8d2fc7500471b6487a87aad29081f2402f063c74058fcaf48e6260e6d",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:41.839Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinede.jpg",
         "screenshotSha256": "4ac1cf86ac7a0520d8bd03692a3421d3aae3a12345dfd2bc7891e27b93030dab",
         "screenshotDimensions": {
@@ -7469,7 +7469,7 @@
         "assetSha256": "6ff2eca8914f7d1d1a04b4e73c48af7ddae8b70ed6aefbe1df6a59e04dfd1ca8",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:42.955Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedf.jpg",
         "screenshotSha256": "2bb930bca22d9ba8e4801234e265c69f270f9fd5ed06d19c4eb1dc0afc88f05c",
         "screenshotDimensions": {
@@ -7492,7 +7492,7 @@
         "assetSha256": "32225581c7863f933e78b222d1ead2e8cbf4a3d4af2df9c72f52044dc86589cc",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:46.658Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedg.jpg",
         "screenshotSha256": "cf08a5d6a871f5a0798c4c9c8bb6ab5bd56ea17e1f9044c1767feddcb2d3ef9e",
         "screenshotDimensions": {
@@ -7515,7 +7515,7 @@
         "assetSha256": "75666bd7b43695eef9740a3be69e350f74cefd3f9cd66c86dbff82046df1299c",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:34:47.795Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/blinds-01-undefinedh.jpg",
         "screenshotSha256": "578daf39db855f8e05dde601cc8c237e3934e4607ff0fdae8cfd25355da53f9a",
         "screenshotDimensions": {
@@ -7538,7 +7538,7 @@
         "assetSha256": "7acb9113a3702effa0fa9e3bb8bc23ac991eb79d16c19d1a9ef26d9a1f940ee2",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:44:07.402Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/fire-hydrant-01a.jpg",
         "screenshotSha256": "840d0827f09400a71ec705d6335d11ae069e2ef876c71a81303d1b775f6c0bbb",
         "screenshotDimensions": {
@@ -7561,7 +7561,7 @@
         "assetSha256": "0e0f2b3698f11bb7bdb0ba8d393ad32852470c3c97ec587d15696599dbfaf773",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:44:08.571Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/fire-hydrant-01b.jpg",
         "screenshotSha256": "00801162fc8dd8beeac5b28cd84defd0950a0a6d9565045c6c1704c99542d9a2",
         "screenshotDimensions": {
@@ -9010,7 +9010,7 @@
         "assetSha256": "31892c7b8f83fd250ace0dbab48140e05d0e12855d12612344fd366888ec6882",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:44:33.832Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/crop-arugula-01a.jpg",
         "screenshotSha256": "5097b0bb620de5e19a5d4f755fa0e3685eee7379a431735be4ee81a24c8f3f97",
         "screenshotDimensions": {
@@ -9033,7 +9033,7 @@
         "assetSha256": "09997c90ffcea9acf124da2e8199aef7dfc4d55192346a845cb4fa6f01ba48c9",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:44:34.843Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/crop-arugula-01b.jpg",
         "screenshotSha256": "2d831af2fac30116f50175b22f255c848d8c173237ca91faaf31636db89a14f7",
         "screenshotDimensions": {
@@ -9102,7 +9102,7 @@
         "assetSha256": "d86bf85b3dd757174024e461279140b58ca3d9c23aa6707ccdd94ceb21b65a6b",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:44:40.789Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/crop-beet-01b.jpg",
         "screenshotSha256": "3715c4091edfdc3155ac66368b4e6fa791542622ef9aa8b86dc7e760e85b44c3",
         "screenshotDimensions": {
@@ -9631,7 +9631,7 @@
         "assetSha256": "6e97fb5a8994dc4a67e7d1f73534af20b48541eeb6c81b06ee0b8f20b060cb04",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:13.950Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/rusty-barrel-01a.jpg",
         "screenshotSha256": "2beea3dbb2aac3b97b5d18f940efcd9667116a7c76f8903a37c293fc7659a715",
         "screenshotDimensions": {
@@ -9654,7 +9654,7 @@
         "assetSha256": "0043a3f45004f0effe422800fb60b8fb0c1b65bd3705b070c3ae53f98f4365ee",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:36:14.950Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/rusty-barrel-02b.jpg",
         "screenshotSha256": "eff70d89eeefd5772ae960436ed05683998e13470120fb17aecb0441befa96d3",
         "screenshotDimensions": {
@@ -9723,7 +9723,7 @@
         "assetSha256": "c1c5dd0eff3c19af7ba46148a70d09796b65ae6d877cf782a9f0e52af4fc4085",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:38:27.574Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/canister-01a.jpg",
         "screenshotSha256": "7ee2185852cd7cde9e78141a4fc4cfee981c1a87ee0194b0bfa82d027fa0e130",
         "screenshotDimensions": {
@@ -9746,7 +9746,7 @@
         "assetSha256": "47928b33cc153ba6f65be65d839f82e74b6c9a2d62c7d36514be0512f2312520",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:38:28.844Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/canister-01c.jpg",
         "screenshotSha256": "c7cbb887dd49988437faf73290fce00bbc72048dddd3e8964c242a8b97d19cbc",
         "screenshotDimensions": {
@@ -9769,7 +9769,7 @@
         "assetSha256": "aad7b100605e584433a39f19ebca2de66927907da5bd9c85bc3395a623eb4fe4",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:38:29.866Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/gas-cylinder-01.jpg",
         "screenshotSha256": "03984839d0e926c82bc9869f95532f22d387d5ee38c6d97268435b98b1d25fac",
         "screenshotDimensions": {
@@ -10850,7 +10850,7 @@
         "assetSha256": "f4eb0dd316f6ef049d5bcf1d60f115c80fee76c9d8cce9a579845bfb380aef47",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:45:06.865Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/street-newsbox-01.jpg",
         "screenshotSha256": "f07d274fdfcfa2ea9c0dad6f086a97fd9d670b9cb247dde3ade9065e14aa5d64",
         "screenshotDimensions": {
@@ -10919,7 +10919,7 @@
         "assetSha256": "56701c1a8fffbee037ef06ed69582673ecf54cc920e754be6fb0e9a7461f9331",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:45:09.978Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/suburb-scooter-01.jpg",
         "screenshotSha256": "6c114fa7cb69da4c81c2a948528684324016eb332e742fdf3b20ff9d9e6b3cee",
         "screenshotDimensions": {
@@ -11011,7 +11011,7 @@
         "assetSha256": "a78040f45d84acdd375e8a5f6886f96e217482fb5bd86777e96c50396a4d63dd",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:49.116Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wildflower-cluster-a.jpg",
         "screenshotSha256": "78e3cc8ce7859d2f9bdf44ce6f626c74af21bdb9881946d710f785b2b5b61dc0",
         "screenshotDimensions": {
@@ -11034,7 +11034,7 @@
         "assetSha256": "0a54c62c83e29a03ee94fa6228f12903aeabe7c42af1a29601bdc308c641876b",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:52.839Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wildflower-cluster-c.jpg",
         "screenshotSha256": "e140031836b24dc2e285325996ebe25f17da50e2b71fc3bcf31134240f9dcaf6",
         "screenshotDimensions": {
@@ -11057,7 +11057,7 @@
         "assetSha256": "da3b180c0799bf8b18dfbff16edf82e60b1b35b43891383574b4ee2a197d4c4b",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:53.848Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wildflower-cluster-f.jpg",
         "screenshotSha256": "1117440be9934965f147b7987dbc64f41fc1fe8319aea871f9e45332be507f87",
         "screenshotDimensions": {
@@ -11080,7 +11080,7 @@
         "assetSha256": "907ff7f0e5c480cce23762da80b0688de19ee855d8ca79c94d207b315f75664a",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:54.883Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wildflower-a.jpg",
         "screenshotSha256": "c6cabd3db1e91747fafd9570d34ddd38af6b609ebd317ae260a9170b945a7e29",
         "screenshotDimensions": {
@@ -11103,7 +11103,7 @@
         "assetSha256": "02bbe0c11410910ceff0efa5ff4517fa45712c1e86ac6759b21d64d047bfbe21",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:55.874Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/wildflower-c.jpg",
         "screenshotSha256": "6d70790787a02146b7f8c660ff7dc115f8858872f44a65369469df2db34b0f4c",
         "screenshotDimensions": {
@@ -11126,7 +11126,7 @@
         "assetSha256": "27f096130d7730a37c58828ebfdf1794f8270d37fcd4470edea328aae3e152e8",
         "renderer": "model-detail-v1",
         "renderedAt": "2026-09-02T19:43:45.246Z",
-        "textureStatus": "opaque-verified",
+        "textureStatus": "alpha-preserved",
         "screenshotPath": "artifacts/model-preview-audit/grass-tuft-a.jpg",
         "screenshotSha256": "c69c8441082569b424724d6e12f648b173a4bb2f16fe35ae9019f30a4820eecf",
         "screenshotDimensions": {
