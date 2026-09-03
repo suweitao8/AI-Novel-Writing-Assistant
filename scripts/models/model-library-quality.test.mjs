@@ -164,6 +164,21 @@ test("GLB inspection exposes embedded base-color image dimensions", () => {
   }]);
 });
 
+test("真实斧头 GLB 暴露缺失颜色贴图的 1×1 占位证据", () => {
+  const axeFileName = "SM_Axe_Black_01.glb";
+  assert.equal(fs.existsSync(path.join(MODELS_DIR, axeFileName)), true);
+  const inspection = inspectGlb(fs.readFileSync(path.join(MODELS_DIR, axeFileName)));
+  assert.deepEqual(
+    inspection.materials.find((material) => material.name === "MI_Axe_Black_01")?.baseColorTexture,
+    {
+      embedded: true,
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+    },
+  );
+});
+
 test("Cine57 目录只发布前景交互资产，其他来源的角色入口独立计数", () => {
   assert.ok(STATIC_MODEL_LIBRARY.length >= CINE57_MINIMUM_MODEL_COUNT, `expected expanded library, found ${STATIC_MODEL_LIBRARY.length}`);
   assert.equal(MODEL_LIBRARY.length - STATIC_MODEL_LIBRARY.length, 1);

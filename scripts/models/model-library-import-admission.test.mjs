@@ -25,6 +25,20 @@ const PREVIEW = {
   reviewStatus: "approved",
 };
 
+const PLACEHOLDER_INSPECTION = {
+  maxDimensionMeters: 1,
+  materials: [{
+    name: "MI_BadMaterial",
+    hasBaseColorTexture: true,
+    baseColorTexture: {
+      embedded: true,
+      mimeType: "image/png",
+      width: 1,
+      height: 1,
+    },
+  }],
+};
+
 function evaluate(maxDimensionMeters, overrides = {}) {
   return evaluateModelCandidate({
     entry: { id: "desk", fileName: "SM_Desk.glb" },
@@ -81,5 +95,35 @@ test("预览资源指纹变化后旧截图不能再次准入", () => {
     expectedAssetSha256: "c".repeat(64),
   });
   assert.equal(result.failureStage, "preview");
-assert.equal(result.reasonCode, "stale-preview");
+  assert.equal(result.reasonCode, "stale-preview");
+});
+
+test("只有内嵌 1×1 Base Color 占位图且没有真实目录贴图时拒绝灰模", () => {
+  const result = evaluateModelCandidate({
+    entry: {
+      id: "bad-material",
+      fileName: "SM_BadMaterial.glb",
+      materials: { MI_BadMaterial: { tint: [0.42, 0.42, 0.45] } },
+    },
+    inspection: PLACEHOLDER_INSPECTION,
+    preview: PREVIEW,
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.failureStage, "texture");
+  assert.equal(result.reasonCode, "missing-base-color-texture");
+});
+
+test("内嵌占位图存在同名真实目录 Base Color 绑定时可以继续准入", () => {
+  const result = evaluateModelCandidate({
+    entry: {
+      id: "textured-material",
+      fileName: "SM_TexturedMaterial.glb",
+      materials: { MI_BadMaterial: { baseColor: "/models/cine57/tex/real.jpg" } },
+    },
+    inspection: PLACEHOLDER_INSPECTION,
+    preview: PREVIEW,
+  });
+
+  assert.equal(result.accepted, true);
 });
