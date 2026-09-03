@@ -15,7 +15,7 @@
 
 ### 2. 扩展运行时迁移入口
 
-- 修改 `server/src/db/runtimeMigrations.ts`，将执行条件收敛为：桌面模式，或非生产 Web 模式下的有效 SQLite。
+- 修改 `server/src/db/runtimeMigrations.ts`，将执行条件收敛为：桌面模式，或非生产 Web 模式下的有效 SQLite；旧库补登记时按索引语义识别被后续 migration 替代的索引，避免重放冲突的 `CREATE TABLE/INDEX`。
 - 复用当前迁移历史、旧库满足性识别和 backfill 逻辑，不引入第二套 schema 修复器。
 - 保留 PostgreSQL、生产 Web 和无 SQLite 数据库路径的安全退出行为。
 

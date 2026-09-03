@@ -10,7 +10,7 @@
 
 1. 桌面运行时保持现有行为。
 2. Web 运行时只有在 `NODE_ENV !== production` 且有效数据库 provider 为 SQLite 时执行；生产 Web 和 PostgreSQL 不由应用自动改 schema。
-3. 通过现有 migration 目录、schema 满足性检测和 column backfill 修复漂移；已经存在但没有 migration 记录的旧表只补登记，不重复执行。
+3. 通过现有 migration 目录、schema 满足性检测和 column backfill 修复漂移；已经存在但没有 migration 记录的旧表只补登记，不重复执行。索引判断按目标表、唯一性和覆盖字段识别后续替代索引，不能只比较历史索引名。
 4. 只允许迁移文件中的幂等/加法式变更，不使用 reset、drop、truncate 或 `--accept-data-loss`。
 
 这样，首次开发启动和每次 `ts-node-dev` 子进程重载都经过同一条数据库就绪检查，避免“代码先热更新、数据库没跟上”的窗口。

@@ -99,6 +99,7 @@ function createSatisfiedBookAnalysisSourceCacheSchema(database) {
       "model" TEXT NOT NULL,
       "temperature" REAL NOT NULL,
       "notesMaxTokens" INTEGER NOT NULL,
+      "sourceScopeKey" TEXT NOT NULL DEFAULT 'full',
       "segmentVersion" INTEGER NOT NULL DEFAULT 1,
       "segmentCount" INTEGER NOT NULL,
       "notesJson" TEXT NOT NULL,
@@ -106,8 +107,8 @@ function createSatisfiedBookAnalysisSourceCacheSchema(database) {
       "updatedAt" DATETIME NOT NULL
     );
 
-    CREATE UNIQUE INDEX "BookAnalysisSourceCache_documentVersionId_provider_model_temperature_notesMaxTokens_segmentVersion_key"
-    ON "BookAnalysisSourceCache"("documentVersionId", "provider", "model", "temperature", "notesMaxTokens", "segmentVersion");
+    CREATE UNIQUE INDEX "BookAnalysisSourceCache_documentVersionId_sourceScopeKey_provider_model_temperature_notesMaxTokens_segmentVersion_key"
+    ON "BookAnalysisSourceCache"("documentVersionId", "sourceScopeKey", "provider", "model", "temperature", "notesMaxTokens", "segmentVersion");
 
     CREATE INDEX "BookAnalysisSourceCache_documentVersionId_updatedAt_idx"
     ON "BookAnalysisSourceCache"("documentVersionId", "updatedAt");
@@ -227,6 +228,18 @@ function createLegacyCharacterModelSchema(database) {
     if (migrationName !== characterModelMigration) {
       insertMigrationRecord(database, migrationName);
     }
+  }
+}
+
+function createLegacySchemaWithoutMigrationHistory(database) {
+  const lastLegacyMigration = "20260826100000_character_height_profile";
+  for (const migrationName of allMigrationNames) {
+    if (migrationName > lastLegacyMigration) {
+      break;
+    }
+
+    const migrationSql = fs.readFileSync(path.join(migrationsDir, migrationName, "migration.sql"), "utf8");
+    database.exec(migrationSql);
   }
 }
 
@@ -386,6 +399,42 @@ test("ensureRuntimeDatabaseReady repairs character model fields for web developm
         actorKind: "human",
         bodyBuild: "unknown",
       });
+
+      const migrationRow = verifyDb.prepare(
+        `SELECT finished_at, applied_steps_count
+         FROM "_prisma_migrations"
+         WHERE migration_name = ?
+           AND rolled_back_at IS NULL
+           AND finished_at IS NOT NULL`,
+      ).get("20260903090000_character_model_profile");
+      assert.ok(migrationRow);
+      assert.equal(migrationRow.applied_steps_count, 1);
+    } finally {
+      verifyDb.close();
+    }
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test("ensureRuntimeDatabaseReady bootstraps a legacy SQLite database without migration history", async () => {
+  const { tempDir, databasePath } = createTempDatabaseFile();
+  const database = new Database(databasePath);
+
+  try {
+    createLegacySchemaWithoutMigrationHistory(database);
+  } finally {
+    database.close();
+  }
+
+  try {
+    await withWebDevelopmentRuntime(databasePath, () => ensureRuntimeDatabaseReady());
+
+    const verifyDb = new Database(databasePath, { readonly: true });
+    try {
+      const columns = verifyDb.prepare(`PRAGMA table_info("Character")`).all();
+      assert.ok(columns.some((column) => column.name === "actorKind"));
+      assert.ok(columns.some((column) => column.name === "bodyBuild"));
 
       const migrationRow = verifyDb.prepare(
         `SELECT finished_at, applied_steps_count
