@@ -306,12 +306,11 @@ export async function createBlocking3dViewer(
     camera: cameraComponent,
   });
 
-  // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是半球
-  // 地面平坦部分的外沿。调“圆半径”滑块时两条圈同时重算，可以直观
-  // 看到球边和舞台余量的关系。
-  // 青色圈不能画在基础穹顶直径的一半处之外：地面网格最外 5% 是向上卷起接回半球的
-  // 圆弧（GROUND_DOME_FLAT_RADIUS = 0.95），只有该比例以内才是真正的
-  // 平面地板，参考圈必须落在平坦区域里才不会浮在弧面上。
+  // 参考圈组：琥珀色是角色舞台边界（半球边缘内缩 1 米），青色是 HDRI
+  // 地面/圆墙的外沿。调“圆半径”滑块时两条圈同时重算，可以直观看到
+  // 圆墙边界和舞台余量的关系。
+  // 青色圈保留在基础圆周内侧，避免线框和圆墙发生深度竞争；实际地面
+  // 仍然覆盖到完整圆半径，前景模型可在整块平面上落地。
   const STAGE_BOUNDARY_SEGMENTS = 96;
   const stageBoundaryColor = new pc.Color(0.9, 0.62, 0.2, 0.4);
   const domeBoundaryColor = new pc.Color(0.35, 0.75, 0.9, 0.45);
