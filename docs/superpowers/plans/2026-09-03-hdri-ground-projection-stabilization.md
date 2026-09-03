@@ -4,7 +4,7 @@
 
 **Goal:** 修复共享 HDRI 投影材质在投射中心附近的等距柱状南极奇点，让通用资产和所有 blocking3d 预览的地面不再出现旋涡。
 
-**Architecture:** 保留一个连续 EnviroDome、一个 MeshInstance 和原始 `sampler2D` 投影。材质在既有世界方向采样之外，按 `radiusMeters` 为地面中心增加 8%–28% 的局部稳定平面采样，并通过环形 `smoothstep` 混合回原始投影；半径只作为运行时 uniform，不进入数据库。CPU 投影 helper 与 GLSL 使用相同公式，作为数值回归契约。
+**Architecture:** 保留一个连续 EnviroDome、一个 MeshInstance 和原始 `sampler2D` 投影。材质在既有世界方向采样之外，按 `radiusMeters` 为地面中心增加 8%–28% 的有限稳定投影环，并通过环形 `smoothstep` 混合回原始投影；稳定环的外圈经度和纬度与原始投影对齐，中心只固定南极奇点的经度，避免形成新的可见圆盘。半径只作为运行时 uniform，不进入数据库。CPU 投影 helper 与 GLSL 使用相同公式，作为数值回归契约。
 
 **Tech Stack:** React/Vite、TypeScript、PlayCanvas GLSL、Node `node:test`、pnpm workspace、Codex 内置浏览器。
 
@@ -73,8 +73,8 @@ Implement `projectEquirectangularSurface(surfacePosition, projectionCenterHeight
 1. subtracting the projection height and calling the unchanged direction-only helper for the raw coordinates;
 2. enabling stabilization only when `surfacePosition[1] < projectionCenterHeight - 0.001`;
 3. using `1 - smoothstep(0.08, 0.28, horizontalDistance / safeRadius)`;
-4. rotating the world X/Z position by the inverse HDRI azimuth;
-5. mapping the stable position to `u = fract(0.5 + x / (safeRadius * 1.6))` and `v = clamp(horizon + 0.34 + z / (safeRadius * 3), horizon + 0.08, 0.96)`;
+4. deriving a stable longitude that moves from fixed `u=0.5` at the center to the raw projected longitude at the 28% outer ring, using wrapped shortest-path interpolation;
+5. deriving the stable latitude from the raw projection height at that outer ring: `v = clamp(horizon + atan2(max(projectionCenterHeight, 0.001), safeRadius * 0.28) / PI, 0, 0.96)`;
 6. mixing V linearly and U on the wrapped shortest path.
 
 Keep `projectEquirectangularDirection` unchanged for key-light estimation and existing direction tests.
@@ -122,17 +122,20 @@ float rawPanoramaV = clamp(
     0.0,
     1.0
 );
-vec2 sourceFloorPosition = vec2(
-    projectionToSurface.x * azimuthCosine - projectionToSurface.z * azimuthSine,
-    projectionToSurface.x * azimuthSine + projectionToSurface.z * azimuthCosine
-);
+float stableAzimuthProgress = smoothstep(0.0, 0.28, normalizedGroundDistance);
+float stableUOffset = rawPanoramaU - 0.5;
+stableUOffset = stableUOffset > 0.5
+  ? stableUOffset - 1.0
+  : (stableUOffset < -0.5 ? stableUOffset + 1.0 : stableUOffset);
 float stablePanoramaU = fract(
-    0.5 + sourceFloorPosition.x / (safeProjectionRadius * 1.6) + 1.0
+    0.5 + stableUOffset * stableAzimuthProgress + 1.0
 );
+float stableGroundHeight = max(uProjectionCenterHeight, 0.001);
+float stableGroundRadius = safeProjectionRadius * 0.28;
 float stablePanoramaV = clamp(
-    uPanoramaHorizonV + 0.34
-      + sourceFloorPosition.y / (safeProjectionRadius * 3.0),
-    uPanoramaHorizonV + 0.08,
+    uPanoramaHorizonV
+      + atan(stableGroundHeight, stableGroundRadius) / 3.14159265,
+    0.0,
     0.96
 );
 float wrappedUDelta = stablePanoramaU - rawPanoramaU;
@@ -225,7 +228,7 @@ pnpm --filter @ai-novel/client typecheck
 pnpm --filter @ai-novel/client test
 ```
 
-Expected: typecheck and the full client suite PASS.
+Expected: typecheck and the projection/static HDRI focus pass. The full client suite is also run as a baseline check; its existing unrelated failures must match the clean main checkout before this change is accepted.
 
 ### Task 5: Review, commit, integrate and clean up
 
@@ -264,4 +267,3 @@ git worktree list --porcelain
 ```
 
 Confirm main and origin/main are equal, main is clean, this worktree is removed only after successful integration, and unrelated worktrees remain untouched.
-

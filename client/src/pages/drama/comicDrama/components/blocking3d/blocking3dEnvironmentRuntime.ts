@@ -100,6 +100,7 @@ export function createBlocking3dEnvironmentRuntime(
     environmentSettings: Blocking3dEnvironmentSettings,
   ): ProjectedHdriMaterialSettings => ({
     projectionCenterHeight: environmentSettings.projectionCenterHeight,
+    projectionRadiusMeters: environmentSettings.radiusMeters,
     panoramaHorizonV: environmentSettings.panoramaHorizonV,
     hdriAzimuthOffsetDegrees: lighting.hdriAzimuthOffsetDegrees,
   });
