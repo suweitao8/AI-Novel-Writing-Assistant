@@ -7,6 +7,7 @@ export interface Blocking3dGeometryData {
 
 export const LONGITUDE_BANDS = 64;
 export const UPPER_DOME_LATITUDE_BANDS = 24;
+/** Editor reference ring inset; the actual floor extends to the full radius. */
 export const GROUND_DOME_FLAT_RADIUS = 0.95;
 export const GROUND_DOME_RIM_BANDS = 16;
 const GEOMETRY_RADIUS = 0.5;
@@ -133,9 +134,10 @@ export function createBackdropGeometryData(
   const groundRings = [upperRings[upperRings.length - 1]];
   for (let band = 1; band <= GROUND_DOME_RIM_BANDS; band += 1) {
     const progress = band / GROUND_DOME_RIM_BANDS;
-    const radial = 1 - (1 - GROUND_DOME_FLAT_RADIUS) * progress * progress;
-    const y = edgeHeight * (1 - progress) * (1 - progress);
-    groundRings.push(addGroundRing(data, radial, y));
+    // The EnviroDome boundary is a circular wall, not a bowl: keep the
+    // entire floor at one radius and only lower Y from the horizon to y=0.
+    const y = edgeHeight * (1 - progress);
+    groundRings.push(addGroundRing(data, 1, y));
   }
 
   for (let ringIndex = 0; ringIndex < groundRings.length - 1; ringIndex += 1) {
@@ -152,11 +154,11 @@ export function createBackdropGeometryData(
 }
 
 /**
- * Build the lower HDRIBackdrop surface as a finite flat floor plus a curved
- * outer rim. Texture projection is intentionally not encoded in the vertex
- * UVs: the ground material projects the panorama from the world-space
- * projection center per fragment, so the center does not interpolate a
- * circular UV fan.
+ * Build the lower HDRIBackdrop surface as a finite flat floor plus a circular
+ * outer wall. Texture projection is intentionally not encoded in the vertex
+ * UVs: ordinary generated panoramas do not provide a calibrated floor map,
+ * so the floor shader uses one stable low-frequency material color instead of
+ * interpolating a circular UV fan.
  */
 export function createGroundDomeGeometryData(
   projectionCenterHeight: number,
@@ -168,13 +170,10 @@ export function createGroundDomeGeometryData(
 
   for (let band = 0; band <= GROUND_DOME_RIM_BANDS; band += 1) {
     const progress = band / GROUND_DOME_RIM_BANDS;
-    // Match the upper dome's near-vertical tangent at the horizon, then
-    // flatten the curve into the usable floor instead of cutting it with a
-    // fixed-slope strip. This keeps the projected panorama from changing
-    // slope abruptly at the dome/floor boundary.
-    const radial = 1 - (1 - GROUND_DOME_FLAT_RADIUS) * progress * progress;
-    const y = edgeHeight * (1 - progress) * (1 - progress);
-    rings.push(addGroundRing(data, radial, y));
+    // Keep the ground boundary at one radius. The lower surface is a true
+    // plane; only the surrounding wall changes height to meet the sky dome.
+    const y = edgeHeight * (1 - progress);
+    rings.push(addGroundRing(data, 1, y));
   }
 
   for (let ringIndex = 0; ringIndex < rings.length - 1; ringIndex += 1) {
