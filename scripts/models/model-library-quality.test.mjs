@@ -18,6 +18,7 @@ import {
   CINE57_MINIMUM_MODEL_COUNT,
   CINE57_QUARANTINED_ASSETS,
   CINE57_QUARANTINED_MODEL_IDS,
+  CINE57_REJECTED_FOREGROUND_MODEL_IDS,
   CINE57_REMOVED_MODEL_IDS,
   CINE57_REQUIRED_CATEGORIES,
   assertCine57ModelLibraryContract,
@@ -188,6 +189,17 @@ test("材质不完整的模型只保留在可恢复隔离清单中", () => {
   }
 });
 
+test("每个当前模型和前景拒绝项都有可追溯的导入历史结论", () => {
+  const history = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "model-library-import-history.json"), "utf8"));
+  const byCatalogId = new Map(history.entries.map((entry) => [entry.evidence?.catalogId, entry]));
+  for (const entry of STATIC_MODEL_LIBRARY) {
+    assert.equal(byCatalogId.get(entry.id)?.status, "approved", `${entry.id} must have an approved history record`);
+  }
+  for (const id of CINE57_REJECTED_FOREGROUND_MODEL_IDS) {
+    assert.equal(byCatalogId.get(id)?.status, "rejected", `${id} must have a rejected history record`);
+  }
+});
+
 test("UAL2 角色的脖子材质与主体同色，关节材质保持浅色区分", () => {
   const actor = MODEL_LIBRARY.find((entry) => entry.id === "ual2-college-student");
   assert.ok(actor);
@@ -254,13 +266,13 @@ test("模型库质量门禁汇总所有违规", () => {
 
 test("模型库质量门禁拒绝无法解析到模型目录内的贴图路径", () => {
   const libraryWithExternalTexture = MODEL_LIBRARY.map((entry) => (
-    entry.id === "grass-02-a-1"
+    entry.id === "crop-arugula-01a"
       ? {
         ...entry,
         materials: {
-          MI_grass_02: {
-            ...entry.materials.MI_grass_02,
-            baseColor: "https://example.invalid/grass.png",
+          MI_Arugula_Leafs: {
+            ...entry.materials.MI_Arugula_Leafs,
+            baseColor: "https://example.invalid/arugula.png",
           },
         },
       }
@@ -268,7 +280,7 @@ test("模型库质量门禁拒绝无法解析到模型目录内的贴图路径",
   ));
   const errors = validateModelLibrary({ library: libraryWithExternalTexture, modelsDir: MODELS_DIR });
   assert.ok(errors.includes(
-    "grass-02-a-1 MI_grass_02 baseColor texture is missing: https://example.invalid/grass.png",
+    "crop-arugula-01a MI_Arugula_Leafs baseColor texture is missing: https://example.invalid/arugula.png",
   ));
 });
 

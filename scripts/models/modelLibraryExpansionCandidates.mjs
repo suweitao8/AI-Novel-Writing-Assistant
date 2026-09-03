@@ -1,5 +1,7 @@
 import path from "node:path";
 
+import { shouldSkipImportCandidate } from "./modelLibraryImportHistory.mjs";
+
 function packageBasename(packagePath) {
   return path.posix.basename(String(packagePath ?? "").replaceAll("\\", "/"));
 }
@@ -28,6 +30,12 @@ function hasRejectedPattern(meshName, policy) {
   });
 }
 
+function getExplicitDisposition(meshName, policy) {
+  const admission = policy?.foregroundAdmission ?? policy ?? {};
+  return (Array.isArray(admission.rejectedAssets) ? admission.rejectedAssets : [])
+    .find((asset) => String(asset?.meshName ?? "") === meshName) ?? null;
+}
+
 export function classifyExpansionCandidate({ meshName, packagePath, policy = {} }) {
   const normalizedMeshName = String(meshName ?? "");
   const normalizedPackagePath = String(packagePath ?? "").replaceAll("\\", "/");
@@ -37,18 +45,40 @@ export function classifyExpansionCandidate({ meshName, packagePath, policy = {} 
   if (/(?:^|_)NN(?:_|$)/i.test(normalizedMeshName) || /\/NN\//i.test(normalizedPackagePath)) {
     return { accepted: false, reason: "technical-variant" };
   }
+  const disposition = getExplicitDisposition(normalizedMeshName, policy);
+  if (disposition) {
+    return { accepted: false, reason: disposition.reasonCode ?? "curation-rejected" };
+  }
   if (hasRejectedPattern(normalizedMeshName, policy)) {
     return { accepted: false, reason: "component" };
   }
   return { accepted: true, reason: null };
 }
 
-export function selectExpansionCandidates({ rows = [], selectedMeshNames = new Set(), policy = {} }) {
+export function selectExpansionCandidates({
+  rows = [],
+  selectedMeshNames = new Set(),
+  policy = {},
+  importHistory = null,
+}) {
   const candidates = [];
   const rejected = [];
   for (const row of rows) {
     const meshName = packageBasename(row?.package);
     if (!selectedMeshNames.has(meshName)) continue;
+    if (importHistory) {
+      const historyDecision = shouldSkipImportCandidate({ row, history: importHistory });
+      if (historyDecision.skip) {
+        rejected.push({
+          row,
+          meshName,
+          reason: historyDecision.reason,
+          assetKey: historyDecision.assetKey,
+          sourceFingerprint: historyDecision.sourceFingerprint,
+        });
+        continue;
+      }
+    }
     const classification = classifyExpansionCandidate({
       meshName,
       packagePath: row?.package,

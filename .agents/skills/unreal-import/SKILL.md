@@ -61,6 +61,10 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 构建器生成候选目录后，必须在当前 worktree 执行 `node --experimental-strip-types scripts/models/curate-cine57-library.mjs --apply-review-only`，把 `scripts/models/model-library-visual-review.json` 中已批准的截图语义应用到生成目录；该模式只重写目录名称、分类和尺寸字段，不清理或删除模型资产。随后执行 `pnpm check:model-library`。新增模型如果没有绑定到标准缩略图截图的 `approved` 复核记录，质量门禁必须失败，不能用英文文件名直译或页面隐藏绕过。
 
+导入前先用仓库内的 `scripts/models/modelLibraryImportWorkflow.mjs --preflight --manifest <path>` 解析候选；命令默认读取 `scripts/models/model-library-import-history.json`，对同一规范化包路径 + Mesh 且源指纹未变化的已拒绝模型返回 `previously-rejected`，在 FBX2glTF、贴图转换和预览之前跳过。历史记录只在源指纹变化或人工重开审查时重新处理。没有历史的候选也不能直接写发布目录，必须进入本次 run 的暂存报告。
+
+每个暂存候选在发布前都要打开当前 worktree 的 `/models/<id>` 详情页生成方形截图，检查几何、贴图、资源指纹、请求和控制台记录，再用 `scripts/models/modelLibraryImportWorkflow.mjs --check-staged --report <path> --artifacts-root <path>` 验证；缺截图、截图非方形、哈希过期、贴图错误、请求失败或控制台错误都会阻止发布。历史性的 `%TEMP%\fbx2gltf-test\build-library-v3.cjs` 只作为转换器，不得再作为未经门禁的正式目录发布入口。完整历史与故障诊断见 `docs/wiki/debugging/model-import-admission-history.md`。
+
 自然模型和任何带透明材质的新资产还必须完成真实详情页预览：复核记录使用 `model-preview-audit-YYYY-MM-DD` 证据，并绑定 `/models/<id>` 预览路径、发布 GLB/贴图 SHA-256、渲染器版本、渲染日期和贴图状态。资源或贴图任一字节变化都会使旧哈希失效；先生成并检查预览，再把候选写入发布目录。被拒候选放到外部隔离目录，不能留在 `client/public/models/cine57/` 等待页面过滤。
 
 ### 模型硬规则（每条都对应一次返工教训）

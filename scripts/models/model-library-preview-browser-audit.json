@@ -8438,59 +8438,6 @@
       }
     },
     {
-      "id": "battery-01",
-      "route": "/models/battery-01",
-      "screenshotPath": "artifacts/model-preview-audit/battery-01.jpg",
-      "screenshotSha256": "a2de33585305a9cda08b08f3830e930e1a9cf536d6630232870c0777b04c5c8a",
-      "assetSha256": "f9f9fdc5772c09f706ecfb1e4767f60dd5ff6238e4f2bd84dd47bdcbe921f958",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:37:20.538Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_Box01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_GarbageBasket01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Bin_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Bottle_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Bucket_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Microwave01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Apple01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Board01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_CookingBoard01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Cup01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Dishwasher01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_DrainingBoard01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Frypan01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_KitchenStuff01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Knife01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_NapkinHolder01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Battery_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量326",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/battery-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
       "id": "bugspray-01a",
       "route": "/models/bugspray-01a",
       "screenshotPath": "artifacts/model-preview-audit/bugspray-01a.jpg",
@@ -8602,40 +8549,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/blinds-01a.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "bulb-01",
-      "route": "/models/bulb-01",
-      "screenshotPath": "artifacts/model-preview-audit/bulb-01.jpg",
-      "screenshotSha256": "8687c5f287e076f0f427e945689ec4841e80f03c0f78d25d98eba08c0f5b642f",
-      "assetSha256": "97eb80cf9bb36a538fff02267fd2627bc1c292a81c12a7aefb87e34a259c8410",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:37:33.234Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量130",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/bulb-01.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -8982,44 +8895,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/wooden-board-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "cigarette-01",
-      "route": "/models/cigarette-01",
-      "screenshotPath": "artifacts/model-preview-audit/cigarette-01.jpg",
-      "screenshotSha256": "e10135eb38e98a5806c2bb2f884e3b07e3a05c3edf48fa9ccf73e4894e3c1eaf",
-      "assetSha256": "4fe9e1219ea2440f5ebe0a0d0387819f7b4fb5649cd62afc96425c0ce2bf288a",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:37:48.052Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_FireSprinkler01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Binocular_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Cigarette_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量50",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/cigarette-01.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -9628,44 +9503,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/pill-bottle-01a.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "pill-bottle-01c",
-      "route": "/models/pill-bottle-01c",
-      "screenshotPath": "artifacts/model-preview-audit/pill-bottle-01c.jpg",
-      "screenshotSha256": "3adfe01082a3cfdedbb4fe13e8f9133d73b1db4c092778d0a88f9bb3dcc1d83e",
-      "assetSha256": "5f6f22352b5626e8c14a24703dd5e16b564b9a06945475a907c8d8076c886d05",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:38:11.454Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_FireSprinkler01_D-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Binocular_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Cigarette_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量254",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/pill-bottle-01c.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -10916,70 +10753,6 @@
       }
     },
     {
-      "id": "office-stationary-01ab",
-      "route": "/models/office-stationary-01ab",
-      "screenshotPath": "artifacts/model-preview-audit/office-stationary-01ab.jpg",
-      "screenshotSha256": "46ea8959f8e64440c946a49099813f26b57aac019b3b95860eb8650b0a8e3962",
-      "assetSha256": "6180d264d52ec361968b6150203b9eaf779c151158cc935b19a8dc16c2c828a6",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:40:38.915Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量498",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/office-stationary-01ab.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "office-stationary-01ac",
-      "route": "/models/office-stationary-01ac",
-      "screenshotPath": "artifacts/model-preview-audit/office-stationary-01ac.jpg",
-      "screenshotSha256": "76c041d47e93e2eff482cf578e1eea415bfdbf7180cb58be2f1b0a11e4362333",
-      "assetSha256": "17a8d1ee23454d756cb3dc61175c43e01ab56fbd85f35a8a4b518cf749e4d456",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:40:39.912Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量180",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/office-stationary-01ac.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
       "id": "printed-materials-01a",
       "route": "/models/printed-materials-01a",
       "screenshotPath": "artifacts/model-preview-audit/printed-materials-01a.jpg",
@@ -11102,38 +10875,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/stationary-set-02aa.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "stationary-set-02ab",
-      "route": "/models/stationary-set-02ab",
-      "screenshotPath": "artifacts/model-preview-audit/stationary-set-02ab.jpg",
-      "screenshotSha256": "0867f9860f73fbc4cd45a43c8500a316c9ca057f582d08538343c9ecec88f63b",
-      "assetSha256": "dac15b4c9b40899b20cf1c454e39d0c4b4f808fa5f178d8c4de39e865144b88c",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:40:44.984Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量4",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/stationary-set-02ab.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -12387,44 +12128,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/basketball-hoop.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "candle-set-01a",
-      "route": "/models/candle-set-01a",
-      "screenshotPath": "artifacts/model-preview-audit/candle-set-01a.jpg",
-      "screenshotSha256": "e9eca1c751f478dd549abad67efdd9edd5b715d800826cf048c8844819f039d8",
-      "assetSha256": "ce018ec79097e71ea94225e939079006ecf8286e6d69a07e0c0a7c7dc496a751",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:41:43.812Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_AlarmClock_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Book_01_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Hoop_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量502",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/candle-set-01a.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -14511,38 +14214,6 @@
       }
     },
     {
-      "id": "stone-01",
-      "route": "/models/stone-01",
-      "screenshotPath": "artifacts/model-preview-audit/stone-01.jpg",
-      "screenshotSha256": "9650b3025b84d929a512833d13633a0ae34ef82f834f9b7483962cb06332e8d2",
-      "assetSha256": "65ed5bf4921e935bb45d4d9c19f4de0efbe9f0e4708ec476d17f2ba66ec2f716",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:43:22.498Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量16",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/stone-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
       "id": "mountain-rock-big-01",
       "route": "/models/mountain-rock-big-01",
       "screenshotPath": "artifacts/model-preview-audit/mountain-rock-big-01.jpg",
@@ -14793,70 +14464,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/orange-tree-01-02.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "grass-02-a-1",
-      "route": "/models/grass-02-a-1",
-      "screenshotPath": "artifacts/model-preview-audit/grass-02-a-1.jpg",
-      "screenshotSha256": "792419725c058922b94b59bfe738256745b6f6dd3120cba510d5f843e81630e9",
-      "assetSha256": "8267537d0575c196014c2898a8cac54f1f411f0b8e4e8fdf9a0665e9c89c49fb",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:43:44.228Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量56",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/grass-02-a-1.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "grass-tuft-a",
-      "route": "/models/grass-tuft-a",
-      "screenshotPath": "artifacts/model-preview-audit/grass-tuft-a.jpg",
-      "screenshotSha256": "c69c8441082569b424724d6e12f648b173a4bb2f16fe35ae9019f30a4820eecf",
-      "assetSha256": "27f096130d7730a37c58828ebfdf1794f8270d37fcd4470edea328aae3e152e8",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:43:45.246Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "alpha-preserved",
-      "consoleErrors": [],
-      "consoleWarnings": [],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量245",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/grass-tuft-a.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -15177,40 +14784,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/camping-grill-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "baseball",
-      "route": "/models/baseball",
-      "screenshotPath": "artifacts/model-preview-audit/baseball.jpg",
-      "screenshotSha256": "361b85e2ee419f6f2757750c0d1abc7d4b2c24c1b4a54330c1f8e350e9dfe141",
-      "assetSha256": "4dc0141a63b177e3c7dcb1b008ea8b43d0e7dde0515f6eb14bbb9d6442e7e203",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:00.318Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量227",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/baseball.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544
@@ -15881,42 +15454,6 @@
       }
     },
     {
-      "id": "grass-bunch-01",
-      "route": "/models/grass-bunch-01",
-      "screenshotPath": "artifacts/model-preview-audit/grass-bunch-01.jpg",
-      "screenshotSha256": "247fc11ded7040a99b4fab1a6cc7bfd3feb80a817f41ee42efd33f6747bc1376",
-      "assetSha256": "32d21285e0464981864f4fa207ccfa63ff4bc69742373ab4e26a59696552303b",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:31.782Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量2,692",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/grass-bunch-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
       "id": "asian-flag-01",
       "route": "/models/asian-flag-01",
       "screenshotPath": "artifacts/model-preview-audit/asian-flag-01.jpg",
@@ -16139,154 +15676,6 @@
       }
     },
     {
-      "id": "trash-debris-pile-02a",
-      "route": "/models/trash-debris-pile-02a",
-      "screenshotPath": "artifacts/model-preview-audit/trash-debris-pile-02a.jpg",
-      "screenshotSha256": "3a9d43a3802d5b4a9d145e0598cc319e4776fe85625675afa96a4afdcdf835ff",
-      "assetSha256": "70c5298791af2ad777b19f2916a08f49a32add5f60286da44482069d0855ba07",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:41.845Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量1,720",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/trash-debris-pile-02a.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "trash-debris-pile-02c",
-      "route": "/models/trash-debris-pile-02c",
-      "screenshotPath": "artifacts/model-preview-audit/trash-debris-pile-02c.jpg",
-      "screenshotSha256": "e225da050c3d5f7a8a7628eeb4a43fd4fc8ba66edc27ba9a580c222cbd47fe00",
-      "assetSha256": "d191d17abfb8702257b0786cdb8dedafd48c7bbc6c61d092a76bdb910061d469",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:42.974Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量715",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/trash-debris-pile-02c.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "trash-debris-pile-02f",
-      "route": "/models/trash-debris-pile-02f",
-      "screenshotPath": "artifacts/model-preview-audit/trash-debris-pile-02f.jpg",
-      "screenshotSha256": "0457396780a8ba1c82b8ebadf6b86081e920f5a7e2e53dbe9cb344ae8fc56101",
-      "assetSha256": "2608df76703941151342440ecfdc3d0f668c074bc1357daefd1d64202f5070f2",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:44.017Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量139",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/trash-debris-pile-02f.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "trash-debris-pile-02i",
-      "route": "/models/trash-debris-pile-02i",
-      "screenshotPath": "artifacts/model-preview-audit/trash-debris-pile-02i.jpg",
-      "screenshotSha256": "b665a28841d4ffe3bd59e0a056845446eab43bfde579d3e8a3c12c6ff2138381",
-      "assetSha256": "ec8a0e6bb79b5a043f960e09f7a89da7fca67018369268bc1cc0e071e8957e31",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:45.025Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量166",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/trash-debris-pile-02i.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
       "id": "soviet-bench-01",
       "route": "/models/soviet-bench-01",
       "screenshotPath": "artifacts/model-preview-audit/soviet-bench-01.jpg",
@@ -16318,191 +15707,6 @@
         "height": 544
       },
       "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/soviet-bench-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "debris-dust-01",
-      "route": "/models/debris-dust-01",
-      "screenshotPath": "artifacts/model-preview-audit/debris-dust-01.jpg",
-      "screenshotSha256": "523ec61f9bee36acfac23569480f39fa3f8ea90b03536aba523f8712a250edf4",
-      "assetSha256": "c0f9d5471bbb09e375e5712a5a46f9a6d1e7139898becd730a96036bb5f00cc6",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:47.301Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量331",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/debris-dust-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "debris-dust-03",
-      "route": "/models/debris-dust-03",
-      "screenshotPath": "artifacts/model-preview-audit/debris-dust-03.jpg",
-      "screenshotSha256": "7bb7b49213a6f47aec4e9737cf7f616af47169e25b47fd41425aa9a433665e8d",
-      "assetSha256": "49da13b8ea4e594cc809cad353c5797fa3e7a09ce0cb3a82d7b853d53489650e",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:51.633Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量587",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/debris-dust-03.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "debris-dust-05",
-      "route": "/models/debris-dust-05",
-      "screenshotPath": "artifacts/model-preview-audit/debris-dust-05.jpg",
-      "screenshotSha256": "74af91784b7d3fb3d892cdb4ce574204669585bf9a9627c47724ea9116fd1c76",
-      "assetSha256": "e3a798ea4f4d60acfee81e4db8ea056eb6d02af1945a3c022b7e612afe159030",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:52.684Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量507",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/debris-dust-05.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "debris-gravel-01",
-      "route": "/models/debris-gravel-01",
-      "screenshotPath": "artifacts/model-preview-audit/debris-gravel-01.jpg",
-      "screenshotSha256": "dbd2a7fae3208e7c7c969bbe8e5a5d7d374783a50cf045fbe6e1ba5839db4ff2",
-      "assetSha256": "22d0d71d3cbd972b27e1753244cbc1703d1540adbd4dc824dc07659fa37a8a98",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:53.746Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量863",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/debris-gravel-01.jpg",
-      "screenshotDimensions": {
-        "width": 544,
-        "height": 544
-      }
-    },
-    {
-      "id": "debris-gravel-03",
-      "route": "/models/debris-gravel-03",
-      "screenshotPath": "artifacts/model-preview-audit/debris-gravel-03.jpg",
-      "screenshotSha256": "c89b691f324974f3c4465aa803a698391de514659c2dbf096f84d4e2248cc5a8",
-      "assetSha256": "a735a9099b20580b6adc1d0c034c4b781e73e590b284fd5565af571992ea0042",
-      "renderer": "model-detail-v1",
-      "renderedAt": "2026-09-02T19:44:54.797Z",
-      "canvas": {
-        "width": 898,
-        "height": 544
-      },
-      "geometryReady": true,
-      "textureStatus": "opaque-verified",
-      "consoleErrors": [],
-      "consoleWarnings": [
-        "Switching format of texture 'T_BaseballBatandBall_B-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'T_Axe_Black_01_BC-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture",
-        "Switching format of texture 'EnvSamplerTex-1' to sRGB equivalent: RGBA8 -> SRGBA8. This is an expensive operation, and the texture should be created using the right format to avoid this. _Texture"
-      ],
-      "failedRequests": [],
-      "screenshotCaptured": true,
-      "reviewStatus": "approved",
-      "geometryStats": "顶点数量629",
-      "captureClip": {
-        "x": 534,
-        "y": 151,
-        "width": 544,
-        "height": 544
-      },
-      "fullScreenshotPath": ".tmp/model-preview-audit/full-screens/debris-gravel-03.jpg",
       "screenshotDimensions": {
         "width": 544,
         "height": 544

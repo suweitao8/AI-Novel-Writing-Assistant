@@ -60,8 +60,8 @@ recheckPolicy = source-change-or-manual-reopen
 仓库新增模型导入工作流门面，分成三个明确阶段：
 
 1. `preflight`：解析 manifest，应用来源、技术变体、显式策展和历史跳过规则，输出 accepted/rejected/skipped 计划；不会触碰发布目录。
-2. `stage`：只对 accepted 候选完成转换、GLB 清洗、贴图回填和目录草稿，所有文件位于本次 run 的暂存目录。
-3. `publish`：先在工作区真实 `/models/<id>` 详情路由生成方形预览，收集当前 GLB/贴图指纹、画布/几何状态、请求和控制台证据；只有所有候选通过结构、材质、尺寸和预览门禁，才把暂存产物和目录提交到发布目录，并把 approved 事件写入台账。失败项写入 rejected 事件并留在可恢复隔离区。
+2. `stage`：只对 accepted 候选完成转换、GLB 清洗、贴图回填和目录草稿，所有文件位于本次 run 的暂存目录；仓库提供 staged report 格式来承接转换器输出。
+3. `publish`：先在工作区真实 `/models/<id>` 详情路由生成方形预览，收集当前 GLB/贴图指纹、画布/几何状态、请求和控制台证据；`modelLibraryImportWorkflow.mjs --check-staged` 或 `curate-cine57-library.mjs --staged-report` 只有在所有候选通过结构、材质、尺寸和预览门禁时才返回可发布。失败项写入 rejected 事件并留在可恢复隔离区，目录策展脚本不会在 staged 检查失败后写入目录。
 
 `curate-cine57-library.mjs --check` 继续作为最终只读总门禁；它必须同时检查前景准入规则、导入历史格式、导入审计和浏览器详情预览。历史性的外部 `build-library-v3.cjs` 不再直接决定发布，只能作为转换器被新门面包住。
 
@@ -85,4 +85,3 @@ recheckPolicy = source-change-or-manual-reopen
 ## 长期规则
 
 今后模型导入必须遵循：候选先预检，已确认坏模型按稳定资产键和未变化源指纹跳过，转换产物只进暂存区，真实方形详情预览和完整质量门禁通过后才发布。任何新增拒绝结论都必须同时写入策展策略和历史台账，避免同一问题在下一批导入时再次消耗转换和预览资源。
-
