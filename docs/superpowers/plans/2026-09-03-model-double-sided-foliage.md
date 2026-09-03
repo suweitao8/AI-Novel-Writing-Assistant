@@ -166,6 +166,6 @@
   git commit -s -m "fix: render foliage materials double-sided"
   ```
 
-- [ ] **Step 3: Integrate, push, and clean up**
+- [x] **Step 3: Integrate, push, and clean up**
 
   From the clean main workspace run `pnpm workflow:integrate codex/grass-double-sided-material --push --verify "pnpm test:model-library"`, verify `HEAD == origin/main`, remove only this merged worktree and branch, prune worktrees, and report the final checks.
