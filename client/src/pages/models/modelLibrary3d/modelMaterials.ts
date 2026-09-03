@@ -2,6 +2,7 @@ import * as pc from "playcanvas";
 
 import type { ModelMaterialInfo, ModelMaterialMap } from "@/config/modelLibrary";
 import { loadAsset } from "@/pages/drama/comicDrama/components/blocking3d/blocking3dViewerCore";
+import { applyModelMaterialCulling } from "./modelMaterialPolicy";
 
 /**
  * 模型材质回填：GLB 里只有 FBX 带出来的材质占位（白色无贴图），
@@ -109,6 +110,7 @@ export async function applyModelMaterials(
       // 2.21 没有 useEmissive 开关，直接设 emissive 颜色即可点亮
       material.emissive = new pc.Color(info.emissive[0], info.emissive[1], info.emissive[2]);
     }
+    applyModelMaterialCulling(material, info);
     material.update();
     return material;
   };
