@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  getProjectedHdriGroundStabilization,
   PROJECTED_HDRI_FRAGMENT_GLSL,
+  projectEquirectangularGroundPlane,
   projectEquirectangularDirection,
   projectEquirectangularSurface,
 } from "./blocking3dEnvironmentProjection.ts";
@@ -44,60 +44,51 @@ test("HDRI 投影着色器绑定可调全景地面分界 uniform，并直接采�
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
 });
 
-test("投射中心地面使用有限稳定区，不让微小位置变化跨越整条经度轴", () => {
+test("地面平面采样按世界 XZ 铺开，不让地面纹理围绕投射中心汇聚", () => {
+  const center = projectEquirectangularGroundPlane([0, 0, 0], 10);
+  const left = projectEquirectangularGroundPlane([-2, 0, 0], 10);
+  const right = projectEquirectangularGroundPlane([2, 0, 0], 10);
+  const forward = projectEquirectangularGroundPlane([0, 0, 2], 10);
+  const diagonal = projectEquirectangularGroundPlane([2, 0, 2], 10);
+
+  assert.equal(center.u, 0.5);
+  assert.ok(Math.abs(right.u - left.u - 0.2) < 1e-10);
+  assert.ok(Math.abs(diagonal.u - right.u) < 1e-10);
+  assert.notEqual(forward.v, center.v);
+  assert.ok(forward.v >= 0.52 && forward.v <= 0.98);
+});
+
+test("平面地面从中心铺到平坦边界，并在外圈连续退出", () => {
   const center = projectEquirectangularSurface([0, 0, 0], 2, 7.5);
-  const nearby = [
-    projectEquirectangularSurface([0.01, 0, 0], 2, 7.5),
-    projectEquirectangularSurface([-0.01, 0, 0], 2, 7.5),
-    projectEquirectangularSurface([0, 0, 0.01], 2, 7.5),
-  ];
+  const inner = projectEquirectangularSurface([7.5 * 0.85, 0, 0], 2, 7.5);
+  const outer = projectEquirectangularSurface([7.5, 0, 0], 2, 7.5);
 
-  assert.equal(center.groundStabilization, 1);
-  assert.ok(nearby.every((sample) => sample.groundStabilization > 0.99));
-  assert.ok(nearby.every((sample) => Math.abs(sample.u - center.u) < 0.01));
-  assert.ok(nearby.every((sample) => sample.v < 0.9));
-});
-
-test("稳定投影环按投射高度对齐原始投影外圈", () => {
-  const defaultCenter = projectEquirectangularSurface([0, 0, 0], 2, 7.5);
-  const lowerCenter = projectEquirectangularSurface([0, 0, 0], 0.75, 7.5);
-  const expectedDefaultV = 0.5 + Math.atan2(2, 7.5 * 0.28) / Math.PI;
-
-  assert.ok(Math.abs(defaultCenter.v - expectedDefaultV) < 1e-10);
-  assert.ok(lowerCenter.v < defaultCenter.v);
-  assert.equal(defaultCenter.u, 0.5);
-});
-
-test("稳定区按半径缩放，并在边界连续退出", () => {
-  assert.equal(getProjectedHdriGroundStabilization(0, 7.5), 1);
-  assert.equal(getProjectedHdriGroundStabilization(7.5 * 0.28, 7.5), 0);
-  assert.ok(getProjectedHdriGroundStabilization(7.5 * 0.18, 7.5) > 0);
-  assert.ok(getProjectedHdriGroundStabilization(15 * 0.18, 15) > 0);
-  assert.equal(getProjectedHdriGroundStabilization(1, 0), 0);
-  assert.equal(getProjectedHdriGroundStabilization(1, Number.NaN), 0);
+  assert.equal(center.groundPlanarBlend, 1);
+  assert.ok(inner.groundPlanarBlend > 0 && inner.groundPlanarBlend < 1);
+  assert.equal(outer.groundPlanarBlend, 0);
+  assert.ok(center.v >= 0.52 && center.v <= 0.98);
 });
 
 test("上半球和稳定区外仍然使用原始方向投影", () => {
   const upper = projectEquirectangularSurface([0, 4, 0], 2, 7.5);
   const rawUpper = projectEquirectangularDirection([0, 2, 0]);
-  const outerGround = projectEquirectangularSurface([7, 0, 0], 2, 7.5);
-  const rawGround = projectEquirectangularDirection([7, -2, 0]);
+  const outerGround = projectEquirectangularSurface([7.5, 0, 0], 2, 7.5);
+  const rawGround = projectEquirectangularDirection([7.5, -2, 0]);
 
-  assert.equal(upper.groundStabilization, 0);
-  assert.deepEqual(upper, { ...rawUpper, groundStabilization: 0 });
-  assert.equal(outerGround.groundStabilization, 0);
-  assert.deepEqual(outerGround, { ...rawGround, groundStabilization: 0 });
+  assert.equal(upper.groundPlanarBlend, 0);
+  assert.deepEqual(upper, { ...rawUpper, groundPlanarBlend: 0 });
+  assert.equal(outerGround.groundPlanarBlend, 0);
+  assert.deepEqual(outerGround, { ...rawGround, groundPlanarBlend: 0 });
 });
 
-test("投影着色器按半球半径稳定投射中心地面，并保持原始等距图采样", () => {
+test("投影着色器只让平坦地面使用平面采样，并保持外圈原始方向采样", () => {
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /uProjectionRadiusMeters/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /PROJECTED_HDRI_GROUND_STABILIZATION/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundCenterProgress/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /stableAzimuthProgress/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /stableGroundHeight/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /atan\(stableGroundHeight, stableGroundRadius\)/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /stablePanoramaU/);
-  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /stablePanoramaV/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /flatGroundProgress/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarBlend/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /sourceGroundXZ/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarU/);
+  assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /groundPlanarV/);
+  assert.doesNotMatch(PROJECTED_HDRI_FRAGMENT_GLSL, /groundCenterProgress|stablePanoramaU|stablePanoramaV/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /fract\(/);
   assert.match(PROJECTED_HDRI_FRAGMENT_GLSL, /texture2D\(uEnvironmentMap, vec2\(panoramaU, panoramaV\)\)/);
   assert.doesNotMatch(PROJECTED_HDRI_FRAGMENT_GLSL, /samplerCube|textureCube/);
