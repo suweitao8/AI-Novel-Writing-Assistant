@@ -18,6 +18,10 @@ export {
   scaleSavedActorForCurrentHeight,
 } from "./blocking3dScale";
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 export const BLOCKING_3D_POSES: readonly DramaShotBlockingSketchPose[] = [
   "standing",
   "talking",
@@ -68,6 +72,38 @@ export const DEFAULT_BLOCKING_3D_CAMERA: DramaShotBlockingSketch3DCamera = {
   blurRadius: 3,
 };
 
+/** 编辑视角允许离开 HDRI 半球；这里只保留几何和浮点运算需要的安全范围。 */
+export const BLOCKING_3D_CAMERA_DISTANCE_MIN = 0.25;
+export const BLOCKING_3D_CAMERA_DISTANCE_MAX = Number.MAX_SAFE_INTEGER;
+
+export function normalizeBlocking3dCameraDistance(value: unknown, fallback = DEFAULT_BLOCKING_3D_CAMERA.distance): number {
+  const numeric = Number(value);
+  return clamp(
+    Number.isFinite(numeric) ? numeric : fallback,
+    BLOCKING_3D_CAMERA_DISTANCE_MIN,
+    BLOCKING_3D_CAMERA_DISTANCE_MAX,
+  );
+}
+
+/** 编辑视角拉远后扩大远裁剪面，避免角色被固定的 200 米远裁剪面切掉。 */
+export function resolveBlocking3dEditorFarClip(
+  distance: number,
+  configuredFarClip: number,
+  environmentRadius: number,
+): number {
+  const safeDistance = normalizeBlocking3dCameraDistance(distance);
+  const safeConfiguredFarClip = Number.isFinite(configuredFarClip)
+    ? Math.max(0.05, configuredFarClip)
+    : 200;
+  const safeEnvironmentRadius = Number.isFinite(environmentRadius)
+    ? Math.max(0, environmentRadius)
+    : 0;
+  return Math.min(
+    BLOCKING_3D_CAMERA_DISTANCE_MAX,
+    Math.max(safeConfiguredFarClip, safeDistance + safeEnvironmentRadius + 1),
+  );
+}
+
 export function wrapBlocking3dAzimuth(degrees: number): number {
   const wrapped = ((degrees + 180) % 360 + 360) % 360 - 180;
   return wrapped === -180 && degrees > 0 ? 180 : wrapped;
@@ -84,7 +120,10 @@ export function updateBlocking3dCameraAzimuth(
 const LIMITS = {
   cameraAzim: [-180, 180],
   cameraElev: [-89, 89],
-  cameraDistance: [0.25, 100],
+  cameraDistance: [
+    BLOCKING_3D_CAMERA_DISTANCE_MIN,
+    BLOCKING_3D_CAMERA_DISTANCE_MAX,
+  ],
   cameraPoint: [-100, 100],
   cameraFov: [30, 100],
   cameraNearClip: [0.05, 5],

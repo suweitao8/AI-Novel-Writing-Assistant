@@ -4,6 +4,7 @@ import struct, json, math, sys
 
 TARGET_POSE_ANIMATION = "Idle_No_Loop"
 TARGET_POSE_FRACTION = 0.4
+ROOT_GROUND_LIFT_METERS = 0.16
 
 # ---------- verified quat math ----------
 def qmul(a, b):
@@ -222,11 +223,29 @@ b_order = topo(bj, bparent)
 b_joints = set()
 for sk in bj.get("skins", []): b_joints.update(sk["joints"])
 a_by_name = {n.get("name", "").lower(): i for i, n in enumerate(anodes) if n.get("name")}
+# Anim57 exports five spine joints while UAL2 keeps three.  Matching equal
+# numbers (source spine_03 -> target spine_03) maps the target chest onto the
+# source's lower torso and makes the attack twist sideways.  Keep the source
+# names intact for FK/contact calculations, but resolve target names through
+# the anatomical chain when the extra joints are present.
+_source_name_by_target_name = {name: name for name in a_by_name}
+if all(name in a_by_name for name in ("spine_03", "spine_04", "spine_05", "neck_02")):
+    _source_name_by_target_name.update({
+        "spine_01": "spine_03",
+        "spine_02": "spine_04",
+        "spine_03": "spine_05",
+        "neck_01": "neck_02",
+    })
+    print(
+        "source spine collapse: target spine_01/02/03/neck_01 -> "
+        "source spine_03/04/05/neck_02"
+    )
 t2s = {}
 for ui in b_order:
     if ui not in b_joints: continue
     nm = (bnodes[ui].get("name") or "").lower()
-    if nm in a_by_name: t2s[ui] = a_by_name[nm]
+    source_name = _source_name_by_target_name.get(nm, nm)
+    if source_name in a_by_name: t2s[ui] = a_by_name[source_name]
 
 # 目标站立基准：UAL2 的绑定节点是 T-Pose，而 Idle_No_Loop 的固定采样帧才是
 # 角色在分镜和动画预览中应继承的自然站姿。使用固定帧避免把另一个循环动作
@@ -250,7 +269,7 @@ for ui in b_order:
     target_base_local_trans[ui] = local_trans
     p = bparent.get(ui)
     target_base_world[ui] = local_rot if p is None else qmul(target_base_world[p], local_rot)
-# 站立基准世界位置（胸腔瞄准方向的目标侧基准）。
+# 站立基准世界位置（解剖骨段对齐使用的目标侧基准）。
 target_base_pos = {}
 for ui in b_order:
     p = bparent.get(ui)
@@ -323,10 +342,263 @@ for ui in b_order:
     a_len = math.sqrt(sum(value * value for value in a_rest))
     u_len = math.sqrt(sum(value * value for value in u_rest))
     scale = u_len / a_len if a_len > 1e-6 else 1.0
-    out_trans[ui] = [tuple(u_rest[k] + scale * (v[k] - a_rest[k]) for k in range(3))
-                     for v in src_trans[src]]
+    out_trans[ui] = [
+        tuple(
+            u_rest[k]
+            + scale * (v[k] - a_rest[k])
+            + (ROOT_GROUND_LIFT_METERS if nm == "root" and k == 1 else 0.0)
+            for k in range(3)
+        )
+        for v in src_trans[src]
+    ]
+    if nm == "root":
+        print("root ground lift: %.3fm" % ROOT_GROUND_LIFT_METERS)
 
-# ---------- verify: recompose target at mid frame and compare with the solved target pose ----------
+# ---------- anatomical segment alignment ----------
+# Source and UAL2 use the same y-up world convention, but their bind poses have
+# different local bone axes.  A world-quaternion delta alone can therefore leave
+# a parent and its child pointing in different anatomical directions after the
+# target standing pose is applied.  Align the primary body segments explicitly,
+# using the source animation's world-space child direction and the target's own
+# segment length.  This also collapses UE Manny's optional intermediate spine
+# bones into the target's single corresponding segment without a special-case
+# chest rotation.
+import os as _os
+
+_align_names = [
+    ("pelvis", "spine_01"), ("spine_01", "spine_02"),
+    ("spine_02", "spine_03"), ("spine_03", "neck_01"),
+    ("neck_01", "head"),
+    ("clavicle_l", "upperarm_l"), ("upperarm_l", "lowerarm_l"),
+    ("lowerarm_l", "hand_l"),
+    ("clavicle_r", "upperarm_r"), ("upperarm_r", "lowerarm_r"),
+    ("lowerarm_r", "hand_r"),
+    ("thigh_l", "calf_l"), ("calf_l", "foot_l"),
+    ("thigh_r", "calf_r"), ("calf_r", "foot_r"),
+]
+_align_target = {
+    (node.get("name") or "").lower(): index
+    for index, node in enumerate(bnodes)
+    if node.get("name")
+}
+
+
+def _align_vsub(a, b):
+    return tuple(a[k] - b[k] for k in range(3))
+
+
+def _align_vlen(v):
+    return math.sqrt(sum(value * value for value in v))
+
+
+def _align_vnorm(v):
+    length = _align_vlen(v)
+    if not math.isfinite(length) or length < 1e-9:
+        return None
+    return tuple(value / length for value in v)
+
+
+def _align_vdot(a, b):
+    return sum(a[k] * b[k] for k in range(3))
+
+
+def _align_cross(a, b):
+    return (
+        a[1] * b[2] - a[2] * b[1],
+        a[2] * b[0] - a[0] * b[2],
+        a[0] * b[1] - a[1] * b[0],
+    )
+
+
+def _align_arc(a, b):
+    axis = _align_cross(a, b)
+    w = 1.0 + _align_vdot(a, b)
+    if w < 1e-9:
+        perpendicular = (1.0, 0.0, 0.0) if abs(a[0]) < 0.9 else (0.0, 1.0, 0.0)
+        axis = _align_cross(a, perpendicular)
+        w = 0.0
+    return qnorm((axis[0], axis[1], axis[2], w))
+
+
+_align_applied = 0
+for _parent_name, _child_name in _align_names:
+    _ui = _align_target.get(_parent_name)
+    _child_ui = _align_target.get(_child_name)
+    _src = t2s.get(_ui) if _ui is not None else None
+    _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+    if None in (_ui, _child_ui, _src, _src_child):
+        continue
+    if _ui not in out_rot or _ui not in bt_worldF:
+        continue
+    _parent_ui = bparent.get(_ui)
+    for _f in range(F):
+        _w_current = bt_worldF[_ui][_f]
+        if _parent_ui is not None and _parent_ui in bt_worldF:
+            _w_current = qmul(bt_worldF[_parent_ui][_f], out_rot[_ui][_f])
+        _target_dir = _align_vnorm(
+            qrot_vec(_w_current, target_base_local_trans[_child_ui])
+        )
+        _source_dir = _align_vnorm(
+            _align_vsub(a_posF[_src_child][_f], a_posF[_src][_f])
+        )
+        if _target_dir is None or _source_dir is None:
+            continue
+        _w_new = qmul(_align_arc(_target_dir, _source_dir), _w_current)
+        bt_worldF[_ui][_f] = _w_new
+        _local = qnorm(
+            _w_new
+            if _parent_ui is None
+            else qmul(qconj(bt_worldF[_parent_ui][_f]), _w_new)
+        )
+        if _f and qdot(out_rot[_ui][_f - 1], _local) < 0:
+            _local = tuple(-value for value in _local)
+        out_rot[_ui][_f] = _local
+        _align_applied += 1
+print("anatomical segment alignment applied on %d frames" % _align_applied)
+
+_expected_alignment_count = F * len(_align_names)
+if _align_applied != _expected_alignment_count:
+    raise SystemExit(
+        "anatomical segment alignment incomplete: %d/%d segments" %
+        (_align_applied, _expected_alignment_count)
+    )
+
+# A provisional target position pass is used only to validate hand/head contact
+# evidence.  It is the same forward-kinematics calculation used by the IK pass,
+# before IK changes any rotations.
+_contact_target_posF = {}
+for _ui in b_order:
+    _p = bparent.get(_ui)
+    _trs = out_trans.get(_ui)
+    _base_t = target_base_local_trans[_ui]
+    if _p is None:
+        _contact_target_posF[_ui] = [
+            _trs[_f] if _trs else _base_t for _f in range(F)
+        ]
+    else:
+        _contact_target_posF[_ui] = [
+            tuple(
+                _contact_target_posF[_p][_f][k]
+                + qrot_vec(
+                    bt_worldF[_p][_f], _trs[_f] if _trs else _base_t
+                )[k]
+                for k in range(3)
+            )
+            for _f in range(F)
+        ]
+
+_left_hand = a_by_name.get("hand_l")
+_right_hand = a_by_name.get("hand_r")
+_source_head = a_by_name.get("head")
+_source_hand_gap_min = float("inf")
+_source_hand_head_gap_min = float("inf")
+_source_contact_frames = []
+_source_arm_contact_frames = {"l": set(), "r": set()}
+_source_hand_head_contact_frames = {"l": set(), "r": set()}
+_contact_target_head = _align_target.get("head")
+
+
+def _hand_head_direction_matches(_side, _f):
+    _source_hand = a_by_name.get("hand_" + _side)
+    _target_hand = _align_target.get("hand_" + _side)
+    if (
+        _source_hand is None
+        or _target_hand is None
+        or _source_head is None
+        or _contact_target_head is None
+    ):
+        return False
+    _source_vector = _align_vsub(
+        a_posF[_source_hand][_f], a_posF[_source_head][_f]
+    )
+    _target_vector = _align_vsub(
+        _contact_target_posF[_target_hand][_f],
+        _contact_target_posF[_contact_target_head][_f],
+    )
+    _source_direction = _align_vnorm(_source_vector)
+    _target_direction = _align_vnorm(_target_vector)
+    if _source_direction is None or _target_direction is None:
+        return False
+    # Compare the full relative direction and its vertical component.  The
+    # latter is kept explicit because a near head distance alone can still be
+    # reached from a wrong side or from an implausible height.
+    return (
+        _align_vdot(_source_direction, _target_direction) >= 0.50
+        and abs(_source_direction[1] - _target_direction[1]) <= 0.35
+    )
+
+
+for _f in range(F):
+    _hand_gap = (
+        _align_vlen(_align_vsub(a_posF[_left_hand][_f], a_posF[_right_hand][_f]))
+        if _left_hand is not None and _right_hand is not None
+        else float("inf")
+    )
+    _hand_head_gaps = {
+        _side: (
+            _align_vlen(_align_vsub(a_posF[_hand][_f], a_posF[_source_head][_f]))
+            if _hand is not None and _source_head is not None
+            else float("inf")
+        )
+        for _side, _hand in (("l", _left_hand), ("r", _right_hand))
+    }
+    _hand_head_gap = min(_hand_head_gaps.values())
+    _source_hand_gap_min = min(_source_hand_gap_min, _hand_gap)
+    _source_hand_head_gap_min = min(_source_hand_head_gap_min, _hand_head_gap)
+    _hands_touch = _hand_gap <= 0.15
+    if _hands_touch:
+        _source_arm_contact_frames["l"].add(_f)
+        _source_arm_contact_frames["r"].add(_f)
+    for _side, _gap in _hand_head_gaps.items():
+        if _gap <= 0.20 and _hand_head_direction_matches(_side, _f):
+            _source_hand_head_contact_frames[_side].add(_f)
+            _source_arm_contact_frames[_side].add(_f)
+    _source_contact_frames.append(
+        _hands_touch
+        or _f in _source_hand_head_contact_frames["l"]
+        or _f in _source_hand_head_contact_frames["r"]
+    )
+
+# End-effector IK is useful for genuine hand-contact poses, but applying it to
+# every locomotion clip changes valid knee/elbow directions and was the source
+# of the run-forward shoulder/foot drift.  Auto mode only solves arms on source
+# contact frames; leg IK is explicit because hand contact says nothing about
+# foot placement.  Keep the old switch name for compatibility.
+def _env_flag(name):
+    return _os.environ.get(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+_force_limb_ik = _env_flag("RETARGET_USE_LIMB_IK")
+_disable_limb_ik = _env_flag("RETARGET_NO_ARM_IK")
+_auto_arm_contact = any(_source_contact_frames)
+_arm_ik_frames_by_side = {
+    _side: (
+        set(range(F)) if _force_limb_ik
+        else set(_frames)
+    )
+    for _side, _frames in _source_arm_contact_frames.items()
+}
+_use_arm_ik = not _disable_limb_ik and (_force_limb_ik or _auto_arm_contact)
+_use_leg_ik = not _disable_limb_ik and _force_limb_ik
+_use_limb_ik = _use_arm_ik or _use_leg_ik
+if _disable_limb_ik:
+    print("limb IK disabled by RETARGET_NO_ARM_IK=1")
+elif not _use_limb_ik:
+    print(
+        "limb IK skipped: no source hand contact "
+        "(min wrist gap %.3fm, min hand-head gap %.3fm; "
+        "set RETARGET_USE_LIMB_IK=1 to force)" %
+        (_source_hand_gap_min, _source_hand_head_gap_min)
+    )
+elif _force_limb_ik:
+    print("limb IK forced on all frames")
+else:
+    print(
+        "arm IK auto-enabled on %d source contact frames; leg IK remains off" %
+        sum(_source_contact_frames)
+    )
+
+# ---------- verify: recompose target at mid frame and validate body segments ----------
 tm = grid[F//2]
 def compose(tracks_override, t):
     W, P = {}, {}
@@ -346,18 +618,34 @@ for ui, frames in out_trans.items():
     solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
 Wt, Pt = compose(solved_tracks, tm)
 
-def sidx(nm): return next((k for k, n in enumerate(anodes) if n.get("name", "").lower() == nm.lower()), None)
-worst = 2.0; worst_nm = None
-for ui, w in Wt.items():
-    src = t2s.get(ui)
-    if src is None: continue
-    expected = qmul(
-        qmul(a_worldF[src][F//2], qconj(src_rest_world[src])),
-        target_base_world[ui],
+_verify_names = _align_names
+_segment_dots = []
+_verify_missing = []
+for _parent_name, _child_name in _verify_names:
+    _ui = _align_target.get(_parent_name)
+    _child_ui = _align_target.get(_child_name)
+    _src = t2s.get(_ui) if _ui is not None else None
+    _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+    if None in (_ui, _child_ui, _src, _src_child):
+        _verify_missing.append("%s->%s" % (_parent_name, _child_name))
+        continue
+    _target_vec = _align_vnorm(_align_vsub(Pt[_child_ui], Pt[_ui]))
+    _source_vec = _align_vnorm(
+        _align_vsub(a_posF[_src_child][F // 2], a_posF[_src][F // 2])
     )
-    d = abs(qdot(w, expected))
-    if d < worst: worst, worst_nm = d, bnodes[ui].get("name")
-print(f"verify @t={tm:.3f}: target pose={target_pose_name}@{TARGET_POSE_FRACTION:.2f}, worst |dot| = {worst:.5f} ({worst_nm}) -> {'PASS' if worst > 0.999 else 'FAIL'}")
+    if _target_vec is not None and _source_vec is not None:
+        _segment_dots.append(_align_vdot(_target_vec, _source_vec))
+segment_min = min(_segment_dots) if _segment_dots else 0.0
+print(
+    f"verify @t={tm:.3f}: target pose={target_pose_name}@{TARGET_POSE_FRACTION:.2f}, "
+    f"min segment |dot| = {segment_min:.5f} -> "
+    f"{'PASS' if segment_min > 0.985 else 'FAIL'}"
+)
+if _verify_missing or len(_segment_dots) != len(_verify_names) or segment_min <= 0.985:
+    raise SystemExit(
+        "anatomical segment verification failed: missing=%s min_dot=%.5f" %
+        (", ".join(_verify_missing) or "none", segment_min)
+    )
 def wpos(name):
     ui = tidx2(name)
     return tuple(round(v, 3) for v in Pt[ui])
@@ -368,18 +656,15 @@ for nm in ["pelvis", "Head", "foot_l", "foot_r", "hand_l", "hand_r"]:
     print("  ", nm, wpos(nm))
 print("  hand_y_minus_shoulder:", wdelta("hand_l", "clavicle_l"), wdelta("hand_r", "clavicle_r"))
 
-# ---------- 末端接触校正：臂链两骨 IK ----------
-# 纯旋转传递保不住跨骨架的末端接触点：UAL2 与源骨架的肩位/臂长比例不同，
-# 源里挠到头顶的手重定向后只停在下巴高度（实测差 ~0.2m）。以头关节为锚，
-# 按骨架尺寸比把源手腕位置映射到目标，再对上臂+前臂做两骨 IK；锁骨与手
-# 的朝向保持传递结果，肘部平面取自传递姿态，保证逐帧连续不翻肘。
-# RETARGET_NO_ARM_IK=1 可关闭（回到纯旋转传递）。
-import os as _os
+# ---------- 末端接触校正：臂链两骨 IK（按需启用） ----------
+# 只有源动作确实存在双手接触姿态时才默认启用；移动动作保持上面的解剖
+# 分段对齐结果，避免通用 IK 重新改变有效的肩、肘、膝方向。
+# RETARGET_USE_LIMB_IK=1 强制启用，RETARGET_NO_ARM_IK=1 始终关闭。
 
 ik_sides = []
 chains = {}
 ik_scale = 1.0
-if not _os.environ.get("RETARGET_NO_ARM_IK"):
+if _use_limb_ik:
     def _bid(nm):
         return next((k for k, n in enumerate(bnodes) if (n.get("name") or "").lower() == nm), None)
     def _vsub(a, b): return (a[0]-b[0], a[1]-b[1], a[2]-b[2])
@@ -401,82 +686,11 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             w = 0.0
         return qnorm((axis[0], axis[1], axis[2], w))
 
-    t_sp3 = _bid("spine_03")
-    a_sp3 = a_by_name.get("spine_03")
-    t_n01 = _bid("neck_01")
-    a_n01 = a_by_name.get("neck_01")
-    t_pelvis_aim = _bid("pelvis")
-    a_pelvis_aim = a_by_name.get("pelvis")
-
-    # ---------- 胸腔指向校正（脊节数差异）----------
-    # UE Manny 脊柱有 spine_04/05/neck_02 三节额外节段，UAL2 只有 spine_01..03
-    # + neck_01：源把躯干前倾分摊到 5 节再由后两节反向抵消，按名映射后目标
-    # spine_03 带着源 spine_03 的内弯、却没有 04/05 的反向抵消，胸腔
-    # （spine_03→neck_01）出现 ~25° 额外前倾（后退行走实测源 10° vs 目标 35°），
-    # 上身弓背、手臂跟着被拖到身前。把 spine_03 的世界旋转改为「瞄向源胸腔
-    # 方向」：方向经各自骨盆系变换到目标世界系，roll 取自传递旋转的最短弧；
-    # 子骨（neck_01/clavicle）保持各自映射的世界旋转，仅按新父旋转重组局部。
-    if None not in (t_sp3, a_sp3, t_n01, a_n01, t_pelvis_aim, a_pelvis_aim) \
-            and t_sp3 in out_rot and t_sp3 in bt_worldF:
-        child_dir = _vnorm(target_base_local_trans[t_n01])
-        chest_children = [ui for ui in (t_n01, _bid("clavicle_l"), _bid("clavicle_r"))
-                          if ui is not None and ui in bt_worldF]
-        aimed = 0
-        for f in range(F):
-            d_src = _vsub(a_posF[a_n01][f], a_posF[a_sp3][f])
-            if _vlen(d_src) < 1e-9: continue
-            # 传输用「骨盆绑定差增量」而不是骨盆绝对帧：不同骨架的骨盆骨骼
-            # 自身朝向差异很大（UE 骨盆常带 ~90° 轴向差），绝对帧会把世界
-            # 「上」转到局部轴上造成方向反转。骨盆增量 = 源骨盆世界旋转相对
-            # 其绑定的变化，作用到目标站立胸腔方向上。
-            d_standing = _vnorm(_vsub(target_base_pos[t_n01], target_base_pos[t_sp3]))
-            q_pelvis_delta = qmul(a_worldF[a_pelvis_aim][f], qconj(src_rest_world[a_pelvis_aim]))
-            d_tgt = qrot_vec(q_pelvis_delta, d_standing)
-            w_old = bt_worldF[t_sp3][f]
-            cur = qrot_vec(w_old, child_dir)
-            if f == 12 // 2:
-                print("  DBGAIM f=%d d_src=%s d_standing=%s d_tgt=%s cur=%s" % (
-                    f, tuple(round(v, 2) for v in d_src), tuple(round(v, 2) for v in d_standing),
-                    tuple(round(v, 2) for v in d_tgt), tuple(round(v, 2) for v in cur)))
-            if _vdot(cur, d_tgt) > 0.999:
-                continue
-            w_new = qmul(_arc(_vnorm(cur), _vnorm(d_tgt)), w_old)
-            bt_worldF[t_sp3][f] = w_new
-            # spine_03 自身的输出局部也要按新世界旋转重组，否则写出的轨道
-            # 仍是旧驼背姿态，与内部参考（bt_worldF/bt_posF）不一致。
-            p_sp3 = bparent.get(t_sp3)
-            lq_sp3 = qmul(qconj(bt_worldF[p_sp3][f]), w_new) if p_sp3 is not None else w_new
-            lq_sp3 = qnorm(lq_sp3)
-            prev_sp3 = out_rot[t_sp3][f-1] if f > 0 else None
-            if prev_sp3 is not None and qdot(prev_sp3, lq_sp3) < 0:
-                lq_sp3 = tuple(-x for x in lq_sp3)
-            out_rot[t_sp3][f] = lq_sp3
-            for ui in chest_children:
-                lq = qnorm(qmul(qconj(w_new), bt_worldF[ui][f]))
-                prev = out_rot[ui][f-1] if f > 0 else None
-                if prev is not None and qdot(prev, lq) < 0:
-                    lq = tuple(-x for x in lq)
-                out_rot[ui][f] = lq
-            aimed += 1
-        if aimed:
-            print("chest aim applied on %d frames" % aimed)
-
     t_head = _bid("head")
     a_head = a_by_name.get("head")
     if t_head is not None and a_head is not None:
         # 目标每帧世界位置（最终平移轨道 + 已解世界旋转的前向运动学）。
-        bt_posF = {}
-        for ui in b_order:
-            p = bparent.get(ui)
-            trs = out_trans.get(ui)
-            base_t = target_base_local_trans[ui]
-            if p is None:
-                bt_posF[ui] = [trs[f] if trs else base_t for f in range(F)]
-            else:
-                bt_posF[ui] = [
-                    tuple(bt_posF[p][f][k] + qrot_vec(bt_worldF[p][f], trs[f] if trs else base_t)[k] for k in range(3))
-                    for f in range(F)
-                ]
+        bt_posF = _contact_target_posF
 
         # 骨架尺寸比：自然站姿头关节高度之比，把源手腕偏移缩放到目标尺寸。
         src_head_y = a_posF[a_head][0][1]
@@ -490,14 +704,16 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
         # 跑步/蹲伏的脚印由腿长决定，纯旋转传递会让脚漂移、膝弯变形
         # （与 ozz-animation foot_ik、TREE-Ind 重定向插件同一套末端 IK 思路）。
         chains = {}
-        for side in ("l", "r"):
+        for side in (("l", "r") if _use_arm_ik else ()):
+            if not _arm_ik_frames_by_side[side]:
+                continue
             chain = [_bid("clavicle_" + side), _bid("upperarm_" + side), _bid("lowerarm_" + side), _bid("hand_" + side)]
             a_hand = a_by_name.get("hand_" + side)
             if any(ui is None for ui in chain) or a_hand is None: continue
             t_clav, t_upper, t_lower, t_hand = chain
             if any(ui not in out_rot or ui not in t2s for ui in chain): continue
             info = {
-                "kind": "arm", "t_parent": t_clav,
+                "kind": "arm", "side": side, "t_parent": t_clav,
                 "t_upper": t_upper, "t_lower": t_lower, "t_hand": t_hand,
                 "a_end": a_hand,
                 "l1": _vlen(target_base_local_trans[t_lower]),
@@ -524,7 +740,7 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             ik_sides.append("arm_" + side)
         t_pelvis = _bid("pelvis")
         a_pelvis = a_by_name.get("pelvis")
-        for side in ("l", "r"):
+        for side in (("l", "r") if _use_leg_ik else ()):
             chain = [_bid("thigh_" + side), _bid("calf_" + side), _bid("foot_" + side)]
             a_foot = a_by_name.get("foot_" + side)
             if t_pelvis is None or a_pelvis is None: continue
@@ -560,6 +776,25 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 for f in range(F)
             ]
 
+        # For a hand/head contact, preserve the source wrist's direction and
+        # height relative to the target head instead of approximating it from
+        # the clavicle anchor.  The reach check below verifies this after IK.
+        for side in ("l", "r"):
+            key = "arm_" + side
+            if key not in desired_targets:
+                continue
+            source_hand = a_by_name.get("hand_" + side)
+            if source_hand is None or a_head is None:
+                continue
+            for f in _source_hand_head_contact_frames[side]:
+                source_offset = _align_vsub(
+                    a_posF[source_hand][f], a_posF[a_head][f]
+                )
+                desired_targets[key][f] = tuple(
+                    bt_posF[t_head][f][k] + source_offset[k] * ik_scale
+                    for k in range(3)
+                )
+
         # 双手接触校正：源双手贴近（鼓掌、合十等）时，两臂期望目标绕中点
         # 缩放回源间距（按骨架比例），保证重定向后手能真实拍到一起，而不是
         # 各自漂移或互相穿过。
@@ -592,14 +827,35 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
         last_plane = {}
         for key, info in chains.items():
             for f in range(F):
+                if (
+                    info["kind"] == "arm"
+                    and f not in _arm_ik_frames_by_side[info["side"]]
+                ):
+                    continue
                 S = bt_posF[info["t_upper"]][f]
                 E_old = bt_posF[info["t_lower"]][f]
                 W_old = bt_posF[info["t_hand"]][f]
                 plane = _vcross(_vsub(E_old, S), _vsub(W_old, S))
-                if _vlen(plane) < 1e-6: continue  # 传递姿态肢体完全伸直时无弯曲平面，保持该帧
-                plane_n = _vnorm(plane)
-                if _vlen(plane) < 0.03 and key in last_plane:
-                    plane_n = last_plane[key]  # 接近伸直时平面法线噪声大，沿用上一帧防肘/膝抖动
+                plane_len = _vlen(plane)
+                if plane_len < 1e-6:
+                    if key in last_plane:
+                        plane_n = last_plane[key]
+                    else:
+                        upper_vector = _vsub(E_old, S)
+                        if _vlen(upper_vector) < 1e-9:
+                            raise SystemExit(
+                                "limb IK cannot solve %s at frame %d: zero upper segment" %
+                                (key, f)
+                            )
+                        upper_dir = _vnorm(upper_vector)
+                        reference = (0.0, 1.0, 0.0)
+                        if abs(_vdot(upper_dir, reference)) > 0.95:
+                            reference = (1.0, 0.0, 0.0)
+                        plane_n = _vnorm(_vcross(upper_dir, reference))
+                else:
+                    plane_n = _vnorm(plane)
+                    if plane_len < 0.03 and key in last_plane:
+                        plane_n = last_plane[key]  # 接近伸直时平面法线噪声大，沿用上一帧防肘/膝抖动
                 last_plane[key] = plane_n
                 desired = desired_targets[key][f]
                 l1, l2 = info["l1"], info["l2"]
@@ -609,14 +865,29 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
                 if raw_dist > info["reach_max"]:
                     # 目标超出肢展：肢体指向目标并完全伸展，属于该骨架的几何极限。
                     unreachable[key][f] = True
+                if _vlen(u) < 1e-9:
+                    u = _vsub(W_old, S)
+                    if _vlen(u) < 1e-9:
+                        u = _vsub(E_old, S)
                 u = _vnorm(u)
                 cos_a = min(1.0, max(-1.0, (l1*l1 + d*d - l2*l2) / (2*l1*d)))
                 sin_a = math.sqrt(1.0 - cos_a*cos_a)
-                v = _vnorm(_vcross(plane_n, u))
+                v_vector = _vcross(plane_n, u)
+                if _vlen(v_vector) < 1e-9:
+                    reference = (0.0, 1.0, 0.0)
+                    if abs(_vdot(u, reference)) > 0.95:
+                        reference = (1.0, 0.0, 0.0)
+                    v_vector = _vcross(reference, u)
+                v = _vnorm(v_vector)
                 if _vdot(_vsub(E_old, S), v) < 0: sin_a = -sin_a
                 e_dir = tuple(cos_a*u[k] + sin_a*v[k] for k in range(3))
                 E_new = tuple(S[k] + e_dir[k]*l1 for k in range(3))
-                w_dir = _vnorm(_vsub(desired, E_new))
+                w_vector = _vsub(desired, E_new)
+                if _vlen(w_vector) < 1e-9:
+                    w_vector = _vsub(W_old, E_new)
+                    if _vlen(w_vector) < 1e-9:
+                        w_vector = u
+                w_dir = _vnorm(w_vector)
                 wq_upper = qmul(_arc(qrot_vec(bt_worldF[info["t_upper"]][f], info["child_upper"]), e_dir), bt_worldF[info["t_upper"]][f])
                 wq_lower = qmul(_arc(qrot_vec(bt_worldF[info["t_lower"]][f], info["child_lower"]), w_dir), bt_worldF[info["t_lower"]][f])
                 # 末端（手/脚）保持传递的世界朝向，手指/脚趾随之，不参与 IK。
@@ -645,9 +916,23 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
     for key, info in chains.items():
         if info["kind"] != "arm": continue
         a_hand = info["a_end"]
+        candidate_frames = sorted(
+            frame
+            for frame in _arm_ik_frames_by_side[info["side"]]
+            if frame not in _source_hand_head_contact_frames[info["side"]]
+        )
+        if not candidate_frames:
+            print(
+                "reach check %s skipped: hand-head contact frames use "
+                "the dedicated hand-head validation" % key
+            )
+            continue
         # 臂链锚定是锁骨：校验源锁骨-手最远伸展帧上，目标距离应与源×臂长比一致。
-        src_d = [_vlen(_vsub(a_posF[a_hand][f], a_posF[info["a_anchor"]][f])) for f in range(F)]
-        cf = max(range(F), key=lambda f: src_d[f])
+        src_d = {
+            f: _vlen(_vsub(a_posF[a_hand][f], a_posF[info["a_anchor"]][f]))
+            for f in candidate_frames
+        }
+        cf = max(candidate_frames, key=lambda f: src_d[f])
         _Wc, Pc = compose(ik_tracks, grid[cf])
         src_dd = src_d[cf]
         tgt_dd = _vlen(_vsub(Pc[info["t_hand"]], Pc[info["t_anchor"]]))
@@ -675,6 +960,51 @@ if not _os.environ.get("RETARGET_NO_ARM_IK"):
             print("hand-contact check @t=%.2fs: src gap=%.3f tgt gap=%.3f -> %s" % (
                 grid[cf], src_gap_curve[cf], tgt_gap, "PASS" if ok else "FAIL"))
             if not ok: reach_failures.append("hand-contact")
+    # 手-头接触校验：不能只满足欧氏距离；源/目标相对方向、垂直高度和
+    # 目标实际可达距离都必须保持在同一语义范围内。
+    for side in ("l", "r"):
+        key = "arm_" + side
+        contact_frames = sorted(_source_hand_head_contact_frames[side])
+        if key not in chains or not contact_frames:
+            continue
+        source_hand = chains[key]["a_end"]
+        for cf in contact_frames:
+            _Wc, Pc = compose(ik_tracks, grid[cf])
+            source_relative = _vsub(a_posF[source_hand][cf], a_posF[a_head][cf])
+            target_relative = _vsub(Pc[chains[key]["t_hand"]], Pc[t_head])
+            source_gap = _vlen(source_relative)
+            target_gap = _vlen(target_relative)
+            source_direction = _align_vnorm(source_relative)
+            target_direction = _align_vnorm(target_relative)
+            direction_dot = (
+                _align_vdot(source_direction, target_direction)
+                if source_direction is not None and target_direction is not None
+                else -1.0
+            )
+            expected_gap = source_gap * ik_scale
+            height_error = abs(target_relative[1] - source_relative[1] * ik_scale)
+            ok = (
+                source_direction is not None
+                and target_direction is not None
+                and direction_dot >= 0.50
+                and target_gap <= max(0.25, expected_gap + 0.05)
+                and height_error <= max(0.05, 0.35 * expected_gap)
+            )
+            print(
+                "hand-head check %s @t=%.2fs: src gap=%.3f tgt gap=%.3f "
+                "direction=%.3f height-error=%.3f -> %s" %
+                (
+                    side,
+                    grid[cf],
+                    source_gap,
+                    target_gap,
+                    direction_dot,
+                    height_error,
+                    "PASS" if ok else "FAIL",
+                )
+            )
+            if not ok:
+                reach_failures.append("hand-head-%s@%d" % (side, cf))
     # 腿部伸展校验：源脚-骨盆最远帧（腿伸直触地），目标距离应与源×腿长比一致。
     for key, info in chains.items():
         if info["kind"] != "leg": continue
@@ -720,6 +1050,88 @@ solved_tracks = {ui: {"rotation": (grid, out_rot[ui])} for ui in out_rot}
 for ui, frames in out_trans.items():
     solved_tracks.setdefault(ui, {})["translation"] = (grid, frames)
 Wt, Pt = compose(solved_tracks, tm)
+
+# ---------- final verify: validate the pose that will actually be written ----------
+# The pre-IK check proves the anatomical alignment pass itself.  IK is allowed to
+# move an end effector for genuine contact poses, so validate again after IK: all
+# untouched segments must still follow the source, while IK-controlled segments
+# must remain finite, non-degenerate, and point in a plausible source hemisphere.
+_ik_arm_segments = {
+    ("clavicle_l", "upperarm_l"), ("upperarm_l", "lowerarm_l"),
+    ("lowerarm_l", "hand_l"), ("clavicle_r", "upperarm_r"),
+    ("upperarm_r", "lowerarm_r"), ("lowerarm_r", "hand_r"),
+}
+_ik_leg_segments = {
+    ("thigh_l", "calf_l"), ("calf_l", "foot_l"),
+    ("thigh_r", "calf_r"), ("calf_r", "foot_r"),
+}
+_final_segment_dots = []
+_final_segment_failures = []
+_final_segment_missing = []
+for _f, _time in enumerate(grid):
+    _W_final, _P_final = compose(solved_tracks, _time)
+    for _parent_name, _child_name in _align_names:
+        _pair = (_parent_name, _child_name)
+        _ui = _align_target.get(_parent_name)
+        _child_ui = _align_target.get(_child_name)
+        _src = t2s.get(_ui) if _ui is not None else None
+        _src_child = t2s.get(_child_ui) if _child_ui is not None else None
+        if None in (_ui, _child_ui, _src, _src_child):
+            _final_segment_missing.append(
+                "frame %d: %s->%s" % (_f, _parent_name, _child_name)
+            )
+            continue
+        _target_vec = _align_vnorm(_align_vsub(_P_final[_child_ui], _P_final[_ui]))
+        _source_vec = _align_vnorm(
+            _align_vsub(a_posF[_src_child][_f], a_posF[_src][_f])
+        )
+        if _target_vec is None or _source_vec is None:
+            _final_segment_missing.append(
+                "frame %d: %s->%s" % (_f, _parent_name, _child_name)
+            )
+            continue
+        _dot = _align_vdot(_target_vec, _source_vec)
+        _final_segment_dots.append(_dot)
+        _arm_side = (
+            "l" if _pair[0].endswith("_l") else
+            "r" if _pair[0].endswith("_r") else None
+        )
+        _ik_segment_active = (
+            (
+                _pair in _ik_arm_segments
+                and _arm_side is not None
+                and _use_arm_ik
+                and _f in _arm_ik_frames_by_side[_arm_side]
+            )
+            or (_pair in _ik_leg_segments and _use_leg_ik)
+        )
+        _minimum_dot = 0.25 if _ik_segment_active else 0.985
+        if _dot < _minimum_dot:
+            _final_segment_failures.append(
+                "frame %d: %s->%s dot=%.5f min=%.5f" %
+                (_f, _parent_name, _child_name, _dot, _minimum_dot)
+            )
+_final_segment_min = min(_final_segment_dots) if _final_segment_dots else 0.0
+print(
+    "final segment verify: %d samples, min |dot| = %.5f -> %s" %
+    (
+        len(_final_segment_dots),
+        _final_segment_min,
+        "PASS" if not _final_segment_missing and not _final_segment_failures else "FAIL",
+    )
+)
+if (
+    _final_segment_missing
+    or len(_final_segment_dots) != F * len(_align_names)
+    or _final_segment_failures
+):
+    raise SystemExit(
+        "final anatomical segment verification failed: missing=%s failures=%s" %
+        (
+            ", ".join(_final_segment_missing[:5]) or "none",
+            ", ".join(_final_segment_failures[:5]) or "none",
+        )
+    )
 
 # ---------- write output GLB ----------
 uJson = json.loads(json.dumps(bj))

@@ -38,6 +38,7 @@ import { queryKeys } from "@/api/queryKeys";
 import { toast } from "@/components/ui/toast";
 import { useLLMStore } from "@/store/llmStore";
 import { useSSE } from "@/hooks/useSSE";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { featureFlags } from "@/config/featureFlags";
 import {
   parseConsistencyReport,
@@ -56,6 +57,9 @@ import {
   type LayerKey,
   type RefineAttribute,
 } from "./components/workspace/worldWorkspaceShared";
+
+const WORLD_WORKSPACE_TABS = ["structure", "overview", "layers", "deepening", "consistency", "assets"] as const;
+type WorldWorkspaceTab = typeof WORLD_WORKSPACE_TABS[number];
 
 export default function WorldWorkspace() {
   const navigate = useNavigate();
@@ -80,7 +84,11 @@ export default function WorldWorkspace() {
   const [refineAttribute, setRefineAttribute] = useState<RefineAttribute>("background");
   const [refineMode, setRefineMode] = useState<"replace" | "alternatives">("replace");
   const [refineLevel, setRefineLevel] = useState<"light" | "deep">("light");
-  const [activeTab, setActiveTab] = useState("structure");
+  const [activeTab, setActiveTab] = useRememberedTab<WorldWorkspaceTab>({
+    scope: `world:${id || "none"}:workspace`,
+    defaultValue: "structure",
+    values: WORLD_WORKSPACE_TABS,
+  });
   const [advancedStructureOpen, setAdvancedStructureOpen] = useState(false);
 
   const worldDetailQuery = useQuery({
@@ -348,7 +356,7 @@ export default function WorldWorkspace() {
       <Tabs
         value={activeTab}
         onValueChange={(nextTab) => {
-          setActiveTab(nextTab);
+          setActiveTab(nextTab as WorldWorkspaceTab);
           if (nextTab !== "structure") {
             setAdvancedStructureOpen(false);
           }

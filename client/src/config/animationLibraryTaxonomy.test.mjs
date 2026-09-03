@@ -24,7 +24,8 @@ test("动画目录明确区分内置动画、UE 源组和独立套装", () => {
   );
   assert.ok(ANIMATION_LIBRARY.some((entry) => entry.source === "legacy"));
   assert.ok(ANIMATION_LIBRARY.some((entry) => entry.source === "unreal"));
-  assert.ok(ANIMATION_LIBRARY_PACKS.length >= 20);
+  assert.ok(ANIMATION_LIBRARY_PACKS.length >= 2);
+  assert.ok(ANIMATION_LIBRARY_PACKS.some((pack) => pack.id === "anim57-unarmed-attack"));
   assert.ok(ANIMATION_LIBRARY_GROUPS.every(({ label }) => !label.includes("虚幻")));
   for (const pack of ANIMATION_LIBRARY_PACKS) {
     assert.ok(
@@ -60,13 +61,16 @@ test("动画库提供统一分类：全部、内置动画加按用处划分的�
   }
   assert.ok(nonEmptyCategories >= 10, "多数动作类型分类应有可预览动画");
 
-  const boxingTarget = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "boxing" })[0];
-  assert.ok(boxingTarget, "拳击分类应有可预览动画");
+  const combatTarget = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "combat" })[0];
+  assert.ok(combatTarget, "徒手战斗分类应有可预览动画");
+  const combatEntries = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { category: "combat" });
+  assert.equal(combatEntries.length, 4, "徒手战斗分类只应显示当前四条 UE 徒手攻击动画");
+  assert.ok(combatEntries.every((entry) => entry.source === "unreal"));
   const intersection = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    category: "boxing",
-    query: boxingTarget.clipName,
+    category: "combat",
+    query: combatTarget.clipName,
   });
-  assert.deepEqual(intersection.map((entry) => entry.id), [boxingTarget.id]);
+  assert.deepEqual(intersection.map((entry) => entry.id), [combatTarget.id]);
 });
 
 test("动画目录的动作语义和去重键完整，Idle 允许保留多个变体", () => {
@@ -105,27 +109,19 @@ test("动画库筛选同时支持源组、套装和当前可用动作类型", ()
   assert.ok(old.every((entry) => entry.source === "legacy"));
 });
 
-test("动画库按规范化细分类筛选，并保留武器、姿态和生物证据", () => {
-  const bow = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    groupId: "unreal-weapon-combat",
-    classificationId: "bow",
+test("动画库按规范化细分类筛选，并保留徒手、姿态和来源证据", () => {
+  const barehand = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
+    groupId: "unreal-hand-combat",
+    classificationId: "barehand",
   });
-  assert.ok(bow.length > 0, "武器战斗组应有弓箭细类");
-  assert.ok(bow.every((entry) => entry.classificationId === "bow"));
-  assert.ok(bow.every((entry) => entry.weaponType === "bow"));
+  assert.equal(barehand.length, 4);
+  assert.ok(barehand.every((entry) => entry.classificationId === "barehand"));
+  assert.ok(barehand.every((entry) => entry.weaponType === "barehand"));
 
-  const groundCreature = filterAnimationLibraryEntries(ANIMATION_LIBRARY, {
-    classificationId: "ground-creature",
-  });
-  assert.ok(groundCreature.length > 0, "目录应有生物地面动作");
-  assert.ok(groundCreature.some((entry) => entry.posture === "crawling"));
-  assert.ok(
-    groundCreature.some((entry) => entry.actorKind === "monster" || entry.actorKind === "humanoid-creature"),
-  );
-
-  const lying = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { posture: "lying" });
-  assert.ok(lying.length > 0, "目录应有躺卧动作");
-  assert.ok(lying.every((entry) => entry.posture === "lying"));
+  const standing = filterAnimationLibraryEntries(ANIMATION_LIBRARY, { posture: "standing" });
+  assert.ok(standing.length > 0, "目录应有站立姿态动作");
+  assert.ok(standing.some((entry) => entry.source === "unreal"));
+  assert.ok(standing.every((entry) => entry.posture === "standing"));
 });
 
 test("动画目录支持按片段、套装和动作类型搜索，并与来源组筛选取交集", () => {

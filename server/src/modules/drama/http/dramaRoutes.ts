@@ -112,7 +112,7 @@ const blockingSketch3dPoseSchema = z.enum([
 const blockingSketch3dCameraSchema = z.object({
   azim: z.number().min(-180).max(180),
   elev: z.number().min(-89).max(89),
-  distance: z.number().min(0.25).max(100),
+  distance: z.number().finite().min(0.25).max(Number.MAX_SAFE_INTEGER),
   focalPoint: z.tuple([
     z.number().min(-100).max(100),
     z.number().min(-100).max(100),
@@ -188,12 +188,39 @@ const blockingSketch3dShotCameraSchema = z.object({
   pitchDeg: z.number().min(-89).max(89),
 });
 
+const blockingSketch3dForegroundModelUsageSchema = z.object({
+  supportSurface: z.enum(["ground", "wall", "ceiling", "horizontal-surface", "handheld", "free"]),
+  placementMode: z.enum(["grounded", "wall-mounted", "ceiling-hung", "surface-placed", "handheld", "free"]),
+  anchor: z.enum(["base", "back", "top", "support-center", "center"]),
+  orientation: z.enum(["upright", "horizontal", "wall-facing", "downward", "directional", "free"]),
+  requiresFacingDirection: z.boolean(),
+  instruction: z.string().trim().max(300).optional(),
+}).strict();
+
+const blockingSketch3dForegroundModelSchema = z.object({
+  id: z.string().trim().min(1).max(120),
+  modelId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/),
+  label: z.string().trim().min(1).max(80),
+  modelName: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(40),
+  position: z.tuple([
+    z.number().finite().min(-100).max(100),
+    z.number().finite().min(0).max(50),
+    z.number().finite().min(-100).max(100),
+  ]),
+  yawDeg: z.number().finite().min(-180).max(180),
+  scale: z.number().finite().min(0.1).max(10),
+  source: z.literal("model-library"),
+  usage: blockingSketch3dForegroundModelUsageSchema.optional(),
+}).strict();
+
 const blockingSketch3dLayoutSchema = z.object({
   schemaVersion: z.literal(1),
   engine: z.literal("playcanvas"),
   camera: blockingSketch3dCameraSchema,
   shotCamera: blockingSketch3dShotCameraSchema.optional(),
   actors: z.array(blockingSketch3dActorSchema).max(12),
+  foregroundModels: z.array(blockingSketch3dForegroundModelSchema).max(32).optional(),
   environment: blockingSketch3dEnvironmentSchema.optional(),
 });
 

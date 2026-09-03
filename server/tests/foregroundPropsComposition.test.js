@@ -38,6 +38,9 @@ function buildOutput(actorExtra = {}) {
 const sceneJsonWithMarker = JSON.stringify({
   markers: [{ id: "marker-chair-1", kind: "chair", label: "椅子", position: [0, 0.22, 1.5], size: [0.5, 0.45, 0.5] }],
 });
+const sceneJsonWithForegroundModel = JSON.stringify({
+  foregroundModels: [{ id: "foreground-model-table-1", modelId: "table", modelName: "餐桌", position: [0, 0, 1.5], yawDeg: 0, scale: 1 }],
+});
 
 test("手动创建的前景道具标记带默认尺寸与 manual 来源", () => {
   const chair = createStoryScene3dMarker("chair", { label: "椅子2", forwardMeters: 2 });
@@ -124,9 +127,30 @@ test("自动构图的道具交互必须指向真实存在的空间标记", () =>
   );
 });
 
-test("自动构图 v10 契约：交互字段与坐/躺提示词就位", () => {
+test("自动构图的模型交互必须指向场景中真实存在的模型库实例", () => {
+  const { dramaShotBlockingAutoPlanPrompt } = autoPlanPrompts;
+  const input = {
+    shotJson: "{}",
+    sceneJson: sceneJsonWithForegroundModel,
+    actorsJson: JSON.stringify([{ characterName: "沈烬" }]),
+  };
+  const accepted = dramaShotBlockingAutoPlanPrompt.postValidate(
+    buildOutput({ interactionModelId: " foreground-model-table-1 " }),
+    input,
+  );
+  assert.equal(accepted.actors[0].interactionModelId, "foreground-model-table-1");
+  assert.throws(
+    () => dramaShotBlockingAutoPlanPrompt.postValidate(
+      buildOutput({ interactionModelId: "model-missing" }),
+      input,
+    ),
+    /不存在的模型实例/,
+  );
+});
+
+test("自动构图 v11 契约：交互字段与坐/躺提示词就位", () => {
   const promptSource = read("src/prompting/prompts/drama/shotBlockingAutoPlan.prompts.ts");
-  assert.match(promptSource, /version: "v10"/);
+  assert.match(promptSource, /version: "v11"/);
   assert.match(promptSource, /interactionMarkerId: z\.string\(\)/);
   assert.match(promptSource, /pose=sitting，并把该道具的 marker id 填入 interactionMarkerId/);
   assert.match(promptSource, /pose=lying，interactionMarkerId 指向该床或沙发/);

@@ -10,7 +10,6 @@ const read = (path) => {
 const thumbnailSource = read("../src/pages/models/modelLibrary3d/thumbnailStudio.ts");
 const pageSource = read("../src/pages/models/ModelLibraryPage.tsx");
 const paginationSource = read("../src/pages/models/modelLibraryPagination.ts");
-const pageSizeHookSource = read("../src/pages/models/hooks/useModelLibraryPageSize.ts");
 const paginationComponentSource = read("../src/pages/models/components/ModelLibraryPagination.tsx");
 
 test("模型卡片缩略图输出最长边不超过 256px 并保持 4:3", () => {
@@ -46,23 +45,19 @@ test("模型卡片只在视口附近才启动缩略图生成", () => {
 });
 
 test("模型库只渲染当前分页并提供边界安全的分页控件", () => {
-  assert.match(paginationSource, /MODEL_LIBRARY_PAGE_SIZE\s*=\s*24/);
+  assert.match(paginationSource, /MODEL_LIBRARY_PAGE_SIZE\s*=\s*50/);
   assert.match(pageSource, /getModelLibraryPage/);
+  assert.match(pageSource, /getModelLibraryPage\(entries, page, MODEL_LIBRARY_PAGE_SIZE\)/);
   assert.match(pageSource, /pageEntries/);
   assert.match(paginationComponentSource, /data-model-pagination/);
   assert.match(paginationComponentSource, /第[\s\S]*页/);
 });
 
-test("模型库页大小随网格和可滚动容器尺寸更新", () => {
-  assert.match(pageSource, /useModelLibraryPageSize/);
-  assert.match(pageSource, /getModelLibraryPage\(entries, page, pageSize\)/);
-  assert.match(pageSizeHookSource, /ResizeObserver/);
-  assert.match(pageSizeHookSource, /gridTemplateColumns/);
-  assert.match(pageSizeHookSource, /data-model-pagination/);
-  assert.match(
-    pageSizeHookSource,
-    /const measure = \(\) => \{\s*const firstCard = grid\.querySelector/,
-  );
+test("模型库固定每行 10 个、每页 5 行，不随窗口尺寸改变", () => {
+  assert.match(pageSource, /className="grid grid-cols-10 gap-2"/);
+  assert.doesNotMatch(pageSource, /useModelLibraryPageSize/);
+  assert.doesNotMatch(pageSource, /grid-cols-4|sm:grid-cols-6|lg:grid-cols-8|xl:grid-cols-10/);
+  assert.doesNotMatch(paginationSource, /getModelLibraryPageSize|MODEL_LIBRARY_MAX_PAGE_ROWS/);
 });
 
 test("模型库筛选变化回到第一页并释放离页缩略图请求", () => {

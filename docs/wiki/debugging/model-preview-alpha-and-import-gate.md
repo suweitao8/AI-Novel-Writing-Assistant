@@ -23,9 +23,9 @@
 
 ## Current Rule
 
-- 源贴图审计脚本位于 scripts/models/rebuild-cine57-alpha-assets.mjs，审计结果位于 scripts/models/model-library-import-audit.json。
+- 源贴图审计脚本位于 scripts/models/modelLibraryImportAudit.mjs，审计结果位于 scripts/models/model-library-import-audit.json。
 - 最终材质契约由 scripts/models/modelLibraryTextureAudit.mjs 校验；只要导入审计标记 preserveAlpha，就不能用没有独立 opacity 映射的 JPG baseColor。
-- 详情预览证据由 scripts/models/record-model-library-preview-evidence.mjs 生成，审核数据位于 scripts/models/model-library-visual-review.json。证据必须包含详情路由、renderer、日期、textureStatus 和最终资源 SHA-256。
+- 详情预览证据由 scripts/models/model-library-preview-audit.mjs 合并到审核记录，审核数据位于 scripts/models/model-library-visual-review.json。证据必须包含详情路由、renderer、日期、textureStatus 和最终资源 SHA-256。
 - 浏览器审计记录位于 scripts/models/model-library-preview-browser-audit.json。生成审核数据前，所有发布静态条目都必须有 ready=true 和 screenshotCaptured=true。
 - 2026-09-03 的全库复核覆盖 484 个模型详情路由，全部渲染出 canvas 和模型信息，控制台错误为 0；其中 55 个贴图记录保留 alpha，最终均使用 PNG，未知探测数为 0。
 - 同一批修复产生的 54 个旧有损 baseColor JPG 已移到 D:\UnrealWorkspace\Cine57-model-quality-quarantine-20260902-preview\legacy-lossy-basecolor。逐文件清单和 SHA-256 位于该目录的 legacy-lossy-alpha-outputs.manifest.json。对应 GLB 几何通过详情预览，因此保留并使用修复后的 PNG 材质回填；草丛 B 通过复核，不在隔离范围内。

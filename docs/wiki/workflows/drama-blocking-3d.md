@@ -46,7 +46,7 @@
 - 中键平移使用相机的屏幕右轴和屏幕上轴计算位移，场景跟随鼠标拖动；不能把平移绑定到固定世界 X/Z 轴，否则相机换角度后拖拽方向会反转。
 - 左侧属性区域提供选中角色的前后左右、上下、旋转、缩放和落地操作；相机支持适配和重置。
 - 角色列表负责加入、选择和移除本镜角色。保存前页面会监听视口直接拖动和相机变化，避免用户操作后仍被误认为未修改。
-- AI 自动构图完成后，左侧属性区域展示 FOV、景深开关、焦点距离、清晰范围和模糊半径；这些值由镜头上下文规划并进入 PlayCanvas `CameraFrame.dof`，不是只写入数据库的装饰字段。
+- AI 自动构图完成后，左侧属性区域展示 FOV、景深开关、焦点距离、清晰范围和模糊半径；这些值由镜头上下文规划并进入独立分镜摄像机的 PlayCanvas `CameraFrame.dof`，编辑观察相机始终保持清晰。
 - 任意角色、姿势、视角或空间操作只更新当前 3D 草图；离开页面时统一保存一次并等待同一条保存 Promise，保存失败则留在当前页面以便重试。
 
 ### 编辑器内 AI 构图
@@ -60,18 +60,20 @@
 #### AI 关系构图
 
 - **Background：** 只为每个角色独立规划坐标、姿势和缩放时，模型可能把“承载者”和“位于其上方的主体”反过来；第一个镜头曾因此呈现为叶晨站立、血角兽趴在地面，且血角兽的体量没有保留下来。
-- **Decision：** 注册的 `drama.shot.blocking.autoPlan@v10` 先让 AI 输出有向 `relations`，再输出角色坐标、姿势和相机。`subjectCharacterName` / `objectCharacterName` 是有向关系两端；`on_top_of` 固定解释为 subject 在上方、object 是地面承载者；`sizeRelation` 表达 subject 相对 object 的 `larger` / `smaller` / `similar` 体量。
-- **Current Rule：** 多角色结果必须至少有一条关系，关系两端必须来自本镜角色清单，不能自指或重复。服务端先按角色状态身高合成绝对代理比例，再按关系落实接地姿势、上下位置和相对体量，最后才执行舞台半径与 FOV 兜底；`on_top_of` 的上方 subject 只能使用 `crouching` 或 `kneeling`，`prone` / `lying` 会被归一化为蹲伏，因为当前 UAL 运行时没有专用趴姿动画；关系只用于本次自动构图，不写入旧的 `layout3d` 结构。
-- **Failure Modes：** 如果模型没有输出关系、关系端点不属于本镜或关系重复，自动构图应触发语义重试或返回错误，并保留当前编辑布局。上方 subject 即使返回 `prone` / `lying`，也不能交给客户端的 `LayToIdle` 仰卧片段，服务端必须归一化为 `crouching`。不要在服务端读取叶晨、血角兽等角色名，也不要从 `action`、对白或提示词用关键词猜测关系；需要改变语义时只能扩展 Prompt 的结构化输出合同。
+- **Decision：** 注册的 `drama.shot.blocking.autoPlan@v11` 先让 AI 输出有向 `relations`，再输出角色坐标、姿势和相机。`subjectCharacterName` / `objectCharacterName` 是有向关系两端；`on_top_of` 固定解释为 subject 在上方、object 是地面承载者；`sizeRelation` 表达 subject 相对 object 的 `larger` / `smaller` / `similar` 体量。
+- **Current Rule：** 多角色结果必须至少有一条关系，关系两端必须来自本镜角色清单，不能自指或重复。服务端先按角色状态身高合成绝对代理比例，再按关系落实接地姿势、上下位置和相对体量，最后才执行舞台半径与 FOV 兜底；`on_top_of` 的上方 subject 只能使用 `crouching` 或 `kneeling`，`prone` / `lying` 会被归一化为蹲伏，因为当前 UAL 运行时没有专用趴姿动画；如果结构化关系端点与显式的上下姿势相互矛盾，服务端交换关系端点并反转体量关系，再执行同一套几何约束。关系只用于本次自动构图，不写入旧的 `layout3d` 结构。
+- **Failure Modes：** 如果模型没有输出关系、关系端点不属于本镜或关系重复，自动构图应触发语义重试或返回错误，并保留当前编辑布局。上方 subject 即使返回 `prone` / `lying`，也不能交给客户端的 `LayToIdle` 仰卧片段，服务端必须归一化为 `crouching`。端点交换只依据结构化关系与结构化姿势的矛盾，不读取叶晨、血角兽等角色名，也不从 `action`、对白或提示词用关键词猜测关系；需要改变语义时只能扩展 Prompt 的结构化输出合同。
 
 #### AI 相机意图与确定性构图解析（v10）
 
 - **Background：** v8 及之前让模型直接输出轨道相机参数（azim/elev/distance/focalPoint/fov），但相机位置被舞台合同钉在场景投射中心（全景图从该点拍摄，离开会产生视差错位），模型必须自己反解"视线过焦点、距离等于焦点到中心"的轨道几何，经常解错：焦点被服务端重写丢弃、视线偏出主体、FOV 被兜底逻辑放大，成图主体变小、构图失去设计感。
 - **Decision：** v9 起 Prompt 只输出构图意图，v10 在意图里补上垂直机位维度：`camera: { focalCharacterName?, compositionBias: left|center|right, cameraAngle: low_angle|eye_level|high_angle, depthOfFieldEnabled }`；相机的方位角、俯仰、距离、焦点、FOV 与景深参数全部由服务端 `resolveAutoPlanCameraFromIntent` 从"角色实际落位 + 镜头景别 + 意图"确定性推导。`layout3d` 持久化合同不变，仍是完整轨道相机。
-- **Current Rule：** 焦点取 `focalCharacterName` 指定角色（缺省取 actors 首位，Prompt 已要求首位即叙事主体）；焦点高度按景别落在眼（特写 0.92·身高）到身体中心（全景 0.5）；`compositionBias` 把取景点沿画面右轴平移画面宽度的六分之一，让主体落在三分线；`cameraAngle` 把取景点沿竖直方向平移画面高度的六分之一——`low_angle` 抬高取景点（视线向上、主体落画面下三分、体量放大），`high_angle` 压低取景点（视线向下、主体落画面上三分、显弱势），相机高度仍钉在投射中心不动，偏移量与横向偏移同量级保证主体不脱框、景深焦点仍贴近主体，取景点下限 clamp 到 0.1 米不钻地；fov 按"主体目标尺寸占画面高比例"从实际距离反推并夹取 [30,100]，出画兜底 `fitAutoPlanCameraFovToActors` 仍只放宽不收紧；景深档位（focusRange/blurRadius）按景别查表，focusDistance 恒等于视线距离。
+- **Current Rule：** 焦点取 `focalCharacterName` 指定角色（缺省取 actors 首位，Prompt 已要求首位即叙事主体）；焦点高度按景别落在眼（特写 0.92·身高）到身体中心（全景 0.5），但躺着/趴着按贴地动画的实际高度取焦点，不能把站立角色头顶公式套到卧姿；`compositionBias` 把取景点沿画面右轴平移画面宽度的六分之一，让主体落在三分线；`cameraAngle` 把取景点沿竖直方向平移画面高度的六分之一——`low_angle` 抬高取景点（视线向上、主体落画面下三分、体量放大），`high_angle` 压低取景点（视线向下、主体落画面上三分、显弱势），相机高度仍钉在投射中心不动，偏移量与横向偏移同量级保证主体不脱框、景深焦点仍贴近主体，取景点下限 clamp 到 0.1 米不钻地；fov 按"主体目标尺寸占画面高比例"从实际距离反推并夹取 [30,100]。只有中景、全景、远景才用全部角色做出画兜底；近景/特写保持焦点角色的紧凑景别，不得被陪体强行放宽成总览；景深档位（focusRange/blurRadius）按景别查表，focusDistance 恒等于视线距离。
 - **Prompt 配套规则：** 景别决定主体与投射中心的站位距离（特写 1.0–1.8 米、近景 1.8–3、中景 3–5、全景 4.5–7.5、远景 ≥9）；"画面左/右"以"从投射中心望向焦点主体"的左右手侧为准换算成世界坐标；靠近投射中心的对象在画面里更大更近；actors 首位是叙事主体；`cameraAngle` 默认 eye_level，只有镜头动作文本明确出现俯拍/居高临下/上帝视角才选 high_angle、仰拍/低机位/高大压迫才选 low_angle。
 - **Failure Modes：** 焦点角色不在本镜名单 → postValidate 报错走语义重试；主体站位距离与景别不符时 fov 会顶到钳制边界，成图比目标景别松——这是站位问题，应回到 Prompt 的距离带规则而不是放宽 fov 上限；`cameraAngle` 是必填枚举，模型漏输出会被 schema 校验拒绝并触发语义重试，服务端不做关键词猜测兜底。
-- **Related Modules：** `shotBlockingAutoPlan.prompts.ts` 负责关系 schema 与方向语义；`DramaShotBlockingSketchService.ts` 负责端点校验、接地/上方几何和身高归一化后的体量约束；`DramaBlocking3DPage.tsx` 只应用未保存的服务端布局并沿用原有退出保存链路。
+- **相机职责边界：** 编辑浏览相机用于用户在 3D 场景中导航、聚焦和调整视角；独立分镜摄像机 pose 才是镜头取景与 PNG 草图的来源。打开已有 `layout3d` 时必须先恢复其角色与分镜摄像机，不得随后无条件调用编辑器总览 `fitView()` 覆盖景别。景深只写入分镜摄像机；画中画平时不启用整屏 `CameraFrame`，只有导出时把分镜摄像机临时扩展到完整画布，且明确开启景深才启用后处理。导出完成后在 `finally` 中恢复编辑相机、画中画、构图线和辅助图层。
+- **Failure Modes（相机）：** 已有布局打开后跳到多角色远景 → 检查页面是否在 `loadLayout()` 后调用无条件 `fitView()`；点击重新构图后编辑器整体模糊 → 检查景深是否误写到编辑观察相机，或画中画 `CameraFrame` 是否常驻；编辑器里主体大小正确但保存草图变成远景 → 检查 `capturePng()` 是否误用了编辑浏览相机；捕获异常后画布比例、辅助线或视角未恢复 → 检查所有临时相机/图层修改是否都位于同一 `try/finally` 边界内。
+- **Related Modules：** `shotBlockingAutoPlan.prompts.ts` 负责关系 schema 与方向语义；`DramaShotBlockingSketchService.ts` 负责端点校验、接地/上方几何和身高归一化后的体量约束；`DramaBlocking3DPage.tsx` 负责布局加载与退出保存；`blocking3dViewerApp.ts` 负责编辑相机、独立场景摄像机及草图捕获边界。
 - **Source Documents：** `docs/superpowers/specs/2026-08-28-drama-ai-composition-relations-design.md`、`docs/superpowers/plans/2026-08-28-drama-ai-composition-relations.md`。
 
 ### 场景状态空间语义标记
@@ -88,7 +90,7 @@
 - 投影合同（2026-08-27 起，半球贴面 dome-snap）：AI 标记不做图像测距。`projectStoryScene3dMarkerFromImageRegion` 只用 `imageRegion` 的两个可靠信息——水平中心确定方位（u=0.5 为正前 +Z），区域中心纬度与半球球面求交确定贴面点（球心在 `[0, projectionCenterHeight, 0]`，世界半径 = 直径字段 / 2）；随后把长方体沿径向内缩 `size.z / 2`，让整个盒子夹在轴心与球面之间：门、窗等 wall 锚点完全贴合球面（back face 触球），落地物体（door 与 floor 锚点）固定 `y=size.y/2` 落地，浮空墙面物（窗）保持交点高度。厚度取类别策略 `z` 下限做面板化；宽度取完整图像跨度、高度取 0.9 跨度并 clamp 到类别范围（v9 起覆盖系数统一放大，保证盒子盖得住物体）。标记朝向统一为径向方位角。手工标记与无 `imageRegion` 的旧 AI 数据保留原坐标；结果只依赖图像区域、环境参数与模型粗估距离，重复归一化幂等。空间标记仍是构图参照，不能当作精确测绘或碰撞几何。
 - 历史背景：v6/v7 曾实现"三路深度估计 + 45° 方位墙聚类共享墙距"的测距方案（落地线/顶边高度/垂直跨度取中位、门权重加倍、60° 内墙距封顶）。它依赖生成图符合真实透视的假设，实际摆位经常看起来不对，且对初学者不可解释；2026-08-27 整体移除，改为可预期的"图像在哪、长方体就贴在哪"。墙聚类相关导出常量已随实现删除，新代码不要再引入测距逻辑——若未来确需深度差，先扩展 AI 结构化输出（例如让模型给出相对层级），不要回到像素猜测。
 - 可行走地面薄板已整体移除（2026-08-26）：`STORY_SCENE_3D_MARKER_KINDS` 不再包含 `floor`，服务端不再从墙面深度合成 `scene-floor-walkable` 薄板，3D 视图也没有对应参考层。原因：它是叠加在真实全景上的合成参照物，视觉上盖住地面细节且与用户的直觉空间感冲突；角色站位约束已由舞台半径（半球边缘 1 米内缩，见下节）统一保证，薄板没有不可替代的价值。兼容规则：`normalizeMarker` 显式丢弃 `source.kind === "floor"` 的历史持久化行（缺这一步会让旧薄板被 coerce 成 `other` 类别残留），归一化幂等；`StoryScene3DMarkerAnchor` 的 `"floor"` 锚点是落地语义，与已移除的 floor 类别无关，不要混淆。
-- 自动构图 Prompt `drama.shot.blocking.autoPlan@v10` 的道具语义（2026-08-28 起）见下节「前景道具与交互构图」：标记不再只是障碍，交互构图是首选；多角色结果仍必须输出有向角色关系，关系由服务端落实为接地/上方位置与相对体量。
+- 自动构图 Prompt `drama.shot.blocking.autoPlan@v11` 的道具语义（2026-08-28 起）见下节「前景道具与交互构图」：标记不再只是障碍，交互构图是首选；多角色结果仍必须输出有向角色关系，关系由服务端落实为接地/上方位置与相对体量。
 - 每次识别结果都保存 `sourceEnvironment` 快照。新结果缺少快照、标记状态不是 `ready` 或快照与当前环境任一参数不一致时，结果通常视为过期；但旧 AI 结果若每个标记都有 `imageRegion`，服务端会先用图像区域重新投影并绑定当前环境，完成一次兼容迁移。仍缺少图像证据或含手工标记的旧数据会在场景 3D 编辑器清空并提示重新识别，分镜上下文不会把它交给角色自动摆位。用户在未保存参数时点击重新识别，编辑器会先保存当前投射参数，再启动识别。
 - 场景资产 3D 编辑器和分镜 3D 草图都渲染同一份半透明 PlayCanvas 长方体。共享 viewer 的场景层级：`app.root` 下有稳定的 `blocking3d-world` 世界节点，HDRI 背景（对象列表里的「世界」）和全部空间标记 cube 都是它的子对象；背景按状态图重建时不会连带销毁或移动标记，`createSceneMarkerRuntime` 通过可选 parent 参数把标记挂到该节点。共享 viewer 额外显示一个位于 `[0, projectionCenterHeight, 0]` 的半透明方形投射中心参考体，以及从地面到参考体中心的高度线；它不进入角色/标记拾取和 `layout3d` 保存，只随环境高度预览实时更新。用户可以从列表或直接点击空间标记选择并聚焦；标记不会写进镜头 `layout3d`，只作为构图参照和自动构图上下文。
 - 自动构图 Prompt 接收 `sceneJson.markers`，需要避开固定物体体积，并用相邻位置表达坐、倚靠、经过等空间关系；没有标记时不得自行编造障碍物坐标。空间标记暂关期间 `sceneJson.markers` 恒为空数组，自动构图只依赖站位半径约束。
@@ -106,6 +108,15 @@
 - **Failure Modes：** 新建标记集合漏带 `sourceEnvironment` → 标记不显示且分镜上下文拿不到（表现为"添加成功但列表没有"）；识别 Prompt 恢复家具穷举措辞 → 模型在空背景图上编造家具标记；autoPlan 校验跳过 marker id → AI 幻觉 id 落进 layout 且无人发现。不要把交互角色的 y 钳回地面——坐/躺落点依赖 AI 输出的座面/床垫面高度。
 - **Related Modules：** `shared/utils/scene3dMarkers.ts`（工厂/默认尺寸/合并）、`DramaScene3DPage.tsx`（添加标记 UI）、`StoryScene3dMarkerService.ts`（识别保留手动）、`shotBlockingAutoPlan.prompts.ts@v8`、`DramaShotBlockingSketchService.ts`（editor context）、`DramaShotKeyframeService.ts` + `shotKeyframe.prompts.ts@v3`（家具摘要）、`scenePanoramaLayout.ts`（纯背景合同）。
 
+### 模型库前景与 HDRI 纯背景分层
+
+- **Background：** 可交互的桌、椅、床、书柜和其他前景道具需要真实模型、真实尺寸和可复用的摆位数据；把它们画进等距柱状 HDRI 会同时失去交互能力，并在地面区域产生拉伸。HDRI 的职责因此收敛为不可交互的空间背景：室内只表现墙、天花板、地板及门窗等固定结构，室外以天空、地形和建筑天际线等远景为主。
+- **Decision：** 场景状态新增 `scene3dForegroundModels`，每个实例只引用模型库的稳定 `modelId`，并保存实例 `id`、名称、分类、位置、Y 轴朝向、统一缩放和 `usage` 支撑面/摆放方式；实例渲染挂在独立的前景根节点，不进入 HDRI 世界背景。场景 3D 编辑器负责从可见模型目录选择、添加、选中和调整实例，分镜 3D 草图恢复同一批实例并将它们写入 `layout3d.foregroundModels`。
+- **Current Rule：** 场景全景生成提示词必须在场景描述之后追加家具/可移动物负向约束，并按室内/室外约束背景范围；不能因为原文提到书桌、椅子或其他道具就把它们重新画进 HDRI。模型库前景实例必须通过共享归一化器校验安全 ID、位置、朝向和缩放；自动构图 Prompt 只允许用 `interactionModelId` 指向 `sceneJson.foregroundModels` 中已存在的实例，模型不存在时走结构化语义重试，不能凭名称或关键词编造坐标。模型实例作为障碍与交互承载物参与构图，首帧提示词同时接收摆位草图和模型摘要，因此生成画面不会回退到只含场景背景的原图。
+- **Compatibility：** 旧 `scene3dMarkers` 和 `interactionMarkerId` 合同仍保留用于存量数据读取，但空间标记总开关关闭时不再生成或下发它们；新功能不重新打开旧的“从 HDRI 识别家具”路径。没有模型库实例的旧场景仍可只使用 HDRI 和角色代理，不会因缺少新字段而失效。
+- **Failure Modes：** 只改全景负向提示词而不把模型实例接入场景状态，仍会导致分镜无法摆放家具；只把模型写入场景页而不写入 blocking context，自动构图和首帧提示词会看不到它们；接受 AI 返回的未知模型 ID 会造成模型交互漂移；把模型节点挂进 HDRI 根节点或在截图时把编辑器辅助线一起捕获，会把前景和背景再次混在一起。
+- **Related Modules：** `server/src/services/image/panorama/scenePanoramaLayout.ts`（纯背景生成合同）、`shared/utils/scene3dForegroundModels.ts`（实例归一化）、`shared/types/novelReferenceExtraction.ts`（状态字段）、`DramaScene3DPage.tsx` 与 `components/blocking3d/blocking3dForegroundModels.ts`（场景添加/运行时）、`DramaBlocking3DPage.tsx` 与 `blocking3dViewerApp.ts`（分镜恢复/编辑）、`DramaShotBlockingSketchService.ts`（layout/context）、`shotBlockingAutoPlan.prompts.ts` 与 `DramaShotKeyframeService.ts`（交互校验/首帧摘要）。
+
 ### 舞台余量与相机锚定合同
 
 - 舞台半径：角色可活动范围是以投射中心为圆心、半球真实半径内缩 1 米的圆（`STORY_SCENE_3D_ACTOR_STAGE_MARGIN_M = 1`），合同实现在 `shared/utils/blockingStage.ts`。当前环境字段 `radiusMeters` 已经是真实圆半径，舞台半径 = `radiusMeters − 1`；旧快照中的 `domeRadius` 仍按历史直径读取为 `domeRadius / 2`。blocking3d 的基础网格半径保持 0.5，只有 PlayCanvas 实体缩放边界换算为 `radiusMeters * 2`。强制点只有两处——AI 自动构图出口的程序化 clamp 与 viewer 交互输入（拖拽/nudge）的实时 clamp；保存路径不做破坏性 clamp，旧布局里越界的角色不会被静默改动。
@@ -116,7 +127,7 @@
 - 摄像机 gizmo 是白色线框（Unity 风格，2026-08-28）：`drawGizmo` 每帧按机身/镜头实体的世界变换画**白色**盒体线框（机身 + 镜头短筒）+ 从镜头前端展开的 16:9 取景锥线框（`blocking3dCameraGizmo.drawFrustumWireframe`），常驻显示不随「镜头取景」开关；选中摄像机时线框整体切橙色（与选中描边同色）。实体网格 `opacity = 0` 完全透明，只承担拾取命中体（`rayHitsBody` 依赖 mesh AABB）与变换手柄挂载点；改视觉不要恢复实体渲染，改线框颜色常量即可。
 - 取景画中画的图层隔离（2026-08-28）：画中画相机显式只挂 `[LAYERID_WORLD, 构图线图层]`，**绝不能用 `= editorCamera.layers` 引用别名**，也绝不能渲染机身——取景相机与机身同点位，一旦渲染机身，预览中央会被机身自发光面糊满（历史上踩过：用户看到"预览中间一块蓝色"）。机身与镜头渲染在 viewer 创建的 `blocking3d-editor-overlay` 辅助图层（编辑相机追加该图层，画中画不挂）；网格、边界圈、投影中心 gizmo、取景锥、标记轮廓都走 IMMEDIATE 线图层，画中画自然不渲染。三分构图线（2 横 2 竖、半透明白）由 `drawCompositionGuides` 每帧画进画中画专属图层 `blocking3d-shot-composition`，纵横比按小窗 rect 换算（不是整个画布），编辑主视口不出现。注意 PlayCanvas `Gizmo` 基类构造时会 `camera.layers = camera.layers.concat(layer.id)`——引用别名会让图层串进两台相机，新增相机图层时必须给每台相机 set 全新数组。
 - 场景状态图完成新的不可变制品提交时，旧 `scene3dMarkers` 会被清除，要求重新识别；生成中、失败或取消只更新图片尝试状态，保留最后一张可读图片及其标记。识别写回同时以 `statesJson` 和 `scene3dEnvironmentJson` 做 CAS，并在写入前复核图片制品指纹与环境快照，防止慢分析覆盖新图片或新投射参数。
-- 穹顶相机边界（2026-09-02）：全景穹顶是场景的物理外壳，编辑轨道相机与拍摄机位都不允许出界——出界取景只能拍到穹顶背面（画面变成壳外灰底 + 一颗悬空小球，旧数据里部分镜头草图就是这样产生的）。合同实现在 `shared/utils/blockingStage.ts`：`clampBlockingCameraPositionToWorld` 把世界坐标位置收敛进「水平边界圆（真实半径 × `STORY_SCENE_3D_CAMERA_BOUND_RATIO` = 0.95）+ 地面最低 0.1 米 + 上半球壳（高于投射中心的部分落在以投射中心为球心的球内）」三重边界；`clampBlockingCameraOrbitToWorld` 保持方位角/俯仰角与视线方向不变，先把焦点钳进壳内（焦点额外内缩 0.35 米，为距离下限 0.25 米留出「焦点再走一步」的余量），再沿视线方向解析求仍留在壳内的最大距离并取小。应用点只有三个统一出口——`syncCamera`（编辑视角全部操作的漏斗：平移/缩放/聚焦/载入）、`setShotCameraPose`（拍摄机位统一写入口）与 `applyEnvironmentSettings`（半径或投射中心变化后立即收敛）；`loadLayout` 对旧布局先经 `setCameraState` 收敛、再从收敛后的轨道相机推导机位，实现打开即自愈。旧数据不做落库改写：只有用户下次保存时快照才自然收敛到边界内。
+- 穹顶相机边界（2026-09-02）：场景摄像机实体和最终拍摄机位仍必须落在全景穹顶世界内，避免导出的镜头机位落到 HDRI 壳外。合同实现在 `shared/utils/blockingStage.ts`：`clampBlockingCameraPositionToWorld` 把世界坐标位置收敛进「水平边界圆（真实半径 × `STORY_SCENE_3D_CAMERA_BOUND_RATIO` = 0.95）+ 地面最低 0.1 米 + 上半球壳（高于投射中心的部分落在以投射中心为球心的球内）」三重边界；`clampBlockingCameraOrbitToWorld` 默认仍保持方位角/俯仰角与视线方向不变，并把轨道相机距离收进壳内。编辑轨道相机调用它时传入 `{ constrainDistance: false }`，只收敛焦点，不再受穹顶半径或旧的 100 米上限截断；滚轮距离由 `normalizeBlocking3dCameraDistance` 保持不低于 0.25 米并处于 JSON/浮点安全范围，`syncCamera` 再用 `resolveBlocking3dEditorFarClip` 按距离扩大远裁剪面。这样用户可以从远处查看完整场景，而 `setShotCameraPose` 和保存的独立拍摄机位仍走正式世界边界；旧布局载入时也不会把编辑视角的远距离误写成拍摄机位。
 
 ### 静态姿势与关键帧
 
@@ -157,13 +168,13 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 - 不能把 AI 自动构图结果直接落库后再校验；必须先校验角色集合、相机范围和 3D 快照，再由前端加载并在退出保存链路中统一确认。
 - 不能删除旧二维数据或要求已有项目重新摆位；缺少 3D 快照时必须能够从旧二维布局恢复一个可编辑的默认 3D 场景，但前端只暴露 3D 草图入口。
 - 姿势枚举是业务契约，代理 GLB 的剪辑名可以变化。若某个代理缺少剪辑，应明确报出资源能力问题或采用已定义的近似剪辑，不得静默把用户选择改成站立。
-- viewer 的销毁重建只能由环境图变化触发。任何从环境参数派生的状态（例如空间标记的“当前有效”判定）不得进入 viewer 创建 effect 的依赖数组：拖动环境滑块会持续翻转该判定，导致 viewer 连续整体重建（HDRI 重载 + EnvAtlas + 立方体重投影），页面卡死且视口黑屏。标记显隐必须走 `viewer.setSceneMarkers` 增量更新。同理（2026-09-02 修复），编辑器页的 viewer 创建 effect 不得以 `context` 对象为依赖：保存成功后的失效刷新会让 context 换对象身份，effect 重跑即销毁正在编辑的视口并用旧快照重建，未保存的 AI 构图/手动摆位被静默丢弃（实测症状：AI 构图提示成功，返回分镜保存的却是默认站位）。正确写法是依赖场景环境图 URL 原始值（`sceneEnvironmentUrl`），其余 context 数据经 `contextRef` 读取最新值。
+- viewer 的销毁重建只能由环境图变化触发。任何从环境参数派生的状态（例如空间标记的“当前有效”判定）不得进入 viewer 创建 effect 的依赖数组：拖动环境滑块会持续翻转该判定，导致 viewer 连续整体重建（HDRI 重载 + EnvAtlas + 半球网格/投影材质初始化），页面卡死且视口黑屏。标记显隐必须走 `viewer.setSceneMarkers` 增量更新。同理（2026-09-02 修复），编辑器页的 viewer 创建 effect 不得以 `context` 对象为依赖：保存成功后的失效刷新会让 context 换对象身份，effect 重跑即销毁正在编辑的视口并用旧快照重建，未保存的 AI 构图/手动摆位被静默丢弃（实测症状：AI 构图提示成功，返回分镜保存的却是默认站位）。正确写法是依赖场景环境图 URL 原始值（`sceneEnvironmentUrl`），其余 context 数据经 `contextRef` 读取最新值。
 
 ### HDRI 环境
 
 场景状态图加载到内侧剔除的 EnviroDome 式环境网格中。所有状态图都使用一份连续的上下表面：生成源图默认以 `v=0.5` 作为安全地平线，3D 投影地平线由场景的 `panoramaHorizonV` 参数决定；其上方用于天空/远景和环境物体，下方用于弧形地面。上下表面必须共享唯一的地平线顶点圈，并由同一个 `MeshInstance` 和材质一次绘制，不能用两个独立网格在同一位置叠边，否则光栅化会留下细缝。交界圈的世界高度必须与投射中心高度一致，使其投影方向落在当前全景地面分界；2:1 等距柱状图也必须走这条带投射中心的 EnviroDome 路径，不能因为画幅接近 2:1 而改用不受投射中心高度影响的完整穹顶；否则直径或高度修改只会保存成功、视口却没有视觉变化。地面仍然是带贴图的弧面而不是后置平面。半球生成器必须把 `sin(0)`/`sin(π)` 的浮点残差归零；极点的空间坐标要精确收敛，投影材质在水平分量接近零时必须直接使用固定经度，不能先执行未定义的 `atan(0,0)`。加载成功后隐藏仅用于无环境时兜底的纯色地面平面，定位网格仍作为辅助线绘制在地面上。环境实体固定在世界坐标，Y 轴固定在世界地面；相机旋转或移动只改变视点，不搬动环境地面。没有状态图或环境加载失败时恢复纯色地面。
 
-地面全景贴图不能把 `atan2` 得出的经度直接写入地面顶点 UV。中心平底的三角扇会对角度 UV 做线性插值，产生环状漩涡；首尾经度还会在纹理边界形成可见拼接线。当前 EnviroDome 材质先把 2:1 等距柱状源图用 PlayCanvas `reprojectTexture` 重投影为带边缘处理的 GPU 立方体纹理，再从世界空间投射中心指向当前片元、归一化为连续方向后采样 `TextureCube`。这样可见显示链路与 UE HDRIBackdrop 的 `TextureCube`、`WorldPosition`、`ProjectionPosition` 方向投影保持同一语义，不在地面中心插值角度 UV，也不在地平线切换两套 V 映射。重投影使用 `numSamples: 1` 保持显示纹理的一次过滤采样，并使用 `seamPixels: 1` 处理立方体面的边缘；源图仍保留为等距图，继续作为环境光照 atlas 的输入。地面几何只保留常量占位 UV 以满足 PlayCanvas 顶点流要求，不得把它重新当作全景投影 UV。极点方向由立方体采样稳定处理；CPU 投影数学仍保留用于兼容数据和回归测试，不得恢复到生产 shader 的 2D `atan(0,0)` 路径。地面几何只负责平底与外圈弧面的连续拓扑，不能重新恢复地面顶点 UV 投影。
+地面全景贴图不能把 `atan2` 得出的经度直接写入地面顶点 UV。中心平底的三角扇会对角度 UV 做线性插值，产生环状漩涡；首尾经度还会在纹理边界形成可见拼接线。当前 EnviroDome 材质从世界空间投射中心指向当前片元、归一化为连续方向后，在片元阶段直接采样原始 2:1 等距柱状源图；经度循环、纬度夹取和极点固定经度都在着色器里处理，不把中心扇区的角度写入顶点 UV。这样避免先压缩到固定尺寸立方体后再从 nadir 取样造成的额外清晰度损失与地面放射状拉伸；`.hdr` 的 RGBE 源仍按 RGBE 解码，普通图片源沿用 gamma 解码，源图同时继续作为环境光照 atlas 的输入。地面几何只保留常量占位 UV 以满足 PlayCanvas 顶点流要求，不得把它重新当作全景投影 UV。CPU 投影数学仍保留用于兼容数据和回归测试。地面几何只负责平底与外圈弧面的连续拓扑，不能重新恢复地面顶点 UV 投影。
 
 场景状态图、旧版场景全景图和漫画场景全景图的生成提示词必须与这套映射保持同一空间契约（统一在 `server/src/services/image/panorama/scenePanoramaLayout.ts`，2026-08-26 起为三区构图，2026-08-29 起升级为纯背景构图）：生成图固定以 `v=0.5`（底部 50%）为地平线、`v=0.3`（底部 70%）为天空分界，分界常量为 `shared/types/comicDrama.ts` 的 `STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V` / `STORY_SCENE_3D_PANORAMA_SKY_V`，提示词措辞与常量必须同步修改；下区 `v=0.52–1` 只保留一整片连续、干净的地面/地板/地形和少量低矮细节，任何物体、家具腿或物体碎片都不能跨越中心安全带 `v=0.48–0.52`；中区 `v=0.3–0.5` 是远景带，只保留远山、天际线、远景树木与室内远墙门窗等纯背景（完整位于 `v=0.3–0.48` 并留安全边距）；2026-08-29 起任何区域都不得出现可摆放前景道具——室内家具（床、桌、椅、沙发、柜体等）与室外近景石块、草丛、灌木一律不入图，它们改为后续摆放 3D 模型，全景只承担背景职责；上区 `v=0–0.3` 只保留干净天空/天花板、云与光照，远景物体和建筑顶部不得越过天空分界。通用行同时要求下半区按「俯视纯地板材质」渲染而不是房间透视视图，给模型一个可达成的目标来对抗写实透视先验。带参考图重新生成场景状态图时必须显式声明「参考图只锁材质、光照与场景身份，家具位置、物体大小与垂直构图一律随分区规则」——旧图本身往往越线，不堵住这条泄漏，越线构图会随参考图代代相传。室内是越线重灾区：真实等距柱状摄影里墙脚线与近处家具必然落在视线以下，契约与物理透视先天冲突，模型会在两者间摇摆。因此 `sceneType=interior` 的生成通过 `scenePanoramaLayoutLinesFor` 放弃真实透视框架，改用物理自洽的舞台布景式双层构图——上半层是正面平视的房间背景板（2026-08-29 起只画门窗与固定装修的裸建筑，家具一律不画），下半层是独立的地板材质样片且完全留空；残余结构大到会越过中线时整体画小画远，通用行同时给出「物体最低点以 v=0.5 为硬顶」的可执行逃逸规则；墙面装饰默认只出海报/画作/挂钟/镜子等装饰品；照片是条件项——场景描述明确提到（如老照片）才允许上墙，且必须带相框、未写数量时最多一张、不得额外铺成照片墙（提示词没提照片时一张都不出，否则主角空间挂陌生人照片出戏；海报上的明星/动漫角色属于装饰媒体，不受此限）。场景描述和 bible 内容只作为背景上下文，各入口必须在这些语境之后追加共享分层规则，确保「允许的背景」与「禁止的前景」最终生效；三个生成入口（状态图、旧场景全景、漫画场景全景）都按 sceneType 走同一辅助函数，新增入口不得内联复制布局行。大型物体不得深入下半部或延伸到天底附近，因为等距柱状投影会在那里产生明显拉伸；不能用均匀铺满地面的物体和细节替代自然地面材质。这里的分区是纹理坐标约束，不是让模型绘制分割线或拼贴图；中心安全带内出现被切开的物体时，空间标记识别也应跳过该物体。3D 场景编辑器的 `panoramaHorizonV` 是可保存的投影参数（界面名「分界线」），默认 `0.5`、可调范围为 `0.45–0.55`，只改变源图到空间地平线的映射，不修改源图内容或绘制可见分割线，也不反馈进生成提示词。
 
@@ -171,7 +182,7 @@ UAL 代理资源没有专用“趴着”剪辑时，运行时使用最接近的�
 
 3D 编辑器加载当前状态的图片地址作为 HDRI 环境；只要存在可读取的 `state.image.url` 就应尝试加载，不应额外依赖历史数据中的 `status` 已同步为 `done`。状态标记延迟不能让已有场景图退化成无背景的纯色地面。
 
-源环境纹理使用线性采样、关闭 mipmap 和各向异性过滤，经度方向循环寻址、纬度方向边缘夹取；可见立方体纹理使用线性过滤、关闭 mipmap 并在三个方向夹取边缘。连续 EnviroDome 共用一套按世界坐标投影的材质：上半部由立方体方向采样自然落在天空/远景，下半部落在地面，投射中心水平面保持同一方向连续采样。自定义着色器必须沿用 PlayCanvas 标准材质的 sRGB 解码、tone mapping 和 gamma 输出，否则环境图会绕过标准颜色空间流程而明显变亮。天空和地面必须属于同一份连续几何和同一个 `MeshInstance`，不能用两套显示材质或重复边界制造亮度、颜色或光栅断层。两种显示区域都不应依赖场景直射光来保持环境细节。状态图 URL 返回 404 时属于资产文件缺失，不是环境参数保存失败；编辑器应保留明确的加载失败提示，修复方式是重新生成当前状态图。
+源环境纹理使用线性采样、关闭 mipmap 和各向异性过滤，经度方向循环寻址、纬度方向边缘夹取；可见 EnviroDome 与环境光照 atlas 共用原始环境纹理，投影材质在片元阶段按世界方向直接采样，`.hdr` 与普通图片分别走 RGBE/gamma 解码。连续 EnviroDome 共用一套按世界坐标投影的材质：上半部采样天空/远景，下半部采样地面，投射中心水平面保持同一方向连续采样。自定义着色器必须沿用 PlayCanvas 标准材质的 sRGB 解码、tone mapping 和 gamma 输出，否则环境图会绕过标准颜色空间流程而明显变亮。天空和地面必须属于同一份连续几何和同一个 `MeshInstance`，不能用两套显示材质或重复边界制造亮度、颜色或光栅断层。两种显示区域都不应依赖场景直射光来保持环境细节。状态图 URL 返回 404 时属于资产文件缺失，不是环境参数保存失败；编辑器应保留明确的加载失败提示，修复方式是重新生成当前状态图。
 
 `NovelScene.scene3dEnvironmentJson` 是场景资产的唯一 3D 环境参数源，保存投射中心高度、`projectionCenterHeightRatio`、真实圆半径 `radiusMeters` 和 `panoramaHorizonV`。未定制时统一使用中性默认：圆半径 `7.5` 米、投射中心高度 `2` 米、比例 `4/15`、分界 `0.5`；环境默认不再按场景类型分叉。同一场景的环境参数只有一份，切换状态或进行空间标记分析时都复用它。当前圆半径范围为 `2.5–15` 米，比例范围为 `10%–40%`，投射中心高度范围为 `0.25–6` 米，世界高度始终由“圆半径 × 比例”派生，拖动圆半径时投射中心等比跟随；`panoramaHorizonV` 的范围为 `0.45–0.55`。旧快照中的 `domeRadius` 仍按历史直径兼容读取并除以二，旧直径 `5–30` 映射为当前半径 `2.5–15`；旧快照有显式高度比例时按旧直径比例换算，新字段输出只写 `radiusMeters`。用户明确保存过的自定义参数不因类型或图片分析变化而重置；状态图片变化后，未定制环境才按图片指纹重新分析。投射中心严格位于世界 X/Z 原点，只有世界 Y 高度可调。
 
@@ -187,11 +198,11 @@ HDRI 纹理加载后必须标记为等距柱状投影，并由 PlayCanvas `EnvLi
 
 PlayCanvas 的 `.hdr` 资源不是浏览器图片，而是 `TEXTURETYPE_RGBE` 的 RGBA8 字节缓冲：前三个通道是共享指数编码的颜色，Alpha 通道是指数。方向光估算必须优先读取 `Texture.getSource()` 的 RGBE 缓冲并按同一套 RGBE 解码恢复亮度，再把最亮区域映射回与可见 HDRI 相同的等距投影方向；只有普通图片源才走 canvas 读取。这样不能把“无法 `drawImage`”误判成没有直射光，也不会让方向光与全景高亮位置错位。
 
-HDRI 下方地面上的角色阴影不能直接由可见投影材质承担：可见半球是按世界坐标采样立方体纹理的自定义 shader，不包含 PlayCanvas 标准材质的阴影片元块。正确边界是保留可见 HDRI 网格，再用同一套下半部地面/弧面几何创建独立的 `StandardMaterial.shadowCatcher` 网格：材质使用 `BLEND_MULTIPLICATIVE`、关闭 skybox 与深度写入，只把方向光阴影乘到下半部，不给天空加黑影；由于下半部拓扑沿用内侧投影的绕序，接收层使用双面剔除。HDRI 派生方向光、代理角色和场景阴影开关必须同时启用，接收层设为 `castShadow=false`、`receiveShadow=true`，并用透明通道的 `drawBucket=250` 让它在可见背景之后叠加。投射中心高度或圆半径变化时必须同时重建可见网格和 shadow catcher，切换环境、加载失败和 viewer 销毁时同时释放 catcher 的实体、网格和材质。该能力只属于 PlayCanvas 分镜/场景 3D 预览；Remotion 最终视频仍使用自己的 2D 合成链路。
+HDRI 下方地面上的角色阴影不能直接由可见投影材质承担：可见半球是按世界坐标采样原始环境纹理的自定义 shader，不包含 PlayCanvas 标准材质的阴影片元块。正确边界是保留可见 HDRI 网格，再用同一套下半部地面/弧面几何创建独立的 `StandardMaterial.shadowCatcher` 网格：材质使用 `BLEND_MULTIPLICATIVE`、关闭 skybox 与深度写入，只把方向光阴影乘到下半部，不给天空加黑影；由于下半部拓扑沿用内侧投影的绕序，接收层使用双面剔除。HDRI 派生方向光、代理角色和场景阴影开关必须同时启用，接收层设为 `castShadow=false`、`receiveShadow=true`，并用透明通道的 `drawBucket=250` 让它在可见背景之后叠加。投射中心高度或圆半径变化时必须同时重建可见网格和 shadow catcher，切换环境、加载失败和 viewer 销毁时同时释放 catcher 的实体、网格和材质。该能力只属于 PlayCanvas 分镜/场景 3D 预览；Remotion 最终视频仍使用自己的 2D 合成链路。
 
 由于 PlayCanvas 在没有显式 skybox 时会把 `envAtlas` 作为无限天空盒的回退纹理，3D blocking camera 必须排除 `LAYERID_SKYBOX`，有限 HDRI 半球和地面改放在 `LAYERID_WORLD`；不能为了保留环境光照而让引擎内置无限天空盒覆盖半球直径设置。没有可用 HDRI 时关闭派生方向光，并使用低强度中性 `Scene.ambientLight` 兜底。lighting source、envAtlas 和 HDRI 派生方向光都只存在于 viewer 生命周期，切换、加载失败和销毁时必须释放或关闭。
 
-场景 3D 编辑页的 viewer 生命周期只跟随环境图地址（`environmentUrl`）与场景数据重建；空间标记列表通过创建时的 ref 快照注入初始状态，之后一律由专用同步 effect 调 `viewer.setSceneMarkers` 增量更新。环境滑块（投射中心高度、圆半径、分界线）拖动时只调用 `viewer.setEnvironmentSettings`：分界线是纯着色器 uniform，不触发网格重建；只有投射中心高度或圆半径变化才重建背景网格。重建 viewer 是昂贵操作（HDRI 纹理重载、`EnvLighting` 生成、`reprojectTexture`），且每次重建都会新建 PlayCanvas Application，绝不能被高频用户输入触发。同理，`viewer.loadLayout`（AI 自动构图结果落地）也只在投射中心高度或圆半径真正变化时才重建背景网格——构图通常沿用当前环境，无条件重建会在结果落地那一帧同步上传穹顶顶点缓冲造成整页卡顿（2026-08-27 修复）。2026-08-26 的卡死黑屏事故即因 viewer 创建 effect 依赖了从环境参数派生的标记可见性引用：拖动分界线让“标记当前有效”翻转 → viewer 销毁重建 → 重建完成时 `fitView()` 触发 onChange 把环境状态重置回服务端保存值 → 判定再翻转 → 再次重建，形成重建风暴。用户侧界面中该参数的显示名为「分界线」（数据字段仍为 `panoramaHorizonV`）。
+场景 3D 编辑页的 viewer 生命周期只跟随环境图地址（`environmentUrl`）与场景数据重建；空间标记列表通过创建时的 ref 快照注入初始状态，之后一律由专用同步 effect 调 `viewer.setSceneMarkers` 增量更新。环境滑块（投射中心高度、圆半径、分界线）拖动时只调用 `viewer.setEnvironmentSettings`：分界线是纯着色器 uniform，不触发网格重建；只有投射中心高度或圆半径变化才重建背景网格。重建 viewer 是昂贵操作（HDRI 纹理重载、`EnvLighting` 生成、半球网格和投影材质初始化），且每次重建都会新建 PlayCanvas Application，绝不能被高频用户输入触发。同理，`viewer.loadLayout`（AI 自动构图结果落地）也只在投射中心高度或圆半径真正变化时才重建背景网格——构图通常沿用当前环境，无条件重建会在结果落地那一帧同步上传穹顶顶点缓冲造成整页卡顿（2026-08-27 修复）。2026-08-26 的卡死黑屏事故即因 viewer 创建 effect 依赖了从环境参数派生的标记可见性引用：拖动分界线让“标记当前有效”翻转 → viewer 销毁重建 → 重建完成时 `fitView()` 触发 onChange 把环境状态重置回服务端保存值 → 判定再翻转 → 再次重建，形成重建风暴。用户侧界面中该参数的显示名为「分界线」（数据字段仍为 `panoramaHorizonV`）。
 
 ## Related Modules
 

@@ -71,6 +71,9 @@ const POSE_CLIPS: Record<
       ]),
       "Crouch_Idle_Loop",
       "Crouch_Fwd_Loop",
+      // UAL2 的通用低姿态兜底：没有人形 crouch 片段时，怪物 idle
+      // 至少保持前倾的捕食姿态，不能让关系约束后的上方主体退回站立。
+      "Zombie_Idle_Loop",
     ],
   },
   kneeling: {
@@ -80,6 +83,7 @@ const POSE_CLIPS: Record<
         "unreal-misc-preacher-pray-ground",
       ]),
       "Fixing_Kneeling",
+      "Zombie_Idle_Loop",
     ],
   },
   // LayToIdle 从躺姿过渡到站姿，躺姿只在片段开头；取中段会截到半起身动作。

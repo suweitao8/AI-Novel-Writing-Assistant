@@ -32,11 +32,13 @@ function stageTabs(onSelect: (stage: StudioStage) => void): PageTabRow["tabs"] {
 export function buildStudioNavStageRow(
   activeStage: StudioStage,
   onSelectStage: (stage: StudioStage) => void,
+  rememberedKey?: string,
 ): PageTabRow {
   return {
     id: "studio-stage",
     tabs: stageTabs(onSelectStage),
     active: activeStage,
+    ...(rememberedKey ? { rememberedKey } : {}),
     onSelect: (key) => onSelectStage(key as StudioStage),
   };
 }

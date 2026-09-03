@@ -29,6 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/toast";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import SimpleCreationMaterialsPanel from "./SimpleCreationMaterialsPanel";
 import BlankStartPanel from "./BlankStartPanel";
 import OnboardingTip from "@/components/onboarding/OnboardingTip";
@@ -44,6 +45,9 @@ const STATUS_LABELS: Record<SimpleCreationShelfChapterStatus, string> = {
   completed: "已完成",
   error: "异常",
 };
+
+const SIMPLE_SHELF_TABS = ["creation", "settings"] as const;
+type SimpleShelfTab = typeof SIMPLE_SHELF_TABS[number];
 
 function saveBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
@@ -72,7 +76,11 @@ export default function SimpleNovelShelfPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [selectedChapterId, setSelectedChapterId] = useState("");
-  const [view, setView] = useState("creation");
+  const [view, setView] = useRememberedTab<SimpleShelfTab>({
+    scope: `novel:${id || "none"}:simple-shelf`,
+    defaultValue: "creation",
+    values: SIMPLE_SHELF_TABS,
+  });
 
   const shelfQuery = useQuery({
     queryKey: ["novels", id, "simple-shelf"],
@@ -236,7 +244,7 @@ export default function SimpleNovelShelfPage() {
           next="选择左侧章节即可阅读当前版本。"
         />
 
-        <Tabs value={view} onValueChange={setView}>
+        <Tabs value={view} onValueChange={(value) => setView(value as SimpleShelfTab)}>
           <TabsList>
             <TabsTrigger value="creation">创作</TabsTrigger>
             <TabsTrigger value="settings">设定</TabsTrigger>

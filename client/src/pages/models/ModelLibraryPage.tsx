@@ -15,9 +15,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { cn } from "@/lib/utils";
 import { ModelLibraryPagination } from "./components/ModelLibraryPagination";
-import { useModelLibraryPageSize } from "./hooks/useModelLibraryPageSize";
 import { prefetchModelAsset } from "./modelLibrary3d/modelViewerApp";
 import {
   cancelThumbnail,
@@ -26,7 +26,7 @@ import {
   getThumbnail,
   subscribeThumbnails,
 } from "./modelLibrary3d/thumbnailStudio";
-import { getModelLibraryPage } from "./modelLibraryPagination";
+import { getModelLibraryPage, MODEL_LIBRARY_PAGE_SIZE } from "./modelLibraryPagination";
 
 const MODEL_THUMBNAIL_ROOT_MARGIN = "320px 0px";
 
@@ -136,7 +136,6 @@ function ModelCard({ entry }: { entry: ModelLibraryEntry }) {
 export default function ModelLibraryPage() {
   const navActionsSlot = usePageNavActionsSlot();
   const isMobileViewport = useIsMobileViewport();
-  const [category, setCategory] = useState<string>("全部");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -191,6 +190,11 @@ export default function ModelLibraryPage() {
     [visibleEntries],
   );
   const categoryItems = ["全部", ...visibleCategories];
+  const [category, setCategory] = useRememberedTab({
+    scope: "models:library-category",
+    defaultValue: "全部",
+    values: categoryItems,
+  });
   const counts = useMemo(() => {
     const map = new Map<string, number>();
     for (const entry of visibleEntries) {
@@ -207,10 +211,7 @@ export default function ModelLibraryPage() {
     },
     [category, hiddenModelIds, search, visibleEntries],
   );
-  const { pageRef, gridRef, pageSize } = useModelLibraryPageSize(
-    Boolean(hiddenModelIds) && entries.length > 0,
-  );
-  const currentPage = getModelLibraryPage(entries, page, pageSize);
+  const currentPage = getModelLibraryPage(entries, page, MODEL_LIBRARY_PAGE_SIZE);
   const pageEntries = currentPage.entries;
 
   useEffect(() => {
@@ -325,7 +326,7 @@ export default function ModelLibraryPage() {
     : null;
 
   return (
-    <div ref={pageRef} className="space-y-3" data-model-library-page>
+    <div className="space-y-3" data-model-library-page>
       {searchPortal}
       <section
         aria-label="模型筛选"
@@ -353,8 +354,7 @@ export default function ModelLibraryPage() {
       {entries.length > 0 ? (
         <>
           <section
-            ref={gridRef}
-            className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10"
+            className="grid grid-cols-10 gap-2"
             data-model-grid
           >
             {pageEntries.map((entry) => (

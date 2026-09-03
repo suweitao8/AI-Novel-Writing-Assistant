@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, Move3D, WandSparkles } from "lucide-react";
+import { ArrowLeft, Box, Loader2, Move3D, WandSparkles } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import {
@@ -21,6 +21,7 @@ import {
   STORY_SCENE_3D_ENVIRONMENT_DIAMETER_LIMITS,
   STORY_SCENE_3D_MARKER_KINDS,
   STORY_SCENE_3D_MARKER_KIND_LABELS,
+  type StoryScene3DForegroundModel,
   type StoryScene3DMarker,
   type StoryScene3DMarkerKind,
   type StoryScene3DMarkerSet,
@@ -57,13 +58,21 @@ import {
 import { buildStudioNavStageRow } from "./navigation/studioTabRows";
 import { useRegisterPageTabs } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { getModelLibraryVisibility } from "@/api/modelLibrary";
+import { MODEL_LIBRARY, getModelLibraryEntry } from "@/config/modelLibrary";
+import { filterModelLibraryEntries } from "@/config/modelLibraryFilters";
+import SearchableSelect from "@/components/common/SearchableSelect";
 
 const REFERENCE_ACTOR_HEIGHT_METERS = 1.7;
 const REFERENCE_ACTOR_LABEL = "参考角色（约1.7m）";
 const SCENE_OBJECT_ID = "scene";
 const REFERENCE_OBJECT_ID = "reference";
 
-type SceneObjectSelectionId = typeof SCENE_OBJECT_ID | typeof REFERENCE_OBJECT_ID | `marker:${string}`;
+type SceneObjectSelectionId =
+  | typeof SCENE_OBJECT_ID
+  | typeof REFERENCE_OBJECT_ID
+  | `marker:${string}`
+  | `model:${string}`;
 
 function resolveSceneState(scene: StorySettingsScene, stateId?: string): StorySettingsScene["states"][number] | null {
   if (stateId?.trim()) {
@@ -81,6 +90,10 @@ function resolveSceneEnvironmentUrl(state: StorySettingsScene["states"][number] 
 
 function markerObjectId(markerId: string): `marker:${string}` {
   return `marker:${markerId}`;
+}
+
+function foregroundModelObjectId(modelId: string): `model:${string}` {
+  return `model:${modelId}`;
 }
 
 export default function DramaScene3DPage() {
@@ -101,6 +114,7 @@ export default function DramaScene3DPage() {
   const [analyzingMarkers, setAnalyzingMarkers] = useState(false);
   // 前景道具：全景图只做背景，桌椅床等家具在这里手动摆放，供角色摆位交互。
   const [newMarkerKind, setNewMarkerKind] = useState<StoryScene3DMarkerKind>("chair");
+  const [newModelId, setNewModelId] = useState("");
   const [selectedObjectId, setSelectedObjectId] = useState<SceneObjectSelectionId>(SCENE_OBJECT_ID);
   // Unity 场景视图工具：移动 / 旋转 / 缩放手柄，作用于选中的空间标记。
   const [transformTool, setTransformTool] = useState<Blocking3dTransformTool | null>("translate");
@@ -113,12 +127,18 @@ export default function DramaScene3DPage() {
   const environmentAnalysisRequestRef = useRef(0);
   const dirtyRef = useRef(false);
   const markerCommitRef = useRef<(marker: StoryScene3DMarker) => void>(() => {});
+  const foregroundModelCommitRef = useRef<(model: StoryScene3DForegroundModel) => void>(() => {});
 
   const sceneQuery = useQuery({
     queryKey: queryKeys.novels.storySettingsScene(novelId, sceneId),
     queryFn: () => getStorySettingsScene(novelId, sceneId),
     enabled: Boolean(novelId && sceneId),
     staleTime: 0,
+  });
+  const modelLibraryVisibilityQuery = useQuery({
+    queryKey: ["model-library", "visibility"],
+    queryFn: getModelLibraryVisibility,
+    staleTime: 5 * 60 * 1000,
   });
   const scene = sceneQuery.data?.data ?? null;
   const selectedState = useMemo(() => (scene ? resolveSceneState(scene, stateId) : null), [scene, stateId]);
@@ -140,10 +160,21 @@ export default function DramaScene3DPage() {
     () => sceneMarkersAreCurrent ? selectedState?.scene3dMarkers?.markers ?? [] : [],
     [sceneMarkersAreCurrent, selectedState?.scene3dMarkers],
   );
+  const visibleForegroundModels = selectedState?.scene3dForegroundModels ?? [];
+  const hiddenModelIds = useMemo(
+    () => new Set(modelLibraryVisibilityQuery.data?.data?.hiddenModelIds ?? []),
+    [modelLibraryVisibilityQuery.data?.data?.hiddenModelIds],
+  );
+  const modelLibraryEntries = useMemo(
+    () => filterModelLibraryEntries(MODEL_LIBRARY, "", hiddenModelIds),
+    [hiddenModelIds],
+  );
   // 环境滑块拖动会翻转标记的“当前有效”状态；3D 视图只能跟随环境图重建，
   // 标记显隐必须走 viewer.setSceneMarkers 增量更新，否则每次拖动都会整图重载。
   const visibleSceneMarkersRef = useRef(visibleSceneMarkers);
   visibleSceneMarkersRef.current = visibleSceneMarkers;
+  const visibleForegroundModelsRef = useRef(visibleForegroundModels);
+  visibleForegroundModelsRef.current = visibleForegroundModels;
 
   useEffect(() => {
     if (!scene || !selectedState) return;
@@ -186,6 +217,7 @@ export default function DramaScene3DPage() {
     let unsubscribeChange: (() => void) | undefined;
     let unsubscribeSelection: (() => void) | undefined;
     let unsubscribeMarkerSelection: (() => void) | undefined;
+    let unsubscribeForegroundModelSelection: (() => void) | undefined;
     setViewerError(null);
     void createBlocking3dViewer({
       canvas,
@@ -193,6 +225,9 @@ export default function DramaScene3DPage() {
       sceneMarkers: visibleSceneMarkersRef.current,
       markerTransformEditable: true,
       onMarkerTransformCommit: (marker) => markerCommitRef.current(marker),
+      foregroundModels: visibleForegroundModelsRef.current,
+      foregroundModelTransformEditable: true,
+      onForegroundModelTransformCommit: (model) => foregroundModelCommitRef.current(model),
     }).then((nextViewer) => {
       if (cancelled) {
         nextViewer.destroy();
@@ -216,6 +251,9 @@ export default function DramaScene3DPage() {
       unsubscribeMarkerSelection = nextViewer.onMarkerSelection((markerId) => {
         setSelectedObjectId(markerId ? markerObjectId(markerId) : SCENE_OBJECT_ID);
       });
+      unsubscribeForegroundModelSelection = nextViewer.onForegroundModelSelection((modelId) => {
+        setSelectedObjectId(modelId ? foregroundModelObjectId(modelId) : SCENE_OBJECT_ID);
+      });
       nextViewer.selectActor(null);
       nextViewer.fitView();
     }).catch((error: unknown) => {
@@ -229,6 +267,7 @@ export default function DramaScene3DPage() {
       unsubscribeChange?.();
       unsubscribeSelection?.();
       unsubscribeMarkerSelection?.();
+      unsubscribeForegroundModelSelection?.();
       viewerRef.current?.destroy();
       viewerRef.current = null;
       setViewer(null);
@@ -238,11 +277,12 @@ export default function DramaScene3DPage() {
   useEffect(() => {
     if (!viewer) return;
     viewer.setSceneMarkers(visibleSceneMarkers);
+    void viewer.setForegroundModels(visibleForegroundModels);
     if (!sceneMarkersAreCurrent) {
       setSelectedObjectId(SCENE_OBJECT_ID);
       viewer.selectActor(null);
     }
-  }, [sceneMarkersAreCurrent, viewer, visibleSceneMarkers]);
+  }, [sceneMarkersAreCurrent, viewer, visibleForegroundModels, visibleSceneMarkers]);
 
   useEffect(() => {
     viewer?.setInteractionEnabled(!sceneQuery.isFetching && !saving);
@@ -369,6 +409,29 @@ export default function DramaScene3DPage() {
     }
   }, [applyStatesUpdate, scene, selectedState]);
 
+  const patchForegroundModel = useCallback(async (
+    modelId: string,
+    patch: Partial<Pick<StoryScene3DForegroundModel, "label" | "position" | "yawDeg" | "scale">>,
+  ): Promise<void> => {
+    if (!scene || !selectedState) return;
+    const models = selectedState.scene3dForegroundModels ?? [];
+    const target = models.find((model) => model.id === modelId);
+    if (!target) return;
+    const nextModels = models.map((model) => (
+      model.id === modelId ? { ...model, ...patch } : model
+    ));
+    const nextStates = scene.states.map((state) => (
+      state.id === selectedState.id
+        ? { ...state, scene3dForegroundModels: nextModels }
+        : state
+    ));
+    try {
+      await applyStatesUpdate({ states: nextStates }, "前景模型已保存。");
+    } catch (error) {
+      toast.error("前景模型保存失败。", { description: error instanceof Error ? error.message : undefined });
+    }
+  }, [applyStatesUpdate, scene, selectedState]);
+
   // gizmo 拖拽结束的回写入口（通过 ref 转发，避免 viewer 创建时的闭包过期）。
   useEffect(() => {
     markerCommitRef.current = (marker) => {
@@ -379,6 +442,16 @@ export default function DramaScene3DPage() {
       });
     };
   }, [patchMarker]);
+
+  useEffect(() => {
+    foregroundModelCommitRef.current = (model) => {
+      void patchForegroundModel(model.id, {
+        position: model.position,
+        yawDeg: model.yawDeg,
+        scale: model.scale,
+      });
+    };
+  }, [patchForegroundModel]);
 
   // 手动摆放前景道具：按当前类型追加一个默认尺寸的标记，落地高度由归一化器处理，
   // 添加后用移动/旋转/缩放手柄或 Transform 数值微调到目标位置。
@@ -416,6 +489,41 @@ export default function DramaScene3DPage() {
     }
   }, [applyStatesUpdate, environmentSettings, newMarkerKind, saving, scene, selectedState]);
 
+  const addForegroundModel = useCallback(async (): Promise<void> => {
+    if (!scene || !selectedState || saving || !newModelId) return;
+    const entry = getModelLibraryEntry(newModelId);
+    if (!entry) {
+      toast.error("模型库条目不存在。", { description: "请重新选择一个可用模型。" });
+      return;
+    }
+    const existing = selectedState.scene3dForegroundModels ?? [];
+    const instanceId = `model-${entry.id}-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+    const index = existing.length;
+    const model: StoryScene3DForegroundModel = {
+      id: instanceId,
+      modelId: entry.id,
+      label: entry.name,
+      modelName: entry.name,
+      category: entry.category,
+      position: [((index % 3) - 1) * 1.8, 0, Math.floor(index / 3) * 1.8],
+      yawDeg: 0,
+      scale: 1,
+      source: "model-library",
+      usage: { ...entry.usage },
+    };
+    const nextStates = scene.states.map((state) => (
+      state.id === selectedState.id
+        ? { ...state, scene3dForegroundModels: [...existing, model] }
+        : state
+    ));
+    try {
+      await applyStatesUpdate({ states: nextStates }, "前景模型已添加。");
+      setSelectedObjectId(foregroundModelObjectId(model.id));
+    } catch (error) {
+      toast.error("前景模型添加失败。", { description: error instanceof Error ? error.message : undefined });
+    }
+  }, [applyStatesUpdate, newModelId, saving, scene, selectedState]);
+
   // Unity GameObject 名字段：世界（场景名）与空间标记的 label 都可以改名并立即落库。
   const renameSelectedObject = useCallback(async (nextName: string): Promise<void> => {
     const trimmed = nextName.trim();
@@ -426,17 +534,28 @@ export default function DramaScene3DPage() {
         await applyStatesUpdate({ name: trimmed }, "场景名称已保存。");
         return;
       }
-      if (!selectedObjectId.startsWith("marker:")) return;
-      await patchMarker(selectedObjectId.slice("marker:".length), { label: trimmed });
+      if (selectedObjectId.startsWith("marker:")) {
+        await patchMarker(selectedObjectId.slice("marker:".length), { label: trimmed });
+        return;
+      }
+      if (selectedObjectId.startsWith("model:")) {
+        await patchForegroundModel(selectedObjectId.slice("model:".length), { label: trimmed });
+      }
     } catch (error) {
       toast.error("名称保存失败。", { description: error instanceof Error ? error.message : undefined });
     }
-  }, [applyStatesUpdate, patchMarker, scene, selectedObjectId, selectedState]);
+  }, [applyStatesUpdate, patchForegroundModel, patchMarker, scene, selectedObjectId, selectedState]);
 
   const focusMarker = useCallback((markerId: string) => {
     if (!viewer) return;
     viewer.focusMarker(markerId);
     setSelectedObjectId(markerObjectId(markerId));
+  }, [viewer]);
+
+  const focusForegroundModel = useCallback((modelId: string) => {
+    if (!viewer) return;
+    viewer.focusForegroundModel(modelId);
+    setSelectedObjectId(foregroundModelObjectId(modelId));
   }, [viewer]);
 
   const selectObject = useCallback((objectId: SceneObjectSelectionId) => {
@@ -451,8 +570,12 @@ export default function DramaScene3DPage() {
       setSelectedObjectId(REFERENCE_OBJECT_ID);
       return;
     }
-    focusMarker(objectId.slice("marker:".length));
-  }, [focusMarker, viewer]);
+    if (objectId.startsWith("marker:")) {
+      focusMarker(objectId.slice("marker:".length));
+      return;
+    }
+    focusForegroundModel(objectId.slice("model:".length));
+  }, [focusForegroundModel, focusMarker, viewer]);
 
   const updateEnvironmentSetting = useCallback((key: "projectionCenterHeightRatio" | "radiusMeters" | "panoramaHorizonV", value: number) => {
     const next = {
@@ -499,7 +622,7 @@ export default function DramaScene3DPage() {
   useRegisterPageTabs(!isMobileViewport, [
     buildStudioNavStageRow("scenes", (stage: StudioStage) => {
       void leaveEditor(buildStudioNavigationPath(novelId, { stage }));
-    }),
+    }, `drama-project:${novelId || "none"}:studio-stage`),
   ]);
 
   if (sceneQuery.isPending) {
@@ -531,6 +654,9 @@ export default function DramaScene3DPage() {
   const selectedMarker = selectedObjectId.startsWith("marker:")
     ? visibleSceneMarkers.find((marker) => marker.id === selectedObjectId.slice("marker:".length)) ?? null
     : null;
+  const selectedForegroundModel = selectedObjectId.startsWith("model:")
+    ? visibleForegroundModels.find((model) => model.id === selectedObjectId.slice("model:".length)) ?? null
+    : null;
   const sceneObjectItems: Drama3DObjectItem[] = [
     {
       id: SCENE_OBJECT_ID,
@@ -545,6 +671,13 @@ export default function DramaScene3DPage() {
       kind: "marker" as const,
       selected: selectedObjectId === markerObjectId(marker.id),
       onSelect: () => selectObject(markerObjectId(marker.id)),
+    })),
+    ...visibleForegroundModels.map((model) => ({
+      id: foregroundModelObjectId(model.id),
+      label: model.label || model.modelName,
+      kind: "model" as const,
+      selected: selectedObjectId === foregroundModelObjectId(model.id),
+      onSelect: () => selectObject(foregroundModelObjectId(model.id)),
     })),
     {
       id: REFERENCE_OBJECT_ID,
@@ -644,6 +777,38 @@ export default function DramaScene3DPage() {
                         <Loader2 className="mr-1.5 inline h-3.5 w-3.5 animate-spin" aria-hidden="true" />正在根据全景图估算场景尺度
                       </p>
                     ) : null}
+                  </div>
+                </InspectorComponentSection>
+                <InspectorComponentSection title="模型库前景">
+                  <div className="space-y-2">
+                    <SearchableSelect
+                      value={newModelId}
+                      onValueChange={setNewModelId}
+                      options={modelLibraryEntries.map((entry) => ({
+                        value: entry.id,
+                        label: `${entry.category} · ${entry.name}`,
+                        keywords: [entry.fileName],
+                      }))}
+                      placeholder="选择模型库资产"
+                      searchPlaceholder="搜索模型名称、分类或文件名"
+                      emptyText="没有匹配的模型库资产"
+                      disabled={saving || modelLibraryVisibilityQuery.isPending}
+                      triggerClassName="h-9 rounded-lg text-xs"
+                      contentClassName="min-w-[18rem]"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full"
+                      disabled={!newModelId || saving || modelLibraryVisibilityQuery.isPending}
+                      onClick={() => void addForegroundModel()}
+                    >
+                      <Box className="mr-1.5 h-4 w-4" aria-hidden="true" />添加前景模型
+                    </Button>
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>已摆放</span>
+                      <span className="tabular-nums">{visibleForegroundModels.length}</span>
+                    </div>
                   </div>
                 </InspectorComponentSection>
                 {STORY_SCENE_3D_MARKERS_ENABLED ? (
@@ -766,6 +931,49 @@ export default function DramaScene3DPage() {
                     items={[
                       { label: "类型", value: STORY_SCENE_3D_MARKER_KIND_LABELS[selectedMarker.kind] },
                       { label: "置信度", value: `${Math.round(selectedMarker.confidence * 100)}%` },
+                    ]}
+                  />
+                </InspectorComponentSection>
+              </>
+            ) : selectedForegroundModel ? (
+              <>
+                <InspectorGameObjectCard
+                  icon={<Box className="h-4 w-4" aria-hidden="true" />}
+                  name={selectedForegroundModel.label || selectedForegroundModel.modelName}
+                  nameEditable
+                  onRename={(next) => void renameSelectedObject(next)}
+                  disabled={saving}
+                />
+                <InspectorTransformSection
+                  value={{
+                    position: selectedForegroundModel.position,
+                    yawDeg: selectedForegroundModel.yawDeg,
+                    scale: selectedForegroundModel.scale,
+                  }}
+                  disabled={saving}
+                  onCommit={(patch) => {
+                    const next: Partial<Pick<StoryScene3DForegroundModel, "position" | "yawDeg" | "scale">> = {};
+                    if (patch.position) next.position = patch.position;
+                    if (patch.yawDeg != null) next.yawDeg = patch.yawDeg;
+                    if (patch.scale != null) next.scale = patch.scale;
+                    if (Object.keys(next).length) {
+                      void patchForegroundModel(selectedForegroundModel.id, next);
+                    }
+                  }}
+                  footer={
+                    <Button type="button" variant="outline" className="w-full" disabled={!viewer || saving} onClick={() => focusForegroundModel(selectedForegroundModel.id)}>
+                      <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />聚焦此模型
+                    </Button>
+                  }
+                />
+                <InspectorComponentSection title="模型信息" defaultOpen={false}>
+                  <InspectorPropertyList
+                    className="text-xs"
+                    items={[
+                      { label: "分类", value: selectedForegroundModel.category },
+                      { label: "模型库", value: selectedForegroundModel.modelName },
+                      { label: "支撑面", value: selectedForegroundModel.usage?.supportSurface ?? "地面" },
+                      { label: "摆放方式", value: selectedForegroundModel.usage?.placementMode ?? "自由摆放" },
                     ]}
                   />
                 </InspectorComponentSection>

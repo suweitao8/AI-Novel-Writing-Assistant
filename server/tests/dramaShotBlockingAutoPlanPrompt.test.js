@@ -11,8 +11,8 @@ const promptRegistrySource = fs.readFileSync(
 
 test("自动构图 Prompt 输出角色摆位与相机构图意图合同", () => {
   assert.equal(dramaShotBlockingAutoPlanPrompt.id, "drama.shot.blocking.autoPlan");
-  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v10");
-  assert.match(promptRegistrySource, /drama\.shot\.blocking\.autoPlan@v10/);
+  assert.equal(dramaShotBlockingAutoPlanPrompt.version, "v11");
+  assert.match(promptRegistrySource, /drama\.shot\.blocking\.autoPlan@v11/);
   assert.equal(dramaShotBlockingAutoPlanPrompt.mode, "structured");
   const output = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: [{ characterName: "沈烬", position: [1, 0, -1], yawDeg: 180, scale: [1, 1, 1], pose: "talking" }],
@@ -32,7 +32,7 @@ test("自动构图 Prompt 输出角色摆位与相机构图意图合同", () => 
   assert.equal(output.camera.depthOfFieldEnabled, true);
   assert.deepEqual(output.relations, []);
 
-  // v10：相机轨道参数不再由模型输出；即使模型多输出 azim/distance 等字段也会被 schema 剥离。
+  // v11：相机轨道参数不再由模型输出；即使模型多输出 azim/distance 等字段也会被 schema 剥离。
   const orbitAttempt = dramaShotBlockingAutoPlanPrompt.outputSchema.parse({
     actors: output.actors,
     relations: [],
@@ -108,7 +108,7 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /不得与门窗、楼梯、柜子以及本镜动作没有用到的桌椅床沙发重叠/);
   assert.match(text, /可用站位半径/);
   assert.match(text, /投射中心/);
-  // v10：相机由服务端按意图与角色落位生成；模型只声明焦点、三分偏置、机位俯仰与景深开关。
+  // v11：相机由服务端按意图与角色落位生成；模型只声明焦点、三分偏置、机位俯仰与景深开关。
   assert.match(text, /相机完全由服务端生成/);
   assert.match(text, /camera\.focalCharacterName/);
   assert.match(text, /compositionBias/);
@@ -117,7 +117,7 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /仰拍/);
   assert.match(text, /景别决定主体与投射中心的距离/);
   assert.match(text, /画面左右以/);
-  assert.match(text, /第一个角色是本镜叙事主体/);
+  assert.match(text, /数组顺序只用于稳定回载，不代表关系主动方或上下层级/);
   assert.match(text, /三分法/);
   assert.match(text, /180° 轴线/);
   assert.match(text, /输出前自检/);
@@ -125,6 +125,8 @@ test("自动构图 Prompt 明确要求使用全部输入角色和横屏构图", 
   assert.match(text, /on_top_of|上方/);
   assert.match(text, /larger|更大|体量/);
   assert.match(text, /不要.*prone|禁止.*prone/);
+  assert.match(text, /A 躺在地面.*B 伏在 A 身前/);
+  assert.match(text, /subjectCharacterName=B.*objectCharacterName=A/);
 
   const constrained = dramaShotBlockingAutoPlanPrompt.render({
     shotJson: "动作：沈烬奔跑",

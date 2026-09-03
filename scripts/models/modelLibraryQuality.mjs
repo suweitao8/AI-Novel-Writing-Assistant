@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { getUnsupportedNameReason, readGlb } from "./glbSanitizer.mjs";
 import {
@@ -17,19 +16,19 @@ import {
   CINE57_REQUIRED_CATEGORIES,
   isFoodContainerModel,
 } from "./modelLibraryPolicy.mjs";
+import {
+  MODEL_LIBRARY_IMPORT_AUDIT_PATH,
+  validateModelLibraryImportAudit,
+} from "./modelLibraryImportAudit.mjs";
+import {
+  MODEL_LIBRARY_PREVIEW_AUDIT_PATH,
+  validatePreviewAuditDocument,
+} from "./model-library-preview-audit.mjs";
 import { listCatalogTexturePaths, validateModelTextureContract } from "./modelLibraryTextureAudit.mjs";
 import { validateModelVisualReview } from "./modelLibraryVisualReview.mjs";
 
 export const MAX_FOREGROUND_MODEL_DIMENSION_METERS = 5;
 const CINE57_MODEL_URL_PREFIX = "/models/cine57/";
-const MODEL_LIBRARY_IMPORT_AUDIT_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "model-library-import-audit.json",
-);
-const MODEL_LIBRARY_PREVIEW_AUDIT_PATH = path.join(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "model-library-preview-browser-audit.json",
-);
 
 const MODEL_USAGE_SUPPORT_SURFACES = new Set([
   "ground",
@@ -443,42 +442,10 @@ function isCine57StaticModelEntry(entry) {
   return isStaticModelEntry(entry) && entry.fileUrl.startsWith("/models/cine57/");
 }
 
-function loadModelLibraryImportAudit() {
-  try {
-    const document = JSON.parse(fs.readFileSync(MODEL_LIBRARY_IMPORT_AUDIT_PATH, "utf8"));
-    if (document?.version !== 1 || !document.textures || typeof document.textures !== "object") return null;
-    return document.textures;
-  } catch {
-    return null;
-  }
-}
-
-function loadModelLibraryPreviewAudit() {
-  try {
-    const document = JSON.parse(fs.readFileSync(MODEL_LIBRARY_PREVIEW_AUDIT_PATH, "utf8"));
-    if (document?.version !== 1 || !Array.isArray(document.entries)) return null;
-    const auditById = new Map();
-    for (const entry of document.entries) {
-      if (typeof entry?.id === "string" && typeof entry.href === "string") auditById.set(entry.id, entry);
-    }
-    return auditById;
-  } catch {
-    return null;
-  }
-}
-
 /** Return every static model-library content violation; an empty array means valid. */
 export function validateModelLibrary({ library, modelsDir }) {
   const errors = [];
   const entries = Array.isArray(library) ? library : [];
-  const importAuditByTexture = loadModelLibraryImportAudit();
-  const browserPreviewAuditById = loadModelLibraryPreviewAudit();
-  if (!browserPreviewAuditById) {
-    addError(errors, "model library browser preview audit is missing: " + MODEL_LIBRARY_PREVIEW_AUDIT_PATH);
-  }
-  if (!importAuditByTexture) {
-    addError(errors, `model library import alpha audit is missing: ${MODEL_LIBRARY_IMPORT_AUDIT_PATH}`);
-  }
   const staticEntries = entries.filter(isStaticModelEntry);
   const cine57StaticEntries = staticEntries.filter(isCine57StaticModelEntry);
   const removedIds = new Set(CINE57_REMOVED_MODEL_IDS);
@@ -492,6 +459,30 @@ export function validateModelLibrary({ library, modelsDir }) {
   const meshNamesById = new Map();
   const assetSha256ById = new Map();
   const staticFileNames = new Set();
+  let importAuditDocument = null;
+  try {
+    importAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_IMPORT_AUDIT_PATH, "utf8"));
+  } catch (error) {
+    addError(
+      errors,
+      `model library import audit could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const importAuditByTexture = importAuditDocument?.textures ?? {};
+  let previewAuditDocument = null;
+  try {
+    previewAuditDocument = JSON.parse(fs.readFileSync(MODEL_LIBRARY_PREVIEW_AUDIT_PATH, "utf8"));
+  } catch (error) {
+    addError(
+      errors,
+      `model library preview audit could not be loaded: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  errors.push(...validateModelLibraryImportAudit({
+    library: entries,
+    audit: importAuditDocument,
+    modelsDir,
+  }));
 
   if (cine57StaticEntries.length < CINE57_MINIMUM_MODEL_COUNT) {
     addError(errors, `expected at least ${CINE57_MINIMUM_MODEL_COUNT} Cine57 entries, found ${cine57StaticEntries.length}`);
@@ -565,11 +556,11 @@ export function validateModelLibrary({ library, modelsDir }) {
     }
   }
 
-  errors.push(...validateModelVisualReview({
+  errors.push(...validateModelVisualReview({ library: entries, meshNamesById, assetSha256ById }));
+  errors.push(...validatePreviewAuditDocument({
+    auditDocument: previewAuditDocument,
     library: entries,
-    meshNamesById,
     assetSha256ById,
-    browserPreviewAuditById,
   }));
 
   for (const requiredCategory of requiredCategories) {

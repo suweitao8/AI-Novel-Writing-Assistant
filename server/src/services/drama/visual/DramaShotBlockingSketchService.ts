@@ -8,6 +8,7 @@ import {
 import {
   isStoryScene3DMarkerSetCurrent,
   type StoryScene3DEnvironment,
+  type StoryScene3DForegroundModel,
   type StoryScene3DMarker,
   type StoryScene3DMarkerSet,
 } from "@ai-novel/shared/types/comicDrama";
@@ -121,6 +122,7 @@ interface BlockingSketchEditorScene {
   environment: StoryScene3DEnvironment;
   markers: StoryScene3DMarker[];
   markerAnalysis: StoryScene3DMarkerSet | null;
+  foregroundModels: StoryScene3DForegroundModel[];
 }
 
 export interface BlockingSketchEditorActor {
@@ -367,6 +369,7 @@ export class DramaShotBlockingSketchService {
         environment: matchedScene.environment,
         markers: markersAreCurrent ? markerAnalysis?.markers ?? [] : [],
         markerAnalysis,
+        foregroundModels: matchedSceneState?.scene3dForegroundModels ?? [],
       }
       : null;
 
@@ -425,7 +428,13 @@ export class DramaShotBlockingSketchService {
         temperature: options.temperature ?? 0.25,
       },
     });
-    return buildDramaShotBlockingAutoPlanLayout(result.output, context.actors, context.scene.environment, shot.shotSize);
+    return buildDramaShotBlockingAutoPlanLayout(
+      result.output,
+      context.actors,
+      context.scene.environment,
+      shot.shotSize,
+      context.scene.foregroundModels,
+    );
   }
 
   async saveSketch(projectId: string, shotId: string, input: unknown): Promise<DramaShotBlockingSketchData> {
@@ -545,6 +554,42 @@ function invalidAutoPlanRelation(message: string): never {
   throw new AppError(`自动构图关系无效：${message}`, 422);
 }
 
+function invertAutoPlanSizeRelation(
+  sizeRelation: DramaShotBlockingAutoPlanRelation["sizeRelation"],
+): DramaShotBlockingAutoPlanRelation["sizeRelation"] {
+  if (sizeRelation === "larger") return "smaller";
+  if (sizeRelation === "smaller") return "larger";
+  return "similar";
+}
+
+function normalizeAutoPlanVerticalRelation(
+  relation: DramaShotBlockingAutoPlanRelation,
+  subject: DramaShotBlockingSketch3DActor,
+  object: DramaShotBlockingSketch3DActor,
+): DramaShotBlockingAutoPlanRelation {
+  const subjectIsGrounded = AUTO_PLAN_GROUND_POSES.has(subject.pose);
+  const objectIsGrounded = AUTO_PLAN_GROUND_POSES.has(object.pose);
+  const subjectIsUpper = AUTO_PLAN_UPPER_POSES.has(subject.pose);
+  const objectIsUpper = AUTO_PLAN_UPPER_POSES.has(object.pose);
+  const directionIsReversed = relation.relation === "on_top_of"
+    ? subjectIsGrounded && objectIsUpper
+    : relation.relation === "under"
+      ? subjectIsUpper && objectIsGrounded
+      : false;
+  if (!directionIsReversed) return relation;
+
+  // This is deterministic normalization of already structured AI output, not
+  // text matching: when the model's relation endpoints contradict the two
+  // explicit vertical pose classes, the pose pair is the stronger geometric
+  // signal. Swap endpoints and preserve the meaning of sizeRelation.
+  return {
+    ...relation,
+    subjectCharacterName: relation.objectCharacterName,
+    objectCharacterName: relation.subjectCharacterName,
+    sizeRelation: invertAutoPlanSizeRelation(relation.sizeRelation),
+  };
+}
+
 function enforceAutoPlanRelativeSize(
   subject: DramaShotBlockingSketch3DActor,
   object: DramaShotBlockingSketch3DActor,
@@ -631,12 +676,20 @@ function enforceAutoPlanRelations(
     if (!subject || !object) {
       invalidAutoPlanRelation("关系引用了无法落位的角色。");
     }
-    const key = `${subjectName}|${relation.relation}|${objectName}`;
+    const normalizedRelation = normalizeAutoPlanVerticalRelation(relation, subject, object);
+    const normalizedSubjectName = normalizedName(normalizedRelation.subjectCharacterName);
+    const normalizedObjectName = normalizedName(normalizedRelation.objectCharacterName);
+    const normalizedSubject = actorByName.get(normalizedSubjectName);
+    const normalizedObject = actorByName.get(normalizedObjectName);
+    if (!normalizedSubject || !normalizedObject) {
+      invalidAutoPlanRelation("关系归一化后引用了无法落位的角色。");
+    }
+    const key = `${normalizedSubjectName}|${normalizedRelation.relation}|${normalizedObjectName}`;
     if (relationKeys.has(key)) {
       invalidAutoPlanRelation("输出包含重复的有向关系。");
     }
     relationKeys.add(key);
-    return { relation, subject, object };
+    return { relation: normalizedRelation, subject: normalizedSubject, object: normalizedObject };
   });
 
   if (layoutActors.length > 1 && resolvedRelations.length === 0) {
@@ -727,6 +780,28 @@ const BLOCKING_SHOT_SIZE_PROFILES: Record<BlockingShotSizeKey, BlockingShotSizeP
   extreme_wide: { focusHeightRatio: 0.5, subjectSizeRatio: 1.35, fillRatio: 0.7, focusRange: 12, blurRadius: 0.8, provisionalFovDeg: 70 },
 };
 
+/**
+ * 躺姿/趴姿的动画高度不是站立角色的竖直高度；仍按站立头顶取焦点会把镜头抬
+ * 到主体上方，尤其在特写中直接把角色送出画面。其它姿势沿用景别档位的默认
+ * 身高比例，避免把模型动画的局部形变误当成新的舞台坐标。
+ */
+function resolveBlockingFocusHeightRatio(
+  profile: BlockingShotSizeProfile,
+  shotSize: BlockingShotSizeKey,
+  pose: string | undefined,
+): number {
+  const normalizedPose = pose?.trim().toLocaleLowerCase();
+  if (normalizedPose === "lying" || normalizedPose === "prone") {
+    if (shotSize === "close_up") return 0.25;
+    if (shotSize === "medium_close") return 0.38;
+    return 0.45;
+  }
+  if (normalizedPose === "sitting" || normalizedPose === "kneeling" || normalizedPose === "crouching") {
+    return profile.focusHeightRatio * 0.72;
+  }
+  return profile.focusHeightRatio;
+}
+
 /** 把自由文本景别归一到构图档位；中近景优先于近景匹配，未知值回落中景。 */
 export function normalizeBlockingShotSizeKey(shotSize: string | null | undefined): BlockingShotSizeKey {
   const raw = shotSize?.trim() ?? "";
@@ -757,7 +832,12 @@ export function resolveAutoPlanCameraFromIntent({
   environment,
 }: {
   intent: DramaShotBlockingAutoPlanCameraIntent;
-  actors: ReadonlyArray<{ characterName: string; position: [number, number, number]; heightMeters?: number }>;
+  actors: ReadonlyArray<{
+    characterName: string;
+    position: [number, number, number];
+    heightMeters?: number;
+    pose?: DramaShotBlockingSketchPose;
+  }>;
   shotSize: string | null | undefined;
   environment: StoryScene3DEnvironment;
 }): DramaShotBlockingSketch3DCamera {
@@ -790,9 +870,14 @@ export function resolveAutoPlanCameraFromIntent({
     }
     focus = [sumX / count, sumY / count, sumZ / count];
   } else {
+    const focusHeightRatio = resolveBlockingFocusHeightRatio(
+      profile,
+      sizeKey,
+      focalActor.pose,
+    );
     focus = [
       focalActor.position[0],
-      focalActor.position[1] + profile.focusHeightRatio * heightOf(focalActor),
+      focalActor.position[1] + focusHeightRatio * heightOf(focalActor),
       focalActor.position[2],
     ];
   }
@@ -884,6 +969,7 @@ export function buildDramaShotBlockingAutoPlanLayout(
   actors: BlockingSketchEditorActor[],
   environment: StoryScene3DEnvironment,
   shotSize?: string | null,
+  foregroundModels: StoryScene3DForegroundModel[] = [],
 ): DramaShotBlockingAutoPlanResult {
   const expectedNames = actors.map((actor) => actor.characterName.trim());
   const expected = new Set(expectedNames.map(normalizedName));
@@ -915,6 +1001,9 @@ export function buildDramaShotBlockingAutoPlanLayout(
       position: clampBlockingActorPositionToStage(actor.position, environment),
       yawDeg: actor.yawDeg,
       pose: actor.pose as DramaShotBlockingSketchPose,
+      ...(actor.interactionModelId?.trim()
+        ? { interactionModelId: actor.interactionModelId.trim() }
+        : {}),
       actionPlaying: false,
     }));
     enforceAutoPlanRelations(plannedActors, output.relations, actors, environment);
@@ -928,10 +1017,15 @@ export function buildDramaShotBlockingAutoPlanLayout(
         environment,
       }),
       actors: plannedActors,
+      ...(foregroundModels.length > 0 ? { foregroundModels } : {}),
       environment,
     });
-    // AI 规划后的确定性出画兜底：任何角色落在取景锥外时只放宽 fovDeg。
-    layout.camera = fitAutoPlanCameraFovToActors(layout.camera, layout.actors);
+    // 中景及更宽景别需要保证关系中的所有角色都在取景锥内；近景/特写则
+    // 必须优先保持焦点角色的主体占比，不能被远处的陪体强行放宽成总览。
+    const sizeKey = normalizeBlockingShotSizeKey(shotSize);
+    if (sizeKey === "medium" || sizeKey === "full" || sizeKey === "extreme_wide") {
+      layout.camera = fitAutoPlanCameraFovToActors(layout.camera, layout.actors);
+    }
     return {
       layout,
       ...(output.compositionNote?.trim() ? { compositionNote: output.compositionNote.trim() } : {}),

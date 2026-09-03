@@ -6,7 +6,12 @@ import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
   STORY_SCENE_3D_ENVIRONMENT_LIMITS,
+  type StoryScene3DForegroundModel,
 } from "@ai-novel/shared/types/comicDrama";
+import {
+  normalizeStoryScene3dForegroundModel,
+  STORY_SCENE_3D_FOREGROUND_MODEL_LIMITS,
+} from "@ai-novel/shared/utils/scene3dForegroundModels";
 
 export const BLOCKING_SKETCH_CANVAS = {
   width: 1280,
@@ -26,7 +31,8 @@ export const BLOCKING_SKETCH_LIMITS = {
 export const BLOCKING_SKETCH_3D_LIMITS = {
   cameraAzimDeg: { min: -180, max: 180 },
   cameraElevDeg: { min: -89, max: 89 },
-  cameraDistance: { min: 0.25, max: 100 },
+  // 编辑视角可以远离 HDRI 半球；最大值只作为 JSON/浮点安全边界。
+  cameraDistance: { min: 0.25, max: Number.MAX_SAFE_INTEGER },
   cameraFocalPoint: { min: -100, max: 100 },
   cameraFovDeg: { min: 30, max: 100 },
   cameraNearClip: { min: 0.05, max: 5 },
@@ -130,6 +136,8 @@ export interface DramaShotBlockingSketch3DActor {
   pose: DramaShotBlockingSketchPose;
   /** Optional RGB values in the 0..1 range; omitted by older snapshots. */
   color?: [number, number, number];
+  /** 角色与模型库前景实例交互时的真实实例 id；必须存在于同一 layout 的 foregroundModels。 */
+  interactionModelId?: string;
   /** Compatibility marker for older snapshots; 3D 草图始终保存静态关键帧。 */
   actionPlaying: boolean;
 }
@@ -158,6 +166,8 @@ export interface DramaShotBlockingSketch3DLayout {
   camera: DramaShotBlockingSketch3DCamera;
   shotCamera?: DramaShotBlockingSketch3DShotCamera;
   actors: DramaShotBlockingSketch3DActor[];
+  /** 已从模型库加载的可交互前景实例；HDRI 仅作为背景。 */
+  foregroundModels?: StoryScene3DForegroundModel[];
   environment?: DramaShotBlockingSketch3DEnvironment;
 }
 
@@ -318,6 +328,13 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
       BLOCKING_SKETCH_3D_LIMITS.heightMeters.min,
       BLOCKING_SKETCH_3D_LIMITS.heightMeters.max,
     );
+  const interactionModelId = actor.interactionModelId === undefined
+    ? undefined
+    : stringValue(actor.interactionModelId, "3D 角色交互模型", false);
+  if (actor.interactionModelId !== undefined
+    && (!interactionModelId || interactionModelId.length > 120)) {
+    invalid("3D 角色交互模型必须是有效的模型实例 id");
+  }
   // Keep validating the legacy field so malformed old snapshots are still rejected,
   // but normalize every accepted layout to the static-frame contract.
   optionalBoolean(actor.actionPlaying, "3D 角色动作播放状态");
@@ -333,8 +350,17 @@ function normalize3dActor(input: unknown): DramaShotBlockingSketch3DActor {
     ...(heightMeters === undefined ? {} : { heightMeters }),
     pose: normalizePose(actor.pose),
     ...(color ? { color } : {}),
+    ...(interactionModelId ? { interactionModelId } : {}),
     actionPlaying: false,
   };
+}
+
+function normalize3dForegroundModel(input: unknown, index: number): StoryScene3DForegroundModel {
+  const model = normalizeStoryScene3dForegroundModel(input);
+  if (!model) {
+    invalid(`第 ${index + 1} 个前景模型数据无效`);
+  }
+  return model;
 }
 
 function normalize3dEnvironment(input: unknown): DramaShotBlockingSketch3DEnvironment {
@@ -419,12 +445,28 @@ export function normalizeBlockingSketch3dLayout(input: unknown): DramaShotBlocki
   if (!Array.isArray(layout.actors) || layout.actors.length > BLOCKING_SKETCH_LIMITS.maxActors) {
     invalid(`3D 角色数量不能超过 ${BLOCKING_SKETCH_LIMITS.maxActors}`);
   }
+  if (layout.foregroundModels !== undefined
+    && (!Array.isArray(layout.foregroundModels)
+      || layout.foregroundModels.length > STORY_SCENE_3D_FOREGROUND_MODEL_LIMITS.maxModels)) {
+    invalid(`3D 前景模型数量不能超过 ${STORY_SCENE_3D_FOREGROUND_MODEL_LIMITS.maxModels}`);
+  }
+  const foregroundModels = layout.foregroundModels === undefined
+    ? undefined
+    : layout.foregroundModels.map(normalize3dForegroundModel);
+  const normalizedActors = layout.actors.map(normalize3dActor);
+  const foregroundModelIds = new Set(foregroundModels?.map((model) => model.id) ?? []);
+  for (const actor of normalizedActors) {
+    if (actor.interactionModelId && !foregroundModelIds.has(actor.interactionModelId)) {
+      invalid(`3D 角色交互模型不存在：${actor.interactionModelId}`);
+    }
+  }
   return {
     schemaVersion: 1,
     engine: "playcanvas",
     camera: normalize3dCamera(layout.camera),
     ...(layout.shotCamera === undefined ? {} : { shotCamera: normalize3dShotCamera(layout.shotCamera) }),
-    actors: layout.actors.map(normalize3dActor),
+    actors: normalizedActors,
+    ...(foregroundModels === undefined ? {} : { foregroundModels }),
     ...(layout.environment === undefined ? {} : { environment: normalize3dEnvironment(layout.environment) }),
   };
 }

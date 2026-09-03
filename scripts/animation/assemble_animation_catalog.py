@@ -15,6 +15,19 @@ import sys
 from pathlib import Path
 
 ROOT_TRANSLATION_MAX_RANGE_METERS = 0.03
+MOTION_POLICY = "explicit-per-clip"
+MOTION_MODES = {"in-place", "root-motion"}
+
+
+def validate_clip_motion_contract(clip):
+    mode = clip.get("motionMode")
+    if mode not in MOTION_MODES:
+        raise ValueError("%s motionMode must be one of %s" % (clip.get("id"), sorted(MOTION_MODES)))
+    if mode == "in-place" and clip.get("inPlace") is not True:
+        raise ValueError("%s in-place clip must set inPlace=true" % clip.get("id"))
+    if mode == "root-motion" and clip.get("inPlace") is not False:
+        raise ValueError("%s root-motion clip must set inPlace=false" % clip.get("id"))
+    return mode
 
 
 def read_glb_json(path):
@@ -189,11 +202,13 @@ def main():
     clips = selection.get("clips", [])
     if not clips:
         raise RuntimeError("selection manifest contains no clips")
-    if selection.get("inPlacePolicy") != "strict-source-in-place":
-        raise RuntimeError("selection manifest must use the strict-source-in-place policy")
-    invalid_clips = [clip.get("id") for clip in clips if clip.get("inPlace") is not True]
-    if invalid_clips:
-        raise RuntimeError("selection contains non-in-place clips: %s" % ", ".join(invalid_clips))
+    if selection.get("motionPolicy") != MOTION_POLICY:
+        raise RuntimeError("selection manifest must use the explicit-per-clip motion policy")
+    for clip in clips:
+        try:
+            validate_clip_motion_contract(clip)
+        except ValueError as error:
+            raise RuntimeError(str(error)) from error
     if not args.base_glb.is_file():
         raise RuntimeError("base GLB does not exist: %s" % args.base_glb)
 
@@ -218,28 +233,50 @@ def main():
             names = animation_names(glb_path)
         if len(names) != 1:
             raise RuntimeError("converted GLB must contain exactly one animation: %s -> %s" % (fbx_path, names))
+        motion_mode = validate_clip_motion_contract(clip)
+        source_glb = read_glb_json(glb_path)
+        source_has_root_translation = has_root_translation_channel(source_glb)
         source_metrics = root_translation_metrics_from_path(glb_path)
-        if source_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6 \
-                or source_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6:
-            raise RuntimeError(
-                "in-place source GLB exceeds root translation limit (%.6fm range, %.6fm net): %s -> %s" %
-                (source_metrics["maxRange"], source_metrics["maxNet"], clip["id"], glb_path)
-            )
-        converted.append({"id": clip["id"], "fbxPath": str(fbx_path), "glbPath": str(glb_path)})
+        if motion_mode == "in-place":
+            if source_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6 \
+                    or source_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6:
+                raise RuntimeError(
+                    "in-place source GLB exceeds root translation limit (%.6fm range, %.6fm net): %s -> %s" %
+                    (source_metrics["maxRange"], source_metrics["maxNet"], clip["id"], glb_path)
+                )
+        elif not source_has_root_translation:
+            raise RuntimeError("root-motion source GLB has no root translation channel: %s -> %s" % (clip["id"], glb_path))
+        converted.append({
+            "id": clip["id"],
+            "motionMode": motion_mode,
+            "fbxPath": str(fbx_path),
+            "glbPath": str(glb_path),
+            "hasRootTranslationChannel": source_has_root_translation,
+            "rootTranslationMetrics": source_metrics,
+        })
 
     current = args.base_glb
     for index, clip in enumerate(clips, start=1):
         source_glb = args.glb_dir / clip["glbFileName"]
         output_glb = retarget_dir / ("step-%04d.glb" % index)
         expected_names = set(animation_names(current)) | {clip["clipName"]}
+        motion_mode = validate_clip_motion_contract(clip)
         if output_glb.is_file() and set(animation_names(output_glb)) == expected_names:
             retarget_metrics = root_translation_metrics_from_path(output_glb, clip["clipName"])
-            if retarget_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6 \
-                    or retarget_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6:
+            retarget_has_root_translation = has_root_translation_channel(
+                read_glb_json(output_glb), clip["clipName"]
+            )
+            if motion_mode == "in-place" and (
+                    retarget_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6
+                    or retarget_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6
+            ):
                 raise RuntimeError(
                     "reused retargeted animation exceeds root translation limit: %s -> %s" %
                     (clip["id"], output_glb)
                 )
+            if motion_mode == "root-motion" and not retarget_has_root_translation:
+                raise RuntimeError("reused root-motion animation lost its root translation channel: %s -> %s" %
+                                   (clip["id"], output_glb))
             current = output_glb
             print("[ANIM-ASSEMBLE] reuse retarget %d/%d %s" % (index, len(clips), clip["id"]))
             continue
@@ -256,12 +293,20 @@ def main():
         )
         current = output_glb
         retarget_metrics = root_translation_metrics_from_path(current, clip["clipName"])
-        if retarget_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6 \
-                or retarget_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6:
+        retarget_has_root_translation = has_root_translation_channel(
+            read_glb_json(current), clip["clipName"]
+        )
+        if motion_mode == "in-place" and (
+                retarget_metrics["maxRange"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6
+                or retarget_metrics["maxNet"] > ROOT_TRANSLATION_MAX_RANGE_METERS + 1e-6
+        ):
             raise RuntimeError(
                 "retargeted animation exceeds root translation limit: %s -> %s" %
                 (clip["id"], current)
             )
+        if motion_mode == "root-motion" and not retarget_has_root_translation:
+            raise RuntimeError("retargeted root-motion animation lost its root translation channel: %s -> %s" %
+                               (clip["id"], current))
 
     base_names = animation_names(args.base_glb)
     expected_names = base_names + [clip["clipName"] for clip in clips]

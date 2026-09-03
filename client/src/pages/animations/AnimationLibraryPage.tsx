@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { usePageNavActionsSlot } from "@/components/layout/PageTabsContext";
 import { useIsMobileViewport } from "@/components/layout/mobile/useIsMobileViewport";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { cn } from "@/lib/utils";
 import {
   disposeAnimationThumbnailStudio,
@@ -26,6 +27,9 @@ import {
 import { getAnimationKeyframe, subscribeAnimationKeyframes } from "./animationPreviewStorage";
 
 export const PAGE_SIZE = 50;
+
+const ANIMATION_CATEGORY_VALUES: readonly AnimationLibraryCategoryFilterId[] =
+  ANIMATION_LIBRARY_CATEGORY_FILTERS.map(({ id }) => id);
 
 function AnimationCard({ entry }: { entry: AnimationLibraryEntry }) {
   const [thumbnail, setThumbnail] = useState<string | null>(() => {
@@ -91,7 +95,11 @@ function countBy<T extends string>(
 }
 
 export default function AnimationLibraryPage() {
-  const [category, setCategory] = useState<AnimationLibraryCategoryFilterId>("all");
+  const [category, setCategory] = useRememberedTab<AnimationLibraryCategoryFilterId>({
+    scope: "animations:library-category",
+    defaultValue: "all",
+    values: ANIMATION_CATEGORY_VALUES,
+  });
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -277,7 +285,7 @@ export default function AnimationLibraryPage() {
 
       {entries.length > 0 ? (
         <>
-          <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-10" data-animation-grid>
+          <section className="grid grid-cols-10 gap-2" data-animation-grid>
             {pageEntries.map((entry) => (
               <AnimationCard key={entry.id} entry={entry} />
             ))}

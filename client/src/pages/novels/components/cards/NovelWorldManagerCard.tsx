@@ -17,6 +17,7 @@ import {
   useNovelWorldUsageDraft,
   type NovelWorldUsageCardProps,
 } from "./NovelWorldUsageCard";
+import { useRememberedTab } from "@/hooks/useRememberedTab";
 import { DetailDisclosure } from "../workspaceShell";
 
 interface NovelWorldManagerCardProps {
@@ -114,6 +115,8 @@ function inlineText(items: Array<string | null | undefined>): string | null {
   return compact.length ? compact.join(" · ") : null;
 }
 
+const NOVEL_WORLD_DIALOG_TABS: readonly NovelWorldDialogTab[] = ["overview", "rules", "guidance", "usage", "sync"];
+
 function WorldSignal(props: {
   icon: typeof BookOpen;
   label: string;
@@ -150,7 +153,11 @@ function GenerationChain() {
 export default function NovelWorldManagerCard(props: NovelWorldManagerCardProps) {
   const [selectedSyncSections, setSelectedSyncSections] = useState<NovelWorldSyncInput["sections"]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogTab, setDialogTab] = useState<NovelWorldDialogTab>("overview");
+  const [dialogTab, setDialogTab] = useRememberedTab<NovelWorldDialogTab>({
+    scope: `world-handbook:${props.view?.novelWorld?.sourceWorldId || props.selectedWorldId || "none"}`,
+    defaultValue: "overview",
+    values: NOVEL_WORLD_DIALOG_TABS,
+  });
   const novelWorld = props.view?.novelWorld ?? null;
   const handbook = props.view?.handbook ?? null;
   const worldAssets = props.view?.assets ?? [];

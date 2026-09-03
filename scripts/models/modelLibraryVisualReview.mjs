@@ -27,8 +27,10 @@ const PREVIEW_FIELDS = Object.freeze([
   "renderer",
   "renderedAt",
   "textureStatus",
+  "screenshotPath",
+  "screenshotSha256",
 ]);
-const PREVIEW_BROWSER_AUDIT_FILE = "model-library-preview-browser-audit.json";
+const APPROVED_TEXTURE_STATUSES = new Set(["alpha-preserved", "opaque-verified"]);
 
 export function getVisualReviewById(id) {
   return MODEL_VISUAL_REVIEWS.find((entry) => entry.id === id) ?? null;
@@ -48,7 +50,7 @@ function hasMeshName(meshNames, expected) {
   return true;
 }
 
-function validatePreviewEvidence(review, errors, assetSha256ById, browserPreviewAuditById) {
+function validatePreviewEvidence(review, errors, assetSha256ById) {
   const preview = review.preview;
   const evidence = typeof review.reviewEvidence === "string" ? review.reviewEvidence : "";
   if (!evidence.startsWith(PREVIEW_REQUIRED_EVIDENCE_PREFIX)) {
@@ -58,12 +60,7 @@ function validatePreviewEvidence(review, errors, assetSha256ById, browserPreview
     errors.push(`${review.id} visual review is missing actual 3D preview evidence`);
     return;
   }
-  if (preview.browserAudit !== PREVIEW_BROWSER_AUDIT_FILE) {
-    errors.push(review.id + " preview must reference the browser audit manifest");
-  }
-  if (preview.screenshotCaptured !== true) {
-    errors.push(review.id + " preview must declare a captured detail screenshot");
-  }
+
   for (const field of PREVIEW_FIELDS) {
     if (!isNonEmptyString(preview[field])) errors.push(`${review.id} preview field is missing: ${field}`);
   }
@@ -73,13 +70,16 @@ function validatePreviewEvidence(review, errors, assetSha256ById, browserPreview
   if (!/^[a-f0-9]{64}$/i.test(preview.assetSha256 ?? "")) {
     errors.push(`${review.id} preview assetSha256 must be a SHA-256 digest`);
   }
-  const actualHash = assetSha256ById?.get(review.id);
-  if (browserPreviewAuditById) {
-    const browserPreview = browserPreviewAuditById.get(review.id);
-    if (!browserPreview?.ready || browserPreview.screenshotCaptured !== true) {
-      errors.push(review.id + " visual review has no completed browser preview audit");
-    }
+  if (Number.isNaN(Date.parse(preview.renderedAt))) {
+    errors.push(`${review.id} preview renderedAt must be an ISO timestamp`);
   }
+  if (!/^[a-f0-9]{64}$/i.test(preview.screenshotSha256 ?? "")) {
+    errors.push(`${review.id} preview screenshotSha256 must be a SHA-256 digest`);
+  }
+  if (!APPROVED_TEXTURE_STATUSES.has(preview.textureStatus)) {
+    errors.push(`${review.id} preview textureStatus is not verified: ${preview.textureStatus}`);
+  }
+  const actualHash = assetSha256ById?.get(review.id);
   if (actualHash && preview.assetSha256 !== actualHash) {
     errors.push(`${review.id} preview assetSha256 does not match the published GLB and textures`);
   }
@@ -95,7 +95,6 @@ export function validateModelVisualReview({
   reviews = MODEL_VISUAL_REVIEWS,
   meshNamesById,
   assetSha256ById,
-  browserPreviewAuditById,
 } = {}) {
   const errors = [];
   // 视觉复核覆盖模型库的所有静态前景资产，避免把动画资源误当成
@@ -122,7 +121,7 @@ export function validateModelVisualReview({
       errors.push(`${label} visual review is not approved: ${review.reviewStatus}`);
     }
     if (!catalogById.has(review.id)) errors.push(`visual review id is not in catalog: ${review.id}`);
-    validatePreviewEvidence(review, errors, assetSha256ById, browserPreviewAuditById);
+    validatePreviewEvidence(review, errors, assetSha256ById);
   }
 
   for (const entry of entries) {

@@ -106,10 +106,10 @@ function createUnavailableHandle(
 /**
  * 模型、动画和离屏缩略图共用的环境适配层。
  *
- * blocking3d runtime 是唯一的背景实现：同一张已加载 HDR 同时生成可见
- * cubemap 与 env atlas，背景/地面固定在 worldEntity 原点，调用方只负责
- * 选择资源和传递统一设置。这样不会再出现“可见穹顶一套、环境光另一套”的
- * 双加载路径。
+ * blocking3d runtime 是唯一的背景实现：同一张已加载 HDR 直接作为可见
+ * 等距投影源，同时生成 env atlas，背景/地面固定在 worldEntity 原点，
+ * 调用方只负责选择资源和传递统一设置。这样不会再出现“可见穹顶一套、
+ * 环境光另一套”的双加载路径。
  */
 export async function loadStudioEnvironment(
   app: pc.AppBase,

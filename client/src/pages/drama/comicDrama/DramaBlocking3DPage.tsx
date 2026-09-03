@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
+  Box,
   Loader2,
   Layers3,
   MapPin,
@@ -76,6 +77,8 @@ function initialLayout(
     return {
       ...context.sketch.layout3d,
       environment: context.scene.environment,
+      foregroundModels:
+        context.sketch.layout3d.foregroundModels ?? context.scene.foregroundModels,
     };
   }
   return {
@@ -87,6 +90,7 @@ function initialLayout(
     },
     environment: context.scene.environment,
     actors: [],
+    foregroundModels: context.scene.foregroundModels,
   };
 }
 
@@ -163,7 +167,8 @@ type BlockingObjectSelectionId =
   | typeof SCENE_OBJECT_ID
   | typeof CAMERA_OBJECT_ID
   | `actor:${string}`
-  | `marker:${string}`;
+  | `marker:${string}`
+  | `model:${string}`;
 
 function actorObjectId(name: string): `actor:${string}` {
   return `actor:${name}`;
@@ -171,6 +176,10 @@ function actorObjectId(name: string): `actor:${string}` {
 
 function markerObjectId(markerId: string): `marker:${string}` {
   return `marker:${markerId}`;
+}
+
+function foregroundModelObjectId(modelId: string): `model:${string}` {
+  return `model:${modelId}`;
 }
 
 export default function DramaBlocking3DPage() {
@@ -245,7 +254,9 @@ export default function DramaBlocking3DPage() {
         ? CAMERA_OBJECT_ID
         : nextSelectedName
           ? actorObjectId(nextSelectedName)
-          : SCENE_OBJECT_ID,
+          : nextViewer.getSelectedForegroundModel()
+            ? foregroundModelObjectId(nextViewer.getSelectedForegroundModel() as string)
+            : SCENE_OBJECT_ID,
     );
     setSelectedPose(nextViewer.getSelectedPose());
     setSelectedColor(nextViewer.getSelectedColor());
@@ -267,6 +278,7 @@ export default function DramaBlocking3DPage() {
     let cancelled = false;
     let unsubscribeSelection: (() => void) | undefined;
     let unsubscribeMarkerSelection: (() => void) | undefined;
+    let unsubscribeForegroundModelSelection: (() => void) | undefined;
     let unsubscribeCameraSelection: (() => void) | undefined;
     let unsubscribeChange: (() => void) | undefined;
     setViewerError(null);
@@ -274,6 +286,8 @@ export default function DramaBlocking3DPage() {
       canvas,
       environmentUrl: sceneEnvironmentUrl,
       sceneMarkers: currentContext.scene.markers,
+      foregroundModels: currentContext.scene.foregroundModels,
+      foregroundModelTransformEditable: true,
     })
       .then((nextViewer) => {
         if (cancelled) {
@@ -286,8 +300,8 @@ export default function DramaBlocking3DPage() {
             nextViewer.addActor(actor.characterName, index, actor.heightMeters),
           );
           const layout = initialLayout(currentContext);
-          if (layout.actors.length > 0) nextViewer.loadLayout(layout);
-          else nextViewer.fitView();
+          const hasSavedLayout = layout.actors.length > 0;
+          if (hasSavedLayout) nextViewer.loadLayout(layout);
           viewerRef.current = nextViewer;
           setViewer(nextViewer);
           syncSelection(nextViewer);
@@ -298,6 +312,13 @@ export default function DramaBlocking3DPage() {
             (markerId) => {
               setSelectedObjectId(
                 markerId ? markerObjectId(markerId) : SCENE_OBJECT_ID,
+              );
+            },
+          );
+          unsubscribeForegroundModelSelection = nextViewer.onForegroundModelSelection(
+            (modelId) => {
+              setSelectedObjectId(
+                modelId ? foregroundModelObjectId(modelId) : SCENE_OBJECT_ID,
               );
             },
           );
@@ -316,7 +337,7 @@ export default function DramaBlocking3DPage() {
             syncSelection(nextViewer);
           });
           nextViewer.selectActor(null);
-          nextViewer.fitView();
+          if (!hasSavedLayout) nextViewer.fitView();
         } catch (error) {
           // Loading a legacy layout can still fail for unrelated malformed data;
           // never leave the just-created WebGL viewer alive behind the error UI.
@@ -334,6 +355,7 @@ export default function DramaBlocking3DPage() {
       cancelled = true;
       unsubscribeSelection?.();
       unsubscribeMarkerSelection?.();
+      unsubscribeForegroundModelSelection?.();
       unsubscribeCameraSelection?.();
       unsubscribeChange?.();
       viewerRef.current?.destroy();
@@ -383,6 +405,7 @@ export default function DramaBlocking3DPage() {
       if (objectId === SCENE_OBJECT_ID) {
         viewer.selectActor(null);
         viewer.selectCamera(false);
+        viewer.selectForegroundModel(null);
         setSelectedObjectId(SCENE_OBJECT_ID);
         return;
       }
@@ -393,6 +416,14 @@ export default function DramaBlocking3DPage() {
       }
       if (objectId.startsWith("marker:")) {
         focusMarker(objectId.slice("marker:".length));
+        return;
+      }
+      if (objectId.startsWith("model:")) {
+        const modelId = objectId.slice("model:".length);
+        if (viewer.getForegroundModels().some((model) => model.id === modelId)) {
+          viewer.selectForegroundModel(modelId);
+          setSelectedObjectId(objectId);
+        }
         return;
       }
       const actorName = objectId.slice("actor:".length);
@@ -557,7 +588,7 @@ export default function DramaBlocking3DPage() {
   useRegisterPageTabs(!isMobileViewport && Boolean(novelId), [
     buildStudioNavStageRow("storyboard", (stage) => {
       void leaveToStudio(stage);
-    }),
+    }, `drama-project:${novelId || "none"}:studio-stage`),
   ]);
 
   if (contextQuery.isPending) {
@@ -637,6 +668,11 @@ export default function DramaBlocking3DPage() {
         (marker) => marker.id === selectedObjectId.slice("marker:".length),
       ) ?? null)
     : null;
+  const selectedForegroundModel = selectedObjectId.startsWith("model:")
+    ? (context.scene.foregroundModels.find(
+        (model) => model.id === selectedObjectId.slice("model:".length),
+      ) ?? null)
+    : null;
   const objectItems: Drama3DObjectItem[] = [
     {
       id: SCENE_OBJECT_ID,
@@ -647,7 +683,7 @@ export default function DramaBlocking3DPage() {
     },
     {
       id: CAMERA_OBJECT_ID,
-      label: "摄像机",
+      label: "分镜摄像机",
       kind: "camera",
       selected: selectedObjectId === CAMERA_OBJECT_ID,
       onSelect: () => selectObject(CAMERA_OBJECT_ID),
@@ -674,6 +710,16 @@ export default function DramaBlocking3DPage() {
           };
         })
       : []),
+    ...context.scene.foregroundModels.map((model) => {
+      const id = foregroundModelObjectId(model.id);
+      return {
+        id,
+        label: model.label || model.modelName,
+        kind: "model" as const,
+        selected: selectedObjectId === id,
+        onSelect: () => selectObject(id),
+      };
+    }),
   ];
 
   const cameraActions = (
@@ -809,7 +855,7 @@ export default function DramaBlocking3DPage() {
                   className="mr-1 inline h-3.5 w-3.5"
                   aria-hidden="true"
                 />
-                拖动手柄移动角色或摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
+                拖动手柄移动角色、模型或分镜摄像机 · 右键旋转 · 滚轮缩放视角 · 中键平移
               </div>
               <div className="pointer-events-none absolute right-3 top-3">
                 <Badge variant="secondary" className="shadow-sm">
@@ -865,7 +911,7 @@ export default function DramaBlocking3DPage() {
                 <>
                   <InspectorGameObjectCard
                     icon={<Video className="h-4 w-4" aria-hidden="true" />}
-                    name="摄像机"
+                    name="分镜摄像机"
                   />
                   <InspectorComponentSection title="Transform">
                     <div className="space-y-2">
@@ -936,7 +982,7 @@ export default function DramaBlocking3DPage() {
                       </div>
                     </div>
                     <p className="text-[11px] text-muted-foreground">
-                      拖动机身或用移动/旋转手柄调整机位；选中摄像机时右下角实时预览镜头画面。
+                      拖动机身或用移动/旋转手柄调整机位；选中分镜摄像机时右下角实时预览镜头画面。
                     </p>
                   </InspectorComponentSection>
                   <div className="space-y-2 border-t border-border/60 pt-4">
@@ -1020,6 +1066,59 @@ export default function DramaBlocking3DPage() {
                     <Move3D className="mr-1.5 h-4 w-4" aria-hidden="true" />
                     聚焦空间标记
                   </Button>
+                  {cameraActions}
+                </>
+              ) : selectedForegroundModel ? (
+                <>
+                  <InspectorGameObjectCard
+                    icon={<Box className="h-4 w-4" aria-hidden="true" />}
+                    name={selectedForegroundModel.label || selectedForegroundModel.modelName}
+                  />
+                  <InspectorTransformSection
+                    value={{
+                      position: selectedTransform?.position ?? selectedForegroundModel.position,
+                      yawDeg: selectedTransform?.yawDeg ?? selectedForegroundModel.yawDeg,
+                      scale: selectedTransform?.scale?.[0] ?? selectedForegroundModel.scale,
+                    }}
+                    disabled={saving || autoPlanning}
+                    onCommit={(patch) =>
+                      applyViewerAction((nextViewer) =>
+                        nextViewer.setSelectedTransform({
+                          ...(patch.position ? { position: patch.position } : {}),
+                          ...(patch.yawDeg != null ? { yawDeg: patch.yawDeg } : {}),
+                          ...(patch.scale != null
+                            ? { scale: [patch.scale, patch.scale, patch.scale] }
+                            : {}),
+                        }),
+                      )
+                    }
+                    footer={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        disabled={saving || autoPlanning || !viewer}
+                        onClick={() =>
+                          applyViewerAction((nextViewer) =>
+                            nextViewer.groundSelected(),
+                          )
+                        }
+                      >
+                        落地
+                      </Button>
+                    }
+                  />
+                  <InspectorComponentSection title="模型信息" defaultOpen={false}>
+                    <InspectorPropertyList
+                      className="text-xs"
+                      items={[
+                        { label: "分类", value: selectedForegroundModel.category },
+                        { label: "模型库", value: selectedForegroundModel.modelName },
+                        { label: "支撑面", value: selectedForegroundModel.usage?.supportSurface ?? "地面" },
+                        { label: "摆放方式", value: selectedForegroundModel.usage?.placementMode ?? "自由摆放" },
+                      ]}
+                    />
+                  </InspectorComponentSection>
                   {cameraActions}
                 </>
               ) : selectedActorContext ? (
@@ -1134,8 +1233,8 @@ export default function DramaBlocking3DPage() {
               ) : (
                 <p className="text-xs text-muted-foreground">
                   {STORY_SCENE_3D_MARKERS_ENABLED
-                    ? "从上方对象列表选择世界、摄像机、角色或空间标记。"
-                    : "从上方对象列表选择世界、摄像机或角色。"}
+                    ? "从上方对象列表选择世界、分镜摄像机、角色、模型或空间标记。"
+                    : "从上方对象列表选择世界、分镜摄像机、角色或模型。"}
                 </p>
               )}
             </CardContent>

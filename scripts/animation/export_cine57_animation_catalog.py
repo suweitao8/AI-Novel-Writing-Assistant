@@ -19,12 +19,45 @@ DEFAULT_SELECTION = os.environ.get(
 )
 DEFAULT_OUTPUT_DIR = os.environ.get(
     "CINE57_ANIMATION_OUTPUT_DIR",
-    "D:/UnrealWorkspace/Cine57-exported/animation_catalog",
+    "D:/UnrealWorkspace/Cine57-exported/runs/manual-export/fbx",
 )
+MOTION_POLICY = "explicit-per-clip"
+MOTION_MODES = ("in-place", "root-motion")
 
 
 def log(message):
     unreal.log_warning("[ANIM-EXPORT] %s" % message)
+
+
+def asset_length(asset):
+    for method_name in ("get_play_length", "get_sequence_length"):
+        method = getattr(asset, method_name, None)
+        if method is not None:
+            try:
+                return round(float(method()), 4)
+            except Exception:
+                pass
+    for property_name in ("sequence_length", "play_length"):
+        try:
+            return round(float(asset.get_editor_property(property_name)), 4)
+        except Exception:
+            pass
+    return None
+
+
+def object_path(value):
+    if value is None:
+        return None
+    if hasattr(value, "get_path_name"):
+        return value.get_path_name()
+    return str(value)
+
+
+def asset_skeleton(asset):
+    try:
+        return object_path(asset.get_editor_property("skeleton"))
+    except Exception:
+        return None
 
 
 def argument_after(flag, default):
@@ -49,6 +82,18 @@ def export_clip(asset_path, output_path):
     task.exporter = exporter
     if not exporter.run_asset_export_task(task):
         raise RuntimeError("FBX exporter returned false")
+    return asset
+
+
+def validate_clip_motion_contract(clip):
+    mode = clip.get("motionMode")
+    if mode not in MOTION_MODES:
+        raise RuntimeError("%s motionMode must be one of %s" % (clip.get("id"), ", ".join(MOTION_MODES)))
+    if mode == "in-place" and clip.get("inPlace") is not True:
+        raise RuntimeError("%s in-place clip must set inPlace=true" % clip.get("id"))
+    if mode == "root-motion" and clip.get("inPlace") is not False:
+        raise RuntimeError("%s root-motion clip must set inPlace=false" % clip.get("id"))
+    return mode
 
 
 def main():
@@ -56,11 +101,10 @@ def main():
     output_dir = argument_after("--output-dir", DEFAULT_OUTPUT_DIR)
     with open(selection_path, "r", encoding="utf-8") as handle:
         selection = json.load(handle)
-    if selection.get("inPlacePolicy") != "strict-source-in-place":
-        raise RuntimeError("selection manifest must use the strict-source-in-place policy")
-    invalid_clips = [clip.get("id") for clip in selection.get("clips", []) if clip.get("inPlace") is not True]
-    if invalid_clips:
-        raise RuntimeError("selection contains non-in-place clips: %s" % ", ".join(invalid_clips))
+    if selection.get("motionPolicy") != MOTION_POLICY:
+        raise RuntimeError("selection manifest must use the explicit-per-clip motion policy")
+    for clip in selection.get("clips", []):
+        validate_clip_motion_contract(clip)
 
     os.makedirs(output_dir, exist_ok=True)
     exported = []
@@ -68,11 +112,14 @@ def main():
     for clip in selection.get("clips", []):
         output_path = os.path.abspath(os.path.join(output_dir, clip["fbxFileName"]))
         try:
-            export_clip(clip["sourceAssetPath"], output_path)
+            asset = export_clip(clip["sourceAssetPath"], output_path)
             exported.append({
                 "id": clip["id"],
+                "motionMode": clip["motionMode"],
                 "sourceAssetPath": clip["sourceAssetPath"],
                 "sourceAssetName": clip["sourceAssetName"],
+                "sourceDurationSeconds": asset_length(asset),
+                "sourceSkeleton": asset_skeleton(asset),
                 "fbxFileName": clip["fbxFileName"],
                 "fbxPath": output_path,
             })
@@ -92,6 +139,9 @@ def main():
             {
                 "schemaVersion": 1,
                 "project": selection.get("project"),
+                "sourceProject": selection.get("sourceProject"),
+                "sourceProjectPath": selection.get("sourceProjectPath"),
+                "sourceAssetRoot": selection.get("sourceAssetRoot"),
                 "selectionPath": selection_path,
                 "exported": exported,
                 "errors": errors,

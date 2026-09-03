@@ -14,7 +14,10 @@ import {
   createGroundDomeGeometryData,
   type Blocking3dGeometryData,
 } from "./blocking3dEnvironmentGeometry";
-import { wrapBlocking3dAzimuth } from "./blocking3dMath";
+import {
+  normalizeBlocking3dCameraDistance,
+  wrapBlocking3dAzimuth,
+} from "./blocking3dMath";
 import {
   poseSampleTimeFromTrack,
   resolveBlocking3dPoseClip,
@@ -38,7 +41,6 @@ export {
 export const ACTOR_PROXY_URL = "/anims/cine57/UAL2_UE_Anims.glb";
 export const MAX_DEVICE_PIXEL_RATIO = 1.5;
 export const DEFAULT_FOV = 52;
-export const VISIBLE_HDRI_CUBEMAP_SIZE = 512;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
 export const SELECTION_OUTLINE_COLOR = new pc.Color(1, 0.58, 0, 0.8);
 export const DEFAULT_BLOCKING_3D_ENVIRONMENT: Blocking3dEnvironmentSettings = {
@@ -107,6 +109,7 @@ export interface Blocking3dViewerActor {
   entity: pc.Entity;
   animEntity: pc.Entity;
   pose: DramaShotBlockingSketchPose;
+  interactionModelId?: string;
   actionPlaying: boolean;
   color: [number, number, number];
   material: pc.StandardMaterial;
@@ -230,43 +233,6 @@ export function configureEnvironmentTexture(
   texture.addressV = pc.ADDRESS_CLAMP_TO_EDGE;
 }
 
-export function createVisibleHdriCubemap(
-  app: pc.AppBase,
-  source: pc.Texture,
-): pc.Texture {
-  const cubemap = new pc.Texture(app.graphicsDevice, {
-    name: "blocking3d-hdri-projection-cubemap",
-    cubemap: true,
-    width: VISIBLE_HDRI_CUBEMAP_SIZE,
-    height: VISIBLE_HDRI_CUBEMAP_SIZE,
-    format: pc.PIXELFORMAT_RGBA8,
-    // RGBA8 stores the reprojected HDR values in PlayCanvas' RGBP packing.
-    // Keeping the target as DEFAULT silently clamps bright HDR samples and
-    // makes the custom backdrop shader interpret the packed data incorrectly.
-    type: pc.TEXTURETYPE_RGBP,
-    mipmaps: false,
-    addressU: pc.ADDRESS_CLAMP_TO_EDGE,
-    addressV: pc.ADDRESS_CLAMP_TO_EDGE,
-    addressW: pc.ADDRESS_CLAMP_TO_EDGE,
-  });
-  cubemap.projection = pc.TEXTUREPROJECTION_CUBE;
-  try {
-    const reprojected = pc.reprojectTexture(source, cubemap, {
-      // The visible backdrop only needs one filtered lookup per destination
-      // texel. PlayCanvas defaults this utility to 1024 samples, which is
-      // intended for prefiltered lighting and would make every environment
-      // load unnecessarily expensive.
-      numSamples: 1,
-      seamPixels: 1,
-    });
-    if (!reprojected) throw new Error("HDRI 全景图无法重投影为立方体纹理。");
-    return cubemap;
-  } catch (error) {
-    cubemap.destroy();
-    throw error instanceof Error ? error : new Error(String(error));
-  }
-}
-
 export function normalizeCamera(
   input: DramaShotBlockingSketch3DCamera,
 ): DramaShotBlockingSketch3DCamera {
@@ -286,10 +252,8 @@ export function normalizeCamera(
   return {
     azim: wrapBlocking3dAzimuth(numberOr(input.azim, 0)),
     elev: clamp(numberOr(input.elev, 0), -89, 89),
-    distance: clamp(
+    distance: normalizeBlocking3dCameraDistance(
       numberOr(input.distance, DEFAULT_CAMERA.distance),
-      0.25,
-      100,
     ),
     focalPoint: [
       clamp(numberOr(input.focalPoint?.[0], 0), -100, 100),

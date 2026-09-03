@@ -327,7 +327,7 @@ test("离屏缩略图使用隐藏 DOM 容器承载画布，保持 HDRI 渲染上
 
 test("材质变更后不继续使用旧颜色的截图缓存", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v15/);
+  assert.match(studioSource, /animation-library:thumbnails:v21/);
 });
 
 test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编辑器网格", () => {
@@ -339,7 +339,7 @@ test("动画卡片缩略图只保留角色、HDRI 和投影阴影，不绘制编
 
 test("材质变更后自动缩略图不继续使用旧颜色，手动关键帧保持显式覆盖", () => {
   assert.match(storageSource, /animation-library:keyframes:v3/);
-  assert.match(studioSource, /animation-library:thumbnails:v15/);
+  assert.match(studioSource, /animation-library:thumbnails:v21/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v13/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v11/);
   assert.doesNotMatch(studioSource, /animation-library:thumbnails:v10/);
@@ -418,7 +418,7 @@ test("缩略图生成器装配动作片段并摆到代表帧后抓图，缓存�
   assert.match(studioSource, /export async function disposeAnimationThumbnailStudio/);
   assert.match(studioSource, /export function getAnimationThumbnail/);
   assert.match(studioSource, /export function subscribeAnimationThumbnails/);
-  assert.match(studioSource, /animation-library:thumbnails:v15/);
+  assert.match(studioSource, /animation-library:thumbnails:v21/);
   assert.match(studioSource, /preserveDrawingBuffer: true/);
   assert.match(studioSource, /addComponent\("anim"/);
   assert.match(studioSource, /anim\.rootBone = model/);
@@ -497,16 +497,14 @@ test("缩略图工作室初始化失败时释放已创建的 PlayCanvas 应用",
 test("动画库是入口页：分类页签 + 动画卡片（预览图 + 名字）+ 完整预览页", () => {
   assert.match(pageSource, /data-animation-page/);
   assert.match(pageSource, /data-animation-category-table/);
-  assert.match(pageSource, /data-animation-filter-controls/);
   assert.match(pageSource, /ANIMATION_LIBRARY_ACTION_TYPES/);
-  assert.match(pageSource, /按动作分类筛选/);
   assert.match(pageSource, /data-animation-category-filter/);
-  assert.match(pageSource, /data-animation-action-filter/);
-  assert.match(pageSource, /PAGE_SIZE\s*=\s*24/);
+  assert.match(pageSource, /PAGE_SIZE\s*=\s*50/);
   assert.match(pageSource, /data-animation-pagination/);
-  assert.match(pageSource, /SelectControl/);
   assert.match(pageSource, /filterAnimationLibraryEntries/);
   assert.match(pageSource, /data-animation-grid/);
+  assert.match(pageSource, /grid grid-cols-10 gap-2/);
+  assert.doesNotMatch(pageSource, /grid-cols-2|sm:grid-cols-3|lg:grid-cols-4|xl:grid-cols-6|xl:grid-cols-10/);
   assert.match(pageSource, /data-animation-card/);
   assert.match(pageSource, /ensureAnimationThumbnail\(entry\)/);
   assert.match(pageSource, /getAnimationThumbnail\(entry\.id\)/);

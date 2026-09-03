@@ -8,20 +8,21 @@ const panelSource = readFileSync(
   "utf8",
 );
 
-test("成片置顶：播放器和信息条排在合成设置之前", () => {
+test("成片阶段使用中央播放器与左右信息栏", () => {
   const cardIndex = panelSource.indexOf('<Card className="overflow-hidden rounded-3xl">');
   const videoIndex = panelSource.indexOf("<video");
-  const contentIndex = panelSource.indexOf("<CardContent", cardIndex);
   assert.ok(cardIndex >= 0);
-  assert.ok(videoIndex > cardIndex && videoIndex < contentIndex, "成片播放器必须渲染在 CardContent 之前");
-  assert.match(panelSource, /<CardContent className="space-y-5">\s*\{settingsSection\}/);
-  // 播放器按比例限高（16:9 下宽度封顶 124vh，约等于 70vh 高度），不再超出整屏。
-  assert.match(panelSource, /aspect-video w-full max-w-\[124vh\][^"]*object-contain/);
-  // 时长等固定信息在播放器右侧信息栏展示。
-  // 信息栏贴合内容高度，不随播放器拉伸出大片空白。
-  assert.match(panelSource, /lg:flex-row lg:items-start/);
-  assert.doesNotMatch(panelSource, /lg:items-stretch/);
-  assert.match(panelSource, /<aside className="w-full shrink-0[^"]*lg:w-60/);
+  assert.ok(videoIndex >= 0, "视频阶段必须提供成片播放器");
+  assert.match(panelSource, /data-testid="video-stage-layout"/);
+  assert.match(panelSource, /xl:grid-cols-\[minmax\(13rem/);
+  assert.match(panelSource, /data-testid="video-stage-player"/);
+  assert.match(panelSource, /data-testid="video-stage-left-rail"/);
+  assert.match(panelSource, /data-testid="video-stage-right-rail"/);
+  assert.match(panelSource, /min-h-0[^"]*xl:min-h-\[clamp\(/);
+  assert.match(panelSource, /max-h-\[calc\(100dvh-/);
+  assert.doesNotMatch(panelSource, /max-w-\[124vh\]/);
+  // 时长等固定信息在独立的右侧信息栏展示，且信息栏贴合内容高度。
+  assert.match(panelSource, /<aside data-testid="video-stage-right-rail" className="[^"]*min-w-0[^"]*space-y-4/);
   for (const label of ["时长", "镜头", "字幕", "规格", "生成时间"]) {
     assert.ok(panelSource.includes(`>${label}</dt>`), `信息栏缺少 ${label}`);
   }

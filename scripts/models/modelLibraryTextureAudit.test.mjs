@@ -47,27 +47,34 @@ test("PNG baseColor 没有透明映射时不能通过", () => {
   assert.ok(errors.some((error) => error.includes("alpha") || error.includes("opacity")));
 });
 
-test("源贴图有透明像素时禁止用 JPG 丢失 alpha", () => {
+test("源贴图有透明像素时禁止用 JPG 静默丢失 alpha", () => {
   const baseColor = "/models/cine57/tex/grass.jpg";
   const errors = validateModelTextureContract({
     entry: { id: "alpha-loss", materials: { MI_Grass: { baseColor } } },
     availableTexturePaths: new Set([baseColor]),
     importAuditByTexture: {
-      [baseColor]: { preserveAlpha: true, sourceStatus: "probed", pixelFormat: "rgba", alphaMinimum: 0 },
+      [baseColor]: {
+        preserveAlpha: true,
+        outputFormat: "jpg",
+        sourceStatus: "probed",
+        outputStatus: "verified",
+      },
     },
   });
   assert.ok(errors.some((error) => error.includes("source alpha") && error.includes("PNG")));
 
-  const independentOpacity = "/models/cine57/tex/grass-opacity.png";
+  const opacity = "/models/cine57/tex/grass-opacity.png";
   assert.deepEqual(
     validateModelTextureContract({
-      entry: {
-        id: "alpha-loss-with-mask",
-        materials: { MI_Grass: { baseColor, opacity: independentOpacity } },
-      },
-      availableTexturePaths: new Set([baseColor, independentOpacity]),
+      entry: { id: "alpha-loss-with-mask", materials: { MI_Grass: { baseColor, opacity } } },
+      availableTexturePaths: new Set([baseColor, opacity]),
       importAuditByTexture: {
-        [baseColor]: { preserveAlpha: true, sourceStatus: "probed", pixelFormat: "rgba", alphaMinimum: 0 },
+        [baseColor]: {
+          preserveAlpha: true,
+          outputFormat: "jpg",
+          sourceStatus: "probed",
+          outputStatus: "verified",
+        },
       },
     }),
     [],

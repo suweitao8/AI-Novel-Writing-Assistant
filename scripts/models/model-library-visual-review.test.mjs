@@ -37,7 +37,7 @@ test("普通缩略图证据不能替代真实详情页预览", () => {
 
   const errors = validateModelVisualReview({
     library: [entry],
-    reviews: [{ ...review, reviewEvidence: "standard-thumbnail-audit-2026-09-02", preview: undefined }],
+    reviews: [{ ...review, reviewEvidence: "standard-thumbnail-audit-2026-09-03", preview: undefined }],
   });
   assert.ok(errors.some((error) => error.includes("actual 3D preview evidence")));
 });
@@ -76,27 +76,11 @@ test("实际三维预览审核必须绑定可复现的资源证据", () => {
         renderer: "model-detail-v1",
         renderedAt: "2026-08-31",
         textureStatus: "opaque",
-        browserAudit: "model-library-preview-browser-audit.json",
-        screenshotCaptured: true,
       },
     }],
     assetSha256ById: new Map([[entry.id, "a".repeat(64)]]),
   });
   assert.ok(errors.some((error) => error.includes("assetSha256")));
-});
-
-test("发布门禁必须消费已完成的浏览器详情预览审计", () => {
-  const entry = MODEL_LIBRARY.find((candidate) => candidate.id === "desk-set-01a");
-  assert.ok(entry);
-  const review = getVisualReviewById(entry.id);
-  assert.ok(review);
-
-  const errors = validateModelVisualReview({
-    library: [entry],
-    reviews: [review],
-    browserPreviewAuditById: new Map([[entry.id, { ready: false, screenshotCaptured: false }]]),
-  });
-  assert.ok(errors.some((error) => error.includes("completed browser preview audit")));
 });
 
 test("缺少复核证据时返回字段错误而不是让门禁崩溃", () => {

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { LockKeyhole } from "lucide-react";
 import type { PromptPreviewResult, PromptTestRunResult } from "@/api/promptWorkbench";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +96,13 @@ export function PromptPreviewPanel(props: {
   const defaultTab = preview.messages[0]
     ? `${preview.messages[0].role}-0`
     : "diagnostics";
+  const previewTabValues = useMemo(
+    () => [
+      ...preview.messages.map((message, index) => `${message.role}-${index}`),
+      "diagnostics",
+    ],
+    [preview.messages],
+  );
 
   return (
     <div className="space-y-4">
@@ -125,7 +133,12 @@ export function PromptPreviewPanel(props: {
         </div>
       ) : null}
 
-      <Tabs key={`${preview.prompt.key}:${preview.context.estimatedInputTokens}`} defaultValue={defaultTab}>
+      <Tabs
+        key={`${preview.prompt.key}:${preview.context.estimatedInputTokens}`}
+        defaultValue={defaultTab}
+        rememberedKey={`prompt:${preview.prompt.key}:preview-message`}
+        rememberedValues={previewTabValues}
+      >
         <TabsList className="max-w-full overflow-x-auto">
           {preview.messages.map((message, index) => (
             <TabsTrigger key={`${message.role}-${index}`} value={`${message.role}-${index}`}>

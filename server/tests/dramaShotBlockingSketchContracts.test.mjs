@@ -359,6 +359,26 @@ test("3D 相机兼容旧快照并保存镜头与景深参数", () => {
   assert.equal(next.layout3d?.camera.blurRadius, 4);
 });
 
+test("3D 编辑视角相机距离允许超过 HDRI 半球范围并可保存", () => {
+  const normalized = normalizeBlockingSketchData({
+    ...validSketch,
+    layout3d: {
+      schemaVersion: 1,
+      engine: "playcanvas",
+      camera: {
+        azim: -45,
+        elev: -12,
+        distance: 500,
+        focalPoint: [0, 0.8, 0],
+      },
+      actors: [],
+    },
+  });
+
+  assert.equal(normalized.layout3d?.camera.distance, 500);
+  assert.equal(BLOCKING_SKETCH_3D_LIMITS.cameraDistance.max, Number.MAX_SAFE_INTEGER);
+});
+
 test("3D 场景摄像机独立机位随布局保存，并与编辑视角相机解耦", () => {
   const normalized = normalizeBlockingSketchData({
     ...validSketch,

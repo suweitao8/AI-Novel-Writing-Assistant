@@ -77,14 +77,14 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 ### 前提事实
 
 - 源项目约 2.1 万个动画资产（`_AnimDaily`/`_AnimBattle*`/`_AnimDailyInteract`/`_AnimDailyMisc`），约 95% 绑在标准 UE4 Mannequin 骨架上。
-- **项目代理角色 Quaternius UAL1/UAL2 的骨骼命名就是 UE4 Mannequin 约定**（`pelvis`/`spine_01-03`/`clavicle_l`/`upperarm_l`/`thigh_l`/`calf_l`…，52 根同名）——所以能直接按名字重定向，不需要 UE 内 IK Retargeter。
+- **项目代理角色 Quaternius UAL1/UAL2 的核心骨骼命名沿用 UE4 Mannequin 约定**（`pelvis`/`spine_01-03`/`clavicle_l`/`upperarm_l`/`thigh_l`/`calf_l`…，核心骨骼同名），但绑定姿态的局部轴不保证相同；不能只按名字复制局部旋转，必须走脚本的世界姿态初始传递和逐帧解剖骨段对齐，不需要 UE 内 IK Retargeter。
 - **UE 内重定向自动化在本机不可行**（不要尝试）：IK Retargeter 批量烘焙（`IKRetargetBatchOperation.DuplicateAndRetarget`）在 commandlet 下必崩（内部走 ContentBrowser/Slate）；本机全编辑器因项目 OIT 渲染 bug（`r.OIT.SortedPixels`，改 ini 压不住）启动即崩；nullrhi 全编辑器又卡死在隐形模态框。**离线 GLB 层重定向是唯一可行路径。**
 
 ### 步骤
 
 1. **源选择与 UE 无头导出动画 FBX**：分镜主库优先选择 UE 路径或资产名明确带 `InPlace`、`IP`、`INP` 的 `AnimSequence`；明确位于 `RootMotion`/`Root` 路径段或资产名带独立 `RM`/`Root` 标记的源不得导入。未标记但被精确策选的源只能作为候选，转换后还要过 GLB 数值门禁。使用 `AnimSequenceExporterFBX` + AssetExportTask（公共基础一节的用法）导出到 `D:\UnrealWorkspace\Cine57-exported\anims\`。源片段必须包含完整绝对骨骼姿态；先在 UE 侧确认 `AdditiveAnimType`，并把 Additive、Layered 或未烘焙控制器轨道烘焙到骨架后再导出。
 2. **FBX→GLB 与原地位移审计**：`node fbx2glb.mjs in.fbx out.glb`。转换后运行 `node scripts/animation/filter_animation_catalog_selection.cjs <candidate-selection.json> <glb-dir> <selection.json> [audit.json]`，检查 `root` 节点 translation 的每轴最大范围和首尾净位移是否都 `<= 0.03m`。没有 `root` translation 轨道是合法的原地结果；`pelvis` 局部升降、蹲伏和跳跃不作为全局移动判断。超限资产写入 `droppedClips`/审计报告，保留源 FBX/GLB，不通过改前端或清零骨盆来掩盖。
-3. **GLB 层重定向**：`python scripts/animation/retarget_ual2.py <source.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：源动画、基础角色、输出、名字）。绑定位姿差法：每根骨骼使用 `W_t := W_s · inv(W_s0) · W_t0`（`W_*0` = 各自绑定世界朝向），自顶向下解局部旋转；root/pelvis 平移只传递绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`，不能按绝对分量比例套用；目标侧只允许 `skins[].joints` 中的节点进入映射；输出四元数需为 VEC4、单位化并半球连续（相邻键 dot<0 取反）。旋转传递后脚本自动做臂链末端接触校正（以头关节为锚映射源手腕位置 + 两骨 IK），并在接触帧做 reach 门禁：手腕相对头关节的高度差与源不一致超过 5cm 即退出非零（`RETARGET_NO_ARM_IK=1` 关闭校正）。重定向完成后再次检查 root 位移，并复核手臂骨链的有限值、连续长度和手部可达性（比较手腕相对头的高度差而不是欧氏距离）；不能用运行时补偿修正导出错误。单条片段修正用 `scripts/animation/replace_catalog_animation.py` 保序替换进合并 GLB。
+3. **GLB 层重定向**：`python scripts/animation/retarget_ual2.py <source.glb> <UAL2_Standard.glb> <out.glb> <name>`（参数顺序：源动画、基础角色、输出、名字）。脚本先用绑定位姿差 `W_t := W_s · inv(W_s0) · W_t0`（`W_*0` = 各自绑定世界朝向）建立初始旋转，自顶向下解局部四元数；然后逐帧把躯干、颈部、锁骨、上臂、前臂和腿的源子骨方向对齐到目标同名骨段，不用通用胸腔瞄准补偿缺失的 `spine_04/05/neck_02`。root/pelvis 平移只传递绑定姿态相对增量 `T_t := T_t0 + s · (T_s - T_s0)`，不能按绝对分量比例套用；目标侧只允许 `skins[].joints` 中的节点进入映射；输出四元数需为 VEC4、单位化并半球连续（相邻键 dot<0 取反）。末端 IK 仅在源双手互相接近（最小腕间距不超过 `0.15m`）时两侧同时启用，或在单侧手腕接近头部（距离不超过 `0.20m`）时只启用接触侧；普通移动帧和腿链不受手部接触影响。`RETARGET_USE_LIMB_IK=1` 可对特殊动作显式强制全帧双臂与双腿，`RETARGET_NO_ARM_IK=1` 始终关闭；接触帧的 reach 门禁比较手腕相对头的方向/高度差与目标可达性，而不是只看欧氏距离。重定向完成后再次检查 root 位移，并复核各身体骨链的有限值、连续长度和方向；不能用运行时补偿修正导出错误。单条片段修正用 `scripts/animation/replace_catalog_animation.py` 保序替换进合并 GLB。
 4. **链式合并进同一个 GLB**：动画体积远小于角色网格体积，后续批量入库往 `UAL2_UE_Anims.glb` 追加，不要一片一段一段文件。目录条目用 `clipName` 指向其中的动画（`animationLibrary.ts`）。合并前后都要保持原地清单顺序和动作名。
 
 ### 动画硬规则（每条都是实打实的坑）
@@ -99,7 +99,7 @@ FBX 只带占位材质，真实外观要回 UE 里 introspect：
 
 - 仓库自检：`pnpm --filter @ai-novel/client typecheck`；
 - GLB 体检：解析 mesh/node 名单确认无 `UCX_*`/LOD 残留（模型）；解析 accessor 比对 count/type/四元数模长（动画）；
-- 动画内容门禁：`node scripts/animation/inPlaceAnimationPolicy.test.cjs`、`node scripts/animation/animationCatalogSelection.test.cjs`、`node scripts/animation/verify_animation_catalog.cjs scripts/animation/animationCatalogSelection.json client/public/anims/cine57/UAL2_UE_Anims.glb` 和 `node --experimental-strip-types --test client/src/config/animationLibraryContent.test.mjs`；
+- 动画内容门禁：`node scripts/animation/inPlaceAnimationPolicy.test.cjs`、`node scripts/animation/animationCatalogSelection.test.cjs`、`python -m unittest scripts/animation/test_run_forward_retarget.py -v`、`node scripts/animation/verify_animation_catalog.cjs scripts/animation/animationCatalogSelection.json client/public/anims/cine57/UAL2_UE_Anims.glb` 和 `node --experimental-strip-types --test client/src/config/animationLibraryContent.test.mjs`；
 - 浏览器 smoke：模型走 `/models` 页 + 3D 编辑器打开新模型（无白壳、贴图正确）；动画走 `/animations` 页预览弹窗（动作可见、逐帧变化、非 T-pose）；console 无错；
 - 产物入库一律走 AGENTS.md 的 codex/* worktree 工作流。
 
