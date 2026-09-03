@@ -73,4 +73,3 @@ resolveCharacterModelProfile()
 - 本阶段不把 UAL1、UAL2 或其他专用怪物骨架的动画强行混入 Manny/Quinn。
 - 不通过修改缩放、腰部瞄准或全帧 IK 来掩盖源骨架不一致。
 - 不删除 `Cine57-exported` 中已有运行证据或历史备份。
-

@@ -262,4 +262,3 @@ Run the focused tests from Tasks 1–5, `pnpm typecheck`, and the relevant clien
 `pnpm workflow:integrate codex/ue5-native-character-assets --push --verify "<focused command>"`，
 确认 `HEAD == origin/main`、主工作区干净、worktree 已清理。若真实 UE 验收因编辑器仍打开，
 保持分支未完成，不声称交付完成。
-
