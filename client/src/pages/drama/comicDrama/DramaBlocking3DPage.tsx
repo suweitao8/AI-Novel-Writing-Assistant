@@ -28,6 +28,10 @@ import {
   type DramaShotBlockingSketchPose,
 } from "@/api/media/drama";
 import { STORY_SCENE_3D_MARKERS_ENABLED } from "@ai-novel/shared/utils/scene3dMarkers";
+import type {
+  CharacterModelProfileId,
+  CharacterModelProfileOverride,
+} from "@ai-novel/shared/types/characterModelProfile";
 import { queryKeys } from "@/api/queryKeys";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -41,6 +45,7 @@ import {
   DEFAULT_BLOCKING_3D_CAMERA,
   projectBlocking3dActorToLegacy,
 } from "./components/blocking3d/blocking3dMath";
+import { CHARACTER_MODEL_PROFILE_LABELS } from "@/config/characterModelAssets";
 import {
   createBlocking3dViewer,
   type Blocking3dTransformTool,
@@ -198,6 +203,10 @@ export default function DramaBlocking3DPage() {
     useState<BlockingObjectSelectionId>(SCENE_OBJECT_ID);
   const [selectedPose, setSelectedPose] =
     useState<DramaShotBlockingSketchPose | null>(null);
+  const [selectedModelProfile, setSelectedModelProfile] =
+    useState<CharacterModelProfileId | null>(null);
+  const [selectedModelProfileOverride, setSelectedModelProfileOverride] =
+    useState<CharacterModelProfileOverride>("auto");
   const [selectedColor, setSelectedColor] = useState<RgbColor | null>(null);
   const [selectedTransform, setSelectedTransform] =
     useState<ReturnType<Blocking3dViewer["getSelectedTransform"]>>(null);
@@ -259,6 +268,10 @@ export default function DramaBlocking3DPage() {
             : SCENE_OBJECT_ID,
     );
     setSelectedPose(nextViewer.getSelectedPose());
+    setSelectedModelProfile(nextViewer.getSelectedModelProfile());
+    setSelectedModelProfileOverride(
+      nextViewer.getSelectedModelProfileOverride() ?? "auto",
+    );
     setSelectedColor(nextViewer.getSelectedColor());
     setSelectedTransform(nextViewer.getSelectedTransform());
     setCameraState(nextViewer.getCameraState());
@@ -297,7 +310,18 @@ export default function DramaBlocking3DPage() {
         try {
           const sources = currentContext.actors ?? [];
           sources.forEach((actor, index) =>
-            nextViewer.addActor(actor.characterName, index, actor.heightMeters),
+            nextViewer.addActor(
+              actor.characterName,
+              index,
+              actor.heightMeters,
+              undefined,
+              {
+                gender: actor.gender,
+                actorKind: actor.actorKind,
+                bodyBuild: actor.bodyBuild,
+                modelProfileOverride: actor.modelProfileOverride,
+              },
+            ),
           );
           const layout = initialLayout(currentContext);
           const hasSavedLayout = layout.actors.length > 0;
@@ -443,6 +467,13 @@ export default function DramaBlocking3DPage() {
           actor.characterName,
           actorIndex,
           actor.heightMeters,
+          undefined,
+          {
+            gender: actor.gender,
+            actorKind: actor.actorKind,
+            bodyBuild: actor.bodyBuild,
+            modelProfileOverride: actor.modelProfileOverride,
+          },
         ),
       );
       viewer.selectActor(actorName);
@@ -1177,6 +1208,44 @@ export default function DramaBlocking3DPage() {
                         },
                       ]}
                     />
+                  </InspectorComponentSection>
+                  <InspectorComponentSection title="角色模型">
+                    <InspectorPropertyList
+                      className="text-xs"
+                      items={[
+                        {
+                          label: "当前模型",
+                          value: selectedModelProfile
+                            ? CHARACTER_MODEL_PROFILE_LABELS[selectedModelProfile]
+                            : "—",
+                        },
+                      ]}
+                    />
+                    <label className="mt-3 block space-y-1.5 text-xs text-muted-foreground">
+                      <span>模型选择</span>
+                      <SelectControl
+                        aria-label="角色模型选择"
+                        value={selectedModelProfileOverride}
+                        disabled={saving || autoPlanning || !selectedName}
+                        onChange={(event) => {
+                          const value = event.target
+                            .value as CharacterModelProfileOverride;
+                          applyViewerAction((nextViewer) =>
+                            nextViewer.setSelectedModelProfile({
+                              gender: selectedActorContext.gender,
+                              actorKind: selectedActorContext.actorKind,
+                              bodyBuild: selectedActorContext.bodyBuild,
+                              modelProfileOverride: value,
+                            }),
+                          );
+                        }}
+                        className="h-9 w-full"
+                      >
+                        <option value="auto">跟随角色资料</option>
+                        <option value="manny">{CHARACTER_MODEL_PROFILE_LABELS.manny}</option>
+                        <option value="quinn">{CHARACTER_MODEL_PROFILE_LABELS.quinn}</option>
+                      </SelectControl>
+                    </label>
                   </InspectorComponentSection>
                   <InspectorComponentSection title="静态姿势">
                     <label className="block space-y-1.5 text-xs text-muted-foreground">

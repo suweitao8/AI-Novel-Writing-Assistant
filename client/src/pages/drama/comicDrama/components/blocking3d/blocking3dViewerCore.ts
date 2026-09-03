@@ -1,5 +1,11 @@
 import * as pc from "playcanvas";
 import {
+  resolveCharacterModelProfile,
+  type CharacterModelProfileId,
+  type CharacterModelProfileInput,
+  type CharacterModelProfileOverride,
+} from "@ai-novel/shared/types/characterModelProfile";
+import {
   STORY_SCENE_3D_DEFAULT_PANORAMA_HORIZON_V,
   STORY_SCENE_3D_DEFAULT_PROJECTION_CENTER_HEIGHT_RATIO,
 } from "@ai-novel/shared/types/comicDrama";
@@ -23,6 +29,7 @@ import {
   resolveBlocking3dPoseClip,
 } from "./blocking3dPose";
 import { BLOCKING_3D_BLUE_ACTOR_COLOR } from "./materials/actorMaterialRuntime";
+import { CHARACTER_MODEL_ASSET_URLS } from "@/config/characterModelAssets";
 
 export {
   BLOCKING_3D_ACTOR_JOINT_HIGHLIGHT_RATIO,
@@ -35,10 +42,11 @@ export {
 } from "./materials/actorMaterialRuntime";
 
 /**
- * 分镜草图与动画库共用的角色动画资源：模型和动作必须来自同一套 UAL2
- * 骨架，避免把 UAL1 动画轨道套到 UAL2 代理模型上造成关节错乱或 T-pose。
+ * 分镜草图与动画库共用的角色动画资源：模型和动作均来自 UE5 原生
+ * SK_Mannequin 骨架，Manny/Quinn 只负责体型选择，不经过重定向。
  */
-export const ACTOR_PROXY_URL = "/anims/cine57/UAL2_UE_Anims.glb";
+export const ACTOR_PROXY_URL = CHARACTER_MODEL_ASSET_URLS.manny;
+export const ACTOR_PROXY_URLS = CHARACTER_MODEL_ASSET_URLS;
 export const MAX_DEVICE_PIXEL_RATIO = 1.5;
 export const DEFAULT_FOV = 52;
 export const FALLBACK_AMBIENT_LIGHT = new pc.Color(0.28, 0.28, 0.28);
@@ -69,8 +77,8 @@ export const DEFAULT_CAMERA: DramaShotBlockingSketch3DCamera = {
   blurRadius: 3,
 };
 const ACTOR_COLORS = [
-  [0.78, 0.32, 0.28],
   BLOCKING_3D_BLUE_ACTOR_COLOR,
+  [0.78, 0.32, 0.28],
   [0.82, 0.59, 0.22],
   [0.39, 0.67, 0.44],
   [0.58, 0.39, 0.72],
@@ -111,6 +119,8 @@ export interface Blocking3dViewerActor {
   pose: DramaShotBlockingSketchPose;
   interactionModelId?: string;
   actionPlaying: boolean;
+  modelProfile: CharacterModelProfileId;
+  modelProfileOverride?: CharacterModelProfileOverride;
   color: [number, number, number];
   material: pc.StandardMaterial;
 }
@@ -293,6 +303,12 @@ export function colorForIndex(index: number): [number, number, number] {
   ];
 }
 
+export function resolveBlocking3dModelProfile(
+  input: CharacterModelProfileInput = {},
+): CharacterModelProfileId {
+  return resolveCharacterModelProfile(input);
+}
+
 export function loadAsset(
   app: pc.AppBase,
   url: string,
@@ -344,8 +360,8 @@ export function setAnimationPose(
   try {
     clip = resolveBlocking3dPoseClip(pose, tracks.keys());
   } catch (error) {
-    // UAL2 intentionally contains a smaller, verified pose set than the
-    // legacy schema. A saved layout may still contain an old pose; normalize
+    // The native smoke catalog intentionally contains a smaller, verified pose
+    // set than the legacy schema. A saved layout may still contain an old pose; normalize
     // that actor to standing instead of aborting the entire blocking scene.
     if (pose === "standing") throw error;
     appliedPose = "standing";

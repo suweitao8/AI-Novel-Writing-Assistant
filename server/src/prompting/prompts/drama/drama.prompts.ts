@@ -9,6 +9,9 @@ const sourceFactSchema = z.object({
 
 const sourceCharacterSchema = z.object({
   name: z.string().trim().min(1),
+  gender: z.enum(["male", "female", "other", "unknown"]).default("unknown"),
+  actorKind: z.enum(["human", "monster", "other", "unknown"]).default("human"),
+  bodyBuild: z.enum(["slender", "standard", "broad", "unknown"]).default("unknown"),
   persona: z.string().trim().optional(),
   relations: z.string().trim().optional(),
   visualHint: z.string().trim().optional(),

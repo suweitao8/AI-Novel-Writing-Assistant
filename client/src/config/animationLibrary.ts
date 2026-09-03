@@ -3,12 +3,18 @@ import {
   ANIMATION_CATALOG_PACKS,
   type AnimationCatalogEntry,
 } from "./animationCatalogEntries.ts";
+import { CHARACTER_MODEL_ASSET_URLS } from "./characterModelAssets.ts";
 import { matchesLibrarySearchQuery } from "./librarySearch.ts";
 
-/** 动画目录的来源。legacy 是网站原有目录，unreal 是从 Cine57/UE 资产策选并重定向到 UAL2 的新目录。 */
+/** 动画目录的来源。legacy 是网站原有目录，unreal 是从 Anim57 原生导入的 UE5 动作目录。 */
 export type AnimationLibrarySource = "legacy" | "unreal";
 
-export const ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
+/** 动画库预览默认使用 Manny；Quinn 与 Manny 共享同一套原生动画轨道。 */
+export const ANIMATION_LIBRARY_FILE_URL = CHARACTER_MODEL_ASSET_URLS.manny;
+/** 旧内置目录仍使用兼容包；原生 UE5 目录使用上面的 Manny/Quinn 配对包。 */
+export const LEGACY_ANIMATION_LIBRARY_FILE_URL = "/anims/cine57/UAL2_UE_Anims.glb";
+/** Native clips kept inside the paired GLB for runtime pose initialization, not shown as library entries. */
+export const ANIMATION_LIBRARY_INTERNAL_CLIP_NAMES = ["standing"] as const;
 /** 保留给旧的技术检查与外部调用方的 Cine57 标识。 */
 export const ANIMATION_LIBRARY_SOURCE = "Cine57";
 
@@ -436,7 +442,7 @@ function makeLegacyEntry(
     id,
     name,
     category: actionTypeLabel,
-    fileUrl: ANIMATION_LIBRARY_FILE_URL,
+    fileUrl: LEGACY_ANIMATION_LIBRARY_FILE_URL,
     clipName,
     durationSeconds,
     frameRate: LEGACY_FRAME_RATE_BY_CLIP[clipName] ?? 30,

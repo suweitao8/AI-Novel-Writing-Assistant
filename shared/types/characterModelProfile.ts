@@ -1,5 +1,7 @@
 import type { CharacterGender } from "./novelCharacter";
 
+export type { CharacterGender } from "./novelCharacter";
+
 /** UE5 mannequin-compatible character profiles used by blocking and animation preview. */
 export type CharacterModelProfileId = "manny" | "quinn";
 

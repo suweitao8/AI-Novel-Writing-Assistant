@@ -18,6 +18,8 @@ test("活动动画清单只保留指定的 Anim57 徒手攻击四条资源", () 
   assert.equal(selection.sourceProject, "Anim57");
   assert.equal(selection.sourceAssetRoot, ATTACK_ROOT);
   assert.equal(selection.motionPolicy, "explicit-per-clip");
+  assert.equal(selection.nativeBasePose?.sourceAssetPath, "/Game/Characters/Mannequins/Anims/Unarmed/MM_Idle");
+  assert.equal(selection.nativeBasePose?.clipName, "standing");
   assert.deepEqual(
     selection.clips.map((clip) => clip.sourceAssetName),
     EXPECTED_ASSETS,

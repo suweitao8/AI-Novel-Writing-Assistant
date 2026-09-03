@@ -34,27 +34,26 @@ test("统一 UAL2 动画文件的 Cine57 片段可用于分镜语义姿势", () 
   );
 });
 
-test("分镜姿势优先使用目录中的原地片段", () => {
+test("分镜姿势优先使用原生基础待机片段，并保留旧兼容动作", () => {
   const available = [
-    "C57_unreal_daily_male_locomotion_idle_break_01",
-    "C57_unreal_misc_clazy_walk_forward",
-    "C57_unreal_misc_clazy_jog_forward",
-    "C57_unreal_daily_male_locomotion_crouch_forward",
-    "C57_unreal_daily_dialogue_dialogue_idle",
-    "C57_unreal_interaction_activations_door_pull",
-    "C57_unreal_hand_combat_lucy_attack",
-    "C57_unreal_weapon_combat_sword_pro_weak_attack",
+    "standing",
     "A_INP_Idle",
     "A_INP_WalkFwd_Loop",
+    "Jog_Fwd_Loop",
+    "Crouch_Idle_Loop",
+    "Idle_Rail_Call",
+    "Chest_Open",
+    "Melee_Hook",
+    "Sword_Block",
   ];
-  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, available[0]);
-  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, available[1]);
-  assert.equal(resolveBlocking3dPoseClip("running", available).clipName, available[2]);
-  assert.equal(resolveBlocking3dPoseClip("crouching", available).clipName, available[3]);
-  assert.equal(resolveBlocking3dPoseClip("talking", available).clipName, available[4]);
-  assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, available[5]);
-  assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, available[6]);
-  assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, available[7]);
+  assert.equal(resolveBlocking3dPoseClip("standing", available).clipName, "standing");
+  assert.equal(resolveBlocking3dPoseClip("walking", available).clipName, "A_INP_WalkFwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("running", available).clipName, "Jog_Fwd_Loop");
+  assert.equal(resolveBlocking3dPoseClip("crouching", available).clipName, "Crouch_Idle_Loop");
+  assert.equal(resolveBlocking3dPoseClip("talking", available).clipName, "Idle_Rail_Call");
+  assert.equal(resolveBlocking3dPoseClip("interacting", available).clipName, "Chest_Open");
+  assert.equal(resolveBlocking3dPoseClip("fighting", available).clipName, "Melee_Hook");
+  assert.equal(resolveBlocking3dPoseClip("sword", available).clipName, "Sword_Block");
   assert.deepEqual(
     getBlocking3dPoseClipConfig("pointing").names.slice(0, 3),
     ["OverhandThrow", "Pistol_Aim_Neutral", "Spell_Simple_Shoot"],

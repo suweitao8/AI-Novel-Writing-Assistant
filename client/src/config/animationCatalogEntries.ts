@@ -79,9 +79,9 @@ export const ANIMATION_CATALOG_ENTRIES = [
     "sourceSkeleton": "/Game/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
     "motionMode": "root-motion",
     "inPlace": false,
-    "rootTranslationMaxRangeMeters": 1.509945,
+    "rootTranslationMaxRangeMeters": 1.506118,
     "rootTranslationMaxNetMeters": 1.506118,
-    "frameRate": 24,
+    "frameRate": 30,
     "durationSeconds": 1,
     "sourceDurationSeconds": 1,
     "catalogDurationSeconds": 1
@@ -111,9 +111,9 @@ export const ANIMATION_CATALOG_ENTRIES = [
     "sourceSkeleton": "/Game/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
     "motionMode": "root-motion",
     "inPlace": false,
-    "rootTranslationMaxRangeMeters": 0.905527,
+    "rootTranslationMaxRangeMeters": 0.9,
     "rootTranslationMaxNetMeters": 0.9,
-    "frameRate": 24,
+    "frameRate": 30,
     "durationSeconds": 1,
     "sourceDurationSeconds": 1,
     "catalogDurationSeconds": 1
@@ -143,12 +143,12 @@ export const ANIMATION_CATALOG_ENTRIES = [
     "sourceSkeleton": "/Game/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
     "motionMode": "root-motion",
     "inPlace": false,
-    "rootTranslationMaxRangeMeters": 2.160542,
+    "rootTranslationMaxRangeMeters": 2.16,
     "rootTranslationMaxNetMeters": 2.16,
-    "frameRate": 24,
-    "durationSeconds": 1.6667,
-    "sourceDurationSeconds": 1.6667,
-    "catalogDurationSeconds": 1.6667
+    "frameRate": 30,
+    "durationSeconds": 1.666667,
+    "sourceDurationSeconds": 1.666667,
+    "catalogDurationSeconds": 1.666667
   },
   {
     "id": "anim57-unarmed-attack-mm-charged-attack",
@@ -175,11 +175,11 @@ export const ANIMATION_CATALOG_ENTRIES = [
     "sourceSkeleton": "/Game/Characters/Mannequins/Meshes/SK_Mannequin.SK_Mannequin",
     "motionMode": "root-motion",
     "inPlace": false,
-    "rootTranslationMaxRangeMeters": 1.502794,
+    "rootTranslationMaxRangeMeters": 1.5,
     "rootTranslationMaxNetMeters": 1.5,
-    "frameRate": 24,
-    "durationSeconds": 1.8333,
-    "sourceDurationSeconds": 1.8333,
-    "catalogDurationSeconds": 1.8333
+    "frameRate": 30,
+    "durationSeconds": 1.833333,
+    "sourceDurationSeconds": 1.833333,
+    "catalogDurationSeconds": 1.833333
   }
 ] as const;

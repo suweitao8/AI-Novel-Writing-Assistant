@@ -38,6 +38,10 @@ export interface SourceCharacter {
   name: string;
   /** 角色性别（生图链路 GENDER LOCK 用）：male | female | other | unknown */
   gender?: "male" | "female" | "other" | "unknown";
+  /** 结构化演员类型，用于选择人形模型或怪物模型档位。 */
+  actorKind?: "human" | "monster" | "other" | "unknown";
+  /** 结构化体型档位，不从自由文本猜测。 */
+  bodyBuild?: "slender" | "standard" | "broad" | "unknown";
   /** 年龄段（child | youth | middle | elder），生图与选角用 */
   ageGroup?: "child" | "youth" | "middle" | "elder";
   persona?: string;

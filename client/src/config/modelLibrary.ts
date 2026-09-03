@@ -2,8 +2,9 @@
  * 模型库目录：内置常用模型的静态清单。
  *
  * 模型文件放在 client/public/models/ 下由前端静态服务；目录只是数据，
- * 不做任何运行时探测。数据来自 Cine57（UE 5.7）经 FBX + FBX2glTF 的
- * 导出管线（见 docs/wiki/product/model-library.md），几何单位已是米。
+ * 不做任何运行时探测。道具数据来自 Cine57（UE 5.7）经 FBX + FBX2glTF 的
+ * 导出管线，角色数据来自 Anim57（UE 5.7）的原生 GLTFExporter 管线
+ * （见 docs/wiki/product/model-library.md），几何单位已是米。
  * materials 把 FBX 带出的材质资源名映射到真实贴图，运行时由
  * modelLibrary3d/modelMaterials.ts 回填到 PlayCanvas 材质上。
  */
@@ -538,7 +539,9 @@ const MODEL_LIBRARY_BASE: Omit<ModelLibraryEntry, "usage">[] = [
   { id: "towel-set-01a", name: "毛巾组", category: "卫浴", fileName: "SM_Towel_Set_01a.glb", fileUrl: "/models/cine57/SM_Towel_Set_01a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 52, materials: {"MI_Towel_Set_01a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Towel_Set_01a_ALB.TX_Towel_Set_01a_ALB_baseColor.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Towel_Set_01a_NRM.TX_Towel_Set_01a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Towel_Set_01a_RMA.TX_Towel_Set_01a_RMA.jpg"}} },
   { id: "trashcan-01a", name: "垃圾桶", category: "卫浴", fileName: "SM_Trashcans_01a.glb", fileUrl: "/models/cine57/SM_Trashcans_01a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 298, materials: {"MI_Trashcans_01a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Trashcans_01a_ALB.TX_Trashcans_01a_ALB_baseColor.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Trashcans_01a_NRM.TX_Trashcans_01a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Trashcans_01a_RMA.TX_Trashcans_01a_RMA.jpg"}} },
   { id: "urinal-01a", name: "小便器", category: "卫浴", fileName: "SM_Urinal_01a.glb", fileUrl: "/models/cine57/SM_Urinal_01a.glb", unitScale: 1, source: CINE57_SOURCE, sizeKb: 361, materials: {"MI_Urinal_01a":{"baseColor":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Urinal_01a_ALB.TX_Urinal_01a_ALB_baseColor.jpg","normal":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Urinal_01a_NRM.TX_Urinal_01a_NRM_normal.jpg","rma":"/models/cine57/tex/_EnvHouse_Suburban_Household_VOL15_Bathroom_Textures_TX_Urinal_01a_RMA.TX_Urinal_01a_RMA.jpg"}} },
-  { id: "ual2-college-student", name: "UAL2 角色模型", category: "角色", fileName: "UAL2_UE_Anims.glb", fileUrl: "/anims/cine57/UAL2_UE_Anims.glb", unitScale: 1, source: "Cine57 / UAL2", sizeKb: 8242, materials: { "M_Main": { tint: [0.24, 0.52, 0.82] }, "M_Joints": { tint: [0.5592, 0.7216, 0.8956] }, "M_Neck": { tint: [0.24, 0.52, 0.82] } } },
+  { id: "ue5-manny", name: "UE5 Manny（男性默认）", category: "角色", fileName: "UE5_Manny_Animations.glb", fileUrl: "/anims/ue5/UE5_Manny_Animations.glb", unitScale: 1, source: "Anim57 / UE5", sizeKb: 5248, materials: { "M_Main": { tint: [0.24, 0.52, 0.82] }, "M_Joints": { tint: [0.5592, 0.7216, 0.8956] }, "M_Neck": { tint: [0.24, 0.52, 0.82] } } },
+  { id: "ue5-quinn", name: "UE5 Quinn（女性默认）", category: "角色", fileName: "UE5_Quinn_Animations.glb", fileUrl: "/anims/ue5/UE5_Quinn_Animations.glb", unitScale: 1, source: "Anim57 / UE5", sizeKb: 5050, materials: { "M_Main": { tint: [0.24, 0.52, 0.82] }, "M_Joints": { tint: [0.5592, 0.7216, 0.8956] }, "M_Neck": { tint: [0.24, 0.52, 0.82] } } },
+  { id: "ual2-college-student", name: "UAL2 旧角色模型（兼容）", category: "角色", fileName: "UAL2_UE_Anims.glb", fileUrl: "/anims/cine57/UAL2_UE_Anims.glb", unitScale: 1, source: "Cine57 / UAL2 / Legacy", sizeKb: 8242, materials: { "M_Main": { tint: [0.24, 0.52, 0.82] }, "M_Joints": { tint: [0.5592, 0.7216, 0.8956] }, "M_Neck": { tint: [0.24, 0.52, 0.82] } } },
 ];
 
 export const MODEL_LIBRARY: ModelLibraryEntry[] = attachModelUsageInstructions(MODEL_LIBRARY_BASE);

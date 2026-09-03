@@ -236,6 +236,9 @@ function assertProjectNotOpen(projectPath) {
 }
 
 function assertSelection(selection, projectPath) {
+  if (selection.target !== "UAL2") {
+    throw new Error(`旧 UAL2 导入入口只接受 target=UAL2，当前清单为：${selection.target}`);
+  }
   if (selection.sourceProject !== "Anim57") {
     throw new Error(`本次验证要求 sourceProject=Anim57，实际为：${selection.sourceProject}`);
   }
